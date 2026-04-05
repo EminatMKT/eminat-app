@@ -30,6 +30,7 @@ const NOMBRES: Record<string, string> = {
   'DG_Joselyn': 'Joselyn Guerrero',
   'DGA_David': 'David Falconi',
   'Jonathan_CRM': 'Jonathan Bula',
+  'D_Jonathan': 'Jonathan Bula',
   'DG_Ariana': 'Ariana Sig-Tú',
   'CM_ Naomi': 'Naomi Panchana',
   'EV_Bryan': 'Bryan Nuñez',
@@ -40,6 +41,7 @@ const TIPOS: Record<string, string> = {
   'DG_Joselyn': 'Tipo A — 8h/día · 160h/mes',
   'DGA_David': 'Tipo A — 8h/día · 160h/mes',
   'Jonathan_CRM': 'Tipo A — 8h/día · 160h/mes',
+  'D_Jonathan': 'Tipo A — 8h/día · 160h/mes',
   'DG_Ariana': 'Tipo B — 6h/día · 120h/mes',
   'CM_ Naomi': 'Tipo B — 6h/día · 120h/mes',
   'EV_Bryan': 'Tipo B — 6h/día · 120h/mes',
@@ -67,16 +69,17 @@ export default function PagosPage() {
   }, [])
 
   const meses = ORDEN_MESES.filter(m => actividades.some(a => a.mes === m))
-  const filtradas = actividades.filter(a => a.mes === mesActual)
 
-  const miembros = filtradas
+  // Todos los miembros únicos sin filtrar por mes
+  const miembros = actividades
     .map(a => a.responsable_ref)
     .filter(Boolean)
     .filter((m, i, arr) => arr.indexOf(m) === i)
-    .sort()
+    .sort((a, b) => (NOMBRES[a] || a).localeCompare(NOMBRES[b] || b))
 
   const calcularResumen = (nombre: string): ResumenMiembro => {
     const esFreddy = nombre === 'Coord_MFreddy'
+    const filtradas = actividades.filter(a => a.mes === mesActual)
     const tareasList = filtradas.filter(a => {
       if (esFreddy) return a.responsable_ref === nombre || (a.solicitado_por || '').toLowerCase().includes('freddy')
       return a.responsable_ref === nombre
@@ -214,7 +217,10 @@ export default function PagosPage() {
 
                 {/* Tabla */}
                 {resumen.tareasList.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400">No hay tareas para este período.</div>
+                  <div className="text-center py-12 text-gray-400">
+                    <p className="text-4xl mb-3">📭</p>
+                    <p>No hay tareas registradas para <strong>{NOMBRES[miembroSeleccionado] || miembroSeleccionado}</strong> en <strong>{mesActual}</strong></p>
+                  </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
@@ -255,7 +261,7 @@ export default function PagosPage() {
                 )}
 
                 {/* Totales */}
-                <div className="bg-blue-900 text-white p-6 grid grid-cols-3 sm:grid-cols-6 gap-4 text-center">
+                <div className="bg-blue-900 text-white p-6 grid grid-cols-3 sm:grid-cols-5 gap-4 text-center">
                   <div>
                     <p className="text-2xl font-bold">{resumen.tareas}</p>
                     <p className="text-xs opacity-80 mt-1 font-medium">Total Tareas</p>
@@ -277,10 +283,6 @@ export default function PagosPage() {
                       {resumen.tareas > 0 ? Math.round((resumen.completadas / resumen.tareas) * 100) : 0}%
                     </p>
                     <p className="text-xs opacity-80 mt-1 font-medium">Efectividad</p>
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{mesActual}</p>
-                    <p className="text-xs opacity-80 mt-1 font-medium">Período</p>
                   </div>
                 </div>
 
