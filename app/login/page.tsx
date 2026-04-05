@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Player } from '@lottiefiles/react-lottie-player'
 
 const ZONAS = [
   { ciudad: 'Ecuador', zona: 'America/Guayaquil', emoji: '🇪🇨' },
@@ -170,17 +171,24 @@ export default function LoginPage() {
           eminat app
         </div>
 
-        <div>
-          <h2 style={{ fontFamily: 'Syne', fontSize: 48, fontWeight: 800, lineHeight: 1, letterSpacing: '-.04em', marginBottom: 20 }}>
+        {/* Perrito Lottie */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Player
+            autoplay
+            loop
+            src="https://assets2.lottiefiles.com/packages/lf20_syqnfe7c.json"
+            style={{ height: 200, width: 200 }}
+          />
+          <h2 style={{ fontFamily: 'Syne', fontSize: 40, fontWeight: 800, lineHeight: 1, letterSpacing: '-.04em', marginBottom: 16, textAlign: 'center' }}>
             El sistema<br />del holding<br />
             <span style={{ color: '#7C6FF7' }}>Eminat.</span>
           </h2>
-          <p style={{ color: 'var(--t2)', fontSize: 15, lineHeight: 1.65, maxWidth: 380 }}>
+          <p style={{ color: 'var(--t2)', fontSize: 14, lineHeight: 1.65, maxWidth: 340, textAlign: 'center' }}>
             Accede con tu email corporativo para gestionar solicitudes, ver el estado de producción y coordinar con el equipo.
           </p>
         </div>
 
-        {/* Relojes mundiales */}
+        {/* Relojes y dominios */}
         <div>
           <div style={{ fontSize: 11, fontFamily: 'DM Mono', color: 'var(--t3)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '.1em' }}>
             Hora mundial
