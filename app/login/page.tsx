@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -27,6 +27,7 @@ export default function LoginPage() {
   const [apellido, setApellido] = useState('')
   const [sent, setSent] = useState(false)
   const [horas, setHoras] = useState<string[]>([])
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
 
   const DOMINIOS_VALIDOS = ['@eminat.net', '@emc.health', '@vivinegretefoundation.org']
@@ -36,6 +37,7 @@ export default function LoginPage() {
   }
 
   useEffect(() => {
+    setMounted(true)
     const actualizar = () => {
       const ahora = new Date()
       setHoras(ZONAS.map(z =>
@@ -135,7 +137,7 @@ export default function LoginPage() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', background: 'var(--bg)' }}>
-      {/* LEFT — Branding */}
+      {/* LEFT */}
       <div style={{
         flex: 1, background: 'var(--s1)', padding: '60px 60px',
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
@@ -146,13 +148,13 @@ export default function LoginPage() {
           eminat app
         </div>
 
-        {/* Spline 3D */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <div style={{ width: '100%', height: 280, borderRadius: 16, overflow: 'hidden', marginBottom: 24 }}>
-            <Suspense fallback={<div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--t3)', fontSize: 13 }}>Cargando...</div>}>
+          {/* Spline 3D — solo se renderiza en el cliente */}
+          {mounted && (
+            <div style={{ width: '100%', height: 260, borderRadius: 16, overflow: 'hidden', marginBottom: 24 }}>
               <Spline scene="https://prod.spline.design/hatduck-zzKB2P067N62jbSxMxmXqxKo/scene.splinecode" />
-            </Suspense>
-          </div>
+            </div>
+          )}
           <h2 style={{ fontFamily: 'Syne', fontSize: 40, fontWeight: 800, lineHeight: 1, letterSpacing: '-.04em', marginBottom: 16, textAlign: 'center' }}>
             El sistema<br />del holding<br />
             <span style={{ color: '#7C6FF7' }}>Eminat.</span>
@@ -162,7 +164,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Relojes y dominios */}
         <div>
           <div style={{ fontSize: 11, fontFamily: 'DM Mono', color: 'var(--t3)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '.1em' }}>
             Hora mundial
@@ -190,7 +191,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* RIGHT — Form */}
+      {/* RIGHT */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 40px' }}>
         <div style={{ maxWidth: 440, width: '100%' }}>
           {mode !== 'reset' && (
