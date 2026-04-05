@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -29,6 +29,14 @@ const ESTADO_COLORS: Record<string, string> = {
   'Pendiente': '#9494B3',
 }
 
+const CARGOS: Record<string, string> = {
+  'superadmin': 'Coordinador de Marketing',
+  'coordinador': 'Coordinador',
+  'colaborador': 'Colaborador Creativo',
+  'pasante': 'Pasante',
+  'externo': 'Externo',
+}
+
 export default function DashboardPage() {
   const [usuario, setUsuario] = useState<any>(null)
   const [actividades, setActividades] = useState<any[]>([])
@@ -38,7 +46,24 @@ export default function DashboardPage() {
   const [dark, setDark] = useState(true)
   const [trimestre, setTrimestre] = useState('General')
   const [horaActual, setHoraActual] = useState('')
+  const [onlineCount, setOnlineCount] = useState(0)
   const router = useRouter()
+
+  const actualizarHeartbeat = useCallback(async (userId: string) => {
+    await supabase
+      .from('usuarios')
+      .update({ online_at: new Date().toISOString() })
+      .eq('id', userId)
+  }, [])
+
+  const contarOnline = useCallback(async () => {
+    const hace5min = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+    const { count } = await supabase
+      .from('usuarios')
+      .select('*', { count: 'exact', head: true })
+      .gte('online_at', hace5min)
+    setOnlineCount(count || 0)
+  }, [])
 
   useEffect(() => {
     cargarDashboard()
@@ -54,6 +79,16 @@ export default function DashboardPage() {
 
     const { data: usr } = await supabase.from('usuarios').select('*').eq('email', user.email).single()
     setUsuario(usr)
+
+    if (usr?.id) {
+      await actualizarHeartbeat(usr.id)
+      const heartbeat = setInterval(async () => {
+        await actualizarHeartbeat(usr.id)
+        await contarOnline()
+      }, 30000)
+      await contarOnline()
+      window.addEventListener('beforeunload', () => clearInterval(heartbeat))
+    }
 
     const { data: acts } = await supabase.from('actividades').select('*').order('fecha_entrega', { ascending: false })
     setActividades(acts || [])
@@ -85,22 +120,17 @@ export default function DashboardPage() {
   const totalHoras = actsFiltradas.reduce((acc, a) => acc + (Number(a.horas) || 0), 0)
   const totalDias = actsFiltradas.reduce((acc, a) => acc + (Number(a.dias_produccion) || 0), 0)
 
-  // Datos por mes para gráfico
   const mesesGrafico = trimestre === 'General'
     ? ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
     : mesesQ.map(m => m.slice(0, 3))
-  const mesesFull = trimestre === 'General'
-    ? MESES_Q['General']
-    : mesesQ
+  const mesesFull = trimestre === 'General' ? MESES_Q['General'] : mesesQ
   const datosPorMes = mesesFull.map((mes, i) => ({
     mes: mesesGrafico[i],
     total: actividades.filter(a => a.mes === mes).length,
     completadas: actividades.filter(a => a.mes === mes && a.estado === 'Completado').length,
-    horas: actividades.filter(a => a.mes === mes).reduce((acc, a) => acc + (Number(a.horas) || 0), 0),
   }))
   const maxTotal = Math.max(...datosPorMes.map(d => d.total), 1)
 
-  // Producción por marca
   const datosPorMarca = MARCAS.map(m => ({
     ...m,
     total: actsFiltradas.filter(a => a.area_ref === m.codigo).length,
@@ -108,7 +138,6 @@ export default function DashboardPage() {
   })).filter(m => m.total > 0)
   const maxMarca = Math.max(...datosPorMarca.map(d => d.total), 1)
 
-  // Por miembro
   const datosPorMiembro = ['DG_Joselyn','DGA_David','Jonathan_CRM','DG_Ariana','CM_ Naomi','EV_Bryan','Coord_MFreddy'].map(ref => ({
     ref,
     nombre: ref.replace('DG_','').replace('DGA_','').replace('_CRM','').replace('CM_ ','').replace('EV_','').replace('Coord_M',''),
@@ -118,15 +147,16 @@ export default function DashboardPage() {
   })).filter(d => d.total > 0).sort((a, b) => b.total - a.total)
   const maxMiembro = Math.max(...datosPorMiembro.map(d => d.total), 1)
 
-  // Horas disponibles (8h por día laboral restante del mes)
   const hoy = new Date()
   const diasRestantes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate() - hoy.getDate()
   const horasDisponibles = diasRestantes * 8
 
-  // Equipo online (conectados hoy)
-  const equipoOnline = equipo.filter(u => u.estado_hoy === 'presente')
+  const equipoOnline = equipo.filter(u => {
+    const userInfo = usuarios.find(us => us.nombre === u.nombre)
+    if (!userInfo?.online_at) return false
+    return new Date(userInfo.online_at) > new Date(Date.now() - 5 * 60 * 1000)
+  })
 
-  // Colores tema
   const bg = dark ? '#0A0A0F' : '#F5F5F7'
   const s1 = dark ? '#111118' : '#FFFFFF'
   const s2 = dark ? '#1A1A24' : '#F0F0F5'
@@ -135,6 +165,8 @@ export default function DashboardPage() {
   const t2 = dark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)'
   const t3 = dark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.28)'
   const accent = '#7C6FF7'
+
+  const cargo = CARGOS[usuario?.rol] || usuario?.rol || 'Colaborador'
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: bg }}>
@@ -146,7 +178,8 @@ export default function DashboardPage() {
     <div style={{ display: 'flex', height: '100vh', background: bg, color: t1, fontFamily: 'DM Sans, sans-serif', transition: 'background .3s, color .3s' }}>
 
       {/* SIDEBAR */}
-      <aside style={{ width: 216, background: s1, borderRight: `1px solid ${border}`, display: 'flex', flexDirection: 'column', flexShrink: 0, transition: 'background .3s' }}>
+      <aside style={{ width: 220, background: s1, borderRight: `1px solid ${border}`, display: 'flex', flexDirection: 'column', flexShrink: 0, transition: 'background .3s' }}>
+        {/* Logo */}
         <div style={{ padding: '18px 16px 14px', borderBottom: `1px solid ${border}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'Syne', fontWeight: 800, fontSize: 15, color: t1 }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: accent, boxShadow: `0 0 10px ${accent}` }} />
@@ -154,7 +187,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <nav style={{ padding: '10px 7px', flex: 1, overflowY: 'auto' }}>
+        {/* Nav */}
+        <nav style={{ padding: '10px 7px', overflowY: 'auto', flex: 1 }}>
           {[
             { icon: '🏠', label: 'Dashboard', href: '/dashboard', active: true },
             { icon: '📋', label: 'Solicitudes', href: '/solicitudes' },
@@ -189,18 +223,48 @@ export default function DashboardPage() {
               {a.codigo}
             </div>
           ))}
-        </nav>
 
-        <div style={{ padding: '12px 14px', borderTop: `1px solid ${border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 30, height: 30, borderRadius: '50%', background: usuario?.color || accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white', flexShrink: 0 }}>
-            {usuario?.nombre?.[0]}{usuario?.apellido?.[0]}
+          {/* TARJETA USUARIO */}
+          <div style={{ margin: '12px 4px 0', padding: '12px', borderRadius: 12, background: `${accent}10`, border: `1px solid ${accent}25` }}>
+            {/* Avatar + nombre */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: usuario?.color || accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'white' }}>
+                  {usuario?.nombre?.[0]}{usuario?.apellido?.[0]}
+                </div>
+                <div style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: '50%', background: '#34D399', border: `2px solid ${s1}` }} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: t1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{usuario?.nombre} {usuario?.apellido}</div>
+                <div style={{ fontSize: 10, color: accent, fontWeight: 500 }}>{cargo}</div>
+              </div>
+            </div>
+
+            {/* Ubicación */}
+            <div style={{ fontSize: 10, color: t3, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span>📍</span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{usuario?.ubicacion || 'Guayaquil, Ecuador'}</span>
+            </div>
+
+            {/* Reuniones del día */}
+            <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>
+              Reuniones hoy
+            </div>
+            <div style={{ background: `${accent}08`, borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
+              <div style={{ fontSize: 10, color: t3, lineHeight: 1.4 }}>
+                🔗 Conecta Google Calendar para ver tus reuniones
+              </div>
+              <button style={{ marginTop: 6, fontSize: 10, color: accent, background: 'none', border: `1px solid ${accent}40`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontFamily: 'DM Sans' }}>
+                Conectar →
+              </button>
+            </div>
+
+            {/* Logout */}
+            <button onClick={handleLogout} style={{ width: '100%', marginTop: 10, padding: '6px', borderRadius: 8, border: `1px solid ${border}`, background: 'transparent', color: t3, fontSize: 11, cursor: 'pointer', fontFamily: 'DM Sans' }}>
+              ↩ Cerrar sesión
+            </button>
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: t1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{usuario?.nombre}</div>
-            <div style={{ fontSize: 10, color: t3 }}>{usuario?.rol}</div>
-          </div>
-          <button onClick={handleLogout} style={{ background: 'transparent', border: 'none', color: t3, fontSize: 15, cursor: 'pointer' }} title="Cerrar sesión">↩</button>
-        </div>
+        </nav>
       </aside>
 
       {/* MAIN */}
@@ -215,9 +279,10 @@ export default function DashboardPage() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Online indicator — siempre activo si está en la web */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 20, background: '#34D39915', border: '1px solid #34D39940' }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34D399', animation: 'pulse 2s infinite' }} />
-              <span style={{ fontSize: 11, color: '#34D399', fontWeight: 500 }}>{equipoOnline.length} online</span>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34D399' }} />
+              <span style={{ fontSize: 11, color: '#34D399', fontWeight: 500 }}>{onlineCount > 0 ? onlineCount : 1} online</span>
             </div>
             <button onClick={() => setDark(!dark)} style={{ padding: '6px 12px', borderRadius: 20, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 11, cursor: 'pointer', fontWeight: 500 }}>
               {dark ? '☀️ Light' : '🌙 Dark'}
@@ -246,7 +311,7 @@ export default function DashboardPage() {
             </span>
           </div>
 
-          {/* KPIs FILA 1 */}
+          {/* KPIs */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10, marginBottom: 14 }}>
             {[
               { label: 'Total Tareas', value: totalQ, color: accent, sub: 'actividades' },
@@ -267,10 +332,10 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* GRÁFICOS + EQUIPO */}
+          {/* GRÁFICOS */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 280px', gap: 12, marginBottom: 14 }}>
 
-            {/* Gráfico por mes */}
+            {/* Por mes */}
             <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px', transition: 'background .3s' }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 4 }}>Producción por mes</div>
               <div style={{ fontSize: 10, color: t3, marginBottom: 12 }}>{trimestre}</div>
@@ -282,7 +347,7 @@ export default function DashboardPage() {
                       <div style={{ flex: 1, background: `${accent}25`, borderRadius: '3px 3px 0 0', height: `${(d.total / maxTotal) * 100}%`, minHeight: d.total > 0 ? 3 : 0 }} />
                       <div style={{ flex: 1, background: '#34D399', borderRadius: '3px 3px 0 0', height: `${(d.completadas / maxTotal) * 100}%`, minHeight: d.completadas > 0 ? 3 : 0 }} />
                     </div>
-                    <div style={{ fontSize: 9, color: t3, textAlign: 'center' }}>{d.mes}</div>
+                    <div style={{ fontSize: 9, color: t3 }}>{d.mes}</div>
                   </div>
                 ))}
               </div>
@@ -296,7 +361,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Gráfico por marca */}
+            {/* Por marca */}
             <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px', transition: 'background .3s' }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 4 }}>Por marca</div>
               <div style={{ fontSize: 10, color: t3, marginBottom: 12 }}>{trimestre}</div>
@@ -312,8 +377,6 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
-
-              {/* Donut simple */}
               <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
                 {[
                   { label: 'Completado', value: pctCompletado, color: '#34D399' },
@@ -337,13 +400,15 @@ export default function DashboardPage() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#34D399' }}>
                   <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34D399' }} />
-                  {equipoOnline.length} online
+                  {onlineCount > 0 ? onlineCount : 1} online
                 </div>
               </div>
               <div style={{ overflowY: 'auto', maxHeight: 220 }}>
                 {equipo.map(u => {
                   const userInfo = usuarios.find(us => us.nombre === u.nombre)
-                  const isOnline = u.estado_hoy === 'presente'
+                  const isOnline = userInfo?.online_at
+                    ? new Date(userInfo.online_at) > new Date(Date.now() - 5 * 60 * 1000)
+                    : u.estado_hoy === 'presente'
                   return (
                     <div key={u.id} style={{ padding: '9px 14px', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', gap: 9 }}>
                       <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -358,7 +423,7 @@ export default function DashboardPage() {
                           📍 {userInfo?.ubicacion || 'Guayaquil, Ecuador'}
                         </div>
                         <div style={{ fontSize: 9, color: isOnline ? '#34D399' : t3 }}>
-                          {isOnline ? `⏰ Entrada ${u.hora_entrada?.slice(11, 16)}` : u.estado_hoy === 'sin_marcacion' ? 'Pasante' : 'Sin registrar'}
+                          {isOnline ? `● Activo ahora` : u.estado_hoy === 'presente' ? `⏰ ${u.hora_entrada?.slice(11, 16)}` : u.estado_hoy === 'sin_marcacion' ? 'Pasante' : 'Sin registrar'}
                         </div>
                       </div>
                     </div>
@@ -370,8 +435,6 @@ export default function DashboardPage() {
 
           {/* ACTIVIDADES + RANKING */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 12 }}>
-
-            {/* Actividades recientes */}
             <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', transition: 'background .3s' }}>
               <div style={{ padding: '12px 16px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
@@ -394,7 +457,6 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            {/* Ranking por miembro */}
             <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', transition: 'background .3s' }}>
               <div style={{ padding: '12px 14px', borderBottom: `1px solid ${border}` }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>Tareas por miembro</div>
