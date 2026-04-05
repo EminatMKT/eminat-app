@@ -92,7 +92,6 @@ export default function PagosPage() {
   }
 
   const resumen = miembroSeleccionado ? calcularResumen(miembroSeleccionado) : null
-
   const hoy = new Date().toLocaleDateString('es-EC', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
   if (loading) return (
@@ -121,27 +120,33 @@ export default function PagosPage() {
                 <h2 className="text-lg font-semibold text-gray-800 mb-6">Generar Reporte</h2>
 
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">👤 Responsable</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">👤 Responsable</label>
                   <select
                     value={miembroSeleccionado}
                     onChange={e => setMiembroSeleccionado(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="">Selecciona un miembro...</option>
+                    <option value="" style={{ color: '#6B7280' }}>Selecciona un miembro...</option>
                     {miembros.map(m => (
-                      <option key={m} value={m}>{NOMBRES[m] || m}</option>
+                      <option key={m} value={m} style={{ color: '#111827', fontWeight: 500 }}>
+                        {NOMBRES[m] || m}
+                      </option>
                     ))}
                   </select>
                 </div>
 
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">📅 Mes</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">📅 Mes</label>
                   <select
                     value={mesActual}
                     onChange={e => setMesActual(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{ color: '#111827', backgroundColor: '#ffffff' }}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    {meses.map(m => <option key={m} value={m}>{m}</option>)}
+                    {meses.map(m => (
+                      <option key={m} value={m} style={{ color: '#111827' }}>{m}</option>
+                    ))}
                   </select>
                 </div>
 
@@ -159,7 +164,7 @@ export default function PagosPage() {
               <div className="flex items-center justify-between mb-6">
                 <button
                   onClick={() => setVistaReporte(false)}
-                  className="text-sm text-gray-500 hover:text-gray-800 flex items-center gap-1"
+                  className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1 font-medium"
                 >
                   ← Nuevo reporte
                 </button>
@@ -171,7 +176,6 @@ export default function PagosPage() {
                 </button>
               </div>
 
-              {/* Reporte */}
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                 {/* Header */}
                 <div className="bg-blue-900 text-white p-6 text-center">
@@ -184,20 +188,20 @@ export default function PagosPage() {
                 {/* Info */}
                 <div className="grid grid-cols-2 gap-4 p-6 bg-blue-50 border-b border-blue-100">
                   <div>
-                    <p className="text-xs text-gray-500">Colaborador</p>
-                    <p className="font-bold text-blue-900">{NOMBRES[miembroSeleccionado] || miembroSeleccionado}</p>
+                    <p className="text-xs text-gray-500 mb-1">Colaborador</p>
+                    <p className="font-bold text-blue-900 text-sm">{NOMBRES[miembroSeleccionado] || miembroSeleccionado}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Jornada</p>
-                    <p className="font-bold text-blue-900">{TIPOS[miembroSeleccionado] || '—'}</p>
+                    <p className="text-xs text-gray-500 mb-1">Jornada</p>
+                    <p className="font-bold text-blue-900 text-sm">{TIPOS[miembroSeleccionado] || '—'}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Período</p>
-                    <p className="font-bold text-blue-900">{mesActual} 2026</p>
+                    <p className="text-xs text-gray-500 mb-1">Período</p>
+                    <p className="font-bold text-blue-900 text-sm">{mesActual} 2026</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Fecha de reporte</p>
-                    <p className="font-bold text-blue-900">{hoy}</p>
+                    <p className="text-xs text-gray-500 mb-1">Fecha de reporte</p>
+                    <p className="font-bold text-blue-900 text-sm">{hoy}</p>
                   </div>
                 </div>
 
@@ -229,15 +233,15 @@ export default function PagosPage() {
                         {resumen.tareasList.map((t, i) => (
                           <tr key={t.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                             <td className="px-3 py-2 text-center text-gray-500">{i + 1}</td>
-                            <td className="px-3 py-2 text-gray-800">{t.titulo}</td>
+                            <td className="px-3 py-2 text-gray-800 font-medium">{t.titulo}</td>
                             <td className="px-3 py-2 text-center">
-                              <span className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-xs">{t.area_ref}</span>
+                              <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded font-medium">{t.area_ref}</span>
                             </td>
-                            <td className="px-3 py-2 text-center text-gray-600">{t.dias_produccion || '—'}</td>
-                            <td className="px-3 py-2 text-center text-gray-600">{t.horas ? `${t.horas}h` : '—'}</td>
-                            <td className="px-3 py-2 text-center text-gray-600">{t.mes}</td>
+                            <td className="px-3 py-2 text-center text-gray-700">{t.dias_produccion || '—'}</td>
+                            <td className="px-3 py-2 text-center text-gray-700">{t.horas ? `${t.horas}h` : '—'}</td>
+                            <td className="px-3 py-2 text-center text-gray-700">{t.mes}</td>
                             <td className="px-3 py-2 text-center">
-                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              <span className={`px-2 py-0.5 rounded-full font-medium ${
                                 t.estado === 'Completado' ? 'bg-green-100 text-green-700' :
                                 t.estado === 'En proceso' ? 'bg-blue-100 text-blue-700' :
                                 'bg-yellow-100 text-yellow-700'
@@ -254,45 +258,47 @@ export default function PagosPage() {
                 <div className="bg-blue-900 text-white p-6 grid grid-cols-3 sm:grid-cols-6 gap-4 text-center">
                   <div>
                     <p className="text-2xl font-bold">{resumen.tareas}</p>
-                    <p className="text-xs opacity-70 mt-1">Total Tareas</p>
+                    <p className="text-xs opacity-80 mt-1 font-medium">Total Tareas</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{resumen.dias}</p>
-                    <p className="text-xs opacity-70 mt-1">Días Producción</p>
+                    <p className="text-xs opacity-80 mt-1 font-medium">Días Producción</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{resumen.horas}h</p>
-                    <p className="text-xs opacity-70 mt-1">Horas</p>
+                    <p className="text-xs opacity-80 mt-1 font-medium">Horas</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{resumen.completadas}</p>
-                    <p className="text-xs opacity-70 mt-1">Completadas</p>
+                    <p className="text-xs opacity-80 mt-1 font-medium">Completadas</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{resumen.tareas > 0 ? Math.round((resumen.completadas / resumen.tareas) * 100) : 0}%</p>
-                    <p className="text-xs opacity-70 mt-1">Efectividad</p>
+                    <p className="text-2xl font-bold">
+                      {resumen.tareas > 0 ? Math.round((resumen.completadas / resumen.tareas) * 100) : 0}%
+                    </p>
+                    <p className="text-xs opacity-80 mt-1 font-medium">Efectividad</p>
                   </div>
                   <div>
                     <p className="text-2xl font-bold">{mesActual}</p>
-                    <p className="text-xs opacity-70 mt-1">Período</p>
+                    <p className="text-xs opacity-80 mt-1 font-medium">Período</p>
                   </div>
                 </div>
 
                 {/* Firma */}
                 <div className="grid grid-cols-2 gap-8 p-8">
                   <div>
-                    <div className="border-t-2 border-gray-300 pt-3">
+                    <div className="border-t-2 border-gray-300 pt-4">
                       <p className="font-bold text-gray-800">{NOMBRES[miembroSeleccionado] || miembroSeleccionado}</p>
-                      <p className="text-xs text-gray-500">Colaborador — Firma</p>
+                      <p className="text-xs text-gray-500 mt-1">Colaborador — Firma</p>
                     </div>
                   </div>
                   <div>
-                    <div className="border-t-2 border-gray-300 pt-3">
+                    <div className="border-t-2 border-gray-300 pt-4">
                       <p className="font-bold text-gray-800">Freddy Crespín</p>
-                      <p className="text-xs text-gray-500">Coordinador de Marketing — Aprobado por</p>
+                      <p className="text-xs text-gray-500 mt-1">Coordinador de Marketing — Aprobado por</p>
                     </div>
                   </div>
-                  <div className="col-span-2 text-center text-xs text-gray-400">
+                  <div className="col-span-2 text-center text-xs text-gray-400 mt-2">
                     Fecha: {hoy} · Eminat / Vivi Negrete · Generado automáticamente desde Eminat App
                   </div>
                 </div>
