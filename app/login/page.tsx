@@ -171,12 +171,12 @@ export default function LoginPage() {
           eminat app
         </div>
 
-        {/* Perrito Lottie */}
+        {/* Gatito Lottie */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <Player
             autoplay
             loop
-            src="https://assets2.lottiefiles.com/packages/lf20_syqnfe7c.json"
+            src="/gatito.json"
             style={{ height: 200, width: 200 }}
           />
           <h2 style={{ fontFamily: 'Syne', fontSize: 40, fontWeight: 800, lineHeight: 1, letterSpacing: '-.04em', marginBottom: 16, textAlign: 'center' }}>
@@ -208,7 +208,7 @@ export default function LoginPage() {
           <div style={{ fontSize: 11, fontFamily: 'DM Mono', color: 'var(--t3)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.1em' }}>
             Dominios autorizados
           </div>
-          {['@eminat.net → Marketing', '@emc.health → Medical', '@vivinegretefoundation.org → Foundation'].map(d => (
+          {['@eminat.net → Research', '@emc.health → Medical', '@vivinegretefoundation.org → Foundation'].map(d => (
             <div key={d} style={{ fontSize: 12, fontFamily: 'DM Mono', color: 'var(--t2)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#7C6FF7', display: 'inline-block' }} />
               {d}
