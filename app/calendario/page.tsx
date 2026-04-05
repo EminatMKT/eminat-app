@@ -6,10 +6,10 @@ import { createClient } from '@/lib/supabase'
 type Evento = {
   id: string
   titulo: string
-  responsable: string
+  responsable_ref: string
   fecha_entrega: string
   estado: string
-  area: string
+  area_ref: string
 }
 
 const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
@@ -28,7 +28,7 @@ export default function CalendarioPage() {
     const fin = new Date(vistaFecha.getFullYear(), vistaFecha.getMonth() + 1, 0).toISOString().split('T')[0]
     supabase
       .from('actividades')
-      .select('id, titulo, responsable, fecha_entrega, estado, area')
+      .select('id, titulo, responsable_ref, fecha_entrega, estado, area_ref')
       .gte('fecha_entrega', inicio)
       .lte('fecha_entrega', fin)
       .then(({ data }) => {
@@ -55,13 +55,13 @@ export default function CalendarioPage() {
   const eventosDiaSeleccionado = diaSeleccionado ? eventosDelDia(diaSeleccionado) : []
 
   const ESTADO_COLORS: Record<string, string> = {
-    pendiente: 'bg-yellow-400',
-    en_proceso: 'bg-blue-500',
-    completado: 'bg-green-500',
-    cancelado: 'bg-red-400',
     Completado: 'bg-green-500',
+    completado: 'bg-green-500',
     'En proceso': 'bg-blue-500',
+    en_proceso: 'bg-blue-500',
     Pendiente: 'bg-yellow-400',
+    pendiente: 'bg-yellow-400',
+    Cancelado: 'bg-red-400',
   }
 
   return (
@@ -137,7 +137,7 @@ export default function CalendarioPage() {
                     <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${ESTADO_COLORS[e.estado] || 'bg-gray-400'}`} />
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-gray-900 truncate">{e.titulo}</p>
-                      <p className="text-xs text-gray-500">{e.responsable} · {e.area}</p>
+                      <p className="text-xs text-gray-500">{e.responsable_ref} · {e.area_ref}</p>
                     </div>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
                       e.estado === 'Completado' || e.estado === 'completado' ? 'bg-green-100 text-green-700' :
