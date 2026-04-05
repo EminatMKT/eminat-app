@@ -105,7 +105,7 @@ export default function CalendarioPage() {
                   width: esHoy ? 24 : 'auto', height: esHoy ? 24 : 'auto',
                   borderRadius: esHoy ? '50%' : 0,
                   background: esHoy ? '#7C6FF7' : 'transparent',
-                  color2: esHoy ? 'white' : undefined
+                  color: esHoy ? 'white' : (esFinDeSemana ? 'var(--t3)' : 'var(--t2)')
                 }}>
                   {dia}
                 </div>
