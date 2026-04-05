@@ -37,9 +37,12 @@ export default function ProduccionPage() {
       })
   }, [])
 
-  const meses = [...new Set(actividades.map(a => a.mes).filter(Boolean))]
-  const filtradas = mesActual ? actividades.filter(a => a.mes === mesActual) : actividades
+  const meses = actividades
+    .map(a => a.mes)
+    .filter(Boolean)
+    .filter((m, i, arr) => arr.indexOf(m) === i)
 
+  const filtradas = mesActual ? actividades.filter(a => a.mes === mesActual) : actividades
   const porColumna = (estado: string) => filtradas.filter(a => a.estado === estado)
 
   if (loading) return (
@@ -75,7 +78,7 @@ export default function ProduccionPage() {
                   {porColumna(col).length}
                 </span>
               </div>
-              <div className="p-3 space-y-2 max-h-[600px] overflow-y-auto">
+              <div className="p-3 space-y-2 max-h-96 overflow-y-auto">
                 {porColumna(col).length === 0 ? (
                   <p className="text-xs text-gray-300 text-center py-4">Sin actividades</p>
                 ) : (
