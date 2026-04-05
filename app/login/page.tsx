@@ -1,10 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Player } from '@lottiefiles/react-lottie-player'
+
+const Player = dynamic(
+  () => import('@lottiefiles/react-lottie-player').then(mod => mod.Player),
+  { ssr: false }
+)
 
 const ZONAS = [
   { ciudad: 'Ecuador', zona: 'America/Guayaquil', emoji: '🇪🇨' },
