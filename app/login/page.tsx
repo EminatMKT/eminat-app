@@ -182,7 +182,7 @@ export default function LoginPage() {
             autoplay
             loop
             src="/gatito.json"
-            style={{ height: 200, width: 200, background: 'transparent' }}
+            style={{ height: 200, width: 200, mixBlendMode: 'multiply' as const }}
           />
           <h2 style={{ fontFamily: 'Syne', fontSize: 40, fontWeight: 800, lineHeight: 1, letterSpacing: '-.04em', marginBottom: 16, textAlign: 'center' }}>
             El sistema<br />del holding<br />
