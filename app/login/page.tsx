@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
 
 const ZONAS = [
   { ciudad: 'Ecuador', zona: 'America/Guayaquil', emoji: '🇪🇨' },
@@ -19,9 +18,7 @@ async function obtenerUbicacion(): Promise<string> {
   try {
     const res = await fetch('https://ipapi.co/json/')
     const data = await res.json()
-    if (data.city && data.country_name) {
-      return `${data.city}, ${data.country_name}`
-    }
+    if (data.city && data.country_name) return `${data.city}, ${data.country_name}`
     return 'Ubicación desconocida'
   } catch {
     return 'Ubicación desconocida'
@@ -79,9 +76,6 @@ export default function LoginPage() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      // Obtener ubicación real por IP
-      const ubicacion = await obtenerUbicacion()
-
       const { data: usuario } = await supabase
         .from('usuarios')
         .select('id, marca_hora')
@@ -89,11 +83,13 @@ export default function LoginPage() {
         .single()
 
       if (usuario) {
-        // Guardar ubicación real
-        await supabase
-          .from('usuarios')
-          .update({ ubicacion, online_at: new Date().toISOString() })
-          .eq('id', usuario.id)
+        // Geolocation en segundo plano — no bloquea el login
+        obtenerUbicacion().then(ubicacion => {
+          supabase.from('usuarios')
+            .update({ ubicacion, online_at: new Date().toISOString() })
+            .eq('id', usuario.id)
+            .then(() => {})
+        })
 
         if (usuario.marca_hora) {
           await supabase.rpc('registrar_entrada', { p_usuario_id: usuario.id })
@@ -108,19 +104,15 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-
     if (!emailValido(email)) {
       setError('Solo se permiten emails corporativos del Holding Eminat')
       setLoading(false)
       return
     }
-
     const { error: err } = await supabase.auth.signUp({
-      email,
-      password,
+      email, password,
       options: { data: { nombre, apellido } }
     })
-
     if (err) { setError(err.message); setLoading(false); return }
     setSent(true)
     setLoading(false)
@@ -130,17 +122,14 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-
     if (!emailValido(email)) {
       setError('Solo se permiten emails corporativos del Holding Eminat')
       setLoading(false)
       return
     }
-
     const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     })
-
     if (err) { setError('Error al enviar el email. Intenta de nuevo.'); setLoading(false); return }
     setSent(true)
     setLoading(false)
@@ -206,7 +195,6 @@ export default function LoginPage() {
               </div>
             ))}
           </div>
-
           <div style={{ fontSize: 11, fontFamily: 'DM Mono', color: 'var(--t3)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.1em' }}>
             Dominios autorizados
           </div>
