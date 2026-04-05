@@ -182,16 +182,14 @@ export default function LoginPage() {
 
         {/* Relojes mundiales */}
         <div>
-          <div style={{ fontSize: 11, fontFamily: 'DM Mono', color: 'var(--t3)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.1em' }}>
+          <div style={{ fontSize: 11, fontFamily: 'DM Mono', color: 'var(--t3)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '.1em' }}>
             Hora mundial
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 20px', marginBottom: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 24 }}>
             {ZONAS.map((z, i) => (
-              <div key={z.ciudad} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 13 }}>{z.emoji}</span>
-                  <span style={{ fontSize: 11, fontFamily: 'DM Mono', color: 'var(--t3)' }}>{z.ciudad}</span>
-                </div>
+              <div key={z.ciudad} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 13 }}>{z.emoji}</span>
+                <span style={{ fontSize: 12, fontFamily: 'DM Mono', color: 'var(--t3)', width: 72 }}>{z.ciudad}</span>
                 <span style={{ fontSize: 12, fontFamily: 'DM Mono', color: '#7C6FF7', fontWeight: 600 }}>
                   {horas[i] || '--:--'}
                 </span>
@@ -272,7 +270,7 @@ export default function LoginPage() {
             </div>
 
             {mode !== 'reset' && (
-              <div style={{ marginBottom: mode === 'login' ? 8 : 24 }}>
+              <div style={{ marginBottom: 8 }}>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Contraseña</label>
                 <input
                   type="password" value={password} onChange={e => setPassword(e.target.value)}
