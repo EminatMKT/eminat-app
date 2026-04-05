@@ -50,18 +50,12 @@ export default function DashboardPage() {
   const router = useRouter()
 
   const actualizarHeartbeat = useCallback(async (userId: string) => {
-    await supabase
-      .from('usuarios')
-      .update({ online_at: new Date().toISOString() })
-      .eq('id', userId)
+    await supabase.from('usuarios').update({ online_at: new Date().toISOString() }).eq('id', userId)
   }, [])
 
   const contarOnline = useCallback(async () => {
     const hace5min = new Date(Date.now() - 5 * 60 * 1000).toISOString()
-    const { count } = await supabase
-      .from('usuarios')
-      .select('*', { count: 'exact', head: true })
-      .gte('online_at', hace5min)
+    const { count } = await supabase.from('usuarios').select('*', { count: 'exact', head: true }).gte('online_at', hace5min)
     setOnlineCount(count || 0)
   }, [])
 
@@ -76,10 +70,8 @@ export default function DashboardPage() {
   async function cargarDashboard() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
-
     const { data: usr } = await supabase.from('usuarios').select('*').eq('email', user.email).single()
     setUsuario(usr)
-
     if (usr?.id) {
       await actualizarHeartbeat(usr.id)
       const heartbeat = setInterval(async () => {
@@ -89,16 +81,12 @@ export default function DashboardPage() {
       await contarOnline()
       window.addEventListener('beforeunload', () => clearInterval(heartbeat))
     }
-
     const { data: acts } = await supabase.from('actividades').select('*').order('fecha_entrega', { ascending: false })
     setActividades(acts || [])
-
     const { data: team } = await supabase.from('v_equipo_hoy').select('*')
     setEquipo(team || [])
-
     const { data: usrs } = await supabase.from('usuarios').select('*').eq('activo', true)
     setUsuarios(usrs || [])
-
     setLoading(false)
   }
 
@@ -151,11 +139,8 @@ export default function DashboardPage() {
   const diasRestantes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate() - hoy.getDate()
   const horasDisponibles = diasRestantes * 8
 
-  const equipoOnline = equipo.filter(u => {
-    const userInfo = usuarios.find(us => us.nombre === u.nombre)
-    if (!userInfo?.online_at) return false
-    return new Date(userInfo.online_at) > new Date(Date.now() - 5 * 60 * 1000)
-  })
+  // Excluir al usuario logueado del equipo
+  const equipoSinMi = equipo.filter(u => u.nombre !== usuario?.nombre)
 
   const bg = dark ? '#0A0A0F' : '#F5F5F7'
   const s1 = dark ? '#111118' : '#FFFFFF'
@@ -165,7 +150,6 @@ export default function DashboardPage() {
   const t2 = dark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.55)'
   const t3 = dark ? 'rgba(255,255,255,0.28)' : 'rgba(0,0,0,0.28)'
   const accent = '#7C6FF7'
-
   const cargo = CARGOS[usuario?.rol] || usuario?.rol || 'Colaborador'
 
   if (loading) return (
@@ -179,7 +163,6 @@ export default function DashboardPage() {
 
       {/* SIDEBAR */}
       <aside style={{ width: 220, background: s1, borderRight: `1px solid ${border}`, display: 'flex', flexDirection: 'column', flexShrink: 0, transition: 'background .3s' }}>
-        {/* Logo */}
         <div style={{ padding: '18px 16px 14px', borderBottom: `1px solid ${border}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'Syne', fontWeight: 800, fontSize: 15, color: t1 }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: accent, boxShadow: `0 0 10px ${accent}` }} />
@@ -187,7 +170,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Nav */}
         <nav style={{ padding: '10px 7px', overflowY: 'auto', flex: 1 }}>
           {[
             { icon: '🏠', label: 'Dashboard', href: '/dashboard', active: true },
@@ -226,7 +208,6 @@ export default function DashboardPage() {
 
           {/* TARJETA USUARIO */}
           <div style={{ margin: '12px 4px 0', padding: '12px', borderRadius: 12, background: `${accent}10`, border: `1px solid ${accent}25` }}>
-            {/* Avatar + nombre */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
               <div style={{ position: 'relative', flexShrink: 0 }}>
                 <div style={{ width: 36, height: 36, borderRadius: '50%', background: usuario?.color || accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'white' }}>
@@ -239,29 +220,19 @@ export default function DashboardPage() {
                 <div style={{ fontSize: 10, color: accent, fontWeight: 500 }}>{cargo}</div>
               </div>
             </div>
-
-            {/* Ubicación */}
             <div style={{ fontSize: 10, color: t3, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 4 }}>
               <span>📍</span>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{usuario?.ubicacion || 'Guayaquil, Ecuador'}</span>
             </div>
-
-            {/* Reuniones del día */}
-            <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>
-              Reuniones hoy
-            </div>
+            <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 6 }}>Today's Meetings</div>
             <div style={{ background: `${accent}08`, borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
-              <div style={{ fontSize: 10, color: t3, lineHeight: 1.4 }}>
-                🔗 Conecta Google Calendar para ver tus reuniones
-              </div>
+              <div style={{ fontSize: 10, color: t3, lineHeight: 1.4 }}>🔗 Connect Google Calendar to see your meetings</div>
               <button style={{ marginTop: 6, fontSize: 10, color: accent, background: 'none', border: `1px solid ${accent}40`, borderRadius: 6, padding: '3px 8px', cursor: 'pointer', fontFamily: 'DM Sans' }}>
-                Conectar →
+                Connect →
               </button>
             </div>
-
-            {/* Logout */}
             <button onClick={handleLogout} style={{ width: '100%', marginTop: 10, padding: '6px', borderRadius: 8, border: `1px solid ${border}`, background: 'transparent', color: t3, fontSize: 11, cursor: 'pointer', fontFamily: 'DM Sans' }}>
-              ↩ Cerrar sesión
+              ↩ Sign out
             </button>
           </div>
         </nav>
@@ -269,8 +240,6 @@ export default function DashboardPage() {
 
       {/* MAIN */}
       <main style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
-
-        {/* TOPBAR */}
         <div style={{ padding: '12px 24px', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: s1, position: 'sticky', top: 0, zIndex: 10, transition: 'background .3s' }}>
           <div>
             <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15, color: t1 }}>Buen día, {usuario?.nombre} 👋</div>
@@ -279,7 +248,6 @@ export default function DashboardPage() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* Online indicator — siempre activo si está en la web */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 20, background: '#34D39915', border: '1px solid #34D39940' }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34D399' }} />
               <span style={{ fontSize: 11, color: '#34D399', fontWeight: 500 }}>{onlineCount > 0 ? onlineCount : 1} online</span>
@@ -295,8 +263,7 @@ export default function DashboardPage() {
         </div>
 
         <div style={{ padding: '18px 24px', flex: 1 }}>
-
-          {/* SELECTOR TRIMESTRE */}
+          {/* TRIMESTRE */}
           <div style={{ display: 'flex', gap: 5, marginBottom: 16, alignItems: 'center' }}>
             {TRIMESTRES.map(q => (
               <button key={q} onClick={() => setTrimestre(q)} style={{
@@ -334,9 +301,8 @@ export default function DashboardPage() {
 
           {/* GRÁFICOS */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 280px', gap: 12, marginBottom: 14 }}>
-
             {/* Por mes */}
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px', transition: 'background .3s' }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px' }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 4 }}>Producción por mes</div>
               <div style={{ fontSize: 10, color: t3, marginBottom: 12 }}>{trimestre}</div>
               <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 90 }}>
@@ -362,7 +328,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Por marca */}
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px', transition: 'background .3s' }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px' }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 4 }}>Por marca</div>
               <div style={{ fontSize: 10, color: t3, marginBottom: 12 }}>{trimestre}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -379,9 +345,9 @@ export default function DashboardPage() {
               </div>
               <div style={{ marginTop: 14, display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
                 {[
-                  { label: 'Completado', value: pctCompletado, color: '#34D399' },
-                  { label: 'En proceso', value: totalQ > 0 ? Math.round((enProcesoQ / totalQ) * 100) : 0, color: accent },
-                  { label: 'Pendiente', value: totalQ > 0 ? Math.round((pendientesQ / totalQ) * 100) : 0, color: '#9494B3' },
+                  { label: 'Completed', value: pctCompletado, color: '#34D399' },
+                  { label: 'In Progress', value: totalQ > 0 ? Math.round((enProcesoQ / totalQ) * 100) : 0, color: accent },
+                  { label: 'Pending', value: totalQ > 0 ? Math.round((pendientesQ / totalQ) * 100) : 0, color: '#9494B3' },
                 ].map(s => (
                   <div key={s.label} style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 18, fontWeight: 800, fontFamily: 'Syne', color: s.color }}>{s.value}%</div>
@@ -391,12 +357,12 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Equipo online */}
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', transition: 'background .3s' }}>
+            {/* Marketing Today */}
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
               <div style={{ padding: '12px 14px', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>Equipo hoy</div>
-                  <div style={{ fontSize: 9, color: t3, marginTop: 1 }}>En tiempo real</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>Marketing Today</div>
+                  <div style={{ fontSize: 9, color: t3, marginTop: 1 }}>Active team members</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: '#34D399' }}>
                   <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34D399' }} />
@@ -404,7 +370,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div style={{ overflowY: 'auto', maxHeight: 220 }}>
-                {equipo.map(u => {
+                {equipoSinMi.map(u => {
                   const userInfo = usuarios.find(us => us.nombre === u.nombre)
                   const isOnline = userInfo?.online_at
                     ? new Date(userInfo.online_at) > new Date(Date.now() - 5 * 60 * 1000)
@@ -423,7 +389,7 @@ export default function DashboardPage() {
                           📍 {userInfo?.ubicacion || 'Guayaquil, Ecuador'}
                         </div>
                         <div style={{ fontSize: 9, color: isOnline ? '#34D399' : t3 }}>
-                          {isOnline ? `● Activo ahora` : u.estado_hoy === 'presente' ? `⏰ ${u.hora_entrada?.slice(11, 16)}` : u.estado_hoy === 'sin_marcacion' ? 'Pasante' : 'Sin registrar'}
+                          {isOnline ? '● Active now' : u.estado_hoy === 'presente' ? `⏰ ${u.hora_entrada?.slice(11, 16)}` : u.estado_hoy === 'sin_marcacion' ? 'Intern' : 'Offline'}
                         </div>
                       </div>
                     </div>
@@ -435,7 +401,7 @@ export default function DashboardPage() {
 
           {/* ACTIVIDADES + RANKING */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 12 }}>
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', transition: 'background .3s' }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
               <div style={{ padding: '12px 16px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>Actividades recientes</div>
@@ -457,7 +423,7 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', transition: 'background .3s' }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
               <div style={{ padding: '12px 14px', borderBottom: `1px solid ${border}` }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>Tareas por miembro</div>
                 <div style={{ fontSize: 9, color: t3, marginTop: 1 }}>{trimestre}</div>
