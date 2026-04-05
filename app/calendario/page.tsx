@@ -9,7 +9,7 @@ type Evento = {
   responsable: string
   fecha_entrega: string
   estado: string
-  marca: string
+  area: string
 }
 
 const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
@@ -27,8 +27,8 @@ export default function CalendarioPage() {
     const inicio = new Date(vistaFecha.getFullYear(), vistaFecha.getMonth(), 1).toISOString().split('T')[0]
     const fin = new Date(vistaFecha.getFullYear(), vistaFecha.getMonth() + 1, 0).toISOString().split('T')[0]
     supabase
-      .from('tareas')
-      .select('id, titulo, responsable, fecha_entrega, estado, marca')
+      .from('actividades')
+      .select('id, titulo, responsable, fecha_entrega, estado, area')
       .gte('fecha_entrega', inicio)
       .lte('fecha_entrega', fin)
       .then(({ data }) => {
@@ -59,6 +59,9 @@ export default function CalendarioPage() {
     en_proceso: 'bg-blue-500',
     completado: 'bg-green-500',
     cancelado: 'bg-red-400',
+    Completado: 'bg-green-500',
+    'En proceso': 'bg-blue-500',
+    Pendiente: 'bg-yellow-400',
   }
 
   return (
@@ -71,21 +74,9 @@ export default function CalendarioPage() {
 
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-            <button
-              onClick={() => cambiarMes(-1)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500"
-            >
-              ‹
-            </button>
-            <h2 className="font-semibold text-gray-900 text-lg">
-              {MESES[vistaFecha.getMonth()]} {vistaFecha.getFullYear()}
-            </h2>
-            <button
-              onClick={() => cambiarMes(1)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500"
-            >
-              ›
-            </button>
+            <button onClick={() => cambiarMes(-1)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500">‹</button>
+            <h2 className="font-semibold text-gray-900 text-lg">{MESES[vistaFecha.getMonth()]} {vistaFecha.getFullYear()}</h2>
+            <button onClick={() => cambiarMes(1)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-500">›</button>
           </div>
 
           <div className="grid grid-cols-7 border-b border-gray-100">
@@ -114,21 +105,14 @@ export default function CalendarioPage() {
                     onClick={() => setDiaSeleccionado(seleccionado ? null : dia)}
                     className={`h-16 border-b border-r border-gray-50 p-1.5 text-left transition-colors hover:bg-blue-50 ${seleccionado ? 'bg-blue-50 ring-2 ring-inset ring-blue-400' : ''}`}
                   >
-                    <span className={`text-xs font-medium flex items-center justify-center w-6 h-6 rounded-full ${
-                      esHoy ? 'bg-blue-600 text-white' : 'text-gray-700'
-                    }`}>
+                    <span className={`text-xs font-medium flex items-center justify-center w-6 h-6 rounded-full ${esHoy ? 'bg-blue-600 text-white' : 'text-gray-700'}`}>
                       {dia}
                     </span>
                     <div className="flex flex-wrap gap-0.5 mt-0.5">
                       {eventosHoy.slice(0, 3).map(e => (
-                        <span
-                          key={e.id}
-                          className={`w-1.5 h-1.5 rounded-full ${ESTADO_COLORS[e.estado] || 'bg-gray-400'}`}
-                        />
+                        <span key={e.id} className={`w-1.5 h-1.5 rounded-full ${ESTADO_COLORS[e.estado] || 'bg-gray-400'}`} />
                       ))}
-                      {eventosHoy.length > 3 && (
-                        <span className="text-xs text-gray-400">+{eventosHoy.length - 3}</span>
-                      )}
+                      {eventosHoy.length > 3 && <span className="text-xs text-gray-400">+{eventosHoy.length - 3}</span>}
                     </div>
                   </button>
                 )
@@ -153,14 +137,14 @@ export default function CalendarioPage() {
                     <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${ESTADO_COLORS[e.estado] || 'bg-gray-400'}`} />
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-gray-900 truncate">{e.titulo}</p>
-                      <p className="text-xs text-gray-500">{e.responsable} · {e.marca}</p>
+                      <p className="text-xs text-gray-500">{e.responsable} · {e.area}</p>
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize flex-shrink-0 ${
-                      e.estado === 'completado' ? 'bg-green-100 text-green-700' :
-                      e.estado === 'en_proceso' ? 'bg-blue-100 text-blue-700' :
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
+                      e.estado === 'Completado' || e.estado === 'completado' ? 'bg-green-100 text-green-700' :
+                      e.estado === 'En proceso' || e.estado === 'en_proceso' ? 'bg-blue-100 text-blue-700' :
                       'bg-yellow-100 text-yellow-700'
                     }`}>
-                      {e.estado.replace('_', ' ')}
+                      {e.estado}
                     </span>
                   </li>
                 ))}
