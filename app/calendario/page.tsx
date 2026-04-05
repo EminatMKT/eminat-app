@@ -64,14 +64,12 @@ export default function CalendarioPage() {
   return (
     <main className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Calendario</h1>
           <p className="text-gray-500 mt-1">Entregas y fechas clave del equipo</p>
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          {/* Navegación del mes */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
             <button
               onClick={() => cambiarMes(-1)}
@@ -90,32 +88,26 @@ export default function CalendarioPage() {
             </button>
           </div>
 
-          {/* Días de la semana */}
           <div className="grid grid-cols-7 border-b border-gray-100">
             {DIAS_SEMANA.map(d => (
               <div key={d} className="text-center text-xs font-semibold text-gray-400 py-2">{d}</div>
             ))}
           </div>
 
-          {/* Días del mes */}
           {loading ? (
             <div className="flex items-center justify-center h-48">
               <div className="w-6 h-6 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
             <div className="grid grid-cols-7">
-              {/* Espacios vacíos antes del primer día */}
               {Array.from({ length: primerDia }).map((_, i) => (
                 <div key={`empty-${i}`} className="h-16 border-b border-r border-gray-50" />
               ))}
-
-              {/* Días del mes */}
               {Array.from({ length: diasEnMes }).map((_, i) => {
                 const dia = i + 1
                 const esHoy = dia === hoy.getDate() && vistaFecha.getMonth() === hoy.getMonth() && vistaFecha.getFullYear() === hoy.getFullYear()
                 const eventosHoy = eventosDelDia(dia)
                 const seleccionado = diaSeleccionado === dia
-
                 return (
                   <button
                     key={dia}
@@ -145,7 +137,6 @@ export default function CalendarioPage() {
           )}
         </div>
 
-        {/* Panel de eventos del día seleccionado */}
         {diaSeleccionado && (
           <div className="mt-4 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 bg-blue-50">
