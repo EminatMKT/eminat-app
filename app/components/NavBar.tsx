@@ -11,6 +11,7 @@ const LINKS = [
   { href: '/calendario', label: '📅 Calendario' },
   { href: '/horas', label: '⏱ Horas' },
   { href: '/pagos', label: '💰 Pagos' },
+  { href: '/directorio', label: '🏢 Directorio' },
 ]
 
 export default function NavBar() {
