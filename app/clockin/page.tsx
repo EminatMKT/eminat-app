@@ -1,193 +1,151 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { createClient } from '@/lib/supabase'
+
+type Marcacion = {
+  id: string
+  usuario_id: string
+  nombre: string
+  tipo: 'entrada' | 'salida'
+  timestamp: string
+}
 
 export default function ClockinPage() {
-  const [usuario, setUsuario] = useState<any>(null)
-  const [marcacion, setMarcacion] = useState<any>(null)
-  const [equipo, setEquipo] = useState<any[]>([])
-  const [hora, setHora] = useState('')
+  const [historial, setHistorial] = useState<Marcacion[]>([])
   const [loading, setLoading] = useState(true)
-  const [procesando, setProcesando] = useState(false)
-  const router = useRouter()
+  const [marcando, setMarcando] = useState(false)
+  const [mensaje, setMensaje] = useState<{ texto: string; tipo: 'ok' | 'error' } | null>(null)
+  const [horaActual, setHoraActual] = useState('')
+  const [fechaActual, setFechaActual] = useState('')
 
   useEffect(() => {
-    async function cargar() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
-
-      const { data: usr } = await supabase.from('usuarios').select('*').eq('email', user.email).single()
-      setUsuario(usr)
-
-      if (usr) {
-        const { data: marc } = await supabase
-          .from('marcaciones')
-          .select('*')
-          .eq('usuario_id', usr.id)
-          .eq('fecha', new Date().toISOString().split('T')[0])
-          .single()
-        setMarcacion(marc)
-      }
-
-      const { data: team } = await supabase.from('v_equipo_hoy').select('*')
-      setEquipo(team || [])
-      setLoading(false)
+    // Reloj en tiempo real
+    const actualizarReloj = () => {
+      const ahora = new Date()
+      setHoraActual(ahora.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
+      setFechaActual(ahora.toLocaleDateString('es-EC', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }))
     }
-    cargar()
+    actualizarReloj()
+    const intervalo = setInterval(actualizarReloj, 1000)
 
-    const timer = setInterval(() => {
-      const now = new Date()
-      setHora(`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`)
-    }, 1000)
-    return () => clearInterval(timer)
+    // Cargar historial del día
+    cargarHistorial()
+
+    return () => clearInterval(intervalo)
   }, [])
 
-  async function registrarEntrada() {
-    if (!usuario?.marca_hora) return
-    setProcesando(true)
-    const { data } = await supabase.rpc('registrar_entrada', { p_usuario_id: usuario.id })
-    const { data: marc } = await supabase
-      .from('marcaciones')
+  const cargarHistorial = async () => {
+    const supabase = createClient()
+    const hoy = new Date().toISOString().split('T')[0]
+    const { data } = await supabase
+      .from('clockin')
       .select('*')
-      .eq('usuario_id', usuario.id)
-      .eq('fecha', new Date().toISOString().split('T')[0])
-      .single()
-    setMarcacion(marc)
-    const { data: team } = await supabase.from('v_equipo_hoy').select('*')
-    setEquipo(team || [])
-    setProcesando(false)
+      .gte('timestamp', hoy)
+      .order('timestamp', { ascending: false })
+      .limit(20)
+    if (data) setHistorial(data)
+    setLoading(false)
   }
 
-  async function registrarSalida() {
-    if (!usuario?.marca_hora) return
-    setProcesando(true)
-    await supabase.rpc('registrar_salida', { p_usuario_id: usuario.id })
-    const { data: marc } = await supabase
-      .from('marcaciones')
-      .select('*')
-      .eq('usuario_id', usuario.id)
-      .eq('fecha', new Date().toISOString().split('T')[0])
-      .single()
-    setMarcacion(marc)
-    setProcesando(false)
+  const marcar = async (tipo: 'entrada' | 'salida') => {
+    setMarcando(true)
+    setMensaje(null)
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setMensaje({ texto: 'No hay sesión activa. Por favor inicia sesión.', tipo: 'error' })
+      setMarcando(false)
+      return
+    }
+    const { error } = await supabase.from('clockin').insert({
+      usuario_id: user.id,
+      tipo,
+      timestamp: new Date().toISOString(),
+    })
+    if (error) {
+      setMensaje({ texto: 'Error al registrar. Intenta de nuevo.', tipo: 'error' })
+    } else {
+      setMensaje({ texto: `${tipo === 'entrada' ? 'Entrada' : 'Salida'} registrada correctamente ✓`, tipo: 'ok' })
+      await cargarHistorial()
+    }
+    setMarcando(false)
+    setTimeout(() => setMensaje(null), 4000)
   }
-
-  const presente = marcacion?.hora_entrada && !marcacion?.hora_salida
-  const salio = marcacion?.hora_entrada && marcacion?.hora_salida
-
-  const fechaHoy = new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-
-  if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
-      <div style={{ fontSize: 14, color: 'var(--t3)' }}>Cargando...</div>
-    </div>
-  )
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      <div style={{ padding: '20px 36px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-        <Link href="/dashboard" style={{ fontSize: 12, color: 'var(--t3)', textDecoration: 'none' }}>← Dashboard</Link>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 36px', gap: 48 }}>
-        {/* Reloj */}
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontFamily: 'DM Mono', fontSize: 72, fontWeight: 400, letterSpacing: '-.03em', lineHeight: 1 }}>{hora}</div>
-          <div style={{ fontSize: 15, color: 'var(--t2)', marginTop: 10, textTransform: 'capitalize' }}>{fechaHoy}</div>
+    <main className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Clock In / Out</h1>
+          <p className="text-gray-500 mt-1">Registro de asistencia diaria</p>
         </div>
 
-        {/* Usuario y acción */}
-        <div style={{ textAlign: 'center', maxWidth: 400, width: '100%' }}>
-          <div style={{ fontFamily: 'Syne', fontSize: 26, fontWeight: 800, letterSpacing: '-.02em', marginBottom: 4 }}>
-            {usuario?.nombre} {usuario?.apellido}
-          </div>
-          <div style={{ fontSize: 13, color: 'var(--t3)', marginBottom: 20 }}>
-            {usuario?.rol} · Jornada Tipo {usuario?.tipo_jornada} · {usuario?.horas_dia}h/día
-          </div>
+        {/* Reloj */}
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center mb-6">
+          <p className="text-6xl font-bold text-gray-900 font-mono tracking-tight">{horaActual}</p>
+          <p className="text-gray-500 mt-2 capitalize">{fechaActual}</p>
 
-          {!usuario?.marca_hora ? (
-            <div style={{ background: 'rgba(251,176,64,.1)', border: '1px solid rgba(251,176,64,.2)', borderRadius: 12, padding: '16px 20px', fontSize: 13, color: '#FBB040' }}>
-              Los pasantes no registran marcación de horario
+          {/* Mensaje */}
+          {mensaje && (
+            <div className={`mt-4 px-4 py-2 rounded-lg text-sm font-medium ${
+              mensaje.tipo === 'ok' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+            }`}>
+              {mensaje.texto}
             </div>
-          ) : presente ? (
-            <>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 24px', borderRadius: 100, border: '1px solid rgba(52,211,153,.3)', background: 'rgba(52,211,153,.08)', color: '#34D399', fontSize: 14, fontWeight: 500, marginBottom: 20 }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#34D399', display: 'inline-block' }} />
-                Turno activo — entrada registrada a las {marcacion.hora_entrada?.slice(11, 16)}
-              </div>
-              <button onClick={registrarSalida} disabled={procesando} style={{
-                display: 'block', width: '100%', padding: 16, borderRadius: 14, border: 'none',
-                background: '#F87171', color: 'white', fontFamily: 'Syne', fontSize: 16, fontWeight: 700,
-                cursor: procesando ? 'not-allowed' : 'pointer', opacity: procesando ? .7 : 1
-              }}>
-                {procesando ? 'Registrando...' : 'Registrar salida →'}
-              </button>
-            </>
-          ) : salio ? (
-            <div style={{ background: 'rgba(52,211,153,.08)', border: '1px solid rgba(52,211,153,.2)', borderRadius: 14, padding: '20px 24px' }}>
-              <div style={{ fontSize: 13, color: '#34D399', fontWeight: 600, marginBottom: 8 }}>✅ Jornada completada</div>
-              <div style={{ fontSize: 12, color: 'var(--t3)' }}>
-                Entrada: {marcacion.hora_entrada?.slice(11, 16)} · Salida: {marcacion.hora_salida?.slice(11, 16)}
-              </div>
-              {marcacion.horas_trabajadas && (
-                <div style={{ fontSize: 20, fontFamily: 'Syne', fontWeight: 800, color: '#34D399', marginTop: 8 }}>
-                  {Number(marcacion.horas_trabajadas).toFixed(1)}h trabajadas
-                </div>
-              )}
-            </div>
-          ) : (
-            <button onClick={registrarEntrada} disabled={procesando} style={{
-              display: 'block', width: '100%', padding: 16, borderRadius: 14, border: 'none',
-              background: '#7C6FF7', color: 'white', fontFamily: 'Syne', fontSize: 16, fontWeight: 700,
-              cursor: procesando ? 'not-allowed' : 'pointer', opacity: procesando ? .7 : 1
-            }}>
-              {procesando ? 'Registrando...' : 'Registrar entrada →'}
+          )}
+
+          {/* Botones */}
+          <div className="flex gap-4 justify-center mt-8">
+            <button
+              onClick={() => marcar('entrada')}
+              disabled={marcando}
+              className="px-8 py-3 bg-green-600 text-white rounded-xl font-semibold text-lg hover:bg-green-700 active:scale-95 transition-all disabled:opacity-50"
+            >
+              ↗ Entrada
             </button>
+            <button
+              onClick={() => marcar('salida')}
+              disabled={marcando}
+              className="px-8 py-3 bg-red-500 text-white rounded-xl font-semibold text-lg hover:bg-red-600 active:scale-95 transition-all disabled:opacity-50"
+            >
+              ↙ Salida
+            </button>
+          </div>
+        </div>
+
+        {/* Historial del día */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-700">Marcaciones de hoy</h2>
+          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="w-6 h-6 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : historial.length === 0 ? (
+            <p className="text-gray-400 text-sm text-center py-8">Sin marcaciones hoy todavía.</p>
+          ) : (
+            <ul className="divide-y divide-gray-100">
+              {historial.map(m => (
+                <li key={m.id} className="flex items-center justify-between px-5 py-3">
+                  <div className="flex items-center gap-3">
+                    <span className={`w-2.5 h-2.5 rounded-full ${m.tipo === 'entrada' ? 'bg-green-400' : 'bg-red-400'}`} />
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{m.nombre || 'Usuario'}</p>
+                      <p className="text-xs text-gray-400 capitalize">{m.tipo}</p>
+                    </div>
+                  </div>
+                  <span className="text-sm text-gray-500 font-mono">
+                    {new Date(m.timestamp).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
-
-        {/* Estado del equipo */}
-        <div style={{ width: '100%', maxWidth: 900 }}>
-          <div style={{ fontSize: 10, color: 'var(--t3)', fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 14, textAlign: 'center' }}>
-            Estado del equipo hoy
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
-            {equipo.map(u => (
-              <div key={u.id} style={{
-                background: u.estado_hoy === 'presente' ? 'rgba(52,211,153,.06)' : 'var(--s1)',
-                border: `1px solid ${u.estado_hoy === 'presente' ? 'rgba(52,211,153,.2)' : 'rgba(255,255,255,0.07)'}`,
-                borderRadius: 12, padding: '14px 10px', textAlign: 'center'
-              }}>
-                <div style={{ position: 'relative', display: 'inline-block', marginBottom: 8 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: u.color || '#7C6FF7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'white' }}>
-                    {u.nombre?.[0]}{u.apellido?.[0]}
-                  </div>
-                  {u.estado_hoy === 'presente' && (
-                    <div style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: '50%', background: '#34D399', border: '2px solid var(--bg)' }} />
-                  )}
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 3 }}>{u.nombre}</div>
-                <div style={{ fontSize: 10, color: 'var(--t3)' }}>
-                  {u.estado_hoy === 'presente' ? u.hora_entrada?.slice(11, 16) :
-                   u.estado_hoy === 'salio' ? 'Salió' :
-                   u.estado_hoy === 'sin_marcacion' ? 'Pasante' : 'Sin registrar'}
-                </div>
-                {u.estado_hoy === 'presente' && (
-                  <div style={{ marginTop: 6 }}>
-                    <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 9, background: 'rgba(52,211,153,.14)', color: '#34D399', fontFamily: 'DM Mono' }}>PRESENTE</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-          <div style={{ textAlign: 'center', marginTop: 14, fontSize: 12, color: 'var(--t3)' }}>
-            {equipo.filter(u => u.estado_hoy === 'presente').length}/{equipo.filter(u => u.marca_hora !== false).length} colaboradores presentes
-          </div>
-        </div>
       </div>
-    </div>
+    </main>
   )
 }

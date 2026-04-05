@@ -1,169 +1,91 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { createClient } from '@/lib/supabase'
+
+type Miembro = {
+  id: string
+  nombre: string
+  rol: string
+  tipo: 'A' | 'B'
+  email: string
+  estado: 'activo' | 'inactivo'
+}
 
 export default function EquipoPage() {
-  const [equipo, setEquipo] = useState<any[]>([])
-  const [marcaciones, setMarcaciones] = useState<any[]>([])
+  const [equipo, setEquipo] = useState<Miembro[]>([])
   const [loading, setLoading] = useState(true)
-  const router = useRouter()
 
   useEffect(() => {
-    async function cargar() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
-
-      const { data: usuarios } = await supabase
-        .from('usuarios')
-        .select('*, departamentos(nombre, color)')
-        .eq('activo', true)
-        .order('nombre')
-
-      const { data: hoy } = await supabase
-        .from('v_equipo_hoy')
-        .select('*')
-
-      setEquipo(usuarios || [])
-      setMarcaciones(hoy || [])
-      setLoading(false)
-    }
-    cargar()
+    const supabase = createClient()
+    supabase
+      .from('usuarios')
+      .select('*')
+      .order('nombre')
+      .then(({ data }) => {
+        if (data) setEquipo(data)
+        setLoading(false)
+      })
   }, [])
 
-  const ROL_LABEL: any = {
-    superadmin: 'Superadmin', coordinador: 'Coordinador',
-    colaborador: 'Colaborador', pasante: 'Pasante', externo: 'Externo'
-  }
-
-  const getMarcacion = (userId: string) =>
-    marcaciones.find(m => m.id === userId)
-
-  if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
-      <div style={{ fontSize: 14, color: 'var(--t3)' }}>Cargando equipo...</div>
-    </div>
-  )
-
-  const presentes = marcaciones.filter(m => m.estado_hoy === 'presente').length
-  const total = equipo.filter(u => u.marca_hora).length
+  const tipoA = equipo.filter(m => m.tipo === 'A')
+  const tipoB = equipo.filter(m => m.tipo === 'B')
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      {/* Header */}
-      <div style={{ padding: '24px 36px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <Link href="/dashboard" style={{ fontSize: 12, color: 'var(--t3)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-            ← Dashboard
-          </Link>
-          <h1 style={{ fontFamily: 'Syne', fontSize: 26, fontWeight: 800, letterSpacing: '-.02em' }}>Equipo</h1>
-          <p style={{ fontSize: 13, color: 'var(--t2)', marginTop: 4 }}>Estado del equipo en tiempo real</p>
+    <main className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Equipo</h1>
+          <p className="text-gray-500 mt-1">Miembros del equipo de Marketing — Holding Eminat</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ background: 'var(--s1)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '12px 20px', textAlign: 'center' }}>
-            <div style={{ fontFamily: 'Syne', fontSize: 28, fontWeight: 800, color: '#34D399' }}>{presentes}</div>
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>Presentes hoy</div>
-          </div>
-          <div style={{ background: 'var(--s1)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 12, padding: '12px 20px', textAlign: 'center' }}>
-            <div style={{ fontFamily: 'Syne', fontSize: 28, fontWeight: 800, color: 'var(--t2)' }}>{equipo.length}</div>
-            <div style={{ fontSize: 11, color: 'var(--t3)', marginTop: 2 }}>Total equipo</div>
-          </div>
-        </div>
-      </div>
 
-      <div style={{ padding: '28px 36px' }}>
-        {/* Grid equipo */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
-          {equipo.map(u => {
-            const marc = getMarcacion(u.id)
-            const presente = marc?.estado_hoy === 'presente'
-            const salio = marc?.estado_hoy === 'salio'
-            return (
-              <div key={u.id} style={{
-                background: 'var(--s1)', border: `1px solid ${presente ? 'rgba(52,211,153,.2)' : 'rgba(255,255,255,0.07)'}`,
-                borderRadius: 16, padding: 24, transition: 'all .2s'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 16 }}>
-                  <div style={{ position: 'relative' }}>
-                    <div style={{
-                      width: 52, height: 52, borderRadius: '50%', background: u.color || '#7C6FF7',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 16, fontWeight: 700, color: 'white', flexShrink: 0
-                    }}>
-                      {u.nombre?.[0]}{u.apellido?.[0]}
-                    </div>
-                    {presente && (
-                      <div style={{ position: 'absolute', bottom: 1, right: 1, width: 12, height: 12, borderRadius: '50%', background: '#34D399', border: '2px solid var(--s1)' }} />
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600 }}>{u.nombre} {u.apellido}</div>
-                    <div style={{ fontSize: 12, color: 'var(--t3)', marginTop: 2 }}>{u.email}</div>
-                    <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                      <span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 10, fontFamily: 'DM Mono', background: 'rgba(124,111,247,.1)', color: '#7C6FF7' }}>
-                        {ROL_LABEL[u.rol]}
-                      </span>
-                      <span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 10, fontFamily: 'DM Mono', background: 'rgba(255,255,255,.06)', color: 'var(--t3)' }}>
-                        Tipo {u.tipo_jornada} · {u.horas_dia}h/día
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: 14 }}>
-                  {u.marca_hora ? (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontSize: 11, color: 'var(--t3)', marginBottom: 3 }}>Estado hoy</div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 500 }}>
-                          {presente ? (
-                            <>
-                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#34D399', display: 'inline-block' }} />
-                              <span style={{ color: '#34D399' }}>Presente</span>
-                            </>
-                          ) : salio ? (
-                            <>
-                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#FBB040', display: 'inline-block' }} />
-                              <span style={{ color: '#FBB040' }}>Salió</span>
-                            </>
-                          ) : (
-                            <>
-                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--t3)', display: 'inline-block' }} />
-                              <span style={{ color: 'var(--t3)' }}>Sin registrar</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        {marc?.hora_entrada && (
-                          <div style={{ fontSize: 11, color: 'var(--t3)' }}>
-                            Entrada: <span style={{ color: 'var(--t2)', fontFamily: 'DM Mono' }}>{marc.hora_entrada?.slice(11, 16)}</span>
-                          </div>
-                        )}
-                        {marc?.hora_salida && (
-                          <div style={{ fontSize: 11, color: 'var(--t3)' }}>
-                            Salida: <span style={{ color: 'var(--t2)', fontFamily: 'DM Mono' }}>{marc.hora_salida?.slice(11, 16)}</span>
-                          </div>
-                        )}
-                        {marc?.horas_trabajadas && (
-                          <div style={{ fontSize: 11, color: '#34D399', fontFamily: 'DM Mono', marginTop: 2 }}>
-                            {Number(marc.horas_trabajadas).toFixed(1)}h trabajadas
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: 12, color: 'var(--t3)', fontStyle: 'italic' }}>
-                      Sin marcación de horario (pasante)
-                    </div>
-                  )}
-                </div>
+        {loading ? (
+          <div className="flex items-center justify-center h-64">
+            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <>
+            {/* Tipo A */}
+            <section className="mb-10">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">Tipo A — Staff Creativo</span>
               </div>
-            )
-          })}
-        </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {tipoA.map(m => <TarjetaMiembro key={m.id} miembro={m} />)}
+              </div>
+            </section>
+
+            {/* Tipo B */}
+            <section>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-semibold">Tipo B — Internos</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {tipoB.map(m => <TarjetaMiembro key={m.id} miembro={m} />)}
+              </div>
+            </section>
+          </>
+        )}
+      </div>
+    </main>
+  )
+}
+
+function TarjetaMiembro({ miembro }: { miembro: Miembro }) {
+  const iniciales = miembro.nombre.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
+      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+        {iniciales}
+      </div>
+      <div className="min-w-0">
+        <p className="font-semibold text-gray-900 truncate">{miembro.nombre}</p>
+        <p className="text-sm text-gray-500 truncate">{miembro.rol}</p>
+        <p className="text-xs text-gray-400 truncate mt-0.5">{miembro.email}</p>
+      </div>
+      <div className="ml-auto flex-shrink-0">
+        <span className={`w-2.5 h-2.5 rounded-full block ${miembro.estado === 'activo' ? 'bg-green-400' : 'bg-gray-300'}`} />
       </div>
     </div>
   )
