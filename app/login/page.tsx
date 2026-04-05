@@ -1,15 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import dynamic from 'next/dynamic'
+import { useState, useEffect, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 
-const Player = dynamic(
-  () => import('@lottiefiles/react-lottie-player').then(mod => mod.Player),
-  { ssr: false }
-)
+const Spline = dynamic(() => import('@splinetool/react-spline'), { ssr: false })
 
 const ZONAS = [
   { ciudad: 'Ecuador', zona: 'America/Guayaquil', emoji: '🇪🇨' },
@@ -54,21 +51,17 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-
     if (!emailValido(email)) {
       setError('Solo se permiten emails corporativos (@eminat.net, @emc.health, @vivinegretefoundation.org)')
       setLoading(false)
       return
     }
-
     const { error: err } = await supabase.auth.signInWithPassword({ email, password })
-
     if (err) {
       setError('Email o contraseña incorrectos')
       setLoading(false)
       return
     }
-
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
       const { data: usuario } = await supabase
@@ -76,12 +69,10 @@ export default function LoginPage() {
         .select('id, marca_hora')
         .eq('email', user.email)
         .single()
-
       if (usuario?.marca_hora) {
         await supabase.rpc('registrar_entrada', { p_usuario_id: usuario.id })
       }
     }
-
     router.push('/dashboard')
   }
 
@@ -89,25 +80,16 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-
     if (!emailValido(email)) {
       setError('Solo se permiten emails corporativos del Holding Eminat')
       setLoading(false)
       return
     }
-
     const { error: err } = await supabase.auth.signUp({
-      email,
-      password,
+      email, password,
       options: { data: { nombre, apellido } }
     })
-
-    if (err) {
-      setError(err.message)
-      setLoading(false)
-      return
-    }
-
+    if (err) { setError(err.message); setLoading(false); return }
     setSent(true)
     setLoading(false)
   }
@@ -116,23 +98,15 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-
     if (!emailValido(email)) {
       setError('Solo se permiten emails corporativos del Holding Eminat')
       setLoading(false)
       return
     }
-
     const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     })
-
-    if (err) {
-      setError('Error al enviar el email. Intenta de nuevo.')
-      setLoading(false)
-      return
-    }
-
+    if (err) { setError('Error al enviar el email. Intenta de nuevo.'); setLoading(false); return }
     setSent(true)
     setLoading(false)
   }
@@ -141,9 +115,7 @@ export default function LoginPage() {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
         <div style={{ maxWidth: 480, width: '100%', margin: '0 20px', textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 24 }}>
-            {mode === 'reset' ? '📧' : '📨'}
-          </div>
+          <div style={{ fontSize: 48, marginBottom: 24 }}>{mode === 'reset' ? '📧' : '📨'}</div>
           <h2 style={{ fontFamily: 'Syne', fontSize: 28, fontWeight: 800, marginBottom: 12 }}>
             {mode === 'reset' ? 'Email enviado' : 'Solicitud enviada'}
           </h2>
@@ -152,10 +124,8 @@ export default function LoginPage() {
               ? 'Revisa tu bandeja de entrada — te enviamos un link para restablecer tu contraseña.'
               : 'Tu cuenta está pendiente de validación por el Superadmin (Freddy Crespín). Recibirás un email cuando tu acceso sea aprobado.'}
           </p>
-          <button
-            onClick={() => { setSent(false); setMode('login') }}
-            style={{ color: '#7C6FF7', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}
-          >
+          <button onClick={() => { setSent(false); setMode('login') }}
+            style={{ color: '#7C6FF7', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>
             ← Volver al login
           </button>
         </div>
@@ -169,21 +139,20 @@ export default function LoginPage() {
       <div style={{
         flex: 1, background: 'var(--s1)', padding: '60px 60px',
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-        borderRight: '1px solid rgba(255,255,255,0.07)'
+        borderRight: '1px solid rgba(255,255,255,0.07)', overflow: 'hidden'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'Syne', fontWeight: 800, fontSize: 20 }}>
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#7C6FF7', boxShadow: '0 0 10px #7C6FF7' }} />
           eminat app
         </div>
 
-        {/* Gatito Lottie */}
+        {/* Spline 3D */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Player
-            autoplay
-            loop
-            src="/gatito.json"
-            style={{ height: 200, width: 200, mixBlendMode: 'multiply' as const }}
-          />
+          <div style={{ width: '100%', height: 280, borderRadius: 16, overflow: 'hidden', marginBottom: 24 }}>
+            <Suspense fallback={<div style={{ height: 280, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--t3)', fontSize: 13 }}>Cargando...</div>}>
+              <Spline scene="https://prod.spline.design/hatduck-zzKB2P067N62jbSxMxmXqxKo/scene.splinecode" />
+            </Suspense>
+          </div>
           <h2 style={{ fontFamily: 'Syne', fontSize: 40, fontWeight: 800, lineHeight: 1, letterSpacing: '-.04em', marginBottom: 16, textAlign: 'center' }}>
             El sistema<br />del holding<br />
             <span style={{ color: '#7C6FF7' }}>Eminat.</span>
@@ -209,7 +178,6 @@ export default function LoginPage() {
               </div>
             ))}
           </div>
-
           <div style={{ fontSize: 11, fontFamily: 'DM Mono', color: 'var(--t3)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.1em' }}>
             Dominios autorizados
           </div>
@@ -225,7 +193,6 @@ export default function LoginPage() {
       {/* RIGHT — Form */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 40px' }}>
         <div style={{ maxWidth: 440, width: '100%' }}>
-
           {mode !== 'reset' && (
             <div style={{ display: 'flex', gap: 4, marginBottom: 36, background: 'var(--s2)', borderRadius: 12, padding: 4 }}>
               {(['login', 'register'] as const).map(m => (
@@ -256,50 +223,35 @@ export default function LoginPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Nombre</label>
-                  <input
-                    type="text" value={nombre} onChange={e => setNombre(e.target.value)}
-                    placeholder="Freddy" required
-                    style={{ width: '100%', padding: '11px 14px', background: 'var(--s2)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 10, color: 'var(--t1)', fontSize: 14, fontFamily: 'DM Sans', outline: 'none' }}
-                  />
+                  <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Freddy" required
+                    style={{ width: '100%', padding: '11px 14px', background: 'var(--s2)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 10, color: 'var(--t1)', fontSize: 14, fontFamily: 'DM Sans', outline: 'none' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Apellido</label>
-                  <input
-                    type="text" value={apellido} onChange={e => setApellido(e.target.value)}
-                    placeholder="Crespín" required
-                    style={{ width: '100%', padding: '11px 14px', background: 'var(--s2)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 10, color: 'var(--t1)', fontSize: 14, fontFamily: 'DM Sans', outline: 'none' }}
-                  />
+                  <input type="text" value={apellido} onChange={e => setApellido(e.target.value)} placeholder="Crespín" required
+                    style={{ width: '100%', padding: '11px 14px', background: 'var(--s2)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 10, color: 'var(--t1)', fontSize: 14, fontFamily: 'DM Sans', outline: 'none' }} />
                 </div>
               </div>
             )}
 
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Email corporativo</label>
-              <input
-                type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="tu@eminat.net" required
-                style={{ width: '100%', padding: '11px 14px', background: 'var(--s2)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 10, color: 'var(--t1)', fontSize: 14, fontFamily: 'DM Sans', outline: 'none' }}
-              />
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@eminat.net" required
+                style={{ width: '100%', padding: '11px 14px', background: 'var(--s2)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 10, color: 'var(--t1)', fontSize: 14, fontFamily: 'DM Sans', outline: 'none' }} />
             </div>
 
             {mode !== 'reset' && (
               <div style={{ marginBottom: 8 }}>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Contraseña</label>
-                <input
-                  type="password" value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••" required minLength={8}
-                  style={{ width: '100%', padding: '11px 14px', background: 'var(--s2)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 10, color: 'var(--t1)', fontSize: 14, fontFamily: 'DM Sans', outline: 'none' }}
-                />
+                <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required minLength={8}
+                  style={{ width: '100%', padding: '11px 14px', background: 'var(--s2)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 10, color: 'var(--t1)', fontSize: 14, fontFamily: 'DM Sans', outline: 'none' }} />
               </div>
             )}
 
             {mode === 'login' && (
               <div style={{ textAlign: 'right', marginBottom: 20 }}>
-                <button
-                  type="button"
-                  onClick={() => { setMode('reset'); setError('') }}
-                  style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 12, cursor: 'pointer', fontFamily: 'DM Sans' }}
-                >
+                <button type="button" onClick={() => { setMode('reset'); setError('') }}
+                  style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 12, cursor: 'pointer', fontFamily: 'DM Sans' }}>
                   ¿Olvidaste tu contraseña?
                 </button>
               </div>
@@ -332,10 +284,8 @@ export default function LoginPage() {
 
           {mode === 'reset' && (
             <div style={{ textAlign: 'center', marginTop: 20 }}>
-              <button
-                onClick={() => { setMode('login'); setError('') }}
-                style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 13, cursor: 'pointer', fontFamily: 'DM Sans' }}
-              >
+              <button onClick={() => { setMode('login'); setError('') }}
+                style={{ background: 'none', border: 'none', color: 'var(--t3)', fontSize: 13, cursor: 'pointer', fontFamily: 'DM Sans' }}>
                 ← Volver al login
               </button>
             </div>
