@@ -6,8 +6,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
-const Spline = dynamic(() => import('@splinetool/react-spline'), { ssr: false })
-
 const ZONAS = [
   { ciudad: 'Ecuador', zona: 'America/Guayaquil', emoji: '🇪🇨' },
   { ciudad: 'Miami', zona: 'America/New_York', emoji: '🇺🇸' },
@@ -16,6 +14,19 @@ const ZONAS = [
   { ciudad: 'Chile', zona: 'America/Santiago', emoji: '🇨🇱' },
   { ciudad: 'Argentina', zona: 'America/Argentina/Buenos_Aires', emoji: '🇦🇷' },
 ]
+
+async function obtenerUbicacion(): Promise<string> {
+  try {
+    const res = await fetch('https://ipapi.co/json/')
+    const data = await res.json()
+    if (data.city && data.country_name) {
+      return `${data.city}, ${data.country_name}`
+    }
+    return 'Ubicación desconocida'
+  } catch {
+    return 'Ubicación desconocida'
+  }
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -27,7 +38,6 @@ export default function LoginPage() {
   const [apellido, setApellido] = useState('')
   const [sent, setSent] = useState(false)
   const [horas, setHoras] = useState<string[]>([])
-  const [mounted, setMounted] = useState(false)
   const router = useRouter()
 
   const DOMINIOS_VALIDOS = ['@eminat.net', '@emc.health', '@vivinegretefoundation.org']
@@ -37,7 +47,6 @@ export default function LoginPage() {
   }
 
   useEffect(() => {
-    setMounted(true)
     const actualizar = () => {
       const ahora = new Date()
       setHoras(ZONAS.map(z =>
@@ -53,28 +62,45 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
+
     if (!emailValido(email)) {
       setError('Solo se permiten emails corporativos (@eminat.net, @emc.health, @vivinegretefoundation.org)')
       setLoading(false)
       return
     }
+
     const { error: err } = await supabase.auth.signInWithPassword({ email, password })
+
     if (err) {
       setError('Email o contraseña incorrectos')
       setLoading(false)
       return
     }
+
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
+      // Obtener ubicación real por IP
+      const ubicacion = await obtenerUbicacion()
+
       const { data: usuario } = await supabase
         .from('usuarios')
         .select('id, marca_hora')
         .eq('email', user.email)
         .single()
-      if (usuario?.marca_hora) {
-        await supabase.rpc('registrar_entrada', { p_usuario_id: usuario.id })
+
+      if (usuario) {
+        // Guardar ubicación real
+        await supabase
+          .from('usuarios')
+          .update({ ubicacion, online_at: new Date().toISOString() })
+          .eq('id', usuario.id)
+
+        if (usuario.marca_hora) {
+          await supabase.rpc('registrar_entrada', { p_usuario_id: usuario.id })
+        }
       }
     }
+
     router.push('/dashboard')
   }
 
@@ -82,15 +108,19 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
+
     if (!emailValido(email)) {
       setError('Solo se permiten emails corporativos del Holding Eminat')
       setLoading(false)
       return
     }
+
     const { error: err } = await supabase.auth.signUp({
-      email, password,
+      email,
+      password,
       options: { data: { nombre, apellido } }
     })
+
     if (err) { setError(err.message); setLoading(false); return }
     setSent(true)
     setLoading(false)
@@ -100,14 +130,17 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
+
     if (!emailValido(email)) {
       setError('Solo se permiten emails corporativos del Holding Eminat')
       setLoading(false)
       return
     }
+
     const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     })
+
     if (err) { setError('Error al enviar el email. Intenta de nuevo.'); setLoading(false); return }
     setSent(true)
     setLoading(false)
@@ -141,25 +174,19 @@ export default function LoginPage() {
       <div style={{
         flex: 1, background: 'var(--s1)', padding: '60px 60px',
         display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-        borderRight: '1px solid rgba(255,255,255,0.07)', overflow: 'hidden'
+        borderRight: '1px solid rgba(255,255,255,0.07)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'Syne', fontWeight: 800, fontSize: 20 }}>
           <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#7C6FF7', boxShadow: '0 0 10px #7C6FF7' }} />
           eminat app
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          {/* Spline 3D — solo se renderiza en el cliente */}
-          {mounted && (
-            <div style={{ width: '100%', height: 260, borderRadius: 16, overflow: 'hidden', marginBottom: 24 }}>
-              <Spline scene="https://prod.spline.design/hatduck-zzKB2P067N62jbSxMxmXqxKo/scene.splinecode" />
-            </div>
-          )}
-          <h2 style={{ fontFamily: 'Syne', fontSize: 40, fontWeight: 800, lineHeight: 1, letterSpacing: '-.04em', marginBottom: 16, textAlign: 'center' }}>
+        <div>
+          <h2 style={{ fontFamily: 'Syne', fontSize: 48, fontWeight: 800, lineHeight: 1, letterSpacing: '-.04em', marginBottom: 20 }}>
             El sistema<br />del holding<br />
             <span style={{ color: '#7C6FF7' }}>Eminat.</span>
           </h2>
-          <p style={{ color: 'var(--t2)', fontSize: 14, lineHeight: 1.65, maxWidth: 340, textAlign: 'center' }}>
+          <p style={{ color: 'var(--t2)', fontSize: 15, lineHeight: 1.65, maxWidth: 380 }}>
             Accede con tu email corporativo para gestionar solicitudes, ver el estado de producción y coordinar con el equipo.
           </p>
         </div>
@@ -179,6 +206,7 @@ export default function LoginPage() {
               </div>
             ))}
           </div>
+
           <div style={{ fontSize: 11, fontFamily: 'DM Mono', color: 'var(--t3)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.1em' }}>
             Dominios autorizados
           </div>
@@ -270,7 +298,7 @@ export default function LoginPage() {
               cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? .7 : 1,
               fontFamily: 'DM Sans', transition: 'all .2s'
             }}>
-              {loading ? 'Procesando...' :
+              {loading ? 'Iniciando sesión...' :
                 mode === 'login' ? 'Iniciar sesión →' :
                 mode === 'register' ? 'Solicitar acceso →' :
                 'Enviar link de recuperación →'}
