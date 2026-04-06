@@ -9,6 +9,40 @@ const ROLES = ['pasante', 'colaborador', 'coordinador', 'superadmin']
 const COLORES = ['#7C6FF7', '#34D399', '#F472B6', '#60A5FA', '#FB923C', '#FBB040', '#A78BFA', '#F87171']
 const EMPRESAS = ['Eminat Holding', 'Eminat Research Group', 'Eminat Medical Center', 'Premier by Eminat', 'Vivi Negrete Foundation']
 
+// Cargos del directorio — se asignan automáticamente por email
+const CARGOS_DIRECTORIO: Record<string, string> = {
+  'ceo@eminat.net': 'CEO',
+  'javier@eminat.net': 'COO',
+  'freddy@eminat.net': 'Marketing Director',
+  'joselyne@eminat.net': 'Graphic Designer',
+  'david@eminat.net': 'Graphic Designer and Animations',
+  'jonathan@eminat.net': 'CRM Developer / Full Stack Developer',
+  'ariana@eminat.net': 'Graphic Designer (Pasante)',
+  'naomi@eminat.net': 'Community Manager (Pasante)',
+  'bryan@eminat.net': 'Video Editor (Pasante)',
+  'javier@emc.health': 'COO / Medical Director',
+  'dmsardina@eminat.net': 'Director of Clinical Research Operations',
+  'daniel@eminat.net': 'Director of Medical Center Operations',
+  'ntorres@eminat.net': 'Finance and Administrative Director',
+  'erick@eminat.net': 'Business Development Director',
+  'raul@eminat.net': 'Director of Digital Transformation',
+  'ivannia@eminat.net': 'Eminat Premier Manager',
+  'majo@eminat.net': 'Accounting and Revenue Operations Lead',
+  'ana@eminat.net': 'Accounting and Revenue Operations Coordinator',
+  'landrade@eminat.net': 'Latin America Operations Manager',
+  'randrade@eminat.net': 'Head of Partnerships',
+  'lsalazar@eminat.net': 'Senior Clinical Research Coordinator',
+  'diana@eminat.net': 'Senior Clinical Research Coordinator',
+  'lcruz@eminat.net': 'Clinical Research Coordinator',
+  'federico@eminat.net': 'Business Development Associate',
+  'lina@eminat.net': 'Business Development Associate',
+  'luis@eminat.net': 'Digital Transformation Consultant',
+  'wagner@eminat.net': 'AI Developer',
+  'giuliana@vivinegretefoundation.org': 'Operations Coordinator',
+  'guisella@eminat.net': 'Patient Recruitment and Retention Coordinator',
+  'gnegrete@eminat.net': 'Patient Recruitment and Retention Coordinator',
+}
+
 const ROL_COLORS: Record<string, { bg: string; color: string }> = {
   superadmin: { bg: 'rgba(248,113,113,.12)', color: '#F87171' },
   coordinador: { bg: 'rgba(124,111,247,.1)', color: '#7C6FF7' },
@@ -53,7 +87,7 @@ export default function AdminPage() {
 
   const [nuevoUsuario, setNuevoUsuario] = useState({
     nombre: '', apellido: '', email: '', password: '',
-    rol: 'pasante', tipo: 'B', color: '#7C6FF7', empresa: 'Eminat Holding', cargo: '',
+    rol: 'pasante', tipo: 'B', color: '#7C6FF7', empresa: 'Eminat Holding',
   })
 
   useEffect(() => { cargar() }, [])
@@ -70,12 +104,17 @@ export default function AdminPage() {
 
   async function recargarUsuarios() {
     const { data } = await supabase.from('usuarios').select('*').order('created_at', { ascending: false })
-    setUsuarios(data || [])
+    // Prellenar cargo desde directorio si está vacío
+    const conCargo = (data || []).map(u => ({
+      ...u,
+      cargo: u.cargo || CARGOS_DIRECTORIO[u.email?.toLowerCase()] || '',
+    }))
+    setUsuarios(conCargo)
   }
 
   function mostrarMensaje(tipo: 'ok' | 'error', texto: string) {
     setMensaje({ tipo, texto })
-    setTimeout(() => setMensaje(null), 3000)
+    setTimeout(() => setMensaje(null), 3500)
   }
 
   function abrirEditar(u: any) {
@@ -89,7 +128,7 @@ export default function AdminPage() {
       color: u.color || '#7C6FF7',
       ubicacion: u.ubicacion || 'Guayaquil, Ecuador',
       empresa: u.empresa || 'Eminat Holding',
-      cargo: u.cargo || '',
+      cargo: u.cargo || CARGOS_DIRECTORIO[u.email?.toLowerCase()] || '',
     })
   }
 
@@ -99,13 +138,11 @@ export default function AdminPage() {
     const { error } = await supabase.from('usuarios').update({
       nombre: modalEditar.nombre,
       apellido: modalEditar.apellido,
-      email: modalEditar.email,
       rol: modalEditar.rol,
       tipo: modalEditar.tipo,
       color: modalEditar.color,
       ubicacion: modalEditar.ubicacion,
       empresa: modalEditar.empresa,
-      cargo: modalEditar.cargo,
     }).eq('id', modalEditar.id)
 
     if (error) {
@@ -116,6 +153,17 @@ export default function AdminPage() {
       await recargarUsuarios()
     }
     setGuardando(false)
+  }
+
+  async function resetPassword(email: string, nombre: string) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+    if (error) {
+      mostrarMensaje('error', 'Error al enviar el email')
+    } else {
+      mostrarMensaje('ok', `Email de recuperacion enviado a ${nombre}`)
+    }
   }
 
   async function crearUsuario() {
@@ -144,7 +192,7 @@ export default function AdminPage() {
         tipo: nuevoUsuario.tipo,
         color: nuevoUsuario.color,
         empresa: nuevoUsuario.empresa,
-        cargo: nuevoUsuario.cargo,
+        cargo: CARGOS_DIRECTORIO[nuevoUsuario.email.toLowerCase()] || '',
         activo: true,
         validado: true,
         ubicacion: 'Guayaquil, Ecuador',
@@ -152,7 +200,7 @@ export default function AdminPage() {
     }
     mostrarMensaje('ok', `Usuario ${nuevoUsuario.nombre} creado correctamente`)
     setModalCrear(false)
-    setNuevoUsuario({ nombre: '', apellido: '', email: '', password: '', rol: 'pasante', tipo: 'B', color: '#7C6FF7', empresa: 'Eminat Holding', cargo: '' })
+    setNuevoUsuario({ nombre: '', apellido: '', email: '', password: '', rol: 'pasante', tipo: 'B', color: '#7C6FF7', empresa: 'Eminat Holding' })
     await recargarUsuarios()
     setGuardando(false)
   }
@@ -244,7 +292,7 @@ export default function AdminPage() {
         </div>
       </div>
 
-      <div style={{ padding: '24px 28px', maxWidth: 1300, margin: '0 auto' }}>
+      <div style={{ padding: '24px 28px', maxWidth: 1400, margin: '0 auto' }}>
 
         {/* STATS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
@@ -263,11 +311,9 @@ export default function AdminPage() {
 
         {/* FILTROS */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-          <input
-            type="text" placeholder="Buscar por nombre o email..."
+          <input type="text" placeholder="Buscar por nombre o email..."
             value={busqueda} onChange={e => setBusqueda(e.target.value)}
-            style={{ ...inputStyle, width: 260 }}
-          />
+            style={{ ...inputStyle, width: 260 }} />
           <div style={{ display: 'flex', gap: 6 }}>
             {['todos', ...ROLES].map(r => (
               <button key={r} onClick={() => setFiltroRol(r)} style={{
@@ -284,14 +330,14 @@ export default function AdminPage() {
         <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
           <div style={{ padding: '14px 18px', borderBottom: `1px solid ${border}` }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: t1 }}>Usuarios del sistema</div>
-            <div style={{ fontSize: 11, color: t3, marginTop: 2 }}>{usuariosFiltrados.length} usuarios — solo superadmin puede editar</div>
+            <div style={{ fontSize: 11, color: t3, marginTop: 2 }}>{usuariosFiltrados.length} usuarios — solo superadmin puede gestionar</div>
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: s2 }}>
-                  {['Usuario', 'Email', 'Empresa', 'Cargo', 'Rol', 'Tipo', 'Estado', 'Acciones'].map(h => (
-                    <th key={h} style={{ padding: '11px 16px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.08em', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>
+                  {['Usuario', 'Email', 'Cargo', 'Empresa', 'Rol', 'Tipo', 'Estado', 'Acciones'].map(h => (
+                    <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.08em', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>
                       {h}
                     </th>
                   ))}
@@ -300,27 +346,34 @@ export default function AdminPage() {
               <tbody>
                 {usuariosFiltrados.map(u => (
                   <tr key={u.id} style={{ borderBottom: `1px solid ${border}` }}>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: u.color || '#7C6FF7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white', flexShrink: 0 }}>
+                    {/* Usuario */}
+                    <td style={{ padding: '11px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                        <div style={{ width: 30, height: 30, borderRadius: '50%', background: u.color || '#7C6FF7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'white', flexShrink: 0 }}>
                           {u.nombre?.[0]}{u.apellido?.[0]}
                         </div>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 500, color: t1 }}>{u.nombre} {u.apellido}</div>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>{u.nombre} {u.apellido}</div>
                           <div style={{ fontSize: 10, color: t3 }}>{u.ubicacion || 'Guayaquil, Ecuador'}</div>
                         </div>
                       </div>
                     </td>
-                    <td style={{ padding: '12px 16px', fontSize: 11, color: t3, fontFamily: 'DM Mono' }}>{u.email}</td>
-                    <td style={{ padding: '12px 16px' }}>
+                    {/* Email */}
+                    <td style={{ padding: '11px 14px', fontSize: 11, color: t3, fontFamily: 'DM Mono' }}>{u.email}</td>
+                    {/* Cargo — solo lectura */}
+                    <td style={{ padding: '11px 14px' }}>
+                      <span style={{ fontSize: 11, color: t2 }}>{u.cargo || '—'}</span>
+                    </td>
+                    {/* Empresa */}
+                    <td style={{ padding: '11px 14px' }}>
                       {u.empresa ? (
                         <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: `${EMPRESA_COLORS[u.empresa] || '#7C6FF7'}20`, color: EMPRESA_COLORS[u.empresa] || '#7C6FF7', fontWeight: 500 }}>
                           {u.empresa.replace('Eminat ', '').replace(' by Eminat', '')}
                         </span>
                       ) : <span style={{ fontSize: 10, color: t3 }}>Sin asignar</span>}
                     </td>
-                    <td style={{ padding: '12px 16px', fontSize: 11, color: t2 }}>{u.cargo || '—'}</td>
-                    <td style={{ padding: '12px 16px' }}>
+                    {/* Rol */}
+                    <td style={{ padding: '11px 14px' }}>
                       {u.rol === 'superadmin' ? (
                         <span style={{ padding: '3px 8px', borderRadius: 6, fontSize: 10, fontFamily: 'DM Mono', ...ROL_COLORS['superadmin'] }}>superadmin</span>
                       ) : (
@@ -330,12 +383,14 @@ export default function AdminPage() {
                         </select>
                       )}
                     </td>
-                    <td style={{ padding: '12px 16px' }}>
+                    {/* Tipo */}
+                    <td style={{ padding: '11px 14px' }}>
                       <span style={{ fontSize: 11, color: t2, padding: '2px 8px', borderRadius: 6, border: `1px solid ${border}` }}>
                         Tipo {u.tipo || 'B'}
                       </span>
                     </td>
-                    <td style={{ padding: '12px 16px' }}>
+                    {/* Estado */}
+                    <td style={{ padding: '11px 14px' }}>
                       {u.validado && u.activo ? (
                         <span style={{ fontSize: 11, color: '#34D399', display: 'flex', alignItems: 'center', gap: 4 }}>
                           <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#34D399', display: 'inline-block' }} /> Activo
@@ -346,23 +401,27 @@ export default function AdminPage() {
                         <span style={{ fontSize: 11, color: red }}>Inactivo</span>
                       )}
                     </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-                        <button onClick={() => abrirEditar(u)} style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, border: `1px solid rgba(124,111,247,.3)`, background: 'transparent', color: '#7C6FF7', cursor: 'pointer', fontFamily: 'DM Sans' }}>
+                    {/* Acciones */}
+                    <td style={{ padding: '11px 14px' }}>
+                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                        <button onClick={() => abrirEditar(u)} style={{ padding: '4px 9px', borderRadius: 7, fontSize: 11, border: `1px solid rgba(124,111,247,.3)`, background: 'transparent', color: '#7C6FF7', cursor: 'pointer', fontFamily: 'DM Sans' }}>
                           Editar
                         </button>
+                        <button onClick={() => resetPassword(u.email, u.nombre)} style={{ padding: '4px 9px', borderRadius: 7, fontSize: 11, border: `1px solid rgba(96,165,250,.3)`, background: 'transparent', color: '#60A5FA', cursor: 'pointer', fontFamily: 'DM Sans' }}>
+                          Reset pwd
+                        </button>
                         {!u.validado && (
-                          <button onClick={() => validarUsuario(u.id)} style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, border: '1px solid rgba(52,211,153,.3)', background: 'transparent', color: '#34D399', cursor: 'pointer', fontFamily: 'DM Sans' }}>
+                          <button onClick={() => validarUsuario(u.id)} style={{ padding: '4px 9px', borderRadius: 7, fontSize: 11, border: '1px solid rgba(52,211,153,.3)', background: 'transparent', color: '#34D399', cursor: 'pointer', fontFamily: 'DM Sans' }}>
                             Validar
                           </button>
                         )}
                         {u.rol !== 'superadmin' && (
-                          <button onClick={() => toggleActivo(u.id, u.activo)} style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, border: `1px solid ${u.activo ? 'rgba(251,176,64,.3)' : 'rgba(52,211,153,.3)'}`, background: 'transparent', color: u.activo ? '#FBB040' : '#34D399', cursor: 'pointer', fontFamily: 'DM Sans' }}>
+                          <button onClick={() => toggleActivo(u.id, u.activo)} style={{ padding: '4px 9px', borderRadius: 7, fontSize: 11, border: `1px solid ${u.activo ? 'rgba(251,176,64,.3)' : 'rgba(52,211,153,.3)'}`, background: 'transparent', color: u.activo ? '#FBB040' : '#34D399', cursor: 'pointer', fontFamily: 'DM Sans' }}>
                             {u.activo ? 'Desactivar' : 'Activar'}
                           </button>
                         )}
                         {u.rol !== 'superadmin' && (
-                          <button onClick={() => setModalEliminar(u.id)} style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, border: `1px solid rgba(248,113,113,.3)`, background: 'transparent', color: red, cursor: 'pointer', fontFamily: 'DM Sans' }}>
+                          <button onClick={() => setModalEliminar(u.id)} style={{ padding: '4px 9px', borderRadius: 7, fontSize: 11, border: `1px solid rgba(248,113,113,.3)`, background: 'transparent', color: red, cursor: 'pointer', fontFamily: 'DM Sans' }}>
                             Eliminar
                           </button>
                         )}
@@ -385,6 +444,14 @@ export default function AdminPage() {
               <button onClick={() => setModalEditar(null)} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>✕</button>
             </div>
 
+            {/* Cargo — solo lectura */}
+            {modalEditar.cargo && (
+              <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 10, background: `rgba(124,111,247,.08)`, border: `1px solid rgba(124,111,247,.2)` }}>
+                <div style={{ fontSize: 10, color: t3, marginBottom: 3 }}>CARGO INSTITUCIONAL</div>
+                <div style={{ fontSize: 13, color: '#7C6FF7', fontWeight: 500 }}>{modalEditar.cargo}</div>
+              </div>
+            )}
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <div>
                 <label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Nombre</label>
@@ -398,13 +465,9 @@ export default function AdminPage() {
 
             <div style={{ marginBottom: 12 }}>
               <label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Email</label>
-              <input type="email" value={modalEditar.email} onChange={e => setModalEditar(p => p ? { ...p, email: e.target.value } : p)} style={inputStyle} />
-              <div style={{ fontSize: 10, color: t3, marginTop: 4 }}>Nota: el cambio de email en el login requiere actualizar Supabase Auth por separado.</div>
-            </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Cargo / Puesto</label>
-              <input type="text" value={modalEditar.cargo} onChange={e => setModalEditar(p => p ? { ...p, cargo: e.target.value } : p)} placeholder="Ej. Graphic Designer" style={inputStyle} />
+              <input type="email" value={modalEditar.email} disabled
+                style={{ ...inputStyle, opacity: .5, cursor: 'not-allowed' }} />
+              <div style={{ fontSize: 10, color: t3, marginTop: 4 }}>Para cambiar el email ve a Supabase Auth directamente.</div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
@@ -435,7 +498,7 @@ export default function AdminPage() {
 
             <div style={{ marginBottom: 12 }}>
               <label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Ubicacion</label>
-              <input type="text" value={modalEditar.ubicacion} onChange={e => setModalEditar(p => p ? { ...p, ubicacion: e.target.value } : p)} placeholder="Guayaquil, Ecuador" style={inputStyle} />
+              <input type="text" value={modalEditar.ubicacion} onChange={e => setModalEditar(p => p ? { ...p, ubicacion: e.target.value } : p)} style={inputStyle} />
             </div>
 
             <div style={{ marginBottom: 20 }}>
@@ -483,16 +546,16 @@ export default function AdminPage() {
             <div style={{ marginBottom: 12 }}>
               <label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Email * (corporativo o gmail para pasantes)</label>
               <input type="email" value={nuevoUsuario.email} onChange={e => setNuevoUsuario(p => ({ ...p, email: e.target.value }))} placeholder="usuario@eminat.net" style={inputStyle} />
+              {nuevoUsuario.email && CARGOS_DIRECTORIO[nuevoUsuario.email.toLowerCase()] && (
+                <div style={{ fontSize: 10, color: '#7C6FF7', marginTop: 4 }}>
+                  Cargo detectado: {CARGOS_DIRECTORIO[nuevoUsuario.email.toLowerCase()]}
+                </div>
+              )}
             </div>
 
             <div style={{ marginBottom: 12 }}>
               <label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Contrasena temporal *</label>
               <input type="password" value={nuevoUsuario.password} onChange={e => setNuevoUsuario(p => ({ ...p, password: e.target.value }))} placeholder="Min. 8 caracteres" style={inputStyle} />
-            </div>
-
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Cargo / Puesto</label>
-              <input type="text" value={nuevoUsuario.cargo} onChange={e => setNuevoUsuario(p => ({ ...p, cargo: e.target.value }))} placeholder="Ej. Graphic Designer" style={inputStyle} />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
