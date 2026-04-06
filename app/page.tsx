@@ -451,6 +451,7 @@ export default function App() {
         { key: 'mkt', icon: '⚡', label: 'Produccion' },
         { key: 'solicitudes', icon: '📋', label: 'Solicitudes' },
         { key: 'equipo', icon: '👥', label: 'Equipo' },
+        { key: 'reporte', icon: '💰', label: 'Reporte' },
       ]
     },
     { key: 'finanzas', icon: '💰', label: 'Finanzas', color: '#34D399', comingSoon: true, items: [] },
@@ -797,7 +798,7 @@ export default function App() {
           {vista === 'mkt' && (
             <div>
               <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: `1px solid ${border}` }}>
-                {[{ key: 'kanban', label: '⚡ Kanban' }, { key: 'gantt', label: '📊 Gantt' }, { key: 'horas', label: '⏱ Horas' }, { key: 'reporte', label: '💰 Reporte de Pago' }].map(t => (
+                {[{ key: 'kanban', label: '⚡ Kanban' }, { key: 'gantt', label: '📊 Gantt' }, { key: 'horas', label: '⏱ Horas' }].map(t => (
                   <button key={t.key} onClick={() => setMktTab(t.key)} style={{ padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', borderRadius: '8px 8px 0 0', fontFamily: 'DM Sans', background: 'transparent', color: mktTab === t.key ? t1 : t3, borderBottom: mktTab === t.key ? `2px solid ${accent}` : '2px solid transparent' }}>{t.label}</button>
                 ))}
               </div>
@@ -990,78 +991,79 @@ export default function App() {
                 </div>
               )}
 
-              {/* REPORTE */}
-              {mktTab === 'reporte' && (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <span style={{ fontSize: 14, fontWeight: 600, color: t1 }}>Reporte de produccion para pago</span>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      {esSuperAdmin && (
-                        <select value={miembroReporte} onChange={e => setMiembroReporte(e.target.value)} style={{ ...inputStyle, width: 'auto', padding: '6px 12px' }}>
-                          <option value="">Seleccionar</option>
-                          {Object.entries(MIEMBROS_REFS).map(([ref, nombre]) => <option key={ref} value={ref}>{nombre}</option>)}
-                        </select>
-                      )}
-                      <select value={mesReporte} onChange={e => setMesReporte(e.target.value)} style={{ ...inputStyle, width: 'auto', padding: '6px 12px' }}>
-                        {MESES.map(m => <option key={m} value={m}>{m}</option>)}
-                      </select>
-                      <button onClick={() => window.print()} style={{ padding: '7px 14px', borderRadius: 8, background: accent, color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Imprimir</button>
-                    </div>
+            </div>
+          )}
+
+          {/* REPORTE */}
+          {vista === 'reporte' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: t1 }}>Reporte de produccion para pago</span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {esSuperAdmin && (
+                    <select value={miembroReporte} onChange={e => setMiembroReporte(e.target.value)} style={{ ...inputStyle, width: 'auto', padding: '6px 12px' }}>
+                      <option value="">Seleccionar</option>
+                      {Object.entries(MIEMBROS_REFS).map(([ref, nombre]) => <option key={ref} value={ref}>{nombre}</option>)}
+                    </select>
+                  )}
+                  <select value={mesReporte} onChange={e => setMesReporte(e.target.value)} style={{ ...inputStyle, width: 'auto', padding: '6px 12px' }}>
+                    {MESES.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                  <button onClick={() => window.print()} style={{ padding: '7px 14px', borderRadius: 8, background: accent, color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Imprimir</button>
+                </div>
+              </div>
+              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '24px 28px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+                  <div>
+                    <div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>Reporte de Produccion</div>
+                    <div style={{ fontSize: 12, color: t3 }}>Eminat MKT — Agencia de Marketing del Holding Eminat</div>
                   </div>
-                  <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '24px 28px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-                      <div>
-                        <div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>Reporte de Produccion</div>
-                        <div style={{ fontSize: 12, color: t3 }}>Eminat MKT — Agencia de Marketing del Holding Eminat</div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 10, color: t3 }}>Periodo</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: t1 }}>{mesReporte} 2026</div>
-                      </div>
-                    </div>
-                    <div style={{ borderTop: `1px solid ${border}`, paddingTop: 14, marginBottom: 14 }}>
-                      <div style={{ fontSize: 10, color: t3, marginBottom: 4 }}>Colaborador</div>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: t1 }}>{nombreRep}</div>
-                      <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono' }}>{refRep}</div>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 18 }}>
-                      {[{ label: 'Total tareas', value: actsRep.length, color: accent }, { label: 'Completadas', value: completadasRep, color: '#34D399' }, { label: 'Horas totales', value: `${totalHorasRep}h`, color: '#F472B6' }, { label: 'Dias produccion', value: totalDiasRep, color: '#60A5FA' }].map(s => (
-                        <div key={s.label} style={{ background: s2, borderRadius: 10, padding: '12px', textAlign: 'center' }}>
-                          <div style={{ fontFamily: 'Syne', fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
-                          <div style={{ fontSize: 10, color: t3, marginTop: 4 }}>{s.label}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                      <thead>
-                        <tr style={{ background: s2 }}>
-                          {['Tarea', 'Area', 'Horas', 'Dias Prod.', 'Estado'].map(h => (
-                            <th key={h} style={{ padding: '9px 12px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {actsRep.map(a => (
-                          <tr key={a.id} style={{ borderBottom: `1px solid ${border}` }}>
-                            <td style={{ padding: '8px 12px', color: t1 }}>{a.titulo}</td>
-                            <td style={{ padding: '8px 12px', color: t3 }}>{a.area_ref}</td>
-                            <td style={{ padding: '8px 12px', color: t3, fontFamily: 'DM Mono' }}>{a.horas}h</td>
-                            <td style={{ padding: '8px 12px', color: t3, fontFamily: 'DM Mono' }}>{a.dias_produccion}</td>
-                            <td style={{ padding: '8px 12px' }}>
-                              <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: `${ESTADO_COLORS[a.estado] || t3}20`, color: ESTADO_COLORS[a.estado] || t3 }}>{a.estado}</span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {actsRep.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: t3 }}>Sin tareas para este periodo</div>}
-                    <div style={{ marginTop: 40, paddingTop: 20, borderTop: `1px solid ${border}`, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60 }}>
-                      <div style={{ textAlign: 'center' }}><div style={{ borderTop: `1px solid ${border}`, paddingTop: 8, fontSize: 11, color: t3 }}>Firma del colaborador</div></div>
-                      <div style={{ textAlign: 'center' }}><div style={{ borderTop: `1px solid ${border}`, paddingTop: 8, fontSize: 11, color: t3 }}>Firma del coordinador</div></div>
-                    </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 10, color: t3 }}>Periodo</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: t1 }}>{mesReporte} 2026</div>
                   </div>
                 </div>
-              )}
+                <div style={{ borderTop: `1px solid ${border}`, paddingTop: 14, marginBottom: 14 }}>
+                  <div style={{ fontSize: 10, color: t3, marginBottom: 4 }}>Colaborador</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: t1 }}>{nombreRep}</div>
+                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono' }}>{refRep}</div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 18 }}>
+                  {[{ label: 'Total tareas', value: actsRep.length, color: accent }, { label: 'Completadas', value: completadasRep, color: '#34D399' }, { label: 'Horas totales', value: `${totalHorasRep}h`, color: '#F472B6' }, { label: 'Dias produccion', value: totalDiasRep, color: '#60A5FA' }].map(s => (
+                    <div key={s.label} style={{ background: s2, borderRadius: 10, padding: '12px', textAlign: 'center' }}>
+                      <div style={{ fontFamily: 'Syne', fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
+                      <div style={{ fontSize: 10, color: t3, marginTop: 4 }}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ background: s2 }}>
+                      {['Tarea', 'Area', 'Horas', 'Dias Prod.', 'Estado'].map(h => (
+                        <th key={h} style={{ padding: '9px 12px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {actsRep.map(a => (
+                      <tr key={a.id} style={{ borderBottom: `1px solid ${border}` }}>
+                        <td style={{ padding: '8px 12px', color: t1 }}>{a.titulo}</td>
+                        <td style={{ padding: '8px 12px', color: t3 }}>{a.area_ref}</td>
+                        <td style={{ padding: '8px 12px', color: t3, fontFamily: 'DM Mono' }}>{a.horas}h</td>
+                        <td style={{ padding: '8px 12px', color: t3, fontFamily: 'DM Mono' }}>{a.dias_produccion}</td>
+                        <td style={{ padding: '8px 12px' }}>
+                          <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: `${ESTADO_COLORS[a.estado] || t3}20`, color: ESTADO_COLORS[a.estado] || t3 }}>{a.estado}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {actsRep.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: t3 }}>Sin tareas para este periodo</div>}
+                <div style={{ marginTop: 40, paddingTop: 20, borderTop: `1px solid ${border}`, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60 }}>
+                  <div style={{ textAlign: 'center' }}><div style={{ borderTop: `1px solid ${border}`, paddingTop: 8, fontSize: 11, color: t3 }}>Firma del colaborador</div></div>
+                  <div style={{ textAlign: 'center' }}><div style={{ borderTop: `1px solid ${border}`, paddingTop: 8, fontSize: 11, color: t3 }}>Firma del coordinador</div></div>
+                </div>
+              </div>
             </div>
           )}
 
