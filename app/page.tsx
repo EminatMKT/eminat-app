@@ -216,9 +216,11 @@ export default function App() {
       window.addEventListener('beforeunload', () => clearInterval(hb))
       const { data: notifs } = await supabase.from('notificaciones').select('*').eq('usuario_id', usr.id).order('created_at', { ascending: false }).limit(20)
       setNotificaciones(notifs || [])
+      supabase.removeChannel(supabase.channel('notif-channel'))
       supabase.channel('notif-channel').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notificaciones', filter: `usuario_id=eq.${usr.id}` }, payload => {
+        console.log('[DEBUG realtime notif]', payload.new)
         setNotificaciones(prev => [payload.new as any, ...prev])
-      }).subscribe()
+      }).subscribe((status: string) => { console.log('[DEBUG notif-channel status]', status) })
     }
     const esSA = usr?.rol === 'superadmin' || usr?.rol === 'coordinador'
     let q = supabase.from('actividades').select('*').order('created_at', { ascending: false })
@@ -367,6 +369,7 @@ export default function App() {
       setActividades(prev => [data, ...prev])
 
       if (data && nuevaAct.responsable_ref !== usuario?.responsable_ref) {
+        console.log('[DEBUG notif]', { responsable_ref: nuevaAct.responsable_ref, usuarios_length: usuarios.length, found: usuarios.find((u: any) => u.responsable_ref === nuevaAct.responsable_ref) })
         const responsableUser = usuarios.find((u: any) => u.responsable_ref === nuevaAct.responsable_ref)
         if (responsableUser?.id) {
           await supabase.from('notificaciones').insert({ usuario_id: responsableUser.id, tipo: 'tarea_asignada', titulo: 'Nueva tarea asignada', mensaje: `"${nuevaAct.titulo}" — ${nuevaAct.area_ref} · ${nuevaAct.mes}`, actividad_id: data.id, leida: false })
