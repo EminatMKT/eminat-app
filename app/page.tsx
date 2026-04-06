@@ -1266,9 +1266,7 @@ export default function App() {
                         {[{ label: 'Total', value: r.total, color: t1 }, { label: 'Completadas', value: r.completadas, color: '#34D399' }, { label: 'Efectividad', value: `${r.total > 0 ? Math.round((r.completadas / r.total) * 100) : 0}%`, color: accent }].map(s => (
                           <div key={s.label} style={{ background: s2, borderRadius: 8, padding: '8px', textAlign: 'center' }}>
                             <div style={{ fontSize: 18, fontWeight: 800, fontFamily: 'Syne', color: s.color }}>{s.value}</div>
-                            <div style={{ fontSize:
-
-<div style={{ fontSize: 9, color: t3 }}>{s.label}</div>
+                            <div style={{ fontSize: 9, color: t3 }}>{s.label}</div>
                           </div>
                         ))}
                       </div>
