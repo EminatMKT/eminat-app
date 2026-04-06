@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 
 const ZONAS = [
   { ciudad: 'Ecuador', zona: 'America/Guayaquil', emoji: '🇪🇨' },
@@ -30,9 +29,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [mode, setMode] = useState<'login' | 'register' | 'reset'>('login')
-  const [nombre, setNombre] = useState('')
-  const [apellido, setApellido] = useState('')
+  const [mode, setMode] = useState<'login' | 'reset'>('login')
   const [sent, setSent] = useState(false)
   const [horas, setHoras] = useState<string[]>([])
   const router = useRouter()
@@ -100,24 +97,6 @@ export default function LoginPage() {
     router.push('/dashboard')
   }
 
-  async function handleRegister(e: React.FormEvent) {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-    if (!emailValido(email)) {
-      setError('Solo se permiten emails corporativos del Holding Eminat')
-      setLoading(false)
-      return
-    }
-    const { error: err } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { nombre, apellido } }
-    })
-    if (err) { setError(err.message); setLoading(false); return }
-    setSent(true)
-    setLoading(false)
-  }
-
   async function handleReset(e: React.FormEvent) {
     e.preventDefault()
     setError('')
@@ -139,14 +118,10 @@ export default function LoginPage() {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
         <div style={{ maxWidth: 480, width: '100%', margin: '0 20px', textAlign: 'center' }}>
-          <div style={{ fontSize: 48, marginBottom: 24 }}>{mode === 'reset' ? '📧' : '📨'}</div>
-          <h2 style={{ fontFamily: 'Syne', fontSize: 28, fontWeight: 800, marginBottom: 12 }}>
-            {mode === 'reset' ? 'Email enviado' : 'Solicitud enviada'}
-          </h2>
+          <div style={{ fontSize: 48, marginBottom: 24 }}>📧</div>
+          <h2 style={{ fontFamily: 'Syne', fontSize: 28, fontWeight: 800, marginBottom: 12 }}>Email enviado</h2>
           <p style={{ color: 'var(--t2)', lineHeight: 1.6, marginBottom: 24 }}>
-            {mode === 'reset'
-              ? 'Revisa tu bandeja de entrada — te enviamos un link para restablecer tu contraseña.'
-              : 'Tu cuenta está pendiente de validación por el Superadmin (Freddy Crespín). Recibirás un email cuando tu acceso sea aprobado.'}
+            Revisa tu bandeja de entrada — te enviamos un link para restablecer tu contraseña.
           </p>
           <button onClick={() => { setSent(false); setMode('login') }}
             style={{ color: '#7C6FF7', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }}>
@@ -210,22 +185,6 @@ export default function LoginPage() {
       {/* RIGHT */}
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 40px' }}>
         <div style={{ maxWidth: 440, width: '100%' }}>
-          {mode !== 'reset' && (
-            <div style={{ display: 'flex', gap: 4, marginBottom: 36, background: 'var(--s2)', borderRadius: 12, padding: 4 }}>
-              {(['login', 'register'] as const).map(m => (
-                <button key={m} onClick={() => setMode(m)} style={{
-                  flex: 1, padding: '10px', borderRadius: 9, border: 'none',
-                  background: mode === m ? 'var(--s3)' : 'transparent',
-                  color: mode === m ? 'var(--t1)' : 'var(--t3)',
-                  fontSize: 13, fontWeight: 500, cursor: 'pointer',
-                  fontFamily: 'DM Sans', transition: 'all .2s'
-                }}>
-                  {m === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
-                </button>
-              ))}
-            </div>
-          )}
-
           {mode === 'reset' && (
             <div style={{ marginBottom: 28 }}>
               <h3 style={{ fontFamily: 'Syne', fontSize: 22, fontWeight: 800, marginBottom: 8 }}>Recuperar contraseña</h3>
@@ -235,22 +194,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={mode === 'login' ? handleLogin : mode === 'register' ? handleRegister : handleReset}>
-            {mode === 'register' && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Nombre</label>
-                  <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Freddy" required
-                    style={{ width: '100%', padding: '11px 14px', background: 'var(--s2)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 10, color: 'var(--t1)', fontSize: 14, fontFamily: 'DM Sans', outline: 'none' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Apellido</label>
-                  <input type="text" value={apellido} onChange={e => setApellido(e.target.value)} placeholder="Crespín" required
-                    style={{ width: '100%', padding: '11px 14px', background: 'var(--s2)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 10, color: 'var(--t1)', fontSize: 14, fontFamily: 'DM Sans', outline: 'none' }} />
-                </div>
-              </div>
-            )}
-
+          <form onSubmit={mode === 'login' ? handleLogin : handleReset}>
             <div style={{ marginBottom: 16 }}>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Email corporativo</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@eminat.net" required
@@ -288,16 +232,9 @@ export default function LoginPage() {
             }}>
               {loading ? 'Iniciando sesión...' :
                 mode === 'login' ? 'Iniciar sesión →' :
-                mode === 'register' ? 'Solicitar acceso →' :
                 'Enviar link de recuperación →'}
             </button>
           </form>
-
-          {mode === 'register' && (
-            <p style={{ fontSize: 12, color: 'var(--t3)', textAlign: 'center', marginTop: 16, lineHeight: 1.5 }}>
-              Tu cuenta será validada por el administrador antes de activarse.
-            </p>
-          )}
 
           {mode === 'reset' && (
             <div style={{ textAlign: 'center', marginTop: 20 }}>
@@ -310,7 +247,10 @@ export default function LoginPage() {
 
           {mode !== 'reset' && (
             <div style={{ textAlign: 'center', marginTop: 24 }}>
-              <Link href="/" style={{ fontSize: 13, color: 'var(--t3)', textDecoration: 'none' }}>← Volver al inicio</Link>
+              <p style={{ fontSize: 13, color: 'var(--t3)', lineHeight: 1.5 }}>
+                ¿No tienes cuenta? Solicita tu acceso a{' '}
+                <a href="mailto:freddy@eminat.net" style={{ color: '#7C6FF7', textDecoration: 'none' }}>freddy@eminat.net</a>
+              </p>
             </div>
           )}
         </div>
