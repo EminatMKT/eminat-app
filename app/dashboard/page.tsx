@@ -257,16 +257,14 @@ export default function DashboardPage() {
             </Link>
           ))}
 
-          <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.1em', padding: '12px 8px 5px' }}>Reportes</div>
-          {[
-            { icon: '⚡', label: 'Produccion', href: '/produccion' },
-            { icon: '⏱', label: 'Horas', href: '/horas' },
-            { icon: '💰', label: 'Pagos', href: '/pagos' },
-          ].map(item => (
-            <Link key={item.href} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', borderRadius: 10, fontSize: 13, fontWeight: 500, textDecoration: 'none', color: t2, marginBottom: 1 }}>
-              <span>{item.icon}</span>{item.label}
-            </Link>
-          ))}
+         <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.1em', padding: '12px 8px 5px' }}>Produccion</div>
+{[
+  { icon: '🚀', label: 'Eminat MKT', href: '/mkt' },
+].map(item => (
+  <Link key={item.href} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', borderRadius: 10, fontSize: 13, fontWeight: 500, textDecoration: 'none', color: t2, marginBottom: 1 }}>
+    <span>{item.icon}</span>{item.label}
+  </Link>
+))}
 
           <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.1em', padding: '12px 8px 5px' }}>Marcas</div>
           {MARCAS.map(a => (
