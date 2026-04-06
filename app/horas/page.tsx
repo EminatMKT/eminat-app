@@ -4,144 +4,127 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import NavBar from '@/app/components/NavBar'
 
-type Actividad = {
-  id: string
-  titulo: string
-  responsable_ref: string
-  area_ref: string
-  horas: number
-  dias_produccion: number
-  estado: string
-  mes: string
-  trimestre: string
-}
-
-type ResumenMiembro = {
-  nombre: string
-  horas: number
-  dias: number
-  tareas: number
-  completadas: number
-}
+const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 
 export default function HorasPage() {
-  const [actividades, setActividades] = useState<Actividad[]>([])
+  const [actividades, setActividades] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [mesActual, setMesActual] = useState('Enero')
+  const [mesActual, setMesActual] = useState('')
+  const [usuario, setUsuario] = useState<any>(null)
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase
-      .from('actividades')
-      .select('id, titulo, responsable_ref, area_ref, horas, dias_produccion, estado, mes, trimestre')
-      .then(({ data }) => {
-        if (data) setActividades(data)
-        setLoading(false)
-      })
+    async function cargar() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: usr } = await supabase.from('usuarios').select('*').eq('email', user.email).single()
+      setUsuario(usr)
+
+      const esSuperAdmin = usr?.rol === 'superadmin' || usr?.rol === 'coordinador'
+
+      let query = supabase.from('actividades').select('*')
+      if (!esSuperAdmin && usr?.responsable_ref) {
+        query = query.eq('responsable_ref', usr.responsable_ref)
+      }
+
+      const { data } = await query
+      setActividades(data || [])
+      setLoading(false)
+    }
+    cargar()
   }, [])
 
-  const meses = actividades
-    .map(a => a.mes)
-    .filter(Boolean)
-    .filter((m, i, arr) => arr.indexOf(m) === i)
+  const esSuperAdmin = usuario?.rol === 'superadmin' || usuario?.rol === 'coordinador'
+  const filtradas = mesActual ? actividades.filter(a => a.mes === mesActual) : actividades
 
-  const filtradas = actividades.filter(a => a.mes === mesActual)
+  // Agrupar por miembro (solo superadmin ve todos)
+  const refs = esSuperAdmin
+    ? ['DG_Joselyn','DGA_David','Jonathan_CRM','DG_Ariana','CM_ Naomi','EV_Bryan','Coord_MFreddy']
+    : [usuario?.responsable_ref].filter(Boolean)
 
-  const resumen: ResumenMiembro[] = Object.values(
-    filtradas.reduce((acc: Record<string, ResumenMiembro>, a) => {
-      const nombre = a.responsable_ref || 'Sin asignar'
-      if (!acc[nombre]) acc[nombre] = { nombre, horas: 0, dias: 0, tareas: 0, completadas: 0 }
-      acc[nombre].horas += Number(a.horas) || 0
-      acc[nombre].dias += Number(a.dias_produccion) || 0
-      acc[nombre].tareas += 1
-      if (a.estado === 'Completado') acc[nombre].completadas += 1
-      return acc
-    }, {})
-  ).sort((a, b) => b.horas - a.horas)
+  const resumen = refs.map(ref => {
+    const acts = filtradas.filter(a => a.responsable_ref === ref)
+    return {
+      ref,
+      nombre: ref?.replace('DG_','').replace('DGA_','').replace('_CRM','').replace('CM_ ','').replace('EV_','').replace('Coord_M',''),
+      total: acts.length,
+      completadas: acts.filter(a => a.estado === 'Completado').length,
+      horas: acts.reduce((acc, a) => acc + (Number(a.horas) || 0), 0),
+      dias: acts.reduce((acc, a) => acc + (Number(a.dias_produccion) || 0), 0),
+    }
+  }).filter(r => r.total > 0)
 
-  const totalHoras = resumen.reduce((acc, m) => acc + m.horas, 0)
+  if (loading) return (
+    <>
+      <NavBar />
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    </>
+  )
 
   return (
     <>
       <NavBar />
       <main className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Horas</h1>
-              <p className="text-gray-500 mt-1">Resumen de horas trabajadas por el equipo</p>
+              <p className="text-gray-500 mt-1">{esSuperAdmin ? 'Resumen del equipo' : 'Tu resumen de horas'}</p>
             </div>
-            <select
-              value={mesActual}
-              onChange={e => setMesActual(e.target.value)}
-              className="px-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {meses.map(m => <option key={m} value={m}>{m}</option>)}
+            <select value={mesActual} onChange={e => setMesActual(e.target.value)}
+              className="px-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">Todos los meses</option>
+              {MESES.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <div className="bg-blue-50 rounded-xl p-4">
-              <p className="text-xs font-medium text-blue-600 mb-1">Total Horas</p>
-              <p className="text-2xl font-bold text-blue-700">{totalHoras.toFixed(0)}h</p>
-            </div>
-            <div className="bg-green-50 rounded-xl p-4">
-              <p className="text-xs font-medium text-green-600 mb-1">Miembros</p>
-              <p className="text-2xl font-bold text-green-700">{resumen.length}</p>
-            </div>
-            <div className="bg-purple-50 rounded-xl p-4">
-              <p className="text-xs font-medium text-purple-600 mb-1">Promedio</p>
-              <p className="text-2xl font-bold text-purple-700">{resumen.length > 0 ? (totalHoras / resumen.length).toFixed(0) : 0}h</p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-              <p className="text-xs font-medium text-gray-500 mb-1">Mes</p>
-              <p className="text-2xl font-bold text-gray-700">{mesActual}</p>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="flex items-center justify-center h-48">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : resumen.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-              <p className="text-gray-400">No hay datos para este mes.</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="text-left px-5 py-3 font-semibold text-gray-600">Miembro</th>
-                    <th className="text-right px-5 py-3 font-semibold text-gray-600">Horas</th>
-                    <th className="text-right px-5 py-3 font-semibold text-gray-600 hidden sm:table-cell">Días</th>
-                    <th className="text-right px-5 py-3 font-semibold text-gray-600 hidden md:table-cell">Tareas</th>
-                    <th className="text-right px-5 py-3 font-semibold text-gray-600 hidden md:table-cell">Completadas</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {resumen.map((m, i) => (
-                    <tr key={i} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-5 py-3 font-medium text-gray-900">{m.nombre}</td>
-                      <td className="px-5 py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <div className="w-20 bg-gray-100 rounded-full h-1.5 hidden sm:block">
-                            <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${Math.min((m.horas / 160) * 100, 100)}%` }} />
-                          </div>
-                          <span className="font-semibold text-gray-800">{m.horas}h</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3 text-right text-gray-600 hidden sm:table-cell">{m.dias}</td>
-                      <td className="px-5 py-3 text-right text-gray-600 hidden md:table-cell">{m.tareas}</td>
-                      <td className="px-5 py-3 text-right hidden md:table-cell">
-                        <span className="text-green-600 font-medium">{m.completadas}</span>
-                      </td>
-                    </tr>
+          <div className="grid gap-4">
+            {resumen.map(r => (
+              <div key={r.ref} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="font-bold text-gray-900 text-lg">{r.nombre}</h3>
+                    <p className="text-xs text-gray-400 font-mono mt-0.5">{r.ref}</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-blue-600">{r.horas}h</div>
+                    <div className="text-xs text-gray-400">{r.dias} días prod.</div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { label: 'Total tareas', value: r.total, color: 'text-gray-700' },
+                    { label: 'Completadas', value: r.completadas, color: 'text-green-600' },
+                    { label: 'Efectividad', value: `${r.total > 0 ? Math.round((r.completadas / r.total) * 100) : 0}%`, color: 'text-blue-600' },
+                  ].map(s => (
+                    <div key={s.label} className="text-center p-3 bg-gray-50 rounded-xl">
+                      <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
+                      <div className="text-xs text-gray-400 mt-1">{s.label}</div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                </div>
+                <div className="mt-4">
+                  <div className="flex justify-between text-xs text-gray-400 mb-1">
+                    <span>Progreso</span>
+                    <span>{r.completadas}/{r.total}</span>
+                  </div>
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-green-500 rounded-full transition-all"
+                      style={{ width: `${r.total > 0 ? (r.completadas / r.total) * 100 : 0}%` }} />
+                  </div>
+                </div>
+              </div>
+            ))}
+            {resumen.length === 0 && (
+              <div className="text-center py-12 text-gray-400">
+                <p className="text-2xl mb-2">⏱</p>
+                <p>No hay datos de horas para mostrar</p>
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </>
