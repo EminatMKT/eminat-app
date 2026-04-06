@@ -4,16 +4,6 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 import NavBar from '@/app/components/NavBar'
 
-type Actividad = {
-  id: string
-  titulo: string
-  responsable_ref: string
-  area_ref: string
-  estado: string
-  fecha_entrega: string | null
-  mes: string
-}
-
 const COLUMNAS = ['Pendiente', 'En proceso', 'Completado']
 const COLUMNA_COLORS: Record<string, string> = {
   Pendiente: 'border-t-yellow-400',
@@ -22,27 +12,36 @@ const COLUMNA_COLORS: Record<string, string> = {
 }
 
 export default function ProduccionPage() {
-  const [actividades, setActividades] = useState<Actividad[]>([])
+  const [actividades, setActividades] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [mesActual, setMesActual] = useState('')
+  const [usuario, setUsuario] = useState<any>(null)
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase
-      .from('actividades')
-      .select('id, titulo, responsable_ref, area_ref, estado, fecha_entrega, mes')
-      .order('fecha_entrega', { ascending: true })
-      .then(({ data }) => {
-        if (data) setActividades(data)
-        setLoading(false)
-      })
+    async function cargar() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: usr } = await supabase.from('usuarios').select('*').eq('email', user.email).single()
+      setUsuario(usr)
+
+      const esSuperAdmin = usr?.rol === 'superadmin' || usr?.rol === 'coordinador'
+
+      let query = supabase.from('actividades').select('id, titulo, responsable_ref, area_ref, estado, fecha_entrega, mes').order('fecha_entrega', { ascending: true })
+      if (!esSuperAdmin && usr?.responsable_ref) {
+        query = query.eq('responsable_ref', usr.responsable_ref)
+      }
+
+      const { data } = await query
+      setActividades(data || [])
+      setLoading(false)
+    }
+    cargar()
   }, [])
 
-  const meses = actividades
-    .map(a => a.mes)
-    .filter(Boolean)
-    .filter((m, i, arr) => arr.indexOf(m) === i)
-
+  const esSuperAdmin = usuario?.rol === 'superadmin' || usuario?.rol === 'coordinador'
+  const meses = actividades.map(a => a.mes).filter(Boolean).filter((m, i, arr) => arr.indexOf(m) === i)
   const filtradas = mesActual ? actividades.filter(a => a.mes === mesActual) : actividades
   const porColumna = (estado: string) => filtradas.filter(a => a.estado === estado)
 
@@ -62,14 +61,13 @@ export default function ProduccionPage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Producción</h1>
-              <p className="text-gray-500 mt-1">{filtradas.length} actividades — Panel Kanban</p>
+              <h1 className="text-3xl font-bold text-gray-900">Produccion</h1>
+              <p className="text-gray-500 mt-1">
+                {esSuperAdmin ? `${filtradas.length} actividades — Panel Kanban` : `${filtradas.length} tus tareas`}
+              </p>
             </div>
-            <select
-              value={mesActual}
-              onChange={e => setMesActual(e.target.value)}
-              className="px-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
+            <select value={mesActual} onChange={e => setMesActual(e.target.value)}
+              className="px-4 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">Todos los meses</option>
               {meses.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
@@ -84,7 +82,7 @@ export default function ProduccionPage() {
                     {porColumna(col).length}
                   </span>
                 </div>
-                <div className="p-3 space-y-2 max-h-96 overflow-y-auto">
+                <div className="p-3 space-y-2 max-h-[600px] overflow-y-auto">
                   {porColumna(col).length === 0 ? (
                     <p className="text-xs text-gray-300 text-center py-4">Sin actividades</p>
                   ) : (
@@ -92,8 +90,8 @@ export default function ProduccionPage() {
                       <div key={a.id} className="bg-gray-50 rounded-lg p-3 border border-gray-100 hover:border-blue-200 transition-colors">
                         <p className="text-sm font-medium text-gray-800 leading-snug mb-2">{a.titulo}</p>
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-400">{a.responsable_ref}</span>
-                          <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">{a.area_ref}</span>
+                          {esSuperAdmin && <span className="text-xs text-gray-400">{a.responsable_ref}</span>}
+                          <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-600 ml-auto">{a.area_ref}</span>
                         </div>
                         {a.fecha_entrega && (
                           <p className="text-xs text-gray-400 mt-1.5">
