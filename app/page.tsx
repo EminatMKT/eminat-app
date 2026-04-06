@@ -137,7 +137,12 @@ export default function App() {
   const [onlineCount, setOnlineCount] = useState(0)
   const [horaActual, setHoraActual] = useState('')
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState<Record<string, boolean>>({ mkt: true })
+ const [sidebarOpen, setSidebarOpen] = useState<Record<string, boolean>>({ mkt: true })
+const [notificaciones, setNotificaciones] = useState<any[]>([])
+const [notifAbiertas, setNotifAbiertas] = useState(false)
+
+  
+  
   const router = useRouter()
 
   // Dashboard
@@ -219,6 +224,14 @@ export default function App() {
     if (!esSA && usr?.responsable_ref) setMiembroReporte(usr.responsable_ref)
     const { data: adminUsrs } = await supabase.from('usuarios').select('*').order('created_at', { ascending: false })
     setAdminUsuarios((adminUsrs || []).map(u => ({ ...u, cargo: u.cargo || CARGOS_DIR[u.email?.toLowerCase()] || '' })))
+    
+    if (usr?.id) {
+  const { data: notifs } = await supabase.from('notificaciones').select('*').eq('usuario_id', usr.id).order('created_at', { ascending: false }).limit(20)
+  setNotificaciones(notifs || [])
+  supabase.channel('notif-channel').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notificaciones', filter: `usuario_id=eq.${usr.id}` }, payload => { setNotificaciones(prev => [payload.new as any, ...prev]) }).subscribe()
+}
+    
+    
     setLoading(false)
   }
 
@@ -358,6 +371,15 @@ export default function App() {
       setActividades(prev => [data, ...prev])
       setModalNuevaAct(false)
       setNuevaAct({ titulo: '', descripcion: '', area_ref: 'EMC', responsable_ref: 'DG_Joselyn', mes: MESES[new Date().getMonth()], horas: '', dias_produccion: '', estado: 'Pendiente', fecha_entrega: '', solicitado_por: 'Coord_MFreddy' })
+      
+      if (data && nuevaAct.responsable_ref !== usuario?.responsable_ref) {
+  const responsableUser = usuarios.find((u: any) => u.responsable_ref === nuevaAct.responsable_ref)
+  if (responsableUser?.id) {
+    await supabase.from('notificaciones').insert({ usuario_id: responsableUser.id, tipo: 'tarea_asignada', titulo: 'Nueva tarea asignada', mensaje: `"${nuevaAct.titulo}" — ${nuevaAct.area_ref} · ${nuevaAct.mes}`, actividad_id: data.id, leida: false })
+  }
+}
+      
+      
       mostrarMensaje('ok', 'Actividad creada exitosamente')
     } catch (e) {
       mostrarMensaje('error', 'Error inesperado al crear la actividad')
@@ -582,6 +604,45 @@ export default function App() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            
+            <div style={{ position: 'relative' }}>
+  <button onClick={() => { setNotifAbiertas(!notifAbiertas); if (!notifAbiertas) { const ids = notificaciones.filter((n:any) => !n.leida).map((n:any) => n.id); if (ids.length > 0) supabase.from('notificaciones').update({ leida: true }).in('id', ids).then(() => setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))) } }}
+    style={{ position: 'relative', padding: '7px 9px', borderRadius: 10, border: `1px solid ${border}`, background: notifAbiertas ? `${accent}20` : s2, color: notifAbiertas ? accent : t2, fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>
+    🔔
+    {notificaciones.filter((n:any) => !n.leida).length > 0 && (
+      <span style={{ position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: '50%', background: '#F87171', color: 'white', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${s1}` }}>
+        {notificaciones.filter((n:any) => !n.leida).length > 9 ? '9+' : notificaciones.filter((n:any) => !n.leida).length}
+      </span>
+    )}
+  </button>
+  {notifAbiertas && (
+    <div style={{ position: 'absolute', top: '110%', right: 0, width: 320, background: s1, border: `1px solid ${border}`, borderRadius: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', zIndex: 50, overflow: 'hidden' }}>
+      <div style={{ padding: '14px 16px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontFamily: 'Syne', fontSize: 14, fontWeight: 700, color: t1 }}>Notificaciones</div>
+        <button onClick={() => { supabase.from('notificaciones').update({ leida: true }).eq('leida', false).then(() => setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))) }} style={{ fontSize: 11, color: t3, background: 'none', border: 'none', cursor: 'pointer' }}>Marcar todas leidas</button>
+      </div>
+      <div style={{ maxHeight: 340, overflowY: 'auto' }}>
+        {notificaciones.length === 0 ? (
+          <div style={{ padding: '32px', textAlign: 'center', color: t3 }}>
+            <div style={{ fontSize: 28, marginBottom: 8 }}>🔔</div>
+            <div style={{ fontSize: 12 }}>Sin notificaciones</div>
+          </div>
+        ) : notificaciones.map((n:any) => (
+          <div key={n.id} onClick={() => { if (n.actividad_id) { const act = actividades.find((a:any) => a.id === n.actividad_id); if (act) { setModalVerAct(act); setNotifAbiertas(false) } } }}
+            style={{ padding: '12px 16px', borderBottom: `1px solid ${border}`, cursor: n.actividad_id ? 'pointer' : 'default', background: n.leida ? 'transparent' : `${accent}08`, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: n.leida ? 'transparent' : accent, flexShrink: 0, marginTop: 4 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: n.leida ? 400 : 600, color: t1 }}>{n.titulo}</div>
+              <div style={{ fontSize: 11, color: t2, marginTop: 2, lineHeight: 1.4 }}>{n.mensaje}</div>
+              <div style={{ fontSize: 10, color: t3, marginTop: 4 }}>{new Date(n.created_at).toLocaleDateString('es-EC', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
+</div>
+            
             {mensaje && (
               <div style={{ padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 500, background: mensaje.tipo === 'ok' ? 'rgba(52,211,153,.15)' : 'rgba(248,113,113,.15)', color: mensaje.tipo === 'ok' ? '#34D399' : '#F87171', border: `1px solid ${mensaje.tipo === 'ok' ? '#34D39940' : '#F8717140'}` }}>
                 {mensaje.tipo === 'ok' ? '✓' : '✕'} {mensaje.texto}
