@@ -150,6 +150,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState<Record<string, boolean>>({ mkt: true })
   const [sidebarPanel, setSidebarPanel] = useState<string | null>('mkt')
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+  const [hoveredBrand, setHoveredBrand] = useState<string | null>(null)
   const [notificaciones, setNotificaciones] = useState<any[]>([])
   const [notifAbiertas, setNotifAbiertas] = useState(false)
   const router = useRouter()
@@ -455,11 +456,11 @@ export default function App() {
     ...(esSuperAdmin ? [{ key: 'admin', icon: '🔐', label: 'Admin', action: () => { setVista('admin'); setSidebarPanel(null) } }] : []),
   ]
   const mktSubItems = [
-    { key: 'dashboard', icon: '📊', label: 'Dashboard' },
-    { key: 'mkt', icon: '⚡', label: 'Producción' },
-    { key: 'solicitudes', icon: '📋', label: 'Solicitudes' },
-    { key: 'equipo', icon: '👥', label: 'Equipo' },
-    { key: 'reporte', icon: '💰', label: 'Reporte' },
+    { id: 'sub-overview', vista: 'mkt', icon: '📊', label: 'Dashboard', tab: 'overview' },
+    { id: 'sub-prod', vista: 'mkt', icon: '⚡', label: 'Producción', tab: 'kanban' },
+    { id: 'sub-sol', vista: 'solicitudes', icon: '📋', label: 'Solicitudes' },
+    { id: 'sub-equipo', vista: 'equipo', icon: '👥', label: 'Equipo' },
+    { id: 'sub-reporte', vista: 'reporte', icon: '💰', label: 'Reporte' },
   ]
   const isMktVista = ['dashboard', 'mkt', 'solicitudes', 'equipo', 'reporte'].includes(vista)
   const activeIconKey = vista === 'directorio' ? 'directorio' : vista === 'admin' ? 'admin' : isMktVista ? 'mkt' : 'home'
@@ -488,16 +489,7 @@ export default function App() {
       {/* SIDEBAR */}
       <aside className={`sidebar-root${mobileSidebarOpen ? ' open' : ''}`} style={{ display: 'flex', flexShrink: 0, height: '100vh', position: 'relative', zIndex: 50 }}>
         {/* ICON BAR */}
-        <div style={{ width: 62, background: s1, borderRight: `1px solid ${border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8 }}>
-          {/* Brand marquee ticker */}
-          <div style={{ width: '100%', overflow: 'hidden', padding: '8px 0 10px', borderBottom: `1px solid ${border}`, marginBottom: 8 }}>
-            <div className="sidebar-ticker" style={{ display: 'flex', whiteSpace: 'nowrap', gap: 12 }}>
-              {[...MARCAS_LIST, ...MARCAS_LIST].map((m, i) => (
-                <span key={i} style={{ fontSize: 9, fontFamily: 'DM Mono', fontWeight: 600, color: m.color, letterSpacing: '.04em', flexShrink: 0 }}>{m.codigo}</span>
-              ))}
-            </div>
-          </div>
-
+        <div style={{ width: 62, background: s1, borderRight: `1px solid ${border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 12 }}>
           {/* Icon buttons */}
           <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '0 4px', width: '100%' }}>
             {sidebarIcons.map(item => (
@@ -529,14 +521,17 @@ export default function App() {
             <div style={{ fontSize: 9, color: t3, fontFamily: 'DM Mono', marginTop: 2, whiteSpace: 'nowrap' }}>Marketing & Producción</div>
           </div>
           <nav style={{ flex: 1, padding: '0 8px', overflowY: 'auto' }}>
-            {mktSubItems.map(item => (
-              <button key={item.key} onClick={() => { setVista(item.key); setMobileSidebarOpen(false) }}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 500, textAlign: 'left', whiteSpace: 'nowrap', color: vista === item.key ? accent : t2, background: vista === item.key ? `${accent}15` : 'transparent', marginBottom: 2, transition: 'all .15s' }}>
-                <span style={{ fontSize: 13 }}>{item.icon}</span>
-                {item.label}
-                {vista === item.key && <div style={{ marginLeft: 'auto', width: 4, height: 4, borderRadius: '50%', background: accent }} />}
-              </button>
-            ))}
+            {mktSubItems.map(item => {
+              const isActive = item.tab ? (vista === item.vista && mktTab === item.tab) : vista === item.vista
+              return (
+                <button key={item.id} onClick={() => { setVista(item.vista); if (item.tab) setMktTab(item.tab); setMobileSidebarOpen(false) }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 500, textAlign: 'left', whiteSpace: 'nowrap', color: isActive ? accent : t2, background: isActive ? `${accent}15` : 'transparent', marginBottom: 2, transition: 'all .15s' }}>
+                  <span style={{ fontSize: 13 }}>{item.icon}</span>
+                  {item.label}
+                  {isActive && <div style={{ marginLeft: 'auto', width: 4, height: 4, borderRadius: '50%', background: accent }} />}
+                </button>
+              )
+            })}
           </nav>
           {/* User profile card */}
           <div style={{ padding: 10, borderTop: `1px solid ${border}` }}>
@@ -569,16 +564,27 @@ export default function App() {
             <button className="mobile-hamburger" onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)} style={{ display: 'none', background: 'none', border: `1px solid ${border}`, borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: t1, fontSize: 18, lineHeight: 1 }}>☰</button>
             <div>
               <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15, color: t1 }}>
-                {vista === 'dashboard' && `Buenos dias, ${usuario?.nombre} 👋`}
-                {vista === 'mkt' && 'Eminat MKT — Produccion'}
+                {vista === 'dashboard' && `Eminat Group — Bienvenido, ${usuario?.nombre}`}
+                {vista === 'mkt' && 'Stratix MKT — Producción'}
                 {vista === 'solicitudes' && 'Solicitudes'}
                 {vista === 'equipo' && 'Equipo de Marketing'}
                 {vista === 'directorio' && 'Directorio del Holding'}
                 {vista === 'admin' && 'Admin Panel'}
                 {vista === 'reporte' && 'Reporte'}
               </div>
-              <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', marginTop: 1 }}>
-                {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {horaActual}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
+                <span style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono' }}>
+                  {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {horaActual}
+                </span>
+                <span style={{ width: 1, height: 10, background: border }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {MARCAS_LIST.map(m => (
+                    <span key={m.codigo} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 9, fontFamily: 'DM Mono', color: m.color, fontWeight: 600, letterSpacing: '.02em' }}>
+                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
+                      {m.codigo}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -648,15 +654,87 @@ export default function App() {
 
         <div style={{ padding: '20px 24px', flex: 1, overflow: 'auto' }}>
 
-          {/* DASHBOARD */}
-          {vista === 'dashboard' && (
+          {/* HOME — CIRCULAR INFOGRAPHIC */}
+          {vista === 'dashboard' && (() => {
+            const brandNodes = [
+              { key: 'mkt', icon: '🚀', name: 'Stratix MKT', color: accent, loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Agencia de marketing y producción creativa del Holding Eminat.', action: () => setVista('mkt') },
+              { key: 'emc', icon: '🏥', name: 'EMC Medical Center', color: '#60A5FA', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Centro médico especializado en salud integral y bienestar.', action: () => mostrarMensaje('ok', 'EMC Medical Center — Próximamente') },
+              { key: 'svn', icon: '💎', name: 'Soy Vivi Negrete', color: '#F472B6', loc: 'Miami', tz: 'America/New_York', desc: 'Marca personal de lifestyle, moda y contenido digital.', action: () => mostrarMensaje('ok', 'Soy Vivi Negrete — Próximamente') },
+              { key: 'erg', icon: '🔬', name: 'Eminat Research Group', color: '#A78BFA', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'División de investigación e innovación del Holding.', action: () => mostrarMensaje('ok', 'Eminat Research Group — Próximamente') },
+              { key: 'vnf', icon: '🤝', name: 'VN Foundation', color: '#FB923C', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Fundación social enfocada en educación y desarrollo comunitario.', action: () => mostrarMensaje('ok', 'VN Foundation — Próximamente') },
+              { key: 'premier', icon: '🏆', name: 'Premier', color: '#34D399', loc: 'Miami', tz: 'America/New_York', desc: 'División premium de servicios y productos exclusivos.', action: () => mostrarMensaje('ok', 'Premier — Próximamente') },
+              { key: 'ornella', icon: '🤖', name: 'Ornella IA', color: '#F87171', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Plataforma de inteligencia artificial y automatización.', action: () => mostrarMensaje('ok', 'Ornella IA — Próximamente') },
+              { key: 'mentor', icon: '📚', name: 'Mentor', color: '#FBB040', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Plataforma educativa de capacitación y mentoría profesional.', action: () => mostrarMensaje('ok', 'Mentor — Próximamente') },
+            ]
+            const radius = 220
+            const getLocalTime = (tz: string) => { try { return new Date().toLocaleTimeString('es-EC', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) } catch { return horaActual } }
+            return (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 120px)', position: 'relative' }}>
+                {/* Orbit ring */}
+                <div className="orbit-ring" style={{ position: 'absolute', width: radius * 2 + 80, height: radius * 2 + 80, borderRadius: '50%', border: `1px solid ${border}` }} />
+                <div className="orbit-ring-inner" style={{ position: 'absolute', width: radius * 2 - 40, height: radius * 2 - 40, borderRadius: '50%', border: `1px dashed ${border}` }} />
+
+                {/* Center node */}
+                <div className="center-pulse" style={{ position: 'absolute', width: 130, height: 130, borderRadius: '50%', background: `radial-gradient(circle, ${accent}30 0%, transparent 70%)`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+                  <div style={{ width: 90, height: 90, borderRadius: '50%', background: s1, border: `2px solid ${accent}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 40px ${accent}40, 0 0 80px ${accent}15` }}>
+                    <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 11, color: accent, lineHeight: 1.2, textAlign: 'center' }}>Eminat</div>
+                    <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 13, color: t1, lineHeight: 1 }}>Group</div>
+                  </div>
+                </div>
+
+                {/* Brand nodes */}
+                {brandNodes.map((brand, i) => {
+                  const angle = (i * 360 / brandNodes.length - 90) * (Math.PI / 180)
+                  const x = Math.cos(angle) * radius
+                  const y = Math.sin(angle) * radius
+                  const isHovered = hoveredBrand === brand.key
+                  return (
+                    <div key={brand.key} style={{ position: 'absolute', transform: `translate(${x}px, ${y}px)`, zIndex: isHovered ? 10 : 1 }}>
+                      {/* Connection line */}
+                      <svg style={{ position: 'absolute', left: '50%', top: '50%', width: 1, height: 1, overflow: 'visible', pointerEvents: 'none', zIndex: -1 }}>
+                        <line x1="0" y1="0" x2={-x} y2={-y} stroke={brand.color} strokeWidth={isHovered ? 1.5 : 0.5} strokeOpacity={isHovered ? 0.6 : 0.15} strokeDasharray={isHovered ? 'none' : '4 4'} />
+                      </svg>
+                      {/* Node */}
+                      <button onClick={brand.action} onMouseEnter={() => setHoveredBrand(brand.key)} onMouseLeave={() => setHoveredBrand(null)}
+                        className="brand-node" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 0, transition: 'transform .2s', transform: isHovered ? 'scale(1.12)' : 'scale(1)' }}>
+                        <div style={{ width: 48, height: 48, borderRadius: '50%', background: s1, border: `2px solid ${isHovered ? brand.color : border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, transition: 'all .25s', boxShadow: isHovered ? `0 0 20px ${brand.color}40` : 'none' }}>
+                          {brand.icon}
+                        </div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: isHovered ? brand.color : t1, fontFamily: 'DM Sans', textAlign: 'center', maxWidth: 90, lineHeight: 1.2, transition: 'color .2s' }}>{brand.name}</div>
+                        <div style={{ fontSize: 8, color: t3, fontFamily: 'DM Mono', display: 'flex', alignItems: 'center', gap: 3 }}>
+                          <span>📍 {brand.loc}</span>
+                          <span style={{ color: brand.color }}>{getLocalTime(brand.tz)}</span>
+                        </div>
+                      </button>
+                      {/* Tooltip */}
+                      {isHovered && (
+                        <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 8, background: s1, border: `1px solid ${brand.color}40`, borderRadius: 12, padding: '12px 14px', width: 200, zIndex: 20, boxShadow: `0 8px 32px rgba(0,0,0,.5)` }}>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: brand.color, marginBottom: 4 }}>{brand.name}</div>
+                          <div style={{ fontSize: 10, color: t2, lineHeight: 1.5 }}>{brand.desc}</div>
+                          <div style={{ marginTop: 8, fontSize: 9, color: t3, display: 'flex', justifyContent: 'space-between' }}>
+                            <span>📍 {brand.loc}</span>
+                            <span style={{ fontFamily: 'DM Mono', color: brand.color }}>{getLocalTime(brand.tz)}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })()}
+
+          {/* EMINAT MKT */}
+          {vista === 'mkt' && (
             <div>
               <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: `1px solid ${border}` }}>
-                {[{ key: 'overview', label: '📊 Overview' }, { key: 'directory', label: '🏢 Directorio' }].map(t => (
-                  <button key={t.key} onClick={() => setSubVista(t.key)} style={{ padding: '7px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', borderRadius: '8px 8px 0 0', fontFamily: 'DM Sans', background: 'transparent', color: subVista === t.key ? t1 : t3, borderBottom: subVista === t.key ? `2px solid ${accent}` : '2px solid transparent' }}>{t.label}</button>
+                {[{ key: 'overview', label: '📊 Overview' }, { key: 'kanban', label: '⚡ Kanban' }, { key: 'gantt', label: '📊 Gantt' }, { key: 'horas', label: '⏱ Horas' }].map(t => (
+                  <button key={t.key} onClick={() => setMktTab(t.key)} style={{ padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', borderRadius: '8px 8px 0 0', fontFamily: 'DM Sans', background: 'transparent', color: mktTab === t.key ? t1 : t3, borderBottom: mktTab === t.key ? `2px solid ${accent}` : '2px solid transparent' }}>{t.label}</button>
                 ))}
               </div>
-              {subVista === 'overview' && (
+
+              {/* OVERVIEW */}
+              {mktTab === 'overview' && (
                 <div>
                   <div style={{ display: 'flex', gap: 5, marginBottom: 16 }}>
                     {TRIMESTRES.map(q => (
@@ -780,48 +858,6 @@ export default function App() {
                   </div>
                 </div>
               )}
-              {subVista === 'directory' && (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, fontFamily: 'Syne', color: t1 }}>{DIRECTORIO_DATA.length} miembros del Holding</div>
-                    <input type="text" placeholder="Buscar..." value={busquedaDir} onChange={e => setBusquedaDir(e.target.value)} style={{ ...inputStyle, width: 220 }} />
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
-                    {DEPS_DIR.map(dep => (
-                      <button key={dep} onClick={() => setFiltroDir(dep)} style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, border: `1px solid ${filtroDir === dep ? accent : border}`, background: filtroDir === dep ? accent : 'transparent', color: filtroDir === dep ? 'white' : t2, cursor: 'pointer' }}>{dep}</button>
-                    ))}
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
-                    {dirFiltrado.map((m, i) => {
-                      const ec = EMPRESA_COLORS[m.empresa] || accent
-                      return (
-                        <div key={i} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 14 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-                            <div style={{ width: 36, height: 36, borderRadius: 10, background: m.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'white' }}>{getIniciales(m.nombre)}</div>
-                            <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 20, background: `${ec}20`, color: ec }}>{m.empresa.replace('Eminat ', '').replace(' by Eminat', '')}</span>
-                          </div>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: t1 }}>{m.nombre}</div>
-                          <div style={{ fontSize: 11, color: t2, marginTop: 3 }}>{m.cargo}</div>
-                          <div style={{ borderTop: `1px solid ${border}`, marginTop: 8, paddingTop: 8 }}>
-                            <a href={`mailto:${m.email}`} style={{ fontSize: 10, color: accent, textDecoration: 'none', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>✉ {m.email}</a>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* EMINAT MKT */}
-          {vista === 'mkt' && (
-            <div>
-              <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: `1px solid ${border}` }}>
-                {[{ key: 'kanban', label: '⚡ Kanban' }, { key: 'gantt', label: '📊 Gantt' }, { key: 'horas', label: '⏱ Horas' }].map(t => (
-                  <button key={t.key} onClick={() => setMktTab(t.key)} style={{ padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', borderRadius: '8px 8px 0 0', fontFamily: 'DM Sans', background: 'transparent', color: mktTab === t.key ? t1 : t3, borderBottom: mktTab === t.key ? `2px solid ${accent}` : '2px solid transparent' }}>{t.label}</button>
-                ))}
-              </div>
 
               {/* KANBAN */}
               {mktTab === 'kanban' && (
@@ -1724,8 +1760,12 @@ export default function App() {
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg) } }
-        @keyframes sidebarTicker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        .sidebar-ticker { animation: sidebarTicker 12s linear infinite; }
+        @keyframes centerPulse { 0%, 100% { box-shadow: 0 0 40px rgba(124,111,247,.25), 0 0 80px rgba(124,111,247,.1); } 50% { box-shadow: 0 0 60px rgba(124,111,247,.4), 0 0 120px rgba(124,111,247,.2); } }
+        @keyframes orbitRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .center-pulse > div { animation: centerPulse 3s ease-in-out infinite; }
+        .orbit-ring { animation: orbitRotate 60s linear infinite; pointer-events: none; }
+        .orbit-ring-inner { animation: orbitRotate 45s linear infinite reverse; pointer-events: none; }
+        .brand-node:hover { filter: brightness(1.1); }
         * { scrollbar-width: thin; scrollbar-color: rgba(124,111,247,0.3) transparent; }
         *::-webkit-scrollbar { width: 4px; height: 4px; }
         *::-webkit-scrollbar-track { background: transparent; }
