@@ -1013,7 +1013,79 @@ export default function App() {
                   <select value={mesReporte} onChange={e => setMesReporte(e.target.value)} style={{ ...inputStyle, width: 'auto', padding: '6px 12px' }}>
                     {MESES.map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
-                  <button onClick={() => window.print()} style={{ padding: '7px 14px', borderRadius: 8, background: accent, color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Imprimir</button>
+                  <button onClick={() => {
+                    const w = window.open('', '_blank', 'width=900,height=700')
+                    if (!w) return
+                    const estadoColor = (e: string) => ({ 'Completado': '#34D399', 'Por aprobar': '#FBB040', 'En proceso': '#7C6FF7', 'Pendiente': '#9494B3' }[e] || '#999')
+                    const rows = actsRep.map((a: any, i: number) => `<tr>
+                      <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:center;color:#666">${i + 1}</td>
+                      <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#111;font-weight:500">${a.titulo || ''}</td>
+                      <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#555">${a.area_ref || ''}</td>
+                      <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#555;font-family:monospace;text-align:center">${a.horas || 0}h</td>
+                      <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#555;font-family:monospace;text-align:center">${a.dias_produccion || 0}</td>
+                      <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#555;text-align:center">${a.mes || ''}</td>
+                      <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:center"><span style="font-size:11px;padding:2px 10px;border-radius:20px;background:${estadoColor(a.estado)}20;color:${estadoColor(a.estado)};font-weight:600">${a.estado || ''}</span></td>
+                    </tr>`).join('')
+                    const today = new Date().toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric' })
+                    w.document.write(`<!DOCTYPE html><html><head><title>Reporte de Producción — ${nombreRep}</title>
+                    <style>
+                      * { margin:0; padding:0; box-sizing:border-box; }
+                      body { font-family: 'Segoe UI', Arial, sans-serif; background:#fff; color:#111; padding:40px 50px; font-size:13px; }
+                      @media print { .no-print { display:none !important; } body { padding:20px 30px; } }
+                    </style></head><body>
+                    <div style="text-align:center;margin-bottom:28px;padding-bottom:18px;border-bottom:2px solid #222">
+                      <div style="font-size:24px;font-weight:800;letter-spacing:.5px">Stratix Solutions</div>
+                      <div style="font-size:14px;font-weight:600;margin-top:4px;color:#444">Reporte de Producción para Pago</div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid #e5e7eb">
+                      <div>
+                        <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Colaborador</div>
+                        <div style="font-size:20px;font-weight:700">${nombreRep}</div>
+                        <div style="font-size:11px;color:#888;font-family:monospace;margin-top:2px">${refRep}</div>
+                      </div>
+                      <div style="text-align:right">
+                        <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Periodo</div>
+                        <div style="font-size:16px;font-weight:700">${mesReporte} 2026</div>
+                      </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+                      ${[
+                        { label: 'Total tareas', value: actsRep.length, color: '#7C6FF7' },
+                        { label: 'Completadas', value: completadasRep, color: '#34D399' },
+                        { label: 'Horas totales', value: totalHorasRep + 'h', color: '#F472B6' },
+                        { label: 'Días producción', value: totalDiasRep, color: '#60A5FA' }
+                      ].map(k => `<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px;text-align:center">
+                        <div style="font-size:24px;font-weight:800;color:${k.color}">${k.value}</div>
+                        <div style="font-size:10px;color:#888;margin-top:4px;text-transform:uppercase;letter-spacing:.05em">${k.label}</div>
+                      </div>`).join('')}
+                    </div>
+                    <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
+                      <thead><tr style="background:#f8f8fa">
+                        ${['#', 'Tarea', 'Área', 'Horas', 'Días Prod.', 'Mes', 'Estado'].map(h => `<th style="padding:10px;text-align:left;font-size:10px;color:#888;font-family:monospace;text-transform:uppercase;border-bottom:2px solid #e5e7eb;font-weight:400">${h}</th>`).join('')}
+                      </tr></thead>
+                      <tbody>${rows}</tbody>
+                    </table>
+                    ${actsRep.length === 0 ? '<div style="text-align:center;padding:40px;color:#999">Sin tareas para este periodo</div>' : ''}
+                    <div style="margin-top:60px;padding-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:80px">
+                      <div style="text-align:center">
+                        <div style="border-top:1px solid #333;padding-top:10px;font-size:12px;font-weight:600">${nombreRep}</div>
+                        <div style="font-size:10px;color:#888;margin-top:2px">Colaborador</div>
+                      </div>
+                      <div style="text-align:center">
+                        <div style="border-top:1px solid #333;padding-top:10px;font-size:12px;font-weight:600">Freddy Crespín</div>
+                        <div style="font-size:10px;color:#888;margin-top:2px">Coordinador de Marketing — Aprobado por</div>
+                      </div>
+                    </div>
+                    <div style="margin-top:40px;padding-top:14px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10px;color:#aaa">
+                      <span>Generado el ${today}</span>
+                      <span>Stratix Solutions — Eminat MKT</span>
+                    </div>
+                    <div class="no-print" style="text-align:center;margin-top:30px">
+                      <button onclick="window.print()" style="padding:10px 28px;border-radius:8px;background:#7C6FF7;color:white;border:none;font-size:13px;font-weight:600;cursor:pointer">Imprimir</button>
+                    </div>
+                    </body></html>`)
+                    w.document.close()
+                  }} style={{ padding: '7px 14px', borderRadius: 8, background: accent, color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Imprimir</button>
                 </div>
               </div>
               <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '24px 28px' }}>
