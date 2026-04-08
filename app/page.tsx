@@ -82,7 +82,6 @@ const CARGOS_DIR: Record<string, string> = {
   'ariana@eminat.net': 'Graphic Designer (Pasante)',
   'naomi@eminat.net': 'Community Manager (Pasante)',
   'bryan@eminat.net': 'Video Editor (Pasante)',
-  'javier@emc.health': 'COO / Medical Director',
   'ceo@eminat.net': 'CEO',
   'javier@eminat.net': 'COO',
   'dmsardina@eminat.net': 'Director Clinical Research',
@@ -1352,7 +1351,7 @@ export default function App() {
               {subVista !== 'reporte' ? (
                 <div>
                   {['A', 'B'].map(tipo => {
-                    const miembros = usuarios.filter(u => u.tipo === tipo || (!u.tipo && tipo === 'A'))
+                    const miembros = usuarios.filter(u => (u.tipo === tipo || (!u.tipo && tipo === 'A')) && u.email?.toLowerCase() !== 'javier@emc.health')
                     if (!miembros.length) return null
                     return (
                       <div key={tipo} style={{ marginBottom: 24 }}>
