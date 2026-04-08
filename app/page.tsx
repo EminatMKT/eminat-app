@@ -148,6 +148,8 @@ export default function App() {
   const [horaActual, setHoraActual] = useState('')
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState<Record<string, boolean>>({ mkt: true })
+  const [sidebarPanel, setSidebarPanel] = useState<string | null>('mkt')
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [notificaciones, setNotificaciones] = useState<any[]>([])
   const [notifAbiertas, setNotifAbiertas] = useState(false)
   const router = useRouter()
@@ -443,21 +445,24 @@ export default function App() {
     </div>
   )
 
-  const sidebarSections = [
-    {
-      key: 'mkt', icon: '🚀', label: 'Eminat MKT', color: accent,
-      items: [
-        { key: 'dashboard', icon: '🏠', label: 'Dashboard' },
-        { key: 'mkt', icon: '⚡', label: 'Produccion' },
-        { key: 'solicitudes', icon: '📋', label: 'Solicitudes' },
-        { key: 'equipo', icon: '👥', label: 'Equipo' },
-        { key: 'reporte', icon: '💰', label: 'Reporte' },
-      ]
-    },
-    { key: 'finanzas', icon: '💰', label: 'Finanzas', color: '#34D399', comingSoon: true, items: [] },
-    { key: 'rrhh', icon: '👤', label: 'TH / HR', color: '#F472B6', comingSoon: true, items: [] },
-    { key: 'research', icon: '🔬', label: 'Research', color: '#60A5FA', comingSoon: true, items: [] },
+  const sidebarIcons = [
+    { key: 'home', icon: '🏠', label: 'Home', action: () => { setVista('dashboard'); setSidebarPanel(null) } },
+    { key: 'mkt', icon: '🚀', label: 'Stratix MKT', action: () => setSidebarPanel(prev => prev === 'mkt' ? null : 'mkt') },
+    { key: 'finanzas', icon: '💰', label: 'Finanzas', soon: true, action: () => mostrarMensaje('ok', 'Finanzas — Próximamente') },
+    { key: 'rrhh', icon: '👤', label: 'TH/HR', soon: true, action: () => mostrarMensaje('ok', 'TH/HR — Próximamente') },
+    { key: 'research', icon: '🔬', label: 'Research', soon: true, action: () => mostrarMensaje('ok', 'Research — Próximamente') },
+    { key: 'directorio', icon: '🏢', label: 'Directorio', action: () => { setVista('directorio'); setSidebarPanel(null) } },
+    ...(esSuperAdmin ? [{ key: 'admin', icon: '🔐', label: 'Admin', action: () => { setVista('admin'); setSidebarPanel(null) } }] : []),
   ]
+  const mktSubItems = [
+    { key: 'dashboard', icon: '📊', label: 'Dashboard' },
+    { key: 'mkt', icon: '⚡', label: 'Producción' },
+    { key: 'solicitudes', icon: '📋', label: 'Solicitudes' },
+    { key: 'equipo', icon: '👥', label: 'Equipo' },
+    { key: 'reporte', icon: '💰', label: 'Reporte' },
+  ]
+  const isMktVista = ['dashboard', 'mkt', 'solicitudes', 'equipo', 'reporte'].includes(vista)
+  const activeIconKey = vista === 'directorio' ? 'directorio' : vista === 'admin' ? 'admin' : isMktVista ? 'mkt' : 'home'
 
   // GANTT helpers
   const getGanttActs = () => {
@@ -477,69 +482,80 @@ export default function App() {
   return (
     <div style={{ display: 'flex', height: '100vh', background: bg, color: t1, fontFamily: 'DM Sans, sans-serif', transition: 'background .3s' }}>
 
+      {/* MOBILE OVERLAY */}
+      {mobileSidebarOpen && <div onClick={() => setMobileSidebarOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 49 }} />}
+
       {/* SIDEBAR */}
-      <aside style={{ width: 230, background: s1, borderRight: `1px solid ${border}`, display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${border}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'Syne', fontWeight: 800, fontSize: 15, color: t1 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: accent, boxShadow: `0 0 12px ${accent}` }} />
-            eminat app
+      <aside className={`sidebar-root${mobileSidebarOpen ? ' open' : ''}`} style={{ display: 'flex', flexShrink: 0, height: '100vh', position: 'relative', zIndex: 50 }}>
+        {/* ICON BAR */}
+        <div style={{ width: 62, background: s1, borderRight: `1px solid ${border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 8 }}>
+          {/* Brand marquee ticker */}
+          <div style={{ width: '100%', overflow: 'hidden', padding: '8px 0 10px', borderBottom: `1px solid ${border}`, marginBottom: 8 }}>
+            <div className="sidebar-ticker" style={{ display: 'flex', whiteSpace: 'nowrap', gap: 12 }}>
+              {[...MARCAS_LIST, ...MARCAS_LIST].map((m, i) => (
+                <span key={i} style={{ fontSize: 9, fontFamily: 'DM Mono', fontWeight: 600, color: m.color, letterSpacing: '.04em', flexShrink: 0 }}>{m.codigo}</span>
+              ))}
+            </div>
           </div>
-          <div style={{ fontSize: 9, color: t3, fontFamily: 'DM Mono', marginTop: 4, textTransform: 'uppercase', letterSpacing: '.1em' }}>ERP Platform v1.0</div>
-        </div>
-        <nav style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}>
-          {sidebarSections.map(section => (
-            <div key={section.key} style={{ marginBottom: 4 }}>
-              <button onClick={() => { if (section.comingSoon) { mostrarMensaje('ok', `${section.label} — Proximamente`); return } setSidebarOpen(prev => ({ ...prev, [section.key]: !prev[section.key] })) }}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', borderRadius: 10, border: 'none', cursor: 'pointer', background: sidebarOpen[section.key] ? `${section.color}15` : 'transparent', color: sidebarOpen[section.key] ? section.color : t2, fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600 }}>
-                <span style={{ fontSize: 15 }}>{section.icon}</span>
-                <span style={{ flex: 1, textAlign: 'left' }}>{section.label}</span>
-                {section.comingSoon ? <span style={{ fontSize: 8, padding: '1px 5px', borderRadius: 4, background: `${t3}30`, color: t3, fontFamily: 'DM Mono' }}>SOON</span>
-                  : <span style={{ fontSize: 10, color: t3, transition: 'transform .2s', transform: sidebarOpen[section.key] ? 'rotate(90deg)' : 'rotate(0deg)', display: 'inline-block' }}>›</span>}
+
+          {/* Icon buttons */}
+          <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '0 4px', width: '100%' }}>
+            {sidebarIcons.map(item => (
+              <button key={item.key} onClick={() => { item.action(); setMobileSidebarOpen(false) }}
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, width: 52, height: 52, borderRadius: 12, border: 'none', cursor: 'pointer', background: activeIconKey === item.key ? `${accent}18` : 'transparent', color: activeIconKey === item.key ? accent : t2, transition: 'all .15s', position: 'relative' }}>
+                <span style={{ fontSize: 18, lineHeight: 1 }}>{item.icon}</span>
+                <span style={{ fontSize: 8, fontWeight: 600, fontFamily: 'DM Sans', letterSpacing: '.02em', lineHeight: 1 }}>{item.label}</span>
+                {item.soon && <span style={{ position: 'absolute', top: 4, right: 4, width: 6, height: 6, borderRadius: '50%', background: t3 }} />}
+                {activeIconKey === item.key && <div style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', width: 3, height: 20, borderRadius: '0 3px 3px 0', background: accent }} />}
               </button>
-              {sidebarOpen[section.key] && !section.comingSoon && (
-                <div style={{ paddingLeft: 12, marginTop: 2 }}>
-                  {section.items.map(item => (
-                    <button key={item.key} onClick={() => setVista(item.key)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '7px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 500, textAlign: 'left', color: vista === item.key ? accent : t2, background: vista === item.key ? `${accent}15` : 'transparent', marginBottom: 1 }}>
-                      <span style={{ fontSize: 13 }}>{item.icon}</span>
-                      {item.label}
-                      {vista === item.key && <div style={{ marginLeft: 'auto', width: 4, height: 4, borderRadius: '50%', background: accent }} />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-          <div style={{ height: 1, background: border, margin: '8px 4px' }} />
-          {[{ key: 'directorio', icon: '🏢', label: 'Directorio' }, ...(esSuperAdmin ? [{ key: 'admin', icon: '🔐', label: 'Admin Panel' }] : [])].map(item => (
-            <button key={item.key} onClick={() => setVista(item.key)} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', borderRadius: 10, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 500, textAlign: 'left', color: vista === item.key ? accent : t2, background: vista === item.key ? `${accent}15` : 'transparent', marginBottom: 2 }}>
-              <span style={{ fontSize: 15 }}>{item.icon}</span>{item.label}
-            </button>
-          ))}
-          <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.1em', padding: '10px 10px 5px' }}>Marcas</div>
-          {MARCAS_LIST.map(a => (
-            <div key={a.codigo} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 8, fontSize: 12, color: t2, marginBottom: 1 }}>
-              <div style={{ width: 7, height: 7, borderRadius: '50%', background: a.color, flexShrink: 0 }} />
-              <span>{a.codigo}</span>
-              <span style={{ fontSize: 9, color: t3 }}>{a.label}</span>
-            </div>
-          ))}
-        </nav>
-        <div style={{ padding: '10px', borderTop: `1px solid ${border}` }}>
-          <div style={{ padding: '10px 12px', borderRadius: 12, background: `${accent}10`, border: `1px solid ${accent}20` }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <div style={{ position: 'relative', flexShrink: 0 }}>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: usuario?.color || accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white' }}>
-                  {usuario?.nombre?.[0]}{usuario?.apellido?.[0]}
-                </div>
-                <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: '#34D399', border: `2px solid ${s1}` }} />
+            ))}
+          </nav>
+
+          {/* Bottom user avatar */}
+          <div style={{ padding: '10px 0 12px', borderTop: `1px solid ${border}`, width: '100%', display: 'flex', justifyContent: 'center' }}>
+            <div style={{ position: 'relative' }}>
+              <div style={{ width: 34, height: 34, borderRadius: '50%', background: usuario?.color || accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white' }}>
+                {usuario?.nombre?.[0]}{usuario?.apellido?.[0]}
               </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: t1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{usuario?.nombre} {usuario?.apellido}</div>
-                <div style={{ fontSize: 10, color: accent }}>{cargo}</div>
-              </div>
+              <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: '#34D399', border: `2px solid ${s1}` }} />
             </div>
-            <div style={{ fontSize: 10, color: t3, marginBottom: 8 }}>📍 {usuario?.ubicacion || 'Guayaquil, Ecuador'}</div>
-            <button onClick={handleLogout} style={{ width: '100%', padding: '5px', borderRadius: 7, border: `1px solid ${border}`, background: 'transparent', color: t3, fontSize: 11, cursor: 'pointer' }}>Cerrar sesion</button>
+          </div>
+        </div>
+
+        {/* SUBMENU PANEL */}
+        <div style={{ width: sidebarPanel === 'mkt' ? 172 : 0, background: s1, borderRight: sidebarPanel === 'mkt' ? `1px solid ${border}` : 'none', overflow: 'hidden', transition: 'width .2s ease', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ padding: '14px 14px 10px' }}>
+            <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 13, color: t1, whiteSpace: 'nowrap' }}>Stratix MKT</div>
+            <div style={{ fontSize: 9, color: t3, fontFamily: 'DM Mono', marginTop: 2, whiteSpace: 'nowrap' }}>Marketing & Producción</div>
+          </div>
+          <nav style={{ flex: 1, padding: '0 8px', overflowY: 'auto' }}>
+            {mktSubItems.map(item => (
+              <button key={item.key} onClick={() => { setVista(item.key); setMobileSidebarOpen(false) }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 500, textAlign: 'left', whiteSpace: 'nowrap', color: vista === item.key ? accent : t2, background: vista === item.key ? `${accent}15` : 'transparent', marginBottom: 2, transition: 'all .15s' }}>
+                <span style={{ fontSize: 13 }}>{item.icon}</span>
+                {item.label}
+                {vista === item.key && <div style={{ marginLeft: 'auto', width: 4, height: 4, borderRadius: '50%', background: accent }} />}
+              </button>
+            ))}
+          </nav>
+          {/* User profile card */}
+          <div style={{ padding: 10, borderTop: `1px solid ${border}` }}>
+            <div style={{ padding: '10px 10px', borderRadius: 10, background: `${accent}08`, border: `1px solid ${accent}15` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: usuario?.color || accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'white' }}>
+                    {usuario?.nombre?.[0]}{usuario?.apellido?.[0]}
+                  </div>
+                  <div style={{ position: 'absolute', bottom: -1, right: -1, width: 8, height: 8, borderRadius: '50%', background: '#34D399', border: `2px solid ${s1}` }} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: t1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{usuario?.nombre}</div>
+                  <div style={{ fontSize: 9, color: accent, whiteSpace: 'nowrap' }}>{cargo}</div>
+                </div>
+              </div>
+              <div style={{ fontSize: 9, color: t3, marginBottom: 6, whiteSpace: 'nowrap' }}>📍 {usuario?.ubicacion || 'Guayaquil, EC'}</div>
+              <button onClick={handleLogout} style={{ width: '100%', padding: '4px', borderRadius: 6, border: `1px solid ${border}`, background: 'transparent', color: t3, fontSize: 10, cursor: 'pointer', whiteSpace: 'nowrap' }}>Cerrar sesión</button>
+            </div>
           </div>
         </div>
       </aside>
@@ -549,17 +565,21 @@ export default function App() {
 
         {/* TOPBAR */}
         <div style={{ padding: '11px 24px', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: s1, position: 'sticky', top: 0, zIndex: 10 }}>
-          <div>
-            <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15, color: t1 }}>
-              {vista === 'dashboard' && `Buenos dias, ${usuario?.nombre} 👋`}
-              {vista === 'mkt' && 'Eminat MKT — Produccion'}
-              {vista === 'solicitudes' && 'Solicitudes'}
-              {vista === 'equipo' && 'Equipo de Marketing'}
-              {vista === 'directorio' && 'Directorio del Holding'}
-              {vista === 'admin' && 'Admin Panel'}
-            </div>
-            <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', marginTop: 1 }}>
-              {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {horaActual}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button className="mobile-hamburger" onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)} style={{ display: 'none', background: 'none', border: `1px solid ${border}`, borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: t1, fontSize: 18, lineHeight: 1 }}>☰</button>
+            <div>
+              <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15, color: t1 }}>
+                {vista === 'dashboard' && `Buenos dias, ${usuario?.nombre} 👋`}
+                {vista === 'mkt' && 'Eminat MKT — Produccion'}
+                {vista === 'solicitudes' && 'Solicitudes'}
+                {vista === 'equipo' && 'Equipo de Marketing'}
+                {vista === 'directorio' && 'Directorio del Holding'}
+                {vista === 'admin' && 'Admin Panel'}
+                {vista === 'reporte' && 'Reporte'}
+              </div>
+              <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', marginTop: 1 }}>
+                {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {horaActual}
+              </div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1704,10 +1724,18 @@ export default function App() {
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg) } }
+        @keyframes sidebarTicker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .sidebar-ticker { animation: sidebarTicker 12s linear infinite; }
         * { scrollbar-width: thin; scrollbar-color: rgba(124,111,247,0.3) transparent; }
         *::-webkit-scrollbar { width: 4px; height: 4px; }
         *::-webkit-scrollbar-track { background: transparent; }
         *::-webkit-scrollbar-thumb { background: rgba(124,111,247,0.3); border-radius: 2px; }
+
+        @media (max-width: 768px) {
+          .sidebar-root { position: fixed !important; left: 0; top: 0; bottom: 0; transform: translateX(-100%); transition: transform .25s ease; }
+          .sidebar-root.open { transform: translateX(0); }
+          .mobile-hamburger { display: flex !important; }
+        }
 
         @media print {
           aside { display: none !important; }
