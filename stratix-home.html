@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stratix Solutions — Producción Creativa Bajo Demanda</title>
+  <meta name="description" content="Agencia de marketing interna del Holding Eminat. Diseño, video, contenido y estrategia — todo en un solo lugar." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@600;700;800&family=DM+Mono:wght@400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0A0A0F;
+      --s1: #12121A;
+      --s2: #1A1A25;
+      --border: #ffffff12;
+      --accent: #7C6FF7;
+      --accent-glow: rgba(124, 111, 247, .25);
+      --t1: #F0F0F5;
+      --t2: #A0A0B8;
+      --t3: #65657A;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--t1);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 48px;
+      background: rgba(10, 10, 15, .75);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 17px; color: var(--t1);
+      text-decoration: none;
+    }
+    .nav-logo .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 14px var(--accent-glow);
+    }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a {
+      font-size: 13px; font-weight: 500; color: var(--t2);
+      text-decoration: none; transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--t1); }
+    .btn-accent {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 20px; border-radius: 10px;
+      background: var(--accent); color: #fff;
+      font-size: 13px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+      text-decoration: none; border: none; cursor: pointer;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .btn-accent:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 24px var(--accent-glow);
+    }
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 20px; border-radius: 10px;
+      background: transparent; color: var(--t1);
+      border: 1px solid var(--border);
+      font-size: 13px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+      text-decoration: none; cursor: pointer;
+      transition: border-color .2s, background .2s;
+    }
+    .btn-ghost:hover {
+      border-color: var(--accent);
+      background: rgba(124, 111, 247, .06);
+    }
+
+    .menu-toggle {
+      display: none; background: none; border: none; cursor: pointer;
+      flex-direction: column; gap: 5px; padding: 4px;
+    }
+    .menu-toggle span {
+      display: block; width: 22px; height: 2px; background: var(--t1);
+      border-radius: 2px; transition: transform .3s, opacity .3s;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center;
+      padding: 140px 24px 80px; position: relative;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 600px; border-radius: 50%;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      opacity: .3; pointer-events: none; filter: blur(80px);
+    }
+    .hero h1 {
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      font-size: clamp(36px, 6vw, 72px); line-height: 1.05;
+      letter-spacing: -.02em;
+      max-width: 720px; position: relative;
+    }
+    .hero h1 .gradient {
+      background: linear-gradient(135deg, var(--accent), #A78BFA, #F472B6);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: clamp(15px, 2vw, 18px); color: var(--t2);
+      max-width: 520px; margin: 24px auto 36px; line-height: 1.7;
+    }
+    .hero-buttons { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+    /* ── TICKER ── */
+    .ticker {
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      padding: 18px 0; overflow: hidden; white-space: nowrap;
+    }
+    .ticker-track {
+      display: inline-flex; animation: scroll 28s linear infinite;
+    }
+    .ticker-track span {
+      font-family: 'DM Mono', monospace; font-size: 13px; color: var(--t3);
+      padding: 0 24px; text-transform: uppercase; letter-spacing: .08em;
+    }
+    .ticker-track span::after {
+      content: ''; display: inline-block; width: 5px; height: 5px;
+      border-radius: 50%; background: var(--accent); margin-left: 24px;
+      vertical-align: middle; opacity: .5;
+    }
+    @keyframes scroll { to { transform: translateX(-50%); } }
+
+    /* ── SECTIONS ── */
+    section { padding: 100px 48px; max-width: 1100px; margin: 0 auto; }
+    .section-label {
+      font-family: 'DM Mono', monospace; font-size: 11px; color: var(--accent);
+      text-transform: uppercase; letter-spacing: .12em; margin-bottom: 12px;
+    }
+    .section-title {
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      font-size: clamp(26px, 4vw, 40px); margin-bottom: 48px; line-height: 1.15;
+    }
+
+    /* ── SERVICES ── */
+    .services-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    }
+    .service-card {
+      background: var(--s1); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px 24px;
+      transition: transform .25s, border-color .25s, box-shadow .25s;
+    }
+    .service-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(124, 111, 247, .25);
+      box-shadow: 0 8px 40px rgba(124, 111, 247, .08);
+    }
+    .service-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; margin-bottom: 16px;
+      background: rgba(124, 111, 247, .1);
+    }
+    .service-card h3 {
+      font-family: 'Syne', sans-serif; font-weight: 700;
+      font-size: 16px; margin-bottom: 8px;
+    }
+    .service-card p { font-size: 13px; color: var(--t3); line-height: 1.6; }
+
+    /* ── CLIENTS ── */
+    .clients-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    }
+    .client-card {
+      background: var(--s1); border: 1px solid var(--border);
+      border-radius: 14px; padding: 24px 20px;
+      display: flex; align-items: center; gap: 14px;
+      transition: transform .25s, border-color .25s;
+    }
+    .client-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255,255,255,.08);
+    }
+    .client-dot {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-family: 'Syne', sans-serif; font-weight: 800;
+      color: #fff; flex-shrink: 0;
+    }
+    .client-card span {
+      font-size: 13px; font-weight: 600; line-height: 1.35;
+    }
+
+    /* ── STATS ── */
+    .stats {
+      display: flex; justify-content: center; gap: 60px;
+      padding: 80px 48px; text-align: center;
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    }
+    .stat-number {
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      font-size: clamp(36px, 5vw, 56px);
+      background: linear-gradient(135deg, var(--accent), #A78BFA);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-label {
+      font-size: 13px; color: var(--t3); margin-top: 6px;
+    }
+
+    /* ── CTA ── */
+    .cta {
+      text-align: center; padding: 100px 24px; position: relative;
+    }
+    .cta::before {
+      content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 500px; height: 400px; border-radius: 50%;
+      background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+      opacity: .2; pointer-events: none; filter: blur(80px);
+    }
+    .cta h2 {
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      font-size: clamp(28px, 4vw, 44px); margin-bottom: 16px; position: relative;
+    }
+    .cta p {
+      font-size: 15px; color: var(--t2); margin-bottom: 32px;
+      max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.6;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center; padding: 32px 24px;
+      border-top: 1px solid var(--border);
+      font-size: 12px; color: var(--t3);
+    }
+    footer span { color: var(--accent); }
+
+    /* ── FADE-IN ANIMATION ── */
+    .fade-in {
+      opacity: 0; transform: translateY(24px);
+      transition: opacity .6s ease-out, transform .6s ease-out;
+    }
+    .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .services-grid { grid-template-columns: repeat(2, 1fr); }
+      .clients-grid { grid-template-columns: repeat(2, 1fr); }
+      .stats { gap: 36px; }
+    }
+    @media (max-width: 640px) {
+      nav { padding: 14px 20px; }
+      .nav-links { display: none; }
+      .nav-links.open {
+        display: flex; flex-direction: column;
+        position: absolute; top: 100%; left: 0; right: 0;
+        background: rgba(10, 10, 15, .95);
+        backdrop-filter: blur(16px);
+        padding: 20px 24px; gap: 16px;
+        border-bottom: 1px solid var(--border);
+      }
+      .menu-toggle { display: flex; }
+      section { padding: 60px 20px; }
+      .services-grid, .clients-grid { grid-template-columns: 1fr; }
+      .stats { flex-direction: column; gap: 28px; padding: 60px 20px; }
+      .hero { padding: 120px 20px 60px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="nav-logo">
+      <span class="dot"></span>
+      Stratix Solutions
+    </a>
+    <div class="nav-links" id="navLinks">
+      <a href="#servicios">Servicios</a>
+      <a href="#clientes">Clientes</a>
+      <a href="#contacto">Contacto</a>
+      <a href="https://app.stratixsolutions.us" class="btn-accent">Acceder al sistema &rarr;</a>
+    </div>
+    <button class="menu-toggle" id="menuToggle" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <h1 class="fade-in">Producción creativa.<br><span class="gradient">Bajo demanda.</span></h1>
+    <p class="fade-in">Agencia de marketing interna del Holding Eminat. Diseño, video, contenido y estrategia — todo en un solo lugar.</p>
+    <div class="hero-buttons fade-in">
+      <a href="#servicios" class="btn-ghost">Ver servicios</a>
+      <a href="https://app.stratixsolutions.us" class="btn-accent">Iniciar sesión &rarr;</a>
+    </div>
+  </section>
+
+  <!-- TICKER -->
+  <div class="ticker">
+    <div class="ticker-track">
+      <span>Diseño Gráfico</span><span>Video</span><span>Community Manager</span><span>Branding</span><span>Motion Graphics</span><span>Estrategia Digital</span><span>Contenido</span><span>IA</span><span>Diseño Web</span>
+      <span>Diseño Gráfico</span><span>Video</span><span>Community Manager</span><span>Branding</span><span>Motion Graphics</span><span>Estrategia Digital</span><span>Contenido</span><span>IA</span><span>Diseño Web</span>
+    </div>
+  </div>
+
+  <!-- SERVICES -->
+  <section id="servicios">
+    <div class="section-label fade-in">Servicios</div>
+    <div class="section-title fade-in">Todo lo que tu marca necesita.</div>
+    <div class="services-grid">
+      <div class="service-card fade-in">
+        <div class="service-icon">🎨</div>
+        <h3>Diseño Gráfico</h3>
+        <p>Posts, stories, banners, presentaciones y piezas visuales para todas las plataformas.</p>
+      </div>
+      <div class="service-card fade-in">
+        <div class="service-icon">🎬</div>
+        <h3>Video & Motion</h3>
+        <p>Edición de video, motion graphics, reels y contenido audiovisual de alto impacto.</p>
+      </div>
+      <div class="service-card fade-in">
+        <div class="service-icon">📱</div>
+        <h3>Community Manager</h3>
+        <p>Gestión de redes sociales, calendarios de contenido, interacción y crecimiento orgánico.</p>
+      </div>
+      <div class="service-card fade-in">
+        <div class="service-icon">✦</div>
+        <h3>Branding & Identidad</h3>
+        <p>Logotipos, manuales de marca, sistemas visuales y estrategia de identidad corporativa.</p>
+      </div>
+      <div class="service-card fade-in">
+        <div class="service-icon">📊</div>
+        <h3>Estrategia Digital</h3>
+        <p>Planificación de campañas, análisis de métricas, pauta digital y optimización de resultados.</p>
+      </div>
+      <div class="service-card fade-in">
+        <div class="service-icon">⚡</div>
+        <h3>Automatización IA</h3>
+        <p>Flujos automatizados, chatbots inteligentes, generación de contenido y herramientas con IA.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLIENTS -->
+  <section id="clientes">
+    <div class="section-label fade-in">Clientes</div>
+    <div class="section-title fade-in">Nuestros clientes.</div>
+    <div class="clients-grid">
+      <div class="client-card fade-in">
+        <div class="client-dot" style="background:rgba(96,165,250,.15);color:#60A5FA">E</div>
+        <span>EMC Medical Center</span>
+      </div>
+      <div class="client-card fade-in">
+        <div class="client-dot" style="background:rgba(244,114,182,.15);color:#F472B6">V</div>
+        <span>Soy Vivi Negrete</span>
+      </div>
+      <div class="client-card fade-in">
+        <div class="client-dot" style="background:rgba(167,139,250,.15);color:#A78BFA">E</div>
+        <span>Eminat Research Group</span>
+      </div>
+      <div class="client-card fade-in">
+        <div class="client-dot" style="background:rgba(251,146,60,.15);color:#FB923C">V</div>
+        <span>VN Foundation</span>
+      </div>
+      <div class="client-card fade-in">
+        <div class="client-dot" style="background:rgba(52,211,153,.15);color:#34D399">P</div>
+        <span>Premier by Eminat</span>
+      </div>
+      <div class="client-card fade-in">
+        <div class="client-dot" style="background:rgba(248,113,113,.15);color:#F87171">O</div>
+        <span>Ornella IA</span>
+      </div>
+      <div class="client-card fade-in">
+        <div class="client-dot" style="background:rgba(251,176,64,.15);color:#FBB040">M</div>
+        <span>Mentor</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="fade-in">
+      <div class="stat-number">284+</div>
+      <div class="stat-label">Tareas completadas</div>
+    </div>
+    <div class="fade-in">
+      <div class="stat-number">7</div>
+      <div class="stat-label">Marcas activas</div>
+    </div>
+    <div class="fade-in">
+      <div class="stat-number">1</div>
+      <div class="stat-label">Equipo creativo</div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <section class="cta" id="contacto">
+    <h2 class="fade-in">¿Listo para solicitar?</h2>
+    <p class="fade-in">Accede al sistema para crear solicitudes de diseño, video y más.</p>
+    <a href="https://app.stratixsolutions.us/login" class="btn-accent fade-in" style="font-size:15px;padding:13px 32px">
+      Acceder al sistema &rarr;
+    </a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <span>Stratix Solutions</span> · Powered by Eminat Holding · 2026
+  </footer>
+
+  <script>
+    // Mobile menu toggle
+    document.getElementById('menuToggle').addEventListener('click', function () {
+      document.getElementById('navLinks').classList.toggle('open');
+    });
+
+    // Fade-in on scroll
+    const observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.fade-in').forEach(function (el) {
+      observer.observe(el);
+    });
+  </script>
+
+</body>
+</html>
