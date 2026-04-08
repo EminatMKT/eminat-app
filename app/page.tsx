@@ -996,8 +996,12 @@ export default function App() {
 
           {/* REPORTE */}
           {vista === 'reporte' && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div id="reporte-content">
+              <div id="print-header" style={{ display: 'none', textAlign: 'center', marginBottom: 24, paddingBottom: 16, borderBottom: '2px solid #333' }}>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 22, fontWeight: 800, color: '#111' }}>Stratix Solutions</div>
+                <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4, color: '#333' }}>Reporte de Producción para Pago</div>
+              </div>
+              <div id="reporte-controls" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <span style={{ fontSize: 14, fontWeight: 600, color: t1 }}>Reporte de produccion para pago</span>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {esSuperAdmin && (
@@ -1632,6 +1636,19 @@ export default function App() {
         *::-webkit-scrollbar { width: 4px; height: 4px; }
         *::-webkit-scrollbar-track { background: transparent; }
         *::-webkit-scrollbar-thumb { background: rgba(124,111,247,0.3); border-radius: 2px; }
+
+        @media print {
+          aside { display: none !important; }
+          main > div:first-child { display: none !important; }
+          #reporte-controls { display: none !important; }
+          body, html { background: white !important; }
+          main { overflow: visible !important; }
+          #print-header { display: block !important; }
+          #reporte-content { color: #111 !important; }
+          #reporte-content * { color: #111 !important; border-color: #ccc !important; }
+          #reporte-content div[style*="background"] { background: #f9f9f9 !important; }
+          * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
       `}</style>
     </div>
   )
