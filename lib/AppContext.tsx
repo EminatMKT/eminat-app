@@ -164,11 +164,11 @@ interface AppContextType {
   notificaciones: any[]
   notifAbiertas: boolean
   setNotifAbiertas: (v: boolean) => void
-  setNotificaciones: (v: any[]) => void
+  setNotificaciones: React.Dispatch<React.SetStateAction<any[]>>
   adminUsuarios: any[]
-  setAdminUsuarios: (v: any[]) => void
-  setActividades: (v: any[]) => void
-  setUsuarios: (v: any[]) => void
+  setAdminUsuarios: React.Dispatch<React.SetStateAction<any[]>>
+  setActividades: React.Dispatch<React.SetStateAction<any[]>>
+  setUsuarios: React.Dispatch<React.SetStateAction<any[]>>
   mostrarMensaje: (tipo: 'ok' | 'error', texto: string) => void
   handleLogout: () => void
   esSuperAdmin: boolean
