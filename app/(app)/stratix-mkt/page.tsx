@@ -47,7 +47,7 @@ export default function StratixMktPage() {
   const hoy = new Date()
   const diasRestantes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate() - hoy.getDate()
   const horasDisponibles = diasRestantes * 8
-  const equipoSinMi = equipo.filter(u => u.nombre !== usuario?.nombre)
+  const equipoSinMi = equipo.filter(u => u.nombre !== usuario?.nombre && u.email?.toLowerCase() !== 'javier@emc.health')
   const mesesFull = trimestre === 'General' ? MESES_Q['General'] : mesesQ
   const mesesGraf = trimestre === 'General' ? ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'] : mesesQ.map(m => m.slice(0, 3))
   const datosPorMes = mesesFull.map((mes, i) => ({
