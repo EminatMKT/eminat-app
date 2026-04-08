@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import ResearchModule from './components/ResearchModule'
 
 const TRIMESTRES = ['General', 'Q1', 'Q2', 'Q3', 'Q4']
 const MESES_Q: Record<string, string[]> = {
@@ -188,6 +189,9 @@ export default function App() {
   const [filtroRolAdmin, setFiltroRolAdmin] = useState('todos')
   const [guardandoAdmin, setGuardandoAdmin] = useState(false)
   const [nuevoUsr, setNuevoUsr] = useState({ nombre: '', apellido: '', email: '', password: '', rol: 'pasante', tipo: 'B', color: '#7C6FF7', empresa: 'Eminat Holding' })
+
+  // RESEARCH
+  const [researchTab, setResearchTab] = useState('dashboard')
 
   // COBRANZAS
   const [cobTab, setCobTab] = useState('ventas')
@@ -470,15 +474,25 @@ export default function App() {
   )
 
   const canCobranzas = esSuperAdmin || usuario?.email?.toLowerCase() === 'majo@eminat.net'
+  const canResearch = esSuperAdmin || ['freddy@eminat.net', 'jonathan@eminat.net'].includes(usuario?.email?.toLowerCase() || '')
   const sidebarIcons = [
     { key: 'home', icon: '🏠', label: 'Home', action: () => { setVista('dashboard'); setSidebarPanel(null) } },
     { key: 'mkt', icon: '🚀', label: 'Stratix MKT', action: () => setSidebarPanel(prev => prev === 'mkt' ? null : 'mkt') },
     { key: 'finanzas', icon: '💰', label: 'Finanzas', soon: true, action: () => mostrarMensaje('ok', 'Finanzas — Próximamente') },
     ...(canCobranzas ? [{ key: 'cobranzas', icon: '💳', label: 'Cobranzas', action: () => { setVista('cobranzas'); setSidebarPanel(null) } }] : []),
     { key: 'rrhh', icon: '👤', label: 'TH/HR', soon: true, action: () => mostrarMensaje('ok', 'TH/HR — Próximamente') },
-    { key: 'research', icon: '🔬', label: 'Research', soon: true, action: () => mostrarMensaje('ok', 'Research — Próximamente') },
+    ...(canResearch ? [{ key: 'research', icon: '🔬', label: 'Research', action: () => setSidebarPanel(prev => prev === 'research' ? null : 'research') }] : [{ key: 'research', icon: '🔬', label: 'Research', soon: true, action: () => mostrarMensaje('ok', 'Research — Próximamente') }]),
     { key: 'directorio', icon: '🏢', label: 'Directorio', action: () => { setVista('directorio'); setSidebarPanel(null) } },
     ...(esSuperAdmin ? [{ key: 'admin', icon: '🔐', label: 'Admin', action: () => { setVista('admin'); setSidebarPanel(null) } }] : []),
+  ]
+  const researchSubItems = [
+    { id: 'res-dash', icon: '📊', label: 'Dashboard', tab: 'dashboard' },
+    { id: 'res-leads', icon: '👥', label: 'Leads', tab: 'leads' },
+    { id: 'res-newsletter', icon: '📧', label: 'Newsletter', tab: 'newsletter' },
+    { id: 'res-sms', icon: '📱', label: 'SMS', tab: 'sms' },
+    { id: 'res-mailing', icon: '📨', label: 'Mailing', tab: 'mailing' },
+    { id: 'res-pipeline', icon: '🎯', label: 'Pipeline', tab: 'pipeline' },
+    { id: 'res-opps', icon: '📋', label: 'Oportunidades', tab: 'oportunidades' },
   ]
   const mktSubItems = [
     { id: 'sub-overview', vista: 'mkt', icon: '📊', label: 'Dashboard', tab: 'overview' },
@@ -488,7 +502,7 @@ export default function App() {
     { id: 'sub-reporte', vista: 'reporte', icon: '💰', label: 'Reporte' },
   ]
   const isMktVista = ['dashboard', 'mkt', 'solicitudes', 'equipo', 'reporte'].includes(vista)
-  const activeIconKey = vista === 'cobranzas' ? 'cobranzas' : vista === 'directorio' ? 'directorio' : vista === 'admin' ? 'admin' : isMktVista ? 'mkt' : 'home'
+  const activeIconKey = vista === 'research' ? 'research' : vista === 'cobranzas' ? 'cobranzas' : vista === 'directorio' ? 'directorio' : vista === 'admin' ? 'admin' : isMktVista ? 'mkt' : 'home'
 
   // GANTT helpers
   const getGanttActs = () => {
@@ -540,13 +554,23 @@ export default function App() {
         </div>
 
         {/* SUBMENU PANEL */}
-        <div style={{ width: sidebarPanel === 'mkt' ? 172 : 0, background: s1, borderRight: sidebarPanel === 'mkt' ? `1px solid ${border}` : 'none', overflow: 'hidden', transition: 'width .2s ease', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ width: (sidebarPanel === 'mkt' || sidebarPanel === 'research') ? 172 : 0, background: s1, borderRight: (sidebarPanel === 'mkt' || sidebarPanel === 'research') ? `1px solid ${border}` : 'none', overflow: 'hidden', transition: 'width .2s ease', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '14px 14px 10px' }}>
-            <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 13, color: t1, whiteSpace: 'nowrap' }}>Stratix MKT</div>
-            <div style={{ fontSize: 9, color: t3, fontFamily: 'DM Mono', marginTop: 2, whiteSpace: 'nowrap' }}>Marketing & Producción</div>
+            <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 13, color: t1, whiteSpace: 'nowrap' }}>{sidebarPanel === 'research' ? 'Research' : 'Stratix MKT'}</div>
+            <div style={{ fontSize: 9, color: t3, fontFamily: 'DM Mono', marginTop: 2, whiteSpace: 'nowrap' }}>{sidebarPanel === 'research' ? 'Clinical Research Ops' : 'Marketing & Producción'}</div>
           </div>
           <nav style={{ flex: 1, padding: '0 8px', overflowY: 'auto' }}>
-            {mktSubItems.map(item => {
+            {sidebarPanel === 'research' ? researchSubItems.map(item => {
+              const isActive = vista === 'research' && researchTab === item.tab
+              return (
+                <button key={item.id} onClick={() => { setVista('research'); setResearchTab(item.tab); setMobileSidebarOpen(false) }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 500, textAlign: 'left', whiteSpace: 'nowrap', color: isActive ? accent : t2, background: isActive ? `${accent}15` : 'transparent', marginBottom: 2, transition: 'all .15s' }}>
+                  <span style={{ fontSize: 13 }}>{item.icon}</span>
+                  {item.label}
+                  {isActive && <div style={{ marginLeft: 'auto', width: 4, height: 4, borderRadius: '50%', background: accent }} />}
+                </button>
+              )
+            }) : mktSubItems.map(item => {
               const isActive = item.tab ? (vista === item.vista && mktTab === item.tab) : vista === item.vista
               return (
                 <button key={item.id} onClick={() => { setVista(item.vista); if (item.tab) setMktTab(item.tab); setMobileSidebarOpen(false) }}
@@ -597,6 +621,7 @@ export default function App() {
                 {vista === 'admin' && 'Admin Panel'}
                 {vista === 'reporte' && 'Reporte'}
                 {vista === 'cobranzas' && 'EMINAT LLC — Dashboard de Cobranzas'}
+                {vista === 'research' && 'Eminat Research Group'}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
                 <span style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono' }}>
@@ -1988,6 +2013,19 @@ export default function App() {
               </div>
             )
           })()}
+
+          {/* RESEARCH */}
+          {vista === 'research' && (
+            canResearch ? (
+              <ResearchModule dark={dark} tab={researchTab} setTab={setResearchTab} mostrarMensaje={mostrarMensaje} />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 80, gap: 16 }}>
+                <div style={{ fontSize: 48 }}>🔒</div>
+                <div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>Sin permisos</div>
+                <div style={{ fontSize: 13, color: t3, textAlign: 'center', maxWidth: 300 }}>No tienes acceso al módulo de Research.</div>
+              </div>
+            )
+          )}
 
         </div>
       </main>
