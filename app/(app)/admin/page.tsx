@@ -28,15 +28,41 @@ export default function AdminPage() {
   async function resetPassword(email: string, nombre: string) { const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` }); if (error) mostrarMensaje('error', 'Error al enviar el email'); else mostrarMensaje('ok', `Email enviado a ${nombre}`) }
   async function crearUsuario() {
     if (!nuevoUsr.nombre || !nuevoUsr.apellido || !nuevoUsr.email || !nuevoUsr.password) { mostrarMensaje('error', 'Completa todos los campos'); return }
+    if (nuevoUsr.password.length < 8) { mostrarMensaje('error', 'La contrasena debe tener al menos 8 caracteres'); return }
     setGuardandoAdmin(true)
-    const { data: signUpData, error } = await supabase.auth.signUp({ email: nuevoUsr.email, password: nuevoUsr.password })
-    if (error) { mostrarMensaje('error', error.message); setGuardandoAdmin(false); return }
-    const uid = signUpData?.user?.id
-    if (uid) await supabase.from('usuarios').upsert({ id: uid, nombre: nuevoUsr.nombre, apellido: nuevoUsr.apellido, email: nuevoUsr.email, rol: nuevoUsr.rol, tipo: nuevoUsr.tipo, color: nuevoUsr.color, empresa: nuevoUsr.empresa, cargo: CARGOS_DIR[nuevoUsr.email.toLowerCase()] || '', activo: true, validado: true, ubicacion: 'Guayaquil, Ecuador' })
-    mostrarMensaje('ok', `Usuario ${nuevoUsr.nombre} creado`)
-    setModalCrear(false); setNuevoUsr({ nombre: '', apellido: '', email: '', password: '', rol: 'pasante', tipo: 'B', color: '#7C6FF7', empresa: 'Eminat Holding' })
-    const { data } = await supabase.from('usuarios').select('*').order('created_at', { ascending: false })
-    setAdminUsuarios((data || []).map(u => ({ ...u, cargo: u.cargo || CARGOS_DIR[u.email?.toLowerCase()] || '' }))); setGuardandoAdmin(false)
+    try {
+      const res = await fetch('/api/admin/create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: nuevoUsr.email,
+          password: nuevoUsr.password,
+          nombre: nuevoUsr.nombre,
+          apellido: nuevoUsr.apellido,
+          rol: nuevoUsr.rol,
+          tipo: nuevoUsr.tipo,
+          color: nuevoUsr.color,
+          empresa: nuevoUsr.empresa,
+          ubicacion: 'Guayaquil, Ecuador',
+          cargo: CARGOS_DIR[nuevoUsr.email.toLowerCase()] || '',
+        }),
+      })
+      const result = await res.json()
+      if (!res.ok) {
+        mostrarMensaje('error', result.error || 'Error al crear usuario')
+        setGuardandoAdmin(false)
+        return
+      }
+      mostrarMensaje('ok', `Usuario ${nuevoUsr.nombre} ${nuevoUsr.apellido} creado exitosamente`)
+      setModalCrear(false)
+      setNuevoUsr({ nombre: '', apellido: '', email: '', password: '', rol: 'pasante', tipo: 'B', color: '#7C6FF7', empresa: 'Eminat Holding' })
+      // Refresh user list
+      const { data } = await supabase.from('usuarios').select('*').order('created_at', { ascending: false })
+      setAdminUsuarios((data || []).map(u => ({ ...u, cargo: u.cargo || CARGOS_DIR[u.email?.toLowerCase()] || '' })))
+    } catch (err: any) {
+      mostrarMensaje('error', err.message || 'Error de red al crear usuario')
+    }
+    setGuardandoAdmin(false)
   }
   async function guardarEdicion() {
     if (!modalEditar) return; setGuardandoAdmin(true)
