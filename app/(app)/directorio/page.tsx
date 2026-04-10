@@ -35,7 +35,7 @@ export default function DirectorioPage() {
           {dirFiltrado.map((m: any, i: number) => {
             const ec = EMPRESA_COLORS[m.empresa] || accent
             return (
-              <div key={i} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 14 }}>
+              <div key={i} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
                   <div style={{ width: 38, height: 38, borderRadius: 10, background: m.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'white' }}>{getIniciales(m.nombre)}</div>
                   <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 20, background: `${ec}20`, color: ec }}>{m.empresa.replace('Eminat ', '').replace(' by Eminat', '')}</span>

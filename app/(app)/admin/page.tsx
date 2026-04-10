@@ -52,7 +52,7 @@ export default function AdminPage() {
       <div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
           {[{ label: 'Total usuarios', value: adminUsuarios.length, color: accent }, { label: 'Activos', value: adminUsuarios.filter(u => u.activo && u.validado).length, color: '#34D399' }, { label: 'Pendientes', value: adminUsuarios.filter(u => !u.validado).length, color: '#FBB040' }, { label: 'Pasantes', value: adminUsuarios.filter(u => u.rol === 'pasante').length, color: '#60A5FA' }].map(s => (
-            <div key={s.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px' }}>
+            <div key={s.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <div style={{ fontFamily: 'Syne', fontSize: 32, fontWeight: 800, color: s.color }}>{s.value}</div>
               <div style={{ fontSize: 11, color: t3, marginTop: 4 }}>{s.label}</div>
             </div>
@@ -66,7 +66,7 @@ export default function AdminPage() {
             ))}
           </div>
         </div>
-        <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
+        <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr style={{ background: s2 }}>

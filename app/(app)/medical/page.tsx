@@ -385,7 +385,7 @@ export default function MedicalPage() {
   ]
 
   // ── Shared styles ─────────────────────────────────────────────────
-  const cardStyle: React.CSSProperties = { background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px' }
+  const cardStyle: React.CSSProperties = { background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }
   const statCardStyle: React.CSSProperties = { ...cardStyle, display: 'flex', flexDirection: 'column', gap: 4 }
   const btnPrimary: React.CSSProperties = { padding: '8px 16px', borderRadius: 10, background: accent, color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans' }
   const btnSecondary: React.CSSProperties = { padding: '6px 14px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 11, cursor: 'pointer', fontWeight: 600, fontFamily: 'DM Sans' }

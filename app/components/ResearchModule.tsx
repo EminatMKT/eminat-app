@@ -25,15 +25,16 @@ interface Props {
 }
 
 export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Props) {
-  const bg = dark ? '#0A0A0F' : '#F5F5F7'
-  const s1 = dark ? '#12121A' : '#FFFFFF'
-  const s2 = dark ? '#1A1A25' : '#F0F0F3'
-  const border = dark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.08)'
-  const t1 = dark ? '#F0F0F5' : '#111'
-  const t2 = dark ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)'
-  const t3 = dark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'
+  // Always light theme for content area
+  const bg = '#F9FAFB'
+  const s1 = '#FFFFFF'
+  const s2 = '#FFFFFF'
+  const border = '#E5E7EB'
+  const t1 = '#111827'
+  const t2 = '#6B7280'
+  const t3 = '#9CA3AF'
   const accent = '#7C6FF7'
-  const inputStyle: any = { width: '100%', padding: '9px 12px', borderRadius: 10, border: `1px solid ${border}`, background: s2, color: t1, fontSize: 13, fontFamily: 'DM Sans', outline: 'none' }
+  const inputStyle: any = { width: '100%', padding: '9px 12px', borderRadius: 10, border: '1px solid #D1D5DB', background: '#FFFFFF', color: '#111827', fontSize: 13, fontFamily: 'DM Sans', outline: 'none' }
 
   const [leads, setLeads] = useState<any[]>([])
   const [activities, setActivities] = useState<any[]>([])
@@ -237,7 +238,7 @@ export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Pr
               { label: 'Awarded', value: awarded, color: '#FBB040' },
               { label: 'En Negociación', value: inNeg, color: '#F87171' },
             ].map(k => (
-              <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px' }}>
+              <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ fontSize: 9, color: t3, textTransform: 'uppercase', letterSpacing: '.1em', fontFamily: 'DM Mono', marginBottom: 6 }}>{k.label}</div>
                 <div style={{ fontFamily: 'Syne', fontSize: 28, fontWeight: 800, color: k.color }}>{k.value}</div>
               </div>
@@ -245,7 +246,7 @@ export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Pr
           </div>
 
           {/* Country map */}
-          <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, marginBottom: 14 }}>
+          <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, marginBottom: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
             <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Leads por País</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {countrySorted.map(([country, count]: any) => (
@@ -260,7 +261,7 @@ export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Pr
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16 }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Pipeline por Stage</div>
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart><Pie data={stageData} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3} dataKey="value">
@@ -271,7 +272,7 @@ export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Pr
                 {stageData.map(d => <span key={d.name} style={{ fontSize: 9, display: 'flex', alignItems: 'center', gap: 3 }}><span style={{ width: 7, height: 7, borderRadius: 2, background: PIPELINE_COLORS[d.name] || accent }} /><span style={{ color: t3 }}>{d.name} ({d.value})</span></span>)}
               </div>
             </div>
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16 }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Leads por Phase</div>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={phaseData}><XAxis dataKey="name" tick={{ fontSize: 10, fill: t3 }} /><YAxis tick={{ fontSize: 10, fill: t3 }} /><Tooltip contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} /><Bar dataKey="value" radius={[6, 6, 0, 0]}>
@@ -282,7 +283,7 @@ export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Pr
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16 }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Top Sponsors</div>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={sponsorData} layout="vertical"><XAxis type="number" tick={{ fontSize: 9, fill: t3 }} /><YAxis type="category" dataKey="name" tick={{ fontSize: 8, fill: t3 }} width={120} /><Tooltip contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} /><Bar dataKey="value" radius={[0, 6, 6, 0]}>
@@ -290,7 +291,7 @@ export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Pr
                 </Bar></BarChart>
               </ResponsiveContainer>
             </div>
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <div style={{ padding: '12px 16px', borderBottom: `1px solid ${border}`, fontSize: 12, fontWeight: 600, color: t1 }}>Últimos leads agregados</div>
               {leads.slice(0, 5).map(l => (
                 <div key={l.id} style={{ padding: '8px 16px', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -335,7 +336,7 @@ export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Pr
             <button onClick={() => setFilters({ stage: '', phase: '', status: '', country: '', sponsor: '' })} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${border}`, background: 'transparent', color: t3, fontSize: 11, cursor: 'pointer' }}>✕ Limpiar</button>
             <span style={{ fontSize: 11, color: t3, marginLeft: 'auto' }}>{filteredLeads.length} resultados</span>
           </div>
-          <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, minWidth: 1200 }}>
                 <thead><tr style={{ background: s2 }}>
@@ -386,7 +387,7 @@ export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Pr
             ))}
           </div>
           {nlStep === 0 && (
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16 }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <input value={nlSearch} onChange={e => setNlSearch(e.target.value)} placeholder="Buscar por nombre, email, teléfono..." style={{ ...inputStyle, marginBottom: 12 }} />
               <div style={{ fontSize: 11, color: t3, marginBottom: 8 }}>{nlSelected.length} contactos seleccionados</div>
               <div style={{ maxHeight: 360, overflowY: 'auto' }}>
@@ -405,7 +406,7 @@ export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Pr
             </div>
           )}
           {nlStep === 1 && (
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 20 }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <div style={{ marginBottom: 14 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Asunto</label><input value={nlCampaign.subject} onChange={e => setNlCampaign(p => ({ ...p, subject: e.target.value }))} style={inputStyle} placeholder="Asunto de la campaña" /></div>
               <div style={{ marginBottom: 14 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Tipo</label>
                 <select value={nlCampaign.type} onChange={e => setNlCampaign(p => ({ ...p, type: e.target.value }))} style={inputStyle}>
@@ -420,7 +421,7 @@ export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Pr
             </div>
           )}
           {nlStep === 2 && (
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 20 }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: t1, marginBottom: 16 }}>Vista Previa</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
                 <div><span style={{ fontSize: 10, color: t3 }}>Tipo:</span> <span style={{ fontSize: 12, color: t1, fontWeight: 600 }}>{nlCampaign.type}</span></div>
@@ -444,7 +445,7 @@ export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Pr
             </div>
           )}
           {nlStep === 3 && (
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 30, textAlign: 'center' }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 30, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
               <div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: '#34D399', marginBottom: 8 }}>Campaña enviada</div>
               <div style={{ fontSize: 13, color: t3, marginBottom: 20 }}>{nlSelected.length} contactos alcanzados · {nlCampaign.type}</div>
@@ -457,7 +458,7 @@ export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Pr
       {/* ═══ SMS ═══ */}
       {tab === 'sms' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16 }}>
+          <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: t1, marginBottom: 12 }}>Seleccionar contactos</div>
             <input value={smsSearch} onChange={e => setSmsSearch(e.target.value)} placeholder="Buscar..." style={{ ...inputStyle, marginBottom: 10 }} />
             <div style={{ fontSize: 10, color: t3, marginBottom: 6 }}>{smsSelected.length} seleccionados</div>
@@ -474,7 +475,7 @@ export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Pr
             </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, flex: 1 }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, flex: 1, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: t1, marginBottom: 12 }}>Mensaje SMS</div>
               <textarea value={smsMessage} onChange={e => { if (e.target.value.length <= 160) setSmsMessage(e.target.value) }} placeholder="Escribe tu mensaje..." style={{ ...inputStyle, minHeight: 100, resize: 'vertical' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
@@ -492,7 +493,7 @@ export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Pr
                 }} disabled={smsSelected.length === 0 || !smsMessage} style={{ padding: '8px 20px', borderRadius: 8, background: smsSelected.length > 0 && smsMessage ? '#34D399' : t3, color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: smsSelected.length > 0 && smsMessage ? 'pointer' : 'default' }}>Enviar SMS</button>
               </div>
             </div>
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16 }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: t1, marginBottom: 12 }}>Historial SMS</div>
               {campaigns.filter(c => c.tipo === 'SMS').slice(0, 5).map(c => (
                 <div key={c.id} style={{ padding: '8px 0', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between' }}>
@@ -519,13 +520,13 @@ export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Pr
               { label: 'Borradores', value: campaigns.filter(c => c.estado === 'Borrador').length, color: '#FBB040' },
               { label: 'Total campañas', value: campaigns.length, color: accent },
             ].map(k => (
-              <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px' }}>
+              <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ fontSize: 9, color: t3, textTransform: 'uppercase', fontFamily: 'DM Mono', marginBottom: 6 }}>{k.label}</div>
                 <div style={{ fontFamily: 'Syne', fontSize: 26, fontWeight: 800, color: k.color }}>{k.value}</div>
               </div>
             ))}
           </div>
-          <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead><tr style={{ background: s2 }}>
                 {['Nombre', 'Tipo', 'Estado', 'Enviados', 'Fecha'].map(h => <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>)}
@@ -592,13 +593,13 @@ export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Pr
                 { label: 'Total Awarded', value: totalAwarded, color: '#34D399' },
                 { label: 'Valor Estimado', value: `$${totalEstimado.toLocaleString()}`, color: '#FBB040' },
               ].map(k => (
-                <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px' }}>
+                <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                   <div style={{ fontSize: 9, color: t3, textTransform: 'uppercase', fontFamily: 'DM Mono', marginBottom: 6 }}>{k.label}</div>
                   <div style={{ fontFamily: 'Syne', fontSize: 28, fontWeight: 800, color: k.color }}>{k.value}</div>
                 </div>
               ))}
             </div>
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead><tr style={{ background: s2 }}>
                   {['NCT#', 'Título', 'Sponsor', 'Stage', 'Valor Estimado', 'Países', 'Fecha'].map(h => <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>)}

@@ -227,14 +227,14 @@ export default function CobranzasPage() {
                 { label: 'Ventas 2Q', value: fmt(ventas2Q), color: '#A78BFA' },
                 { label: 'Registros', value: ventasFilt.length, color: '#FB923C' },
               ].map(k => (
-                <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px' }}>
+                <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                   <div style={{ fontSize: 9, color: t3, textTransform: 'uppercase', letterSpacing: '.1em', fontFamily: 'DM Mono', marginBottom: 6 }}>{k.label}</div>
                   <div style={{ fontFamily: 'Syne', fontSize: 22, fontWeight: 800, color: k.color }}>{k.value}</div>
                 </div>
               ))}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16 }}>
+              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Ventas por Laboratorio</div>
                 <ResponsiveContainer width="100%" height={200}>
                   <PieChart><Pie data={ventasLabs} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
@@ -245,7 +245,7 @@ export default function CobranzasPage() {
                   {ventasLabs.map((l, i) => <span key={l.name} style={{ fontSize: 10, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: CHART_COLORS[i % CHART_COLORS.length] }} /><span style={{ color: t3 }}>{l.name}</span></span>)}
                 </div>
               </div>
-              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16 }}>
+              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Ventas por Estudio</div>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={ventasEstudios} layout="vertical"><XAxis type="number" tick={{ fontSize: 9, fill: t3 }} tickFormatter={(v: number) => `$${(v/1000).toFixed(0)}k`} /><YAxis type="category" dataKey="name" tick={{ fontSize: 9, fill: t3 }} width={100} /><Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} /><Bar dataKey="value" radius={[0, 6, 6, 0]}>
@@ -254,7 +254,7 @@ export default function CobranzasPage() {
                 </ResponsiveContainer>
               </div>
             </div>
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead><tr style={{ background: s2 }}>
                   {['Mes','Periodo','Laboratorio','Estudio','Monto'].map(h => <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>)}
@@ -295,14 +295,14 @@ export default function CobranzasPage() {
                 { label: 'Total Adeudado', value: fmt(totalAdeudado), color: '#60A5FA' },
                 { label: 'Registros', value: cuentasFilt.length, color: '#9494B3' },
               ].map(k => (
-                <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px' }}>
+                <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                   <div style={{ fontSize: 9, color: t3, textTransform: 'uppercase', letterSpacing: '.1em', fontFamily: 'DM Mono', marginBottom: 6 }}>{k.label}</div>
                   <div style={{ fontFamily: 'Syne', fontSize: 22, fontWeight: 800, color: k.color }}>{k.value}</div>
                 </div>
               ))}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16 }}>
+              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Vencido vs Por Vencer</div>
                 <ResponsiveContainer width="100%" height={200}>
                   <PieChart><Pie data={cuentasDonut} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value">
@@ -313,14 +313,14 @@ export default function CobranzasPage() {
                   {[{ label: 'Vencido', color: '#F87171' }, { label: 'Por Vencer', color: '#FBB040' }].map(l => <span key={l.label} style={{ fontSize: 10, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: l.color }} /><span style={{ color: t3 }}>{l.label}</span></span>)}
                 </div>
               </div>
-              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16 }}>
+              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Deuda por Estudio</div>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={cuentasEstudios}><XAxis dataKey="name" tick={{ fontSize: 9, fill: t3 }} /><YAxis tick={{ fontSize: 9, fill: t3 }} tickFormatter={(v: number) => `$${(v/1000).toFixed(0)}k`} /><Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} /><Legend wrapperStyle={{ fontSize: 10 }} /><Bar dataKey="vencido" fill="#F87171" radius={[4, 4, 0, 0]} name="Vencido" /><Bar dataKey="por_vencer" fill="#FBB040" radius={[4, 4, 0, 0]} name="Por Vencer" /></BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead><tr style={{ background: s2 }}>
                   {['Laboratorio','Estudio','Tipo','Vencido','Por Vencer','Total Adeudado'].map(h => <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>)}
@@ -366,14 +366,14 @@ export default function CobranzasPage() {
                 { label: 'Depositos 2Q', value: fmt(dep2Q), color: '#A78BFA' },
                 { label: 'Registros', value: depsFilt.length, color: '#9494B3' },
               ].map(k => (
-                <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px' }}>
+                <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                   <div style={{ fontSize: 9, color: t3, textTransform: 'uppercase', letterSpacing: '.1em', fontFamily: 'DM Mono', marginBottom: 6 }}>{k.label}</div>
                   <div style={{ fontFamily: 'Syne', fontSize: 22, fontWeight: 800, color: k.color }}>{k.value}</div>
                 </div>
               ))}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16 }}>
+              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Depositos por Banco</div>
                 <ResponsiveContainer width="100%" height={200}>
                   <PieChart><Pie data={depBancos} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
@@ -384,7 +384,7 @@ export default function CobranzasPage() {
                   {depBancos.map((b, i) => <span key={b.name} style={{ fontSize: 10, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: CHART_COLORS[i % CHART_COLORS.length] }} /><span style={{ color: t3 }}>{b.name}</span></span>)}
                 </div>
               </div>
-              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16 }}>
+              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Depositos por Contratante</div>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={depContratantes} layout="vertical"><XAxis type="number" tick={{ fontSize: 9, fill: t3 }} tickFormatter={(v: number) => `$${(v/1000).toFixed(0)}k`} /><YAxis type="category" dataKey="name" tick={{ fontSize: 9, fill: t3 }} width={110} /><Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} /><Bar dataKey="value" radius={[0, 6, 6, 0]}>
@@ -393,7 +393,7 @@ export default function CobranzasPage() {
                 </ResponsiveContainer>
               </div>
             </div>
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead><tr style={{ background: s2 }}>
                   {['Periodo','Contratante','Banco','Identificacion','Estudio','Depositado'].map(h => <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>)}

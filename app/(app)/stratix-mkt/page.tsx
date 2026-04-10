@@ -199,7 +199,7 @@ export default function StratixMktPage() {
                 { label: 'Horas Totales', value: `${totalHoras}h`, color: '#F472B6', sub: `${totalDias} dias prod.` },
                 { label: 'Horas Libres', value: `${horasDisponibles}h`, color: '#60A5FA', sub: `${diasRestantes} dias restantes` },
               ].map(k => (
-                <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px' }}>
+                <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                   <div style={{ fontSize: 9, color: t3, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8, fontFamily: 'DM Mono' }}>{k.label}</div>
                   <div style={{ fontFamily: 'Syne', fontSize: 26, fontWeight: 800, lineHeight: 1, color: k.color }}>{k.value}</div>
                   <div style={{ fontSize: 9, color: t3, marginTop: 6 }}>{k.sub}</div>
@@ -210,7 +210,7 @@ export default function StratixMktPage() {
               ))}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 270px', gap: 12, marginBottom: 14 }}>
-              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px' }}>
+              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Produccion por mes — {trimestre}</div>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 90 }}>
                   {datosPorMes.map(d => (
@@ -225,7 +225,7 @@ export default function StratixMktPage() {
                   ))}
                 </div>
               </div>
-              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px' }}>
+              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Por marca — {trimestre}</div>
                 {datosPorMarca.map(m => (
                   <div key={m.codigo} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -238,7 +238,7 @@ export default function StratixMktPage() {
                   </div>
                 ))}
               </div>
-              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
+              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ padding: '12px 14px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>Marketing Today</div>
                   <span style={{ fontSize: 10, color: '#34D399' }}>{onlineCount > 0 ? onlineCount : 1} online</span>
@@ -264,7 +264,7 @@ export default function StratixMktPage() {
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 270px', gap: 12 }}>
-              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
+              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ padding: '12px 16px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>Actividades recientes</div>
                   <button onClick={() => setMktTab('solicitudes')} style={{ fontSize: 10, color: accent, background: 'none', border: 'none', cursor: 'pointer' }}>Ver todas →</button>
@@ -280,7 +280,7 @@ export default function StratixMktPage() {
                   </div>
                 ))}
               </div>
-              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14 }}>
+              <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ padding: '12px 14px', borderBottom: `1px solid ${border}` }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>Ranking del equipo</div>
                 </div>
@@ -395,7 +395,7 @@ export default function StratixMktPage() {
               const totalDiasGantt = Math.max(Math.ceil((fechaMax.getTime() - fechaMin.getTime()) / 86400000) + 1, 7)
               const diasMostrar = Math.min(totalDiasGantt, 31)
               return (
-                <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
+                <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                   <div style={{ display: 'flex', borderBottom: `1px solid ${border}` }}>
                     <div style={{ width: 220, flexShrink: 0, padding: '10px 14px', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderRight: `1px solid ${border}` }}>Tarea / Responsable</div>
                     <div style={{ flex: 1, display: 'flex', overflowX: 'auto' }}>
@@ -468,7 +468,7 @@ export default function StratixMktPage() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {resumenHoras.map(r => (
-                <div key={r.ref} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 20px' }}>
+                <div key={r.ref} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <div>
                       <div style={{ fontSize: 15, fontWeight: 700, color: t1 }}>{r.nombre}</div>
@@ -515,7 +515,7 @@ export default function StratixMktPage() {
                     ))}
                   </div>
                 </div>
-                <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden' }}>
+                <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
@@ -661,7 +661,7 @@ export default function StratixMktPage() {
                           const isOnline = u.online_at ? new Date(u.online_at) > new Date(Date.now() - 5 * 60 * 1000) : false
                           const tareasHoy = actividades.filter(a => a.responsable_ref === u.responsable_ref && a.estado === 'En proceso').length
                           return (
-                            <div key={u.id} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16 }}>
+                            <div key={u.id} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                                 <div style={{ position: 'relative', flexShrink: 0 }}>
                                   <div style={{ width: 44, height: 44, borderRadius: '50%', background: u.color || accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'white' }}>{u.nombre?.[0]}{u.apellido?.[0]}</div>
@@ -688,7 +688,7 @@ export default function StratixMktPage() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {resumenHoras.map(r => (
-                  <div key={r.ref} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 20px' }}>
+                  <div key={r.ref} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                       <div>
                         <div style={{ fontSize: 15, fontWeight: 700, color: t1 }}>{r.nombre}</div>
@@ -805,7 +805,7 @@ export default function StratixMktPage() {
                 }} style={{ padding: '7px 14px', borderRadius: 8, background: accent, color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Imprimir</button>
               </div>
             </div>
-            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '24px 28px' }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '24px 28px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
                 <div>
                   <div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>Reporte de Produccion</div>
@@ -904,7 +904,7 @@ export default function StratixMktPage() {
           }).filter(b => b.followers > 0).sort((a, b) => b.followers - a.followers)
 
           const fNum = (n: number) => n >= 1000000 ? (n / 1000000).toFixed(1) + 'M' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n)
-          const cardS: React.CSSProperties = { background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px' }
+          const cardS: React.CSSProperties = { background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }
           const statS: React.CSSProperties = { ...cardS, display: 'flex', flexDirection: 'column', gap: 4 }
           const badge = (color: string): React.CSSProperties => ({ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: `${color}18`, color, fontWeight: 600, whiteSpace: 'nowrap' as const })
 
@@ -1142,7 +1142,7 @@ export default function StratixMktPage() {
           const tendenciaColors: Record<string, string> = { creciendo: '#34D399', estable: '#FBB040', bajando: '#F87171' }
           const tendenciaIcons: Record<string, string> = { creciendo: '📈', estable: '➡️', bajando: '📉' }
           const fNum = (n: number) => n >= 1000000 ? (n / 1000000).toFixed(1) + 'M' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n)
-          const cardS: React.CSSProperties = { background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px' }
+          const cardS: React.CSSProperties = { background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }
           const badge = (color: string): React.CSSProperties => ({ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: `${color}18`, color, fontWeight: 600, whiteSpace: 'nowrap' as const })
 
           const maxIG = Math.max(eminatData.igFollowers, ...competitors.map(c => c.igFollowers))
