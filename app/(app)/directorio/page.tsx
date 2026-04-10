@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useApp, DIRECTORIO_DATA, DEPS_DIR, EMPRESA_COLORS, getIniciales } from '@/lib/AppContext'
 import AppShell from '@/app/components/AppShell'
+import { PageTransition, StaggerGrid, StaggerItem } from '@/lib/motion'
 
 export default function DirectorioPage() {
   const { s1, border, t1, t2, t3, accent, inputStyle } = useApp()
@@ -19,7 +20,7 @@ export default function DirectorioPage() {
 
   return (
     <AppShell>
-      <div>
+      <PageTransition><div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'Syne', color: t1 }}>{DIRECTORIO_DATA.length} miembros del Holding Eminat</div>
           <input type="text" placeholder="Buscar por nombre, cargo o email..." value={busquedaDir} onChange={e => setBusquedaDir(e.target.value)} style={{ ...inputStyle, width: 280 }} />
@@ -31,11 +32,11 @@ export default function DirectorioPage() {
             </button>
           ))}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 10 }}>
+        <StaggerGrid style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 10 }}>
           {dirFiltrado.map((m: any, i: number) => {
             const ec = EMPRESA_COLORS[m.empresa] || accent
             return (
-              <div key={i} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              <StaggerItem key={i} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
                   <div style={{ width: 38, height: 38, borderRadius: 10, background: m.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'white' }}>{getIniciales(m.nombre)}</div>
                   <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 20, background: `${ec}20`, color: ec }}>{m.empresa.replace('Eminat ', '').replace(' by Eminat', '')}</span>
@@ -47,11 +48,11 @@ export default function DirectorioPage() {
                   <a href={`mailto:${m.email}`} style={{ fontSize: 10, color: accent, textDecoration: 'none', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>✉ {m.email}</a>
                   <div style={{ fontSize: 10, color: t3, marginTop: 2 }}>{m.ubicacion}</div>
                 </div>
-              </div>
+              </StaggerItem>
             )
           })}
-        </div>
-      </div>
+        </StaggerGrid>
+      </div></PageTransition>
     </AppShell>
   )
 }

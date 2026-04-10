@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useApp } from '@/lib/AppContext'
 import AppShell from '@/app/components/AppShell'
 import { supabase } from '@/lib/supabase'
+import { PageTransition, StaggerGrid, StaggerItem, AnimatedNumber, ModalOverlay, FadeInSection } from '@/lib/motion'
 
 // ── Types ─────────────────────────────────────────────────────────────
 interface Paciente {
@@ -397,6 +398,7 @@ export default function MedicalPage() {
 
   return (
     <AppShell activeTab={tab} onTabChange={setTab}>
+      <PageTransition>
 
       {/* TAB BAR */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: `1px solid ${border}`, alignItems: 'center', justifyContent: 'space-between' }}>
@@ -417,28 +419,28 @@ export default function MedicalPage() {
       {tab === 'dashboard' && (
         <div>
           {/* KPI Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
-            <div style={statCardStyle}>
+          <StaggerGrid style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+            <StaggerItem style={statCardStyle}>
               <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Pacientes Activos</div>
-              <div style={{ fontSize: 28, fontWeight: 800, fontFamily: 'Syne', color: '#34D399' }}>{pacientesActivos.length}</div>
+              <div style={{ fontSize: 28, fontWeight: 800, fontFamily: 'Syne', color: '#34D399' }}><AnimatedNumber value={pacientesActivos.length} /></div>
               <div style={{ fontSize: 10, color: t3 }}>de {pacientes.length} totales</div>
-            </div>
-            <div style={statCardStyle}>
+            </StaggerItem>
+            <StaggerItem style={statCardStyle}>
               <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Citas Hoy</div>
-              <div style={{ fontSize: 28, fontWeight: 800, fontFamily: 'Syne', color: '#60A5FA' }}>{citasHoy.length}</div>
+              <div style={{ fontSize: 28, fontWeight: 800, fontFamily: 'Syne', color: '#60A5FA' }}><AnimatedNumber value={citasHoy.length} /></div>
               <div style={{ fontSize: 10, color: t3 }}>{citasManana.length} manana</div>
-            </div>
-            <div style={statCardStyle}>
+            </StaggerItem>
+            <StaggerItem style={statCardStyle}>
               <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Compliance Score</div>
-              <div style={{ fontSize: 28, fontWeight: 800, fontFamily: 'Syne', color: complianceScore >= 80 ? '#34D399' : complianceScore >= 60 ? '#FBB040' : '#F87171' }}>{complianceScore}%</div>
+              <div style={{ fontSize: 28, fontWeight: 800, fontFamily: 'Syne', color: complianceScore >= 80 ? '#34D399' : complianceScore >= 60 ? '#FBB040' : '#F87171' }}><AnimatedNumber value={complianceScore} suffix="%" /></div>
               <div style={{ fontSize: 10, color: t3 }}>HIPAA compliance</div>
-            </div>
-            <div style={statCardStyle}>
+            </StaggerItem>
+            <StaggerItem style={statCardStyle}>
               <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Incidentes Abiertos</div>
-              <div style={{ fontSize: 28, fontWeight: 800, fontFamily: 'Syne', color: incidentesAbiertos.length > 0 ? '#F87171' : '#34D399' }}>{incidentesAbiertos.length}</div>
+              <div style={{ fontSize: 28, fontWeight: 800, fontFamily: 'Syne', color: incidentesAbiertos.length > 0 ? '#F87171' : '#34D399' }}><AnimatedNumber value={incidentesAbiertos.length} /></div>
               <div style={{ fontSize: 10, color: t3 }}>{incidentes.length} totales</div>
-            </div>
-          </div>
+            </StaggerItem>
+          </StaggerGrid>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             {/* Citas de Hoy */}
@@ -1091,6 +1093,7 @@ export default function MedicalPage() {
         </div>
       )}
 
+      </PageTransition>
     </AppShell>
   )
 }

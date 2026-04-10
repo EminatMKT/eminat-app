@@ -3,6 +3,7 @@ import { useState, ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useApp, MARCAS_LIST } from '@/lib/AppContext'
 import { supabase } from '@/lib/supabase'
+import Onboarding from './Onboarding'
 
 // Dark constants for sidebar & topbar (always dark)
 const D = {
@@ -110,7 +111,7 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
         <div style={{ width: 62, background: D.s1, borderRight: `1px solid ${D.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 12 }}>
           <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '0 4px', width: '100%' }}>
             {sidebarIcons.map((item: any) => (
-              <button key={item.key} onClick={() => { item.action(); setMobileSidebarOpen(false) }}
+              <button key={item.key} data-tour={item.key} onClick={() => { item.action(); setMobileSidebarOpen(false) }}
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, width: 52, height: 52, borderRadius: 12, border: 'none', cursor: 'pointer', background: activeIconKey === item.key ? `${accent}18` : 'transparent', color: activeIconKey === item.key ? accent : D.t2, transition: 'all .15s', position: 'relative' }}>
                 <span style={{ fontSize: 18, lineHeight: 1 }}>{item.icon}</span>
                 <span style={{ fontSize: 8, fontWeight: 600, fontFamily: 'DM Sans', letterSpacing: '.02em', lineHeight: 1 }}>{item.label}</span>
@@ -289,6 +290,7 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
           * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
       `}</style>
+      <Onboarding />
     </div>
   )
 }

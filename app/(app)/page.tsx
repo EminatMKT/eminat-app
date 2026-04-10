@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useApp, MARCAS_LIST } from '@/lib/AppContext'
 import AppShell from '@/app/components/AppShell'
+import { PageTransition } from '@/lib/motion'
 import { useRouter } from 'next/navigation'
 
 export default function HomePage() {
@@ -24,6 +25,7 @@ export default function HomePage() {
 
   return (
     <AppShell>
+      <PageTransition>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 120px)', position: 'relative' }}>
         <div className="orbit-ring" style={{ position: 'absolute', width: radius * 2 + 80, height: radius * 2 + 80, borderRadius: '50%', border: `1px solid ${border}` }} />
         <div className="orbit-ring-inner" style={{ position: 'absolute', width: radius * 2 - 40, height: radius * 2 - 40, borderRadius: '50%', border: `1px dashed ${border}` }} />
@@ -70,6 +72,7 @@ export default function HomePage() {
           )
         })}
       </div>
+      </PageTransition>
     </AppShell>
   )
 }

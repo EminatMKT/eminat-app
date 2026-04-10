@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useApp, ROLES, EMPRESAS, EMPRESA_COLORS, COLORES_AVATAR, CARGOS_DIR } from '@/lib/AppContext'
 import AppShell from '@/app/components/AppShell'
 import { supabase } from '@/lib/supabase'
+import { PageTransition, StaggerGrid, StaggerItem, AnimatedNumber } from '@/lib/motion'
 
 export default function AdminPage() {
   const { esSuperAdmin, adminUsuarios, setAdminUsuarios, s1, s2, border, t1, t2, t3, accent, inputStyle, mostrarMensaje } = useApp()
@@ -49,15 +50,15 @@ export default function AdminPage() {
 
   return (
     <AppShell actions={crearBtn}>
-      <div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+      <PageTransition>
+        <StaggerGrid style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
           {[{ label: 'Total usuarios', value: adminUsuarios.length, color: accent }, { label: 'Activos', value: adminUsuarios.filter(u => u.activo && u.validado).length, color: '#34D399' }, { label: 'Pendientes', value: adminUsuarios.filter(u => !u.validado).length, color: '#FBB040' }, { label: 'Pasantes', value: adminUsuarios.filter(u => u.rol === 'pasante').length, color: '#60A5FA' }].map(s => (
-            <div key={s.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-              <div style={{ fontFamily: 'Syne', fontSize: 32, fontWeight: 800, color: s.color }}>{s.value}</div>
+            <StaggerItem key={s.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              <div style={{ fontFamily: 'Syne', fontSize: 32, fontWeight: 800, color: s.color }}><AnimatedNumber value={s.value} /></div>
               <div style={{ fontSize: 11, color: t3, marginTop: 4 }}>{s.label}</div>
-            </div>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerGrid>
         <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
           <input type="text" placeholder="Buscar..." value={busquedaAdmin} onChange={e => setBusquedaAdmin(e.target.value)} style={{ ...inputStyle, width: 220 }} />
           <div style={{ display: 'flex', gap: 6 }}>
@@ -99,7 +100,6 @@ export default function AdminPage() {
             </table>
           </div>
         </div>
-      </div>
 
       {/* MODAL EDITAR */}
       {modalEditar && (
@@ -165,6 +165,7 @@ export default function AdminPage() {
           </div>
         </div>
       )}
+      </PageTransition>
     </AppShell>
   )
 }

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useApp } from '@/lib/AppContext'
 import AppShell from '@/app/components/AppShell'
 import ResearchModule from '@/app/components/ResearchModule'
+import { PageTransition } from '@/lib/motion'
 
 export default function ResearchPage() {
   const { dark, canResearch, t1, t3, mostrarMensaje } = useApp()
@@ -10,6 +11,7 @@ export default function ResearchPage() {
 
   return (
     <AppShell activeTab={researchTab} onTabChange={setResearchTab}>
+      <PageTransition>
       {canResearch ? (
         <ResearchModule dark={dark} tab={researchTab} setTab={setResearchTab} mostrarMensaje={mostrarMensaje} />
       ) : (
@@ -19,6 +21,7 @@ export default function ResearchPage() {
           <div style={{ fontSize: 13, color: t3, textAlign: 'center', maxWidth: 300 }}>No tienes acceso al modulo de Research.</div>
         </div>
       )}
+      </PageTransition>
     </AppShell>
   )
 }

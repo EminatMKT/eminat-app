@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useApp, MESES, MESES_Q, TRIMESTRES, mesATrimestre, MARCAS_LIST, ESTADO_COLORS, COLUMNAS_KANBAN, MIEMBROS_REFS, SOLICITANTES, getColorMarca } from '@/lib/AppContext'
 import AppShell from '@/app/components/AppShell'
 import { supabase } from '@/lib/supabase'
+import { PageTransition, StaggerGrid, StaggerItem, AnimatedNumber, FadeInSection } from '@/lib/motion'
 
 export default function StratixMktPage() {
   const {
@@ -172,6 +173,7 @@ export default function StratixMktPage() {
         </button>
       ) : undefined}
     >
+      <PageTransition>
       <div>
         {/* MKT TABS */}
         {(mktTab === 'overview' || mktTab === 'kanban' || mktTab === 'gantt' || mktTab === 'horas') && (
@@ -190,7 +192,7 @@ export default function StratixMktPage() {
                 <button key={q} onClick={() => setTrimestre(q)} style={{ padding: '5px 16px', borderRadius: 20, border: `1px solid ${trimestre === q ? accent : border}`, background: trimestre === q ? accent : 'transparent', color: trimestre === q ? 'white' : t2, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{q}</button>
               ))}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10, marginBottom: 14 }}>
+            <StaggerGrid style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10, marginBottom: 14 }}>
               {[
                 { label: 'Total Tareas', value: totalQ, color: accent, sub: 'actividades' },
                 { label: 'Completadas', value: completadasQ, color: '#34D399', sub: `${pctCompletado}% efectividad` },
@@ -199,16 +201,16 @@ export default function StratixMktPage() {
                 { label: 'Horas Totales', value: `${totalHoras}h`, color: '#F472B6', sub: `${totalDias} dias prod.` },
                 { label: 'Horas Libres', value: `${horasDisponibles}h`, color: '#60A5FA', sub: `${diasRestantes} dias restantes` },
               ].map(k => (
-                <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                <StaggerItem key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                   <div style={{ fontSize: 9, color: t3, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8, fontFamily: 'DM Mono' }}>{k.label}</div>
-                  <div style={{ fontFamily: 'Syne', fontSize: 26, fontWeight: 800, lineHeight: 1, color: k.color }}>{k.value}</div>
+                  <div style={{ fontFamily: 'Syne', fontSize: 26, fontWeight: 800, lineHeight: 1, color: k.color }}>{typeof k.value === 'number' ? <AnimatedNumber value={k.value} /> : k.value}</div>
                   <div style={{ fontSize: 9, color: t3, marginTop: 6 }}>{k.sub}</div>
                   <div style={{ marginTop: 8, height: 2, borderRadius: 1, background: border }}>
                     <div style={{ height: 2, borderRadius: 1, background: k.color, width: `${pctCompletado}%` }} />
                   </div>
-                </div>
+                </StaggerItem>
               ))}
-            </div>
+            </StaggerGrid>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 270px', gap: 12, marginBottom: 14 }}>
               <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Produccion por mes — {trimestre}</div>
@@ -1425,6 +1427,7 @@ export default function StratixMktPage() {
           </div>
         </div>
       )}
+      </PageTransition>
     </AppShell>
   )
 }

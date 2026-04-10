@@ -4,6 +4,7 @@ import { useApp, MESES } from '@/lib/AppContext'
 import AppShell from '@/app/components/AppShell'
 import { supabase } from '@/lib/supabase'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { PageTransition, StaggerGrid, StaggerItem, AnimatedNumber } from '@/lib/motion'
 
 export default function CobranzasPage() {
   const { s1, s2, border, t1, t2, t3, accent, inputStyle, canCobranzas, mostrarMensaje } = useApp()
@@ -166,6 +167,7 @@ export default function CobranzasPage() {
 
   return (
     <AppShell>
+      <PageTransition>
       <div>
         {/* Header + controls */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
@@ -459,6 +461,7 @@ export default function CobranzasPage() {
           </div>
         )}
       </div>
+      </PageTransition>
     </AppShell>
   )
 }
