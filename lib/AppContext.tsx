@@ -213,24 +213,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const canResearch = esSuperAdmin || ['freddy@eminat.net', 'jonathan@eminat.net'].includes(usuario?.email?.toLowerCase() || '')
   const canMedical = esSuperAdmin || ['daniel@eminat.net', 'dmsardina@eminat.net', 'freddy@eminat.net'].includes(usuario?.email?.toLowerCase() || '')
 
-  // Theme colors
-  const bg = dark ? '#0A0A0F' : '#F0F2F5'
-  const s1 = dark ? '#111118' : '#FFFFFF'
-  const s2 = dark ? '#1A1A24' : '#F0F0F5'
-  const s3 = dark ? '#22222E' : '#E8E8F0'
-  const border = dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'
-  const t1 = dark ? '#FFFFFF' : '#0A0A0F'
-  const t2 = dark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.6)'
-  const t3 = dark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'
+  // Theme colors — content area is always light; sidebar/topbar dark is handled in AppShell
+  const bg = '#F9FAFB'
+  const s1 = '#FFFFFF'
+  const s2 = '#FFFFFF'
+  const s3 = '#F3F4F6'
+  const border = '#E5E7EB'
+  const t1 = '#111827'
+  const t2 = '#6B7280'
+  const t3 = '#9CA3AF'
   const accent = '#7C6FF7'
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '9px 12px',
     borderRadius: 10,
-    border: `1px solid ${border}`,
-    background: s2,
-    color: t1,
+    border: '1px solid #D1D5DB',
+    background: '#FFFFFF',
+    color: '#111827',
     fontSize: 13,
     fontFamily: 'DM Sans',
     outline: 'none',

@@ -4,6 +4,17 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useApp, MARCAS_LIST } from '@/lib/AppContext'
 import { supabase } from '@/lib/supabase'
 
+// Dark constants for sidebar & topbar (always dark)
+const D = {
+  bg: '#0A0A0F',
+  s1: '#111118',
+  s2: '#1A1A24',
+  border: 'rgba(255,255,255,0.07)',
+  t1: '#FFFFFF',
+  t2: 'rgba(255,255,255,0.6)',
+  t3: 'rgba(255,255,255,0.3)',
+}
+
 const mktSubItems = [
   { id: 'sub-overview', icon: '📊', label: 'Dashboard', tab: 'overview' },
   { id: 'sub-prod', icon: '⚡', label: 'Produccion', tab: 'kanban' },
@@ -46,7 +57,7 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
   const [sidebarPanel, setSidebarPanel] = useState<string | null>(
     pathname.startsWith('/research') ? 'research' : pathname.startsWith('/medical') ? 'medical' : (pathname === '/' || pathname.startsWith('/stratix-mkt')) ? 'mkt' : null
   )
-  const { usuario, dark, setDark, horaActual, onlineCount, mensaje, notificaciones, notifAbiertas, setNotifAbiertas, setNotificaciones, bg, s1, s2, border, t1, t2, t3, accent, cargo, esSuperAdmin, canCobranzas, canResearch, canMedical, handleLogout, mostrarMensaje, actividades } = app
+  const { usuario, dark, setDark, horaActual, onlineCount, mensaje, notificaciones, notifAbiertas, setNotifAbiertas, setNotificaciones, accent, cargo, esSuperAdmin, canCobranzas, canResearch, canMedical, handleLogout, mostrarMensaje, bg } = app
 
   const activeIconKey = pathname.startsWith('/medical') ? 'medical'
     : pathname.startsWith('/research') ? 'research'
@@ -91,38 +102,38 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
   )
 
   return (
-    <div style={{ display: 'flex', height: '100vh', background: bg, color: t1, fontFamily: 'DM Sans, sans-serif', transition: 'background .3s' }}>
+    <div style={{ display: 'flex', height: '100vh', background: D.bg, color: D.t1, fontFamily: 'DM Sans, sans-serif' }}>
       {mobileSidebarOpen && <div onClick={() => setMobileSidebarOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 49 }} />}
 
-      {/* SIDEBAR */}
+      {/* SIDEBAR — always dark */}
       <aside className={`sidebar-root${mobileSidebarOpen ? ' open' : ''}`} style={{ display: 'flex', flexShrink: 0, height: '100vh', position: 'relative', zIndex: 50 }}>
-        <div style={{ width: 62, background: s1, borderRight: `1px solid ${border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 12 }}>
+        <div style={{ width: 62, background: D.s1, borderRight: `1px solid ${D.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 12 }}>
           <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '0 4px', width: '100%' }}>
             {sidebarIcons.map((item: any) => (
               <button key={item.key} onClick={() => { item.action(); setMobileSidebarOpen(false) }}
-                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, width: 52, height: 52, borderRadius: 12, border: 'none', cursor: 'pointer', background: activeIconKey === item.key ? `${accent}18` : 'transparent', color: activeIconKey === item.key ? accent : t2, transition: 'all .15s', position: 'relative' }}>
+                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, width: 52, height: 52, borderRadius: 12, border: 'none', cursor: 'pointer', background: activeIconKey === item.key ? `${accent}18` : 'transparent', color: activeIconKey === item.key ? accent : D.t2, transition: 'all .15s', position: 'relative' }}>
                 <span style={{ fontSize: 18, lineHeight: 1 }}>{item.icon}</span>
                 <span style={{ fontSize: 8, fontWeight: 600, fontFamily: 'DM Sans', letterSpacing: '.02em', lineHeight: 1 }}>{item.label}</span>
-                {item.soon && <span style={{ position: 'absolute', top: 4, right: 4, width: 6, height: 6, borderRadius: '50%', background: t3 }} />}
+                {item.soon && <span style={{ position: 'absolute', top: 4, right: 4, width: 6, height: 6, borderRadius: '50%', background: D.t3 }} />}
                 {activeIconKey === item.key && <div style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', width: 3, height: 20, borderRadius: '0 3px 3px 0', background: accent }} />}
               </button>
             ))}
           </nav>
-          <div style={{ padding: '10px 0 12px', borderTop: `1px solid ${border}`, width: '100%', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ padding: '10px 0 12px', borderTop: `1px solid ${D.border}`, width: '100%', display: 'flex', justifyContent: 'center' }}>
             <div style={{ position: 'relative' }}>
               <div style={{ width: 34, height: 34, borderRadius: '50%', background: usuario?.color || accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white' }}>
                 {usuario?.nombre?.[0]}{usuario?.apellido?.[0]}
               </div>
-              <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: '#34D399', border: `2px solid ${s1}` }} />
+              <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: '#34D399', border: `2px solid ${D.s1}` }} />
             </div>
           </div>
         </div>
 
-        {/* SUBMENU PANEL */}
-        <div style={{ width: panelOpen ? 172 : 0, background: s1, borderRight: panelOpen ? `1px solid ${border}` : 'none', overflow: 'hidden', transition: 'width .2s ease', display: 'flex', flexDirection: 'column' }}>
+        {/* SUBMENU PANEL — always dark */}
+        <div style={{ width: panelOpen ? 172 : 0, background: D.s1, borderRight: panelOpen ? `1px solid ${D.border}` : 'none', overflow: 'hidden', transition: 'width .2s ease', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '14px 14px 10px' }}>
-            <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 13, color: t1, whiteSpace: 'nowrap' }}>{panelTitle}</div>
-            <div style={{ fontSize: 9, color: t3, fontFamily: 'DM Mono', marginTop: 2, whiteSpace: 'nowrap' }}>{panelSub}</div>
+            <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 13, color: D.t1, whiteSpace: 'nowrap' }}>{panelTitle}</div>
+            <div style={{ fontSize: 9, color: D.t3, fontFamily: 'DM Mono', marginTop: 2, whiteSpace: 'nowrap' }}>{panelSub}</div>
           </div>
           <nav style={{ flex: 1, padding: '0 8px', overflowY: 'auto' }}>
             {subItems.map(item => {
@@ -135,7 +146,7 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
                   onTabChange?.(item.tab)
                   setMobileSidebarOpen(false)
                 }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 500, textAlign: 'left', whiteSpace: 'nowrap', color: isActive ? accent : t2, background: isActive ? `${accent}15` : 'transparent', marginBottom: 2, transition: 'all .15s' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 12, fontWeight: 500, textAlign: 'left', whiteSpace: 'nowrap', color: isActive ? accent : D.t2, background: isActive ? `${accent}15` : 'transparent', marginBottom: 2, transition: 'all .15s' }}>
                   <span style={{ fontSize: 13 }}>{item.icon}</span>
                   {item.label}
                   {isActive && <div style={{ marginLeft: 'auto', width: 4, height: 4, borderRadius: '50%', background: accent }} />}
@@ -143,22 +154,22 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
               )
             })}
           </nav>
-          <div style={{ padding: 10, borderTop: `1px solid ${border}` }}>
+          <div style={{ padding: 10, borderTop: `1px solid ${D.border}` }}>
             <div style={{ padding: '10px 10px', borderRadius: 10, background: `${accent}08`, border: `1px solid ${accent}15` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <div style={{ position: 'relative', flexShrink: 0 }}>
                   <div style={{ width: 28, height: 28, borderRadius: '50%', background: usuario?.color || accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'white' }}>
                     {usuario?.nombre?.[0]}{usuario?.apellido?.[0]}
                   </div>
-                  <div style={{ position: 'absolute', bottom: -1, right: -1, width: 8, height: 8, borderRadius: '50%', background: '#34D399', border: `2px solid ${s1}` }} />
+                  <div style={{ position: 'absolute', bottom: -1, right: -1, width: 8, height: 8, borderRadius: '50%', background: '#34D399', border: `2px solid ${D.s1}` }} />
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: t1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{usuario?.nombre}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: D.t1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{usuario?.nombre}</div>
                   <div style={{ fontSize: 9, color: accent, whiteSpace: 'nowrap' }}>{cargo}</div>
                 </div>
               </div>
-              <div style={{ fontSize: 9, color: t3, marginBottom: 6, whiteSpace: 'nowrap' }}>📍 {usuario?.ubicacion || 'Guayaquil, EC'}</div>
-              <button onClick={handleLogout} style={{ width: '100%', padding: '4px', borderRadius: 6, border: `1px solid ${border}`, background: 'transparent', color: t3, fontSize: 10, cursor: 'pointer', whiteSpace: 'nowrap' }}>Cerrar sesion</button>
+              <div style={{ fontSize: 9, color: D.t3, marginBottom: 6, whiteSpace: 'nowrap' }}>📍 {usuario?.ubicacion || 'Guayaquil, EC'}</div>
+              <button onClick={handleLogout} style={{ width: '100%', padding: '4px', borderRadius: 6, border: `1px solid ${D.border}`, background: 'transparent', color: D.t3, fontSize: 10, cursor: 'pointer', whiteSpace: 'nowrap' }}>Cerrar sesion</button>
             </div>
           </div>
         </div>
@@ -166,17 +177,17 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
 
       {/* MAIN */}
       <main style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
-        {/* TOPBAR */}
-        <div style={{ padding: '11px 24px', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: s1, position: 'sticky', top: 0, zIndex: 10 }}>
+        {/* TOPBAR — always dark */}
+        <div style={{ padding: '11px 24px', borderBottom: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: D.s1, position: 'sticky', top: 0, zIndex: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button className="mobile-hamburger" onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)} style={{ display: 'none', background: 'none', border: `1px solid ${border}`, borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: t1, fontSize: 18, lineHeight: 1 }}>☰</button>
+            <button className="mobile-hamburger" onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)} style={{ display: 'none', background: 'none', border: `1px solid ${D.border}`, borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: D.t1, fontSize: 18, lineHeight: 1 }}>☰</button>
             <div>
-              <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15, color: t1 }}>{title || autoTitle}</div>
+              <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15, color: D.t1 }}>{title || autoTitle}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
-                <span style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono' }}>
+                <span style={{ fontSize: 10, color: D.t3, fontFamily: 'DM Mono' }}>
                   {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {horaActual}
                 </span>
-                <span style={{ width: 1, height: 10, background: border }} />
+                <span style={{ width: 1, height: 10, background: D.border }} />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   {MARCAS_LIST.map(m => (
                     <span key={m.codigo} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 9, fontFamily: 'DM Mono', color: m.color, fontWeight: 600, letterSpacing: '.02em' }}>
@@ -196,34 +207,34 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
             )}
             <div style={{ position: 'relative' }}>
               <button onClick={() => { setNotifAbiertas(!notifAbiertas); if (!notifAbiertas) { const ids = notificaciones.filter((n: any) => !n.leida).map((n: any) => n.id); if (ids.length > 0) supabase.from('notificaciones').update({ leida: true }).in('id', ids).then(() => setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))) } }}
-                style={{ position: 'relative', padding: '7px 9px', borderRadius: 10, border: `1px solid ${border}`, background: notifAbiertas ? `${accent}20` : s2, color: notifAbiertas ? accent : t2, fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>
+                style={{ position: 'relative', padding: '7px 9px', borderRadius: 10, border: `1px solid ${D.border}`, background: notifAbiertas ? `${accent}20` : D.s2, color: notifAbiertas ? accent : D.t2, fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>
                 🔔
                 {notificaciones.filter((n: any) => !n.leida).length > 0 && (
-                  <span style={{ position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: '50%', background: '#F87171', color: 'white', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${s1}` }}>
+                  <span style={{ position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: '50%', background: '#F87171', color: 'white', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${D.s1}` }}>
                     {notificaciones.filter((n: any) => !n.leida).length > 9 ? '9+' : notificaciones.filter((n: any) => !n.leida).length}
                   </span>
                 )}
               </button>
               {notifAbiertas && (
-                <div style={{ position: 'absolute', top: '110%', right: 0, width: 320, background: s1, border: `1px solid ${border}`, borderRadius: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', zIndex: 50, overflow: 'hidden' }}>
-                  <div style={{ padding: '14px 16px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontFamily: 'Syne', fontSize: 14, fontWeight: 700, color: t1 }}>Notificaciones</div>
-                    <button onClick={() => { supabase.from('notificaciones').update({ leida: true }).eq('leida', false).then(() => setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))) }} style={{ fontSize: 11, color: t3, background: 'none', border: 'none', cursor: 'pointer' }}>Marcar todas leidas</button>
+                <div style={{ position: 'absolute', top: '110%', right: 0, width: 320, background: D.s1, border: `1px solid ${D.border}`, borderRadius: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', zIndex: 50, overflow: 'hidden' }}>
+                  <div style={{ padding: '14px 16px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontFamily: 'Syne', fontSize: 14, fontWeight: 700, color: D.t1 }}>Notificaciones</div>
+                    <button onClick={() => { supabase.from('notificaciones').update({ leida: true }).eq('leida', false).then(() => setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))) }} style={{ fontSize: 11, color: D.t3, background: 'none', border: 'none', cursor: 'pointer' }}>Marcar todas leidas</button>
                   </div>
                   <div style={{ maxHeight: 340, overflowY: 'auto' }}>
                     {notificaciones.length === 0 ? (
-                      <div style={{ padding: '32px', textAlign: 'center', color: t3 }}>
+                      <div style={{ padding: '32px', textAlign: 'center', color: D.t3 }}>
                         <div style={{ fontSize: 28, marginBottom: 8 }}>🔔</div>
                         <div style={{ fontSize: 12 }}>Sin notificaciones</div>
                       </div>
                     ) : notificaciones.map((n: any) => (
                       <div key={n.id} onClick={() => { if (n.actividad_id) { router.push('/stratix-mkt'); setNotifAbiertas(false) } }}
-                        style={{ padding: '12px 16px', borderBottom: `1px solid ${border}`, cursor: n.actividad_id ? 'pointer' : 'default', background: n.leida ? 'transparent' : `${accent}08`, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                        style={{ padding: '12px 16px', borderBottom: `1px solid ${D.border}`, cursor: n.actividad_id ? 'pointer' : 'default', background: n.leida ? 'transparent' : `${accent}08`, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                         <div style={{ width: 8, height: 8, borderRadius: '50%', background: n.leida ? 'transparent' : accent, flexShrink: 0, marginTop: 4 }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: n.leida ? 400 : 600, color: t1 }}>{n.titulo}</div>
-                          <div style={{ fontSize: 11, color: t2, marginTop: 2, lineHeight: 1.4 }}>{n.mensaje}</div>
-                          <div style={{ fontSize: 10, color: t3, marginTop: 4 }}>{new Date(n.created_at).toLocaleDateString('es-EC', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                          <div style={{ fontSize: 12, fontWeight: n.leida ? 400 : 600, color: D.t1 }}>{n.titulo}</div>
+                          <div style={{ fontSize: 11, color: D.t2, marginTop: 2, lineHeight: 1.4 }}>{n.mensaje}</div>
+                          <div style={{ fontSize: 10, color: D.t3, marginTop: 4 }}>{new Date(n.created_at).toLocaleDateString('es-EC', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
                         </div>
                       </div>
                     ))}
@@ -235,13 +246,15 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34D399' }} />
               <span style={{ fontSize: 11, color: '#34D399', fontWeight: 500 }}>{onlineCount > 0 ? onlineCount : 1} online</span>
             </div>
-            <button onClick={() => setDark(!dark)} style={{ padding: '6px 11px', borderRadius: 20, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 11, cursor: 'pointer' }}>
+            <button onClick={() => setDark(!dark)} style={{ padding: '6px 11px', borderRadius: 20, border: `1px solid ${D.border}`, background: D.s2, color: D.t2, fontSize: 11, cursor: 'pointer' }}>
               {dark ? '☀️' : '🌙'}
             </button>
             {actions}
           </div>
         </div>
-        <div style={{ padding: '20px 24px', flex: 1, overflow: 'auto' }}>
+
+        {/* CONTENT AREA — always light */}
+        <div style={{ padding: '20px 24px', flex: 1, overflow: 'auto', background: bg, color: '#111827' }}>
           {children}
         </div>
       </main>
