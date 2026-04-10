@@ -8,6 +8,8 @@ const mktSubItems = [
   { id: 'sub-overview', icon: '📊', label: 'Dashboard', tab: 'overview' },
   { id: 'sub-prod', icon: '⚡', label: 'Produccion', tab: 'kanban' },
   { id: 'sub-sol', icon: '📋', label: 'Solicitudes', tab: 'solicitudes' },
+  { id: 'sub-social', icon: '📱', label: 'Social Media', tab: 'social' },
+  { id: 'sub-competencia', icon: '🎯', label: 'Competencia', tab: 'competencia' },
   { id: 'sub-equipo', icon: '👥', label: 'Equipo', tab: 'equipo' },
   { id: 'sub-reporte', icon: '💰', label: 'Reporte', tab: 'reporte' },
 ]

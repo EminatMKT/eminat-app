@@ -859,6 +859,434 @@ export default function StratixMktPage() {
             </div>
           </div>
         )}
+
+        {/* ════════════════════════════════════════════════════════════════ */}
+        {/* SOCIAL MEDIA DASHBOARD */}
+        {/* ════════════════════════════════════════════════════════════════ */}
+        {mktTab === 'social' && (() => {
+          const platforms = [
+            { name: 'Instagram', icon: '📸', color: '#E1306C', accounts: [
+              { handle: '@eminatmedicalcenter', brand: 'EMC', followers: 12840, followersChange: 342, posts: 28, reach: 48200, engagement: 4.2, impressions: 156000, stories: 45, reels: 12, bestPost: 'Reel — Tratamientos de piel', bestReach: 18400 },
+              { handle: '@soyvivintegrete', brand: 'SVN', followers: 45200, followersChange: 1205, posts: 35, reach: 125600, engagement: 5.8, impressions: 420000, stories: 62, reels: 18, bestPost: 'Reel — Rutina de bienestar', bestReach: 52300 },
+              { handle: '@eminatresearch', brand: 'ERG', followers: 3420, followersChange: 89, posts: 14, reach: 8900, engagement: 3.1, impressions: 28500, stories: 18, reels: 5, bestPost: 'Post — Resultados estudio clinico', bestReach: 4200 },
+              { handle: '@premierbodysculpt', brand: 'PREMIER', followers: 8650, followersChange: 412, posts: 22, reach: 32100, engagement: 4.8, impressions: 98000, stories: 34, reels: 10, bestPost: 'Reel — Transformacion corporal', bestReach: 14800 },
+              { handle: '@ornella.ia', brand: 'ORNELLA', followers: 2180, followersChange: 680, posts: 18, reach: 15200, engagement: 6.2, impressions: 45000, stories: 22, reels: 8, bestPost: 'Reel — AI en salud', bestReach: 8900 },
+            ]},
+            { name: 'Facebook', icon: '👤', color: '#1877F2', accounts: [
+              { handle: 'Eminat Medical Center', brand: 'EMC', followers: 8900, followersChange: 120, posts: 22, reach: 34500, engagement: 2.8, impressions: 89000, stories: 0, reels: 8, bestPost: 'Video — Tour del centro', bestReach: 12400 },
+              { handle: 'Soy Vivi Negrete', brand: 'SVN', followers: 28400, followersChange: 580, posts: 30, reach: 78000, engagement: 3.4, impressions: 245000, stories: 0, reels: 14, bestPost: 'Live — Q&A de salud', bestReach: 32100 },
+              { handle: 'Premier by Eminat', brand: 'PREMIER', followers: 5200, followersChange: 185, posts: 16, reach: 18900, engagement: 3.1, impressions: 52000, stories: 0, reels: 6, bestPost: 'Video — Antes y despues', bestReach: 8700 },
+            ]},
+            { name: 'TikTok', icon: '🎵', color: '#010101', accounts: [
+              { handle: '@soyvivintegrete', brand: 'SVN', followers: 18600, followersChange: 3200, posts: 24, reach: 285000, engagement: 8.4, impressions: 890000, stories: 0, reels: 24, bestPost: 'Tips de nutricion', bestReach: 145000 },
+              { handle: '@eminatmedical', brand: 'EMC', followers: 4200, followersChange: 890, posts: 16, reach: 62000, engagement: 6.1, impressions: 198000, stories: 0, reels: 16, bestPost: 'Un dia en la clinica', bestReach: 28000 },
+              { handle: '@ornella.ia', brand: 'ORNELLA', followers: 1850, followersChange: 1200, posts: 20, reach: 95000, engagement: 9.2, impressions: 310000, stories: 0, reels: 20, bestPost: 'AI predice tu salud', bestReach: 42000 },
+            ]},
+            { name: 'LinkedIn', icon: '💼', color: '#0A66C2', accounts: [
+              { handle: 'Eminat Holding', brand: 'EMC', followers: 2400, followersChange: 68, posts: 12, reach: 9800, engagement: 2.2, impressions: 24000, stories: 0, reels: 0, bestPost: 'Articulo — Innovacion en salud', bestReach: 3200 },
+              { handle: 'Eminat Research Group', brand: 'ERG', followers: 1890, followersChange: 145, posts: 10, reach: 12400, engagement: 3.8, impressions: 31000, stories: 0, reels: 0, bestPost: 'Paper — Clinical trial results', bestReach: 5600 },
+            ]},
+            { name: 'YouTube', icon: '▶️', color: '#FF0000', accounts: [
+              { handle: 'Soy Vivi Negrete', brand: 'SVN', followers: 6800, followersChange: 420, posts: 8, reach: 42000, engagement: 4.5, impressions: 128000, stories: 0, reels: 4, bestPost: 'Podcast — Salud integral', bestReach: 18500 },
+              { handle: 'Eminat Medical', brand: 'EMC', followers: 1200, followersChange: 95, posts: 4, reach: 8400, engagement: 3.2, impressions: 22000, stories: 0, reels: 2, bestPost: 'Procedimientos explicados', bestReach: 4800 },
+            ]},
+          ]
+
+          const totalFollowers = platforms.reduce((s, p) => s + p.accounts.reduce((a, ac) => a + ac.followers, 0), 0)
+          const totalGrowth = platforms.reduce((s, p) => s + p.accounts.reduce((a, ac) => a + ac.followersChange, 0), 0)
+          const totalReach = platforms.reduce((s, p) => s + p.accounts.reduce((a, ac) => a + ac.reach, 0), 0)
+          const totalPosts = platforms.reduce((s, p) => s + p.accounts.reduce((a, ac) => a + ac.posts, 0), 0)
+          const avgEngagement = (() => { const all = platforms.flatMap(p => p.accounts); return all.length > 0 ? Math.round(all.reduce((a, ac) => a + ac.engagement, 0) / all.length * 10) / 10 : 0 })()
+
+          const brandTotals = MARCAS_LIST.map(m => {
+            const accs = platforms.flatMap(p => p.accounts.filter(a => a.brand === m.codigo))
+            return { ...m, followers: accs.reduce((s, a) => s + a.followers, 0), growth: accs.reduce((s, a) => s + a.followersChange, 0), reach: accs.reduce((s, a) => s + a.reach, 0), engagement: accs.length > 0 ? Math.round(accs.reduce((s, a) => s + a.engagement, 0) / accs.length * 10) / 10 : 0, posts: accs.reduce((s, a) => s + a.posts, 0) }
+          }).filter(b => b.followers > 0).sort((a, b) => b.followers - a.followers)
+
+          const fNum = (n: number) => n >= 1000000 ? (n / 1000000).toFixed(1) + 'M' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n)
+          const cardS: React.CSSProperties = { background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px' }
+          const statS: React.CSSProperties = { ...cardS, display: 'flex', flexDirection: 'column', gap: 4 }
+          const badge = (color: string): React.CSSProperties => ({ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: `${color}18`, color, fontWeight: 600, whiteSpace: 'nowrap' as const })
+
+          return (
+            <div>
+              {/* KPIs */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 20 }}>
+                <div style={statS}>
+                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Seguidores Totales</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Syne', color: accent }}>{fNum(totalFollowers)}</div>
+                  <div style={{ fontSize: 10, color: '#34D399' }}>+{fNum(totalGrowth)} este mes</div>
+                </div>
+                <div style={statS}>
+                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Alcance Total</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Syne', color: '#60A5FA' }}>{fNum(totalReach)}</div>
+                  <div style={{ fontSize: 10, color: t3 }}>personas alcanzadas</div>
+                </div>
+                <div style={statS}>
+                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Engagement Promedio</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Syne', color: '#34D399' }}>{avgEngagement}%</div>
+                  <div style={{ fontSize: 10, color: t3 }}>interaccion media</div>
+                </div>
+                <div style={statS}>
+                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Posts Este Mes</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Syne', color: '#F472B6' }}>{totalPosts}</div>
+                  <div style={{ fontSize: 10, color: t3 }}>publicaciones</div>
+                </div>
+                <div style={statS}>
+                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Crecimiento</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Syne', color: '#FBB040' }}>+{Math.round(totalGrowth / Math.max(totalFollowers - totalGrowth, 1) * 100 * 10) / 10}%</div>
+                  <div style={{ fontSize: 10, color: t3 }}>mes actual</div>
+                </div>
+              </div>
+
+              {/* Brand Performance */}
+              <div style={{ ...cardS, marginBottom: 16 }}>
+                <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 14 }}>Rendimiento por Marca</div>
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(brandTotals.length, 5)}, 1fr)`, gap: 12 }}>
+                  {brandTotals.map(b => (
+                    <div key={b.codigo} style={{ padding: '14px', borderRadius: 12, border: `1px solid ${border}`, background: `${b.color}08` }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: b.color }} />
+                        <span style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 13, color: b.color }}>{b.codigo}</span>
+                      </div>
+                      <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'Syne', color: t1 }}>{fNum(b.followers)}</div>
+                      <div style={{ fontSize: 10, color: '#34D399', marginTop: 2 }}>+{fNum(b.growth)} · {b.engagement}% eng</div>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                        <div style={{ fontSize: 10, color: t3 }}><span style={{ fontWeight: 600, color: t2 }}>{fNum(b.reach)}</span> reach</div>
+                        <div style={{ fontSize: 10, color: t3 }}><span style={{ fontWeight: 600, color: t2 }}>{b.posts}</span> posts</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Platform Details */}
+              {platforms.map(platform => (
+                <div key={platform.name} style={{ ...cardS, marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                    <span style={{ fontSize: 18 }}>{platform.icon}</span>
+                    <span style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1 }}>{platform.name}</span>
+                    <span style={badge(platform.color)}>{platform.accounts.length} cuentas</span>
+                    <div style={{ flex: 1 }} />
+                    <span style={{ fontSize: 11, color: t3 }}>Total: <span style={{ fontWeight: 700, color: t1 }}>{fNum(platform.accounts.reduce((s, a) => s + a.followers, 0))}</span> seguidores</span>
+                  </div>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                    <thead>
+                      <tr style={{ borderBottom: `1px solid ${border}` }}>
+                        {['Cuenta', 'Marca', 'Seguidores', 'Crecimiento', 'Posts', 'Alcance', 'Engagement', 'Impresiones', 'Mejor Post'].map(h => (
+                          <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: t3, fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em' }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {platform.accounts.map(acc => (
+                        <tr key={acc.handle} style={{ borderBottom: `1px solid ${border}` }}>
+                          <td style={{ padding: '10px', color: t1, fontWeight: 500 }}>{acc.handle}</td>
+                          <td style={{ padding: '10px' }}><span style={badge(getColorMarca(acc.brand))}>{acc.brand}</span></td>
+                          <td style={{ padding: '10px', fontWeight: 700, color: t1, fontFamily: 'DM Mono' }}>{fNum(acc.followers)}</td>
+                          <td style={{ padding: '10px', color: '#34D399', fontFamily: 'DM Mono' }}>+{fNum(acc.followersChange)}</td>
+                          <td style={{ padding: '10px', color: t2, fontFamily: 'DM Mono' }}>{acc.posts}</td>
+                          <td style={{ padding: '10px', color: t2, fontFamily: 'DM Mono' }}>{fNum(acc.reach)}</td>
+                          <td style={{ padding: '10px' }}><span style={badge(acc.engagement >= 5 ? '#34D399' : acc.engagement >= 3 ? '#FBB040' : '#F87171')}>{acc.engagement}%</span></td>
+                          <td style={{ padding: '10px', color: t3, fontFamily: 'DM Mono' }}>{fNum(acc.impressions)}</td>
+                          <td style={{ padding: '10px' }}>
+                            <div style={{ fontSize: 11, color: t2 }}>{acc.bestPost}</div>
+                            <div style={{ fontSize: 9, color: t3 }}>{fNum(acc.bestReach)} reach</div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+
+              {/* Content Calendar Summary */}
+              <div style={cardS}>
+                <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 14 }}>Resumen de Contenido del Mes</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                  {[
+                    { label: 'Reels / Videos', value: platforms.reduce((s, p) => s + p.accounts.reduce((a, ac) => a + ac.reels, 0), 0), icon: '🎬', color: '#E1306C' },
+                    { label: 'Stories', value: platforms.reduce((s, p) => s + p.accounts.reduce((a, ac) => a + ac.stories, 0), 0), icon: '📱', color: '#FBB040' },
+                    { label: 'Posts Estaticos', value: totalPosts - platforms.reduce((s, p) => s + p.accounts.reduce((a, ac) => a + ac.reels, 0), 0), icon: '🖼️', color: '#60A5FA' },
+                    { label: 'Total Piezas', value: totalPosts + platforms.reduce((s, p) => s + p.accounts.reduce((a, ac) => a + ac.stories, 0), 0), icon: '📊', color: accent },
+                  ].map(item => (
+                    <div key={item.label} style={{ padding: '16px', borderRadius: 12, border: `1px solid ${border}`, textAlign: 'center' }}>
+                      <div style={{ fontSize: 24, marginBottom: 6 }}>{item.icon}</div>
+                      <div style={{ fontSize: 28, fontWeight: 800, fontFamily: 'Syne', color: item.color }}>{item.value}</div>
+                      <div style={{ fontSize: 10, color: t3, marginTop: 4 }}>{item.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* ════════════════════════════════════════════════════════════════ */}
+        {/* COMPETENCIA MIAMI DASHBOARD */}
+        {/* ════════════════════════════════════════════════════════════════ */}
+        {mktTab === 'competencia' && (() => {
+          const competitors = [
+            {
+              name: 'Miami Dade Medical Group',
+              tipo: 'Medical Center',
+              ubicacion: 'Doral, FL',
+              website: 'miamidademedical.com',
+              instagram: '@miamidademedical',
+              igFollowers: 22400,
+              igEngagement: 3.2,
+              facebook: 'Miami Dade Medical',
+              fbFollowers: 15800,
+              tiktok: '@miamidademedical',
+              tkFollowers: 8900,
+              fortalezas: ['Alto volumen de pacientes', 'Ubicacion estrategica en Doral', 'Servicio bilingue'],
+              debilidades: ['Branding generico', 'Contenido poco diferenciado', 'Sin programa de research'],
+              servicios: ['Medicina General', 'Urgencias', 'Laboratorio', 'Radiologia'],
+              precioRango: '$$',
+              googleRating: 4.2,
+              googleReviews: 342,
+              tendencia: 'estable' as const,
+            },
+            {
+              name: 'Brickell Aesthetics Center',
+              tipo: 'Estetica & Wellness',
+              ubicacion: 'Brickell, FL',
+              website: 'brickellaesthetics.com',
+              instagram: '@brickellaesthetics',
+              igFollowers: 38200,
+              igEngagement: 5.1,
+              facebook: 'Brickell Aesthetics',
+              fbFollowers: 12400,
+              tiktok: '@brickellaesthetics',
+              tkFollowers: 15600,
+              fortalezas: ['Fuerte presencia en social media', 'Contenido de alta calidad', 'Influencer partnerships'],
+              debilidades: ['Precios altos', 'Solo estetica — sin servicios medicos', 'Enfoque muy nicho'],
+              servicios: ['Body Sculpting', 'Facial Treatments', 'IV Therapy', 'Botox/Fillers'],
+              precioRango: '$$$',
+              googleRating: 4.6,
+              googleReviews: 189,
+              tendencia: 'creciendo' as const,
+            },
+            {
+              name: 'South Florida Health Hub',
+              tipo: 'Multi-especialidad',
+              ubicacion: 'Kendall, FL',
+              website: 'sfhealthhub.com',
+              instagram: '@sfhealthhub',
+              igFollowers: 9800,
+              igEngagement: 2.4,
+              facebook: 'South Florida Health Hub',
+              fbFollowers: 21000,
+              tiktok: '',
+              tkFollowers: 0,
+              fortalezas: ['Red de medicos amplia', 'Seguros multiples', 'Facilities modernas'],
+              debilidades: ['Social media debil', 'Sin TikTok', 'Branding corporativo sin personalidad'],
+              servicios: ['Medicina General', 'Cardiologia', 'Dermatologia', 'Ortopedia'],
+              precioRango: '$$',
+              googleRating: 3.9,
+              googleReviews: 567,
+              tendencia: 'bajando' as const,
+            },
+            {
+              name: 'Coral Gables Wellness Institute',
+              tipo: 'Wellness & Research',
+              ubicacion: 'Coral Gables, FL',
+              website: 'cgwellness.com',
+              instagram: '@cgwellnessinstitute',
+              igFollowers: 14500,
+              igEngagement: 4.3,
+              facebook: 'CG Wellness Institute',
+              fbFollowers: 8900,
+              tiktok: '@cgwellness',
+              tkFollowers: 5200,
+              fortalezas: ['Enfoque en wellness integral', 'Clinical trials', 'Alto trust medico'],
+              debilidades: ['Precio premium exclusivo', 'Marketing conservador', 'Crecimiento lento en redes'],
+              servicios: ['Clinical Research', 'Functional Medicine', 'Nutrition', 'Mental Health'],
+              precioRango: '$$$',
+              googleRating: 4.7,
+              googleReviews: 124,
+              tendencia: 'creciendo' as const,
+            },
+            {
+              name: 'LatinCare Medical Centers',
+              tipo: 'Medical Center',
+              ubicacion: 'Hialeah, FL',
+              website: 'latincare.com',
+              instagram: '@latincaremedical',
+              igFollowers: 16700,
+              igEngagement: 3.8,
+              facebook: 'LatinCare Medical',
+              fbFollowers: 28900,
+              tiktok: '@latincaremedical',
+              tkFollowers: 12300,
+              fortalezas: ['Comunidad hispana fuerte', 'Precios accesibles', 'Alto volumen Facebook'],
+              debilidades: ['Dependencia de un segmento', 'Contenido repetitivo', 'Sin presencia LinkedIn'],
+              servicios: ['Medicina Familiar', 'Pediatria', 'Ginecologia', 'Laboratorio'],
+              precioRango: '$',
+              googleRating: 4.0,
+              googleReviews: 892,
+              tendencia: 'estable' as const,
+            },
+          ]
+
+          // Eminat data for comparison
+          const eminatData = {
+            igFollowers: 12840 + 45200 + 3420 + 8650 + 2180,
+            fbFollowers: 8900 + 28400 + 5200,
+            tkFollowers: 18600 + 4200 + 1850,
+            avgEngagement: 4.8,
+            googleRating: 4.8,
+            googleReviews: 234,
+          }
+
+          const tendenciaColors: Record<string, string> = { creciendo: '#34D399', estable: '#FBB040', bajando: '#F87171' }
+          const tendenciaIcons: Record<string, string> = { creciendo: '📈', estable: '➡️', bajando: '📉' }
+          const fNum = (n: number) => n >= 1000000 ? (n / 1000000).toFixed(1) + 'M' : n >= 1000 ? (n / 1000).toFixed(1) + 'K' : String(n)
+          const cardS: React.CSSProperties = { background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px' }
+          const badge = (color: string): React.CSSProperties => ({ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: `${color}18`, color, fontWeight: 600, whiteSpace: 'nowrap' as const })
+
+          const maxIG = Math.max(eminatData.igFollowers, ...competitors.map(c => c.igFollowers))
+
+          return (
+            <div>
+              {/* Market Position Overview */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+                <div style={{ ...cardS, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Posicion en Instagram</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Syne', color: '#34D399' }}>#1</div>
+                  <div style={{ fontSize: 10, color: t3 }}>Eminat: {fNum(eminatData.igFollowers)} vs top comp: {fNum(Math.max(...competitors.map(c => c.igFollowers)))}</div>
+                </div>
+                <div style={{ ...cardS, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Google Rating</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Syne', color: '#FBB040' }}>{'⭐'.repeat(Math.round(eminatData.googleRating))}</div>
+                  <div style={{ fontSize: 10, color: t3 }}>{eminatData.googleRating}/5 — {eminatData.googleReviews} reviews</div>
+                </div>
+                <div style={{ ...cardS, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Engagement vs Mercado</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Syne', color: accent }}>{eminatData.avgEngagement}%</div>
+                  <div style={{ fontSize: 10, color: '#34D399' }}>+{(eminatData.avgEngagement - Math.round(competitors.reduce((s, c) => s + c.igEngagement, 0) / competitors.length * 10) / 10).toFixed(1)}% sobre promedio</div>
+                </div>
+                <div style={{ ...cardS, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Competidores Tracked</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Syne', color: t1 }}>{competitors.length}</div>
+                  <div style={{ fontSize: 10, color: t3 }}>{competitors.filter(c => c.tendencia === 'creciendo').length} creciendo · {competitors.filter(c => c.tendencia === 'bajando').length} bajando</div>
+                </div>
+              </div>
+
+              {/* Instagram Comparison Bar Chart */}
+              <div style={{ ...cardS, marginBottom: 16 }}>
+                <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 16 }}>Comparativa Instagram — Seguidores Miami</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {/* Eminat */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 180, fontSize: 12, fontWeight: 700, color: accent, textAlign: 'right' }}>Eminat (todas las marcas)</div>
+                    <div style={{ flex: 1, height: 28, borderRadius: 6, background: s2 }}>
+                      <div style={{ height: '100%', borderRadius: 6, background: `linear-gradient(90deg, ${accent}, #A78BFA)`, width: `${(eminatData.igFollowers / maxIG) * 100}%`, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 8, transition: 'width .5s' }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: 'white' }}>{fNum(eminatData.igFollowers)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  {competitors.sort((a, b) => b.igFollowers - a.igFollowers).map(c => (
+                    <div key={c.name} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 180, fontSize: 11, color: t2, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
+                      <div style={{ flex: 1, height: 22, borderRadius: 6, background: s2 }}>
+                        <div style={{ height: '100%', borderRadius: 6, background: tendenciaColors[c.tendencia], opacity: 0.6, width: `${(c.igFollowers / maxIG) * 100}%`, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 8, transition: 'width .5s' }}>
+                          <span style={{ fontSize: 10, fontWeight: 600, color: 'white' }}>{fNum(c.igFollowers)}</span>
+                        </div>
+                      </div>
+                      <span style={badge(tendenciaColors[c.tendencia])}>{tendenciaIcons[c.tendencia]} {c.tendencia}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Competitor Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                {competitors.map(comp => (
+                  <div key={comp.name} style={{ ...cardS, position: 'relative' }}>
+                    <div style={{ position: 'absolute', top: 14, right: 14 }}>
+                      <span style={badge(tendenciaColors[comp.tendencia])}>{tendenciaIcons[comp.tendencia]} {comp.tendencia}</span>
+                    </div>
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15, color: t1, marginBottom: 2 }}>{comp.name}</div>
+                      <div style={{ fontSize: 11, color: t3 }}>{comp.tipo} · {comp.ubicacion}</div>
+                      <div style={{ fontSize: 10, color: accent, fontFamily: 'DM Mono', marginTop: 2 }}>{comp.website}</div>
+                    </div>
+
+                    {/* Social Stats */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
+                      <div style={{ padding: '8px', borderRadius: 8, background: s2, textAlign: 'center' }}>
+                        <div style={{ fontSize: 9, color: t3, marginBottom: 2 }}>📸 Instagram</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: t1 }}>{fNum(comp.igFollowers)}</div>
+                        <div style={{ fontSize: 9, color: '#34D399' }}>{comp.igEngagement}% eng</div>
+                      </div>
+                      <div style={{ padding: '8px', borderRadius: 8, background: s2, textAlign: 'center' }}>
+                        <div style={{ fontSize: 9, color: t3, marginBottom: 2 }}>👤 Facebook</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: t1 }}>{fNum(comp.fbFollowers)}</div>
+                      </div>
+                      <div style={{ padding: '8px', borderRadius: 8, background: s2, textAlign: 'center' }}>
+                        <div style={{ fontSize: 9, color: t3, marginBottom: 2 }}>🎵 TikTok</div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: t1 }}>{comp.tkFollowers > 0 ? fNum(comp.tkFollowers) : '—'}</div>
+                      </div>
+                    </div>
+
+                    {/* Google Rating */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, padding: '6px 10px', borderRadius: 8, background: s2 }}>
+                      <span style={{ fontSize: 11 }}>⭐</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: comp.googleRating >= 4.5 ? '#34D399' : comp.googleRating >= 4 ? '#FBB040' : '#F87171' }}>{comp.googleRating}</span>
+                      <span style={{ fontSize: 10, color: t3 }}>({comp.googleReviews} reviews)</span>
+                      <span style={{ fontSize: 10, color: t3 }}>· {comp.precioRango}</span>
+                    </div>
+
+                    {/* Servicios */}
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: 10, color: t3, marginBottom: 4 }}>Servicios</div>
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        {comp.servicios.map(s => <span key={s} style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, background: s2, color: t2 }}>{s}</span>)}
+                      </div>
+                    </div>
+
+                    {/* Fortalezas y Debilidades */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      <div>
+                        <div style={{ fontSize: 10, color: '#34D399', fontWeight: 600, marginBottom: 4 }}>Fortalezas</div>
+                        {comp.fortalezas.map(f => <div key={f} style={{ fontSize: 10, color: t2, padding: '2px 0', display: 'flex', gap: 4 }}><span style={{ color: '#34D399' }}>+</span> {f}</div>)}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 10, color: '#F87171', fontWeight: 600, marginBottom: 4 }}>Debilidades</div>
+                        {comp.debilidades.map(d => <div key={d} style={{ fontSize: 10, color: t2, padding: '2px 0', display: 'flex', gap: 4 }}><span style={{ color: '#F87171' }}>-</span> {d}</div>)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Eminat Advantages Card */}
+                <div style={{ ...cardS, border: `2px solid ${accent}`, background: `${accent}05` }}>
+                  <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 16, color: accent, marginBottom: 12 }}>Ventajas Competitivas Eminat</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {[
+                      { icon: '🏥', title: 'Ecosistema Integrado', desc: 'Medical Center + Research Group + Foundation — ninguno lo ofrece' },
+                      { icon: '📸', title: 'Lider en Social Media', desc: `${fNum(eminatData.igFollowers)} seguidores IG combinados, ${eminatData.avgEngagement}% engagement` },
+                      { icon: '🔬', title: 'Clinical Research', desc: 'Unico con programa de investigacion clinica activo en el segmento' },
+                      { icon: '🤖', title: 'AI & Tecnologia', desc: 'Ornella IA como diferenciador tecnologico en el mercado' },
+                      { icon: '🌎', title: 'Multi-marca', desc: '5+ marcas cubriendo medical, estetica, research, bienestar y social' },
+                      { icon: '⭐', title: 'Reputacion Superior', desc: `${eminatData.googleRating}/5 Google Rating — sobre promedio del mercado` },
+                      { icon: '❤️', title: 'Impacto Social', desc: 'VN Foundation — diferenciador de responsabilidad social unico' },
+                    ].map(v => (
+                      <div key={v.title} style={{ display: 'flex', gap: 10, padding: '8px 10px', borderRadius: 10, background: `${accent}08` }}>
+                        <span style={{ fontSize: 20 }}>{v.icon}</span>
+                        <div>
+                          <div style={{ fontSize: 12, fontWeight: 700, color: t1 }}>{v.title}</div>
+                          <div style={{ fontSize: 10, color: t2 }}>{v.desc}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })()}
       </div>
 
       {/* MODAL VER ACTIVIDAD */}
