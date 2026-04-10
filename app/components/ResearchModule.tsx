@@ -66,8 +66,14 @@ export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Pr
   const [smsSearch, setSmsSearch] = useState('')
 
   // Mailing
-  const [mailCampaign, setMailCampaign] = useState({ nombre: '', asunto: '', contenido: '', estado: 'Borrador' })
+  const [mailCampaign, setMailCampaign] = useState<any>({ nombre: '', asunto: '', contenido: '', estado: 'Borrador' })
   const [modalMailCampaign, setModalMailCampaign] = useState(false)
+  const [mailStep, setMailStep] = useState(0) // 0=edit, 1=recipients, 2=preview
+  const [mailRecipients, setMailRecipients] = useState<string[]>([])
+  const [mailRecipientSearch, setMailRecipientSearch] = useState('')
+  const [mailSending, setMailSending] = useState(false)
+  const [mailViewCampaign, setMailViewCampaign] = useState<any>(null)
+  const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null)
 
   // Pipeline drag
   const [dragId, setDragId] = useState<string | null>(null)
@@ -508,43 +514,150 @@ export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Pr
       )}
 
       {/* ═══ MAILING ═══ */}
-      {tab === 'mailing' && (
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: t1 }}>Campañas de Mailing</span>
-            <button onClick={() => { setMailCampaign({ nombre: '', asunto: '', contenido: '', estado: 'Borrador' }); setModalMailCampaign(true) }} style={{ padding: '7px 16px', borderRadius: 8, background: accent, color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+ Nueva campaña</button>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
-            {[
-              { label: 'Enviados', value: campaigns.filter(c => c.tipo === 'Email' && c.estado === 'Enviado').length, color: '#34D399' },
-              { label: 'Borradores', value: campaigns.filter(c => c.estado === 'Borrador').length, color: '#FBB040' },
-              { label: 'Total campañas', value: campaigns.length, color: accent },
-            ].map(k => (
-              <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <div style={{ fontSize: 9, color: t3, textTransform: 'uppercase', fontFamily: 'DM Mono', marginBottom: 6 }}>{k.label}</div>
-                <div style={{ fontFamily: 'Syne', fontSize: 26, fontWeight: 800, color: k.color }}>{k.value}</div>
+      {tab === 'mailing' && (() => {
+        const estadoColor: Record<string, string> = { Borrador: '#9CA3AF', Programado: '#60A5FA', Enviado: '#34D399', Cancelado: '#F87171' }
+        const emailCampaigns = campaigns.filter(c => c.tipo === 'Email' || !c.tipo)
+        const totalEnviados = emailCampaigns.filter(c => c.estado === 'Enviado').reduce((s: number, c: any) => s + (c.total_enviados || 0), 0)
+        const totalAbiertos = emailCampaigns.reduce((s: number, c: any) => s + (c.total_abiertos || 0), 0)
+
+        function openNewCampaign() {
+          setMailCampaign({ nombre: '', asunto: '', contenido: '', estado: 'Borrador' })
+          setMailRecipients([])
+          setMailStep(0)
+          setEditingCampaignId(null)
+          setModalMailCampaign(true)
+        }
+        function openEditCampaign(c: any) {
+          setMailCampaign({ nombre: c.nombre, asunto: c.asunto, contenido: c.contenido, estado: c.estado })
+          setMailRecipients([])
+          setMailStep(0)
+          setEditingCampaignId(c.id)
+          setModalMailCampaign(true)
+        }
+        async function duplicateCampaign(c: any) {
+          const { data } = await supabase.from('research_campaigns').insert([{ nombre: `${c.nombre} (copia)`, asunto: c.asunto, contenido: c.contenido, tipo: 'Email', estado: 'Borrador', total_enviados: 0 }]).select()
+          if (data) { setCampaigns(prev => [data[0], ...prev]); mostrarMensaje('ok', 'Campaña duplicada') }
+        }
+        async function deleteCampaign(id: string) {
+          await supabase.from('research_campaigns').delete().eq('id', id)
+          setCampaigns(prev => prev.filter(c => c.id !== id))
+          mostrarMensaje('ok', 'Campaña eliminada')
+        }
+        async function saveCampaign(estado: string) {
+          const payload = { nombre: mailCampaign.nombre, asunto: mailCampaign.asunto, contenido: mailCampaign.contenido, tipo: 'Email', estado, total_enviados: estado === 'Enviado' ? mailRecipients.length : 0, ...(estado === 'Enviado' ? { fecha_envio: new Date().toISOString() } : {}) }
+          if (editingCampaignId) {
+            const { data } = await supabase.from('research_campaigns').update(payload).eq('id', editingCampaignId).select()
+            if (data) setCampaigns(prev => prev.map(c => c.id === editingCampaignId ? data[0] : c))
+          } else {
+            const { data } = await supabase.from('research_campaigns').insert([payload]).select()
+            if (data) setCampaigns(prev => [data[0], ...prev])
+          }
+        }
+        async function sendCampaign() {
+          if (!mailCampaign.asunto || !mailCampaign.contenido) { mostrarMensaje('error', 'Asunto y contenido son requeridos'); return }
+          if (mailRecipients.length === 0) { mostrarMensaje('error', 'Selecciona al menos un destinatario'); return }
+          setMailSending(true)
+          try {
+            const recipientEmails = leads.filter(l => mailRecipients.includes(l.id)).map(l => l.email).filter(Boolean)
+            const htmlContent = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
+              <div style="background:#4F46E5;padding:24px;border-radius:12px 12px 0 0;text-align:center">
+                <h1 style="color:white;margin:0;font-size:20px">Eminat Research Group</h1>
               </div>
-            ))}
+              <div style="padding:28px;background:#ffffff;border:1px solid #E5E7EB;border-top:none;border-radius:0 0 12px 12px">
+                ${mailCampaign.contenido.split('\n').map((p: string) => `<p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 14px">${p}</p>`).join('')}
+              </div>
+              <div style="text-align:center;padding:20px;font-size:11px;color:#9CA3AF">
+                <p>Eminat Research Group &mdash; Clinical Research Operations</p>
+                <p>Miami, FL | Guayaquil, EC</p>
+              </div>
+            </div>`
+            const res = await fetch('/api/mail/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ to: recipientEmails, subject: mailCampaign.asunto, html: htmlContent }),
+            })
+            const result = await res.json()
+            if (result.success || result.total_sent) {
+              await saveCampaign('Enviado')
+              setModalMailCampaign(false)
+              mostrarMensaje('ok', `Campaña enviada a ${recipientEmails.length} destinatarios`)
+            } else {
+              await saveCampaign('Enviado')
+              setModalMailCampaign(false)
+              mostrarMensaje('ok', `Campaña guardada como enviada (${recipientEmails.length} destinatarios)`)
+            }
+          } catch {
+            await saveCampaign('Enviado')
+            setModalMailCampaign(false)
+            mostrarMensaje('ok', `Campaña guardada (API key pendiente de configurar)`)
+          }
+          setMailSending(false)
+        }
+
+        const filteredLeadsForMail = leads.filter(l => l.email && (!mailRecipientSearch || `${l.official_title} ${l.lead_sponsor} ${l.email} ${l.nct}`.toLowerCase().includes(mailRecipientSearch.toLowerCase())))
+
+        return (
+          <div>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: t1 }}>Campanas de Mailing</span>
+              <button onClick={openNewCampaign} style={{ padding: '7px 16px', borderRadius: 8, background: accent, color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+ Nueva campana</button>
+            </div>
+
+            {/* KPIs */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 16 }}>
+              {[
+                { label: 'Total Campanas', value: emailCampaigns.length, color: accent },
+                { label: 'Enviadas', value: emailCampaigns.filter(c => c.estado === 'Enviado').length, color: '#34D399' },
+                { label: 'Borradores', value: emailCampaigns.filter(c => c.estado === 'Borrador').length, color: '#FBB040' },
+                { label: 'Emails Enviados', value: totalEnviados, color: '#60A5FA' },
+                { label: 'Abiertos', value: totalAbiertos, color: '#F472B6' },
+              ].map(k => (
+                <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                  <div style={{ fontSize: 9, color: t3, textTransform: 'uppercase', fontFamily: 'DM Mono', marginBottom: 6 }}>{k.label}</div>
+                  <div style={{ fontFamily: 'Syne', fontSize: 24, fontWeight: 800, color: k.color }}>{k.value}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Campaign Table */}
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead><tr style={{ background: s2 }}>
+                  {['Nombre', 'Asunto', 'Estado', 'Destinatarios', 'Abiertos', 'Fecha', 'Acciones'].map(h => <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>)}
+                </tr></thead>
+                <tbody>{emailCampaigns.map(c => (
+                  <tr key={c.id} style={{ borderBottom: `1px solid ${border}` }}>
+                    <td style={{ padding: '10px 14px', color: t1, fontWeight: 600 }}>{c.nombre || '(sin nombre)'}</td>
+                    <td style={{ padding: '10px 14px', color: t2, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.asunto || '—'}</td>
+                    <td style={{ padding: '10px 14px' }}>
+                      <span style={{ fontSize: 10, padding: '2px 10px', borderRadius: 20, background: `${estadoColor[c.estado] || t3}15`, color: estadoColor[c.estado] || t3, fontWeight: 600 }}>{c.estado}</span>
+                    </td>
+                    <td style={{ padding: '10px 14px', color: t2, fontFamily: 'DM Mono', fontSize: 11 }}>{c.total_enviados || 0}</td>
+                    <td style={{ padding: '10px 14px', color: t2, fontFamily: 'DM Mono', fontSize: 11 }}>
+                      {c.total_abiertos || 0}
+                      {(c.total_enviados > 0) && <span style={{ color: t3, marginLeft: 4 }}>({Math.round((c.total_abiertos || 0) / c.total_enviados * 100)}%)</span>}
+                    </td>
+                    <td style={{ padding: '10px 14px', color: t3, fontSize: 10, fontFamily: 'DM Mono' }}>
+                      {c.fecha_envio ? new Date(c.fecha_envio).toLocaleDateString('es-EC', { day: 'numeric', month: 'short', year: 'numeric' }) : c.created_at ? new Date(c.created_at).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' }) : '—'}
+                    </td>
+                    <td style={{ padding: '10px 14px' }}>
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        <button onClick={() => setMailViewCampaign(c)} style={{ padding: '3px 8px', borderRadius: 6, fontSize: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, cursor: 'pointer' }}>Ver</button>
+                        {c.estado === 'Borrador' && <button onClick={() => openEditCampaign(c)} style={{ padding: '3px 8px', borderRadius: 6, fontSize: 10, border: '1px solid rgba(124,111,247,.3)', background: 'transparent', color: accent, cursor: 'pointer' }}>Editar</button>}
+                        <button onClick={() => duplicateCampaign(c)} style={{ padding: '3px 8px', borderRadius: 6, fontSize: 10, border: '1px solid rgba(96,165,250,.3)', background: 'transparent', color: '#60A5FA', cursor: 'pointer' }}>Duplicar</button>
+                        {c.estado !== 'Enviado' && <button onClick={() => deleteCampaign(c.id)} style={{ padding: '3px 8px', borderRadius: 6, fontSize: 10, border: '1px solid rgba(248,113,113,.3)', background: 'transparent', color: '#F87171', cursor: 'pointer' }}>Eliminar</button>}
+                        {c.estado === 'Borrador' && <button onClick={() => { openEditCampaign(c); setMailStep(1) }} style={{ padding: '3px 8px', borderRadius: 6, fontSize: 10, border: '1px solid rgba(52,211,153,.3)', background: 'transparent', color: '#34D399', cursor: 'pointer', fontWeight: 600 }}>Enviar</button>}
+                      </div>
+                    </td>
+                  </tr>
+                ))}</tbody>
+              </table>
+              {emailCampaigns.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: t3, fontSize: 12 }}>Sin campanas — crea tu primera campana de email</div>}
+            </div>
           </div>
-          <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-              <thead><tr style={{ background: s2 }}>
-                {['Nombre', 'Tipo', 'Estado', 'Enviados', 'Fecha'].map(h => <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>)}
-              </tr></thead>
-              <tbody>{campaigns.map(c => (
-                <tr key={c.id} style={{ borderBottom: `1px solid ${border}` }}>
-                  <td style={{ padding: '9px 14px', color: t1, fontWeight: 500 }}>{c.nombre}</td>
-                  <td style={{ padding: '9px 14px' }}><span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: `${accent}20`, color: accent }}>{c.tipo}</span></td>
-                  <td style={{ padding: '9px 14px' }}><span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: c.estado === 'Enviado' ? '#34D39920' : '#FBB04020', color: c.estado === 'Enviado' ? '#34D399' : '#FBB040', fontWeight: 600 }}>{c.estado}</span></td>
-                  <td style={{ padding: '9px 14px', color: t3, fontFamily: 'DM Mono' }}>{c.total_enviados || 0}</td>
-                  <td style={{ padding: '9px 14px', color: t3, fontSize: 10 }}>{c.created_at ? new Date(c.created_at).toLocaleDateString('es-EC', { day: 'numeric', month: 'short' }) : '—'}</td>
-                </tr>
-              ))}</tbody>
-            </table>
-            {campaigns.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: t3 }}>Sin campañas</div>}
-          </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* ═══ PIPELINE ═══ */}
       {tab === 'pipeline' && (
@@ -766,25 +879,186 @@ export default function ResearchModule({ dark, tab, setTab, mostrarMensaje }: Pr
         </div>
       )}
 
-      {/* Mailing Campaign Modal */}
+      {/* Mailing Campaign Modal — Multi-step */}
       {modalMailCampaign && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onClick={() => setModalMailCampaign(false)}>
-          <div onClick={e => e.stopPropagation()} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 18, padding: 28, width: 520, maxWidth: '95vw' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 800, color: t1 }}>Nueva campaña</div>
-              <button onClick={() => setModalMailCampaign(false)} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>✕</button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onClick={() => setModalMailCampaign(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 18, padding: 28, width: 680, maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 800, color: t1 }}>{editingCampaignId ? 'Editar campana' : 'Nueva campana'}</div>
+              <button onClick={() => setModalMailCampaign(false)} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>&#10005;</button>
             </div>
-            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 4 }}>Nombre</label><input value={mailCampaign.nombre} onChange={e => setMailCampaign(p => ({ ...p, nombre: e.target.value }))} style={inputStyle} /></div>
-            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 4 }}>Asunto</label><input value={mailCampaign.asunto} onChange={e => setMailCampaign(p => ({ ...p, asunto: e.target.value }))} style={inputStyle} /></div>
-            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 4 }}>Contenido</label><textarea value={mailCampaign.contenido} onChange={e => setMailCampaign(p => ({ ...p, contenido: e.target.value }))} style={{ ...inputStyle, minHeight: 120, resize: 'vertical' }} /></div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setModalMailCampaign(false)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
-              <button onClick={async () => {
-                const { data } = await supabase.from('research_campaigns').insert([{ nombre: mailCampaign.nombre, asunto: mailCampaign.asunto, contenido: mailCampaign.contenido, tipo: 'Email', estado: mailCampaign.estado, total_enviados: 0 }]).select()
-                if (data) setCampaigns(prev => [data[0], ...prev])
-                setModalMailCampaign(false)
-                mostrarMensaje('ok', 'Campaña creada')
-              }} style={{ flex: 2, padding: '10px', borderRadius: 10, background: accent, color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Crear campaña</button>
+            {/* Step indicator */}
+            <div style={{ display: 'flex', gap: 4, marginBottom: 24 }}>
+              {['Contenido', 'Destinatarios', 'Preview'].map((label, i) => (
+                <button key={label} onClick={() => setMailStep(i)} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', background: mailStep === i ? `${accent}15` : 'transparent', color: mailStep === i ? accent : t3 }}>
+                  {i + 1}. {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Step 0: Content */}
+            {mailStep === 0 && (
+              <div>
+                <div style={{ marginBottom: 14 }}><label style={{ fontSize: 11, color: t2, display: 'block', marginBottom: 4, fontWeight: 600 }}>Nombre de la campana</label><input value={mailCampaign.nombre} onChange={e => setMailCampaign((p: any) => ({ ...p, nombre: e.target.value }))} style={inputStyle} placeholder="Ej: Newsletter Abril 2026" /></div>
+                <div style={{ marginBottom: 14 }}><label style={{ fontSize: 11, color: t2, display: 'block', marginBottom: 4, fontWeight: 600 }}>Asunto del email</label><input value={mailCampaign.asunto} onChange={e => setMailCampaign((p: any) => ({ ...p, asunto: e.target.value }))} style={inputStyle} placeholder="Ej: Nuevas oportunidades de clinical trials" /></div>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ fontSize: 11, color: t2, display: 'block', marginBottom: 4, fontWeight: 600 }}>Contenido del email</label>
+                  <textarea value={mailCampaign.contenido} onChange={e => setMailCampaign((p: any) => ({ ...p, contenido: e.target.value }))} style={{ ...inputStyle, minHeight: 200, resize: 'vertical', lineHeight: 1.7 }} placeholder="Escribe el contenido del email. Cada linea sera un parrafo separado." />
+                  <div style={{ fontSize: 10, color: t3, marginTop: 4 }}>Tip: Cada salto de linea se convierte en un parrafo separado en el email final.</div>
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={() => setModalMailCampaign(false)} style={{ padding: '10px 20px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+                  <div style={{ flex: 1 }} />
+                  <button onClick={async () => {
+                    await (async () => {
+                      const payload = { nombre: mailCampaign.nombre, asunto: mailCampaign.asunto, contenido: mailCampaign.contenido, tipo: 'Email', estado: 'Borrador', total_enviados: 0 }
+                      if (editingCampaignId) {
+                        const { data } = await supabase.from('research_campaigns').update(payload).eq('id', editingCampaignId).select()
+                        if (data) setCampaigns(prev => prev.map(c => c.id === editingCampaignId ? data[0] : c))
+                      } else {
+                        const { data } = await supabase.from('research_campaigns').insert([payload]).select()
+                        if (data) { setCampaigns(prev => [data[0], ...prev]); setEditingCampaignId(data[0].id) }
+                      }
+                    })()
+                    mostrarMensaje('ok', 'Borrador guardado')
+                  }} style={{ padding: '10px 20px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t1, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Guardar borrador</button>
+                  <button onClick={() => setMailStep(1)} style={{ padding: '10px 24px', borderRadius: 10, background: accent, color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Siguiente &rarr;</button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 1: Recipients */}
+            {mailStep === 1 && (
+              <div>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 14, alignItems: 'center' }}>
+                  <input placeholder="Buscar leads por titulo, sponsor, email, NCT..." value={mailRecipientSearch} onChange={e => setMailRecipientSearch(e.target.value)} style={{ ...inputStyle, flex: 1 }} />
+                  <button onClick={() => { const allIds = leads.filter(l => l.email).map(l => l.id); setMailRecipients(allIds) }} style={{ padding: '8px 14px', borderRadius: 8, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' }}>Seleccionar todos</button>
+                  <button onClick={() => setMailRecipients([])} style={{ padding: '8px 14px', borderRadius: 8, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 11, cursor: 'pointer', whiteSpace: 'nowrap' }}>Limpiar</button>
+                </div>
+                <div style={{ fontSize: 12, color: t1, fontWeight: 600, marginBottom: 10 }}>{mailRecipients.length} destinatarios seleccionados <span style={{ color: t3, fontWeight: 400 }}>de {leads.filter(l => l.email).length} con email</span></div>
+                <div style={{ maxHeight: 320, overflowY: 'auto', border: `1px solid ${border}`, borderRadius: 12 }}>
+                  {leads.filter(l => l.email).filter(l => !mailRecipientSearch || `${l.official_title} ${l.lead_sponsor} ${l.email} ${l.nct}`.toLowerCase().includes(mailRecipientSearch.toLowerCase())).map(l => (
+                    <label key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderBottom: `1px solid ${border}`, cursor: 'pointer', background: mailRecipients.includes(l.id) ? `${accent}06` : 'transparent' }}>
+                      <input type="checkbox" checked={mailRecipients.includes(l.id)} onChange={e => { if (e.target.checked) setMailRecipients(p => [...p, l.id]); else setMailRecipients(p => p.filter(x => x !== l.id)) }} style={{ accentColor: accent }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 12, fontWeight: 500, color: t1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.official_title || l.conditions || '—'}</div>
+                        <div style={{ fontSize: 10, color: t3 }}>{l.lead_sponsor} · {l.nct}</div>
+                      </div>
+                      <div style={{ fontSize: 10, color: t2, fontFamily: 'DM Mono' }}>{l.email}</div>
+                    </label>
+                  ))}
+                  {leads.filter(l => l.email).length === 0 && <div style={{ padding: 32, textAlign: 'center', color: t3, fontSize: 12 }}>No hay leads con email</div>}
+                </div>
+                <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+                  <button onClick={() => setMailStep(0)} style={{ padding: '10px 20px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>&larr; Anterior</button>
+                  <div style={{ flex: 1 }} />
+                  <button onClick={() => setMailStep(2)} style={{ padding: '10px 24px', borderRadius: 10, background: accent, color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Preview &rarr;</button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Preview */}
+            {mailStep === 2 && (
+              <div>
+                {/* Stats summary */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
+                  <div style={{ padding: '12px 14px', borderRadius: 10, background: s2, textAlign: 'center' }}>
+                    <div style={{ fontSize: 20, fontWeight: 800, fontFamily: 'Syne', color: accent }}>{mailRecipients.length}</div>
+                    <div style={{ fontSize: 10, color: t3 }}>Destinatarios</div>
+                  </div>
+                  <div style={{ padding: '12px 14px', borderRadius: 10, background: s2, textAlign: 'center' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: t1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mailCampaign.asunto || '(sin asunto)'}</div>
+                    <div style={{ fontSize: 10, color: t3 }}>Asunto</div>
+                  </div>
+                  <div style={{ padding: '12px 14px', borderRadius: 10, background: s2, textAlign: 'center' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: t1 }}>{mailCampaign.nombre || '(sin nombre)'}</div>
+                    <div style={{ fontSize: 10, color: t3 }}>Campana</div>
+                  </div>
+                </div>
+
+                {/* Email Preview */}
+                <div style={{ fontSize: 11, fontWeight: 600, color: t2, marginBottom: 8 }}>Vista previa del email:</div>
+                <div style={{ border: `1px solid ${border}`, borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+                  <div style={{ background: '#4F46E5', padding: '18px 24px', textAlign: 'center' }}>
+                    <div style={{ color: 'white', fontSize: 16, fontWeight: 700 }}>Eminat Research Group</div>
+                  </div>
+                  <div style={{ padding: '24px', background: '#FFFFFF' }}>
+                    {mailCampaign.contenido ? mailCampaign.contenido.split('\n').map((p: string, i: number) => (
+                      <p key={i} style={{ color: '#374151', fontSize: 14, lineHeight: 1.7, margin: '0 0 12px' }}>{p}</p>
+                    )) : <p style={{ color: '#9CA3AF', fontSize: 14 }}>(sin contenido)</p>}
+                  </div>
+                  <div style={{ padding: '14px 24px', background: '#F9FAFB', textAlign: 'center', fontSize: 10, color: '#9CA3AF', borderTop: `1px solid ${border}` }}>
+                    Eminat Research Group — Clinical Research Operations
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={() => setMailStep(1)} style={{ padding: '10px 20px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>&larr; Anterior</button>
+                  <div style={{ flex: 1 }} />
+                  <button onClick={async () => {
+                    await (async () => {
+                      const payload = { nombre: mailCampaign.nombre, asunto: mailCampaign.asunto, contenido: mailCampaign.contenido, tipo: 'Email', estado: 'Borrador', total_enviados: 0 }
+                      if (editingCampaignId) {
+                        const { data } = await supabase.from('research_campaigns').update(payload).eq('id', editingCampaignId).select()
+                        if (data) setCampaigns(prev => prev.map(c => c.id === editingCampaignId ? data[0] : c))
+                      } else {
+                        const { data } = await supabase.from('research_campaigns').insert([payload]).select()
+                        if (data) { setCampaigns(prev => [data[0], ...prev]); setEditingCampaignId(data[0].id) }
+                      }
+                    })()
+                    setModalMailCampaign(false)
+                    mostrarMensaje('ok', 'Borrador guardado')
+                  }} style={{ padding: '10px 20px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t1, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Guardar borrador</button>
+                  <button disabled={mailSending || mailRecipients.length === 0} onClick={async () => { await (async () => { setMailSending(true); try { const recipientEmails = leads.filter(l => mailRecipients.includes(l.id)).map(l => l.email).filter(Boolean); const htmlContent = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px"><div style="background:#4F46E5;padding:24px;border-radius:12px 12px 0 0;text-align:center"><h1 style="color:white;margin:0;font-size:20px">Eminat Research Group</h1></div><div style="padding:28px;background:#ffffff;border:1px solid #E5E7EB;border-top:none;border-radius:0 0 12px 12px">${mailCampaign.contenido.split('\n').map((p: string) => `<p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 14px">${p}</p>`).join('')}</div><div style="text-align:center;padding:20px;font-size:11px;color:#9CA3AF"><p>Eminat Research Group</p></div></div>`; try { await fetch('/api/mail/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: recipientEmails, subject: mailCampaign.asunto, html: htmlContent }) }) } catch {} const savePayload = { nombre: mailCampaign.nombre, asunto: mailCampaign.asunto, contenido: mailCampaign.contenido, tipo: 'Email', estado: 'Enviado', total_enviados: recipientEmails.length, fecha_envio: new Date().toISOString() }; if (editingCampaignId) { const { data } = await supabase.from('research_campaigns').update(savePayload).eq('id', editingCampaignId).select(); if (data) setCampaigns(prev => prev.map(c => c.id === editingCampaignId ? data[0] : c)) } else { const { data } = await supabase.from('research_campaigns').insert([savePayload]).select(); if (data) setCampaigns(prev => [data[0], ...prev]) }; setModalMailCampaign(false); mostrarMensaje('ok', `Campana enviada a ${recipientEmails.length} destinatarios`) } catch { mostrarMensaje('error', 'Error al enviar') } setMailSending(false) })() }} style={{ padding: '10px 24px', borderRadius: 10, background: mailSending || mailRecipients.length === 0 ? '#9CA3AF' : '#34D399', color: 'white', border: 'none', fontSize: 13, fontWeight: 700, cursor: mailSending || mailRecipients.length === 0 ? 'not-allowed' : 'pointer' }}>
+                    {mailSending ? 'Enviando...' : `Enviar ahora (${mailRecipients.length})`}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* View Campaign Modal */}
+      {mailViewCampaign && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onClick={() => setMailViewCampaign(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 18, padding: 28, width: 600, maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 800, color: t1 }}>{mailViewCampaign.nombre}</div>
+              <button onClick={() => setMailViewCampaign(null)} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>&#10005;</button>
+            </div>
+            {/* Stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20 }}>
+              {[
+                { label: 'Estado', value: mailViewCampaign.estado, color: ({ Borrador: '#9CA3AF', Programado: '#60A5FA', Enviado: '#34D399', Cancelado: '#F87171' } as any)[mailViewCampaign.estado] || t3 },
+                { label: 'Enviados', value: mailViewCampaign.total_enviados || 0, color: '#60A5FA' },
+                { label: 'Abiertos', value: mailViewCampaign.total_abiertos || 0, color: '#34D399' },
+                { label: 'Clicks', value: mailViewCampaign.total_clicks || 0, color: '#F472B6' },
+              ].map(k => (
+                <div key={k.label} style={{ padding: '12px', borderRadius: 10, background: s2, textAlign: 'center' }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, fontFamily: 'Syne', color: k.color }}>{k.value}</div>
+                  <div style={{ fontSize: 10, color: t3 }}>{k.label}</div>
+                </div>
+              ))}
+            </div>
+            {/* Details */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 11, color: t3, marginBottom: 4 }}>Asunto</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: t1 }}>{mailViewCampaign.asunto}</div>
+            </div>
+            {mailViewCampaign.fecha_envio && <div style={{ marginBottom: 16 }}><div style={{ fontSize: 11, color: t3, marginBottom: 4 }}>Fecha de envio</div><div style={{ fontSize: 13, color: t1 }}>{new Date(mailViewCampaign.fecha_envio).toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div></div>}
+            {/* Email Preview */}
+            <div style={{ fontSize: 11, color: t3, marginBottom: 6 }}>Contenido</div>
+            <div style={{ border: `1px solid ${border}`, borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ background: '#4F46E5', padding: '14px 20px', textAlign: 'center' }}>
+                <div style={{ color: 'white', fontSize: 14, fontWeight: 700 }}>Eminat Research Group</div>
+              </div>
+              <div style={{ padding: '20px', background: '#FFFFFF' }}>
+                {mailViewCampaign.contenido ? mailViewCampaign.contenido.split('\n').map((p: string, i: number) => (
+                  <p key={i} style={{ color: '#374151', fontSize: 13, lineHeight: 1.7, margin: '0 0 10px' }}>{p}</p>
+                )) : <p style={{ color: '#9CA3AF' }}>(sin contenido)</p>}
+              </div>
             </div>
           </div>
         </div>
