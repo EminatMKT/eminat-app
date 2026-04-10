@@ -175,6 +175,7 @@ interface AppContextType {
   cargo: string
   canCobranzas: boolean
   canResearch: boolean
+  canMedical: boolean
   bg: string
   s1: string
   s2: string
@@ -210,6 +211,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const cargo = usuario?.rol === 'superadmin' ? 'Marketing Director' : usuario?.rol || 'Colaborador'
   const canCobranzas = esSuperAdmin || usuario?.email?.toLowerCase() === 'majo@eminat.net'
   const canResearch = esSuperAdmin || ['freddy@eminat.net', 'jonathan@eminat.net'].includes(usuario?.email?.toLowerCase() || '')
+  const canMedical = esSuperAdmin || ['daniel@eminat.net', 'dmsardina@eminat.net', 'freddy@eminat.net'].includes(usuario?.email?.toLowerCase() || '')
 
   // Theme colors
   const bg = dark ? '#0A0A0F' : '#F0F2F5'
@@ -381,6 +383,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         cargo,
         canCobranzas,
         canResearch,
+        canMedical,
         bg,
         s1,
         s2,

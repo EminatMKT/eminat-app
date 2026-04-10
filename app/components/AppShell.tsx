@@ -11,6 +11,13 @@ const mktSubItems = [
   { id: 'sub-equipo', icon: '👥', label: 'Equipo', tab: 'equipo' },
   { id: 'sub-reporte', icon: '💰', label: 'Reporte', tab: 'reporte' },
 ]
+const medicalSubItems = [
+  { id: 'med-dash', icon: '📊', label: 'Dashboard', tab: 'dashboard' },
+  { id: 'med-patients', icon: '👥', label: 'Pacientes', tab: 'pacientes' },
+  { id: 'med-appointments', icon: '📅', label: 'Citas', tab: 'citas' },
+  { id: 'med-hipaa', icon: '🛡️', label: 'HIPAA', tab: 'hipaa' },
+  { id: 'med-audit', icon: '📋', label: 'Audit Log', tab: 'audit' },
+]
 const researchSubItems = [
   { id: 'res-dash', icon: '📊', label: 'Dashboard', tab: 'dashboard' },
   { id: 'res-leads', icon: '👥', label: 'Leads', tab: 'leads' },
@@ -35,11 +42,12 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
   const pathname = usePathname()
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [sidebarPanel, setSidebarPanel] = useState<string | null>(
-    pathname.startsWith('/research') ? 'research' : (pathname === '/' || pathname.startsWith('/stratix-mkt')) ? 'mkt' : null
+    pathname.startsWith('/research') ? 'research' : pathname.startsWith('/medical') ? 'medical' : (pathname === '/' || pathname.startsWith('/stratix-mkt')) ? 'mkt' : null
   )
-  const { usuario, dark, setDark, horaActual, onlineCount, mensaje, notificaciones, notifAbiertas, setNotifAbiertas, setNotificaciones, bg, s1, s2, border, t1, t2, t3, accent, cargo, esSuperAdmin, canCobranzas, canResearch, handleLogout, mostrarMensaje, actividades } = app
+  const { usuario, dark, setDark, horaActual, onlineCount, mensaje, notificaciones, notifAbiertas, setNotifAbiertas, setNotificaciones, bg, s1, s2, border, t1, t2, t3, accent, cargo, esSuperAdmin, canCobranzas, canResearch, canMedical, handleLogout, mostrarMensaje, actividades } = app
 
-  const activeIconKey = pathname.startsWith('/research') ? 'research'
+  const activeIconKey = pathname.startsWith('/medical') ? 'medical'
+    : pathname.startsWith('/research') ? 'research'
     : pathname.startsWith('/cobranzas') ? 'cobranzas'
     : pathname.startsWith('/directorio') ? 'directorio'
     : pathname.startsWith('/admin') ? 'admin'
@@ -51,21 +59,23 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
     { key: 'mkt', icon: '🚀', label: 'Stratix MKT', action: () => { setSidebarPanel(p => p === 'mkt' ? null : 'mkt'); if (!pathname.startsWith('/stratix-mkt')) router.push('/stratix-mkt') } },
     { key: 'finanzas', icon: '💰', label: 'Finanzas', soon: true, action: () => mostrarMensaje('ok', 'Finanzas — Proximamente') },
     ...(canCobranzas ? [{ key: 'cobranzas', icon: '💳', label: 'Cobranzas', action: () => { router.push('/cobranzas'); setSidebarPanel(null) } }] : []),
+    ...(canMedical ? [{ key: 'medical', icon: '🏥', label: 'Medical', action: () => { setSidebarPanel(p => p === 'medical' ? null : 'medical'); if (!pathname.startsWith('/medical')) router.push('/medical') } }] : []),
     { key: 'rrhh', icon: '👤', label: 'TH/HR', soon: true, action: () => mostrarMensaje('ok', 'TH/HR — Proximamente') },
     ...(canResearch ? [{ key: 'research', icon: '🔬', label: 'Research', action: () => { setSidebarPanel(p => p === 'research' ? null : 'research'); if (!pathname.startsWith('/research')) router.push('/research') } }] : [{ key: 'research', icon: '🔬', label: 'Research', soon: true, action: () => mostrarMensaje('ok', 'Research — Proximamente') }]),
     { key: 'directorio', icon: '🏢', label: 'Directorio', action: () => { router.push('/directorio'); setSidebarPanel(null) } },
     ...(esSuperAdmin ? [{ key: 'admin', icon: '🔐', label: 'Admin', action: () => { router.push('/admin'); setSidebarPanel(null) } }] : []),
   ]
 
-  const panelOpen = sidebarPanel === 'mkt' || sidebarPanel === 'research'
-  const subItems = sidebarPanel === 'research' ? researchSubItems : mktSubItems
-  const panelTitle = sidebarPanel === 'research' ? 'Research' : 'Stratix MKT'
-  const panelSub = sidebarPanel === 'research' ? 'Clinical Research Ops' : 'Marketing & Produccion'
+  const panelOpen = sidebarPanel === 'mkt' || sidebarPanel === 'research' || sidebarPanel === 'medical'
+  const subItems = sidebarPanel === 'research' ? researchSubItems : sidebarPanel === 'medical' ? medicalSubItems : mktSubItems
+  const panelTitle = sidebarPanel === 'research' ? 'Research' : sidebarPanel === 'medical' ? 'Medical' : 'Stratix MKT'
+  const panelSub = sidebarPanel === 'research' ? 'Clinical Research Ops' : sidebarPanel === 'medical' ? 'HIPAA Compliance' : 'Marketing & Produccion'
 
   const autoTitle = pathname === '/' ? `Eminat Group — Bienvenido, ${usuario?.nombre}`
     : pathname.startsWith('/stratix-mkt') ? 'Stratix MKT — Produccion'
     : pathname.startsWith('/cobranzas') ? 'EMINAT LLC — Dashboard de Cobranzas'
     : pathname.startsWith('/research') ? 'Eminat Research Group'
+    : pathname.startsWith('/medical') ? 'Eminat Medical Center — HIPAA'
     : pathname.startsWith('/directorio') ? 'Directorio del Holding'
     : pathname.startsWith('/admin') ? 'Admin Panel'
     : 'Eminat App'
@@ -119,6 +129,7 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
                 <button key={item.id} onClick={() => {
                   if (sidebarPanel === 'mkt' && !pathname.startsWith('/stratix-mkt')) router.push('/stratix-mkt')
                   if (sidebarPanel === 'research' && !pathname.startsWith('/research')) router.push('/research')
+                  if (sidebarPanel === 'medical' && !pathname.startsWith('/medical')) router.push('/medical')
                   onTabChange?.(item.tab)
                   setMobileSidebarOpen(false)
                 }}
