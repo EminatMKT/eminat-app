@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const LINKS = [
-  { href: '/dashboard', label: '🏠 Dashboard' },
+  { href: '/', label: '🏠 Dashboard' },
   { href: '/equipo', label: '👥 Equipo' },
   { href: '/solicitudes', label: '📋 Solicitudes' },
   { href: '/mkt', label: '🚀 Eminat MKT' },
@@ -16,7 +16,7 @@ export default function NavBar() {
   const pathname = usePathname()
   return (
     <nav className="bg-white border-b border-gray-200 px-6 py-3 flex items-center gap-2 flex-wrap">
-      <Link href="/dashboard" className="text-sm font-semibold text-blue-600 hover:text-blue-800 mr-4">
+      <Link href="/" className="text-sm font-semibold text-blue-600 hover:text-blue-800 mr-4">
         ← Eminat App
       </Link>
       {LINKS.map(link => (

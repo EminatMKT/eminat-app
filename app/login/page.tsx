@@ -94,7 +94,7 @@ export default function LoginPage() {
       }
     }
 
-    router.push('/dashboard')
+    router.push('/')
   }
 
   async function handleReset(e: React.FormEvent) {
