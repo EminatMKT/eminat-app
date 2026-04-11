@@ -32,8 +32,8 @@ export default function HomePage() {
 
         <div className="center-pulse" style={{ position: 'absolute', width: 130, height: 130, borderRadius: '50%', background: `radial-gradient(circle, ${accent}30 0%, transparent 70%)`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
           <div style={{ width: 90, height: 90, borderRadius: '50%', background: s1, border: `2px solid ${accent}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 40px ${accent}40, 0 0 80px ${accent}15` }}>
-            <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 11, color: accent, lineHeight: 1.2, textAlign: 'center' }}>Eminat</div>
-            <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 13, color: t1, lineHeight: 1 }}>Group</div>
+            <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 10, color: accent, lineHeight: 1.2, textAlign: 'center' }}>Eminat Group</div>
+            <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 11, color: t1, lineHeight: 1 }}>Holding</div>
           </div>
         </div>
 
