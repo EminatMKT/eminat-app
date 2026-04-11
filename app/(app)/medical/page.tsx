@@ -229,8 +229,8 @@ export default function MedicalPage() {
       <AppShell>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 80, gap: 16 }}>
           <div style={{ fontSize: 48 }}>🔒</div>
-          <div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>Sin permisos</div>
-          <div style={{ fontSize: 13, color: t3 }}>No tienes acceso al modulo Medical HIPAA</div>
+          <div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>Access denied</div>
+          <div style={{ fontSize: 13, color: t3 }}>You don't have access to the Medical HIPAA module</div>
         </div>
       </AppShell>
     )
@@ -421,14 +421,14 @@ export default function MedicalPage() {
           {/* KPI Cards */}
           <StaggerGrid style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
             <StaggerItem style={statCardStyle}>
-              <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Pacientes Activos</div>
+              <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Active Patients</div>
               <div style={{ fontSize: 28, fontWeight: 800, fontFamily: 'Syne', color: '#34D399' }}><AnimatedNumber value={pacientesActivos.length} /></div>
-              <div style={{ fontSize: 10, color: t3 }}>de {pacientes.length} totales</div>
+              <div style={{ fontSize: 10, color: t3 }}>{pacientes.length} total</div>
             </StaggerItem>
             <StaggerItem style={statCardStyle}>
-              <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Citas Hoy</div>
+              <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Appointments Today</div>
               <div style={{ fontSize: 28, fontWeight: 800, fontFamily: 'Syne', color: '#60A5FA' }}><AnimatedNumber value={citasHoy.length} /></div>
-              <div style={{ fontSize: 10, color: t3 }}>{citasManana.length} manana</div>
+              <div style={{ fontSize: 10, color: t3 }}>{citasManana.length} tomorrow</div>
             </StaggerItem>
             <StaggerItem style={statCardStyle}>
               <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Compliance Score</div>
@@ -436,9 +436,9 @@ export default function MedicalPage() {
               <div style={{ fontSize: 10, color: t3 }}>HIPAA compliance</div>
             </StaggerItem>
             <StaggerItem style={statCardStyle}>
-              <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Incidentes Abiertos</div>
+              <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Open Incidents</div>
               <div style={{ fontSize: 28, fontWeight: 800, fontFamily: 'Syne', color: incidentesAbiertos.length > 0 ? '#F87171' : '#34D399' }}><AnimatedNumber value={incidentesAbiertos.length} /></div>
-              <div style={{ fontSize: 10, color: t3 }}>{incidentes.length} totales</div>
+              <div style={{ fontSize: 10, color: t3 }}>{incidentes.length} total</div>
             </StaggerItem>
           </StaggerGrid>
 
@@ -446,11 +446,11 @@ export default function MedicalPage() {
             {/* Citas de Hoy */}
             <div style={cardStyle}>
               <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-                📅 Citas de Hoy
+                📅 Today's Appointments
                 <span style={badgeStyle(accent)}>{citasHoy.length}</span>
               </div>
               {citasHoy.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: 24, color: t3, fontSize: 12 }}>Sin citas para hoy</div>
+                <div style={{ textAlign: 'center', padding: 24, color: t3, fontSize: 12 }}>No appointments today</div>
               ) : citasHoy.map(c => (
                 <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: `1px solid ${border}` }}>
                   <div style={{ width: 42, textAlign: 'center' }}>
@@ -471,7 +471,7 @@ export default function MedicalPage() {
             <div style={cardStyle}>
               <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
                 🛡️ HIPAA Alerts
-                {(incidentesAbiertos.length > 0 || trainingsPendientes.length > 0) && <span style={badgeStyle('#F87171')}>{incidentesAbiertos.length + trainingsPendientes.length} pendientes</span>}
+                {(incidentesAbiertos.length > 0 || trainingsPendientes.length > 0) && <span style={badgeStyle('#F87171')}>{incidentesAbiertos.length + trainingsPendientes.length} pending</span>}
               </div>
 
               {incidentesAbiertos.map(i => (
@@ -481,13 +481,13 @@ export default function MedicalPage() {
                     <span style={badgeStyle(accent)}>{i.tipo}</span>
                   </div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>{i.titulo}</div>
-                  <div style={{ fontSize: 10, color: t3, marginTop: 2 }}>{i.fecha_incidente} · Reportado por {i.reportado_por}</div>
+                  <div style={{ fontSize: 10, color: t3, marginTop: 2 }}>{i.fecha_incidente} · Reported by {i.reportado_por}</div>
                 </div>
               ))}
 
               {trainingsPendientes.length > 0 && (
                 <div style={{ marginTop: 12 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: t2, marginBottom: 8 }}>Entrenamientos Pendientes</div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: t2, marginBottom: 8 }}>Pending Training</div>
                   {trainingsPendientes.map(t => (
                     <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: `1px solid ${border}` }}>
                       <span style={{ fontSize: 14 }}>{t.estado === 'vencido' ? '⚠️' : '📚'}</span>
@@ -504,7 +504,7 @@ export default function MedicalPage() {
               {incidentesAbiertos.length === 0 && trainingsPendientes.length === 0 && (
                 <div style={{ textAlign: 'center', padding: 24 }}>
                   <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
-                  <div style={{ fontSize: 12, color: '#34D399', fontWeight: 600 }}>All Clear — Sin alertas HIPAA</div>
+                  <div style={{ fontSize: 12, color: '#34D399', fontWeight: 600 }}>All Clear — No HIPAA alerts</div>
                 </div>
               )}
             </div>
@@ -513,14 +513,14 @@ export default function MedicalPage() {
           {/* Recent Audit Activity */}
           <div style={{ ...cardStyle, marginTop: 16 }}>
             <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 8 }}>
-              📋 Actividad Reciente de PHI
-              <span style={badgeStyle(accent)}>Ultimas 3h</span>
+              📋 Recent PHI Activity
+              <span style={badgeStyle(accent)}>Last 3h</span>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                 <thead>
                   <tr style={{ borderBottom: `1px solid ${border}` }}>
-                    {['Hora', 'Usuario', 'Accion', 'Paciente', 'Detalles', 'Nivel'].map(h => (
+                    {['Time', 'User', 'Action', 'Patient', 'Details', 'Level'].map(h => (
                       <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: t3, fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em' }}>{h}</th>
                     ))}
                   </tr>
@@ -528,7 +528,7 @@ export default function MedicalPage() {
                 <tbody>
                   {auditLogs.slice(0, 5).map(l => (
                     <tr key={l.id} style={{ borderBottom: `1px solid ${border}` }}>
-                      <td style={{ padding: '8px 10px', color: t2, fontFamily: 'DM Mono', fontSize: 10 }}>{new Date(l.timestamp).toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' })}</td>
+                      <td style={{ padding: '8px 10px', color: t2, fontFamily: 'DM Mono', fontSize: 10 }}>{new Date(l.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</td>
                       <td style={{ padding: '8px 10px', color: t1, fontWeight: 500 }}>{l.usuario_nombre}</td>
                       <td style={{ padding: '8px 10px' }}><span style={badgeStyle(l.accion.includes('FAILED') ? '#F87171' : l.accion.includes('EXPORT') || l.accion.includes('PRINT') ? '#FBB040' : '#60A5FA')}>{l.accion}</span></td>
                       <td style={{ padding: '8px 10px', color: t2 }}>{l.paciente_nombre || '—'}</td>
@@ -550,38 +550,38 @@ export default function MedicalPage() {
         <div>
           {/* Controls */}
           <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-            <input placeholder="Buscar paciente (nombre, MRN)..." value={searchPaciente} onChange={e => setSearchPaciente(e.target.value)} style={{ ...inputStyle, maxWidth: 300 }} />
+            <input placeholder="Search patient (name, MRN)..." value={searchPaciente} onChange={e => setSearchPaciente(e.target.value)} style={{ ...inputStyle, maxWidth: 300 }} />
             <select value={filterEstadoPaciente} onChange={e => setFilterEstadoPaciente(e.target.value)} style={{ ...inputStyle, maxWidth: 160 }}>
-              <option value="todos">Todos los estados</option>
-              <option value="activo">Activo</option>
-              <option value="inactivo">Inactivo</option>
-              <option value="alta">Alta</option>
+              <option value="todos">All statuses</option>
+              <option value="activo">Active</option>
+              <option value="inactivo">Inactive</option>
+              <option value="alta">Discharged</option>
             </select>
             <div style={{ flex: 1 }} />
-            <button onClick={() => { setFormPaciente({}); setModalPaciente(true) }} style={btnPrimary}>+ Nuevo Paciente</button>
+            <button onClick={() => { setFormPaciente({}); setModalPaciente(true) }} style={btnPrimary}>+ New Patient</button>
           </div>
 
           {/* Patient Detail View */}
           {detallePaciente ? (
             <div>
-              <button onClick={() => setDetallePaciente(null)} style={{ ...btnSecondary, marginBottom: 16 }}>← Volver a lista</button>
+              <button onClick={() => setDetallePaciente(null)} style={{ ...btnSecondary, marginBottom: 16 }}>← Back to list</button>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 {/* Demographics */}
                 <div style={cardStyle}>
                   <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    Datos del Paciente
+                    Patient Details
                     <span style={badgeStyle(detallePaciente.estado === 'activo' ? '#34D399' : detallePaciente.estado === 'alta' ? '#FBB040' : '#F87171')}>{detallePaciente.estado}</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 12 }}>
                     {[
                       ['MRN', detallePaciente.mrn],
-                      ['Nombre', `${detallePaciente.nombre} ${detallePaciente.apellido}`],
-                      ['Fecha Nac.', `${detallePaciente.fecha_nacimiento} (${calcAge(detallePaciente.fecha_nacimiento)} anos)`],
-                      ['Genero', detallePaciente.genero],
-                      ['Telefono', detallePaciente.telefono],
+                      ['Name', `${detallePaciente.nombre} ${detallePaciente.apellido}`],
+                      ['DOB', `${detallePaciente.fecha_nacimiento} (${calcAge(detallePaciente.fecha_nacimiento)} years)`],
+                      ['Gender', detallePaciente.genero],
+                      ['Phone', detallePaciente.telefono],
                       ['Email', detallePaciente.email],
-                      ['Seguro', `${detallePaciente.seguro} — ${detallePaciente.seguro_id}`],
-                      ['Direccion', detallePaciente.direccion],
+                      ['Insurance', `${detallePaciente.seguro} — ${detallePaciente.seguro_id}`],
+                      ['Address', detallePaciente.direccion],
                     ].map(([label, value]) => (
                       <div key={label as string}>
                         <div style={{ fontSize: 10, color: t3, marginBottom: 2 }}>{label}</div>
@@ -593,9 +593,9 @@ export default function MedicalPage() {
 
                 {/* Clinical Info */}
                 <div style={cardStyle}>
-                  <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 14 }}>Informacion Clinica</div>
+                  <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 14 }}>Clinical Info</div>
                   <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 10, color: t3, marginBottom: 4 }}>Alergias</div>
+                    <div style={{ fontSize: 10, color: t3, marginBottom: 4 }}>Allergies</div>
                     {detallePaciente.alergias && detallePaciente.alergias !== 'Ninguna' ? (
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {detallePaciente.alergias.split(',').map(a => (
@@ -603,11 +603,11 @@ export default function MedicalPage() {
                         ))}
                       </div>
                     ) : (
-                      <div style={{ fontSize: 12, color: '#34D399' }}>Sin alergias conocidas</div>
+                      <div style={{ fontSize: 12, color: '#34D399' }}>No known allergies</div>
                     )}
                   </div>
                   <div style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 10, color: t3, marginBottom: 4 }}>Condiciones</div>
+                    <div style={{ fontSize: 10, color: t3, marginBottom: 4 }}>Conditions</div>
                     {detallePaciente.condiciones && detallePaciente.condiciones !== 'Ninguna' ? (
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {detallePaciente.condiciones.split(',').map(c => (
@@ -615,12 +615,12 @@ export default function MedicalPage() {
                         ))}
                       </div>
                     ) : (
-                      <div style={{ fontSize: 12, color: '#34D399' }}>Sin condiciones registradas</div>
+                      <div style={{ fontSize: 12, color: '#34D399' }}>No conditions on record</div>
                     )}
                   </div>
                   {detallePaciente.notas && (
                     <div>
-                      <div style={{ fontSize: 10, color: t3, marginBottom: 4 }}>Notas</div>
+                      <div style={{ fontSize: 10, color: t3, marginBottom: 4 }}>Notes</div>
                       <div style={{ fontSize: 12, color: t2, padding: '8px 10px', borderRadius: 8, background: s2 }}>{detallePaciente.notas}</div>
                     </div>
                   )}
@@ -628,14 +628,14 @@ export default function MedicalPage() {
 
                 {/* Patient Appointments */}
                 <div style={{ ...cardStyle, gridColumn: '1 / -1' }}>
-                  <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 14 }}>Historial de Citas</div>
+                  <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 14 }}>Appointment History</div>
                   {citas.filter(c => c.paciente_id === detallePaciente.id).length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: 20, color: t3, fontSize: 12 }}>Sin citas registradas</div>
+                    <div style={{ textAlign: 'center', padding: 20, color: t3, fontSize: 12 }}>No appointments on record</div>
                   ) : (
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                       <thead>
                         <tr style={{ borderBottom: `1px solid ${border}` }}>
-                          {['Fecha', 'Hora', 'Tipo', 'Doctor', 'Sala', 'Estado'].map(h => (
+                          {['Date', 'Time', 'Type', 'Doctor', 'Room', 'Status'].map(h => (
                             <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: t3, fontWeight: 600, fontSize: 10, textTransform: 'uppercase' }}>{h}</th>
                           ))}
                         </tr>
@@ -663,7 +663,7 @@ export default function MedicalPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead>
                   <tr style={{ borderBottom: `1px solid ${border}` }}>
-                    {['MRN', 'Paciente', 'Edad', 'Genero', 'Seguro', 'Telefono', 'Estado', ''].map(h => (
+                    {['MRN', 'Patient', 'Age', 'Gender', 'Insurance', 'Phone', 'Status', ''].map(h => (
                       <th key={h} style={{ textAlign: 'left', padding: '10px 10px', color: t3, fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em' }}>{h}</th>
                     ))}
                   </tr>
@@ -674,7 +674,7 @@ export default function MedicalPage() {
                       <td style={{ padding: '10px', fontFamily: 'DM Mono', fontSize: 10, color: accent }}>{p.mrn}</td>
                       <td style={{ padding: '10px' }}>
                         <div style={{ fontWeight: 600, color: t1 }}>{p.nombre} {p.apellido}</div>
-                        {p.alergias && p.alergias !== 'Ninguna' && <div style={{ fontSize: 9, color: '#F87171' }}>⚠️ Alergias: {p.alergias}</div>}
+                        {p.alergias && p.alergias !== 'Ninguna' && <div style={{ fontSize: 9, color: '#F87171' }}>⚠️ Allergies: {p.alergias}</div>}
                       </td>
                       <td style={{ padding: '10px', color: t2 }}>{calcAge(p.fecha_nacimiento)}</td>
                       <td style={{ padding: '10px', color: t2 }}>{p.genero}</td>
@@ -689,7 +689,7 @@ export default function MedicalPage() {
                 </tbody>
               </table>
               {filteredPacientes.length === 0 && (
-                <div style={{ textAlign: 'center', padding: 32, color: t3, fontSize: 12 }}>No se encontraron pacientes</div>
+                <div style={{ textAlign: 'center', padding: 32, color: t3, fontSize: 12 }}>No patients found</div>
               )}
             </div>
           )}
@@ -704,10 +704,10 @@ export default function MedicalPage() {
           <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: 4 }}>
               {[
-                { id: 'hoy', label: 'Hoy' },
-                { id: 'manana', label: 'Manana' },
-                { id: 'semana', label: 'Semana' },
-                { id: 'todas', label: 'Todas' },
+                { id: 'hoy', label: 'Today' },
+                { id: 'manana', label: 'Tomorrow' },
+                { id: 'semana', label: 'Week' },
+                { id: 'todas', label: 'All' },
               ].map(f => (
                 <button key={f.id} onClick={() => setFilterCitaFecha(f.id)}
                   style={{ padding: '6px 14px', borderRadius: 8, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: `1px solid ${filterCitaFecha === f.id ? accent : border}`, background: filterCitaFecha === f.id ? `${accent}18` : s2, color: filterCitaFecha === f.id ? accent : t2, fontFamily: 'DM Sans' }}>
@@ -716,20 +716,20 @@ export default function MedicalPage() {
               ))}
             </div>
             <div style={{ flex: 1 }} />
-            <button onClick={() => { setFormCita({}); setModalCita(true) }} style={btnPrimary}>+ Nueva Cita</button>
+            <button onClick={() => { setFormCita({}); setModalCita(true) }} style={btnPrimary}>+ New Appointment</button>
           </div>
 
           <div style={cardStyle}>
             {filteredCitas.length === 0 ? (
               <div style={{ textAlign: 'center', padding: 40, color: t3 }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>📅</div>
-                <div style={{ fontSize: 13 }}>No hay citas para este periodo</div>
+                <div style={{ fontSize: 13 }}>No appointments for this period</div>
               </div>
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead>
                   <tr style={{ borderBottom: `1px solid ${border}` }}>
-                    {['Fecha', 'Hora', 'Paciente', 'Tipo', 'Doctor', 'Sala', 'Duracion', 'Estado', 'Acciones'].map(h => (
+                    {['Date', 'Time', 'Patient', 'Type', 'Doctor', 'Room', 'Duration', 'Status', 'Actions'].map(h => (
                       <th key={h} style={{ textAlign: 'left', padding: '10px', color: t3, fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em' }}>{h}</th>
                     ))}
                   </tr>
@@ -749,15 +749,15 @@ export default function MedicalPage() {
                         <div style={{ display: 'flex', gap: 4 }}>
                           {c.estado === 'programada' && (
                             <>
-                              <button onClick={() => updateCitaEstado(c.id, 'confirmada')} style={{ ...btnSecondary, fontSize: 9, padding: '3px 8px', color: '#34D399', borderColor: '#34D39940' }}>Confirmar</button>
-                              <button onClick={() => updateCitaEstado(c.id, 'cancelada')} style={{ ...btnSecondary, fontSize: 9, padding: '3px 8px', color: '#F87171', borderColor: '#F8717140' }}>Cancelar</button>
+                              <button onClick={() => updateCitaEstado(c.id, 'confirmada')} style={{ ...btnSecondary, fontSize: 9, padding: '3px 8px', color: '#34D399', borderColor: '#34D39940' }}>Confirm</button>
+                              <button onClick={() => updateCitaEstado(c.id, 'cancelada')} style={{ ...btnSecondary, fontSize: 9, padding: '3px 8px', color: '#F87171', borderColor: '#F8717140' }}>Cancel</button>
                             </>
                           )}
                           {c.estado === 'confirmada' && (
-                            <button onClick={() => updateCitaEstado(c.id, 'en_curso')} style={{ ...btnSecondary, fontSize: 9, padding: '3px 8px', color: accent, borderColor: `${accent}40` }}>Iniciar</button>
+                            <button onClick={() => updateCitaEstado(c.id, 'en_curso')} style={{ ...btnSecondary, fontSize: 9, padding: '3px 8px', color: accent, borderColor: `${accent}40` }}>Start</button>
                           )}
                           {c.estado === 'en_curso' && (
-                            <button onClick={() => updateCitaEstado(c.id, 'completada')} style={{ ...btnSecondary, fontSize: 9, padding: '3px 8px', color: '#34D399', borderColor: '#34D39940' }}>Completar</button>
+                            <button onClick={() => updateCitaEstado(c.id, 'completada')} style={{ ...btnSecondary, fontSize: 9, padding: '3px 8px', color: '#34D399', borderColor: '#34D39940' }}>Complete</button>
                           )}
                         </div>
                       </td>
@@ -787,14 +787,14 @@ export default function MedicalPage() {
               </div>
             </div>
             <div style={statCardStyle}>
-              <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Entrenamientos Completados</div>
+              <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Training Completed</div>
               <div style={{ fontSize: 32, fontWeight: 800, fontFamily: 'Syne', color: '#34D399' }}>{trainings.filter(t => t.estado === 'completado').length}/{trainings.length}</div>
-              <div style={{ fontSize: 10, color: t3 }}>{trainingsPendientes.length} pendientes</div>
+              <div style={{ fontSize: 10, color: t3 }}>{trainingsPendientes.length} pending</div>
             </div>
             <div style={statCardStyle}>
               <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Incidentes 2024</div>
               <div style={{ fontSize: 32, fontWeight: 800, fontFamily: 'Syne', color: incidentesAbiertos.length > 0 ? '#FBB040' : '#34D399' }}>{incidentes.length}</div>
-              <div style={{ fontSize: 10, color: t3 }}>{incidentesAbiertos.length} abiertos · {incidentes.filter(i => i.estado === 'resuelto' || i.estado === 'cerrado').length} resueltos</div>
+              <div style={{ fontSize: 10, color: t3 }}>{incidentesAbiertos.length} open · {incidentes.filter(i => i.estado === 'resuelto' || i.estado === 'cerrado').length} resolved</div>
             </div>
           </div>
 
@@ -802,8 +802,8 @@ export default function MedicalPage() {
             {/* Incidentes */}
             <div style={cardStyle}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1 }}>Incidentes HIPAA</div>
-                <button onClick={() => { setFormIncidente({}); setModalIncidente(true) }} style={btnPrimary}>+ Reportar</button>
+                <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1 }}>HIPAA Incidents</div>
+                <button onClick={() => { setFormIncidente({}); setModalIncidente(true) }} style={btnPrimary}>+ Report</button>
               </div>
               {incidentes.map(i => (
                 <div key={i.id} style={{ padding: '12px', borderRadius: 10, border: `1px solid ${border}`, marginBottom: 8, background: i.estado === 'abierto' ? `${SEVERIDAD_COLORS[i.severidad]}05` : 'transparent' }}>
@@ -817,7 +817,7 @@ export default function MedicalPage() {
                   <div style={{ fontSize: 10, color: t3, marginTop: 6 }}>{i.fecha_incidente} · {i.reportado_por}</div>
                   {i.acciones_correctivas && (
                     <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 8, background: s2, fontSize: 11, color: t2 }}>
-                      <span style={{ fontWeight: 600, color: t1 }}>Acciones correctivas:</span> {i.acciones_correctivas}
+                      <span style={{ fontWeight: 600, color: t1 }}>Corrective actions:</span> {i.acciones_correctivas}
                     </div>
                   )}
                 </div>
@@ -826,11 +826,11 @@ export default function MedicalPage() {
 
             {/* Training Records */}
             <div style={cardStyle}>
-              <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 14 }}>Entrenamientos HIPAA</div>
+              <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 14 }}>HIPAA Training</div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                 <thead>
                   <tr style={{ borderBottom: `1px solid ${border}` }}>
-                    {['Personal', 'Curso', 'Vencimiento', 'Score', 'Estado'].map(h => (
+                    {['Staff', 'Course', 'Expiration', 'Score', 'Status'].map(h => (
                       <th key={h} style={{ textAlign: 'left', padding: '8px 6px', color: t3, fontWeight: 600, fontSize: 10, textTransform: 'uppercase' }}>{h}</th>
                     ))}
                   </tr>
@@ -860,9 +860,9 @@ export default function MedicalPage() {
       {tab === 'audit' && (
         <div>
           <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center' }}>
-            <input placeholder="Buscar en audit log..." value={searchAudit} onChange={e => setSearchAudit(e.target.value)} style={{ ...inputStyle, maxWidth: 300 }} />
+            <input placeholder="Search audit log..." value={searchAudit} onChange={e => setSearchAudit(e.target.value)} style={{ ...inputStyle, maxWidth: 300 }} />
             <select value={filterAuditNivel} onChange={e => setFilterAuditNivel(e.target.value)} style={{ ...inputStyle, maxWidth: 160 }}>
-              <option value="todos">Todos los niveles</option>
+              <option value="todos">All levels</option>
               <option value="info">Info</option>
               <option value="warning">Warning</option>
               <option value="critical">Critical</option>
@@ -875,7 +875,7 @@ export default function MedicalPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
               <thead>
                 <tr style={{ borderBottom: `1px solid ${border}` }}>
-                  {['Timestamp', 'Usuario', 'Accion', 'Recurso', 'Paciente', 'Detalles', 'IP', 'Nivel'].map(h => (
+                  {['Timestamp', 'User', 'Action', 'Resource', 'Patient', 'Details', 'IP', 'Level'].map(h => (
                     <th key={h} style={{ textAlign: 'left', padding: '10px', color: t3, fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em' }}>{h}</th>
                   ))}
                 </tr>
@@ -884,7 +884,7 @@ export default function MedicalPage() {
                 {filteredAudit.map(l => (
                   <tr key={l.id} style={{ borderBottom: `1px solid ${border}`, background: l.nivel === 'critical' ? 'rgba(248,113,113,0.04)' : 'transparent' }}>
                     <td style={{ padding: '10px', fontFamily: 'DM Mono', fontSize: 10, color: t2, whiteSpace: 'nowrap' }}>
-                      {new Date(l.timestamp).toLocaleString('es-EC', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      {new Date(l.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </td>
                     <td style={{ padding: '10px', color: t1, fontWeight: 500 }}>{l.usuario_nombre}</td>
                     <td style={{ padding: '10px' }}>
@@ -906,7 +906,7 @@ export default function MedicalPage() {
               </tbody>
             </table>
             {filteredAudit.length === 0 && (
-              <div style={{ textAlign: 'center', padding: 32, color: t3, fontSize: 12 }}>No se encontraron registros</div>
+              <div style={{ textAlign: 'center', padding: 32, color: t3, fontSize: 12 }}>No records found</div>
             )}
           </div>
         </div>
@@ -918,29 +918,29 @@ export default function MedicalPage() {
       {modalPaciente && (
         <div style={modalOverlay} onClick={() => setModalPaciente(false)}>
           <div style={modalBox} onClick={e => e.stopPropagation()}>
-            <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 16, color: t1, marginBottom: 20 }}>Nuevo Paciente</div>
+            <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 16, color: t1, marginBottom: 20 }}>New Patient</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label style={labelStyle}>Nombre *</label>
+                <label style={labelStyle}>Name *</label>
                 <input value={formPaciente.nombre || ''} onChange={e => setFormPaciente(p => ({ ...p, nombre: e.target.value }))} style={inputStyle} />
               </div>
               <div>
-                <label style={labelStyle}>Apellido *</label>
+                <label style={labelStyle}>Last name *</label>
                 <input value={formPaciente.apellido || ''} onChange={e => setFormPaciente(p => ({ ...p, apellido: e.target.value }))} style={inputStyle} />
               </div>
               <div>
-                <label style={labelStyle}>Fecha de Nacimiento</label>
+                <label style={labelStyle}>Date of Birth</label>
                 <input type="date" value={formPaciente.fecha_nacimiento || ''} onChange={e => setFormPaciente(p => ({ ...p, fecha_nacimiento: e.target.value }))} style={inputStyle} />
               </div>
               <div>
-                <label style={labelStyle}>Genero</label>
+                <label style={labelStyle}>Gender</label>
                 <select value={formPaciente.genero || ''} onChange={e => setFormPaciente(p => ({ ...p, genero: e.target.value }))} style={inputStyle}>
-                  <option value="">Seleccionar...</option>
+                  <option value="">Select...</option>
                   {GENEROS.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
               </div>
               <div>
-                <label style={labelStyle}>Telefono</label>
+                <label style={labelStyle}>Phone</label>
                 <input value={formPaciente.telefono || ''} onChange={e => setFormPaciente(p => ({ ...p, telefono: e.target.value }))} style={inputStyle} />
               </div>
               <div>
@@ -948,36 +948,36 @@ export default function MedicalPage() {
                 <input type="email" value={formPaciente.email || ''} onChange={e => setFormPaciente(p => ({ ...p, email: e.target.value }))} style={inputStyle} />
               </div>
               <div>
-                <label style={labelStyle}>Seguro</label>
+                <label style={labelStyle}>Insurance</label>
                 <select value={formPaciente.seguro || ''} onChange={e => setFormPaciente(p => ({ ...p, seguro: e.target.value }))} style={inputStyle}>
-                  <option value="">Seleccionar...</option>
+                  <option value="">Select...</option>
                   {SEGUROS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div>
-                <label style={labelStyle}>ID Seguro</label>
+                <label style={labelStyle}>Insurance ID</label>
                 <input value={formPaciente.seguro_id || ''} onChange={e => setFormPaciente(p => ({ ...p, seguro_id: e.target.value }))} style={inputStyle} />
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
-                <label style={labelStyle}>Direccion</label>
+                <label style={labelStyle}>Address</label>
                 <input value={formPaciente.direccion || ''} onChange={e => setFormPaciente(p => ({ ...p, direccion: e.target.value }))} style={inputStyle} />
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
-                <label style={labelStyle}>Alergias</label>
-                <input value={formPaciente.alergias || ''} onChange={e => setFormPaciente(p => ({ ...p, alergias: e.target.value }))} placeholder="Separar con comas..." style={inputStyle} />
+                <label style={labelStyle}>Allergies</label>
+                <input value={formPaciente.alergias || ''} onChange={e => setFormPaciente(p => ({ ...p, alergias: e.target.value }))} placeholder="Separate with commas..." style={inputStyle} />
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
-                <label style={labelStyle}>Condiciones</label>
-                <input value={formPaciente.condiciones || ''} onChange={e => setFormPaciente(p => ({ ...p, condiciones: e.target.value }))} placeholder="Separar con comas..." style={inputStyle} />
+                <label style={labelStyle}>Conditions</label>
+                <input value={formPaciente.condiciones || ''} onChange={e => setFormPaciente(p => ({ ...p, condiciones: e.target.value }))} placeholder="Separate with commas..." style={inputStyle} />
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
-                <label style={labelStyle}>Notas</label>
+                <label style={labelStyle}>Notes</label>
                 <textarea value={formPaciente.notas || ''} onChange={e => setFormPaciente(p => ({ ...p, notas: e.target.value }))} style={{ ...inputStyle, minHeight: 60, resize: 'vertical' }} />
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
-              <button onClick={() => setModalPaciente(false)} style={btnSecondary}>Cancelar</button>
-              <button onClick={handleAddPaciente} style={btnPrimary}>Registrar Paciente</button>
+              <button onClick={() => setModalPaciente(false)} style={btnSecondary}>Cancel</button>
+              <button onClick={handleAddPaciente} style={btnPrimary}>Register Patient</button>
             </div>
           </div>
         </div>
@@ -989,55 +989,55 @@ export default function MedicalPage() {
       {modalCita && (
         <div style={modalOverlay} onClick={() => setModalCita(false)}>
           <div style={modalBox} onClick={e => e.stopPropagation()}>
-            <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 16, color: t1, marginBottom: 20 }}>Nueva Cita</div>
+            <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 16, color: t1, marginBottom: 20 }}>New Appointment</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div style={{ gridColumn: '1 / -1' }}>
-                <label style={labelStyle}>Paciente *</label>
+                <label style={labelStyle}>Patient *</label>
                 <select value={formCita.paciente_id || ''} onChange={e => setFormCita(p => ({ ...p, paciente_id: e.target.value }))} style={inputStyle}>
-                  <option value="">Seleccionar paciente...</option>
+                  <option value="">Select patient...</option>
                   {pacientesActivos.map(p => <option key={p.id} value={p.id}>{p.nombre} {p.apellido} — {p.mrn}</option>)}
                 </select>
               </div>
               <div>
-                <label style={labelStyle}>Fecha *</label>
+                <label style={labelStyle}>Date *</label>
                 <input type="date" value={formCita.fecha || ''} onChange={e => setFormCita(p => ({ ...p, fecha: e.target.value }))} style={inputStyle} />
               </div>
               <div>
-                <label style={labelStyle}>Hora *</label>
+                <label style={labelStyle}>Time *</label>
                 <input type="time" value={formCita.hora || ''} onChange={e => setFormCita(p => ({ ...p, hora: e.target.value }))} style={inputStyle} />
               </div>
               <div>
-                <label style={labelStyle}>Tipo</label>
+                <label style={labelStyle}>Type</label>
                 <select value={formCita.tipo || ''} onChange={e => setFormCita(p => ({ ...p, tipo: e.target.value }))} style={inputStyle}>
-                  <option value="">Seleccionar...</option>
+                  <option value="">Select...</option>
                   {TIPOS_CITA.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div>
                 <label style={labelStyle}>Doctor</label>
                 <select value={formCita.doctor || ''} onChange={e => setFormCita(p => ({ ...p, doctor: e.target.value }))} style={inputStyle}>
-                  <option value="">Seleccionar...</option>
+                  <option value="">Select...</option>
                   {DOCTORES.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
               <div>
-                <label style={labelStyle}>Sala</label>
+                <label style={labelStyle}>Room</label>
                 <select value={formCita.sala || ''} onChange={e => setFormCita(p => ({ ...p, sala: e.target.value }))} style={inputStyle}>
                   {SALAS.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
               <div>
-                <label style={labelStyle}>Duracion (min)</label>
+                <label style={labelStyle}>Duration (min)</label>
                 <input type="number" value={formCita.duracion || 30} onChange={e => setFormCita(p => ({ ...p, duracion: parseInt(e.target.value) }))} style={inputStyle} />
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
-                <label style={labelStyle}>Notas</label>
+                <label style={labelStyle}>Notes</label>
                 <textarea value={formCita.notas || ''} onChange={e => setFormCita(p => ({ ...p, notas: e.target.value }))} style={{ ...inputStyle, minHeight: 60, resize: 'vertical' }} />
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
-              <button onClick={() => setModalCita(false)} style={btnSecondary}>Cancelar</button>
-              <button onClick={handleAddCita} style={btnPrimary}>Programar Cita</button>
+              <button onClick={() => setModalCita(false)} style={btnSecondary}>Cancel</button>
+              <button onClick={handleAddCita} style={btnPrimary}>Schedule Appointment</button>
             </div>
           </div>
         </div>
@@ -1049,20 +1049,20 @@ export default function MedicalPage() {
       {modalIncidente && (
         <div style={modalOverlay} onClick={() => setModalIncidente(false)}>
           <div style={modalBox} onClick={e => e.stopPropagation()}>
-            <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 16, color: t1, marginBottom: 4 }}>Reportar Incidente HIPAA</div>
-            <div style={{ fontSize: 11, color: '#F87171', marginBottom: 20 }}>🛡️ Los incidentes son registrados y auditados</div>
+            <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 16, color: t1, marginBottom: 4 }}>Report HIPAA Incident</div>
+            <div style={{ fontSize: 11, color: '#F87171', marginBottom: 20 }}>🛡️ Incidents are logged and audited</div>
             <div style={{ display: 'grid', gap: 12 }}>
               <div>
-                <label style={labelStyle}>Titulo del Incidente *</label>
+                <label style={labelStyle}>Incident Title *</label>
                 <input value={formIncidente.titulo || ''} onChange={e => setFormIncidente(p => ({ ...p, titulo: e.target.value }))} style={inputStyle} />
               </div>
               <div>
-                <label style={labelStyle}>Descripcion</label>
+                <label style={labelStyle}>Description</label>
                 <textarea value={formIncidente.descripcion || ''} onChange={e => setFormIncidente(p => ({ ...p, descripcion: e.target.value }))} style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={labelStyle}>Tipo</label>
+                  <label style={labelStyle}>Type</label>
                   <select value={formIncidente.tipo || 'near_miss'} onChange={e => setFormIncidente(p => ({ ...p, tipo: e.target.value as any }))} style={inputStyle}>
                     <option value="near_miss">Near Miss</option>
                     <option value="violation">Violation</option>
@@ -1071,23 +1071,23 @@ export default function MedicalPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={labelStyle}>Severidad</label>
+                  <label style={labelStyle}>Severity</label>
                   <select value={formIncidente.severidad || 'media'} onChange={e => setFormIncidente(p => ({ ...p, severidad: e.target.value as any }))} style={inputStyle}>
-                    <option value="baja">Baja</option>
-                    <option value="media">Media</option>
-                    <option value="alta">Alta</option>
-                    <option value="critica">Critica</option>
+                    <option value="baja">Low</option>
+                    <option value="media">Medium</option>
+                    <option value="alta">High</option>
+                    <option value="critica">Critical</option>
                   </select>
                 </div>
                 <div>
-                  <label style={labelStyle}>Fecha del Incidente</label>
+                  <label style={labelStyle}>Incident Date</label>
                   <input type="date" value={formIncidente.fecha_incidente || hoy} onChange={e => setFormIncidente(p => ({ ...p, fecha_incidente: e.target.value }))} style={inputStyle} />
                 </div>
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
-              <button onClick={() => setModalIncidente(false)} style={btnSecondary}>Cancelar</button>
-              <button onClick={handleAddIncidente} style={{ ...btnPrimary, background: '#F87171' }}>Reportar Incidente</button>
+              <button onClick={() => setModalIncidente(false)} style={btnSecondary}>Cancel</button>
+              <button onClick={handleAddIncidente} style={{ ...btnPrimary, background: '#F87171' }}>Report Incident</button>
             </div>
           </div>
         </div>

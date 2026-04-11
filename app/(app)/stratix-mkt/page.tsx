@@ -16,7 +16,7 @@ export default function StratixMktPage() {
   const [mktTab, setMktTab] = useState('kanban')
   const [trimestre, setTrimestre] = useState('General')
   const [mesKanban, setMesKanban] = useState('')
-  const [ganttVista, setGanttVista] = useState('Mes')
+  const [ganttVista, setGanttVista] = useState('Month')
   const [mesHoras, setMesHoras] = useState('')
   const [mesReporte, setMesReporte] = useState(MESES[new Date().getMonth()])
   const [miembroReporte, setMiembroReporte] = useState('')
@@ -102,14 +102,14 @@ export default function StratixMktPage() {
     const { error } = await supabase.from('actividades').update({ estado: col }).eq('id', dragId)
     if (!error) {
       setActividades(prev => prev.map(a => a.id === dragId ? { ...a, estado: col } : a))
-      mostrarMensaje('ok', `Movido a "${col}"`)
+      mostrarMensaje('ok', `Moved to "${col}"`)
     }
     setDragId(null)
     setDragOver(null)
   }
 
   async function crearActividad() {
-    if (!nuevaAct.titulo.trim()) { mostrarMensaje('error', 'El titulo es obligatorio'); return }
+    if (!nuevaAct.titulo.trim()) { mostrarMensaje('error', 'Title is required'); return }
     setCreandoAct(true)
     try {
       const payload: any = {
@@ -135,15 +135,15 @@ export default function StratixMktPage() {
       if (data && nuevaAct.responsable_ref !== usuario?.responsable_ref) {
         const responsableUser = usuarios.find((u: any) => u.responsable_ref === nuevaAct.responsable_ref)
         if (responsableUser?.id) {
-          await supabase.from('notificaciones').insert({ usuario_id: responsableUser.id, tipo: 'tarea_asignada', titulo: 'Nueva tarea asignada', mensaje: `"${nuevaAct.titulo}" — ${nuevaAct.area_ref} · ${nuevaAct.mes}`, actividad_id: data.id, leida: false })
+          await supabase.from('notificaciones').insert({ usuario_id: responsableUser.id, tipo: 'tarea_asignada', titulo: 'New task assigned', mensaje: `"${nuevaAct.titulo}" — ${nuevaAct.area_ref} · ${nuevaAct.mes}`, actividad_id: data.id, leida: false })
         }
       }
 
       setModalNuevaAct(false)
       setNuevaAct({ titulo: '', descripcion: '', area_ref: 'EMC', responsable_ref: 'DG_Joselyn', mes: MESES[new Date().getMonth()], horas: '', dias_produccion: '', estado: 'Pendiente', fecha_entrega: '', solicitado_por: 'Coord_MFreddy', drive_url: '' })
-      mostrarMensaje('ok', 'Tarea creada exitosamente')
+      mostrarMensaje('ok', 'Task created successfully')
     } catch (e) {
-      mostrarMensaje('error', 'Error inesperado al crear la tarea')
+      mostrarMensaje('error', 'Unexpected error creating the task')
     }
     setCreandoAct(false)
   }
@@ -152,11 +152,11 @@ export default function StratixMktPage() {
     const mesesGantt: Record<string, string[]> = { Q1: ['Enero','Febrero','Marzo'], Q2: ['Abril','Mayo','Junio'], Q3: ['Julio','Agosto','Septiembre'], Q4: ['Octubre','Noviembre','Diciembre'] }
     let acts = actividades.filter(a => a.fecha_entrega)
     if (mesesGantt[ganttVista]) acts = acts.filter(a => mesesGantt[ganttVista].includes(a.mes))
-    else if (ganttVista === 'Semana') {
+    else if (ganttVista === 'Week') {
       const ini = new Date(hoy); ini.setDate(hoy.getDate() - hoy.getDay())
       const fin = new Date(ini); fin.setDate(ini.getDate() + 6)
       acts = acts.filter(a => { const f = new Date(a.fecha_entrega); return f >= ini && f <= fin })
-    } else if (ganttVista === 'Mes') {
+    } else if (ganttVista === 'Month') {
       acts = acts.filter(a => { const f = new Date(a.fecha_entrega); return f.getMonth() === hoy.getMonth() && f.getFullYear() === hoy.getFullYear() })
     }
     return acts.sort((a, b) => new Date(a.fecha_entrega).getTime() - new Date(b.fecha_entrega).getTime())
@@ -169,7 +169,7 @@ export default function StratixMktPage() {
       actions={mktTab === 'kanban' ? (
         <button onClick={() => { setNuevaAct(p => ({ ...p, estado: 'Pendiente' })); setModalNuevaAct(true) }}
           style={{ padding: '7px 16px', borderRadius: 10, background: accent, color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 16 }}>+</span> Nueva tarea
+          <span style={{ fontSize: 16 }}>+</span> New task
         </button>
       ) : undefined}
     >
@@ -178,7 +178,7 @@ export default function StratixMktPage() {
         {/* MKT TABS */}
         {(mktTab === 'overview' || mktTab === 'kanban' || mktTab === 'gantt' || mktTab === 'horas') && (
           <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: `1px solid ${border}` }}>
-            {[{ key: 'overview', label: '📊 Overview' }, { key: 'kanban', label: '⚡ Kanban' }, { key: 'gantt', label: '📊 Gantt' }, { key: 'horas', label: '⏱ Horas' }].map(t => (
+            {[{ key: 'overview', label: '📊 Overview' }, { key: 'kanban', label: '⚡ Kanban' }, { key: 'gantt', label: '📊 Gantt' }, { key: 'horas', label: '⏱ Hours' }].map(t => (
               <button key={t.key} onClick={() => setMktTab(t.key)} style={{ padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', borderRadius: '8px 8px 0 0', fontFamily: 'DM Sans', background: 'transparent', color: mktTab === t.key ? t1 : t3, borderBottom: mktTab === t.key ? `2px solid ${accent}` : '2px solid transparent' }}>{t.label}</button>
             ))}
           </div>
@@ -194,12 +194,12 @@ export default function StratixMktPage() {
             </div>
             <StaggerGrid style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10, marginBottom: 14 }}>
               {[
-                { label: 'Total Tareas', value: totalQ, color: accent, sub: 'actividades' },
-                { label: 'Completadas', value: completadasQ, color: '#34D399', sub: `${pctCompletado}% efectividad` },
-                { label: 'En Proceso', value: enProcesoQ, color: '#FBB040', sub: 'en curso' },
-                { label: 'Pendientes', value: pendientesQ, color: '#9494B3', sub: 'sin iniciar' },
-                { label: 'Horas Totales', value: `${totalHoras}h`, color: '#F472B6', sub: `${totalDias} dias prod.` },
-                { label: 'Horas Libres', value: `${horasDisponibles}h`, color: '#60A5FA', sub: `${diasRestantes} dias restantes` },
+                { label: 'Total Tasks', value: totalQ, color: accent, sub: 'tasks' },
+                { label: 'Completed', value: completadasQ, color: '#34D399', sub: `${pctCompletado}% completion rate` },
+                { label: 'In Progress', value: enProcesoQ, color: '#FBB040', sub: 'in progress' },
+                { label: 'Pending', value: pendientesQ, color: '#9494B3', sub: 'not started' },
+                { label: 'Total Hours', value: `${totalHoras}h`, color: '#F472B6', sub: `${totalDias} prod. days` },
+                { label: 'Available Hours', value: `${horasDisponibles}h`, color: '#60A5FA', sub: `${diasRestantes} days remaining` },
               ].map(k => (
                 <StaggerItem key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                   <div style={{ fontSize: 9, color: t3, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8, fontFamily: 'DM Mono' }}>{k.label}</div>
@@ -213,7 +213,7 @@ export default function StratixMktPage() {
             </StaggerGrid>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 270px', gap: 12, marginBottom: 14 }}>
               <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Produccion por mes — {trimestre}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Production by month — {trimestre}</div>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', height: 90 }}>
                   {datosPorMes.map(d => (
                     <div key={d.mes} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
@@ -228,7 +228,7 @@ export default function StratixMktPage() {
                 </div>
               </div>
               <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Por marca — {trimestre}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>By brand — {trimestre}</div>
                 {datosPorMarca.map(m => (
                   <div key={m.codigo} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                     <div style={{ width: 6, height: 6, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
@@ -257,7 +257,7 @@ export default function StratixMktPage() {
                         </div>
                         <div>
                           <div style={{ fontSize: 11, fontWeight: 600, color: t1 }}>{u.nombre}</div>
-                          <div style={{ fontSize: 9, color: isOnline ? '#34D399' : t3 }}>{isOnline ? '● Activo ahora' : 'Offline'}</div>
+                          <div style={{ fontSize: 9, color: isOnline ? '#34D399' : t3 }}>{isOnline ? '● Active now' : 'Offline'}</div>
                         </div>
                       </div>
                     )
@@ -268,8 +268,8 @@ export default function StratixMktPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 270px', gap: 12 }}>
               <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ padding: '12px 16px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>Actividades recientes</div>
-                  <button onClick={() => setMktTab('solicitudes')} style={{ fontSize: 10, color: accent, background: 'none', border: 'none', cursor: 'pointer' }}>Ver todas →</button>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>Recent activity</div>
+                  <button onClick={() => setMktTab('solicitudes')} style={{ fontSize: 10, color: accent, background: 'none', border: 'none', cursor: 'pointer' }}>View all →</button>
                 </div>
                 {actsFiltradas.slice(0, 6).map(a => (
                   <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: `1px solid ${border}` }}>
@@ -284,7 +284,7 @@ export default function StratixMktPage() {
               </div>
               <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ padding: '12px 14px', borderBottom: `1px solid ${border}` }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>Ranking del equipo</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>Team ranking</div>
                 </div>
                 <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {datosPorMiembro.map((m, i) => (
@@ -314,9 +314,9 @@ export default function StratixMktPage() {
         {mktTab === 'kanban' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 12, color: t3 }}>{actsKanban.length} tareas · Arrastra las tarjetas para cambiar su estado</div>
+              <div style={{ fontSize: 12, color: t3 }}>{actsKanban.length} tasks · Drag cards to change their status</div>
               <select value={mesKanban} onChange={e => setMesKanban(e.target.value)} style={{ ...inputStyle, width: 'auto', padding: '6px 12px' }}>
-                <option value="">Todos los meses</option>
+                <option value="">All months</option>
                 {mesesDisponibles.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
@@ -362,11 +362,11 @@ export default function StratixMktPage() {
                     {col === 'Pendiente' && (
                       <button onClick={() => { setNuevaAct(p => ({ ...p, estado: 'Pendiente' })); setModalNuevaAct(true) }}
                         style={{ padding: '8px', borderRadius: 10, border: `1px dashed ${border}`, background: 'transparent', color: t3, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 16 }}>+</span> Agregar tarea
+                        <span style={{ fontSize: 16 }}>+</span> Add task
                       </button>
                     )}
                     {porColumna(col).length === 0 && col !== 'Pendiente' && (
-                      <div style={{ border: `2px dashed ${border}`, borderRadius: 10, padding: '20px', textAlign: 'center', color: t3, fontSize: 11 }}>Arrastra aqui</div>
+                      <div style={{ border: `2px dashed ${border}`, borderRadius: 10, padding: '20px', textAlign: 'center', color: t3, fontSize: 11 }}>Drop here</div>
                     )}
                   </div>
                 </div>
@@ -380,11 +380,11 @@ export default function StratixMktPage() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div>
-                <span style={{ fontSize: 14, fontWeight: 600, color: t1 }}>Diagrama de Gantt</span>
-                <span style={{ fontSize: 11, color: t3, marginLeft: 8 }}>Vista por fechas de entrega</span>
+                <span style={{ fontSize: 14, fontWeight: 600, color: t1 }}>Gantt Chart</span>
+                <span style={{ fontSize: 11, color: t3, marginLeft: 8 }}>View by due dates</span>
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
-                {['Semana', 'Mes', 'Q1', 'Q2', 'Q3', 'Q4'].map(v => (
+                {['Week', 'Month', 'Q1', 'Q2', 'Q3', 'Q4'].map(v => (
                   <button key={v} onClick={() => setGanttVista(v)} style={{ padding: '5px 12px', borderRadius: 20, fontSize: 11, border: `1px solid ${ganttVista === v ? accent : border}`, background: ganttVista === v ? accent : 'transparent', color: ganttVista === v ? 'white' : t2, cursor: 'pointer' }}>{v}</button>
                 ))}
               </div>
@@ -399,7 +399,7 @@ export default function StratixMktPage() {
               return (
                 <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                   <div style={{ display: 'flex', borderBottom: `1px solid ${border}` }}>
-                    <div style={{ width: 220, flexShrink: 0, padding: '10px 14px', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderRight: `1px solid ${border}` }}>Tarea / Responsable</div>
+                    <div style={{ width: 220, flexShrink: 0, padding: '10px 14px', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderRight: `1px solid ${border}` }}>Task / Assignee</div>
                     <div style={{ flex: 1, display: 'flex', overflowX: 'auto' }}>
                       {Array.from({ length: diasMostrar }).map((_, i) => {
                         const d = new Date(fechaMin.getTime() + i * 86400000)
@@ -438,7 +438,7 @@ export default function StratixMktPage() {
                         </div>
                       )
                     })}
-                    {actsGantt.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: t3 }}>Sin tareas con fecha de entrega para esta vista</div>}
+                    {actsGantt.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: t3 }}>No tasks with a due date for this view</div>}
                   </div>
                   <div style={{ padding: '10px 14px', borderTop: `1px solid ${border}`, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                     {Object.entries(ESTADO_COLORS).map(([estado, color]) => (
@@ -449,7 +449,7 @@ export default function StratixMktPage() {
                     ))}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 10, color: '#F87171' }}>
                       <div style={{ width: 10, height: 10, borderRadius: 3, background: 'rgba(248,113,113,0.1)', border: '1px solid #F87171' }} />
-                      Fin de semana
+                      Weekend
                     </div>
                   </div>
                 </div>
@@ -462,9 +462,9 @@ export default function StratixMktPage() {
         {mktTab === 'horas' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: t1 }}>{esSuperAdmin ? 'Resumen del equipo' : 'Tus horas'}</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: t1 }}>{esSuperAdmin ? 'Team summary' : 'Your hours'}</span>
               <select value={mesHoras} onChange={e => setMesHoras(e.target.value)} style={{ ...inputStyle, width: 'auto', padding: '6px 12px' }}>
-                <option value="">Todos los meses</option>
+                <option value="">All months</option>
                 {MESES.map(m => <option key={m} value={m}>{m}</option>)}
               </select>
             </div>
@@ -478,11 +478,11 @@ export default function StratixMktPage() {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontFamily: 'Syne', fontSize: 30, fontWeight: 800, color: '#60A5FA', lineHeight: 1 }}>{r.horas}h</div>
-                      <div style={{ fontSize: 10, color: t3 }}>{r.dias} dias de produccion</div>
+                      <div style={{ fontSize: 10, color: t3 }}>{r.dias} production days</div>
                     </div>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 10 }}>
-                    {[{ label: 'Total tareas', value: r.total, color: t1 }, { label: 'Completadas', value: r.completadas, color: '#34D399' }, { label: 'Efectividad', value: `${r.total > 0 ? Math.round((r.completadas / r.total) * 100) : 0}%`, color: accent }].map(s => (
+                    {[{ label: 'Total tasks', value: r.total, color: t1 }, { label: 'Completed', value: r.completadas, color: '#34D399' }, { label: 'Completion rate', value: `${r.total > 0 ? Math.round((r.completadas / r.total) * 100) : 0}%`, color: accent }].map(s => (
                       <div key={s.label} style={{ background: s2, borderRadius: 10, padding: '10px', textAlign: 'center' }}>
                         <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'Syne', color: s.color }}>{s.value}</div>
                         <div style={{ fontSize: 10, color: t3, marginTop: 2 }}>{s.label}</div>
@@ -502,7 +502,7 @@ export default function StratixMktPage() {
         {mktTab === 'solicitudes' && (
           <div>
             <div style={{ display: 'flex', gap: 4, marginBottom: 16, borderBottom: `1px solid ${border}` }}>
-              {[{ key: 'lista', label: '📋 Lista de tareas' }, { key: 'disponibilidad', label: '🗓 Disponibilidad' }].map(t => (
+              {[{ key: 'lista', label: '📋 Task list' }, { key: 'disponibilidad', label: '🗓 Availability' }].map(t => (
                 <button key={t.key} onClick={() => setSolTab(t.key)} style={{ padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', borderRadius: '8px 8px 0 0', fontFamily: 'DM Sans', background: 'transparent', color: solTab === t.key ? t1 : t3, borderBottom: solTab === t.key ? `2px solid ${accent}` : '2px solid transparent' }}>{t.label}</button>
               ))}
             </div>
@@ -510,7 +510,7 @@ export default function StratixMktPage() {
             {solTab === 'lista' && (
               <div>
                 <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-                  <input type="text" placeholder="Buscar por titulo, area..." value={busquedaSol} onChange={e => setBusquedaSol(e.target.value)} style={{ ...inputStyle, width: 280 }} />
+                  <input type="text" placeholder="Search by title, area..." value={busquedaSol} onChange={e => setBusquedaSol(e.target.value)} style={{ ...inputStyle, width: 280 }} />
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {['Todos','Pendiente','En proceso','Por aprobar','Completado'].map(e => (
                       <button key={e} onClick={() => setFiltroEstadoSol(e)} style={{ padding: '6px 12px', borderRadius: 20, fontSize: 11, border: `1px solid ${filtroEstadoSol === e ? ESTADO_COLORS[e] || accent : border}`, background: filtroEstadoSol === e ? `${ESTADO_COLORS[e] || accent}20` : 'transparent', color: filtroEstadoSol === e ? ESTADO_COLORS[e] || accent : t2, cursor: 'pointer' }}>{e}</button>
@@ -522,7 +522,7 @@ export default function StratixMktPage() {
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
                         <tr style={{ background: s2 }}>
-                          {['Titulo', 'Marca', ...(esSuperAdmin ? ['Responsable'] : []), 'Mes', 'Horas', 'Estado', 'Entrega', 'Drive'].map(h => (
+                          {['Title', 'Brand', ...(esSuperAdmin ? ['Assignee'] : []), 'Month', 'Hours', 'Status', 'Due', 'Drive'].map(h => (
                             <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>
                           ))}
                         </tr>
@@ -550,7 +550,7 @@ export default function StratixMktPage() {
                                 {a.fecha_entrega ? new Date(a.fecha_entrega + 'T00:00:00').toLocaleDateString('es-EC') : '—'}
                               </td>
                               <td style={{ padding: '10px 14px' }}>
-                                {a.drive_url ? <a href={a.drive_url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: '#60A5FA', textDecoration: 'none' }}>🔗 Ver</a> : <span style={{ fontSize: 10, color: t3 }}>—</span>}
+                                {a.drive_url ? <a href={a.drive_url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: '#60A5FA', textDecoration: 'none' }}>🔗 View</a> : <span style={{ fontSize: 10, color: t3 }}>—</span>}
                               </td>
                             </tr>
                           ))}
@@ -564,8 +564,8 @@ export default function StratixMktPage() {
             {solTab === 'disponibilidad' && (
               <div>
                 <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, fontFamily: 'Syne', color: t1, marginBottom: 4 }}>Disponibilidad del equipo</div>
-                  <div style={{ fontSize: 12, color: t3 }}>Lunes a Viernes · 9:00 AM — 6:00 PM · Hora Guayaquil, Ecuador</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, fontFamily: 'Syne', color: t1, marginBottom: 4 }}>Team availability</div>
+                  <div style={{ fontSize: 12, color: t3 }}>Monday to Friday · 9:00 AM — 6:00 PM · Guayaquil, Ecuador time</div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
                   {Object.entries(MIEMBROS_REFS).map(([ref, nombre]) => {
@@ -590,25 +590,25 @@ export default function StratixMktPage() {
                             </div>
                             <div>
                               <div style={{ fontSize: 14, fontWeight: 700, color: t1 }}>{nombre}</div>
-                              <div style={{ fontSize: 10, color: t3 }}>{tareasActivas.length} tareas activas · {horasOcupadas}h ocupadas</div>
+                              <div style={{ fontSize: 10, color: t3 }}>{tareasActivas.length} active tasks · {horasOcupadas}h occupied</div>
                             </div>
                           </div>
                           <span style={{ fontSize: 12, padding: '5px 12px', borderRadius: 20, background: disponible ? '#34D39920' : '#F8717120', color: disponible ? '#34D399' : '#F87171', fontWeight: 700 }}>
-                            {disponible ? '✓ Disponible' : '✕ Ocupado'}
+                            {disponible ? '✓ Available' : '✕ Busy'}
                           </span>
                         </div>
                         <div style={{ marginBottom: 14 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: t3, marginBottom: 5 }}>
-                            <span>Capacidad semanal (40h)</span>
-                            <span style={{ color: disponible ? '#34D399' : '#F87171', fontWeight: 600 }}>{horasLibres}h libres</span>
+                            <span>Weekly capacity (40h)</span>
+                            <span style={{ color: disponible ? '#34D399' : '#F87171', fontWeight: 600 }}>{horasLibres}h available</span>
                           </div>
                           <div style={{ height: 8, borderRadius: 4, background: border, overflow: 'hidden' }}>
                             <div style={{ height: '100%', borderRadius: 4, background: disponible ? '#34D399' : '#F87171', width: `${pctOcupado}%`, transition: 'width .5s' }} />
                           </div>
-                          <div style={{ fontSize: 9, color: t3, marginTop: 4, textAlign: 'right' }}>{Math.round(pctOcupado)}% de capacidad utilizada</div>
+                          <div style={{ fontSize: 9, color: t3, marginTop: 4, textAlign: 'right' }}>{Math.round(pctOcupado)}% capacity used</div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 10, color: t3, marginBottom: 6, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Horario hoy (9am-6pm)</div>
+                          <div style={{ fontSize: 10, color: t3, marginBottom: 6, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Today's schedule (9am-6pm)</div>
                           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                             {slots.map(hora => {
                               const slotOcupado = pctOcupado > 85 || (pctOcupado > 60 && (hora >= 10 && hora <= 14))
@@ -622,13 +622,13 @@ export default function StratixMktPage() {
                         </div>
                         {tareasActivas.length > 0 && (
                           <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${border}` }}>
-                            <div style={{ fontSize: 10, color: t3, marginBottom: 6 }}>Tareas en curso:</div>
+                            <div style={{ fontSize: 10, color: t3, marginBottom: 6 }}>Tasks in progress:</div>
                             {tareasActivas.slice(0, 2).map(a => (
                               <div key={a.id} style={{ fontSize: 11, color: t2, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 <span style={{ color: getColorMarca(a.area_ref), marginRight: 5 }}>●</span>{a.titulo}
                               </div>
                             ))}
-                            {tareasActivas.length > 2 && <div style={{ fontSize: 10, color: t3 }}>+{tareasActivas.length - 2} mas</div>}
+                            {tareasActivas.length > 2 && <div style={{ fontSize: 10, color: t3 }}>+{tareasActivas.length - 2} more</div>}
                           </div>
                         )}
                       </div>
@@ -644,7 +644,7 @@ export default function StratixMktPage() {
         {mktTab === 'equipo' && (
           <div>
             <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: `1px solid ${border}` }}>
-              {[{ key: 'team', label: '👥 Team' }, { key: 'reporte', label: '💰 Reporte' }].map(t => (
+              {[{ key: 'team', label: '👥 Team' }, { key: 'reporte', label: '💰 Report' }].map(t => (
                 <button key={t.key} onClick={() => setSubVista(t.key)} style={{ padding: '7px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', borderRadius: '8px 8px 0 0', fontFamily: 'DM Sans', background: 'transparent', color: subVista === t.key ? t1 : t3, borderBottom: subVista === t.key ? `2px solid ${accent}` : '2px solid transparent' }}>{t.label}</button>
               ))}
             </div>
@@ -656,7 +656,7 @@ export default function StratixMktPage() {
                   return (
                     <div key={tipo} style={{ marginBottom: 24 }}>
                       <div style={{ fontSize: 12, fontWeight: 600, color: tipo === 'A' ? accent : '#F472B6', marginBottom: 12, padding: '4px 12px', background: tipo === 'A' ? `${accent}15` : '#F472B615', borderRadius: 20, display: 'inline-block' }}>
-                        Tipo {tipo} — {tipo === 'A' ? 'Staff Creativo' : 'Internos / Pasantes'}
+                        Type {tipo} — {tipo === 'A' ? 'Creative Staff' : 'Interns / Trainees'}
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
                         {miembros.map(u => {
@@ -676,8 +676,8 @@ export default function StratixMktPage() {
                               </div>
                               <div style={{ fontSize: 10, color: t3, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>✉ {u.email}</div>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: 10, color: isOnline ? '#34D399' : t3 }}>{isOnline ? '● Activo ahora' : 'Offline'}</span>
-                                {tareasHoy > 0 && <span style={{ fontSize: 10, color: '#FBB040', background: '#FBB04015', padding: '2px 8px', borderRadius: 10 }}>{tareasHoy} en proceso</span>}
+                                <span style={{ fontSize: 10, color: isOnline ? '#34D399' : t3 }}>{isOnline ? '● Active now' : 'Offline'}</span>
+                                {tareasHoy > 0 && <span style={{ fontSize: 10, color: '#FBB040', background: '#FBB04015', padding: '2px 8px', borderRadius: 10 }}>{tareasHoy} in progress</span>}
                               </div>
                             </div>
                           )
@@ -699,7 +699,7 @@ export default function StratixMktPage() {
                       <div style={{ fontFamily: 'Syne', fontSize: 28, fontWeight: 800, color: '#60A5FA' }}>{r.horas}h</div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                      {[{ label: 'Total', value: r.total, color: t1 }, { label: 'Completadas', value: r.completadas, color: '#34D399' }, { label: 'Efectividad', value: `${r.total > 0 ? Math.round((r.completadas / r.total) * 100) : 0}%`, color: accent }].map(s => (
+                      {[{ label: 'Total', value: r.total, color: t1 }, { label: 'Completed', value: r.completadas, color: '#34D399' }, { label: 'Completion rate', value: `${r.total > 0 ? Math.round((r.completadas / r.total) * 100) : 0}%`, color: accent }].map(s => (
                         <div key={s.label} style={{ background: s2, borderRadius: 8, padding: '8px', textAlign: 'center' }}>
                           <div style={{ fontSize: 18, fontWeight: 800, fontFamily: 'Syne', color: s.color }}>{s.value}</div>
                           <div style={{ fontSize: 9, color: t3 }}>{s.label}</div>
@@ -718,14 +718,14 @@ export default function StratixMktPage() {
           <div id="reporte-content">
             <div id="print-header" style={{ display: 'none', textAlign: 'center', marginBottom: 24, paddingBottom: 16, borderBottom: '2px solid #333' }}>
               <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 22, fontWeight: 800, color: '#111' }}>Stratix Solutions</div>
-              <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4, color: '#333' }}>Reporte de Producción para Pago</div>
+              <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4, color: '#333' }}>Production Payment Report</div>
             </div>
             <div id="reporte-controls" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: t1 }}>Reporte de produccion para pago</span>
+              <span style={{ fontSize: 14, fontWeight: 600, color: t1 }}>Production payment report</span>
               <div style={{ display: 'flex', gap: 8 }}>
                 {esSuperAdmin && (
                   <select value={miembroReporte} onChange={e => setMiembroReporte(e.target.value)} style={{ ...inputStyle, width: 'auto', padding: '6px 12px' }}>
-                    <option value="">Seleccionar</option>
+                    <option value="">Select</option>
                     {Object.entries(MIEMBROS_REFS).map(([ref, nombre]) => <option key={ref} value={ref}>{nombre}</option>)}
                   </select>
                 )}
@@ -746,7 +746,7 @@ export default function StratixMktPage() {
                     <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:center"><span style="font-size:11px;padding:2px 10px;border-radius:20px;background:${estadoColor(a.estado)}20;color:${estadoColor(a.estado)};font-weight:600">${a.estado || ''}</span></td>
                   </tr>`).join('')
                   const today = new Date().toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric' })
-                  w.document.write(`<!DOCTYPE html><html><head><title>Reporte de Producción — ${nombreRep}</title>
+                  w.document.write(`<!DOCTYPE html><html><head><title>Production Report — ${nombreRep}</title>
                   <style>
                     * { margin:0; padding:0; box-sizing:border-box; }
                     body { font-family: 'Segoe UI', Arial, sans-serif; background:#fff; color:#111; padding:40px 50px; font-size:13px; }
@@ -754,25 +754,25 @@ export default function StratixMktPage() {
                   </style></head><body>
                   <div style="text-align:center;margin-bottom:28px;padding-bottom:18px;border-bottom:2px solid #222">
                     <div style="font-size:24px;font-weight:800;letter-spacing:.5px">Stratix Solutions</div>
-                    <div style="font-size:14px;font-weight:600;margin-top:4px;color:#444">Reporte de Producción para Pago</div>
+                    <div style="font-size:14px;font-weight:600;margin-top:4px;color:#444">Production Payment Report</div>
                   </div>
                   <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid #e5e7eb">
                     <div>
-                      <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Colaborador</div>
+                      <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Team member</div>
                       <div style="font-size:20px;font-weight:700">${nombreRep}</div>
                       <div style="font-size:11px;color:#888;font-family:monospace;margin-top:2px">${refRep}</div>
                     </div>
                     <div style="text-align:right">
-                      <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Periodo</div>
+                      <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Period</div>
                       <div style="font-size:16px;font-weight:700">${mesReporte} 2026</div>
                     </div>
                   </div>
                   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
                     ${[
-                      { label: 'Total tareas', value: actsRep.length, color: '#7C6FF7' },
-                      { label: 'Completadas', value: completadasRep, color: '#34D399' },
-                      { label: 'Horas totales', value: totalHorasRep + 'h', color: '#F472B6' },
-                      { label: 'Días producción', value: totalDiasRep, color: '#60A5FA' }
+                      { label: 'Total tasks', value: actsRep.length, color: '#7C6FF7' },
+                      { label: 'Completed', value: completadasRep, color: '#34D399' },
+                      { label: 'Total hours', value: totalHorasRep + 'h', color: '#F472B6' },
+                      { label: 'Production days', value: totalDiasRep, color: '#60A5FA' }
                     ].map(k => `<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px;text-align:center">
                       <div style="font-size:24px;font-weight:800;color:${k.color}">${k.value}</div>
                       <div style="font-size:10px;color:#888;margin-top:4px;text-transform:uppercase;letter-spacing:.05em">${k.label}</div>
@@ -780,51 +780,51 @@ export default function StratixMktPage() {
                   </div>
                   <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
                     <thead><tr style="background:#f8f8fa">
-                      ${['#', 'Tarea', 'Área', 'Horas', 'Días Prod.', 'Mes', 'Estado'].map(h => `<th style="padding:10px;text-align:left;font-size:10px;color:#888;font-family:monospace;text-transform:uppercase;border-bottom:2px solid #e5e7eb;font-weight:400">${h}</th>`).join('')}
+                      ${['#', 'Task', 'Area', 'Hours', 'Prod. Days', 'Month', 'Status'].map(h => `<th style="padding:10px;text-align:left;font-size:10px;color:#888;font-family:monospace;text-transform:uppercase;border-bottom:2px solid #e5e7eb;font-weight:400">${h}</th>`).join('')}
                     </tr></thead>
                     <tbody>${rows}</tbody>
                   </table>
-                  ${actsRep.length === 0 ? '<div style="text-align:center;padding:40px;color:#999">Sin tareas para este periodo</div>' : ''}
+                  ${actsRep.length === 0 ? '<div style="text-align:center;padding:40px;color:#999">No tasks for this period</div>' : ''}
                   <div style="margin-top:60px;padding-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:80px">
                     <div style="text-align:center">
                       <div style="border-top:1px solid #333;padding-top:10px;font-size:12px;font-weight:600">${nombreRep}</div>
-                      <div style="font-size:10px;color:#888;margin-top:2px">Colaborador</div>
+                      <div style="font-size:10px;color:#888;margin-top:2px">Team member</div>
                     </div>
                     <div style="text-align:center">
                       <div style="border-top:1px solid #333;padding-top:10px;font-size:12px;font-weight:600">Freddy Crespín</div>
-                      <div style="font-size:10px;color:#888;margin-top:2px">Coordinador de Marketing — Aprobado por</div>
+                      <div style="font-size:10px;color:#888;margin-top:2px">Marketing Coordinator — Approved by</div>
                     </div>
                   </div>
                   <div style="margin-top:40px;padding-top:14px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10px;color:#aaa">
-                    <span>Generado el ${today}</span>
+                    <span>Generated on ${today}</span>
                     <span>Stratix Solutions — Eminat MKT</span>
                   </div>
                   <div class="no-print" style="text-align:center;margin-top:30px">
-                    <button onclick="window.print()" style="padding:10px 28px;border-radius:8px;background:#7C6FF7;color:white;border:none;font-size:13px;font-weight:600;cursor:pointer">Imprimir</button>
+                    <button onclick="window.print()" style="padding:10px 28px;border-radius:8px;background:#7C6FF7;color:white;border:none;font-size:13px;font-weight:600;cursor:pointer">Print</button>
                   </div>
                   </body></html>`)
                   w.document.close()
-                }} style={{ padding: '7px 14px', borderRadius: 8, background: accent, color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Imprimir</button>
+                }} style={{ padding: '7px 14px', borderRadius: 8, background: accent, color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Print</button>
               </div>
             </div>
             <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '24px 28px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
                 <div>
-                  <div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>Reporte de Produccion</div>
-                  <div style={{ fontSize: 12, color: t3 }}>Eminat MKT — Agencia de Marketing del Holding Eminat</div>
+                  <div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>Production Report</div>
+                  <div style={{ fontSize: 12, color: t3 }}>Eminat MKT — Marketing Agency of Eminat Holding</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 10, color: t3 }}>Periodo</div>
+                  <div style={{ fontSize: 10, color: t3 }}>Period</div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: t1 }}>{mesReporte} 2026</div>
                 </div>
               </div>
               <div style={{ borderTop: `1px solid ${border}`, paddingTop: 14, marginBottom: 14 }}>
-                <div style={{ fontSize: 10, color: t3, marginBottom: 4 }}>Colaborador</div>
+                <div style={{ fontSize: 10, color: t3, marginBottom: 4 }}>Team member</div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: t1 }}>{nombreRep}</div>
                 <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono' }}>{refRep}</div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 18 }}>
-                {[{ label: 'Total tareas', value: actsRep.length, color: accent }, { label: 'Completadas', value: completadasRep, color: '#34D399' }, { label: 'Horas totales', value: `${totalHorasRep}h`, color: '#F472B6' }, { label: 'Dias produccion', value: totalDiasRep, color: '#60A5FA' }].map(s => (
+                {[{ label: 'Total tasks', value: actsRep.length, color: accent }, { label: 'Completed', value: completadasRep, color: '#34D399' }, { label: 'Total hours', value: `${totalHorasRep}h`, color: '#F472B6' }, { label: 'Production days', value: totalDiasRep, color: '#60A5FA' }].map(s => (
                   <div key={s.label} style={{ background: s2, borderRadius: 10, padding: '12px', textAlign: 'center' }}>
                     <div style={{ fontFamily: 'Syne', fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
                     <div style={{ fontSize: 10, color: t3, marginTop: 4 }}>{s.label}</div>
@@ -834,7 +834,7 @@ export default function StratixMktPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead>
                   <tr style={{ background: s2 }}>
-                    {['Tarea', 'Area', 'Horas', 'Dias Prod.', 'Estado'].map(h => (
+                    {['Task', 'Area', 'Hours', 'Prod. Days', 'Status'].map(h => (
                       <th key={h} style={{ padding: '9px 12px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>
                     ))}
                   </tr>
@@ -853,10 +853,10 @@ export default function StratixMktPage() {
                   ))}
                 </tbody>
               </table>
-              {actsRep.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: t3 }}>Sin tareas para este periodo</div>}
+              {actsRep.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: t3 }}>No tasks for this period</div>}
               <div style={{ marginTop: 40, paddingTop: 20, borderTop: `1px solid ${border}`, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60 }}>
-                <div style={{ textAlign: 'center' }}><div style={{ borderTop: `1px solid ${border}`, paddingTop: 8, fontSize: 11, color: t3 }}>Firma del colaborador</div></div>
-                <div style={{ textAlign: 'center' }}><div style={{ borderTop: `1px solid ${border}`, paddingTop: 8, fontSize: 11, color: t3 }}>Firma del coordinador</div></div>
+                <div style={{ textAlign: 'center' }}><div style={{ borderTop: `1px solid ${border}`, paddingTop: 8, fontSize: 11, color: t3 }}>Team member signature</div></div>
+                <div style={{ textAlign: 'center' }}><div style={{ borderTop: `1px solid ${border}`, paddingTop: 8, fontSize: 11, color: t3 }}>Coordinator signature</div></div>
               </div>
             </div>
           </div>
@@ -915,35 +915,35 @@ export default function StratixMktPage() {
               {/* KPIs */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 20 }}>
                 <div style={statS}>
-                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Seguidores Totales</div>
+                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Total Followers</div>
                   <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Syne', color: accent }}>{fNum(totalFollowers)}</div>
-                  <div style={{ fontSize: 10, color: '#34D399' }}>+{fNum(totalGrowth)} este mes</div>
+                  <div style={{ fontSize: 10, color: '#34D399' }}>+{fNum(totalGrowth)} this month</div>
                 </div>
                 <div style={statS}>
-                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Alcance Total</div>
+                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Total Reach</div>
                   <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Syne', color: '#60A5FA' }}>{fNum(totalReach)}</div>
-                  <div style={{ fontSize: 10, color: t3 }}>personas alcanzadas</div>
+                  <div style={{ fontSize: 10, color: t3 }}>people reached</div>
                 </div>
                 <div style={statS}>
-                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Engagement Promedio</div>
+                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Avg Engagement</div>
                   <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Syne', color: '#34D399' }}>{avgEngagement}%</div>
-                  <div style={{ fontSize: 10, color: t3 }}>interaccion media</div>
+                  <div style={{ fontSize: 10, color: t3 }}>average interaction</div>
                 </div>
                 <div style={statS}>
-                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Posts Este Mes</div>
+                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Posts This Month</div>
                   <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Syne', color: '#F472B6' }}>{totalPosts}</div>
-                  <div style={{ fontSize: 10, color: t3 }}>publicaciones</div>
+                  <div style={{ fontSize: 10, color: t3 }}>publications</div>
                 </div>
                 <div style={statS}>
-                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Crecimiento</div>
+                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Growth</div>
                   <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Syne', color: '#FBB040' }}>+{Math.round(totalGrowth / Math.max(totalFollowers - totalGrowth, 1) * 100 * 10) / 10}%</div>
-                  <div style={{ fontSize: 10, color: t3 }}>mes actual</div>
+                  <div style={{ fontSize: 10, color: t3 }}>current month</div>
                 </div>
               </div>
 
               {/* Brand Performance */}
               <div style={{ ...cardS, marginBottom: 16 }}>
-                <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 14 }}>Rendimiento por Marca</div>
+                <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 14 }}>Performance by Brand</div>
                 <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(brandTotals.length, 5)}, 1fr)`, gap: 12 }}>
                   {brandTotals.map(b => (
                     <div key={b.codigo} style={{ padding: '14px', borderRadius: 12, border: `1px solid ${border}`, background: `${b.color}08` }}>
@@ -968,14 +968,14 @@ export default function StratixMktPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                     <span style={{ fontSize: 18 }}>{platform.icon}</span>
                     <span style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1 }}>{platform.name}</span>
-                    <span style={badge(platform.color)}>{platform.accounts.length} cuentas</span>
+                    <span style={badge(platform.color)}>{platform.accounts.length} accounts</span>
                     <div style={{ flex: 1 }} />
-                    <span style={{ fontSize: 11, color: t3 }}>Total: <span style={{ fontWeight: 700, color: t1 }}>{fNum(platform.accounts.reduce((s, a) => s + a.followers, 0))}</span> seguidores</span>
+                    <span style={{ fontSize: 11, color: t3 }}>Total: <span style={{ fontWeight: 700, color: t1 }}>{fNum(platform.accounts.reduce((s, a) => s + a.followers, 0))}</span> followers</span>
                   </div>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
                     <thead>
                       <tr style={{ borderBottom: `1px solid ${border}` }}>
-                        {['Cuenta', 'Marca', 'Seguidores', 'Crecimiento', 'Posts', 'Alcance', 'Engagement', 'Impresiones', 'Mejor Post'].map(h => (
+                        {['Account', 'Brand', 'Followers', 'Growth', 'Posts', 'Reach', 'Engagement', 'Impressions', 'Best Post'].map(h => (
                           <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: t3, fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em' }}>{h}</th>
                         ))}
                       </tr>
@@ -1004,13 +1004,13 @@ export default function StratixMktPage() {
 
               {/* Content Calendar Summary */}
               <div style={cardS}>
-                <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 14 }}>Resumen de Contenido del Mes</div>
+                <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 14 }}>Monthly Content Summary</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
                   {[
                     { label: 'Reels / Videos', value: platforms.reduce((s, p) => s + p.accounts.reduce((a, ac) => a + ac.reels, 0), 0), icon: '🎬', color: '#E1306C' },
                     { label: 'Stories', value: platforms.reduce((s, p) => s + p.accounts.reduce((a, ac) => a + ac.stories, 0), 0), icon: '📱', color: '#FBB040' },
-                    { label: 'Posts Estaticos', value: totalPosts - platforms.reduce((s, p) => s + p.accounts.reduce((a, ac) => a + ac.reels, 0), 0), icon: '🖼️', color: '#60A5FA' },
-                    { label: 'Total Piezas', value: totalPosts + platforms.reduce((s, p) => s + p.accounts.reduce((a, ac) => a + ac.stories, 0), 0), icon: '📊', color: accent },
+                    { label: 'Static Posts', value: totalPosts - platforms.reduce((s, p) => s + p.accounts.reduce((a, ac) => a + ac.reels, 0), 0), icon: '🖼️', color: '#60A5FA' },
+                    { label: 'Total Pieces', value: totalPosts + platforms.reduce((s, p) => s + p.accounts.reduce((a, ac) => a + ac.stories, 0), 0), icon: '📊', color: accent },
                   ].map(item => (
                     <div key={item.label} style={{ padding: '16px', borderRadius: 12, border: `1px solid ${border}`, textAlign: 'center' }}>
                       <div style={{ fontSize: 24, marginBottom: 6 }}>{item.icon}</div>
@@ -1154,7 +1154,7 @@ export default function StratixMktPage() {
               {/* Market Position Overview */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
                 <div style={{ ...cardS, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Posicion en Instagram</div>
+                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Instagram Position</div>
                   <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Syne', color: '#34D399' }}>#1</div>
                   <div style={{ fontSize: 10, color: t3 }}>Eminat: {fNum(eminatData.igFollowers)} vs top comp: {fNum(Math.max(...competitors.map(c => c.igFollowers)))}</div>
                 </div>
@@ -1164,24 +1164,24 @@ export default function StratixMktPage() {
                   <div style={{ fontSize: 10, color: t3 }}>{eminatData.googleRating}/5 — {eminatData.googleReviews} reviews</div>
                 </div>
                 <div style={{ ...cardS, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Engagement vs Mercado</div>
+                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Engagement vs Market</div>
                   <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Syne', color: accent }}>{eminatData.avgEngagement}%</div>
-                  <div style={{ fontSize: 10, color: '#34D399' }}>+{(eminatData.avgEngagement - Math.round(competitors.reduce((s, c) => s + c.igEngagement, 0) / competitors.length * 10) / 10).toFixed(1)}% sobre promedio</div>
+                  <div style={{ fontSize: 10, color: '#34D399' }}>+{(eminatData.avgEngagement - Math.round(competitors.reduce((s, c) => s + c.igEngagement, 0) / competitors.length * 10) / 10).toFixed(1)}% above average</div>
                 </div>
                 <div style={{ ...cardS, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Competidores Tracked</div>
+                  <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Competitors Tracked</div>
                   <div style={{ fontSize: 26, fontWeight: 800, fontFamily: 'Syne', color: t1 }}>{competitors.length}</div>
-                  <div style={{ fontSize: 10, color: t3 }}>{competitors.filter(c => c.tendencia === 'creciendo').length} creciendo · {competitors.filter(c => c.tendencia === 'bajando').length} bajando</div>
+                  <div style={{ fontSize: 10, color: t3 }}>{competitors.filter(c => c.tendencia === 'creciendo').length} growing · {competitors.filter(c => c.tendencia === 'bajando').length} declining</div>
                 </div>
               </div>
 
               {/* Instagram Comparison Bar Chart */}
               <div style={{ ...cardS, marginBottom: 16 }}>
-                <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 16 }}>Comparativa Instagram — Seguidores Miami</div>
+                <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 16 }}>Instagram Comparison — Miami Followers</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {/* Eminat */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 180, fontSize: 12, fontWeight: 700, color: accent, textAlign: 'right' }}>Eminat (todas las marcas)</div>
+                    <div style={{ width: 180, fontSize: 12, fontWeight: 700, color: accent, textAlign: 'right' }}>Eminat (all brands)</div>
                     <div style={{ flex: 1, height: 28, borderRadius: 6, background: s2 }}>
                       <div style={{ height: '100%', borderRadius: 6, background: `linear-gradient(90deg, ${accent}, #A78BFA)`, width: `${(eminatData.igFollowers / maxIG) * 100}%`, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 8, transition: 'width .5s' }}>
                         <span style={{ fontSize: 10, fontWeight: 700, color: 'white' }}>{fNum(eminatData.igFollowers)}</span>
@@ -1242,7 +1242,7 @@ export default function StratixMktPage() {
 
                     {/* Servicios */}
                     <div style={{ marginBottom: 10 }}>
-                      <div style={{ fontSize: 10, color: t3, marginBottom: 4 }}>Servicios</div>
+                      <div style={{ fontSize: 10, color: t3, marginBottom: 4 }}>Services</div>
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                         {comp.servicios.map(s => <span key={s} style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, background: s2, color: t2 }}>{s}</span>)}
                       </div>
@@ -1251,11 +1251,11 @@ export default function StratixMktPage() {
                     {/* Fortalezas y Debilidades */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                       <div>
-                        <div style={{ fontSize: 10, color: '#34D399', fontWeight: 600, marginBottom: 4 }}>Fortalezas</div>
+                        <div style={{ fontSize: 10, color: '#34D399', fontWeight: 600, marginBottom: 4 }}>Strengths</div>
                         {comp.fortalezas.map(f => <div key={f} style={{ fontSize: 10, color: t2, padding: '2px 0', display: 'flex', gap: 4 }}><span style={{ color: '#34D399' }}>+</span> {f}</div>)}
                       </div>
                       <div>
-                        <div style={{ fontSize: 10, color: '#F87171', fontWeight: 600, marginBottom: 4 }}>Debilidades</div>
+                        <div style={{ fontSize: 10, color: '#F87171', fontWeight: 600, marginBottom: 4 }}>Weaknesses</div>
                         {comp.debilidades.map(d => <div key={d} style={{ fontSize: 10, color: t2, padding: '2px 0', display: 'flex', gap: 4 }}><span style={{ color: '#F87171' }}>-</span> {d}</div>)}
                       </div>
                     </div>
@@ -1264,16 +1264,16 @@ export default function StratixMktPage() {
 
                 {/* Eminat Advantages Card */}
                 <div style={{ ...cardS, border: `2px solid ${accent}`, background: `${accent}05` }}>
-                  <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 16, color: accent, marginBottom: 12 }}>Ventajas Competitivas Eminat</div>
+                  <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 16, color: accent, marginBottom: 12 }}>Eminat Competitive Advantages</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {[
-                      { icon: '🏥', title: 'Ecosistema Integrado', desc: 'Medical Center + Research Group + Foundation — ninguno lo ofrece' },
-                      { icon: '📸', title: 'Lider en Social Media', desc: `${fNum(eminatData.igFollowers)} seguidores IG combinados, ${eminatData.avgEngagement}% engagement` },
-                      { icon: '🔬', title: 'Clinical Research', desc: 'Unico con programa de investigacion clinica activo en el segmento' },
-                      { icon: '🤖', title: 'AI & Tecnologia', desc: 'Ornella IA como diferenciador tecnologico en el mercado' },
-                      { icon: '🌎', title: 'Multi-marca', desc: '5+ marcas cubriendo medical, estetica, research, bienestar y social' },
-                      { icon: '⭐', title: 'Reputacion Superior', desc: `${eminatData.googleRating}/5 Google Rating — sobre promedio del mercado` },
-                      { icon: '❤️', title: 'Impacto Social', desc: 'VN Foundation — diferenciador de responsabilidad social unico' },
+                      { icon: '🏥', title: 'Integrated Ecosystem', desc: 'Medical Center + Research Group + Foundation — no one else offers this' },
+                      { icon: '📸', title: 'Social Media Leader', desc: `${fNum(eminatData.igFollowers)} combined IG followers, ${eminatData.avgEngagement}% engagement` },
+                      { icon: '🔬', title: 'Clinical Research', desc: 'Only one with an active clinical research program in the segment' },
+                      { icon: '🤖', title: 'AI & Technology', desc: 'Ornella AI as a technology differentiator in the market' },
+                      { icon: '🌎', title: 'Multi-brand', desc: '5+ brands covering medical, aesthetics, research, wellness and social' },
+                      { icon: '⭐', title: 'Superior Reputation', desc: `${eminatData.googleRating}/5 Google Rating — above market average` },
+                      { icon: '❤️', title: 'Social Impact', desc: 'VN Foundation — unique social responsibility differentiator' },
                     ].map(v => (
                       <div key={v.title} style={{ display: 'flex', gap: 10, padding: '8px 10px', borderRadius: 10, background: `${accent}08` }}>
                         <span style={{ fontSize: 20 }}>{v.icon}</span>
@@ -1310,14 +1310,14 @@ export default function StratixMktPage() {
             )}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
               {[
-                { label: 'Responsable', value: MIEMBROS_REFS[modalVerAct.responsable_ref] || modalVerAct.responsable_ref },
-                { label: 'Solicitado por', value: SOLICITANTES.find(s => s.value === modalVerAct.solicitado_por)?.label || modalVerAct.solicitado_por || '—' },
-                { label: 'Mes', value: modalVerAct.mes },
-                { label: 'Trimestre', value: modalVerAct.trimestre || mesATrimestre[modalVerAct.mes || 'Enero'] || 'Q1' },
-                { label: 'Horas estimadas', value: `${modalVerAct.horas || 0}h` },
-                { label: 'Dias produccion', value: modalVerAct.dias_produccion || '0' },
-                { label: 'Fecha entrega', value: modalVerAct.fecha_entrega ? new Date(modalVerAct.fecha_entrega + 'T00:00:00').toLocaleDateString('es-EC', { weekday: 'short', day: 'numeric', month: 'long' }) : 'Sin fecha' },
-                { label: 'Verificado', value: modalVerAct.verificado ? '✓ Si' : '✕ No' },
+                { label: 'Assignee', value: MIEMBROS_REFS[modalVerAct.responsable_ref] || modalVerAct.responsable_ref },
+                { label: 'Requested by', value: SOLICITANTES.find(s => s.value === modalVerAct.solicitado_por)?.label || modalVerAct.solicitado_por || '—' },
+                { label: 'Month', value: modalVerAct.mes },
+                { label: 'Quarter', value: modalVerAct.trimestre || mesATrimestre[modalVerAct.mes || 'Enero'] || 'Q1' },
+                { label: 'Estimated hours', value: `${modalVerAct.horas || 0}h` },
+                { label: 'Production days', value: modalVerAct.dias_produccion || '0' },
+                { label: 'Due date', value: modalVerAct.fecha_entrega ? new Date(modalVerAct.fecha_entrega + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'long' }) : 'No date' },
+                { label: 'Verified', value: modalVerAct.verificado ? '✓ Yes' : '✕ No' },
               ].map(item => (
                 <div key={item.label} style={{ background: s2, borderRadius: 10, padding: '10px 12px' }}>
                   <div style={{ fontSize: 10, color: t3, marginBottom: 2, fontFamily: 'DM Mono', textTransform: 'uppercase' }}>{item.label}</div>
@@ -1326,7 +1326,7 @@ export default function StratixMktPage() {
               ))}
             </div>
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 11, color: t3, marginBottom: 8, fontFamily: 'DM Mono', textTransform: 'uppercase' }}>Cambiar estado</div>
+              <div style={{ fontSize: 11, color: t3, marginBottom: 8, fontFamily: 'DM Mono', textTransform: 'uppercase' }}>Change status</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {COLUMNAS_KANBAN.map(col => (
                   <button key={col} onClick={async () => {
@@ -1340,7 +1340,7 @@ export default function StratixMktPage() {
             </div>
             {modalVerAct.drive_url && (
               <a href={modalVerAct.drive_url} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 10, background: `${accent}15`, color: accent, textDecoration: 'none', fontSize: 13, fontWeight: 500 }}>
-                🔗 Ver carpeta en Google Drive
+                🔗 View folder in Google Drive
               </a>
             )}
           </div>
@@ -1353,28 +1353,28 @@ export default function StratixMktPage() {
           <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 18, padding: 28, width: 520, maxWidth: '95vw', maxHeight: '92vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <div>
-                <div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>Nueva tarea</div>
-                <div style={{ fontSize: 11, color: t3, marginTop: 2 }}>Completa los campos para agregar al Kanban</div>
+                <div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>New task</div>
+                <div style={{ fontSize: 11, color: t3, marginTop: 2 }}>Fill in the fields to add to Kanban</div>
               </div>
               <button onClick={() => setModalNuevaAct(false)} style={{ background: 'none', border: 'none', color: t3, fontSize: 22, cursor: 'pointer' }}>✕</button>
             </div>
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>Titulo de la tarea <span style={{ color: '#F87171' }}>*</span></label>
-              <input type="text" value={nuevaAct.titulo} onChange={e => setNuevaAct(p => ({ ...p, titulo: e.target.value }))} placeholder="Ej. Disenar banner para EMC redes sociales" autoFocus style={{ ...inputStyle, fontSize: 14, padding: '11px 14px' }} />
+              <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>Task title <span style={{ color: '#F87171' }}>*</span></label>
+              <input type="text" value={nuevaAct.titulo} onChange={e => setNuevaAct(p => ({ ...p, titulo: e.target.value }))} placeholder="E.g. Design banner for EMC social media" autoFocus style={{ ...inputStyle, fontSize: 14, padding: '11px 14px' }} />
             </div>
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>Descripcion (opcional)</label>
-              <textarea value={nuevaAct.descripcion} onChange={e => setNuevaAct(p => ({ ...p, descripcion: e.target.value }))} placeholder="Detalla que incluye esta tarea..." rows={3} style={{ ...inputStyle, resize: 'vertical', minHeight: 80 }} />
+              <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>Description (optional)</label>
+              <textarea value={nuevaAct.descripcion} onChange={e => setNuevaAct(p => ({ ...p, descripcion: e.target.value }))} placeholder="Describe what this task includes..." rows={3} style={{ ...inputStyle, resize: 'vertical', minHeight: 80 }} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
               <div>
-                <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>🎨 Marca / Area <span style={{ color: '#F87171' }}>*</span></label>
+                <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>🎨 Brand / Area <span style={{ color: '#F87171' }}>*</span></label>
                 <select value={nuevaAct.area_ref} onChange={e => setNuevaAct(p => ({ ...p, area_ref: e.target.value }))} style={inputStyle}>
                   {MARCAS_LIST.map(a => <option key={a.codigo} value={a.codigo}>{a.codigo} — {a.label}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>👤 Responsable <span style={{ color: '#F87171' }}>*</span></label>
+                <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>👤 Assignee <span style={{ color: '#F87171' }}>*</span></label>
                 <select value={nuevaAct.responsable_ref} onChange={e => setNuevaAct(p => ({ ...p, responsable_ref: e.target.value }))} style={inputStyle}>
                   {Object.entries(MIEMBROS_REFS).map(([ref, nombre]) => <option key={ref} value={ref}>{nombre}</option>)}
                 </select>
@@ -1419,9 +1419,9 @@ export default function StratixMktPage() {
               <input type="url" value={nuevaAct.drive_url} onChange={e => setNuevaAct(p => ({ ...p, drive_url: e.target.value }))} placeholder="https://drive.google.com/drive/folders/..." style={inputStyle} />
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setModalNuevaAct(false)} style={{ flex: 1, padding: '11px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={() => setModalNuevaAct(false)} style={{ flex: 1, padding: '11px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
               <button onClick={crearActividad} disabled={creandoAct || !nuevaAct.titulo.trim()} style={{ flex: 2, padding: '11px', borderRadius: 10, border: 'none', background: creandoAct || !nuevaAct.titulo.trim() ? t3 : accent, color: 'white', fontSize: 13, fontWeight: 600, cursor: creandoAct || !nuevaAct.titulo.trim() ? 'not-allowed' : 'pointer' }}>
-                {creandoAct ? '⏳ Creando...' : '✓ Crear tarea'}
+                {creandoAct ? '⏳ Creating...' : '✓ Create task'}
               </button>
             </div>
           </div>

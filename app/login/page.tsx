@@ -58,7 +58,7 @@ export default function LoginPage() {
     setLoading(true)
 
     if (!emailValido(email)) {
-      setError('Solo se permiten emails corporativos (@eminat.net, @emc.health, @vivinegretefoundation.org)')
+      setError('Only corporate emails are allowed (@eminat.net, @emc.health, @vivinegretefoundation.org)')
       setLoading(false)
       return
     }
@@ -66,7 +66,7 @@ export default function LoginPage() {
     const { error: err } = await supabase.auth.signInWithPassword({ email, password })
 
     if (err) {
-      setError('Email o contraseña incorrectos')
+      setError('Incorrect email or password')
       setLoading(false)
       return
     }
@@ -101,14 +101,14 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
     if (!emailValido(email)) {
-      setError('Solo se permiten emails corporativos del Holding Eminat')
+      setError('Only Eminat Holding corporate emails are allowed')
       setLoading(false)
       return
     }
     const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     })
-    if (err) { setError('Error al enviar el email. Intenta de nuevo.'); setLoading(false); return }
+    if (err) { setError('Error sending email. Please try again.'); setLoading(false); return }
     setSent(true)
     setLoading(false)
   }
@@ -118,13 +118,13 @@ export default function LoginPage() {
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF' }}>
         <div style={{ maxWidth: 480, width: '100%', margin: '0 20px', textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 24 }}>📧</div>
-          <h2 style={{ fontFamily: 'Inter, DM Sans, sans-serif', fontSize: 28, fontWeight: 800, marginBottom: 12, color: '#0F172A' }}>Email enviado</h2>
+          <h2 style={{ fontFamily: 'Inter, DM Sans, sans-serif', fontSize: 28, fontWeight: 800, marginBottom: 12, color: '#0F172A' }}>Email sent</h2>
           <p style={{ color: '#6B7280', lineHeight: 1.6, marginBottom: 24 }}>
-            Revisa tu bandeja de entrada — te enviamos un link para restablecer tu contraseña.
+            Check your inbox — we sent you a link to reset your password.
           </p>
           <button onClick={() => { setSent(false); setMode('login') }}
             style={{ color: '#4F46E5', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
-            &larr; Volver al login
+            &larr; Back to sign in
           </button>
         </div>
       </div>
@@ -146,17 +146,17 @@ export default function LoginPage() {
           </div>
 
           <h2 style={{ fontSize: 40, fontWeight: 900, lineHeight: 1.08, letterSpacing: '-0.03em', marginBottom: 20 }}>
-            El sistema operativo<br />del Holding<br />
+            The operating<br />system for<br />
             <span style={{ color: '#4F46E5' }}>Eminat.</span>
           </h2>
           <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15, lineHeight: 1.7, maxWidth: 340 }}>
-            Gestión integrada de marketing, research, finanzas, medical y recursos humanos.
+            Integrated management for marketing, research, finance, medical and human resources.
           </p>
         </div>
 
         <div>
           <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: 'rgba(255,255,255,0.3)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.1em' }}>
-            Hora mundial
+            World clock
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 28 }}>
             {ZONAS.map((z, i) => (
@@ -170,7 +170,7 @@ export default function LoginPage() {
             ))}
           </div>
           <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: 'rgba(255,255,255,0.3)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '.1em' }}>
-            Dominios autorizados
+            Authorized domains
           </div>
           {['@eminat.net', '@emc.health', '@vivinegretefoundation.org'].map(d => (
             <div key={d} style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: 'rgba(255,255,255,0.4)', marginBottom: 5, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -186,23 +186,23 @@ export default function LoginPage() {
         <div style={{ maxWidth: 400, width: '100%' }}>
           {mode === 'login' && (
             <div style={{ marginBottom: 36 }}>
-              <h1 style={{ fontSize: 28, fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em', marginBottom: 8 }}>Iniciar sesión</h1>
-              <p style={{ fontSize: 14, color: '#9CA3AF' }}>Accede con tu email corporativo</p>
+              <h1 style={{ fontSize: 28, fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em', marginBottom: 8 }}>Sign in</h1>
+              <p style={{ fontSize: 14, color: '#9CA3AF' }}>Access with your corporate email</p>
             </div>
           )}
 
           {mode === 'reset' && (
             <div style={{ marginBottom: 28 }}>
-              <h3 style={{ fontSize: 24, fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em', marginBottom: 8 }}>Recuperar contraseña</h3>
+              <h3 style={{ fontSize: 24, fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em', marginBottom: 8 }}>Reset password</h3>
               <p style={{ fontSize: 14, color: '#9CA3AF', lineHeight: 1.5 }}>
-                Ingresa tu email corporativo y te enviaremos un link para restablecerla.
+                Enter your corporate email and we'll send you a reset link.
               </p>
             </div>
           )}
 
           <form onSubmit={mode === 'login' ? handleLogin : handleReset}>
             <div style={{ marginBottom: 18 }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: '#374151' }}>Email corporativo</label>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: '#374151' }}>Corporate email</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@eminat.net" required
                 style={{ width: '100%', padding: '12px 16px', background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 10, color: '#111827', fontSize: 15, fontFamily: 'inherit', outline: 'none', transition: 'border-color .2s', boxSizing: 'border-box' }}
                 onFocus={e => e.target.style.borderColor = '#4F46E5'}
@@ -211,7 +211,7 @@ export default function LoginPage() {
 
             {mode !== 'reset' && (
               <div style={{ marginBottom: 8 }}>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: '#374151' }}>Contraseña</label>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: '#374151' }}>Password</label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required minLength={8}
                   style={{ width: '100%', padding: '12px 16px', background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 10, color: '#111827', fontSize: 15, fontFamily: 'inherit', outline: 'none', transition: 'border-color .2s', boxSizing: 'border-box' }}
                   onFocus={e => e.target.style.borderColor = '#4F46E5'}
@@ -223,7 +223,7 @@ export default function LoginPage() {
               <div style={{ textAlign: 'right', marginBottom: 24 }}>
                 <button type="button" onClick={() => { setMode('reset'); setError('') }}
                   style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  ¿Olvidaste tu contraseña?
+                  Forgot your password?
                 </button>
               </div>
             )}
@@ -241,9 +241,9 @@ export default function LoginPage() {
               fontFamily: 'inherit', transition: 'all .2s',
               boxShadow: loading ? 'none' : '0 4px 12px rgba(79,70,229,0.25)',
             }}>
-              {loading ? 'Procesando...' :
-                mode === 'login' ? 'Iniciar sesión' :
-                'Enviar link de recuperación'}
+              {loading ? 'Processing...' :
+                mode === 'login' ? 'Sign in' :
+                'Send reset link'}
             </button>
           </form>
 
@@ -251,7 +251,7 @@ export default function LoginPage() {
             <div style={{ textAlign: 'center', marginTop: 20 }}>
               <button onClick={() => { setMode('login'); setError('') }}
                 style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-                &larr; Volver al login
+                &larr; Back to sign in
               </button>
             </div>
           )}
@@ -259,7 +259,7 @@ export default function LoginPage() {
           {mode !== 'reset' && (
             <div style={{ textAlign: 'center', marginTop: 28 }}>
               <p style={{ fontSize: 13, color: '#9CA3AF', lineHeight: 1.5 }}>
-                ¿No tienes cuenta? Solicita acceso a{' '}
+                Don't have an account? Request access at{' '}
                 <a href="mailto:freddy@eminat.net" style={{ color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>freddy@eminat.net</a>
               </p>
             </div>

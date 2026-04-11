@@ -18,17 +18,17 @@ const D = {
 
 const mktSubItems = [
   { id: 'sub-overview', icon: '📊', label: 'Dashboard', tab: 'overview' },
-  { id: 'sub-prod', icon: '⚡', label: 'Produccion', tab: 'kanban' },
-  { id: 'sub-sol', icon: '📋', label: 'Solicitudes', tab: 'solicitudes' },
+  { id: 'sub-prod', icon: '⚡', label: 'Production', tab: 'kanban' },
+  { id: 'sub-sol', icon: '📋', label: 'Requests', tab: 'solicitudes' },
   { id: 'sub-social', icon: '📱', label: 'Social Media', tab: 'social' },
-  { id: 'sub-competencia', icon: '🎯', label: 'Competencia', tab: 'competencia' },
-  { id: 'sub-equipo', icon: '👥', label: 'Equipo', tab: 'equipo' },
-  { id: 'sub-reporte', icon: '💰', label: 'Reporte', tab: 'reporte' },
+  { id: 'sub-competencia', icon: '🎯', label: 'Competitors', tab: 'competencia' },
+  { id: 'sub-equipo', icon: '👥', label: 'Team', tab: 'equipo' },
+  { id: 'sub-reporte', icon: '💰', label: 'Report', tab: 'reporte' },
 ]
 const medicalSubItems = [
   { id: 'med-dash', icon: '📊', label: 'Dashboard', tab: 'dashboard' },
-  { id: 'med-patients', icon: '👥', label: 'Pacientes', tab: 'pacientes' },
-  { id: 'med-appointments', icon: '📅', label: 'Citas', tab: 'citas' },
+  { id: 'med-patients', icon: '👥', label: 'Patients', tab: 'pacientes' },
+  { id: 'med-appointments', icon: '📅', label: 'Appointments', tab: 'citas' },
   { id: 'med-hipaa', icon: '🛡️', label: 'HIPAA', tab: 'hipaa' },
   { id: 'med-audit', icon: '📋', label: 'Audit Log', tab: 'audit' },
 ]
@@ -39,7 +39,7 @@ const researchSubItems = [
   { id: 'res-sms', icon: '📱', label: 'SMS', tab: 'sms' },
   { id: 'res-mailing', icon: '📨', label: 'Mailing', tab: 'mailing' },
   { id: 'res-pipeline', icon: '🎯', label: 'Pipeline', tab: 'pipeline' },
-  { id: 'res-opps', icon: '📋', label: 'Oportunidades', tab: 'oportunidades' },
+  { id: 'res-opps', icon: '📋', label: 'Opportunities', tab: 'oportunidades' },
 ]
 
 interface Props {
@@ -71,33 +71,33 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
   const sidebarIcons: any[] = [
     { key: 'home', icon: '🏠', label: 'Home', action: () => { router.push('/'); setSidebarPanel(null) } },
     { key: 'mkt', icon: '🚀', label: 'Stratix MKT', action: () => { setSidebarPanel(p => p === 'mkt' ? null : 'mkt'); if (!pathname.startsWith('/stratix-mkt')) router.push('/stratix-mkt') } },
-    { key: 'finanzas', icon: '💰', label: 'Finanzas', soon: true, action: () => mostrarMensaje('ok', 'Finanzas — Proximamente') },
-    ...(canCobranzas ? [{ key: 'cobranzas', icon: '💳', label: 'Cobranzas', action: () => { router.push('/cobranzas'); setSidebarPanel(null) } }] : []),
+    { key: 'finanzas', icon: '💰', label: 'Finance', soon: true, action: () => mostrarMensaje('ok', 'Finance — Coming soon') },
+    ...(canCobranzas ? [{ key: 'cobranzas', icon: '💳', label: 'Billing', action: () => { router.push('/cobranzas'); setSidebarPanel(null) } }] : []),
     ...(canMedical ? [{ key: 'medical', icon: '🏥', label: 'Medical', action: () => { setSidebarPanel(p => p === 'medical' ? null : 'medical'); if (!pathname.startsWith('/medical')) router.push('/medical') } }] : []),
-    { key: 'rrhh', icon: '👤', label: 'TH/HR', soon: true, action: () => mostrarMensaje('ok', 'TH/HR — Proximamente') },
-    ...(canResearch ? [{ key: 'research', icon: '🔬', label: 'Research', action: () => { setSidebarPanel(p => p === 'research' ? null : 'research'); if (!pathname.startsWith('/research')) router.push('/research') } }] : [{ key: 'research', icon: '🔬', label: 'Research', soon: true, action: () => mostrarMensaje('ok', 'Research — Proximamente') }]),
-    { key: 'directorio', icon: '🏢', label: 'Directorio', action: () => { router.push('/directorio'); setSidebarPanel(null) } },
+    { key: 'rrhh', icon: '👤', label: 'TH/HR', soon: true, action: () => mostrarMensaje('ok', 'TH/HR — Coming soon') },
+    ...(canResearch ? [{ key: 'research', icon: '🔬', label: 'Research', action: () => { setSidebarPanel(p => p === 'research' ? null : 'research'); if (!pathname.startsWith('/research')) router.push('/research') } }] : [{ key: 'research', icon: '🔬', label: 'Research', soon: true, action: () => mostrarMensaje('ok', 'Research — Coming soon') }]),
+    { key: 'directorio', icon: '🏢', label: 'Directory', action: () => { router.push('/directorio'); setSidebarPanel(null) } },
     ...(esSuperAdmin ? [{ key: 'admin', icon: '🔐', label: 'Admin', action: () => { router.push('/admin'); setSidebarPanel(null) } }] : []),
   ]
 
   const panelOpen = sidebarPanel === 'mkt' || sidebarPanel === 'research' || sidebarPanel === 'medical'
   const subItems = sidebarPanel === 'research' ? researchSubItems : sidebarPanel === 'medical' ? medicalSubItems : mktSubItems
   const panelTitle = sidebarPanel === 'research' ? 'Research' : sidebarPanel === 'medical' ? 'Medical' : 'Stratix MKT'
-  const panelSub = sidebarPanel === 'research' ? 'Clinical Research Ops' : sidebarPanel === 'medical' ? 'HIPAA Compliance' : 'Marketing & Produccion'
+  const panelSub = sidebarPanel === 'research' ? 'Clinical Research Ops' : sidebarPanel === 'medical' ? 'HIPAA Compliance' : 'Marketing & Production'
 
-  const autoTitle = pathname === '/' ? `Eminat Group — Bienvenido, ${usuario?.nombre}`
-    : pathname.startsWith('/stratix-mkt') ? 'Stratix MKT — Produccion'
-    : pathname.startsWith('/cobranzas') ? 'EMINAT LLC — Dashboard de Cobranzas'
+  const autoTitle = pathname === '/' ? `Eminat Group — Welcome, ${usuario?.nombre}`
+    : pathname.startsWith('/stratix-mkt') ? 'Stratix MKT — Production'
+    : pathname.startsWith('/cobranzas') ? 'EMINAT LLC — Billing Dashboard'
     : pathname.startsWith('/research') ? 'Eminat Research Group'
     : pathname.startsWith('/medical') ? 'Eminat Medical Center — HIPAA'
-    : pathname.startsWith('/directorio') ? 'Directorio del Holding'
+    : pathname.startsWith('/directorio') ? 'Team Directory'
     : pathname.startsWith('/admin') ? 'Admin Panel'
-    : 'Eminat App'
+    : 'Stratix'
 
   if (app.loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0A0A0F', gap: 16 }}>
       <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #7C6FF7', borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }} />
-      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', fontFamily: 'DM Sans' }}>Cargando Eminat App...</div>
+      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', fontFamily: 'DM Sans' }}>Loading Stratix...</div>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   )
@@ -170,7 +170,7 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
                 </div>
               </div>
               <div style={{ fontSize: 9, color: D.t3, marginBottom: 6, whiteSpace: 'nowrap' }}>📍 {usuario?.ubicacion || 'Guayaquil, EC'}</div>
-              <button onClick={handleLogout} style={{ width: '100%', padding: '4px', borderRadius: 6, border: `1px solid ${D.border}`, background: 'transparent', color: D.t3, fontSize: 10, cursor: 'pointer', whiteSpace: 'nowrap' }}>Cerrar sesion</button>
+              <button onClick={handleLogout} style={{ width: '100%', padding: '4px', borderRadius: 6, border: `1px solid ${D.border}`, background: 'transparent', color: D.t3, fontSize: 10, cursor: 'pointer', whiteSpace: 'nowrap' }}>Sign out</button>
             </div>
           </div>
         </div>
@@ -219,14 +219,14 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
               {notifAbiertas && (
                 <div style={{ position: 'absolute', top: '110%', right: 0, width: 320, background: D.s1, border: `1px solid ${D.border}`, borderRadius: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', zIndex: 50, overflow: 'hidden' }}>
                   <div style={{ padding: '14px 16px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontFamily: 'Syne', fontSize: 14, fontWeight: 700, color: D.t1 }}>Notificaciones</div>
-                    <button onClick={() => { supabase.from('notificaciones').update({ leida: true }).eq('leida', false).then(() => setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))) }} style={{ fontSize: 11, color: D.t3, background: 'none', border: 'none', cursor: 'pointer' }}>Marcar todas leidas</button>
+                    <div style={{ fontFamily: 'Syne', fontSize: 14, fontWeight: 700, color: D.t1 }}>Notifications</div>
+                    <button onClick={() => { supabase.from('notificaciones').update({ leida: true }).eq('leida', false).then(() => setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))) }} style={{ fontSize: 11, color: D.t3, background: 'none', border: 'none', cursor: 'pointer' }}>Mark all as read</button>
                   </div>
                   <div style={{ maxHeight: 340, overflowY: 'auto' }}>
                     {notificaciones.length === 0 ? (
                       <div style={{ padding: '32px', textAlign: 'center', color: D.t3 }}>
                         <div style={{ fontSize: 28, marginBottom: 8 }}>🔔</div>
-                        <div style={{ fontSize: 12 }}>Sin notificaciones</div>
+                        <div style={{ fontSize: 12 }}>No notifications</div>
                       </div>
                     ) : notificaciones.map((n: any) => (
                       <div key={n.id} onClick={() => { if (n.actividad_id) { router.push('/stratix-mkt'); setNotifAbiertas(false) } }}

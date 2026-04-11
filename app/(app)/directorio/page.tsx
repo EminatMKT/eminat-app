@@ -22,8 +22,8 @@ export default function DirectorioPage() {
     <AppShell>
       <PageTransition><div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'Syne', color: t1 }}>{DIRECTORIO_DATA.length} miembros del Holding Eminat</div>
-          <input type="text" placeholder="Buscar por nombre, cargo o email..." value={busquedaDir} onChange={e => setBusquedaDir(e.target.value)} style={{ ...inputStyle, width: 280 }} />
+          <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'Syne', color: t1 }}>{DIRECTORIO_DATA.length} Eminat Holding members</div>
+          <input type="text" placeholder="Search by name, role or email..." value={busquedaDir} onChange={e => setBusquedaDir(e.target.value)} style={{ ...inputStyle, width: 280 }} />
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
           {DEPS_DIR.map(dep => (

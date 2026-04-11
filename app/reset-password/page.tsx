@@ -17,12 +17,12 @@ export default function ResetPasswordPage() {
     setError('')
 
     if (password !== confirmar) {
-      setError('Las contraseñas no coinciden')
+      setError('Passwords do not match')
       return
     }
 
     if (password.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres')
+      setError('Password must be at least 8 characters')
       return
     }
 
@@ -31,7 +31,7 @@ export default function ResetPasswordPage() {
     const { error: err } = await supabase.auth.updateUser({ password })
 
     if (err) {
-      setError('Error al actualizar. El link puede haber expirado.')
+      setError('Update failed. The link may have expired.')
       setLoading(false)
       return
     }
@@ -43,12 +43,12 @@ export default function ResetPasswordPage() {
 
   if (listo) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF' }}>
         <div style={{ textAlign: 'center', maxWidth: 400, padding: '0 20px' }}>
-          <div style={{ fontSize: 48, marginBottom: 20 }}>✅</div>
-          <h2 style={{ fontFamily: 'Syne', fontSize: 24, fontWeight: 800, marginBottom: 12 }}>Contraseña actualizada</h2>
-          <p style={{ color: 'var(--t2)', fontSize: 14, lineHeight: 1.6 }}>
-            Tu contraseña fue cambiada correctamente. Redirigiendo al login...
+          <div style={{ fontSize: 48, marginBottom: 20 }}>&#10003;</div>
+          <h2 style={{ fontFamily: 'Inter, DM Sans, sans-serif', fontSize: 24, fontWeight: 800, marginBottom: 12, color: '#0F172A' }}>Password updated</h2>
+          <p style={{ color: '#6B7280', fontSize: 14, lineHeight: 1.6 }}>
+            Your password has been changed successfully. Redirecting to sign in...
           </p>
         </div>
       </div>
@@ -56,47 +56,47 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF' }}>
       <div style={{ maxWidth: 440, width: '100%', padding: '0 20px' }}>
 
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'Syne', fontWeight: 800, fontSize: 20, marginBottom: 24 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#7C6FF7', boxShadow: '0 0 10px #7C6FF7' }} />
-            eminat app
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontWeight: 800, fontSize: 20, marginBottom: 24, color: '#0F172A' }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#4F46E5', boxShadow: '0 0 10px #4F46E5' }} />
+            Stratix Solutions
           </div>
-          <h2 style={{ fontFamily: 'Syne', fontSize: 26, fontWeight: 800, marginBottom: 8 }}>Nueva contraseña</h2>
-          <p style={{ color: 'var(--t3)', fontSize: 13 }}>Ingresa tu nueva contraseña para continuar</p>
+          <h2 style={{ fontSize: 26, fontWeight: 800, marginBottom: 8, color: '#0F172A' }}>New password</h2>
+          <p style={{ color: '#9CA3AF', fontSize: 13 }}>Enter your new password to continue</p>
         </div>
 
         <form onSubmit={handleReset}>
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Nueva contraseña</label>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8, color: '#374151' }}>New password</label>
             <input
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder="Mínimo 8 caracteres"
+              placeholder="Min. 8 characters"
               required
               minLength={8}
-              style={{ width: '100%', padding: '11px 14px', background: 'var(--s2)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 10, color: 'var(--t1)', fontSize: 14, fontFamily: 'DM Sans', outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '12px 16px', background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 10, color: '#111827', fontSize: 15, fontFamily: 'Inter, DM Sans, sans-serif', outline: 'none', boxSizing: 'border-box' }}
             />
           </div>
 
           <div style={{ marginBottom: 24 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>Confirmar contraseña</label>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 8, color: '#374151' }}>Confirm password</label>
             <input
               type="password"
               value={confirmar}
               onChange={e => setConfirmar(e.target.value)}
-              placeholder="Repite la contraseña"
+              placeholder="Repeat your password"
               required
               minLength={8}
-              style={{ width: '100%', padding: '11px 14px', background: 'var(--s2)', border: '1px solid rgba(255,255,255,0.13)', borderRadius: 10, color: 'var(--t1)', fontSize: 14, fontFamily: 'DM Sans', outline: 'none', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '12px 16px', background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 10, color: '#111827', fontSize: 15, fontFamily: 'Inter, DM Sans, sans-serif', outline: 'none', boxSizing: 'border-box' }}
             />
           </div>
 
           {error && (
-            <div style={{ background: 'rgba(248,113,113,.1)', border: '1px solid rgba(248,113,113,.3)', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#F87171', marginBottom: 16 }}>
+            <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#DC2626', marginBottom: 16 }}>
               {error}
             </div>
           )}
@@ -104,9 +104,9 @@ export default function ResetPasswordPage() {
           <button
             type="submit"
             disabled={loading}
-            style={{ width: '100%', padding: 14, borderRadius: 12, border: 'none', background: '#7C6FF7', color: 'white', fontSize: 15, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? .7 : 1, fontFamily: 'DM Sans' }}
+            style={{ width: '100%', padding: 14, borderRadius: 10, border: 'none', background: loading ? '#9CA3AF' : '#4F46E5', color: 'white', fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'Inter, DM Sans, sans-serif', boxShadow: loading ? 'none' : '0 4px 12px rgba(79,70,229,0.25)' }}
           >
-            {loading ? 'Actualizando...' : 'Cambiar contraseña →'}
+            {loading ? 'Updating...' : 'Update password'}
           </button>
         </form>
       </div>

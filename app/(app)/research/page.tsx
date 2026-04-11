@@ -17,8 +17,8 @@ export default function ResearchPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 80, gap: 16 }}>
           <div style={{ fontSize: 48 }}>🔒</div>
-          <div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>Sin permisos</div>
-          <div style={{ fontSize: 13, color: t3, textAlign: 'center', maxWidth: 300 }}>No tienes acceso al modulo de Research.</div>
+          <div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>Access denied</div>
+          <div style={{ fontSize: 13, color: t3, textAlign: 'center', maxWidth: 300 }}>You don't have access to the Research module.</div>
         </div>
       )}
       </PageTransition>

@@ -11,14 +11,14 @@ export default function HomePage() {
   const [hoveredBrand, setHoveredBrand] = useState<string | null>(null)
 
   const brandNodes = [
-    { key: 'mkt', icon: '🚀', name: 'Stratix MKT', color: accent, loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Agencia de marketing y produccion creativa del Holding Eminat.', action: () => router.push('/stratix-mkt') },
-    { key: 'emc', icon: '🏥', name: 'EMC Medical Center', color: '#60A5FA', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Centro medico especializado en salud integral y bienestar.', action: () => mostrarMensaje('ok', 'EMC Medical Center — Proximamente') },
-    { key: 'svn', icon: '💎', name: 'Soy Vivi Negrete', color: '#F472B6', loc: 'Miami', tz: 'America/New_York', desc: 'Marca personal de lifestyle, moda y contenido digital.', action: () => mostrarMensaje('ok', 'Soy Vivi Negrete — Proximamente') },
-    { key: 'erg', icon: '🔬', name: 'Eminat Research Group', color: '#A78BFA', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Division de investigacion e innovacion del Holding.', action: () => mostrarMensaje('ok', 'Eminat Research Group — Proximamente') },
-    { key: 'vnf', icon: '🤝', name: 'VN Foundation', color: '#FB923C', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Fundacion social enfocada en educacion y desarrollo comunitario.', action: () => mostrarMensaje('ok', 'VN Foundation — Proximamente') },
-    { key: 'premier', icon: '🏆', name: 'Premier', color: '#34D399', loc: 'Miami', tz: 'America/New_York', desc: 'Division premium de servicios y productos exclusivos.', action: () => mostrarMensaje('ok', 'Premier — Proximamente') },
-    { key: 'ornella', icon: '🤖', name: 'Ornella IA', color: '#F87171', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Plataforma de inteligencia artificial y automatizacion.', action: () => mostrarMensaje('ok', 'Ornella IA — Proximamente') },
-    { key: 'mentor', icon: '📚', name: 'Mentor', color: '#FBB040', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Plataforma educativa de capacitacion y mentoria profesional.', action: () => mostrarMensaje('ok', 'Mentor — Proximamente') },
+    { key: 'mkt', icon: '🚀', name: 'Stratix MKT', color: accent, loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Marketing and creative production agency for Eminat Holding.', action: () => router.push('/stratix-mkt') },
+    { key: 'emc', icon: '🏥', name: 'EMC Medical Center', color: '#60A5FA', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Medical center specialized in integrative health and wellness.', action: () => mostrarMensaje('ok', 'EMC Medical Center — Coming soon') },
+    { key: 'svn', icon: '💎', name: 'Soy Vivi Negrete', color: '#F472B6', loc: 'Miami', tz: 'America/New_York', desc: 'Personal brand for lifestyle, fashion and digital content.', action: () => mostrarMensaje('ok', 'Soy Vivi Negrete — Coming soon') },
+    { key: 'erg', icon: '🔬', name: 'Eminat Research Group', color: '#A78BFA', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Research and innovation division of the Holding.', action: () => mostrarMensaje('ok', 'Eminat Research Group — Coming soon') },
+    { key: 'vnf', icon: '🤝', name: 'VN Foundation', color: '#FB923C', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Social foundation focused on education and community development.', action: () => mostrarMensaje('ok', 'VN Foundation — Coming soon') },
+    { key: 'premier', icon: '🏆', name: 'Premier', color: '#34D399', loc: 'Miami', tz: 'America/New_York', desc: 'Premium division for exclusive services and products.', action: () => mostrarMensaje('ok', 'Premier — Coming soon') },
+    { key: 'ornella', icon: '🤖', name: 'Ornella IA', color: '#F87171', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Artificial intelligence and automation platform.', action: () => mostrarMensaje('ok', 'Ornella IA — Coming soon') },
+    { key: 'mentor', icon: '📚', name: 'Mentor', color: '#FBB040', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Educational platform for professional training and mentoring.', action: () => mostrarMensaje('ok', 'Mentor — Coming soon') },
   ]
   const radius = 220
   const getLocalTime = (tz: string) => { try { return new Date().toLocaleTimeString('es-EC', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) } catch { return horaActual } }

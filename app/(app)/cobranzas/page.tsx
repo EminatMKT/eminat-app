@@ -39,8 +39,8 @@ export default function CobranzasPage() {
       <AppShell>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 80, gap: 16 }}>
           <div style={{ fontSize: 48 }}>🔒</div>
-          <div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>Sin permisos</div>
-          <div style={{ fontSize: 13, color: t3, textAlign: 'center', maxWidth: 300 }}>No tienes acceso al modulo de Cobranzas. Contacta al administrador.</div>
+          <div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>Access denied</div>
+          <div style={{ fontSize: 13, color: t3, textAlign: 'center', maxWidth: 300 }}>You do not have access to the Billing module. Contact your administrator.</div>
         </div>
       </AppShell>
     )
@@ -73,7 +73,7 @@ export default function CobranzasPage() {
   const totalVencido = cuentasFilt.reduce((s, c) => s + (Number(c.vencido) || 0), 0)
   const totalPorVencer = cuentasFilt.reduce((s, c) => s + (Number(c.por_vencer) || 0), 0)
   const totalAdeudado = totalVencido + totalPorVencer
-  const cuentasDonut = [{ name: 'Vencido', value: totalVencido }, { name: 'Por Vencer', value: totalPorVencer }]
+  const cuentasDonut = [{ name: 'Past Due', value: totalVencido }, { name: 'Upcoming', value: totalPorVencer }]
   const cuentasEstudios = Object.entries(cuentasFilt.reduce((m: any, c) => { const k = c.estudio || 'N/A'; if (!m[k]) m[k] = { vencido: 0, por_vencer: 0 }; m[k].vencido += Number(c.vencido) || 0; m[k].por_vencer += Number(c.por_vencer) || 0; return m }, {})).map(([name, v]: any) => ({ name, vencido: v.vencido, por_vencer: v.por_vencer }))
   const labsUniqC = Array.from(new Set(cobCuentas.map(c => c.laboratorio).filter(Boolean)))
   const estudiosUniqC = Array.from(new Set(cobCuentas.map(c => c.estudio).filter(Boolean)))
@@ -98,9 +98,9 @@ export default function CobranzasPage() {
   const handleExport = () => {
     let rows: any[] = []
     let headers: string[] = []
-    if (cobTab === 'ventas') { headers = ['Mes','Periodo','Laboratorio','Estudio','Monto']; rows = ventasFilt.map(v => [v.mes, v.periodo, v.laboratorio, v.estudio, v.monto]) }
-    else if (cobTab === 'cuentas') { headers = ['Laboratorio','Estudio','Tipo','Vencido','Por Vencer','Total']; rows = cuentasFilt.map(c => [c.laboratorio, c.estudio, c.tipo, c.vencido, c.por_vencer, (Number(c.vencido)||0)+(Number(c.por_vencer)||0)]) }
-    else { headers = ['Periodo','Contratante','Banco','Identificacion','Estudio','Depositado']; rows = depsFilt.map(d => [d.periodo, d.contratante, d.banco, d.identificacion, d.estudio, d.depositado]) }
+    if (cobTab === 'ventas') { headers = ['Month','Period','Lab','Study','Amount']; rows = ventasFilt.map(v => [v.mes, v.periodo, v.laboratorio, v.estudio, v.monto]) }
+    else if (cobTab === 'cuentas') { headers = ['Lab','Study','Type','Past Due','Upcoming','Total']; rows = cuentasFilt.map(c => [c.laboratorio, c.estudio, c.tipo, c.vencido, c.por_vencer, (Number(c.vencido)||0)+(Number(c.por_vencer)||0)]) }
+    else { headers = ['Period','Contractor','Bank','ID','Study','Deposited']; rows = depsFilt.map(d => [d.periodo, d.contratante, d.banco, d.identificacion, d.estudio, d.depositado]) }
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
@@ -113,7 +113,7 @@ export default function CobranzasPage() {
     if (!file) return
     const text = await file.text()
     const lines = text.split('\n').filter((l: string) => l.trim())
-    if (lines.length < 2) { mostrarMensaje('error', 'Archivo vacio'); return }
+    if (lines.length < 2) { mostrarMensaje('error', 'Empty file'); return }
     const headers = lines[0].split(',').map((h: string) => h.trim().toLowerCase().replace(/ /g, '_'))
     const records = lines.slice(1).map((line: string) => {
       const vals = line.split(',').map((v: string) => v.trim())
@@ -123,8 +123,8 @@ export default function CobranzasPage() {
     })
     const table = cobTab === 'ventas' ? 'cobranzas_ventas' : cobTab === 'cuentas' ? 'cobranzas_cuentas' : 'cobranzas_depositos'
     const { error } = await supabase.from(table).insert(records)
-    if (error) { mostrarMensaje('error', 'Error al importar: ' + error.message); return }
-    mostrarMensaje('ok', `${records.length} registros importados`)
+    if (error) { mostrarMensaje('error', 'Import error: ' + error.message); return }
+    mostrarMensaje('ok', `${records.length} records imported`)
     setCobModalImport(false)
     // Refresh
     const { data } = await supabase.from(table).select('*').order('created_at', { ascending: false })
@@ -137,7 +137,7 @@ export default function CobranzasPage() {
     const table = cobTab === 'ventas' ? 'cobranzas_ventas' : cobTab === 'cuentas' ? 'cobranzas_cuentas' : 'cobranzas_depositos'
     const { error } = await supabase.from(table).insert([cobNewRecord])
     if (error) { mostrarMensaje('error', 'Error: ' + error.message); return }
-    mostrarMensaje('ok', 'Registro agregado')
+    mostrarMensaje('ok', 'Record added')
     setCobModalAdd(false)
     setCobNewRecord({})
     const { data } = await supabase.from(table).select('*').order('created_at', { ascending: false })
@@ -149,16 +149,16 @@ export default function CobranzasPage() {
   const handlePrint = () => {
     const w = window.open('', '_blank', 'width=900,height=700')
     if (!w) return
-    const title = cobTab === 'ventas' ? 'Ventas del Mes' : cobTab === 'cuentas' ? 'Cuentas por Cobrar' : 'Depositos en Banco'
+    const title = cobTab === 'ventas' ? 'Monthly Sales' : cobTab === 'cuentas' ? 'Accounts Receivable' : 'Bank Deposits'
     let tableHtml = ''
     if (cobTab === 'ventas') {
-      tableHtml = `<table><thead><tr>${['Mes','Periodo','Laboratorio','Estudio','Monto'].map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${ventasFilt.map(v => `<tr><td>${v.mes||''}</td><td>${v.periodo||''}</td><td>${v.laboratorio||''}</td><td>${v.estudio||''}</td><td>${fmt(Number(v.monto)||0)}</td></tr>`).join('')}</tbody></table>`
+      tableHtml = `<table><thead><tr>${['Month','Period','Lab','Study','Amount'].map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${ventasFilt.map(v => `<tr><td>${v.mes||''}</td><td>${v.periodo||''}</td><td>${v.laboratorio||''}</td><td>${v.estudio||''}</td><td>${fmt(Number(v.monto)||0)}</td></tr>`).join('')}</tbody></table>`
     } else if (cobTab === 'cuentas') {
-      tableHtml = `<table><thead><tr>${['Laboratorio','Estudio','Tipo','Vencido','Por Vencer','Total'].map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${cuentasFilt.map(c => `<tr><td>${c.laboratorio||''}</td><td>${c.estudio||''}</td><td>${c.tipo||''}</td><td>${fmt(Number(c.vencido)||0)}</td><td>${fmt(Number(c.por_vencer)||0)}</td><td>${fmt((Number(c.vencido)||0)+(Number(c.por_vencer)||0))}</td></tr>`).join('')}</tbody></table>`
+      tableHtml = `<table><thead><tr>${['Lab','Study','Type','Past Due','Upcoming','Total'].map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${cuentasFilt.map(c => `<tr><td>${c.laboratorio||''}</td><td>${c.estudio||''}</td><td>${c.tipo||''}</td><td>${fmt(Number(c.vencido)||0)}</td><td>${fmt(Number(c.por_vencer)||0)}</td><td>${fmt((Number(c.vencido)||0)+(Number(c.por_vencer)||0))}</td></tr>`).join('')}</tbody></table>`
     } else {
-      tableHtml = `<table><thead><tr>${['Periodo','Contratante','Banco','ID','Estudio','Depositado'].map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${depsFilt.map(d => `<tr><td>${d.periodo||''}</td><td>${d.contratante||''}</td><td>${d.banco||''}</td><td>${d.identificacion||''}</td><td>${d.estudio||''}</td><td>${fmt(Number(d.depositado)||0)}</td></tr>`).join('')}</tbody></table>`
+      tableHtml = `<table><thead><tr>${['Period','Contractor','Bank','ID','Study','Deposited'].map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${depsFilt.map(d => `<tr><td>${d.periodo||''}</td><td>${d.contratante||''}</td><td>${d.banco||''}</td><td>${d.identificacion||''}</td><td>${d.estudio||''}</td><td>${fmt(Number(d.depositado)||0)}</td></tr>`).join('')}</tbody></table>`
     }
-    w.document.write(`<!DOCTYPE html><html><head><title>Cobranzas — ${title}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Segoe UI,Arial,sans-serif;padding:40px 50px;font-size:12px;color:#111}h1{font-size:20px;margin-bottom:4px}h2{font-size:14px;color:#555;margin-bottom:20px}table{width:100%;border-collapse:collapse;margin-top:20px}th{background:#f5f5f5;padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;border-bottom:2px solid #ddd}td{padding:8px 10px;border-bottom:1px solid #eee}@media print{.no-print{display:none!important}}</style></head><body><h1>EMINAT LLC — Dashboard de Cobranzas</h1><h2>${title} · ${cobMes} 2026</h2>${tableHtml}<div class="no-print" style="text-align:center;margin-top:30px"><button onclick="window.print()" style="padding:10px 28px;border-radius:8px;background:#7C6FF7;color:white;border:none;font-size:13px;cursor:pointer">Imprimir</button></div></body></html>`)
+    w.document.write(`<!DOCTYPE html><html><head><title>Cobranzas — ${title}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Segoe UI,Arial,sans-serif;padding:40px 50px;font-size:12px;color:#111}h1{font-size:20px;margin-bottom:4px}h2{font-size:14px;color:#555;margin-bottom:20px}table{width:100%;border-collapse:collapse;margin-top:20px}th{background:#f5f5f5;padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;border-bottom:2px solid #ddd}td{padding:8px 10px;border-bottom:1px solid #eee}@media print{.no-print{display:none!important}}</style></head><body><h1>EMINAT LLC — Billing Dashboard</h1><h2>${title} · ${cobMes} 2026</h2>${tableHtml}<div class="no-print" style="text-align:center;margin-top:30px"><button onclick="window.print()" style="padding:10px 28px;border-radius:8px;background:#7C6FF7;color:white;border:none;font-size:13px;cursor:pointer">Print</button></div></body></html>`)
     w.document.close()
   }
 
@@ -174,7 +174,7 @@ export default function CobranzasPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: `${accent}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>💳</div>
             <div>
-              <div style={{ fontFamily: 'Syne', fontSize: 16, fontWeight: 800, color: t1 }}>Dashboard de Cobranzas</div>
+              <div style={{ fontFamily: 'Syne', fontSize: 16, fontWeight: 800, color: t1 }}>Billing Dashboard</div>
               <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono' }}>EMINAT LLC · Research Operations</div>
             </div>
           </div>
@@ -182,19 +182,19 @@ export default function CobranzasPage() {
             <select value={cobMes} onChange={e => setCobMes(e.target.value)} style={selectStyle}>
               {MESES.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
-            <button onClick={() => setCobModalImport(true)} style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>📥 Importar CSV</button>
-            <button onClick={handleExport} style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>📤 Exportar CSV</button>
-            <button onClick={handlePrint} style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>🖨 Imprimir PDF</button>
-            <button onClick={() => { setCobNewRecord({}); setCobModalAdd(true) }} style={{ padding: '6px 14px', borderRadius: 8, background: accent, color: 'white', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ Agregar</button>
+            <button onClick={() => setCobModalImport(true)} style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>📥 Import CSV</button>
+            <button onClick={handleExport} style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>📤 Export CSV</button>
+            <button onClick={handlePrint} style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>🖨 Print PDF</button>
+            <button onClick={() => { setCobNewRecord({}); setCobModalAdd(true) }} style={{ padding: '6px 14px', borderRadius: 8, background: accent, color: 'white', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ Add</button>
           </div>
         </div>
 
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: `1px solid ${border}` }}>
           {[
-            { key: 'ventas', label: '💰 Ventas del Mes' },
-            { key: 'cuentas', label: '📋 Cuentas por Cobrar' },
-            { key: 'depositos', label: '🏦 Depositos en Banco' },
+            { key: 'ventas', label: '💰 Monthly Sales' },
+            { key: 'cuentas', label: '📋 Accounts Receivable' },
+            { key: 'depositos', label: '🏦 Bank Deposits' },
           ].map(tab => (
             <button key={tab.key} onClick={() => { setCobTab(tab.key); clearFilters() }}
               style={{ padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: 'none', borderRadius: '8px 8px 0 0', fontFamily: 'DM Sans', background: 'transparent', color: cobTab === tab.key ? t1 : t3, borderBottom: cobTab === tab.key ? `2px solid ${accent}` : '2px solid transparent', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -209,25 +209,25 @@ export default function CobranzasPage() {
           <div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
               <select value={cobFiltros.periodo} onChange={e => setCobFiltros(p => ({ ...p, periodo: e.target.value }))} style={selectStyle}>
-                <option value="">Todos los Periodos</option>
+                <option value="">All Periods</option>
                 <option value="1Q">1Q</option><option value="2Q">2Q</option>
               </select>
               <select value={cobFiltros.laboratorio} onChange={e => setCobFiltros(p => ({ ...p, laboratorio: e.target.value }))} style={selectStyle}>
-                <option value="">Todos los Laboratorios</option>
+                <option value="">All Labs</option>
                 {labsUniq.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
               <select value={cobFiltros.estudio} onChange={e => setCobFiltros(p => ({ ...p, estudio: e.target.value }))} style={selectStyle}>
-                <option value="">Todos los Estudios</option>
+                <option value="">All Studies</option>
                 {estudiosUniqV.map(es => <option key={es} value={es}>{es}</option>)}
               </select>
-              <button onClick={clearFilters} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${border}`, background: 'transparent', color: t3, fontSize: 11, cursor: 'pointer' }}>✕ Limpiar</button>
+              <button onClick={clearFilters} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${border}`, background: 'transparent', color: t3, fontSize: 11, cursor: 'pointer' }}>✕ Clear</button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
               {[
-                { label: 'Total Ventas', value: fmt(totalVentas), color: '#34D399' },
-                { label: 'Ventas 1Q', value: fmt(ventas1Q), color: '#60A5FA' },
-                { label: 'Ventas 2Q', value: fmt(ventas2Q), color: '#A78BFA' },
-                { label: 'Registros', value: ventasFilt.length, color: '#FB923C' },
+                { label: 'Total Sales', value: fmt(totalVentas), color: '#34D399' },
+                { label: 'Sales 1Q', value: fmt(ventas1Q), color: '#60A5FA' },
+                { label: 'Sales 2Q', value: fmt(ventas2Q), color: '#A78BFA' },
+                { label: 'Records', value: ventasFilt.length, color: '#FB923C' },
               ].map(k => (
                 <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                   <div style={{ fontSize: 9, color: t3, textTransform: 'uppercase', letterSpacing: '.1em', fontFamily: 'DM Mono', marginBottom: 6 }}>{k.label}</div>
@@ -237,7 +237,7 @@ export default function CobranzasPage() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
               <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Ventas por Laboratorio</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Sales by Lab</div>
                 <ResponsiveContainer width="100%" height={200}>
                   <PieChart><Pie data={ventasLabs} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
                     {ventasLabs.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
@@ -248,7 +248,7 @@ export default function CobranzasPage() {
                 </div>
               </div>
               <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Ventas por Estudio</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Sales by Study</div>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={ventasEstudios} layout="vertical"><XAxis type="number" tick={{ fontSize: 9, fill: t3 }} tickFormatter={(v: number) => `$${(v/1000).toFixed(0)}k`} /><YAxis type="category" dataKey="name" tick={{ fontSize: 9, fill: t3 }} width={100} /><Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} /><Bar dataKey="value" radius={[0, 6, 6, 0]}>
                     {ventasEstudios.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
@@ -259,7 +259,7 @@ export default function CobranzasPage() {
             <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead><tr style={{ background: s2 }}>
-                  {['Mes','Periodo','Laboratorio','Estudio','Monto'].map(h => <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>)}
+                  {['Month','Period','Lab','Study','Amount'].map(h => <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>)}
                 </tr></thead>
                 <tbody>{ventasFilt.map((v, i) => (
                   <tr key={v.id || i} style={{ borderBottom: `1px solid ${border}` }}>
@@ -271,7 +271,7 @@ export default function CobranzasPage() {
                   </tr>
                 ))}</tbody>
               </table>
-              {ventasFilt.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: t3 }}>Sin registros de ventas</div>}
+              {ventasFilt.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: t3 }}>No sales records</div>}
             </div>
           </div>
         )}
@@ -281,21 +281,21 @@ export default function CobranzasPage() {
           <div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
               <select value={cobFiltros.laboratorio} onChange={e => setCobFiltros(p => ({ ...p, laboratorio: e.target.value }))} style={selectStyle}>
-                <option value="">Todos los Laboratorios</option>
+                <option value="">All Labs</option>
                 {labsUniqC.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
               <select value={cobFiltros.estudio} onChange={e => setCobFiltros(p => ({ ...p, estudio: e.target.value }))} style={selectStyle}>
-                <option value="">Todos los Estudios</option>
+                <option value="">All Studies</option>
                 {estudiosUniqC.map(es => <option key={es} value={es}>{es}</option>)}
               </select>
-              <button onClick={clearFilters} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${border}`, background: 'transparent', color: t3, fontSize: 11, cursor: 'pointer' }}>✕ Limpiar</button>
+              <button onClick={clearFilters} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${border}`, background: 'transparent', color: t3, fontSize: 11, cursor: 'pointer' }}>✕ Clear</button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
               {[
-                { label: 'Total Vencido', value: fmt(totalVencido), color: '#F87171' },
-                { label: 'Total por Vencer', value: fmt(totalPorVencer), color: '#FBB040' },
-                { label: 'Total Adeudado', value: fmt(totalAdeudado), color: '#60A5FA' },
-                { label: 'Registros', value: cuentasFilt.length, color: '#9494B3' },
+                { label: 'Total Past Due', value: fmt(totalVencido), color: '#F87171' },
+                { label: 'Total Upcoming', value: fmt(totalPorVencer), color: '#FBB040' },
+                { label: 'Total Owed', value: fmt(totalAdeudado), color: '#60A5FA' },
+                { label: 'Records', value: cuentasFilt.length, color: '#9494B3' },
               ].map(k => (
                 <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                   <div style={{ fontSize: 9, color: t3, textTransform: 'uppercase', letterSpacing: '.1em', fontFamily: 'DM Mono', marginBottom: 6 }}>{k.label}</div>
@@ -305,27 +305,27 @@ export default function CobranzasPage() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
               <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Vencido vs Por Vencer</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Past Due vs Upcoming</div>
                 <ResponsiveContainer width="100%" height={200}>
                   <PieChart><Pie data={cuentasDonut} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value">
                     <Cell fill="#F87171" /><Cell fill="#FBB040" />
                   </Pie><Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} /></PieChart>
                 </ResponsiveContainer>
                 <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 8 }}>
-                  {[{ label: 'Vencido', color: '#F87171' }, { label: 'Por Vencer', color: '#FBB040' }].map(l => <span key={l.label} style={{ fontSize: 10, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: l.color }} /><span style={{ color: t3 }}>{l.label}</span></span>)}
+                  {[{ label: 'Past Due', color: '#F87171' }, { label: 'Upcoming', color: '#FBB040' }].map(l => <span key={l.label} style={{ fontSize: 10, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: l.color }} /><span style={{ color: t3 }}>{l.label}</span></span>)}
                 </div>
               </div>
               <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Deuda por Estudio</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Debt by Study</div>
                 <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={cuentasEstudios}><XAxis dataKey="name" tick={{ fontSize: 9, fill: t3 }} /><YAxis tick={{ fontSize: 9, fill: t3 }} tickFormatter={(v: number) => `$${(v/1000).toFixed(0)}k`} /><Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} /><Legend wrapperStyle={{ fontSize: 10 }} /><Bar dataKey="vencido" fill="#F87171" radius={[4, 4, 0, 0]} name="Vencido" /><Bar dataKey="por_vencer" fill="#FBB040" radius={[4, 4, 0, 0]} name="Por Vencer" /></BarChart>
+                  <BarChart data={cuentasEstudios}><XAxis dataKey="name" tick={{ fontSize: 9, fill: t3 }} /><YAxis tick={{ fontSize: 9, fill: t3 }} tickFormatter={(v: number) => `$${(v/1000).toFixed(0)}k`} /><Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} /><Legend wrapperStyle={{ fontSize: 10 }} /><Bar dataKey="vencido" fill="#F87171" radius={[4, 4, 0, 0]} name="Past Due" /><Bar dataKey="por_vencer" fill="#FBB040" radius={[4, 4, 0, 0]} name="Upcoming" /></BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
             <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead><tr style={{ background: s2 }}>
-                  {['Laboratorio','Estudio','Tipo','Vencido','Por Vencer','Total Adeudado'].map(h => <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>)}
+                  {['Lab','Study','Type','Past Due','Upcoming','Total Owed'].map(h => <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>)}
                 </tr></thead>
                 <tbody>{cuentasFilt.map((c, i) => (
                   <tr key={c.id || i} style={{ borderBottom: `1px solid ${border}` }}>
@@ -338,7 +338,7 @@ export default function CobranzasPage() {
                   </tr>
                 ))}</tbody>
               </table>
-              {cuentasFilt.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: t3 }}>Sin cuentas por cobrar</div>}
+              {cuentasFilt.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: t3 }}>No accounts receivable</div>}
             </div>
           </div>
         )}
@@ -348,25 +348,25 @@ export default function CobranzasPage() {
           <div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
               <select value={cobFiltros.periodo} onChange={e => setCobFiltros(p => ({ ...p, periodo: e.target.value }))} style={selectStyle}>
-                <option value="">Todos los Periodos</option>
+                <option value="">All Periods</option>
                 <option value="1Q">1Q</option><option value="2Q">2Q</option>
               </select>
               <select value={cobFiltros.banco} onChange={e => setCobFiltros(p => ({ ...p, banco: e.target.value }))} style={selectStyle}>
-                <option value="">Todos los Bancos</option>
+                <option value="">All Banks</option>
                 {bancosUniq.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
               <select value={cobFiltros.contratante} onChange={e => setCobFiltros(p => ({ ...p, contratante: e.target.value }))} style={selectStyle}>
-                <option value="">Todos los Contratantes</option>
+                <option value="">All Contractors</option>
                 {contratantesUniq.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
-              <button onClick={clearFilters} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${border}`, background: 'transparent', color: t3, fontSize: 11, cursor: 'pointer' }}>✕ Limpiar</button>
+              <button onClick={clearFilters} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${border}`, background: 'transparent', color: t3, fontSize: 11, cursor: 'pointer' }}>✕ Clear</button>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 16 }}>
               {[
-                { label: 'Total Depositado', value: fmt(totalDep), color: '#34D399' },
-                { label: 'Depositos 1Q', value: fmt(dep1Q), color: '#22D3EE' },
-                { label: 'Depositos 2Q', value: fmt(dep2Q), color: '#A78BFA' },
-                { label: 'Registros', value: depsFilt.length, color: '#9494B3' },
+                { label: 'Total Deposited', value: fmt(totalDep), color: '#34D399' },
+                { label: 'Deposits 1Q', value: fmt(dep1Q), color: '#22D3EE' },
+                { label: 'Deposits 2Q', value: fmt(dep2Q), color: '#A78BFA' },
+                { label: 'Records', value: depsFilt.length, color: '#9494B3' },
               ].map(k => (
                 <div key={k.label} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                   <div style={{ fontSize: 9, color: t3, textTransform: 'uppercase', letterSpacing: '.1em', fontFamily: 'DM Mono', marginBottom: 6 }}>{k.label}</div>
@@ -376,7 +376,7 @@ export default function CobranzasPage() {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
               <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Depositos por Banco</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Deposits by Bank</div>
                 <ResponsiveContainer width="100%" height={200}>
                   <PieChart><Pie data={depBancos} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={3} dataKey="value">
                     {depBancos.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
@@ -387,7 +387,7 @@ export default function CobranzasPage() {
                 </div>
               </div>
               <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Depositos por Contratante</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 12 }}>Deposits by Contractor</div>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={depContratantes} layout="vertical"><XAxis type="number" tick={{ fontSize: 9, fill: t3 }} tickFormatter={(v: number) => `$${(v/1000).toFixed(0)}k`} /><YAxis type="category" dataKey="name" tick={{ fontSize: 9, fill: t3 }} width={110} /><Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} /><Bar dataKey="value" radius={[0, 6, 6, 0]}>
                     {depContratantes.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
@@ -398,7 +398,7 @@ export default function CobranzasPage() {
             <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                 <thead><tr style={{ background: s2 }}>
-                  {['Periodo','Contratante','Banco','Identificacion','Estudio','Depositado'].map(h => <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>)}
+                  {['Period','Contractor','Bank','ID','Study','Deposited'].map(h => <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>)}
                 </tr></thead>
                 <tbody>{depsFilt.map((d, i) => (
                   <tr key={d.id || i} style={{ borderBottom: `1px solid ${border}` }}>
@@ -411,7 +411,7 @@ export default function CobranzasPage() {
                   </tr>
                 ))}</tbody>
               </table>
-              {depsFilt.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: t3 }}>Sin depositos registrados</div>}
+              {depsFilt.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: t3 }}>No deposits recorded</div>}
             </div>
           </div>
         )}
@@ -421,18 +421,18 @@ export default function CobranzasPage() {
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onClick={() => setCobModalImport(false)}>
             <div onClick={e => e.stopPropagation()} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 18, padding: 28, width: 440, maxWidth: '95vw' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 800, color: t1 }}>Importar CSV</div>
+                <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 800, color: t1 }}>Import CSV</div>
                 <button onClick={() => setCobModalImport(false)} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>✕</button>
               </div>
               <div style={{ fontSize: 12, color: t3, marginBottom: 16 }}>
-                Importando a: <strong style={{ color: accent }}>{cobTab === 'ventas' ? 'Ventas' : cobTab === 'cuentas' ? 'Cuentas por Cobrar' : 'Depositos'}</strong>
+                Importing to: <strong style={{ color: accent }}>{cobTab === 'ventas' ? 'Sales' : cobTab === 'cuentas' ? 'Accounts Receivable' : 'Deposits'}</strong>
               </div>
               <div style={{ border: `2px dashed ${border}`, borderRadius: 14, padding: 40, textAlign: 'center', marginBottom: 16 }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>📄</div>
-                <div style={{ fontSize: 12, color: t3, marginBottom: 12 }}>Arrastra un archivo CSV o haz clic para seleccionar</div>
+                <div style={{ fontSize: 12, color: t3, marginBottom: 12 }}>Drag a CSV file or click to select</div>
                 <input type="file" accept=".csv,.xlsx,.xls" onChange={handleImportCSV} style={{ fontSize: 12 }} />
               </div>
-              <div style={{ fontSize: 10, color: t3 }}>Las columnas del CSV deben coincidir con los campos de la tabla.</div>
+              <div style={{ fontSize: 10, color: t3 }}>CSV columns must match the table fields.</div>
             </div>
           </div>
         )}
@@ -442,7 +442,7 @@ export default function CobranzasPage() {
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onClick={() => setCobModalAdd(false)}>
             <div onClick={e => e.stopPropagation()} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 18, padding: 28, width: 440, maxWidth: '95vw' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 800, color: t1 }}>Agregar registro</div>
+                <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 800, color: t1 }}>Add record</div>
                 <button onClick={() => setCobModalAdd(false)} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>✕</button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
@@ -454,8 +454,8 @@ export default function CobranzasPage() {
                 ))}
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={() => setCobModalAdd(false)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
-                <button onClick={handleAddRecord} style={{ flex: 2, padding: '10px', borderRadius: 10, border: 'none', background: accent, color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Guardar</button>
+                <button onClick={() => setCobModalAdd(false)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+                <button onClick={handleAddRecord} style={{ flex: 2, padding: '10px', borderRadius: 10, border: 'none', background: accent, color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Save</button>
               </div>
             </div>
           </div>

@@ -21,14 +21,14 @@ export default function AdminPage() {
     return true
   })
 
-  async function cambiarRol(id: string, rol: string) { await supabase.from('usuarios').update({ rol }).eq('id', id); setAdminUsuarios(prev => prev.map(u => u.id === id ? { ...u, rol } : u)); mostrarMensaje('ok', 'Rol actualizado') }
-  async function toggleActivo(id: string, activo: boolean) { await supabase.from('usuarios').update({ activo: !activo }).eq('id', id); setAdminUsuarios(prev => prev.map(u => u.id === id ? { ...u, activo: !activo } : u)); mostrarMensaje('ok', !activo ? 'Usuario activado' : 'Usuario desactivado') }
-  async function validarUsuario(id: string) { await supabase.from('usuarios').update({ validado: true, activo: true }).eq('id', id); setAdminUsuarios(prev => prev.map(u => u.id === id ? { ...u, validado: true, activo: true } : u)); mostrarMensaje('ok', 'Usuario validado') }
-  async function eliminarUsuario(id: string) { await supabase.from('usuarios').delete().eq('id', id); setAdminUsuarios(prev => prev.filter(u => u.id !== id)); setModalEliminar(null); mostrarMensaje('ok', 'Usuario eliminado') }
-  async function resetPassword(email: string, nombre: string) { const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` }); if (error) mostrarMensaje('error', 'Error al enviar el email'); else mostrarMensaje('ok', `Email enviado a ${nombre}`) }
+  async function cambiarRol(id: string, rol: string) { await supabase.from('usuarios').update({ rol }).eq('id', id); setAdminUsuarios(prev => prev.map(u => u.id === id ? { ...u, rol } : u)); mostrarMensaje('ok', 'Role updated') }
+  async function toggleActivo(id: string, activo: boolean) { await supabase.from('usuarios').update({ activo: !activo }).eq('id', id); setAdminUsuarios(prev => prev.map(u => u.id === id ? { ...u, activo: !activo } : u)); mostrarMensaje('ok', !activo ? 'User activated' : 'User deactivated') }
+  async function validarUsuario(id: string) { await supabase.from('usuarios').update({ validado: true, activo: true }).eq('id', id); setAdminUsuarios(prev => prev.map(u => u.id === id ? { ...u, validado: true, activo: true } : u)); mostrarMensaje('ok', 'User validated') }
+  async function eliminarUsuario(id: string) { await supabase.from('usuarios').delete().eq('id', id); setAdminUsuarios(prev => prev.filter(u => u.id !== id)); setModalEliminar(null); mostrarMensaje('ok', 'User deleted') }
+  async function resetPassword(email: string, nombre: string) { const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` }); if (error) mostrarMensaje('error', 'Error sending email'); else mostrarMensaje('ok', `Reset email sent to ${nombre}`) }
   async function crearUsuario() {
-    if (!nuevoUsr.nombre || !nuevoUsr.apellido || !nuevoUsr.email || !nuevoUsr.password) { mostrarMensaje('error', 'Completa todos los campos'); return }
-    if (nuevoUsr.password.length < 8) { mostrarMensaje('error', 'La contrasena debe tener al menos 8 caracteres'); return }
+    if (!nuevoUsr.nombre || !nuevoUsr.apellido || !nuevoUsr.email || !nuevoUsr.password) { mostrarMensaje('error', 'Please fill in all required fields'); return }
+    if (nuevoUsr.password.length < 8) { mostrarMensaje('error', 'Password must be at least 8 characters'); return }
     setGuardandoAdmin(true)
     try {
       const res = await fetch('/api/admin/create-user', {
@@ -49,30 +49,30 @@ export default function AdminPage() {
       })
       const result = await res.json()
       if (!res.ok) {
-        mostrarMensaje('error', result.error || 'Error al crear usuario')
+        mostrarMensaje('error', result.error || 'Failed to create user')
         setGuardandoAdmin(false)
         return
       }
-      mostrarMensaje('ok', `Usuario ${nuevoUsr.nombre} ${nuevoUsr.apellido} creado exitosamente`)
+      mostrarMensaje('ok', `User ${nuevoUsr.nombre} ${nuevoUsr.apellido} created successfully`)
       setModalCrear(false)
       setNuevoUsr({ nombre: '', apellido: '', email: '', password: '', rol: 'pasante', tipo: 'B', color: '#7C6FF7', empresa: 'Eminat Holding' })
       // Refresh user list
       const { data } = await supabase.from('usuarios').select('*').order('created_at', { ascending: false })
       setAdminUsuarios((data || []).map(u => ({ ...u, cargo: u.cargo || CARGOS_DIR[u.email?.toLowerCase()] || '' })))
     } catch (err: any) {
-      mostrarMensaje('error', err.message || 'Error de red al crear usuario')
+      mostrarMensaje('error', err.message || 'Network error while creating user')
     }
     setGuardandoAdmin(false)
   }
   async function guardarEdicion() {
     if (!modalEditar) return; setGuardandoAdmin(true)
     await supabase.from('usuarios').update({ nombre: modalEditar.nombre, apellido: modalEditar.apellido, rol: modalEditar.rol, tipo: modalEditar.tipo, color: modalEditar.color, ubicacion: modalEditar.ubicacion, empresa: modalEditar.empresa }).eq('id', modalEditar.id)
-    setAdminUsuarios(prev => prev.map(u => u.id === modalEditar.id ? { ...u, ...modalEditar } : u)); mostrarMensaje('ok', 'Usuario actualizado'); setModalEditar(null); setGuardandoAdmin(false)
+    setAdminUsuarios(prev => prev.map(u => u.id === modalEditar.id ? { ...u, ...modalEditar } : u)); mostrarMensaje('ok', 'User updated'); setModalEditar(null); setGuardandoAdmin(false)
   }
 
-  if (!esSuperAdmin) return <AppShell><div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 80, gap: 16 }}><div style={{ fontSize: 48 }}>🔒</div><div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>Sin permisos</div></div></AppShell>
+  if (!esSuperAdmin) return <AppShell><div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 80, gap: 16 }}><div style={{ fontSize: 48 }}>🔒</div><div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>Access denied</div></div></AppShell>
 
-  const crearBtn = <button onClick={() => setModalCrear(true)} style={{ padding: '7px 16px', borderRadius: 10, background: '#F87171', color: 'white', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>+ Crear usuario</button>
+  const crearBtn = <button onClick={() => setModalCrear(true)} style={{ padding: '7px 16px', borderRadius: 10, background: '#F87171', color: 'white', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>+ New user</button>
 
   return (
     <AppShell actions={crearBtn}>
@@ -86,7 +86,7 @@ export default function AdminPage() {
           ))}
         </StaggerGrid>
         <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
-          <input type="text" placeholder="Buscar..." value={busquedaAdmin} onChange={e => setBusquedaAdmin(e.target.value)} style={{ ...inputStyle, width: 220 }} />
+          <input type="text" placeholder="Search..." value={busquedaAdmin} onChange={e => setBusquedaAdmin(e.target.value)} style={{ ...inputStyle, width: 220 }} />
           <div style={{ display: 'flex', gap: 6 }}>
             {['todos', ...ROLES].map(r => (
               <button key={r} onClick={() => setFiltroRolAdmin(r)} style={{ padding: '6px 12px', borderRadius: 20, fontSize: 11, border: `1px solid ${filtroRolAdmin === r ? '#F87171' : border}`, background: filtroRolAdmin === r ? 'rgba(248,113,113,.15)' : 'transparent', color: filtroRolAdmin === r ? '#F87171' : t2, cursor: 'pointer' }}>{r}</button>
@@ -97,7 +97,7 @@ export default function AdminPage() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr style={{ background: s2 }}>
-                {['Usuario', 'Email', 'Cargo', 'Empresa', 'Rol', 'Estado', 'Acciones'].map(h => <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>)}
+                {['User', 'Email', 'Role Title', 'Company', 'Access', 'Status', 'Actions'].map(h => <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>)}
               </tr></thead>
               <tbody>{adminFiltrado.map(u => (
                 <tr key={u.id} style={{ borderBottom: `1px solid ${border}` }}>
@@ -114,11 +114,11 @@ export default function AdminPage() {
                   <td style={{ padding: '10px 14px' }}>{u.validado && u.activo ? <span style={{ fontSize: 11, color: '#34D399' }}>● Activo</span> : !u.validado ? <span style={{ fontSize: 11, color: '#FBB040' }}>Pendiente</span> : <span style={{ fontSize: 11, color: '#F87171' }}>Inactivo</span>}</td>
                   <td style={{ padding: '10px 14px' }}>
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      <button onClick={() => setModalEditar({ id: u.id, nombre: u.nombre || '', apellido: u.apellido || '', email: u.email || '', rol: u.rol || 'pasante', tipo: u.tipo || 'B', color: u.color || '#7C6FF7', ubicacion: u.ubicacion || 'Guayaquil, Ecuador', empresa: u.empresa || 'Eminat Holding' })} style={{ padding: '3px 8px', borderRadius: 7, fontSize: 10, border: '1px solid rgba(124,111,247,.3)', background: 'transparent', color: '#7C6FF7', cursor: 'pointer' }}>Editar</button>
+                      <button onClick={() => setModalEditar({ id: u.id, nombre: u.nombre || '', apellido: u.apellido || '', email: u.email || '', rol: u.rol || 'pasante', tipo: u.tipo || 'B', color: u.color || '#7C6FF7', ubicacion: u.ubicacion || 'Guayaquil, Ecuador', empresa: u.empresa || 'Eminat Holding' })} style={{ padding: '3px 8px', borderRadius: 7, fontSize: 10, border: '1px solid rgba(124,111,247,.3)', background: 'transparent', color: '#7C6FF7', cursor: 'pointer' }}>Edit</button>
                       <button onClick={() => resetPassword(u.email, u.nombre)} style={{ padding: '3px 8px', borderRadius: 7, fontSize: 10, border: '1px solid rgba(96,165,250,.3)', background: 'transparent', color: '#60A5FA', cursor: 'pointer' }}>Reset pwd</button>
-                      {!u.validado && <button onClick={() => validarUsuario(u.id)} style={{ padding: '3px 8px', borderRadius: 7, fontSize: 10, border: '1px solid rgba(52,211,153,.3)', background: 'transparent', color: '#34D399', cursor: 'pointer' }}>Validar</button>}
-                      {u.rol !== 'superadmin' && <button onClick={() => toggleActivo(u.id, u.activo)} style={{ padding: '3px 8px', borderRadius: 7, fontSize: 10, border: '1px solid rgba(251,176,64,.3)', background: 'transparent', color: '#FBB040', cursor: 'pointer' }}>{u.activo ? 'Desactivar' : 'Activar'}</button>}
-                      {u.rol !== 'superadmin' && <button onClick={() => setModalEliminar(u.id)} style={{ padding: '3px 8px', borderRadius: 7, fontSize: 10, border: '1px solid rgba(248,113,113,.3)', background: 'transparent', color: '#F87171', cursor: 'pointer' }}>Eliminar</button>}
+                      {!u.validado && <button onClick={() => validarUsuario(u.id)} style={{ padding: '3px 8px', borderRadius: 7, fontSize: 10, border: '1px solid rgba(52,211,153,.3)', background: 'transparent', color: '#34D399', cursor: 'pointer' }}>Validate</button>}
+                      {u.rol !== 'superadmin' && <button onClick={() => toggleActivo(u.id, u.activo)} style={{ padding: '3px 8px', borderRadius: 7, fontSize: 10, border: '1px solid rgba(251,176,64,.3)', background: 'transparent', color: '#FBB040', cursor: 'pointer' }}>{u.activo ? 'Deactivate' : 'Activate'}</button>}
+                      {u.rol !== 'superadmin' && <button onClick={() => setModalEliminar(u.id)} style={{ padding: '3px 8px', borderRadius: 7, fontSize: 10, border: '1px solid rgba(248,113,113,.3)', background: 'transparent', color: '#F87171', cursor: 'pointer' }}>Delete</button>}
                     </div>
                   </td>
                 </tr>
@@ -131,22 +131,22 @@ export default function AdminPage() {
       {modalEditar && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 18, padding: 28, width: 480, maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}><div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 800, color: t1 }}>Editar usuario</div><button onClick={() => setModalEditar(null)} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>✕</button></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}><div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 800, color: t1 }}>Edit user</div><button onClick={() => setModalEditar(null)} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>✕</button></div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Nombre</label><input type="text" value={modalEditar.nombre} onChange={e => setModalEditar((p: any) => ({ ...p, nombre: e.target.value }))} style={inputStyle} /></div>
-              <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Apellido</label><input type="text" value={modalEditar.apellido} onChange={e => setModalEditar((p: any) => ({ ...p, apellido: e.target.value }))} style={inputStyle} /></div>
+              <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>First name</label><input type="text" value={modalEditar.nombre} onChange={e => setModalEditar((p: any) => ({ ...p, nombre: e.target.value }))} style={inputStyle} /></div>
+              <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Last name</label><input type="text" value={modalEditar.apellido} onChange={e => setModalEditar((p: any) => ({ ...p, apellido: e.target.value }))} style={inputStyle} /></div>
             </div>
-            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Email (solo lectura)</label><input type="email" value={modalEditar.email} disabled style={{ ...inputStyle, opacity: .4 }} /></div>
+            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Email (read only)</label><input type="email" value={modalEditar.email} disabled style={{ ...inputStyle, opacity: .4 }} /></div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Rol</label><select value={modalEditar.rol} onChange={e => setModalEditar((p: any) => ({ ...p, rol: e.target.value }))} style={inputStyle}>{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
-              <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Tipo</label><select value={modalEditar.tipo} onChange={e => setModalEditar((p: any) => ({ ...p, tipo: e.target.value }))} style={inputStyle}><option value="A">Tipo A — Staff</option><option value="B">Tipo B — Pasante</option></select></div>
+              <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Role</label><select value={modalEditar.rol} onChange={e => setModalEditar((p: any) => ({ ...p, rol: e.target.value }))} style={inputStyle}>{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
+              <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Type</label><select value={modalEditar.tipo} onChange={e => setModalEditar((p: any) => ({ ...p, tipo: e.target.value }))} style={inputStyle}><option value="A">Tipo A — Staff</option><option value="B">Tipo B — Pasante</option></select></div>
             </div>
-            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Empresa</label><select value={modalEditar.empresa} onChange={e => setModalEditar((p: any) => ({ ...p, empresa: e.target.value }))} style={inputStyle}>{EMPRESAS.map(e => <option key={e} value={e}>{e}</option>)}</select></div>
-            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Ubicacion</label><input type="text" value={modalEditar.ubicacion} onChange={e => setModalEditar((p: any) => ({ ...p, ubicacion: e.target.value }))} style={inputStyle} /></div>
-            <div style={{ marginBottom: 20 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 8 }}>Color de avatar</label><div style={{ display: 'flex', gap: 8 }}>{COLORES_AVATAR.map(c => <div key={c} onClick={() => setModalEditar((p: any) => ({ ...p, color: c }))} style={{ width: 24, height: 24, borderRadius: '50%', background: c, cursor: 'pointer', border: modalEditar.color === c ? '3px solid white' : '2px solid transparent', boxSizing: 'border-box' }} />)}</div></div>
+            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Company</label><select value={modalEditar.empresa} onChange={e => setModalEditar((p: any) => ({ ...p, empresa: e.target.value }))} style={inputStyle}>{EMPRESAS.map(e => <option key={e} value={e}>{e}</option>)}</select></div>
+            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Location</label><input type="text" value={modalEditar.ubicacion} onChange={e => setModalEditar((p: any) => ({ ...p, ubicacion: e.target.value }))} style={inputStyle} /></div>
+            <div style={{ marginBottom: 20 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 8 }}>Avatar color</label><div style={{ display: 'flex', gap: 8 }}>{COLORES_AVATAR.map(c => <div key={c} onClick={() => setModalEditar((p: any) => ({ ...p, color: c }))} style={{ width: 24, height: 24, borderRadius: '50%', background: c, cursor: 'pointer', border: modalEditar.color === c ? '3px solid white' : '2px solid transparent', boxSizing: 'border-box' }} />)}</div></div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setModalEditar(null)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
-              <button onClick={guardarEdicion} disabled={guardandoAdmin} style={{ flex: 2, padding: '10px', borderRadius: 10, border: 'none', background: accent, color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{guardandoAdmin ? 'Guardando...' : 'Guardar cambios'}</button>
+              <button onClick={() => setModalEditar(null)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={guardarEdicion} disabled={guardandoAdmin} style={{ flex: 2, padding: '10px', borderRadius: 10, border: 'none', background: accent, color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{guardandoAdmin ? 'Saving...' : 'Save changes'}</button>
             </div>
           </div>
         </div>
@@ -156,22 +156,22 @@ export default function AdminPage() {
       {modalCrear && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 18, padding: 28, width: 480, maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}><div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 800, color: t1 }}>Crear usuario</div><button onClick={() => setModalCrear(false)} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>✕</button></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}><div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 800, color: t1 }}>Create user</div><button onClick={() => setModalCrear(false)} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>✕</button></div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Nombre *</label><input type="text" value={nuevoUsr.nombre} onChange={e => setNuevoUsr(p => ({ ...p, nombre: e.target.value }))} style={inputStyle} /></div>
-              <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Apellido *</label><input type="text" value={nuevoUsr.apellido} onChange={e => setNuevoUsr(p => ({ ...p, apellido: e.target.value }))} style={inputStyle} /></div>
+              <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Last name *</label><input type="text" value={nuevoUsr.apellido} onChange={e => setNuevoUsr(p => ({ ...p, apellido: e.target.value }))} style={inputStyle} /></div>
             </div>
             <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Email *</label><input type="email" value={nuevoUsr.email} onChange={e => setNuevoUsr(p => ({ ...p, email: e.target.value }))} placeholder="usuario@eminat.net" style={inputStyle} /></div>
-            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Contrasena temporal *</label><input type="password" value={nuevoUsr.password} onChange={e => setNuevoUsr(p => ({ ...p, password: e.target.value }))} placeholder="Min. 8 caracteres" style={inputStyle} /></div>
+            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Temporary password *</label><input type="password" value={nuevoUsr.password} onChange={e => setNuevoUsr(p => ({ ...p, password: e.target.value }))} placeholder="Min. 8 characters" style={inputStyle} /></div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Rol</label><select value={nuevoUsr.rol} onChange={e => setNuevoUsr(p => ({ ...p, rol: e.target.value }))} style={inputStyle}>{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
-              <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Tipo</label><select value={nuevoUsr.tipo} onChange={e => setNuevoUsr(p => ({ ...p, tipo: e.target.value }))} style={inputStyle}><option value="A">Tipo A — Staff</option><option value="B">Tipo B — Pasante</option></select></div>
+              <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Role</label><select value={nuevoUsr.rol} onChange={e => setNuevoUsr(p => ({ ...p, rol: e.target.value }))} style={inputStyle}>{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
+              <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Type</label><select value={nuevoUsr.tipo} onChange={e => setNuevoUsr(p => ({ ...p, tipo: e.target.value }))} style={inputStyle}><option value="A">Tipo A — Staff</option><option value="B">Tipo B — Pasante</option></select></div>
             </div>
-            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Empresa</label><select value={nuevoUsr.empresa} onChange={e => setNuevoUsr(p => ({ ...p, empresa: e.target.value }))} style={inputStyle}>{EMPRESAS.map(e => <option key={e} value={e}>{e}</option>)}</select></div>
-            <div style={{ marginBottom: 20 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 8 }}>Color de avatar</label><div style={{ display: 'flex', gap: 8 }}>{COLORES_AVATAR.map(c => <div key={c} onClick={() => setNuevoUsr(p => ({ ...p, color: c }))} style={{ width: 24, height: 24, borderRadius: '50%', background: c, cursor: 'pointer', border: nuevoUsr.color === c ? '3px solid white' : '2px solid transparent', boxSizing: 'border-box' }} />)}</div></div>
+            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Company</label><select value={nuevoUsr.empresa} onChange={e => setNuevoUsr(p => ({ ...p, empresa: e.target.value }))} style={inputStyle}>{EMPRESAS.map(e => <option key={e} value={e}>{e}</option>)}</select></div>
+            <div style={{ marginBottom: 20 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 8 }}>Avatar color</label><div style={{ display: 'flex', gap: 8 }}>{COLORES_AVATAR.map(c => <div key={c} onClick={() => setNuevoUsr(p => ({ ...p, color: c }))} style={{ width: 24, height: 24, borderRadius: '50%', background: c, cursor: 'pointer', border: nuevoUsr.color === c ? '3px solid white' : '2px solid transparent', boxSizing: 'border-box' }} />)}</div></div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setModalCrear(false)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
-              <button onClick={crearUsuario} disabled={guardandoAdmin} style={{ flex: 2, padding: '10px', borderRadius: 10, border: 'none', background: '#F87171', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{guardandoAdmin ? 'Creando...' : 'Crear usuario'}</button>
+              <button onClick={() => setModalCrear(false)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={crearUsuario} disabled={guardandoAdmin} style={{ flex: 2, padding: '10px', borderRadius: 10, border: 'none', background: '#F87171', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{guardandoAdmin ? 'Creating...' : 'Create user'}</button>
             </div>
           </div>
         </div>
@@ -182,11 +182,11 @@ export default function AdminPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 18, padding: 28, width: 360, textAlign: 'center' }}>
             <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
-            <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 700, color: t1, marginBottom: 8 }}>Eliminar usuario</div>
-            <div style={{ fontSize: 13, color: t2, marginBottom: 24, lineHeight: 1.5 }}>Esta accion es permanente y no se puede deshacer.</div>
+            <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 700, color: t1, marginBottom: 8 }}>Delete user</div>
+            <div style={{ fontSize: 13, color: t2, marginBottom: 24, lineHeight: 1.5 }}>This action is permanent and cannot be undone.</div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setModalEliminar(null)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
-              <button onClick={() => eliminarUsuario(modalEliminar)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: '#F87171', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Eliminar</button>
+              <button onClick={() => setModalEliminar(null)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => eliminarUsuario(modalEliminar)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: '#F87171', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
             </div>
           </div>
         </div>

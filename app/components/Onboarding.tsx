@@ -5,38 +5,38 @@ import { motion, AnimatePresence } from 'framer-motion'
 const STEPS = [
   {
     target: '.sidebar-root',
-    title: 'Navegacion',
-    description: 'Navega entre modulos desde aqui. Cada icono te lleva a una seccion diferente del ERP.',
+    title: 'Navigation',
+    description: 'Navigate between modules from here. Each icon takes you to a different section of the platform.',
     position: 'right' as const,
   },
   {
     target: '[data-tour="home"]',
     title: 'Home',
-    description: 'Ve el estado de todas las marcas del Holding Eminat en tiempo real.',
+    description: 'View the status of all Eminat Holding brands in real time.',
     position: 'right' as const,
   },
   {
     target: '[data-tour="mkt"]',
     title: 'Stratix MKT',
-    description: 'Gestiona tareas, produccion, kanban, social media y analisis de competencia.',
+    description: 'Manage tasks, production, kanban boards, social media and competitor analysis.',
     position: 'right' as const,
   },
   {
     target: '[data-tour="research"]',
     title: 'Research',
-    description: 'CRM de ensayos clinicos con pipeline, leads, newsletter y oportunidades.',
+    description: 'Clinical trials CRM with pipeline, leads, newsletter and opportunities.',
     position: 'right' as const,
   },
   {
     target: '[data-tour="cobranzas"]',
-    title: 'Cobranzas',
-    description: 'Dashboard financiero con ventas, cuentas por cobrar y depositos.',
+    title: 'Billing',
+    description: 'Financial dashboard with sales, accounts receivable and bank deposits.',
     position: 'right' as const,
   },
   {
     target: '[data-tour="medical"]',
     title: 'Medical',
-    description: 'Gestion HIPAA compliant con pacientes, citas, compliance y audit log.',
+    description: 'HIPAA-compliant management with patients, appointments, compliance and audit log.',
     position: 'right' as const,
   },
 ]
@@ -219,7 +219,7 @@ export default function Onboarding() {
                   color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 600,
                   cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
                 }}>
-                  Anterior
+                  Back
                 </button>
               )}
               <button onClick={next} style={{
@@ -227,14 +227,14 @@ export default function Onboarding() {
                 background: '#7C6FF7', color: 'white', fontSize: 13,
                 fontWeight: 700, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
               }}>
-                {step === STEPS.length - 1 ? 'Finalizar' : 'Siguiente'}
+                {step === STEPS.length - 1 ? 'Finish' : 'Next'}
               </button>
               <button onClick={finish} style={{
                 marginLeft: 'auto', background: 'none', border: 'none',
                 color: 'rgba(255,255,255,0.3)', fontSize: 12, cursor: 'pointer',
                 fontFamily: 'DM Sans, sans-serif',
               }}>
-                Saltar tour
+                Skip tour
               </button>
             </div>
           </div>
