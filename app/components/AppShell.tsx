@@ -62,6 +62,7 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
 
   const activeIconKey = pathname.startsWith('/medical') ? 'medical'
     : pathname.startsWith('/research') ? 'research'
+    : pathname.startsWith('/accounting') ? 'accounting'
     : pathname.startsWith('/cobranzas') ? 'cobranzas'
     : pathname.startsWith('/directorio') ? 'directorio'
     : pathname.startsWith('/admin') ? 'admin'
@@ -72,6 +73,7 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
     { key: 'home', icon: '🏠', label: 'Home', action: () => { router.push('/'); setSidebarPanel(null) } },
     { key: 'mkt', icon: '🚀', label: 'Stratix MKT', action: () => { setSidebarPanel(p => p === 'mkt' ? null : 'mkt'); if (!pathname.startsWith('/stratix-mkt')) router.push('/stratix-mkt') } },
     { key: 'finanzas', icon: '💰', label: 'Finance', soon: true, action: () => mostrarMensaje('ok', 'Finance — Coming soon') },
+    { key: 'accounting', icon: '🧾', label: 'Accounting', action: () => { router.push('/accounting'); setSidebarPanel(null) } },
     ...(canCobranzas ? [{ key: 'cobranzas', icon: '💳', label: 'Billing', action: () => { router.push('/cobranzas'); setSidebarPanel(null) } }] : []),
     ...(canMedical ? [{ key: 'medical', icon: '🏥', label: 'Medical', action: () => { setSidebarPanel(p => p === 'medical' ? null : 'medical'); if (!pathname.startsWith('/medical')) router.push('/medical') } }] : []),
     { key: 'rrhh', icon: '👤', label: 'TH/HR', soon: true, action: () => mostrarMensaje('ok', 'TH/HR — Coming soon') },
@@ -87,6 +89,7 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
 
   const autoTitle = pathname === '/' ? `Eminat Group — Welcome, ${usuario?.nombre}`
     : pathname.startsWith('/stratix-mkt') ? 'Stratix MKT — Production'
+    : pathname.startsWith('/accounting') ? 'Accounting — Eminat Research'
     : pathname.startsWith('/cobranzas') ? 'EMINAT LLC — Billing Dashboard'
     : pathname.startsWith('/research') ? 'Eminat Research Group'
     : pathname.startsWith('/medical') ? 'Eminat Medical Center — HIPAA'
