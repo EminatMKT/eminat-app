@@ -2,15 +2,12 @@
 import { useState, useMemo } from 'react'
 import AppShell from '@/app/components/AppShell'
 
-const COLORS = {
-  bg: '#0b0b1e',
-  card: '#13132a',
-  border: 'rgba(255,255,255,0.08)',
+const ACCENT = {
   purple: '#6c5ce7',
   teal: '#00cec9',
-  text: '#FFFFFF',
-  muted: 'rgba(255,255,255,0.6)',
-  dim: 'rgba(255,255,255,0.35)',
+  red: '#e17055',
+  yellow: '#fdcb6e',
+  green: '#10b981',
 }
 
 const ventas = [
@@ -128,34 +125,33 @@ export default function AccountingPage() {
 
   return (
     <AppShell>
-      <div style={{ background: COLORS.bg, color: COLORS.text, minHeight: '100%', margin: '-20px -24px', padding: '24px 28px', fontFamily: 'DM Sans, sans-serif' }}>
+      <div className="-mx-6 -my-5 min-h-full bg-gray-50 px-7 py-6">
         {/* HEADER */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 16 }}>
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 26, fontWeight: 800, letterSpacing: '-0.02em' }}>Accounting</div>
-            <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 4 }}>Eminat Research · Sales, receivables & banking — March</div>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Accounting</h1>
+            <p className="mt-1 text-xs text-gray-500">Eminat Research · Sales, receivables & banking — March</p>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <KPI label="Total Sales" value={fmt(totals.totalVentas)} accent={COLORS.purple} />
-            <KPI label="Receivables" value={fmt(totals.totalCobrar)} accent={COLORS.teal} />
-            <KPI label="Deposits" value={fmt(totals.totalDepositos)} accent="#34D399" />
+          <div className="flex flex-wrap gap-3">
+            <KPI label="Total Sales" value={fmt(totals.totalVentas)} accent={ACCENT.purple} />
+            <KPI label="Receivables" value={fmt(totals.totalCobrar)} accent={ACCENT.teal} />
+            <KPI label="Deposits" value={fmt(totals.totalDepositos)} accent={ACCENT.green} />
           </div>
         </div>
 
         {/* TABS */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 20, borderBottom: `1px solid ${COLORS.border}`, paddingBottom: 0, overflowX: 'auto' }}>
+        <div className="mb-5 flex gap-1 overflow-x-auto border-b border-gray-200">
           {tabs.map(t => {
             const active = tab === t.key
             return (
               <button key={t.key} onClick={() => setTab(t.key)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 7, padding: '10px 16px', borderRadius: '10px 10px 0 0',
-                  border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', fontSize: 13, fontWeight: 600,
-                  background: active ? COLORS.card : 'transparent',
-                  color: active ? COLORS.teal : COLORS.muted,
-                  borderBottom: active ? `2px solid ${COLORS.teal}` : '2px solid transparent',
-                  transition: 'all .15s', whiteSpace: 'nowrap',
-                }}>
+                className={`flex items-center gap-2 whitespace-nowrap rounded-t-lg px-4 py-2.5 text-sm font-semibold transition ${
+                  active
+                    ? 'border-b-2 bg-white text-gray-900'
+                    : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+                style={active ? { borderBottomColor: ACCENT.teal, color: ACCENT.teal } : undefined}
+              >
                 <span>{t.icon}</span>{t.label}
               </button>
             )
@@ -174,19 +170,19 @@ export default function AccountingPage() {
 
 function KPI({ label, value, accent }: { label: string; value: string; accent: string }) {
   return (
-    <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: '12px 18px', minWidth: 150 }}>
-      <div style={{ fontSize: 10, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 20, fontWeight: 800, color: accent, fontFamily: 'Syne, sans-serif', marginTop: 4 }}>{value}</div>
+    <div className="min-w-[160px] rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm" style={{ borderLeft: `3px solid ${accent}` }}>
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">{label}</div>
+      <div className="mt-1 text-xl font-bold" style={{ color: accent }}>{value}</div>
     </div>
   )
 }
 
 function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 20, marginBottom: 16 }}>
-      <div style={{ marginBottom: 14 }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 15, fontWeight: 700, color: COLORS.text }}>{title}</div>
-        {subtitle && <div style={{ fontSize: 11, color: COLORS.muted, marginTop: 3 }}>{subtitle}</div>}
+    <div className="mb-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="mb-4">
+        <div className="text-base font-bold text-gray-900">{title}</div>
+        {subtitle && <div className="mt-0.5 text-xs text-gray-500">{subtitle}</div>}
       </div>
       {children}
     </div>
@@ -196,13 +192,13 @@ function Card({ title, subtitle, children }: { title: string; subtitle?: string;
 function Bar({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
   const pct = max > 0 ? (value / max) * 100 : 0
   return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
-        <span style={{ color: COLORS.text, fontWeight: 500 }}>{label}</span>
-        <span style={{ color: COLORS.muted, fontFamily: 'DM Mono, monospace' }}>{fmt(value)}</span>
+    <div className="mb-2.5">
+      <div className="mb-1 flex justify-between text-xs">
+        <span className="font-medium text-gray-700">{label}</span>
+        <span className="font-mono text-gray-500">{fmt(value)}</span>
       </div>
-      <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 6, overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg, ${color}, ${color}cc)`, borderRadius: 6, transition: 'width .4s' }} />
+      <div className="h-2 overflow-hidden rounded-full bg-gray-100">
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${color}, ${color}cc)` }} />
       </div>
     </div>
   )
@@ -213,18 +209,18 @@ function SummaryTab({ totals, ventasPorLab, depositosPorBanco }: any) {
   const maxBanco = Math.max(...depositosPorBanco.map((x: any) => x[1]))
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 16 }}>
-        <StatBlock title="Sales 1Q" value={fmt(ventas.filter(v => v.periodo === '1Q').reduce((a, b) => a + b.monto, 0))} color={COLORS.purple} />
-        <StatBlock title="Sales 2Q" value={fmt(ventas.filter(v => v.periodo === '2Q').reduce((a, b) => a + b.monto, 0))} color={COLORS.teal} />
-        <StatBlock title="Overdue" value={fmt(totals.totalVencido)} color="#F87171" />
-        <StatBlock title="Not Yet Due" value={fmt(totals.totalPorVencer)} color="#FBBF24" />
+      <div className="mb-4 grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+        <StatBlock title="Sales 1Q" value={fmt(ventas.filter(v => v.periodo === '1Q').reduce((a, b) => a + b.monto, 0))} color={ACCENT.purple} />
+        <StatBlock title="Sales 2Q" value={fmt(ventas.filter(v => v.periodo === '2Q').reduce((a, b) => a + b.monto, 0))} color={ACCENT.teal} />
+        <StatBlock title="Overdue" value={fmt(totals.totalVencido)} color={ACCENT.red} />
+        <StatBlock title="Not Yet Due" value={fmt(totals.totalPorVencer)} color={ACCENT.yellow} />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 16 }}>
+      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))' }}>
         <Card title="Sales by Laboratory" subtitle="March, all periods">
-          {ventasPorLab.map(([lab, val]: any) => <Bar key={lab} label={lab} value={val} max={maxLab} color={COLORS.purple} />)}
+          {ventasPorLab.map(([lab, val]: any) => <Bar key={lab} label={lab} value={val} max={maxLab} color={ACCENT.purple} />)}
         </Card>
         <Card title="Deposits by Bank" subtitle="March, all periods">
-          {depositosPorBanco.map(([banco, val]: any) => <Bar key={banco} label={banco} value={val} max={maxBanco} color={COLORS.teal} />)}
+          {depositosPorBanco.map(([banco, val]: any) => <Bar key={banco} label={banco} value={val} max={maxBanco} color={ACCENT.teal} />)}
         </Card>
       </div>
     </div>
@@ -233,18 +229,36 @@ function SummaryTab({ totals, ventasPorLab, depositosPorBanco }: any) {
 
 function StatBlock({ title, value, color }: { title: string; value: string; color: string }) {
   return (
-    <div style={{ background: COLORS.card, border: `1px solid ${COLORS.border}`, borderLeft: `3px solid ${color}`, borderRadius: 12, padding: 16 }}>
-      <div style={{ fontSize: 10, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 600 }}>{title}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color, fontFamily: 'Syne, sans-serif', marginTop: 6 }}>{value}</div>
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" style={{ borderLeft: `3px solid ${color}` }}>
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">{title}</div>
+      <div className="mt-1.5 text-2xl font-bold" style={{ color }}>{value}</div>
     </div>
   )
 }
 
-function Th({ children, align = 'left' }: { children: React.ReactNode; align?: 'left' | 'right' }) {
-  return <th style={{ padding: '10px 12px', textAlign: align, fontSize: 10, fontWeight: 700, color: COLORS.muted, textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: `1px solid ${COLORS.border}` }}>{children}</th>
+function FilterBtn({ active, color, onClick, children }: { active: boolean; color: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button onClick={onClick}
+      className="rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition"
+      style={active
+        ? { borderColor: color, background: `${color}15`, color }
+        : { borderColor: '#e5e7eb', background: 'white', color: '#6b7280' }}>
+      {children}
+    </button>
+  )
 }
-function Td({ children, align = 'left', mono = false, color }: { children: React.ReactNode; align?: 'left' | 'right'; mono?: boolean; color?: string }) {
-  return <td style={{ padding: '10px 12px', textAlign: align, fontSize: 12, color: color || COLORS.text, borderBottom: `1px solid ${COLORS.border}`, fontFamily: mono ? 'DM Mono, monospace' : 'DM Sans' }}>{children}</td>
+
+function TableWrap({ children }: { children: React.ReactNode }) {
+  return <div className="overflow-x-auto"><table className="w-full border-collapse text-sm">{children}</table></div>
+}
+function Th({ children, align = 'left' }: { children: React.ReactNode; align?: 'left' | 'right' }) {
+  return <th className="border-b border-gray-200 px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-gray-500" style={{ textAlign: align }}>{children}</th>
+}
+function Td({ children, align = 'left', mono = false, color, bold = false }: { children: React.ReactNode; align?: 'left' | 'right'; mono?: boolean; color?: string; bold?: boolean }) {
+  return <td className={`border-b border-gray-100 px-3 py-2.5 text-xs ${mono ? 'font-mono' : ''} ${bold ? 'font-bold' : ''}`} style={{ textAlign: align, color: color || '#111827' }}>{children}</td>
+}
+function Tr({ children }: { children: React.ReactNode }) {
+  return <tr className="hover:bg-gray-50">{children}</tr>
 }
 
 function SalesTab() {
@@ -253,25 +267,31 @@ function SalesTab() {
   const total = filtered.reduce((a, b) => a + b.monto, 0)
   return (
     <Card title="Sales — March" subtitle={`${filtered.length} records · ${fmt(total)}`}>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+      <div className="mb-3 flex gap-1.5">
         {(['all', '1Q', '2Q'] as const).map(p => (
-          <button key={p} onClick={() => setPeriodo(p)}
-            style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${periodo === p ? COLORS.purple : COLORS.border}`, background: periodo === p ? `${COLORS.purple}22` : 'transparent', color: periodo === p ? COLORS.purple : COLORS.muted, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+          <FilterBtn key={p} active={periodo === p} color={ACCENT.purple} onClick={() => setPeriodo(p)}>
             {p === 'all' ? 'All' : p}
-          </button>
+          </FilterBtn>
         ))}
       </div>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr><Th>Month</Th><Th>Period</Th><Th>Lab</Th><Th>Study</Th><Th align="right">Amount</Th></tr></thead>
-          <tbody>
-            {filtered.map((v, i) => (
-              <tr key={i}><Td>{v.mes}</Td><Td color={COLORS.teal} mono>{v.periodo}</Td><Td>{v.lab}</Td><Td color={COLORS.muted}>{v.estudio}</Td><Td align="right" mono color={v.monto > 0 ? COLORS.text : COLORS.dim}>{fmt(v.monto)}</Td></tr>
-            ))}
-            <tr><Td><strong>TOTAL</strong></Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td><Td align="right" mono color={COLORS.purple}><strong>{fmt(total)}</strong></Td></tr>
-          </tbody>
-        </table>
-      </div>
+      <TableWrap>
+        <thead><tr><Th>Month</Th><Th>Period</Th><Th>Lab</Th><Th>Study</Th><Th align="right">Amount</Th></tr></thead>
+        <tbody>
+          {filtered.map((v, i) => (
+            <Tr key={i}>
+              <Td>{v.mes}</Td>
+              <Td color={ACCENT.teal} mono bold>{v.periodo}</Td>
+              <Td bold>{v.lab}</Td>
+              <Td color="#6b7280">{v.estudio}</Td>
+              <Td align="right" mono color={v.monto > 0 ? '#111827' : '#9ca3af'}>{fmt(v.monto)}</Td>
+            </Tr>
+          ))}
+          <tr className="bg-gray-50">
+            <Td bold>TOTAL</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td>
+            <Td align="right" mono bold color={ACCENT.purple}>{fmt(total)}</Td>
+          </tr>
+        </tbody>
+      </TableWrap>
     </Card>
   )
 }
@@ -284,38 +304,40 @@ function ReceivablesTab() {
   const totT = filtered.reduce((a, b) => a + b.total, 0)
   return (
     <Card title="Receivables" subtitle={`${filtered.length} records · ${fmt(totT)} outstanding`}>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+      <div className="mb-3 flex gap-1.5">
         {(['all', 'DATA', 'INVOICE'] as const).map(t => (
-          <button key={t} onClick={() => setTipo(t)}
-            style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${tipo === t ? COLORS.teal : COLORS.border}`, background: tipo === t ? `${COLORS.teal}22` : 'transparent', color: tipo === t ? COLORS.teal : COLORS.muted, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+          <FilterBtn key={t} active={tipo === t} color={ACCENT.teal} onClick={() => setTipo(t)}>
             {t === 'all' ? 'All' : t}
-          </button>
+          </FilterBtn>
         ))}
       </div>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr><Th>Lab</Th><Th>Study</Th><Th>Type</Th><Th>Period</Th><Th align="right">Overdue</Th><Th align="right">Not Due</Th><Th align="right">Total</Th></tr></thead>
-          <tbody>
-            {filtered.map((p, i) => (
-              <tr key={i}>
-                <Td>{p.lab}</Td>
-                <Td color={COLORS.muted}>{p.estudio}</Td>
-                <Td color={p.tipo === 'DATA' ? COLORS.teal : COLORS.purple} mono>{p.tipo}</Td>
-                <Td mono>{p.periodo}</Td>
-                <Td align="right" mono color={p.vencido > 0 ? '#F87171' : COLORS.dim}>{fmt(p.vencido)}</Td>
-                <Td align="right" mono color={p.porVencer > 0 ? '#FBBF24' : COLORS.dim}>{fmt(p.porVencer)}</Td>
-                <Td align="right" mono>{fmt(p.total)}</Td>
-              </tr>
-            ))}
-            <tr>
-              <Td><strong>TOTAL</strong></Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td>
-              <Td align="right" mono color="#F87171"><strong>{fmt(totV)}</strong></Td>
-              <Td align="right" mono color="#FBBF24"><strong>{fmt(totPV)}</strong></Td>
-              <Td align="right" mono color={COLORS.teal}><strong>{fmt(totT)}</strong></Td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <TableWrap>
+        <thead><tr><Th>Lab</Th><Th>Study</Th><Th>Type</Th><Th>Period</Th><Th align="right">Overdue</Th><Th align="right">Not Due</Th><Th align="right">Total</Th></tr></thead>
+        <tbody>
+          {filtered.map((p, i) => (
+            <Tr key={i}>
+              <Td bold>{p.lab}</Td>
+              <Td color="#6b7280">{p.estudio}</Td>
+              <Td>
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{
+                  background: p.tipo === 'DATA' ? `${ACCENT.teal}1f` : `${ACCENT.purple}1f`,
+                  color: p.tipo === 'DATA' ? ACCENT.teal : ACCENT.purple,
+                }}>{p.tipo}</span>
+              </Td>
+              <Td mono>{p.periodo}</Td>
+              <Td align="right" mono color={p.vencido > 0 ? ACCENT.red : '#9ca3af'}>{fmt(p.vencido)}</Td>
+              <Td align="right" mono color={p.porVencer > 0 ? '#b45309' : '#9ca3af'}>{fmt(p.porVencer)}</Td>
+              <Td align="right" mono bold>{fmt(p.total)}</Td>
+            </Tr>
+          ))}
+          <tr className="bg-gray-50">
+            <Td bold>TOTAL</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td>
+            <Td align="right" mono bold color={ACCENT.red}>{fmt(totV)}</Td>
+            <Td align="right" mono bold color="#b45309">{fmt(totPV)}</Td>
+            <Td align="right" mono bold color={ACCENT.teal}>{fmt(totT)}</Td>
+          </tr>
+        </tbody>
+      </TableWrap>
     </Card>
   )
 }
@@ -326,36 +348,35 @@ function BankingTab() {
   const total = filtered.reduce((a, b) => a + b.monto, 0)
   return (
     <Card title="Bank Deposits — March" subtitle={`${filtered.length} deposits · ${fmt(total)}`}>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+      <div className="mb-3 flex gap-1.5">
         {(['all', 'SOUTH STATE', 'SPACE COAST'] as const).map(b => (
-          <button key={b} onClick={() => setBanco(b)}
-            style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${banco === b ? COLORS.teal : COLORS.border}`, background: banco === b ? `${COLORS.teal}22` : 'transparent', color: banco === b ? COLORS.teal : COLORS.muted, fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+          <FilterBtn key={b} active={banco === b} color={ACCENT.teal} onClick={() => setBanco(b)}>
             {b === 'all' ? 'All Banks' : b}
-          </button>
+          </FilterBtn>
         ))}
       </div>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr><Th>Day</Th><Th>Period</Th><Th>Payer</Th><Th>Lab</Th><Th>Study</Th><Th>Bank</Th><Th align="right">Amount</Th></tr></thead>
-          <tbody>
-            {filtered.map((d, i) => (
-              <tr key={i}>
-                <Td mono>{d.dia}</Td>
-                <Td color={COLORS.teal} mono>{d.periodo}</Td>
-                <Td>{d.contratante}</Td>
-                <Td>{d.lab}</Td>
-                <Td color={COLORS.muted}>{d.estudio}</Td>
-                <Td color={COLORS.purple}>{d.banco}</Td>
-                <Td align="right" mono color="#34D399">{fmt(d.monto)}</Td>
-              </tr>
-            ))}
-            <tr>
-              <Td><strong>TOTAL</strong></Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td>
-              <Td align="right" mono color="#34D399"><strong>{fmt(total)}</strong></Td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <TableWrap>
+        <thead><tr><Th>Day</Th><Th>Period</Th><Th>Payer</Th><Th>Lab</Th><Th>Study</Th><Th>Bank</Th><Th align="right">Amount</Th></tr></thead>
+        <tbody>
+          {filtered.map((d, i) => (
+            <Tr key={i}>
+              <Td mono bold>{d.dia}</Td>
+              <Td color={ACCENT.teal} mono>{d.periodo}</Td>
+              <Td>{d.contratante}</Td>
+              <Td bold>{d.lab}</Td>
+              <Td color="#6b7280">{d.estudio}</Td>
+              <Td>
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: `${ACCENT.purple}1f`, color: ACCENT.purple }}>{d.banco}</span>
+              </Td>
+              <Td align="right" mono bold color={ACCENT.green}>{fmt(d.monto)}</Td>
+            </Tr>
+          ))}
+          <tr className="bg-gray-50">
+            <Td bold>TOTAL</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td>
+            <Td align="right" mono bold color={ACCENT.green}>{fmt(total)}</Td>
+          </tr>
+        </tbody>
+      </TableWrap>
     </Card>
   )
 }
@@ -364,29 +385,27 @@ function LabsTab({ labStats }: any) {
   const maxV = Math.max(...labStats.map((x: any) => x[1].ventas))
   return (
     <Card title="Laboratory Performance" subtitle="Sales · Receivables · Deposits per lab">
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr><Th>Lab</Th><Th align="right">Sales</Th><Th align="right">Receivables</Th><Th align="right">Deposits</Th><Th>Performance</Th></tr></thead>
-          <tbody>
-            {labStats.map(([lab, s]: any) => {
-              const pct = maxV > 0 ? (s.ventas / maxV) * 100 : 0
-              return (
-                <tr key={lab}>
-                  <Td>{lab}</Td>
-                  <Td align="right" mono color={COLORS.purple}>{fmt(s.ventas)}</Td>
-                  <Td align="right" mono color={COLORS.teal}>{fmt(s.cobrar)}</Td>
-                  <Td align="right" mono color="#34D399">{fmt(s.depositado)}</Td>
-                  <Td>
-                    <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', minWidth: 120 }}>
-                      <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg, ${COLORS.purple}, ${COLORS.teal})`, borderRadius: 4 }} />
-                    </div>
-                  </Td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
+      <TableWrap>
+        <thead><tr><Th>Lab</Th><Th align="right">Sales</Th><Th align="right">Receivables</Th><Th align="right">Deposits</Th><Th>Performance</Th></tr></thead>
+        <tbody>
+          {labStats.map(([lab, s]: any) => {
+            const pct = maxV > 0 ? (s.ventas / maxV) * 100 : 0
+            return (
+              <Tr key={lab}>
+                <Td bold>{lab}</Td>
+                <Td align="right" mono color={ACCENT.purple}>{fmt(s.ventas)}</Td>
+                <Td align="right" mono color={ACCENT.teal}>{fmt(s.cobrar)}</Td>
+                <Td align="right" mono color={ACCENT.green}>{fmt(s.depositado)}</Td>
+                <Td>
+                  <div className="h-1.5 min-w-[120px] overflow-hidden rounded-full bg-gray-100">
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${ACCENT.purple}, ${ACCENT.teal})` }} />
+                  </div>
+                </Td>
+              </Tr>
+            )
+          })}
+        </tbody>
+      </TableWrap>
     </Card>
   )
 }
