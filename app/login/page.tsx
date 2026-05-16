@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import { Eye, EyeOff } from 'lucide-react'
 
 const ZONAS = [
   { ciudad: 'Ecuador', zona: 'America/Guayaquil', emoji: '🇪🇨' },
@@ -27,6 +28,7 @@ async function obtenerUbicacion(): Promise<string> {
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [mode, setMode] = useState<'login' | 'reset'>('login')
@@ -212,10 +214,17 @@ export default function LoginPage() {
             {mode !== 'reset' && (
               <div style={{ marginBottom: 8 }}>
                 <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: '#374151' }}>Password</label>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required minLength={8}
-                  style={{ width: '100%', padding: '12px 16px', background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 10, color: '#111827', fontSize: 15, fontFamily: 'inherit', outline: 'none', transition: 'border-color .2s', boxSizing: 'border-box' }}
-                  onFocus={e => e.target.style.borderColor = '#4F46E5'}
-                  onBlur={e => e.target.style.borderColor = '#D1D5DB'} />
+                <div style={{ position: 'relative' }}>
+                  <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required minLength={8}
+                    style={{ width: '100%', padding: '12px 44px 12px 16px', background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 10, color: '#111827', fontSize: 15, fontFamily: 'inherit', outline: 'none', transition: 'border-color .2s', boxSizing: 'border-box' }}
+                    onFocus={e => e.target.style.borderColor = '#4F46E5'}
+                    onBlur={e => e.target.style.borderColor = '#D1D5DB'} />
+                  <button type="button" onClick={() => setShowPassword(s => !s)}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    style={{ position: 'absolute', top: '50%', right: 12, transform: 'translateY(-50%)', background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: '#9CA3AF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
             )}
 
