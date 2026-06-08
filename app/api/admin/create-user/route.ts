@@ -1,15 +1,132 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { Resend } from 'resend'
+import { normalizeRole, ROLE_LABELS } from '@/lib/permissions'
 
 /**
  * Server-side admin endpoint — creates an Auth user AND its companion
- * usuarios row atomically. If the usuarios insert fails for ANY reason
- * (check constraint, RLS, dupe, etc.) the just-created Auth user is
- * DELETED so nothing is left half-created.
+ * usuarios row atomically, then (best-effort) sends the new user a
+ * welcome email with the temp credentials.
  *
- * Requires SUPABASE_SERVICE_ROLE_KEY in the server env. The key is read
- * here only — it is NEVER sent to the browser.
+ * • Auth + usuarios creation: ATOMIC. If the usuarios insert fails for
+ *   ANY reason (check constraint, RLS, dupe, etc.), the just-created
+ *   auth.users row is DELETED so nothing is left half-created.
+ * • Welcome email: BEST-EFFORT. If Resend fails or RESEND_API_KEY is
+ *   missing, the user is still created and the response includes
+ *   `emailWarning` so the UI can warn the admin and prompt them to
+ *   share the password manually.
+ *
+ * Reads SUPABASE_SERVICE_ROLE_KEY and RESEND_API_KEY from server env.
+ * Neither secret is ever sent to the browser.
  */
+
+const LOGIN_URL = 'https://app.stratixsolutions.us'
+const MAIL_FROM = 'Stratix Solutions <noreply@eminat.net>'
+const MAIL_CC = 'freddy@eminat.net'
+
+function buildWelcomeEmail(args: {
+  nombre: string
+  apellido: string
+  email: string
+  password: string
+  rol: string
+  cargo?: string
+}): string {
+  const { nombre, apellido, email, password, rol, cargo } = args
+  const normalizedRole = normalizeRole(rol)
+  const areaLabel = normalizedRole ? ROLE_LABELS[normalizedRole] : rol
+  const cargoLine = cargo ? `<div style="font-size:12px;color:#A5A7FF;margin-top:4px">${escapeHtml(cargo)}</div>` : ''
+
+  return `<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tu acceso a Stratix Solutions</title>
+</head>
+<body style="margin:0;padding:0;background:#09090B;font-family:'Helvetica Neue',Arial,sans-serif;color:#ffffff;-webkit-text-size-adjust:100%">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#09090B">
+    <tr><td align="center" style="padding:40px 16px">
+      <table role="presentation" cellpadding="0" cellspacing="0" width="560" style="max-width:560px;background:#13131C;border:1px solid rgba(255,255,255,0.07);border-radius:18px;overflow:hidden">
+
+        <tr><td style="background:#4F46E5;padding:34px 36px">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.22em;color:rgba(255,255,255,0.75);text-transform:uppercase">Stratix Solutions</div>
+          <div style="font-size:26px;font-weight:800;color:#ffffff;letter-spacing:-.01em;margin-top:6px">Bienvenido, ${escapeHtml(nombre)}</div>
+        </td></tr>
+
+        <tr><td style="padding:28px 36px 8px;color:rgba(255,255,255,0.82);font-size:14px;line-height:1.6">
+          <p style="margin:0 0 12px">Te creamos una cuenta para que ingreses al sistema operativo de Eminat Group.</p>
+        </td></tr>
+
+        <tr><td style="padding:0 36px">
+          <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
+            <tr><td style="padding-top:14px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,0.45)">Área asignada</td></tr>
+            <tr><td style="padding:4px 0 0;font-size:15px;color:#ffffff;font-weight:600">${escapeHtml(areaLabel)}${cargoLine}</td></tr>
+
+            <tr><td style="padding-top:18px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,0.45)">Email</td></tr>
+            <tr><td style="padding:4px 0 0;font-size:14px;color:#ffffff;font-family:'Courier New',monospace">${escapeHtml(email)}</td></tr>
+
+            <tr><td style="padding-top:18px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,0.45)">Contraseña temporal</td></tr>
+            <tr><td style="padding:6px 0 0">
+              <div style="padding:14px 16px;background:#0A0A0F;border:1px solid rgba(124,58,237,0.45);border-radius:10px;font-family:'Courier New',monospace;font-size:18px;color:#ffffff;letter-spacing:.05em;text-align:center;font-weight:700">${escapeHtml(password)}</div>
+            </td></tr>
+            <tr><td style="padding:8px 0 0;font-size:11px;color:rgba(255,255,255,0.55)">Cámbiala en tu primer inicio de sesión.</td></tr>
+          </table>
+        </td></tr>
+
+        <tr><td align="center" style="padding:28px 36px">
+          <table role="presentation" cellpadding="0" cellspacing="0">
+            <tr><td style="background:#4F46E5;border-radius:999px">
+              <a href="${LOGIN_URL}" style="display:inline-block;padding:14px 30px;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none">Acceder al sistema</a>
+            </td></tr>
+          </table>
+          <div style="margin-top:14px;font-size:12px;color:rgba(255,255,255,0.45)">${LOGIN_URL}</div>
+        </td></tr>
+
+        <tr><td style="padding:22px 36px;border-top:1px solid rgba(255,255,255,0.07);font-size:11px;color:rgba(255,255,255,0.4);text-align:center;line-height:1.6">
+          The operating system of Eminat Group<br/>
+          Si no esperabas este mensaje, ignóralo o contacta a marketing@eminat.net
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
+}
+
+async function sendWelcomeEmail(args: {
+  nombre: string
+  apellido: string
+  email: string
+  password: string
+  rol: string
+  cargo?: string
+}): Promise<string | null> {
+  if (!process.env.RESEND_API_KEY) {
+    return 'No se envió el correo: RESEND_API_KEY no está configurada en este environment.'
+  }
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    const html = buildWelcomeEmail(args)
+    const { error } = await resend.emails.send({
+      from: MAIL_FROM,
+      to: args.email,
+      cc: MAIL_CC,
+      subject: 'Tu acceso a Stratix Solutions',
+      html,
+    })
+    if (error) return `No se envió el correo: ${error.message}`
+    return null
+  } catch (err: any) {
+    return `No se envió el correo: ${err?.message || 'error desconocido'}`
+  }
+}
+
 export async function POST(req: NextRequest) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!serviceRoleKey) {
@@ -94,7 +211,10 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json({ user: userData }, { status: 201 })
+    // 3. Best-effort welcome email. Never fails the request.
+    const emailWarning = await sendWelcomeEmail({ nombre, apellido, email, password, rol: rol || 'stratix360', cargo })
+
+    return NextResponse.json({ user: userData, emailWarning }, { status: 201 })
   } catch (err: any) {
     // Defensive: also try rollback on unexpected failure.
     if (userId) {

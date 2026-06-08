@@ -84,21 +84,11 @@ export const COLORES_AVATAR = ['#7C6FF7', '#34D399', '#F472B6', '#60A5FA', '#FB9
 // transparently via normalizeRole() until the DB migration completes.
 export const ROLES = PERMISSION_ROLES
 
-export const EMPRESAS = [
-  'Eminat Group',
-  'Eminat Research Group',
-  'Eminat Medical Center',
-  'Premier by Eminat',
-  'Vivi Negrete Foundation',
-]
-
-export const EMPRESA_COLORS: Record<string, string> = {
-  'Eminat Group': '#7C6FF7',
-  'Eminat Research Group': '#60A5FA',
-  'Eminat Medical Center': '#34D399',
-  'Premier by Eminat': '#FB923C',
-  'Vivi Negrete Foundation': '#F472B6',
-}
+// Re-exported from lib/companies.ts for back-compat with existing imports.
+// New code should import directly from '@/lib/companies'.
+import { COMPANY_NAMES as _COMPANY_NAMES, COMPANY_COLORS as _COMPANY_COLORS } from './companies'
+export const EMPRESAS = _COMPANY_NAMES
+export const EMPRESA_COLORS = _COMPANY_COLORS
 
 export const CARGOS_DIR: Record<string, string> = {
   'freddy@eminat.net': 'Marketing Director',

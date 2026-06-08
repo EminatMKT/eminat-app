@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
-import { useApp, ROLES, EMPRESAS, EMPRESA_COLORS, COLORES_AVATAR, CARGOS_DIR } from '@/lib/AppContext'
+import { useApp, ROLES, COLORES_AVATAR, CARGOS_DIR } from '@/lib/AppContext'
+import { COMPANY_COLORS, DEFAULT_COMPANY, companyOptions, companyShort } from '@/lib/companies'
 import AppShell from '@/app/components/AppShell'
 import { supabase } from '@/lib/supabase'
 import { PageTransition, StaggerGrid, StaggerItem, AnimatedNumber } from '@/lib/motion'
@@ -50,12 +51,12 @@ export default function AdminPage() {
   const [guardandoAdmin, setGuardandoAdmin] = useState(false)
 
   // Create modal
-  const DEFAULT_NEW = { nombre: '', apellido: '', email: '', password: '', rol: 'stratix360', tipo: 'B', color: '#7C6FF7', empresa: 'Eminat Group' }
+  const DEFAULT_NEW = { nombre: '', apellido: '', email: '', password: '', rol: 'stratix360', tipo: 'B', color: '#7C6FF7', empresa: DEFAULT_COMPANY, cargo: '' }
   const [modalCrear, setModalCrear] = useState(false)
   const [nuevoUsr, setNuevoUsr] = useState(DEFAULT_NEW)
   const [showCreatePwd, setShowCreatePwd] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
-  const [createSuccess, setCreateSuccess] = useState<{ pwd: string; nombre: string; email: string } | null>(null)
+  const [createSuccess, setCreateSuccess] = useState<{ pwd: string; nombre: string; email: string; cargo: string; emailWarning: string | null } | null>(null)
 
   // Edit modal
   const [modalEditar, setModalEditar] = useState<any>(null)
@@ -140,6 +141,7 @@ export default function AdminPage() {
     if (nuevoUsr.password.length < 8) { setCreateError('La contraseña debe tener al menos 8 caracteres.'); return }
     setGuardandoAdmin(true)
     try {
+      const cargo = nuevoUsr.cargo || CARGOS_DIR[nuevoUsr.email.toLowerCase()] || ''
       const res = await fetch('/api/admin/create-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -153,7 +155,7 @@ export default function AdminPage() {
           color: nuevoUsr.color,
           empresa: nuevoUsr.empresa,
           ubicacion: 'Guayaquil, Ecuador',
-          cargo: CARGOS_DIR[nuevoUsr.email.toLowerCase()] || '',
+          cargo,
         }),
       })
       const result = await res.json()
@@ -163,7 +165,13 @@ export default function AdminPage() {
         return
       }
       // Success — flip the modal to the credentials panel and refresh the list.
-      setCreateSuccess({ pwd: nuevoUsr.password, nombre: `${nuevoUsr.nombre} ${nuevoUsr.apellido}`, email: nuevoUsr.email })
+      setCreateSuccess({
+        pwd: nuevoUsr.password,
+        nombre: `${nuevoUsr.nombre} ${nuevoUsr.apellido}`,
+        email: nuevoUsr.email,
+        cargo,
+        emailWarning: result.emailWarning || null,
+      })
       const { data } = await supabase.from('usuarios').select('*').order('created_at', { ascending: false })
       setAdminUsuarios((data || []).map(u => ({ ...u, cargo: u.cargo || CARGOS_DIR[u.email?.toLowerCase()] || '' })))
     } catch (err: any) {
@@ -202,6 +210,7 @@ export default function AdminPage() {
           color: modalEditar.color,
           ubicacion: modalEditar.ubicacion,
           empresa: modalEditar.empresa,
+          cargo: modalEditar.cargo,
         }),
       })
       const result = await res.json()
@@ -242,7 +251,14 @@ export default function AdminPage() {
   )
 
   // Big "share this password" panel reused by Create-success and Reset-success.
-  const credentialsPanel = (label: string, name: string, email: string | null, pwd: string, onClose: () => void) => (
+  const credentialsPanel = (
+    label: string,
+    name: string,
+    email: string | null,
+    pwd: string,
+    onClose: () => void,
+    extra?: { cargo?: string; emailWarning?: string | null },
+  ) => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: 'rgba(52,211,153,.10)', border: '1px solid rgba(52,211,153,.35)', borderRadius: 12 }}>
         <div style={{ fontSize: 20 }}>✓</div>
@@ -251,6 +267,7 @@ export default function AdminPage() {
       <div>
         <div style={{ fontSize: 11, color: t3, marginBottom: 5 }}>Usuario</div>
         <div style={{ fontSize: 14, color: t1, fontWeight: 600 }}>{name}</div>
+        {extra?.cargo && <div style={{ fontSize: 11, color: t2, marginTop: 2 }}>{extra.cargo}</div>}
         {email && <div style={{ fontSize: 11, color: t3, fontFamily: 'DM Mono', marginTop: 2 }}>{email}</div>}
       </div>
       <div>
@@ -263,6 +280,11 @@ export default function AdminPage() {
       <div style={{ fontSize: 12, color: t2, lineHeight: 1.5, padding: '10px 14px', borderRadius: 10, background: 'rgba(96,165,250,.08)', border: '1px solid rgba(96,165,250,.25)' }}>
         Entrégasela al usuario en un canal privado. La cambiará en su primer inicio de sesión.
       </div>
+      {extra?.emailWarning && (
+        <div style={{ fontSize: 12, color: '#FBB040', lineHeight: 1.5, padding: '10px 14px', borderRadius: 10, background: 'rgba(251,176,64,.08)', border: '1px solid rgba(251,176,64,.35)' }}>
+          ⚠ {extra.emailWarning} Comparte la contraseña manualmente.
+        </div>
+      )}
       <button onClick={onClose} style={{ padding: '10px', borderRadius: 10, border: 'none', background: accent, color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Listo</button>
     </div>
   )
@@ -308,12 +330,12 @@ export default function AdminPage() {
                   </td>
                   <td style={{ padding: '10px 14px', fontSize: 10, color: t3, fontFamily: 'DM Mono' }}>{u.email}</td>
                   <td style={{ padding: '10px 14px', fontSize: 11, color: t2 }}>{u.cargo || '—'}</td>
-                  <td style={{ padding: '10px 14px' }}>{u.empresa ? <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 20, background: `${EMPRESA_COLORS[u.empresa] || accent}20`, color: EMPRESA_COLORS[u.empresa] || accent }}>{u.empresa.replace('Eminat ', '').replace(' by Eminat', '')}</span> : <span style={{ fontSize: 10, color: t3 }}>—</span>}</td>
+                  <td style={{ padding: '10px 14px' }}>{u.empresa ? <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 20, background: `${COMPANY_COLORS[u.empresa] || accent}20`, color: COMPANY_COLORS[u.empresa] || accent }}>{companyShort(u.empresa)}</span> : <span style={{ fontSize: 10, color: t3 }}>—</span>}</td>
                   <td style={{ padding: '10px 14px' }}>{u.rol === 'superadmin' ? <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: 'rgba(248,113,113,.12)', color: '#F87171' }}>superadmin</span> : <select value={u.rol} onChange={e => cambiarRol(u.id, e.target.value)} style={{ padding: '3px 8px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 11, cursor: 'pointer', outline: 'none' }}>{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select>}</td>
                   <td style={{ padding: '10px 14px' }}>{u.validado && u.activo ? <span style={{ fontSize: 11, color: '#34D399' }}>● Activo</span> : !u.validado ? <span style={{ fontSize: 11, color: '#FBB040' }}>Pendiente</span> : <span style={{ fontSize: 11, color: '#F87171' }}>Inactivo</span>}</td>
                   <td style={{ padding: '10px 14px' }}>
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      <button onClick={() => { setEditError(null); setModalEditar({ id: u.id, nombre: u.nombre || '', apellido: u.apellido || '', email: u.email || '', currentEmail: u.email || '', rol: u.rol || 'stratix360', tipo: u.tipo || 'B', color: u.color || '#7C6FF7', ubicacion: u.ubicacion || 'Guayaquil, Ecuador', empresa: u.empresa || 'Eminat Group' }) }} style={{ padding: '3px 8px', borderRadius: 7, fontSize: 10, border: '1px solid rgba(124,111,247,.3)', background: 'transparent', color: '#7C6FF7', cursor: 'pointer' }}>Edit</button>
+                      <button onClick={() => { setEditError(null); setModalEditar({ id: u.id, nombre: u.nombre || '', apellido: u.apellido || '', email: u.email || '', currentEmail: u.email || '', rol: u.rol || 'stratix360', tipo: u.tipo || 'B', color: u.color || '#7C6FF7', ubicacion: u.ubicacion || 'Guayaquil, Ecuador', empresa: u.empresa || DEFAULT_COMPANY, cargo: u.cargo || '' }) }} style={{ padding: '3px 8px', borderRadius: 7, fontSize: 10, border: '1px solid rgba(124,111,247,.3)', background: 'transparent', color: '#7C6FF7', cursor: 'pointer' }}>Edit</button>
                       <button onClick={() => openResetModal({ id: u.id, nombre: u.nombre, email: u.email })} style={{ padding: '3px 8px', borderRadius: 7, fontSize: 10, border: '1px solid rgba(96,165,250,.3)', background: 'transparent', color: '#60A5FA', cursor: 'pointer' }}>Reset pwd</button>
                       {!u.validado && <button onClick={() => validarUsuario(u.id)} style={{ padding: '3px 8px', borderRadius: 7, fontSize: 10, border: '1px solid rgba(52,211,153,.3)', background: 'transparent', color: '#34D399', cursor: 'pointer' }}>Validate</button>}
                       {u.rol !== 'superadmin' && <button onClick={() => toggleActivo(u.id, u.activo)} style={{ padding: '3px 8px', borderRadius: 7, fontSize: 10, border: '1px solid rgba(251,176,64,.3)', background: 'transparent', color: '#FBB040', cursor: 'pointer' }}>{u.activo ? 'Deactivate' : 'Activate'}</button>}
@@ -349,7 +371,8 @@ export default function AdminPage() {
               <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Role</label><select value={modalEditar.rol} onChange={e => setModalEditar((p: any) => ({ ...p, rol: e.target.value }))} style={inputStyle}>{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
               <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Type</label><select value={modalEditar.tipo} onChange={e => setModalEditar((p: any) => ({ ...p, tipo: e.target.value }))} style={inputStyle}><option value="A">Tipo A — Staff</option><option value="B">Tipo B — Pasante</option></select></div>
             </div>
-            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Company</label><select value={modalEditar.empresa} onChange={e => setModalEditar((p: any) => ({ ...p, empresa: e.target.value }))} style={inputStyle}>{EMPRESAS.map(e => <option key={e} value={e}>{e}</option>)}</select></div>
+            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Cargo (Role Title)</label><input type="text" value={modalEditar.cargo} onChange={e => setModalEditar((p: any) => ({ ...p, cargo: e.target.value }))} placeholder="Ej. Lead Designer (opcional)" style={inputStyle} /></div>
+            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Company</label><select value={modalEditar.empresa} onChange={e => setModalEditar((p: any) => ({ ...p, empresa: e.target.value }))} style={inputStyle}>{companyOptions(modalEditar.empresa).map(e => <option key={e} value={e}>{e}</option>)}</select></div>
             <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Location</label><input type="text" value={modalEditar.ubicacion} onChange={e => setModalEditar((p: any) => ({ ...p, ubicacion: e.target.value }))} style={inputStyle} /></div>
             <div style={{ marginBottom: 20 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 8 }}>Avatar color</label><div style={{ display: 'flex', gap: 8 }}>{COLORES_AVATAR.map(c => <div key={c} onClick={() => setModalEditar((p: any) => ({ ...p, color: c }))} style={{ width: 24, height: 24, borderRadius: '50%', background: c, cursor: 'pointer', border: modalEditar.color === c ? '3px solid white' : '2px solid transparent', boxSizing: 'border-box' }} />)}</div></div>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -375,6 +398,7 @@ export default function AdminPage() {
                 createSuccess.email,
                 createSuccess.pwd,
                 closeCreateModal,
+                { cargo: createSuccess.cargo, emailWarning: createSuccess.emailWarning },
               )
             ) : (
               <>
@@ -395,7 +419,8 @@ export default function AdminPage() {
                   <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Role</label><select value={nuevoUsr.rol} onChange={e => setNuevoUsr(p => ({ ...p, rol: e.target.value }))} style={inputStyle}>{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
                   <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Type</label><select value={nuevoUsr.tipo} onChange={e => setNuevoUsr(p => ({ ...p, tipo: e.target.value }))} style={inputStyle}><option value="A">Tipo A — Staff</option><option value="B">Tipo B — Pasante</option></select></div>
                 </div>
-                <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Company</label><select value={nuevoUsr.empresa} onChange={e => setNuevoUsr(p => ({ ...p, empresa: e.target.value }))} style={inputStyle}>{EMPRESAS.map(e => <option key={e} value={e}>{e}</option>)}</select></div>
+                <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Cargo (Role Title)</label><input type="text" value={nuevoUsr.cargo} onChange={e => setNuevoUsr(p => ({ ...p, cargo: e.target.value }))} placeholder={CARGOS_DIR[nuevoUsr.email.toLowerCase()] || 'Ej. Lead Designer (opcional)'} style={inputStyle} /></div>
+                <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Company</label><select value={nuevoUsr.empresa} onChange={e => setNuevoUsr(p => ({ ...p, empresa: e.target.value }))} style={inputStyle}>{companyOptions(nuevoUsr.empresa).map(e => <option key={e} value={e}>{e}</option>)}</select></div>
                 <div style={{ marginBottom: 20 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 8 }}>Avatar color</label><div style={{ display: 'flex', gap: 8 }}>{COLORES_AVATAR.map(c => <div key={c} onClick={() => setNuevoUsr(p => ({ ...p, color: c }))} style={{ width: 24, height: 24, borderRadius: '50%', background: c, cursor: 'pointer', border: nuevoUsr.color === c ? '3px solid white' : '2px solid transparent', boxSizing: 'border-box' }} />)}</div></div>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button onClick={closeCreateModal} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
