@@ -88,7 +88,7 @@ export const MODULE_META: Record<ModuleSlug, ModuleMeta> = {
     href: '/stratix-mkt',
     description: 'Marketing, producción y campañas de Eminat Group.',
     iconKey: 'stratix-mkt',
-    leader: { name: 'Freddy Crespín', title: 'Director General' },
+    leader: { name: 'Freddy Crespín', title: 'Director de Marketing' },
     subAreas: [
       { name: 'Diseño', leader: 'Joselyne Guerrero' },
       { name: 'Edición', leader: 'David Falconi' },

@@ -6,6 +6,43 @@ import AppShell from '@/app/components/AppShell'
 import { supabase } from '@/lib/supabase'
 import { PageTransition, StaggerGrid, StaggerItem, AnimatedNumber, FadeInSection } from '@/lib/motion'
 
+// ── Stratix 360 team-facing exclusions ────────────────────────────────────
+// Defense in depth: filter by BOTH normalized name AND email, so we catch
+// the person even if the email in usuarios / v_equipo_hoy ever differs from
+// what we expect (or comes back null).
+//
+// Spreadsheet refs (Jonathan_CRM) are excluded separately because the
+// Disponibilidad / Team-ranking / Report panels iterate over MIEMBROS_REFS
+// keys, not usuarios rows.
+const STRATIX360_EXCLUDED_NAMES = new Set(['javier andrade', 'jonathan bula'])
+const STRATIX360_EXCLUDED_EMAILS = new Set([
+  'javier@emc.health',
+  'javier@eminat.net',
+  'jonathan@eminat.net',
+])
+const STRATIX360_EXCLUDED_REFS = new Set(['Jonathan_CRM'])
+
+function normTeamName(s: string): string {
+  return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()
+}
+
+function isExcludedFromStratix360(u?: { nombre?: string | null; apellido?: string | null; email?: string | null } | null): boolean {
+  if (!u) return false
+  const email = (u.email || '').toLowerCase()
+  if (email && STRATIX360_EXCLUDED_EMAILS.has(email)) return true
+  const name = normTeamName(`${u.nombre || ''} ${u.apellido || ''}`)
+  if (name && STRATIX360_EXCLUDED_NAMES.has(name)) return true
+  return false
+}
+
+// MIEMBROS_REFS minus the refs that should not appear in team-iteration UIs.
+// The MIEMBROS_REFS[ref] LOOKUP (used to display assignee names on historic
+// activities) is left untouched, so old tasks still show "Jonathan" instead
+// of a raw "Jonathan_CRM" string.
+const ACTIVE_MIEMBROS_REFS: Record<string, string> = Object.fromEntries(
+  Object.entries(MIEMBROS_REFS).filter(([ref]) => !STRATIX360_EXCLUDED_REFS.has(ref))
+)
+
 export default function StratixMktPage() {
   const {
     usuario, actividades, equipo, usuarios, dark,
@@ -48,13 +85,11 @@ export default function StratixMktPage() {
   const hoy = new Date()
   const diasRestantes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate() - hoy.getDate()
   const horasDisponibles = diasRestantes * 8
-  // Stratix 360 team-facing exclusions:
-  //   - javier@emc.health (standing rule, marketing exclusion)
-  //   - jonathan@eminat.net (off the team)
-  const STRATIX360_EXCLUDED_EMAILS = ['javier@emc.health', 'jonathan@eminat.net']
-  const equipoSinMi = equipo.filter(u =>
-    u.nombre !== usuario?.nombre &&
-    !STRATIX360_EXCLUDED_EMAILS.includes(u.email?.toLowerCase() || '')
+  // Team-facing exclusion applied to Marketing Today / Stratix 360 Today.
+  // Uses the module-scope isExcludedFromStratix360() helper which checks
+  // BOTH normalized name AND email.
+  const equipoSinMi = equipo.filter((u) =>
+    u.nombre !== usuario?.nombre && !isExcludedFromStratix360(u)
   )
   const mesesFull = trimestre === 'General' ? MESES_Q['General'] : mesesQ
   const mesesGraf = trimestre === 'General' ? ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'] : mesesQ.map(m => m.slice(0, 3))
@@ -66,7 +101,7 @@ export default function StratixMktPage() {
   const maxTotal = Math.max(...datosPorMes.map(d => d.total), 1)
   const datosPorMarca = MARCAS_LIST.map(m => ({ ...m, total: actsFiltradas.filter(a => a.area_ref === m.codigo).length })).filter(m => m.total > 0)
   const maxMarca = Math.max(...datosPorMarca.map(d => d.total), 1)
-  const refsTeam = esSuperAdmin ? Object.keys(MIEMBROS_REFS) : [usuario?.responsable_ref].filter(Boolean)
+  const refsTeam = esSuperAdmin ? Object.keys(ACTIVE_MIEMBROS_REFS) : [usuario?.responsable_ref].filter(Boolean)
   const datosPorMiembro = refsTeam.map(ref => ({
     ref, nombre: MIEMBROS_REFS[ref] || ref,
     total: actsFiltradas.filter(a => a.responsable_ref === ref).length,
@@ -575,7 +610,7 @@ export default function StratixMktPage() {
                   <div style={{ fontSize: 12, color: t3 }}>Monday to Friday · 9:00 AM — 6:00 PM · Guayaquil, Ecuador time</div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
-                  {Object.entries(MIEMBROS_REFS).map(([ref, nombre]) => {
+                  {Object.entries(ACTIVE_MIEMBROS_REFS).map(([ref, nombre]) => {
                     const tareasActivas = actividades.filter(a => a.responsable_ref === ref && (a.estado === 'En proceso' || a.estado === 'Pendiente'))
                     const horasOcupadas = Math.round(tareasActivas.reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10
                     const horasSemanales = 40
@@ -659,7 +694,6 @@ export default function StratixMktPage() {
               <Stratix360Roster
                 usuarios={usuarios}
                 actividades={actividades}
-                excluded={STRATIX360_EXCLUDED_EMAILS}
                 colors={{ s1, border, accent, t1, t2, t3 }}
               />
             ) : (
@@ -701,7 +735,7 @@ export default function StratixMktPage() {
                 {esSuperAdmin && (
                   <select value={miembroReporte} onChange={e => setMiembroReporte(e.target.value)} style={{ ...inputStyle, width: 'auto', padding: '6px 12px' }}>
                     <option value="">Select</option>
-                    {Object.entries(MIEMBROS_REFS).map(([ref, nombre]) => <option key={ref} value={ref}>{nombre}</option>)}
+                    {Object.entries(ACTIVE_MIEMBROS_REFS).map(([ref, nombre]) => <option key={ref} value={ref}>{nombre}</option>)}
                   </select>
                 )}
                 <select value={mesReporte} onChange={e => setMesReporte(e.target.value)} style={{ ...inputStyle, width: 'auto', padding: '6px 12px' }}>
@@ -1351,7 +1385,7 @@ export default function StratixMktPage() {
               <div>
                 <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>👤 Assignee <span style={{ color: '#F87171' }}>*</span></label>
                 <select value={nuevaAct.responsable_ref} onChange={e => setNuevaAct(p => ({ ...p, responsable_ref: e.target.value }))} style={inputStyle}>
-                  {Object.entries(MIEMBROS_REFS).map(([ref, nombre]) => <option key={ref} value={ref}>{nombre}</option>)}
+                  {Object.entries(ACTIVE_MIEMBROS_REFS).map(([ref, nombre]) => <option key={ref} value={ref}>{nombre}</option>)}
                 </select>
               </div>
             </div>
@@ -1408,13 +1442,20 @@ export default function StratixMktPage() {
 }
 
 // ── Stratix 360 roster ────────────────────────────────────────────────────
-// Renders the marketing team grouped by area (Diseño · Edición ·
-// Automatización · Cuentas/CM) instead of the old tipo A/B split.
-// Source of truth for area + leader status is hardcoded here by name; names
-// are normalized so accents/tildes don't break matching. Any user in
-// `usuarios` whose name matches one of the entries below is shown in their
-// area; anyone else is filtered out of this view (excluding Freddy who is
-// rendered separately as Director General).
+// The roster (org chart display) is now driven by STRATIX360_ROSTER below,
+// NOT by the contents of the `usuarios` Supabase table. Each entry is rendered
+// regardless of whether the person has an account yet; we *enrich* with
+// usuarios data (avatar color, online status, real email) when a row exists,
+// and show a "Cuenta por crear" placeholder when one doesn't.
+//
+// Why this matters:
+//   - Tasha Palomino and Angie Núñez are team members but their accounts
+//     are still pending. With the previous (usuarios-driven) approach they
+//     never appeared in Equipo. Now they always do.
+//   - Javier Andrade and Jonathan Bula are NOT in this array, so they can
+//     never appear here even if their usuarios rows somehow leak through.
+//     The module-scope isExcludedFromStratix360() helper is an additional
+//     safety net for any code path that still reads from usuarios/equipo.
 
 type RosterColors = {
   s1: string
@@ -1425,91 +1466,92 @@ type RosterColors = {
   t3: string
 }
 
-type AreaKey = 'diseno' | 'edicion' | 'automatizacion' | 'cuentas'
+type AreaKey = 'director' | 'diseno' | 'edicion' | 'automatizacion' | 'cuentas'
 
-const AREA_META: Record<AreaKey, { label: string; icon: string; color: string }> = {
+type RosterEntry = {
+  nombre: string
+  area: AreaKey
+  leader: boolean
+  titulo: string
+}
+
+const AREA_META: Record<Exclude<AreaKey, 'director'>, { label: string; icon: string; color: string }> = {
   diseno: { label: 'Diseño', icon: '🎨', color: '#F472B6' },
   edicion: { label: 'Edición', icon: '🎬', color: '#7C6FF7' },
   automatizacion: { label: 'Automatización · Data & Insight', icon: '⚙️', color: '#A78BFA' },
   cuentas: { label: 'Cuentas / CM', icon: '📲', color: '#60A5FA' },
 }
 
-// Lowercase + remove diacritics for tolerant name matching.
-function normName(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .trim()
-}
-
-const STRATIX360_AREAS: Record<string, { area: AreaKey; leader: boolean; titulo?: string }> = {
-  'joselyne guerrero': { area: 'diseno', leader: true, titulo: 'Lead Designer' },
-  'arianna sig-tu': { area: 'diseno', leader: false, titulo: 'Graphic Designer' },
-  'ariana sig-tu': { area: 'diseno', leader: false, titulo: 'Graphic Designer' },
-  'angie nunez': { area: 'diseno', leader: false, titulo: 'Graphic Designer' },
-  'david falconi': { area: 'edicion', leader: true, titulo: 'Lead Editor & Animations' },
-  'bryan nunez': { area: 'edicion', leader: false, titulo: 'Video Editor' },
-  'tasha palomino': { area: 'edicion', leader: false, titulo: 'Video Editor' },
-  'wagner duenas': { area: 'automatizacion', leader: true, titulo: 'Full Stack Developer' },
-  'naomi panchana': { area: 'cuentas', leader: true, titulo: 'Ejecutiva de Cuentas & CM' },
-}
+const STRATIX360_ROSTER: RosterEntry[] = [
+  { nombre: 'Freddy Crespín',  area: 'director',       leader: true,  titulo: 'Director de Marketing' },
+  { nombre: 'Joselyne Guerrero', area: 'diseno',       leader: true,  titulo: 'Lead Designer' },
+  { nombre: 'Arianna Sig-Tú',    area: 'diseno',       leader: false, titulo: 'Graphic Designer' },
+  { nombre: 'Angie Núñez',       area: 'diseno',       leader: false, titulo: 'Graphic Designer' },
+  { nombre: 'David Falconi',     area: 'edicion',      leader: true,  titulo: 'Lead Editor & Animations' },
+  { nombre: 'Bryan Núñez',       area: 'edicion',      leader: false, titulo: 'Video Editor' },
+  { nombre: 'Tasha Palomino',    area: 'edicion',      leader: false, titulo: 'Video Editor' },
+  { nombre: 'Wagner Dueñas',     area: 'automatizacion', leader: true, titulo: 'Full Stack Developer' },
+  { nombre: 'Naomi Panchana',    area: 'cuentas',      leader: true,  titulo: 'Ejecutiva de Cuentas & CM' },
+]
 
 function Stratix360Roster({
   usuarios,
   actividades,
-  excluded,
   colors,
 }: {
   usuarios: any[]
   actividades: any[]
-  excluded: string[]
   colors: RosterColors
 }) {
   const { s1, border, accent, t1, t2, t3 } = colors
-  const excludedSet = new Set(excluded.map((e) => e.toLowerCase()))
 
-  // Director General: Freddy.
-  const freddy = usuarios.find(
-    (u) =>
-      !excludedSet.has((u.email || '').toLowerCase()) &&
-      normName(`${u.nombre || ''} ${u.apellido || ''}`) === 'freddy crespin',
-  )
-
-  // Group everyone else by area according to STRATIX360_AREAS.
-  const byArea: Record<AreaKey, { user: any; isLeader: boolean; titulo?: string }[]> = {
-    diseno: [],
-    edicion: [],
-    automatizacion: [],
-    cuentas: [],
-  }
+  // Build a name→user index from usuarios, filtering OUT any excluded person
+  // up front so a Javier/Jonathan row in the table cannot enrich an entry.
+  const userByName = new Map<string, any>()
   for (const u of usuarios) {
-    if (excludedSet.has((u.email || '').toLowerCase())) continue
-    const key = normName(`${u.nombre || ''} ${u.apellido || ''}`)
-    const meta = STRATIX360_AREAS[key]
-    if (!meta) continue
-    byArea[meta.area].push({ user: u, isLeader: meta.leader, titulo: meta.titulo })
+    if (isExcludedFromStratix360(u)) continue
+    const key = normTeamName(`${u.nombre || ''} ${u.apellido || ''}`)
+    if (key) userByName.set(key, u)
   }
-  // Leader first inside each area.
-  for (const k of Object.keys(byArea) as AreaKey[]) {
-    byArea[k].sort((a, b) => (a.isLeader === b.isLeader ? 0 : a.isLeader ? -1 : 1))
-  }
+
+  const enriched = STRATIX360_ROSTER.map((entry) => ({
+    entry,
+    user: userByName.get(normTeamName(entry.nombre)) ?? null,
+  }))
+
+  const director = enriched.find((e) => e.entry.area === 'director')
+  const groups = (['diseno', 'edicion', 'automatizacion', 'cuentas'] as const).map((area) => ({
+    area,
+    meta: AREA_META[area],
+    members: enriched
+      .filter((e) => e.entry.area === area)
+      .sort((a, b) => (a.entry.leader === b.entry.leader ? 0 : a.entry.leader ? -1 : 1)),
+  }))
 
   const renderCard = (
-    u: any,
-    isLeader: boolean,
-    titulo: string | undefined,
+    entry: RosterEntry,
+    user: any | null,
     accentOverride?: string,
   ) => {
-    const isOnline = u.online_at
-      ? new Date(u.online_at) > new Date(Date.now() - 5 * 60 * 1000)
+    const isLeader = entry.leader
+    const initials = entry.nombre
+      .split(' ')
+      .slice(0, 2)
+      .map((p) => p[0])
+      .join('')
+      .toUpperCase()
+    const isOnline = user?.online_at
+      ? new Date(user.online_at) > new Date(Date.now() - 5 * 60 * 1000)
       : false
-    const tareasHoy = actividades.filter(
-      (a) => a.responsable_ref === u.responsable_ref && a.estado === 'En proceso',
-    ).length
+    const tareasHoy = user
+      ? actividades.filter(
+          (a) => a.responsable_ref === user.responsable_ref && a.estado === 'En proceso',
+        ).length
+      : 0
+    const swatch = user?.color || accentOverride || accent
     return (
       <div
-        key={u.id}
+        key={entry.nombre}
         style={{
           background: s1,
           border: `1px solid ${isLeader ? `${accentOverride || accent}55` : border}`,
@@ -1519,6 +1561,7 @@ function Stratix360Roster({
             ? `0 2px 8px ${accentOverride || accent}20`
             : '0 1px 3px rgba(0,0,0,0.06)',
           position: 'relative',
+          opacity: user ? 1 : 0.92,
         }}
       >
         {isLeader && (
@@ -1546,7 +1589,7 @@ function Stratix360Roster({
                 width: 44,
                 height: 44,
                 borderRadius: '50%',
-                background: u.color || accentOverride || accent,
+                background: swatch,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -1555,8 +1598,7 @@ function Stratix360Roster({
                 color: 'white',
               }}
             >
-              {u.nombre?.[0]}
-              {u.apellido?.[0]}
+              {initials}
             </div>
             <div
               style={{
@@ -1566,18 +1608,14 @@ function Stratix360Roster({
                 width: 11,
                 height: 11,
                 borderRadius: '50%',
-                background: isOnline ? '#34D399' : '#555',
+                background: user ? (isOnline ? '#34D399' : '#555') : '#9CA3AF',
                 border: `2px solid ${s1}`,
               }}
             />
           </div>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: t1 }}>
-              {u.nombre} {u.apellido}
-            </div>
-            <div style={{ fontSize: 11, color: t2, marginTop: 1 }}>
-              {titulo || u.cargo || u.rol}
-            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: t1 }}>{entry.nombre}</div>
+            <div style={{ fontSize: 11, color: t2, marginTop: 1 }}>{entry.titulo}</div>
           </div>
         </div>
         <div
@@ -1590,13 +1628,28 @@ function Stratix360Roster({
             whiteSpace: 'nowrap',
           }}
         >
-          ✉ {u.email}
+          {user ? `✉ ${user.email}` : '✉ — sin cuenta todavía'}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 10, color: isOnline ? '#34D399' : t3 }}>
-            {isOnline ? '● Active now' : 'Offline'}
-          </span>
-          {tareasHoy > 0 && (
+          {user ? (
+            <span style={{ fontSize: 10, color: isOnline ? '#34D399' : t3 }}>
+              {isOnline ? '● Active now' : 'Offline'}
+            </span>
+          ) : (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 600,
+                color: '#FBB040',
+                background: '#FBB04015',
+                padding: '2px 8px',
+                borderRadius: 10,
+              }}
+            >
+              Cuenta por crear
+            </span>
+          )}
+          {user && tareasHoy > 0 && (
             <span
               style={{
                 fontSize: 10,
@@ -1616,8 +1669,8 @@ function Stratix360Roster({
 
   return (
     <div>
-      {/* Director General */}
-      {freddy && (
+      {/* Director de Marketing */}
+      {director && (
         <div style={{ marginBottom: 28 }}>
           <div
             style={{
@@ -1631,19 +1684,17 @@ function Stratix360Roster({
               display: 'inline-block',
             }}
           >
-            Director General — sobre todas las áreas
+            Director de Marketing — sobre todas las áreas
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-            {renderCard(freddy, true, 'Director General')}
+            {renderCard(director.entry, director.user)}
           </div>
         </div>
       )}
 
-      {/* Areas */}
-      {(['diseno', 'edicion', 'automatizacion', 'cuentas'] as AreaKey[]).map((area) => {
-        const members = byArea[area]
+      {/* Áreas */}
+      {groups.map(({ area, meta, members }) => {
         if (!members.length) return null
-        const meta = AREA_META[area]
         return (
           <div key={area} style={{ marginBottom: 28 }}>
             <div
@@ -1661,7 +1712,7 @@ function Stratix360Roster({
               {meta.icon} {meta.label}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-              {members.map((m) => renderCard(m.user, m.isLeader, m.titulo, meta.color))}
+              {members.map(({ entry, user }) => renderCard(entry, user, meta.color))}
             </div>
           </div>
         )
