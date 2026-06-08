@@ -275,7 +275,7 @@ export default function LoginPage() {
           )}
 
           <div style={{ textAlign: 'center', marginTop: 48 }}>
-            <span style={{ fontSize: 11, color: '#D1D5DB' }}>Stratix Solutions &mdash; Eminat Group Holding</span>
+            <span style={{ fontSize: 11, color: '#D1D5DB' }}>The operating system of Eminat Group</span>
           </div>
         </div>
       </div>

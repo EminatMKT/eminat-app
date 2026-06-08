@@ -2,6 +2,15 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
+import {
+  normalizeRole,
+  getModulesForRole,
+  canAccess,
+  ROLE_LABELS,
+  ROLES as PERMISSION_ROLES,
+  type Role,
+  type ModuleSlug,
+} from './permissions'
 
 // ── Constants ──────────────────────────────────────────────────────────
 
@@ -70,7 +79,10 @@ export const SOLICITANTES = [
 
 export const COLORES_AVATAR = ['#7C6FF7', '#34D399', '#F472B6', '#60A5FA', '#FB923C', '#FBB040', '#A78BFA', '#F87171']
 
-export const ROLES = ['pasante', 'colaborador', 'coordinador', 'superadmin']
+// Roles are the single source of truth for module access. See lib/permissions.ts.
+// Old DB values (pasante/colaborador/coordinador/superadmin) are mapped
+// transparently via normalizeRole() until the DB migration completes.
+export const ROLES = PERMISSION_ROLES
 
 export const EMPRESAS = [
   'Eminat Holding',
@@ -176,6 +188,8 @@ interface AppContextType {
   canCobranzas: boolean
   canResearch: boolean
   canMedical: boolean
+  role: Role | null
+  modules: ModuleSlug[]
   bg: string
   s1: string
   s2: string
@@ -206,12 +220,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [notifAbiertas, setNotifAbiertas] = useState(false)
   const [adminUsuarios, setAdminUsuarios] = useState<any[]>([])
 
-  // Derived values
-  const esSuperAdmin = usuario?.rol === 'superadmin' || usuario?.rol === 'coordinador'
-  const cargo = usuario?.rol === 'superadmin' ? 'Marketing Director' : usuario?.rol || 'Colaborador'
-  const canCobranzas = esSuperAdmin || usuario?.email?.toLowerCase() === 'majo@eminat.net'
-  const canResearch = esSuperAdmin || ['freddy@eminat.net', 'jonathan@eminat.net'].includes(usuario?.email?.toLowerCase() || '')
-  const canMedical = esSuperAdmin || ['daniel@eminat.net', 'dmsardina@eminat.net', 'freddy@eminat.net'].includes(usuario?.email?.toLowerCase() || '')
+  // Derived values — all permissions flow from lib/permissions.ts.
+  // The legacy email allowlists for cobranzas/research/medical are gone:
+  // the new role model expresses the same intent (Freddy/Javier as admin
+  // or medico_investigacion grants what the old allowlists did).
+  const role: Role | null = normalizeRole(usuario?.rol)
+  const modules: ModuleSlug[] = getModulesForRole(role)
+  const esSuperAdmin = role === 'admin'
+  const cargo = role
+    ? ROLE_LABELS[role]
+    : (usuario?.rol || 'Colaborador')
+  const canCobranzas = canAccess(role, 'cobranzas')
+  const canResearch = canAccess(role, 'research')
+  const canMedical = canAccess(role, 'medical')
 
   // Theme colors — content area is always light; sidebar/topbar dark is handled in AppShell
   const bg = '#F9FAFB'
@@ -260,20 +281,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
           return
         }
 
-        // 2. Fetch usuario from 'usuarios' table by email
+        // 2. Fetch usuario from 'usuarios' table by email + active only.
+        //    activo=false locks the account out completely on next page load.
         const { data: usr } = await supabase
           .from('usuarios')
           .select('*')
           .eq('email', user.email)
+          .eq('activo', true)
           .single()
 
         if (!usr) {
+          // Either no profile row or deactivated. Sign out so we don't loop.
+          await supabase.auth.signOut()
           router.push('/login')
           return
         }
         setUsuario(usr)
 
-        const isSuperAdmin = usr.rol === 'superadmin' || usr.rol === 'coordinador'
+        const normalized = normalizeRole(usr.rol)
+        const isSuperAdmin = normalized === 'admin'
 
         // 3. Heartbeat - update online_at every 30s
         const doHeartbeat = () => {
@@ -384,6 +410,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         canCobranzas,
         canResearch,
         canMedical,
+        role,
+        modules,
         bg,
         s1,
         s2,

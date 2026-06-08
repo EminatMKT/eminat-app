@@ -1,78 +1,341 @@
 'use client'
-import { useState } from 'react'
-import { useApp, MARCAS_LIST } from '@/lib/AppContext'
+import { useRouter } from 'next/navigation'
+import { useApp } from '@/lib/AppContext'
 import AppShell from '@/app/components/AppShell'
 import { PageTransition } from '@/lib/motion'
-import { useRouter } from 'next/navigation'
+import { MODULE_META, type ModuleSlug } from '@/lib/permissions'
 
-export default function HomePage() {
-  const { usuario, horaActual, dark, s1, s2, border, t1, t2, t3, accent, mostrarMensaje } = useApp()
+// ── Dark theme (matches AppShell's sidebar palette) ───────────────────
+const D = {
+  bg: '#0A0A0F',
+  card: '#13131C',
+  cardHover: '#191923',
+  border: 'rgba(255,255,255,0.07)',
+  borderHover: 'rgba(79,70,229,0.55)',
+  t1: '#FFFFFF',
+  t2: 'rgba(255,255,255,0.65)',
+  t3: 'rgba(255,255,255,0.35)',
+  accent: '#4F46E5',
+  accentSoft: 'rgba(79,70,229,0.12)',
+}
+
+// ── Inline SVG icons (no emoji) ────────────────────────────────────────
+const stroke = {
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.6,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+}
+
+function ModuleIcon({ slug }: { slug: ModuleSlug }) {
+  const props = { width: 26, height: 26, viewBox: '0 0 24 24', 'aria-hidden': true as const }
+  switch (slug) {
+    case 'stratix-mkt':
+      return (
+        <svg {...props}>
+          <path d="M3 11l16-6v14L3 13v-2z" {...stroke} />
+          <path d="M7 13v4a2 2 0 0 0 4 0v-3" {...stroke} />
+        </svg>
+      )
+    case 'cobranzas':
+      return (
+        <svg {...props}>
+          <rect x="3" y="6" width="18" height="13" rx="2" {...stroke} />
+          <path d="M3 10h18M7 15h4" {...stroke} />
+        </svg>
+      )
+    case 'research':
+      return (
+        <svg {...props}>
+          <circle cx="11" cy="11" r="6" {...stroke} />
+          <path d="M16 16l5 5M8 11h6M11 8v6" {...stroke} />
+        </svg>
+      )
+    case 'medical':
+      return (
+        <svg {...props}>
+          <rect x="5" y="5" width="14" height="14" rx="3" {...stroke} />
+          <path d="M12 8v8M8 12h8" {...stroke} />
+        </svg>
+      )
+    case 'accounting':
+      return (
+        <svg {...props}>
+          <rect x="4" y="3" width="16" height="18" rx="2" {...stroke} />
+          <path d="M8 8h8M8 12h8M8 16h5" {...stroke} />
+        </svg>
+      )
+    case 'th-hr':
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="8" r="3.5" {...stroke} />
+          <path d="M5 20a7 7 0 0 1 14 0" {...stroke} />
+        </svg>
+      )
+    case 'directorio':
+      return (
+        <svg {...props}>
+          <circle cx="9" cy="9" r="3.5" {...stroke} />
+          <path d="M3 19a6 6 0 0 1 12 0" {...stroke} />
+          <circle cx="17" cy="8" r="2.5" {...stroke} />
+          <path d="M14.5 19a4.5 4.5 0 0 1 7 0" {...stroke} />
+        </svg>
+      )
+    case 'admin':
+      return (
+        <svg {...props}>
+          <path d="M12 3l8 4v5c0 5-4 8-8 9-4-1-8-4-8-9V7l8-4z" {...stroke} />
+          <path d="M9 12l2 2 4-4" {...stroke} />
+        </svg>
+      )
+    default:
+      return null
+  }
+}
+
+// ── Launchpad ──────────────────────────────────────────────────────────
+
+export default function LaunchpadPage() {
+  const { usuario, modules } = useApp()
   const router = useRouter()
-  const [hoveredBrand, setHoveredBrand] = useState<string | null>(null)
-
-  const brandNodes = [
-    { key: 'mkt', icon: '🚀', name: 'Stratix MKT', color: accent, loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Marketing and creative production agency for Eminat Holding.', action: () => router.push('/stratix-mkt') },
-    { key: 'emc', icon: '🏥', name: 'EMC Medical Center', color: '#60A5FA', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Medical center specialized in integrative health and wellness.', action: () => mostrarMensaje('ok', 'EMC Medical Center — Coming soon') },
-    { key: 'svn', icon: '💎', name: 'Soy Vivi Negrete', color: '#F472B6', loc: 'Miami', tz: 'America/New_York', desc: 'Personal brand for lifestyle, fashion and digital content.', action: () => mostrarMensaje('ok', 'Soy Vivi Negrete — Coming soon') },
-    { key: 'erg', icon: '🔬', name: 'Eminat Research Group', color: '#A78BFA', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Research and innovation division of the Holding.', action: () => mostrarMensaje('ok', 'Eminat Research Group — Coming soon') },
-    { key: 'vnf', icon: '🤝', name: 'VN Foundation', color: '#FB923C', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Social foundation focused on education and community development.', action: () => mostrarMensaje('ok', 'VN Foundation — Coming soon') },
-    { key: 'premier', icon: '🏆', name: 'Premier', color: '#34D399', loc: 'Miami', tz: 'America/New_York', desc: 'Premium division for exclusive services and products.', action: () => mostrarMensaje('ok', 'Premier — Coming soon') },
-    { key: 'ornella', icon: '🤖', name: 'Ornella IA', color: '#F87171', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Artificial intelligence and automation platform.', action: () => mostrarMensaje('ok', 'Ornella IA — Coming soon') },
-    { key: 'mentor', icon: '📚', name: 'Mentor', color: '#FBB040', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Educational platform for professional training and mentoring.', action: () => mostrarMensaje('ok', 'Mentor — Coming soon') },
-  ]
-  const radius = 220
-  const getLocalTime = (tz: string) => { try { return new Date().toLocaleTimeString('es-EC', { timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) } catch { return horaActual } }
 
   return (
     <AppShell>
       <PageTransition>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 120px)', position: 'relative' }}>
-        <div className="orbit-ring" style={{ position: 'absolute', width: radius * 2 + 80, height: radius * 2 + 80, borderRadius: '50%', border: `1px solid ${border}` }} />
-        <div className="orbit-ring-inner" style={{ position: 'absolute', width: radius * 2 - 40, height: radius * 2 - 40, borderRadius: '50%', border: `1px dashed ${border}` }} />
+        {/* Negative margins escape AppShell's light content padding, so the
+            launchpad takes over the full content area with its dark canvas. */}
+        <div
+          style={{
+            margin: '-20px -24px',
+            minHeight: 'calc(100vh - 60px)',
+            background: D.bg,
+            color: D.t1,
+            padding: '64px 32px 96px',
+            fontFamily: 'Poppins, "DM Sans", sans-serif',
+          }}
+        >
+          <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+            {/* Welcome header */}
+            <div style={{ marginBottom: 48 }}>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '5px 12px',
+                  borderRadius: 999,
+                  background: D.accentSoft,
+                  border: `1px solid ${D.accent}30`,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: '.22em',
+                  textTransform: 'uppercase',
+                  color: '#A5A7FF',
+                  marginBottom: 18,
+                }}
+              >
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: D.accent }} />
+                Launchpad
+              </div>
+              <h1
+                style={{
+                  fontFamily: 'Poppins, sans-serif',
+                  fontSize: 'clamp(36px, 5vw, 56px)',
+                  fontWeight: 800,
+                  lineHeight: 1.05,
+                  letterSpacing: '-0.02em',
+                  color: D.t1,
+                  margin: 0,
+                }}
+              >
+                Hola, {usuario?.nombre || 'equipo'}
+              </h1>
+              <p
+                style={{
+                  marginTop: 12,
+                  fontSize: 15,
+                  color: D.t2,
+                  fontWeight: 400,
+                }}
+              >
+                Selecciona un área para comenzar.
+              </p>
+            </div>
 
-        <div className="center-pulse" style={{ position: 'absolute', width: 130, height: 130, borderRadius: '50%', background: `radial-gradient(circle, ${accent}30 0%, transparent 70%)`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
-          <div style={{ width: 90, height: 90, borderRadius: '50%', background: s1, border: `2px solid ${accent}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 40px ${accent}40, 0 0 80px ${accent}15` }}>
-            <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 10, color: accent, lineHeight: 1.2, textAlign: 'center' }}>Eminat Group</div>
-            <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 11, color: t1, lineHeight: 1 }}>Holding</div>
+            {/* Cards grid */}
+            {modules.length === 0 ? (
+              <EmptyState />
+            ) : (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(244px, 1fr))',
+                  gap: 16,
+                }}
+              >
+                {modules.map((slug, i) => {
+                  const meta = MODULE_META[slug]
+                  return (
+                    <LaunchCard
+                      key={slug}
+                      slug={slug}
+                      name={meta.name}
+                      description={meta.description}
+                      onClick={() => router.push(meta.href)}
+                      delay={i * 0.04}
+                    />
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Footer line */}
+            <div
+              style={{
+                marginTop: 64,
+                paddingTop: 18,
+                borderTop: `1px solid ${D.border}`,
+                fontSize: 10,
+                color: D.t3,
+                letterSpacing: '.16em',
+                textTransform: 'uppercase',
+                textAlign: 'center',
+              }}
+            >
+              The operating system of Eminat Group
+            </div>
           </div>
         </div>
 
-        {brandNodes.map((brand, i) => {
-          const angle = (i * 360 / brandNodes.length - 90) * (Math.PI / 180)
-          const x = Math.cos(angle) * radius
-          const y = Math.sin(angle) * radius
-          const isHovered = hoveredBrand === brand.key
-          return (
-            <div key={brand.key} style={{ position: 'absolute', transform: `translate(${x}px, ${y}px)`, zIndex: isHovered ? 10 : 1 }}>
-              <svg style={{ position: 'absolute', left: '50%', top: '50%', width: 1, height: 1, overflow: 'visible', pointerEvents: 'none', zIndex: -1 }}>
-                <line x1="0" y1="0" x2={-x} y2={-y} stroke={brand.color} strokeWidth={isHovered ? 1.5 : 0.5} strokeOpacity={isHovered ? 0.6 : 0.15} strokeDasharray={isHovered ? 'none' : '4 4'} />
-              </svg>
-              <button onClick={brand.action} onMouseEnter={() => setHoveredBrand(brand.key)} onMouseLeave={() => setHoveredBrand(null)}
-                className="brand-node" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 0, transition: 'transform .2s', transform: isHovered ? 'scale(1.12)' : 'scale(1)' }}>
-                <div style={{ width: 48, height: 48, borderRadius: '50%', background: s1, border: `2px solid ${isHovered ? brand.color : border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, transition: 'all .25s', boxShadow: isHovered ? `0 0 20px ${brand.color}40` : 'none' }}>
-                  {brand.icon}
-                </div>
-                <div style={{ fontSize: 10, fontWeight: 700, color: isHovered ? brand.color : t1, fontFamily: 'DM Sans', textAlign: 'center', maxWidth: 90, lineHeight: 1.2, transition: 'color .2s' }}>{brand.name}</div>
-                <div style={{ fontSize: 8, color: t3, fontFamily: 'DM Mono', display: 'flex', alignItems: 'center', gap: 3 }}>
-                  <span>📍 {brand.loc}</span>
-                  <span style={{ color: brand.color }}>{getLocalTime(brand.tz)}</span>
-                </div>
-              </button>
-              {isHovered && (
-                <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 8, background: s1, border: `1px solid ${brand.color}40`, borderRadius: 12, padding: '12px 14px', width: 200, zIndex: 20, boxShadow: '0 4px 16px rgba(0,0,0,.1)' }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: brand.color, marginBottom: 4 }}>{brand.name}</div>
-                  <div style={{ fontSize: 10, color: t2, lineHeight: 1.5 }}>{brand.desc}</div>
-                  <div style={{ marginTop: 8, fontSize: 9, color: t3, display: 'flex', justifyContent: 'space-between' }}>
-                    <span>📍 {brand.loc}</span>
-                    <span style={{ fontFamily: 'DM Mono', color: brand.color }}>{getLocalTime(brand.tz)}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
+        <style>{`
+          @keyframes launchFadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .launch-card {
+            animation: launchFadeIn .5s ease-out backwards;
+          }
+        `}</style>
       </PageTransition>
     </AppShell>
+  )
+}
+
+function LaunchCard({
+  slug,
+  name,
+  description,
+  onClick,
+  delay,
+}: {
+  slug: ModuleSlug
+  name: string
+  description: string
+  onClick: () => void
+  delay: number
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="launch-card"
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: 16,
+        padding: 22,
+        borderRadius: 16,
+        background: D.card,
+        border: `1px solid ${D.border}`,
+        cursor: 'pointer',
+        textAlign: 'left',
+        fontFamily: 'inherit',
+        color: D.t1,
+        transition: 'transform .25s ease, background .25s ease, border-color .25s ease, box-shadow .25s ease',
+        animationDelay: `${delay}s`,
+      }}
+      onMouseEnter={(e) => {
+        const el = e.currentTarget
+        el.style.transform = 'translateY(-4px)'
+        el.style.background = D.cardHover
+        el.style.borderColor = D.borderHover
+        el.style.boxShadow = '0 22px 44px -16px rgba(79,70,229,0.45)'
+      }}
+      onMouseLeave={(e) => {
+        const el = e.currentTarget
+        el.style.transform = 'translateY(0)'
+        el.style.background = D.card
+        el.style.borderColor = D.border
+        el.style.boxShadow = 'none'
+      }}
+    >
+      <span
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 12,
+          display: 'grid',
+          placeItems: 'center',
+          background: D.accentSoft,
+          color: D.accent,
+        }}
+      >
+        <ModuleIcon slug={slug} />
+      </span>
+      <div>
+        <div
+          style={{
+            fontFamily: 'Poppins, sans-serif',
+            fontSize: 17,
+            fontWeight: 700,
+            color: D.t1,
+            letterSpacing: '-.01em',
+            marginBottom: 4,
+          }}
+        >
+          {name}
+        </div>
+        <div style={{ fontSize: 12, color: D.t2, lineHeight: 1.5 }}>{description}</div>
+      </div>
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          marginTop: 'auto',
+          fontSize: 11,
+          fontWeight: 600,
+          color: D.accent,
+          letterSpacing: '.02em',
+        }}
+      >
+        Abrir
+        <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden>
+          <path d="M3 6h6m-2-2 2 2-2 2" {...stroke} />
+        </svg>
+      </span>
+    </button>
+  )
+}
+
+function EmptyState() {
+  return (
+    <div
+      style={{
+        border: `1px dashed ${D.border}`,
+        borderRadius: 16,
+        padding: '48px 32px',
+        textAlign: 'center',
+        color: D.t2,
+      }}
+    >
+      <div style={{ fontSize: 14, fontWeight: 600, color: D.t1, marginBottom: 6 }}>
+        Tu cuenta no tiene áreas asignadas todavía.
+      </div>
+      <div style={{ fontSize: 12 }}>
+        Pídele a un administrador que active tu rol en el panel de Administración.
+      </div>
+    </div>
   )
 }

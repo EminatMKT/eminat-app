@@ -2,6 +2,7 @@
 import { useState, ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useApp, MARCAS_LIST } from '@/lib/AppContext'
+import { canAccess } from '@/lib/permissions'
 import { supabase } from '@/lib/supabase'
 import Onboarding from './Onboarding'
 
@@ -58,28 +59,31 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
   const [sidebarPanel, setSidebarPanel] = useState<string | null>(
     pathname.startsWith('/research') ? 'research' : pathname.startsWith('/medical') ? 'medical' : (pathname === '/' || pathname.startsWith('/stratix-mkt')) ? 'mkt' : null
   )
-  const { usuario, dark, setDark, horaActual, onlineCount, mensaje, notificaciones, notifAbiertas, setNotifAbiertas, setNotificaciones, accent, cargo, esSuperAdmin, canCobranzas, canResearch, canMedical, handleLogout, mostrarMensaje, bg } = app
+  const { usuario, dark, setDark, horaActual, onlineCount, mensaje, notificaciones, notifAbiertas, setNotifAbiertas, setNotificaciones, accent, cargo, role, handleLogout, bg } = app
 
   const activeIconKey = pathname.startsWith('/medical') ? 'medical'
     : pathname.startsWith('/research') ? 'research'
     : pathname.startsWith('/accounting') ? 'accounting'
     : pathname.startsWith('/cobranzas') ? 'cobranzas'
+    : pathname.startsWith('/th-hr') ? 'th-hr'
     : pathname.startsWith('/directorio') ? 'directorio'
     : pathname.startsWith('/admin') ? 'admin'
     : pathname.startsWith('/stratix-mkt') ? 'mkt'
     : pathname === '/' ? 'home' : 'home'
 
+  // Sidebar is rendered from the permissions matrix (lib/permissions.ts).
+  // Items are added only if the user's role can access the module.
+  // Home is always present; admin and module-specific items are gated.
   const sidebarIcons: any[] = [
     { key: 'home', icon: '🏠', label: 'Home', action: () => { router.push('/'); setSidebarPanel(null) } },
-    { key: 'mkt', icon: '🚀', label: 'Stratix MKT', action: () => { setSidebarPanel(p => p === 'mkt' ? null : 'mkt'); if (!pathname.startsWith('/stratix-mkt')) router.push('/stratix-mkt') } },
-    { key: 'finanzas', icon: '💰', label: 'Finance', soon: true, action: () => mostrarMensaje('ok', 'Finance — Coming soon') },
-    { key: 'accounting', icon: '🧾', label: 'Accounting', action: () => { router.push('/accounting'); setSidebarPanel(null) } },
-    ...(canCobranzas ? [{ key: 'cobranzas', icon: '💳', label: 'Billing', action: () => { router.push('/cobranzas'); setSidebarPanel(null) } }] : []),
-    ...(canMedical ? [{ key: 'medical', icon: '🏥', label: 'Medical', action: () => { setSidebarPanel(p => p === 'medical' ? null : 'medical'); if (!pathname.startsWith('/medical')) router.push('/medical') } }] : []),
-    { key: 'rrhh', icon: '👤', label: 'TH/HR', soon: true, action: () => mostrarMensaje('ok', 'TH/HR — Coming soon') },
-    ...(canResearch ? [{ key: 'research', icon: '🔬', label: 'Research', action: () => { setSidebarPanel(p => p === 'research' ? null : 'research'); if (!pathname.startsWith('/research')) router.push('/research') } }] : [{ key: 'research', icon: '🔬', label: 'Research', soon: true, action: () => mostrarMensaje('ok', 'Research — Coming soon') }]),
-    { key: 'directorio', icon: '🏢', label: 'Directory', action: () => { router.push('/directorio'); setSidebarPanel(null) } },
-    ...(esSuperAdmin ? [{ key: 'admin', icon: '🔐', label: 'Admin', action: () => { router.push('/admin'); setSidebarPanel(null) } }] : []),
+    ...(canAccess(role, 'stratix-mkt') ? [{ key: 'mkt', icon: '🚀', label: 'Stratix 360', action: () => { setSidebarPanel(p => p === 'mkt' ? null : 'mkt'); if (!pathname.startsWith('/stratix-mkt')) router.push('/stratix-mkt') } }] : []),
+    ...(canAccess(role, 'accounting') ? [{ key: 'accounting', icon: '🧾', label: 'Accounting', action: () => { router.push('/accounting'); setSidebarPanel(null) } }] : []),
+    ...(canAccess(role, 'cobranzas') ? [{ key: 'cobranzas', icon: '💳', label: 'Billing', action: () => { router.push('/cobranzas'); setSidebarPanel(null) } }] : []),
+    ...(canAccess(role, 'medical') ? [{ key: 'medical', icon: '🏥', label: 'Medical', action: () => { setSidebarPanel(p => p === 'medical' ? null : 'medical'); if (!pathname.startsWith('/medical')) router.push('/medical') } }] : []),
+    ...(canAccess(role, 'th-hr') ? [{ key: 'th-hr', icon: '👤', label: 'TH/HR', action: () => { router.push('/th-hr'); setSidebarPanel(null) } }] : []),
+    ...(canAccess(role, 'research') ? [{ key: 'research', icon: '🔬', label: 'Research', action: () => { setSidebarPanel(p => p === 'research' ? null : 'research'); if (!pathname.startsWith('/research')) router.push('/research') } }] : []),
+    ...(canAccess(role, 'directorio') ? [{ key: 'directorio', icon: '🏢', label: 'Directory', action: () => { router.push('/directorio'); setSidebarPanel(null) } }] : []),
+    ...(canAccess(role, 'admin') ? [{ key: 'admin', icon: '🔐', label: 'Admin', action: () => { router.push('/admin'); setSidebarPanel(null) } }] : []),
   ]
 
   const panelOpen = sidebarPanel === 'mkt' || sidebarPanel === 'research' || sidebarPanel === 'medical'
