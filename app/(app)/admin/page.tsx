@@ -14,6 +14,15 @@ type ReassignState = {
   statusOverride: StatusOverride
 }
 
+// Stratix 360 cross-role heir exception.
+// Freddy Crespín is the Director de Marketing — head of all the Stratix
+// 360 sub-areas — even though his system rol is 'admin'. Include him as a
+// valid heir when reassigning a Stratix 360 user's tasks so the team's
+// work can land on him when no other member is the right fit.
+// NOT generalized to all admins; NOT applied to other areas. To grant the
+// same exception to another person later, add their email here.
+const STRATIX360_CROSS_ROLE_HEIR_EMAILS = new Set<string>(['freddy@eminat.net'])
+
 // ── Password helpers ──────────────────────────────────────────────────────
 // Strong temp password using crypto.getRandomValues. Excludes ambiguous
 // characters (0/O, 1/l/I) so admins can read it aloud without confusion.
@@ -611,11 +620,20 @@ export default function AdminPage() {
         if (reassignState) {
           const targetNormal = normalizeRole(target.rol)
           const heirs = adminUsuarios
-            .filter(u =>
-              u.id !== target.id &&
-              u.activo &&
-              normalizeRole(u.rol) === targetNormal,
-            )
+            .filter(u => {
+              if (u.id === target.id) return false
+              if (!u.activo) return false
+              // Default rule: same área (normalized role).
+              if (normalizeRole(u.rol) === targetNormal) return true
+              // Stratix 360 exception: Freddy (and anyone else listed in
+              // STRATIX360_CROSS_ROLE_HEIR_EMAILS) is a valid heir for
+              // marketing transfers regardless of their system rol.
+              if (
+                targetNormal === 'stratix360' &&
+                STRATIX360_CROSS_ROLE_HEIR_EMAILS.has((u.email || '').toLowerCase())
+              ) return true
+              return false
+            })
             .sort((a, b) => `${a.nombre || ''}`.localeCompare(b.nombre || ''))
           const selectedHeir = heirs.find(h => h.id === reassignState.heirId)
           const heirReady = !!selectedHeir && !!selectedHeir.responsable_ref
