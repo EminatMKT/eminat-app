@@ -31,9 +31,12 @@ import { createClient } from '@supabase/supabase-js'
  *
  * Requires SUPABASE_SERVICE_ROLE_KEY. Never exposed to the browser.
  */
+const TAG = '[admin/delete-user]'
+
 export async function POST(req: NextRequest) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!serviceRoleKey) {
+    console.error(`${TAG} SUPABASE_SERVICE_ROLE_KEY is not configured`)
     return NextResponse.json(
       { error: 'SUPABASE_SERVICE_ROLE_KEY is not configured in this environment.' },
       { status: 500 },
@@ -62,20 +65,25 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
 
     if (lookupError) {
+      console.error(`${TAG} lookup failed`, { id, error: lookupError.message })
       return NextResponse.json(
         { error: `Lookup falló: ${lookupError.message}` },
         { status: 500 },
       )
     }
     if (!row) {
+      console.error(`${TAG} row not found`, { id })
       return NextResponse.json(
         { error: 'Usuario no encontrado en public.usuarios.' },
         { status: 404 },
       )
     }
 
+    console.log(`${TAG} start`, { id, email: row.email, rol: row.rol, hasAuthId: !!row.auth_id })
+
     // Block deletion of superadmin rows as a guardrail.
     if (row.rol === 'superadmin' || row.rol === 'admin') {
+      console.warn(`${TAG} blocked admin-tier delete`, { id, email: row.email, rol: row.rol })
       return NextResponse.json(
         { error: 'No se puede borrar a un usuario con rol admin/superadmin. Cambia su rol primero.' },
         { status: 400 },
@@ -112,6 +120,7 @@ export async function POST(req: NextRequest) {
 
     if (dbError) {
       const isFk = (dbError as any).code === '23503'
+      console.error(`${TAG} usuarios delete failed`, { id, code: (dbError as any).code, error: dbError.message, isFk })
       if (isFk) {
         return NextResponse.json(
           {
@@ -131,12 +140,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (!count) {
+      console.warn(`${TAG} 0 rows affected`, { id })
       return NextResponse.json(
         { error: 'La fila no se borró (0 filas afectadas). Puede que ya no exista.', authDeleted, authNote },
         { status: 404 },
       )
     }
 
+    console.log(`${TAG} success`, { id, email: row.email, authDeleted, authNote })
     return NextResponse.json({
       ok: true,
       dbDeleted: true,
@@ -145,6 +156,7 @@ export async function POST(req: NextRequest) {
       removed: { id: row.id, email: row.email, nombre: row.nombre, apellido: row.apellido },
     })
   } catch (err: any) {
+    console.error(`${TAG} unexpected`, { message: err?.message })
     return NextResponse.json(
       { error: err?.message || 'Error inesperado al borrar el usuario.' },
       { status: 500 },

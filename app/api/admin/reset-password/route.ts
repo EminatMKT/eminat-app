@@ -9,9 +9,12 @@ import { createClient } from '@supabase/supabase-js'
  *
  * Requires SUPABASE_SERVICE_ROLE_KEY. Never exposed to the browser.
  */
+const TAG = '[admin/reset-password]'
+
 export async function POST(req: NextRequest) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!serviceRoleKey) {
+    console.error(`${TAG} SUPABASE_SERVICE_ROLE_KEY is not configured`)
     return NextResponse.json(
       { error: 'SUPABASE_SERVICE_ROLE_KEY is not configured in this environment.' },
       { status: 500 },
@@ -36,19 +39,24 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    console.log(`${TAG} start`, { userId })
+
     const { data, error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
       password,
     })
 
     if (error || !data?.user) {
+      console.error(`${TAG} auth.updateUserById failed`, { userId, error: error?.message })
       return NextResponse.json(
         { error: error?.message || 'No se pudo actualizar la contraseña.' },
         { status: 400 },
       )
     }
 
+    console.log(`${TAG} success`, { userId })
     return NextResponse.json({ ok: true })
   } catch (err: any) {
+    console.error(`${TAG} unexpected`, { message: err?.message })
     return NextResponse.json(
       { error: err?.message || 'Error inesperado al resetear la contraseña.' },
       { status: 500 },

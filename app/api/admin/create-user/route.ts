@@ -127,9 +127,12 @@ async function sendWelcomeEmail(args: {
   }
 }
 
+const TAG = '[admin/create-user]'
+
 export async function POST(req: NextRequest) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!serviceRoleKey) {
+    console.error(`${TAG} SUPABASE_SERVICE_ROLE_KEY is not configured`)
     return NextResponse.json(
       { error: 'SUPABASE_SERVICE_ROLE_KEY is not configured in this environment.' },
       { status: 500 },
@@ -169,12 +172,14 @@ export async function POST(req: NextRequest) {
     })
 
     if (authError || !authData?.user) {
+      console.error(`${TAG} auth.createUser failed`, { email, error: authError?.message })
       return NextResponse.json(
         { error: authError?.message || 'No se pudo crear el usuario en Auth.' },
         { status: 400 },
       )
     }
     userId = authData.user.id
+    console.log(`${TAG} auth user created`, { email, userId })
 
     // 2. Companion usuarios row. id MUST equal the Auth user id so
     //    profile lookups by id (and JWT claims) work consistently.
@@ -198,10 +203,23 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (dbError) {
+      console.error(`${TAG} usuarios insert failed — rolling back auth`, {
+        userId,
+        email,
+        code: (dbError as any).code,
+        error: dbError.message,
+      })
       // Rollback Auth user. If the rollback itself fails, surface both
       // errors so the admin knows there is an orphan auth.users row to
       // clean up manually from the Supabase Dashboard.
       const { error: rollbackError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+      if (rollbackError) {
+        console.error(`${TAG} auth rollback ALSO failed — ORPHAN auth.users row`, {
+          userId,
+          email,
+          error: rollbackError.message,
+        })
+      }
       const detail = rollbackError
         ? ` (rollback de la cuenta de Auth también falló: ${rollbackError.message} — borra el auth.users con id ${userId} desde el dashboard de Supabase).`
         : ' (la cuenta de Auth fue revertida; no hay orphan).'
@@ -211,11 +229,16 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    console.log(`${TAG} usuarios inserted`, { userId, email })
+
     // 3. Best-effort welcome email. Never fails the request.
     const emailWarning = await sendWelcomeEmail({ nombre, apellido, email, password, rol: rol || 'stratix360', cargo })
+    if (emailWarning) console.warn(`${TAG} email warning`, { userId, email, emailWarning })
 
+    console.log(`${TAG} success`, { userId, email })
     return NextResponse.json({ user: userData, emailWarning }, { status: 201 })
   } catch (err: any) {
+    console.error(`${TAG} unexpected — attempting auth rollback`, { userId, message: err?.message })
     // Defensive: also try rollback on unexpected failure.
     if (userId) {
       try { await supabaseAdmin.auth.admin.deleteUser(userId) } catch {}

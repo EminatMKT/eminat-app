@@ -2,28 +2,33 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 /**
- * Server-side admin endpoint — atomic user update.
+ * Server-side admin endpoint — partial user update.
  *
- * The trickiest field is `email`, because it lives in TWO places:
- *   • auth.users (the login identity, only writable by service_role)
- *   • usuarios   (the profile row joined by id, writable via RLS by admin)
+ * Only `id` is required. Every other field is optional; we only touch the
+ * columns that were actually included in the request body. This lets the
+ * same endpoint handle:
+ *   • A full Edit-user save (email, nombre, apellido, rol, tipo, color,
+ *     ubicacion, empresa, cargo all set)
+ *   • A toggle Activate / Deactivate ({ id, activo })
+ *   • A "Validate" action ({ id, validado: true, activo: true })
+ *   • A standalone role change ({ id, rol })
  *
- * If those two ever drift apart, the user cannot log in OR cannot be
- * looked up by AppContext (which queries usuarios.email). This route
- * keeps them aligned:
- *   1. If email is changing, update Auth first.
- *   2. Update usuarios with all editable fields.
- *   3. If usuarios fails, revert Auth email back to its previous value.
+ * Atomic email change:
+ *   If `email` is being changed (caller passes both `currentEmail` and a
+ *   different `email`), we update auth.users.email FIRST. If the
+ *   subsequent usuarios update fails, we revert auth.users.email back so
+ *   the two never drift apart.
  *
- * Non-email fields are updated in the same usuarios row; service_role
- * is not strictly required for those, but routing everything through
- * one endpoint keeps the admin UI simple and the rollback symmetric.
- *
- * Requires SUPABASE_SERVICE_ROLE_KEY. Never exposed to the browser.
+ * Service-role only. Bypasses RLS. SUPABASE_SERVICE_ROLE_KEY is never
+ * exposed to the browser.
  */
+
+const TAG = '[admin/update-user]'
+
 export async function POST(req: NextRequest) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!serviceRoleKey) {
+    console.error(`${TAG} SUPABASE_SERVICE_ROLE_KEY is not configured`)
     return NextResponse.json(
       { error: 'SUPABASE_SERVICE_ROLE_KEY is not configured in this environment.' },
       { status: 500 },
@@ -38,36 +43,9 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { id, currentEmail, email, nombre, apellido, rol, tipo, color, ubicacion, empresa, cargo } = body
-
-    if (!id) return NextResponse.json({ error: 'id requerido.' }, { status: 400 })
-    if (!email || !nombre || !apellido) {
-      return NextResponse.json(
-        { error: 'Campos requeridos: email, nombre, apellido' },
-        { status: 400 },
-      )
-    }
-
-    const emailChanged =
-      typeof currentEmail === 'string' &&
-      currentEmail.toLowerCase().trim() !== email.toLowerCase().trim()
-
-    // 1. Update Auth email if changed.
-    if (emailChanged) {
-      const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, {
-        email,
-        email_confirm: true,
-      })
-      if (authError) {
-        return NextResponse.json(
-          { error: `Auth: ${authError.message}` },
-          { status: 400 },
-        )
-      }
-    }
-
-    // 2. Update usuarios.
-    const updatePayload: Record<string, unknown> = {
+    const {
+      id,
+      currentEmail,
       email,
       nombre,
       apellido,
@@ -76,18 +54,71 @@ export async function POST(req: NextRequest) {
       color,
       ubicacion,
       empresa,
-    }
-    if (cargo !== undefined) updatePayload.cargo = cargo
+      cargo,
+      activo,
+      validado,
+    } = body
 
-    const { data: userData, error: dbError } = await supabaseAdmin
+    if (!id || typeof id !== 'string') {
+      return NextResponse.json({ error: 'id requerido.' }, { status: 400 })
+    }
+
+    // Only include keys that were explicitly sent. undefined → skip.
+    const updatePayload: Record<string, unknown> = {}
+    if (email !== undefined) updatePayload.email = email
+    if (nombre !== undefined) updatePayload.nombre = nombre
+    if (apellido !== undefined) updatePayload.apellido = apellido
+    if (rol !== undefined) updatePayload.rol = rol
+    if (tipo !== undefined) updatePayload.tipo = tipo
+    if (color !== undefined) updatePayload.color = color
+    if (ubicacion !== undefined) updatePayload.ubicacion = ubicacion
+    if (empresa !== undefined) updatePayload.empresa = empresa
+    if (cargo !== undefined) updatePayload.cargo = cargo
+    if (activo !== undefined) updatePayload.activo = activo
+    if (validado !== undefined) updatePayload.validado = validado
+
+    if (Object.keys(updatePayload).length === 0) {
+      return NextResponse.json({ error: 'Sin campos para actualizar.' }, { status: 400 })
+    }
+
+    console.log(`${TAG} start`, { id, fields: Object.keys(updatePayload) })
+
+    const emailChanged =
+      typeof email === 'string' &&
+      typeof currentEmail === 'string' &&
+      currentEmail.toLowerCase().trim() !== email.toLowerCase().trim()
+
+    // 1) Update Auth email if (and only if) the request is changing email
+    //    and both old + new were provided.
+    if (emailChanged) {
+      console.log(`${TAG} auth email change`, { id, from: currentEmail, to: email })
+      const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, {
+        email,
+        email_confirm: true,
+      })
+      if (authError) {
+        console.error(`${TAG} auth email update failed`, { id, error: authError.message })
+        return NextResponse.json({ error: `Auth: ${authError.message}` }, { status: 400 })
+      }
+    }
+
+    // 2) Update usuarios. count:'exact' lets us detect "0 rows affected"
+    //    (which would mean no row with that id exists).
+    const { data: userData, error: dbError, count } = await supabaseAdmin
       .from('usuarios')
-      .update(updatePayload)
+      .update(updatePayload, { count: 'exact' })
       .eq('id', id)
       .select()
       .single()
 
     if (dbError) {
-      // Revert Auth email if it had been changed.
+      console.error(`${TAG} usuarios update failed`, {
+        id,
+        error: dbError.message,
+        code: (dbError as any).code,
+        fields: Object.keys(updatePayload),
+      })
+      // Revert Auth email if we touched it earlier.
       if (emailChanged) {
         const { error: revertError } = await supabaseAdmin.auth.admin.updateUserById(id, {
           email: currentEmail,
@@ -107,8 +138,18 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    if (count === 0) {
+      console.error(`${TAG} usuarios update affected 0 rows`, { id })
+      return NextResponse.json(
+        { error: 'La fila no se actualizó (0 filas afectadas). El id puede no existir.' },
+        { status: 404 },
+      )
+    }
+
+    console.log(`${TAG} success`, { id, fields: Object.keys(updatePayload) })
     return NextResponse.json({ user: userData })
   } catch (err: any) {
+    console.error(`${TAG} unexpected`, { message: err?.message })
     return NextResponse.json(
       { error: err?.message || 'Error inesperado al actualizar el usuario.' },
       { status: 500 },

@@ -88,9 +88,25 @@ export default function AdminPage() {
     mostrarMensaje('ok', 'Role updated')
   }
   async function toggleActivo(id: string, activo: boolean) {
-    await supabase.from('usuarios').update({ activo: !activo }).eq('id', id)
-    setAdminUsuarios(prev => prev.map(u => u.id === id ? { ...u, activo: !activo } : u))
-    mostrarMensaje('ok', !activo ? 'User activated' : 'User deactivated')
+    // Routed through the server-side admin endpoint so the update uses
+    // service_role and isn't subject to whatever RLS allows the browser
+    // client. Surfaces real errors instead of failing silently.
+    try {
+      const res = await fetch('/api/admin/update-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, activo: !activo }),
+      })
+      const result = await res.json()
+      if (!res.ok) {
+        mostrarMensaje('error', result.error || 'No se pudo cambiar el estado.')
+        return
+      }
+      setAdminUsuarios(prev => prev.map(u => u.id === id ? { ...u, activo: !activo } : u))
+      mostrarMensaje('ok', !activo ? 'User activated' : 'User deactivated')
+    } catch (err: any) {
+      mostrarMensaje('error', err?.message || 'Error de red al cambiar el estado.')
+    }
   }
   async function validarUsuario(id: string) {
     await supabase.from('usuarios').update({ validado: true, activo: true }).eq('id', id)
@@ -129,9 +145,14 @@ export default function AdminPage() {
     setDeleteError(null)
     setDeleting(true)
     try {
-      const { error } = await supabase.from('usuarios').update({ activo: false }).eq('id', id)
-      if (error) {
-        setDeleteError(`No se pudo desactivar: ${error.message}`)
+      const res = await fetch('/api/admin/update-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, activo: false }),
+      })
+      const result = await res.json()
+      if (!res.ok) {
+        setDeleteError(result.error || 'No se pudo desactivar el usuario.')
         setDeleting(false)
         return
       }
