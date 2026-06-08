@@ -64,6 +64,8 @@ export default function AdminPage() {
 
   // Delete modal
   const [modalEliminar, setModalEliminar] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   // Reset password modal
   type ResetTarget = { id: string; nombre: string; email: string }
@@ -96,10 +98,50 @@ export default function AdminPage() {
     mostrarMensaje('ok', 'User validated')
   }
   async function eliminarUsuario(id: string) {
-    await supabase.from('usuarios').delete().eq('id', id)
-    setAdminUsuarios(prev => prev.filter(u => u.id !== id))
-    setModalEliminar(null)
-    mostrarMensaje('ok', 'User deleted')
+    setDeleteError(null)
+    setDeleting(true)
+    try {
+      const res = await fetch('/api/admin/delete-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      const result = await res.json()
+      if (!res.ok || !result.ok) {
+        setDeleteError(result.error || 'No se pudo borrar el usuario.')
+        setDeleting(false)
+        return
+      }
+      setAdminUsuarios(prev => prev.filter(u => u.id !== id))
+      setModalEliminar(null)
+      const authBit = result.authDeleted
+        ? ' (Auth + perfil)'
+        : result.authNote
+          ? ' (perfil borrado; Auth: ' + result.authNote + ')'
+          : ' (perfil borrado; sin cuenta Auth)'
+      mostrarMensaje('ok', `User deleted${authBit}`)
+    } catch (err: any) {
+      setDeleteError(err?.message || 'Error de red al borrar el usuario.')
+    }
+    setDeleting(false)
+  }
+  async function deactivarDesdeDelete(id: string) {
+    setDeleteError(null)
+    setDeleting(true)
+    try {
+      const { error } = await supabase.from('usuarios').update({ activo: false }).eq('id', id)
+      if (error) {
+        setDeleteError(`No se pudo desactivar: ${error.message}`)
+        setDeleting(false)
+        return
+      }
+      setAdminUsuarios(prev => prev.map(u => u.id === id ? { ...u, activo: false } : u))
+      setModalEliminar(null)
+      mostrarMensaje('ok', 'User deactivated (activo=false). Su historial se preserva.')
+    } catch (err: any) {
+      setDeleteError(err?.message || 'Error de red al desactivar el usuario.')
+    }
+    setDeleting(false)
   }
 
   function openResetModal(target: ResetTarget) {
@@ -469,19 +511,35 @@ export default function AdminPage() {
       )}
 
       {/* MODAL ELIMINAR */}
-      {modalEliminar && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 18, padding: 28, width: 360, textAlign: 'center' }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
-            <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 700, color: t1, marginBottom: 8 }}>Delete user</div>
-            <div style={{ fontSize: 13, color: t2, marginBottom: 24, lineHeight: 1.5 }}>This action is permanent and cannot be undone.</div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setModalEliminar(null)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
-              <button onClick={() => eliminarUsuario(modalEliminar)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: '#F87171', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Delete</button>
+      {modalEliminar && (() => {
+        const target = adminUsuarios.find(u => u.id === modalEliminar)
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+            <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 18, padding: 28, width: 440, maxWidth: '95vw' }}>
+              <div style={{ fontSize: 36, marginBottom: 12, textAlign: 'center' }}>⚠️</div>
+              <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 700, color: t1, marginBottom: 8, textAlign: 'center' }}>Delete user</div>
+              {target && (
+                <div style={{ fontSize: 13, color: t2, marginBottom: 14, lineHeight: 1.5, textAlign: 'center' }}>
+                  <strong style={{ color: t1 }}>{target.nombre} {target.apellido}</strong><br />
+                  <span style={{ fontFamily: 'DM Mono', fontSize: 11 }}>{target.email}</span>
+                </div>
+              )}
+              <div style={{ fontSize: 12, color: t2, marginBottom: 14, lineHeight: 1.5, padding: '10px 14px', borderRadius: 10, background: 'rgba(248,113,113,.08)', border: '1px solid rgba(248,113,113,.30)' }}>
+                Esta acción borra el row de <code>public.usuarios</code> Y la cuenta de Auth (si existe). Es permanente.
+              </div>
+              <div style={{ fontSize: 11, color: t3, marginBottom: 18, lineHeight: 1.5 }}>
+                Si este usuario ya tiene actividades, notificaciones u otros registros, el borrado fallará por FK constraint. En ese caso usa <strong style={{ color: t2 }}>Deactivate</strong> (preserva el historial pero le quita el acceso).
+              </div>
+              {errorBlock(deleteError)}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => { setModalEliminar(null); setDeleteError(null) }} disabled={deleting} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+                <button onClick={() => deactivarDesdeDelete(modalEliminar)} disabled={deleting} style={{ flex: 1.3, padding: '10px', borderRadius: 10, border: '1px solid rgba(251,176,64,.35)', background: 'rgba(251,176,64,.10)', color: '#FBB040', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{deleting ? '...' : 'Deactivate (safer)'}</button>
+                <button onClick={() => eliminarUsuario(modalEliminar)} disabled={deleting} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: '#F87171', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{deleting ? '...' : 'Hard delete'}</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
       </PageTransition>
     </AppShell>
   )
