@@ -122,11 +122,19 @@ export async function POST(req: NextRequest) {
       const isFk = (dbError as any).code === '23503'
       console.error(`${TAG} usuarios delete failed`, { id, code: (dbError as any).code, error: dbError.message, isFk })
       if (isFk) {
+        // Count the actividades the user owns so the UI can offer the
+        // reassign-and-delete flow with the number up-front.
+        const { count: taskCount } = await supabaseAdmin
+          .from('actividades')
+          .select('id', { count: 'exact', head: true })
+          .eq('responsable_id', id)
         return NextResponse.json(
           {
             error:
-              'El usuario tiene registros relacionados (actividades, notificaciones u otros) que impiden borrarlo directamente. Usa "Deactivate" en su lugar — preserva el historial.',
+              'El usuario tiene registros relacionados (actividades, notificaciones u otros). Usa "Heredar y borrar" para transferir sus tareas a otro miembro, o "Deactivate" para preservar el historial intacto.',
             dbErrorCode: (dbError as any).code,
+            blockedBy: 'foreign_key',
+            taskCount: taskCount ?? 0,
             authDeleted,
             authNote,
           },
