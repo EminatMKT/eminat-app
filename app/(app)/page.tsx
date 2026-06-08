@@ -97,7 +97,7 @@ function ModuleIcon({ slug }: { slug: ModuleSlug }) {
 // ── Launchpad ──────────────────────────────────────────────────────────
 
 export default function LaunchpadPage() {
-  const { usuario, modules } = useApp()
+  const { usuario, modules, esSuperAdmin } = useApp()
   const router = useRouter()
 
   return (
@@ -117,7 +117,7 @@ export default function LaunchpadPage() {
         >
           <div style={{ maxWidth: 1200, margin: '0 auto' }}>
             {/* Welcome header */}
-            <div style={{ marginBottom: 48 }}>
+            <div style={{ marginBottom: 40 }}>
               <div
                 style={{
                   display: 'inline-flex',
@@ -163,6 +163,9 @@ export default function LaunchpadPage() {
               </p>
             </div>
 
+            {/* Admin "Ver todo" — only visible to admin role */}
+            {esSuperAdmin && <VerTodoBanner onClick={() => router.push('/overview')} />}
+
             {/* Cards grid */}
             {modules.length === 0 ? (
               <EmptyState />
@@ -170,7 +173,7 @@ export default function LaunchpadPage() {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(244px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
                   gap: 16,
                 }}
               >
@@ -180,8 +183,7 @@ export default function LaunchpadPage() {
                     <LaunchCard
                       key={slug}
                       slug={slug}
-                      name={meta.name}
-                      description={meta.description}
+                      meta={meta}
                       onClick={() => router.push(meta.href)}
                       delay={i * 0.04}
                     />
@@ -213,25 +215,97 @@ export default function LaunchpadPage() {
             from { opacity: 0; transform: translateY(12px); }
             to { opacity: 1; transform: translateY(0); }
           }
-          .launch-card {
-            animation: launchFadeIn .5s ease-out backwards;
-          }
+          .launch-card { animation: launchFadeIn .5s ease-out backwards; }
         `}</style>
       </PageTransition>
     </AppShell>
   )
 }
 
+function VerTodoBanner({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+        marginBottom: 28,
+        padding: '18px 22px',
+        borderRadius: 14,
+        background: 'linear-gradient(135deg, rgba(79,70,229,0.18) 0%, rgba(124,58,237,0.12) 100%)',
+        border: `1px solid ${D.accent}40`,
+        cursor: 'pointer',
+        textAlign: 'left',
+        fontFamily: 'inherit',
+        color: D.t1,
+        transition: 'background .2s, border-color .2s, transform .2s',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background =
+          'linear-gradient(135deg, rgba(79,70,229,0.28) 0%, rgba(124,58,237,0.18) 100%)'
+        e.currentTarget.style.borderColor = '#7C6FF7'
+        e.currentTarget.style.transform = 'translateY(-1px)'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background =
+          'linear-gradient(135deg, rgba(79,70,229,0.18) 0%, rgba(124,58,237,0.12) 100%)'
+        e.currentTarget.style.borderColor = `${D.accent}40`
+        e.currentTarget.style.transform = 'translateY(0)'
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <span
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 10,
+            display: 'grid',
+            placeItems: 'center',
+            background: D.accent,
+            color: 'white',
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden>
+            <circle cx="12" cy="12" r="3" {...stroke} />
+            <path d="M3 7h4M3 12h3M3 17h4M21 7h-4M21 12h-3M21 17h-4M12 3v4M12 21v-4" {...stroke} />
+          </svg>
+        </span>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-.01em' }}>Ver todo</div>
+          <div style={{ fontSize: 12, color: D.t2, marginTop: 2 }}>
+            Abre la vista panorámica con todas las marcas del holding.
+          </div>
+        </div>
+      </div>
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          fontSize: 12,
+          fontWeight: 600,
+          color: '#A5A7FF',
+        }}
+      >
+        Abrir
+        <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden>
+          <path d="M3 6h6m-2-2 2 2-2 2" {...stroke} />
+        </svg>
+      </span>
+    </button>
+  )
+}
+
 function LaunchCard({
   slug,
-  name,
-  description,
+  meta,
   onClick,
   delay,
 }: {
   slug: ModuleSlug
-  name: string
-  description: string
+  meta: typeof MODULE_META[ModuleSlug]
   onClick: () => void
   delay: number
 }) {
@@ -243,7 +317,7 @@ function LaunchCard({
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-start',
-        gap: 16,
+        gap: 14,
         padding: 22,
         borderRadius: 16,
         background: D.card,
@@ -283,7 +357,7 @@ function LaunchCard({
       >
         <ModuleIcon slug={slug} />
       </span>
-      <div>
+      <div style={{ width: '100%' }}>
         <div
           style={{
             fontFamily: 'Poppins, sans-serif',
@@ -294,16 +368,97 @@ function LaunchCard({
             marginBottom: 4,
           }}
         >
-          {name}
+          {meta.name}
         </div>
-        <div style={{ fontSize: 12, color: D.t2, lineHeight: 1.5 }}>{description}</div>
+        <div style={{ fontSize: 12, color: D.t2, lineHeight: 1.5 }}>{meta.description}</div>
       </div>
+
+      {/* Leader / Titular */}
+      <div
+        style={{
+          width: '100%',
+          marginTop: 4,
+          paddingTop: 12,
+          borderTop: `1px solid ${D.border}`,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 9,
+            fontWeight: 700,
+            letterSpacing: '.18em',
+            textTransform: 'uppercase',
+            color: D.t3,
+            marginBottom: 6,
+          }}
+        >
+          Titular
+        </div>
+        {meta.leader ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: '50%',
+                background: D.accent,
+                color: 'white',
+                fontSize: 10,
+                fontWeight: 700,
+                display: 'grid',
+                placeItems: 'center',
+                flexShrink: 0,
+              }}
+            >
+              {meta.leader.name
+                .split(' ')
+                .slice(0, 2)
+                .map((p) => p[0])
+                .join('')}
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: D.t1 }}>
+                {meta.leader.name}
+              </div>
+              <div style={{ fontSize: 10, color: D.t2 }}>{meta.leader.title}</div>
+            </div>
+          </div>
+        ) : (
+          <div style={{ fontSize: 11, color: D.t3, fontStyle: 'italic' }}>
+            Por asignar
+          </div>
+        )}
+
+        {/* Optional sub-areas (Stratix 360) */}
+        {meta.subAreas && meta.subAreas.length > 0 && (
+          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {meta.subAreas.map((sa) => (
+              <div
+                key={sa.name}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: 8,
+                  fontSize: 10,
+                  color: D.t2,
+                }}
+              >
+                <span style={{ color: D.t3 }}>{sa.name}</span>
+                <span style={{ color: D.t1, fontWeight: 500, textAlign: 'right' }}>
+                  {sa.leader}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <span
         style={{
           display: 'inline-flex',
           alignItems: 'center',
           gap: 6,
-          marginTop: 'auto',
+          marginTop: 4,
           fontSize: 11,
           fontWeight: 600,
           color: D.accent,

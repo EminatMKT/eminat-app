@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
         rol: rol || 'pasante',
         tipo: tipo || 'B',
         color: color || '#7C6FF7',
-        empresa: empresa || 'Eminat Holding',
+        empresa: empresa || 'Eminat Group',
         ubicacion: ubicacion || 'Guayaquil, Ecuador',
         cargo: cargo || '',
         activo: true,

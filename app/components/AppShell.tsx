@@ -88,11 +88,11 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
 
   const panelOpen = sidebarPanel === 'mkt' || sidebarPanel === 'research' || sidebarPanel === 'medical'
   const subItems = sidebarPanel === 'research' ? researchSubItems : sidebarPanel === 'medical' ? medicalSubItems : mktSubItems
-  const panelTitle = sidebarPanel === 'research' ? 'Research' : sidebarPanel === 'medical' ? 'Medical' : 'Stratix MKT'
+  const panelTitle = sidebarPanel === 'research' ? 'Research' : sidebarPanel === 'medical' ? 'Medical' : 'Stratix 360'
   const panelSub = sidebarPanel === 'research' ? 'Clinical Research Ops' : sidebarPanel === 'medical' ? 'HIPAA Compliance' : 'Marketing & Production'
 
   const autoTitle = pathname === '/' ? `Eminat Group — Welcome, ${usuario?.nombre}`
-    : pathname.startsWith('/stratix-mkt') ? 'Stratix MKT — Production'
+    : pathname.startsWith('/stratix-mkt') ? 'Stratix 360 — Producción'
     : pathname.startsWith('/accounting') ? 'Accounting — Eminat Research'
     : pathname.startsWith('/cobranzas') ? 'EMINAT LLC — Billing Dashboard'
     : pathname.startsWith('/research') ? 'Eminat Research Group'

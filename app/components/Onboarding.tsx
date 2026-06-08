@@ -12,12 +12,12 @@ const STEPS = [
   {
     target: '[data-tour="home"]',
     title: 'Home',
-    description: 'View the status of all Eminat Holding brands in real time.',
+    description: 'View the status of all Eminat Group brands in real time.',
     position: 'right' as const,
   },
   {
     target: '[data-tour="mkt"]',
-    title: 'Stratix MKT',
+    title: 'Stratix 360',
     description: 'Manage tasks, production, kanban boards, social media and competitor analysis.',
     position: 'right' as const,
   },

@@ -11,7 +11,7 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   title: 'Eminat App — Sistema de Gestión',
-  description: 'Sistema de gestión creativa del Holding Eminat',
+  description: 'The operating system of Eminat Group',
 }
 
 export default function RootLayout({

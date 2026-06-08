@@ -31,7 +31,7 @@ export default function StratixMktPage() {
     estado: 'Pendiente', fecha_entrega: '', solicitado_por: 'Coord_MFreddy', drive_url: '',
   })
   const [busquedaSol, setBusquedaSol] = useState('')
-  const [filtroEstadoSol, setFiltroEstadoSol] = useState('Todos')
+  const [filtroEstadoSol, setFiltroEstadoSol] = useState('All')
   const [solTab, setSolTab] = useState('lista')
   const [subVista, setSubVista] = useState('team')
 
@@ -48,7 +48,14 @@ export default function StratixMktPage() {
   const hoy = new Date()
   const diasRestantes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate() - hoy.getDate()
   const horasDisponibles = diasRestantes * 8
-  const equipoSinMi = equipo.filter(u => u.nombre !== usuario?.nombre && u.email?.toLowerCase() !== 'javier@emc.health')
+  // Stratix 360 team-facing exclusions:
+  //   - javier@emc.health (standing rule, marketing exclusion)
+  //   - jonathan@eminat.net (off the team)
+  const STRATIX360_EXCLUDED_EMAILS = ['javier@emc.health', 'jonathan@eminat.net']
+  const equipoSinMi = equipo.filter(u =>
+    u.nombre !== usuario?.nombre &&
+    !STRATIX360_EXCLUDED_EMAILS.includes(u.email?.toLowerCase() || '')
+  )
   const mesesFull = trimestre === 'General' ? MESES_Q['General'] : mesesQ
   const mesesGraf = trimestre === 'General' ? ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'] : mesesQ.map(m => m.slice(0, 3))
   const datosPorMes = mesesFull.map((mes, i) => ({
@@ -242,7 +249,7 @@ export default function StratixMktPage() {
               </div>
               <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
                 <div style={{ padding: '12px 14px', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>Marketing Today</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>Stratix 360 Today</div>
                   <span style={{ fontSize: 10, color: '#34D399' }}>{onlineCount > 0 ? onlineCount : 1} online</span>
                 </div>
                 <div style={{ maxHeight: 180, overflowY: 'auto' }}>
@@ -352,7 +359,7 @@ export default function StratixMktPage() {
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               {a.horas && <span style={{ fontSize: 9, color: t3 }}>⏱ {a.horas}h</span>}
-                              {a.fecha_entrega && <span style={{ fontSize: 9, color: new Date(a.fecha_entrega) < new Date() && a.estado !== 'Completado' ? '#F87171' : t3 }}>📅 {new Date(a.fecha_entrega + 'T00:00:00').toLocaleDateString('es-EC', { day: 'numeric', month: 'short' })}</span>}
+                              {a.fecha_entrega && <span style={{ fontSize: 9, color: new Date(a.fecha_entrega) < new Date() && a.estado !== 'Completado' ? '#F87171' : t3 }}>📅 {new Date(a.fecha_entrega + 'T00:00:00').toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</span>}
                               {a.drive_url && <span style={{ fontSize: 9, color: '#60A5FA' }}>🔗</span>}
                             </div>
                           </div>
@@ -512,7 +519,7 @@ export default function StratixMktPage() {
                 <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
                   <input type="text" placeholder="Search by title, area..." value={busquedaSol} onChange={e => setBusquedaSol(e.target.value)} style={{ ...inputStyle, width: 280 }} />
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {['Todos','Pendiente','En proceso','Por aprobar','Completado'].map(e => (
+                    {['All','Pendiente','En proceso','Por aprobar','Completado'].map(e => (
                       <button key={e} onClick={() => setFiltroEstadoSol(e)} style={{ padding: '6px 12px', borderRadius: 20, fontSize: 11, border: `1px solid ${filtroEstadoSol === e ? ESTADO_COLORS[e] || accent : border}`, background: filtroEstadoSol === e ? `${ESTADO_COLORS[e] || accent}20` : 'transparent', color: filtroEstadoSol === e ? ESTADO_COLORS[e] || accent : t2, cursor: 'pointer' }}>{e}</button>
                     ))}
                   </div>
@@ -529,7 +536,7 @@ export default function StratixMktPage() {
                       </thead>
                       <tbody>
                         {actividades
-                          .filter(a => filtroEstadoSol === 'Todos' || a.estado === filtroEstadoSol)
+                          .filter(a => filtroEstadoSol === 'All' || a.estado === filtroEstadoSol)
                           .filter(a => busquedaSol === '' || a.titulo?.toLowerCase().includes(busquedaSol.toLowerCase()) || a.area_ref?.toLowerCase().includes(busquedaSol.toLowerCase()))
                           .map(a => (
                             <tr key={a.id} onClick={() => setModalVerAct(a)} style={{ borderBottom: `1px solid ${border}`, cursor: 'pointer' }}>
@@ -547,7 +554,7 @@ export default function StratixMktPage() {
                                 <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: `${ESTADO_COLORS[a.estado] || t3}20`, color: ESTADO_COLORS[a.estado] || t3 }}>{a.estado}</span>
                               </td>
                               <td style={{ padding: '10px 14px', fontSize: 11, color: a.fecha_entrega && new Date(a.fecha_entrega) < new Date() && a.estado !== 'Completado' ? '#F87171' : t3 }}>
-                                {a.fecha_entrega ? new Date(a.fecha_entrega + 'T00:00:00').toLocaleDateString('es-EC') : '—'}
+                                {a.fecha_entrega ? new Date(a.fecha_entrega + 'T00:00:00').toLocaleDateString('en-US') : '—'}
                               </td>
                               <td style={{ padding: '10px 14px' }}>
                                 {a.drive_url ? <a href={a.drive_url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 10, color: '#60A5FA', textDecoration: 'none' }}>🔗 View</a> : <span style={{ fontSize: 10, color: t3 }}>—</span>}
@@ -649,44 +656,12 @@ export default function StratixMktPage() {
               ))}
             </div>
             {subVista !== 'reporte' ? (
-              <div>
-                {['A', 'B'].map(tipo => {
-                  const miembros = usuarios.filter(u => (u.tipo === tipo || (!u.tipo && tipo === 'A')) && u.email?.toLowerCase() !== 'javier@emc.health')
-                  if (!miembros.length) return null
-                  return (
-                    <div key={tipo} style={{ marginBottom: 24 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: tipo === 'A' ? accent : '#F472B6', marginBottom: 12, padding: '4px 12px', background: tipo === 'A' ? `${accent}15` : '#F472B615', borderRadius: 20, display: 'inline-block' }}>
-                        Type {tipo} — {tipo === 'A' ? 'Creative Staff' : 'Interns / Trainees'}
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-                        {miembros.map(u => {
-                          const isOnline = u.online_at ? new Date(u.online_at) > new Date(Date.now() - 5 * 60 * 1000) : false
-                          const tareasHoy = actividades.filter(a => a.responsable_ref === u.responsable_ref && a.estado === 'En proceso').length
-                          return (
-                            <div key={u.id} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                                <div style={{ position: 'relative', flexShrink: 0 }}>
-                                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: u.color || accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'white' }}>{u.nombre?.[0]}{u.apellido?.[0]}</div>
-                                  <div style={{ position: 'absolute', bottom: 0, right: 0, width: 11, height: 11, borderRadius: '50%', background: isOnline ? '#34D399' : '#555', border: `2px solid ${s1}` }} />
-                                </div>
-                                <div style={{ minWidth: 0 }}>
-                                  <div style={{ fontSize: 13, fontWeight: 700, color: t1 }}>{u.nombre} {u.apellido}</div>
-                                  <div style={{ fontSize: 11, color: t2, marginTop: 1 }}>{u.cargo || u.rol}</div>
-                                </div>
-                              </div>
-                              <div style={{ fontSize: 10, color: t3, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>✉ {u.email}</div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: 10, color: isOnline ? '#34D399' : t3 }}>{isOnline ? '● Active now' : 'Offline'}</span>
-                                {tareasHoy > 0 && <span style={{ fontSize: 10, color: '#FBB040', background: '#FBB04015', padding: '2px 8px', borderRadius: 10 }}>{tareasHoy} in progress</span>}
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+              <Stratix360Roster
+                usuarios={usuarios}
+                actividades={actividades}
+                excluded={STRATIX360_EXCLUDED_EMAILS}
+                colors={{ s1, border, accent, t1, t2, t3 }}
+              />
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {resumenHoras.map(r => (
@@ -745,7 +720,7 @@ export default function StratixMktPage() {
                     <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#555;text-align:center">${a.mes || ''}</td>
                     <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:center"><span style="font-size:11px;padding:2px 10px;border-radius:20px;background:${estadoColor(a.estado)}20;color:${estadoColor(a.estado)};font-weight:600">${a.estado || ''}</span></td>
                   </tr>`).join('')
-                  const today = new Date().toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric' })
+                  const today = new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
                   w.document.write(`<!DOCTYPE html><html><head><title>Production Report — ${nombreRep}</title>
                   <style>
                     * { margin:0; padding:0; box-sizing:border-box; }
@@ -797,7 +772,7 @@ export default function StratixMktPage() {
                   </div>
                   <div style="margin-top:40px;padding-top:14px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10px;color:#aaa">
                     <span>Generated on ${today}</span>
-                    <span>Stratix Solutions — Eminat MKT</span>
+                    <span>Stratix Solutions — Stratix 360</span>
                   </div>
                   <div class="no-print" style="text-align:center;margin-top:30px">
                     <button onclick="window.print()" style="padding:10px 28px;border-radius:8px;background:#7C6FF7;color:white;border:none;font-size:13px;font-weight:600;cursor:pointer">Print</button>
@@ -811,7 +786,7 @@ export default function StratixMktPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
                 <div>
                   <div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>Production Report</div>
-                  <div style={{ fontSize: 12, color: t3 }}>Eminat MKT — Marketing Agency of Eminat Holding</div>
+                  <div style={{ fontSize: 12, color: t3 }}>Stratix 360 — Marketing Agency of Eminat Group</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: 10, color: t3 }}>Period</div>
@@ -868,29 +843,29 @@ export default function StratixMktPage() {
         {mktTab === 'social' && (() => {
           const platforms = [
             { name: 'Instagram', icon: '📸', color: '#E1306C', accounts: [
-              { handle: '@eminatmedicalcenter', brand: 'EMC', followers: 12840, followersChange: 342, posts: 28, reach: 48200, engagement: 4.2, impressions: 156000, stories: 45, reels: 12, bestPost: 'Reel — Tratamientos de piel', bestReach: 18400 },
-              { handle: '@soyvivintegrete', brand: 'SVN', followers: 45200, followersChange: 1205, posts: 35, reach: 125600, engagement: 5.8, impressions: 420000, stories: 62, reels: 18, bestPost: 'Reel — Rutina de bienestar', bestReach: 52300 },
-              { handle: '@eminatresearch', brand: 'ERG', followers: 3420, followersChange: 89, posts: 14, reach: 8900, engagement: 3.1, impressions: 28500, stories: 18, reels: 5, bestPost: 'Post — Resultados estudio clinico', bestReach: 4200 },
-              { handle: '@premierbodysculpt', brand: 'PREMIER', followers: 8650, followersChange: 412, posts: 22, reach: 32100, engagement: 4.8, impressions: 98000, stories: 34, reels: 10, bestPost: 'Reel — Transformacion corporal', bestReach: 14800 },
-              { handle: '@ornella.ia', brand: 'ORNELLA', followers: 2180, followersChange: 680, posts: 18, reach: 15200, engagement: 6.2, impressions: 45000, stories: 22, reels: 8, bestPost: 'Reel — AI en salud', bestReach: 8900 },
+              { handle: '@eminatmedicalcenter', brand: 'EMC', followers: 12840, followersChange: 342, posts: 28, reach: 48200, engagement: 4.2, impressions: 156000, stories: 45, reels: 12, bestPost: 'Reel — Skin treatments', bestReach: 18400 },
+              { handle: '@soyvivintegrete', brand: 'SVN', followers: 45200, followersChange: 1205, posts: 35, reach: 125600, engagement: 5.8, impressions: 420000, stories: 62, reels: 18, bestPost: 'Reel — Wellness routine', bestReach: 52300 },
+              { handle: '@eminatresearch', brand: 'ERG', followers: 3420, followersChange: 89, posts: 14, reach: 8900, engagement: 3.1, impressions: 28500, stories: 18, reels: 5, bestPost: 'Post — Clinical study results', bestReach: 4200 },
+              { handle: '@premierbodysculpt', brand: 'PREMIER', followers: 8650, followersChange: 412, posts: 22, reach: 32100, engagement: 4.8, impressions: 98000, stories: 34, reels: 10, bestPost: 'Reel — Body transformation', bestReach: 14800 },
+              { handle: '@ornella.ia', brand: 'ORNELLA', followers: 2180, followersChange: 680, posts: 18, reach: 15200, engagement: 6.2, impressions: 45000, stories: 22, reels: 8, bestPost: 'Reel — AI in healthcare', bestReach: 8900 },
             ]},
             { name: 'Facebook', icon: '👤', color: '#1877F2', accounts: [
-              { handle: 'Eminat Medical Center', brand: 'EMC', followers: 8900, followersChange: 120, posts: 22, reach: 34500, engagement: 2.8, impressions: 89000, stories: 0, reels: 8, bestPost: 'Video — Tour del centro', bestReach: 12400 },
-              { handle: 'Soy Vivi Negrete', brand: 'SVN', followers: 28400, followersChange: 580, posts: 30, reach: 78000, engagement: 3.4, impressions: 245000, stories: 0, reels: 14, bestPost: 'Live — Q&A de salud', bestReach: 32100 },
-              { handle: 'Premier by Eminat', brand: 'PREMIER', followers: 5200, followersChange: 185, posts: 16, reach: 18900, engagement: 3.1, impressions: 52000, stories: 0, reels: 6, bestPost: 'Video — Antes y despues', bestReach: 8700 },
+              { handle: 'Eminat Medical Center', brand: 'EMC', followers: 8900, followersChange: 120, posts: 22, reach: 34500, engagement: 2.8, impressions: 89000, stories: 0, reels: 8, bestPost: 'Video — Center tour', bestReach: 12400 },
+              { handle: 'Soy Vivi Negrete', brand: 'SVN', followers: 28400, followersChange: 580, posts: 30, reach: 78000, engagement: 3.4, impressions: 245000, stories: 0, reels: 14, bestPost: 'Live — Health Q&A', bestReach: 32100 },
+              { handle: 'Premier by Eminat', brand: 'PREMIER', followers: 5200, followersChange: 185, posts: 16, reach: 18900, engagement: 3.1, impressions: 52000, stories: 0, reels: 6, bestPost: 'Video — Before and after', bestReach: 8700 },
             ]},
             { name: 'TikTok', icon: '🎵', color: '#010101', accounts: [
-              { handle: '@soyvivintegrete', brand: 'SVN', followers: 18600, followersChange: 3200, posts: 24, reach: 285000, engagement: 8.4, impressions: 890000, stories: 0, reels: 24, bestPost: 'Tips de nutricion', bestReach: 145000 },
-              { handle: '@eminatmedical', brand: 'EMC', followers: 4200, followersChange: 890, posts: 16, reach: 62000, engagement: 6.1, impressions: 198000, stories: 0, reels: 16, bestPost: 'Un dia en la clinica', bestReach: 28000 },
-              { handle: '@ornella.ia', brand: 'ORNELLA', followers: 1850, followersChange: 1200, posts: 20, reach: 95000, engagement: 9.2, impressions: 310000, stories: 0, reels: 20, bestPost: 'AI predice tu salud', bestReach: 42000 },
+              { handle: '@soyvivintegrete', brand: 'SVN', followers: 18600, followersChange: 3200, posts: 24, reach: 285000, engagement: 8.4, impressions: 890000, stories: 0, reels: 24, bestPost: 'Nutrition tips', bestReach: 145000 },
+              { handle: '@eminatmedical', brand: 'EMC', followers: 4200, followersChange: 890, posts: 16, reach: 62000, engagement: 6.1, impressions: 198000, stories: 0, reels: 16, bestPost: 'A day at the clinic', bestReach: 28000 },
+              { handle: '@ornella.ia', brand: 'ORNELLA', followers: 1850, followersChange: 1200, posts: 20, reach: 95000, engagement: 9.2, impressions: 310000, stories: 0, reels: 20, bestPost: 'AI predicts your health', bestReach: 42000 },
             ]},
             { name: 'LinkedIn', icon: '💼', color: '#0A66C2', accounts: [
-              { handle: 'Eminat Holding', brand: 'EMC', followers: 2400, followersChange: 68, posts: 12, reach: 9800, engagement: 2.2, impressions: 24000, stories: 0, reels: 0, bestPost: 'Articulo — Innovacion en salud', bestReach: 3200 },
+              { handle: 'Eminat Group', brand: 'EMC', followers: 2400, followersChange: 68, posts: 12, reach: 9800, engagement: 2.2, impressions: 24000, stories: 0, reels: 0, bestPost: 'Article — Healthcare innovation', bestReach: 3200 },
               { handle: 'Eminat Research Group', brand: 'ERG', followers: 1890, followersChange: 145, posts: 10, reach: 12400, engagement: 3.8, impressions: 31000, stories: 0, reels: 0, bestPost: 'Paper — Clinical trial results', bestReach: 5600 },
             ]},
             { name: 'YouTube', icon: '▶️', color: '#FF0000', accounts: [
-              { handle: 'Soy Vivi Negrete', brand: 'SVN', followers: 6800, followersChange: 420, posts: 8, reach: 42000, engagement: 4.5, impressions: 128000, stories: 0, reels: 4, bestPost: 'Podcast — Salud integral', bestReach: 18500 },
-              { handle: 'Eminat Medical', brand: 'EMC', followers: 1200, followersChange: 95, posts: 4, reach: 8400, engagement: 3.2, impressions: 22000, stories: 0, reels: 2, bestPost: 'Procedimientos explicados', bestReach: 4800 },
+              { handle: 'Soy Vivi Negrete', brand: 'SVN', followers: 6800, followersChange: 420, posts: 8, reach: 42000, engagement: 4.5, impressions: 128000, stories: 0, reels: 4, bestPost: 'Podcast — Holistic health', bestReach: 18500 },
+              { handle: 'Eminat Medical', brand: 'EMC', followers: 1200, followersChange: 95, posts: 4, reach: 8400, engagement: 3.2, impressions: 22000, stories: 0, reels: 2, bestPost: 'Procedures explained', bestReach: 4800 },
             ]},
           ]
 
@@ -1041,9 +1016,9 @@ export default function StratixMktPage() {
               fbFollowers: 15800,
               tiktok: '@miamidademedical',
               tkFollowers: 8900,
-              fortalezas: ['Alto volumen de pacientes', 'Ubicacion estrategica en Doral', 'Servicio bilingue'],
-              debilidades: ['Branding generico', 'Contenido poco diferenciado', 'Sin programa de research'],
-              servicios: ['Medicina General', 'Urgencias', 'Laboratorio', 'Radiologia'],
+              fortalezas: ['High patient volume', 'Strategic location in Doral', 'Bilingual service'],
+              debilidades: ['Generic branding', 'Undifferentiated content', 'No research program'],
+              servicios: ['General Medicine', 'Emergency', 'Laboratory', 'Radiology'],
               precioRango: '$$',
               googleRating: 4.2,
               googleReviews: 342,
@@ -1051,7 +1026,7 @@ export default function StratixMktPage() {
             },
             {
               name: 'Brickell Aesthetics Center',
-              tipo: 'Estetica & Wellness',
+              tipo: 'Aesthetics & Wellness',
               ubicacion: 'Brickell, FL',
               website: 'brickellaesthetics.com',
               instagram: '@brickellaesthetics',
@@ -1061,8 +1036,8 @@ export default function StratixMktPage() {
               fbFollowers: 12400,
               tiktok: '@brickellaesthetics',
               tkFollowers: 15600,
-              fortalezas: ['Fuerte presencia en social media', 'Contenido de alta calidad', 'Influencer partnerships'],
-              debilidades: ['Precios altos', 'Solo estetica — sin servicios medicos', 'Enfoque muy nicho'],
+              fortalezas: ['Strong social media presence', 'High-quality content', 'Influencer partnerships'],
+              debilidades: ['High prices', 'Aesthetics only — no medical services', 'Very niche focus'],
               servicios: ['Body Sculpting', 'Facial Treatments', 'IV Therapy', 'Botox/Fillers'],
               precioRango: '$$$',
               googleRating: 4.6,
@@ -1071,7 +1046,7 @@ export default function StratixMktPage() {
             },
             {
               name: 'South Florida Health Hub',
-              tipo: 'Multi-especialidad',
+              tipo: 'Multi-specialty',
               ubicacion: 'Kendall, FL',
               website: 'sfhealthhub.com',
               instagram: '@sfhealthhub',
@@ -1081,9 +1056,9 @@ export default function StratixMktPage() {
               fbFollowers: 21000,
               tiktok: '',
               tkFollowers: 0,
-              fortalezas: ['Red de medicos amplia', 'Seguros multiples', 'Facilities modernas'],
-              debilidades: ['Social media debil', 'Sin TikTok', 'Branding corporativo sin personalidad'],
-              servicios: ['Medicina General', 'Cardiologia', 'Dermatologia', 'Ortopedia'],
+              fortalezas: ['Large physician network', 'Multiple insurance plans', 'Modern facilities'],
+              debilidades: ['Weak social media', 'No TikTok', 'Corporate branding with no personality'],
+              servicios: ['General Medicine', 'Cardiology', 'Dermatology', 'Orthopedics'],
               precioRango: '$$',
               googleRating: 3.9,
               googleReviews: 567,
@@ -1101,8 +1076,8 @@ export default function StratixMktPage() {
               fbFollowers: 8900,
               tiktok: '@cgwellness',
               tkFollowers: 5200,
-              fortalezas: ['Enfoque en wellness integral', 'Clinical trials', 'Alto trust medico'],
-              debilidades: ['Precio premium exclusivo', 'Marketing conservador', 'Crecimiento lento en redes'],
+              fortalezas: ['Holistic wellness focus', 'Clinical trials', 'High medical trust'],
+              debilidades: ['Exclusive premium pricing', 'Conservative marketing', 'Slow social media growth'],
               servicios: ['Clinical Research', 'Functional Medicine', 'Nutrition', 'Mental Health'],
               precioRango: '$$$',
               googleRating: 4.7,
@@ -1121,9 +1096,9 @@ export default function StratixMktPage() {
               fbFollowers: 28900,
               tiktok: '@latincaremedical',
               tkFollowers: 12300,
-              fortalezas: ['Comunidad hispana fuerte', 'Precios accesibles', 'Alto volumen Facebook'],
-              debilidades: ['Dependencia de un segmento', 'Contenido repetitivo', 'Sin presencia LinkedIn'],
-              servicios: ['Medicina Familiar', 'Pediatria', 'Ginecologia', 'Laboratorio'],
+              fortalezas: ['Strong Hispanic community', 'Affordable prices', 'High Facebook volume'],
+              debilidades: ['Single-segment dependency', 'Repetitive content', 'No LinkedIn presence'],
+              servicios: ['Family Medicine', 'Pediatrics', 'Gynecology', 'Laboratory'],
               precioRango: '$',
               googleRating: 4.0,
               googleReviews: 892,
@@ -1240,7 +1215,7 @@ export default function StratixMktPage() {
                       <span style={{ fontSize: 10, color: t3 }}>· {comp.precioRango}</span>
                     </div>
 
-                    {/* Servicios */}
+                    {/* Services */}
                     <div style={{ marginBottom: 10 }}>
                       <div style={{ fontSize: 10, color: t3, marginBottom: 4 }}>Services</div>
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
@@ -1248,7 +1223,7 @@ export default function StratixMktPage() {
                       </div>
                     </div>
 
-                    {/* Fortalezas y Debilidades */}
+                    {/* Strengths and Weaknesses */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                       <div>
                         <div style={{ fontSize: 10, color: '#34D399', fontWeight: 600, marginBottom: 4 }}>Strengths</div>
@@ -1291,7 +1266,7 @@ export default function StratixMktPage() {
         })()}
       </div>
 
-      {/* MODAL VER ACTIVIDAD */}
+      {/* VIEW TASK MODAL */}
       {modalVerAct && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onClick={() => setModalVerAct(null)}>
           <div onClick={e => e.stopPropagation()} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 18, padding: 28, width: 500, maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto' }}>
@@ -1333,7 +1308,7 @@ export default function StratixMktPage() {
                     await supabase.from('actividades').update({ estado: col }).eq('id', modalVerAct.id)
                     setActividades(prev => prev.map(a => a.id === modalVerAct.id ? { ...a, estado: col } : a))
                     setModalVerAct((p: any) => ({ ...p, estado: col }))
-                    mostrarMensaje('ok', `Estado → "${col}"`)
+                    mostrarMensaje('ok', `Status → "${col}"`)
                   }} style={{ padding: '6px 14px', borderRadius: 20, fontSize: 12, border: `2px solid ${modalVerAct.estado === col ? ESTADO_COLORS[col] : border}`, background: modalVerAct.estado === col ? `${ESTADO_COLORS[col]}20` : 'transparent', color: modalVerAct.estado === col ? ESTADO_COLORS[col] : t2, cursor: 'pointer', fontWeight: modalVerAct.estado === col ? 700 : 400 }}>{col}</button>
                 ))}
               </div>
@@ -1347,7 +1322,7 @@ export default function StratixMktPage() {
         </div>
       )}
 
-      {/* MODAL NUEVA TAREA */}
+      {/* NEW TASK MODAL */}
       {modalNuevaAct && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 18, padding: 28, width: 520, maxWidth: '95vw', maxHeight: '92vh', overflowY: 'auto' }}>
@@ -1381,41 +1356,41 @@ export default function StratixMktPage() {
               </div>
             </div>
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>📨 Solicitado por</label>
+              <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>📨 Requested by</label>
               <select value={nuevaAct.solicitado_por} onChange={e => setNuevaAct(p => ({ ...p, solicitado_por: e.target.value }))} style={inputStyle}>
                 {SOLICITANTES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 14 }}>
               <div>
-                <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>📅 Mes</label>
+                <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>📅 Month</label>
                 <select value={nuevaAct.mes} onChange={e => setNuevaAct(p => ({ ...p, mes: e.target.value }))} style={inputStyle}>
                   {MESES.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>⏱ Horas estimadas</label>
+                <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>⏱ Estimated hours</label>
                 <input type="number" value={nuevaAct.horas} onChange={e => setNuevaAct(p => ({ ...p, horas: e.target.value }))} placeholder="0" min="0" style={inputStyle} />
               </div>
               <div>
-                <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>📆 Dias prod.</label>
+                <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>📆 Prod. days</label>
                 <input type="number" value={nuevaAct.dias_produccion} onChange={e => setNuevaAct(p => ({ ...p, dias_produccion: e.target.value }))} placeholder="0" min="0" style={inputStyle} />
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
               <div>
-                <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>⚡ Estado inicial</label>
+                <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>⚡ Initial status</label>
                 <select value={nuevaAct.estado} onChange={e => setNuevaAct(p => ({ ...p, estado: e.target.value }))} style={inputStyle}>
                   {COLUMNAS_KANBAN.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>🗓 Fecha de entrega</label>
+                <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>🗓 Due date</label>
                 <input type="date" value={nuevaAct.fecha_entrega} onChange={e => setNuevaAct(p => ({ ...p, fecha_entrega: e.target.value }))} style={inputStyle} />
               </div>
             </div>
             <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>🔗 Link Google Drive (opcional)</label>
+              <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>🔗 Google Drive link (optional)</label>
               <input type="url" value={nuevaAct.drive_url} onChange={e => setNuevaAct(p => ({ ...p, drive_url: e.target.value }))} placeholder="https://drive.google.com/drive/folders/..." style={inputStyle} />
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -1431,3 +1406,267 @@ export default function StratixMktPage() {
     </AppShell>
   )
 }
+
+// ── Stratix 360 roster ────────────────────────────────────────────────────
+// Renders the marketing team grouped by area (Diseño · Edición ·
+// Automatización · Cuentas/CM) instead of the old tipo A/B split.
+// Source of truth for area + leader status is hardcoded here by name; names
+// are normalized so accents/tildes don't break matching. Any user in
+// `usuarios` whose name matches one of the entries below is shown in their
+// area; anyone else is filtered out of this view (excluding Freddy who is
+// rendered separately as Director General).
+
+type RosterColors = {
+  s1: string
+  border: string
+  accent: string
+  t1: string
+  t2: string
+  t3: string
+}
+
+type AreaKey = 'diseno' | 'edicion' | 'automatizacion' | 'cuentas'
+
+const AREA_META: Record<AreaKey, { label: string; icon: string; color: string }> = {
+  diseno: { label: 'Diseño', icon: '🎨', color: '#F472B6' },
+  edicion: { label: 'Edición', icon: '🎬', color: '#7C6FF7' },
+  automatizacion: { label: 'Automatización · Data & Insight', icon: '⚙️', color: '#A78BFA' },
+  cuentas: { label: 'Cuentas / CM', icon: '📲', color: '#60A5FA' },
+}
+
+// Lowercase + remove diacritics for tolerant name matching.
+function normName(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .trim()
+}
+
+const STRATIX360_AREAS: Record<string, { area: AreaKey; leader: boolean; titulo?: string }> = {
+  'joselyne guerrero': { area: 'diseno', leader: true, titulo: 'Lead Designer' },
+  'arianna sig-tu': { area: 'diseno', leader: false, titulo: 'Graphic Designer' },
+  'ariana sig-tu': { area: 'diseno', leader: false, titulo: 'Graphic Designer' },
+  'angie nunez': { area: 'diseno', leader: false, titulo: 'Graphic Designer' },
+  'david falconi': { area: 'edicion', leader: true, titulo: 'Lead Editor & Animations' },
+  'bryan nunez': { area: 'edicion', leader: false, titulo: 'Video Editor' },
+  'tasha palomino': { area: 'edicion', leader: false, titulo: 'Video Editor' },
+  'wagner duenas': { area: 'automatizacion', leader: true, titulo: 'Full Stack Developer' },
+  'naomi panchana': { area: 'cuentas', leader: true, titulo: 'Ejecutiva de Cuentas & CM' },
+}
+
+function Stratix360Roster({
+  usuarios,
+  actividades,
+  excluded,
+  colors,
+}: {
+  usuarios: any[]
+  actividades: any[]
+  excluded: string[]
+  colors: RosterColors
+}) {
+  const { s1, border, accent, t1, t2, t3 } = colors
+  const excludedSet = new Set(excluded.map((e) => e.toLowerCase()))
+
+  // Director General: Freddy.
+  const freddy = usuarios.find(
+    (u) =>
+      !excludedSet.has((u.email || '').toLowerCase()) &&
+      normName(`${u.nombre || ''} ${u.apellido || ''}`) === 'freddy crespin',
+  )
+
+  // Group everyone else by area according to STRATIX360_AREAS.
+  const byArea: Record<AreaKey, { user: any; isLeader: boolean; titulo?: string }[]> = {
+    diseno: [],
+    edicion: [],
+    automatizacion: [],
+    cuentas: [],
+  }
+  for (const u of usuarios) {
+    if (excludedSet.has((u.email || '').toLowerCase())) continue
+    const key = normName(`${u.nombre || ''} ${u.apellido || ''}`)
+    const meta = STRATIX360_AREAS[key]
+    if (!meta) continue
+    byArea[meta.area].push({ user: u, isLeader: meta.leader, titulo: meta.titulo })
+  }
+  // Leader first inside each area.
+  for (const k of Object.keys(byArea) as AreaKey[]) {
+    byArea[k].sort((a, b) => (a.isLeader === b.isLeader ? 0 : a.isLeader ? -1 : 1))
+  }
+
+  const renderCard = (
+    u: any,
+    isLeader: boolean,
+    titulo: string | undefined,
+    accentOverride?: string,
+  ) => {
+    const isOnline = u.online_at
+      ? new Date(u.online_at) > new Date(Date.now() - 5 * 60 * 1000)
+      : false
+    const tareasHoy = actividades.filter(
+      (a) => a.responsable_ref === u.responsable_ref && a.estado === 'En proceso',
+    ).length
+    return (
+      <div
+        key={u.id}
+        style={{
+          background: s1,
+          border: `1px solid ${isLeader ? `${accentOverride || accent}55` : border}`,
+          borderRadius: 14,
+          padding: 16,
+          boxShadow: isLeader
+            ? `0 2px 8px ${accentOverride || accent}20`
+            : '0 1px 3px rgba(0,0,0,0.06)',
+          position: 'relative',
+        }}
+      >
+        {isLeader && (
+          <span
+            style={{
+              position: 'absolute',
+              top: 10,
+              right: 10,
+              fontSize: 9,
+              fontWeight: 700,
+              letterSpacing: '.1em',
+              padding: '2px 8px',
+              borderRadius: 10,
+              background: accentOverride || accent,
+              color: 'white',
+            }}
+          >
+            LÍDER
+          </span>
+        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <div
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                background: u.color || accentOverride || accent,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 14,
+                fontWeight: 700,
+                color: 'white',
+              }}
+            >
+              {u.nombre?.[0]}
+              {u.apellido?.[0]}
+            </div>
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                width: 11,
+                height: 11,
+                borderRadius: '50%',
+                background: isOnline ? '#34D399' : '#555',
+                border: `2px solid ${s1}`,
+              }}
+            />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: t1 }}>
+              {u.nombre} {u.apellido}
+            </div>
+            <div style={{ fontSize: 11, color: t2, marginTop: 1 }}>
+              {titulo || u.cargo || u.rol}
+            </div>
+          </div>
+        </div>
+        <div
+          style={{
+            fontSize: 10,
+            color: t3,
+            marginBottom: 6,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          ✉ {u.email}
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 10, color: isOnline ? '#34D399' : t3 }}>
+            {isOnline ? '● Active now' : 'Offline'}
+          </span>
+          {tareasHoy > 0 && (
+            <span
+              style={{
+                fontSize: 10,
+                color: '#FBB040',
+                background: '#FBB04015',
+                padding: '2px 8px',
+                borderRadius: 10,
+              }}
+            >
+              {tareasHoy} in progress
+            </span>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      {/* Director General */}
+      {freddy && (
+        <div style={{ marginBottom: 28 }}>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: accent,
+              marginBottom: 12,
+              padding: '4px 12px',
+              background: `${accent}15`,
+              borderRadius: 20,
+              display: 'inline-block',
+            }}
+          >
+            Director General — sobre todas las áreas
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+            {renderCard(freddy, true, 'Director General')}
+          </div>
+        </div>
+      )}
+
+      {/* Areas */}
+      {(['diseno', 'edicion', 'automatizacion', 'cuentas'] as AreaKey[]).map((area) => {
+        const members = byArea[area]
+        if (!members.length) return null
+        const meta = AREA_META[area]
+        return (
+          <div key={area} style={{ marginBottom: 28 }}>
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: meta.color,
+                marginBottom: 12,
+                padding: '4px 12px',
+                background: `${meta.color}15`,
+                borderRadius: 20,
+                display: 'inline-block',
+              }}
+            >
+              {meta.icon} {meta.label}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+              {members.map((m) => renderCard(m.user, m.isLeader, m.titulo, meta.color))}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+

@@ -103,7 +103,7 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
     if (!emailValido(email)) {
-      setError('Only Eminat Holding corporate emails are allowed')
+      setError('Only Eminat Group corporate emails are allowed')
       setLoading(false)
       return
     }
