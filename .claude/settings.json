@@ -1,0 +1,6 @@
+{
+  "enabledPlugins": {
+    "todo-plugin@todo-plugin": true,
+    "understand-anything@understand-anything": true
+  }
+}
