@@ -1,6 +1,13 @@
 {
   "enabledPlugins": {
     "todo-plugin@todo-plugin": true,
-    "understand-anything@understand-anything": true
+    "understand-anything@understand-anything": true,
+    "engram@engram": true,
+    "context-mode@context-mode": true,
+    "claude-plugins-official@code-simplifier": true,
+    "claude-plugins-official@superpowers": true,
+    "claude-plugins-official@context7": true,
+    "claude-plugins-official@frontend-design": true,
+    "claude-plugins-official@security-guidance": true
   }
 }
