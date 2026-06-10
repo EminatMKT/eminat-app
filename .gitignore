@@ -12,6 +12,7 @@ out/
 
 # tooling local
 .todo/
+.understand-anything/
 
 # misc
 .DS_Store
