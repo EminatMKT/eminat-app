@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { env } from '@/lib/env'
+import { serverEnv } from '@/lib/env.server'
 
 /**
  * Server-side admin endpoint — partial user update.
@@ -26,18 +28,12 @@ import { createClient } from '@supabase/supabase-js'
 const TAG = '[admin/update-user]'
 
 export async function POST(req: NextRequest) {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!serviceRoleKey) {
-    console.error(`${TAG} SUPABASE_SERVICE_ROLE_KEY is not configured`)
-    return NextResponse.json(
-      { error: 'SUPABASE_SERVICE_ROLE_KEY is not configured in this environment.' },
-      { status: 500 },
-    )
-  }
+  const { SUPABASE_SERVICE_ROLE_KEY } = serverEnv
+  const { NEXT_PUBLIC_SUPABASE_URL } = env
 
   const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    serviceRoleKey,
+    NEXT_PUBLIC_SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY,
     { auth: { autoRefreshToken: false, persistSession: false } },
   )
 

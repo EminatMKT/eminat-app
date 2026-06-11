@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { normalizeRole, ROLE_LABELS } from '@/lib/permissions'
+import { env } from '@/lib/env'
+import { serverEnv } from '@/lib/env.server'
 
 /**
  * Server-side admin endpoint — creates an Auth user AND its companion
@@ -107,11 +109,9 @@ async function sendWelcomeEmail(args: {
   rol: string
   cargo?: string
 }): Promise<string | null> {
-  if (!process.env.RESEND_API_KEY) {
-    return 'No se envió el correo: RESEND_API_KEY no está configurada en este environment.'
-  }
   try {
-    const resend = new Resend(process.env.RESEND_API_KEY)
+    const { RESEND_API_KEY } = serverEnv
+    const resend = new Resend(RESEND_API_KEY)
     const html = buildWelcomeEmail(args)
     const { error } = await resend.emails.send({
       from: MAIL_FROM,
@@ -130,18 +130,12 @@ async function sendWelcomeEmail(args: {
 const TAG = '[admin/create-user]'
 
 export async function POST(req: NextRequest) {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!serviceRoleKey) {
-    console.error(`${TAG} SUPABASE_SERVICE_ROLE_KEY is not configured`)
-    return NextResponse.json(
-      { error: 'SUPABASE_SERVICE_ROLE_KEY is not configured in this environment.' },
-      { status: 500 },
-    )
-  }
+  const { SUPABASE_SERVICE_ROLE_KEY } = serverEnv
+  const { NEXT_PUBLIC_SUPABASE_URL } = env
 
   const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    serviceRoleKey,
+    NEXT_PUBLIC_SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY,
     { auth: { autoRefreshToken: false, persistSession: false } },
   )
 
