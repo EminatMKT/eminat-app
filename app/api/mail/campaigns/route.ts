@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { env } from '@/lib/env.client'
+import { clientEnv } from '@/lib/env.client'
 import { serverEnv } from '@/lib/env.server'
 
-const { NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } = env
+const { NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } = clientEnv
 const { SUPABASE_SERVICE_ROLE_KEY } = serverEnv
 
 const supabase = createClient(

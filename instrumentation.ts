@@ -1,10 +1,10 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { createClient } = await import('@supabase/supabase-js')
-    const { env } = await import('@/lib/env.client')
+    const { clientEnv } = await import('@/lib/env.client')
     const { serverEnv } = await import('@/lib/env.server')
 
-    const { NEXT_PUBLIC_SUPABASE_URL } = env
+    const { NEXT_PUBLIC_SUPABASE_URL } = clientEnv
     const { SUPABASE_SERVICE_ROLE_KEY } = serverEnv
 
     try {

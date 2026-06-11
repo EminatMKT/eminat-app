@@ -16,4 +16,5 @@ const clientSchema = z.object({
 
 })
 
-export const env = clientSchema.parse(process.env)
+
+export const clientEnv = clientSchema.parse(process.env)

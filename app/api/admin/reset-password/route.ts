@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { env } from '@/lib/env.client'
+import { clientEnv } from '@/lib/env.client'
 import { serverEnv } from '@/lib/env.server'
 
 /**
@@ -15,7 +15,7 @@ const TAG = '[admin/reset-password]'
 
 export async function POST(req: NextRequest) {
   const { SUPABASE_SERVICE_ROLE_KEY } = serverEnv
-  const { NEXT_PUBLIC_SUPABASE_URL } = env
+  const { NEXT_PUBLIC_SUPABASE_URL } = clientEnv
 
   const supabaseAdmin = createClient(
     NEXT_PUBLIC_SUPABASE_URL,
