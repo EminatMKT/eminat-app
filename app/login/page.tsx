@@ -280,11 +280,15 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <style>{`
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         @media (max-width: 768px) {
           div[style*="width: 420"] { display: none !important; }
         }
-      `}</style>
+      `,
+        }}
+      />
     </div>
   )
 }

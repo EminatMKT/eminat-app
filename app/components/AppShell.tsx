@@ -267,7 +267,7 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
         </div>
       </main>
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @keyframes spin { to { transform: rotate(360deg) } }
         @keyframes centerPulse { 0%, 100% { box-shadow: 0 0 40px rgba(124,111,247,.25), 0 0 80px rgba(124,111,247,.1); } 50% { box-shadow: 0 0 60px rgba(124,111,247,.4), 0 0 120px rgba(124,111,247,.2); } }
         @keyframes orbitRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -296,7 +296,7 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
           #reporte-content div[style*="background"] { background: #f9f9f9 !important; }
           * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         }
-      `}</style>
+      `}} />
       <Onboarding />
     </div>
   )
