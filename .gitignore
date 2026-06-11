@@ -16,7 +16,6 @@ tsconfig.tsbuildinfo
 .todo/
 .understand-anything/
 .tmp/
-pnpm-workspace.yaml
 
 # misc
 .DS_Store

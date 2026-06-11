@@ -23,15 +23,16 @@ Sistema interno de Eminat Group. Desarrollado con Next.js + Supabase.
 git clone https://github.com/[tu-usuario]/eminat-app.git
 cd eminat-app
 
-# 2. Instalar dependencias
-npm install
+# 2. Instalar dependencias (este proyecto usa pnpm)
+pnpm install
+# Los build scripts permitidos se declaran en pnpm-workspace.yaml (allowBuilds)
 
 # 3. Configurar variables de entorno
 cp .env.example .env.local
 # Edita .env.local con tus claves de Supabase
 
 # 4. Ejecutar en desarrollo
-npm run dev
+pnpm dev
 ```
 
 Abre http://localhost:3000
