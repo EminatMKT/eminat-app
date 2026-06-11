@@ -4,6 +4,8 @@ node_modules/
 # next.js
 .next/
 out/
+next-env.d.ts
+tsconfig.tsbuildinfo
 
 # env
 .env
@@ -14,6 +16,7 @@ out/
 .todo/
 .understand-anything/
 .tmp/
+pnpm-workspace.yaml
 
 # misc
 .DS_Store
