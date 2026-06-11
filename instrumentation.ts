@@ -12,13 +12,11 @@ export async function register() {
         auth: { autoRefreshToken: false, persistSession: false },
       })
 
-      const { count, error } = await supabase
-        .from('usuarios')
-        .select('*', { count: 'exact', head: true })
+      const { error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1 })
 
       if (error) throw error
 
-      console.log(`\x1b[32m✓ Supabase OK\x1b[0m — ${count} usuarios en DB (${NEXT_PUBLIC_SUPABASE_URL})`)
+      console.log(`\x1b[32m✓ Supabase OK\x1b[0m — auth service responde (${NEXT_PUBLIC_SUPABASE_URL})`)
     } catch (err: any) {
       console.error(`\x1b[31m✗ Supabase FAILED\x1b[0m — ${err?.message ?? err}`)
     }
