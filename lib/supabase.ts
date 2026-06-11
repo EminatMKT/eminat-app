@@ -1,5 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr'
-import { env } from '@/lib/env'
+import { env } from '@/lib/env.client'
 
 const { NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } = env
 

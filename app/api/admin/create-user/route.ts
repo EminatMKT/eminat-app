@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { normalizeRole, ROLE_LABELS } from '@/lib/permissions'
-import { env } from '@/lib/env'
+import { env } from '@/lib/env.client'
 import { serverEnv } from '@/lib/env.server'
 
 /**

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { env } from '@/lib/env'
+import { env } from '@/lib/env.client'
 import { serverEnv } from '@/lib/env.server'
 
 /**
