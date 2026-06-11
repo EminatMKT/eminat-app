@@ -108,3 +108,14 @@ app/
 
 El proyecto tiene un grafo de conocimiento interactivo generado con `understand-anything`.
 Para explorarlo: `/understand-dashboard`
+
+## Protocolo de memoria (engram)
+
+Después de cualquier compactación, antes de retomar cualquier tarea o skill en ejecución:
+
+1. `mem_session_summary` — guardar el contenido del resumen compactado con `project: 'eminat-app'`
+2. `mem_context` — recuperar el historial reciente con `project: 'eminat-app'`
+
+Esto tiene prioridad sobre cualquier skill en ejecución. Sin estos dos pasos, el estado de la sesión anterior se pierde.
+
+Durante la sesión, llamar `mem_save` después de cada decisión de arquitectura, bug fix, convención establecida o descubrimiento relevante — no esperar a que el usuario lo pida.
