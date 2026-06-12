@@ -9,6 +9,39 @@ Sistema operativo interno de Eminat Group. Plataforma de gestión empresarial de
 - **Email:** Resend (con `@react-email/components`)
 - **Deploy:** Vercel
 
+## Entornos y base de datos
+
+Hay **dos proyectos Supabase independientes**, con datos totalmente aislados:
+
+| Entorno | Proyecto | Ref | Dónde se configuran las vars |
+|---|---|---|---|
+| **Producción** | `eminat-app` (org Pro) | `ruedelunbtaomhrzgelc` | Vercel → Environment Variables (scope Production), `APP_ENV=vercel` |
+| **Desarrollo** | `eminat-app-dev` (org free) | `ydcadspinryybextlvyi` | `.env.local` (gitignored), `APP_ENV=development` |
+
+- En local **siempre** se apunta a dev. `lib/env.client.ts` exporta `isProdDb`/`isDevDb`
+  y un `superRefine` que **rompe el build** si `APP_ENV=development` apunta al ref de prod.
+- `AppShell.tsx` muestra un badge **"DEV"** en el topbar cuando `isDevDb` es true.
+
+### Migraciones de esquema (CLI de Supabase)
+
+El esquema se versiona en `supabase/migrations/` con la CLI (`supabase`, devDependency).
+Dev y prod se mantienen sincronizados así:
+
+```bash
+# Crear una nueva migración tras un cambio de esquema
+pnpm supabase migration new <nombre>
+
+# Aplicar al proyecto linkeado (cambiar de proyecto con `link`)
+pnpm supabase link --project-ref ydcadspinryybextlvyi   # dev
+pnpm supabase db push
+pnpm supabase link --project-ref ruedelunbtaomhrzgelc    # prod
+pnpm supabase db push
+```
+
+- Auth de la CLI vía Personal Access Token (`supabase login --token`), no por browser.
+- `db pull`/`db push` cubren el schema `public` (tablas, RLS, funciones), **no** usuarios
+  de Auth, Storage buckets ni Edge Functions: esos se replican aparte en dev.
+
 ## Roles de usuario
 
 | Rol | Descripción | Acceso |

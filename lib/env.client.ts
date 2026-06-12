@@ -1,5 +1,10 @@
 import { z } from 'zod'
 
+// Ref del proyecto Supabase de PRODUCCIÓN (eminat.app). Se usa como red de
+// seguridad para evitar que el entorno de desarrollo apunte por error a la
+// base de prod. El ref no es secreto: ya viaja en NEXT_PUBLIC_SUPABASE_URL.
+const PROD_DB_REF = 'ruedelunbtaomhrzgelc'
+
 const clientSchema = z.object({
 
   // ── Supabase (cliente + servidor) ─────────────────────────────
@@ -14,6 +19,17 @@ const clientSchema = z.object({
   // development = local | vercel = eminat.app | selfhosted = servidor propio
   APP_ENV: z.enum(['development', 'vercel', 'selfhosted']).default('development'),
 
+}).superRefine((env, ctx) => {
+  // Salvaguarda: en desarrollo la URL NUNCA puede ser la base de producción.
+  // Si esto falla, .env.local quedó apuntando a prod — corregir antes de seguir.
+  if (env.APP_ENV === 'development' && env.NEXT_PUBLIC_SUPABASE_URL.includes(PROD_DB_REF)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['NEXT_PUBLIC_SUPABASE_URL'],
+      message: `APP_ENV=development pero la URL apunta a la base de PRODUCCIÓN (${PROD_DB_REF}). ` +
+        `Usá las credenciales del proyecto Supabase de desarrollo en .env.local.`,
+    })
+  }
 })
 
 
@@ -26,3 +42,9 @@ export const clientEnv = clientSchema.parse({
   NODE_ENV: process.env.NODE_ENV,
   APP_ENV: process.env.APP_ENV,
 })
+
+// ── Helpers derivados ─────────────────────────────────────────────
+// `isProdDb` = la app está conectada a la base de producción (Vercel / selfhosted).
+// `isDevDb`  = entorno de desarrollo local contra el proyecto Supabase dev.
+export const isProdDb = clientEnv.APP_ENV !== 'development'
+export const isDevDb = !isProdDb

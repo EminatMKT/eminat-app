@@ -4,6 +4,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useApp, MARCAS_LIST } from '@/lib/AppContext'
 import { canAccess } from '@/lib/permissions'
 import { supabase } from '@/lib/supabase'
+import { isDevDb } from '@/lib/env.client'
 import Onboarding from './Onboarding'
 
 // Dark constants for sidebar & topbar (always dark)
@@ -189,6 +190,10 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
         <div style={{ padding: '11px 24px', borderBottom: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: D.s1, position: 'sticky', top: 0, zIndex: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button className="mobile-hamburger" onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)} style={{ display: 'none', background: 'none', border: `1px solid ${D.border}`, borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: D.t1, fontSize: 18, lineHeight: 1 }}>☰</button>
+            {/* Indicador de entorno — solo visible cuando se trabaja contra la base de DESARROLLO */}
+            {isDevDb && (
+              <span title="Conectado a la base de datos de DESARROLLO (no producción)" style={{ padding: '3px 9px', borderRadius: 6, fontSize: 10, fontWeight: 800, letterSpacing: '.08em', fontFamily: 'DM Mono', background: '#F59E0B22', color: '#F59E0B', border: '1px solid #F59E0B55', flexShrink: 0 }}>DEV</span>
+            )}
             <div>
               <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15, color: D.t1 }}>{title || autoTitle}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
