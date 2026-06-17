@@ -4,6 +4,8 @@ node_modules/
 # next.js
 .next/
 out/
+next-env.d.ts
+tsconfig.tsbuildinfo
 
 # env
 .env
@@ -12,6 +14,8 @@ out/
 
 # tooling local
 .todo/
+.understand-anything/
+.tmp/
 
 # misc
 .DS_Store

@@ -1,6 +1,7 @@
 'use client'
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
 import { supabase } from '@/lib/supabase'
+import { signOutAndRedirect, loadProfile } from '@/lib/session'
 import { useRouter } from 'next/navigation'
 import {
   normalizeRole,
@@ -194,10 +195,27 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined)
 
+// Borra las cookies de auth de Supabase (sb-*-auth-token) del lado del cliente.
+// El middleware decide por PRESENCIA de la cookie, no por validez: si el token
+// quedó corrupto/expirado, supabase.auth.signOut() puede no limpiarla y el
+// middleware rebota /login → / en bucle. Limpiarla a mano garantiza la salida.
+function clearAuthCookies() {
+  if (typeof document === 'undefined') return
+  for (const cookie of document.cookie.split(';')) {
+    const name = cookie.split('=')[0].trim()
+    if (name.startsWith('sb-')) {
+      document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
+    }
+  }
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
 
   const [usuario, setUsuario] = useState<any>(null)
+  // Estado terminal cuando el perfil no carga: render de pantalla estable en vez
+  // de auto-navegar (evita el bucle de reloads ante un fallo persistente).
+  const [sessionError, setSessionError] = useState<null | 'no-session' | 'no-profile' | 'error'>(null)
   const [actividades, setActividades] = useState<any[]>([])
   const [equipo, setEquipo] = useState<any[]>([])
   const [usuarios, setUsuarios] = useState<any[]>([])
@@ -253,9 +271,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const handleLogout = useCallback(async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-  }, [router])
+    // signOut() puede colgarse si la sesión quedó en mal estado. signOutAndRedirect
+    // garantiza el redirect aunque eso pase (timeout). clearAuthCookies antes de
+    // navegar evita que una cookie stale rebote /login → / en el middleware.
+    await signOutAndRedirect(
+      () => supabase.auth.signOut(),
+      (url) => { clearAuthCookies(); window.location.href = url },
+    )
+  }, [])
 
   useEffect(() => {
     let heartbeatInterval: ReturnType<typeof setInterval>
@@ -264,28 +287,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     async function init() {
       try {
-        // 1. Get auth user
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
-          router.push('/login')
+        // 1-2. Carga crítica del perfil (sesión + fila activa en 'usuarios' por email).
+        //    loadProfile falla en cerrado: ante no-session / no-profile / error,
+        //    cerramos sesión y vamos al login en vez de dejar la UI en estado zombie
+        //    (perfil sin cargar pero sesión viva → "Welcome, undefined" + Sign out muerto).
+        const result = await loadProfile(supabase)
+        if (!result.ok) {
+          // NO auto-navegar: un redirect en cada montaje, ante un fallo persistente,
+          // genera un bucle de reloads. Mostramos una pantalla de error estable y
+          // limpiamos la sesión best-effort (sin await, por si signOut se cuelga).
+          setSessionError(result.reason ?? 'error')
+          setLoading(false)
+          clearAuthCookies()
+          void supabase.auth.signOut().catch(() => {})
           return
         }
-
-        // 2. Fetch usuario from 'usuarios' table by email + active only.
-        //    activo=false locks the account out completely on next page load.
-        const { data: usr } = await supabase
-          .from('usuarios')
-          .select('*')
-          .eq('email', user.email)
-          .eq('activo', true)
-          .single()
-
-        if (!usr) {
-          // Either no profile row or deactivated. Sign out so we don't loop.
-          await supabase.auth.signOut()
-          router.push('/login')
-          return
-        }
+        const usr = result.usuario
         setUsuario(usr)
 
         const normalized = normalizeRole(usr.rol)
@@ -371,6 +388,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (realtimeChannel) supabase.removeChannel(realtimeChannel)
     }
   }, [router])
+
+  // Pantalla de error estable: cuando el perfil no cargó, renderizamos esto en vez
+  // de auto-navegar (que generaba bucle) o dejar la UI zombie. El usuario sale con
+  // un clic manual (hard redirect, sin posibilidad de loop).
+  if (sessionError) {
+    const msg = sessionError === 'no-profile'
+      ? 'Tu cuenta no tiene un perfil activo.'
+      : sessionError === 'no-session'
+        ? 'Tu sesión expiró.'
+        : 'No se pudo cargar tu sesión.'
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0A0A0F', gap: 14, color: '#fff', fontFamily: 'DM Sans, sans-serif', padding: 24, textAlign: 'center' }}>
+        <div style={{ fontSize: 40 }}>⚠️</div>
+        <div style={{ fontSize: 16, fontWeight: 700 }}>{msg}</div>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', maxWidth: 420, lineHeight: 1.5 }}>
+          Volvé a iniciar sesión. Si el problema persiste, contactá al administrador.
+        </div>
+        <button onClick={() => { clearAuthCookies(); void supabase.auth.signOut().catch(() => {}); window.location.href = '/login' }}
+          style={{ marginTop: 8, padding: '10px 22px', borderRadius: 10, border: 'none', background: '#7C6FF7', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+          Ir al login
+        </button>
+      </div>
+    )
+  }
 
   return (
     <AppContext.Provider
