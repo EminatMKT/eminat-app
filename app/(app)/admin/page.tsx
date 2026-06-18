@@ -5,7 +5,7 @@ import { COMPANY_COLORS, DEFAULT_COMPANY, companyOptions, companyShort } from '@
 import { normalizeRole } from '@/lib/permissions'
 import AppShell from '@/app/components/AppShell'
 import { supabase } from '@/lib/supabase'
-import { PageTransition, StaggerGrid, StaggerItem, AnimatedNumber } from '@/lib/motion'
+import { PageTransition, StaggerGrid, StaggerItem, AnimatedNumber } from '@/shared/motion'
 
 type StatusOverride = '' | 'aprobado' | 'finalizado' | 'por_aprobar'
 type ReassignState = {

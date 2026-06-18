@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useApp } from '@/lib/AppContext'
 import AppShell from '@/app/components/AppShell'
 import ResearchModule from '@/app/components/ResearchModule'
-import { PageTransition } from '@/lib/motion'
+import { PageTransition } from '@/shared/motion'
 
 export default function ResearchPage() {
   const { dark, canResearch, t1, t3, mostrarMensaje } = useApp()

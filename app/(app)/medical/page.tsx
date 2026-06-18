@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useApp } from '@/lib/AppContext'
 import AppShell from '@/app/components/AppShell'
 import { supabase } from '@/lib/supabase'
-import { PageTransition, StaggerGrid, StaggerItem, AnimatedNumber, ModalOverlay, FadeInSection } from '@/lib/motion'
+import { PageTransition, StaggerGrid, StaggerItem, AnimatedNumber, ModalOverlay, FadeInSection } from '@/shared/motion'
 
 // ── Types ─────────────────────────────────────────────────────────────
 interface Paciente {

@@ -4,7 +4,7 @@ import { useApp, MESES } from '@/lib/AppContext'
 import AppShell from '@/app/components/AppShell'
 import { supabase } from '@/lib/supabase'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
-import { PageTransition, StaggerGrid, StaggerItem, AnimatedNumber } from '@/lib/motion'
+import { PageTransition, StaggerGrid, StaggerItem, AnimatedNumber } from '@/shared/motion'
 
 export default function CobranzasPage() {
   const { s1, s2, border, t1, t2, t3, accent, inputStyle, canCobranzas, mostrarMensaje } = useApp()

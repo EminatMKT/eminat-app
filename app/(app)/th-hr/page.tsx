@@ -1,7 +1,7 @@
 'use client'
 import { useApp } from '@/lib/AppContext'
 import AppShell from '@/app/components/AppShell'
-import { PageTransition } from '@/lib/motion'
+import { PageTransition } from '@/shared/motion'
 
 export default function ThHrPage() {
   const { t1, t3 } = useApp()

@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useApp } from '@/lib/AppContext'
 import AppShell from '@/app/components/AppShell'
-import { PageTransition } from '@/lib/motion'
+import { PageTransition } from '@/shared/motion'
 import { useRouter } from 'next/navigation'
 
 /**

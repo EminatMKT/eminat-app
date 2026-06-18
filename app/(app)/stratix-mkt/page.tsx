@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useApp, MESES, MESES_Q, TRIMESTRES, mesATrimestre, MARCAS_LIST, ESTADO_COLORS, COLUMNAS_KANBAN, MIEMBROS_REFS, SOLICITANTES, getColorMarca } from '@/lib/AppContext'
 import AppShell from '@/app/components/AppShell'
 import { supabase } from '@/lib/supabase'
-import { PageTransition, StaggerGrid, StaggerItem, AnimatedNumber, FadeInSection } from '@/lib/motion'
+import { PageTransition, StaggerGrid, StaggerItem, AnimatedNumber, FadeInSection } from '@/shared/motion'
 
 // ── Stratix 360 team-facing exclusions ────────────────────────────────────
 // Defense in depth: filter by BOTH normalized name AND email, so we catch
