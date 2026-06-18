@@ -1,7 +1,8 @@
 'use client'
-import { RESEARCH_THEME, inputStyle } from '../theme'
-import { LEAD_FIELDS, FIELD_LABELS, PIPELINE_COLS } from '../constants'
+import { RESEARCH_THEME } from '../theme'
+import { LEAD_FIELDS } from '../constants'
 import { useResearch } from './ResearchContext'
+import LeadFormField from './LeadFormField'
 
 export default function LeadFormModal() {
   const { s1, border, t1, t2, t3, accent } = RESEARCH_THEME
@@ -17,19 +18,7 @@ export default function LeadFormModal() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
           {LEAD_FIELDS.map(f => (
-            <div key={f} style={{ ...(f === 'official_title' || f === 'notes' || f === 'note' ? { gridColumn: '1 / -1' } : {}) }}>
-              <label style={{ fontSize: 10, color: t3, display: 'block', marginBottom: 4 }}>{FIELD_LABELS[f]}</label>
-              {f === 'stage' ? (
-                <select value={newLead[f] || ''} onChange={e => setNewLead((p: any) => ({ ...p, [f]: e.target.value }))} style={inputStyle}>
-                  <option value="">Select</option>
-                  {PIPELINE_COLS.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              ) : f === 'notes' || f === 'note' ? (
-                <textarea value={newLead[f] || ''} onChange={e => setNewLead((p: any) => ({ ...p, [f]: e.target.value }))} style={{ ...inputStyle, minHeight: 60, resize: 'vertical' }} />
-              ) : (
-                <input value={newLead[f] || ''} onChange={e => setNewLead((p: any) => ({ ...p, [f]: e.target.value }))} style={inputStyle} />
-              )}
-            </div>
+            <LeadFormField key={f} field={f} value={newLead[f] || ''} onChange={v => setNewLead((p: any) => ({ ...p, [f]: v }))} />
           ))}
         </div>
         <div style={{ display: 'flex', gap: 10 }}>

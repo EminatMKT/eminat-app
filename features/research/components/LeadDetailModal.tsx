@@ -1,10 +1,11 @@
 'use client'
 import { RESEARCH_THEME } from '../theme'
-import { LEAD_FIELDS, FIELD_LABELS } from '../constants'
+import { LEAD_FIELDS } from '../constants'
 import { useResearch } from './ResearchContext'
+import LeadDetailField from './LeadDetailField'
 
 export default function LeadDetailModal() {
-  const { s1, s2, border, t1, t3, accent } = RESEARCH_THEME
+  const { s1, border, t1, t3, accent } = RESEARCH_THEME
   const { modalLead, setModalLead, openEditLead, setModalActivity, deleteLead, activities } = useResearch()
   if (!modalLead) return null
   const lead = modalLead
@@ -21,12 +22,7 @@ export default function LeadDetailModal() {
           <button onClick={() => setModalLead(null)} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>✕</button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-          {LEAD_FIELDS.map(f => (
-            <div key={f} style={{ ...(f === 'official_title' || f === 'notes' || f === 'note' ? { gridColumn: '1 / -1' } : {}) }}>
-              <div style={{ fontSize: 10, color: t3, marginBottom: 3 }}>{FIELD_LABELS[f]}</div>
-              <div style={{ fontSize: 12, color: t1, fontWeight: 500, padding: '6px 10px', background: s2, borderRadius: 8, minHeight: 30, wordBreak: 'break-word' }}>{lead[f] || '—'}</div>
-            </div>
-          ))}
+          {LEAD_FIELDS.map(f => <LeadDetailField key={f} field={f} value={lead[f]} />)}
         </div>
         <div style={{ borderTop: `1px solid ${border}`, paddingTop: 14, marginBottom: 14 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 8 }}>Activities</div>
