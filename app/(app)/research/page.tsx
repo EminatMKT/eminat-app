@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { useApp } from '@/lib/AppContext'
+import { useApp } from '@/shared/context/AppContext'
 import AppShell from '@/app/components/AppShell'
 import ResearchModule from '@/app/components/ResearchModule'
 import { PageTransition } from '@/shared/motion'

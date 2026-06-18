@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { useApp, DIRECTORIO_DATA, DEPS_DIR, EMPRESA_COLORS, getIniciales } from '@/lib/AppContext'
+import { useApp, DIRECTORIO_DATA, DEPS_DIR, EMPRESA_COLORS, getIniciales } from '@/shared/context/AppContext'
 import AppShell from '@/app/components/AppShell'
 import { PageTransition, StaggerGrid, StaggerItem } from '@/shared/motion'
 

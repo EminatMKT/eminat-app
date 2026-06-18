@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useApp, MESES } from '@/lib/AppContext'
+import { useApp, MESES } from '@/shared/context/AppContext'
 import AppShell from '@/app/components/AppShell'
 import { supabase } from '@/shared/db/supabase'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'

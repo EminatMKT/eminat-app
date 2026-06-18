@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { useApp, ROLES, COLORES_AVATAR, CARGOS_DIR } from '@/lib/AppContext'
+import { useApp, ROLES, COLORES_AVATAR, CARGOS_DIR } from '@/shared/context/AppContext'
 import { COMPANY_COLORS, DEFAULT_COMPANY, companyOptions, companyShort } from '@/shared/constants/companies'
 import { normalizeRole } from '@/shared/auth/permissions'
 import AppShell from '@/app/components/AppShell'
