@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useApp, MESES, MESES_Q, TRIMESTRES, mesATrimestre, MARCAS_LIST, ESTADO_COLORS, COLUMNAS_KANBAN, MIEMBROS_REFS, SOLICITANTES, getColorMarca } from '@/lib/AppContext'
 import AppShell from '@/app/components/AppShell'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/shared/db/supabase'
 import { PageTransition, StaggerGrid, StaggerItem, AnimatedNumber, FadeInSection } from '@/shared/motion'
 
 // ── Stratix 360 team-facing exclusions ────────────────────────────────────

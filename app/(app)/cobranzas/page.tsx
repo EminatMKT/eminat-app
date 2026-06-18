@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useApp, MESES } from '@/lib/AppContext'
 import AppShell from '@/app/components/AppShell'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '@/shared/db/supabase'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { PageTransition, StaggerGrid, StaggerItem, AnimatedNumber } from '@/shared/motion'
 

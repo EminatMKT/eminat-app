@@ -3,8 +3,8 @@ import { useState, ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useApp, MARCAS_LIST } from '@/lib/AppContext'
 import { canAccess } from '@/lib/permissions'
-import { supabase } from '@/lib/supabase'
-import { isDevDb } from '@/lib/env.client'
+import { supabase } from '@/shared/db/supabase'
+import { isDevDb } from '@/shared/db/env.client'
 import Onboarding from './Onboarding'
 
 // Dark constants for sidebar & topbar (always dark)

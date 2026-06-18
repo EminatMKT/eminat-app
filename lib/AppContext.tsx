@@ -1,7 +1,7 @@
 'use client'
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react'
-import { supabase } from '@/lib/supabase'
-import { signOutAndRedirect, loadProfile } from '@/lib/session'
+import { supabase } from '@/shared/db/supabase'
+import { signOutAndRedirect, loadProfile } from '@/shared/db/session'
 import { useRouter } from 'next/navigation'
 import {
   normalizeRole,
