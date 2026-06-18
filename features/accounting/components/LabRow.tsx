@@ -1,6 +1,7 @@
 import { ACCENT } from '../data'
 import { fmt } from '../format'
-import { Td, Tr } from './primitives'
+import Td from './Td'
+import Tr from './Tr'
 import type { LabStat } from '../types'
 
 export default function LabRow({ lab, stat: s, maxV }: { lab: string; stat: LabStat; maxV: number }) {

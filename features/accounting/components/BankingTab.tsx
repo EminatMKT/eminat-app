@@ -2,7 +2,11 @@
 import { useState } from 'react'
 import { depositos, ACCENT } from '../data'
 import { fmt } from '../format'
-import { Card, FilterBtn, TableWrap, Th, Td } from './primitives'
+import Card from './Card'
+import FilterBtn from './FilterBtn'
+import TableWrap from './TableWrap'
+import Th from './Th'
+import Td from './Td'
 import DepositRow from './DepositRow'
 
 export default function BankingTab() {

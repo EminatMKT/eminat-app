@@ -1,5 +1,7 @@
 import { labStats } from '../aggregates'
-import { Card, TableWrap, Th } from './primitives'
+import Card from './Card'
+import TableWrap from './TableWrap'
+import Th from './Th'
 import LabRow from './LabRow'
 
 export default function LabsTab() {

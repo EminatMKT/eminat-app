@@ -1,6 +1,7 @@
 import { ACCENT } from '../data'
 import { fmt } from '../format'
-import { Td, Tr } from './primitives'
+import Td from './Td'
+import Tr from './Tr'
 import type { Venta } from '../types'
 
 export default function SalesRow({ venta: v }: { venta: Venta }) {

@@ -1,7 +1,9 @@
 import { ventas, ACCENT } from '../data'
 import { totals, ventasPorLab, depositosPorBanco } from '../aggregates'
 import { fmt } from '../format'
-import { Card, Bar, StatBlock } from './primitives'
+import Card from './Card'
+import Bar from './Bar'
+import StatBlock from './StatBlock'
 
 export default function SummaryTab() {
   const maxLab = Math.max(...ventasPorLab.map(x => x[1]))
