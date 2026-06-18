@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { ventas, ACCENT } from '../data'
 import { fmt } from '../format'
-import Card from './Card'
+import SectionCard from './SectionCard'
 import FilterBtn from './FilterBtn'
 import TableWrap from './TableWrap'
 import Th from './Th'
@@ -14,7 +14,7 @@ export default function SalesTab() {
   const filtered = ventas.filter(v => periodo === 'all' || v.periodo === periodo)
   const total = filtered.reduce((a, b) => a + b.monto, 0)
   return (
-    <Card title="Sales — March" subtitle={`${filtered.length} records · ${fmt(total)}`}>
+    <SectionCard title="Sales — March" subtitle={`${filtered.length} records · ${fmt(total)}`}>
       <div className="mb-3 flex gap-1.5">
         {(['all', '1Q', '2Q'] as const).map(p => (
           <FilterBtn key={p} active={periodo === p} color={ACCENT.purple} onClick={() => setPeriodo(p)}>
@@ -32,6 +32,6 @@ export default function SalesTab() {
           </tr>
         </tbody>
       </TableWrap>
-    </Card>
+    </SectionCard>
   )
 }

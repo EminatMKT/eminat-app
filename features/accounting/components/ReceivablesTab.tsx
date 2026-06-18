@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { porCobrar, ACCENT } from '../data'
 import { fmt } from '../format'
-import Card from './Card'
+import SectionCard from './SectionCard'
 import FilterBtn from './FilterBtn'
 import TableWrap from './TableWrap'
 import Th from './Th'
@@ -16,7 +16,7 @@ export default function ReceivablesTab() {
   const totPV = filtered.reduce((a, b) => a + b.porVencer, 0)
   const totT = filtered.reduce((a, b) => a + b.total, 0)
   return (
-    <Card title="Receivables" subtitle={`${filtered.length} records · ${fmt(totT)} outstanding`}>
+    <SectionCard title="Receivables" subtitle={`${filtered.length} records · ${fmt(totT)} outstanding`}>
       <div className="mb-3 flex gap-1.5">
         {(['all', 'DATA', 'INVOICE'] as const).map(t => (
           <FilterBtn key={t} active={tipo === t} color={ACCENT.teal} onClick={() => setTipo(t)}>
@@ -36,6 +36,6 @@ export default function ReceivablesTab() {
           </tr>
         </tbody>
       </TableWrap>
-    </Card>
+    </SectionCard>
   )
 }

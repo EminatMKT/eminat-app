@@ -1,7 +1,7 @@
 import { ventas, ACCENT } from '../data'
 import { totals, ventasPorLab, depositosPorBanco } from '../aggregates'
 import { fmt } from '../format'
-import Card from './Card'
+import SectionCard from './SectionCard'
 import Bar from './Bar'
 import StatBlock from './StatBlock'
 
@@ -17,12 +17,12 @@ export default function SummaryTab() {
         <StatBlock title="Not Yet Due" value={fmt(totals.totalPorVencer)} color={ACCENT.yellow} />
       </div>
       <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))' }}>
-        <Card title="Sales by Laboratory" subtitle="March, all periods">
+        <SectionCard title="Sales by Laboratory" subtitle="March, all periods">
           {ventasPorLab.map(([lab, val]) => <Bar key={lab} label={lab} value={val} max={maxLab} color={ACCENT.purple} />)}
-        </Card>
-        <Card title="Deposits by Bank" subtitle="March, all periods">
+        </SectionCard>
+        <SectionCard title="Deposits by Bank" subtitle="March, all periods">
           {depositosPorBanco.map(([banco, val]) => <Bar key={banco} label={banco} value={val} max={maxBanco} color={ACCENT.teal} />)}
-        </Card>
+        </SectionCard>
       </div>
     </div>
   )

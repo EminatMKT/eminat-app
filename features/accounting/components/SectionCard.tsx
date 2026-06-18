@@ -1,4 +1,4 @@
-export default function Card({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+export default function SectionCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <div className="mb-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
       <div className="mb-4">

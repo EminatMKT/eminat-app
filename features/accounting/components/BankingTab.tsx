@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { depositos, ACCENT } from '../data'
 import { fmt } from '../format'
-import Card from './Card'
+import SectionCard from './SectionCard'
 import FilterBtn from './FilterBtn'
 import TableWrap from './TableWrap'
 import Th from './Th'
@@ -14,7 +14,7 @@ export default function BankingTab() {
   const filtered = depositos.filter(d => banco === 'all' || d.banco === banco)
   const total = filtered.reduce((a, b) => a + b.monto, 0)
   return (
-    <Card title="Bank Deposits — March" subtitle={`${filtered.length} deposits · ${fmt(total)}`}>
+    <SectionCard title="Bank Deposits — March" subtitle={`${filtered.length} deposits · ${fmt(total)}`}>
       <div className="mb-3 flex gap-1.5">
         {(['all', 'SOUTH STATE', 'SPACE COAST'] as const).map(b => (
           <FilterBtn key={b} active={banco === b} color={ACCENT.teal} onClick={() => setBanco(b)}>
@@ -32,6 +32,6 @@ export default function BankingTab() {
           </tr>
         </tbody>
       </TableWrap>
-    </Card>
+    </SectionCard>
   )
 }
