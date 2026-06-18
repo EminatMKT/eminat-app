@@ -5,6 +5,7 @@ import { ACCENT } from '../data'
 import { totals } from '../aggregates'
 import { fmt } from '../format'
 import KPI from './KPI'
+import TabButton from './TabButton'
 import SummaryTab from './SummaryTab'
 import SalesTab from './SalesTab'
 import ReceivablesTab from './ReceivablesTab'
@@ -39,19 +40,9 @@ export default function AccountingModule() {
         </div>
 
         <div className="mb-5 flex gap-1 overflow-x-auto border-b border-gray-200">
-          {tabs.map(t => {
-            const active = tab === t.key
-            return (
-              <button key={t.key} onClick={() => setTab(t.key)}
-                className={`flex items-center gap-2 whitespace-nowrap rounded-t-lg px-4 py-2.5 text-sm font-semibold transition ${
-                  active ? 'border-b-2 bg-white text-gray-900' : 'border-b-2 border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-                style={active ? { borderBottomColor: ACCENT.teal, color: ACCENT.teal } : undefined}
-              >
-                <span>{t.icon}</span>{t.label}
-              </button>
-            )
-          })}
+          {tabs.map(t => (
+            <TabButton key={t.key} icon={t.icon} label={t.label} active={tab === t.key} onClick={() => setTab(t.key)} />
+          ))}
         </div>
 
         {tab === 'summary' && <SummaryTab />}
