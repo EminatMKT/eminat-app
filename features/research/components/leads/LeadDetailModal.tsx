@@ -3,6 +3,7 @@ import { RESEARCH_THEME } from '../../theme'
 import { LEAD_FIELDS } from '../../constants'
 import { useResearch } from '../ResearchContext'
 import LeadDetailField from './LeadDetailField'
+import LeadActivityItem from './LeadActivityItem'
 
 export default function LeadDetailModal() {
   const { s1, border, t1, t3, accent } = RESEARCH_THEME
@@ -26,12 +27,7 @@ export default function LeadDetailModal() {
         </div>
         <div style={{ borderTop: `1px solid ${border}`, paddingTop: 14, marginBottom: 14 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 8 }}>Activities</div>
-          {leadActivities.map(a => (
-            <div key={a.id} style={{ display: 'flex', gap: 10, padding: '6px 0', borderBottom: `1px solid ${border}` }}>
-              <span style={{ fontSize: 14 }}>{a.tipo === 'email' ? '📧' : a.tipo === 'llamada' ? '📞' : '🤝'}</span>
-              <div><div style={{ fontSize: 11, color: t1 }}>{a.nota}</div><div style={{ fontSize: 9, color: t3 }}>{a.fecha}</div></div>
-            </div>
-          ))}
+          {leadActivities.map(a => <LeadActivityItem key={a.id} activity={a} />)}
           {leadActivities.length === 0 && <div style={{ fontSize: 11, color: t3 }}>No activities recorded</div>}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>

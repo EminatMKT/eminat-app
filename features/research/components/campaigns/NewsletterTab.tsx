@@ -5,6 +5,7 @@ import { supabase } from '@/shared/db/supabase'
 import { RESEARCH_THEME, inputStyle } from '../../theme'
 import { useResearch } from '../ResearchContext'
 import ContactCheckRow from './ContactCheckRow'
+import NewsletterStepCard from './NewsletterStepCard'
 import StageBadge from '../StageBadge'
 
 export default function NewsletterTab() {
@@ -34,11 +35,7 @@ export default function NewsletterTab() {
     <div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
         {['Contacts', 'Campaign', 'Preview', 'Results'].map((step, i) => (
-          <div key={step} onClick={() => setNlStep(i)} style={{ flex: 1, padding: '12px', borderRadius: 10, background: nlStep === i ? `${accent}20` : s1, border: `1px solid ${nlStep === i ? accent : border}`, textAlign: 'center', cursor: 'pointer', transition: 'all .2s' }}>
-            <div style={{ fontSize: 18, marginBottom: 4 }}>{['👥', '⚙️', '👁', '📊'][i]}</div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: nlStep === i ? accent : t2 }}>Step {i + 1}</div>
-            <div style={{ fontSize: 10, color: t3 }}>{step}</div>
-          </div>
+          <NewsletterStepCard key={step} index={i} label={step} icon={['👥', '⚙️', '👁', '📊'][i]} active={nlStep === i} onClick={() => setNlStep(i)} />
         ))}
       </div>
       {nlStep === 0 && (

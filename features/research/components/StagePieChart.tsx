@@ -2,9 +2,10 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { RESEARCH_THEME } from '../theme'
 import { PIPELINE_COLORS, CHART_COLORS } from '../constants'
+import StageLegendItem from './StageLegendItem'
 
 export default function StagePieChart({ data }: { data: { name: string; value: number }[] }) {
-  const { s1, border, t3, accent } = RESEARCH_THEME
+  const { s1, border, accent } = RESEARCH_THEME
   return (
     <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
       <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', marginBottom: 12 }}>Pipeline by Stage</div>
@@ -14,7 +15,7 @@ export default function StagePieChart({ data }: { data: { name: string; value: n
         </Pie><Tooltip contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} /></PieChart>
       </ResponsiveContainer>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 }}>
-        {data.map(d => <span key={d.name} style={{ fontSize: 9, display: 'flex', alignItems: 'center', gap: 3 }}><span style={{ width: 7, height: 7, borderRadius: 2, background: PIPELINE_COLORS[d.name] || accent }} /><span style={{ color: t3 }}>{d.name} ({d.value})</span></span>)}
+        {data.map(d => <StageLegendItem key={d.name} name={d.name} value={d.value} color={PIPELINE_COLORS[d.name] || accent} />)}
       </div>
     </div>
   )

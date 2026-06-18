@@ -5,6 +5,7 @@ import { supabase } from '@/shared/db/supabase'
 import { RESEARCH_THEME, inputStyle } from '../../theme'
 import { useResearch } from '../ResearchContext'
 import ContactCheckRow from './ContactCheckRow'
+import SmsHistoryItem from './SmsHistoryItem'
 
 export default function SmsTab() {
   const { s1, border, t1, t3 } = RESEARCH_THEME
@@ -53,12 +54,7 @@ export default function SmsTab() {
         </div>
         <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: t1, marginBottom: 12 }}>SMS History</div>
-          {history.slice(0, 5).map(c => (
-            <div key={c.id} style={{ padding: '8px 0', borderBottom: `1px solid ${border}`, display: 'flex', justifyContent: 'space-between' }}>
-              <div><div style={{ fontSize: 11, color: t1 }}>{c.nombre}</div><div style={{ fontSize: 9, color: t3 }}>{c.total_enviados} sent</div></div>
-              <span style={{ fontSize: 9, color: '#34D399' }}>{c.estado}</span>
-            </div>
-          ))}
+          {history.slice(0, 5).map(c => <SmsHistoryItem key={c.id} campaign={c} />)}
           {history.length === 0 && <div style={{ color: t3, fontSize: 11, textAlign: 'center', padding: 20 }}>No history</div>}
         </div>
       </div>

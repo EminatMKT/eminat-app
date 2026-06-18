@@ -2,6 +2,7 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { RESEARCH_THEME, inputStyle } from '../../theme'
 import { useResearch } from '../ResearchContext'
+import ContactCheckRow from './ContactCheckRow'
 
 type Props = {
   recipients: string[]
@@ -28,14 +29,10 @@ export default function MailRecipientsStep({ recipients, setRecipients, search, 
       <div style={{ fontSize: 12, color: t1, fontWeight: 600, marginBottom: 10 }}>{recipients.length} recipients selected <span style={{ color: t3, fontWeight: 400 }}>of {withEmail.length} with email</span></div>
       <div style={{ maxHeight: 320, overflowY: 'auto', border: `1px solid ${border}`, borderRadius: 12 }}>
         {visible.map(l => (
-          <label key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderBottom: `1px solid ${border}`, cursor: 'pointer', background: recipients.includes(l.id) ? `${accent}06` : 'transparent' }}>
-            <input type="checkbox" checked={recipients.includes(l.id)} onChange={e => { if (e.target.checked) setRecipients(p => [...p, l.id]); else setRecipients(p => p.filter(x => x !== l.id)) }} style={{ accentColor: accent }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 500, color: t1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.official_title || l.conditions || '—'}</div>
-              <div style={{ fontSize: 10, color: t3 }}>{l.lead_sponsor} · {l.nct}</div>
-            </div>
-            <div style={{ fontSize: 10, color: t2, fontFamily: 'DM Mono' }}>{l.email}</div>
-          </label>
+          <ContactCheckRow key={l.id} checked={recipients.includes(l.id)}
+            onToggle={() => setRecipients(p => p.includes(l.id) ? p.filter(x => x !== l.id) : [...p, l.id])}
+            primary={l.official_title || l.conditions || '—'} secondary={`${l.lead_sponsor} · ${l.nct}`}
+            right={<div style={{ fontSize: 10, color: t2, fontFamily: 'DM Mono' }}>{l.email}</div>} highlight />
         ))}
         {withEmail.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: t3, fontSize: 12 }}>No leads with email</div>}
       </div>

@@ -5,12 +5,13 @@ import { supabase } from '@/shared/db/supabase'
 import { RESEARCH_THEME } from '../../theme'
 import { escapeHtml } from '../../html'
 import { useResearch } from '../ResearchContext'
+import MailStepTab from './MailStepTab'
 import MailContentStep from './MailContentStep'
 import MailRecipientsStep from './MailRecipientsStep'
 import MailPreviewStep from './MailPreviewStep'
 
 export default function MailCampaignModal() {
-  const { s1, border, t1, t3, accent } = RESEARCH_THEME
+  const { s1, border, t1, t3 } = RESEARCH_THEME
   const { mostrarMensaje } = useApp()
   const { mailModal, setMailModal, leads, setCampaigns } = useResearch()
 
@@ -65,9 +66,7 @@ export default function MailCampaignModal() {
         </div>
         <div style={{ display: 'flex', gap: 4, marginBottom: 24 }}>
           {['Content', 'Recipients', 'Preview'].map((label, i) => (
-            <button key={label} onClick={() => setStep(i)} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'DM Sans', background: step === i ? `${accent}15` : 'transparent', color: step === i ? accent : t3 }}>
-              {i + 1}. {label}
-            </button>
+            <MailStepTab key={label} index={i} label={label} active={step === i} onClick={() => setStep(i)} />
           ))}
         </div>
 
