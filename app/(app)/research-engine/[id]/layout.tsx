@@ -26,7 +26,7 @@ function ProjectChrome({ id, children }: { id: string; children: ReactNode }) {
     <div className="-mx-6 -my-5 min-h-full bg-gray-50 px-7 py-6">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div>
-          <button onClick={() => router.push('/research-engine')} className="mb-1 text-[11px] font-semibold text-gray-400 hover:text-gray-600">← Research Engine</button>
+          <button onClick={() => router.push('/research-engine')} className="mb-1 text-[11px] font-semibold text-gray-400 hover:text-gray-600">← Global Digital Insights</button>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">{loading ? '…' : (project?.name || 'Proyecto')}</h1>
           {project && (
             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">

@@ -132,7 +132,7 @@ export const MODULE_META: Record<ModuleSlug, ModuleMeta> = {
   },
   'research-engine': {
     slug: 'research-engine',
-    name: 'Research Engine',
+    name: 'Global Digital Insights',
     href: '/research-engine',
     description: 'Investigación de mercado local: competidores, precios y oportunidades.',
     iconKey: 'research-engine',

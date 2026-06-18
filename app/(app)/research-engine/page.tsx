@@ -32,7 +32,7 @@ export default function ResearchEngineIndex() {
     <AppShell>
       <div className="-mx-6 -my-5 min-h-full bg-gray-50 px-7 py-6">
         <PageHeader
-          title="Research Engine"
+          title="Global Digital Insights"
           subtitle="Proyectos de investigación de mercado local · Florida"
           actions={<PrimaryBtn onClick={() => router.push('/research-engine/new')}>+ New Research Project</PrimaryBtn>}
         />
