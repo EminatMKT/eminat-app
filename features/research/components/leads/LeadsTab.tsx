@@ -1,7 +1,7 @@
 'use client'
-import { RESEARCH_THEME, selectStyle } from '../theme'
-import { PIPELINE_COLS } from '../constants'
-import { useResearch } from './ResearchContext'
+import { RESEARCH_THEME, selectStyle } from '../../theme'
+import { PIPELINE_COLS } from '../../constants'
+import { useResearch } from '../ResearchContext'
 import LeadRow from './LeadRow'
 
 export default function LeadsTab() {

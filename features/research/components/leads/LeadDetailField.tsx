@@ -1,5 +1,5 @@
-import { RESEARCH_THEME } from '../theme'
-import { FIELD_LABELS } from '../constants'
+import { RESEARCH_THEME } from '../../theme'
+import { FIELD_LABELS } from '../../constants'
 
 const FULL_WIDTH = new Set(['official_title', 'notes', 'note'])
 

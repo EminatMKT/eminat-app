@@ -2,8 +2,8 @@
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { supabase } from '@/shared/db/supabase'
-import { RESEARCH_THEME, inputStyle } from '../theme'
-import { useResearch } from './ResearchContext'
+import { RESEARCH_THEME, inputStyle } from '../../theme'
+import { useResearch } from '../ResearchContext'
 import ContactCheckRow from './ContactCheckRow'
 
 export default function SmsTab() {

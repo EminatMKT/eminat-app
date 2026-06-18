@@ -2,8 +2,8 @@
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { supabase } from '@/shared/db/supabase'
-import { RESEARCH_THEME, inputStyle } from '../theme'
-import { useResearch } from './ResearchContext'
+import { RESEARCH_THEME, inputStyle } from '../../theme'
+import { useResearch } from '../ResearchContext'
 
 export default function MailCampaignModal() {
   const { s1, s2, border, t1, t2, t3, accent } = RESEARCH_THEME

@@ -1,8 +1,8 @@
 'use client'
-import { RESEARCH_THEME } from '../theme'
-import { MAIL_ESTADO_COLOR } from '../constants'
-import { useResearch } from './ResearchContext'
-import type { Campaign } from '../types'
+import { RESEARCH_THEME } from '../../theme'
+import { MAIL_ESTADO_COLOR } from '../../constants'
+import { useResearch } from '../ResearchContext'
+import type { Campaign } from '../../types'
 
 export default function MailCampaignRow({ campaign: c }: { campaign: Campaign }) {
   const { border, t1, t2, t3, accent } = RESEARCH_THEME

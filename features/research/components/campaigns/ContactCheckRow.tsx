@@ -1,4 +1,4 @@
-import { RESEARCH_THEME } from '../theme'
+import { RESEARCH_THEME } from '../../theme'
 
 type Props = {
   checked: boolean

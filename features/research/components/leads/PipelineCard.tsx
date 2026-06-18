@@ -1,6 +1,6 @@
 'use client'
-import { RESEARCH_THEME } from '../theme'
-import type { Lead } from '../types'
+import { RESEARCH_THEME } from '../../theme'
+import type { Lead } from '../../types'
 
 type Props = {
   lead: Lead

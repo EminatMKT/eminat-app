@@ -1,7 +1,7 @@
 'use client'
-import { RESEARCH_THEME } from '../theme'
-import { useResearch } from './ResearchContext'
-import StatCard from './StatCard'
+import { RESEARCH_THEME } from '../../theme'
+import { useResearch } from '../ResearchContext'
+import StatCard from '../StatCard'
 import OpportunityRow from './OpportunityRow'
 
 export default function OportunidadesTab() {

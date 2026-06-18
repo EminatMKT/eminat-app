@@ -1,7 +1,7 @@
 'use client'
-import { RESEARCH_THEME } from '../theme'
-import { MAIL_ESTADO_COLOR } from '../constants'
-import { useResearch } from './ResearchContext'
+import { RESEARCH_THEME } from '../../theme'
+import { MAIL_ESTADO_COLOR } from '../../constants'
+import { useResearch } from '../ResearchContext'
 
 export default function CampaignViewModal() {
   const { s1, s2, border, t1, t3 } = RESEARCH_THEME

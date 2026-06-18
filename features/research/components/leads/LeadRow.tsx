@@ -1,8 +1,8 @@
 'use client'
-import { RESEARCH_THEME } from '../theme'
-import { useResearch } from './ResearchContext'
-import StageBadge from './StageBadge'
-import type { Lead } from '../types'
+import { RESEARCH_THEME } from '../../theme'
+import { useResearch } from '../ResearchContext'
+import StageBadge from '../StageBadge'
+import type { Lead } from '../../types'
 
 export default function LeadRow({ lead: l }: { lead: Lead }) {
   const { border, t1, t2, t3, accent } = RESEARCH_THEME

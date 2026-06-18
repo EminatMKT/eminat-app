@@ -1,9 +1,9 @@
 'use client'
-import { RESEARCH_THEME } from '../theme'
-import { PIPELINE_COLORS } from '../constants'
-import { useResearch } from './ResearchContext'
+import { RESEARCH_THEME } from '../../theme'
+import { PIPELINE_COLORS } from '../../constants'
+import { useResearch } from '../ResearchContext'
 import PipelineCard from './PipelineCard'
-import type { Lead } from '../types'
+import type { Lead } from '../../types'
 
 type Props = {
   col: string

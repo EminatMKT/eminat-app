@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
-import { RESEARCH_THEME, inputStyle } from '../theme'
-import { useResearch } from './ResearchContext'
+import { RESEARCH_THEME, inputStyle } from '../../theme'
+import { useResearch } from '../ResearchContext'
 
 export default function ActivityModal() {
   const { s1, border, t1, t2, t3, accent } = RESEARCH_THEME

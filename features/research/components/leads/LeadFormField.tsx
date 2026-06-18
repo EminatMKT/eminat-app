@@ -1,6 +1,6 @@
 'use client'
-import { RESEARCH_THEME, inputStyle } from '../theme'
-import { FIELD_LABELS, PIPELINE_COLS } from '../constants'
+import { RESEARCH_THEME, inputStyle } from '../../theme'
+import { FIELD_LABELS, PIPELINE_COLS } from '../../constants'
 
 const FULL_WIDTH = new Set(['official_title', 'notes', 'note'])
 

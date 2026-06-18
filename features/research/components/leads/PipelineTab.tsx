@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
-import { PIPELINE_COLS } from '../constants'
-import { useResearch } from './ResearchContext'
+import { PIPELINE_COLS } from '../../constants'
+import { useResearch } from '../ResearchContext'
 import PipelineColumn from './PipelineColumn'
 
 export default function PipelineTab() {

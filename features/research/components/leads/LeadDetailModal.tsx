@@ -1,7 +1,7 @@
 'use client'
-import { RESEARCH_THEME } from '../theme'
-import { LEAD_FIELDS } from '../constants'
-import { useResearch } from './ResearchContext'
+import { RESEARCH_THEME } from '../../theme'
+import { LEAD_FIELDS } from '../../constants'
+import { useResearch } from '../ResearchContext'
 import LeadDetailField from './LeadDetailField'
 
 export default function LeadDetailModal() {
