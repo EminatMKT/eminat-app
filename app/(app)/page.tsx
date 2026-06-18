@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation'
 import { useApp } from '@/lib/AppContext'
 import AppShell from '@/app/components/AppShell'
 import { PageTransition } from '@/shared/motion'
-import { MODULE_META, type ModuleSlug } from '@/lib/permissions'
+import { MODULE_META, type ModuleSlug } from '@/shared/auth/permissions'
 
 // ── Dark theme (matches AppShell's sidebar palette) ───────────────────
 const D = {

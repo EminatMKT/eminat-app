@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
-import { normalizeRole, ROLE_LABELS } from '@/lib/permissions'
+import { normalizeRole, ROLE_LABELS } from '@/shared/auth/permissions'
 import { clientEnv } from '@/shared/db/env.client'
 import { serverEnv } from '@/shared/db/env.server'
 

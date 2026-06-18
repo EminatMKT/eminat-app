@@ -2,7 +2,7 @@
 import { useState, ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useApp, MARCAS_LIST } from '@/lib/AppContext'
-import { canAccess } from '@/lib/permissions'
+import { canAccess } from '@/shared/auth/permissions'
 import { supabase } from '@/shared/db/supabase'
 import { isDevDb } from '@/shared/db/env.client'
 import Onboarding from './Onboarding'

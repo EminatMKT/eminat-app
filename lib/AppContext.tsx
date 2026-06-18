@@ -11,7 +11,7 @@ import {
   ROLES as PERMISSION_ROLES,
   type Role,
   type ModuleSlug,
-} from './permissions'
+} from '@/shared/auth/permissions'
 
 // ── Constants ──────────────────────────────────────────────────────────
 
