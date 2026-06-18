@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { supabase } from '@/shared/db/supabase'
 import { RESEARCH_THEME, inputStyle } from '../../theme'
+import { escapeHtml } from '../../html'
 import { useResearch } from '../ResearchContext'
 
 export default function MailCampaignModal() {
@@ -43,7 +44,7 @@ export default function MailCampaignModal() {
     setMailSending(true)
     try {
       const recipientEmails = leads.filter(l => mailRecipients.includes(l.id)).map(l => l.email).filter(Boolean)
-      const htmlContent = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px"><div style="background:#4F46E5;padding:24px;border-radius:12px 12px 0 0;text-align:center"><h1 style="color:white;margin:0;font-size:20px">Eminat Research Group</h1></div><div style="padding:28px;background:#ffffff;border:1px solid #E5E7EB;border-top:none;border-radius:0 0 12px 12px">${mailCampaign.contenido.split('\n').map((p: string) => `<p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 14px">${p}</p>`).join('')}</div><div style="text-align:center;padding:20px;font-size:11px;color:#9CA3AF"><p>Eminat Research Group</p></div></div>`
+      const htmlContent = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px"><div style="background:#4F46E5;padding:24px;border-radius:12px 12px 0 0;text-align:center"><h1 style="color:white;margin:0;font-size:20px">Eminat Research Group</h1></div><div style="padding:28px;background:#ffffff;border:1px solid #E5E7EB;border-top:none;border-radius:0 0 12px 12px">${mailCampaign.contenido.split('\n').map((p: string) => `<p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 14px">${escapeHtml(p)}</p>`).join('')}</div><div style="text-align:center;padding:20px;font-size:11px;color:#9CA3AF"><p>Eminat Research Group</p></div></div>`
       try { await fetch('/api/mail/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: recipientEmails, subject: mailCampaign.asunto, html: htmlContent }) }) } catch {}
       await upsert({ nombre: mailCampaign.nombre, asunto: mailCampaign.asunto, contenido: mailCampaign.contenido, tipo: 'Email', estado: 'Enviado', total_enviados: recipientEmails.length, fecha_envio: new Date().toISOString() })
       close()
