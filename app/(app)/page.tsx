@@ -66,6 +66,14 @@ function ModuleIcon({ slug }: { slug: ModuleSlug }) {
           <path d="M8 8h8M8 12h8M8 16h5" {...stroke} />
         </svg>
       )
+    case 'research-engine':
+      return (
+        <svg {...props}>
+          <circle cx="12" cy="12" r="9" {...stroke} />
+          <path d="M12 3v3M12 18v3M3 12h3M18 12h3" {...stroke} />
+          <path d="M15 9l-4 1.5L9.5 15l4-1.5L15 9z" {...stroke} />
+        </svg>
+      )
     case 'th-hr':
       return (
         <svg {...props}>

@@ -21,6 +21,7 @@ export type ModuleSlug =
   | 'research'
   | 'medical'
   | 'accounting'
+  | 'research-engine'
   | 'th-hr'
   | 'directorio'
   | 'admin'
@@ -41,6 +42,7 @@ export const ALL_MODULES: ModuleSlug[] = [
   'research',
   'medical',
   'accounting',
+  'research-engine',
   'th-hr',
   'directorio',
   'admin',
@@ -48,12 +50,12 @@ export const ALL_MODULES: ModuleSlug[] = [
 
 export const PERMISSIONS: Record<Role, ModuleSlug[]> = {
   admin: [...ALL_MODULES],
-  stratix360: ['stratix-mkt', 'directorio'],
+  stratix360: ['stratix-mkt', 'research-engine', 'directorio'],
   finanzas: ['cobranzas', 'accounting', 'directorio'],
   contabilidad_rrhh: ['accounting', 'th-hr', 'directorio'],
   medico: ['medical', 'directorio'],
-  investigacion: ['research', 'directorio'],
-  medico_investigacion: ['medical', 'research', 'directorio'],
+  investigacion: ['research', 'research-engine', 'directorio'],
+  medico_investigacion: ['medical', 'research', 'research-engine', 'directorio'],
 }
 
 export const ROLE_LABELS: Record<Role, string> = {
@@ -128,6 +130,14 @@ export const MODULE_META: Record<ModuleSlug, ModuleMeta> = {
     iconKey: 'accounting',
     leader: null,
   },
+  'research-engine': {
+    slug: 'research-engine',
+    name: 'Research Engine',
+    href: '/research-engine',
+    description: 'Investigación de mercado local: competidores, precios y oportunidades.',
+    iconKey: 'research-engine',
+    leader: null,
+  },
   'th-hr': {
     slug: 'th-hr',
     name: 'Talento Humano',
@@ -162,6 +172,7 @@ export const MODULE_PATH_PREFIX: Record<ModuleSlug, string> = {
   research: '/research',
   medical: '/medical',
   accounting: '/accounting',
+  'research-engine': '/research-engine',
   'th-hr': '/th-hr',
   directorio: '/directorio',
   admin: '/admin',

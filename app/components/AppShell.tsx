@@ -57,11 +57,12 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
   const pathname = usePathname()
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [sidebarPanel, setSidebarPanel] = useState<string | null>(
-    pathname.startsWith('/research') ? 'research' : pathname.startsWith('/medical') ? 'medical' : (pathname === '/' || pathname.startsWith('/stratix-mkt')) ? 'mkt' : null
+    (pathname.startsWith('/research') && !pathname.startsWith('/research-engine')) ? 'research' : pathname.startsWith('/medical') ? 'medical' : (pathname === '/' || pathname.startsWith('/stratix-mkt')) ? 'mkt' : null
   )
   const { usuario, dark, setDark, horaActual, onlineCount, mensaje, notificaciones, notifAbiertas, setNotifAbiertas, setNotificaciones, accent, cargo, role, handleLogout, bg } = app
 
   const activeIconKey = pathname.startsWith('/medical') ? 'medical'
+    : pathname.startsWith('/research-engine') ? 'research-engine'
     : pathname.startsWith('/research') ? 'research'
     : pathname.startsWith('/accounting') ? 'accounting'
     : pathname.startsWith('/cobranzas') ? 'cobranzas'
@@ -81,7 +82,8 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
     ...(canAccess(role, 'cobranzas') ? [{ key: 'cobranzas', icon: '💳', label: 'Billing', action: () => { router.push('/cobranzas'); setSidebarPanel(null) } }] : []),
     ...(canAccess(role, 'medical') ? [{ key: 'medical', icon: '🏥', label: 'Medical', action: () => { setSidebarPanel(p => p === 'medical' ? null : 'medical'); if (!pathname.startsWith('/medical')) router.push('/medical') } }] : []),
     ...(canAccess(role, 'th-hr') ? [{ key: 'th-hr', icon: '👤', label: 'TH/HR', action: () => { router.push('/th-hr'); setSidebarPanel(null) } }] : []),
-    ...(canAccess(role, 'research') ? [{ key: 'research', icon: '🔬', label: 'Research', action: () => { setSidebarPanel(p => p === 'research' ? null : 'research'); if (!pathname.startsWith('/research')) router.push('/research') } }] : []),
+    ...(canAccess(role, 'research') ? [{ key: 'research', icon: '🔬', label: 'Research', action: () => { setSidebarPanel(p => p === 'research' ? null : 'research'); if (!pathname.startsWith('/research') || pathname.startsWith('/research-engine')) router.push('/research') } }] : []),
+    ...(canAccess(role, 'research-engine') ? [{ key: 'research-engine', icon: '🧭', label: 'Engine', action: () => { router.push('/research-engine'); setSidebarPanel(null) } }] : []),
     ...(canAccess(role, 'directorio') ? [{ key: 'directorio', icon: '🏢', label: 'Directory', action: () => { router.push('/directorio'); setSidebarPanel(null) } }] : []),
     ...(canAccess(role, 'admin') ? [{ key: 'admin', icon: '🔐', label: 'Admin', action: () => { router.push('/admin'); setSidebarPanel(null) } }] : []),
   ]
@@ -95,6 +97,7 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
     : pathname.startsWith('/stratix-mkt') ? 'Stratix 360 — Producción'
     : pathname.startsWith('/accounting') ? 'Accounting — Eminat Research'
     : pathname.startsWith('/cobranzas') ? 'EMINAT LLC — Billing Dashboard'
+    : pathname.startsWith('/research-engine') ? 'Research Engine — Market Intelligence'
     : pathname.startsWith('/research') ? 'Eminat Research Group'
     : pathname.startsWith('/medical') ? 'Eminat Medical Center — HIPAA'
     : pathname.startsWith('/directorio') ? 'Team Directory'
