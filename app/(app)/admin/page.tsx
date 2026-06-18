@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useApp, ROLES, COLORES_AVATAR, CARGOS_DIR } from '@/shared/context/AppContext'
 import { COMPANY_COLORS, DEFAULT_COMPANY, companyOptions, companyShort } from '@/shared/constants/companies'
 import { normalizeRole } from '@/shared/auth/permissions'
-import AppShell from '@/app/components/AppShell'
+import AppShell from '@/shared/components/AppShell'
 import { supabase } from '@/shared/db/supabase'
 import { PageTransition, StaggerGrid, StaggerItem, AnimatedNumber } from '@/shared/motion'
 

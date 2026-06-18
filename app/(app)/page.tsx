@@ -1,7 +1,7 @@
 'use client'
 import { useRouter } from 'next/navigation'
 import { useApp } from '@/shared/context/AppContext'
-import AppShell from '@/app/components/AppShell'
+import AppShell from '@/shared/components/AppShell'
 import { PageTransition } from '@/shared/motion'
 import { MODULE_META, type ModuleSlug } from '@/shared/auth/permissions'
 

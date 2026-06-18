@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
-import AppShell from '@/app/components/AppShell'
+import AppShell from '@/shared/components/AppShell'
 import { PageTransition } from '@/shared/motion'
 import { useRouter } from 'next/navigation'
 

@@ -1,6 +1,6 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
-import AppShell from '@/app/components/AppShell'
+import AppShell from '@/shared/components/AppShell'
 import { PageTransition } from '@/shared/motion'
 
 export default function FinanzasPage() {
