@@ -21,3 +21,6 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key
           APP_ENV: development
+          # env del servidor (env.server.ts los valida al colectar las rutas /api): dummies para CI
+          SUPABASE_SERVICE_ROLE_KEY: dummy-service-role-key
+          RESEND_API_KEY: re_dummy_key
