@@ -2,7 +2,8 @@
 import { useState } from 'react'
 import { ventas, ACCENT } from '../data'
 import { fmt } from '../format'
-import { Card, FilterBtn, TableWrap, Th, Td, Tr } from './primitives'
+import { Card, FilterBtn, TableWrap, Th, Td } from './primitives'
+import SalesRow from './SalesRow'
 
 export default function SalesTab() {
   const [periodo, setPeriodo] = useState<'all' | '1Q' | '2Q'>('all')
@@ -20,15 +21,7 @@ export default function SalesTab() {
       <TableWrap>
         <thead><tr><Th>Month</Th><Th>Period</Th><Th>Lab</Th><Th>Study</Th><Th align="right">Amount</Th></tr></thead>
         <tbody>
-          {filtered.map((v, i) => (
-            <Tr key={i}>
-              <Td>{v.mes}</Td>
-              <Td color={ACCENT.teal} mono bold>{v.periodo}</Td>
-              <Td bold>{v.lab}</Td>
-              <Td color="#6b7280">{v.estudio}</Td>
-              <Td align="right" mono color={v.monto > 0 ? '#111827' : '#9ca3af'}>{fmt(v.monto)}</Td>
-            </Tr>
-          ))}
+          {filtered.map((v, i) => <SalesRow key={i} venta={v} />)}
           <tr className="bg-gray-50">
             <Td bold>TOTAL</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td>
             <Td align="right" mono bold color={ACCENT.purple}>{fmt(total)}</Td>

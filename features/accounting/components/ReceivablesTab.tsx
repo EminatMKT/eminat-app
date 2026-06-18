@@ -2,7 +2,8 @@
 import { useState } from 'react'
 import { porCobrar, ACCENT } from '../data'
 import { fmt } from '../format'
-import { Card, FilterBtn, TableWrap, Th, Td, Tr } from './primitives'
+import { Card, FilterBtn, TableWrap, Th, Td } from './primitives'
+import ReceivableRow from './ReceivableRow'
 
 export default function ReceivablesTab() {
   const [tipo, setTipo] = useState<'all' | 'DATA' | 'INVOICE'>('all')
@@ -22,22 +23,7 @@ export default function ReceivablesTab() {
       <TableWrap>
         <thead><tr><Th>Lab</Th><Th>Study</Th><Th>Type</Th><Th>Period</Th><Th align="right">Overdue</Th><Th align="right">Not Due</Th><Th align="right">Total</Th></tr></thead>
         <tbody>
-          {filtered.map((p, i) => (
-            <Tr key={i}>
-              <Td bold>{p.lab}</Td>
-              <Td color="#6b7280">{p.estudio}</Td>
-              <Td>
-                <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{
-                  background: p.tipo === 'DATA' ? `${ACCENT.teal}1f` : `${ACCENT.purple}1f`,
-                  color: p.tipo === 'DATA' ? ACCENT.teal : ACCENT.purple,
-                }}>{p.tipo}</span>
-              </Td>
-              <Td mono>{p.periodo}</Td>
-              <Td align="right" mono color={p.vencido > 0 ? ACCENT.red : '#9ca3af'}>{fmt(p.vencido)}</Td>
-              <Td align="right" mono color={p.porVencer > 0 ? '#b45309' : '#9ca3af'}>{fmt(p.porVencer)}</Td>
-              <Td align="right" mono bold>{fmt(p.total)}</Td>
-            </Tr>
-          ))}
+          {filtered.map((p, i) => <ReceivableRow key={i} row={p} />)}
           <tr className="bg-gray-50">
             <Td bold>TOTAL</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td>
             <Td align="right" mono bold color={ACCENT.red}>{fmt(totV)}</Td>
