@@ -85,9 +85,9 @@ export const COLORES_AVATAR = ['#7C6FF7', '#34D399', '#F472B6', '#60A5FA', '#FB9
 // transparently via normalizeRole() until the DB migration completes.
 export const ROLES = PERMISSION_ROLES
 
-// Re-exported from lib/companies.ts for back-compat with existing imports.
-// New code should import directly from '@/lib/companies'.
-import { COMPANY_NAMES as _COMPANY_NAMES, COMPANY_COLORS as _COMPANY_COLORS } from './companies'
+// Re-exported from shared/constants/companies.ts for back-compat with existing imports.
+// New code should import directly from '@/shared/constants/companies'.
+import { COMPANY_NAMES as _COMPANY_NAMES, COMPANY_COLORS as _COMPANY_COLORS } from '@/shared/constants/companies'
 export const EMPRESAS = _COMPANY_NAMES
 export const EMPRESA_COLORS = _COMPANY_COLORS
 

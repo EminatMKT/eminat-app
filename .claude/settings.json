@@ -8,6 +8,7 @@
     "claude-plugins-official@superpowers": true,
     "claude-plugins-official@context7": true,
     "claude-plugins-official@frontend-design": true,
-    "claude-plugins-official@security-guidance": true
+    "claude-plugins-official@security-guidance": true,
+    "nextjs-praxis-guard@nextjs-praxis-guard": true
   }
 }

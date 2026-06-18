@@ -1,0 +1,62 @@
+{
+  "exclude": [
+    "node_modules/",
+    ".next/",
+    "dist/",
+    "build/",
+    ".git/",
+    "coverage/",
+    "out/",
+    ".tmp/",
+    ".todo/",
+    ".understand-anything/",
+    ".claude/",
+    ".praxis-guard/",
+    "docs/",
+    "public/"
+  ],
+  "architecture": {
+    "strategy": "by-feature",
+    "root": ".",
+    "featuresDir": "app/(app)",
+    "sharedDirs": [
+      "lib",
+      "app/components"
+    ]
+  },
+  "commit": {
+    "block": false
+  },
+  "rules": {
+    "file-responsibility": {
+      "maxLines": 50
+    },
+    "architecture-coherence": {
+      "enabled": true
+    },
+    "server-client-boundaries": {
+      "enabled": true
+    },
+    "feature-deps": {
+      "enabled": true,
+      "publicEntry": [
+        "page.tsx",
+        "index.ts",
+        "index.tsx"
+      ]
+    },
+    "forbidden-imports": {
+      "enabled": true,
+      "list": [
+        {
+          "module": "framer-motion",
+          "message": "usá los componentes de lib/motion.tsx (no Framer Motion directo)."
+        },
+        {
+          "module": "@supabase/supabase-js",
+          "message": "importá el singleton de lib/supabase.ts (no crees un cliente directo)."
+        }
+      ]
+    }
+  }
+}
