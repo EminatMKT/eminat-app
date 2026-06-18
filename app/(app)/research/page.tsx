@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import AppShell from '@/shared/components/AppShell'
-import ResearchModule from '@/app/components/ResearchModule'
+import { ResearchModule } from '@/features/research'
 import { PageTransition } from '@/shared/motion'
 
 export default function ResearchPage() {

@@ -1,6 +1,6 @@
 {
-  "last_audited_commit": "32dc14872db6a9b8a9ee96dd5ebcdc4f2e8f7a29",
-  "rules_fingerprint": "sha256:c319b129e6c2fb3dbf7e7d017a5b4f2c8ca9b37e697199b969f5cbb681258785",
+  "last_audited_commit": "0a593960a91566a3f16b3396c241ed6d024f91a7",
+  "rules_fingerprint": "sha256:d4cbced58b094bed9182d49f1d6c30628f5dc18419dfb3c7f97efbc5a713d6ee",
   "plugin_version": "0.25.2",
   "configured_by": "SmithDR",
   "configured_at": "2026-06-17",
