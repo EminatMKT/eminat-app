@@ -57,6 +57,17 @@ export const FL_CITIES = [
   'Fort Lauderdale', 'Hollywood', 'Hialeah', 'Coral Springs', 'Davie', 'Plantation',
 ]
 export const US_STATES = ['FL', 'GA', 'TX', 'CA', 'NY', 'NJ', 'NC', 'IL']
+// Display full state name, store the abbreviation (value) in the DB.
+export const US_STATE_OPTIONS: { value: string; label: string }[] = [
+  { value: 'FL', label: 'Florida' },
+  { value: 'GA', label: 'Georgia' },
+  { value: 'TX', label: 'Texas' },
+  { value: 'CA', label: 'California' },
+  { value: 'NY', label: 'New York' },
+  { value: 'NJ', label: 'New Jersey' },
+  { value: 'NC', label: 'North Carolina' },
+  { value: 'IL', label: 'Illinois' },
+]
 export const INDUSTRIES = [
   'Healthcare', 'Wellness & Spa', 'Aesthetics', 'Dental', 'Fitness', 'Restaurants',
   'Professional Services', 'Real Estate', 'Retail', 'Education', 'Technology', 'Other',

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useApp } from '@/lib/AppContext'
 import AppShell from '@/app/components/AppShell'
-import { createProject, FL_CITIES, US_STATES, INDUSTRIES } from '@/lib/researchEngine'
+import { createProject, FL_CITIES, US_STATE_OPTIONS, INDUSTRIES } from '@/lib/researchEngine'
 import { PageHeader, Card, Field, Input, Select, Textarea, Checkbox, FormGrid, PrimaryBtn, GhostBtn } from '@/app/components/research-engine/ui'
 
 const THIS_YEAR = 2026
@@ -62,7 +62,7 @@ export default function NewResearchProject() {
               </Field>
               <Field label="State">
                 <Select value={form.state} onChange={e => set('state', e.target.value)}>
-                  {US_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+                  {US_STATE_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </Select>
               </Field>
               <Field label="Radius (millas)"><Input type="number" value={form.radius} onChange={e => set('radius', e.target.value)} /></Field>
