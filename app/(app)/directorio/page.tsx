@@ -1,8 +1,8 @@
 'use client'
 import { useState } from 'react'
-import { useApp, DIRECTORIO_DATA, DEPS_DIR, EMPRESA_COLORS, getIniciales } from '@/lib/AppContext'
-import AppShell from '@/app/components/AppShell'
-import { PageTransition, StaggerGrid, StaggerItem } from '@/lib/motion'
+import { useApp, DIRECTORIO_DATA, DEPS_DIR, EMPRESA_COLORS, getIniciales } from '@/shared/context/AppContext'
+import AppShell from '@/shared/components/AppShell'
+import { PageTransition, StaggerGrid, StaggerItem } from '@/shared/motion'
 
 export default function DirectorioPage() {
   const { s1, border, t1, t2, t3, accent, inputStyle } = useApp()

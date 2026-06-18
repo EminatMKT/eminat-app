@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { moduleForPath, canAccess, normalizeRole, type Role } from '@/lib/permissions'
+import { moduleForPath, canAccess, normalizeRole, type Role } from '@/shared/auth/permissions'
 
 /**
  * Edge middleware.

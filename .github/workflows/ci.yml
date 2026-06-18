@@ -1,0 +1,26 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main, development]
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }  # debe coincidir con pnpm local; pnpm-workspace.yaml usa claves de v10
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }  # 22+ trae WebSocket nativo (lo exige @supabase/realtime-js)
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm test
+      - run: pnpm build
+        env:
+          # build de Next: envs públicas dummy para CI (no se conecta a Supabase real)
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-anon-key
+          APP_ENV: development
+          # env del servidor (env.server.ts los valida al colectar las rutas /api): dummies para CI
+          SUPABASE_SERVICE_ROLE_KEY: dummy-service-role-key
+          RESEND_API_KEY: re_dummy_key

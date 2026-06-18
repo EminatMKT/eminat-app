@@ -1,6 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
-import AppShell from '@/app/components/AppShell'
+import AppShell from '@/shared/components/AppShell'
 
 const ACCENT = {
   purple: '#6c5ce7',

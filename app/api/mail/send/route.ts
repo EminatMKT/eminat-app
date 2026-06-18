@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
-import { serverEnv } from '@/lib/env.server'
+import { serverEnv } from '@/shared/db/env.server'
 
 const { RESEND_API_KEY } = serverEnv
 const resend = new Resend(RESEND_API_KEY)

@@ -1,5 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr'
-import { clientEnv } from '@/lib/env.client'
+import { clientEnv } from '@/shared/db/env.client'
 
 const { NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY } = clientEnv
 

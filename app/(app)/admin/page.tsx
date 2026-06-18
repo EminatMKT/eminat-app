@@ -1,11 +1,11 @@
 'use client'
 import { useState } from 'react'
-import { useApp, ROLES, COLORES_AVATAR, CARGOS_DIR } from '@/lib/AppContext'
-import { COMPANY_COLORS, DEFAULT_COMPANY, companyOptions, companyShort } from '@/lib/companies'
-import { normalizeRole } from '@/lib/permissions'
-import AppShell from '@/app/components/AppShell'
-import { supabase } from '@/lib/supabase'
-import { PageTransition, StaggerGrid, StaggerItem, AnimatedNumber } from '@/lib/motion'
+import { useApp, ROLES, COLORES_AVATAR, CARGOS_DIR } from '@/shared/context/AppContext'
+import { COMPANY_COLORS, DEFAULT_COMPANY, companyOptions, companyShort } from '@/shared/constants/companies'
+import { normalizeRole } from '@/shared/auth/permissions'
+import AppShell from '@/shared/components/AppShell'
+import { supabase } from '@/shared/db/supabase'
+import { PageTransition, StaggerGrid, StaggerItem, AnimatedNumber } from '@/shared/motion'
 
 type StatusOverride = '' | 'aprobado' | 'finalizado' | 'por_aprobar'
 type ReassignState = {
