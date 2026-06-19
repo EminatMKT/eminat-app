@@ -3,6 +3,7 @@ import { RESEARCH_THEME } from '../../theme'
 import { MAIL_ESTADO_COLOR } from '../../constants'
 import { useResearch } from '../ResearchContext'
 import CampaignStatBox from './CampaignStatBox'
+import EmailPreview from './EmailPreview'
 
 export default function CampaignViewModal() {
   const { s1, border, t1, t3 } = RESEARCH_THEME
@@ -32,16 +33,7 @@ export default function CampaignViewModal() {
         </div>
         {c.fecha_envio && <div style={{ marginBottom: 16 }}><div style={{ fontSize: 11, color: t3, marginBottom: 4 }}>Sent date</div><div style={{ fontSize: 13, color: t1 }}>{new Date(c.fecha_envio).toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div></div>}
         <div style={{ fontSize: 11, color: t3, marginBottom: 6 }}>Contenido</div>
-        <div style={{ border: `1px solid ${border}`, borderRadius: 12, overflow: 'hidden' }}>
-          <div style={{ background: '#4F46E5', padding: '14px 20px', textAlign: 'center' }}>
-            <div style={{ color: 'white', fontSize: 14, fontWeight: 700 }}>Eminat Research Group</div>
-          </div>
-          <div style={{ padding: '20px', background: '#FFFFFF' }}>
-            {c.contenido ? c.contenido.split('\n').map((p: string, i: number) => (
-              <p key={i} style={{ color: '#374151', fontSize: 13, lineHeight: 1.7, margin: '0 0 10px' }}>{p}</p>
-            )) : <p style={{ color: '#9CA3AF' }}>(no content)</p>}
-          </div>
-        </div>
+        <EmailPreview contenido={c.contenido} size="sm" />
       </div>
     </div>
   )
