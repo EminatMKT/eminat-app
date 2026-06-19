@@ -26,6 +26,12 @@ export default function MailCampaignModal() {
   if (!mailModal) return null
   const close = () => setMailModal(null)
 
+  const steps = [
+    <MailContentStep campaign={campaign} setCampaign={setCampaign} onCancel={close} onSaveDraft={() => saveDraft(false)} onNext={() => setStep(1)} />,
+    <MailRecipientsStep recipients={recipients} setRecipients={setRecipients} search={search} setSearch={setSearch} onBack={() => setStep(0)} onNext={() => setStep(2)} />,
+    <MailPreviewStep campaign={campaign} recipientsCount={recipients.length} sending={sending} onBack={() => setStep(1)} onSaveDraft={() => saveDraft(true)} onSend={sendNow} />,
+  ]
+
   async function upsert(payload: any) {
     if (editingCampaignId) {
       const { data } = await supabase.from('research_campaigns').update(payload).eq('id', editingCampaignId).select()
@@ -70,9 +76,7 @@ export default function MailCampaignModal() {
           ))}
         </div>
 
-        {step === 0 && <MailContentStep campaign={campaign} setCampaign={setCampaign} onCancel={close} onSaveDraft={() => saveDraft(false)} onNext={() => setStep(1)} />}
-        {step === 1 && <MailRecipientsStep recipients={recipients} setRecipients={setRecipients} search={search} setSearch={setSearch} onBack={() => setStep(0)} onNext={() => setStep(2)} />}
-        {step === 2 && <MailPreviewStep campaign={campaign} recipientsCount={recipients.length} sending={sending} onBack={() => setStep(1)} onSaveDraft={() => saveDraft(true)} onSend={sendNow} />}
+        {steps[step]}
       </div>
     </div>
   )
