@@ -1,6 +1,7 @@
 'use client'
 import { useCobranzas } from './CobranzasContext'
 import { fmt } from '../format'
+import { TABLE_HEADERS } from '../constants'
 import FilterBar from './FilterBar'
 import FilterSelect from './FilterSelect'
 import ClearFiltersButton from './ClearFiltersButton'
@@ -13,6 +14,12 @@ import DepositosRow from './DepositosRow'
 
 export default function DepositosTab() {
   const { cobFiltros, setCobFiltros, clearFilters, depsFilt, totalDep, dep1Q, dep2Q, depBancos, depContratantes, bancosUniq, contratantesUniq } = useCobranzas()
+  const kpis = [
+    { label: 'Total Deposited', value: fmt(totalDep), color: '#34D399' },
+    { label: 'Deposits 1Q', value: fmt(dep1Q), color: '#22D3EE' },
+    { label: 'Deposits 2Q', value: fmt(dep2Q), color: '#A78BFA' },
+    { label: 'Records', value: depsFilt.length, color: '#9494B3' },
+  ]
   return (
     <div>
       <FilterBar>
@@ -30,17 +37,12 @@ export default function DepositosTab() {
         </FilterSelect>
         <ClearFiltersButton onClick={clearFilters} />
       </FilterBar>
-      <KpiRow items={[
-        { label: 'Total Deposited', value: fmt(totalDep), color: '#34D399' },
-        { label: 'Deposits 1Q', value: fmt(dep1Q), color: '#22D3EE' },
-        { label: 'Deposits 2Q', value: fmt(dep2Q), color: '#A78BFA' },
-        { label: 'Records', value: depsFilt.length, color: '#9494B3' },
-      ]} />
+      <KpiRow items={kpis} />
       <ChartsRow>
         <PieWithLegend title="Deposits by Bank" data={depBancos} />
         <VerticalBarChart title="Deposits by Contractor" data={depContratantes} yWidth={110} />
       </ChartsRow>
-      <DataTable headers={['Period', 'Contractor', 'Bank', 'ID', 'Study', 'Deposited']} empty={depsFilt.length === 0} emptyText="No deposits recorded">
+      <DataTable headers={TABLE_HEADERS.depositos} empty={depsFilt.length === 0} emptyText="No deposits recorded">
         {depsFilt.map((d, i) => <DepositosRow key={d.id || i} deposito={d} />)}
       </DataTable>
     </div>

@@ -1,6 +1,7 @@
 'use client'
 import { useCobranzas } from './CobranzasContext'
 import { fmt } from '../format'
+import { TABLE_HEADERS } from '../constants'
 import FilterBar from './FilterBar'
 import FilterSelect from './FilterSelect'
 import ClearFiltersButton from './ClearFiltersButton'
@@ -13,6 +14,12 @@ import VentasRow from './VentasRow'
 
 export default function VentasTab() {
   const { cobFiltros, setCobFiltros, clearFilters, ventasFilt, totalVentas, ventas1Q, ventas2Q, ventasLabs, ventasEstudios, labsUniq, estudiosUniqV } = useCobranzas()
+  const kpis = [
+    { label: 'Total Sales', value: fmt(totalVentas), color: '#34D399' },
+    { label: 'Sales 1Q', value: fmt(ventas1Q), color: '#60A5FA' },
+    { label: 'Sales 2Q', value: fmt(ventas2Q), color: '#A78BFA' },
+    { label: 'Records', value: ventasFilt.length, color: '#FB923C' },
+  ]
   return (
     <div>
       <FilterBar>
@@ -30,17 +37,12 @@ export default function VentasTab() {
         </FilterSelect>
         <ClearFiltersButton onClick={clearFilters} />
       </FilterBar>
-      <KpiRow items={[
-        { label: 'Total Sales', value: fmt(totalVentas), color: '#34D399' },
-        { label: 'Sales 1Q', value: fmt(ventas1Q), color: '#60A5FA' },
-        { label: 'Sales 2Q', value: fmt(ventas2Q), color: '#A78BFA' },
-        { label: 'Records', value: ventasFilt.length, color: '#FB923C' },
-      ]} />
+      <KpiRow items={kpis} />
       <ChartsRow>
         <PieWithLegend title="Sales by Lab" data={ventasLabs} />
         <VerticalBarChart title="Sales by Study" data={ventasEstudios} yWidth={100} />
       </ChartsRow>
-      <DataTable headers={['Month', 'Period', 'Lab', 'Study', 'Amount']} empty={ventasFilt.length === 0} emptyText="No sales records">
+      <DataTable headers={TABLE_HEADERS.ventas} empty={ventasFilt.length === 0} emptyText="No sales records">
         {ventasFilt.map((v, i) => <VentasRow key={v.id || i} venta={v} />)}
       </DataTable>
     </div>

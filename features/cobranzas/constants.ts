@@ -32,6 +32,13 @@ export const EXPORT_HEADERS: Record<CobTab, string[]> = {
   depositos: ['Period', 'Contractor', 'Bank', 'ID', 'Study', 'Deposited'],
 }
 
+// Cabeceras de la tabla en pantalla por tab (cuentas muestra "Total Owed", no "Total")
+export const TABLE_HEADERS: Record<CobTab, string[]> = {
+  ventas: ['Month', 'Period', 'Lab', 'Study', 'Amount'],
+  cuentas: ['Lab', 'Study', 'Type', 'Past Due', 'Upcoming', 'Total Owed'],
+  depositos: ['Period', 'Contractor', 'Bank', 'ID', 'Study', 'Deposited'],
+}
+
 export const TAB_TITLE: Record<CobTab, string> = {
   ventas: 'Monthly Sales',
   cuentas: 'Accounts Receivable',
