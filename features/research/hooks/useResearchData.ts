@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { supabase } from '@/shared/db/supabase'
 import { PIPELINE_COLS, EXPORT_HEADERS } from '../constants'
-import { escapeHtml } from '../html'
+import { escapeHtml } from '@/shared/lib/html'
 import type { Lead, Activity, Campaign } from '../types'
 
 export function useResearchData() {
