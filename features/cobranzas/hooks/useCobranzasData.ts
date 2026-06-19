@@ -53,8 +53,8 @@ export function useCobranzasData() {
   const totalVentas = ventasFilt.reduce((s, v) => s + num(v.monto), 0)
   const ventas1Q = ventasFilt.filter(v => v.periodo === '1Q').reduce((s, v) => s + num(v.monto), 0)
   const ventas2Q = ventasFilt.filter(v => v.periodo === '2Q').reduce((s, v) => s + num(v.monto), 0)
-  const ventasLabs = Object.entries(ventasFilt.reduce((m: any, v) => { m[v.laboratorio || 'N/A'] = (m[v.laboratorio || 'N/A'] || 0) + num(v.monto); return m }, {})).map(([name, value]) => ({ name, value }))
-  const ventasEstudios = Object.entries(ventasFilt.reduce((m: any, v) => { m[v.estudio || 'N/A'] = (m[v.estudio || 'N/A'] || 0) + num(v.monto); return m }, {})).map(([name, value]) => ({ name, value }))
+  const ventasLabs = Object.entries(ventasFilt.reduce((m: any, v) => { m[v.laboratorio || 'N/A'] = (m[v.laboratorio || 'N/A'] || 0) + num(v.monto); return m }, {})).map(([name, value]) => ({ name, value: Number(value) }))
+  const ventasEstudios = Object.entries(ventasFilt.reduce((m: any, v) => { m[v.estudio || 'N/A'] = (m[v.estudio || 'N/A'] || 0) + num(v.monto); return m }, {})).map(([name, value]) => ({ name, value: Number(value) }))
   const labsUniq = Array.from(new Set(cobVentas.map(v => v.laboratorio).filter(Boolean)))
   const estudiosUniqV = Array.from(new Set(cobVentas.map(v => v.estudio).filter(Boolean)))
 
@@ -82,8 +82,8 @@ export function useCobranzasData() {
   const totalDep = depsFilt.reduce((s, d) => s + num(d.depositado), 0)
   const dep1Q = depsFilt.filter(d => d.periodo === '1Q').reduce((s, d) => s + num(d.depositado), 0)
   const dep2Q = depsFilt.filter(d => d.periodo === '2Q').reduce((s, d) => s + num(d.depositado), 0)
-  const depBancos = Object.entries(depsFilt.reduce((m: any, d) => { m[d.banco || 'N/A'] = (m[d.banco || 'N/A'] || 0) + num(d.depositado); return m }, {})).map(([name, value]) => ({ name, value }))
-  const depContratantes = Object.entries(depsFilt.reduce((m: any, d) => { m[d.contratante || 'N/A'] = (m[d.contratante || 'N/A'] || 0) + num(d.depositado); return m }, {})).map(([name, value]) => ({ name, value }))
+  const depBancos = Object.entries(depsFilt.reduce((m: any, d) => { m[d.banco || 'N/A'] = (m[d.banco || 'N/A'] || 0) + num(d.depositado); return m }, {})).map(([name, value]) => ({ name, value: Number(value) }))
+  const depContratantes = Object.entries(depsFilt.reduce((m: any, d) => { m[d.contratante || 'N/A'] = (m[d.contratante || 'N/A'] || 0) + num(d.depositado); return m }, {})).map(([name, value]) => ({ name, value: Number(value) }))
   const bancosUniq = Array.from(new Set(cobDepositos.map(d => d.banco).filter(Boolean)))
   const contratantesUniq = Array.from(new Set(cobDepositos.map(d => d.contratante).filter(Boolean)))
 

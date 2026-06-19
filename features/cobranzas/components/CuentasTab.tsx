@@ -1,0 +1,44 @@
+'use client'
+import { useCobranzas } from './CobranzasContext'
+import { fmt } from '../format'
+import FilterBar from './FilterBar'
+import FilterSelect from './FilterSelect'
+import ClearFiltersButton from './ClearFiltersButton'
+import KpiRow from './KpiRow'
+import ChartsRow from './ChartsRow'
+import DonutPastDue from './DonutPastDue'
+import DebtByStudyChart from './DebtByStudyChart'
+import DataTable from './DataTable'
+import CuentasRow from './CuentasRow'
+
+export default function CuentasTab() {
+  const { cobFiltros, setCobFiltros, clearFilters, cuentasFilt, totalVencido, totalPorVencer, totalAdeudado, cuentasDonut, cuentasEstudios, labsUniqC, estudiosUniqC } = useCobranzas()
+  return (
+    <div>
+      <FilterBar>
+        <FilterSelect value={cobFiltros.laboratorio} onChange={v => setCobFiltros(p => ({ ...p, laboratorio: v }))}>
+          <option value="">All Labs</option>
+          {labsUniqC.map(l => <option key={String(l)} value={String(l)}>{String(l)}</option>)}
+        </FilterSelect>
+        <FilterSelect value={cobFiltros.estudio} onChange={v => setCobFiltros(p => ({ ...p, estudio: v }))}>
+          <option value="">All Studies</option>
+          {estudiosUniqC.map(es => <option key={String(es)} value={String(es)}>{String(es)}</option>)}
+        </FilterSelect>
+        <ClearFiltersButton onClick={clearFilters} />
+      </FilterBar>
+      <KpiRow items={[
+        { label: 'Total Past Due', value: fmt(totalVencido), color: '#F87171' },
+        { label: 'Total Upcoming', value: fmt(totalPorVencer), color: '#FBB040' },
+        { label: 'Total Owed', value: fmt(totalAdeudado), color: '#60A5FA' },
+        { label: 'Records', value: cuentasFilt.length, color: '#9494B3' },
+      ]} />
+      <ChartsRow>
+        <DonutPastDue data={cuentasDonut} />
+        <DebtByStudyChart data={cuentasEstudios} />
+      </ChartsRow>
+      <DataTable headers={['Lab', 'Study', 'Type', 'Past Due', 'Upcoming', 'Total Owed']} empty={cuentasFilt.length === 0} emptyText="No accounts receivable">
+        {cuentasFilt.map((c, i) => <CuentasRow key={c.id || i} cuenta={c} />)}
+      </DataTable>
+    </div>
+  )
+}
