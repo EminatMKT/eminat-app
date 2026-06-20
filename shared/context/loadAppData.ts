@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import { supabase } from '@/shared/db/supabase'
 import { usuariosRepo, actividadesRepo, notificacionesRepo } from '@/shared/data'
 import { loadProfile } from '@/shared/db/session'
+import * as auth from '@/shared/db/auth'
 import { clearAuthCookies } from '@/shared/db/clearAuthCookies'
 import { normalizeRole } from '@/shared/auth/permissions'
 import { CARGOS_DIR } from '@/shared/constants/directorio'
@@ -37,7 +38,7 @@ export function startAppData(s: Setters): () => void {
         s.setSessionError(result.reason ?? 'error')
         s.setLoading(false)
         clearAuthCookies()
-        void supabase.auth.signOut().catch(() => {})
+        void auth.signOut().catch(() => {})
         return
       }
       const usr = result.usuario

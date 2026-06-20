@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/shared/db/supabase'
+import * as auth from '@/shared/db/auth'
 import { usuariosRepo } from '@/shared/data'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
@@ -66,7 +66,7 @@ export default function LoginPage() {
       return
     }
 
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password })
+    const { error: err } = await auth.signIn(email, password)
 
     if (err) {
       setError('Incorrect email or password')
@@ -74,7 +74,7 @@ export default function LoginPage() {
       return
     }
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user } } = await auth.getUser()
     if (user) {
       const { data: usuario } = await usuariosRepo.findByEmail(user.email)
 
@@ -84,7 +84,7 @@ export default function LoginPage() {
         })
 
         if (usuario.marca_hora) {
-          await supabase.rpc('registrar_entrada', { p_usuario_id: usuario.id })
+          await auth.registrarEntrada(usuario.id)
         }
       }
     }
@@ -101,9 +101,7 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
-    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    })
+    const { error: err } = await auth.resetPasswordForEmail(email, `${window.location.origin}/reset-password`)
     if (err) { setError('Error sending email. Please try again.'); setLoading(false); return }
     setSent(true)
     setLoading(false)

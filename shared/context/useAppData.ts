@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import { supabase } from '@/shared/db/supabase'
+import * as auth from '@/shared/db/auth'
 import { signOutAndRedirect } from '@/shared/db/session'
 import { clearAuthCookies } from '@/shared/db/clearAuthCookies'
 import { startAppData } from './loadAppData'
@@ -35,7 +35,7 @@ export function useAppData() {
     // garantiza el redirect aunque eso pase (timeout). clearAuthCookies antes de
     // navegar evita que una cookie stale rebote /login → / en el middleware.
     await signOutAndRedirect(
-      () => supabase.auth.signOut(),
+      () => auth.signOut(),
       (url) => { clearAuthCookies(); window.location.href = url },
     )
   }, [])
