@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
-import { supabase } from '@/shared/db/supabase'
+import { researchRepo } from '@/shared/data'
 import { RESEARCH_THEME } from '../../theme'
 import { escapeHtml } from '@/shared/lib/html'
 import { useResearch } from '../ResearchContext'
@@ -34,10 +34,10 @@ export default function MailCampaignModal() {
 
   async function upsert(payload: any) {
     if (editingCampaignId) {
-      const { data } = await supabase.from('research_campaigns').update(payload).eq('id', editingCampaignId).select()
+      const { data } = await researchRepo.updateCampaign(editingCampaignId, payload)
       if (data) setCampaigns(prev => prev.map(c => c.id === editingCampaignId ? data[0] : c))
     } else {
-      const { data } = await supabase.from('research_campaigns').insert([payload]).select()
+      const { data } = await researchRepo.insertCampaign(payload)
       if (data) { setCampaigns(prev => [data[0], ...prev]); setEditingCampaignId(data[0].id) }
     }
   }

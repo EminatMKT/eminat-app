@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
-import { supabase } from '@/shared/db/supabase'
+import { researchRepo } from '@/shared/data'
 import { useResearch } from '../ResearchContext'
 import NewsletterStepCard from './NewsletterStepCard'
 import NewsletterContactsStep from './NewsletterContactsStep'
@@ -20,10 +20,10 @@ export default function NewsletterTab() {
   const toggle = (id: string) => setNlSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
 
   async function send() {
-    const { data: camp } = await supabase.from('research_campaigns').insert([{ nombre: nlCampaign.subject, asunto: nlCampaign.subject, contenido: nlCampaign.content, tipo: nlCampaign.type, estado: 'Enviado', total_enviados: nlSelected.length }]).select()
+    const { data: camp } = await researchRepo.insertCampaign({ nombre: nlCampaign.subject, asunto: nlCampaign.subject, contenido: nlCampaign.content, tipo: nlCampaign.type, estado: 'Enviado', total_enviados: nlSelected.length })
     if (camp?.[0]) {
       const recs = nlSelected.map(lid => ({ campaign_id: camp[0].id, lead_id: lid, status: 'sent' }))
-      await supabase.from('research_campaign_recipients').insert(recs)
+      await researchRepo.insertRecipients(recs)
       setCampaigns(prev => [camp[0], ...prev])
     }
     mostrarMensaje('ok', `Campaign sent to ${nlSelected.length} contacts`)

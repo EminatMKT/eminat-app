@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
-import { supabase } from '@/shared/db/supabase'
+import { researchRepo } from '@/shared/data'
 import { RESEARCH_THEME, inputStyle } from '../../theme'
 import { useResearch } from '../ResearchContext'
 import ContactCheckRow from './ContactCheckRow'
@@ -20,10 +20,10 @@ export default function SmsTab() {
   const history = campaigns.filter(c => c.tipo === 'SMS')
 
   async function send() {
-    const { data: camp } = await supabase.from('research_campaigns').insert([{ nombre: 'SMS — ' + new Date().toLocaleDateString(), tipo: 'SMS', contenido: smsMessage, estado: 'Enviado', total_enviados: smsSelected.length }]).select()
+    const { data: camp } = await researchRepo.insertCampaign({ nombre: 'SMS — ' + new Date().toLocaleDateString(), tipo: 'SMS', contenido: smsMessage, estado: 'Enviado', total_enviados: smsSelected.length })
     if (camp?.[0]) {
       const recs = smsSelected.map(lid => ({ campaign_id: camp[0].id, lead_id: lid, status: 'sent' }))
-      await supabase.from('research_campaign_recipients').insert(recs)
+      await researchRepo.insertRecipients(recs)
       setCampaigns(prev => [camp[0], ...prev])
     }
     mostrarMensaje('ok', `SMS sent to ${smsSelected.length} contacts`)

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/shared/db/supabase'
+import { usuariosRepo } from '@/shared/data'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 
@@ -75,18 +76,11 @@ export default function LoginPage() {
 
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      const { data: usuario } = await supabase
-        .from('usuarios')
-        .select('id, marca_hora')
-        .eq('email', user.email)
-        .single()
+      const { data: usuario } = await usuariosRepo.findByEmail(user.email)
 
       if (usuario) {
         obtenerUbicacion().then(ubicacion => {
-          supabase.from('usuarios')
-            .update({ ubicacion, online_at: new Date().toISOString() })
-            .eq('id', usuario.id)
-            .then(() => {})
+          usuariosRepo.updateUbicacion(usuario.id, ubicacion)
         })
 
         if (usuario.marca_hora) {

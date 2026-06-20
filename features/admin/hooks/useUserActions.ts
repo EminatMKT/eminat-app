@@ -1,5 +1,5 @@
 import { useApp } from '@/shared/context/AppContext'
-import { supabase } from '@/shared/db/supabase'
+import { usuariosRepo } from '@/shared/data'
 import { apiPost } from '../api'
 
 // Acciones por fila que mutan adminUsuarios in-place (rol, activación, validación).
@@ -7,7 +7,7 @@ export function useUserActions() {
   const { setAdminUsuarios, mostrarMensaje } = useApp()
 
   async function cambiarRol(id: string, rol: string) {
-    const { error } = await supabase.from('usuarios').update({ rol }).eq('id', id)
+    const { error } = await usuariosRepo.updateRol(id, rol)
     if (error) { mostrarMensaje('error', `Role: ${error.message}`); return }
     setAdminUsuarios(prev => prev.map(u => u.id === id ? { ...u, rol } : u))
     mostrarMensaje('ok', 'Role updated')
@@ -27,7 +27,7 @@ export function useUserActions() {
   }
 
   async function validarUsuario(id: string) {
-    await supabase.from('usuarios').update({ validado: true, activo: true }).eq('id', id)
+    await usuariosRepo.validar(id)
     setAdminUsuarios(prev => prev.map(u => u.id === id ? { ...u, validado: true, activo: true } : u))
     mostrarMensaje('ok', 'User validated')
   }
