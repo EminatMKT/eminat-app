@@ -2,7 +2,7 @@
 import { useApp, MARCAS_LIST } from '@/shared/context/AppContext'
 import { SOCIAL_PLATFORMS } from '../../data'
 import { fNum, cardStyle } from './social-format'
-import SocialKpiCard from './SocialKpiCard'
+import StratixKpiCard from '../StratixKpiCard'
 import BrandStats from './BrandStats'
 import PlatformCard from './PlatformCard'
 import ContentSummaryCard from './ContentSummaryCard'
@@ -45,7 +45,7 @@ export default function SocialTab() {
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 20 }}>
         {kpis.map(k => (
-          <SocialKpiCard key={k.label} kpi={k} />
+          <StratixKpiCard key={k.label} kpi={k} />
         ))}
       </div>
 

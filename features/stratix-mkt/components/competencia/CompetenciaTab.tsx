@@ -2,7 +2,7 @@
 import { useApp } from '@/shared/context/AppContext'
 import { COMPETITORS, EMINAT_DATA } from '../../data'
 import { fNum, cardStyle } from './comp-format'
-import MarketKpiCard from './MarketKpiCard'
+import StratixKpiCard from '../StratixKpiCard'
 import CompetitorComparisonBar from './CompetitorComparisonBar'
 import CompetitorCard from './CompetitorCard'
 import AdvantageRow from './AdvantageRow'
@@ -59,7 +59,7 @@ export default function CompetenciaTab() {
       {/* Market Position Overview */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
         {kpis.map(k => (
-          <MarketKpiCard key={k.label} kpi={k} />
+          <StratixKpiCard key={k.label} kpi={k} />
         ))}
       </div>
 
