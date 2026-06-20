@@ -1,4 +1,5 @@
 import type { CobTab } from './types'
+import { TABLES, type TableName } from '@/shared/data/tables'
 
 export const CHART_COLORS = ['#34D399', '#60A5FA', '#A78BFA', '#F472B6', '#FBB040', '#F87171', '#7C6FF7', '#FB923C']
 
@@ -8,11 +9,11 @@ export const TABS: { key: CobTab; label: string; soon?: boolean }[] = [
   { key: 'depositos', label: '🏦 Bank Deposits', soon: true },
 ]
 
-// Tabla de Supabase por tab
-export const TABLE: Record<CobTab, string> = {
-  ventas: 'cobranzas_ventas',
-  cuentas: 'cobranzas_cuentas',
-  depositos: 'cobranzas_depositos',
+// Tabla de Supabase por tab (nombres desde la única fuente shared/data/tables)
+export const TABLE: Record<CobTab, TableName> = {
+  ventas: TABLES.cobranzasVentas,
+  cuentas: TABLES.cobranzasCuentas,
+  depositos: TABLES.cobranzasDepositos,
 }
 
 // Campos del modal "Add record" por tab
