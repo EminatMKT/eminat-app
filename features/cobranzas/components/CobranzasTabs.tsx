@@ -2,7 +2,7 @@
 import { useApp } from '@/shared/context/AppContext'
 import { useCobranzas } from './CobranzasContext'
 import { TABS } from '../constants'
-import CobranzasTabButton from './CobranzasTabButton'
+import TabButton from '@/shared/components/ui/TabButton'
 
 export default function CobranzasTabs() {
   const { border } = useApp()
@@ -10,7 +10,7 @@ export default function CobranzasTabs() {
   return (
     <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: `1px solid ${border}` }}>
       {TABS.map(tab => (
-        <CobranzasTabButton key={tab.key} label={tab.label} soon={tab.soon} active={cobTab === tab.key}
+        <TabButton key={tab.key} label={tab.label} soon={tab.soon} active={cobTab === tab.key}
           onClick={() => { setCobTab(tab.key); clearFilters() }} />
       ))}
     </div>
