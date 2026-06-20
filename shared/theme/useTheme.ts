@@ -1,31 +1,35 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
+import { THEMES, type ThemeName } from './tokens'
 
 const STORAGE_KEY = 'eminat-theme'
+const DEFAULT_THEME: ThemeName = 'light'
 
-// Estado del tema (claro/oscuro) con persistencia en localStorage.
+function isThemeName(v: string | null): v is ThemeName {
+  return v != null && v in THEMES
+}
+
+// Tema activo (por nombre) con persistencia en localStorage.
 //
-// SSR-safe: arranca en `false` (claro) — que coincide con el render del servidor,
-// evitando hydration mismatch — y se hidrata desde localStorage en el primer
-// efecto post-montaje. La preferencia se persiste sólo cuando el usuario la
-// cambia (setDark), no en cada render.
+// SSR-safe: arranca en DEFAULT_THEME (coincide con el render del servidor,
+// evita hydration mismatch) y se hidrata desde localStorage post-montaje.
+// La preferencia se persiste sólo al cambiarla (setTheme).
 //
-// El default sin preferencia guardada es CLARO a propósito: el modo oscuro aún
-// es parcial (research y accounting no consumen los tokens), así que es opt-in
-// hasta reconciliar esos módulos. Cuando eso pase, acá se puede respetar
-// `prefers-color-scheme`.
+// N-temas: soporta cualquier tema declarado en THEMES (no es booleano). El
+// default es 'light' a propósito: el dark aún tiene módulos por reconciliar y
+// queda opt-in (cuando esté, acá se puede respetar prefers-color-scheme).
 export function useTheme() {
-  const [dark, setDarkState] = useState(false)
+  const [theme, setThemeState] = useState<ThemeName>(DEFAULT_THEME)
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored === 'dark' || stored === 'light') setDarkState(stored === 'dark')
+    if (isThemeName(stored)) setThemeState(stored)
   }, [])
 
-  const setDark = useCallback((value: boolean) => {
-    setDarkState(value)
-    if (typeof window !== 'undefined') localStorage.setItem(STORAGE_KEY, value ? 'dark' : 'light')
+  const setTheme = useCallback((name: ThemeName) => {
+    setThemeState(name)
+    if (typeof window !== 'undefined') localStorage.setItem(STORAGE_KEY, name)
   }, [])
 
-  return { dark, setDark }
+  return { theme, setTheme }
 }

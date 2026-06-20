@@ -54,6 +54,19 @@ const DARK: Theme = {
   inputStyle: { ...baseInput, border: '1px solid rgba(255,255,255,0.12)', background: '#191923', color: '#FFFFFF' },
 }
 
-export function getTheme(dark: boolean): Theme {
-  return dark ? DARK : LIGHT
+// Registry de temas. Para agregar un 3er tema: definí su paleta (otro `Theme`)
+// y sumala acá + al THEME_ORDER. Los componentes no se tocan (consumen tokens
+// semánticos vía useApp). El selector (AppShell) cicla THEME_ORDER.
+export type ThemeName = 'light' | 'dark'
+
+export const THEMES: Record<ThemeName, Theme> = {
+  light: LIGHT,
+  dark: DARK,
+}
+
+// Orden para el selector/ciclo de temas.
+export const THEME_ORDER: ThemeName[] = ['light', 'dark']
+
+export function getTheme(name: ThemeName): Theme {
+  return THEMES[name] ?? THEMES.light
 }
