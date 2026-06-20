@@ -4,7 +4,7 @@ import AppShell from '@/shared/components/AppShell'
 import { ACCENT } from '../data'
 import { totals } from '../aggregates'
 import { fmt } from '../format'
-import KPI from './KPI'
+import StatCard from './StatCard'
 import TabButton from './TabButton'
 import SummaryTab from './SummaryTab'
 import SalesTab from './SalesTab'
@@ -33,9 +33,9 @@ export default function AccountingModule() {
             <p className="mt-1 text-xs text-gray-500">Eminat Research · Sales, receivables & banking — March</p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <KPI label="Total Sales" value={fmt(totals.totalVentas)} accent={ACCENT.purple} />
-            <KPI label="Receivables" value={fmt(totals.totalCobrar)} accent={ACCENT.teal} />
-            <KPI label="Deposits" value={fmt(totals.totalDepositos)} accent={ACCENT.green} />
+            <StatCard label="Total Sales" value={fmt(totals.totalVentas)} color={ACCENT.purple} compact />
+            <StatCard label="Receivables" value={fmt(totals.totalCobrar)} color={ACCENT.teal} compact />
+            <StatCard label="Deposits" value={fmt(totals.totalDepositos)} color={ACCENT.green} compact />
           </div>
         </div>
 
