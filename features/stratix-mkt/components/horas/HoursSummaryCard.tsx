@@ -1,9 +1,8 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
+import type { ResumenHoras } from '../../types'
 
-type Resumen = { ref: string; nombre: string; total: number; completadas: number; horas: number; dias: number }
-
-export default function HoursSummaryCard({ r }: { r: Resumen }) {
+export default function HoursSummaryCard({ r }: { r: ResumenHoras }) {
   const { s1, s2, border, accent, t1, t3 } = useApp()
   const stats = [
     { label: 'Total tasks', value: r.total, color: t1 },
