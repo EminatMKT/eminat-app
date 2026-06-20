@@ -1,5 +1,5 @@
 import { supabase } from '@/shared/db/supabase'
-import { TABLES } from './tables'
+import { TABLES, COLUMNS } from './tables'
 
 // Capa de acceso a datos para la tabla `usuarios` (+ vista `v_equipo_hoy`).
 // Cada función envuelve la query exacta del call site y devuelve el mismo
@@ -11,7 +11,7 @@ export const touchOnline = (id: string) =>
 
 // Cuenta usuarios con online_at desde un ISO dado (head + count exact).
 export const countOnlineSince = (iso: string) =>
-  supabase.from(TABLES.usuarios).select('*', { count: 'exact', head: true }).gte('online_at', iso)
+  supabase.from(TABLES.usuarios).select('*', { count: 'exact', head: true }).gte(COLUMNS.onlineAt, iso)
 
 // Lista usuarios activos ordenados por nombre.
 export const listActivos = () =>
@@ -19,7 +19,7 @@ export const listActivos = () =>
 
 // Lista todos los usuarios ordenados por created_at desc.
 export const listAll = () =>
-  supabase.from(TABLES.usuarios).select('*').order('created_at', { ascending: false })
+  supabase.from(TABLES.usuarios).select('*').order(COLUMNS.createdAt, { ascending: false })
 
 // Vista del equipo de hoy.
 export const equipoHoy = () =>

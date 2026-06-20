@@ -1,11 +1,11 @@
 import { supabase } from '@/shared/db/supabase'
-import { TABLES } from './tables'
+import { TABLES, COLUMNS } from './tables'
 
 // Capa de acceso a datos para la tabla `actividades`.
 
 // Lista actividades por created_at desc. Si se pasa responsableRef, filtra por él.
 export const list = (responsableRef?: string) => {
-  let q = supabase.from(TABLES.actividades).select('*').order('created_at', { ascending: false })
+  let q = supabase.from(TABLES.actividades).select('*').order(COLUMNS.createdAt, { ascending: false })
   if (responsableRef) q = q.eq('responsable_ref', responsableRef)
   return q
 }

@@ -1,5 +1,5 @@
 import { supabase } from '@/shared/db/supabase'
-import { TABLES } from './tables'
+import { TABLES, COLUMNS } from './tables'
 
 // Capa de acceso a datos del dominio Research:
 // research_leads, research_activities, research_campaigns, research_campaign_recipients.
@@ -7,7 +7,7 @@ import { TABLES } from './tables'
 // --- research_leads ---
 
 export const listLeads = () =>
-  supabase.from(TABLES.researchLeads).select('*').order('created_at', { ascending: false })
+  supabase.from(TABLES.researchLeads).select('*').order(COLUMNS.createdAt, { ascending: false })
 
 export const updateLead = (id: string, data: any) =>
   supabase.from(TABLES.researchLeads).update(data).eq('id', id)
@@ -28,7 +28,7 @@ export const insertLeads = (records: any[]) =>
 // --- research_activities ---
 
 export const listActivities = () =>
-  supabase.from(TABLES.researchActivities).select('*').order('created_at', { ascending: false })
+  supabase.from(TABLES.researchActivities).select('*').order(COLUMNS.createdAt, { ascending: false })
 
 export const insertActivity = (record: any) =>
   supabase.from(TABLES.researchActivities).insert([record]).select()
@@ -36,7 +36,7 @@ export const insertActivity = (record: any) =>
 // --- research_campaigns ---
 
 export const listCampaigns = () =>
-  supabase.from(TABLES.researchCampaigns).select('*').order('created_at', { ascending: false })
+  supabase.from(TABLES.researchCampaigns).select('*').order(COLUMNS.createdAt, { ascending: false })
 
 export const insertCampaign = (payload: any) =>
   supabase.from(TABLES.researchCampaigns).insert([payload]).select()

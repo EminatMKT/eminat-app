@@ -1,11 +1,11 @@
 import { supabase } from '@/shared/db/supabase'
-import { TABLES } from './tables'
+import { TABLES, COLUMNS } from './tables'
 
 // Capa de acceso a datos para la tabla `notificaciones`.
 
 // Lista las 50 notificaciones más recientes de un usuario.
 export const listForUser = (usuarioId: string) =>
-  supabase.from(TABLES.notificaciones).select('*').eq('usuario_id', usuarioId).order('created_at', { ascending: false }).limit(50)
+  supabase.from(TABLES.notificaciones).select('*').eq('usuario_id', usuarioId).order(COLUMNS.createdAt, { ascending: false }).limit(50)
 
 // Inserta una notificación.
 export const insert = (record: any) =>

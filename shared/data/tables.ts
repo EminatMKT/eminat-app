@@ -16,3 +16,12 @@ export const TABLES = {
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]
+
+// Columnas comunes (timestamps cross-cutting) usadas en order/filter en varios
+// repos. No constantizamos cada columna puntual (id, email, estado…) — solo las
+// que se repiten entre tablas.
+export const COLUMNS = {
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
+  onlineAt: 'online_at',
+} as const
