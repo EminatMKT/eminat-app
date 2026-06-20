@@ -1,6 +1,8 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { supabase } from '@/shared/db/supabase'
+import { usuariosRepo, actividadesRepo, notificacionesRepo } from '@/shared/data'
 import { loadProfile } from '@/shared/db/session'
+import * as auth from '@/shared/db/auth'
 import { clearAuthCookies } from '@/shared/db/clearAuthCookies'
 import { normalizeRole } from '@/shared/auth/permissions'
 import { CARGOS_DIR } from '@/shared/constants/directorio'
@@ -36,7 +38,7 @@ export function startAppData(s: Setters): () => void {
         s.setSessionError(result.reason ?? 'error')
         s.setLoading(false)
         clearAuthCookies()
-        void supabase.auth.signOut().catch(() => {})
+        void auth.signOut().catch(() => {})
         return
       }
       const usr = result.usuario
@@ -46,61 +48,40 @@ export function startAppData(s: Setters): () => void {
 
       // 3. Heartbeat - update online_at every 30s
       const doHeartbeat = () => {
-        supabase.from('usuarios').update({ online_at: new Date().toISOString() }).eq('id', usr.id).then(() => {})
+        usuariosRepo.touchOnline(usr.id)
       }
       doHeartbeat()
       heartbeatInterval = setInterval(doHeartbeat, 30000)
 
       // 4. Count online users (online_at within last 5 minutes)
       const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString()
-      const { count } = await supabase
-        .from('usuarios')
-        .select('*', { count: 'exact', head: true })
-        .gte('online_at', fiveMinAgo)
+      const { count } = await usuariosRepo.countOnlineSince(fiveMinAgo)
       s.setOnlineCount(count || 0)
 
       // 5. Load notifications + realtime subscription
-      const { data: notifs } = await supabase
-        .from('notificaciones')
-        .select('*')
-        .eq('usuario_id', usr.id)
-        .order('created_at', { ascending: false })
-        .limit(50)
+      const { data: notifs } = await notificacionesRepo.listForUser(usr.id)
       s.setNotificaciones(notifs || [])
 
-      realtimeChannel = supabase
-        .channel(`notif-${usr.id}`)
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'notificaciones', filter: `usuario_id=eq.${usr.id}` },
-          (payload: any) => {
-            s.setNotificaciones(prev => [payload.new, ...prev])
-          }
-        )
-        .subscribe()
+      realtimeChannel = notificacionesRepo.subscribeToUserNotifs(usr.id, (row: any) => {
+        s.setNotificaciones(prev => [row, ...prev])
+      })
 
       // 6. Load actividades
-      let actQuery = supabase.from('actividades').select('*').order('created_at', { ascending: false })
-      if (!isSuperAdmin && usr.responsable_ref) {
-        actQuery = actQuery.eq('responsable_ref', usr.responsable_ref)
-      }
-      const { data: acts } = await actQuery
+      const { data: acts } = await actividadesRepo.list(
+        !isSuperAdmin && usr.responsable_ref ? usr.responsable_ref : undefined
+      )
       s.setActividades(acts || [])
 
       // 7. Load equipo from v_equipo_hoy
-      const { data: eq } = await supabase.from('v_equipo_hoy').select('*')
+      const { data: eq } = await usuariosRepo.equipoHoy()
       s.setEquipo(eq || [])
 
       // 8. Load usuarios (activo=true)
-      const { data: usrs } = await supabase
-        .from('usuarios')
-        .select('*')
-        .eq('activo', true)
-        .order('nombre', { ascending: true })
+      const { data: usrs } = await usuariosRepo.listActivos()
       s.setUsuarios(usrs || [])
 
       // 9. Load adminUsuarios with CARGOS_DIR mapping
-      const { data: allUsrs } = await supabase.from('usuarios').select('*').order('created_at', { ascending: false })
+      const { data: allUsrs } = await usuariosRepo.listAll()
       s.setAdminUsuarios((allUsrs || []).map((u: any) => ({ ...u, cargo: u.cargo || CARGOS_DIR[u.email?.toLowerCase()] || '' })))
     } catch (err) {
       console.error('AppContext init error:', err)
@@ -113,6 +94,6 @@ export function startAppData(s: Setters): () => void {
 
   return () => {
     clearInterval(heartbeatInterval)
-    if (realtimeChannel) supabase.removeChannel(realtimeChannel)
+    if (realtimeChannel) notificacionesRepo.removeChannel(realtimeChannel)
   }
 }

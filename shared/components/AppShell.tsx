@@ -3,7 +3,7 @@ import { useState, ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useApp, MARCAS_LIST } from '@/shared/context/AppContext'
 import { canAccess } from '@/shared/auth/permissions'
-import { supabase } from '@/shared/db/supabase'
+import { notificacionesRepo } from '@/shared/data'
 import { isDevDb } from '@/shared/db/env.client'
 import Onboarding from './Onboarding'
 
@@ -219,7 +219,7 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
               </div>
             )}
             <div style={{ position: 'relative' }}>
-              <button onClick={() => { setNotifAbiertas(!notifAbiertas); if (!notifAbiertas) { const ids = notificaciones.filter((n: any) => !n.leida).map((n: any) => n.id); if (ids.length > 0) supabase.from('notificaciones').update({ leida: true }).in('id', ids).then(() => setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))) } }}
+              <button onClick={() => { setNotifAbiertas(!notifAbiertas); if (!notifAbiertas) { const ids = notificaciones.filter((n: any) => !n.leida).map((n: any) => n.id); if (ids.length > 0) notificacionesRepo.markReadByIds(ids).then(() => setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))) } }}
                 style={{ position: 'relative', padding: '7px 9px', borderRadius: 10, border: `1px solid ${D.border}`, background: notifAbiertas ? `${accent}20` : D.s2, color: notifAbiertas ? accent : D.t2, fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>
                 🔔
                 {notificaciones.filter((n: any) => !n.leida).length > 0 && (
@@ -232,7 +232,7 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
                 <div style={{ position: 'absolute', top: '110%', right: 0, width: 320, background: D.s1, border: `1px solid ${D.border}`, borderRadius: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', zIndex: 50, overflow: 'hidden' }}>
                   <div style={{ padding: '14px 16px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ fontFamily: 'Syne', fontSize: 14, fontWeight: 700, color: D.t1 }}>Notifications</div>
-                    <button onClick={() => { supabase.from('notificaciones').update({ leida: true }).eq('leida', false).then(() => setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))) }} style={{ fontSize: 11, color: D.t3, background: 'none', border: 'none', cursor: 'pointer' }}>Mark all as read</button>
+                    <button onClick={() => { notificacionesRepo.markAllRead().then(() => setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))) }} style={{ fontSize: 11, color: D.t3, background: 'none', border: 'none', cursor: 'pointer' }}>Mark all as read</button>
                   </div>
                   <div style={{ maxHeight: 340, overflowY: 'auto' }}>
                     {notificaciones.length === 0 ? (

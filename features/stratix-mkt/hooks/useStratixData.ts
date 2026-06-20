@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useApp, MESES, MESES_Q, mesATrimestre, MARCAS_LIST, MIEMBROS_REFS } from '@/shared/context/AppContext'
-import { supabase } from '@/shared/db/supabase'
+import { actividadesRepo, notificacionesRepo } from '@/shared/data'
 import { escapeHtml } from '@/shared/lib/html'
 import { ACTIVE_MIEMBROS_REFS, isExcludedFromStratix360 } from '../team'
 import type { NuevaActForm } from '../types'
@@ -100,7 +100,7 @@ export function useStratixData() {
     if (!dragId) return
     const act = actividades.find(a => a.id === dragId)
     if (!act || act.estado === col) { setDragId(null); setDragOver(null); return }
-    const { error } = await supabase.from('actividades').update({ estado: col }).eq('id', dragId)
+    const { error } = await actividadesRepo.updateEstado(dragId, col)
     if (!error) {
       setActividades(prev => prev.map(a => a.id === dragId ? { ...a, estado: col } : a))
       mostrarMensaje('ok', `Moved to "${col}"`)
@@ -128,7 +128,7 @@ export function useStratixData() {
       if (nuevaAct.fecha_entrega) payload.fecha_entrega = nuevaAct.fecha_entrega
       if (nuevaAct.drive_url) payload.drive_url = nuevaAct.drive_url
 
-      const { data, error } = await supabase.from('actividades').insert(payload).select().single()
+      const { data, error } = await actividadesRepo.create(payload)
       if (error) { mostrarMensaje('error', `Error: ${error.message}`); setCreandoAct(false); return }
 
       setActividades(prev => [data, ...prev])
@@ -136,7 +136,7 @@ export function useStratixData() {
       if (data && nuevaAct.responsable_ref !== usuario?.responsable_ref) {
         const responsableUser = usuarios.find((u: any) => u.responsable_ref === nuevaAct.responsable_ref)
         if (responsableUser?.id) {
-          await supabase.from('notificaciones').insert({ usuario_id: responsableUser.id, tipo: 'tarea_asignada', titulo: 'New task assigned', mensaje: `"${nuevaAct.titulo}" — ${nuevaAct.area_ref} · ${nuevaAct.mes}`, actividad_id: data.id, leida: false })
+          await notificacionesRepo.insert({ usuario_id: responsableUser.id, tipo: 'tarea_asignada', titulo: 'New task assigned', mensaje: `"${nuevaAct.titulo}" — ${nuevaAct.area_ref} · ${nuevaAct.mes}`, actividad_id: data.id, leida: false })
         }
       }
 

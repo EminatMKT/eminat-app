@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useApp, MESES } from '@/shared/context/AppContext'
-import { supabase } from '@/shared/db/supabase'
+import { cobranzasRepo } from '@/shared/data'
 import { escapeHtml } from '@/shared/lib/html'
 import { fmt } from '../format'
 import { TABLE, ADD_FIELDS, NUMERIC_FIELDS, EXPORT_HEADERS, TAB_TITLE } from './../constants'
@@ -25,9 +25,9 @@ export function useCobranzasData() {
     if (!canCobranzas) return
     const load = async () => {
       const [v, c, d] = await Promise.all([
-        supabase.from('cobranzas_ventas').select('*').order('created_at', { ascending: false }),
-        supabase.from('cobranzas_cuentas').select('*').order('created_at', { ascending: false }),
-        supabase.from('cobranzas_depositos').select('*').order('created_at', { ascending: false }),
+        cobranzasRepo.list('cobranzas_ventas'),
+        cobranzasRepo.list('cobranzas_cuentas'),
+        cobranzasRepo.list('cobranzas_depositos'),
       ])
       setCobVentas(v.data || [])
       setCobCuentas(c.data || [])
@@ -37,7 +37,7 @@ export function useCobranzasData() {
   }, [canCobranzas])
 
   const refresh = async (tab: CobTab) => {
-    const { data } = await supabase.from(TABLE[tab]).select('*').order('created_at', { ascending: false })
+    const { data } = await cobranzasRepo.list(TABLE[tab])
     if (tab === 'ventas') setCobVentas(data || [])
     else if (tab === 'cuentas') setCobCuentas(data || [])
     else setCobDepositos(data || [])
@@ -115,7 +115,7 @@ export function useCobranzasData() {
       headers.forEach((h: string, i: number) => { obj[h] = vals[i] || '' })
       return obj
     })
-    const { error } = await supabase.from(TABLE[cobTab]).insert(records)
+    const { error } = await cobranzasRepo.insert(TABLE[cobTab], records)
     if (error) { mostrarMensaje('error', 'Import error: ' + error.message); return }
     mostrarMensaje('ok', `${records.length} records imported`)
     setCobModalImport(false)
@@ -123,7 +123,7 @@ export function useCobranzasData() {
   }
 
   const handleAddRecord = async () => {
-    const { error } = await supabase.from(TABLE[cobTab]).insert([cobNewRecord])
+    const { error } = await cobranzasRepo.insert(TABLE[cobTab], [cobNewRecord])
     if (error) { mostrarMensaje('error', 'Error: ' + error.message); return }
     mostrarMensaje('ok', 'Record added')
     setCobModalAdd(false)

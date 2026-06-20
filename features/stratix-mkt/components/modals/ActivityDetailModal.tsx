@@ -1,6 +1,6 @@
 'use client'
 import { useApp, ESTADO_COLORS, MIEMBROS_REFS, SOLICITANTES, COLUMNAS_KANBAN, mesATrimestre, getColorMarca } from '@/shared/context/AppContext'
-import { supabase } from '@/shared/db/supabase'
+import { actividadesRepo } from '@/shared/data'
 import { useStratix } from '../StratixContext'
 import DetailField from './DetailField'
 
@@ -46,7 +46,7 @@ export default function ActivityDetailModal() {
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {COLUMNAS_KANBAN.map(col => (
               <button key={col} onClick={async () => {
-                await supabase.from('actividades').update({ estado: col }).eq('id', modalVerAct.id)
+                await actividadesRepo.updateEstado(modalVerAct.id, col)
                 setActividades(prev => prev.map(a => a.id === modalVerAct.id ? { ...a, estado: col } : a))
                 setModalVerAct((p: any) => ({ ...p, estado: col }))
                 mostrarMensaje('ok', `Status → "${col}"`)

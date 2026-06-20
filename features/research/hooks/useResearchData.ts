@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '@/shared/context/AppContext'
-import { supabase } from '@/shared/db/supabase'
+import { researchRepo } from '@/shared/data'
 import { PIPELINE_COLS, EXPORT_HEADERS } from '../constants'
 import { escapeHtml } from '@/shared/lib/html'
 import type { Lead, Activity, Campaign } from '../types'
@@ -17,9 +17,9 @@ export function useResearchData() {
 
   async function loadData() {
     const [{ data: l }, { data: a }, { data: c }] = await Promise.all([
-      supabase.from('research_leads').select('*').order('created_at', { ascending: false }),
-      supabase.from('research_activities').select('*').order('created_at', { ascending: false }),
-      supabase.from('research_campaigns').select('*').order('created_at', { ascending: false }),
+      researchRepo.listLeads(),
+      researchRepo.listActivities(),
+      researchRepo.listCampaigns(),
     ])
     setLeads(l || [])
     setActivities(a || [])
@@ -58,35 +58,35 @@ export function useResearchData() {
 
   async function saveLead(data: any) {
     if (data.id) {
-      await supabase.from('research_leads').update(data).eq('id', data.id)
+      await researchRepo.updateLead(data.id, data)
       setLeads(prev => prev.map(l => l.id === data.id ? { ...l, ...data } : l))
     } else {
-      const { data: inserted } = await supabase.from('research_leads').insert([data]).select()
+      const { data: inserted } = await researchRepo.insertLead(data)
       if (inserted) setLeads(prev => [inserted[0], ...prev])
     }
     mostrarMensaje('ok', data.id ? 'Lead actualizado' : 'Lead creado')
   }
 
   async function deleteLead(id: string) {
-    await supabase.from('research_leads').delete().eq('id', id)
+    await researchRepo.deleteLead(id)
     setLeads(prev => prev.filter(l => l.id !== id))
     mostrarMensaje('ok', 'Lead eliminado')
   }
 
   async function addActivity(leadId: string, act: { tipo: string; nota: string; fecha: string }) {
     const record = { lead_id: leadId, tipo: act.tipo, nota: act.nota, fecha: act.fecha }
-    const { data } = await supabase.from('research_activities').insert([record]).select()
+    const { data } = await researchRepo.insertActivity(record)
     if (data) setActivities(prev => [data[0], ...prev])
     mostrarMensaje('ok', 'Actividad registrada')
   }
 
   async function updateStage(leadId: string, newStage: string) {
-    await supabase.from('research_leads').update({ stage: newStage }).eq('id', leadId)
+    await researchRepo.updateLeadStage(leadId, newStage)
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, stage: newStage } : l))
   }
 
   async function confirmImport(records: any[]) {
-    const { error } = await supabase.from('research_leads').insert(records)
+    const { error } = await researchRepo.insertLeads(records)
     if (error) { mostrarMensaje('error', 'Error: ' + error.message); return false }
     mostrarMensaje('ok', `${records.length} leads importados`)
     loadData()
@@ -94,12 +94,12 @@ export function useResearchData() {
   }
 
   async function duplicateCampaign(c: Campaign) {
-    const { data } = await supabase.from('research_campaigns').insert([{ nombre: `${c.nombre} (copia)`, asunto: c.asunto, contenido: c.contenido, tipo: 'Email', estado: 'Borrador', total_enviados: 0 }]).select()
+    const { data } = await researchRepo.insertCampaign({ nombre: `${c.nombre} (copia)`, asunto: c.asunto, contenido: c.contenido, tipo: 'Email', estado: 'Borrador', total_enviados: 0 })
     if (data) { setCampaigns(prev => [data[0], ...prev]); mostrarMensaje('ok', 'Campaña duplicada') }
   }
 
   async function deleteCampaign(id: string) {
-    await supabase.from('research_campaigns').delete().eq('id', id)
+    await researchRepo.deleteCampaign(id)
     setCampaigns(prev => prev.filter(c => c.id !== id))
     mostrarMensaje('ok', 'Campaña eliminada')
   }

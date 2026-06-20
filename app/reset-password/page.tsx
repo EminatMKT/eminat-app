@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/shared/db/supabase'
+import * as auth from '@/shared/db/auth'
 import { useRouter } from 'next/navigation'
 
 export default function ResetPasswordPage() {
@@ -28,7 +28,7 @@ export default function ResetPasswordPage() {
 
     setLoading(true)
 
-    const { error: err } = await supabase.auth.updateUser({ password })
+    const { error: err } = await auth.updatePassword(password)
 
     if (err) {
       setError('Update failed. The link may have expired.')

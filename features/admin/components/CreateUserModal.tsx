@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useApp, ROLES, COLORES_AVATAR, CARGOS_DIR } from '@/shared/context/AppContext'
 import { DEFAULT_COMPANY, companyOptions } from '@/shared/constants/companies'
-import { supabase } from '@/shared/db/supabase'
+import { usuariosRepo } from '@/shared/data'
 import { apiPost } from '../api'
 import { generateTempPassword } from '../password'
 import PasswordInput from './PasswordInput'
@@ -35,7 +35,7 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
       })
       if (!res.ok) { setCreateError(result.error || 'No se pudo crear el usuario.'); setGuardando(false); return }
       setCreateSuccess({ pwd: nuevoUsr.password, nombre: `${nuevoUsr.nombre} ${nuevoUsr.apellido}`, email: nuevoUsr.email, cargo, emailWarning: result.emailWarning || null })
-      const { data } = await supabase.from('usuarios').select('*').order('created_at', { ascending: false })
+      const { data } = await usuariosRepo.listAll()
       setAdminUsuarios((data || []).map(u => ({ ...u, cargo: u.cargo || CARGOS_DIR[u.email?.toLowerCase()] || '' })))
     } catch (err: any) {
       setCreateError(err.message || 'Error de red al crear el usuario.')
