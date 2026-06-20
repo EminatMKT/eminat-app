@@ -1,9 +1,31 @@
 import type { CSSProperties } from 'react'
 
-// Tokens de tema de la app. Hoy FIJOS (claro): el área de contenido siempre es
-// clara; el dark del sidebar/topbar lo maneja AppShell. El estado `dark` de
-// AppContext aún no se propaga a estos tokens — ver TODO "toggle claro/oscuro".
-export const THEME = {
+// Tokens de tema del área de contenido. El toggle (AppShell) cambia `dark` en
+// AppContext y AppProvider arma los tokens con getTheme(dark). El sidebar/topbar
+// son siempre oscuros (constantes `D` en AppShell), eso es parte del diseño.
+//
+// Nota: research (RESEARCH_THEME fijo) y accounting (Tailwind claro) todavía no
+// consumen estos tokens, así que en modo oscuro siguen claros — ver TODO de
+// reconciliación de tema.
+
+export type Theme = {
+  bg: string
+  s1: string
+  s2: string
+  s3: string
+  border: string
+  t1: string
+  t2: string
+  t3: string
+  accent: string
+  inputStyle: CSSProperties
+}
+
+const accent = '#7C6FF7'
+
+const baseInput = { width: '100%', padding: '9px 12px', borderRadius: 10, fontSize: 13, fontFamily: 'DM Sans', outline: 'none' } as const
+
+const LIGHT: Theme = {
   bg: '#F9FAFB',
   s1: '#FFFFFF',
   s2: '#FFFFFF',
@@ -12,17 +34,26 @@ export const THEME = {
   t1: '#111827',
   t2: '#6B7280',
   t3: '#9CA3AF',
-  accent: '#7C6FF7',
+  accent,
+  inputStyle: { ...baseInput, border: '1px solid #D1D5DB', background: '#FFFFFF', color: '#111827' },
 }
 
-export const inputStyle: CSSProperties = {
-  width: '100%',
-  padding: '9px 12px',
-  borderRadius: 10,
-  border: '1px solid #D1D5DB',
-  background: '#FFFFFF',
-  color: '#111827',
-  fontSize: 13,
-  fontFamily: 'DM Sans',
-  outline: 'none',
+// Paleta tomada del home/Launchpad (app/(app)/page.tsx, constante `D`) para que
+// el modo oscuro sea coherente con esa pantalla. accent se mantiene #7C6FF7 (el
+// que el resto de la app hardcodea) en vez del #4F46E5 del home.
+const DARK: Theme = {
+  bg: '#0A0A0F',
+  s1: '#13131C',
+  s2: '#13131C',
+  s3: '#191923',
+  border: 'rgba(255,255,255,0.07)',
+  t1: '#FFFFFF',
+  t2: 'rgba(255,255,255,0.65)',
+  t3: 'rgba(255,255,255,0.35)',
+  accent,
+  inputStyle: { ...baseInput, border: '1px solid rgba(255,255,255,0.12)', background: '#191923', color: '#FFFFFF' },
+}
+
+export function getTheme(dark: boolean): Theme {
+  return dark ? DARK : LIGHT
 }

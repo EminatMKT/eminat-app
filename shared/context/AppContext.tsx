@@ -9,7 +9,8 @@ import {
   type Role,
   type ModuleSlug,
 } from '@/shared/auth/permissions'
-import { THEME, inputStyle } from '@/shared/theme/tokens'
+import { getTheme } from '@/shared/theme/tokens'
+import { useTheme } from '@/shared/theme/useTheme'
 import { useAppData } from './useAppData'
 import SessionErrorScreen from './SessionErrorScreen'
 
@@ -79,6 +80,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined)
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const { sessionError, ...app } = useAppData()
+  const { dark, setDark } = useTheme()
 
   // Derived values — all permissions flow from shared/auth/permissions.
   const role: Role | null = normalizeRole(app.usuario?.rol)
@@ -95,6 +97,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider
       value={{
         ...app,
+        dark,
+        setDark,
         esSuperAdmin,
         cargo,
         canCobranzas,
@@ -102,8 +106,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         canMedical,
         role,
         modules,
-        ...THEME,
-        inputStyle,
+        ...getTheme(dark),
       }}
     >
       {children}
