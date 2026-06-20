@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useApp } from '@/shared/context/AppContext'
 import { ventas, ACCENT } from '../data'
 import { fmt } from '../format'
 import SectionCard from './SectionCard'
@@ -10,6 +11,7 @@ import Td from './Td'
 import SalesRow from './SalesRow'
 
 export default function SalesTab() {
+  const { s2 } = useApp()
   const [periodo, setPeriodo] = useState<'all' | '1Q' | '2Q'>('all')
   const filtered = ventas.filter(v => periodo === 'all' || v.periodo === periodo)
   const total = filtered.reduce((a, b) => a + b.monto, 0)
@@ -26,7 +28,7 @@ export default function SalesTab() {
         <thead><tr><Th>Month</Th><Th>Period</Th><Th>Lab</Th><Th>Study</Th><Th align="right">Amount</Th></tr></thead>
         <tbody>
           {filtered.map((v, i) => <SalesRow key={i} venta={v} />)}
-          <tr className="bg-gray-50">
+          <tr style={{ background: s2 }}>
             <Td bold>TOTAL</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td>
             <Td align="right" mono bold color={ACCENT.purple}>{fmt(total)}</Td>
           </tr>
