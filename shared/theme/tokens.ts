@@ -42,7 +42,7 @@ const LIGHT: Theme = {
 // el modo oscuro sea coherente con esa pantalla. accent se mantiene #7C6FF7 (el
 // que el resto de la app hardcodea) en vez del #4F46E5 del home.
 const DARK: Theme = {
-  bg: '#0A0A0F',
+  bg: '#101017',
   s1: '#13131C',
   s2: '#13131C',
   s3: '#191923',
