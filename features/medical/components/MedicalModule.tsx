@@ -2,10 +2,11 @@
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import AppShell from '@/shared/components/AppShell'
+import AccessDenied from '@/shared/components/AccessDenied'
 import { PageTransition } from '@/shared/motion'
 import { useMedicalStyles } from '../hooks/useMedicalStyles'
 import { MedicalProvider } from './MedicalContext'
-import MedicalTabButton from './MedicalTabButton'
+import TabButton from '@/shared/components/ui/TabButton'
 import DashboardTab from './DashboardTab'
 import PacientesTab from './PacientesTab'
 import CitasTab from './CitasTab'
@@ -24,24 +25,14 @@ const TABS = [
 ]
 
 export default function MedicalModule() {
-  const { canMedical, t1, t3, border } = useApp()
+  const { canMedical, border } = useApp()
   const { hipaaShield } = useMedicalStyles()
   const [tab, setTab] = useState('dashboard')
   const [modalPaciente, setModalPaciente] = useState(false)
   const [modalCita, setModalCita] = useState(false)
   const [modalIncidente, setModalIncidente] = useState(false)
 
-  if (!canMedical) {
-    return (
-      <AppShell>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 80, gap: 16 }}>
-          <div style={{ fontSize: 48 }}>🔒</div>
-          <div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>Access denied</div>
-          <div style={{ fontSize: 13, color: t3 }}>You don't have access to the Medical HIPAA module</div>
-        </div>
-      </AppShell>
-    )
-  }
+  if (!canMedical) return <AccessDenied message="You don't have access to the Medical HIPAA module" />
 
   return (
     <AppShell activeTab={tab} onTabChange={setTab}>
@@ -49,7 +40,7 @@ export default function MedicalModule() {
         <MedicalProvider>
           <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: `1px solid ${border}`, alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', gap: 4 }}>
-              {TABS.map(t => <MedicalTabButton key={t.id} label={t.label} icon={t.icon} active={tab === t.id} onClick={() => setTab(t.id)} />)}
+              {TABS.map(t => <TabButton key={t.id} label={t.label} icon={t.icon} active={tab === t.id} onClick={() => setTab(t.id)} />)}
             </div>
             <div style={hipaaShield}>🛡️ HIPAA Compliant</div>
           </div>

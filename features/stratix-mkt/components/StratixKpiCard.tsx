@@ -1,10 +1,11 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
-import { cardStyle } from './comp-format'
+import { cardStyle } from './social/social-format'
 
+// KPI card de Social y Competencia (label uppercase + value grande + sub).
 type Kpi = { label: string; value: string; valueColor: string; sub: React.ReactNode; subAccent?: boolean }
 
-export default function MarketKpiCard({ kpi }: { kpi: Kpi }) {
+export default function StratixKpiCard({ kpi }: { kpi: Kpi }) {
   const { s1, border, t3 } = useApp()
   return (
     <div style={{ ...cardStyle(s1, border), display: 'flex', flexDirection: 'column', gap: 4 }}>

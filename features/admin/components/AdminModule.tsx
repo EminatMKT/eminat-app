@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { DEFAULT_COMPANY } from '@/shared/constants/companies'
 import AppShell from '@/shared/components/AppShell'
+import AccessDenied from '@/shared/components/AccessDenied'
 import { PageTransition } from '@/shared/motion'
 import StatsBar from './StatsBar'
 import RoleFilterBar from './RoleFilterBar'
@@ -14,7 +15,7 @@ import DeleteUserModal from './DeleteUserModal'
 import type { AdminUser, ResetTarget } from '../types'
 
 export default function AdminModule() {
-  const { esSuperAdmin, adminUsuarios, t1 } = useApp()
+  const { esSuperAdmin, adminUsuarios } = useApp()
   const [busqueda, setBusqueda] = useState('')
   const [filtroRol, setFiltroRol] = useState('todos')
   const [modalCrear, setModalCrear] = useState(false)
@@ -22,9 +23,7 @@ export default function AdminModule() {
   const [modalReset, setModalReset] = useState<ResetTarget | null>(null)
   const [modalEliminar, setModalEliminar] = useState<string | null>(null)
 
-  if (!esSuperAdmin) {
-    return <AppShell><div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 80, gap: 16 }}><div style={{ fontSize: 48 }}>🔒</div><div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>Access denied</div></div></AppShell>
-  }
+  if (!esSuperAdmin) return <AccessDenied />
 
   const adminFiltrado = adminUsuarios.filter(u => {
     if (filtroRol !== 'todos' && u.rol !== filtroRol) return false
