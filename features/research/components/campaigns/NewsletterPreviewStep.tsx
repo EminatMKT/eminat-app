@@ -1,5 +1,5 @@
 'use client'
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 
 type Campaign = { subject: string; content: string; type: string }
 type Props = {
@@ -10,7 +10,7 @@ type Props = {
 }
 
 export default function NewsletterPreviewStep({ campaign, recipientsCount, onBack, onSend }: Props) {
-  const { s1, s2, border, t1, t2, t3, accent } = RESEARCH_THEME
+  const { s1, s2, border, t1, t2, t3, accent } = useResearchTheme()
   return (
     <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
       <div style={{ fontSize: 14, fontWeight: 700, color: t1, marginBottom: 16 }}>Preview</div>

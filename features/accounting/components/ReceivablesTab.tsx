@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useApp } from '@/shared/context/AppContext'
 import { porCobrar, ACCENT } from '../data'
 import { fmt } from '../format'
 import SectionCard from './SectionCard'
@@ -10,6 +11,7 @@ import Td from './Td'
 import ReceivableRow from './ReceivableRow'
 
 export default function ReceivablesTab() {
+  const { s2 } = useApp()
   const [tipo, setTipo] = useState<'all' | 'DATA' | 'INVOICE'>('all')
   const filtered = porCobrar.filter(p => tipo === 'all' || p.tipo === tipo)
   const totV = filtered.reduce((a, b) => a + b.vencido, 0)
@@ -28,7 +30,7 @@ export default function ReceivablesTab() {
         <thead><tr><Th>Lab</Th><Th>Study</Th><Th>Type</Th><Th>Period</Th><Th align="right">Overdue</Th><Th align="right">Not Due</Th><Th align="right">Total</Th></tr></thead>
         <tbody>
           {filtered.map((p, i) => <ReceivableRow key={i} row={p} />)}
-          <tr className="bg-gray-50">
+          <tr style={{ background: s2 }}>
             <Td bold>TOTAL</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td>
             <Td align="right" mono bold color={ACCENT.red}>{fmt(totV)}</Td>
             <Td align="right" mono bold color="#b45309">{fmt(totPV)}</Td>

@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { supabase } from '@/shared/db/supabase'
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import { escapeHtml } from '@/shared/lib/html'
 import { useResearch } from '../ResearchContext'
 import MailStepTab from './MailStepTab'
@@ -11,7 +11,7 @@ import MailRecipientsStep from './MailRecipientsStep'
 import MailPreviewStep from './MailPreviewStep'
 
 export default function MailCampaignModal() {
-  const { s1, border, t1, t3 } = RESEARCH_THEME
+  const { s1, border, t1, t3 } = useResearchTheme()
   const { mostrarMensaje } = useApp()
   const { mailModal, setMailModal, leads, setCampaigns } = useResearch()
 

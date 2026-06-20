@@ -1,5 +1,5 @@
 'use client'
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 
 type Props = {
   recipientsCount: number
@@ -8,7 +8,7 @@ type Props = {
 }
 
 export default function NewsletterResultsStep({ recipientsCount, type, onReset }: Props) {
-  const { s1, border, t3, accent } = RESEARCH_THEME
+  const { s1, border, t3, accent } = useResearchTheme()
   return (
     <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 30, textAlign: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
       <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>

@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useApp } from '@/shared/context/AppContext'
 import AppShell from '@/shared/components/AppShell'
 import { ACCENT } from '../data'
 import { totals } from '../aggregates'
@@ -24,13 +25,14 @@ const tabs: { key: TabKey; label: string; icon: string }[] = [
 
 export default function AccountingModule() {
   const [tab, setTab] = useState<TabKey>('summary')
+  const { bg, t1, t3, border } = useApp()
   return (
     <AppShell>
-      <div className="-mx-6 -my-5 min-h-full bg-gray-50 px-7 py-6">
+      <div className="-mx-6 -my-5 min-h-full px-7 py-6" style={{ background: bg }}>
         <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Accounting</h1>
-            <p className="mt-1 text-xs text-gray-500">Eminat Research · Sales, receivables & banking — March</p>
+            <h1 className="text-2xl font-bold tracking-tight" style={{ color: t1 }}>Accounting</h1>
+            <p className="mt-1 text-xs" style={{ color: t3 }}>Eminat Research · Sales, receivables & banking — March</p>
           </div>
           <div className="flex flex-wrap gap-3">
             <StatCard label="Total Sales" value={fmt(totals.totalVentas)} color={ACCENT.purple} compact />
@@ -39,7 +41,7 @@ export default function AccountingModule() {
           </div>
         </div>
 
-        <div className="mb-5 flex gap-1 overflow-x-auto border-b border-gray-200">
+        <div className="mb-5 flex gap-1 overflow-x-auto" style={{ borderBottom: `1px solid ${border}` }}>
           {tabs.map(t => (
             <TabButton key={t.key} icon={t.icon} label={t.label} active={tab === t.key} onClick={() => setTab(t.key)} />
           ))}

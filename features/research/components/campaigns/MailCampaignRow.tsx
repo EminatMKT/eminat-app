@@ -1,11 +1,11 @@
 'use client'
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import { MAIL_ESTADO_COLOR } from '../../constants'
 import { useResearch } from '../ResearchContext'
 import type { Campaign } from '../../types'
 
 export default function MailCampaignRow({ campaign: c }: { campaign: Campaign }) {
-  const { border, t1, t2, t3, accent } = RESEARCH_THEME
+  const { border, t1, t2, t3, accent } = useResearchTheme()
   const { setMailViewCampaign, openMailModal, duplicateCampaign, deleteCampaign } = useResearch()
   return (
     <tr style={{ borderBottom: `1px solid ${border}` }}>

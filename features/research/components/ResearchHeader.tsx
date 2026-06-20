@@ -1,9 +1,9 @@
 'use client'
-import { RESEARCH_THEME } from '../theme'
+import { useResearchTheme } from '../theme'
 import { useResearch } from './ResearchContext'
 
 export default function ResearchHeader({ tab }: { tab: string }) {
-  const { s2, border, t1, t2, t3, accent } = RESEARCH_THEME
+  const { s2, border, t1, t2, t3, accent } = useResearchTheme()
   const { openNewLead, setModalImport, handleExport, handlePrint } = useResearch()
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>

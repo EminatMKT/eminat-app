@@ -1,5 +1,5 @@
 'use client'
-import { RESEARCH_THEME } from '../theme'
+import { useResearchTheme } from '../theme'
 import { useResearch } from './ResearchContext'
 import StatCard from './StatCard'
 import CountryChip from './CountryChip'
@@ -8,7 +8,7 @@ import StagePieChart from './StagePieChart'
 import BarChartCard from './BarChartCard'
 
 export default function DashboardTab() {
-  const { s1, border, t1, t3 } = RESEARCH_THEME
+  const { s1, border, t1, t3 } = useResearchTheme()
   const { totalLeads, activeLeads, awarded, inNeg, stageData, phaseData, sponsorData, countrySorted, leads } = useResearch()
 
   return (

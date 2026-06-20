@@ -1,10 +1,10 @@
 'use client'
 import { useState } from 'react'
-import { RESEARCH_THEME, inputStyle } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import { useResearch } from '../ResearchContext'
 
 export default function ActivityModal() {
-  const { s1, border, t1, t2, t3, accent } = RESEARCH_THEME
+  const { s1, border, t1, t2, t3, accent, inputStyle } = useResearchTheme()
   const { modalActivity, setModalActivity, addActivity } = useResearch()
   const [newActivity, setNewActivity] = useState({ tipo: 'email', nota: '', fecha: new Date().toISOString().split('T')[0] })
   if (!modalActivity) return null

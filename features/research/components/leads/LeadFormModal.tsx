@@ -1,11 +1,11 @@
 'use client'
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import { LEAD_FIELDS } from '../../constants'
 import { useResearch } from '../ResearchContext'
 import LeadFormField from './LeadFormField'
 
 export default function LeadFormModal() {
-  const { s1, border, t1, t2, t3, accent } = RESEARCH_THEME
+  const { s1, border, t1, t2, t3, accent } = useResearchTheme()
   const { modalNewLead, newLead, setNewLead, editingLead, closeLeadForm, saveLead } = useResearch()
   if (!modalNewLead) return null
 

@@ -9,7 +9,8 @@ import {
   type Role,
   type ModuleSlug,
 } from '@/shared/auth/permissions'
-import { THEME, inputStyle } from '@/shared/theme/tokens'
+import { getTheme, type ThemeName } from '@/shared/theme/tokens'
+import { useTheme } from '@/shared/theme/useTheme'
 import { useAppData } from './useAppData'
 import SessionErrorScreen from './SessionErrorScreen'
 
@@ -41,6 +42,8 @@ interface AppContextType {
   equipo: any[]
   usuarios: any[]
   loading: boolean
+  theme: ThemeName
+  setTheme: (t: ThemeName) => void
   dark: boolean
   setDark: (v: boolean) => void
   horaActual: string
@@ -79,6 +82,10 @@ const AppContext = createContext<AppContextType | undefined>(undefined)
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const { sessionError, ...app } = useAppData()
+  const { theme, setTheme } = useTheme()
+  // Compat booleana para lo que aún lee dark/setDark (AppShell, ícono del toggle).
+  const dark = theme === 'dark'
+  const setDark = (v: boolean) => setTheme(v ? 'dark' : 'light')
 
   // Derived values — all permissions flow from shared/auth/permissions.
   const role: Role | null = normalizeRole(app.usuario?.rol)
@@ -95,6 +102,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider
       value={{
         ...app,
+        theme,
+        setTheme,
+        dark,
+        setDark,
         esSuperAdmin,
         cargo,
         canCobranzas,
@@ -102,8 +113,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         canMedical,
         role,
         modules,
-        ...THEME,
-        inputStyle,
+        ...getTheme(theme),
       }}
     >
       {children}

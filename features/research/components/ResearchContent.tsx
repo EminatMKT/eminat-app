@@ -1,5 +1,5 @@
 'use client'
-import { RESEARCH_THEME } from '../theme'
+import { useResearchTheme } from '../theme'
 import { useResearch } from './ResearchContext'
 import ResearchHeader from './ResearchHeader'
 import DashboardTab from './DashboardTab'
@@ -17,7 +17,7 @@ import MailCampaignModal from './campaigns/MailCampaignModal'
 import CampaignViewModal from './campaigns/CampaignViewModal'
 
 export default function ResearchContent({ tab }: { tab: string }) {
-  const { t3 } = RESEARCH_THEME
+  const { t3 } = useResearchTheme()
   const { loading } = useResearch()
   if (loading) return <div style={{ textAlign: 'center', padding: 60, color: t3 }}>Loading Research...</div>
 

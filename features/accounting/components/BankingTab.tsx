@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useApp } from '@/shared/context/AppContext'
 import { depositos, ACCENT } from '../data'
 import { fmt } from '../format'
 import SectionCard from './SectionCard'
@@ -10,6 +11,7 @@ import Td from './Td'
 import DepositRow from './DepositRow'
 
 export default function BankingTab() {
+  const { s2 } = useApp()
   const [banco, setBanco] = useState<'all' | 'SOUTH STATE' | 'SPACE COAST'>('all')
   const filtered = depositos.filter(d => banco === 'all' || d.banco === banco)
   const total = filtered.reduce((a, b) => a + b.monto, 0)
@@ -26,7 +28,7 @@ export default function BankingTab() {
         <thead><tr><Th>Day</Th><Th>Period</Th><Th>Payer</Th><Th>Lab</Th><Th>Study</Th><Th>Bank</Th><Th align="right">Amount</Th></tr></thead>
         <tbody>
           {filtered.map((d, i) => <DepositRow key={i} deposito={d} />)}
-          <tr className="bg-gray-50">
+          <tr style={{ background: s2 }}>
             <Td bold>TOTAL</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td>
             <Td align="right" mono bold color={ACCENT.green}>{fmt(total)}</Td>
           </tr>

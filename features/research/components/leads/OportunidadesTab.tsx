@@ -1,11 +1,11 @@
 'use client'
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import { useResearch } from '../ResearchContext'
 import StatCard from '../StatCard'
 import OpportunityRow from './OpportunityRow'
 
 export default function OportunidadesTab() {
-  const { s1, s2, border, t3 } = RESEARCH_THEME
+  const { s1, s2, border, t3 } = useResearchTheme()
   const { leads } = useResearch()
   const opps = leads.filter(l => ['Awarded', 'Negociación'].includes(l.stage || ''))
   const totalEstimado = opps.reduce((s, l) => s + (Number(l.valor_estimado) || 0), 0)

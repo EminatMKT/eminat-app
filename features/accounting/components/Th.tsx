@@ -1,3 +1,7 @@
+'use client'
+import { useApp } from '@/shared/context/AppContext'
+
 export default function Th({ children, align = 'left' }: { children: React.ReactNode; align?: 'left' | 'right' }) {
-  return <th className="border-b border-gray-200 px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider text-gray-500" style={{ textAlign: align }}>{children}</th>
+  const { border, t3 } = useApp()
+  return <th className="px-3 py-2.5 text-[10px] font-bold uppercase tracking-wider" style={{ textAlign: align, color: t3, borderBottom: `1px solid ${border}` }}>{children}</th>
 }
