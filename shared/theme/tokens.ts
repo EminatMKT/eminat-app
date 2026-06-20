@@ -28,8 +28,8 @@ const baseInput = { width: '100%', padding: '9px 12px', borderRadius: 10, fontSi
 const LIGHT: Theme = {
   bg: '#EEF1F6',      // fondo de página gris claro: las cards blancas resaltan
   s1: '#FFFFFF',      // cards / superficie principal
-  s2: '#F6F8FB',      // superficie secundaria (headers de tabla, cajas anidadas)
-  s3: '#EDF0F5',      // gris sutil (tracks, fills)
+  s2: '#FFFFFF',      // superficie principal alterna (kanban, theads): blanca para resaltar sobre bg
+  s3: '#EDF0F5',      // gris sutil (tracks, fills, badges)
   border: '#DDE3EC',  // borde algo más definido para delimitar cards
   t1: '#111827',
   t2: '#6B7280',
