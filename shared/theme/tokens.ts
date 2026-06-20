@@ -26,16 +26,16 @@ const accent = '#7C6FF7'
 const baseInput = { width: '100%', padding: '9px 12px', borderRadius: 10, fontSize: 13, fontFamily: 'DM Sans', outline: 'none' } as const
 
 const LIGHT: Theme = {
-  bg: '#F9FAFB',
-  s1: '#FFFFFF',
-  s2: '#FFFFFF',
-  s3: '#F3F4F6',
-  border: '#E5E7EB',
+  bg: '#EEF1F6',      // fondo de página gris claro: las cards blancas resaltan
+  s1: '#FFFFFF',      // cards / superficie principal
+  s2: '#F6F8FB',      // superficie secundaria (headers de tabla, cajas anidadas)
+  s3: '#EDF0F5',      // gris sutil (tracks, fills)
+  border: '#DDE3EC',  // borde algo más definido para delimitar cards
   t1: '#111827',
   t2: '#6B7280',
   t3: '#9CA3AF',
   accent,
-  inputStyle: { ...baseInput, border: '1px solid #D1D5DB', background: '#FFFFFF', color: '#111827' },
+  inputStyle: { ...baseInput, border: '1px solid #D4DAE3', background: '#FFFFFF', color: '#111827' },
 }
 
 // Paleta tomada del home/Launchpad (app/(app)/page.tsx, constante `D`) para que
