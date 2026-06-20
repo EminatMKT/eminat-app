@@ -1,6 +1,6 @@
 'use client'
 import type { Dispatch, SetStateAction } from 'react'
-import { RESEARCH_THEME, inputStyle } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import { useResearch } from '../ResearchContext'
 import ContactCheckRow from './ContactCheckRow'
 
@@ -14,7 +14,7 @@ type Props = {
 }
 
 export default function MailRecipientsStep({ recipients, setRecipients, search, setSearch, onBack, onNext }: Props) {
-  const { border, t1, t2, t3, accent } = RESEARCH_THEME
+  const { border, t1, t2, t3, accent, inputStyle } = useResearchTheme()
   const { leads } = useResearch()
   const withEmail = leads.filter(l => l.email)
   const visible = withEmail.filter(l => !search || `${l.official_title} ${l.lead_sponsor} ${l.email} ${l.nct}`.toLowerCase().includes(search.toLowerCase()))

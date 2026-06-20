@@ -1,6 +1,6 @@
 'use client'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, ResponsiveContainer } from 'recharts'
-import { RESEARCH_THEME } from '../theme'
+import { useResearchTheme } from '../theme'
 import { CHART_COLORS } from '../constants'
 
 type Datum = { name: string; value: number }
@@ -8,7 +8,7 @@ type Datum = { name: string; value: number }
 // Card con BarChart coloreado. vertical=true → barras horizontales (Top Sponsors);
 // default → barras verticales (Leads by Phase).
 export default function BarChartCard({ title, data, vertical = false, height, yWidth = 120 }: { title: string; data: Datum[]; vertical?: boolean; height?: number; yWidth?: number }) {
-  const { s1, border, t1, t3 } = RESEARCH_THEME
+  const { s1, border, t1, t3 } = useResearchTheme()
   const tooltipStyle = { background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }
   return (
     <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>

@@ -1,11 +1,11 @@
 'use client'
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import { useResearch } from '../ResearchContext'
 import StageBadge from '../StageBadge'
 import type { Lead } from '../../types'
 
 export default function LeadRow({ lead: l }: { lead: Lead }) {
-  const { border, t1, t2, t3, accent } = RESEARCH_THEME
+  const { border, t1, t2, t3, accent } = useResearchTheme()
   const { setModalLead, openEditLead, setModalActivity } = useResearch()
   return (
     <tr style={{ borderBottom: `1px solid ${border}` }}>

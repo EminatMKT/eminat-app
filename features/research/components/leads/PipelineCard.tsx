@@ -1,5 +1,5 @@
 'use client'
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import type { Lead } from '../../types'
 
 type Props = {
@@ -11,7 +11,7 @@ type Props = {
 }
 
 export default function PipelineCard({ lead: l, dragging, onDragStart, onDragEnd, onClick }: Props) {
-  const { s1, border, t1, t3, accent } = RESEARCH_THEME
+  const { s1, border, t1, t3, accent } = useResearchTheme()
   return (
     <div draggable onDragStart={onDragStart} onDragEnd={onDragEnd} onClick={onClick}
       style={{ background: s1, borderRadius: 10, padding: '10px 11px', border: `1px solid ${dragging ? accent : border}`, cursor: 'grab', opacity: dragging ? 0.4 : 1, transition: 'all .15s' }}>

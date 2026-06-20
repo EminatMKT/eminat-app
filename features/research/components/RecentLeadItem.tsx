@@ -1,9 +1,9 @@
-import { RESEARCH_THEME } from '../theme'
+import { useResearchTheme } from '../theme'
 import StageBadge from './StageBadge'
 import type { Lead } from '../types'
 
 export default function RecentLeadItem({ lead: l }: { lead: Lead }) {
-  const { border, t1, t3, accent } = RESEARCH_THEME
+  const { border, t1, t3, accent } = useResearchTheme()
   return (
     <div style={{ padding: '8px 16px', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
       <span style={{ fontSize: 10, color: accent, fontFamily: 'DM Mono', width: 80, flexShrink: 0 }}>{l.nct || '—'}</span>

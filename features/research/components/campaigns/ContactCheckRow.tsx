@@ -1,4 +1,4 @@
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 
 type Props = {
   checked: boolean
@@ -10,7 +10,7 @@ type Props = {
 }
 
 export default function ContactCheckRow({ checked, onToggle, primary, secondary, right, highlight }: Props) {
-  const { border, t1, t3, accent } = RESEARCH_THEME
+  const { border, t1, t3, accent } = useResearchTheme()
   return (
     <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderBottom: `1px solid ${border}`, cursor: 'pointer', background: highlight && checked ? `${accent}06` : 'transparent' }}>
       <input type="checkbox" checked={checked} onChange={onToggle} style={{ accentColor: accent }} />

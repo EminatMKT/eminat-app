@@ -1,11 +1,11 @@
 'use client'
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import { useResearch } from '../ResearchContext'
 import StatCard from '../StatCard'
 import MailCampaignRow from './MailCampaignRow'
 
 export default function MailingTab() {
-  const { s1, s2, border, t1, t3, accent } = RESEARCH_THEME
+  const { s1, s2, border, t1, t3, accent } = useResearchTheme()
   const { campaigns, openMailModal } = useResearch()
   const emailCampaigns = campaigns.filter(c => c.tipo === 'Email' || !c.tipo)
   const totalEnviados = emailCampaigns.filter(c => c.estado === 'Enviado').reduce((s, c) => s + (c.total_enviados || 0), 0)

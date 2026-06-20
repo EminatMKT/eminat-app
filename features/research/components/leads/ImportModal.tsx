@@ -1,11 +1,11 @@
 'use client'
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import { useResearch } from '../ResearchContext'
 
 export default function ImportModal() {
-  const { s1, s2, border, t1, t2, t3 } = RESEARCH_THEME
+  const { s1, s2, border, t1, t2, t3 } = useResearchTheme()
   const { mostrarMensaje } = useApp()
   const { modalImport, setModalImport, confirmImport } = useResearch()
   const [importPreview, setImportPreview] = useState<any[] | null>(null)

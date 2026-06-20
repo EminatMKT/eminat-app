@@ -2,13 +2,13 @@
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { supabase } from '@/shared/db/supabase'
-import { RESEARCH_THEME, inputStyle } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import { useResearch } from '../ResearchContext'
 import ContactCheckRow from './ContactCheckRow'
 import SmsHistoryItem from './SmsHistoryItem'
 
 export default function SmsTab() {
-  const { s1, border, t1, t3 } = RESEARCH_THEME
+  const { s1, border, t1, t3, inputStyle } = useResearchTheme()
   const { mostrarMensaje } = useApp()
   const { leads, campaigns, setCampaigns } = useResearch()
   const [smsSelected, setSmsSelected] = useState<string[]>([])

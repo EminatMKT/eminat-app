@@ -1,8 +1,8 @@
-import { RESEARCH_THEME } from '../theme'
+import { useResearchTheme } from '../theme'
 import { COUNTRY_FLAGS } from '../constants'
 
 export default function CountryChip({ country, count }: { country: string; count: number }) {
-  const { s2, border, t1, accent } = RESEARCH_THEME
+  const { s2, border, t1, accent } = useResearchTheme()
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 10, background: s2, border: `1px solid ${border}` }}>
       <span style={{ fontSize: 16 }}>{COUNTRY_FLAGS[country] || '🌍'}</span>

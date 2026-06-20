@@ -1,11 +1,11 @@
 'use client'
-import { RESEARCH_THEME, selectStyle } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import { PIPELINE_COLS } from '../../constants'
 import { useResearch } from '../ResearchContext'
 import LeadRow from './LeadRow'
 
 export default function LeadsTab() {
-  const { s1, s2, border, t3 } = RESEARCH_THEME
+  const { s1, s2, border, t3, selectStyle } = useResearchTheme()
   const { filters, setFilters, filteredLeads, uniqueVals, countryData } = useResearch()
   return (
     <div>

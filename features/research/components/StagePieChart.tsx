@@ -1,11 +1,11 @@
 'use client'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
-import { RESEARCH_THEME } from '../theme'
+import { useResearchTheme } from '../theme'
 import { PIPELINE_COLORS, CHART_COLORS } from '../constants'
 import StageLegendItem from './StageLegendItem'
 
 export default function StagePieChart({ data }: { data: { name: string; value: number }[] }) {
-  const { s1, border, accent } = RESEARCH_THEME
+  const { s1, border, accent } = useResearchTheme()
   return (
     <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
       <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', marginBottom: 12 }}>Pipeline by Stage</div>

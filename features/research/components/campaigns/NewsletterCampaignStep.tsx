@@ -1,5 +1,5 @@
 'use client'
-import { RESEARCH_THEME, inputStyle } from '../../theme'
+import { useResearchTheme } from '../../theme'
 
 type Campaign = { subject: string; content: string; type: string }
 type Props = {
@@ -10,7 +10,7 @@ type Props = {
 }
 
 export default function NewsletterCampaignStep({ campaign, setCampaign, onBack, onNext }: Props) {
-  const { s1, border, t2, t3, accent } = RESEARCH_THEME
+  const { s1, border, t2, t3, accent, inputStyle } = useResearchTheme()
   return (
     <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
       <div style={{ marginBottom: 14 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Subject</label><input value={campaign.subject} onChange={e => setCampaign(p => ({ ...p, subject: e.target.value }))} style={inputStyle} placeholder="Campaign subject" /></div>

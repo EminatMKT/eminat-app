@@ -1,5 +1,5 @@
 'use client'
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import { PIPELINE_COLORS } from '../../constants'
 import { useResearch } from '../ResearchContext'
 import PipelineCard from './PipelineCard'
@@ -15,7 +15,7 @@ type Props = {
 }
 
 export default function PipelineColumn({ col, leads, dragId, setDragId, dragOver, setDragOver }: Props) {
-  const { s1, s2, border, t1, t3 } = RESEARCH_THEME
+  const { s1, s2, border, t1, t3 } = useResearchTheme()
   const { updateStage, setModalLead } = useResearch()
   const colLeads = leads.filter(l => l.stage === col)
   return (

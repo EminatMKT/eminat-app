@@ -1,5 +1,5 @@
 'use client'
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import EmailPreview from './EmailPreview'
 
 type Props = {
@@ -12,7 +12,7 @@ type Props = {
 }
 
 export default function MailPreviewStep({ campaign, recipientsCount, sending, onBack, onSaveDraft, onSend }: Props) {
-  const { s2, border, t1, t2, t3, accent } = RESEARCH_THEME
+  const { s2, border, t1, t2, t3, accent } = useResearchTheme()
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
