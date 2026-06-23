@@ -13,7 +13,6 @@ tsconfig.tsbuildinfo
 .env.*.local
 
 # tooling local
-.todo/
 .understand-anything/
 .tmp/
 
