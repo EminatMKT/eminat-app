@@ -207,6 +207,10 @@ role_modules(role_key FK→roles.key ON UPDATE CASCADE ON DELETE CASCADE,
 - `RoleChip`/`RoleFilterBar`: chips desde `roles` con `label`.
 - `create-user` route: default `DEFAULT_ROLE`; el label del email se trae de la tabla
   `roles` (reemplaza `ROLE_LABELS`).
+- **`CLAUDE.md` (docs del proyecto):** actualizar la sección **"Roles de usuario"** (hoy lista
+  `superadmin`/`colaborador`/`pasante`, que esta feature elimina) y la referencia a
+  `lib/permissions.ts` (hoy `shared/auth/permissions.ts`, ya no matriz hardcodeada). Es parte
+  del PR — documentación que miente es deuda.
 
 ### 6. UI de gestión (nuevo, dentro de /admin, solo admin)
 

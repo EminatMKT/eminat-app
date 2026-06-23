@@ -60,6 +60,8 @@
 
 - [ ] **[Tema] Loading/splash impone modo oscuro** — La pantalla de carga del `AppShell` (`app.loading` → `background: '#0A0A0F'`) y `SessionErrorScreen` hardcodean fondo oscuro, así que en modo claro se ve un flash oscuro antes de montar la app. Quedó así a propósito en el PR del tema (#17). Decidir si debe seguir el toggle (usar tokens) o dejarse oscuro como splash intencional. _(creado por: EminatMKT · 2026-06-19)_
 
+- [ ] **[Tooling] Hook git: recordar actualizar README/CLAUDE** — Aviso no-bloqueante en `.githooks/pre-push`: si el push toca paths estructurales (permissions, migrations, rutas, shared/**, package.json) y no incluye `README.md`/`CLAUDE.md`, imprime un recordatorio (siempre `exit 0`). Spec: `docs/superpowers/specs/2026-06-23-doc-reminder-hook-design.md`. ~15 líneas POSIX sh, reusa el pre-push existente. _(creado por: EminatMKT · 2026-06-23)_
+
 - [ ] **[DRY] ComingSoon compartido** — `app/(app)/finanzas/page.tsx` y `app/(app)/th-hr/page.tsx` son placeholders "coming soon" casi idénticos → extraer un `ComingSoon`/`ModulePlaceholder` compartido. Quick win. _(creado por: EminatMKT · 2026-06-19)_
 
 - [ ] **[DRY] Revisar form de usuario admin** — `CreateUserModal` y `EditUserModal` (0.93 similitud) podrían compartir un form de usuario común; revisar diferencias (password solo en create) antes de unificar. _(creado por: EminatMKT · 2026-06-19)_
