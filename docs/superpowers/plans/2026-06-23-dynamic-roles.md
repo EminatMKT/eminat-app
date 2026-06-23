@@ -58,7 +58,7 @@
 - Create: `supabase/migrations/<timestamp>_dynamic_roles.sql`
 
 **Interfaces:**
-- Produces (DB): tablas `roles(key,label,is_system,created_at,updated_at)`, `role_modules(role_key,module_slug)`; funciones `has_module(text)`, `tiene_acceso_cobranzas()`, `tiene_acceso_research()`; trigger `prevent_rol_self_change`; FK `usuarios_rol_fkey`; columna `usuarios.rol` default `'sin_asignar'`.
+- Produces (DB): tablas `roles(key,label,is_system,created_at,updated_at)`, `role_modules(role_key,module_slug)`; funciones `is_admin()`, `has_module(text)` (las wrapper `tiene_acceso_cobranzas/research` se **eliminan**); trigger `prevent_rol_self_change`; FK `usuarios_rol_fkey`; columna `usuarios.rol` default `'sin_asignar'`.
 
 - [ ] **Step 1: Crear el archivo de migración (CLI genera el timestamp)**
 
@@ -124,37 +124,49 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- 5. has_module(slug): ¿el rol del usuario actual tiene el módulo? (admin pasa siempre)
+-- 5. Helpers: is_admin() (predicado de admin, reusado) + has_module(slug) que lo compone.
+CREATE OR REPLACE FUNCTION "public"."is_admin"() RETURNS boolean
+  LANGUAGE sql STABLE SECURITY DEFINER AS $$
+    SELECT EXISTS (SELECT 1 FROM public.usuarios u WHERE u.auth_id = auth.uid() AND u.rol = 'admin');
+  $$;
 CREATE OR REPLACE FUNCTION "public"."has_module"(p_slug text) RETURNS boolean
   LANGUAGE sql STABLE SECURITY DEFINER AS $$
-    SELECT EXISTS (
+    SELECT public.is_admin() OR EXISTS (
       SELECT 1 FROM public.usuarios u
-      WHERE u.auth_id = auth.uid()
-        AND (u.rol = 'admin'
-             OR EXISTS (SELECT 1 FROM public.role_modules rm
-                        WHERE rm.role_key = u.rol AND rm.module_slug = p_slug))
+      JOIN public.role_modules rm ON rm.role_key = u.rol
+      WHERE u.auth_id = auth.uid() AND rm.module_slug = p_slug
     );
   $$;
 
--- Reescribir las funciones de acceso para que usen role_modules
-CREATE OR REPLACE FUNCTION "public"."tiene_acceso_cobranzas"() RETURNS boolean
-  LANGUAGE sql STABLE SECURITY DEFINER AS $$ SELECT public.has_module('cobranzas'); $$;
-CREATE OR REPLACE FUNCTION "public"."tiene_acceso_research"() RETURNS boolean
-  LANGUAGE sql STABLE SECURITY DEFINER AS $$ SELECT public.has_module('research'); $$;
+-- 6. RLS de data por módulo: las políticas llaman has_module DIRECTO (sin wrappers tiene_acceso_*)
+DROP POLICY IF EXISTS "Acceso cobranzas cuentas" ON "public"."cobranzas_cuentas";
+CREATE POLICY "Acceso cobranzas cuentas" ON "public"."cobranzas_cuentas" USING (public.has_module('cobranzas'));
+DROP POLICY IF EXISTS "Acceso cobranzas depositos" ON "public"."cobranzas_depositos";
+CREATE POLICY "Acceso cobranzas depositos" ON "public"."cobranzas_depositos" USING (public.has_module('cobranzas'));
+DROP POLICY IF EXISTS "Acceso cobranzas ventas" ON "public"."cobranzas_ventas";
+CREATE POLICY "Acceso cobranzas ventas" ON "public"."cobranzas_ventas" USING (public.has_module('cobranzas'));
+DROP POLICY IF EXISTS "Acceso research activities" ON "public"."research_activities";
+CREATE POLICY "Acceso research activities" ON "public"."research_activities" USING (public.has_module('research'));
+DROP POLICY IF EXISTS "Acceso research campaigns" ON "public"."research_campaigns";
+CREATE POLICY "Acceso research campaigns" ON "public"."research_campaigns" USING (public.has_module('research'));
+DROP POLICY IF EXISTS "Acceso research leads" ON "public"."research_leads";
+CREATE POLICY "Acceso research leads" ON "public"."research_leads" USING (public.has_module('research'));
+DROP POLICY IF EXISTS "Acceso research recipients" ON "public"."research_campaign_recipients";
+CREATE POLICY "Acceso research recipients" ON "public"."research_campaign_recipients" USING (public.has_module('research'));
 
--- 6. Reparar RLS: superadmin_all* → admin (override admin)
+-- Ya nadie referencia las funciones wrapper → borrarlas (verificar antes que no haya .rpc() en el código app)
+DROP FUNCTION IF EXISTS "public"."tiene_acceso_cobranzas"();
+DROP FUNCTION IF EXISTS "public"."tiene_acceso_research"();
+
+-- 7. superadmin_all* → is_admin() (override admin; 1 función, no 4 copias inline)
 DROP POLICY IF EXISTS "superadmin_all" ON "public"."actividades";
-CREATE POLICY "superadmin_all" ON "public"."actividades" USING (EXISTS (
-  SELECT 1 FROM public.usuarios WHERE usuarios.auth_id=auth.uid() AND usuarios.rol='admin'));
+CREATE POLICY "superadmin_all" ON "public"."actividades" USING (public.is_admin());
 DROP POLICY IF EXISTS "superadmin_all" ON "public"."solicitudes";
-CREATE POLICY "superadmin_all" ON "public"."solicitudes" USING (EXISTS (
-  SELECT 1 FROM public.usuarios WHERE usuarios.auth_id=auth.uid() AND usuarios.rol='admin'));
+CREATE POLICY "superadmin_all" ON "public"."solicitudes" USING (public.is_admin());
 DROP POLICY IF EXISTS "superadmin_all_marcaciones" ON "public"."marcaciones";
-CREATE POLICY "superadmin_all_marcaciones" ON "public"."marcaciones" USING (EXISTS (
-  SELECT 1 FROM public.usuarios WHERE usuarios.auth_id=auth.uid() AND usuarios.rol='admin'));
+CREATE POLICY "superadmin_all_marcaciones" ON "public"."marcaciones" USING (public.is_admin());
 DROP POLICY IF EXISTS "superadmin_all_users" ON "public"."usuarios";
-CREATE POLICY "superadmin_all_users" ON "public"."usuarios" USING (EXISTS (
-  SELECT 1 FROM public.usuarios u1 WHERE u1.auth_id=auth.uid() AND u1.rol='admin'));
+CREATE POLICY "superadmin_all_users" ON "public"."usuarios" USING (public.is_admin());
 
 -- colaborador_read (actividades) → por módulo stratix-mkt
 DROP POLICY IF EXISTS "colaborador_read" ON "public"."actividades";

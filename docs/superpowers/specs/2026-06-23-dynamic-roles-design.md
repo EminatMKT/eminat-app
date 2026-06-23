@@ -160,20 +160,21 @@ role_modules(role_key FK→roles.key ON UPDATE CASCADE ON DELETE CASCADE,
   (preservan acceso); el baseline `sin_asignar` solo afecta el **default de altas nuevas**.
 - **Swap CHECK→FK:** cambiar default de `rol` a `sin_asignar`, `DROP CONSTRAINT
   usuarios_rol_check`, agregar `usuarios_rol_fkey` (guard idempotente con `pg_constraint`).
-- **Reparar/reconciliar la RLS role-gated** (ver § Auditoría RLS). Dos tipos de arreglo:
-  - **Admin-override** (acceso total del admin, no por módulo): políticas `superadmin_all`
-    (actividades, solicitudes), `superadmin_all_marcaciones`, `superadmin_all_users` →
-    `'superadmin'` → `'admin'`. Quedan como override del admin.
-  - **Acceso a data por módulo** (reconciliar con `role_modules`): las tablas de negocio se
-    gateaban por rol fijo, lo que **divergiría** del matrix dinámico (otorgar un módulo en la
-    UI no daría el dato). Se introduce un helper SQL **`has_module(p_slug text)`** (STABLE,
-    SECURITY DEFINER) = `EXISTS(usuarios u JOIN role_modules rm ON rm.role_key=u.rol WHERE
-    u.auth_id=auth.uid() AND rm.module_slug=p_slug) OR u.rol='admin'`, y las funciones/políticas
-    pasan a usarlo:
-    - `tiene_acceso_cobranzas()` → `has_module('cobranzas')` (antes `rol='admin'`).
-    - `tiene_acceso_research()` → `has_module('research')` (antes `IN('admin','superadmin','coordinador')`).
-    - `colaborador_read` (actividades) → `has_module('stratix-mkt')` (antes `rol IN` legacy).
-    Así, asignar el módulo a un rol **sí** otorga acceso al dato — la feature funciona end-to-end.
+- **Reparar/reconciliar la RLS role-gated** (ver § Auditoría RLS). Dos helpers SQL (STABLE,
+  SECURITY DEFINER), sin wrappers redundantes por módulo:
+  - **`is_admin()`** = `EXISTS(usuarios u WHERE u.auth_id=auth.uid() AND u.rol='admin')`.
+  - **`has_module(p_slug text)`** = `is_admin() OR EXISTS(usuarios u JOIN role_modules rm ON
+    rm.role_key=u.rol WHERE u.auth_id=auth.uid() AND rm.module_slug=p_slug)` (compone `is_admin`).
+  - **Admin-override** (acceso total del admin): las 4 políticas `superadmin_all`/
+    `superadmin_all_marcaciones`/`superadmin_all_users` pasan a `USING (is_admin())` (1 función,
+    no 4 copias inline del mismo predicado).
+  - **Acceso a data por módulo:** las tablas de negocio se gateaban por rol fijo, lo que
+    **divergiría** del matrix dinámico (otorgar un módulo no daría el dato). Las **7 políticas**
+    `Acceso cobranzas *` / `Acceso research *` pasan a llamar `has_module('cobranzas')` /
+    `has_module('research')` **directo**, y `colaborador_read` (actividades) → `has_module('stratix-mkt')`.
+    Las funciones wrapper **`tiene_acceso_cobranzas/research` se ELIMINAN** (eran wrappers de un
+    solo slug sobre `has_module`, mismo anti-patrón que el viejo `canAccess`). Así, asignar el
+    módulo **sí** otorga el dato — end-to-end.
 - **RLS de tablas nuevas:** `SELECT` para `authenticated` (la app carga la matriz con el
   cliente browser); escritura solo `service_role` (API de admin).
 - **Trigger `prevent_rol_self_change`** (BEFORE UPDATE en `usuarios`): rechaza cambiar `rol`
@@ -334,7 +335,8 @@ no son filas). La API que escribe asignaciones valida cada `module_slug` contra 
 → imposible asignar un módulo fantasma.
 
 - **Agregar un módulo** (p.ej. `finanzas`): (1) en código sumar el slug a `ModuleSlug` +
-  `ALL_MODULES` + `MODULE_META` + `MODULE_PATH_PREFIX` y crear `app/(app)/<slug>/page.tsx`;
+  `ALL_MODULES` + `MODULE_META` (el prefijo de ruta lo deriva `moduleForPath`) y crear
+  `app/(app)/<slug>/page.tsx`;
   (2) el gestor de roles lo muestra **automáticamente** como checkbox; (3) ningún rol lo ve
   hasta que el admin lo marque — salvo `admin`, que lo ve el día 1 por el short-circuit.
 - **Quitar un módulo del código**: `ALL_MODULES` se achica; quedan filas huérfanas en
@@ -351,18 +353,20 @@ Inventario de **todas** las políticas RLS que dependen del rol, y qué se hace 
 
 | Tabla(s) | Política / función | Hoy | Acción |
 |---|---|---|---|
-| `cobranzas_cuentas/depositos/ventas` | `tiene_acceso_cobranzas()` | `rol='admin'` | → `has_module('cobranzas')` |
-| `research_activities/campaigns/leads/recipients` | `tiene_acceso_research()` | `rol IN('admin','superadmin','coordinador')` | → `has_module('research')` |
+| `cobranzas_cuentas/depositos/ventas` | `Acceso cobranzas *` (vía `tiene_acceso_cobranzas()`) | `rol='admin'` | política → `has_module('cobranzas')` directo; **borrar** `tiene_acceso_cobranzas()` |
+| `research_activities/campaigns/leads/recipients` | `Acceso research *` (vía `tiene_acceso_research()`) | `rol IN('admin','superadmin','coordinador')` | política → `has_module('research')` directo; **borrar** `tiene_acceso_research()` |
 | `actividades` | `colaborador_read` | `rol IN('colaborador','coordinador','pasante')` | → `has_module('stratix-mkt')` |
-| `actividades`, `solicitudes` | `superadmin_all` | `rol='superadmin'` | → `rol='admin'` (override admin) |
-| `marcaciones` | `superadmin_all_marcaciones` | `rol IN('superadmin','coordinador')` | → `rol='admin'` (override admin) |
-| `usuarios` | `superadmin_all_users` | `rol='superadmin'` | → `rol='admin'` (override admin) |
+| `actividades`, `solicitudes` | `superadmin_all` | `rol='superadmin'` (inline) | → `is_admin()` (override admin) |
+| `marcaciones` | `superadmin_all_marcaciones` | `rol IN('superadmin','coordinador')` (inline) | → `is_admin()` (override admin) |
+| `usuarios` | `superadmin_all_users` | `rol='superadmin'` (inline) | → `is_admin()` (override admin) |
 | `usuarios` | `usuario_own_profile`, `Lectura autenticada/pública` | own / SELECT | sin cambio (no role-gated) + trigger `prevent_rol_self_change` |
 | `marcaciones` | `usuario_own_marcaciones` | own (`auth_id`) | sin cambio (no role-gated) |
 
-Dos patrones: **override de admin** (queda `rol='admin'`) y **acceso por módulo** (pasa a
-`has_module(slug)`). Las `own_*` y de lectura no dependen del rol y no se tocan (salvo el
-trigger de `usuarios`). No quedan políticas role-gated sin reconciliar.
+Dos patrones, **dos helpers, cero wrappers por módulo**: **override de admin** (`is_admin()`, una
+función para las 4 políticas) y **acceso por módulo** (`has_module(slug)` llamado directo por las
+políticas). Las funciones `tiene_acceso_cobranzas/research` se **eliminan** (eran el mismo
+anti-patrón que `canAccess`: un wrapper por slug). Las `own_*`/lectura no dependen del rol y no se
+tocan (salvo el trigger de `usuarios`). No quedan políticas role-gated sin reconciliar.
 
 ## Manejo de errores
 
