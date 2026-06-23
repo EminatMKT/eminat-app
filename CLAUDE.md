@@ -136,6 +136,10 @@ app/
 - Animaciones: siempre usar los componentes de `lib/motion.tsx`, no Framer Motion directo
 - Permisos: verificar con `canAccess(role, module)` de `lib/permissions.ts`
 - Supabase en cliente: importar el singleton de `lib/supabase.ts`
+- Nombres de columnas FK: `<entidad>_id` cuando la FK apunta a una **clave surrogate** (uuid),
+  ej. `departamento_id`. **Nombre natural** (sin `_id`) cuando apunta a una **clave natural
+  legible**, ej. `usuarios.rol` → `roles.key` (el valor ES el slug del rol, no un id oculto;
+  `rol_id` sería engañoso). El sufijo `_id` implica surrogate; no usarlo para claves naturales.
 
 ## Grafo de conocimiento
 
