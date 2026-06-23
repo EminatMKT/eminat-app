@@ -41,6 +41,21 @@ dejó anotado como fuera de alcance.
     botón "crear módulo" solo registraría un nombre sin pantalla detrás → link roto. Agregar
     un módulo seguirá siendo programar la ruta, como hoy.
 
+### Terminología: `admin` = superadmin (un solo tier)
+
+`admin` y "superadmin" son **lo mismo** en este sistema: un único rol de acceso total.
+"Superadmin" era el valor legacy (el CHECK viejo tenía `admin` **y** `superadmin` como valores
+distintos); la migración colapsa `superadmin → admin`, así que **post-migración solo existe
+`admin`**. Para evitar la ambigüedad "¿admin o superadmin?", se **unifica el vocabulario en
+`admin`**: la constante de código pasa a `ADMIN_ROLE='admin'` y el derivado a `esAdmin`
+(renombrando los actuales `SUPERADMIN_ROLE`/`esSuperAdmin` en `AppContext`, `loadAppData` y
+`AdminModule`, archivos que esta feature igual modifica). No queda la palabra "superadmin" en
+código ni en UI.
+
+No se crean **dos niveles** de admin (p.ej. uno que gestione usuarios y otro que gestione
+roles): no es expresable con permisos a nivel módulo (ambas cosas viven en el módulo `admin`).
+Un segundo tier real requeriría permisos finos intra-módulo (ver *Fuera de alcance*).
+
 ### Modelo de rol
 
 Una fila de `roles` tiene:
@@ -56,7 +71,7 @@ Una fila de `roles` tiene:
 - **Renombrar es trivial y seguro** porque se cambia el `label`, no la `key`. Cambiar la
   `key` rompería las referencias en cada usuario → la `key` queda fija. Esto vale **también
   para `admin`**: el superadmin puede renombrar su label (p.ej. "Administrador" → "Admin");
-  la `key` `'admin'` (de la que depende el código vía `SUPERADMIN_ROLE`) no se toca.
+  la `key` `'admin'` (de la que depende el código vía `ADMIN_ROLE`) no se toca.
 - **Borrar definitivo** solo si **ningún usuario** tiene ese rol. Lo blinda la DB: la FK
   `usuarios.rol → roles.key` con `ON DELETE RESTRICT` rechaza borrar un rol en uso. Para
   retirar un rol en uso → `activo=false` (soft delete).
@@ -131,10 +146,10 @@ role_modules(role_key FK→roles.key ON UPDATE CASCADE ON DELETE CASCADE,
 
 - `Role = string` (cualquier key dinámica es válida).
 - Nuevos: `RoleModuleMap = Record<string, ModuleSlug[]>`, `RoleRow`, constantes
-  `SUPERADMIN_ROLE='admin'` y `DEFAULT_ROLE='stratix360'`.
+  `ADMIN_ROLE='admin'` y `DEFAULT_ROLE='stratix360'`.
 - Helpers puros sobre el mapa cargado: `getModulesForRole(map, role)`,
   `canAccess(map, role, slug)`.
-  - **Short-circuit de admin:** `canAccess` devuelve `true` si `role===SUPERADMIN_ROLE`,
+  - **Short-circuit de admin:** `canAccess` devuelve `true` si `role===ADMIN_ROLE`,
     sin mirar el mapa. Así el superadmin ve **todos** los módulos, incluidos los nuevos,
     sin mantenimiento. (`getModulesForRole` para admin → `ALL_MODULES`.)
 - `normalizeRole`: mantener como bridge legacy, pero **pasar tal cual** cualquier key no
@@ -151,7 +166,7 @@ role_modules(role_key FK→roles.key ON UPDATE CASCADE ON DELETE CASCADE,
 - `useAppData`: estado `roles: RoleRow[]` + `roleModuleMap: RoleModuleMap` + setters.
 - `loadAppData`: tras el perfil, cargar `roles` + `role_modules` y construir el mapa.
   Si falla, mapa vacío → los gates niegan acceso (seguro).
-- `AppContext`: deriva `modules`, `esSuperAdmin = role===SUPERADMIN_ROLE`, `cargo` (label
+- `AppContext`: deriva `modules`, `esAdmin = role===ADMIN_ROLE`, `cargo` (label
   desde `roles`), `canCobranzas/Research/Medical` desde el mapa. Expone `roles` +
   `roleModuleMap`. Se quita el re-export estático `ROLES`.
 
@@ -206,7 +221,7 @@ no son filas). La API que escribe asignaciones valida cada `module_slug` contra 
 - Carga de roles falla → mapa vacío, gates niegan (fail-safe), la app no crashea.
 - API de roles valida slugs contra el catálogo y rechaza tocar `is_system`.
 - Borrado de rol en uso → lo rechaza la FK (`ON DELETE RESTRICT`); la API devuelve error claro.
-- **Invariante anti-lockout (admin nunca se auto-bloquea):** `esSuperAdmin` se deriva de
+- **Invariante anti-lockout (admin nunca se auto-bloquea):** `esAdmin` se deriva de
   `normalizeRole(usuario.rol)` (string del perfil, **no** del mapa) y `canAccess` hace
   short-circuit para admin. Por eso, **aunque la carga de `roles`/`role_modules` falle** (mapa
   vacío), el superadmin **sigue viendo todo** y puede entrar a `RolesManager` a arreglar. El
@@ -280,4 +295,6 @@ solo la matriz de roles. Lo demás queda como tickets propios (brainstorm→spec
   `mesATrimestre` y los `Q1..Q4` de `TRIMESTRES` (en `shared/constants/domain.ts`) son
   función pura del índice de mes (`Math.floor(i/3)`); se pueden calcular en vez de hardcodear.
   Cleanup chico, su propio ticket (no toca esta feature).
-- **Permisos finos intra-módulo** (read/write por sub-sección) — no pedido.
+- **Permisos finos intra-módulo** (read/write por sub-sección) — no pedido. Acá viviría
+  también un **segundo tier de admin** (p.ej. un "gestor de usuarios" que no toca roles): hoy
+  imposible porque gestionar usuarios y roles comparten el módulo `admin`.
