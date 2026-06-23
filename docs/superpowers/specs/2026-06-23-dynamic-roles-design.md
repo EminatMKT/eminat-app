@@ -1,4 +1,4 @@
-# Roles dinámicos (control de acceso configurable por el superadmin) — Diseño
+# Roles dinámicos (control de acceso configurable por el admin) — Diseño
 
 **Fecha:** 2026-06-23
 **Estado:** En diseño — pendiente de aprobación para pasar a plan de implementación
@@ -12,7 +12,7 @@ Hoy los roles y su acceso a módulos están **hardcodeados en código** en
 una matriz `PERMISSIONS` (rol→módulos) y `ROLE_LABELS`. Para crear un tipo de rol nuevo
 o cambiar qué módulos ve un rol hay que editar código y desplegar.
 
-El superadmin (Freddy) necesita poder **crear tipos de rol y asignarles módulos desde
+El admin (Freddy) necesita poder **crear tipos de rol y asignarles módulos desde
 /admin**, sin pasar por un desarrollador. Según el rol, el usuario ve un set limitado de
 opciones tanto en el menú (sidebar/launchpad) como en el gate de `AccessDenied` si conoce
 la ruta de un módulo al que no tiene acceso.
@@ -24,7 +24,7 @@ dejó anotado como fuera de alcance.
 
 ## Objetivos
 
-- El superadmin **crea/edita tipos de rol** desde /admin y marca qué módulos ve cada uno.
+- El admin **crea/edita tipos de rol** desde /admin y marca qué módulos ve cada uno.
 - Menú (sidebar + launchpad) y `AccessDenied` reflejan los permisos desde la DB.
 - **Reutilizar** el patrón existente de chips de rol (`RoleChip`/`RoleFilterBar`) y conectar
   los dropdowns de rol (Create/Edit user) a la lista dinámica en vez del array estático.
@@ -34,7 +34,7 @@ dejó anotado como fuera de alcance.
 
 ### Lo que se vuelve dato vs. lo que sigue en código
 
-- **Roles → datos** (tabla `roles` + `role_modules`). El superadmin los gestiona.
+- **Roles → datos** (tabla `roles` + `role_modules`). El admin los gestiona.
 - **Módulos → siguen en código.** Cada módulo es una ruta real (`app/(app)/<slug>`). El
   catálogo (`ModuleSlug`, `ALL_MODULES`, `MODULE_META`) se queda en `permissions.ts`.
   - *Por qué no "crear módulos" desde /admin:* un módulo necesita código (la pantalla). Un
@@ -63,29 +63,29 @@ Una fila de `roles` tiene:
 | Campo | Rol | Editable |
 |---|---|---|
 | `key` | ID interno (slug), p.ej. `stratix360`. **Autogenerada del `label`** (`slugify`+dedupe) al crear. Va en `usuarios.rol` y la referencia código/RLS. | **Fija** (autogenerada, no se edita) |
-| `label` | Nombre visible y **único**, p.ej. "Stratix 360". Lo único que el superadmin escribe. | Sí |
+| `label` | Nombre visible y **único**, p.ej. "Stratix 360". Lo único que el admin escribe. | Sí |
 | `activo` | Soft delete: oculta el rol del menú de asignación sin borrarlo. | Sí |
 | `is_system` | Protege roles del sistema (`admin`) de borrado/desactivación. | No |
 | módulos | Asignación en `role_modules`. | Sí |
 
-- **El superadmin solo escribe el `label`; la `key` se autogenera** (`slugify(label)` +
+- **El admin solo escribe el `label`; la `key` se autogenera** (`slugify(label)` +
   dedupe con sufijo si choca) al crear y queda **fija**. Así nadie maneja slugs a mano, y la
   `key` legible la usan código/RLS/`usuarios.rol` (portable dev/prod, sin uuids opacos).
 - **Renombrar es trivial y seguro** porque se cambia el `label`, no la `key`. Cambiar la
   `key` rompería las referencias en cada usuario → la `key` queda fija (renombrar el label
-  **no** la toca). Esto vale **también para `admin`**: el superadmin puede renombrar su label
+  **no** la toca). Esto vale **también para `admin`**: el admin puede renombrar su label
   (p.ej. "Administrador" → "Admin"); la `key` `'admin'` (de la que depende el código vía
   `ADMIN_ROLE`) no se mueve.
 - **Borrar definitivo** solo si **ningún usuario** tiene ese rol. Lo blinda la DB: la FK
   `usuarios.rol → roles.key` con `ON DELETE RESTRICT` rechaza borrar un rol en uso. Para
   retirar un rol en uso → `activo=false` (soft delete).
 - **`admin` es `is_system`**: no se puede borrar ni desactivar, y sus módulos no se editan
-  (ve todo por short-circuit, ver abajo). **Sí** se le edita el `label`. Es el superadmin.
+  (ve todo por short-circuit, ver abajo). **Sí** se le edita el `label`. Es el admin.
 - **Guard del último admin:** no se puede quitar/degradar/borrar al **último** usuario con
   rol `admin` (chequeo server-side en la API de usuarios). Evita quedarse sin nadie que
-  administre si un superadmin se cambia el rol o se borra. Crear otro superadmin = asignar
+  administre si un admin se cambia el rol o se borra. Crear otro admin = asignar
   el rol `admin` a otra persona desde el dropdown de usuario (sin flujo especial).
-- **Módulos por defecto de un rol nuevo:** nace **vacío** (el superadmin marca lo que quiera).
+- **Módulos por defecto de un rol nuevo:** nace **vacío** (el admin marca lo que quiera).
   Un rol sin módulos = el usuario ve solo Home (empty state del launchpad) — es un estado
   válido, no un error.
 - **Desactivar (`activo=false`) NO revoca acceso a quien ya tiene el rol:** el rol sigue
@@ -114,9 +114,9 @@ El middleware queda como gate de **sesión** únicamente. El auth hook queda com
 completar esta feature.
 
 **Ceiling de propagación (también del lado cliente):** el mapa rol→módulos se carga al montar
-`AppContext`. Si el superadmin cambia los módulos de un rol, los usuarios con ese rol **ya
+`AppContext`. Si el admin cambia los módulos de un rol, los usuarios con ese rol **ya
 logueados no ven el cambio hasta recargar** la app (paralelo al ceiling de ~1h por token del
-Edge). Para el propio superadmin, **`RolesManager` refresca el contexto tras editar** (re-fetch
+Edge). Para el propio admin, **`RolesManager` refresca el contexto tras editar** (re-fetch
 de `roles`+`role_modules`) para que la pantalla de gestión y su sidebar reflejen el cambio en
 el acto. Para los demás usuarios, aplica al próximo load — aceptable para una herramienta
 interna.
@@ -166,7 +166,7 @@ role_modules(role_key FK→roles.key ON UPDATE CASCADE ON DELETE CASCADE,
 - Helpers puros sobre el mapa cargado: `getModulesForRole(map, role)`,
   `canAccess(map, role, slug)`.
   - **Short-circuit de admin:** `canAccess` devuelve `true` si `role===ADMIN_ROLE`,
-    sin mirar el mapa. Así el superadmin ve **todos** los módulos, incluidos los nuevos,
+    sin mirar el mapa. Así el admin ve **todos** los módulos, incluidos los nuevos,
     sin mantenimiento. (`getModulesForRole` para admin → `ALL_MODULES`.)
 - `normalizeRole`: mantener como bridge legacy, pero **pasar tal cual** cualquier key no
   legacy (antes devolvía `null` para keys desconocidas → rompería roles nuevos).
@@ -201,7 +201,7 @@ role_modules(role_key FK→roles.key ON UPDATE CASCADE ON DELETE CASCADE,
 - `create-user` route: default `DEFAULT_ROLE`; el label del email se trae de la tabla
   `roles` (reemplaza `ROLE_LABELS`).
 
-### 6. UI de gestión (nuevo, dentro de /admin, solo superadmin)
+### 6. UI de gestión (nuevo, dentro de /admin, solo admin)
 
 - `RolesManager` + `CreateRoleModal`: listar roles, crear (**solo label** — la `key` la deriva
   el servidor), grid de checkboxes
@@ -209,12 +209,12 @@ role_modules(role_key FK→roles.key ON UPDATE CASCADE ON DELETE CASCADE,
   no está en uso). Para el rol `admin` (is_system): label editable, pero key/borrado/
   desactivación bloqueados y checkboxes de módulos deshabilitados (ve todo por short-circuit).
 - Nuevas rutas `app/api/admin/roles/` (GET/POST y `[key]` PATCH/DELETE), `service_role`,
-  con **authz explícita de superadmin** y **validación de cada `module_slug` contra
+  con **authz explícita de admin** y **validación de cada `module_slug` contra
   `ALL_MODULES`**.
 - **Validación al crear/editar** (server-side): el cliente manda solo `label`; el servidor
   deriva `key = slugify(label)` (formato `^[a-z][a-z0-9_]*$`), **deduplica** con sufijo si
-  choca, y rechaza si cae en una **reservada** (`{ admin, todos }` — `admin` es el superadmin,
-  `todos` el centinela del filtro en `RoleFilterBar`). `label` **único** (error claro ante
+  choca, y rechaza si cae en una **reservada** (`{ admin, todos }` — `admin` es el rol de
+  acceso total del sistema y `todos` el centinela del filtro en `RoleFilterBar`). `label` **único** (error claro ante
   duplicado). La `key` es inmutable tras crear; PATCH solo toca `label`/`activo`/módulos.
 
 ### 7. Seguridad: prevención de escalada de privilegios
@@ -226,7 +226,7 @@ puede hacer `admin`. Hay que blindar las tres puertas:
    de `UserRow`) escribe **directo** con el cliente browser (`usuariosRepo.updateRol`),
    salteando cualquier guard. Se **rutea por `/api/admin/update-user`** (como ya hace
    `toggleActivo`), para que apliquen authz + guard del último admin + (futuro) audit.
-2. **Authz server-side en las rutas admin.** Helper `requireSuperadmin(req)` que lee la sesión
+2. **Authz server-side en las rutas admin.** Helper `requireAdmin(req)` que lee la sesión
    del que llama y verifica `rol===ADMIN_ROLE` **en la DB** (no confiar en el gating del
    cliente). Lo usan TODAS las rutas admin que mutan usuarios o roles
    (`create/update/delete-user`, `reassign-and-delete`, `roles/*`). Hoy esas rutas no lo
@@ -251,13 +251,13 @@ no son filas). La API que escribe asignaciones valida cada `module_slug` contra 
 - **Agregar un módulo** (p.ej. `finanzas`): (1) en código sumar el slug a `ModuleSlug` +
   `ALL_MODULES` + `MODULE_META` + `MODULE_PATH_PREFIX` y crear `app/(app)/<slug>/page.tsx`;
   (2) el gestor de roles lo muestra **automáticamente** como checkbox; (3) ningún rol lo ve
-  hasta que el superadmin lo marque — salvo `admin`, que lo ve el día 1 por el short-circuit.
+  hasta que el admin lo marque — salvo `admin`, que lo ve el día 1 por el short-circuit.
 - **Quitar un módulo del código**: `ALL_MODULES` se achica; quedan filas huérfanas en
   `role_modules` que son **inofensivas** (AppShell solo renderiza slugs conocidos). Opcional:
   `DELETE FROM role_modules WHERE module_slug NOT IN (...)` en la misma migración que lo quita.
 
 > Nota de namespaces: el **slug de módulo** `'admin'` (la ruta `/admin`) y la **key de rol**
-> `'admin'` (el superadmin) son el mismo string en **namespaces distintos** — coincidencia, no
+> `'admin'` (el rol de acceso total) son el mismo string en **namespaces distintos** — coincidencia, no
 > acoplamiento. El rol `admin` casualmente tiene el módulo `admin`, pero no hay relación forzada.
 
 ## Manejo de errores
@@ -268,7 +268,7 @@ no son filas). La API que escribe asignaciones valida cada `module_slug` contra 
 - **Invariante anti-lockout (admin nunca se auto-bloquea):** `esAdmin` se deriva de
   `normalizeRole(usuario.rol)` (string del perfil, **no** del mapa) y `canAccess` hace
   short-circuit para admin. Por eso, **aunque la carga de `roles`/`role_modules` falle** (mapa
-  vacío), el superadmin **sigue viendo todo** y puede entrar a `RolesManager` a arreglar. El
+  vacío), el admin **sigue viendo todo** y puede entrar a `RolesManager` a arreglar. El
   fail-safe "mapa vacío = negar" aplica a roles no-admin; el admin queda siempre operativo.
 
 ## Propagación de migración (dev → prod)
