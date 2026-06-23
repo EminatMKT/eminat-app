@@ -90,9 +90,17 @@ Una fila de `roles` tiene:
   válido, no un error.
 - **Sin soft-delete (`activo`):** se evaluó un flag `activo` para "desactivar sin borrar" y se
   **descartó** (ver Decisiones tomadas). Un rol existe o no existe; retirar = reasignar + borrar.
-- **El rol por defecto (`stratix360`) está protegido** de borrado (igual que `admin`,
-  `is_system=true`). Si no, `create-user` (que usa `DEFAULT_ROLE`) apuntaría a un rol
-  inexistente → falla la FK.
+- **Rol por defecto = `sin_asignar` (baseline "sin poderes").** Un alta nueva nace con este
+  rol: **cero módulos** → ve solo Home (el launchpad vacío; Home no es un módulo, siempre se
+  muestra) hasta que el admin le asigne su rol funcional. **Por qué no `stratix360`:** ese es
+  el rol funcional de **Marketing** (da `stratix-mkt`+`directorio`); como default genérico
+  haría que cualquier alta (médica, finanzas, etc.) naciera con acceso a Marketing. `sin_asignar`
+  es neutro y le grita al admin "asigná un rol". Está protegido de borrado (`is_system=true`),
+  porque es el default de la columna `usuarios.rol` (si se borrara, el default apuntaría a una
+  key inexistente → falla la FK).
+- **`stratix360`** pasa a ser un rol funcional normal (Marketing), **deja de ser default e
+  `is_system`**. Los usuarios legacy `colaborador`/`pasante` **siguen mapeando a `stratix360`**
+  (preservan su acceso actual de marketing); solo cambia el default de **altas nuevas**.
 - **`label` es único** (constraint `UNIQUE` en `roles.label`): evita dos roles distintos con
   el mismo nombre visible (confuso en dropdowns/chips). La API valida y devuelve error claro
   ante duplicado.
@@ -129,16 +137,19 @@ role_modules(role_key FK→roles.key ON UPDATE CASCADE ON DELETE CASCADE,
              PK(role_key, module_slug))
 ```
 
-- **Seed** `roles` (7 roles) y `role_modules` desde la matriz `PERMISSIONS` actual.
-  `admin` y `stratix360` (el rol por defecto) → `is_system=true` (protegidos de borrado;
-  ver Modelo de rol).
+- **Seed** `roles` (8 roles): los 7 funcionales desde la matriz `PERMISSIONS` actual + el
+  baseline **`sin_asignar`** ("Sin asignar", **sin filas en `role_modules`** → cero módulos).
+  `admin` y `sin_asignar` (el rol por defecto) → `is_system=true` (protegidos de borrado;
+  ver Modelo de rol). `stratix360` queda como rol funcional normal (no is_system).
 - `is_system` protege de **borrado** y hace la **key inmutable** — vale para `admin` y
-  `stratix360`. **No** bloquea editar módulos: eso solo aplica a `admin` (por el short-circuit,
-  sus módulos son irrelevantes). Un is_system no-admin (`stratix360`) **sí** edita sus módulos.
+  `sin_asignar`. **No** bloquea editar módulos: eso solo aplica a `admin` (por el short-circuit,
+  sus módulos son irrelevantes). Un is_system no-admin (`sin_asignar`) **sí** permite editar
+  sus módulos (aunque arranca sin ninguno).
 - **Migración de legacy (orden load-bearing):** `UPDATE usuarios` mapeando
   `superadmin/coordinador→admin` y `colaborador/pasante→stratix360` **antes** de la FK
-  (si no, la validación de la FK falla en filas legacy).
-- **Swap CHECK→FK:** cambiar default de `rol` a `stratix360`, `DROP CONSTRAINT
+  (si no, la validación de la FK falla en filas legacy). Nota: los legacy van a `stratix360`
+  (preservan acceso); el baseline `sin_asignar` solo afecta el **default de altas nuevas**.
+- **Swap CHECK→FK:** cambiar default de `rol` a `sin_asignar`, `DROP CONSTRAINT
   usuarios_rol_check`, agregar `usuarios_rol_fkey` (guard idempotente con `pg_constraint`).
 - **Reparar/reconciliar la RLS role-gated** (ver § Auditoría RLS). Dos tipos de arreglo:
   - **Admin-override** (acceso total del admin, no por módulo): políticas `superadmin_all`
@@ -169,7 +180,7 @@ role_modules(role_key FK→roles.key ON UPDATE CASCADE ON DELETE CASCADE,
 
 - `Role = string` (cualquier key dinámica es válida).
 - Nuevos: `RoleModuleMap = Record<string, ModuleSlug[]>`, `RoleRow`, constantes
-  `ADMIN_ROLE='admin'` y `DEFAULT_ROLE='stratix360'`.
+  `ADMIN_ROLE='admin'` y `DEFAULT_ROLE='sin_asignar'`.
 - Helpers puros sobre el mapa cargado: `getModulesForRole(map, role)`,
   `canAccess(map, role, slug)`.
   - **Short-circuit de admin:** `canAccess` devuelve `true` si `role===ADMIN_ROLE`,
@@ -351,7 +362,8 @@ en dev antes de prod. Mitigación: backup/snapshot del proyecto Supabase antes d
   `features/admin/index.test.ts` sigue verde.
 - **Manual E2E en dev:** admin ve todo; crear rol "soporte" solo con `directorio`, asignar a
   un usuario test → ve solo Directorio; agregar módulo → acceso al refrescar; `admin`
-  no borrable; `SELECT DISTINCT rol` muestra solo keys nuevas.
+  no borrable; un alta nueva sin rol especificado → cae en `sin_asignar` → ve solo Home
+  (launchpad vacío); `SELECT DISTINCT rol` muestra solo keys nuevas.
 - **RLS↔módulos (el fix de esta pasada):** dar el módulo `cobranzas` a un rol no-admin y
   asignarlo a un usuario test → **ve filas** de `cobranzas_*` (antes la RLS admin-only las
   negaba); quitar el módulo → deja de verlas. Idem `research` y `actividades` (`stratix-mkt`).
