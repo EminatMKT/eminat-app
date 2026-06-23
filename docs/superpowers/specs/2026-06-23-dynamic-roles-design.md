@@ -140,12 +140,20 @@ role_modules(role_key FK→roles.key ON UPDATE CASCADE ON DELETE CASCADE,
   (si no, la validación de la FK falla en filas legacy).
 - **Swap CHECK→FK:** cambiar default de `rol` a `stratix360`, `DROP CONSTRAINT
   usuarios_rol_check`, agregar `usuarios_rol_fkey` (guard idempotente con `pg_constraint`).
-- **Reparar RLS/funciones que referencian roles legacy** (si no, los admins pierden grants
-  al desaparecer las filas `superadmin`):
-  - políticas `superadmin_all` (actividades, solicitudes), `superadmin_all_marcaciones`,
-    `superadmin_all_users`: `'superadmin'` → `'admin'`.
-  - `colaborador_read` (actividades): repuntar a `'stratix360'`.
-  - función `tiene_acceso_research()`: `IN ('admin','superadmin','coordinador')` → `'admin'`.
+- **Reparar/reconciliar la RLS role-gated** (ver § Auditoría RLS). Dos tipos de arreglo:
+  - **Admin-override** (acceso total del admin, no por módulo): políticas `superadmin_all`
+    (actividades, solicitudes), `superadmin_all_marcaciones`, `superadmin_all_users` →
+    `'superadmin'` → `'admin'`. Quedan como override del admin.
+  - **Acceso a data por módulo** (reconciliar con `role_modules`): las tablas de negocio se
+    gateaban por rol fijo, lo que **divergiría** del matrix dinámico (otorgar un módulo en la
+    UI no daría el dato). Se introduce un helper SQL **`has_module(p_slug text)`** (STABLE,
+    SECURITY DEFINER) = `EXISTS(usuarios u JOIN role_modules rm ON rm.role_key=u.rol WHERE
+    u.auth_id=auth.uid() AND rm.module_slug=p_slug) OR u.rol='admin'`, y las funciones/políticas
+    pasan a usarlo:
+    - `tiene_acceso_cobranzas()` → `has_module('cobranzas')` (antes `rol='admin'`).
+    - `tiene_acceso_research()` → `has_module('research')` (antes `IN('admin','superadmin','coordinador')`).
+    - `colaborador_read` (actividades) → `has_module('stratix-mkt')` (antes `rol IN` legacy).
+    Así, asignar el módulo a un rol **sí** otorga acceso al dato — la feature funciona end-to-end.
 - **RLS de tablas nuevas:** `SELECT` para `authenticated` (la app carga la matriz con el
   cliente browser); escritura solo `service_role` (API de admin).
 - **Trigger `prevent_rol_self_change`** (BEFORE UPDATE en `usuarios`): rechaza cambiar `rol`
@@ -274,6 +282,25 @@ no son filas). La API que escribe asignaciones valida cada `module_slug` contra 
 > `'admin'` (el rol de acceso total) son el mismo string en **namespaces distintos** — coincidencia, no
 > acoplamiento. El rol `admin` casualmente tiene el módulo `admin`, pero no hay relación forzada.
 
+## Auditoría RLS role-gated
+
+Inventario de **todas** las políticas RLS que dependen del rol, y qué se hace con cada una:
+
+| Tabla(s) | Política / función | Hoy | Acción |
+|---|---|---|---|
+| `cobranzas_cuentas/depositos/ventas` | `tiene_acceso_cobranzas()` | `rol='admin'` | → `has_module('cobranzas')` |
+| `research_activities/campaigns/leads/recipients` | `tiene_acceso_research()` | `rol IN('admin','superadmin','coordinador')` | → `has_module('research')` |
+| `actividades` | `colaborador_read` | `rol IN('colaborador','coordinador','pasante')` | → `has_module('stratix-mkt')` |
+| `actividades`, `solicitudes` | `superadmin_all` | `rol='superadmin'` | → `rol='admin'` (override admin) |
+| `marcaciones` | `superadmin_all_marcaciones` | `rol IN('superadmin','coordinador')` | → `rol='admin'` (override admin) |
+| `usuarios` | `superadmin_all_users` | `rol='superadmin'` | → `rol='admin'` (override admin) |
+| `usuarios` | `usuario_own_profile`, `Lectura autenticada/pública` | own / SELECT | sin cambio (no role-gated) + trigger `prevent_rol_self_change` |
+| `marcaciones` | `usuario_own_marcaciones` | own (`auth_id`) | sin cambio (no role-gated) |
+
+Dos patrones: **override de admin** (queda `rol='admin'`) y **acceso por módulo** (pasa a
+`has_module(slug)`). Las `own_*` y de lectura no dependen del rol y no se tocan (salvo el
+trigger de `usuarios`). No quedan políticas role-gated sin reconciliar.
+
 ## Manejo de errores
 
 - Carga de roles falla → mapa vacío, gates niegan (fail-safe), la app no crashea.
@@ -320,8 +347,11 @@ en dev antes de prod. Mitigación: backup/snapshot del proyecto Supabase antes d
   `features/admin/index.test.ts` sigue verde.
 - **Manual E2E en dev:** admin ve todo; crear rol "soporte" solo con `directorio`, asignar a
   un usuario test → ve solo Directorio; agregar módulo → acceso al refrescar; `admin`
-  no borrable; RLS de cobranzas/research siguen OK; `SELECT DISTINCT rol`
-  muestra solo keys nuevas.
+  no borrable; `SELECT DISTINCT rol` muestra solo keys nuevas.
+- **RLS↔módulos (el fix de esta pasada):** dar el módulo `cobranzas` a un rol no-admin y
+  asignarlo a un usuario test → **ve filas** de `cobranzas_*` (antes la RLS admin-only las
+  negaba); quitar el módulo → deja de verlas. Idem `research` y `actividades` (`stratix-mkt`).
+  Verifica que `has_module()` está bien cableado en las políticas.
 
 ## Decisiones tomadas (que estuvieron pendientes)
 
