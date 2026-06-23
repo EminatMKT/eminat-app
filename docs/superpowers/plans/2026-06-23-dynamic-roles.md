@@ -222,7 +222,7 @@ git commit -m "feat(roles): migración dynamic_roles (tablas, seed, FK, RLS por 
 - Test: `shared/auth/permissions.test.ts`
 
 **Interfaces:**
-- Produces: `type Role = string`; `type ModuleSlug`; `type RoleModuleMap = Record<string, ModuleSlug[]>`; `type RoleRow = { key: string; label: string; is_system: boolean }`; `ADMIN_ROLE='admin'`; `DEFAULT_ROLE='sin_asignar'`; `ALL_MODULES`; `isModuleSlug(v)`; `MODULE_META`; `moduleForPath(path)`; `normalizeRole(raw): Role|null`; `getModulesForRole(map, role): ModuleSlug[]`; `canAccess(map, role, slug): boolean`.
+- Produces: `type Role = string`; `type ModuleSlug`; `type RoleModuleMap = Record<string, ModuleSlug[]>`; `type RoleRow = { key: string; label: string; is_system: boolean }`; `ADMIN_ROLE='admin'`; `DEFAULT_ROLE='sin_asignar'`; `ALL_MODULES`; `isModuleSlug(v)`; `MODULE_META`; `moduleForPath(path)`; `normalizeRole(raw): Role|null`; `getModulesForRole(map, role): ModuleSlug[]` (admin → `ALL_MODULES`, null/desconocido → `[]`). **No** hay `canAccess` — la pertenencia es `getModulesForRole(...).includes(slug)`.
 
 - [ ] **Step 1: Escribir los tests**
 
@@ -230,7 +230,7 @@ Crear `shared/auth/permissions.test.ts`:
 ```ts
 import { describe, it, expect } from 'vitest'
 import {
-  getModulesForRole, canAccess, normalizeRole, moduleForPath, isModuleSlug,
+  getModulesForRole, normalizeRole, moduleForPath, isModuleSlug,
   ADMIN_ROLE, DEFAULT_ROLE, ALL_MODULES, type RoleModuleMap,
 } from './permissions'
 
@@ -247,14 +247,8 @@ describe('getModulesForRole', () => {
   })
 })
 
-describe('canAccess', () => {
-  it('true si el rol tiene el módulo', () => { expect(canAccess(MAP, 'finanzas', 'cobranzas')).toBe(true) })
-  it('false si no lo tiene', () => { expect(canAccess(MAP, 'finanzas', 'medical')).toBe(false) })
-  it('null → false', () => { expect(canAccess(MAP, null, 'cobranzas')).toBe(false) })
-  it('admin → true para cualquier módulo aun con mapa vacío', () => {
-    expect(canAccess({}, ADMIN_ROLE, 'medical')).toBe(true)
-  })
-})
+// (no hay canAccess: la pertenencia se chequea con `getModulesForRole(...).includes(slug)`,
+//  método nativo; ModuleSlug ya tipa el slug. Cubierto por los casos de getModulesForRole.)
 
 describe('normalizeRole', () => {
   it('mapea legacy', () => {
@@ -308,14 +302,10 @@ export function normalizeRole(raw: unknown): Role | null {
 
 export function getModulesForRole(map: RoleModuleMap, role: Role | null): ModuleSlug[] {
   if (!role) return []
-  if (role === ADMIN_ROLE) return [...ALL_MODULES]
+  if (role === ADMIN_ROLE) return [...ALL_MODULES]  // short-circuit: admin ve todo
   return map[role] ?? []
 }
-export function canAccess(map: RoleModuleMap, role: Role | null, module: ModuleSlug): boolean {
-  if (!role) return false
-  if (role === ADMIN_ROLE) return true
-  return getModulesForRole(map, role).includes(module)
-}
+// (sin canAccess: los consumidores usan `getModulesForRole(map, role).includes(slug)`)
 
 // moduleForPath: derivar el prefijo de cada slug ('/'+slug); borrar MODULE_PATH_PREFIX.
 export function moduleForPath(pathname: string): ModuleSlug | null {
@@ -328,7 +318,7 @@ export function moduleForPath(pathname: string): ModuleSlug | null {
   return null
 }
 ```
-Borrar: `ROLES`, `PERMISSIONS`, `ROLE_LABELS`, `MODULE_PATH_PREFIX`, `isRole`, y el viejo `getModulesForRole`/`canAccess` de 2 args.
+Borrar: `ROLES`, `PERMISSIONS`, `ROLE_LABELS`, `MODULE_PATH_PREFIX`, `isRole`, `canAccess` (entera), y el viejo `getModulesForRole` de 2 args.
 
 - [ ] **Step 4: Correr el test (pasa)**
 
@@ -498,8 +488,8 @@ git commit -m "feat(roles): repo de lectura shared/data/roles"
 - Modify: `shared/context/useAppData.ts`, `shared/context/loadAppData.ts`, `shared/context/AppContext.tsx`
 
 **Interfaces:**
-- Consumes: `rolesRepo` (Task 4); `getModulesForRole`/`canAccess`/`normalizeRole`/`ADMIN_ROLE`/`RoleRow`/`RoleModuleMap` (Task 2).
-- Produces (contexto `useApp()`): `roles: RoleRow[]`, `roleModuleMap: RoleModuleMap`, `role: Role|null`, `modules: ModuleSlug[]`, `esAdmin: boolean`, `cargo: string`, `canCobranzas/canResearch/canMedical: boolean`.
+- Consumes: `rolesRepo` (Task 4); `getModulesForRole`/`normalizeRole`/`ADMIN_ROLE`/`RoleRow`/`RoleModuleMap` (Task 2).
+- Produces (contexto `useApp()`): `roles: RoleRow[]`, `roleModuleMap: RoleModuleMap`, `role: Role|null`, `modules: ModuleSlug[]`, `esAdmin: boolean`, `cargo: string`. (Sin `canCobranzas/canResearch/canMedical` — cada módulo se auto-gatea con `modules.includes('<slug>')`.)
 
 - [ ] **Step 1: `useAppData.ts`** — agregar import y estado:
 ```ts
@@ -524,17 +514,14 @@ s.setRoleModuleMap(map)
 ```
 (importar `ModuleSlug` de permissions).
 
-- [ ] **Step 3: `AppContext.tsx`** — cambiar imports a `getModulesForRole, canAccess, normalizeRole, ADMIN_ROLE, type Role, type ModuleSlug, type RoleRow, type RoleModuleMap`. Borrar el re-export `export const ROLES = ...`. Agregar al `AppContextType`: `roles: RoleRow[]; roleModuleMap: RoleModuleMap;`. Reemplazar la derivación:
+- [ ] **Step 3: `AppContext.tsx`** — cambiar imports a `getModulesForRole, normalizeRole, ADMIN_ROLE, type Role, type ModuleSlug, type RoleRow, type RoleModuleMap`. Borrar el re-export `export const ROLES = ...`. En `AppContextType`: agregar `roles: RoleRow[]; roleModuleMap: RoleModuleMap;` y **borrar** `canCobranzas/canResearch/canMedical`. Reemplazar la derivación:
 ```ts
 const role: Role | null = normalizeRole(app.usuario?.rol)
 const modules: ModuleSlug[] = getModulesForRole(app.roleModuleMap, role)
 const esAdmin = role === ADMIN_ROLE
 const cargo = app.roles.find(r => r.key === role)?.label || app.usuario?.rol || 'Sin asignar'
-const canCobranzas = canAccess(app.roleModuleMap, role, 'cobranzas')
-const canResearch = canAccess(app.roleModuleMap, role, 'research')
-const canMedical = canAccess(app.roleModuleMap, role, 'medical')
 ```
-Renombrar la prop expuesta `esSuperAdmin` → `esAdmin` en el value y el type. (`roles`/`roleModuleMap` ya entran por `...app`.)
+Borrar del value las props `canCobranzas/canResearch/canMedical`. Renombrar la prop expuesta `esSuperAdmin` → `esAdmin` en el value y el type. (`roles`/`roleModuleMap`/`modules` ya se exponen; `roles`/`roleModuleMap` entran por `...app`.)
 
 - [ ] **Step 4: `loadAppData.ts`** — renombrar la variable local `isSuperAdmin` → `isAdmin` (cosmético, consistencia).
 
@@ -552,12 +539,35 @@ git commit -m "feat(roles): cargar roles+role_modules en AppContext; derivar per
 ## Task 6: Consumidores (AppShell, middleware, componentes admin, create-user)
 
 **Files:**
-- Modify: `shared/components/AppShell.tsx`, `middleware.ts`, `features/admin/components/{RoleChip,RoleFilterBar,UserRow,CreateUserModal,EditUserModal}.tsx`, `features/admin/components/AdminModule.tsx`, `app/api/admin/create-user/route.ts`
+- Modify: `shared/components/AppShell.tsx`, `middleware.ts`, `features/admin/components/{RoleChip,RoleFilterBar,UserRow,CreateUserModal,EditUserModal,AdminModule}.tsx`, `app/api/admin/create-user/route.ts`, `features/cobranzas/components/CobranzasModule.tsx`, `features/cobranzas/hooks/useCobranzasData.ts`, `features/research/components/ResearchModule.tsx`, `features/medical/components/MedicalModule.tsx`
 
 **Interfaces:**
 - Consumes: `useApp().{modules, roles, esAdmin}`; `DEFAULT_ROLE`, `ADMIN_ROLE`, `normalizeRole` (Task 2).
 
-- [ ] **Step 1: `AppShell.tsx`** — borrar `import { canAccess }`. Destructurar `modules` (en vez de `role`) de `app`. Cambiar cada `canAccess(role, 'X')` por `modules.includes('X')` en `sidebarIcons`.
+- [ ] **Step 1: `AppShell.tsx`** — borrar `import { canAccess }`. Destructurar `modules` (en vez de `role`) de `app`. Reemplazar el `sidebarIcons` hardcodeado (un `if` por módulo) por una config tipada filtrada por `modules`. Home siempre va; los que abren submenú llevan un flag:
+```tsx
+import type { ModuleSlug } from '@/shared/auth/permissions'
+// fuera del componente:
+const NAV: { slug: ModuleSlug; key: string; icon: string; label: string; panel?: 'mkt'|'medical'|'research' }[] = [
+  { slug: 'stratix-mkt', key: 'mkt', icon: '🚀', label: 'Stratix 360', panel: 'mkt' },
+  { slug: 'accounting', key: 'accounting', icon: '🧾', label: 'Accounting' },
+  { slug: 'cobranzas', key: 'cobranzas', icon: '💳', label: 'Billing' },
+  { slug: 'medical', key: 'medical', icon: '🏥', label: 'Medical', panel: 'medical' },
+  { slug: 'th-hr', key: 'th-hr', icon: '👤', label: 'TH/HR' },
+  { slug: 'research', key: 'research', icon: '🔬', label: 'Research', panel: 'research' },
+  { slug: 'directorio', key: 'directorio', icon: '🏢', label: 'Directory' },
+  { slug: 'admin', key: 'admin', icon: '🔐', label: 'Admin' },
+]
+// dentro del componente:
+const navItems = (slug: ModuleSlug, panel?: string) => panel
+  ? () => { setSidebarPanel(p => p === panel ? null : panel); if (!pathname.startsWith('/' + slug)) router.push('/' + slug) }
+  : () => { router.push('/' + slug); setSidebarPanel(null) }
+const sidebarIcons: any[] = [
+  { key: 'home', icon: '🏠', label: 'Home', action: () => { router.push('/'); setSidebarPanel(null) } },
+  ...NAV.filter(i => modules.includes(i.slug)).map(i => ({ key: i.key, icon: i.icon, label: i.label, action: navItems(i.slug, i.panel) })),
+]
+```
+(El slug aparece una vez por ítem, como dato tipado; el gating es el `.filter`.)
 
 - [ ] **Step 2: `middleware.ts`** — reemplazar por gate de sesión solamente (borra el bloque de módulos/JWT, que hoy es dead-code fail-open):
 ```ts
@@ -603,6 +613,12 @@ const areaLabel = roleRow?.label || (rol || DEFAULT_ROLE)
 ```
 Pasar `areaLabel` a `sendWelcomeEmail`/`buildWelcomeEmail`. Reemplazar los `rol || 'stratix360'` por `rol || DEFAULT_ROLE`.
 
+- [ ] **Step 9b: Auto-gate de los módulos** (reemplaza `canCobranzas/canResearch/canMedical`). En cada uno, usar `modules` del contexto:
+  - `features/cobranzas/components/CobranzasModule.tsx`: `const { modules } = useApp()` → `if (!modules.includes('cobranzas')) return <AccessDenied ... />`.
+  - `features/cobranzas/hooks/useCobranzasData.ts`: `const { modules } = useApp()`; reemplazar `canCobranzas` por `const canCobranzas = modules.includes('cobranzas')` (mantener el nombre local y lo que retorna para no romper consumidores del hook).
+  - `features/research/components/ResearchModule.tsx`: `const { modules } = useApp()` → `if (!modules.includes('research')) return <AccessDenied ... />`.
+  - `features/medical/components/MedicalModule.tsx`: `const { modules, border } = useApp()` → `if (!modules.includes('medical')) return <AccessDenied ... />`.
+
 - [ ] **Step 10: Typecheck + tests**
 
 Run: `pnpm exec tsc --noEmit && pnpm test`
@@ -610,8 +626,8 @@ Expected: sin errores; `features/admin/index.test.ts` y los demás verdes.
 
 - [ ] **Step 11: Commit**
 ```bash
-git add shared/components/AppShell.tsx middleware.ts features/admin/ app/api/admin/create-user/route.ts
-git commit -m "feat(roles): consumidores DB-driven (sidebar, dropdowns, middleware, create-user)"
+git add shared/components/AppShell.tsx middleware.ts features/ app/api/admin/create-user/route.ts
+git commit -m "feat(roles): consumidores DB-driven (sidebar data-driven, dropdowns, middleware, auto-gate por módulo)"
 ```
 
 ---
@@ -833,7 +849,7 @@ git commit -m "feat(roles): UI de gestión de roles en /admin (lista, crear, edi
 **Files:**
 - Modify: `CLAUDE.md`
 
-- [ ] **Step 1: Actualizar `CLAUDE.md`** — reescribir la sección "## Roles de usuario": los roles son **dinámicos** (tabla `roles`, gestionados por el admin desde /admin); `admin` = acceso total (único tier); `sin_asignar` = rol por defecto sin módulos. Actualizar la referencia a `lib/permissions.ts` → `shared/auth/permissions.ts` (helpers map-driven, ya no matriz hardcodeada). Actualizar la línea de Convenciones de permisos (`canAccess(map, role, module)`).
+- [ ] **Step 1: Actualizar `CLAUDE.md`** — reescribir la sección "## Roles de usuario": los roles son **dinámicos** (tabla `roles`, gestionados por el admin desde /admin); `admin` = acceso total (único tier); `sin_asignar` = rol por defecto sin módulos. Actualizar la referencia a `lib/permissions.ts` → `shared/auth/permissions.ts` (helpers map-driven, ya no matriz hardcodeada). Actualizar la línea de Convenciones de permisos: verificar acceso con `getModulesForRole(map, role).includes(module)` (o `useApp().modules.includes(module)` en componentes); ya no hay `canAccess`.
 
 - [ ] **Step 2: Verificación E2E completa en dev** (checklist del spec):
   - admin ve todos los módulos.

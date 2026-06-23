@@ -221,11 +221,12 @@ El esquema nuevo cumple **BCNF** (y por ende 3NF/2NF/1NF). Chequeo formal:
 - `Role = string` (cualquier key dinámica es válida).
 - Nuevos: `RoleModuleMap = Record<string, ModuleSlug[]>`, `RoleRow`, constantes
   `ADMIN_ROLE='admin'` y `DEFAULT_ROLE='sin_asignar'`.
-- Helpers puros sobre el mapa cargado: `getModulesForRole(map, role)`,
-  `canAccess(map, role, slug)`.
-  - **Short-circuit de admin:** `canAccess` devuelve `true` si `role===ADMIN_ROLE`,
-    sin mirar el mapa. Así el admin ve **todos** los módulos, incluidos los nuevos,
-    sin mantenimiento. (`getModulesForRole` para admin → `ALL_MODULES`.)
+- **Un solo helper puro:** `getModulesForRole(map, role): ModuleSlug[]` (devuelve la lista
+  tipada). La pertenencia se chequea con el método nativo `.includes(slug)` — **no** hay
+  función `canAccess`: era un wrapper redundante sobre `array.includes()` (y `ModuleSlug` ya
+  tipa el slug, así que un typo es error de compilación, no `false` silencioso).
+  - **Short-circuit de admin** dentro de `getModulesForRole`: si `role===ADMIN_ROLE` → devuelve
+    `ALL_MODULES` (ve todo, incl. módulos nuevos, sin mantenimiento). `null`/desconocido → `[]`.
 - `normalizeRole`: mantener como bridge legacy, pero **pasar tal cual** cualquier key no
   legacy (antes devolvía `null` para keys desconocidas → rompería roles nuevos).
 - Quitar `ROLES`, `PERMISSIONS`, `ROLE_LABELS` (ahora viven en DB). Conservar `MODULE_META`,
@@ -240,13 +241,20 @@ El esquema nuevo cumple **BCNF** (y por ende 3NF/2NF/1NF). Chequeo formal:
 - `useAppData`: estado `roles: RoleRow[]` + `roleModuleMap: RoleModuleMap` + setters.
 - `loadAppData`: tras el perfil, cargar `roles` + `role_modules` y construir el mapa.
   Si falla, mapa vacío → los gates niegan acceso (seguro).
-- `AppContext`: deriva `modules`, `esAdmin = role===ADMIN_ROLE`, `cargo` (label
-  desde `roles`), `canCobranzas/Research/Medical` desde el mapa. Expone `roles` +
-  `roleModuleMap`. Se quita el re-export estático `ROLES`.
+- `AppContext`: deriva `modules` (= `getModulesForRole(map, role)`), `esAdmin = role===ADMIN_ROLE`,
+  `cargo` (label desde `roles`). Expone `roles`, `roleModuleMap`, `modules`. Se quitan los
+  booleanos `canCobranzas/canResearch/canMedical` (hardcodeaban 3 slugs en el contexto); cada
+  módulo se auto-gatea localmente (ver Consumidores). Se quita el re-export estático `ROLES`.
 
 ### 5. Consumidores
 
-- `AppShell`: sidebar desde `modules.includes(slug)` (en vez de `canAccess` estático).
+- `AppShell`: sidebar **data-driven** — se define una config `SIDEBAR: { slug, icon, label, … }[]`
+  y se filtra con `.filter(i => modules.includes(i.slug))`, en vez de un `if` con el slug
+  repetido por módulo. El slug vive una vez por ítem, como dato tipado.
+- **Auto-gate por módulo:** cada página de módulo se protege sola con
+  `modules.includes('<su-slug>')` → `<AccessDenied>` (el slug es intrínseco a esa página).
+  Reemplaza a `canCobranzas`/`canResearch`/`canMedical`: `CobranzasModule`+`useCobranzasData`
+  (`'cobranzas'`), `ResearchModule` (`'research'`), `MedicalModule` (`'medical'`).
 - `middleware.ts`: queda como gate de sesión (se quita el bloque de módulos muerto).
 - Dropdowns de rol (`UserRow`, `CreateUserModal`, `EditUserModal`): desde `roles` del
   contexto (value=`key`, texto=`label`).
@@ -362,8 +370,9 @@ trigger de `usuarios`). No quedan políticas role-gated sin reconciliar.
 - API de roles valida slugs contra el catálogo y rechaza tocar `is_system`.
 - Borrado de rol en uso → lo rechaza la FK (`ON DELETE RESTRICT`); la API devuelve error claro.
 - **Invariante anti-lockout (admin nunca se auto-bloquea):** `esAdmin` se deriva de
-  `normalizeRole(usuario.rol)` (string del perfil, **no** del mapa) y `canAccess` hace
-  short-circuit para admin. Por eso, **aunque la carga de `roles`/`role_modules` falle** (mapa
+  `normalizeRole(usuario.rol)` (string del perfil, **no** del mapa) y `getModulesForRole` hace
+  short-circuit para admin (→ `ALL_MODULES`). Por eso, **aunque la carga de `roles`/`role_modules`
+  falle** (mapa
   vacío), el admin **sigue viendo todo** y puede entrar a `RolesManager` a arreglar. El
   fail-safe "mapa vacío = negar" aplica a roles no-admin; el admin queda siempre operativo.
 
@@ -389,11 +398,11 @@ en dev antes de prod. Mitigación: backup/snapshot del proyecto Supabase antes d
 
 ## Testing
 
-- **vitest:** `shared/auth/permissions.test.ts` para `getModulesForRole`/`canAccess` sobre
-  un mapa de prueba (rol desconocido → `[]`, null → `false`) + `moduleForPath` (incl. que
-  computa `'/'+slug` tras borrar `MODULE_PATH_PREFIX`). Casos de las reglas nuevas:
-  - **Short-circuit de admin:** `canAccess(map, 'admin', cualquierSlug)` → `true` aun con
-    mapa vacío; `getModulesForRole(map, 'admin')` → `ALL_MODULES`.
+- **vitest:** `shared/auth/permissions.test.ts` para `getModulesForRole` sobre un mapa de
+  prueba (rol desconocido → `[]`, null → `[]`) + `moduleForPath` (incl. que computa `'/'+slug`
+  tras borrar `MODULE_PATH_PREFIX`). Casos de las reglas nuevas:
+  - **Short-circuit de admin:** `getModulesForRole(map, 'admin')` → `ALL_MODULES` aun con mapa
+    vacío (de ahí, `modules.includes(x)` es `true` para cualquier `x`).
   - **Validación de key** (helper puro): rechaza formato inválido, duplicados y reservadas
     (`admin`, `todos`).
   - **`validateModuleSlugs`** (extraído de la API): rechaza slugs fuera de `ALL_MODULES`.
