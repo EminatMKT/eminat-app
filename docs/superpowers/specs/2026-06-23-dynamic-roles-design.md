@@ -79,6 +79,15 @@ Una fila de `roles` tiene:
   `usuarios.rol → roles.key` con `ON DELETE RESTRICT` rechaza borrar un rol en uso. **Para
   retirar un rol:** reasignar sus usuarios a otro rol y luego borrarlo (no hay soft-delete —
   ver decisión abajo).
+- **Qué significa `is_system`:** "el sistema **depende** de este rol → no se puede borrar".
+  Es puramente una **protección de borrado** (no congela módulos ni label). Hoy lo llevan
+  dos roles, por dos dependencias distintas pero del mismo tipo:
+  - `admin` → depende el **código/RLS/short-circuit** (la key `'admin'` está cableada).
+  - `sin_asignar` → depende el **default de la columna** `usuarios.rol` (borrarlo rompería las
+    altas nuevas: el default apuntaría a una key inexistente → falla la FK).
+  Es un solo flag reutilizado, no dos mecanismos — "rol del que depende el sistema" describe
+  bien a ambos. Lo único extra que se le bloquea **solo a `admin`** (editar módulos) viene del
+  short-circuit, no de `is_system`.
 - **`admin` es `is_system`**: no se puede borrar, y sus módulos no se editan (ve todo por
   short-circuit, ver abajo). **Sí** se le edita el `label`. Es el admin.
 - **Guard del último admin:** no se puede quitar/degradar/borrar al **último** usuario con
@@ -170,6 +179,37 @@ role_modules(role_key FK→roles.key ON UPDATE CASCADE ON DELETE CASCADE,
 - **Trigger `prevent_rol_self_change`** (BEFORE UPDATE en `usuarios`): rechaza cambiar `rol`
   salvo desde `service_role` (ver § Seguridad). Protege la columna sin romper los writes de
   `online_at`/`ubicacion` del cliente.
+
+### Normalización del esquema (evaluación)
+
+El esquema nuevo cumple **BCNF** (y por ende 3NF/2NF/1NF). Chequeo formal:
+
+- **1NF — valores atómicos, sin grupos repetidos.** La relación M:N rol↔módulos se modela con
+  la **tabla puente `role_modules`** (una fila por par `(role_key, module_slug)`), **no** como
+  una lista/CSV de módulos en una columna. Es la forma textbook-correcta; evita el clásico
+  anti-patrón de 1NF. `roles` y `usuarios.rol` tienen columnas atómicas. ✓
+- **2NF — sin dependencias parciales de parte de la clave.** `role_modules` es una tabla
+  **all-key** (PK compuesta, sin atributos no-clave) → 2NF trivial. `roles` tiene PK simple
+  (`key`). ✓
+- **3NF — sin dependencias transitivas.** En `roles`, `label`/`is_system`/timestamps dependen
+  **directo** de `key`. No hay atributo que dependa de otro no-clave. ✓
+- **BCNF — todo determinante es clave candidata.** `roles` tiene dos claves candidatas (`key`
+  y `label UNIQUE`); el resto de columnas no determina nada. `role_modules` es all-key. ✓
+
+**Decisiones de modelado (conscientes, no violan FN):**
+
+- **`usuarios.rol` usa clave natural (slug) como FK**, no surrogate `uuid`. Ambas opciones son
+  válidas en el modelo relacional; se eligió el slug por portabilidad código/RLS (ver Modelo de
+  rol). No afecta la normalización.
+- **`role_modules.module_slug` NO es FK a una tabla `modules`** — los módulos son code-defined
+  (un módulo = una ruta real; una tabla `modules` sería un catálogo que habría que mantener en
+  sync con el código, y una fila sin ruta = link roto). El **dominio** de `module_slug` se
+  valida en la capa app contra `ALL_MODULES` (catálogo cerrado en código). Es una decisión de
+  **frontera código↔DB**, no una desnormalización: no introduce redundancia ni anomalías de
+  actualización dentro del modelo relacional.
+- **Sin redundancia con el código:** tras la feature, `PERMISSIONS`/`ROLE_LABELS` se **eliminan**
+  del código (la matriz y los labels viven solo en la DB). El seed los copia **una vez**; no hay
+  doble fuente de verdad en curso.
 
 ### 2. Capa de datos (`shared/data`)
 
