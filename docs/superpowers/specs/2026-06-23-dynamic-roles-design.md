@@ -258,14 +258,15 @@ follow-up una vez migradas ambas DBs y rotados los tokens.
   no borrable ni desactivable; RLS de cobranzas/research siguen OK; `SELECT DISTINCT rol`
   muestra solo keys nuevas.
 
-## Decisiones pendientes
+## Decisiones tomadas (que estuvieron pendientes)
 
-- **Auditoría de cambios de permisos** — Existe tabla `historial` en el esquema. Falta
-  decidir si se **audita** quién crea/edita/borra un rol y quién cambia el rol de un usuario.
-  Contexto: el sistema toca módulos **médico (HIPAA), RRHH y finanzas**, donde un trail de
-  cambios de privilegios suele ser esperable por compliance. Opciones: (a) loguear en
-  `historial` desde la API de roles/usuarios dentro de esta feature; (b) dejarlo como ticket
-  follow-up; (c) no auditar. **Sin resolver** — definir antes de cerrar el plan de implementación.
+- **Auditoría de cambios de permisos** — ✅ **Resuelto: ticket aparte, fuera de esta feature.**
+  Esta feature **no audita**. El trail de cambios de privilegios (quién crea/edita/borra un
+  rol, quién cambia el rol de un usuario) se trata en un ticket propio, donde queda por definir
+  el **modelado de storage** (reusar `historial` text a nivel campo / tabla nueva `audit_log`
+  jsonb / migrar `historial` a jsonb) — la tabla `historial` ya existe pero la comparte el
+  trigger de `actividades`. Ver `.todo` § "[Auth] Auditoría de cambios de permisos". Esto
+  **desbloquea** el plan de implementación de roles.
 
 ## Fuera de alcance (tickets separados)
 
