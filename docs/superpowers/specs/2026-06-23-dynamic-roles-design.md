@@ -64,8 +64,7 @@ Una fila de `roles` tiene:
 |---|---|---|
 | `key` | ID interno (slug), p.ej. `stratix360`. **Autogenerada del `label`** (`slugify`+dedupe) al crear. Va en `usuarios.rol` y la referencia código/RLS. | **Fija** (autogenerada, no se edita) |
 | `label` | Nombre visible y **único**, p.ej. "Stratix 360". Lo único que el admin escribe. | Sí |
-| `activo` | Soft delete: oculta el rol del menú de asignación sin borrarlo. | Sí |
-| `is_system` | Protege roles del sistema (`admin`) de borrado/desactivación. | No |
+| `is_system` | Protege roles del sistema (`admin` y el rol por defecto) de borrado. | No |
 | módulos | Asignación en `role_modules`. | Sí |
 
 - **El admin solo escribe el `label`; la `key` se autogenera** (`slugify(label)` +
@@ -77,10 +76,11 @@ Una fila de `roles` tiene:
   (p.ej. "Administrador" → "Admin"); la `key` `'admin'` (de la que depende el código vía
   `ADMIN_ROLE`) no se mueve.
 - **Borrar definitivo** solo si **ningún usuario** tiene ese rol. Lo blinda la DB: la FK
-  `usuarios.rol → roles.key` con `ON DELETE RESTRICT` rechaza borrar un rol en uso. Para
-  retirar un rol en uso → `activo=false` (soft delete).
-- **`admin` es `is_system`**: no se puede borrar ni desactivar, y sus módulos no se editan
-  (ve todo por short-circuit, ver abajo). **Sí** se le edita el `label`. Es el admin.
+  `usuarios.rol → roles.key` con `ON DELETE RESTRICT` rechaza borrar un rol en uso. **Para
+  retirar un rol:** reasignar sus usuarios a otro rol y luego borrarlo (no hay soft-delete —
+  ver decisión abajo).
+- **`admin` es `is_system`**: no se puede borrar, y sus módulos no se editan (ve todo por
+  short-circuit, ver abajo). **Sí** se le edita el `label`. Es el admin.
 - **Guard del último admin:** no se puede quitar/degradar/borrar al **último** usuario con
   rol `admin` (chequeo server-side en la API de usuarios). Evita quedarse sin nadie que
   administre si un admin se cambia el rol o se borra. Crear otro admin = asignar
@@ -88,14 +88,11 @@ Una fila de `roles` tiene:
 - **Módulos por defecto de un rol nuevo:** nace **vacío** (el admin marca lo que quiera).
   Un rol sin módulos = el usuario ve solo Home (empty state del launchpad) — es un estado
   válido, no un error.
-- **Desactivar (`activo=false`) NO revoca acceso a quien ya tiene el rol:** el rol sigue
-  teniendo sus `role_modules`, así que los usuarios que lo portan **siguen viendo sus
-  módulos**. Desactivar solo lo **oculta del menú de asignación** (no se puede asignar a más
-  gente). Para retirar acceso de verdad hay que **reasignar** a esos usuarios a otro rol.
-- **El rol por defecto (`stratix360`) también está protegido** de borrado y desactivación
-  (igual que `admin`). Si no, `create-user` (que usa `DEFAULT_ROLE`) apuntaría a un rol
-  inexistente/inactivo → falla la FK o asigna algo inactivo. Se marca con `is_system=true`
-  (o un guard equivalente "no borrar/desactivar el rol por defecto").
+- **Sin soft-delete (`activo`):** se evaluó un flag `activo` para "desactivar sin borrar" y se
+  **descartó** (ver Decisiones tomadas). Un rol existe o no existe; retirar = reasignar + borrar.
+- **El rol por defecto (`stratix360`) está protegido** de borrado (igual que `admin`,
+  `is_system=true`). Si no, `create-user` (que usa `DEFAULT_ROLE`) apuntaría a un rol
+  inexistente → falla la FK.
 - **`label` es único** (constraint `UNIQUE` en `roles.label`): evita dos roles distintos con
   el mismo nombre visible (confuso en dropdowns/chips). La API valida y devuelve error claro
   ante duplicado.
@@ -126,19 +123,18 @@ interna.
 ### 1. Esquema (migración `dynamic_roles`)
 
 ```
-roles(key PK, label UNIQUE, activo=true, is_system=false, created_at, updated_at)
+roles(key PK, label UNIQUE, is_system=false, created_at, updated_at)
 role_modules(role_key FK→roles.key ON UPDATE CASCADE ON DELETE CASCADE,
              module_slug,            -- NO es FK: módulos son code-defined
              PK(role_key, module_slug))
 ```
 
 - **Seed** `roles` (7 roles) y `role_modules` desde la matriz `PERMISSIONS` actual.
-  `admin` y `stratix360` (el rol por defecto) → `is_system=true` (protegidos de
-  borrado/desactivación; ver Modelo de rol).
-- `is_system` protege de **borrado/desactivación** y hace la **key inmutable** — vale para
-  `admin` y `stratix360`. **No** bloquea editar módulos: eso solo aplica a `admin` (por el
-  short-circuit, sus módulos son irrelevantes). Un is_system no-admin (`stratix360`) **sí**
-  edita sus módulos.
+  `admin` y `stratix360` (el rol por defecto) → `is_system=true` (protegidos de borrado;
+  ver Modelo de rol).
+- `is_system` protege de **borrado** y hace la **key inmutable** — vale para `admin` y
+  `stratix360`. **No** bloquea editar módulos: eso solo aplica a `admin` (por el short-circuit,
+  sus módulos son irrelevantes). Un is_system no-admin (`stratix360`) **sí** edita sus módulos.
 - **Migración de legacy (orden load-bearing):** `UPDATE usuarios` mapeando
   `superadmin/coordinador→admin` y `colaborador/pasante→stratix360` **antes** de la FK
   (si no, la validación de la FK falla en filas legacy).
@@ -152,6 +148,9 @@ role_modules(role_key FK→roles.key ON UPDATE CASCADE ON DELETE CASCADE,
   - función `tiene_acceso_research()`: `IN ('admin','superadmin','coordinador')` → `'admin'`.
 - **RLS de tablas nuevas:** `SELECT` para `authenticated` (la app carga la matriz con el
   cliente browser); escritura solo `service_role` (API de admin).
+- **Trigger `prevent_rol_self_change`** (BEFORE UPDATE en `usuarios`): rechaza cambiar `rol`
+  salvo desde `service_role` (ver § Seguridad). Protege la columna sin romper los writes de
+  `online_at`/`ubicacion` del cliente.
 
 ### 2. Capa de datos (`shared/data`)
 
@@ -191,7 +190,7 @@ role_modules(role_key FK→roles.key ON UPDATE CASCADE ON DELETE CASCADE,
 - `AppShell`: sidebar desde `modules.includes(slug)` (en vez de `canAccess` estático).
 - `middleware.ts`: queda como gate de sesión (se quita el bloque de módulos muerto).
 - Dropdowns de rol (`UserRow`, `CreateUserModal`, `EditUserModal`): desde `roles` del
-  contexto (value=`key`, texto=`label`), filtrando `activo` (+ el valor actual).
+  contexto (value=`key`, texto=`label`).
 - `UserRow`: el rol de sistema (`admin`) muestra badge protegido en vez de dropdown; sin
   botones desactivar/eliminar (consistente con la protección de la API).
 - `useUserActions.cambiarRol`: deja de escribir directo (`usuariosRepo.updateRol`) y **rutea
@@ -205,17 +204,26 @@ role_modules(role_key FK→roles.key ON UPDATE CASCADE ON DELETE CASCADE,
 
 - `RolesManager` + `CreateRoleModal`: listar roles, crear (**solo label** — la `key` la deriva
   el servidor), grid de checkboxes
-  de módulos (`ALL_MODULES` + `MODULE_META[slug].name`), toggle `activo`, borrar (solo si
-  no está en uso). Para el rol `admin` (is_system): label editable, pero key/borrado/
-  desactivación bloqueados y checkboxes de módulos deshabilitados (ve todo por short-circuit).
+  de módulos (`ALL_MODULES` + `MODULE_META[slug].name`), borrar (solo si no está en uso).
+  Para el rol `admin` (is_system): label editable, pero key/borrado bloqueados y checkboxes
+  de módulos deshabilitados (ve todo por short-circuit).
+  - **Conteo de usuarios por rol:** el gestor muestra cuántos usuarios tiene cada rol (query
+    `usuarios GROUP BY rol`) y **deshabilita el botón borrar** proactivamente cuando el conteo
+    > 0 — en vez de dejar fallar el click contra la FK. El conteo guía la decisión de
+    reasignar antes de borrar.
 - Nuevas rutas `app/api/admin/roles/` (GET/POST y `[key]` PATCH/DELETE), `service_role`,
   con **authz explícita de admin** y **validación de cada `module_slug` contra
   `ALL_MODULES`**.
+- **Reglas de `slugify(label)`:** minúsculas → **strip de diacríticos** (`Investigación` →
+  `investigacion`, `Médico` → `medico`) → reemplazar todo lo no-`[a-z0-9]` por `_` y colapsar/
+  trim (`Contabilidad / RRHH` → `contabilidad_rrhh`). Si el resultado queda **vacío** (label de
+  puro símbolo/emoji) o no empieza con `[a-z]`, **fallback** a `rol_<n>`. Resultado debe matchear
+  `^[a-z][a-z0-9_]*$`.
 - **Validación al crear/editar** (server-side): el cliente manda solo `label`; el servidor
-  deriva `key = slugify(label)` (formato `^[a-z][a-z0-9_]*$`), **deduplica** con sufijo si
-  choca, y rechaza si cae en una **reservada** (`{ admin, todos }` — `admin` es el rol de
+  deriva `key = slugify(label)`, **deduplica** con sufijo si choca, y rechaza si cae en una
+  **reservada** (`{ admin, todos }` — `admin` es el rol de
   acceso total del sistema y `todos` el centinela del filtro en `RoleFilterBar`). `label` **único** (error claro ante
-  duplicado). La `key` es inmutable tras crear; PATCH solo toca `label`/`activo`/módulos.
+  duplicado). La `key` es inmutable tras crear; PATCH solo toca `label`/módulos.
 
 ### 7. Seguridad: prevención de escalada de privilegios
 
@@ -232,9 +240,15 @@ puede hacer `admin`. Hay que blindar las tres puertas:
    (`create/update/delete-user`, `reassign-and-delete`, `roles/*`). Hoy esas rutas no lo
    verifican — es un hueco preexistente que esta feature **debe** cerrar porque ahora el rol
    define privilegios.
-3. **RLS de `usuarios` no permite auto-escalar.** Verificar/asegurar que un no-admin **no**
-   pueda `UPDATE` su propia fila `rol` vía el cliente browser. Tras el punto 1, la única
-   escritura legítima de `rol` es por la API con service_role; la RLS debe negar el resto.
+3. **La columna `rol` no se puede escribir desde el cliente.** Ojo: no alcanza con "cortar el
+   UPDATE del cliente a `usuarios`", porque hay writes legítimos del browser que **deben
+   seguir** — el heartbeat (`touchOnline` → `online_at`) y `updateUbicacion`. Hace falta
+   protección **a nivel columna**, que RLS de Postgres no hace fácil. Solución: un **trigger**
+   `prevent_rol_self_change` (BEFORE UPDATE en `usuarios`) que **rechace si `NEW.rol <> OLD.rol`
+   y el rol de ejecución no es `service_role`**. Así el cliente puede tocar `online_at`/
+   `ubicacion` pero nunca `rol`; la única vía para cambiar `rol` es la API admin con
+   service_role (que ya pasa por `requireAdmin` + guard del último admin). El trigger va en la
+   migración.
 
 **Race del guard del último admin (TOCTOU):** dos requests degradando a dos admins distintos
 cuando hay 2 podrían pasar ambos el chequeo "hay más de 1 admin" y dejar 0. El chequeo +
@@ -306,10 +320,19 @@ en dev antes de prod. Mitigación: backup/snapshot del proyecto Supabase antes d
   `features/admin/index.test.ts` sigue verde.
 - **Manual E2E en dev:** admin ve todo; crear rol "soporte" solo con `directorio`, asignar a
   un usuario test → ve solo Directorio; agregar módulo → acceso al refrescar; `admin`
-  no borrable ni desactivable; RLS de cobranzas/research siguen OK; `SELECT DISTINCT rol`
+  no borrable; RLS de cobranzas/research siguen OK; `SELECT DISTINCT rol`
   muestra solo keys nuevas.
 
 ## Decisiones tomadas (que estuvieron pendientes)
+
+- **Soft-delete (`activo`) — descartado.** Se evaluó un flag `activo` para "desactivar un rol
+  sin borrarlo". Tres semánticas posibles: (B) ocultar del dropdown pero conservar acceso
+  (confuso — "desactivar" no apaga nada), (C) suspender acceso (un rol inactivo no otorga
+  módulos), (A) no tener el flag. **Elegido: A.** Retirar roles es raro en una org chica; sin
+  `activo` el modelo es más simple (un rol existe o no existe) y se elimina la semántica
+  confusa. Retirar un rol = reasignar sus usuarios y borrarlo (la FK `ON DELETE RESTRICT` ya lo
+  blinda). Si más adelante hace falta un interruptor de suspensión, se agrega como la
+  semántica (C).
 
 - **Auditoría de cambios de permisos** — ✅ **Resuelto: ticket aparte, fuera de esta feature.**
   Esta feature **no audita**. El trail de cambios de privilegios (quién crea/edita/borra un
