@@ -62,16 +62,20 @@ Una fila de `roles` tiene:
 
 | Campo | Rol | Editable |
 |---|---|---|
-| `key` | ID interno (slug), p.ej. `stratix360`. Va en `usuarios.rol` y lo referencia el código. | **Fija** tras crear |
-| `label` | Nombre visible, p.ej. "Stratix 360". | Sí |
+| `key` | ID interno (slug), p.ej. `stratix360`. **Autogenerada del `label`** (`slugify`+dedupe) al crear. Va en `usuarios.rol` y la referencia código/RLS. | **Fija** (autogenerada, no se edita) |
+| `label` | Nombre visible y **único**, p.ej. "Stratix 360". Lo único que el superadmin escribe. | Sí |
 | `activo` | Soft delete: oculta el rol del menú de asignación sin borrarlo. | Sí |
 | `is_system` | Protege roles del sistema (`admin`) de borrado/desactivación. | No |
 | módulos | Asignación en `role_modules`. | Sí |
 
+- **El superadmin solo escribe el `label`; la `key` se autogenera** (`slugify(label)` +
+  dedupe con sufijo si choca) al crear y queda **fija**. Así nadie maneja slugs a mano, y la
+  `key` legible la usan código/RLS/`usuarios.rol` (portable dev/prod, sin uuids opacos).
 - **Renombrar es trivial y seguro** porque se cambia el `label`, no la `key`. Cambiar la
-  `key` rompería las referencias en cada usuario → la `key` queda fija. Esto vale **también
-  para `admin`**: el superadmin puede renombrar su label (p.ej. "Administrador" → "Admin");
-  la `key` `'admin'` (de la que depende el código vía `ADMIN_ROLE`) no se toca.
+  `key` rompería las referencias en cada usuario → la `key` queda fija (renombrar el label
+  **no** la toca). Esto vale **también para `admin`**: el superadmin puede renombrar su label
+  (p.ej. "Administrador" → "Admin"); la `key` `'admin'` (de la que depende el código vía
+  `ADMIN_ROLE`) no se mueve.
 - **Borrar definitivo** solo si **ningún usuario** tiene ese rol. Lo blinda la DB: la FK
   `usuarios.rol → roles.key` con `ON DELETE RESTRICT` rechaza borrar un rol en uso. Para
   retirar un rol en uso → `activo=false` (soft delete).
@@ -88,6 +92,13 @@ Una fila de `roles` tiene:
   teniendo sus `role_modules`, así que los usuarios que lo portan **siguen viendo sus
   módulos**. Desactivar solo lo **oculta del menú de asignación** (no se puede asignar a más
   gente). Para retirar acceso de verdad hay que **reasignar** a esos usuarios a otro rol.
+- **El rol por defecto (`stratix360`) también está protegido** de borrado y desactivación
+  (igual que `admin`). Si no, `create-user` (que usa `DEFAULT_ROLE`) apuntaría a un rol
+  inexistente/inactivo → falla la FK o asigna algo inactivo. Se marca con `is_system=true`
+  (o un guard equivalente "no borrar/desactivar el rol por defecto").
+- **`label` es único** (constraint `UNIQUE` en `roles.label`): evita dos roles distintos con
+  el mismo nombre visible (confuso en dropdowns/chips). La API valida y devuelve error claro
+  ante duplicado.
 
 ### Edge enforcement: DIFERIDO (decisión explícita)
 
@@ -115,14 +126,19 @@ interna.
 ### 1. Esquema (migración `dynamic_roles`)
 
 ```
-roles(key PK, label, activo=true, is_system=false, created_at, updated_at)
+roles(key PK, label UNIQUE, activo=true, is_system=false, created_at, updated_at)
 role_modules(role_key FK→roles.key ON UPDATE CASCADE ON DELETE CASCADE,
              module_slug,            -- NO es FK: módulos son code-defined
              PK(role_key, module_slug))
 ```
 
-- **Seed** `roles` (7 roles, `admin`→`is_system`) y `role_modules` desde la matriz
-  `PERMISSIONS` actual.
+- **Seed** `roles` (7 roles) y `role_modules` desde la matriz `PERMISSIONS` actual.
+  `admin` y `stratix360` (el rol por defecto) → `is_system=true` (protegidos de
+  borrado/desactivación; ver Modelo de rol).
+- `is_system` protege de **borrado/desactivación** y hace la **key inmutable** — vale para
+  `admin` y `stratix360`. **No** bloquea editar módulos: eso solo aplica a `admin` (por el
+  short-circuit, sus módulos son irrelevantes). Un is_system no-admin (`stratix360`) **sí**
+  edita sus módulos.
 - **Migración de legacy (orden load-bearing):** `UPDATE usuarios` mapeando
   `superadmin/coordinador→admin` y `colaborador/pasante→stratix360` **antes** de la FK
   (si no, la validación de la FK falla en filas legacy).
@@ -178,24 +194,52 @@ role_modules(role_key FK→roles.key ON UPDATE CASCADE ON DELETE CASCADE,
   contexto (value=`key`, texto=`label`), filtrando `activo` (+ el valor actual).
 - `UserRow`: el rol de sistema (`admin`) muestra badge protegido en vez de dropdown; sin
   botones desactivar/eliminar (consistente con la protección de la API).
+- `useUserActions.cambiarRol`: deja de escribir directo (`usuariosRepo.updateRol`) y **rutea
+  por `/api/admin/update-user`** (ver § Seguridad), para que el cambio de rol pase por authz +
+  guard del último admin.
 - `RoleChip`/`RoleFilterBar`: chips desde `roles` con `label`.
 - `create-user` route: default `DEFAULT_ROLE`; el label del email se trae de la tabla
   `roles` (reemplaza `ROLE_LABELS`).
 
 ### 6. UI de gestión (nuevo, dentro de /admin, solo superadmin)
 
-- `RolesManager` + `CreateRoleModal`: listar roles, crear (key+label), grid de checkboxes
+- `RolesManager` + `CreateRoleModal`: listar roles, crear (**solo label** — la `key` la deriva
+  el servidor), grid de checkboxes
   de módulos (`ALL_MODULES` + `MODULE_META[slug].name`), toggle `activo`, borrar (solo si
   no está en uso). Para el rol `admin` (is_system): label editable, pero key/borrado/
   desactivación bloqueados y checkboxes de módulos deshabilitados (ve todo por short-circuit).
 - Nuevas rutas `app/api/admin/roles/` (GET/POST y `[key]` PATCH/DELETE), `service_role`,
   con **authz explícita de superadmin** y **validación de cada `module_slug` contra
   `ALL_MODULES`**.
-- **Validación de la `key` al crear** (server-side): formato slug `^[a-z][a-z0-9_]*$`
-  (minúsculas, sin espacios), **única**, y **no reservada**. Set reservado: `{ admin, todos }`
-  — `admin` es el superadmin del sistema y `todos` es el centinela del filtro en
-  `RoleFilterBar` (una key `todos` rompería el filtro de la tabla de usuarios). La `key` es
-  inmutable tras crear; PATCH solo toca `label`/`activo`/módulos.
+- **Validación al crear/editar** (server-side): el cliente manda solo `label`; el servidor
+  deriva `key = slugify(label)` (formato `^[a-z][a-z0-9_]*$`), **deduplica** con sufijo si
+  choca, y rechaza si cae en una **reservada** (`{ admin, todos }` — `admin` es el superadmin,
+  `todos` el centinela del filtro en `RoleFilterBar`). `label` **único** (error claro ante
+  duplicado). La `key` es inmutable tras crear; PATCH solo toca `label`/`activo`/módulos.
+
+### 7. Seguridad: prevención de escalada de privilegios
+
+Con roles dinámicos, **`usuarios.rol` es un vector de privilegio**: quien pueda escribirlo se
+puede hacer `admin`. Hay que blindar las tres puertas:
+
+1. **Toda escritura de `usuarios.rol` pasa por el servidor.** Hoy `cambiarRol` (dropdown inline
+   de `UserRow`) escribe **directo** con el cliente browser (`usuariosRepo.updateRol`),
+   salteando cualquier guard. Se **rutea por `/api/admin/update-user`** (como ya hace
+   `toggleActivo`), para que apliquen authz + guard del último admin + (futuro) audit.
+2. **Authz server-side en las rutas admin.** Helper `requireSuperadmin(req)` que lee la sesión
+   del que llama y verifica `rol===ADMIN_ROLE` **en la DB** (no confiar en el gating del
+   cliente). Lo usan TODAS las rutas admin que mutan usuarios o roles
+   (`create/update/delete-user`, `reassign-and-delete`, `roles/*`). Hoy esas rutas no lo
+   verifican — es un hueco preexistente que esta feature **debe** cerrar porque ahora el rol
+   define privilegios.
+3. **RLS de `usuarios` no permite auto-escalar.** Verificar/asegurar que un no-admin **no**
+   pueda `UPDATE` su propia fila `rol` vía el cliente browser. Tras el punto 1, la única
+   escritura legítima de `rol` es por la API con service_role; la RLS debe negar el resto.
+
+**Race del guard del último admin (TOCTOU):** dos requests degradando a dos admins distintos
+cuando hay 2 podrían pasar ambos el chequeo "hay más de 1 admin" y dejar 0. El chequeo +
+update se hacen en una **transacción** (RPC Postgres `SELECT ... FOR UPDATE` o constraint), no
+en dos pasos read-then-write del lado app.
 
 ## Módulos ↔ DB (conexión y qué pasa si cambia uno)
 
@@ -239,6 +283,13 @@ Sin downtime: el `UPDATE` legacy + swap FK es rápido en la tabla chica `usuario
 middleware fail-open + gates client-side evitan lockout durante la rotación de tokens. El
 guard prod-ref de `env.client.ts` no cambia. El shim `normalizeRole` se quita en un PR
 follow-up una vez migradas ambas DBs y rotados los tokens.
+
+**Reversa (forward-only):** la migración **no** trae down-script (las migraciones Supabase son
+forward-only). Como toca `usuarios` (drop CHECK, add FK, UPDATE de datos), el plan B ante
+falla en prod es **manual**: `DROP CONSTRAINT usuarios_rol_fkey`, recrear el CHECK previo, y
+(si hace falta) `DROP TABLE role_modules, roles`. Los `UPDATE` de legacy (superadmin→admin,
+etc.) **no son reversibles** por dato (se pierde el valor original) — por eso conviene verificar
+en dev antes de prod. Mitigación: backup/snapshot del proyecto Supabase antes del `db push` a prod.
 
 ## Testing
 
