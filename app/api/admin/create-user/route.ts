@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
-import { normalizeRole, ROLE_LABELS } from '@/shared/auth/permissions'
+import { DEFAULT_ROLE } from '@/shared/auth/permissions'
 import { clientEnv } from '@/shared/db/env.client'
 import { serverEnv } from '@/shared/db/env.server'
 
@@ -31,12 +31,10 @@ function buildWelcomeEmail(args: {
   apellido: string
   email: string
   password: string
-  rol: string
+  areaLabel: string
   cargo?: string
 }): string {
-  const { nombre, apellido, email, password, rol, cargo } = args
-  const normalizedRole = normalizeRole(rol)
-  const areaLabel = normalizedRole ? ROLE_LABELS[normalizedRole] : rol
+  const { nombre, apellido, email, password, areaLabel, cargo } = args
   const cargoLine = cargo ? `<div style="font-size:12px;color:#A5A7FF;margin-top:4px">${escapeHtml(cargo)}</div>` : ''
 
   return `<!doctype html>
@@ -106,7 +104,7 @@ async function sendWelcomeEmail(args: {
   apellido: string
   email: string
   password: string
-  rol: string
+  areaLabel: string
   cargo?: string
 }): Promise<string | null> {
   try {
@@ -184,7 +182,7 @@ export async function POST(req: NextRequest) {
         nombre,
         apellido,
         email,
-        rol: rol || 'stratix360',
+        rol: rol || DEFAULT_ROLE,
         tipo: tipo || 'B',
         color: color || '#7C6FF7',
         empresa: empresa || 'Eminat Group',
@@ -226,7 +224,9 @@ export async function POST(req: NextRequest) {
     console.log(`${TAG} usuarios inserted`, { userId, email })
 
     // 3. Best-effort welcome email. Never fails the request.
-    const emailWarning = await sendWelcomeEmail({ nombre, apellido, email, password, rol: rol || 'stratix360', cargo })
+    const { data: roleRow } = await supabaseAdmin.from('roles').select('label').eq('key', rol || DEFAULT_ROLE).maybeSingle()
+    const areaLabel = roleRow?.label || (rol || DEFAULT_ROLE)
+    const emailWarning = await sendWelcomeEmail({ nombre, apellido, email, password, areaLabel, cargo })
     if (emailWarning) console.warn(`${TAG} email warning`, { userId, email, emailWarning })
 
     console.log(`${TAG} success`, { userId, email })

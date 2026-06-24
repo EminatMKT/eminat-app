@@ -12,7 +12,7 @@ const emptyNuevaAct = (): NuevaActForm => ({
 })
 
 export function useStratixData() {
-  const { usuario, actividades, equipo, usuarios, esSuperAdmin, mostrarMensaje, setActividades } = useApp()
+  const { usuario, actividades, equipo, usuarios, esAdmin, mostrarMensaje, setActividades } = useApp()
 
   const [mktTab, setMktTab] = useState('kanban')
   const [trimestre, setTrimestre] = useState('General')
@@ -56,7 +56,7 @@ export function useStratixData() {
   const maxTotal = Math.max(...datosPorMes.map(d => d.total), 1)
   const datosPorMarca = MARCAS_LIST.map(m => ({ ...m, total: actsFiltradas.filter(a => a.area_ref === m.codigo).length })).filter(m => m.total > 0)
   const maxMarca = Math.max(...datosPorMarca.map(d => d.total), 1)
-  const refsTeam = esSuperAdmin ? Object.keys(ACTIVE_MIEMBROS_REFS) : [usuario?.responsable_ref].filter(Boolean)
+  const refsTeam = esAdmin ? Object.keys(ACTIVE_MIEMBROS_REFS) : [usuario?.responsable_ref].filter(Boolean)
   const datosPorMiembro = refsTeam.map(ref => ({
     ref, nombre: MIEMBROS_REFS[ref] || ref,
     total: actsFiltradas.filter(a => a.responsable_ref === ref).length,

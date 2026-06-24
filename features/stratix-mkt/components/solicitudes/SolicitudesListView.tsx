@@ -6,9 +6,9 @@ import TaskTableRow from './TaskTableRow'
 const ESTADOS_FILTRO = ['All', 'Pendiente', 'En proceso', 'Por aprobar', 'Completado']
 
 export default function SolicitudesListView() {
-  const { s1, s2, border, accent, t2, t3, inputStyle, esSuperAdmin } = useApp()
+  const { s1, s2, border, accent, t2, t3, inputStyle, esAdmin } = useApp()
   const { busquedaSol, setBusquedaSol, filtroEstadoSol, setFiltroEstadoSol, actsFiltradasSol } = useStratix()
-  const headers = ['Title', 'Brand', ...(esSuperAdmin ? ['Assignee'] : []), 'Month', 'Hours', 'Status', 'Due', 'Drive']
+  const headers = ['Title', 'Brand', ...(esAdmin ? ['Assignee'] : []), 'Month', 'Hours', 'Status', 'Due', 'Drive']
   return (
     <div>
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>

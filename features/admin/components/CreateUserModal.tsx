@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
-import { useApp, ROLES, COLORES_AVATAR, CARGOS_DIR } from '@/shared/context/AppContext'
+import { useApp, COLORES_AVATAR, CARGOS_DIR } from '@/shared/context/AppContext'
+import { DEFAULT_ROLE } from '@/shared/auth/permissions'
 import { DEFAULT_COMPANY, companyOptions } from '@/shared/constants/companies'
 import { usuariosRepo } from '@/shared/data'
 import { apiPost } from '../api'
@@ -9,10 +10,10 @@ import PasswordInput from './PasswordInput'
 import CredentialsPanel from './CredentialsPanel'
 import ErrorBlock from './ErrorBlock'
 
-const DEFAULT_NEW = { nombre: '', apellido: '', email: '', password: '', rol: 'stratix360', tipo: 'B', color: '#7C6FF7', empresa: DEFAULT_COMPANY, cargo: '' }
+const DEFAULT_NEW = { nombre: '', apellido: '', email: '', password: '', rol: DEFAULT_ROLE, tipo: 'B', color: '#7C6FF7', empresa: DEFAULT_COMPANY, cargo: '' }
 
 export default function CreateUserModal({ onClose }: { onClose: () => void }) {
-  const { setAdminUsuarios, s1, border, t1, t2, t3, accent, inputStyle } = useApp()
+  const { setAdminUsuarios, s1, border, t1, t2, t3, accent, inputStyle, roles } = useApp()
   const [nuevoUsr, setNuevoUsr] = useState(DEFAULT_NEW)
   const [showCreatePwd, setShowCreatePwd] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
@@ -68,7 +69,7 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
               <PasswordInput value={nuevoUsr.password} onChange={v => setNuevoUsr(p => ({ ...p, password: v }))} show={showCreatePwd} setShow={setShowCreatePwd} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Role</label><select value={nuevoUsr.rol} onChange={e => setNuevoUsr(p => ({ ...p, rol: e.target.value }))} style={inputStyle}>{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
+              <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Role</label><select value={nuevoUsr.rol} onChange={e => setNuevoUsr(p => ({ ...p, rol: e.target.value }))} style={inputStyle}>{roles.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}</select></div>
               <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Type</label><select value={nuevoUsr.tipo} onChange={e => setNuevoUsr(p => ({ ...p, tipo: e.target.value }))} style={inputStyle}><option value="A">Tipo A — Staff</option><option value="B">Tipo B — Pasante</option></select></div>
             </div>
             <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Cargo (Role Title)</label><input type="text" value={nuevoUsr.cargo} onChange={e => setNuevoUsr(p => ({ ...p, cargo: e.target.value }))} placeholder={CARGOS_DIR[nuevoUsr.email.toLowerCase()] || 'Ej. Lead Designer (opcional)'} style={inputStyle} /></div>

@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
+import { DEFAULT_ROLE } from '@/shared/auth/permissions'
 import { DEFAULT_COMPANY } from '@/shared/constants/companies'
 import AppShell from '@/shared/components/AppShell'
 import AccessDenied from '@/shared/components/AccessDenied'
@@ -15,7 +16,7 @@ import DeleteUserModal from './DeleteUserModal'
 import type { AdminUser, ResetTarget } from '../types'
 
 export default function AdminModule() {
-  const { esSuperAdmin, adminUsuarios } = useApp()
+  const { esAdmin, adminUsuarios } = useApp()
   const [busqueda, setBusqueda] = useState('')
   const [filtroRol, setFiltroRol] = useState('todos')
   const [modalCrear, setModalCrear] = useState(false)
@@ -23,7 +24,7 @@ export default function AdminModule() {
   const [modalReset, setModalReset] = useState<ResetTarget | null>(null)
   const [modalEliminar, setModalEliminar] = useState<string | null>(null)
 
-  if (!esSuperAdmin) return <AccessDenied />
+  if (!esAdmin) return <AccessDenied />
 
   const adminFiltrado = adminUsuarios.filter(u => {
     if (filtroRol !== 'todos' && u.rol !== filtroRol) return false
@@ -33,7 +34,7 @@ export default function AdminModule() {
 
   const openEdit = (u: AdminUser) => setModalEditar({
     id: u.id, nombre: u.nombre || '', apellido: u.apellido || '', email: u.email || '', currentEmail: u.email || '',
-    rol: u.rol || 'stratix360', tipo: u.tipo || 'B', color: u.color || '#7C6FF7', ubicacion: u.ubicacion || 'Guayaquil, Ecuador',
+    rol: u.rol || DEFAULT_ROLE, tipo: u.tipo || 'B', color: u.color || '#7C6FF7', ubicacion: u.ubicacion || 'Guayaquil, Ecuador',
     empresa: u.empresa || DEFAULT_COMPANY, cargo: u.cargo || '',
   })
 

@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { useApp, ROLES, COLORES_AVATAR } from '@/shared/context/AppContext'
+import { useApp, COLORES_AVATAR } from '@/shared/context/AppContext'
 import { companyOptions } from '@/shared/constants/companies'
 import { apiPost } from '../api'
 import ErrorBlock from './ErrorBlock'
@@ -20,7 +20,7 @@ export type EditUserDraft = {
 }
 
 export default function EditUserModal({ user, onClose }: { user: EditUserDraft; onClose: () => void }) {
-  const { setAdminUsuarios, mostrarMensaje, s1, border, t1, t2, t3, accent, inputStyle } = useApp()
+  const { setAdminUsuarios, mostrarMensaje, s1, border, t1, t2, t3, accent, inputStyle, roles } = useApp()
   const [form, setForm] = useState<EditUserDraft>(user)
   const [editError, setEditError] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
@@ -63,7 +63,7 @@ export default function EditUserModal({ user, onClose }: { user: EditUserDraft; 
           )}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-          <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Role</label><select value={form.rol} onChange={e => setForm(p => ({ ...p, rol: e.target.value }))} style={inputStyle}>{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
+          <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Role</label><select value={form.rol} onChange={e => setForm(p => ({ ...p, rol: e.target.value }))} style={inputStyle}>{roles.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}</select></div>
           <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Type</label><select value={form.tipo} onChange={e => setForm(p => ({ ...p, tipo: e.target.value }))} style={inputStyle}><option value="A">Tipo A — Staff</option><option value="B">Tipo B — Pasante</option></select></div>
         </div>
         <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Cargo (Role Title)</label><input type="text" value={form.cargo} onChange={e => setForm(p => ({ ...p, cargo: e.target.value }))} placeholder="Ej. Lead Designer (opcional)" style={inputStyle} /></div>

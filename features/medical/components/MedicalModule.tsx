@@ -25,14 +25,14 @@ const TABS = [
 ]
 
 export default function MedicalModule() {
-  const { canMedical, border } = useApp()
+  const { modules, border } = useApp()
   const { hipaaShield } = useMedicalStyles()
   const [tab, setTab] = useState('dashboard')
   const [modalPaciente, setModalPaciente] = useState(false)
   const [modalCita, setModalCita] = useState(false)
   const [modalIncidente, setModalIncidente] = useState(false)
 
-  if (!canMedical) return <AccessDenied message="You don't have access to the Medical HIPAA module" />
+  if (!modules.includes('medical')) return <AccessDenied message="You don't have access to the Medical HIPAA module" />
 
   return (
     <AppShell activeTab={tab} onTabChange={setTab}>

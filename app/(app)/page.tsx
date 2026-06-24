@@ -97,7 +97,7 @@ function ModuleIcon({ slug }: { slug: ModuleSlug }) {
 // ── Launchpad ──────────────────────────────────────────────────────────
 
 export default function LaunchpadPage() {
-  const { usuario, modules, esSuperAdmin } = useApp()
+  const { usuario, modules, esAdmin } = useApp()
   const router = useRouter()
 
   return (
@@ -164,7 +164,7 @@ export default function LaunchpadPage() {
             </div>
 
             {/* Admin "Ver todo" — only visible to admin role */}
-            {esSuperAdmin && <VerTodoBanner onClick={() => router.push('/overview')} />}
+            {esAdmin && <VerTodoBanner onClick={() => router.push('/overview')} />}
 
             {/* Cards grid */}
             {modules.length === 0 ? (
