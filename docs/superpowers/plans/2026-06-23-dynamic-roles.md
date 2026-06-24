@@ -255,14 +255,19 @@ Verificar manualmente:
 Las funciones borradas (`tiene_acceso_*`) concedían acceso por **email**, no solo por rol:
 `cobranzas` → `majo@eminat.net`, `freddy@eminat.net`; `research` → `freddy@eminat.net`, `jonathan@eminat.net`.
 Tras la migración el acceso es solo `has_module(slug)`. Freddy = admin (short-circuit, OK), pero **majo**
-y **jonathan** pierden acceso salvo que su rol tenga el módulo. Verificar y asignar:
+y **jonathan** pierden acceso salvo que su rol tenga el módulo. Verificar:
 ```sql
 SELECT email, rol FROM usuarios WHERE email IN ('majo@eminat.net','jonathan@eminat.net');
--- Si su rol no incluye cobranzas/research, asignarles un rol que sí (p.ej. 'finanzas' / 'investigacion')
--- vía el panel admin o: UPDATE usuarios SET rol='finanzas' WHERE email='majo@eminat.net';  (service_role)
 ```
-> Nota: este UPDATE de `rol` debe correr como **service_role** (el trigger bloquea otros). Vía SQL editor
-> de Supabase (que es service_role) o el panel admin ya sirve.
+**Camino principal (por la UI, una vez la feature está viva — Task 9):** crear roles a medida con
+**exactamente** los módulos que cada uno necesita (su excepción-por-email pasa a ser un rol propio):
+- Rol "Cobranzas" = `{cobranzas}` (+`directorio` si se quiere) → asignar a majo.
+- Rol "Research" = `{research}` (+`directorio`) → asignar a jonathan.
+
+Esto preserva el acceso exacto sin sobre-otorgar (no reusar `finanzas`/`investigacion`, que dan módulos de más).
+Asignación: dropdown de rol en la fila del usuario en /admin.
+> Plan B (durante la migración misma, sin UI todavía): `UPDATE usuarios SET rol='...' WHERE email='...'`
+> como **service_role** (el SQL editor de Supabase lo es; el trigger bloquea otros clientes).
 
 - [ ] **Step 6: Verificar el trigger anti auto-escalada (manual, como usuario authenticated)**
 
