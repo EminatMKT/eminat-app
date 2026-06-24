@@ -44,13 +44,15 @@ pnpm supabase db push
 
 ## Roles de usuario
 
-| Rol | Descripción | Acceso |
-|---|---|---|
-| `superadmin` | Control total. Único: Freddy Crespín | Todos los módulos + Admin |
-| `colaborador` (Tipo A) | Empleados permanentes | Módulos según área |
-| `pasante` (Tipo B) | Pasantes | Módulos restringidos |
+Los roles son **dinámicos**: viven en la tabla `roles` (+ `role_modules`) y el admin los crea/edita/borra desde `/admin` (tab Roles). La matriz rol→módulos ya **no** está hardcodeada.
 
-La lógica de permisos vive en `lib/permissions.ts` — es el archivo con mayor fan-in del proyecto. El middleware `middleware.ts` lo consume para proteger rutas en el Edge antes de que lleguen al cliente.
+| Rol | Tipo | Acceso |
+|---|---|---|
+| `admin` | sistema (`is_system`) | Total — short-circuit `is_admin()`, sin filas en `role_modules`. Único tier de control |
+| `sin_asignar` | sistema (`is_system`) | Default de altas nuevas. Cero módulos (solo Home) |
+| *(dinámicos)* | creados por el admin | Los módulos que el admin les asigne (`role_modules`) |
+
+La lógica de permisos vive en `shared/auth/permissions.ts` — helpers puros **map-driven** (`getModulesForRole(map, role)`, `normalizeRole`, `moduleForPath`), ya no una matriz. El mapa `roleModuleMap` se carga en `AppContext` desde la DB. La RLS de Postgres gatea los datos por módulo vía `has_module(slug)`; `usuarios.rol` solo se cambia por la API admin (service_role), protegido por el trigger `prevent_rol_self_change`. El middleware `middleware.ts` solo gatea la sesión (redirect login).
 
 ## Dominios corporativos autorizados
 
@@ -94,9 +96,10 @@ Las constantes de marcas y empresas viven en `lib/companies.ts` y `lib/AppContex
 ## Estructura clave del código
 
 ```
-middleware.ts          ← protección de rutas (Edge, consume lib/permissions.ts)
+middleware.ts          ← gate de sesión en el Edge (redirect a /login)
+shared/auth/
+  permissions.ts       ← helpers de permisos map-driven (roles dinámicos desde la DB)
 lib/
-  permissions.ts       ← matriz de roles/módulos. Importado por casi todo.
   AppContext.tsx        ← contexto global: usuario autenticado, actividades, constantes de dominio
   supabase.ts          ← singleton del cliente Supabase (browser)
   companies.ts         ← constantes de marcas y utilidades
@@ -134,7 +137,7 @@ app/
 - Páginas de módulos: exportan un único componente default (ej. `AccountingPage`)
 - Rutas API: usan `export async function POST/GET/PUT/DELETE` de Next.js App Router
 - Animaciones: siempre usar los componentes de `lib/motion.tsx`, no Framer Motion directo
-- Permisos: verificar con `canAccess(role, module)` de `lib/permissions.ts`
+- Permisos: en componentes, `useApp().modules.includes('<slug>')`; en lógica pura, `getModulesForRole(map, role).includes('<slug>')` de `shared/auth/permissions.ts` (ya no hay `canAccess`)
 - Supabase en cliente: importar el singleton de `lib/supabase.ts`
 - Nombres de columnas FK: `<entidad>_id` cuando la FK apunta a una **clave surrogate** (uuid),
   ej. `departamento_id`. **Nombre natural** (sin `_id`) cuando apunta a una **clave natural
