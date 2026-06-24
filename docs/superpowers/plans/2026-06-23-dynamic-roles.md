@@ -38,6 +38,7 @@
 | `shared/context/AppContext.tsx` | derivar desde el mapa; exponer `roles`/`roleModuleMap` | Modificar |
 | `shared/components/AppShell.tsx` | sidebar desde `modules.includes` | Modificar |
 | `middleware.ts` | gate de sesión solamente | Reescribir |
+| `shared/db/supabaseAdmin.ts` | factory del cliente service_role (reusable por rutas admin) | Crear |
 | `shared/db/requireAdmin.ts` | authz server-side de admin (lee sesión) | Crear |
 | `features/admin/components/{RoleChip,RoleFilterBar,UserRow,CreateUserModal,EditUserModal}.tsx` | dropdowns/chips desde `roles` | Modificar |
 | `features/admin/hooks/useUserActions.ts` | `cambiarRol` rutea por API | Modificar |
@@ -158,15 +159,20 @@ CREATE POLICY "Acceso research recipients" ON "public"."research_campaign_recipi
 DROP FUNCTION IF EXISTS "public"."tiene_acceso_cobranzas"();
 DROP FUNCTION IF EXISTS "public"."tiene_acceso_research"();
 
--- 7. superadmin_all* → is_admin() (override admin; 1 función, no 4 copias inline)
+-- 7. Override de admin → is_admin(); de paso renombrar las políticas (superadmin_* → admin_*).
+--    Doble DROP (nombre viejo + nuevo) para que sea idempotente y no quede la vieja colgada.
 DROP POLICY IF EXISTS "superadmin_all" ON "public"."actividades";
-CREATE POLICY "superadmin_all" ON "public"."actividades" USING (public.is_admin());
+DROP POLICY IF EXISTS "admin_all" ON "public"."actividades";
+CREATE POLICY "admin_all" ON "public"."actividades" USING (public.is_admin());
 DROP POLICY IF EXISTS "superadmin_all" ON "public"."solicitudes";
-CREATE POLICY "superadmin_all" ON "public"."solicitudes" USING (public.is_admin());
+DROP POLICY IF EXISTS "admin_all" ON "public"."solicitudes";
+CREATE POLICY "admin_all" ON "public"."solicitudes" USING (public.is_admin());
 DROP POLICY IF EXISTS "superadmin_all_marcaciones" ON "public"."marcaciones";
-CREATE POLICY "superadmin_all_marcaciones" ON "public"."marcaciones" USING (public.is_admin());
+DROP POLICY IF EXISTS "admin_all_marcaciones" ON "public"."marcaciones";
+CREATE POLICY "admin_all_marcaciones" ON "public"."marcaciones" USING (public.is_admin());
 DROP POLICY IF EXISTS "superadmin_all_users" ON "public"."usuarios";
-CREATE POLICY "superadmin_all_users" ON "public"."usuarios" USING (public.is_admin());
+DROP POLICY IF EXISTS "admin_all_users" ON "public"."usuarios";
+CREATE POLICY "admin_all_users" ON "public"."usuarios" USING (public.is_admin());
 
 -- colaborador_read (actividades) → por módulo stratix-mkt
 DROP POLICY IF EXISTS "colaborador_read" ON "public"."actividades";
@@ -302,7 +308,10 @@ export type RoleRow = { key: string; label: string; is_system: boolean }
 export const ADMIN_ROLE = 'admin'
 export const DEFAULT_ROLE = 'sin_asignar'
 
-// (ModuleSlug, ALL_MODULES, isModuleSlug, MODULE_META se mantienen igual que hoy)
+// ModuleSlug, isModuleSlug, MODULE_META se mantienen. ALL_MODULES pasa a DERIVARSE de
+// MODULE_META (no más lista a mano; agregar un módulo = una entrada en MODULE_META).
+// IMPORTANTE: declarar ALL_MODULES DESPUÉS de MODULE_META (lo referencia):
+export const ALL_MODULES = Object.keys(MODULE_META) as ModuleSlug[]
 
 const LEGACY_TO_NEW: Record<string, Role> = {
   superadmin: 'admin', coordinador: 'admin', colaborador: 'stratix360', pasante: 'stratix360',
@@ -647,23 +656,36 @@ git commit -m "feat(roles): consumidores DB-driven (sidebar data-driven, dropdow
 ## Task 7: Authz server-side + ruteo de cambios de rol + guard último admin
 
 **Files:**
-- Create: `shared/db/requireAdmin.ts`
+- Create: `shared/db/supabaseAdmin.ts`, `shared/db/requireAdmin.ts`
 - Modify: `features/admin/hooks/useUserActions.ts`, `app/api/admin/update-user/route.ts`, `app/api/admin/delete-user/route.ts`, `app/api/admin/reassign-and-delete/route.ts`
 - Test: `shared/auth/roleValidation.test.ts` (ya cubre `isLastAdmin`)
 
 **Interfaces:**
 - Consumes: `isLastAdmin` (Task 3), `ADMIN_ROLE` (Task 2).
-- Produces: `requireAdmin(req): Promise<{ ok: true; userId: string } | { ok: false; status: number; error: string }>`.
+- Produces: `supabaseAdmin(): SupabaseClient` (factory service_role, reusable); `requireAdmin(): Promise<{ ok: true; userId: string } | { ok: false; status: number; error: string }>`.
+
+- [ ] **Step 0: Crear el factory `shared/db/supabaseAdmin.ts`** (elimina el `createClient(...service_role...)` repetido en cada ruta admin):
+```ts
+import { createClient } from '@supabase/supabase-js'
+import { clientEnv } from './env.client'
+import { serverEnv } from './env.server'
+
+// Cliente service_role para rutas admin (bypassa RLS). NUNCA en el cliente browser.
+export function supabaseAdmin() {
+  return createClient(clientEnv.NEXT_PUBLIC_SUPABASE_URL, serverEnv.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
+```
 
 - [ ] **Step 1: Crear `shared/db/requireAdmin.ts`**
 
-Lee la sesión del que llama (cookies, cliente SSR) y verifica su rol en DB con service_role:
+Lee la sesión del que llama (cookies, cliente SSR) y verifica su rol en DB con el factory:
 ```ts
 import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
-import { createClient } from '@supabase/supabase-js'
 import { clientEnv } from '@/shared/db/env.client'
-import { serverEnv } from '@/shared/db/env.server'
+import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { ADMIN_ROLE, normalizeRole } from '@/shared/auth/permissions'
 
 export async function requireAdmin(): Promise<{ ok: true; userId: string } | { ok: false; status: number; error: string }> {
@@ -673,13 +695,15 @@ export async function requireAdmin(): Promise<{ ok: true; userId: string } | { o
   })
   const { data: { user } } = await ssr.auth.getUser()
   if (!user) return { ok: false, status: 401, error: 'No autenticado.' }
-  const admin = createClient(clientEnv.NEXT_PUBLIC_SUPABASE_URL, serverEnv.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
-  const { data: row } = await admin.from('usuarios').select('id,rol').eq('auth_id', user.id).maybeSingle()
+  const { data: row } = await supabaseAdmin().from('usuarios').select('id,rol').eq('auth_id', user.id).maybeSingle()
   if (!row || normalizeRole(row.rol) !== ADMIN_ROLE) return { ok: false, status: 403, error: 'Requiere rol admin.' }
   return { ok: true, userId: row.id }
 }
 ```
 > Verificar el nombre exacto del anon key en `clientEnv` (`NEXT_PUBLIC_SUPABASE_ANON_KEY`).
+> Las rutas admin **tocadas** (update/delete/reassign/create-user) pueden migrar su
+> `createClient(...)` inline a `supabaseAdmin()` de paso (opcional; el ticket de helpers comunes
+> hace el resto). Las **rutas nuevas** (`roles/*`) lo usan sí o sí.
 
 - [ ] **Step 2: Aplicar `requireAdmin` en las 3 rutas de mutación**
 
@@ -724,8 +748,8 @@ async function cambiarRol(id: string, rol: string) {
 
 - [ ] **Step 7: Commit**
 ```bash
-git add shared/db/requireAdmin.ts features/admin/hooks/useUserActions.ts app/api/admin/
-git commit -m "feat(roles): requireAdmin en rutas admin + cambiarRol por API + guard último admin"
+git add shared/db/supabaseAdmin.ts shared/db/requireAdmin.ts features/admin/hooks/useUserActions.ts app/api/admin/
+git commit -m "feat(roles): supabaseAdmin factory + requireAdmin en rutas admin + cambiarRol por API + guard último admin"
 ```
 
 ---
@@ -742,18 +766,14 @@ git commit -m "feat(roles): requireAdmin en rutas admin + cambiarRol por API + g
 - [ ] **Step 1: `app/api/admin/roles/route.ts`**
 ```ts
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { clientEnv } from '@/shared/db/env.client'
-import { serverEnv } from '@/shared/db/env.server'
+import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { requireAdmin } from '@/shared/db/requireAdmin'
 import { validateNewRole, validateModuleSlugs } from '@/shared/auth/roleValidation'
 import type { RoleRow } from '@/shared/auth/permissions'
 
-const admin = () => createClient(clientEnv.NEXT_PUBLIC_SUPABASE_URL, serverEnv.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
-
 export async function GET() {
   const authz = await requireAdmin(); if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
-  const db = admin()
+  const db = supabaseAdmin()
   const [{ data: roles }, { data: roleModules }] = await Promise.all([
     db.from('roles').select('*').order('label'), db.from('role_modules').select('*'),
   ])
@@ -764,7 +784,7 @@ export async function POST(req: NextRequest) {
   const authz = await requireAdmin(); if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
   const { label, modules = [] } = await req.json()
   const mods = validateModuleSlugs(modules); if (!mods.ok) return NextResponse.json({ error: mods.error }, { status: 400 })
-  const db = admin()
+  const db = supabaseAdmin()
   const { data: existing } = await db.from('roles').select('key,label,is_system')
   const v = validateNewRole(label, (existing as RoleRow[]) || []); if (!v.ok) return NextResponse.json({ error: v.error }, { status: 400 })
   const { error: e1 } = await db.from('roles').insert({ key: v.key, label: label.trim(), is_system: false })
@@ -780,18 +800,14 @@ export async function POST(req: NextRequest) {
 - [ ] **Step 2: `app/api/admin/roles/[key]/route.ts`**
 ```ts
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { clientEnv } from '@/shared/db/env.client'
-import { serverEnv } from '@/shared/db/env.server'
+import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { requireAdmin } from '@/shared/db/requireAdmin'
 import { validateModuleSlugs } from '@/shared/auth/roleValidation'
-
-const admin = () => createClient(clientEnv.NEXT_PUBLIC_SUPABASE_URL, serverEnv.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
 
 export async function PATCH(req: NextRequest, { params }: { params: { key: string } }) {
   const authz = await requireAdmin(); if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
   const { label, modules } = await req.json()
-  const db = admin()
+  const db = supabaseAdmin()
   if (label !== undefined) {
     const { error } = await db.from('roles').update({ label: String(label).trim() }).eq('key', params.key)
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
@@ -806,7 +822,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { key: strin
 
 export async function DELETE(_req: NextRequest, { params }: { params: { key: string } }) {
   const authz = await requireAdmin(); if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
-  const db = admin()
+  const db = supabaseAdmin()
   const { data: role } = await db.from('roles').select('is_system').eq('key', params.key).maybeSingle()
   if (role?.is_system) return NextResponse.json({ error: 'No se puede borrar un rol del sistema.' }, { status: 400 })
   const { count } = await db.from('usuarios').select('id', { count: 'exact', head: true }).eq('rol', params.key)

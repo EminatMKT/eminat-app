@@ -165,9 +165,10 @@ role_modules(role_key FK→roles.key ON UPDATE CASCADE ON DELETE CASCADE,
   - **`is_admin()`** = `EXISTS(usuarios u WHERE u.auth_id=auth.uid() AND u.rol='admin')`.
   - **`has_module(p_slug text)`** = `is_admin() OR EXISTS(usuarios u JOIN role_modules rm ON
     rm.role_key=u.rol WHERE u.auth_id=auth.uid() AND rm.module_slug=p_slug)` (compone `is_admin`).
-  - **Admin-override** (acceso total del admin): las 4 políticas `superadmin_all`/
-    `superadmin_all_marcaciones`/`superadmin_all_users` pasan a `USING (is_admin())` (1 función,
-    no 4 copias inline del mismo predicado).
+  - **Admin-override** (acceso total del admin): las 4 políticas pasan a `USING (is_admin())`
+    (1 función, no 4 copias inline del mismo predicado) y de paso se **renombran**
+    `superadmin_*` → `admin_*` (termina de sacar "superadmin" del esquema; gratis porque igual
+    se DROP/CREATE).
   - **Acceso a data por módulo:** las tablas de negocio se gateaban por rol fijo, lo que
     **divergiría** del matrix dinámico (otorgar un módulo no daría el dato). Las **7 políticas**
     `Acceso cobranzas *` / `Acceso research *` pasan a llamar `has_module('cobranzas')` /
@@ -230,8 +231,10 @@ El esquema nuevo cumple **BCNF** (y por ende 3NF/2NF/1NF). Chequeo formal:
     `ALL_MODULES` (ve todo, incl. módulos nuevos, sin mantenimiento). `null`/desconocido → `[]`.
 - `normalizeRole`: mantener como bridge legacy, pero **pasar tal cual** cualquier key no
   legacy (antes devolvía `null` para keys desconocidas → rompería roles nuevos).
-- Quitar `ROLES`, `PERMISSIONS`, `ROLE_LABELS` (ahora viven en DB). Conservar `MODULE_META`,
-  `ALL_MODULES`, `moduleForPath`.
+- Quitar `ROLES`, `PERMISSIONS`, `ROLE_LABELS` (ahora viven en DB). Conservar `MODULE_META`
+  (catálogo, fuente única) y `moduleForPath`. **`ALL_MODULES` pasa a derivarse** de las keys de
+  `MODULE_META` (`Object.keys(MODULE_META) as ModuleSlug[]`) — una lista menos a mantener a mano;
+  agregar un módulo = una entrada en `MODULE_META`.
 - **Limpieza menor in-scope:** `MODULE_PATH_PREFIX` es redundante — en los 8 casos es
   `'/' + slug`. Como ya reescribimos `permissions.ts`, se borra el mapa y `moduleForPath`
   computa el prefijo (`'/' + slug`). Cero cambio de comportamiento; un mapa menos que mantener
@@ -311,7 +314,9 @@ puede hacer `admin`. Hay que blindar las tres puertas:
    cliente). Lo usan TODAS las rutas admin que mutan usuarios o roles
    (`create/update/delete-user`, `reassign-and-delete`, `roles/*`). Hoy esas rutas no lo
    verifican — es un hueco preexistente que esta feature **debe** cerrar porque ahora el rol
-   define privilegios.
+   define privilegios. El cliente service_role se obtiene de un factory compartido
+   **`shared/db/supabaseAdmin()`** (las rutas nuevas lo usan en vez de repetir el
+   `createClient(...service_role...)` inline — mismo principio anti-duplicación).
 3. **La columna `rol` no se puede escribir desde el cliente.** Ojo: no alcanza con "cortar el
    UPDATE del cliente a `usuarios`", porque hay writes legítimos del browser que **deben
    seguir** — el heartbeat (`touchOnline` → `online_at`) y `updateUbicacion`. Hace falta
@@ -356,9 +361,9 @@ Inventario de **todas** las políticas RLS que dependen del rol, y qué se hace 
 | `cobranzas_cuentas/depositos/ventas` | `Acceso cobranzas *` (vía `tiene_acceso_cobranzas()`) | `rol='admin'` | política → `has_module('cobranzas')` directo; **borrar** `tiene_acceso_cobranzas()` |
 | `research_activities/campaigns/leads/recipients` | `Acceso research *` (vía `tiene_acceso_research()`) | `rol IN('admin','superadmin','coordinador')` | política → `has_module('research')` directo; **borrar** `tiene_acceso_research()` |
 | `actividades` | `colaborador_read` | `rol IN('colaborador','coordinador','pasante')` | → `has_module('stratix-mkt')` |
-| `actividades`, `solicitudes` | `superadmin_all` | `rol='superadmin'` (inline) | → `is_admin()` (override admin) |
-| `marcaciones` | `superadmin_all_marcaciones` | `rol IN('superadmin','coordinador')` (inline) | → `is_admin()` (override admin) |
-| `usuarios` | `superadmin_all_users` | `rol='superadmin'` (inline) | → `is_admin()` (override admin) |
+| `actividades`, `solicitudes` | `superadmin_all` | `rol='superadmin'` (inline) | → `is_admin()`; renombrar a `admin_all` |
+| `marcaciones` | `superadmin_all_marcaciones` | `rol IN('superadmin','coordinador')` (inline) | → `is_admin()`; renombrar a `admin_all_marcaciones` |
+| `usuarios` | `superadmin_all_users` | `rol='superadmin'` (inline) | → `is_admin()`; renombrar a `admin_all_users` |
 | `usuarios` | `usuario_own_profile`, `Lectura autenticada/pública` | own / SELECT | sin cambio (no role-gated) + trigger `prevent_rol_self_change` |
 | `marcaciones` | `usuario_own_marcaciones` | own (`auth_id`) | sin cambio (no role-gated) |
 
