@@ -51,7 +51,7 @@
 | `app/api/admin/roles/[key]/route.ts` | PATCH (label/módulos) / DELETE | Crear |
 | `shared/components/Modal.tsx` | overlay+header+contenedor reutilizable (mata el overlay duplicado 5×) | Crear |
 | `features/admin/components/{CreateUserModal,EditUserModal,ResetPasswordModal,DeleteUserModal}.tsx` | usar `<Modal>` (quitar overlay inline) | Modificar |
-| `features/admin/components/RolesManager.tsx`, `CreateRoleModal.tsx` | UI de gestión de roles (RoleModal usa `<Modal>`) | Crear |
+| `features/admin/components/RolesManager.tsx`, `RoleModal.tsx` | UI de gestión de roles (`RoleModal` único crear+editar, usa `<Modal>`; lista desde contexto) | Crear |
 | `features/admin/components/AdminModule.tsx` | toggle Usuarios/Roles | Modificar |
 | `CLAUDE.md` | sección Roles + path permissions | Modificar |
 
@@ -570,7 +570,8 @@ git commit -m "feat(roles): repo de lectura shared/data/roles"
 
 **Interfaces:**
 - Consumes: `rolesRepo` (Task 4); `getModulesForRole`/`normalizeRole`/`ADMIN_ROLE`/`RoleRow`/`RoleModuleMap` (Task 2).
-- Produces (contexto `useApp()`): `roles: RoleRow[]`, `roleModuleMap: RoleModuleMap`, `role: Role|null`, `modules: ModuleSlug[]`, `esAdmin: boolean`, `cargo: string`. (Sin `canCobranzas/canResearch/canMedical` — cada módulo se auto-gatea con `modules.includes('<slug>')`.)
+- Produces (contexto `useApp()`): `roles: RoleRow[]`, `roleModuleMap: RoleModuleMap`, `role: Role|null`, `modules: ModuleSlug[]`, `esAdmin: boolean`, `cargo: string`, `reloadRoles(): Promise<void>` (re-lee roles+role_modules y resetea el estado; lo llama la UI de roles tras crear/editar/borrar). (Sin `canCobranzas/canResearch/canMedical` — cada módulo se auto-gatea con `modules.includes('<slug>')`.)
+- **Una sola fuente de verdad:** `roles`/`roleModuleMap` del contexto alimentan sidebar, dropdowns de usuario, permisos **y** el RolesManager. Las mutaciones refrescan el contexto vía `reloadRoles()` → todo se sincroniza con un solo refresh (no copias locales que driftean).
 
 - [ ] **Step 1: `useAppData.ts`** — agregar import y estado:
 ```ts
@@ -579,7 +580,20 @@ import type { RoleRow, RoleModuleMap } from '@/shared/auth/permissions'
 const [roles, setRoles] = useState<RoleRow[]>([])
 const [roleModuleMap, setRoleModuleMap] = useState<RoleModuleMap>({})
 ```
-Pasar `setRoles, setRoleModuleMap` al `startAppData({...})` y devolver `roles, setRoles, roleModuleMap, setRoleModuleMap` en el return.
+Pasar `setRoles, setRoleModuleMap` al `startAppData({...})` y devolver `roles, setRoles, roleModuleMap, setRoleModuleMap` en el return. Agregar también un `reloadRoles` (re-lee y resetea, para refrescar tras mutaciones):
+```ts
+import { rolesRepo } from '@/shared/data'
+const reloadRoles = useCallback(async () => {
+  const [{ data: roleRows }, { data: roleMods }] = await Promise.all([
+    rolesRepo.listRoles(), rolesRepo.listRoleModules(),
+  ])
+  setRoles((roleRows as RoleRow[]) || [])
+  const map: RoleModuleMap = {}
+  for (const rm of (roleMods || []) as { role_key: string; module_slug: ModuleSlug }[]) (map[rm.role_key] ??= []).push(rm.module_slug)
+  setRoleModuleMap(map)
+}, [])
+```
+Devolver `reloadRoles` también. (La construcción del mapa es idéntica a la de `loadAppData` Step 2 — si molesta la repetición, extraer `buildRoleModuleMap(roleMods)` a `shared/data/roles.ts` y usarla en ambos.)
 
 - [ ] **Step 2: `loadAppData.ts`** — agregar al tipo `Setters`: `setRoles: (r: RoleRow[]) => void` y `setRoleModuleMap: (m: RoleModuleMap) => void`. Importar `rolesRepo` y los tipos. Tras `s.setUsuario(usr)`:
 ```ts
@@ -595,7 +609,7 @@ s.setRoleModuleMap(map)
 ```
 (importar `ModuleSlug` de permissions).
 
-- [ ] **Step 3: `AppContext.tsx`** — cambiar imports a `getModulesForRole, normalizeRole, ADMIN_ROLE, type Role, type ModuleSlug, type RoleRow, type RoleModuleMap`. Borrar el re-export `export const ROLES = ...`. En `AppContextType`: agregar `roles: RoleRow[]; roleModuleMap: RoleModuleMap;` y **borrar** `canCobranzas/canResearch/canMedical`. Reemplazar la derivación:
+- [ ] **Step 3: `AppContext.tsx`** — cambiar imports a `getModulesForRole, normalizeRole, ADMIN_ROLE, type Role, type ModuleSlug, type RoleRow, type RoleModuleMap`. Borrar el re-export `export const ROLES = ...`. En `AppContextType`: agregar `roles: RoleRow[]; roleModuleMap: RoleModuleMap; reloadRoles: () => Promise<void>;` y **borrar** `canCobranzas/canResearch/canMedical`. (`reloadRoles` entra al value por `...app`.) Reemplazar la derivación:
 ```ts
 const role: Role | null = normalizeRole(app.usuario?.rol)
 const modules: ModuleSlug[] = getModulesForRole(app.roleModuleMap, role)
@@ -838,11 +852,12 @@ git commit -m "feat(roles): supabaseAdmin factory + requireAdmin en rutas admin 
 ## Task 8: API de gestión de roles
 
 **Files:**
-- Create: `app/api/admin/roles/route.ts` (GET, POST), `app/api/admin/roles/[key]/route.ts` (PATCH, DELETE)
+- Create: `app/api/admin/roles/route.ts` (POST), `app/api/admin/roles/[key]/route.ts` (PATCH, DELETE)
 
 **Interfaces:**
 - Consumes: `requireAdmin` (Task 7), `validateNewRole`/`validateModuleSlugs` (Task 3).
-- Produces (HTTP): `GET /api/admin/roles` → `{ roles: RoleRow[], roleModules: {role_key,module_slug}[] }`; `POST` body `{ label, modules: string[] }` → crea rol; `PATCH /api/admin/roles/[key]` body `{ label?, modules? }`; `DELETE /api/admin/roles/[key]`.
+- Produces (HTTP): `POST /api/admin/roles` body `{ label, modules: string[] }` → crea rol; `PATCH /api/admin/roles/[key]` body `{ label?, modules? }`; `DELETE /api/admin/roles/[key]`.
+- **Solo mutaciones** (no hay GET): la lista se lee del contexto (`useApp().roles`/`roleModuleMap`, Task 5); las mutaciones refrescan con `reloadRoles()`. Un GET admin sería una 2ª fuente redundante (los roles ya se leen con RLS authenticated).
 
 - [ ] **Step 1: `app/api/admin/roles/route.ts`**
 ```ts
@@ -852,15 +867,7 @@ import { requireAdmin } from '@/shared/db/requireAdmin'
 import { validateNewRole, validateModuleSlugs } from '@/shared/auth/roleValidation'
 import type { RoleRow } from '@/shared/auth/permissions'
 
-export async function GET() {
-  const authz = await requireAdmin(); if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
-  const db = supabaseAdmin()
-  const [{ data: roles }, { data: roleModules }] = await Promise.all([
-    db.from('roles').select('*').order('label'), db.from('role_modules').select('*'),
-  ])
-  return NextResponse.json({ roles: roles || [], roleModules: roleModules || [] })
-}
-
+// Sin GET: la lista la sirve el contexto (useApp().roles). Acá solo mutaciones.
 export async function POST(req: NextRequest) {
   const authz = await requireAdmin(); if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
   const { label, modules = [] } = await req.json()
@@ -925,7 +932,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { key: str
 - [ ] **Step 5: Commit**
 ```bash
 git add app/api/admin/roles/
-git commit -m "feat(roles): API de gestión de roles (GET/POST/PATCH/DELETE) con authz + validación"
+git commit -m "feat(roles): API de gestión de roles (POST/PATCH/DELETE) con authz + validación"
 ```
 
 ---
@@ -933,11 +940,12 @@ git commit -m "feat(roles): API de gestión de roles (GET/POST/PATCH/DELETE) con
 ## Task 9: UI de gestión de roles
 
 **Files:**
-- Create: `features/admin/components/RolesManager.tsx`, `features/admin/components/CreateRoleModal.tsx`
+- Create: `features/admin/components/RolesManager.tsx`, `features/admin/components/RoleModal.tsx`
 - Modify: `features/admin/components/AdminModule.tsx`
 
 **Interfaces:**
-- Consumes: `useApp().{roles, ...theme}`, `apiPost`/`apiSend` de `@/shared/api` (POST/PATCH/DELETE a `/api/admin/roles`), `ALL_MODULES`+`MODULE_META` (labels), `ADMIN_ROLE`.
+- Consumes: `useApp().{roles, roleModuleMap, adminUsuarios, reloadRoles, ...theme}`, `apiPost`/`apiSend` de `@/shared/api` (POST/PATCH/DELETE a `/api/admin/roles`), `ALL_MODULES`+`MODULE_META` (labels), `ADMIN_ROLE`.
+- **Lista desde el contexto** (no fetch): `RolesManager` lee `roles`+`roleModuleMap`; tras crear/editar/borrar llama `reloadRoles()`.
 
 - [ ] **Step 0: Extraer `shared/components/Modal.tsx`** (el overlay está copiado literal en 5 modales; vamos a agregar un 6º)
 
@@ -972,16 +980,16 @@ verde tras migrar. El RoleModal nuevo nace usando `<Modal>`.
 > Nota: añade `onClick`-to-close en backdrop (stopPropagation en el contenedor) — comportamiento nuevo y deseable;
 > si algún modal NO debe cerrarse por click afuera (p.ej. con cambios sin guardar), pasar un flag o omitir `onClose` en el backdrop.
 
-- [ ] **Step 1: `CreateRoleModal.tsx`** — modal con input `label` + grid de checkboxes de módulos **asignables**; al guardar `POST /api/admin/roles { label, modules }`; on success refresca y cierra. (Estilos: copiar el patrón de `CreateUserModal`/`EditUserModal` — `s1/border/t1/inputStyle` de `useApp`.)
+- [ ] **Step 1: `RoleModal.tsx`** — modal **único crear+editar** (recibe `role?: RoleRow` opcional → si viene es edición, prellena `label` + módulos desde `roleModuleMap`). Usa `<Modal title={role ? 'Editar rol' : 'Nuevo rol'}>`. Input `label` + grid de checkboxes de módulos **asignables**. Al guardar: sin `role` → `apiPost('/api/admin/roles', {label, modules})`; con `role` → `apiSend('PATCH', \`/api/admin/roles/${role.key}\`, {label, modules})`. On success: `await reloadRoles()` + cerrar.
+> **Un solo modal crear+editar** (no `CreateRoleModal`+`EditRoleModal`) — evita repetir el smell de `CreateUserModal`/`EditUserModal` (0.93 copiados, anotado en `.todo`).
 ```ts
 // 'admin' NO se reparte: el acceso total es el ROL admin (short-circuit), no un módulo asignable.
 // Tildarlo daría un grant fantasma (ícono en sidebar → AccessDenied por el gate esAdmin). Se excluye.
 const ASIGNABLES = ALL_MODULES.filter(s => s !== ADMIN_ROLE)  // ADMIN_ROLE === 'admin' === slug del módulo admin
 // grid: ASIGNABLES.map(s => ({ slug: s, name: MODULE_META[s].name }))
 ```
-(Mismo `ASIGNABLES` en el editor de módulos de `RolesManager` — Step 2.)
 
-- [ ] **Step 2: `RolesManager.tsx`** — carga `GET /api/admin/roles`, lista roles con su label + chips de módulos + **conteo de usuarios** (de `adminUsuarios` del contexto: `adminUsuarios.filter(u => u.rol === r.key).length`); por rol: botón editar (PATCH label/módulos), botón borrar **deshabilitado si conteo>0 o is_system**; botón "+ Nuevo rol" abre `CreateRoleModal`. El rol `ADMIN_ROLE`: checkboxes **todos tildados desde `ALL_MODULES`** (no de `role_modules`, que no tiene filas para admin) y **deshabilitados/read-only**, sin borrar.
+- [ ] **Step 2: `RolesManager.tsx`** — **lee del contexto** (`const { roles, roleModuleMap, adminUsuarios } = useApp()`), NO fetch. Lista cada rol con su label + chips de sus módulos (`roleModuleMap[r.key]`) + **conteo de usuarios** (`adminUsuarios.filter(u => u.rol === r.key).length`); por rol: botón editar (abre `<RoleModal role={r}>`), botón borrar (`apiSend('DELETE', …)` + `reloadRoles()`) **deshabilitado si conteo>0 o is_system**; botón "+ Nuevo rol" abre `<RoleModal>` sin `role`. El rol `ADMIN_ROLE` en la lista: chips de **todos** los módulos desde `ALL_MODULES` (no de `roleModuleMap`, que no tiene filas para admin), sin editar/borrar.
 
 - [ ] **Step 3: `AdminModule.tsx`** — agregar un toggle `vista: 'usuarios' | 'roles'` (dos botones tab); render condicional: `usuarios` (lo actual: StatsBar/RoleFilterBar/UserTable) o `roles` (`<RolesManager />`). Ambos bajo el gate `esAdmin`.
 
@@ -991,8 +999,8 @@ const ASIGNABLES = ALL_MODULES.filter(s => s !== ADMIN_ROLE)  // ADMIN_ROLE === 
 
 - [ ] **Step 6: Commit**
 ```bash
-git add features/admin/components/RolesManager.tsx features/admin/components/CreateRoleModal.tsx features/admin/components/AdminModule.tsx
-git commit -m "feat(roles): UI de gestión de roles en /admin (lista, crear, editar, borrar)"
+git add shared/components/Modal.tsx features/admin/components/
+git commit -m "feat(roles): UI de gestión de roles en /admin (Modal compartido, RoleModal único, lista desde contexto)"
 ```
 
 ---
