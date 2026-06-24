@@ -34,7 +34,11 @@
 > Fase 2 (descomposición by-feature de todos los módulos) cerrada en PRs #4–#14. Lo que sigue.
 
 - [ ] **[Refactor] Desmenuzar Launchpad** — `app/(app)/page.tsx` (496 líneas, 5 componentes en un solo archivo: ModuleIcon/LaunchpadPage/VerTodoBanner/LaunchCard/EmptyState) → un componente por archivo + feature overview/launchpad. _(EminatMKT · 2026-06-19)_
-- [ ] **[Refactor] Desmenuzar login** — `app/login/page.tsx` (294 líneas) → subcomponentes; mover los dominios autorizados a config/DB. _(EminatMKT · 2026-06-19)_
+- [ ] **[Refactor] Auth: features/auth + route group `(auth)`** — Hoy `app/login/page.tsx` (286 líneas) y `app/reset-password/page.tsx` (115) tienen **toda la lógica inline**, violando la convención de features (compará: `admin/page.tsx` = 5 líneas, solo `return <AdminModule/>`). No existe `features/auth/`. Tres movimientos, **ninguno cambia la URL**:
+  1. **Código → `features/auth/`**: `LoginModule`/`ResetPasswordModule` + subcomponentes; `page.tsx` queda finito (`return <LoginModule/>`). Sacar `ZONAS` y los dominios autorizados a config/DB.
+  2. **Páginas → route group `(auth)`** al mismo nivel que `(app)`: `app/(auth)/{login,reset-password}/page.tsx`. El paréntesis NO afecta la URL (`/login` sigue `/login`). Simetría: `(app)`=protegido (layout `AppProvider`), `(auth)`=público.
+  3. **`(auth)/layout.tsx`**: hoistear el shell público centrado (hoy probablemente duplicado en ambas páginas). Solo si comparten layout — verificar primero.
+  > Las páginas siguen **públicas** (fuera de `(app)` a propósito: el usuario sin sesión las ve; meterlas en `(app)` las envolvería en `AppProvider` → loop con el middleware). NO va en el PR de roles. _(EminatMKT · 2026-06-19; ampliado 2026-06-24)_
 - [ ] **[Refactor] Evaluar AppShell / Onboarding** — `shared/components/AppShell.tsx` (308) y `Onboarding.tsx` (245): descomponer si aplica. _(EminatMKT · 2026-06-19)_
 - [ ] **[Refactor] Helpers comunes en API admin** — Rutas `app/api/admin/*` (create-user 245, update-user 154, delete-user 169, reassign 158, reset-password 61 líneas) comparten lógica sin centralizar. **Ojo: el cliente service_role (`supabaseAdmin()` factory) y la authz (`requireAdmin`) los resuelve el ticket de roles dinámicos** — esto es lo que QUEDA, en su propio PR (toca rutas no-roles y algo es riesgoso):
   - **Validación de body** repetida e inconsistente en 7 rutas (`await req.json()` + chequeo de campos/email/password inline) → helper `parseAndValidate` por ruta o schema.
