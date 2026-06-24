@@ -49,7 +49,9 @@
 | `app/api/admin/delete-user/route.ts`, `reassign-and-delete/route.ts` | `requireAdmin` + guard último admin | Modificar |
 | `app/api/admin/roles/route.ts` | GET (list) / POST (create) | Crear |
 | `app/api/admin/roles/[key]/route.ts` | PATCH (label/módulos) / DELETE | Crear |
-| `features/admin/components/RolesManager.tsx`, `CreateRoleModal.tsx` | UI de gestión de roles | Crear |
+| `shared/components/Modal.tsx` | overlay+header+contenedor reutilizable (mata el overlay duplicado 5×) | Crear |
+| `features/admin/components/{CreateUserModal,EditUserModal,ResetPasswordModal,DeleteUserModal}.tsx` | usar `<Modal>` (quitar overlay inline) | Modificar |
+| `features/admin/components/RolesManager.tsx`, `CreateRoleModal.tsx` | UI de gestión de roles (RoleModal usa `<Modal>`) | Crear |
 | `features/admin/components/AdminModule.tsx` | toggle Usuarios/Roles | Modificar |
 | `CLAUDE.md` | sección Roles + path permissions | Modificar |
 
@@ -936,6 +938,39 @@ git commit -m "feat(roles): API de gestión de roles (GET/POST/PATCH/DELETE) con
 
 **Interfaces:**
 - Consumes: `useApp().{roles, ...theme}`, `apiPost`/`apiSend` de `@/shared/api` (POST/PATCH/DELETE a `/api/admin/roles`), `ALL_MODULES`+`MODULE_META` (labels), `ADMIN_ROLE`.
+
+- [ ] **Step 0: Extraer `shared/components/Modal.tsx`** (el overlay está copiado literal en 5 modales; vamos a agregar un 6º)
+
+Genérico → va a `shared/components/` (no a `features/admin/`, mismo criterio que `shared/api.ts`):
+```tsx
+'use client'
+import { useApp } from '@/shared/context/AppContext'
+
+export default function Modal({ title, width = 480, onClose, children }: {
+  title?: string; width?: number; onClose: () => void; children: React.ReactNode
+}) {
+  const { s1, border, t1, t3 } = useApp()
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 18, padding: 28, width, maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto' }}>
+        {title && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 800, color: t1 }}>{title}</div>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>✕</button>
+          </div>
+        )}
+        {children}
+      </div>
+    </div>
+  )
+}
+```
+Migrar los 4 modales existentes (`CreateUserModal`, `EditUserModal`, `ResetPasswordModal`, `DeleteUserModal`) a
+`<Modal title="…" width={…} onClose={…}>` — borrando su overlay/header inline. Conservar el `width` de cada uno
+(520/480/460). Verificar que `DeleteUserModal` (tiene 2 fases con overlay) quede coherente. `pnpm exec tsc --noEmit && pnpm test`
+verde tras migrar. El RoleModal nuevo nace usando `<Modal>`.
+> Nota: añade `onClick`-to-close en backdrop (stopPropagation en el contenedor) — comportamiento nuevo y deseable;
+> si algún modal NO debe cerrarse por click afuera (p.ej. con cambios sin guardar), pasar un flag o omitir `onClose` en el backdrop.
 
 - [ ] **Step 1: `CreateRoleModal.tsx`** — modal con input `label` + grid de checkboxes de módulos **asignables**; al guardar `POST /api/admin/roles { label, modules }`; on success refresca y cierra. (Estilos: copiar el patrón de `CreateUserModal`/`EditUserModal` — `s1/border/t1/inputStyle` de `useApp`.)
 ```ts
