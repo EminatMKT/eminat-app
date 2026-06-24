@@ -203,16 +203,39 @@ CREATE TRIGGER "trg_prevent_rol_self_change" BEFORE UPDATE ON "public"."usuarios
   FOR EACH ROW EXECUTE FUNCTION "public"."prevent_rol_self_change"();
 ```
 
-- [ ] **Step 3: Aplicar a dev y verificar**
+- [ ] **Step 3: Pre-flight LOCAL (no tocar el dev remoto todavía)**
 
-Run:
+La DB de dev (`ydcadspinryybextlvyi`) es **compartida** por todas las ramas. No probar contra ella:
+validar primero en un Postgres local desechable.
+```bash
+pnpm supabase start                 # levanta Postgres+Auth+Studio local (Docker)
+pnpm supabase db reset              # re-aplica TODAS las migraciones desde cero, incluida ésta
+```
+Expected: `db reset` corre la migración sin error. Iterar acá las veces que haga falta — `db reset`
+**es el rollback**: blast-radius cero, redo infinito. Correr las verificaciones del Step 5 contra local
+(Studio en `http://127.0.0.1:54323` o `psql` al puerto local) antes de seguir.
+
+- [ ] **Step 4: Backup de dev + push remoto**
+
+Solo cuando local está verde. **Antes** de mutar el dev compartido, respaldar lo irrecuperable
+(`usuarios.rol`; el esquema ya está en git):
 ```bash
 pnpm supabase link --project-ref ydcadspinryybextlvyi
-pnpm supabase db push
+pnpm supabase db dump --data-only -f backup-dev-$(date +%F).sql   # respaldo de datos (rol incluido)
+pnpm supabase db push                                             # aplica la migración a dev
 ```
 Expected: aplica sin error.
 
-- [ ] **Step 4: Verificar el estado en dev (SQL editor o psql)**
+> **Contingencia / rollback**
+> - **Local:** `supabase db reset` → vuelve a cero. No hace falta down-migration.
+> - **Remoto (dev):** si aplicó pero quedó mal, restaurar desde el dump (`psql < backup-dev-….sql`)
+>   o re-seed de `usuarios.rol`. El esquema se recupera de git.
+> - El DDL de Postgres es **transaccional**: un fallo a mitad de la migración **auto-revierte** el archivo
+>   entero. La migración además es idempotente (DROP IF EXISTS / OR REPLACE / guards), re-aplicable.
+> - **No** se escribe una down-migration "perfecta" a mano: reconstruir funciones/policies dropeadas es
+>   más frágil que restaurar del dump (ver Decisiones).
+
+- [ ] **Step 5: Verificar el estado en dev (SQL editor o psql)**
 
 Verificar manualmente:
 - `SELECT key,is_system FROM roles ORDER BY key;` → 8 filas; `admin` y `sin_asignar` con is_system=true.
@@ -220,12 +243,12 @@ Verificar manualmente:
 - `SELECT DISTINCT rol FROM usuarios;` → solo keys del set nuevo (sin superadmin/colaborador/pasante/coordinador).
 - `SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname='usuarios_rol_fkey';` → FK a roles(key).
 
-- [ ] **Step 5: Verificar el trigger anti auto-escalada (manual, como usuario authenticated)**
+- [ ] **Step 6: Verificar el trigger anti auto-escalada (manual, como usuario authenticated)**
 
 Con un usuario NO admin (token authenticated), intentar `UPDATE usuarios SET rol='admin' WHERE auth_id=auth.uid()` → debe **fallar** con la excepción. Un `UPDATE usuarios SET ubicacion='X'` del mismo usuario → debe **pasar** (no toca rol).
 > Si `current_user` no diera `'service_role'` en este entorno, ajustar el chequeo a `auth.role() <> 'service_role'` y re-verificar.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add supabase/migrations/

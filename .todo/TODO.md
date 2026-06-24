@@ -62,6 +62,8 @@
 
 - [ ] **[Tooling] Hook git: recordar actualizar README/CLAUDE** — Aviso no-bloqueante en `.githooks/pre-push`: si el push toca paths estructurales (permissions, migrations, rutas, shared/**, package.json) y no incluye `README.md`/`CLAUDE.md`, imprime un recordatorio (siempre `exit 0`). Spec: `docs/superpowers/specs/2026-06-23-doc-reminder-hook-design.md`. ~15 líneas POSIX sh, reusa el pre-push existente. _(creado por: EminatMKT · 2026-06-23)_
 
+- [ ] **[Tooling] Evaluar Supabase Branching para preview/CI por PR** — DB efímera por rama git que corre las migraciones automáticamente, para que un reviewer pruebe la feature antes de mergear. **Requiere Pro + integración GitHub**; el único proyecto en Pro es **prod** (`ruedelunbtaomhrzgelc`), así que habilitarlo ahí acoplaría los experimentos de esquema al proyecto productivo (rompe el aislamiento prod/dev) y factura compute por branch. Por eso se descartó para probar migraciones — para eso se usa **Supabase local (Docker)**: gratis, desechable, `db reset` re-aplica todo, cero acoplamiento. Branching solo tendría sentido como flujo de **equipo/CI** (preview por PR), no para desarrollo individual. Reconsiderar si el equipo crece y se quiere preview-per-PR. _(creado por: EminatMKT · 2026-06-24)_
+
 - [ ] **[DRY] ComingSoon compartido** — `app/(app)/finanzas/page.tsx` y `app/(app)/th-hr/page.tsx` son placeholders "coming soon" casi idénticos → extraer un `ComingSoon`/`ModulePlaceholder` compartido. Quick win. _(creado por: EminatMKT · 2026-06-19)_
 
 - [ ] **[DRY] Revisar form de usuario admin** — `CreateUserModal` y `EditUserModal` (0.93 similitud) podrían compartir un form de usuario común; revisar diferencias (password solo en create) antes de unificar. _(creado por: EminatMKT · 2026-06-19)_
