@@ -291,6 +291,12 @@ describe('constantes', () => {
     expect(ADMIN_ROLE).toBe('admin'); expect(DEFAULT_ROLE).toBe('sin_asignar')
   })
   it('isModuleSlug', () => { expect(isModuleSlug('cobranzas')).toBe(true); expect(isModuleSlug('x')).toBe(false) })
+  // candado: agregar/quitar un módulo debe ser un cambio consciente (literales = oráculo independiente)
+  it('ALL_MODULES = set canónico', () => {
+    expect([...ALL_MODULES].sort()).toEqual(
+      ['accounting','admin','cobranzas','directorio','medical','research','stratix-mkt','th-hr'].sort()
+    )
+  })
 })
 ```
 
