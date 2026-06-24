@@ -64,6 +64,8 @@
 
 - [ ] **[Tooling] Evaluar Supabase Branching para preview/CI por PR** — DB efímera por rama git que corre las migraciones automáticamente, para que un reviewer pruebe la feature antes de mergear. **Requiere Pro + integración GitHub**; el único proyecto en Pro es **prod** (`ruedelunbtaomhrzgelc`), así que habilitarlo ahí acoplaría los experimentos de esquema al proyecto productivo (rompe el aislamiento prod/dev) y factura compute por branch. Por eso se descartó para probar migraciones — para eso se usa **Supabase local (Docker)**: gratis, desechable, `db reset` re-aplica todo, cero acoplamiento. Branching solo tendría sentido como flujo de **equipo/CI** (preview por PR), no para desarrollo individual. Reconsiderar si el equipo crece y se quiere preview-per-PR. _(creado por: EminatMKT · 2026-06-24)_
 
+- [ ] **[DRY] Research reusa el helper HTTP compartido** — `features/research/components/campaigns/MailCampaignModal.tsx` hace `fetch('/api/...')` a mano, duplicando `apiPost`/`apiSend` que la feature de roles dinámicos mueve a `shared/api.ts`. Reemplazar el fetch crudo por `apiSend` de `@/shared/api`. Quick win, sale del fold de roles dinámicos. _(creado por: EminatMKT · 2026-06-24)_
+
 - [ ] **[DRY] ComingSoon compartido** — `app/(app)/finanzas/page.tsx` y `app/(app)/th-hr/page.tsx` son placeholders "coming soon" casi idénticos → extraer un `ComingSoon`/`ModulePlaceholder` compartido. Quick win. _(creado por: EminatMKT · 2026-06-19)_
 
 - [ ] **[DRY] Revisar form de usuario admin** — `CreateUserModal` y `EditUserModal` (0.93 similitud) podrían compartir un form de usuario común; revisar diferencias (password solo en create) antes de unificar. _(creado por: EminatMKT · 2026-06-19)_

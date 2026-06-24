@@ -40,6 +40,8 @@
 | `middleware.ts` | gate de sesión solamente | Reescribir |
 | `shared/db/supabaseAdmin.ts` | factory del cliente service_role (reusable por rutas admin) | Crear |
 | `shared/db/requireAdmin.ts` | authz server-side de admin (lee sesión) | Crear |
+| `shared/api.ts` | helper HTTP genérico `apiPost`/`apiSend` (movido desde `features/admin/api.ts`) | Crear (mover) |
+| `features/admin/{components,hooks}/*` (7 imports de `../api`) | actualizar import → `@/shared/api` | Modificar |
 | `features/admin/components/{RoleChip,RoleFilterBar,UserRow,CreateUserModal,EditUserModal}.tsx` | dropdowns/chips desde `roles` | Modificar |
 | `features/admin/hooks/useUserActions.ts` | `cambiarRol` rutea por API | Modificar |
 | `app/api/admin/create-user/route.ts` | default `DEFAULT_ROLE`; label del email desde DB | Modificar |
@@ -734,6 +736,26 @@ export function supabaseAdmin() {
 }
 ```
 
+- [ ] **Step 0b: Promover el helper HTTP a `shared/` (lo necesita la API de roles)**
+
+`features/admin/api.ts` exporta `apiPost`, que es **genérico** (no admin) y ya está duplicado a mano en
+`features/research/.../MailCampaignModal.tsx`. Moverlo a `shared/api.ts` y agregar `apiSend` para PATCH/DELETE:
+```ts
+// shared/api.ts — helper HTTP genérico (JSON in/out). Caller decide según res.ok.
+export async function apiSend(method: string, url: string, body?: unknown): Promise<{ res: Response; result: any }> {
+  const res = await fetch(url, {
+    method,
+    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
+  const result = await res.json().catch(() => ({}))   // DELETE puede no traer body
+  return { res, result }
+}
+export const apiPost = (url: string, body: unknown) => apiSend('POST', url, body)
+```
+Borrar `features/admin/api.ts`; actualizar los 7 imports de admin (`'../api'` → `'@/shared/api'`).
+(Research dedupea su fetch a mano en otro ticket — ver `.todo`.)
+
 - [ ] **Step 1: Crear `shared/db/requireAdmin.ts`**
 
 Lee la sesión del que llama (cookies, cliente SSR) y verifica su rol en DB con el factory:
@@ -913,7 +935,7 @@ git commit -m "feat(roles): API de gestión de roles (GET/POST/PATCH/DELETE) con
 - Modify: `features/admin/components/AdminModule.tsx`
 
 **Interfaces:**
-- Consumes: `useApp().{roles, ...theme}`, `apiPost`/fetch a `/api/admin/roles`, `ALL_MODULES`+`MODULE_META` (labels), `ADMIN_ROLE`.
+- Consumes: `useApp().{roles, ...theme}`, `apiPost`/`apiSend` de `@/shared/api` (POST/PATCH/DELETE a `/api/admin/roles`), `ALL_MODULES`+`MODULE_META` (labels), `ADMIN_ROLE`.
 
 - [ ] **Step 1: `CreateRoleModal.tsx`** — modal con input `label` + grid de checkboxes de módulos **asignables**; al guardar `POST /api/admin/roles { label, modules }`; on success refresca y cierra. (Estilos: copiar el patrón de `CreateUserModal`/`EditUserModal` — `s1/border/t1/inputStyle` de `useApp`.)
 ```ts
