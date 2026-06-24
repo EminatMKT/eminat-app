@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { generateTempPassword } from '../password'
-import { apiPost } from '../api'
+import { apiPost } from '@/shared/api'
 import PasswordInput from './PasswordInput'
 import CredentialsPanel from './CredentialsPanel'
 import ErrorBlock from './ErrorBlock'

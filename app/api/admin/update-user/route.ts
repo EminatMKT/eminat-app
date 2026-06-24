@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { clientEnv } from '@/shared/db/env.client'
-import { serverEnv } from '@/shared/db/env.server'
+import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
+import { requireAdmin } from '@/shared/db/requireAdmin'
+import { isLastAdmin } from '@/shared/auth/roleValidation'
 
 /**
  * Server-side admin endpoint — partial user update.
@@ -28,14 +28,10 @@ import { serverEnv } from '@/shared/db/env.server'
 const TAG = '[admin/update-user]'
 
 export async function POST(req: NextRequest) {
-  const { SUPABASE_SERVICE_ROLE_KEY } = serverEnv
-  const { NEXT_PUBLIC_SUPABASE_URL } = clientEnv
+  const authz = await requireAdmin()
+  if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
 
-  const supabaseAdmin = createClient(
-    NEXT_PUBLIC_SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY,
-    { auth: { autoRefreshToken: false, persistSession: false } },
-  )
+  const db = supabaseAdmin()
 
   try {
     const body = await req.json()
@@ -79,6 +75,18 @@ export async function POST(req: NextRequest) {
 
     console.log(`${TAG} start`, { id, fields: Object.keys(updatePayload) })
 
+    // Guard: no permitir degradar al último admin (rol pasa a algo != admin
+    // sobre un usuario que ES admin). Read-then-write a nivel app (no TOCTOU-safe).
+    if (rol !== undefined && rol !== 'admin') {
+      const { data: all } = await db.from('usuarios').select('id,rol')
+      if (isLastAdmin(all || [], id)) {
+        return NextResponse.json(
+          { error: 'No se puede degradar al último admin.' },
+          { status: 400 },
+        )
+      }
+    }
+
     const emailChanged =
       typeof email === 'string' &&
       typeof currentEmail === 'string' &&
@@ -88,7 +96,7 @@ export async function POST(req: NextRequest) {
     //    and both old + new were provided.
     if (emailChanged) {
       console.log(`${TAG} auth email change`, { id, from: currentEmail, to: email })
-      const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, {
+      const { error: authError } = await db.auth.admin.updateUserById(id, {
         email,
         email_confirm: true,
       })
@@ -100,7 +108,7 @@ export async function POST(req: NextRequest) {
 
     // 2) Update usuarios. count:'exact' lets us detect "0 rows affected"
     //    (which would mean no row with that id exists).
-    const { data: userData, error: dbError, count } = await supabaseAdmin
+    const { data: userData, error: dbError, count } = await db
       .from('usuarios')
       .update(updatePayload, { count: 'exact' })
       .eq('id', id)
@@ -116,7 +124,7 @@ export async function POST(req: NextRequest) {
       })
       // Revert Auth email if we touched it earlier.
       if (emailChanged) {
-        const { error: revertError } = await supabaseAdmin.auth.admin.updateUserById(id, {
+        const { error: revertError } = await db.auth.admin.updateUserById(id, {
           email: currentEmail,
           email_confirm: true,
         })

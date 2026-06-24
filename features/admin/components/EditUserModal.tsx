@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useApp, COLORES_AVATAR } from '@/shared/context/AppContext'
 import { companyOptions } from '@/shared/constants/companies'
-import { apiPost } from '../api'
+import { apiPost } from '@/shared/api'
 import ErrorBlock from './ErrorBlock'
 
 export type EditUserDraft = {

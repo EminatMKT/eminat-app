@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { clientEnv } from '@/shared/db/env.client'
-import { serverEnv } from '@/shared/db/env.server'
+import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
+import { requireAdmin } from '@/shared/db/requireAdmin'
 
 /**
  * Server-side admin endpoint — rotates a user's auth password to a new
@@ -14,14 +13,10 @@ import { serverEnv } from '@/shared/db/env.server'
 const TAG = '[admin/reset-password]'
 
 export async function POST(req: NextRequest) {
-  const { SUPABASE_SERVICE_ROLE_KEY } = serverEnv
-  const { NEXT_PUBLIC_SUPABASE_URL } = clientEnv
+  const authz = await requireAdmin()
+  if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
 
-  const supabaseAdmin = createClient(
-    NEXT_PUBLIC_SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY,
-    { auth: { autoRefreshToken: false, persistSession: false } },
-  )
+  const db = supabaseAdmin()
 
   try {
     const { userId, password } = await req.json()
@@ -37,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     console.log(`${TAG} start`, { userId })
 
-    const { data, error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+    const { data, error } = await db.auth.admin.updateUserById(userId, {
       password,
     })
 

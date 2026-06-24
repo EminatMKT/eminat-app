@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { clientEnv } from '@/shared/db/env.client'
-import { serverEnv } from '@/shared/db/env.server'
+import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
+import { requireAdmin } from '@/shared/db/requireAdmin'
+import { isLastAdmin } from '@/shared/auth/roleValidation'
 
 /**
  * Server-side admin endpoint — reassign all of a user's actividades to a
@@ -30,14 +30,10 @@ const TAG = '[admin/reassign-and-delete]'
 const VALID_STATUS = new Set([null, undefined, 'aprobado', 'finalizado', 'por_aprobar'])
 
 export async function POST(req: NextRequest) {
-  const { SUPABASE_SERVICE_ROLE_KEY } = serverEnv
-  const { NEXT_PUBLIC_SUPABASE_URL } = clientEnv
+  const authz = await requireAdmin()
+  if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
 
-  const supabaseAdmin = createClient(
-    NEXT_PUBLIC_SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY,
-    { auth: { autoRefreshToken: false, persistSession: false } },
-  )
+  const db = supabaseAdmin()
 
   try {
     const body = await req.json()
@@ -68,7 +64,7 @@ export async function POST(req: NextRequest) {
 
     // Lookup old user to (a) refuse admin-tier deletes and (b) capture
     // auth_id / id so we can clean up auth.users after the RPC.
-    const { data: oldRow, error: lookupError } = await supabaseAdmin
+    const { data: oldRow, error: lookupError } = await db
       .from('usuarios')
       .select('id, auth_id, email, nombre, apellido, rol')
       .eq('id', oldId)
@@ -89,8 +85,17 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Guard: nunca borrar al último admin (defensa en profundidad).
+    const { data: all } = await db.from('usuarios').select('id,rol')
+    if (isLastAdmin(all || [], oldId)) {
+      return NextResponse.json(
+        { error: 'No se puede borrar al último admin.' },
+        { status: 400 },
+      )
+    }
+
     // Atomic reassign + cleanup + delete inside Postgres.
-    const { data: rpcData, error: rpcError } = await supabaseAdmin.rpc(
+    const { data: rpcData, error: rpcError } = await db.rpc(
       'admin_reassign_and_delete',
       {
         p_old_id: oldId,
@@ -123,7 +128,7 @@ export async function POST(req: NextRequest) {
       (v): v is string => typeof v === 'string' && v.length > 0,
     )
     for (const uid of authCandidates) {
-      const { error: authErr } = await supabaseAdmin.auth.admin.deleteUser(uid)
+      const { error: authErr } = await db.auth.admin.deleteUser(uid)
       if (!authErr) {
         authDeleted = true
         break

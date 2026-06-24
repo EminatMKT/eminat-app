@@ -25,10 +25,6 @@ export const listAll = () =>
 export const equipoHoy = () =>
   supabase.from(TABLES.equipoHoy).select('*')
 
-// Actualiza el rol de un usuario.
-export const updateRol = (id: string, rol: string) =>
-  supabase.from(TABLES.usuarios).update({ rol }).eq('id', id)
-
 // Valida + activa a un usuario.
 export const validar = (id: string) =>
   supabase.from(TABLES.usuarios).update({ validado: true, activo: true }).eq('id', id)

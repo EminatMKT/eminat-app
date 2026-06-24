@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { eligibleHeirs } from '../heirs'
-import { apiPost } from '../api'
+import { apiPost } from '@/shared/api'
 import ErrorBlock from './ErrorBlock'
 import type { ReassignState } from '../types'
 
