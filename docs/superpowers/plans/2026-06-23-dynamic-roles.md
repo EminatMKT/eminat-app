@@ -139,20 +139,27 @@ CREATE OR REPLACE FUNCTION "public"."has_module"(p_slug text) RETURNS boolean
     );
   $$;
 
--- 6. RLS de data por módulo: una política "mod_access" por tabla, generada desde (tabla → slug).
---    has_module DIRECTO (sin wrappers tiene_acceso_*). El loop elimina el DROP/CREATE repetido.
+-- 6. RLS de data por módulo: política "mod_access" por tabla, con has_module(slug).
+--    Cada fila = tabla|slug|nombre_legacy. Se DROPEA el nombre VIEJO real ("Acceso cobranzas …")
+--    + "mod_access" (idempotencia), luego se crea "mod_access". OJO: las policies actuales NO se
+--    llaman "mod_access" — si sólo se dropeara ese nombre, las viejas sobrevivirían (acceso = vieja
+--    OR nueva) y además el DROP FUNCTION tiene_acceso_* de abajo FALLARÍA por dependencia.
 DO $$
 DECLARE
-  -- cada fila = (tabla, módulo que la habilita)
-  pares text[] := ARRAY[
-    'cobranzas_cuentas:cobranzas', 'cobranzas_depositos:cobranzas', 'cobranzas_ventas:cobranzas',
-    'research_activities:research', 'research_campaigns:research',
-    'research_leads:research', 'research_campaign_recipients:research'
+  filas text[] := ARRAY[
+    'cobranzas_cuentas|cobranzas|Acceso cobranzas cuentas',
+    'cobranzas_depositos|cobranzas|Acceso cobranzas depositos',
+    'cobranzas_ventas|cobranzas|Acceso cobranzas ventas',
+    'research_activities|research|Acceso research activities',
+    'research_campaigns|research|Acceso research campaigns',
+    'research_leads|research|Acceso research leads',
+    'research_campaign_recipients|research|Acceso research recipients'
   ];
-  par text; tbl text; slug text;
+  f text; tbl text; slug text; oldname text;
 BEGIN
-  FOREACH par IN ARRAY pares LOOP
-    tbl := split_part(par, ':', 1); slug := split_part(par, ':', 2);
+  FOREACH f IN ARRAY filas LOOP
+    tbl := split_part(f,'|',1); slug := split_part(f,'|',2); oldname := split_part(f,'|',3);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.%I', oldname, tbl);
     EXECUTE format('DROP POLICY IF EXISTS "mod_access" ON public.%I', tbl);
     EXECUTE format('CREATE POLICY "mod_access" ON public.%I USING (public.has_module(%L))', tbl, slug);
   END LOOP;
@@ -242,6 +249,20 @@ Verificar manualmente:
 - `SELECT count(*) FROM role_modules WHERE role_key='sin_asignar';` → 0.
 - `SELECT DISTINCT rol FROM usuarios;` → solo keys del set nuevo (sin superadmin/colaborador/pasante/coordinador).
 - `SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname='usuarios_rol_fkey';` → FK a roles(key).
+
+- [ ] **Step 5b: Remediar acceso por email legacy (CRÍTICO — pérdida de acceso si se omite)**
+
+Las funciones borradas (`tiene_acceso_*`) concedían acceso por **email**, no solo por rol:
+`cobranzas` → `majo@eminat.net`, `freddy@eminat.net`; `research` → `freddy@eminat.net`, `jonathan@eminat.net`.
+Tras la migración el acceso es solo `has_module(slug)`. Freddy = admin (short-circuit, OK), pero **majo**
+y **jonathan** pierden acceso salvo que su rol tenga el módulo. Verificar y asignar:
+```sql
+SELECT email, rol FROM usuarios WHERE email IN ('majo@eminat.net','jonathan@eminat.net');
+-- Si su rol no incluye cobranzas/research, asignarles un rol que sí (p.ej. 'finanzas' / 'investigacion')
+-- vía el panel admin o: UPDATE usuarios SET rol='finanzas' WHERE email='majo@eminat.net';  (service_role)
+```
+> Nota: este UPDATE de `rol` debe correr como **service_role** (el trigger bloquea otros). Vía SQL editor
+> de Supabase (que es service_role) o el panel admin ya sirve.
 
 - [ ] **Step 6: Verificar el trigger anti auto-escalada (manual, como usuario authenticated)**
 
@@ -770,7 +791,8 @@ async function cambiarRol(id: string, rol: string) {
   mostrarMensaje('ok', 'Rol actualizado')
 }
 ```
-(Quitar el import de `usuariosRepo` si queda sin uso.)
+(Quitar el import de `usuariosRepo` si queda sin uso.) Borrar también `updateRol` de
+`shared/data/usuarios.ts` (escribía `rol` por el browser client → el trigger lo bloquearía; queda muerto y es un footgun).
 
 - [ ] **Step 5: Typecheck + tests** — Run: `pnpm exec tsc --noEmit && pnpm test` → todo verde.
 
@@ -838,11 +860,15 @@ export async function PATCH(req: NextRequest, { params }: { params: { key: strin
   const authz = await requireAdmin(); if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
   const { label, modules } = await req.json()
   const db = supabaseAdmin()
+  // Roles is_system (admin/sin_asignar): se puede renombrar el label, NO editar módulos
+  // (admin = short-circuit sin filas; sin_asignar = baseline sin módulos). Evita data rot.
+  const { data: roleRow } = await db.from('roles').select('is_system').eq('key', params.key).maybeSingle()
   if (label !== undefined) {
     const { error } = await db.from('roles').update({ label: String(label).trim() }).eq('key', params.key)
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
   }
   if (Array.isArray(modules)) {
+    if (roleRow?.is_system) return NextResponse.json({ error: 'No se pueden editar los módulos de un rol del sistema.' }, { status: 400 })
     const v = validateModuleSlugs(modules); if (!v.ok) return NextResponse.json({ error: v.error }, { status: 400 })
     await db.from('role_modules').delete().eq('role_key', params.key)
     if (modules.length) await db.from('role_modules').insert(modules.map((m: string) => ({ role_key: params.key, module_slug: m })))
@@ -884,7 +910,14 @@ git commit -m "feat(roles): API de gestión de roles (GET/POST/PATCH/DELETE) con
 **Interfaces:**
 - Consumes: `useApp().{roles, ...theme}`, `apiPost`/fetch a `/api/admin/roles`, `ALL_MODULES`+`MODULE_META` (labels), `ADMIN_ROLE`.
 
-- [ ] **Step 1: `CreateRoleModal.tsx`** — modal con input `label` + grid de checkboxes de módulos (`ALL_MODULES.map(s => MODULE_META[s].name)`); al guardar `POST /api/admin/roles { label, modules }`; on success refresca y cierra. (Estilos: copiar el patrón de `CreateUserModal`/`EditUserModal` — `s1/border/t1/inputStyle` de `useApp`.)
+- [ ] **Step 1: `CreateRoleModal.tsx`** — modal con input `label` + grid de checkboxes de módulos **asignables**; al guardar `POST /api/admin/roles { label, modules }`; on success refresca y cierra. (Estilos: copiar el patrón de `CreateUserModal`/`EditUserModal` — `s1/border/t1/inputStyle` de `useApp`.)
+```ts
+// 'admin' NO se reparte: el acceso total es el ROL admin (short-circuit), no un módulo asignable.
+// Tildarlo daría un grant fantasma (ícono en sidebar → AccessDenied por el gate esAdmin). Se excluye.
+const ASIGNABLES = ALL_MODULES.filter(s => s !== ADMIN_ROLE)  // ADMIN_ROLE === 'admin' === slug del módulo admin
+// grid: ASIGNABLES.map(s => ({ slug: s, name: MODULE_META[s].name }))
+```
+(Mismo `ASIGNABLES` en el editor de módulos de `RolesManager` — Step 2.)
 
 - [ ] **Step 2: `RolesManager.tsx`** — carga `GET /api/admin/roles`, lista roles con su label + chips de módulos + **conteo de usuarios** (de `adminUsuarios` del contexto: `adminUsuarios.filter(u => u.rol === r.key).length`); por rol: botón editar (PATCH label/módulos), botón borrar **deshabilitado si conteo>0 o is_system**; botón "+ Nuevo rol" abre `CreateRoleModal`. El rol `ADMIN_ROLE`: checkboxes **todos tildados desde `ALL_MODULES`** (no de `role_modules`, que no tiene filas para admin) y **deshabilitados/read-only**, sin borrar.
 
