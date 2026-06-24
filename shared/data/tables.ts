@@ -13,6 +13,8 @@ export const TABLES = {
   cobranzasVentas: 'cobranzas_ventas',
   cobranzasCuentas: 'cobranzas_cuentas',
   cobranzasDepositos: 'cobranzas_depositos',
+  roles: 'roles',
+  roleModules: 'role_modules',
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]
