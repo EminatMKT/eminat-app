@@ -100,9 +100,9 @@ INSERT INTO "public"."roles" ("key","label","is_system") VALUES
   ('medico_investigacion','Médico + Investigación',false)
 ON CONFLICT ("key") DO NOTHING;
 
+-- OJO: 'admin' NO lleva filas (su acceso es el short-circuit is_admin()/getModulesForRole;
+-- sembrarlas sería data muerta + trampa de mantenimiento). 'sin_asignar' tampoco (cero módulos).
 INSERT INTO "public"."role_modules" ("role_key","module_slug") VALUES
-  ('admin','stratix-mkt'),('admin','cobranzas'),('admin','research'),('admin','medical'),
-  ('admin','accounting'),('admin','th-hr'),('admin','directorio'),('admin','admin'),
   ('stratix360','stratix-mkt'),('stratix360','directorio'),
   ('finanzas','cobranzas'),('finanzas','accounting'),('finanzas','directorio'),
   ('contabilidad_rrhh','accounting'),('contabilidad_rrhh','th-hr'),('contabilidad_rrhh','directorio'),
@@ -856,7 +856,7 @@ git commit -m "feat(roles): API de gestión de roles (GET/POST/PATCH/DELETE) con
 
 - [ ] **Step 1: `CreateRoleModal.tsx`** — modal con input `label` + grid de checkboxes de módulos (`ALL_MODULES.map(s => MODULE_META[s].name)`); al guardar `POST /api/admin/roles { label, modules }`; on success refresca y cierra. (Estilos: copiar el patrón de `CreateUserModal`/`EditUserModal` — `s1/border/t1/inputStyle` de `useApp`.)
 
-- [ ] **Step 2: `RolesManager.tsx`** — carga `GET /api/admin/roles`, lista roles con su label + chips de módulos + **conteo de usuarios** (de `adminUsuarios` del contexto: `adminUsuarios.filter(u => u.rol === r.key).length`); por rol: botón editar (PATCH label/módulos), botón borrar **deshabilitado si conteo>0 o is_system**; botón "+ Nuevo rol" abre `CreateRoleModal`. El rol `ADMIN_ROLE`: módulos en read-only, sin borrar.
+- [ ] **Step 2: `RolesManager.tsx`** — carga `GET /api/admin/roles`, lista roles con su label + chips de módulos + **conteo de usuarios** (de `adminUsuarios` del contexto: `adminUsuarios.filter(u => u.rol === r.key).length`); por rol: botón editar (PATCH label/módulos), botón borrar **deshabilitado si conteo>0 o is_system**; botón "+ Nuevo rol" abre `CreateRoleModal`. El rol `ADMIN_ROLE`: checkboxes **todos tildados desde `ALL_MODULES`** (no de `role_modules`, que no tiene filas para admin) y **deshabilitados/read-only**, sin borrar.
 
 - [ ] **Step 3: `AdminModule.tsx`** — agregar un toggle `vista: 'usuarios' | 'roles'` (dos botones tab); render condicional: `usuarios` (lo actual: StatsBar/RoleFilterBar/UserTable) o `roles` (`<RolesManager />`). Ambos bajo el gate `esAdmin`.
 

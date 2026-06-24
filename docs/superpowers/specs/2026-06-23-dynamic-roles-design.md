@@ -148,6 +148,11 @@ role_modules(role_key FK→roles.key ON UPDATE CASCADE ON DELETE CASCADE,
 
 - **Seed** `roles` (8 roles): los 7 funcionales desde la matriz `PERMISSIONS` actual + el
   baseline **`sin_asignar`** ("Sin asignar", **sin filas en `role_modules`** → cero módulos).
+  **`admin` TAMPOCO lleva filas en `role_modules`:** su acceso es el short-circuit
+  (`is_admin()` / `getModulesForRole`), no la tabla. Sembrarlas sería **data muerta** + trampa
+  de mantenimiento (quedarían stale al agregar módulos, pero nadie las lee). Solo los 6 roles
+  funcionales no-admin tienen filas. El gestor muestra a `admin` con todo tildado derivado de
+  `ALL_MODULES`, no de la tabla.
   `admin` y `sin_asignar` (el rol por defecto) → `is_system=true` (protegidos de borrado;
   ver Modelo de rol). `stratix360` queda como rol funcional normal (no is_system).
 - `is_system` protege de **borrado** y hace la **key inmutable** — vale para `admin` y
