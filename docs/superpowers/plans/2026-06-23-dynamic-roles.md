@@ -139,40 +139,41 @@ CREATE OR REPLACE FUNCTION "public"."has_module"(p_slug text) RETURNS boolean
     );
   $$;
 
--- 6. RLS de data por módulo: las políticas llaman has_module DIRECTO (sin wrappers tiene_acceso_*)
-DROP POLICY IF EXISTS "Acceso cobranzas cuentas" ON "public"."cobranzas_cuentas";
-CREATE POLICY "Acceso cobranzas cuentas" ON "public"."cobranzas_cuentas" USING (public.has_module('cobranzas'));
-DROP POLICY IF EXISTS "Acceso cobranzas depositos" ON "public"."cobranzas_depositos";
-CREATE POLICY "Acceso cobranzas depositos" ON "public"."cobranzas_depositos" USING (public.has_module('cobranzas'));
-DROP POLICY IF EXISTS "Acceso cobranzas ventas" ON "public"."cobranzas_ventas";
-CREATE POLICY "Acceso cobranzas ventas" ON "public"."cobranzas_ventas" USING (public.has_module('cobranzas'));
-DROP POLICY IF EXISTS "Acceso research activities" ON "public"."research_activities";
-CREATE POLICY "Acceso research activities" ON "public"."research_activities" USING (public.has_module('research'));
-DROP POLICY IF EXISTS "Acceso research campaigns" ON "public"."research_campaigns";
-CREATE POLICY "Acceso research campaigns" ON "public"."research_campaigns" USING (public.has_module('research'));
-DROP POLICY IF EXISTS "Acceso research leads" ON "public"."research_leads";
-CREATE POLICY "Acceso research leads" ON "public"."research_leads" USING (public.has_module('research'));
-DROP POLICY IF EXISTS "Acceso research recipients" ON "public"."research_campaign_recipients";
-CREATE POLICY "Acceso research recipients" ON "public"."research_campaign_recipients" USING (public.has_module('research'));
+-- 6. RLS de data por módulo: una política "mod_access" por tabla, generada desde (tabla → slug).
+--    has_module DIRECTO (sin wrappers tiene_acceso_*). El loop elimina el DROP/CREATE repetido.
+DO $$
+DECLARE
+  -- cada fila = (tabla, módulo que la habilita)
+  pares text[] := ARRAY[
+    'cobranzas_cuentas:cobranzas', 'cobranzas_depositos:cobranzas', 'cobranzas_ventas:cobranzas',
+    'research_activities:research', 'research_campaigns:research',
+    'research_leads:research', 'research_campaign_recipients:research'
+  ];
+  par text; tbl text; slug text;
+BEGIN
+  FOREACH par IN ARRAY pares LOOP
+    tbl := split_part(par, ':', 1); slug := split_part(par, ':', 2);
+    EXECUTE format('DROP POLICY IF EXISTS "mod_access" ON public.%I', tbl);
+    EXECUTE format('CREATE POLICY "mod_access" ON public.%I USING (public.has_module(%L))', tbl, slug);
+  END LOOP;
+END $$;
 
 -- Ya nadie referencia las funciones wrapper → borrarlas (verificar antes que no haya .rpc() en el código app)
 DROP FUNCTION IF EXISTS "public"."tiene_acceso_cobranzas"();
 DROP FUNCTION IF EXISTS "public"."tiene_acceso_research"();
 
--- 7. Override de admin → is_admin(); de paso renombrar las políticas (superadmin_* → admin_*).
---    Doble DROP (nombre viejo + nuevo) para que sea idempotente y no quede la vieja colgada.
-DROP POLICY IF EXISTS "superadmin_all" ON "public"."actividades";
-DROP POLICY IF EXISTS "admin_all" ON "public"."actividades";
-CREATE POLICY "admin_all" ON "public"."actividades" USING (public.is_admin());
-DROP POLICY IF EXISTS "superadmin_all" ON "public"."solicitudes";
-DROP POLICY IF EXISTS "admin_all" ON "public"."solicitudes";
-CREATE POLICY "admin_all" ON "public"."solicitudes" USING (public.is_admin());
-DROP POLICY IF EXISTS "superadmin_all_marcaciones" ON "public"."marcaciones";
-DROP POLICY IF EXISTS "admin_all_marcaciones" ON "public"."marcaciones";
-CREATE POLICY "admin_all_marcaciones" ON "public"."marcaciones" USING (public.is_admin());
-DROP POLICY IF EXISTS "superadmin_all_users" ON "public"."usuarios";
-DROP POLICY IF EXISTS "admin_all_users" ON "public"."usuarios";
-CREATE POLICY "admin_all_users" ON "public"."usuarios" USING (public.is_admin());
+-- 7. Override de admin → is_admin(). Una política "admin_all" por tabla (nombre unificado).
+--    Doble DROP (legacy superadmin_* + admin_all) → idempotente, no deja la vieja colgada.
+DO $$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY['actividades','solicitudes','marcaciones','usuarios'] LOOP
+    EXECUTE format('DROP POLICY IF EXISTS "superadmin_all" ON public.%I', t);
+    EXECUTE format('DROP POLICY IF EXISTS "superadmin_all_%s" ON public.%I', t, t);  -- legacy _marcaciones/_users
+    EXECUTE format('DROP POLICY IF EXISTS "admin_all" ON public.%I', t);
+    EXECUTE format('CREATE POLICY "admin_all" ON public.%I USING (public.is_admin())', t);
+  END LOOP;
+END $$;
 
 -- colaborador_read (actividades) → por módulo stratix-mkt
 DROP POLICY IF EXISTS "colaborador_read" ON "public"."actividades";
