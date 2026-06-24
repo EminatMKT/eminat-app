@@ -3,11 +3,12 @@ import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { eligibleHeirs } from '../heirs'
 import { apiPost } from '@/shared/api'
+import Modal from '@/shared/components/Modal'
 import ErrorBlock from './ErrorBlock'
 import type { ReassignState } from '../types'
 
 export default function DeleteUserModal({ userId, onClose }: { userId: string; onClose: () => void }) {
-  const { adminUsuarios, setAdminUsuarios, mostrarMensaje, s1, border, t1, t2, t3, inputStyle } = useApp()
+  const { adminUsuarios, setAdminUsuarios, mostrarMensaje, border, t1, t2, t3, inputStyle } = useApp()
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [reassignState, setReassignState] = useState<ReassignState | null>(null)
@@ -89,12 +90,7 @@ export default function DeleteUserModal({ userId, onClose }: { userId: string; o
     const taskWord = reassignState.taskCount === 1 ? 'tarea asignada' : 'tareas asignadas'
     const btnWord = reassignState.taskCount === 1 ? 'tarea' : 'tareas'
     return (
-      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-        <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 18, padding: 28, width: 520, maxWidth: '95vw', maxHeight: '92vh', overflowY: 'auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 800, color: t1 }}>Reasignar y borrar</div>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>✕</button>
-          </div>
+      <Modal title="Reasignar y borrar" width={520} onClose={onClose}>
           <div style={{ marginBottom: 14, padding: '12px 14px', borderRadius: 10, background: 'rgba(251,176,64,.08)', border: '1px solid rgba(251,176,64,.35)' }}>
             <div style={{ fontSize: 13, color: t1, fontWeight: 600 }}>{target.nombre} {target.apellido}</div>
             <div style={{ fontSize: 11, color: t2, marginTop: 4 }}>
@@ -138,15 +134,13 @@ export default function DeleteUserModal({ userId, onClose }: { userId: string; o
               {deleting ? '...' : `Heredar ${reassignState.taskCount} ${btnWord} y borrar usuario`}
             </button>
           </div>
-        </div>
-      </div>
+      </Modal>
     )
   }
 
   // ── FASE 1: Cancel / Deactivate (más seguro) / Hard delete
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-      <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 18, padding: 28, width: 440, maxWidth: '95vw' }}>
+    <Modal width={440} onClose={onClose}>
         <div style={{ fontSize: 36, marginBottom: 12, textAlign: 'center' }}>⚠️</div>
         <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 700, color: t1, marginBottom: 8, textAlign: 'center' }}>Delete user</div>
         <div style={{ fontSize: 13, color: t2, marginBottom: 14, lineHeight: 1.5, textAlign: 'center' }}>
@@ -165,7 +159,6 @@ export default function DeleteUserModal({ userId, onClose }: { userId: string; o
           <button onClick={() => deactivarDesdeDelete(userId)} disabled={deleting} style={{ flex: 1.3, padding: '10px', borderRadius: 10, border: '1px solid rgba(251,176,64,.35)', background: 'rgba(251,176,64,.10)', color: '#FBB040', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{deleting ? '...' : 'Deactivate (safer)'}</button>
           <button onClick={() => eliminarUsuario(userId)} disabled={deleting} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: '#F87171', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{deleting ? '...' : 'Hard delete'}</button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

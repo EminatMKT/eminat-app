@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useApp, COLORES_AVATAR } from '@/shared/context/AppContext'
 import { companyOptions } from '@/shared/constants/companies'
 import { apiPost } from '@/shared/api'
+import Modal from '@/shared/components/Modal'
 import ErrorBlock from './ErrorBlock'
 
 export type EditUserDraft = {
@@ -20,7 +21,7 @@ export type EditUserDraft = {
 }
 
 export default function EditUserModal({ user, onClose }: { user: EditUserDraft; onClose: () => void }) {
-  const { setAdminUsuarios, mostrarMensaje, s1, border, t1, t2, t3, accent, inputStyle, roles } = useApp()
+  const { setAdminUsuarios, mostrarMensaje, border, t2, t3, accent, inputStyle, roles } = useApp()
   const [form, setForm] = useState<EditUserDraft>(user)
   const [editError, setEditError] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
@@ -45,9 +46,7 @@ export default function EditUserModal({ user, onClose }: { user: EditUserDraft; 
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-      <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 18, padding: 28, width: 480, maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}><div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 800, color: t1 }}>Edit user</div><button onClick={onClose} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>✕</button></div>
+    <Modal title="Edit user" width={480} onClose={onClose}>
         <ErrorBlock msg={editError} />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
           <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>First name</label><input type="text" value={form.nombre} onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))} style={inputStyle} /></div>
@@ -74,7 +73,6 @@ export default function EditUserModal({ user, onClose }: { user: EditUserDraft; 
           <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
           <button onClick={guardarEdicion} disabled={guardando} style={{ flex: 2, padding: '10px', borderRadius: 10, border: 'none', background: accent, color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{guardando ? 'Saving...' : 'Save changes'}</button>
         </div>
-      </div>
-    </div>
+    </Modal>
   )
 }

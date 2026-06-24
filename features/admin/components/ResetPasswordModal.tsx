@@ -3,13 +3,14 @@ import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { generateTempPassword } from '../password'
 import { apiPost } from '@/shared/api'
+import Modal from '@/shared/components/Modal'
 import PasswordInput from './PasswordInput'
 import CredentialsPanel from './CredentialsPanel'
 import ErrorBlock from './ErrorBlock'
 import type { ResetTarget } from '../types'
 
 export default function ResetPasswordModal({ target, onClose }: { target: ResetTarget; onClose: () => void }) {
-  const { s1, border, t1, t2, t3 } = useApp()
+  const { border, t1, t2, t3 } = useApp()
   const [resetPwd, setResetPwd] = useState(() => generateTempPassword())
   const [showResetPwd, setShowResetPwd] = useState(true)
   const [resetError, setResetError] = useState<string | null>(null)
@@ -31,12 +32,7 @@ export default function ResetPasswordModal({ target, onClose }: { target: ResetT
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-      <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 18, padding: 28, width: 460, maxWidth: '95vw' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 800, color: t1 }}>{resetSuccess ? 'Contraseña actualizada' : 'Reset password'}</div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>✕</button>
-        </div>
+    <Modal title={resetSuccess ? 'Contraseña actualizada' : 'Reset password'} width={460} onClose={onClose}>
         {resetSuccess ? (
           <CredentialsPanel label={`Nueva contraseña para ${resetSuccess.nombre}`} name={resetSuccess.nombre} email={null} pwd={resetSuccess.pwd} onClose={onClose} />
         ) : (
@@ -55,7 +51,6 @@ export default function ResetPasswordModal({ target, onClose }: { target: ResetT
             </div>
           </>
         )}
-      </div>
-    </div>
+    </Modal>
   )
 }

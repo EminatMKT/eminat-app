@@ -5,6 +5,7 @@ import { DEFAULT_ROLE } from '@/shared/auth/permissions'
 import { DEFAULT_COMPANY, companyOptions } from '@/shared/constants/companies'
 import { usuariosRepo } from '@/shared/data'
 import { apiPost } from '@/shared/api'
+import Modal from '@/shared/components/Modal'
 import { generateTempPassword } from '../password'
 import PasswordInput from './PasswordInput'
 import CredentialsPanel from './CredentialsPanel'
@@ -13,7 +14,7 @@ import ErrorBlock from './ErrorBlock'
 const DEFAULT_NEW = { nombre: '', apellido: '', email: '', password: '', rol: DEFAULT_ROLE, tipo: 'B', color: '#7C6FF7', empresa: DEFAULT_COMPANY, cargo: '' }
 
 export default function CreateUserModal({ onClose }: { onClose: () => void }) {
-  const { setAdminUsuarios, s1, border, t1, t2, t3, accent, inputStyle, roles } = useApp()
+  const { setAdminUsuarios, border, t2, t3, accent, inputStyle, roles } = useApp()
   const [nuevoUsr, setNuevoUsr] = useState(DEFAULT_NEW)
   const [showCreatePwd, setShowCreatePwd] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
@@ -45,12 +46,7 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-      <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 18, padding: 28, width: 520, maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 800, color: t1 }}>{createSuccess ? 'Usuario creado' : 'Create user'}</div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>✕</button>
-        </div>
+    <Modal title={createSuccess ? 'Usuario creado' : 'Create user'} width={520} onClose={onClose}>
         {createSuccess ? (
           <CredentialsPanel label={`${createSuccess.nombre} creado correctamente`} name={createSuccess.nombre} email={createSuccess.email} pwd={createSuccess.pwd} onClose={onClose} extra={{ cargo: createSuccess.cargo, emailWarning: createSuccess.emailWarning }} />
         ) : (
@@ -81,7 +77,6 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
             </div>
           </>
         )}
-      </div>
-    </div>
+    </Modal>
   )
 }
