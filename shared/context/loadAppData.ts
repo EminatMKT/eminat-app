@@ -1,10 +1,11 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { supabase } from '@/shared/db/supabase'
-import { usuariosRepo, actividadesRepo, notificacionesRepo } from '@/shared/data'
+import { usuariosRepo, actividadesRepo, notificacionesRepo, rolesRepo } from '@/shared/data'
 import { loadProfile } from '@/shared/db/session'
 import * as auth from '@/shared/db/auth'
 import { clearAuthCookies } from '@/shared/db/clearAuthCookies'
 import { normalizeRole } from '@/shared/auth/permissions'
+import type { RoleRow, RoleModuleMap, ModuleSlug } from '@/shared/auth/permissions'
 import { CARGOS_DIR } from '@/shared/constants/directorio'
 
 type Setters = {
@@ -17,6 +18,8 @@ type Setters = {
   setEquipo: (e: any[]) => void
   setUsuarios: (u: any[]) => void
   setAdminUsuarios: (u: any[]) => void
+  setRoles: (r: RoleRow[]) => void
+  setRoleModuleMap: (m: RoleModuleMap) => void
 }
 
 // Carga inicial de la app tras montar el provider: perfil (crítico), heartbeat,
@@ -44,7 +47,18 @@ export function startAppData(s: Setters): () => void {
       const usr = result.usuario
       s.setUsuario(usr)
 
-      const isSuperAdmin = normalizeRole(usr.rol) === 'admin'
+      // Cargar roles + role_modules en paralelo y construir el mapa role_key → modules.
+      const [{ data: roleRows }, { data: roleMods }] = await Promise.all([
+        rolesRepo.listRoles(), rolesRepo.listRoleModules(),
+      ])
+      s.setRoles((roleRows as RoleRow[]) || [])
+      const map: RoleModuleMap = {}
+      for (const rm of (roleMods || []) as { role_key: string; module_slug: ModuleSlug }[]) {
+        ;(map[rm.role_key] ??= []).push(rm.module_slug)
+      }
+      s.setRoleModuleMap(map)
+
+      const isAdmin = normalizeRole(usr.rol) === 'admin'
 
       // 3. Heartbeat - update online_at every 30s
       const doHeartbeat = () => {
@@ -68,7 +82,7 @@ export function startAppData(s: Setters): () => void {
 
       // 6. Load actividades
       const { data: acts } = await actividadesRepo.list(
-        !isSuperAdmin && usr.responsable_ref ? usr.responsable_ref : undefined
+        !isAdmin && usr.responsable_ref ? usr.responsable_ref : undefined
       )
       s.setActividades(acts || [])
 

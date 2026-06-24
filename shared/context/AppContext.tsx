@@ -3,11 +3,11 @@ import { createContext, useContext, ReactNode } from 'react'
 import {
   normalizeRole,
   getModulesForRole,
-  canAccess,
-  ROLE_LABELS,
-  ROLES as PERMISSION_ROLES,
+  ADMIN_ROLE,
   type Role,
   type ModuleSlug,
+  type RoleRow,
+  type RoleModuleMap,
 } from '@/shared/auth/permissions'
 import { THEME, inputStyle } from '@/shared/theme/tokens'
 import { useAppData } from './useAppData'
@@ -23,9 +23,6 @@ export {
   getColorMarca, getIniciales,
 } from '@/shared/constants/domain'
 export { CARGOS_DIR, DIRECTORIO_DATA, DEPS_DIR } from '@/shared/constants/directorio'
-
-// Roles are the single source of truth for module access. See shared/auth/permissions.
-export const ROLES = PERMISSION_ROLES
 
 // Re-exported from shared/constants/companies.ts for back-compat with existing imports.
 // New code should import directly from '@/shared/constants/companies'.
@@ -56,11 +53,11 @@ interface AppContextType {
   setUsuarios: React.Dispatch<React.SetStateAction<any[]>>
   mostrarMensaje: (tipo: 'ok' | 'error', texto: string) => void
   handleLogout: () => void
-  esSuperAdmin: boolean
+  esAdmin: boolean
   cargo: string
-  canCobranzas: boolean
-  canResearch: boolean
-  canMedical: boolean
+  roles: RoleRow[]
+  roleModuleMap: RoleModuleMap
+  reloadRoles: () => Promise<void>
   role: Role | null
   modules: ModuleSlug[]
   bg: string
@@ -82,12 +79,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Derived values — all permissions flow from shared/auth/permissions.
   const role: Role | null = normalizeRole(app.usuario?.rol)
-  const modules: ModuleSlug[] = getModulesForRole(role)
-  const esSuperAdmin = role === 'admin'
-  const cargo = role ? ROLE_LABELS[role] : (app.usuario?.rol || 'Colaborador')
-  const canCobranzas = canAccess(role, 'cobranzas')
-  const canResearch = canAccess(role, 'research')
-  const canMedical = canAccess(role, 'medical')
+  const modules: ModuleSlug[] = getModulesForRole(app.roleModuleMap, role)
+  const esAdmin = role === ADMIN_ROLE
+  const cargo = app.roles.find(r => r.key === role)?.label || app.usuario?.rol || 'Sin asignar'
 
   if (sessionError) return <SessionErrorScreen reason={sessionError} />
 
@@ -95,11 +89,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider
       value={{
         ...app,
-        esSuperAdmin,
+        esAdmin,
         cargo,
-        canCobranzas,
-        canResearch,
-        canMedical,
         role,
         modules,
         ...THEME,

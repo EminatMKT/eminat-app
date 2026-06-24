@@ -3,6 +3,8 @@ import { useEffect, useState, useCallback } from 'react'
 import * as auth from '@/shared/db/auth'
 import { signOutAndRedirect } from '@/shared/db/session'
 import { clearAuthCookies } from '@/shared/db/clearAuthCookies'
+import { rolesRepo } from '@/shared/data'
+import type { RoleRow, RoleModuleMap, ModuleSlug } from '@/shared/auth/permissions'
 import { startAppData } from './loadAppData'
 import { useClock } from './useClock'
 
@@ -23,6 +25,8 @@ export function useAppData() {
   const [notificaciones, setNotificaciones] = useState<any[]>([])
   const [notifAbiertas, setNotifAbiertas] = useState(false)
   const [adminUsuarios, setAdminUsuarios] = useState<any[]>([])
+  const [roles, setRoles] = useState<RoleRow[]>([])
+  const [roleModuleMap, setRoleModuleMap] = useState<RoleModuleMap>({})
   const horaActual = useClock()
 
   const mostrarMensaje = useCallback((tipo: 'ok' | 'error', texto: string) => {
@@ -40,9 +44,22 @@ export function useAppData() {
     )
   }, [])
 
+  // Re-lee roles + role_modules y resetea el estado. Lo llama la UI de roles tras
+  // crear/editar/borrar para que sidebar, dropdowns y permisos se sincronicen.
+  const reloadRoles = useCallback(async () => {
+    const [{ data: roleRows }, { data: roleMods }] = await Promise.all([
+      rolesRepo.listRoles(), rolesRepo.listRoleModules(),
+    ])
+    setRoles((roleRows as RoleRow[]) || [])
+    const map: RoleModuleMap = {}
+    for (const rm of (roleMods || []) as { role_key: string; module_slug: ModuleSlug }[]) (map[rm.role_key] ??= []).push(rm.module_slug)
+    setRoleModuleMap(map)
+  }, [])
+
   useEffect(() => startAppData({
     setUsuario, setSessionError, setLoading, setOnlineCount,
     setNotificaciones, setActividades, setEquipo, setUsuarios, setAdminUsuarios,
+    setRoles, setRoleModuleMap,
   }), [])
 
   return {
@@ -50,5 +67,6 @@ export function useAppData() {
     loading, dark, setDark, horaActual, onlineCount,
     mensaje, notificaciones, setNotificaciones, notifAbiertas, setNotifAbiertas,
     adminUsuarios, setAdminUsuarios, mostrarMensaje, handleLogout,
+    roles, setRoles, roleModuleMap, setRoleModuleMap, reloadRoles,
   }
 }
