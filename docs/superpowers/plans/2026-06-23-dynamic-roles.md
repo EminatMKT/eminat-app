@@ -45,8 +45,9 @@
 | `features/admin/components/{RoleChip,RoleFilterBar,UserRow,CreateUserModal,EditUserModal}.tsx` | dropdowns/chips desde `roles` | Modificar |
 | `features/admin/hooks/useUserActions.ts` | `cambiarRol` rutea por API | Modificar |
 | `app/api/admin/create-user/route.ts` | default `DEFAULT_ROLE`; label del email desde DB | Modificar |
-| `app/api/admin/update-user/route.ts` | `requireAdmin` + guard último admin | Modificar |
-| `app/api/admin/delete-user/route.ts`, `reassign-and-delete/route.ts` | `requireAdmin` + guard último admin | Modificar |
+| `app/api/admin/update-user/route.ts` | `requireAdmin` + factory + guard último admin | Modificar |
+| `app/api/admin/{delete-user,reassign-and-delete}/route.ts` | `requireAdmin` + factory + guard último admin | Modificar |
+| `app/api/admin/reset-password/route.ts` | `requireAdmin` + factory (hoy SIN authz — hueco) | Modificar |
 | `app/api/admin/roles/route.ts` | GET (list) / POST (create) | Crear |
 | `app/api/admin/roles/[key]/route.ts` | PATCH (label/módulos) / DELETE | Crear |
 | `shared/components/Modal.tsx` | overlay+header+contenedor reutilizable (mata el overlay duplicado 5×) | Crear |
@@ -731,7 +732,7 @@ git commit -m "feat(roles): consumidores DB-driven (sidebar data-driven, dropdow
 
 **Files:**
 - Create: `shared/db/supabaseAdmin.ts`, `shared/db/requireAdmin.ts`
-- Modify: `features/admin/hooks/useUserActions.ts`, `app/api/admin/update-user/route.ts`, `app/api/admin/delete-user/route.ts`, `app/api/admin/reassign-and-delete/route.ts`
+- Modify: `features/admin/hooks/useUserActions.ts`, `app/api/admin/{create-user,update-user,delete-user,reset-password,reassign-and-delete}/route.ts` (las 5: `requireAdmin` + factory `supabaseAdmin()`)
 - Test: `shared/auth/roleValidation.test.ts` (ya cubre `isLastAdmin`)
 
 **Interfaces:**
@@ -795,13 +796,17 @@ export async function requireAdmin(): Promise<{ ok: true; userId: string } | { o
 }
 ```
 > Verificar el nombre exacto del anon key en `clientEnv` (`NEXT_PUBLIC_SUPABASE_ANON_KEY`).
-> Las rutas admin **tocadas** (update/delete/reassign/create-user) pueden migrar su
-> `createClient(...)` inline a `supabaseAdmin()` de paso (opcional; el ticket de helpers comunes
-> hace el resto). Las **rutas nuevas** (`roles/*`) lo usan sí o sí.
+> Migrar el `createClient(service_role)` inline de **las 5 rutas admin** (create/update/delete/reset/reassign)
+> a `supabaseAdmin()` — el bloque es literal idéntico en las 5 (audit). Las **rutas nuevas** (`roles/*`) lo usan sí o sí.
+> (El resto de la modularización de la API admin —validación, error handler, rollback, email— es ticket aparte, ver `.todo`.)
 
-- [ ] **Step 2: Aplicar `requireAdmin` en las 3 rutas de mutación**
+- [ ] **Step 2: Aplicar `requireAdmin` en las 5 rutas admin (cierra hueco de seguridad)**
 
-Al inicio de cada `POST` de `update-user`, `delete-user`, `reassign-and-delete`:
+> **Hallazgo del audit:** hoy **ninguna** ruta admin verifica que el *caller* sea admin (solo bloquean borrar a un admin
+> *target*). `create-user` y `reset-password` quedan totalmente expuestas. Como ya construimos `requireAdmin`, se aplica
+> a **las 5** (no solo a las 3 que muta roles) — es trivial y tapar create/reset es obligatorio.
+
+Al inicio de cada `POST` de `create-user`, `update-user`, `delete-user`, `reset-password`, `reassign-and-delete`:
 ```ts
 const authz = await requireAdmin()
 if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
@@ -839,7 +844,7 @@ async function cambiarRol(id: string, rol: string) {
 
 - [ ] **Step 5: Typecheck + tests** — Run: `pnpm exec tsc --noEmit && pnpm test` → todo verde.
 
-- [ ] **Step 6: Verificación manual (dev)** — como usuario no-admin, pegarle a `/api/admin/update-user` → 403. Degradar al único admin → 400.
+- [ ] **Step 6: Verificación manual (dev)** — como usuario no-admin, pegarle a cada una de las 5 rutas (incl. `/api/admin/create-user` y `/api/admin/reset-password`, los huecos) → **403**. Degradar al único admin → 400.
 
 - [ ] **Step 7: Commit**
 ```bash
