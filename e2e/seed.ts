@@ -33,12 +33,23 @@ export async function ensureUser(email: string, rol: string, nombre = 'Test', ap
   return auth_id
 }
 
-// Borra el usuario (fila usuarios + auth user). Idempotente: usado en global-setup
-// para limpiar el usuario que crea el test de alta entre corridas.
+// Tablas con FK usuario_id → usuarios.id que un usuario de test genera al loguear
+// (heartbeat, auditoría, notifs). Se limpian antes de borrar la fila: el FK es
+// RESTRICT y si no, el DELETE de usuarios falla con 409.
+const CHILD_TABLES = ['marcaciones', 'historial', 'notificaciones', 'slots_calendario']
+
+// Borra el usuario (hijos + fila usuarios + auth user). Idempotente: usado en
+// global-setup/teardown para limpiar los usuarios que crean los tests.
 export async function deleteUser(email: string) {
+  const row = await getUsuario(email)
+  if (row?.id) {
+    for (const tbl of CHILD_TABLES) {
+      await fetch(`${URL}/rest/v1/${tbl}?usuario_id=eq.${row.id}`, { method: 'DELETE', headers: H })
+    }
+  }
   await fetch(`${URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}`, { method: 'DELETE', headers: H })
-  const id = await authIdByEmail(email)
-  if (id) await fetch(`${URL}/auth/v1/admin/users/${id}`, { method: 'DELETE', headers: H })
+  const authId = await authIdByEmail(email)
+  if (authId) await fetch(`${URL}/auth/v1/admin/users/${authId}`, { method: 'DELETE', headers: H })
 }
 
 export async function setRol(email: string, rol: string) {
