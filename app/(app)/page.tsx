@@ -4,7 +4,7 @@ import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import AppShell from '@/shared/components/AppShell'
 import { PageTransition } from '@/shared/motion'
-import { MODULE_META, ROUTES, type ModuleSlug } from '@/shared/auth/permissions'
+import { MODULE_META, ROUTES, modulePath, type ModuleSlug } from '@/shared/auth/permissions'
 
 // ── Dark theme (matches AppShell's sidebar palette) ───────────────────
 const D = {
@@ -186,7 +186,7 @@ export default function LaunchpadPage() {
                       key={slug}
                       slug={slug}
                       meta={meta}
-                      onClick={() => router.push(meta.href)}
+                      onClick={() => router.push(modulePath(slug))}
                       delay={i * 0.04}
                     />
                   )
