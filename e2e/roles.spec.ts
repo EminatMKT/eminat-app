@@ -76,6 +76,16 @@ test('A6 · admin crea usuario → 201, fila sin_asignar + su propio Auth', asyn
   expect(u?.id).toBe(user.id)
 })
 
+test('A7 · reset-password de usuario sembrado (id≠auth) → 200', async ({ page }) => {
+  await loginAs(page, FREDDY)
+  // nuevo@ está sembrado por ensureUser: usuarios.id ≠ auth id (el auth id vive en
+  // auth_id). El endpoint debe resolver el auth id por la fila, no asumir id=auth.
+  // Reseteamos a la MISMA pass para no romper los loginAs(NUEVO) posteriores.
+  const nuevo = await getUsuario(NUEVO)
+  const res = await page.request.post('/api/admin/reset-password', { data: { userId: nuevo.id, password: PASSWORD } })
+  expect(res.ok()).toBeTruthy()
+})
+
 // ── A2/A3/A4. CRUD de rol + efecto ───────────────────────────────────────────
 test('A2 · crear rol "Soporte" con solo Directorio (modal)', async ({ page }) => {
   await loginAs(page, FREDDY)
