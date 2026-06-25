@@ -1,59 +1,10 @@
 'use client'
 import { useState, ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { useApp, MARCAS_LIST } from '@/shared/context/AppContext'
-import type { ModuleSlug } from '@/shared/auth/permissions'
-import { notificacionesRepo } from '@/shared/data'
-import { isDevDb } from '@/shared/db/env.client'
+import { useApp } from '@/shared/context/AppContext'
 import Onboarding from './Onboarding'
-
-// Dark constants for sidebar & topbar (always dark)
-const D = {
-  bg: '#0A0A0F',
-  s1: '#111118',
-  s2: '#1A1A24',
-  border: 'rgba(255,255,255,0.07)',
-  t1: '#FFFFFF',
-  t2: 'rgba(255,255,255,0.6)',
-  t3: 'rgba(255,255,255,0.3)',
-}
-
-const mktSubItems = [
-  { id: 'sub-overview', icon: '📊', label: 'Dashboard', tab: 'overview' },
-  { id: 'sub-prod', icon: '⚡', label: 'Production', tab: 'kanban' },
-  { id: 'sub-sol', icon: '📋', label: 'Requests', tab: 'solicitudes' },
-  { id: 'sub-social', icon: '📱', label: 'Social Media', tab: 'social' },
-  { id: 'sub-competencia', icon: '🎯', label: 'Competitors', tab: 'competencia' },
-  { id: 'sub-equipo', icon: '👥', label: 'Team', tab: 'equipo' },
-  { id: 'sub-reporte', icon: '💰', label: 'Report', tab: 'reporte' },
-]
-const medicalSubItems = [
-  { id: 'med-dash', icon: '📊', label: 'Dashboard', tab: 'dashboard' },
-  { id: 'med-patients', icon: '👥', label: 'Patients', tab: 'pacientes' },
-  { id: 'med-appointments', icon: '📅', label: 'Appointments', tab: 'citas' },
-  { id: 'med-hipaa', icon: '🛡️', label: 'HIPAA', tab: 'hipaa' },
-  { id: 'med-audit', icon: '📋', label: 'Audit Log', tab: 'audit' },
-]
-const researchSubItems = [
-  { id: 'res-dash', icon: '📊', label: 'Dashboard', tab: 'dashboard' },
-  { id: 'res-leads', icon: '👥', label: 'Leads', tab: 'leads' },
-  { id: 'res-newsletter', icon: '📧', label: 'Newsletter', tab: 'newsletter' },
-  { id: 'res-sms', icon: '📱', label: 'SMS', tab: 'sms' },
-  { id: 'res-mailing', icon: '📨', label: 'Mailing', tab: 'mailing' },
-  { id: 'res-pipeline', icon: '🎯', label: 'Pipeline', tab: 'pipeline' },
-  { id: 'res-opps', icon: '📋', label: 'Opportunities', tab: 'oportunidades' },
-]
-
-const NAV: { slug: ModuleSlug; key: string; icon: string; label: string; panel?: 'mkt' | 'medical' | 'research' }[] = [
-  { slug: 'stratix-mkt', key: 'mkt', icon: '🚀', label: 'Stratix 360', panel: 'mkt' },
-  { slug: 'accounting', key: 'accounting', icon: '🧾', label: 'Accounting' },
-  { slug: 'cobranzas', key: 'cobranzas', icon: '💳', label: 'Billing' },
-  { slug: 'medical', key: 'medical', icon: '🏥', label: 'Medical', panel: 'medical' },
-  { slug: 'th-hr', key: 'th-hr', icon: '👤', label: 'TH/HR' },
-  { slug: 'research', key: 'research', icon: '🔬', label: 'Research', panel: 'research' },
-  { slug: 'directorio', key: 'directorio', icon: '🏢', label: 'Directory' },
-  { slug: 'admin', key: 'admin', icon: '🔐', label: 'Admin' },
-]
+import Topbar from './Topbar'
+import { D, NAV, SUB_ITEMS, PANEL_META, type PanelKey } from './appShellConfig'
 
 interface Props {
   children: ReactNode
@@ -68,10 +19,10 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
   const router = useRouter()
   const pathname = usePathname()
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
-  const [sidebarPanel, setSidebarPanel] = useState<string | null>(
-    pathname.startsWith('/research') ? 'research' : pathname.startsWith('/medical') ? 'medical' : (pathname === '/' || pathname.startsWith('/stratix-mkt')) ? 'mkt' : null
+  const [sidebarPanel, setSidebarPanel] = useState<PanelKey | null>(
+    pathname.startsWith('/research') ? 'research' : pathname.startsWith('/medical') ? 'medical' : pathname.startsWith('/stratix-mkt') ? 'mkt' : null
   )
-  const { usuario, dark, setDark, horaActual, onlineCount, mensaje, notificaciones, notifAbiertas, setNotifAbiertas, setNotificaciones, accent, cargo, modules, handleLogout, bg } = app
+  const { usuario, accent, cargo, modules, handleLogout, bg } = app
 
   const activeIconKey = pathname.startsWith('/medical') ? 'medical'
     : pathname.startsWith('/research') ? 'research'
@@ -81,22 +32,22 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
     : pathname.startsWith('/directorio') ? 'directorio'
     : pathname.startsWith('/admin') ? 'admin'
     : pathname.startsWith('/stratix-mkt') ? 'mkt'
-    : pathname === '/' ? 'home' : 'home'
+    : 'home'
 
-  // Sidebar is data-driven: NAV (typed) filtered by the user's `modules`.
-  // Home is always present; module items appear only if the slug is in `modules`.
-  const navAction = (slug: ModuleSlug, panel?: string) => panel
+  // Sidebar data-driven: NAV filtrado por los `modules` del usuario. Home siempre presente.
+  const navAction = (slug: string, panel?: PanelKey) => panel
     ? () => { setSidebarPanel(p => p === panel ? null : panel); if (!pathname.startsWith('/' + slug)) router.push('/' + slug) }
     : () => { router.push('/' + slug); setSidebarPanel(null) }
-  const sidebarIcons: any[] = [
+  const sidebarIcons = [
     { key: 'home', icon: '🏠', label: 'Home', action: () => { router.push('/'); setSidebarPanel(null) } },
     ...NAV.filter(i => modules.includes(i.slug)).map(i => ({ key: i.key, icon: i.icon, label: i.label, action: navAction(i.slug, i.panel) })),
   ]
 
-  const panelOpen = sidebarPanel === 'mkt' || sidebarPanel === 'research' || sidebarPanel === 'medical'
-  const subItems = sidebarPanel === 'research' ? researchSubItems : sidebarPanel === 'medical' ? medicalSubItems : mktSubItems
-  const panelTitle = sidebarPanel === 'research' ? 'Research' : sidebarPanel === 'medical' ? 'Medical' : 'Stratix 360'
-  const panelSub = sidebarPanel === 'research' ? 'Clinical Research Ops' : sidebarPanel === 'medical' ? 'HIPAA Compliance' : 'Marketing & Production'
+  // El panel secundario solo abre si el usuario tiene el módulo (sin_asignar no ve el submenú).
+  const panelOpen = !!sidebarPanel && modules.includes(PANEL_META[sidebarPanel].slug)
+  const panel = sidebarPanel ?? 'mkt'
+  const subItems = SUB_ITEMS[panel]
+  const { title: panelTitle, sub: panelSub } = PANEL_META[panel]
 
   const autoTitle = pathname === '/' ? `Eminat Group — Welcome, ${usuario?.nombre}`
     : pathname.startsWith('/stratix-mkt') ? 'Stratix 360 — Producción'
@@ -124,12 +75,11 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
       <aside className={`sidebar-root${mobileSidebarOpen ? ' open' : ''}`} style={{ display: 'flex', flexShrink: 0, height: '100vh', position: 'relative', zIndex: 50 }}>
         <div style={{ width: 62, background: D.s1, borderRight: `1px solid ${D.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 12 }}>
           <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '0 4px', width: '100%' }}>
-            {sidebarIcons.map((item: any) => (
+            {sidebarIcons.map(item => (
               <button key={item.key} data-tour={item.key} onClick={() => { item.action(); setMobileSidebarOpen(false) }}
                 style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, width: 52, height: 52, borderRadius: 12, border: 'none', cursor: 'pointer', background: activeIconKey === item.key ? `${accent}18` : 'transparent', color: activeIconKey === item.key ? accent : D.t2, transition: 'all .15s', position: 'relative' }}>
                 <span style={{ fontSize: 18, lineHeight: 1 }}>{item.icon}</span>
                 <span style={{ fontSize: 8, fontWeight: 600, fontFamily: 'DM Sans', letterSpacing: '.02em', lineHeight: 1 }}>{item.label}</span>
-                {item.soon && <span style={{ position: 'absolute', top: 4, right: 4, width: 6, height: 6, borderRadius: '50%', background: D.t3 }} />}
                 {activeIconKey === item.key && <div style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', width: 3, height: 20, borderRadius: '0 3px 3px 0', background: accent }} />}
               </button>
             ))}
@@ -192,122 +142,13 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
 
       {/* MAIN */}
       <main style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
-        {/* TOPBAR — always dark */}
-        <div style={{ padding: '11px 24px', borderBottom: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: D.s1, position: 'sticky', top: 0, zIndex: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button className="mobile-hamburger" onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)} style={{ display: 'none', background: 'none', border: `1px solid ${D.border}`, borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: D.t1, fontSize: 18, lineHeight: 1 }}>☰</button>
-            {/* Indicador de entorno — solo visible cuando se trabaja contra la base de DESARROLLO */}
-            {isDevDb && (
-              <span title="Conectado a la base de datos de DESARROLLO (no producción)" style={{ padding: '3px 9px', borderRadius: 6, fontSize: 10, fontWeight: 800, letterSpacing: '.08em', fontFamily: 'DM Mono', background: '#F59E0B22', color: '#F59E0B', border: '1px solid #F59E0B55', flexShrink: 0 }}>DEV</span>
-            )}
-            <div>
-              <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15, color: D.t1 }}>{title || autoTitle}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
-                <span style={{ fontSize: 10, color: D.t3, fontFamily: 'DM Mono' }}>
-                  {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {horaActual}
-                </span>
-                <span style={{ width: 1, height: 10, background: D.border }} />
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {MARCAS_LIST.map(m => (
-                    <span key={m.codigo} style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 9, fontFamily: 'DM Mono', color: m.color, fontWeight: 600, letterSpacing: '.02em' }}>
-                      <span style={{ width: 5, height: 5, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
-                      {m.codigo}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {mensaje && (
-              <div style={{ padding: '5px 12px', borderRadius: 8, fontSize: 11, fontWeight: 500, background: mensaje.tipo === 'ok' ? 'rgba(52,211,153,.15)' : 'rgba(248,113,113,.15)', color: mensaje.tipo === 'ok' ? '#34D399' : '#F87171', border: `1px solid ${mensaje.tipo === 'ok' ? '#34D39940' : '#F8717140'}` }}>
-                {mensaje.tipo === 'ok' ? '✓' : '✕'} {mensaje.texto}
-              </div>
-            )}
-            <div style={{ position: 'relative' }}>
-              <button onClick={() => { setNotifAbiertas(!notifAbiertas); if (!notifAbiertas) { const ids = notificaciones.filter((n: any) => !n.leida).map((n: any) => n.id); if (ids.length > 0) notificacionesRepo.markReadByIds(ids).then(() => setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))) } }}
-                style={{ position: 'relative', padding: '7px 9px', borderRadius: 10, border: `1px solid ${D.border}`, background: notifAbiertas ? `${accent}20` : D.s2, color: notifAbiertas ? accent : D.t2, fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>
-                🔔
-                {notificaciones.filter((n: any) => !n.leida).length > 0 && (
-                  <span style={{ position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: '50%', background: '#F87171', color: 'white', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${D.s1}` }}>
-                    {notificaciones.filter((n: any) => !n.leida).length > 9 ? '9+' : notificaciones.filter((n: any) => !n.leida).length}
-                  </span>
-                )}
-              </button>
-              {notifAbiertas && (
-                <div style={{ position: 'absolute', top: '110%', right: 0, width: 320, background: D.s1, border: `1px solid ${D.border}`, borderRadius: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', zIndex: 50, overflow: 'hidden' }}>
-                  <div style={{ padding: '14px 16px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ fontFamily: 'Syne', fontSize: 14, fontWeight: 700, color: D.t1 }}>Notifications</div>
-                    <button onClick={() => { notificacionesRepo.markAllRead().then(() => setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))) }} style={{ fontSize: 11, color: D.t3, background: 'none', border: 'none', cursor: 'pointer' }}>Mark all as read</button>
-                  </div>
-                  <div style={{ maxHeight: 340, overflowY: 'auto' }}>
-                    {notificaciones.length === 0 ? (
-                      <div style={{ padding: '32px', textAlign: 'center', color: D.t3 }}>
-                        <div style={{ fontSize: 28, marginBottom: 8 }}>🔔</div>
-                        <div style={{ fontSize: 12 }}>No notifications</div>
-                      </div>
-                    ) : notificaciones.map((n: any) => (
-                      <div key={n.id} onClick={() => { if (n.actividad_id) { router.push('/stratix-mkt'); setNotifAbiertas(false) } }}
-                        style={{ padding: '12px 16px', borderBottom: `1px solid ${D.border}`, cursor: n.actividad_id ? 'pointer' : 'default', background: n.leida ? 'transparent' : `${accent}08`, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: n.leida ? 'transparent' : accent, flexShrink: 0, marginTop: 4 }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: n.leida ? 400 : 600, color: D.t1 }}>{n.titulo}</div>
-                          <div style={{ fontSize: 11, color: D.t2, marginTop: 2, lineHeight: 1.4 }}>{n.mensaje}</div>
-                          <div style={{ fontSize: 10, color: D.t3, marginTop: 4 }}>{new Date(n.created_at).toLocaleDateString('es-EC', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 20, background: '#34D39912', border: '1px solid #34D39930' }}>
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34D399' }} />
-              <span style={{ fontSize: 11, color: '#34D399', fontWeight: 500 }}>{onlineCount > 0 ? onlineCount : 1} online</span>
-            </div>
-            <button onClick={() => setDark(!dark)} style={{ padding: '6px 11px', borderRadius: 20, border: `1px solid ${D.border}`, background: D.s2, color: D.t2, fontSize: 11, cursor: 'pointer' }}>
-              {dark ? '☀️' : '🌙'}
-            </button>
-            {actions}
-          </div>
-        </div>
-
+        <Topbar title={title || autoTitle} actions={actions} onHamburger={() => setMobileSidebarOpen(!mobileSidebarOpen)} />
         {/* CONTENT AREA — always light */}
         <div style={{ padding: '20px 24px', flex: 1, overflow: 'auto', background: bg, color: '#111827' }}>
           {children}
         </div>
       </main>
 
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes spin { to { transform: rotate(360deg) } }
-        @keyframes centerPulse { 0%, 100% { box-shadow: 0 0 40px rgba(124,111,247,.25), 0 0 80px rgba(124,111,247,.1); } 50% { box-shadow: 0 0 60px rgba(124,111,247,.4), 0 0 120px rgba(124,111,247,.2); } }
-        @keyframes orbitRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .center-pulse > div { animation: centerPulse 3s ease-in-out infinite; }
-        .orbit-ring { animation: orbitRotate 60s linear infinite; pointer-events: none; }
-        .orbit-ring-inner { animation: orbitRotate 45s linear infinite reverse; pointer-events: none; }
-        .brand-node:hover { filter: brightness(1.1); }
-        * { scrollbar-width: thin; scrollbar-color: rgba(124,111,247,0.3) transparent; }
-        *::-webkit-scrollbar { width: 4px; height: 4px; }
-        *::-webkit-scrollbar-track { background: transparent; }
-        *::-webkit-scrollbar-thumb { background: rgba(124,111,247,0.3); border-radius: 2px; }
-        @media (max-width: 768px) {
-          .sidebar-root { position: fixed !important; left: 0; top: 0; bottom: 0; transform: translateX(-100%); transition: transform .25s ease; }
-          .sidebar-root.open { transform: translateX(0); }
-          .mobile-hamburger { display: flex !important; }
-        }
-        @media print {
-          aside { display: none !important; }
-          main > div:first-child { display: none !important; }
-          #reporte-controls { display: none !important; }
-          body, html { background: white !important; }
-          main { overflow: visible !important; }
-          #print-header { display: block !important; }
-          #reporte-content { color: #111 !important; }
-          #reporte-content * { color: #111 !important; border-color: #ccc !important; }
-          #reporte-content div[style*="background"] { background: #f9f9f9 !important; }
-          * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        }
-      `}} />
       <Onboarding />
     </div>
   )
