@@ -1,6 +1,7 @@
 'use client'
 import * as auth from '@/shared/db/auth'
 import { clearAuthCookies } from '@/shared/db/clearAuthCookies'
+import { ROUTES } from '@/shared/auth/permissions'
 
 // Pantalla de error estable cuando el perfil no carga: en vez de auto-navegar
 // (que generaba bucle) o dejar la UI zombie, el usuario sale con un clic manual
@@ -18,7 +19,7 @@ export default function SessionErrorScreen({ reason }: { reason: 'no-session' | 
       <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', maxWidth: 420, lineHeight: 1.5 }}>
         Volvé a iniciar sesión. Si el problema persiste, contactá al administrador.
       </div>
-      <button onClick={() => { clearAuthCookies(); void auth.signOut().catch(() => {}); window.location.href = '/login' }}
+      <button onClick={() => { clearAuthCookies(); void auth.signOut().catch(() => {}); window.location.href = ROUTES.login }}
         style={{ marginTop: 8, padding: '10px 22px', borderRadius: 10, border: 'none', background: '#7C6FF7', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
         Ir al login
       </button>

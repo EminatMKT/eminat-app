@@ -121,6 +121,20 @@ export function isModuleSlug(value: unknown): value is ModuleSlug {
   return typeof value === 'string' && value in MODULE_META
 }
 
+// ── Rutas (fuente única) ───────────────────────────────────────────────────
+// Ruta de un módulo = '/' + slug (convención del App Router, = MODULE_META.href).
+// modulePath() la centraliza con type-safety: un slug inexistente es error de tsc.
+export function modulePath(slug: ModuleSlug): string {
+  return `/${slug}`
+}
+// Rutas que NO son módulos.
+export const ROUTES = {
+  home: '/',
+  login: '/login',
+  resetPassword: '/reset-password',
+  overview: '/overview',
+} as const
+
 // Compatibility shim. Old role values (`pasante`, `colaborador`, `coordinador`,
 // `superadmin`) might still appear in usuarios.rol until the DB migration runs.
 const LEGACY_TO_NEW: Record<string, Role> = {

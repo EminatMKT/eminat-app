@@ -4,7 +4,7 @@ import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import AppShell from '@/shared/components/AppShell'
 import { PageTransition } from '@/shared/motion'
-import { MODULE_META, type ModuleSlug } from '@/shared/auth/permissions'
+import { MODULE_META, ROUTES, type ModuleSlug } from '@/shared/auth/permissions'
 
 // ── Dark theme (matches AppShell's sidebar palette) ───────────────────
 const D = {
@@ -166,7 +166,7 @@ export default function LaunchpadPage() {
             </div>
 
             {/* Admin "Ver todo" — only visible to admin role */}
-            {esAdmin && <VerTodoBanner onClick={() => router.push('/overview')} />}
+            {esAdmin && <VerTodoBanner onClick={() => router.push(ROUTES.overview)} />}
 
             {/* Cards grid */}
             {modules.length === 0 ? (

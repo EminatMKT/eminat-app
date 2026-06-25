@@ -2,6 +2,7 @@
 import { useRouter } from 'next/navigation'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
+import { modulePath } from '@/shared/auth/permissions'
 import { notificacionesRepo } from '@/shared/data'
 import { D } from './appShellConfig'
 
@@ -35,7 +36,7 @@ export default function NotificationsBell() {
                 <div style={{ fontSize: 12 }}>{t('notif.empty')}</div>
               </div>
             ) : notificaciones.map((n: any) => (
-              <div key={n.id} onClick={() => { if (n.actividad_id) { router.push('/stratix-mkt'); setNotifAbiertas(false) } }}
+              <div key={n.id} onClick={() => { if (n.actividad_id) { router.push(modulePath('stratix-mkt')); setNotifAbiertas(false) } }}
                 style={{ padding: '12px 16px', borderBottom: `1px solid ${D.border}`, cursor: n.actividad_id ? 'pointer' : 'default', background: n.leida ? 'transparent' : `${accent}08`, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: n.leida ? 'transparent' : accent, flexShrink: 0, marginTop: 4 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>

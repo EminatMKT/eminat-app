@@ -3,9 +3,10 @@ import { useState, ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
+import { modulePath, ROUTES, type ModuleSlug } from '@/shared/auth/permissions'
 import Onboarding from './Onboarding'
 import Topbar from './Topbar'
-import { D, NAV, SUB_ITEMS, PANEL_META, type PanelKey } from './appShellConfig'
+import { D, NAV, SUB_ITEMS, PANEL_META, AUTO_TITLE, type PanelKey } from './appShellConfig'
 
 interface Props {
   children: ReactNode
@@ -21,27 +22,19 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
   const router = useRouter()
   const pathname = usePathname()
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
-  const [sidebarPanel, setSidebarPanel] = useState<PanelKey | null>(
-    pathname.startsWith('/research') ? 'research' : pathname.startsWith('/medical') ? 'medical' : pathname.startsWith('/admin') ? 'admin' : pathname.startsWith('/stratix-mkt') ? 'mkt' : null
-  )
+  // El módulo activo = el item de NAV cuyo path (modulePath = '/' + slug) prefija al pathname.
+  const activeNav = NAV.find(i => pathname.startsWith(modulePath(i.slug)))
+  const [sidebarPanel, setSidebarPanel] = useState<PanelKey | null>(activeNav?.panel ?? null)
   const { usuario, accent, cargo, modules, handleLogout, bg } = app
 
-  const activeIconKey = pathname.startsWith('/medical') ? 'medical'
-    : pathname.startsWith('/research') ? 'research'
-    : pathname.startsWith('/accounting') ? 'accounting'
-    : pathname.startsWith('/cobranzas') ? 'cobranzas'
-    : pathname.startsWith('/th-hr') ? 'th-hr'
-    : pathname.startsWith('/directorio') ? 'directorio'
-    : pathname.startsWith('/admin') ? 'admin'
-    : pathname.startsWith('/stratix-mkt') ? 'mkt'
-    : 'home'
+  const activeIconKey = activeNav?.key ?? 'home'
 
   // Sidebar data-driven: NAV filtrado por los `modules` del usuario. Home siempre presente.
-  const navAction = (slug: string, panel?: PanelKey) => panel
-    ? () => { setSidebarPanel(p => p === panel ? null : panel); if (!pathname.startsWith('/' + slug)) router.push('/' + slug) }
-    : () => { router.push('/' + slug); setSidebarPanel(null) }
+  const navAction = (slug: ModuleSlug, panel?: PanelKey) => panel
+    ? () => { setSidebarPanel(p => p === panel ? null : panel); if (!pathname.startsWith(modulePath(slug))) router.push(modulePath(slug)) }
+    : () => { router.push(modulePath(slug)); setSidebarPanel(null) }
   const sidebarIcons = [
-    { key: 'home', icon: '🏠', label: 'Home', action: () => { router.push('/'); setSidebarPanel(null) } },
+    { key: 'home', icon: '🏠', label: 'Home', action: () => { router.push(ROUTES.home); setSidebarPanel(null) } },
     ...NAV.filter(i => modules.includes(i.slug)).map(i => ({ key: i.key, icon: i.icon, label: i.label, action: navAction(i.slug, i.panel) })),
   ]
 
@@ -51,15 +44,9 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
   const subItems = SUB_ITEMS[panel]
   const { title: panelTitle, sub: panelSub } = PANEL_META[panel]
 
-  const autoTitle = pathname === '/' ? `Eminat Group — Welcome, ${usuario?.nombre}`
-    : pathname.startsWith('/stratix-mkt') ? 'Stratix 360 — Producción'
-    : pathname.startsWith('/accounting') ? 'Accounting — Eminat Research'
-    : pathname.startsWith('/cobranzas') ? 'EMINAT LLC — Billing Dashboard'
-    : pathname.startsWith('/research') ? 'Eminat Research Group'
-    : pathname.startsWith('/medical') ? 'Eminat Medical Center — HIPAA'
-    : pathname.startsWith('/directorio') ? 'Team Directory'
-    : pathname.startsWith('/admin') ? 'Admin Panel'
-    : 'Stratix'
+  const autoTitle = pathname === ROUTES.home
+    ? `Eminat Group — Welcome, ${usuario?.nombre}`
+    : (activeNav && AUTO_TITLE[activeNav.slug]) || 'Stratix'
 
   if (app.loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0A0A0F', gap: 16 }}>
@@ -107,10 +94,9 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
               const isActive = activeTab === item.tab
               return (
                 <button key={item.id} onClick={() => {
-                  if (sidebarPanel === 'mkt' && !pathname.startsWith('/stratix-mkt')) router.push('/stratix-mkt')
-                  if (sidebarPanel === 'research' && !pathname.startsWith('/research')) router.push('/research')
-                  if (sidebarPanel === 'medical' && !pathname.startsWith('/medical')) router.push('/medical')
-                  if (sidebarPanel === 'admin' && !pathname.startsWith('/admin')) router.push('/admin')
+                  // Si el panel abierto es de otro módulo, navegá a ese módulo antes de cambiar de tab.
+                  const target = sidebarPanel ? PANEL_META[sidebarPanel].slug : null
+                  if (target && !pathname.startsWith(modulePath(target))) router.push(modulePath(target))
                   onTabChange?.(item.tab)
                   setMobileSidebarOpen(false)
                 }}

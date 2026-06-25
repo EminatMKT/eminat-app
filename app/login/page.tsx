@@ -6,6 +6,7 @@ import { usuariosRepo } from '@/shared/data'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 import { useT } from '@/shared/i18n'
+import { ROUTES } from '@/shared/auth/permissions'
 
 const ZONAS = [
   { ciudad: 'Ecuador', zona: 'America/Guayaquil', emoji: '🇪🇨' },
@@ -91,7 +92,7 @@ export default function LoginPage() {
       }
     }
 
-    router.push('/')
+    router.push(ROUTES.home)
   }
 
   async function handleReset(e: React.FormEvent) {
@@ -103,7 +104,7 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
-    const { error: err } = await auth.resetPasswordForEmail(email, `${window.location.origin}/reset-password`)
+    const { error: err } = await auth.resetPasswordForEmail(email, `${window.location.origin}${ROUTES.resetPassword}`)
     if (err) { setError(t('login.errSendReset')); setLoading(false); return }
     setSent(true)
     setLoading(false)
