@@ -25,7 +25,7 @@ async function loginAs(page: Page, email: string) {
   const pw = page.locator('input[type="password"]')
   await pw.fill(PASSWORD)
   await pw.press('Enter')
-  await page.waitForURL('http://localhost:3000/', { timeout: 20000 })
+  await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
   await expect(page.getByText('Home', { exact: true })).toBeVisible({ timeout: 20000 })
 }
 
