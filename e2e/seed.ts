@@ -6,7 +6,7 @@ export const PASSWORD = 'eminat123'
 
 const H = { 'Content-Type': 'application/json', apikey: SERVICE, Authorization: `Bearer ${SERVICE}` }
 
-async function authIdByEmail(email: string): Promise<string | null> {
+export async function authIdByEmail(email: string): Promise<string | null> {
   const r = await fetch(`${URL}/auth/v1/admin/users?per_page=200`, { headers: H })
   const j = await r.json()
   const u = (j.users || []).find((x: any) => x.email === email)
@@ -31,6 +31,14 @@ export async function ensureUser(email: string, rol: string, nombre = 'Test', ap
   })
   if (!ri.ok) throw new Error(`ensureUser ${email}: ${ri.status} ${await ri.text()}`)
   return auth_id
+}
+
+// Borra el usuario (fila usuarios + auth user). Idempotente: usado en global-setup
+// para limpiar el usuario que crea el test de alta entre corridas.
+export async function deleteUser(email: string) {
+  await fetch(`${URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}`, { method: 'DELETE', headers: H })
+  const id = await authIdByEmail(email)
+  if (id) await fetch(`${URL}/auth/v1/admin/users/${id}`, { method: 'DELETE', headers: H })
 }
 
 export async function setRol(email: string, rol: string) {

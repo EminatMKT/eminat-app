@@ -8,6 +8,9 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1, // un solo worker: los tests comparten estado en la DB local y van en serie
   retries: 0,
+  // El dev server compila cada ruta en el primer hit; la home es pesada y puede pasar
+  // los 30s default. Subimos el techo para que el waitForURL(40s) del login no se cape.
+  timeout: 60000,
   reporter: [['list']],
   use: {
     baseURL: 'http://localhost:3000',

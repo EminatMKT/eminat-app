@@ -1,4 +1,4 @@
-import { ensureUser, deleteRole } from './seed'
+import { ensureUser, deleteRole, deleteUser } from './seed'
 
 // Estado base ANTES de cada corrida (idempotente):
 //  - freddy@  = admin (driver principal de la UI)
@@ -10,4 +10,5 @@ export default async function globalSetup() {
   await ensureUser('bootstrap@eminat.net', 'admin', 'Boot', 'Strap')
   await ensureUser('nuevo@eminat.net', 'sin_asignar', 'Nuevo', 'Usuario') // resetea rol → suelta 'soporte'
   await deleteRole('soporte')
+  await deleteUser('creado@eminat.net') // lo crea el test de alta (A6)
 }

@@ -1,11 +1,12 @@
 import { test, expect, Page } from '@playwright/test'
-import { PASSWORD, ensureUser, getUsuario } from './seed'
+import { PASSWORD, ensureUser, getUsuario, authIdByEmail } from './seed'
 
 // E2E de roles dinámicos. Serial: comparten estado en la DB local.
 test.describe.configure({ mode: 'serial' })
 
 const FREDDY = 'freddy@eminat.net'
 const NUEVO = 'nuevo@eminat.net'
+const CREADO = 'creado@eminat.net'
 const BOOTSTRAP = 'bootstrap@eminat.net'
 const ADMIN2 = 'admin2@eminat.net'
 
@@ -56,6 +57,23 @@ test('A5 · sin_asignar: solo Home, módulos bloqueados', async ({ page }) => {
   await expect(page.locator('[data-tour="directorio"]')).toBeHidden()
   await expect(page.locator('[data-tour="admin"]')).toBeHidden()
   await assertDenied(page, NUEVO, '/stratix-mkt')
+})
+
+// ── A6. Alta de usuario por la API admin real ────────────────────────────────
+test('A6 · admin crea usuario → 201, fila sin_asignar + su propio Auth', async ({ page }) => {
+  await loginAs(page, FREDDY)
+  // El email de bienvenida es best-effort: sin Resend en local devuelve 201 + emailWarning.
+  const res = await page.request.post('/api/admin/create-user', {
+    data: { email: CREADO, password: PASSWORD, nombre: 'Crea', apellido: 'Do' },
+  })
+  expect(res.status()).toBe(201)
+  const { user } = await res.json()
+  expect(user.rol).toBe('sin_asignar')             // DEFAULT_ROLE
+  // fila usuarios sembrada y ligada a un auth user con el mismo id (creación atómica)
+  const u = await getUsuario(CREADO)
+  expect(u?.rol).toBe('sin_asignar')
+  expect(await authIdByEmail(CREADO)).toBe(user.id)
+  expect(u?.id).toBe(user.id)
 })
 
 // ── A2/A3/A4. CRUD de rol + efecto ───────────────────────────────────────────
