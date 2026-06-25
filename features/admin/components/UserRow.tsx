@@ -1,7 +1,7 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
-import { normalizeRole, ADMIN_ROLE } from '@/shared/auth/permissions'
+import { normalizeRole, ADMIN_ROLE, DEFAULT_ROLE } from '@/shared/auth/permissions'
 import { COMPANY_COLORS, companyShort } from '@/shared/constants/companies'
 import { useUserActions } from '../hooks/useUserActions'
 import type { AdminUser, ResetTarget } from '../types'
@@ -30,7 +30,9 @@ export default function UserRow({ user: u, onEdit, onReset, onDelete }: Props) {
       <td style={{ padding: '10px 14px', fontSize: 10, color: t3, fontFamily: 'DM Mono' }}>{u.email}</td>
       <td style={{ padding: '10px 14px', fontSize: 11, color: t2 }}>{u.cargo || '—'}</td>
       <td style={{ padding: '10px 14px' }}>{u.empresa ? <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 20, background: `${COMPANY_COLORS[u.empresa] || accent}20`, color: COMPANY_COLORS[u.empresa] || accent }}>{companyShort(u.empresa)}</span> : <span style={{ fontSize: 10, color: t3 }}>—</span>}</td>
-      <td style={{ padding: '10px 14px' }}>{isProtected ? <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: 'rgba(248,113,113,.12)', color: '#F87171' }}>{roleLabel}</span> : <select value={u.rol} onChange={e => cambiarRol(u.id, e.target.value)} style={{ padding: '3px 8px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 11, cursor: 'pointer', outline: 'none' }}>{roles.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}</select>}</td>
+      {/* Solo sin_asignar usa el select inline (asignación rápida). El resto muestra el rol
+          como badge: el cambio se hace desde el modal de editar. Admin en rojo, otros en acento. */}
+      <td style={{ padding: '10px 14px' }}>{normalizeRole(u.rol) === DEFAULT_ROLE ? <select value={u.rol} onChange={e => cambiarRol(u.id, e.target.value)} style={{ padding: '3px 8px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 11, cursor: 'pointer', outline: 'none' }}>{roles.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}</select> : <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: isProtected ? 'rgba(248,113,113,.12)' : `${accent}1a`, color: isProtected ? '#F87171' : accent }}>{roleLabel}</span>}</td>
       <td style={{ padding: '10px 14px' }}>{u.validado && u.activo ? <span style={{ fontSize: 11, color: '#34D399' }}>{t('admin.statusActive')}</span> : !u.validado ? <span style={{ fontSize: 11, color: '#FBB040' }}>{t('admin.statusPending')}</span> : <span style={{ fontSize: 11, color: '#F87171' }}>{t('admin.statusInactive')}</span>}</td>
       <td style={{ padding: '10px 14px' }}>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
