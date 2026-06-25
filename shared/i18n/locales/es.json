@@ -2,6 +2,8 @@
   "common.accessDenied": "Acceso denegado",
   "common.signOut": "Cerrar sesión",
   "common.processing": "Procesando…",
+  "common.open": "Abrir",
+  "common.tagline": "El sistema operativo de Eminat Group",
   "shell.noModuleAccess": "No tenés acceso a este módulo. Contactá al administrador.",
   "shell.loading": "Cargando…",
   "shell.online": "en línea",
@@ -32,5 +34,14 @@
   "login.forgot": "¿Olvidaste tu contraseña?",
   "login.sendResetLink": "Enviar enlace de restablecimiento",
   "login.noAccount": "¿No tenés cuenta? Pedí acceso en",
-  "login.footer": "El sistema operativo de Eminat Group"
+  "launchpad.badge": "Launchpad",
+  "launchpad.greeting": "Hola, {name}",
+  "launchpad.team": "equipo",
+  "launchpad.subtitle": "Selecciona un área para comenzar.",
+  "launchpad.seeAll": "Ver todo",
+  "launchpad.seeAllDesc": "Abre la vista panorámica con todas las marcas del holding.",
+  "launchpad.leader": "Titular",
+  "launchpad.unassigned": "Por asignar",
+  "launchpad.emptyTitle": "Tu cuenta no tiene áreas asignadas todavía.",
+  "launchpad.emptyDesc": "Pídele a un administrador que active tu rol en el panel de Administración."
 }

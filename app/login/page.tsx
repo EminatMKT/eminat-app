@@ -269,7 +269,7 @@ export default function LoginPage() {
           )}
 
           <div style={{ textAlign: 'center', marginTop: 48 }}>
-            <span style={{ fontSize: 11, color: '#D1D5DB' }}>{t('login.footer')}</span>
+            <span style={{ fontSize: 11, color: '#D1D5DB' }}>{t('common.tagline')}</span>
           </div>
         </div>
       </div>

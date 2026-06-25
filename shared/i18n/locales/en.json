@@ -2,6 +2,8 @@
   "common.accessDenied": "Access denied",
   "common.signOut": "Sign out",
   "common.processing": "Processing…",
+  "common.open": "Open",
+  "common.tagline": "The operating system of Eminat Group",
   "shell.noModuleAccess": "You do not have access to this module. Contact your administrator.",
   "shell.loading": "Loading…",
   "shell.online": "online",
@@ -32,5 +34,14 @@
   "login.forgot": "Forgot your password?",
   "login.sendResetLink": "Send reset link",
   "login.noAccount": "Don't have an account? Request access at",
-  "login.footer": "The operating system of Eminat Group"
+  "launchpad.badge": "Launchpad",
+  "launchpad.greeting": "Hi, {name}",
+  "launchpad.team": "team",
+  "launchpad.subtitle": "Select an area to get started.",
+  "launchpad.seeAll": "See all",
+  "launchpad.seeAllDesc": "Open the panoramic view with all the holding's brands.",
+  "launchpad.leader": "Lead",
+  "launchpad.unassigned": "Unassigned",
+  "launchpad.emptyTitle": "Your account has no areas assigned yet.",
+  "launchpad.emptyDesc": "Ask an administrator to activate your role in the Admin panel."
 }
