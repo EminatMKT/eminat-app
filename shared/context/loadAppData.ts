@@ -8,6 +8,12 @@ import { normalizeRole } from '@/shared/auth/permissions'
 import type { RoleRow, RoleModuleMap, ModuleSlug } from '@/shared/auth/permissions'
 import { CARGOS_DIR } from '@/shared/constants/directorio'
 
+// Carrera promesa-vs-timeout: si la promesa no resuelve en `ms`, devuelve `fallback`.
+// Evita que un await colgado (red/auth) deje el spinner "Cargando…" para siempre.
+function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([p, new Promise<T>(res => setTimeout(() => res(fallback), ms))])
+}
+
 type Setters = {
   setUsuario: (u: any) => void
   setSessionError: (r: 'no-session' | 'no-profile' | 'error') => void
@@ -34,7 +40,9 @@ export function startAppData(s: Setters): () => void {
       // 1-2. Carga crítica del perfil (sesión + fila activa en 'usuarios' por email).
       //    loadProfile falla en cerrado: ante no-session / no-profile / error,
       //    cerramos sesión y mostramos pantalla estable en vez de UI zombie.
-      const result = await loadProfile(supabase)
+      // 15s de techo: si la sesión/perfil no resuelve (red caída, token en mal
+      // estado), tratamos como error en vez de colgar el spinner indefinidamente.
+      const result = await withTimeout(loadProfile(supabase), 15000, { ok: false as const, reason: 'error' as const })
       if (!result.ok) {
         // NO auto-navegar: un redirect en cada montaje, ante fallo persistente,
         // genera bucle de reloads. Pantalla de error estable + signOut best-effort.
@@ -57,6 +65,11 @@ export function startAppData(s: Setters): () => void {
         ;(map[rm.role_key] ??= []).push(rm.module_slug)
       }
       s.setRoleModuleMap(map)
+
+      // Shell listo: perfil + permisos cargados. Soltamos el loading YA para que la
+      // UI aparezca; lo de abajo (heartbeat, notifs, actividades, equipo, usuarios)
+      // se hidrata de fondo y un cuelgue suyo no debe dejar el spinner infinito.
+      s.setLoading(false)
 
       const isAdmin = normalizeRole(usr.rol) === 'admin'
 
