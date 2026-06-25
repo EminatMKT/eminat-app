@@ -1,5 +1,6 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
 import { useMedical } from './MedicalContext'
 import Badge from './Badge'
 import CitaActionButton from './CitaActionButton'
@@ -8,6 +9,7 @@ import type { Cita } from '../types'
 
 export default function AppointmentRow({ cita: c }: { cita: Cita }) {
   const { t1, t2, t3, accent, border } = useApp()
+  const { t } = useT()
   const { updateCitaEstado } = useMedical()
   return (
     <tr style={{ borderBottom: `1px solid ${border}` }}>
@@ -23,15 +25,15 @@ export default function AppointmentRow({ cita: c }: { cita: Cita }) {
         <div style={{ display: 'flex', gap: 4 }}>
           {c.estado === 'programada' && (
             <>
-              <CitaActionButton label="Confirm" color="#34D399" onClick={() => updateCitaEstado(c.id, 'confirmada')} />
-              <CitaActionButton label="Cancel" color="#F87171" onClick={() => updateCitaEstado(c.id, 'cancelada')} />
+              <CitaActionButton label={t('med.confirm')} color="#34D399" onClick={() => updateCitaEstado(c.id, 'confirmada')} />
+              <CitaActionButton label={t('common.cancel')} color="#F87171" onClick={() => updateCitaEstado(c.id, 'cancelada')} />
             </>
           )}
           {c.estado === 'confirmada' && (
-            <CitaActionButton label="Start" color={accent} onClick={() => updateCitaEstado(c.id, 'en_curso')} />
+            <CitaActionButton label={t('med.start')} color={accent} onClick={() => updateCitaEstado(c.id, 'en_curso')} />
           )}
           {c.estado === 'en_curso' && (
-            <CitaActionButton label="Complete" color="#34D399" onClick={() => updateCitaEstado(c.id, 'completada')} />
+            <CitaActionButton label={t('med.complete')} color="#34D399" onClick={() => updateCitaEstado(c.id, 'completada')} />
           )}
         </div>
       </td>

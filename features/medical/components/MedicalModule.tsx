@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
 import AppShell from '@/shared/components/AppShell'
 import AccessDenied from '@/shared/components/AccessDenied'
 import { PageTransition } from '@/shared/motion'
@@ -17,22 +18,23 @@ import CitaModal from './CitaModal'
 import IncidenteModal from './IncidenteModal'
 
 const TABS = [
-  { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-  { id: 'pacientes', label: 'Pacientes', icon: '👥' },
-  { id: 'citas', label: 'Citas', icon: '📅' },
-  { id: 'hipaa', label: 'HIPAA', icon: '🛡️' },
-  { id: 'audit', label: 'Audit Log', icon: '📋' },
-]
+  { id: 'dashboard', labelKey: 'med.tabDashboard', icon: '📊' },
+  { id: 'pacientes', labelKey: 'med.tabPatients', icon: '👥' },
+  { id: 'citas', labelKey: 'med.tabAppointments', icon: '📅' },
+  { id: 'hipaa', labelKey: 'med.tabHipaa', icon: '🛡️' },
+  { id: 'audit', labelKey: 'med.tabAudit', icon: '📋' },
+] as const
 
 export default function MedicalModule() {
   const { modules, border } = useApp()
+  const { t } = useT()
   const { hipaaShield } = useMedicalStyles()
   const [tab, setTab] = useState('dashboard')
   const [modalPaciente, setModalPaciente] = useState(false)
   const [modalCita, setModalCita] = useState(false)
   const [modalIncidente, setModalIncidente] = useState(false)
 
-  if (!modules.includes('medical')) return <AccessDenied message="You don't have access to the Medical HIPAA module" />
+  if (!modules.includes('medical')) return <AccessDenied />
 
   return (
     <AppShell activeTab={tab} onTabChange={setTab}>
@@ -40,9 +42,9 @@ export default function MedicalModule() {
         <MedicalProvider>
           <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: `1px solid ${border}`, alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', gap: 4 }}>
-              {TABS.map(t => <TabButton key={t.id} label={t.label} icon={t.icon} active={tab === t.id} onClick={() => setTab(t.id)} />)}
+              {TABS.map(item => <TabButton key={item.id} label={t(item.labelKey)} icon={item.icon} active={tab === item.id} onClick={() => setTab(item.id)} />)}
             </div>
-            <div style={hipaaShield}>🛡️ HIPAA Compliant</div>
+            <div style={hipaaShield}>🛡️ {t('med.hipaaCompliant')}</div>
           </div>
 
           {tab === 'dashboard' && <DashboardTab />}
