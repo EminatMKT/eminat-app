@@ -12,7 +12,7 @@ export const D = {
 }
 
 export type SubItem = { id: string; icon: string; label: string; tab: string }
-export type PanelKey = 'mkt' | 'medical' | 'research'
+export type PanelKey = 'mkt' | 'medical' | 'research' | 'admin'
 
 // Sub-tabs de los módulos con panel secundario.
 export const SUB_ITEMS: Record<PanelKey, SubItem[]> = {
@@ -41,6 +41,11 @@ export const SUB_ITEMS: Record<PanelKey, SubItem[]> = {
     { id: 'res-pipeline', icon: '🎯', label: 'Pipeline', tab: 'pipeline' },
     { id: 'res-opps', icon: '📋', label: 'Opportunities', tab: 'oportunidades' },
   ],
+  // ponytail: panel de admin = imitación temporal del doble-uso de medical (decisión de UX pendiente, ver .todo)
+  admin: [
+    { id: 'adm-usuarios', icon: '👥', label: 'Usuarios', tab: 'usuarios' },
+    { id: 'adm-roles', icon: '🔐', label: 'Roles', tab: 'roles' },
+  ],
 }
 
 // Meta del panel secundario (título + subtítulo) y el módulo que lo gobierna.
@@ -48,6 +53,7 @@ export const PANEL_META: Record<PanelKey, { title: string; sub: string; slug: Mo
   mkt: { title: 'Stratix 360', sub: 'Marketing & Production', slug: 'stratix-mkt' },
   research: { title: 'Research', sub: 'Clinical Research Ops', slug: 'research' },
   medical: { title: 'Medical', sub: 'HIPAA Compliance', slug: 'medical' },
+  admin: { title: 'Admin', sub: 'Usuarios y roles', slug: 'admin' },
 }
 
 // Rail principal: NAV (tipado) filtrado por los `modules` del usuario en runtime.
@@ -59,5 +65,5 @@ export const NAV: { slug: ModuleSlug; key: string; icon: string; label: string; 
   { slug: 'th-hr', key: 'th-hr', icon: '👤', label: 'TH/HR' },
   { slug: 'research', key: 'research', icon: '🔬', label: 'Research', panel: 'research' },
   { slug: 'directorio', key: 'directorio', icon: '🏢', label: 'Directory' },
-  { slug: 'admin', key: 'admin', icon: '🔐', label: 'Admin' },
+  { slug: 'admin', key: 'admin', icon: '🔐', label: 'Admin', panel: 'admin' },
 ]

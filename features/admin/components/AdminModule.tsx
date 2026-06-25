@@ -46,7 +46,7 @@ export default function AdminModule() {
   const crearBtn = <button onClick={() => setModalCrear(true)} style={{ padding: '7px 16px', borderRadius: 10, background: '#F87171', color: 'white', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>{t('admin.newUser')}</button>
 
   return (
-    <AppShell actions={vista === 'usuarios' ? crearBtn : undefined}>
+    <AppShell actions={vista === 'usuarios' ? crearBtn : undefined} activeTab={vista} onTabChange={v => setVista(v as 'usuarios' | 'roles')}>
       <PageTransition>
         <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: `1px solid ${border}` }}>
           <TabButton label={t('admin.tabUsers')} active={vista === 'usuarios'} onClick={() => setVista('usuarios')} />

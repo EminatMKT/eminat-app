@@ -29,7 +29,7 @@ async function loginAs(page: Page, email: string) {
 async function openAdmin(page: Page) {
   await page.locator('[data-tour="admin"]').click()
   await page.waitForURL('**/admin')
-  await page.getByRole('button', { name: 'Roles', exact: true }).waitFor()
+  await page.locator('main').getByRole('button', { name: 'Roles', exact: true }).waitFor()
 }
 
 // Verifica Access denied en una ruta gateada. El goto de página completa remonta el
@@ -62,7 +62,7 @@ test('A5 · sin_asignar: solo Home, módulos bloqueados', async ({ page }) => {
 test('A2 · crear rol "Soporte" con solo Directorio (modal)', async ({ page }) => {
   await loginAs(page, FREDDY)
   await openAdmin(page)
-  await page.getByRole('button', { name: 'Roles', exact: true }).click()
+  await page.locator('main').getByRole('button', { name: 'Roles', exact: true }).click()
   await page.getByRole('button', { name: '+ Nuevo rol' }).click()
   await page.getByPlaceholder('Ej. Soporte').fill('Soporte')
   await page.getByRole('button', { name: 'Directorio', exact: true }).click()
@@ -94,7 +94,7 @@ test('A4 · nuevo@ ahora ve solo Directorio', async ({ page }) => {
 test('B6/B7 · admin sin botón borrar; sistema y rol-con-usuarios deshabilitados', async ({ page }) => {
   await loginAs(page, FREDDY)
   await openAdmin(page)
-  await page.getByRole('button', { name: 'Roles', exact: true }).click()
+  await page.locator('main').getByRole('button', { name: 'Roles', exact: true }).click()
   await expect(page.getByTestId('del-admin')).toHaveCount(0)        // admin: ni botón
   await expect(page.getByTestId('del-sin_asignar')).toBeDisabled()  // sistema
   await expect(page.getByTestId('del-soporte')).toBeDisabled()      // tiene a nuevo@

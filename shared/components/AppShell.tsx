@@ -22,7 +22,7 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
   const pathname = usePathname()
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [sidebarPanel, setSidebarPanel] = useState<PanelKey | null>(
-    pathname.startsWith('/research') ? 'research' : pathname.startsWith('/medical') ? 'medical' : pathname.startsWith('/stratix-mkt') ? 'mkt' : null
+    pathname.startsWith('/research') ? 'research' : pathname.startsWith('/medical') ? 'medical' : pathname.startsWith('/admin') ? 'admin' : pathname.startsWith('/stratix-mkt') ? 'mkt' : null
   )
   const { usuario, accent, cargo, modules, handleLogout, bg } = app
 
@@ -110,6 +110,7 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
                   if (sidebarPanel === 'mkt' && !pathname.startsWith('/stratix-mkt')) router.push('/stratix-mkt')
                   if (sidebarPanel === 'research' && !pathname.startsWith('/research')) router.push('/research')
                   if (sidebarPanel === 'medical' && !pathname.startsWith('/medical')) router.push('/medical')
+                  if (sidebarPanel === 'admin' && !pathname.startsWith('/admin')) router.push('/admin')
                   onTabChange?.(item.tab)
                   setMobileSidebarOpen(false)
                 }}
