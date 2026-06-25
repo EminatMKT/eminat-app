@@ -66,7 +66,7 @@ test('A2 · crear rol "Soporte" con solo Directorio (modal)', async ({ page }) =
   await page.getByRole('button', { name: '+ Nuevo rol' }).click()
   await page.getByPlaceholder('Ej. Soporte').fill('Soporte')
   await page.getByRole('button', { name: 'Directorio', exact: true }).click()
-  await page.getByRole('button', { name: 'Create role' }).click()
+  await page.getByRole('button', { name: 'Crear rol' }).click()
   await expect(page.getByTestId('role-soporte')).toBeVisible()
 })
 

@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
 import { DEFAULT_ROLE } from '@/shared/auth/permissions'
 import { DEFAULT_COMPANY } from '@/shared/constants/companies'
 import AppShell from '@/shared/components/AppShell'
@@ -19,6 +20,7 @@ import type { AdminUser, ResetTarget } from '../types'
 
 export default function AdminModule() {
   const { esAdmin, adminUsuarios, border } = useApp()
+  const { t } = useT()
   const [vista, setVista] = useState<'usuarios' | 'roles'>('usuarios')
   const [busqueda, setBusqueda] = useState('')
   const [filtroRol, setFiltroRol] = useState('todos')
@@ -41,14 +43,14 @@ export default function AdminModule() {
     empresa: u.empresa || DEFAULT_COMPANY, cargo: u.cargo || '',
   })
 
-  const crearBtn = <button onClick={() => setModalCrear(true)} style={{ padding: '7px 16px', borderRadius: 10, background: '#F87171', color: 'white', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>+ New user</button>
+  const crearBtn = <button onClick={() => setModalCrear(true)} style={{ padding: '7px 16px', borderRadius: 10, background: '#F87171', color: 'white', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>{t('admin.newUser')}</button>
 
   return (
     <AppShell actions={vista === 'usuarios' ? crearBtn : undefined}>
       <PageTransition>
         <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: `1px solid ${border}` }}>
-          <TabButton label="Usuarios" active={vista === 'usuarios'} onClick={() => setVista('usuarios')} />
-          <TabButton label="Roles" active={vista === 'roles'} onClick={() => setVista('roles')} />
+          <TabButton label={t('admin.tabUsers')} active={vista === 'usuarios'} onClick={() => setVista('usuarios')} />
+          <TabButton label={t('admin.tabRoles')} active={vista === 'roles'} onClick={() => setVista('roles')} />
         </div>
         {vista === 'usuarios' ? (
           <>
