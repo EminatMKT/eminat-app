@@ -1,14 +1,23 @@
 'use client'
 import { ReactNode } from 'react'
+import { usePathname } from 'next/navigation'
 import { useApp, MARCAS_LIST } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
+import { modulePath, ROUTES } from '@/shared/auth/permissions'
 import { isDevDb } from '@/shared/db/env.client'
 import NotificationsBell from './NotificationsBell'
-import { D } from './appShellConfig'
+import { D, NAV, AUTO_TITLE } from './appShellConfig'
 
-export default function Topbar({ title, actions, onHamburger }: { title: string; actions?: ReactNode; onHamburger: () => void }) {
-  const { dark, setDark, horaActual, onlineCount, mensaje } = useApp()
+export default function Topbar({ title, actions, onHamburger }: { title?: string; actions?: ReactNode; onHamburger: () => void }) {
+  const { dark, setDark, horaActual, onlineCount, mensaje, usuario } = useApp()
   const { t } = useT()
+  const pathname = usePathname()
+
+  // Título: el explícito que pase la página, o uno derivado de la ruta (AUTO_TITLE por slug).
+  const activeNav = NAV.find(i => pathname.startsWith(modulePath(i.slug)))
+  const autoTitle = pathname === ROUTES.home
+    ? `Eminat Group — Welcome, ${usuario?.nombre}`
+    : (activeNav && AUTO_TITLE[activeNav.slug]) || 'Stratix'
 
   return (
     <div style={{ padding: '11px 24px', borderBottom: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: D.s1, position: 'sticky', top: 0, zIndex: 10 }}>
@@ -19,7 +28,7 @@ export default function Topbar({ title, actions, onHamburger }: { title: string;
           <span title={t('shell.devTooltip')} style={{ padding: '3px 9px', borderRadius: 6, fontSize: 10, fontWeight: 800, letterSpacing: '.08em', fontFamily: 'DM Mono', background: '#F59E0B22', color: '#F59E0B', border: '1px solid #F59E0B55', flexShrink: 0 }}>DEV</span>
         )}
         <div>
-          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15, color: D.t1 }}>{title}</div>
+          <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15, color: D.t1 }}>{title || autoTitle}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
             <span style={{ fontSize: 10, color: D.t3, fontFamily: 'DM Mono' }}>
               {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {horaActual}
