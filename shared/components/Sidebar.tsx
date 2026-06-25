@@ -6,6 +6,7 @@ import { modulePath, ROUTES, type ModuleSlug } from '@/shared/auth/permissions'
 import { D, NAV, PANEL_META, type PanelKey } from './appShellConfig'
 import SidebarPanel from './SidebarPanel'
 import RailButton from './RailButton'
+import RailProfile from './RailProfile'
 
 type Props = {
   activeTab?: string
@@ -17,7 +18,7 @@ type Props = {
 // Sidebar = rail de íconos (módulos del usuario) + panel secundario. Dueño de `sidebarPanel`.
 // Data-driven desde NAV + modulePath.
 export default function Sidebar({ activeTab, onTabChange, mobileOpen, setMobileOpen }: Props) {
-  const { usuario, accent, modules } = useApp()
+  const { modules } = useApp()
   const router = useRouter()
   const pathname = usePathname()
 
@@ -46,12 +47,7 @@ export default function Sidebar({ activeTab, onTabChange, mobileOpen, setMobileO
           ))}
         </nav>
         <div style={{ padding: '10px 0 12px', borderTop: `1px solid ${D.border}`, width: '100%', display: 'flex', justifyContent: 'center' }}>
-          <div style={{ position: 'relative' }}>
-            <div style={{ width: 34, height: 34, borderRadius: '50%', background: usuario?.color || accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white' }}>
-              {usuario?.nombre?.[0]}{usuario?.apellido?.[0]}
-            </div>
-            <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: '#34D399', border: `2px solid ${D.s1}` }} />
-          </div>
+          <RailProfile />
         </div>
       </div>
 
