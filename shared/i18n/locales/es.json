@@ -1,0 +1,11 @@
+{
+  "common.accessDenied": "Acceso denegado",
+  "common.signOut": "Cerrar sesión",
+  "shell.noModuleAccess": "No tenés acceso a este módulo. Contactá al administrador.",
+  "shell.loading": "Cargando…",
+  "shell.online": "en línea",
+  "shell.devTooltip": "Conectado a la base de datos de DESARROLLO (no producción)",
+  "notif.title": "Notificaciones",
+  "notif.markAllRead": "Marcar todo como leído",
+  "notif.empty": "Sin notificaciones"
+}

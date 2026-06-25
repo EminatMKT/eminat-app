@@ -1,12 +1,14 @@
 'use client'
 import { ReactNode } from 'react'
 import { useApp, MARCAS_LIST } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
 import { isDevDb } from '@/shared/db/env.client'
 import NotificationsBell from './NotificationsBell'
 import { D } from './appShellConfig'
 
 export default function Topbar({ title, actions, onHamburger }: { title: string; actions?: ReactNode; onHamburger: () => void }) {
   const { dark, setDark, horaActual, onlineCount, mensaje } = useApp()
+  const { t } = useT()
 
   return (
     <div style={{ padding: '11px 24px', borderBottom: `1px solid ${D.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: D.s1, position: 'sticky', top: 0, zIndex: 10 }}>
@@ -14,7 +16,7 @@ export default function Topbar({ title, actions, onHamburger }: { title: string;
         <button className="mobile-hamburger" onClick={onHamburger} style={{ display: 'none', background: 'none', border: `1px solid ${D.border}`, borderRadius: 8, padding: '6px 8px', cursor: 'pointer', color: D.t1, fontSize: 18, lineHeight: 1 }}>☰</button>
         {/* Indicador de entorno — solo visible cuando se trabaja contra la base de DESARROLLO */}
         {isDevDb && (
-          <span title="Conectado a la base de datos de DESARROLLO (no producción)" style={{ padding: '3px 9px', borderRadius: 6, fontSize: 10, fontWeight: 800, letterSpacing: '.08em', fontFamily: 'DM Mono', background: '#F59E0B22', color: '#F59E0B', border: '1px solid #F59E0B55', flexShrink: 0 }}>DEV</span>
+          <span title={t('shell.devTooltip')} style={{ padding: '3px 9px', borderRadius: 6, fontSize: 10, fontWeight: 800, letterSpacing: '.08em', fontFamily: 'DM Mono', background: '#F59E0B22', color: '#F59E0B', border: '1px solid #F59E0B55', flexShrink: 0 }}>DEV</span>
         )}
         <div>
           <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 15, color: D.t1 }}>{title}</div>
@@ -43,7 +45,7 @@ export default function Topbar({ title, actions, onHamburger }: { title: string;
         <NotificationsBell />
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 20, background: '#34D39912', border: '1px solid #34D39930' }}>
           <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#34D399' }} />
-          <span style={{ fontSize: 11, color: '#34D399', fontWeight: 500 }}>{onlineCount > 0 ? onlineCount : 1} online</span>
+          <span style={{ fontSize: 11, color: '#34D399', fontWeight: 500 }}>{onlineCount > 0 ? onlineCount : 1} {t('shell.online')}</span>
         </div>
         <button onClick={() => setDark(!dark)} style={{ padding: '6px 11px', borderRadius: 20, border: `1px solid ${D.border}`, background: D.s2, color: D.t2, fontSize: 11, cursor: 'pointer' }}>
           {dark ? '☀️' : '🌙'}

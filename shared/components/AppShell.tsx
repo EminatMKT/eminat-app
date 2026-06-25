@@ -2,6 +2,7 @@
 import { useState, ReactNode } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useApp } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
 import Onboarding from './Onboarding'
 import Topbar from './Topbar'
 import { D, NAV, SUB_ITEMS, PANEL_META, type PanelKey } from './appShellConfig'
@@ -16,6 +17,7 @@ interface Props {
 
 export default function AppShell({ children, title, actions, activeTab, onTabChange }: Props) {
   const app = useApp()
+  const { t } = useT()
   const router = useRouter()
   const pathname = usePathname()
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
@@ -62,7 +64,7 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
   if (app.loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0A0A0F', gap: 16 }}>
       <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #7C6FF7', borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }} />
-      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', fontFamily: 'DM Sans' }}>Loading Stratix...</div>
+      <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)', fontFamily: 'DM Sans' }}>{t('shell.loading')}</div>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   )
@@ -134,7 +136,7 @@ export default function AppShell({ children, title, actions, activeTab, onTabCha
                 </div>
               </div>
               <div style={{ fontSize: 9, color: D.t3, marginBottom: 6, whiteSpace: 'nowrap' }}>📍 {usuario?.ubicacion || 'Guayaquil, EC'}</div>
-              <button onClick={handleLogout} style={{ width: '100%', padding: '4px', borderRadius: 6, border: `1px solid ${D.border}`, background: 'transparent', color: D.t3, fontSize: 10, cursor: 'pointer', whiteSpace: 'nowrap' }}>Sign out</button>
+              <button onClick={handleLogout} style={{ width: '100%', padding: '4px', borderRadius: 6, border: `1px solid ${D.border}`, background: 'transparent', color: D.t3, fontSize: 10, cursor: 'pointer', whiteSpace: 'nowrap' }}>{t('common.signOut')}</button>
             </div>
           </div>
         </div>

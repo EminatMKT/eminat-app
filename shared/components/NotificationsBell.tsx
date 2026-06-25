@@ -1,11 +1,13 @@
 'use client'
 import { useRouter } from 'next/navigation'
 import { useApp } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
 import { notificacionesRepo } from '@/shared/data'
 import { D } from './appShellConfig'
 
 export default function NotificationsBell() {
   const router = useRouter()
+  const { t } = useT()
   const { accent, notificaciones, notifAbiertas, setNotifAbiertas, setNotificaciones } = useApp()
   const unread = notificaciones.filter((n: any) => !n.leida).length
 
@@ -23,14 +25,14 @@ export default function NotificationsBell() {
       {notifAbiertas && (
         <div style={{ position: 'absolute', top: '110%', right: 0, width: 320, background: D.s1, border: `1px solid ${D.border}`, borderRadius: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', zIndex: 50, overflow: 'hidden' }}>
           <div style={{ padding: '14px 16px', borderBottom: `1px solid ${D.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ fontFamily: 'Syne', fontSize: 14, fontWeight: 700, color: D.t1 }}>Notifications</div>
-            <button onClick={() => { notificacionesRepo.markAllRead().then(() => setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))) }} style={{ fontSize: 11, color: D.t3, background: 'none', border: 'none', cursor: 'pointer' }}>Mark all as read</button>
+            <div style={{ fontFamily: 'Syne', fontSize: 14, fontWeight: 700, color: D.t1 }}>{t('notif.title')}</div>
+            <button onClick={() => { notificacionesRepo.markAllRead().then(() => setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))) }} style={{ fontSize: 11, color: D.t3, background: 'none', border: 'none', cursor: 'pointer' }}>{t('notif.markAllRead')}</button>
           </div>
           <div style={{ maxHeight: 340, overflowY: 'auto' }}>
             {notificaciones.length === 0 ? (
               <div style={{ padding: '32px', textAlign: 'center', color: D.t3 }}>
                 <div style={{ fontSize: 28, marginBottom: 8 }}>🔔</div>
-                <div style={{ fontSize: 12 }}>No notifications</div>
+                <div style={{ fontSize: 12 }}>{t('notif.empty')}</div>
               </div>
             ) : notificaciones.map((n: any) => (
               <div key={n.id} onClick={() => { if (n.actividad_id) { router.push('/stratix-mkt'); setNotifAbiertas(false) } }}

@@ -1,0 +1,11 @@
+{
+  "common.accessDenied": "Access denied",
+  "common.signOut": "Sign out",
+  "shell.noModuleAccess": "You do not have access to this module. Contact your administrator.",
+  "shell.loading": "Loading…",
+  "shell.online": "online",
+  "shell.devTooltip": "Connected to the DEVELOPMENT database (not production)",
+  "notif.title": "Notifications",
+  "notif.markAllRead": "Mark all as read",
+  "notif.empty": "No notifications"
+}

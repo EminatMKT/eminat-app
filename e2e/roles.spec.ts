@@ -39,7 +39,7 @@ async function assertDenied(page: Page, email: string, path: string) {
   await expect(async () => {
     await loginAs(page, email)
     await page.goto(path)
-    await expect(page.getByText('Access denied')).toBeVisible({ timeout: 8000 })
+    await expect(page.getByText('Acceso denegado')).toBeVisible({ timeout: 8000 })
   }).toPass({ timeout: 45000, intervals: [500, 1500, 3000] })
 }
 
@@ -85,7 +85,7 @@ test('A4 · nuevo@ ahora ve solo Directorio', async ({ page }) => {
   // Directorio accesible vía soft-nav (sin remount): click en el rail
   await page.locator('[data-tour="directorio"]').click()
   await page.waitForURL('**/directorio')
-  await expect(page.getByText('Access denied')).toBeHidden()
+  await expect(page.getByText('Acceso denegado')).toBeHidden()
   // Stratix denegado (helper robusto con re-login)
   await assertDenied(page, NUEVO, '/stratix-mkt')
 })
