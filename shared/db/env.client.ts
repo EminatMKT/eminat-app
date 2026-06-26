@@ -15,19 +15,20 @@ const clientSchema = z.object({
   // development = next dev | production = next build | test = jest
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
-  // ── Tier del entorno. development = local + Preview de Vercel (apuntan a la DB
-  //    de desarrollo) | production = el deploy de prod en Vercel, rama main (DB prod).
-  APP_ENV: z.enum(['development', 'production']).default('development'),
+  // ── Tier del entorno (1 base por tier). local = tu máquina, Supabase local
+  //    (supabase start) | development = Vercel Preview (rama development), Supabase
+  //    dev remoto | production = Vercel main, Supabase prod.
+  APP_ENV: z.enum(['local', 'development', 'production']).default('local'),
 
 }).superRefine((env, ctx) => {
-  // Salvaguarda: en desarrollo la URL NUNCA puede ser la base de producción.
-  // Si esto falla, .env.local quedó apuntando a prod — corregir antes de seguir.
-  if (env.APP_ENV === 'development' && env.NEXT_PUBLIC_SUPABASE_URL.includes(PROD_DB_REF)) {
+  // Salvaguarda: solo production puede apuntar a la base de PRODUCCIÓN. Si un tier
+  // local/development la tiene, es un error de configuración — corregir antes de seguir.
+  if (env.APP_ENV !== 'production' && env.NEXT_PUBLIC_SUPABASE_URL.includes(PROD_DB_REF)) {
     ctx.addIssue({
       code: 'custom',
       path: ['NEXT_PUBLIC_SUPABASE_URL'],
-      message: `APP_ENV=development pero la URL apunta a la base de PRODUCCIÓN (${PROD_DB_REF}). ` +
-        `Usá las credenciales del proyecto Supabase de desarrollo en .env.local.`,
+      message: `APP_ENV=${env.APP_ENV} pero la URL apunta a la base de PRODUCCIÓN (${PROD_DB_REF}). ` +
+        `Solo production debe usar esa base.`,
     })
   }
 })
@@ -44,8 +45,8 @@ export const clientEnv = clientSchema.parse({
 })
 
 // ── Helpers derivados ─────────────────────────────────────────────
-// `isProdDb` = la app está conectada a la base de producción. El superRefine de
-// arriba garantiza que development nunca apunte a la base de prod, así que el tier
-// declarado en APP_ENV alcanza para decidir el badge "DEV".
-export const isProdDb = clientEnv.APP_ENV !== 'development'
+// `isProdDb` = la app está conectada a la base de producción. Solo el tier
+// production usa la base de prod (lo garantiza el superRefine), así que local y
+// development muestran el badge "DEV".
+export const isProdDb = clientEnv.APP_ENV === 'production'
 export const isDevDb = !isProdDb
