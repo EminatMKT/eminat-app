@@ -15,11 +15,9 @@ const clientSchema = z.object({
   // development = next dev | production = next build | test = jest
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
-  // ── Contexto de despliegue (intención declarada; ya NO decide el badge — eso lo
-  //    deriva isProdDb de la URL, ver abajo). development = local + el deploy de
-  //    Vercel (apunta a la DB dev) | selfhosted = VPS de prod (rama main).
-  //    'vercel' = legacy (cuando prod vivía en Vercel); se conserva por compat.
-  APP_ENV: z.enum(['development', 'vercel', 'selfhosted']).default('development'),
+  // ── Tier del entorno. development = local + Preview de Vercel (apuntan a la DB
+  //    de desarrollo) | production = el deploy de prod en Vercel, rama main (DB prod).
+  APP_ENV: z.enum(['development', 'production']).default('development'),
 
 }).superRefine((env, ctx) => {
   // Salvaguarda: en desarrollo la URL NUNCA puede ser la base de producción.
@@ -46,8 +44,8 @@ export const clientEnv = clientSchema.parse({
 })
 
 // ── Helpers derivados ─────────────────────────────────────────────
-// `isProdDb` se deriva de la BASE real (URL vs ref de prod), NO de APP_ENV: así el
-// badge "DEV" refleja la conexión efectiva y no puede mentir aunque APP_ENV quede
-// mal seteado. Vercel y VPS pueden vivir en distintas DBs; lo que manda es la URL.
-export const isProdDb = clientEnv.NEXT_PUBLIC_SUPABASE_URL.includes(PROD_DB_REF)
+// `isProdDb` = la app está conectada a la base de producción. El superRefine de
+// arriba garantiza que development nunca apunte a la base de prod, así que el tier
+// declarado en APP_ENV alcanza para decidir el badge "DEV".
+export const isProdDb = clientEnv.APP_ENV !== 'development'
 export const isDevDb = !isProdDb
