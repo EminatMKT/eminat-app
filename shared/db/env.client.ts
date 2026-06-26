@@ -15,8 +15,10 @@ const clientSchema = z.object({
   // development = next dev | production = next build | test = jest
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
-  // ── Contexto de despliegue — se define en cada entorno ────────
-  // development = local | vercel = eminat.app | selfhosted = servidor propio
+  // ── Contexto de despliegue (intención declarada; ya NO decide el badge — eso lo
+  //    deriva isProdDb de la URL, ver abajo). development = local + el deploy de
+  //    Vercel (apunta a la DB dev) | selfhosted = VPS de prod (rama main).
+  //    'vercel' = legacy (cuando prod vivía en Vercel); se conserva por compat.
   APP_ENV: z.enum(['development', 'vercel', 'selfhosted']).default('development'),
 
 }).superRefine((env, ctx) => {
@@ -44,7 +46,8 @@ export const clientEnv = clientSchema.parse({
 })
 
 // ── Helpers derivados ─────────────────────────────────────────────
-// `isProdDb` = la app está conectada a la base de producción (Vercel / selfhosted).
-// `isDevDb`  = entorno de desarrollo local contra el proyecto Supabase dev.
-export const isProdDb = clientEnv.APP_ENV !== 'development'
+// `isProdDb` se deriva de la BASE real (URL vs ref de prod), NO de APP_ENV: así el
+// badge "DEV" refleja la conexión efectiva y no puede mentir aunque APP_ENV quede
+// mal seteado. Vercel y VPS pueden vivir en distintas DBs; lo que manda es la URL.
+export const isProdDb = clientEnv.NEXT_PUBLIC_SUPABASE_URL.includes(PROD_DB_REF)
 export const isDevDb = !isProdDb
