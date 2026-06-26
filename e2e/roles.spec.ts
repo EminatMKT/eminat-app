@@ -103,6 +103,8 @@ test('A3 · asignar rol Soporte a nuevo@ (dropdown de la fila)', async ({ page }
   await openAdmin(page)
   const row = page.locator('tr', { hasText: NUEVO })
   await row.locator('select').selectOption({ label: 'Soporte' })
+  // La asignación inicial ahora pide confirmación (ConfirmModal) antes de aplicar.
+  await page.getByRole('button', { name: 'Asignar rol', exact: true }).click()
   await expect.poll(async () => (await getUsuario(NUEVO))?.rol, { timeout: 10000 }).toBe('soporte')
 })
 

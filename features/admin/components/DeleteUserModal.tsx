@@ -5,15 +5,19 @@ import { useT } from '@/shared/i18n'
 import { eligibleHeirs } from '../heirs'
 import { apiPost } from '@/shared/api'
 import Modal from '@/shared/components/Modal'
+import ConfirmModal from '@/shared/components/ConfirmModal'
+import CopyButton from './CopyButton'
 import ErrorBlock from './ErrorBlock'
 import type { ReassignState } from '../types'
 
 export default function DeleteUserModal({ userId, onClose }: { userId: string; onClose: () => void }) {
-  const { adminUsuarios, setAdminUsuarios, mostrarMensaje, border, t1, t2, t3, inputStyle } = useApp()
+  const { adminUsuarios, setAdminUsuarios, mostrarMensaje, border, s2, t1, t2, t3, inputStyle } = useApp()
   const { t } = useT()
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [reassignState, setReassignState] = useState<ReassignState | null>(null)
+  // El borrado definitivo es irreversible: se exige tipear el email (type-to-confirm).
+  const [confirmHard, setConfirmHard] = useState(false)
 
   const target = adminUsuarios.find(u => u.id === userId)
   if (!target) return null
@@ -140,6 +144,7 @@ export default function DeleteUserModal({ userId, onClose }: { userId: string; o
 
   // ── FASE 1: Cancel / Deactivate (más seguro) / Hard delete
   return (
+    <>
     <Modal width={440} onClose={onClose}>
         <div style={{ fontSize: 36, marginBottom: 12, textAlign: 'center' }}>⚠️</div>
         <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 700, color: t1, marginBottom: 8, textAlign: 'center' }}>{t('admin.del.title')}</div>
@@ -157,8 +162,29 @@ export default function DeleteUserModal({ userId, onClose }: { userId: string; o
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={onClose} disabled={deleting} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>{t('common.cancel')}</button>
           <button onClick={() => deactivarDesdeDelete(userId)} disabled={deleting} style={{ flex: 1.3, padding: '10px', borderRadius: 10, border: '1px solid rgba(251,176,64,.35)', background: 'rgba(251,176,64,.10)', color: '#FBB040', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{deleting ? '...' : t('admin.del.deactivateBtn')}</button>
-          <button onClick={() => eliminarUsuario(userId)} disabled={deleting} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: '#F87171', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{deleting ? '...' : t('admin.del.hardDelete')}</button>
+          <button onClick={() => setConfirmHard(true)} disabled={deleting} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: '#F87171', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{deleting ? '...' : t('admin.del.hardDelete')}</button>
         </div>
     </Modal>
+    {confirmHard && (
+      <ConfirmModal
+        title={t('admin.del.hardDelete')}
+        message={
+          <>
+            {t('admin.confirm.deleteMsg')}
+            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <code style={{ flex: 1, padding: '8px 10px', borderRadius: 8, background: s2, border: `1px solid ${border}`, fontFamily: 'DM Mono, monospace', fontSize: 13, color: t1, userSelect: 'all', overflowWrap: 'anywhere' }}>{target.email}</code>
+              <CopyButton value={target.email || ''} variant="button" style={{ padding: '8px 12px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 12, whiteSpace: 'nowrap' }} />
+            </div>
+          </>
+        }
+        confirmLabel={t('admin.del.hardDelete')}
+        destructive
+        confirmPhrase={target.email || ''}
+        confirmPhraseLabel={t('admin.confirm.deleteEmailLabel')}
+        onConfirm={async () => { setConfirmHard(false); await eliminarUsuario(userId) }}
+        onClose={() => setConfirmHard(false)}
+      />
+    )}
+    </>
   )
 }
