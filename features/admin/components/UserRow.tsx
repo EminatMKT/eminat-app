@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
-import { normalizeRole, ADMIN_ROLE, DEFAULT_ROLE } from '@/shared/auth/permissions'
+import { normalizeRole, ADMIN_ROLE, DEFAULT_ROLE, MODULE_META } from '@/shared/auth/permissions'
 import { COMPANY_COLORS, companyShort } from '@/shared/constants/companies'
 import { useUserActions } from '../hooks/useUserActions'
 import ConfirmModal from '@/shared/components/ConfirmModal'
@@ -15,16 +15,22 @@ type Props = {
   onDelete: (id: string) => void
 }
 
-// Resalta el nombre dentro de un mensaje ya traducido (sin romper el i18n: parte
-// la frase por el nombre interpolado y lo envuelve en <strong>).
-function boldName(text: string, name: string) {
-  const i = name ? text.indexOf(name) : -1
-  if (i < 0) return text
-  return <>{text.slice(0, i)}<strong>{name}</strong>{text.slice(i + name.length)}</>
+// Resalta uno o más términos (nombre, rol…) dentro de un mensaje ya traducido,
+// sin romper el i18n: parte la frase por los términos interpolados y los envuelve
+// en <strong>.
+function boldTerms(text: string, terms: string[]) {
+  const valid = terms.filter(Boolean)
+  if (!valid.length) return text
+  const escaped = valid.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const parts = text.split(new RegExp(`(${escaped.join('|')})`, 'g'))
+  return <>{parts.map((p, i) => {
+    if (valid.includes(p)) return <strong key={i}>{p}</strong>
+    return p
+  })}</>
 }
 
 export default function UserRow({ user: u, onEdit, onReset, onDelete }: Props) {
-  const { s2, border, t1, t2, t3, accent, roles } = useApp()
+  const { s2, border, t1, t2, t3, accent, roles, roleModuleMap } = useApp()
   const { t } = useT()
   const { cambiarRol, toggleActivo, validarUsuario } = useUserActions()
   const isProtected = normalizeRole(u.rol) === ADMIN_ROLE
@@ -58,7 +64,25 @@ export default function UserRow({ user: u, onEdit, onReset, onDelete }: Props) {
         {confirm?.kind === 'assign' && (
           <ConfirmModal
             title={t('admin.confirm.assignTitle')}
-            message={boldName(t('admin.confirm.assignMsg', { role: roles.find(r => r.key === confirm.value)?.label || confirm.value, name: nombre }), nombre)}
+            message={(() => {
+              const roleLabel = roles.find(r => r.key === confirm.value)?.label || confirm.value
+              const mods = (roleModuleMap[confirm.value] || []).map(m => MODULE_META[m]?.name).filter(Boolean)
+              return (
+                <>
+                  {boldTerms(t('admin.confirm.assignMsg', { role: roleLabel, name: nombre }), [roleLabel, nombre])}
+                  <div style={{ marginTop: 10 }}>
+                    {mods.length === 0
+                      ? <span style={{ fontSize: 12, color: t3 }}>{t('admin.confirm.assignNoModules')}</span>
+                      : <>
+                          <div style={{ fontSize: 11, color: t3, marginBottom: 6 }}>{t('admin.confirm.assignModulesIntro')}</div>
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            {mods.map(n => <span key={n} style={{ padding: '3px 9px', borderRadius: 20, fontSize: 10, background: s2, border: `1px solid ${border}`, color: t2 }}>{n}</span>)}
+                          </div>
+                        </>}
+                  </div>
+                </>
+              )
+            })()}
             confirmLabel={t('admin.confirm.assignBtn')}
             onConfirm={async () => { await cambiarRol(u.id, confirm.value); setConfirm(null) }}
             onClose={() => setConfirm(null)}
@@ -67,7 +91,7 @@ export default function UserRow({ user: u, onEdit, onReset, onDelete }: Props) {
         {confirm?.kind === 'toggle' && (
           <ConfirmModal
             title={u.activo ? t('admin.confirm.deactivateTitle') : t('admin.confirm.activateTitle')}
-            message={boldName(t(u.activo ? 'admin.confirm.deactivateMsg' : 'admin.confirm.activateMsg', { name: nombre }), nombre)}
+            message={boldTerms(t(u.activo ? 'admin.confirm.deactivateMsg' : 'admin.confirm.activateMsg', { name: nombre }), [nombre])}
             confirmLabel={u.activo ? t('admin.deactivate') : t('admin.activate')}
             destructive={!!u.activo}
             onConfirm={async () => { await toggleActivo(u.id, !!u.activo); setConfirm(null) }}
