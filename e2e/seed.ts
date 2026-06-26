@@ -24,6 +24,13 @@ export async function ensureUser(email: string, rol: string, nombre = 'Test', ap
     })
     const j = await r.json()
     auth_id = j.id ?? (await authIdByEmail(email))
+  } else {
+    // Idempotencia real: un user que persiste de corridas previas puede tener otra
+    // password. La reseteamos (y reconfirmamos) para que el login E2E sea estable.
+    await fetch(`${URL}/auth/v1/admin/users/${auth_id}`, {
+      method: 'PUT', headers: H,
+      body: JSON.stringify({ password: PASSWORD, email_confirm: true }),
+    })
   }
   const ri = await fetch(`${URL}/rest/v1/usuarios?on_conflict=email`, {
     method: 'POST', headers: { ...H, Prefer: 'resolution=merge-duplicates,return=minimal' },
