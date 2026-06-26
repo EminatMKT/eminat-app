@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
-import { normalizeRole, ADMIN_ROLE, DEFAULT_ROLE, MODULE_META } from '@/shared/auth/permissions'
+import { normalizeRole, ADMIN_ROLE, DEFAULT_ROLE, MODULE_META, getModulesForRole } from '@/shared/auth/permissions'
 import { COMPANY_COLORS, companyShort } from '@/shared/constants/companies'
 import { useUserActions } from '../hooks/useUserActions'
 import ConfirmModal from '@/shared/components/ConfirmModal'
@@ -66,7 +66,7 @@ export default function UserRow({ user: u, onEdit, onReset, onDelete }: Props) {
             title={t('admin.confirm.assignTitle')}
             message={(() => {
               const roleLabel = roles.find(r => r.key === confirm.value)?.label || confirm.value
-              const mods = (roleModuleMap[confirm.value] || []).map(m => MODULE_META[m]?.name).filter(Boolean)
+              const mods = getModulesForRole(roleModuleMap, confirm.value).map(m => MODULE_META[m]?.name).filter(Boolean)
               return (
                 <>
                   {boldTerms(t('admin.confirm.assignMsg', { role: roleLabel, name: nombre }), [roleLabel, nombre])}
