@@ -31,8 +31,11 @@ export default function DeleteUserModal({ userId, onClose }: { userId: string; o
         // Si el fallo es FK constraint, surface la cantidad de tareas que bloquean
         // y flip a la UI de reasignar para transferir en vez de solo bloquear.
         if (res.status === 409 && result.blockedBy === 'foreign_key') {
+          // El mensaje del 409 ("usa Heredar y borrar / Deactivate") describe el
+          // bloqueo, no un error de la fase de reasignación — y contradice el panel
+          // de 0 tareas. Cada fase ya explica su propio contexto, así que lo limpiamos.
           setReassignState({ taskCount: result.taskCount ?? 0, heirId: '', statusOverride: '' })
-          setDeleteError(result.error || null)
+          setDeleteError(null)
           setDeleting(false)
           return
         }
@@ -72,6 +75,23 @@ export default function DeleteUserModal({ userId, onClose }: { userId: string; o
     setDeleting(false)
   }
 
+  // Borrado sin heredero: el usuario no tiene tareas, solo registros automáticos
+  // (notificaciones, marcaciones). El RPC los limpia y borra la fila — sin heredero.
+  async function ejecutarLimpiezaYBorrado(oldId: string) {
+    setDeleteError(null)
+    setDeleting(true)
+    try {
+      const { res, result } = await apiPost('/api/admin/reassign-and-delete', { oldId })
+      if (!res.ok || !result.ok) { setDeleteError(result.error || t('admin.del.cleanupFailed')); setDeleting(false); return }
+      setAdminUsuarios(prev => prev.filter(u => u.id !== oldId))
+      onClose()
+      mostrarMensaje('ok', t('admin.del.deleted'))
+    } catch (err: any) {
+      setDeleteError(err?.message || t('admin.del.netErr'))
+    }
+    setDeleting(false)
+  }
+
   async function deactivarDesdeDelete(id: string) {
     setDeleteError(null)
     setDeleting(true)
@@ -89,6 +109,23 @@ export default function DeleteUserModal({ userId, onClose }: { userId: string; o
 
   // ── FASE 2: Reasignar y borrar (tras un hard-delete bloqueado por FK)
   if (reassignState) {
+    // Sin tareas: el bloqueo son registros automáticos (notifs/marcaciones). No
+    // tiene sentido pedir heredero — limpiar y borrar directo.
+    if (reassignState.taskCount === 0) {
+      return (
+        <Modal title={t('admin.del.hardDelete')} width={460} onClose={onClose}>
+          <div style={{ marginBottom: 16, padding: '12px 14px', borderRadius: 10, background: 'rgba(248,113,113,.08)', border: '1px solid rgba(248,113,113,.30)' }}>
+            <div style={{ fontSize: 13, color: t1, fontWeight: 600 }}>{target.nombre} {target.apellido}</div>
+            <div style={{ fontSize: 12, color: t2, marginTop: 6, lineHeight: 1.5 }}>{t('admin.del.zeroTasksCleanup')}</div>
+          </div>
+          <ErrorBlock msg={deleteError} />
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button onClick={onClose} disabled={deleting} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>{t('common.cancel')}</button>
+            <button onClick={() => ejecutarLimpiezaYBorrado(target.id)} disabled={deleting} style={{ flex: 1.4, padding: '10px', borderRadius: 10, border: 'none', background: '#F87171', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{deleting ? '...' : t('admin.del.hardDelete')}</button>
+          </div>
+        </Modal>
+      )
+    }
     const heirs = eligibleHeirs(adminUsuarios, target)
     const selectedHeir = heirs.find(h => h.id === reassignState.heirId)
     const heirReady = !!selectedHeir && !!selectedHeir.responsable_ref

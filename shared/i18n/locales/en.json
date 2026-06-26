@@ -168,6 +168,8 @@
   "admin.del.hint": "If they have activities, I'll open a panel to inherit them to another member before deleting. If you prefer to keep everything intact and just remove access, use Deactivate.",
   "admin.del.deactivateBtn": "Deactivate (safer)",
   "admin.del.hardDelete": "Hard delete",
+  "admin.del.zeroTasksCleanup": "No tasks assigned, but it does have automatic records (notifications, check-ins) that will be cleaned up on deletion. This action is irreversible.",
+  "admin.del.cleanupFailed": "Could not clean up and delete the user.",
   "admin.confirm.assignTitle": "Assign role",
   "admin.confirm.assignMsg": "You're about to assign the role “{role}” to {name}. They will gain access to that role's modules.",
   "admin.confirm.assignBtn": "Assign role",

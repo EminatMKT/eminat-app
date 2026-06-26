@@ -168,6 +168,8 @@
   "admin.del.hint": "Si tiene actividades, te abriré un panel para heredarlas a otro miembro antes de borrar. Si prefieres preservar todo intacto y solo quitarle acceso, usa Desactivar.",
   "admin.del.deactivateBtn": "Desactivar (más seguro)",
   "admin.del.hardDelete": "Borrado definitivo",
+  "admin.del.zeroTasksCleanup": "No tiene tareas asignadas, pero sí registros automáticos (notificaciones, marcaciones) que se limpiarán al borrarlo. Esta acción es irreversible.",
+  "admin.del.cleanupFailed": "No se pudo limpiar y borrar al usuario.",
   "admin.confirm.assignTitle": "Asignar rol",
   "admin.confirm.assignMsg": "Vas a asignar el rol «{role}» a {name}. Tendrá acceso a los módulos de ese rol.",
   "admin.confirm.assignBtn": "Asignar rol",

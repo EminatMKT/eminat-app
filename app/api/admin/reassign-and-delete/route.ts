@@ -41,13 +41,18 @@ export async function POST(req: NextRequest) {
       oldId?: string; newId?: string; newRef?: string; statusOverride?: string | null
     }
 
-    if (!oldId || !newId || !newRef) {
+    // Heredero OPCIONAL: sin heredero (newId ausente) el RPC solo limpia hijos y
+    // borra — caso de usuario con 0 tareas. Con heredero, newId y newRef van juntos.
+    if (!oldId) {
+      return NextResponse.json({ error: 'oldId es requerido.' }, { status: 400 })
+    }
+    if (newId && !newRef) {
       return NextResponse.json(
-        { error: 'oldId, newId y newRef son requeridos.' },
+        { error: 'newRef es requerido cuando se especifica un heredero.' },
         { status: 400 },
       )
     }
-    if (oldId === newId) {
+    if (newId && oldId === newId) {
       return NextResponse.json(
         { error: 'El nuevo dueño no puede ser el mismo usuario que se borra.' },
         { status: 400 },
@@ -99,8 +104,8 @@ export async function POST(req: NextRequest) {
       'admin_reassign_and_delete',
       {
         p_old_id: oldId,
-        p_new_id: newId,
-        p_new_ref: newRef,
+        p_new_id: newId ?? null,
+        p_new_ref: newRef ?? null,
         p_status_override: statusOverride ?? null,
       },
     )
