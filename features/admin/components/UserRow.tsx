@@ -15,6 +15,14 @@ type Props = {
   onDelete: (id: string) => void
 }
 
+// Resalta el nombre dentro de un mensaje ya traducido (sin romper el i18n: parte
+// la frase por el nombre interpolado y lo envuelve en <strong>).
+function boldName(text: string, name: string) {
+  const i = name ? text.indexOf(name) : -1
+  if (i < 0) return text
+  return <>{text.slice(0, i)}<strong>{name}</strong>{text.slice(i + name.length)}</>
+}
+
 export default function UserRow({ user: u, onEdit, onReset, onDelete }: Props) {
   const { s2, border, t1, t2, t3, accent, roles } = useApp()
   const { t } = useT()
@@ -50,7 +58,7 @@ export default function UserRow({ user: u, onEdit, onReset, onDelete }: Props) {
         {confirm?.kind === 'assign' && (
           <ConfirmModal
             title={t('admin.confirm.assignTitle')}
-            message={t('admin.confirm.assignMsg', { role: roles.find(r => r.key === confirm.value)?.label || confirm.value, name: nombre })}
+            message={boldName(t('admin.confirm.assignMsg', { role: roles.find(r => r.key === confirm.value)?.label || confirm.value, name: nombre }), nombre)}
             confirmLabel={t('admin.confirm.assignBtn')}
             onConfirm={async () => { await cambiarRol(u.id, confirm.value); setConfirm(null) }}
             onClose={() => setConfirm(null)}
@@ -59,7 +67,7 @@ export default function UserRow({ user: u, onEdit, onReset, onDelete }: Props) {
         {confirm?.kind === 'toggle' && (
           <ConfirmModal
             title={u.activo ? t('admin.confirm.deactivateTitle') : t('admin.confirm.activateTitle')}
-            message={t(u.activo ? 'admin.confirm.deactivateMsg' : 'admin.confirm.activateMsg', { name: nombre })}
+            message={boldName(t(u.activo ? 'admin.confirm.deactivateMsg' : 'admin.confirm.activateMsg', { name: nombre }), nombre)}
             confirmLabel={u.activo ? t('admin.deactivate') : t('admin.activate')}
             destructive={!!u.activo}
             onConfirm={async () => { await toggleActivo(u.id, !!u.activo); setConfirm(null) }}
