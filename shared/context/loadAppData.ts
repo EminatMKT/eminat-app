@@ -56,9 +56,23 @@ export function startAppData(s: Setters): () => void {
       s.setUsuario(usr)
 
       // Cargar roles + role_modules en paralelo y construir el mapa role_key → modules.
-      const [{ data: roleRows }, { data: roleMods }] = await Promise.all([
-        rolesRepo.listRoles(), rolesRepo.listRoleModules(),
-      ])
+      // ACOTADO con timeout: es el único await entre el perfil y el setLoading(false)
+      // de abajo. Si se cuelga (lock de auth de supabase-js bajo StrictMode, token
+      // stale, red), sin techo el spinner "Cargando…" queda infinito. Ante el cuelgue
+      // caemos a la misma pantalla estable que un fallo de perfil — nunca UI zombie.
+      const rolesRes = await withTimeout(
+        Promise.all([rolesRepo.listRoles(), rolesRepo.listRoleModules()]),
+        10000,
+        null,
+      )
+      if (!rolesRes) {
+        s.setSessionError('error')
+        s.setLoading(false)
+        clearAuthCookies()
+        void auth.signOut().catch(() => {})
+        return
+      }
+      const [{ data: roleRows }, { data: roleMods }] = rolesRes
       s.setRoles((roleRows as RoleRow[]) || [])
       const map: RoleModuleMap = {}
       for (const rm of (roleMods || []) as { role_key: string; module_slug: ModuleSlug }[]) {
