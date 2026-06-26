@@ -1,5 +1,6 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
 import { useMedical } from './MedicalContext'
 import { useMedicalStyles } from '../hooks/useMedicalStyles'
 import Badge from './Badge'
@@ -8,6 +9,7 @@ import type { Paciente } from '../types'
 
 export default function PatientRow({ paciente: p, onSelect }: { paciente: Paciente; onSelect: (p: Paciente) => void }) {
   const { t1, t2, t3, accent, border } = useApp()
+  const { t } = useT()
   const { logAction } = useMedical()
   const { btnSecondary } = useMedicalStyles()
   return (
@@ -23,7 +25,7 @@ export default function PatientRow({ paciente: p, onSelect }: { paciente: Pacien
       <td style={{ padding: '10px', color: t3, fontSize: 11 }}>{p.telefono}</td>
       <td style={{ padding: '10px' }}><Badge color={p.estado === 'activo' ? '#34D399' : p.estado === 'alta' ? '#FBB040' : '#F87171'}>{p.estado}</Badge></td>
       <td style={{ padding: '10px' }}>
-        <button onClick={e => { e.stopPropagation(); onSelect(p) }} style={{ ...btnSecondary, fontSize: 10, padding: '4px 10px' }}>Ver</button>
+        <button onClick={e => { e.stopPropagation(); onSelect(p) }} style={{ ...btnSecondary, fontSize: 10, padding: '4px 10px' }}>{t('common.view')}</button>
       </td>
     </tr>
   )

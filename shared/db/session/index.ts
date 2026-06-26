@@ -1,3 +1,5 @@
+import { ROUTES } from '@/shared/auth/permissions'
+
 // Lógica de sesión extraída de AppContext para poder testearla de forma aislada.
 // Cubre dos fallos de resiliencia que dejaban la app en estado zombie:
 //   A) el logout podía colgarse si supabase.auth.signOut() no resolvía.
@@ -19,7 +21,7 @@ export async function signOutAndRedirect(
   } catch {
     // Ignoramos cualquier error de signOut — redirigimos de todas formas.
   } finally {
-    redirect('/login')
+    redirect(ROUTES.login)
   }
 }
 

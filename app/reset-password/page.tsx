@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import * as auth from '@/shared/db/auth'
 import { useRouter } from 'next/navigation'
+import { ROUTES } from '@/shared/auth/permissions'
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
@@ -38,7 +39,7 @@ export default function ResetPasswordPage() {
 
     setListo(true)
     setLoading(false)
-    setTimeout(() => router.push('/login'), 3000)
+    setTimeout(() => router.push(ROUTES.login), 3000)
   }
 
   if (listo) {

@@ -13,9 +13,13 @@ tsconfig.tsbuildinfo
 .env.*.local
 
 # tooling local
-.todo/
 .understand-anything/
 .tmp/
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
 
 # misc
 .DS_Store

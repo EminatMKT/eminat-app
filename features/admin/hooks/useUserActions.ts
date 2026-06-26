@@ -1,14 +1,14 @@
 import { useApp } from '@/shared/context/AppContext'
 import { usuariosRepo } from '@/shared/data'
-import { apiPost } from '../api'
+import { apiPost } from '@/shared/api'
 
 // Acciones por fila que mutan adminUsuarios in-place (rol, activación, validación).
 export function useUserActions() {
   const { setAdminUsuarios, mostrarMensaje } = useApp()
 
   async function cambiarRol(id: string, rol: string) {
-    const { error } = await usuariosRepo.updateRol(id, rol)
-    if (error) { mostrarMensaje('error', `Role: ${error.message}`); return }
+    const { res, result } = await apiPost('/api/admin/update-user', { id, rol })
+    if (!res.ok) { mostrarMensaje('error', result.error || 'No se pudo cambiar el rol.'); return }
     setAdminUsuarios(prev => prev.map(u => u.id === id ? { ...u, rol } : u))
     mostrarMensaje('ok', 'Role updated')
   }

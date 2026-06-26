@@ -9,7 +9,8 @@ import type { CobTab, Filtros, Venta, Cuenta, Deposito } from '../types'
 const num = (v: unknown) => Number(v) || 0
 
 export function useCobranzasData() {
-  const { canCobranzas, mostrarMensaje } = useApp()
+  const { modules, mostrarMensaje } = useApp()
+  const canCobranzas = modules.includes('cobranzas')
 
   const [cobTab, setCobTab] = useState<CobTab>('ventas')
   const [cobMes, setCobMes] = useState(MESES[new Date().getMonth()])

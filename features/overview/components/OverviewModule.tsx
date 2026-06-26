@@ -15,15 +15,15 @@ import BrandOrbitNode from './BrandOrbitNode'
  * es un guard extra para clientes sin el claim nuevo en el JWT.
  */
 export default function OverviewModule() {
-  const { usuario, horaActual, esSuperAdmin, s1, border, t1, t2, accent, mostrarMensaje, loading } = useApp()
+  const { usuario, horaActual, esAdmin, s1, border, t1, t2, accent, mostrarMensaje, loading } = useApp()
   const router = useRouter()
   const [hoveredBrand, setHoveredBrand] = useState<string | null>(null)
   const radius = 220
 
   // Guard de cliente: rebota a no-admins al launchpad.
   useEffect(() => {
-    if (!loading && usuario && !esSuperAdmin) router.replace('/')
-  }, [loading, usuario, esSuperAdmin, router])
+    if (!loading && usuario && !esAdmin) router.replace('/')
+  }, [loading, usuario, esAdmin, router])
 
   const handleClick = (brand: Brand) =>
     brand.route ? router.push(brand.route) : mostrarMensaje('ok', `${brand.name} — Coming soon`)

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
-import { normalizeRole, ROLE_LABELS } from '@/shared/auth/permissions'
-import { clientEnv } from '@/shared/db/env.client'
+import { DEFAULT_ROLE } from '@/shared/auth/permissions'
 import { serverEnv } from '@/shared/db/env.server'
+import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
+import { requireAdmin } from '@/shared/db/requireAdmin'
 
 /**
  * Server-side admin endpoint — creates an Auth user AND its companion
@@ -31,12 +31,10 @@ function buildWelcomeEmail(args: {
   apellido: string
   email: string
   password: string
-  rol: string
+  areaLabel: string
   cargo?: string
 }): string {
-  const { nombre, apellido, email, password, rol, cargo } = args
-  const normalizedRole = normalizeRole(rol)
-  const areaLabel = normalizedRole ? ROLE_LABELS[normalizedRole] : rol
+  const { nombre, apellido, email, password, areaLabel, cargo } = args
   const cargoLine = cargo ? `<div style="font-size:12px;color:#A5A7FF;margin-top:4px">${escapeHtml(cargo)}</div>` : ''
 
   return `<!doctype html>
@@ -106,7 +104,7 @@ async function sendWelcomeEmail(args: {
   apellido: string
   email: string
   password: string
-  rol: string
+  areaLabel: string
   cargo?: string
 }): Promise<string | null> {
   try {
@@ -130,14 +128,10 @@ async function sendWelcomeEmail(args: {
 const TAG = '[admin/create-user]'
 
 export async function POST(req: NextRequest) {
-  const { SUPABASE_SERVICE_ROLE_KEY } = serverEnv
-  const { NEXT_PUBLIC_SUPABASE_URL } = clientEnv
+  const authz = await requireAdmin()
+  if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
 
-  const supabaseAdmin = createClient(
-    NEXT_PUBLIC_SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY,
-    { auth: { autoRefreshToken: false, persistSession: false } },
-  )
+  const db = supabaseAdmin()
 
   let userId: string | null = null
 
@@ -159,7 +153,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Auth user. email_confirm:true → no confirmation email sent.
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    const { data: authData, error: authError } = await db.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
@@ -177,14 +171,14 @@ export async function POST(req: NextRequest) {
 
     // 2. Companion usuarios row. id MUST equal the Auth user id so
     //    profile lookups by id (and JWT claims) work consistently.
-    const { data: userData, error: dbError } = await supabaseAdmin
+    const { data: userData, error: dbError } = await db
       .from('usuarios')
       .insert({
         id: userId,
         nombre,
         apellido,
         email,
-        rol: rol || 'stratix360',
+        rol: rol || DEFAULT_ROLE,
         tipo: tipo || 'B',
         color: color || '#7C6FF7',
         empresa: empresa || 'Eminat Group',
@@ -206,7 +200,7 @@ export async function POST(req: NextRequest) {
       // Rollback Auth user. If the rollback itself fails, surface both
       // errors so the admin knows there is an orphan auth.users row to
       // clean up manually from the Supabase Dashboard.
-      const { error: rollbackError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+      const { error: rollbackError } = await db.auth.admin.deleteUser(userId)
       if (rollbackError) {
         console.error(`${TAG} auth rollback ALSO failed — ORPHAN auth.users row`, {
           userId,
@@ -226,7 +220,9 @@ export async function POST(req: NextRequest) {
     console.log(`${TAG} usuarios inserted`, { userId, email })
 
     // 3. Best-effort welcome email. Never fails the request.
-    const emailWarning = await sendWelcomeEmail({ nombre, apellido, email, password, rol: rol || 'stratix360', cargo })
+    const { data: roleRow } = await db.from('roles').select('label').eq('key', rol || DEFAULT_ROLE).maybeSingle()
+    const areaLabel = roleRow?.label || (rol || DEFAULT_ROLE)
+    const emailWarning = await sendWelcomeEmail({ nombre, apellido, email, password, areaLabel, cargo })
     if (emailWarning) console.warn(`${TAG} email warning`, { userId, email, emailWarning })
 
     console.log(`${TAG} success`, { userId, email })
@@ -235,7 +231,7 @@ export async function POST(req: NextRequest) {
     console.error(`${TAG} unexpected — attempting auth rollback`, { userId, message: err?.message })
     // Defensive: also try rollback on unexpected failure.
     if (userId) {
-      try { await supabaseAdmin.auth.admin.deleteUser(userId) } catch {}
+      try { await db.auth.admin.deleteUser(userId) } catch {}
     }
     return NextResponse.json(
       { error: err?.message || 'Error inesperado al crear el usuario.' },

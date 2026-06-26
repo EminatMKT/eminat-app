@@ -8,7 +8,7 @@ const MIEMBROS_ENTRIES = Object.entries(ACTIVE_MIEMBROS_REFS)
 const REPORT_HEADERS = ['Task', 'Area', 'Hours', 'Prod. Days', 'Status']
 
 export default function ReporteTab() {
-  const { s1, s2, border, accent, t1, t3, inputStyle, esSuperAdmin } = useApp()
+  const { s1, s2, border, accent, t1, t3, inputStyle, esAdmin } = useApp()
   const {
     mesReporte, setMesReporte, miembroReporte, setMiembroReporte,
     actsRep, totalHorasRep, totalDiasRep, completadasRep, nombreRep, refRep, handlePrintReport,
@@ -30,7 +30,7 @@ export default function ReporteTab() {
       <div id="reporte-controls" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <span style={{ fontSize: 14, fontWeight: 600, color: t1 }}>Production payment report</span>
         <div style={{ display: 'flex', gap: 8 }}>
-          {esSuperAdmin && (
+          {esAdmin && (
             <select value={miembroReporte} onChange={e => setMiembroReporte(e.target.value)} style={{ ...inputStyle, width: 'auto', padding: '6px 12px' }}>
               <option value="">Select</option>
               {MIEMBROS_ENTRIES.map(([ref, nombre]) => <option key={ref} value={ref}>{nombre}</option>)}

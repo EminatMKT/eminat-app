@@ -1,0 +1,4 @@
+#!/bin/sh
+# Guard de i18n: bloquea texto visible NUEVO sin interpolar (solo líneas agregadas).
+# Bypass: git commit --no-verify
+node "$(git rev-parse --show-toplevel)/.githooks/check-i18n.mjs"

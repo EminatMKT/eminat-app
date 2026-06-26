@@ -7,9 +7,9 @@ import { CobranzasProvider } from './CobranzasContext'
 import CobranzasContent from './CobranzasContent'
 
 export default function CobranzasModule() {
-  const { canCobranzas } = useApp()
+  const { modules } = useApp()
 
-  if (!canCobranzas) return <AccessDenied message="You do not have access to the Billing module. Contact your administrator." />
+  if (!modules.includes('cobranzas')) return <AccessDenied message="You do not have access to the Billing module. Contact your administrator." />
 
   return (
     <AppShell>

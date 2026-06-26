@@ -1,8 +1,9 @@
 import type { Brand } from './types'
+import { modulePath } from '@/shared/auth/permissions'
 
 // Marcas del grupo en la vista orbital. mkt usa el color de acento del tema (#7C6FF7).
 export const BRANDS: Brand[] = [
-  { key: 'mkt', icon: '🚀', name: 'Stratix 360', color: '#7C6FF7', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Marketing and creative production agency of Eminat Group.', route: '/stratix-mkt' },
+  { key: 'mkt', icon: '🚀', name: 'Stratix 360', color: '#7C6FF7', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Marketing and creative production agency of Eminat Group.', route: modulePath('stratix-mkt') },
   { key: 'emc', icon: '🏥', name: 'EMC Medical Center', color: '#60A5FA', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Medical center specialized in integrative health and wellness.' },
   { key: 'svn', icon: '💎', name: 'Soy Vivi Negrete', color: '#F472B6', loc: 'Miami', tz: 'America/New_York', desc: 'Personal brand for lifestyle, fashion and digital content.' },
   { key: 'erg', icon: '🔬', name: 'Eminat Research Group', color: '#A78BFA', loc: 'Guayaquil', tz: 'America/Guayaquil', desc: 'Research and innovation division of Eminat Group.' },
