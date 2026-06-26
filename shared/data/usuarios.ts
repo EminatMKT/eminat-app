@@ -36,3 +36,18 @@ export const findByEmail = (email: string | undefined) =>
 // Login: actualiza ubicación + online_at tras autenticar.
 export const updateUbicacion = (id: string, ubicacion: string) =>
   supabase.from(TABLES.usuarios).update({ ubicacion, online_at: new Date().toISOString() }).eq('id', id).then(() => {})
+
+// Realtime: escucha UPDATE de la propia fila del usuario para propagar en vivo lo
+// que el admin cambie (rol, activo) sin esperar un refresh. Mismo patrón que las
+// notificaciones; filtrado por id para recibir solo la fila propia.
+export const subscribeToUserRow = (id: string, onUpdate: (row: any) => void) =>
+  supabase
+    .channel(`user-row-${id}`)
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: TABLES.usuarios, filter: `id=eq.${id}` },
+      (payload: any) => onUpdate(payload.new),
+    )
+    .subscribe()
+
+export const removeChannel = (channel: any) => supabase.removeChannel(channel)

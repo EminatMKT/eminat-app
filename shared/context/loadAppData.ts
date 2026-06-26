@@ -4,7 +4,7 @@ import { usuariosRepo, actividadesRepo, notificacionesRepo, rolesRepo } from '@/
 import { loadProfile } from '@/shared/db/session'
 import * as auth from '@/shared/db/auth'
 import { clearAuthCookies } from '@/shared/db/clearAuthCookies'
-import { normalizeRole } from '@/shared/auth/permissions'
+import { normalizeRole, getModulesForRole, moduleForPath, ROUTES } from '@/shared/auth/permissions'
 import type { RoleRow, RoleModuleMap, ModuleSlug } from '@/shared/auth/permissions'
 import { CARGOS_DIR } from '@/shared/constants/directorio'
 
@@ -34,6 +34,7 @@ type Setters = {
 export function startAppData(s: Setters): () => void {
   let heartbeatInterval: ReturnType<typeof setInterval>
   let realtimeChannel: any
+  let userRowChannel: any
 
   async function init() {
     try {
@@ -107,6 +108,30 @@ export function startAppData(s: Setters): () => void {
         s.setNotificaciones(prev => [row, ...prev])
       })
 
+      // Realtime sobre la propia fila: el admin cambia rol/activo y se refleja YA,
+      // sin esperar un refresh. Ignora updates irrelevantes (p.ej. el heartbeat de
+      // online_at) comparando contra el último rol/activo conocido.
+      let lastRol = usr.rol
+      let lastActivo = usr.activo
+      userRowChannel = usuariosRepo.subscribeToUserRow(usr.id, (row: any) => {
+        if (row.rol === lastRol && row.activo === lastActivo) return
+        lastRol = row.rol; lastActivo = row.activo
+        // Desactivado por el admin → expulsar al login.
+        if (row.activo === false) {
+          clearAuthCookies()
+          void auth.signOut().catch(() => {})
+          window.location.href = ROUTES.login
+          return
+        }
+        // Cambio de rol → refrescar perfil (AppContext recalcula módulos solo).
+        s.setUsuario(row)
+        // Si quedó parado en un módulo que ya no tiene, mandarlo a Home.
+        const slug = moduleForPath(window.location.pathname)
+        if (slug && !getModulesForRole(map, normalizeRole(row.rol)).includes(slug)) {
+          window.location.href = ROUTES.home
+        }
+      })
+
       // 6. Load actividades
       const { data: acts } = await actividadesRepo.list(
         !isAdmin && usr.responsable_ref ? usr.responsable_ref : undefined
@@ -136,5 +161,6 @@ export function startAppData(s: Setters): () => void {
   return () => {
     clearInterval(heartbeatInterval)
     if (realtimeChannel) notificacionesRepo.removeChannel(realtimeChannel)
+    if (userRowChannel) usuariosRepo.removeChannel(userRowChannel)
   }
 }
