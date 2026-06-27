@@ -7,10 +7,9 @@ out/
 next-env.d.ts
 tsconfig.tsbuildinfo
 
-# env
-.env
-.env.local
-.env.*.local
+# env — todos ignorados; .env.example es el único template versionado
+.env*
+!.env.example
 
 # tooling local
 .understand-anything/
