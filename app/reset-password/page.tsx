@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import * as auth from '@/shared/db/auth'
 import { useRouter } from 'next/navigation'
+import { ROUTES } from '@/shared/auth/permissions'
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
@@ -28,7 +29,7 @@ export default function ResetPasswordPage() {
 
     setLoading(true)
 
-    const { error: err } = await supabase.auth.updateUser({ password })
+    const { error: err } = await auth.updatePassword(password)
 
     if (err) {
       setError('Update failed. The link may have expired.')
@@ -38,7 +39,7 @@ export default function ResetPasswordPage() {
 
     setListo(true)
     setLoading(false)
-    setTimeout(() => router.push('/login'), 3000)
+    setTimeout(() => router.push(ROUTES.login), 3000)
   }
 
   if (listo) {

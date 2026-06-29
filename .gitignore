@@ -1,0 +1,25 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# env — todos ignorados; .env.example es el único template versionado
+.env*
+!.env.example
+
+# tooling local
+.understand-anything/
+.tmp/
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+
+# misc
+.DS_Store
+*.pem

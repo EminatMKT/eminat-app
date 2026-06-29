@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
+import { requireAdmin } from '@/shared/db/requireAdmin'
+import { isLastAdmin } from '@/shared/auth/roleValidation'
 
 /**
  * Server-side admin endpoint — hard-deletes a user from BOTH:
@@ -34,20 +36,10 @@ import { createClient } from '@supabase/supabase-js'
 const TAG = '[admin/delete-user]'
 
 export async function POST(req: NextRequest) {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!serviceRoleKey) {
-    console.error(`${TAG} SUPABASE_SERVICE_ROLE_KEY is not configured`)
-    return NextResponse.json(
-      { error: 'SUPABASE_SERVICE_ROLE_KEY is not configured in this environment.' },
-      { status: 500 },
-    )
-  }
+  const authz = await requireAdmin()
+  if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
 
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    serviceRoleKey,
-    { auth: { autoRefreshToken: false, persistSession: false } },
-  )
+  const db = supabaseAdmin()
 
   try {
     const body = await req.json()
@@ -58,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     // 1) Look up the row to find auth_id + email (for logging).
     //    Use maybeSingle so a missing row returns null instead of an error.
-    const { data: row, error: lookupError } = await supabaseAdmin
+    const { data: row, error: lookupError } = await db
       .from('usuarios')
       .select('id, auth_id, email, nombre, apellido, rol')
       .eq('id', id)
@@ -90,6 +82,16 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Guard: nunca borrar al último admin (defensa en profundidad; el bloqueo
+    // admin-tier de arriba ya lo cubre, pero esto sobrevive si ese cambia).
+    const { data: all } = await db.from('usuarios').select('id,rol')
+    if (isLastAdmin(all || [], id)) {
+      return NextResponse.json(
+        { error: 'No se puede borrar al último admin.' },
+        { status: 400 },
+      )
+    }
+
     // 2) Best-effort auth.users delete. Try auth_id first (the explicit
     //    link), fall back to id (rows created via /api/admin/create-user
     //    use id = auth_id by construction).
@@ -99,7 +101,7 @@ export async function POST(req: NextRequest) {
       (v): v is string => typeof v === 'string' && v.length > 0,
     )
     for (const uid of authCandidates) {
-      const { error: authErr } = await supabaseAdmin.auth.admin.deleteUser(uid)
+      const { error: authErr } = await db.auth.admin.deleteUser(uid)
       if (!authErr) {
         authDeleted = true
         break
@@ -113,7 +115,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 3) Public.usuarios delete with service_role (bypasses RLS).
-    const { error: dbError, count } = await supabaseAdmin
+    const { error: dbError, count } = await db
       .from('usuarios')
       .delete({ count: 'exact' })
       .eq('id', id)
@@ -124,7 +126,7 @@ export async function POST(req: NextRequest) {
       if (isFk) {
         // Count the actividades the user owns so the UI can offer the
         // reassign-and-delete flow with the number up-front.
-        const { count: taskCount } = await supabaseAdmin
+        const { count: taskCount } = await db
           .from('actividades')
           .select('id', { count: 'exact', head: true })
           .eq('responsable_id', id)

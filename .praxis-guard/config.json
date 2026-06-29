@@ -1,0 +1,45 @@
+{
+  "exclude": [
+    "node_modules/",
+    ".next/",
+    "dist/",
+    "build/",
+    ".git/",
+    "coverage/",
+    "out/",
+    ".tmp/",
+    ".todo/",
+    ".understand-anything/",
+    ".claude/",
+    ".praxis-guard/",
+    "docs/",
+    "public/"
+  ],
+  "architecture": {
+    "strategy": "by-feature",
+    "root": ".",
+    "featuresDir": "features",
+    "sharedDirs": ["shared"]
+  },
+  "commit": {
+    "block": false
+  },
+  "rules": {
+    "file-responsibility": { "maxLines": 50 },
+    "architecture-coherence": { "enabled": true },
+    "server-client-boundaries": { "enabled": true },
+    "feature-deps": { "enabled": true },
+    "folder-placement": {
+      "enabled": false,
+      "_nota": "Off: el glob 'app/**' no matchea route groups con paréntesis de Next (app/(app)/...), genera falsos positivos. Revisar el matcher de praxis-guard antes de reactivar.",
+      "placement": [
+        {
+          "kind": "página/route de Next",
+          "match": "^(page|layout|route|template|loading|error|not-found|default)\\.(tsx|ts)$",
+          "allowed": ["app/**"]
+        }
+      ]
+    },
+    "forbidden-imports": { "enabled": false }
+  }
+}

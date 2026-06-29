@@ -1,9 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import * as auth from '@/shared/db/auth'
+import { usuariosRepo } from '@/shared/data'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
+import { useT } from '@/shared/i18n'
+import { ROUTES } from '@/shared/auth/permissions'
 
 const ZONAS = [
   { ciudad: 'Ecuador', zona: 'America/Guayaquil', emoji: '🇪🇨' },
@@ -35,6 +38,7 @@ export default function LoginPage() {
   const [sent, setSent] = useState(false)
   const [horas, setHoras] = useState<string[]>([])
   const router = useRouter()
+  const { t } = useT()
 
   const DOMINIOS_VALIDOS = ['@eminat.net', '@emc.health', '@vivinegretefoundation.org']
 
@@ -60,42 +64,35 @@ export default function LoginPage() {
     setLoading(true)
 
     if (!emailValido(email)) {
-      setError('Only corporate emails are allowed (@eminat.net, @emc.health, @vivinegretefoundation.org)')
+      setError(t('login.errDomain'))
       setLoading(false)
       return
     }
 
-    const { error: err } = await supabase.auth.signInWithPassword({ email, password })
+    const { error: err } = await auth.signIn(email, password)
 
     if (err) {
-      setError('Incorrect email or password')
+      setError(t('login.errCreds'))
       setLoading(false)
       return
     }
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user } } = await auth.getUser()
     if (user) {
-      const { data: usuario } = await supabase
-        .from('usuarios')
-        .select('id, marca_hora')
-        .eq('email', user.email)
-        .single()
+      const { data: usuario } = await usuariosRepo.findByEmail(user.email)
 
       if (usuario) {
         obtenerUbicacion().then(ubicacion => {
-          supabase.from('usuarios')
-            .update({ ubicacion, online_at: new Date().toISOString() })
-            .eq('id', usuario.id)
-            .then(() => {})
+          usuariosRepo.updateUbicacion(usuario.id, ubicacion)
         })
 
         if (usuario.marca_hora) {
-          await supabase.rpc('registrar_entrada', { p_usuario_id: usuario.id })
+          await auth.registrarEntrada(usuario.id)
         }
       }
     }
 
-    router.push('/')
+    router.push(ROUTES.home)
   }
 
   async function handleReset(e: React.FormEvent) {
@@ -103,14 +100,12 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
     if (!emailValido(email)) {
-      setError('Only Eminat Group corporate emails are allowed')
+      setError(t('login.errDomainReset'))
       setLoading(false)
       return
     }
-    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    })
-    if (err) { setError('Error sending email. Please try again.'); setLoading(false); return }
+    const { error: err } = await auth.resetPasswordForEmail(email, `${window.location.origin}${ROUTES.resetPassword}`)
+    if (err) { setError(t('login.errSendReset')); setLoading(false); return }
     setSent(true)
     setLoading(false)
   }
@@ -120,13 +115,13 @@ export default function LoginPage() {
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF' }}>
         <div style={{ maxWidth: 480, width: '100%', margin: '0 20px', textAlign: 'center' }}>
           <div style={{ fontSize: 48, marginBottom: 24 }}>📧</div>
-          <h2 style={{ fontFamily: 'Inter, DM Sans, sans-serif', fontSize: 28, fontWeight: 800, marginBottom: 12, color: '#0F172A' }}>Email sent</h2>
+          <h2 style={{ fontFamily: 'Inter, DM Sans, sans-serif', fontSize: 28, fontWeight: 800, marginBottom: 12, color: '#0F172A' }}>{t('login.sentTitle')}</h2>
           <p style={{ color: '#6B7280', lineHeight: 1.6, marginBottom: 24 }}>
-            Check your inbox — we sent you a link to reset your password.
+            {t('login.sentBody')}
           </p>
           <button onClick={() => { setSent(false); setMode('login') }}
             style={{ color: '#4F46E5', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
-            &larr; Back to sign in
+            &larr; {t('login.backToSignIn')}
           </button>
         </div>
       </div>
@@ -148,17 +143,17 @@ export default function LoginPage() {
           </div>
 
           <h2 style={{ fontSize: 40, fontWeight: 900, lineHeight: 1.08, letterSpacing: '-0.03em', marginBottom: 20 }}>
-            The operating<br />system for<br />
+            {t('login.heroLead')}{' '}
             <span style={{ color: '#4F46E5' }}>Eminat.</span>
           </h2>
           <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15, lineHeight: 1.7, maxWidth: 340 }}>
-            Integrated management for marketing, research, finance, medical and human resources.
+            {t('login.heroSub')}
           </p>
         </div>
 
         <div>
           <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: 'rgba(255,255,255,0.3)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '.1em' }}>
-            World clock
+            {t('login.worldClock')}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 28 }}>
             {ZONAS.map((z, i) => (
@@ -172,7 +167,7 @@ export default function LoginPage() {
             ))}
           </div>
           <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: 'rgba(255,255,255,0.3)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '.1em' }}>
-            Authorized domains
+            {t('login.authDomains')}
           </div>
           {['@eminat.net', '@emc.health', '@vivinegretefoundation.org'].map(d => (
             <div key={d} style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: 'rgba(255,255,255,0.4)', marginBottom: 5, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -188,24 +183,24 @@ export default function LoginPage() {
         <div style={{ maxWidth: 400, width: '100%' }}>
           {mode === 'login' && (
             <div style={{ marginBottom: 36 }}>
-              <h1 style={{ fontSize: 28, fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em', marginBottom: 8 }}>Sign in</h1>
-              <p style={{ fontSize: 14, color: '#9CA3AF' }}>Access with your corporate email</p>
+              <h1 style={{ fontSize: 28, fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em', marginBottom: 8 }}>{t('login.signIn')}</h1>
+              <p style={{ fontSize: 14, color: '#9CA3AF' }}>{t('login.signInSub')}</p>
             </div>
           )}
 
           {mode === 'reset' && (
             <div style={{ marginBottom: 28 }}>
-              <h3 style={{ fontSize: 24, fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em', marginBottom: 8 }}>Reset password</h3>
+              <h3 style={{ fontSize: 24, fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em', marginBottom: 8 }}>{t('login.resetTitle')}</h3>
               <p style={{ fontSize: 14, color: '#9CA3AF', lineHeight: 1.5 }}>
-                Enter your corporate email and we'll send you a reset link.
+                {t('login.resetSub')}
               </p>
             </div>
           )}
 
           <form onSubmit={mode === 'login' ? handleLogin : handleReset}>
             <div style={{ marginBottom: 18 }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: '#374151' }}>Corporate email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@eminat.net" required
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: '#374151' }}>{t('login.emailLabel')}</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder={t('login.emailPlaceholder')} required
                 style={{ width: '100%', padding: '12px 16px', background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 10, color: '#111827', fontSize: 15, fontFamily: 'inherit', outline: 'none', transition: 'border-color .2s', boxSizing: 'border-box' }}
                 onFocus={e => e.target.style.borderColor = '#4F46E5'}
                 onBlur={e => e.target.style.borderColor = '#D1D5DB'} />
@@ -213,14 +208,14 @@ export default function LoginPage() {
 
             {mode !== 'reset' && (
               <div style={{ marginBottom: 8 }}>
-                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: '#374151' }}>Password</label>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 6, color: '#374151' }}>{t('login.passwordLabel')}</label>
                 <div style={{ position: 'relative' }}>
                   <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required minLength={8}
                     style={{ width: '100%', padding: '12px 44px 12px 16px', background: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: 10, color: '#111827', fontSize: 15, fontFamily: 'inherit', outline: 'none', transition: 'border-color .2s', boxSizing: 'border-box' }}
                     onFocus={e => e.target.style.borderColor = '#4F46E5'}
                     onBlur={e => e.target.style.borderColor = '#D1D5DB'} />
                   <button type="button" onClick={() => setShowPassword(s => !s)}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
                     style={{ position: 'absolute', top: '50%', right: 12, transform: 'translateY(-50%)', background: 'none', border: 'none', padding: 4, cursor: 'pointer', color: '#9CA3AF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -232,7 +227,7 @@ export default function LoginPage() {
               <div style={{ textAlign: 'right', marginBottom: 24 }}>
                 <button type="button" onClick={() => { setMode('reset'); setError('') }}
                   style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  Forgot your password?
+                  {t('login.forgot')}
                 </button>
               </div>
             )}
@@ -250,9 +245,9 @@ export default function LoginPage() {
               fontFamily: 'inherit', transition: 'all .2s',
               boxShadow: loading ? 'none' : '0 4px 12px rgba(79,70,229,0.25)',
             }}>
-              {loading ? 'Processing...' :
-                mode === 'login' ? 'Sign in' :
-                'Send reset link'}
+              {loading ? t('common.processing') :
+                mode === 'login' ? t('login.signIn') :
+                t('login.sendResetLink')}
             </button>
           </form>
 
@@ -260,7 +255,7 @@ export default function LoginPage() {
             <div style={{ textAlign: 'center', marginTop: 20 }}>
               <button onClick={() => { setMode('login'); setError('') }}
                 style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-                &larr; Back to sign in
+                &larr; {t('login.backToSignIn')}
               </button>
             </div>
           )}
@@ -268,23 +263,27 @@ export default function LoginPage() {
           {mode !== 'reset' && (
             <div style={{ textAlign: 'center', marginTop: 28 }}>
               <p style={{ fontSize: 13, color: '#9CA3AF', lineHeight: 1.5 }}>
-                Don't have an account? Request access at{' '}
+                {t('login.noAccount')}{' '}
                 <a href="mailto:freddy@eminat.net" style={{ color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>freddy@eminat.net</a>
               </p>
             </div>
           )}
 
           <div style={{ textAlign: 'center', marginTop: 48 }}>
-            <span style={{ fontSize: 11, color: '#D1D5DB' }}>The operating system of Eminat Group</span>
+            <span style={{ fontSize: 11, color: '#D1D5DB' }}>{t('common.tagline')}</span>
           </div>
         </div>
       </div>
 
-      <style>{`
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         @media (max-width: 768px) {
           div[style*="width: 420"] { display: none !important; }
         }
-      `}</style>
+      `,
+        }}
+      />
     </div>
   )
 }

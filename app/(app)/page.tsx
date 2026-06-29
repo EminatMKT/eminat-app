@@ -1,9 +1,10 @@
 'use client'
 import { useRouter } from 'next/navigation'
-import { useApp } from '@/lib/AppContext'
-import AppShell from '@/app/components/AppShell'
-import { PageTransition } from '@/lib/motion'
-import { MODULE_META, type ModuleSlug } from '@/lib/permissions'
+import { useApp } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
+import AppShell from '@/shared/components/AppShell'
+import { PageTransition } from '@/shared/motion'
+import { MODULE_META, ROUTES, modulePath, type ModuleSlug } from '@/shared/auth/permissions'
 
 // ── Dark theme (matches AppShell's sidebar palette) ───────────────────
 const D = {
@@ -97,7 +98,8 @@ function ModuleIcon({ slug }: { slug: ModuleSlug }) {
 // ── Launchpad ──────────────────────────────────────────────────────────
 
 export default function LaunchpadPage() {
-  const { usuario, modules, esSuperAdmin } = useApp()
+  const { usuario, modules, esAdmin } = useApp()
+  const { t } = useT()
   const router = useRouter()
 
   return (
@@ -136,7 +138,7 @@ export default function LaunchpadPage() {
                 }}
               >
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: D.accent }} />
-                Launchpad
+                {t('launchpad.badge')}
               </div>
               <h1
                 style={{
@@ -149,7 +151,7 @@ export default function LaunchpadPage() {
                   margin: 0,
                 }}
               >
-                Hola, {usuario?.nombre || 'equipo'}
+                {t('launchpad.greeting', { name: usuario?.nombre || t('launchpad.team') })}
               </h1>
               <p
                 style={{
@@ -159,12 +161,12 @@ export default function LaunchpadPage() {
                   fontWeight: 400,
                 }}
               >
-                Selecciona un área para comenzar.
+                {t('launchpad.subtitle')}
               </p>
             </div>
 
             {/* Admin "Ver todo" — only visible to admin role */}
-            {esSuperAdmin && <VerTodoBanner onClick={() => router.push('/overview')} />}
+            {esAdmin && <VerTodoBanner onClick={() => router.push(ROUTES.overview)} />}
 
             {/* Cards grid */}
             {modules.length === 0 ? (
@@ -184,7 +186,7 @@ export default function LaunchpadPage() {
                       key={slug}
                       slug={slug}
                       meta={meta}
-                      onClick={() => router.push(meta.href)}
+                      onClick={() => router.push(modulePath(slug))}
                       delay={i * 0.04}
                     />
                   )
@@ -205,7 +207,7 @@ export default function LaunchpadPage() {
                 textAlign: 'center',
               }}
             >
-              The operating system of Eminat Group
+              {t('common.tagline')}
             </div>
           </div>
         </div>
@@ -223,6 +225,7 @@ export default function LaunchpadPage() {
 }
 
 function VerTodoBanner({ onClick }: { onClick: () => void }) {
+  const { t } = useT()
   return (
     <button
       onClick={onClick}
@@ -273,9 +276,9 @@ function VerTodoBanner({ onClick }: { onClick: () => void }) {
           </svg>
         </span>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-.01em' }}>Ver todo</div>
+          <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-.01em' }}>{t('launchpad.seeAll')}</div>
           <div style={{ fontSize: 12, color: D.t2, marginTop: 2 }}>
-            Abre la vista panorámica con todas las marcas del holding.
+            {t('launchpad.seeAllDesc')}
           </div>
         </div>
       </div>
@@ -289,7 +292,7 @@ function VerTodoBanner({ onClick }: { onClick: () => void }) {
           color: '#A5A7FF',
         }}
       >
-        Abrir
+        {t('common.open')}
         <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden>
           <path d="M3 6h6m-2-2 2 2-2 2" {...stroke} />
         </svg>
@@ -309,6 +312,7 @@ function LaunchCard({
   onClick: () => void
   delay: number
 }) {
+  const { t } = useT()
   return (
     <button
       onClick={onClick}
@@ -392,7 +396,7 @@ function LaunchCard({
             marginBottom: 6,
           }}
         >
-          Titular
+          {t('launchpad.leader')}
         </div>
         {meta.leader ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -425,7 +429,7 @@ function LaunchCard({
           </div>
         ) : (
           <div style={{ fontSize: 11, color: D.t3, fontStyle: 'italic' }}>
-            Por asignar
+            {t('launchpad.unassigned')}
           </div>
         )}
 
@@ -465,7 +469,7 @@ function LaunchCard({
           letterSpacing: '.02em',
         }}
       >
-        Abrir
+        {t('common.open')}
         <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden>
           <path d="M3 6h6m-2-2 2 2-2 2" {...stroke} />
         </svg>
@@ -475,6 +479,7 @@ function LaunchCard({
 }
 
 function EmptyState() {
+  const { t } = useT()
   return (
     <div
       style={{
@@ -486,10 +491,10 @@ function EmptyState() {
       }}
     >
       <div style={{ fontSize: 14, fontWeight: 600, color: D.t1, marginBottom: 6 }}>
-        Tu cuenta no tiene áreas asignadas todavía.
+        {t('launchpad.emptyTitle')}
       </div>
       <div style={{ fontSize: 12 }}>
-        Pídele a un administrador que active tu rol en el panel de Administración.
+        {t('launchpad.emptyDesc')}
       </div>
     </div>
   )

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
+import { requireAdmin } from '@/shared/db/requireAdmin'
 
 /**
  * Server-side admin endpoint — rotates a user's auth password to a new
@@ -12,20 +13,10 @@ import { createClient } from '@supabase/supabase-js'
 const TAG = '[admin/reset-password]'
 
 export async function POST(req: NextRequest) {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!serviceRoleKey) {
-    console.error(`${TAG} SUPABASE_SERVICE_ROLE_KEY is not configured`)
-    return NextResponse.json(
-      { error: 'SUPABASE_SERVICE_ROLE_KEY is not configured in this environment.' },
-      { status: 500 },
-    )
-  }
+  const authz = await requireAdmin()
+  if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
 
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    serviceRoleKey,
-    { auth: { autoRefreshToken: false, persistSession: false } },
-  )
+  const db = supabaseAdmin()
 
   try {
     const { userId, password } = await req.json()
@@ -41,20 +32,35 @@ export async function POST(req: NextRequest) {
 
     console.log(`${TAG} start`, { userId })
 
-    const { data, error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-      password,
-    })
+    // El frontend manda usuarios.id. El auth id real puede estar en la columna
+    // auth_id (filas sembradas) o ser el propio id (filas creadas por la app, que
+    // usan id = auth_id). Resolvemos la fila y probamos ambos candidatos —mismo
+    // patrón robusto que delete-user— en vez de asumir id === auth id.
+    const { data: row } = await db
+      .from('usuarios')
+      .select('id, auth_id')
+      .eq('id', userId)
+      .maybeSingle()
+    if (!row) {
+      return NextResponse.json({ error: 'Usuario no encontrado en public.usuarios.' }, { status: 404 })
+    }
+    const authCandidates = [row.auth_id, row.id].filter(
+      (v): v is string => typeof v === 'string' && v.length > 0,
+    )
 
-    if (error || !data?.user) {
-      console.error(`${TAG} auth.updateUserById failed`, { userId, error: error?.message })
-      return NextResponse.json(
-        { error: error?.message || 'No se pudo actualizar la contraseña.' },
-        { status: 400 },
-      )
+    let lastError: string | null = null
+    for (const uid of authCandidates) {
+      const { data, error } = await db.auth.admin.updateUserById(uid, { password })
+      if (!error && data?.user) {
+        console.log(`${TAG} success`, { userId, authId: uid })
+        return NextResponse.json({ ok: true })
+      }
+      lastError = error?.message || 'No se pudo actualizar la contraseña.'
+      if (!/not.?found/i.test(lastError)) break // error real (no "user not found") → no seguir probando
     }
 
-    console.log(`${TAG} success`, { userId })
-    return NextResponse.json({ ok: true })
+    console.error(`${TAG} auth.updateUserById failed`, { userId, error: lastError })
+    return NextResponse.json({ error: lastError || 'No se pudo actualizar la contraseña.' }, { status: 400 })
   } catch (err: any) {
     console.error(`${TAG} unexpected`, { message: err?.message })
     return NextResponse.json(
