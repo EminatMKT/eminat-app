@@ -65,7 +65,7 @@ export default function LoginPage() {
     setLoading(true)
 
     if (!emailValido(email)) {
-      setError(t('login.errDomain'))
+      setError(t('login.errDomain', { domains: DOMINIOS_VALIDOS.join(', ') }))
       setLoading(false)
       return
     }

@@ -32,7 +32,7 @@
   "notif.title": "Notifications",
   "notif.markAllRead": "Mark all as read",
   "notif.empty": "No notifications",
-  "login.errDomain": "Only corporate emails are allowed (@eminat.net, @emc.health, @vivinegretefoundation.org)",
+  "login.errDomain": "Only corporate emails are allowed ({domains})",
   "login.errCreds": "Incorrect email or password",
   "login.errDomainReset": "Only Eminat Group corporate emails are allowed",
   "login.errSendReset": "Error sending email. Please try again.",
