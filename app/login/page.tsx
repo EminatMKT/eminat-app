@@ -8,6 +8,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import { useT } from '@/shared/i18n'
 import { ROUTES } from '@/shared/auth/permissions'
 import { DOMINIOS_VALIDOS } from '@/shared/constants/domain'
+import { MARKETING_COORDINATOR_EMAIL } from '@/shared/constants/contacts'
 
 const ZONAS = [
   { ciudad: 'Ecuador', zona: 'America/Guayaquil', emoji: '🇪🇨' },
@@ -264,7 +265,7 @@ export default function LoginPage() {
             <div style={{ textAlign: 'center', marginTop: 28 }}>
               <p style={{ fontSize: 13, color: '#9CA3AF', lineHeight: 1.5 }}>
                 {t('login.noAccount')}{' '}
-                <a href="mailto:freddy@eminat.net" style={{ color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>freddy@eminat.net</a>
+                <a href={`mailto:${MARKETING_COORDINATOR_EMAIL}`} style={{ color: '#4F46E5', textDecoration: 'none', fontWeight: 600 }}>{MARKETING_COORDINATOR_EMAIL}</a>
               </p>
             </div>
           )}

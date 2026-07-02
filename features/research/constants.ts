@@ -17,6 +17,9 @@ export const LEAD_FIELDS = ['date_added', 'conditions', 'nct', 'official_title',
 
 export const FIELD_LABELS: Record<string, string> = { date_added: 'Date Added', conditions: 'Conditions', nct: 'NCT#', official_title: 'Official Title', phase: 'Phase', study_type: 'Study Type', status: 'Status', countries: 'Countries', lead_sponsor: 'Lead Sponsor', contact_name: 'Contact Name', email: 'Email', phone: 'Phone', second_contact: '2nd Contact', second_email: '2nd Email', stage: 'Stage', next_followup: 'Next Follow-up', notes: 'Notes', note: 'NOTE' }
 
+// Campos que ocupan el ancho completo del grid en los formularios/detalle de lead.
+export const FULL_WIDTH_FIELDS = new Set(['official_title', 'notes', 'note'])
+
 // Campos exportados a CSV (handleExport).
 export const EXPORT_HEADERS = ['date_added', 'conditions', 'nct', 'official_title', 'phase', 'study_type', 'status', 'countries', 'lead_sponsor', 'contact_name', 'email', 'phone', 'second_contact', 'second_email', 'stage', 'next_followup', 'notes']
 
