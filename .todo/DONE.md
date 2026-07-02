@@ -1,6 +1,8 @@
 # Completados — eminat-app
 
-_Última actualización: 2026-06-29_
+_Última actualización: 2026-07-02_
+
+- [x] **[Login] Agregar `@stratix360.com` a dominios autorizados (arreglo provisional)** — la allowlist de login estaba quemada y duplicada; faltaba el dominio nuevo. ⚠️ Provisional: los dominios siguen hardcodeados en código. La idea a futuro es controlarlos desde el panel de admin (ver TODO). _(creado por: EminatMKT · 2026-07-02)_ ✓ _resuelto: `@stratix360.com` agregado; allowlist centralizada en `shared/constants/domain.ts` (`DOMINIOS_VALIDOS`); emails de config a `shared/constants/contacts.ts`; `FULL_WIDTH_FIELDS` deduplicado; mensaje de error i18n interpola la allowlist real (`{domains}`). PR #25, rama `feature/dominios-autorizados-stratix360` — responsable: EminatMKT · 2026-07-02_
 
 - [x] **[Infra] Entornos Supabase separados (prod/dev)** — dev y producción compartían la misma instancia de Supabase (ref `ruedelunbtaomhrzgelc`); cada login/prueba en local contaminaba datos reales de producción. _(creado por: SmithDR · 2026-06-11)_ ✓ _resuelto: proyecto Supabase dev `eminat-app-dev` (ref `ydcadspinryybextlvyi`) en org free; vars separadas por entorno (`.env.local`→dev, Vercel→prod); flujo de migraciones con la CLI (`db pull` baseline de prod → `db push` a dev); salvaguarda `isProdDb`/`superRefine` en `lib/env.client.ts` + badge "DEV" en `AppShell`. Commiteado en `feature/env-module` — responsable: SmithDR · 2026-06-12_
 
