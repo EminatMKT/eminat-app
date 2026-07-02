@@ -1,4 +1,5 @@
 import { normalizeRole } from '@/shared/auth/permissions'
+import { MARKETING_COORDINATOR_EMAIL } from '@/shared/constants/contacts'
 import type { AdminUser } from './types'
 
 // Excepción cross-rol de Stratix 360.
@@ -7,7 +8,7 @@ import type { AdminUser } from './types'
 // válido al reasignar tareas de un usuario de Stratix 360. NO se generaliza a
 // todos los admins; NO aplica a otras áreas. Para dar la misma excepción a otra
 // persona, agregar su email acá.
-export const STRATIX360_CROSS_ROLE_HEIR_EMAILS = new Set<string>(['freddy@eminat.net'])
+export const STRATIX360_CROSS_ROLE_HEIR_EMAILS = new Set<string>([MARKETING_COORDINATOR_EMAIL])
 
 // Miembros activos que pueden heredar las tareas del usuario `target`.
 export function eligibleHeirs(users: AdminUser[], target: AdminUser): AdminUser[] {
