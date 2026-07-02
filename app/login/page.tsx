@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 import { useT } from '@/shared/i18n'
 import { ROUTES } from '@/shared/auth/permissions'
+import { DOMINIOS_VALIDOS } from '@/shared/constants/domain'
 
 const ZONAS = [
   { ciudad: 'Ecuador', zona: 'America/Guayaquil', emoji: '🇪🇨' },
@@ -40,7 +41,6 @@ export default function LoginPage() {
   const router = useRouter()
   const { t } = useT()
 
-  const DOMINIOS_VALIDOS = ['@eminat.net', '@emc.health', '@vivinegretefoundation.org']
 
   function emailValido(e: string) {
     return DOMINIOS_VALIDOS.some(d => e.toLowerCase().endsWith(d))
@@ -169,7 +169,7 @@ export default function LoginPage() {
           <div style={{ fontSize: 10, fontFamily: 'DM Mono, monospace', color: 'rgba(255,255,255,0.3)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '.1em' }}>
             {t('login.authDomains')}
           </div>
-          {['@eminat.net', '@emc.health', '@vivinegretefoundation.org'].map(d => (
+          {DOMINIOS_VALIDOS.map(d => (
             <div key={d} style={{ fontSize: 11, fontFamily: 'DM Mono, monospace', color: 'rgba(255,255,255,0.4)', marginBottom: 5, display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#4F46E5' }} />
               {d}
