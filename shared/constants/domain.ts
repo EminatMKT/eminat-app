@@ -8,6 +8,9 @@ export const MESES = [
 
 export const TRIMESTRES = ['General', 'Q1', 'Q2', 'Q3', 'Q4']
 
+// Dominios corporativos autorizados para login.
+export const DOMINIOS_VALIDOS = ['@eminat.net', '@emc.health', '@vivinegretefoundation.org', '@stratix360.com']
+
 export const MESES_Q: Record<string, string[]> = {
   General: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
   Q1: ['Enero', 'Febrero', 'Marzo'],

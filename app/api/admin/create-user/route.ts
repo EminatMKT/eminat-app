@@ -4,6 +4,7 @@ import { DEFAULT_ROLE } from '@/shared/auth/permissions'
 import { serverEnv } from '@/shared/db/env.server'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { requireAdmin } from '@/shared/db/requireAdmin'
+import { MAIL_FROM, MARKETING_COORDINATOR_EMAIL, MARKETING_INBOX_EMAIL } from '@/shared/constants/contacts'
 
 /**
  * Server-side admin endpoint — creates an Auth user AND its companion
@@ -23,8 +24,7 @@ import { requireAdmin } from '@/shared/db/requireAdmin'
  */
 
 const LOGIN_URL = 'https://app.stratixsolutions.us'
-const MAIL_FROM = 'Stratix Solutions <noreply@eminat.net>'
-const MAIL_CC = 'freddy@eminat.net'
+const MAIL_CC = MARKETING_COORDINATOR_EMAIL
 
 function buildWelcomeEmail(args: {
   nombre: string
@@ -85,7 +85,7 @@ function buildWelcomeEmail(args: {
 
         <tr><td style="padding:22px 36px;border-top:1px solid rgba(255,255,255,0.07);font-size:11px;color:rgba(255,255,255,0.4);text-align:center;line-height:1.6">
           The operating system of Eminat Group<br/>
-          Si no esperabas este mensaje, ignóralo o contacta a marketing@eminat.net
+          Si no esperabas este mensaje, ignóralo o contacta a ${MARKETING_INBOX_EMAIL}
         </td></tr>
 
       </table>
