@@ -1,5 +1,5 @@
 # En progreso — Eminat App
 
-_Última actualización: 2026-06-26_
+_Última actualización: 2026-06-29_
 
-- [ ] **[DB] Control de acceso configurable por el admin** — 🔄 **En diseño** (spec: `docs/superpowers/specs/2026-06-23-dynamic-roles-design.md`, rama `feature/dynamic-roles`). Tablas `roles`+`role_modules`; pantalla en Admin para que el rol `admin` cree tipos y asigne/quite módulos; `shared/auth/permissions.ts` pasa a leer de la DB en vez de la matriz hardcodeada. Modelo: `label` único (lo único que se escribe) + `key` autogenerada/fija + `is_system` (protege `admin` y el rol por defecto de borrado) + módulos. Rol por defecto = `sin_asignar` (baseline sin módulos, solo Home) — `stratix360` deja de ser default (es el rol funcional de Marketing). Sin soft-delete (retirar = reasignar + borrar). `admin` = único tier de acceso total (se elimina el término "superadmin"). Seguridad: trigger `prevent_rol_self_change` + `requireAdmin` en rutas admin + guard del último admin. RLS reconciliada con `role_modules` vía helper `has_module(slug)` (cobranzas/research/actividades) para que asignar un módulo otorgue el dato. Edge enforcement diferido (ítem siguiente). _(creado por: EminatMKT · 2026-06-19 | iniciado: 2026-06-26)_
+_(nada en progreso)_
