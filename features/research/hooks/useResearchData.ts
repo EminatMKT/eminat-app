@@ -102,13 +102,19 @@ export function useResearchData() {
       if (error) { mostrarMensaje('error', 'Error: ' + error.message); return false }
       inserted = data || []
     }
+    // Aplicar updates uno a uno; si uno falla, cortamos pero conservamos lo ya aplicado.
+    const applied: { id: string; values: Record<string, any> }[] = []
+    let failed: string | null = null
     for (const u of plan.toUpdate) {
       const { error } = await researchRepo.updateLead(u.id, u.values)
-      if (error) { mostrarMensaje('error', 'Error: ' + error.message); return false }
+      if (error) { failed = error.message; break }
+      applied.push(u)
     }
-    // updateLead no devuelve filas → patcheamos el estado con el payload aplicado.
-    const patch = new Map(plan.toUpdate.map(u => [u.id, u.values]))
+    // Reflejar en el estado TODO lo que sí se guardó (inserts + updates OK), aun si un update falla:
+    // de lo contrario un reintento del mismo archivo re-insertaría los NCT# ya creados (duplicados).
+    const patch = new Map(applied.map(u => [u.id, u.values]))
     setLeads(prev => [...inserted, ...prev.map(l => (patch.has(l.id) ? { ...l, ...patch.get(l.id) } : l))])
+    if (failed) { mostrarMensaje('error', 'Error: ' + failed); return false }
     mostrarMensaje('ok', t('research.import.done', { ins: inserted.length, upd: plan.toUpdate.length, skip: plan.skipped }))
     return true
   }
