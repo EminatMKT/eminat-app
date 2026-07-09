@@ -43,7 +43,7 @@ Se separa el parsing y la planificación (puros, testeables) de la UI (dumb, sol
 
 ### Módulos nuevos
 
-**`features/research/csv.ts`** — parsing sin React. Mueve el `parseCsvRow` quote-aware que hoy vive
+**`features/research/delimited.ts`** — parsing sin React. Mueve el `parseCsvRow` quote-aware que hoy vive
 inline en `ImportModal` y lo generaliza a cualquier separador.
 
 - `detectSeparator(headerLine: string): string` — adivina entre `, ; \t :` contando ocurrencias
@@ -115,7 +115,7 @@ Import. `es.json` es la fuente; `en.json` debe cubrir el mismo set (validado por
 
 ## Testing
 
-- **`csv.test.ts`:** `detectSeparator` (coma vs `;` vs tab vs `:`, empate → coma); `parseDelimited`
+- **`delimited.test.ts`:** `detectSeparator` (coma vs `;` vs tab vs `:`, empate → coma); `parseDelimited`
   con comas y comillas escapadas dentro de campos, CRLF, líneas vacías.
 - **`importPlan.test.ts`:** `guessMapping` (header amigable, header real, desconocido → null);
   `buildImportPlan` en los 3 modos — `update` matchea por NCT# y separa insert/update, `skip` cuenta
