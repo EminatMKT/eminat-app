@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
 import { researchRepo } from '@/shared/data'
 import { PIPELINE_COLS } from '../constants'
 import { EXPORT_HEADERS, validateLead, buildLeadPayload } from '../fields'
@@ -8,6 +9,7 @@ import type { Lead, Activity, Campaign } from '../types'
 
 export function useResearchData() {
   const { mostrarMensaje } = useApp()
+  const { t } = useT()
   const [leads, setLeads] = useState<Lead[]>([])
   const [activities, setActivities] = useState<Activity[]>([])
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
@@ -59,7 +61,7 @@ export function useResearchData() {
 
   async function saveLead(data: any): Promise<boolean> {
     const invalid = validateLead(data)
-    if (invalid) { mostrarMensaje('error', invalid); return false }
+    if (invalid) { mostrarMensaje('error', t(invalid)); return false }
     const payload = buildLeadPayload(data)
     if (data.id) {
       const { error } = await researchRepo.updateLead(data.id, payload)

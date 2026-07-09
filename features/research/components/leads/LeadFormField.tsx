@@ -1,9 +1,11 @@
 'use client'
 import { RESEARCH_THEME, inputStyle } from '../../theme'
+import { useT } from '@/shared/i18n'
 import type { LeadFieldDef } from '../../fields'
 
 export default function LeadFormField({ def, value, onChange }: { def: LeadFieldDef; value: any; onChange: (v: any) => void }) {
   const { t3 } = RESEARCH_THEME
+  const { t } = useT()
   const v = value ?? ''
 
   function control() {
@@ -11,7 +13,7 @@ export default function LeadFormField({ def, value, onChange }: { def: LeadField
       case 'select':
         return (
           <select value={v} onChange={e => onChange(e.target.value)} style={inputStyle}>
-            <option value="">Select</option>
+            <option value="">{t('research.common.select')}</option>
             {def.options?.map(o => <option key={o} value={o}>{o}</option>)}
           </select>
         )
@@ -34,7 +36,7 @@ export default function LeadFormField({ def, value, onChange }: { def: LeadField
   return (
     <div style={def.fullWidth ? { gridColumn: '1 / -1' } : undefined}>
       <label style={{ fontSize: 10, color: t3, display: 'block', marginBottom: 4 }}>
-        {def.label}{def.required && <span style={{ color: '#F87171' }}> *</span>}
+        {t(def.labelKey)}{def.required && <span style={{ color: '#F87171' }}> *</span>}
       </label>
       {control()}
     </div>

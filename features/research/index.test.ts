@@ -33,16 +33,16 @@ describe('validateLead', () => {
     expect(validateLead(base)).toBeNull()
   })
   it('exige official_title y stage', () => {
-    expect(validateLead({ ...base, official_title: '' })).toMatch(/Official Title/)
-    expect(validateLead({ ...base, stage: '' })).toMatch(/Stage/)
+    expect(validateLead({ ...base, official_title: '' })).toBe('research.validation.title')
+    expect(validateLead({ ...base, stage: '' })).toBe('research.validation.stage')
   })
   it('exige NCT# o un contacto', () => {
-    expect(validateLead({ official_title: 'X', stage: 'Identificado' })).toMatch(/NCT/)
+    expect(validateLead({ official_title: 'X', stage: 'Identificado' })).toBe('research.validation.nctOrContact')
     expect(validateLead({ official_title: 'X', stage: 'Identificado', contact_name: 'Dr. A' })).toBeNull()
   })
   it('valida formato de email y URL', () => {
-    expect(validateLead({ ...base, contact_email: 'no-es-mail' })).toMatch(/email/i)
-    expect(validateLead({ ...base, record_link: 'ftp://x' })).toMatch(/Record Link/)
+    expect(validateLead({ ...base, contact_email: 'no-es-mail' })).toBe('research.validation.email')
+    expect(validateLead({ ...base, record_link: 'ftp://x' })).toBe('research.validation.url')
     expect(validateLead({ ...base, contact_email: 'a@b.com', record_link: 'https://x.com' })).toBeNull()
   })
 })

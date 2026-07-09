@@ -4,14 +4,16 @@
 // el form (input por tipo + validación), saveLead, y export/import. Reemplaza los
 // LEAD_FIELDS / FIELD_LABELS / CSV_COLUMN_MAP sueltos, que usaban nombres amigables
 // distintos de las columnas y rompían el guardado, la edición, el detalle y el import.
+// Las etiquetas y mensajes son claves i18n (ver shared/i18n) — nada de texto hardcodeado.
 import { PIPELINE_COLS } from './constants'
+import type { I18nKey } from '@/shared/i18n'
 
 export type LeadFieldType = 'text' | 'email' | 'tel' | 'url' | 'date' | 'textarea' | 'select' | 'datalist' | 'checkbox'
 export type LeadFieldGroup = 'Estudio' | 'Contacto' | 'Seguimiento'
 
 export interface LeadFieldDef {
   column: string
-  label: string
+  labelKey: I18nKey
   type: LeadFieldType
   group: LeadFieldGroup
   fullWidth?: boolean
@@ -25,43 +27,47 @@ const STATUSES = ['Recruiting', 'Not yet recruiting', 'Enrolling by invitation',
 const STUDY_TYPES = ['Interventional', 'Observational'] // dominio cerrado -> select estricto
 
 export const LEAD_GROUPS: LeadFieldGroup[] = ['Estudio', 'Contacto', 'Seguimiento']
+export const GROUP_LABEL_KEY: Record<LeadFieldGroup, I18nKey> = {
+  Estudio: 'research.group.estudio',
+  Contacto: 'research.group.contacto',
+  Seguimiento: 'research.group.seguimiento',
+}
 
 export const LEAD_FIELD_DEFS: LeadFieldDef[] = [
   // — Estudio —
-  { column: 'date_added', label: 'Date Added', type: 'date', group: 'Estudio' },
-  { column: 'nct_number', label: 'NCT#', type: 'text', group: 'Estudio' },
-  { column: 'official_title', label: 'Official Title', type: 'text', group: 'Estudio', fullWidth: true, required: true },
-  { column: 'conditions', label: 'Conditions', type: 'text', group: 'Estudio' },
-  { column: 'brief_explanation', label: 'Brief Explanation', type: 'textarea', group: 'Estudio', fullWidth: true },
-  { column: 'phase', label: 'Phase', type: 'datalist', group: 'Estudio', options: PHASES },
-  { column: 'study_type', label: 'Study Type', type: 'select', group: 'Estudio', options: STUDY_TYPES },
-  { column: 'recruitment_status', label: 'Status', type: 'datalist', group: 'Estudio', options: STATUSES },
-  { column: 'study_start_date', label: 'Study Start', type: 'date', group: 'Estudio' },
-  { column: 'primary_completion_date', label: 'Primary Completion', type: 'date', group: 'Estudio' },
-  { column: 'countries', label: 'Countries', type: 'text', group: 'Estudio' },
-  { column: 'spain_focus', label: 'Spain Focus', type: 'checkbox', group: 'Estudio' },
-  { column: 'record_link', label: 'Record Link', type: 'url', group: 'Estudio', fullWidth: true },
-  { column: 'lead_sponsor', label: 'Lead Sponsor', type: 'text', group: 'Estudio' },
-  { column: 'sponsor_type', label: 'Sponsor Type', type: 'text', group: 'Estudio' },
-  { column: 'stage', label: 'Stage', type: 'select', group: 'Estudio', options: PIPELINE_COLS, required: true },
+  { column: 'date_added', labelKey: 'research.field.date_added', type: 'date', group: 'Estudio' },
+  { column: 'nct_number', labelKey: 'research.field.nct_number', type: 'text', group: 'Estudio' },
+  { column: 'official_title', labelKey: 'research.field.official_title', type: 'text', group: 'Estudio', fullWidth: true, required: true },
+  { column: 'conditions', labelKey: 'research.field.conditions', type: 'text', group: 'Estudio' },
+  { column: 'brief_explanation', labelKey: 'research.field.brief_explanation', type: 'textarea', group: 'Estudio', fullWidth: true },
+  { column: 'phase', labelKey: 'research.field.phase', type: 'datalist', group: 'Estudio', options: PHASES },
+  { column: 'study_type', labelKey: 'research.field.study_type', type: 'select', group: 'Estudio', options: STUDY_TYPES },
+  { column: 'recruitment_status', labelKey: 'research.field.recruitment_status', type: 'datalist', group: 'Estudio', options: STATUSES },
+  { column: 'study_start_date', labelKey: 'research.field.study_start_date', type: 'date', group: 'Estudio' },
+  { column: 'primary_completion_date', labelKey: 'research.field.primary_completion_date', type: 'date', group: 'Estudio' },
+  { column: 'countries', labelKey: 'research.field.countries', type: 'text', group: 'Estudio' },
+  { column: 'spain_focus', labelKey: 'research.field.spain_focus', type: 'checkbox', group: 'Estudio' },
+  { column: 'record_link', labelKey: 'research.field.record_link', type: 'url', group: 'Estudio', fullWidth: true },
+  { column: 'lead_sponsor', labelKey: 'research.field.lead_sponsor', type: 'text', group: 'Estudio' },
+  { column: 'sponsor_type', labelKey: 'research.field.sponsor_type', type: 'text', group: 'Estudio' },
+  { column: 'stage', labelKey: 'research.field.stage', type: 'select', group: 'Estudio', options: PIPELINE_COLS, required: true },
   // — Contacto —
-  { column: 'contact_name', label: 'Contact Name', type: 'text', group: 'Contacto' },
-  { column: 'contact_role', label: 'Contact Role', type: 'text', group: 'Contacto' },
-  { column: 'contact_email', label: 'Contact Email', type: 'email', group: 'Contacto' },
-  { column: 'contact_phone', label: 'Contact Phone', type: 'tel', group: 'Contacto' },
-  { column: 'contact_source', label: 'Contact Source', type: 'text', group: 'Contacto' },
-  { column: 'contact2_name', label: '2nd Contact', type: 'text', group: 'Contacto' },
-  { column: 'contact2_role', label: '2nd Role', type: 'text', group: 'Contacto' },
-  { column: 'contact2_email', label: '2nd Email', type: 'email', group: 'Contacto' },
-  { column: 'contact2_phone', label: '2nd Phone', type: 'tel', group: 'Contacto' },
+  { column: 'contact_name', labelKey: 'research.field.contact_name', type: 'text', group: 'Contacto' },
+  { column: 'contact_role', labelKey: 'research.field.contact_role', type: 'text', group: 'Contacto' },
+  { column: 'contact_email', labelKey: 'research.field.contact_email', type: 'email', group: 'Contacto' },
+  { column: 'contact_phone', labelKey: 'research.field.contact_phone', type: 'tel', group: 'Contacto' },
+  { column: 'contact_source', labelKey: 'research.field.contact_source', type: 'text', group: 'Contacto' },
+  { column: 'contact2_name', labelKey: 'research.field.contact2_name', type: 'text', group: 'Contacto' },
+  { column: 'contact2_role', labelKey: 'research.field.contact2_role', type: 'text', group: 'Contacto' },
+  { column: 'contact2_email', labelKey: 'research.field.contact2_email', type: 'email', group: 'Contacto' },
+  { column: 'contact2_phone', labelKey: 'research.field.contact2_phone', type: 'tel', group: 'Contacto' },
   // — Seguimiento —
-  { column: 'next_followup_date', label: 'Next Follow-up', type: 'date', group: 'Seguimiento' },
-  { column: 'email_date', label: 'Email Date', type: 'date', group: 'Seguimiento' },
-  { column: 'notes', label: 'Notes', type: 'textarea', group: 'Seguimiento', fullWidth: true },
-  { column: 'internal_note', label: 'Internal Note', type: 'textarea', group: 'Seguimiento', fullWidth: true },
+  { column: 'next_followup_date', labelKey: 'research.field.next_followup_date', type: 'date', group: 'Seguimiento' },
+  { column: 'email_date', labelKey: 'research.field.email_date', type: 'date', group: 'Seguimiento' },
+  { column: 'notes', labelKey: 'research.field.notes', type: 'textarea', group: 'Seguimiento', fullWidth: true },
+  { column: 'internal_note', labelKey: 'research.field.internal_note', type: 'textarea', group: 'Seguimiento', fullWidth: true },
 ]
 
-export const DEF_BY_COLUMN: Record<string, LeadFieldDef> = Object.fromEntries(LEAD_FIELD_DEFS.map(f => [f.column, f]))
 const LEAD_COLUMNS = new Set(LEAD_FIELD_DEFS.map(f => f.column))
 
 // Aliases de headers CSV legacy (nombres amigables) -> columna real, para importar
@@ -86,7 +92,8 @@ export const leadColumnFor = (header: string): string | null =>
 
 // Normaliza un valor del form para la DB: checkbox -> boolean; '' / undefined -> null.
 export function coerceLeadValue(column: string, value: any): any {
-  if (DEF_BY_COLUMN[column]?.type === 'checkbox') return value === true || value === 'true'
+  const def = LEAD_FIELD_DEFS.find(f => f.column === column)
+  if (def?.type === 'checkbox') return value === true || value === 'true'
   if (value === '' || value === undefined) return null
   return value
 }
@@ -100,18 +107,17 @@ export function buildLeadPayload(data: Record<string, any>): Record<string, any>
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-// Valida un lead antes de guardar. Devuelve el mensaje de error, o null si es válido.
-export function validateLead(data: Record<string, any>): string | null {
+// Valida un lead antes de guardar. Devuelve la CLAVE i18n del error, o null si es válido.
+export function validateLead(data: Record<string, any>): I18nKey | null {
   const val = (c: string) => (data[c] ?? '').toString().trim()
-  if (!val('official_title')) return 'Official Title es obligatorio.'
-  if (!val('stage')) return 'Stage es obligatorio.'
-  if (!val('nct_number') && !val('contact_name') && !val('contact_email'))
-    return 'Indicá al menos NCT# o un contacto (nombre o email).'
+  if (!val('official_title')) return 'research.validation.title'
+  if (!val('stage')) return 'research.validation.stage'
+  if (!val('nct_number') && !val('contact_name') && !val('contact_email')) return 'research.validation.nctOrContact'
   for (const c of ['contact_email', 'contact2_email']) {
     const v = val(c)
-    if (v && !EMAIL_RE.test(v)) return `${DEF_BY_COLUMN[c].label}: email inválido.`
+    if (v && !EMAIL_RE.test(v)) return 'research.validation.email'
   }
   const link = val('record_link')
-  if (link && !/^https?:\/\//i.test(link)) return 'Record Link debe empezar con http:// o https://'
+  if (link && !/^https?:\/\//i.test(link)) return 'research.validation.url'
   return null
 }
