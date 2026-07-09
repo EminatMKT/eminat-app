@@ -24,6 +24,15 @@ export default function ImportModal() {
   const [sep, setSep] = useState(',')
   const [mapping, setMapping] = useState<(string | null)[]>([])
   const [dupMode, setDupMode] = useState<DupMode>('update')
+  // Todos los hooks van ANTES de cualquier return condicional (Rules of Hooks):
+  // si el early-return quedara en medio, abrir el modal renderiza más hooks que el
+  // render previo → "Rendered more hooks than during the previous render".
+  const parsed = useMemo(() => (raw ? parseDelimited(raw, sep) : { headers: [], rows: [] }), [raw, sep])
+  const existingByNct = useMemo(() => indexByNct(leads), [leads])
+  const plan = useMemo(
+    () => buildImportPlan({ rows: parsed.rows, mapping, existingByNct, dupMode }),
+    [parsed.rows, mapping, existingByNct, dupMode],
+  )
   if (!modalImport) return null
 
   const close = () => { setModalImport(false); setRaw(null); setMapping([]); setSep(','); setDupMode('update') }
@@ -44,12 +53,6 @@ export default function ImportModal() {
     if (raw) setMapping(guessMapping(parseDelimited(raw, newSep).headers))
   }
 
-  const parsed = useMemo(() => (raw ? parseDelimited(raw, sep) : { headers: [], rows: [] }), [raw, sep])
-  const existingByNct = useMemo(() => indexByNct(leads), [leads])
-  const plan = useMemo(
-    () => buildImportPlan({ rows: parsed.rows, mapping, existingByNct, dupMode }),
-    [parsed.rows, mapping, existingByNct, dupMode],
-  )
   const canImport = parsed.rows.length > 0 && mapping.some(Boolean)
 
   async function doImport() {
