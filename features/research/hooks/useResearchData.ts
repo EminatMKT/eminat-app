@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { researchRepo } from '@/shared/data'
-import { PIPELINE_COLS, EXPORT_HEADERS } from '../constants'
+import { PIPELINE_COLS, EXPORT_HEADERS, CSV_COLUMN_MAP } from '../constants'
 import { escapeHtml } from '@/shared/lib/html'
 import type { Lead, Activity, Campaign } from '../types'
 
@@ -107,7 +107,7 @@ export function useResearchData() {
   }
 
   function handleExport() {
-    const csv = [EXPORT_HEADERS.join(','), ...filteredLeads.map(l => EXPORT_HEADERS.map(h => `"${(l[h] || '').toString().replace(/"/g, '""')}"`).join(','))].join('\n')
+    const csv = [EXPORT_HEADERS.join(','), ...filteredLeads.map(l => EXPORT_HEADERS.map(h => `"${(l[CSV_COLUMN_MAP[h]] || '').toString().replace(/"/g, '""')}"`).join(','))].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url; a.download = 'research_leads.csv'; a.click()

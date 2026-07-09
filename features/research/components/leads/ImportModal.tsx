@@ -2,7 +2,26 @@
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { RESEARCH_THEME } from '../../theme'
+import { leadColumnFor } from '../../constants'
 import { useResearch } from '../ResearchContext'
+
+// Parser de una fila CSV tolerante a comas y comillas escapadas ("") dentro de campos.
+// El split(',') naive corrompía filas con comas en el título/países.
+function parseCsvRow(line: string): string[] {
+  const out: string[] = []
+  let cur = '', inQ = false
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i]
+    if (inQ) {
+      if (c === '"') { if (line[i + 1] === '"') { cur += '"'; i++ } else inQ = false }
+      else cur += c
+    } else if (c === '"') inQ = true
+    else if (c === ',') { out.push(cur); cur = '' }
+    else cur += c
+  }
+  out.push(cur)
+  return out
+}
 
 export default function ImportModal() {
   const { s1, s2, border, t1, t2, t3 } = RESEARCH_THEME
@@ -16,16 +35,21 @@ export default function ImportModal() {
   async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    const text = await file.text()
+    const text = (await file.text()).replace(/\r\n?/g, '\n')
     const lines = text.split('\n').filter(l => l.trim())
     if (lines.length < 2) { mostrarMensaje('error', 'Archivo vacío'); return }
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/ /g, '_').replace(/#/g, ''))
+    // Cada header -> su columna real de research_leads (amigable o ya-real); null se ignora.
+    const cols = parseCsvRow(lines[0]).map(h =>
+      leadColumnFor(h.trim().toLowerCase().replace(/ /g, '_').replace(/#/g, '')))
+    if (!cols.some(Boolean)) { mostrarMensaje('error', 'No se reconoció ninguna columna del archivo'); return }
     const records = lines.slice(1).map(line => {
-      const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''))
+      const vals = parseCsvRow(line)
       const obj: any = {}
-      headers.forEach((h, i) => { obj[h] = vals[i] || '' })
+      // Todas las filas comparten el MISMO set de columnas: el insert masivo de PostgREST
+      // exige keys homogéneas (PGRST102). Celda vacía -> null (no '', que rompe columnas date).
+      cols.forEach((col, i) => { if (col) obj[col] = (vals[i] ?? '').trim() || null })
       return obj
-    })
+    }).filter(r => Object.values(r).some(v => v !== null))
     setImportPreview(records)
   }
 
