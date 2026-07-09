@@ -21,9 +21,9 @@ export const deleteLead = (id: string) =>
 export const updateLeadStage = (id: string, stage: string) =>
   supabase.from(TABLES.researchLeads).update({ stage }).eq('id', id)
 
-// Import masivo (sin .select()).
+// Import masivo. Devuelve las filas insertadas (.select()) para refrescar el estado en el acto.
 export const insertLeads = (records: any[]) =>
-  supabase.from(TABLES.researchLeads).insert(records)
+  supabase.from(TABLES.researchLeads).insert(records).select()
 
 // --- research_activities ---
 

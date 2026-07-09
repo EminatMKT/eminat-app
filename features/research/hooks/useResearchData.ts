@@ -88,10 +88,10 @@ export function useResearchData() {
   }
 
   async function confirmImport(records: any[]) {
-    const { error } = await researchRepo.insertLeads(records)
+    const { data, error } = await researchRepo.insertLeads(records)
     if (error) { mostrarMensaje('error', 'Error: ' + error.message); return false }
+    if (data) setLeads(prev => [...data, ...prev])
     mostrarMensaje('ok', `${records.length} leads importados`)
-    loadData()
     return true
   }
 
