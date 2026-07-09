@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { researchRepo } from '@/shared/data'
-import { PIPELINE_COLS, EXPORT_HEADERS, CSV_COLUMN_MAP } from '../constants'
+import { PIPELINE_COLS } from '../constants'
+import { EXPORT_HEADERS, validateLead, buildLeadPayload } from '../fields'
 import { escapeHtml } from '@/shared/lib/html'
 import type { Lead, Activity, Campaign } from '../types'
 
@@ -30,7 +31,7 @@ export function useResearchData() {
   const filteredLeads = leads.filter(l => {
     if (filters.stage && l.stage !== filters.stage) return false
     if (filters.phase && String(l.phase) !== filters.phase) return false
-    if (filters.status && l.status !== filters.status) return false
+    if (filters.status && l.recruitment_status !== filters.status) return false
     if (filters.country && !(l.countries || '').includes(filters.country)) return false
     if (filters.sponsor && l.lead_sponsor !== filters.sponsor) return false
     return true
@@ -56,17 +57,21 @@ export function useResearchData() {
   }, {})
   const countrySorted = Object.entries(countryData).sort((a, b) => b[1] - a[1])
 
-  async function saveLead(data: any) {
+  async function saveLead(data: any): Promise<boolean> {
+    const invalid = validateLead(data)
+    if (invalid) { mostrarMensaje('error', invalid); return false }
+    const payload = buildLeadPayload(data)
     if (data.id) {
-      const { error } = await researchRepo.updateLead(data.id, data)
-      if (error) { mostrarMensaje('error', 'No se pudo guardar: ' + error.message); return }
-      setLeads(prev => prev.map(l => l.id === data.id ? { ...l, ...data } : l))
+      const { error } = await researchRepo.updateLead(data.id, payload)
+      if (error) { mostrarMensaje('error', 'No se pudo guardar: ' + error.message); return false }
+      setLeads(prev => prev.map(l => l.id === data.id ? { ...l, ...payload } : l))
     } else {
-      const { data: inserted, error } = await researchRepo.insertLead(data)
-      if (error) { mostrarMensaje('error', 'No se pudo guardar: ' + error.message); return }
+      const { data: inserted, error } = await researchRepo.insertLead(payload)
+      if (error) { mostrarMensaje('error', 'No se pudo guardar: ' + error.message); return false }
       if (inserted) setLeads(prev => [inserted[0], ...prev])
     }
     mostrarMensaje('ok', data.id ? 'Lead actualizado' : 'Lead creado')
+    return true
   }
 
   async function deleteLead(id: string) {
@@ -107,7 +112,7 @@ export function useResearchData() {
   }
 
   function handleExport() {
-    const csv = [EXPORT_HEADERS.join(','), ...filteredLeads.map(l => EXPORT_HEADERS.map(h => `"${(l[CSV_COLUMN_MAP[h]] || '').toString().replace(/"/g, '""')}"`).join(','))].join('\n')
+    const csv = [EXPORT_HEADERS.join(','), ...filteredLeads.map(l => EXPORT_HEADERS.map(h => `"${(l[h] ?? '').toString().replace(/"/g, '""')}"`).join(','))].join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url; a.download = 'research_leads.csv'; a.click()
@@ -117,7 +122,7 @@ export function useResearchData() {
   function handlePrint() {
     const w = window.open('', '_blank', 'width=1000,height=700')
     if (!w) return
-    const rows = filteredLeads.map((l, i) => `<tr><td>${i + 1}</td><td>${escapeHtml(l.nct)}</td><td>${escapeHtml(l.official_title)}</td><td>${escapeHtml(l.phase)}</td><td>${escapeHtml(l.lead_sponsor)}</td><td>${escapeHtml(l.stage)}</td><td>${escapeHtml(l.countries)}</td></tr>`).join('')
+    const rows = filteredLeads.map((l, i) => `<tr><td>${i + 1}</td><td>${escapeHtml(l.nct_number)}</td><td>${escapeHtml(l.official_title)}</td><td>${escapeHtml(l.phase)}</td><td>${escapeHtml(l.lead_sponsor)}</td><td>${escapeHtml(l.stage)}</td><td>${escapeHtml(l.countries)}</td></tr>`).join('')
     w.document.write(`<!DOCTYPE html><html><head><title>Research Leads</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Segoe UI,sans-serif;padding:30px 40px;font-size:12px}h1{font-size:18px;margin-bottom:16px}table{width:100%;border-collapse:collapse}th{background:#f5f5f5;padding:8px;text-align:left;font-size:10px;border-bottom:2px solid #ddd;text-transform:uppercase}td{padding:7px 8px;border-bottom:1px solid #eee;font-size:11px}@media print{.no-print{display:none!important}}</style></head><body><h1>Eminat Research Group — Leads Report</h1><table><thead><tr><th>#</th><th>NCT#</th><th>Title</th><th>Phase</th><th>Sponsor</th><th>Stage</th><th>Countries</th></tr></thead><tbody>${rows}</tbody></table><div class="no-print" style="text-align:center;margin-top:24px"><button onclick="window.print()" style="padding:10px 28px;border-radius:8px;background:#7C6FF7;color:white;border:none;cursor:pointer">Print</button></div></body></html>`)
     w.document.close()
   }

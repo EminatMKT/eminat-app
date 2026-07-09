@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { RESEARCH_THEME } from '../../theme'
-import { leadColumnFor } from '../../constants'
+import { leadColumnFor } from '../../fields'
 import { useResearch } from '../ResearchContext'
 
 // Parser de una fila CSV tolerante a comas y comillas escapadas ("") dentro de campos.

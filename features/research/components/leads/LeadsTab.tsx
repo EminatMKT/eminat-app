@@ -20,7 +20,7 @@ export default function LeadsTab() {
         </select>
         <select value={filters.status} onChange={e => setFilters(p => ({ ...p, status: e.target.value }))} style={selectStyle}>
           <option value="">All Statuses</option>
-          {uniqueVals('status').map(s => <option key={s} value={s}>{s}</option>)}
+          {uniqueVals('recruitment_status').map(s => <option key={s} value={s}>{s}</option>)}
         </select>
         <select value={filters.country} onChange={e => setFilters(p => ({ ...p, country: e.target.value }))} style={selectStyle}>
           <option value="">All Countries</option>
