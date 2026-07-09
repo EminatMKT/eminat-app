@@ -4,6 +4,7 @@ import { useT } from '@/shared/i18n'
 import { researchRepo } from '@/shared/data'
 import { PIPELINE_COLS } from '../constants'
 import { EXPORT_HEADERS, validateLead, buildLeadPayload } from '../fields'
+import type { ImportPlan } from '../importPlan'
 import { escapeHtml } from '@/shared/lib/html'
 import type { Lead, Activity, Campaign } from '../types'
 
@@ -94,11 +95,21 @@ export function useResearchData() {
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, stage: newStage } : l))
   }
 
-  async function confirmImport(records: any[]) {
-    const { data, error } = await researchRepo.insertLeads(records)
-    if (error) { mostrarMensaje('error', 'Error: ' + error.message); return false }
-    if (data) setLeads(prev => [...data, ...prev])
-    mostrarMensaje('ok', `${records.length} leads importados`)
+  async function confirmImport(plan: ImportPlan) {
+    let inserted: Lead[] = []
+    if (plan.toInsert.length) {
+      const { data, error } = await researchRepo.insertLeads(plan.toInsert)
+      if (error) { mostrarMensaje('error', 'Error: ' + error.message); return false }
+      inserted = data || []
+    }
+    for (const u of plan.toUpdate) {
+      const { error } = await researchRepo.updateLead(u.id, u.values)
+      if (error) { mostrarMensaje('error', 'Error: ' + error.message); return false }
+    }
+    // updateLead no devuelve filas → patcheamos el estado con el payload aplicado.
+    const patch = new Map(plan.toUpdate.map(u => [u.id, u.values]))
+    setLeads(prev => [...inserted, ...prev.map(l => (patch.has(l.id) ? { ...l, ...patch.get(l.id) } : l))])
+    mostrarMensaje('ok', t('research.import.done', { ins: inserted.length, upd: plan.toUpdate.length, skip: plan.skipped }))
     return true
   }
 
