@@ -20,6 +20,8 @@
 
 ## Q2 — Importante, No Urgente
 
+- [ ] **[Research/Import] Rediseñar el modal de import estilo Anki** — el import actual es un preview simple. Hacerlo configurable, inspirado en el "Import File" de Anki: (1) selector de separador (con guess), (2) preview de filas crudas, (3) **field mapping**: por cada columna del CSV un dropdown para elegir a qué columna de `research_leads` mapea (o ignorar), auto-sugerido desde `CSV_COLUMN_MAP` (`features/research/constants.ts`), (4) qué hacer con matches/duplicados: Update / Skip (Preserve) / Duplicate, con clave de match a definir (probable `nct_number`). Requiere brainstorm de alcance antes de codear (qué de Anki aplica a leads y qué no). Base ya funcional tras el fix de round-trip. _(creado por: EminatMKT · 2026-07-09)_
+
 - [ ] **[UI] Loading + error en campo NCT#** — Spinner inline mientras busca, mensaje de error bajo el input si el NCT no existe o falla la API. Deshabilitar el campo durante la búsqueda para evitar doble request. _(rescatado del TODO anterior · SmithDR · 2026-06-09)_
 
 - [ ] **[UI] Indicador visual en campos autocompletados** — Badge o ícono sutil en los campos que fueron llenados desde la API (fondo `#7C6FF720`). Permite saber qué vino de ClinicalTrials.gov vs. lo que llenó el usuario. _(rescatado del TODO anterior · SmithDR · 2026-06-09)_
