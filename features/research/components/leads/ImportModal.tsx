@@ -32,9 +32,9 @@ export default function ImportModal() {
     const file = e.target.files?.[0]
     if (!file) return
     const text = await file.text()
-    const firstLine = text.replace(/\r\n?/g, '\n').split('\n').find(l => l.trim())
-    if (!firstLine) { mostrarMensaje('error', t('research.import.empty')); return }
-    const detected = detectSeparator(firstLine)
+    const lines = text.replace(/\r\n?/g, '\n').split('\n').filter(l => l.trim())
+    if (lines.length < 2) { mostrarMensaje('error', t('research.import.empty')); return }
+    const detected = detectSeparator(lines[0])
     setRaw(text); setSep(detected); setMapping(guessMapping(parseDelimited(text, detected).headers))
   }
 
@@ -88,6 +88,7 @@ export default function ImportModal() {
                 {SEP_OPTIONS.map(o => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
               </select>
               <span style={{ fontSize: 11, color: t3 }}>{t('research.import.rowsDetected', { n: parsed.rows.length })}</span>
+              <button onClick={() => { setRaw(null); setMapping([]) }} style={{ marginLeft: 'auto', background: 'none', border: `1px solid ${border}`, borderRadius: 8, color: t3, fontSize: 11, padding: '4px 10px', cursor: 'pointer' }}>{t('research.import.selectFile')}</button>
             </div>
             <div style={{ maxHeight: 180, overflow: 'auto', border: `1px solid ${border}`, borderRadius: 10 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
