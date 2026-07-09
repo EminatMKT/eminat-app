@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import * as research from './index'
 import { EXPORT_HEADERS, leadColumnFor, validateLead, buildLeadPayload } from './fields'
+import { fetchStudyByNCT } from './clinicalTrials'
 
 describe('features/research API pública', () => {
   it('expone ResearchModule', () => {
@@ -44,6 +45,14 @@ describe('validateLead', () => {
     expect(validateLead({ ...base, contact_email: 'no-es-mail' })).toBe('research.validation.email')
     expect(validateLead({ ...base, record_link: 'ftp://x' })).toBe('research.validation.url')
     expect(validateLead({ ...base, contact_email: 'a@b.com', record_link: 'https://x.com' })).toBeNull()
+  })
+})
+
+describe('fetchStudyByNCT (validación de formato, sin red)', () => {
+  it('rechaza NCT# mal formado antes de tocar la red', async () => {
+    expect(await fetchStudyByNCT('no-es-nct')).toEqual({ error: 'research.nct.invalid' })
+    expect(await fetchStudyByNCT('')).toEqual({ error: 'research.nct.invalid' })
+    expect(await fetchStudyByNCT('NCT123')).toEqual({ error: 'research.nct.invalid' })
   })
 })
 

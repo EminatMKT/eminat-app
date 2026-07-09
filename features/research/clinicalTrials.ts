@@ -1,0 +1,65 @@
+// Autocompletado de leads desde la API pública de ClinicalTrials.gov (v2).
+// Endpoint sin auth y con CORS abierto (access-control-allow-origin: *) → fetch directo
+// desde el browser. Devuelve un parcial con COLUMNAS REALES de research_leads, listo para
+// mergear en el form. Errores como clave i18n (research.nct.*).
+import type { I18nKey } from '@/shared/i18n'
+
+const NCT_RE = /^NCT\d{8}$/i
+
+const PHASE_MAP: Record<string, string> = { EARLY_PHASE1: 'Early Phase 1', PHASE1: 'Phase 1', PHASE2: 'Phase 2', PHASE3: 'Phase 3', PHASE4: 'Phase 4', NA: 'N/A' }
+const STATUS_MAP: Record<string, string> = { RECRUITING: 'Recruiting', NOT_YET_RECRUITING: 'Not yet recruiting', ENROLLING_BY_INVITATION: 'Enrolling by invitation', ACTIVE_NOT_RECRUITING: 'Active, not recruiting', COMPLETED: 'Completed', SUSPENDED: 'Suspended', TERMINATED: 'Terminated', WITHDRAWN: 'Withdrawn', UNKNOWN: 'Unknown status' }
+const TYPE_MAP: Record<string, string> = { INTERVENTIONAL: 'Interventional', OBSERVATIONAL: 'Observational', EXPANDED_ACCESS: 'Expanded Access' }
+
+const prettify = (s: string) => (s ? s.charAt(0) + s.slice(1).toLowerCase().replace(/_/g, ' ') : s)
+
+// Las fechas de CT.gov pueden venir con precisión de mes/año; la columna es `date` → completar.
+function normDate(d?: string): string | undefined {
+  if (!d) return undefined
+  if (/^\d{4}$/.test(d)) return `${d}-01-01`
+  if (/^\d{4}-\d{2}$/.test(d)) return `${d}-01`
+  return d
+}
+
+export type NctResult = { study?: Record<string, any>; error?: I18nKey }
+
+export async function fetchStudyByNCT(nctRaw: string): Promise<NctResult> {
+  const nct = (nctRaw || '').trim().toUpperCase()
+  if (!NCT_RE.test(nct)) return { error: 'research.nct.invalid' }
+
+  let res: Response
+  try {
+    res = await fetch(`https://clinicaltrials.gov/api/v2/studies/${nct}?fields=protocolSection`)
+  } catch {
+    return { error: 'research.nct.error' }
+  }
+  if (res.status === 404) return { error: 'research.nct.notFound' }
+  if (!res.ok) return { error: 'research.nct.error' }
+
+  let json: any
+  try { json = await res.json() } catch { return { error: 'research.nct.error' } }
+
+  const p = json.protocolSection || {}
+  const idm = p.identificationModule || {}, st = p.statusModule || {}, des = p.designModule || {}
+  const cond = p.conditionsModule || {}, spo = p.sponsorCollaboratorsModule || {}, loc = p.contactsLocationsModule || {}, desc = p.descriptionModule || {}
+  const lead = spo.leadSponsor || {}
+  const countries = Array.from(new Set(((loc.locations || []) as any[]).map(l => l.country).filter(Boolean))).sort()
+
+  const study: Record<string, any> = {
+    nct_number: idm.nctId || nct,
+    official_title: idm.officialTitle || idm.briefTitle,
+    brief_explanation: desc.briefSummary,
+    conditions: (cond.conditions || []).join(', '),
+    phase: (des.phases || []).map((x: string) => PHASE_MAP[x] || prettify(x)).join(', '),
+    study_type: TYPE_MAP[des.studyType] || prettify(des.studyType || ''),
+    recruitment_status: STATUS_MAP[st.overallStatus] || prettify(st.overallStatus || ''),
+    study_start_date: normDate(st.startDateStruct?.date),
+    primary_completion_date: normDate(st.primaryCompletionDateStruct?.date),
+    lead_sponsor: lead.name,
+    sponsor_type: prettify(lead.class || ''),
+    countries: countries.join(', '),
+    record_link: `https://clinicaltrials.gov/study/${idm.nctId || nct}`,
+  }
+  // Descartar vacíos: el merge no debe pisar lo que el usuario ya cargó con strings vacíos.
+  for (const k of Object.keys(study)) if (study[k] === '' || study[k] == null) delete study[k]
+  return { study }
+}

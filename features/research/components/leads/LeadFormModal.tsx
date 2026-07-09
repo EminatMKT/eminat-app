@@ -1,7 +1,9 @@
 'use client'
+import { useState } from 'react'
 import { RESEARCH_THEME } from '../../theme'
 import { useT } from '@/shared/i18n'
 import { LEAD_FIELD_DEFS, LEAD_GROUPS, GROUP_LABEL_KEY } from '../../fields'
+import { fetchStudyByNCT } from '../../clinicalTrials'
 import { useResearch } from '../ResearchContext'
 import LeadFormField from './LeadFormField'
 
@@ -9,7 +11,19 @@ export default function LeadFormModal() {
   const { s1, border, t1, t2, t3, accent } = RESEARCH_THEME
   const { t } = useT()
   const { modalNewLead, newLead, setNewLead, editingLead, closeLeadForm, saveLead } = useResearch()
+  const [nctHint, setNctHint] = useState<React.ReactNode>(null)
   if (!modalNewLead) return null
+
+  // Autocompleta desde ClinicalTrials.gov al salir del campo NCT#.
+  async function handleNctBlur() {
+    const nct = (newLead.nct_number || '').trim()
+    if (!nct) { setNctHint(null); return }
+    setNctHint(<span style={{ color: t3 }}>{t('research.nct.searching')}</span>)
+    const { study, error } = await fetchStudyByNCT(nct)
+    if (error) { setNctHint(<span style={{ color: '#F87171' }}>{t(error)}</span>); return }
+    setNewLead((p: any) => ({ ...p, ...study }))
+    setNctHint(<span style={{ color: '#34D399' }}>✓ {t('research.nct.filled')}</span>)
+  }
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onClick={closeLeadForm}>
@@ -24,7 +38,10 @@ export default function LeadFormModal() {
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: accent, marginBottom: 10 }}>{t(GROUP_LABEL_KEY[group])}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {LEAD_FIELD_DEFS.filter(f => f.group === group).map(def => (
-                <LeadFormField key={def.column} def={def} value={newLead[def.column]} onChange={v => setNewLead((p: any) => ({ ...p, [def.column]: v }))} />
+                <LeadFormField key={def.column} def={def} value={newLead[def.column]}
+                  onChange={v => setNewLead((p: any) => ({ ...p, [def.column]: v }))}
+                  onBlur={def.column === 'nct_number' ? handleNctBlur : undefined}
+                  hint={def.column === 'nct_number' ? nctHint : undefined} />
               ))}
             </div>
           </div>

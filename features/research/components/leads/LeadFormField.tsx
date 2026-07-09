@@ -3,7 +3,7 @@ import { RESEARCH_THEME, inputStyle } from '../../theme'
 import { useT } from '@/shared/i18n'
 import type { LeadFieldDef } from '../../fields'
 
-export default function LeadFormField({ def, value, onChange }: { def: LeadFieldDef; value: any; onChange: (v: any) => void }) {
+export default function LeadFormField({ def, value, onChange, onBlur, hint }: { def: LeadFieldDef; value: any; onChange: (v: any) => void; onBlur?: () => void; hint?: React.ReactNode }) {
   const { t3 } = RESEARCH_THEME
   const { t } = useT()
   const v = value ?? ''
@@ -29,7 +29,7 @@ export default function LeadFormField({ def, value, onChange }: { def: LeadField
       case 'checkbox':
         return <input type="checkbox" checked={value === true || value === 'true'} onChange={e => onChange(e.target.checked)} style={{ width: 18, height: 18, accentColor: RESEARCH_THEME.accent }} />
       default:
-        return <input type={def.type} value={v} onChange={e => onChange(e.target.value)} style={inputStyle} />
+        return <input type={def.type} value={v} onChange={e => onChange(e.target.value)} onBlur={onBlur} style={inputStyle} />
     }
   }
 
@@ -39,6 +39,7 @@ export default function LeadFormField({ def, value, onChange }: { def: LeadField
         {t(def.labelKey)}{def.required && <span style={{ color: '#F87171' }}> *</span>}
       </label>
       {control()}
+      {hint && <div style={{ fontSize: 10, marginTop: 3 }}>{hint}</div>}
     </div>
   )
 }
