@@ -58,10 +58,12 @@ export function useResearchData() {
 
   async function saveLead(data: any) {
     if (data.id) {
-      await researchRepo.updateLead(data.id, data)
+      const { error } = await researchRepo.updateLead(data.id, data)
+      if (error) { mostrarMensaje('error', 'No se pudo guardar: ' + error.message); return }
       setLeads(prev => prev.map(l => l.id === data.id ? { ...l, ...data } : l))
     } else {
-      const { data: inserted } = await researchRepo.insertLead(data)
+      const { data: inserted, error } = await researchRepo.insertLead(data)
+      if (error) { mostrarMensaje('error', 'No se pudo guardar: ' + error.message); return }
       if (inserted) setLeads(prev => [inserted[0], ...prev])
     }
     mostrarMensaje('ok', data.id ? 'Lead actualizado' : 'Lead creado')

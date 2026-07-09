@@ -175,6 +175,7 @@ export async function POST(req: NextRequest) {
       .from('usuarios')
       .insert({
         id: userId,
+        auth_id: userId,
         nombre,
         apellido,
         email,
