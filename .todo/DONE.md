@@ -1,6 +1,12 @@
 # Completados — eminat-app
 
-_Última actualización: 2026-07-02_
+_Última actualización: 2026-07-09_
+
+- [x] **[Auth/RLS] Fix `auth_id` NULL en usuarios creados por admin** — `create-user` seteaba `usuarios.id` pero no `auth_id`; la RLS gatea por `auth_id = auth.uid()` (`has_module`/`is_admin`/`usuario_own_profile`/`requireAdmin`/`session`), así que los usuarios creados desde el panel admin quedaban sin acceso a los datos de su módulo (Royner/`investigacion` no podía guardar research leads; la carga manual mostraba "Lead creado" en falso). _(creado por: EminatMKT · 2026-07-09)_ ✓ _resuelto: `create-user` setea `auth_id: userId`; migración `20260709120000_backfill_usuarios_auth_id.sql`; `saveLead` surfacea el error del INSERT. Confirmado en prod (`intern.bd@eminat.net` con `auth_id` NULL) y reproducido en Supabase local. Backfill aplicado en prod: Royner (por id) + `marketing@eminat.net` (por email) linkeados. PR #28→development, PR #29→main. Pendiente aparte: 4 perfiles `stratix360` sin cuenta de Auth (joselyn/bryan/naomi/david) — crearles Auth desde /admin o desactivar — responsable: EminatMKT · 2026-07-09_
+
+- [x] **[Research] Reparar import/export de leads (round-trip + refresh)** — el export usaba headers amigables (`email`, `nct`, `status`, `next_followup`…) que no son columnas reales → el import daba "Could not find the 'email' column of 'research_leads'"; y el export encima generaba esas columnas vacías. Además la lista no se refrescaba tras importar (había que recargar). _(creado por: EminatMKT · 2026-07-09)_ ✓ _resuelto: `CSV_COLUMN_MAP` (header↔columna real) como fuente de verdad + `leadColumnFor()`; parser CSV tolerante a comas/comillas; keys homogéneas con `null` en vacíos (PostgREST exige mismas keys, PGRST102; `''` rompe columnas date); `insertLeads().select()` + update de estado directo (patrón de `saveLead`); tests del mapeo. Verificado con el CSV real de 35 leads (PostgREST HTTP 201). PR #28→development, PR #29→main — responsable: EminatMKT · 2026-07-09_
+
+---
 
 - [x] **[Login] Agregar `@stratix360.com` a dominios autorizados (arreglo provisional)** — la allowlist de login estaba quemada y duplicada; faltaba el dominio nuevo. ⚠️ Provisional: los dominios siguen hardcodeados en código. La idea a futuro es controlarlos desde el panel de admin (ver TODO). _(creado por: EminatMKT · 2026-07-02)_ ✓ _resuelto: `@stratix360.com` agregado; allowlist centralizada en `shared/constants/domain.ts` (`DOMINIOS_VALIDOS`); emails de config a `shared/constants/contacts.ts`; `FULL_WIDTH_FIELDS` deduplicado; mensaje de error i18n interpola la allowlist real (`{domains}`). PR #25, rama `feature/dominios-autorizados-stratix360` — responsable: EminatMKT · 2026-07-02_
 
