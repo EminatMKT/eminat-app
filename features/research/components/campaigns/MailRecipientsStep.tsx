@@ -16,8 +16,8 @@ type Props = {
 export default function MailRecipientsStep({ recipients, setRecipients, search, setSearch, onBack, onNext }: Props) {
   const { border, t1, t2, t3, accent } = RESEARCH_THEME
   const { leads } = useResearch()
-  const withEmail = leads.filter(l => l.email)
-  const visible = withEmail.filter(l => !search || `${l.official_title} ${l.lead_sponsor} ${l.email} ${l.nct}`.toLowerCase().includes(search.toLowerCase()))
+  const withEmail = leads.filter(l => l.contact_email)
+  const visible = withEmail.filter(l => !search || `${l.official_title} ${l.lead_sponsor} ${l.contact_email} ${l.nct_number}`.toLowerCase().includes(search.toLowerCase()))
 
   return (
     <div>
@@ -31,8 +31,8 @@ export default function MailRecipientsStep({ recipients, setRecipients, search, 
         {visible.map(l => (
           <ContactCheckRow key={l.id} checked={recipients.includes(l.id)}
             onToggle={() => setRecipients(p => p.includes(l.id) ? p.filter(x => x !== l.id) : [...p, l.id])}
-            primary={l.official_title || l.conditions || '—'} secondary={`${l.lead_sponsor} · ${l.nct}`}
-            right={<div style={{ fontSize: 10, color: t2, fontFamily: 'DM Mono' }}>{l.email}</div>} highlight />
+            primary={l.official_title || l.conditions || '—'} secondary={`${l.lead_sponsor} · ${l.nct_number}`}
+            right={<div style={{ fontSize: 10, color: t2, fontFamily: 'DM Mono' }}>{l.contact_email}</div>} highlight />
         ))}
         {withEmail.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: t3, fontSize: 12 }}>No leads with email</div>}
       </div>

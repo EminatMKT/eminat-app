@@ -1,10 +1,12 @@
 'use client'
 import { useState } from 'react'
 import { RESEARCH_THEME, inputStyle } from '../../theme'
+import { useT } from '@/shared/i18n'
 import { useResearch } from '../ResearchContext'
 
 export default function ActivityModal() {
   const { s1, border, t1, t2, t3, accent } = RESEARCH_THEME
+  const { t } = useT()
   const { modalActivity, setModalActivity, addActivity } = useResearch()
   const [newActivity, setNewActivity] = useState({ tipo: 'email', nota: '', fecha: new Date().toISOString().split('T')[0] })
   if (!modalActivity) return null
@@ -17,7 +19,7 @@ export default function ActivityModal() {
           <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 800, color: t1 }}>Add activity</div>
           <button onClick={() => setModalActivity(null)} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>✕</button>
         </div>
-        <div style={{ fontSize: 11, color: t3, marginBottom: 14 }}>Lead: <strong style={{ color: accent }}>{lead.contact_name || lead.nct}</strong></div>
+        <div style={{ fontSize: 11, color: t3, marginBottom: 14 }}>{t('research.activity.lead')} <strong style={{ color: accent }}>{lead.contact_name || lead.nct_number}</strong></div>
         <div style={{ marginBottom: 12 }}>
           <label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 4 }}>Type</label>
           <select value={newActivity.tipo} onChange={e => setNewActivity(p => ({ ...p, tipo: e.target.value }))} style={inputStyle}>

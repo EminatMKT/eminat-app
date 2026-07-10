@@ -10,6 +10,7 @@ export const RESEARCH_THEME = {
   t2: '#6B7280',
   t3: '#9CA3AF',
   accent: '#7C6FF7',
+  warn: '#FBBF24', // ámbar de aviso (ej. valores de import sin reconocer)
 }
 
 export const inputStyle: CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 10, border: '1px solid #D1D5DB', background: '#FFFFFF', color: '#111827', fontSize: 13, fontFamily: 'DM Sans', outline: 'none' }

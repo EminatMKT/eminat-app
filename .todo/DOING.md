@@ -1,5 +1,5 @@
 # En progreso — Eminat App
 
-_Última actualización: 2026-07-09_
+_Última actualización: 2026-07-10_
 
-_(nada en progreso)_
+_(Sin trabajo en progreso — la rama `fix/research-lead-form-campos-validaciones` se cerró a DONE; pendiente solo la entrega: migraciones Supabase + PR → development.)_

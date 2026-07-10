@@ -1,4 +1,5 @@
 import { supabase } from '@/shared/db/supabase'
+import { subscribeToTable, type RealtimeChannel, type RowChangeHandlers } from './realtime'
 import { TABLES, COLUMNS } from './tables'
 
 // Capa de acceso a datos del dominio Research:
@@ -24,6 +25,11 @@ export const updateLeadStage = (id: string, stage: string) =>
 // Import masivo. Devuelve las filas insertadas (.select()) para refrescar el estado en el acto.
 export const insertLeads = (records: any[]) =>
   supabase.from(TABLES.researchLeads).insert(records).select()
+
+// Realtime: propaga a todos los usuarios del módulo los INSERT/UPDATE/DELETE sobre el
+// pool compartido (research_leads no es por-usuario). Dedup por id del lado del consumidor.
+export const subscribeToLeads = <T extends { id: string }>(h: RowChangeHandlers<T>): RealtimeChannel =>
+  subscribeToTable<T>({ channel: `realtime:${TABLES.researchLeads}`, table: TABLES.researchLeads }, h)
 
 // --- research_activities ---
 

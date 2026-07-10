@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { supabase } from '@/shared/db/supabase'
-import { usuariosRepo, actividadesRepo, notificacionesRepo, rolesRepo } from '@/shared/data'
+import { usuariosRepo, actividadesRepo, notificacionesRepo, rolesRepo, removeChannel } from '@/shared/data'
 import { loadProfile } from '@/shared/db/session'
 import * as auth from '@/shared/db/auth'
 import { clearAuthCookies } from '@/shared/db/clearAuthCookies'
@@ -160,7 +160,7 @@ export function startAppData(s: Setters): () => void {
 
   return () => {
     clearInterval(heartbeatInterval)
-    if (realtimeChannel) notificacionesRepo.removeChannel(realtimeChannel)
-    if (userRowChannel) usuariosRepo.removeChannel(userRowChannel)
+    if (realtimeChannel) removeChannel(realtimeChannel)
+    if (userRowChannel) removeChannel(userRowChannel)
   }
 }

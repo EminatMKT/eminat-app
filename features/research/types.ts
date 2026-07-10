@@ -2,20 +2,35 @@
 // tipamos los conocidos y dejamos índice abierto para el resto.
 export interface Lead {
   id: string
-  nct?: string
+  date_added?: string
+  nct_number?: string
   official_title?: string
   conditions?: string
+  brief_explanation?: string
   phase?: string | number
   study_type?: string
-  status?: string
+  recruitment_status?: string
+  study_start_date?: string
+  primary_completion_date?: string
   countries?: string
+  spain_focus?: boolean
+  record_link?: string
   lead_sponsor?: string
+  sponsor_type?: string
   contact_name?: string
-  email?: string
-  phone?: string
+  contact_role?: string
+  contact_email?: string
+  contact_phone?: string
+  contact_source?: string
+  contact2_name?: string
+  contact2_role?: string
+  contact2_email?: string
+  contact2_phone?: string
   stage?: string
-  date_added?: string
-  next_followup?: string
+  next_followup_date?: string
+  email_date?: string
+  notes?: string
+  internal_note?: string
   valor_estimado?: string | number
   [key: string]: any
 }
