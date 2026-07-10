@@ -3,8 +3,8 @@ import { RESEARCH_THEME, inputStyle } from '../../theme'
 import { useT, type I18nKey } from '@/shared/i18n'
 import type { LeadFieldDef } from '../../fields'
 
-export default function LeadFormField({ def, value, onChange, onBlur, hint, error }: { def: LeadFieldDef; value: any; onChange: (v: any) => void; onBlur?: () => void; hint?: React.ReactNode; error?: I18nKey }) {
-  const { t3 } = RESEARCH_THEME
+export default function LeadFormField({ def, value, onChange, onBlur, hint, help, error, action }: { def: LeadFieldDef; value: any; onChange: (v: any) => void; onBlur?: () => void; hint?: React.ReactNode; help?: React.ReactNode; error?: I18nKey; action?: () => void }) {
+  const { t3, accent } = RESEARCH_THEME
   const { t } = useT()
   const v = value ?? ''
   const style = error ? { ...inputStyle, borderColor: '#F87171' } : inputStyle
@@ -30,6 +30,13 @@ export default function LeadFormField({ def, value, onChange, onBlur, hint, erro
       case 'checkbox':
         return <input type="checkbox" checked={value === true || value === 'true'} onChange={e => onChange(e.target.checked)} style={{ width: 18, height: 18, accentColor: RESEARCH_THEME.accent }} />
       default:
+        if (action) return (
+          // Botón de búsqueda dentro del campo (autocompletado CT.gov, además del blur).
+          <div style={{ position: 'relative' }}>
+            <input type={def.type} value={v} onChange={e => onChange(e.target.value)} onBlur={onBlur} style={{ ...style, paddingRight: 36 }} />
+            <button type="button" onClick={action} title={t('research.form.searchCT')} style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 15, color: accent, padding: 4, lineHeight: 1 }}>🔍</button>
+          </div>
+        )
         return <input type={def.type} value={v} onChange={e => onChange(e.target.value)} onBlur={onBlur} style={style} />
     }
   }
@@ -40,8 +47,9 @@ export default function LeadFormField({ def, value, onChange, onBlur, hint, erro
         {t(def.labelKey)}{def.required && <span style={{ color: '#F87171' }}> *</span>}
       </label>
       {control()}
-      {error && <div style={{ fontSize: 10, marginTop: 3, color: '#F87171' }}>{t(error)}</div>}
-      {hint && <div style={{ fontSize: 10, marginTop: 3 }}>{hint}</div>}
+      {error
+        ? <div style={{ fontSize: 10, marginTop: 3, color: '#F87171' }}>{t(error)}</div>
+        : (hint || help) && <div style={{ fontSize: 10, marginTop: 3, color: t3 }}>{hint || help}</div>}
     </div>
   )
 }

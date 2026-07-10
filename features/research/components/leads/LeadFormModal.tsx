@@ -97,8 +97,10 @@ export default function LeadFormModal() {
     setConflicts([]); setNctHint(filledHint)
   }
 
-  // onBlur/hint dependen de la columna: NCT# autocompleta; título busca en CT.gov.
+  // onBlur/action/hint/help dependen de la columna: NCT# autocompleta; título busca en CT.gov.
   const onBlurFor = (col: string) => col === NCT_COLUMN ? handleNctBlur : col === TITLE_COLUMN ? handleTitleBlur : undefined
+  const helpFor = (col: string): React.ReactNode =>
+    col === NCT_COLUMN ? t('research.nct.help') : col === TITLE_COLUMN ? t('research.title.help') : undefined
   function hintFor(col: string): React.ReactNode {
     if (col === NCT_COLUMN) {
       return nctDup
@@ -125,7 +127,9 @@ export default function LeadFormModal() {
                 <LeadFormField key={def.column} def={def} value={newLead[def.column]}
                   onChange={v => setField(def.column, v)}
                   onBlur={onBlurFor(def.column)}
+                  action={onBlurFor(def.column)}
                   hint={hintFor(def.column)}
+                  help={helpFor(def.column)}
                   error={errors[def.column]} />
               ))}
             </div>
