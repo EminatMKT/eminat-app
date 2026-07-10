@@ -113,7 +113,6 @@ export default function ImportModal() {
               <select value={dupMode} onChange={e => setDupMode(e.target.value as DupMode)} style={{ ...inputStyle, maxWidth: 220 }}>
                 <option value="update">{t('research.import.dup.update')}</option>
                 <option value="skip">{t('research.import.dup.skip')}</option>
-                <option value="duplicate">{t('research.import.dup.duplicate')}</option>
               </select>
             </div>
 

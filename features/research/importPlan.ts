@@ -3,7 +3,9 @@
 import { leadColumnFor, coerceLeadValue } from './fields'
 import { normNct } from './constants'
 
-export type DupMode = 'update' | 'skip' | 'duplicate'
+// NCT# es único (research_leads_nct_number_key): no existe "duplicar" un NCT ya presente.
+// Filas sin NCT# (o con NCT nuevo) siempre insertan; con NCT existente: update o skip.
+export type DupMode = 'update' | 'skip'
 
 export interface ImportPlan {
   toInsert: Record<string, any>[]
@@ -39,7 +41,7 @@ export function buildImportPlan(input: {
     // Descartar filas sin ningún valor (todas las celdas mapeadas vacías → null).
     if (!Object.values(values).some(v => v !== null)) continue
     const id = existingByNct.get(normNct(values.nct_number))
-    if (dupMode === 'duplicate' || !id) { plan.toInsert.push(values); continue }
+    if (!id) { plan.toInsert.push(values); continue } // sin match (o sin NCT#) → insertar
     if (dupMode === 'skip') { plan.skipped++; continue }
     plan.toUpdate.push({ id, values }) // 'update'
   }

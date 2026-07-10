@@ -41,13 +41,6 @@ describe('buildImportPlan', () => {
     expect(p.toInsert.map(r => r.nct_number)).toEqual(['NCT99', null])
   })
 
-  it('modo duplicate: ignora el match → todo a toInsert', () => {
-    const p = buildImportPlan({ rows, mapping, existingByNct: existing, dupMode: 'duplicate' })
-    expect(p.toUpdate).toEqual([])
-    expect(p.skipped).toBe(0)
-    expect(p.toInsert).toHaveLength(3)
-  })
-
   it('descarta filas totalmente vacías', () => {
     const p = buildImportPlan({ rows: [['', '']], mapping, existingByNct: existing, dupMode: 'update' })
     expect(p.toInsert).toHaveLength(0)

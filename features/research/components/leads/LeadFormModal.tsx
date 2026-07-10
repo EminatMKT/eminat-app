@@ -2,9 +2,11 @@
 import { useState } from 'react'
 import { RESEARCH_THEME } from '../../theme'
 import { useT } from '@/shared/i18n'
-import { LEAD_FIELD_DEFS, LEAD_GROUPS, GROUP_LABEL_KEY } from '../../fields'
+import { LEAD_FIELD_DEFS, LEAD_GROUPS, GROUP_LABEL_KEY, validateLeadFields } from '../../fields'
+import type { I18nKey } from '@/shared/i18n'
 import { fetchStudyByNCT, splitStudyMerge, type StudyConflict } from '../../clinicalTrials'
-import { NCT_COLUMN } from '../../constants'
+import { NCT_COLUMN, normNct } from '../../constants'
+import type { Lead } from '../../types'
 import { useResearch } from '../ResearchContext'
 import LeadFormField from './LeadFormField'
 import NctConflictModal from './NctConflictModal'
@@ -14,11 +16,34 @@ const LABEL_BY_COL = Object.fromEntries(LEAD_FIELD_DEFS.map(f => [f.column, f.la
 export default function LeadFormModal() {
   const { s1, border, t1, t2, t3, accent } = RESEARCH_THEME
   const { t } = useT()
-  const { modalNewLead, newLead, setNewLead, editingLead, closeLeadForm, saveLead } = useResearch()
+  const { modalNewLead, newLead, setNewLead, editingLead, closeLeadForm, saveLead, leads, openEditLead } = useResearch()
   const [nctHint, setNctHint] = useState<React.ReactNode>(null)
   const [conflicts, setConflicts] = useState<StudyConflict[]>([])
   const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [errors, setErrors] = useState<Record<string, I18nKey>>({})
+  const [nctDup, setNctDup] = useState<Lead | null>(null)
   if (!modalNewLead) return null
+
+  function setField(column: string, v: any) {
+    setNewLead((p: any) => ({ ...p, [column]: v }))
+    if (errors[column]) setErrors(e => { const { [column]: _, ...rest } = e; return rest }) // limpiar error al editar
+    if (column === NCT_COLUMN) setNctDup(null)
+  }
+
+  async function handleSave() {
+    const errs = validateLeadFields(newLead)
+    setErrors(errs)
+    if (Object.keys(errs).length) return // errores por-campo, no en el header
+    // NCT# es único: bloquear si otro lead ya lo tiene, con opción de abrirlo.
+    const nct = normNct(newLead[NCT_COLUMN])
+    if (nct) {
+      const dup = leads.find((l: Lead) => l.id !== newLead.id && normNct(l.nct_number) === nct)
+      if (dup) { setErrors({ [NCT_COLUMN]: 'research.validation.nctDuplicate' }); setNctDup(dup); return }
+    }
+    if (await saveLead(newLead)) closeLeadForm()
+  }
+
+  const openDup = () => { if (nctDup) { setNctDup(null); setErrors({}); openEditLead(nctDup) } }
 
   const filledHint = <span style={{ color: '#34D399' }}>✓ {t('research.nct.filled')}</span>
 
@@ -60,9 +85,12 @@ export default function LeadFormModal() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {LEAD_FIELD_DEFS.filter(f => f.group === group).map(def => (
                 <LeadFormField key={def.column} def={def} value={newLead[def.column]}
-                  onChange={v => setNewLead((p: any) => ({ ...p, [def.column]: v }))}
+                  onChange={v => setField(def.column, v)}
                   onBlur={def.column === NCT_COLUMN ? handleNctBlur : undefined}
-                  hint={def.column === NCT_COLUMN ? nctHint : undefined} />
+                  hint={def.column === NCT_COLUMN ? (nctDup
+                    ? <button onClick={openDup} style={{ background: 'none', border: 'none', padding: 0, color: accent, fontSize: 10, fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}>{t('research.form.openExisting')} →</button>
+                    : nctHint) : undefined}
+                  error={errors[def.column]} />
               ))}
             </div>
           </div>
@@ -70,7 +98,7 @@ export default function LeadFormModal() {
 
         <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
           <button onClick={closeLeadForm} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>{t('common.cancel')}</button>
-          <button onClick={async () => { const ok = await saveLead(newLead); if (ok) closeLeadForm() }} style={{ flex: 2, padding: '10px', borderRadius: 10, background: accent, color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{t(editingLead ? 'research.form.save' : 'research.form.create')}</button>
+          <button onClick={handleSave} style={{ flex: 2, padding: '10px', borderRadius: 10, background: accent, color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{t(editingLead ? 'research.form.save' : 'research.form.create')}</button>
         </div>
       </div>
 

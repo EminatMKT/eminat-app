@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as research from './index'
-import { EXPORT_HEADERS, leadColumnFor, validateLead, buildLeadPayload } from './fields'
+import { EXPORT_HEADERS, leadColumnFor, validateLead, validateLeadFields, buildLeadPayload } from './fields'
 import { fetchStudyByNCT, splitStudyMerge } from './clinicalTrials'
 
 describe('features/research API pública', () => {
@@ -45,6 +45,24 @@ describe('validateLead', () => {
     expect(validateLead({ ...base, contact_email: 'no-es-mail' })).toBe('research.validation.email')
     expect(validateLead({ ...base, record_link: 'ftp://x' })).toBe('research.validation.url')
     expect(validateLead({ ...base, contact_email: 'a@b.com', record_link: 'https://x.com' })).toBeNull()
+  })
+})
+
+describe('validateLeadFields (errores por-campo, no en el header)', () => {
+  it('devuelve mapa vacío si es válido', () => {
+    expect(validateLeadFields({ official_title: 'X', stage: 'Identificado', nct_number: 'NCT01' })).toEqual({})
+  })
+  it('ancla nct-o-contacto en nct_number cuando falta identificación', () => {
+    expect(validateLeadFields({})).toEqual({
+      official_title: 'research.validation.title',
+      stage: 'research.validation.stage',
+      nct_number: 'research.validation.nctOrContact',
+    })
+  })
+  it('mapea el error de email a su propia columna', () => {
+    // contact_email presente satisface nct-o-contacto; solo queda el error de formato
+    expect(validateLeadFields({ official_title: 'X', stage: 'Identificado', contact_email: 'malo' }))
+      .toEqual({ contact_email: 'research.validation.email' })
   })
 })
 

@@ -107,17 +107,24 @@ export function buildLeadPayload(data: Record<string, any>): Record<string, any>
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-// Valida un lead antes de guardar. Devuelve la CLAVE i18n del error, o null si es válido.
-export function validateLead(data: Record<string, any>): I18nKey | null {
+// Valida un lead. Devuelve un mapa columna → CLAVE i18n del error (vacío = válido).
+// La regla nct-o-contacto se ancla en nct_number (primer campo del grupo obligatorio).
+export function validateLeadFields(data: Record<string, any>): Record<string, I18nKey> {
   const val = (c: string) => (data[c] ?? '').toString().trim()
-  if (!val('official_title')) return 'research.validation.title'
-  if (!val('stage')) return 'research.validation.stage'
-  if (!val(NCT_COLUMN) && !val('contact_name') && !val('contact_email')) return 'research.validation.nctOrContact'
+  const errors: Record<string, I18nKey> = {}
+  if (!val('official_title')) errors.official_title = 'research.validation.title'
+  if (!val('stage')) errors.stage = 'research.validation.stage'
+  if (!val(NCT_COLUMN) && !val('contact_name') && !val('contact_email')) errors[NCT_COLUMN] = 'research.validation.nctOrContact'
   for (const c of ['contact_email', 'contact2_email']) {
     const v = val(c)
-    if (v && !EMAIL_RE.test(v)) return 'research.validation.email'
+    if (v && !EMAIL_RE.test(v)) errors[c] = 'research.validation.email'
   }
   const link = val('record_link')
-  if (link && !/^https?:\/\//i.test(link)) return 'research.validation.url'
-  return null
+  if (link && !/^https?:\/\//i.test(link)) errors.record_link = 'research.validation.url'
+  return errors
+}
+
+// Primer error como clave i18n, o null. Red de seguridad para saveLead (la UI valida por campo).
+export function validateLead(data: Record<string, any>): I18nKey | null {
+  return Object.values(validateLeadFields(data))[0] ?? null
 }
