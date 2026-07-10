@@ -25,4 +25,4 @@ tsconfig.tsbuildinfo
 *.pem
 
 # dumps de prod (datos sensibles) — nunca commitear
-supabase/rollback/predump-*.sql
+supabase/rollback/predump-*
