@@ -1,6 +1,44 @@
 # Completados — eminat-app
 
-_Última actualización: 2026-07-02_
+_Última actualización: 2026-07-10_
+
+## Research: lead form + CT.gov + import + filtros (rama `fix/research-lead-form-campos-validaciones`, cerrado 2026-07-10)
+
+_Código completo (suite 95/95, tsc 0). Pendiente solo la entrega: migraciones Supabase dev+prod y PR → development._
+
+- [x] **[Research] Unificar campos del lead: form completo + validaciones + export/import paridad** — form/export/import usaban nombres amigables ≠ columnas reales → save roto, edición/detalle vacíos, cobertura 17/30. Fix: `features/research/fields.ts` fuente única (`{column,labelKey,type,group,required,options,normalize}`); form agrupado con input por tipo; `saveLead` con columnas reales; export/import derivan de fields. _(creado por: EminatMKT · 2026-07-09)_ ✓ _resuelto: fields.ts unificado + i18n es/en del form/detalle — responsable: EminatMKT · 2026-07-10T16:22-05:00_
+
+- [x] **[API service] Servicio ClinicalTrials.gov** — `features/research/clinicalTrials.ts`: `fetchStudyByNCT` (GET por NCT#) + `fetchStudiesByTitle` (búsqueda por título, hasta 5 candidatos) + `studyFromProtocol` (mapper protocolSection→columnas, testeado). Errores como claves i18n. _(creado por: SmithDR · 2026-06-09)_ ✓ _resuelto: implementado (ubicado en features/research, no lib/) — responsable: EminatMKT · 2026-07-10T16:22-05:00_
+
+- [x] **[Form] NCT# autocomplete en modal New Lead** — `handleNctBlur`: al salir del NCT# autocompleta desde CT.gov con merge NO destructivo (rellena solo vacíos). _(creado por: SmithDR · 2026-06-09)_ ✓ _resuelto: handleNctBlur + splitStudyMerge — responsable: EminatMKT · 2026-07-10T16:22-05:00_
+
+- [x] **[Form/NCT] Confirmar antes de sobreescribir al autocompletar por NCT#** — el merge pisaba campos con valor al editar. _(creado por: EminatMKT · 2026-07-09)_ ✓ _resuelto: `NctConflictModal` — rellena vacíos sin preguntar y para los conflictos un popup de elección campo-por-campo (checkbox tu-valor→CT.gov) — responsable: EminatMKT · 2026-07-10T16:22-05:00_
+
+- [x] **[Research/Import] Rediseñar el modal de import estilo Anki** — `delimited.ts` (parser robusto) + `importPlan.ts` (insert/update/skip por NCT#) + `ImportModal` reescrito (separador auto+elegible, preview, mapeo por columna, resumen vivo). Sumado: **normalización de valores de dominio** (phase "2"→"Phase 2", etc.) con override por valor, y modo "Duplicar" eliminado (NCT# es único). _(creado por: EminatMKT · 2026-07-09)_ ✓ _resuelto: import estilo Anki + normalización de dominio — responsable: EminatMKT · 2026-07-10T16:22-05:00_
+
+- [x] **[UI] Loading + error en campo NCT#** — feedback mientras busca y error si falla. _(creado por: SmithDR · 2026-06-09)_ ✓ _resuelto: hint "Buscando…" + mensaje de error inline bajo el campo. Parcial: es hint de texto (no spinner gráfico) y no deshabilita el campo durante la request — si hace falta, reabrir — responsable: EminatMKT · 2026-07-10T16:22-05:00_
+
+**Trabajo extra de la rama sin ticket previo:**
+
+- [x] **[Form] Validación por-campo inline** — `validateLeadFields` devuelve mapa columna→error; el form muestra el error bajo cada campo (borde+texto rojo), se limpia al editar; ya no un toast en el header. ✓ _resuelto — responsable: EminatMKT · 2026-07-10T16:22-05:00_
+
+- [x] **[DB/Form] NCT# único** — el índice UNIQUE ya existía; el import sacó "Duplicar" y el form manual avisa "ya existe un lead con ese NCT#" + botón para abrir el existente. ✓ _resuelto — responsable: EminatMKT · 2026-07-10T16:22-05:00_
+
+- [x] **[Realtime] Propagar leads en vivo entre usuarios** — el pool es compartido; INSERT/UPDATE/DELETE se reflejan sin refrescar. Migración `20260710130000_realtime_research_leads.sql` (publica la tabla + `REPLICA IDENTITY FULL` para que lleguen los DELETE). ✓ _resuelto — responsable: EminatMKT · 2026-07-10T16:22-05:00_
+
+- [x] **[Form] Búsqueda del estudio por título en CT.gov** — inverso del NCT#: para leads sin código, al salir del Título busca candidatos (`fetchStudiesByTitle`) → popup `TitleMatchModal` → al elegir rellena NCT# + campos. ✓ _resuelto — responsable: EminatMKT · 2026-07-10T16:22-05:00_
+
+- [x] **[UX] Afordancia visible de los autocompletados** — botón 🔍 dentro de los campos NCT#/Título + texto de ayuda persistente, para que se descubra la función. ✓ _resuelto — responsable: EminatMKT · 2026-07-10T16:22-05:00_
+
+- [x] **[Research] Filtros declarativos y reutilizables** — motor genérico en `shared/lib/filters.ts` (`FilterDef`, `applyFilters`, `distinctValues/Tokens`) + `shared/components/FilterBar.tsx`; `LEAD_FILTERS` declarativo que reusa `domainOptions` para las opciones. Arregla el filtro de Fase (roto tras la normalización). ✓ _resuelto — responsable: EminatMKT · 2026-07-10T16:22-05:00_
+
+- [x] **[Refactor] Consolidar utilidades genéricas a shared** — `resolveToCanonical`→`shared/lib/canonical.ts`, `delimited.ts`→`shared/lib`, helper de Realtime único→`shared/data/realtime.ts` (elimina `removeChannel` repetido 3×), motor de filtros→shared. ✓ _resuelto — responsable: EminatMKT · 2026-07-10T16:22-05:00_
+
+- [x] **[Auth/RLS] Fix `auth_id` NULL en usuarios creados por admin** — `create-user` seteaba `usuarios.id` pero no `auth_id`; la RLS gatea por `auth_id = auth.uid()` (`has_module`/`is_admin`/`usuario_own_profile`/`requireAdmin`/`session`), así que los usuarios creados desde el panel admin quedaban sin acceso a los datos de su módulo (Royner/`investigacion` no podía guardar research leads; la carga manual mostraba "Lead creado" en falso). _(creado por: EminatMKT · 2026-07-09)_ ✓ _resuelto: `create-user` setea `auth_id: userId`; migración `20260709120000_backfill_usuarios_auth_id.sql`; `saveLead` surfacea el error del INSERT. Confirmado en prod (`intern.bd@eminat.net` con `auth_id` NULL) y reproducido en Supabase local. Backfill aplicado en prod: Royner (por id) + `marketing@eminat.net` (por email) linkeados. PR #28→development, PR #29→main. Pendiente aparte: 4 perfiles `stratix360` sin cuenta de Auth (joselyn/bryan/naomi/david) — crearles Auth desde /admin o desactivar — responsable: EminatMKT · 2026-07-09_
+
+- [x] **[Research] Reparar import/export de leads (round-trip + refresh)** — el export usaba headers amigables (`email`, `nct`, `status`, `next_followup`…) que no son columnas reales → el import daba "Could not find the 'email' column of 'research_leads'"; y el export encima generaba esas columnas vacías. Además la lista no se refrescaba tras importar (había que recargar). _(creado por: EminatMKT · 2026-07-09)_ ✓ _resuelto: `CSV_COLUMN_MAP` (header↔columna real) como fuente de verdad + `leadColumnFor()`; parser CSV tolerante a comas/comillas; keys homogéneas con `null` en vacíos (PostgREST exige mismas keys, PGRST102; `''` rompe columnas date); `insertLeads().select()` + update de estado directo (patrón de `saveLead`); tests del mapeo. Verificado con el CSV real de 35 leads (PostgREST HTTP 201). PR #28→development, PR #29→main — responsable: EminatMKT · 2026-07-09_
+
+---
 
 - [x] **[Login] Agregar `@stratix360.com` a dominios autorizados (arreglo provisional)** — la allowlist de login estaba quemada y duplicada; faltaba el dominio nuevo. ⚠️ Provisional: los dominios siguen hardcodeados en código. La idea a futuro es controlarlos desde el panel de admin (ver TODO). _(creado por: EminatMKT · 2026-07-02)_ ✓ _resuelto: `@stratix360.com` agregado; allowlist centralizada en `shared/constants/domain.ts` (`DOMINIOS_VALIDOS`); emails de config a `shared/constants/contacts.ts`; `FULL_WIDTH_FIELDS` deduplicado; mensaje de error i18n interpola la allowlist real (`{domains}`). PR #25, rama `feature/dominios-autorizados-stratix360` — responsable: EminatMKT · 2026-07-02_
 

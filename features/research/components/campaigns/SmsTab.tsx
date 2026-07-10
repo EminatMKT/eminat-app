@@ -16,7 +16,7 @@ export default function SmsTab() {
   const [smsSearch, setSmsSearch] = useState('')
 
   const toggle = (id: string) => setSmsSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
-  const visible = leads.filter(l => l.phone && (!smsSearch || (l.contact_name || '').toLowerCase().includes(smsSearch.toLowerCase())))
+  const visible = leads.filter(l => l.contact_phone && (!smsSearch || (l.contact_name || '').toLowerCase().includes(smsSearch.toLowerCase())))
   const history = campaigns.filter(c => c.tipo === 'SMS')
 
   async function send() {
@@ -39,7 +39,7 @@ export default function SmsTab() {
         <div style={{ fontSize: 10, color: t3, marginBottom: 6 }}>{smsSelected.length} selected</div>
         <div style={{ maxHeight: 320, overflowY: 'auto' }}>
           {visible.map(l => (
-            <ContactCheckRow key={l.id} checked={smsSelected.includes(l.id)} onToggle={() => toggle(l.id)} primary={l.contact_name} secondary={<span style={{ fontFamily: 'DM Mono' }}>{l.phone}</span>} />
+            <ContactCheckRow key={l.id} checked={smsSelected.includes(l.id)} onToggle={() => toggle(l.id)} primary={l.contact_name} secondary={<span style={{ fontFamily: 'DM Mono' }}>{l.contact_phone}</span>} />
           ))}
         </div>
       </div>

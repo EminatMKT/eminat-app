@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useApp, MESES } from '@/shared/context/AppContext'
 import { cobranzasRepo } from '@/shared/data'
 import { escapeHtml } from '@/shared/lib/html'
+import { detectSeparator, parseDelimited } from '@/shared/lib/delimited'
 import { fmt } from '../format'
 import { TABLE, ADD_FIELDS, NUMERIC_FIELDS, EXPORT_HEADERS, TAB_TITLE } from './../constants'
 import type { CobTab, Filtros, Venta, Cuenta, Deposito } from '../types'
@@ -107,13 +108,13 @@ export function useCobranzasData() {
     const file = e.target.files?.[0]
     if (!file) return
     const text = await file.text()
-    const lines = text.split('\n').filter((l: string) => l.trim())
-    if (lines.length < 2) { mostrarMensaje('error', 'Empty file'); return }
-    const headers = lines[0].split(',').map((h: string) => h.trim().toLowerCase().replace(/ /g, '_'))
-    const records = lines.slice(1).map((line: string) => {
-      const vals = line.split(',').map((v: string) => v.trim())
+    const sep = detectSeparator(text.replace(/\r\n?/g, '\n').split('\n').find(l => l.trim()) ?? '')
+    const { headers, rows } = parseDelimited(text, sep)
+    if (!rows.length) { mostrarMensaje('error', 'Empty file'); return }
+    const cols = headers.map(h => h.trim().toLowerCase().replace(/ /g, '_'))
+    const records = rows.map(vals => {
       const obj: any = {}
-      headers.forEach((h: string, i: number) => { obj[h] = vals[i] || '' })
+      cols.forEach((h, i) => { obj[h] = (vals[i] ?? '').trim() })
       return obj
     })
     const { error } = await cobranzasRepo.insert(TABLE[cobTab], records)

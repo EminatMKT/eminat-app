@@ -1,4 +1,5 @@
 import { supabase } from '@/shared/db/supabase'
+import { subscribeToTable } from './realtime'
 import { TABLES, COLUMNS } from './tables'
 
 // Capa de acceso a datos para la tabla `usuarios` (+ vista `v_equipo_hoy`).
@@ -41,13 +42,4 @@ export const updateUbicacion = (id: string, ubicacion: string) =>
 // que el admin cambie (rol, activo) sin esperar un refresh. Mismo patrón que las
 // notificaciones; filtrado por id para recibir solo la fila propia.
 export const subscribeToUserRow = (id: string, onUpdate: (row: any) => void) =>
-  supabase
-    .channel(`user-row-${id}`)
-    .on(
-      'postgres_changes',
-      { event: 'UPDATE', schema: 'public', table: TABLES.usuarios, filter: `id=eq.${id}` },
-      (payload: any) => onUpdate(payload.new),
-    )
-    .subscribe()
-
-export const removeChannel = (channel: any) => supabase.removeChannel(channel)
+  subscribeToTable({ channel: `user-row-${id}`, table: TABLES.usuarios, filter: `id=eq.${id}` }, { onUpdate })

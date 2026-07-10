@@ -1,6 +1,6 @@
 'use client'
 import { RESEARCH_THEME } from '../../theme'
-import { LEAD_FIELDS } from '../../constants'
+import { LEAD_FIELD_DEFS } from '../../fields'
 import { useResearch } from '../ResearchContext'
 import LeadDetailField from './LeadDetailField'
 import LeadActivityItem from './LeadActivityItem'
@@ -18,12 +18,12 @@ export default function LeadDetailModal() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div>
             <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 800, color: t1 }}>Lead Details</div>
-            <div style={{ fontSize: 11, color: accent, fontFamily: 'DM Mono' }}>{lead.nct || '—'}</div>
+            <div style={{ fontSize: 11, color: accent, fontFamily: 'DM Mono' }}>{lead.nct_number || '—'}</div>
           </div>
           <button onClick={() => setModalLead(null)} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>✕</button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-          {LEAD_FIELDS.map(f => <LeadDetailField key={f} field={f} value={lead[f]} />)}
+          {LEAD_FIELD_DEFS.filter(d => { const v = lead[d.column]; return v !== null && v !== undefined && v !== '' && v !== false }).map(d => <LeadDetailField key={d.column} def={d} value={lead[d.column]} />)}
         </div>
         <div style={{ borderTop: `1px solid ${border}`, paddingTop: 14, marginBottom: 14 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 8 }}>Activities</div>
