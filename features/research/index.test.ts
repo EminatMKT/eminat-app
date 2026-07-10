@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as research from './index'
-import { EXPORT_HEADERS, leadColumnFor, validateLead, validateLeadFields, buildLeadPayload } from './fields'
+import { EXPORT_HEADERS, leadColumnFor, validateLead, validateLeadFields, buildLeadPayload, normalizeDomainValue } from './fields'
 import { fetchStudyByNCT, splitStudyMerge } from './clinicalTrials'
 
 describe('features/research API pública', () => {
@@ -82,6 +82,27 @@ describe('splitStudyMerge (autocompletado NCT# no destructivo)', () => {
     // vacío (conditions) y nct_number (siempre) → fills; phase igual → nada; official_title distinto → conflicto
     expect(fills).toEqual({ nct_number: 'NCT04', conditions: 'Cancer' })
     expect(conflicts).toEqual([{ column: 'official_title', current: 'Título a mano', incoming: 'Official Title' }])
+  })
+})
+
+describe('normalizeDomainValue (valores de dominio en import)', () => {
+  it('phase: números y multivalor → label canónico del dominio', () => {
+    expect(normalizeDomainValue('phase', '2')).toBe('Phase 2')
+    expect(normalizeDomainValue('phase', '1 & 2')).toBe('Phase 1/Phase 2')
+    expect(normalizeDomainValue('phase', 'phase 3')).toBe('Phase 3') // match case-insensitive
+    expect(normalizeDomainValue('phase', 'N/A')).toBe('N/A')
+  })
+  it('phase: combo inexistente en el dominio → null (no resuelto)', () => {
+    expect(normalizeDomainValue('phase', '1 & 3')).toBeNull() // Phase 1/Phase 3 no está en PHASES
+    expect(normalizeDomainValue('phase', 'abc')).toBeNull()
+  })
+  it('select estricto: case-insensitive al dominio; desconocido → null', () => {
+    expect(normalizeDomainValue('study_type', 'interventional')).toBe('Interventional')
+    expect(normalizeDomainValue('study_type', 'otro')).toBeNull()
+  })
+  it('vacío → "" y campo sin dominio → valor tal cual', () => {
+    expect(normalizeDomainValue('phase', '')).toBe('')
+    expect(normalizeDomainValue('official_title', 'Un título')).toBe('Un título')
   })
 })
 

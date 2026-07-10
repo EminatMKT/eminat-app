@@ -45,4 +45,17 @@ describe('buildImportPlan', () => {
     const p = buildImportPlan({ rows: [['', '']], mapping, existingByNct: existing, dupMode: 'update' })
     expect(p.toInsert).toHaveLength(0)
   })
+
+  it('auto-normaliza valores de dominio (phase 2 → Phase 2); no resuelto → null', () => {
+    const m = ['nct_number', 'phase'] as (string | null)[]
+    const p = buildImportPlan({ rows: [['NCTa', '2'], ['NCTb', '9']], mapping: m, existingByNct: new Map(), dupMode: 'update' })
+    expect(p.toInsert[0].phase).toBe('Phase 2')
+    expect(p.toInsert[1].phase).toBeNull() // '9' no mapea a ningún Phase → '' → null
+  })
+
+  it('el override del usuario (valueMap) gana sobre la auto-normalización', () => {
+    const m = ['nct_number', 'phase'] as (string | null)[]
+    const p = buildImportPlan({ rows: [['NCTa', '9']], mapping: m, existingByNct: new Map(), dupMode: 'update', valueMap: { phase: { '9': 'Phase 4' } } })
+    expect(p.toInsert[0].phase).toBe('Phase 4')
+  })
 })

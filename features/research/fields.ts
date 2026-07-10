@@ -19,12 +19,26 @@ export interface LeadFieldDef {
   fullWidth?: boolean
   required?: boolean
   options?: string[] // select / datalist
+  // Deriva un valor entrante no-exacto al dominio (import). null = no reconocido.
+  normalize?: (raw: string) => string | null
 }
 
 // Sugerencias (datalist) — admiten valor libre para no romper data existente (ej. phase="2").
 const PHASES = ['Early Phase 1', 'Phase 1', 'Phase 1/Phase 2', 'Phase 2', 'Phase 2/Phase 3', 'Phase 3', 'Phase 4', 'N/A']
 const STATUSES = ['Recruiting', 'Not yet recruiting', 'Enrolling by invitation', 'Active, not recruiting', 'Completed', 'Suspended', 'Terminated', 'Withdrawn', 'Unknown status']
 const STUDY_TYPES = ['Interventional', 'Observational'] // dominio cerrado -> select estricto
+
+// Los CSV suelen traer la fase como número o multivalor ("2", "1 & 2") en vez del label del
+// dominio. Deriva el canónico desde los dígitos; null si el combo no existe en PHASES.
+function canonicalPhase(raw: string): string | null {
+  const s = raw.toLowerCase()
+  if (/n\.?\s*\/?\s*a/.test(s)) return 'N/A'
+  const nums = (s.match(/\d/g) || []).filter((v, i, a) => a.indexOf(v) === i)
+  if (s.includes('early') && nums.join() === '1') return 'Early Phase 1'
+  if (!nums.length) return null
+  const label = nums.map(n => `Phase ${n}`).join('/')
+  return PHASES.includes(label) ? label : null
+}
 
 export const LEAD_GROUPS: LeadFieldGroup[] = ['Estudio', 'Contacto', 'Seguimiento']
 export const GROUP_LABEL_KEY: Record<LeadFieldGroup, I18nKey> = {
@@ -40,7 +54,7 @@ export const LEAD_FIELD_DEFS: LeadFieldDef[] = [
   { column: 'official_title', labelKey: 'research.field.official_title', type: 'text', group: 'Estudio', fullWidth: true, required: true },
   { column: 'conditions', labelKey: 'research.field.conditions', type: 'text', group: 'Estudio' },
   { column: 'brief_explanation', labelKey: 'research.field.brief_explanation', type: 'textarea', group: 'Estudio', fullWidth: true },
-  { column: 'phase', labelKey: 'research.field.phase', type: 'datalist', group: 'Estudio', options: PHASES },
+  { column: 'phase', labelKey: 'research.field.phase', type: 'datalist', group: 'Estudio', options: PHASES, normalize: canonicalPhase },
   { column: 'study_type', labelKey: 'research.field.study_type', type: 'select', group: 'Estudio', options: STUDY_TYPES },
   { column: 'recruitment_status', labelKey: 'research.field.recruitment_status', type: 'datalist', group: 'Estudio', options: STATUSES },
   { column: 'study_start_date', labelKey: 'research.field.study_start_date', type: 'date', group: 'Estudio' },
@@ -68,7 +82,22 @@ export const LEAD_FIELD_DEFS: LeadFieldDef[] = [
   { column: 'internal_note', labelKey: 'research.field.internal_note', type: 'textarea', group: 'Seguimiento', fullWidth: true },
 ]
 
-const LEAD_COLUMNS = new Set(LEAD_FIELD_DEFS.map(f => f.column))
+const LEAD_COLUMNS = LEAD_FIELD_DEFS.map(f => f.column)
+
+// Resolutor genérico: mapea un texto libre a un valor canónico de un conjunto conocido, vía
+// match exacto (case-insensitive), tabla de alias, o un derivador a medida. null = no reconocido.
+// Es el mismo problema para encabezado→columna y para valor→dominio, así que ambos lo usan.
+export function resolveToCanonical(
+  raw: string,
+  canonical: readonly string[],
+  opts?: { aliases?: Record<string, string>; derive?: (v: string) => string | null },
+): string | null {
+  const v = (raw ?? '').trim()
+  if (!v) return null
+  const hit = canonical.find(c => c.toLowerCase() === v.toLowerCase())
+  if (hit) return hit
+  return opts?.aliases?.[v.toLowerCase()] ?? opts?.derive?.(v) ?? null
+}
 
 // Aliases de headers CSV legacy (nombres amigables) -> columna real, para importar
 // archivos exportados con el formato viejo. Las columnas reales se aceptan tal cual.
@@ -88,7 +117,23 @@ export const EXPORT_HEADERS = LEAD_FIELD_DEFS.map(f => f.column)
 
 // Import: resuelve un header (columna real o alias legacy) a su columna; null si no mapea.
 export const leadColumnFor = (header: string): string | null =>
-  (LEAD_COLUMNS.has(header) ? header : null) ?? CSV_ALIASES[header] ?? null
+  resolveToCanonical(header, LEAD_COLUMNS, { aliases: CSV_ALIASES })
+
+// Campos con dominio fijo (los que tienen options): el import normaliza el valor entrante
+// al valor canónico del dominio en vez de solo mapear la columna.
+export const DOMAIN_FIELDS = LEAD_FIELD_DEFS.filter(f => f.options)
+export const domainOptions = (column: string): string[] | undefined =>
+  LEAD_FIELD_DEFS.find(f => f.column === column)?.options
+
+// Resuelve un valor entrante al dominio de la columna, reusando resolveToCanonical.
+// '' => '' (vacío, ok). Un string => valor canónico del dominio. null => no reconocido
+// (el usuario debe mapearlo en el import). El derivador sale del propio def (ej. phase).
+export function normalizeDomainValue(column: string, raw: any): string | null {
+  const def = LEAD_FIELD_DEFS.find(f => f.column === column)
+  const v = (raw ?? '').toString().trim()
+  if (!v || !def?.options) return v // vacío, o campo sin dominio: tal cual
+  return resolveToCanonical(v, def.options, { derive: def.normalize })
+}
 
 // Normaliza un valor del form para la DB: checkbox -> boolean; '' / undefined -> null.
 export function coerceLeadValue(column: string, value: any): any {

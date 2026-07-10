@@ -3,9 +3,9 @@ import { useMemo, useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { RESEARCH_THEME, inputStyle } from '../../theme'
-import { LEAD_FIELD_DEFS } from '../../fields'
+import { LEAD_FIELD_DEFS, DOMAIN_FIELDS, domainOptions, normalizeDomainValue } from '../../fields'
 import { detectSeparator, parseDelimited } from '../../delimited'
-import { guessMapping, indexByNct, buildImportPlan, type DupMode } from '../../importPlan'
+import { guessMapping, indexByNct, buildImportPlan, type DupMode, type ValueMap } from '../../importPlan'
 import { useResearch } from '../ResearchContext'
 
 const SEP_OPTIONS = [
@@ -15,8 +15,10 @@ const SEP_OPTIONS = [
   { value: ':', labelKey: 'research.import.sep.colon' },
 ] as const
 
+type DomainVal = { raw: string; guess: string; resolved: boolean }
+
 export default function ImportModal() {
-  const { s1, s2, border, t1, t2, t3, accent } = RESEARCH_THEME
+  const { s1, s2, border, t1, t2, t3, accent, warn } = RESEARCH_THEME
   const { mostrarMensaje } = useApp()
   const { t } = useT()
   const { modalImport, setModalImport, confirmImport, leads } = useResearch()
@@ -24,18 +26,44 @@ export default function ImportModal() {
   const [sep, setSep] = useState(',')
   const [mapping, setMapping] = useState<(string | null)[]>([])
   const [dupMode, setDupMode] = useState<DupMode>('update')
+  const [valueMap, setValueMap] = useState<ValueMap>({}) // override manual de valores de dominio
   // Todos los hooks van ANTES de cualquier return condicional (Rules of Hooks):
   // si el early-return quedara en medio, abrir el modal renderiza más hooks que el
   // render previo → "Rendered more hooks than during the previous render".
   const parsed = useMemo(() => (raw ? parseDelimited(raw, sep) : { headers: [], rows: [] }), [raw, sep])
   const existingByNct = useMemo(() => indexByNct(leads), [leads])
   const plan = useMemo(
-    () => buildImportPlan({ rows: parsed.rows, mapping, existingByNct, dupMode }),
-    [parsed.rows, mapping, existingByNct, dupMode],
+    () => buildImportPlan({ rows: parsed.rows, mapping, existingByNct, dupMode, valueMap }),
+    [parsed.rows, mapping, existingByNct, dupMode, valueMap],
   )
+  // Por cada columna de dominio mapeada, los valores distintos entrantes y su canónico
+  // auto-sugerido (mismo tratamiento que el mapeo de encabezados, un nivel más abajo).
+  const domainGroups = useMemo(() => {
+    const domainCols = new Set(DOMAIN_FIELDS.map(f => f.column))
+    const done = new Set<string>()
+    const groups: { column: string; values: DomainVal[] }[] = []
+    mapping.forEach((col, i) => {
+      if (!col || !domainCols.has(col) || done.has(col)) return
+      done.add(col)
+      const seen = new Set<string>()
+      const values: DomainVal[] = []
+      for (const row of parsed.rows) {
+        const rawv = (row[i] ?? '').trim()
+        if (!rawv || seen.has(rawv)) continue
+        seen.add(rawv)
+        const norm = normalizeDomainValue(col, rawv)
+        values.push({ raw: rawv, guess: norm ?? '', resolved: norm !== null })
+      }
+      if (values.length) groups.push({ column: col, values })
+    })
+    return groups
+  }, [mapping, parsed.rows])
   if (!modalImport) return null
 
-  const close = () => { setModalImport(false); setRaw(null); setMapping([]); setSep(','); setDupMode('update') }
+  const close = () => { setModalImport(false); setRaw(null); setMapping([]); setSep(','); setDupMode('update'); setValueMap({}) }
+  const setValue = (col: string, rawv: string, canonical: string) =>
+    setValueMap(m => ({ ...m, [col]: { ...m[col], [rawv]: canonical } }))
+  const unresolved = domainGroups.reduce((n, g) => n + g.values.filter(v => !v.resolved && !(valueMap[g.column]?.[v.raw])).length, 0)
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -44,6 +72,7 @@ export default function ImportModal() {
     const lines = text.replace(/\r\n?/g, '\n').split('\n').filter(l => l.trim())
     if (lines.length < 2) { mostrarMensaje('error', t('research.import.empty')); return }
     const detected = detectSeparator(lines[0])
+    setValueMap({})
     setRaw(text); setSep(detected); setMapping(guessMapping(parseDelimited(text, detected).headers))
   }
 
@@ -91,7 +120,7 @@ export default function ImportModal() {
                 {SEP_OPTIONS.map(o => <option key={o.value} value={o.value}>{t(o.labelKey)}</option>)}
               </select>
               <span style={{ fontSize: 11, color: t3 }}>{t('research.import.rowsDetected', { n: parsed.rows.length })}</span>
-              <button onClick={() => { setRaw(null); setMapping([]) }} style={{ marginLeft: 'auto', background: 'none', border: `1px solid ${border}`, borderRadius: 8, color: t3, fontSize: 11, padding: '4px 10px', cursor: 'pointer' }}>{t('research.import.selectFile')}</button>
+              <button onClick={() => { setRaw(null); setMapping([]); setValueMap({}) }} style={{ marginLeft: 'auto', background: 'none', border: `1px solid ${border}`, borderRadius: 8, color: t3, fontSize: 11, padding: '4px 10px', cursor: 'pointer' }}>{t('research.import.selectFile')}</button>
             </div>
             <div style={{ maxHeight: 180, overflow: 'auto', border: `1px solid ${border}`, borderRadius: 10 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 10 }}>
@@ -128,6 +157,38 @@ export default function ImportModal() {
                 </select>
               </div>
             ))}
+            {/* VALORES DE DOMINIO — mismo patrón que el mapeo, pero valor→dominio */}
+            {domainGroups.length > 0 && (
+              <>
+                <div style={sectionTitle}>{t('research.import.valuesSection')}</div>
+                {domainGroups.map(g => {
+                  const opts = domainOptions(g.column) ?? []
+                  const labelKey = LEAD_FIELD_DEFS.find(f => f.column === g.column)!.labelKey
+                  return (
+                    <div key={g.column} style={{ marginBottom: 10 }}>
+                      <div style={{ fontSize: 11, color: t3, fontWeight: 700, marginBottom: 4 }}>{t(labelKey)}</div>
+                      {g.values.map(v => {
+                        const current = valueMap[g.column]?.[v.raw] ?? v.guess
+                        return (
+                          <div key={v.raw} style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 4 }}>
+                            <div style={{ flex: 1, fontSize: 12, color: t2, fontFamily: 'DM Mono', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.raw}{!v.resolved && ' ⚠'}</div>
+                            <span style={{ color: t3 }}>→</span>
+                            <select value={current} onChange={e => setValue(g.column, v.raw, e.target.value)} style={{ ...inputStyle, flex: 1, borderColor: current ? undefined : warn }}>
+                              <option value="">{t('research.import.valueEmpty')}</option>
+                              {opts.map(o => <option key={o} value={o}>{o}</option>)}
+                            </select>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })}
+                {unresolved > 0 && (
+                  <div style={{ fontSize: 11, color: warn, marginTop: 2 }}>{t('research.import.unresolvedNote', { n: unresolved })}</div>
+                )}
+              </>
+            )}
+
             <div style={{ fontSize: 12, color: accent, marginTop: 12, fontWeight: 600 }}>
               {t('research.import.summary', { ins: plan.toInsert.length, upd: plan.toUpdate.length, skip: plan.skipped })}
             </div>
