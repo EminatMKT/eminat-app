@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import * as research from './index'
 import { EXPORT_HEADERS, leadColumnFor, validateLead, validateLeadFields, buildLeadPayload, normalizeDomainValue } from './fields'
-import { fetchStudyByNCT, splitStudyMerge } from './clinicalTrials'
+import { fetchStudyByNCT, splitStudyMerge, studyFromProtocol } from './clinicalTrials'
 
 describe('features/research API pública', () => {
   it('expone ResearchModule', () => {
@@ -71,6 +71,23 @@ describe('fetchStudyByNCT (validación de formato, sin red)', () => {
     expect(await fetchStudyByNCT('no-es-nct')).toEqual({ error: 'research.nct.invalid' })
     expect(await fetchStudyByNCT('')).toEqual({ error: 'research.nct.invalid' })
     expect(await fetchStudyByNCT('NCT123')).toEqual({ error: 'research.nct.invalid' })
+  })
+})
+
+describe('studyFromProtocol (mapeo CT.gov → columnas)', () => {
+  it('mapea nct/título/fase/tipo y descarta vacíos', () => {
+    const s = studyFromProtocol({
+      identificationModule: { nctId: 'NCT01', officialTitle: 'Estudio X' },
+      designModule: { phases: ['PHASE2'], studyType: 'INTERVENTIONAL' },
+      statusModule: { overallStatus: 'RECRUITING' },
+    })
+    expect(s.nct_number).toBe('NCT01')
+    expect(s.official_title).toBe('Estudio X')
+    expect(s.phase).toBe('Phase 2')
+    expect(s.study_type).toBe('Interventional')
+    expect(s.recruitment_status).toBe('Recruiting')
+    expect(s.record_link).toBe('https://clinicaltrials.gov/study/NCT01')
+    expect('conditions' in s).toBe(false) // vacío descartado
   })
 })
 

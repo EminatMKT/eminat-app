@@ -4,12 +4,13 @@ import { RESEARCH_THEME } from '../../theme'
 import { useT } from '@/shared/i18n'
 import { LEAD_FIELD_DEFS, LEAD_GROUPS, GROUP_LABEL_KEY, validateLeadFields } from '../../fields'
 import type { I18nKey } from '@/shared/i18n'
-import { fetchStudyByNCT, splitStudyMerge, type StudyConflict } from '../../clinicalTrials'
-import { NCT_COLUMN, normNct } from '../../constants'
+import { fetchStudyByNCT, fetchStudiesByTitle, splitStudyMerge, type StudyConflict } from '../../clinicalTrials'
+import { NCT_COLUMN, TITLE_COLUMN, normNct } from '../../constants'
 import type { Lead } from '../../types'
 import { useResearch } from '../ResearchContext'
 import LeadFormField from './LeadFormField'
 import NctConflictModal from './NctConflictModal'
+import TitleMatchModal from './TitleMatchModal'
 
 const LABEL_BY_COL = Object.fromEntries(LEAD_FIELD_DEFS.map(f => [f.column, f.labelKey]))
 
@@ -22,6 +23,8 @@ export default function LeadFormModal() {
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [errors, setErrors] = useState<Record<string, I18nKey>>({})
   const [nctDup, setNctDup] = useState<Lead | null>(null)
+  const [titleHint, setTitleHint] = useState<React.ReactNode>(null)
+  const [titleMatches, setTitleMatches] = useState<Record<string, any>[]>([])
   if (!modalNewLead) return null
 
   function setField(column: string, v: any) {
@@ -47,13 +50,8 @@ export default function LeadFormModal() {
 
   const filledHint = <span style={{ color: '#34D399' }}>✓ {t('research.nct.filled')}</span>
 
-  // Autocompleta desde ClinicalTrials.gov al salir del campo NCT#.
-  async function handleNctBlur() {
-    const nct = (newLead[NCT_COLUMN] || '').trim()
-    if (!nct) { setNctHint(null); return }
-    setNctHint(<span style={{ color: t3 }}>{t('research.nct.searching')}</span>)
-    const { study, error } = await fetchStudyByNCT(nct)
-    if (error) { setNctHint(<span style={{ color: '#F87171' }}>{t(error)}</span>); return }
+  // Mergea un estudio de CT.gov: rellena vacíos y, si hay conflictos, abre el popup de elección.
+  function mergeStudy(study: Record<string, any>) {
     const { fills, conflicts: conf } = splitStudyMerge(newLead, study)
     setNewLead((p: any) => ({ ...p, ...fills })) // vacíos: rellenar sin preguntar
     if (conf.length) {
@@ -64,11 +62,51 @@ export default function LeadFormModal() {
     }
   }
 
+  // Autocompleta desde ClinicalTrials.gov al salir del campo NCT#.
+  async function handleNctBlur() {
+    const nct = (newLead[NCT_COLUMN] || '').trim()
+    if (!nct) { setNctHint(null); return }
+    setNctHint(<span style={{ color: t3 }}>{t('research.nct.searching')}</span>)
+    const { study, error } = await fetchStudyByNCT(nct)
+    if (error) { setNctHint(<span style={{ color: '#F87171' }}>{t(error)}</span>); return }
+    mergeStudy(study)
+  }
+
+  // Busca el estudio por título en CT.gov, solo si el lead aún no tiene NCT# (crear o arreglar
+  // los sin código). Los candidatos se eligen en un popup → al elegir, rellena NCT# + campos.
+  async function handleTitleBlur() {
+    if ((newLead[NCT_COLUMN] || '').trim()) return // ya tiene código → no buscar
+    const title = (newLead[TITLE_COLUMN] || '').trim()
+    if (title.length < 8) { setTitleHint(null); return }
+    setTitleHint(<span style={{ color: t3 }}>{t('research.title.searching')}</span>)
+    const { studies, error } = await fetchStudiesByTitle(title)
+    if (error) { setTitleHint(null); return } // silencioso: no molestar si falla/corto
+    if (studies && studies.length) { setTitleMatches(studies); setTitleHint(null) }
+    else setTitleHint(<span style={{ color: t3 }}>{t('research.title.noMatch')}</span>)
+  }
+
+  function pickTitleMatch(study: Record<string, any>) {
+    setTitleMatches([])
+    mergeStudy(study) // rellena NCT# (vacío) + campos, con confirmación de conflictos
+  }
+
   function applyPicked() {
     const patch: Record<string, any> = {}
     for (const c of conflicts) if (picked.has(c.column)) patch[c.column] = c.incoming
     setNewLead((p: any) => ({ ...p, ...patch }))
     setConflicts([]); setNctHint(filledHint)
+  }
+
+  // onBlur/hint dependen de la columna: NCT# autocompleta; título busca en CT.gov.
+  const onBlurFor = (col: string) => col === NCT_COLUMN ? handleNctBlur : col === TITLE_COLUMN ? handleTitleBlur : undefined
+  function hintFor(col: string): React.ReactNode {
+    if (col === NCT_COLUMN) {
+      return nctDup
+        ? <button onClick={openDup} style={{ background: 'none', border: 'none', padding: 0, color: accent, fontSize: 10, fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}>{t('research.form.openExisting')} →</button>
+        : nctHint
+    }
+    if (col === TITLE_COLUMN) return titleHint
+    return undefined
   }
 
   return (
@@ -86,10 +124,8 @@ export default function LeadFormModal() {
               {LEAD_FIELD_DEFS.filter(f => f.group === group).map(def => (
                 <LeadFormField key={def.column} def={def} value={newLead[def.column]}
                   onChange={v => setField(def.column, v)}
-                  onBlur={def.column === NCT_COLUMN ? handleNctBlur : undefined}
-                  hint={def.column === NCT_COLUMN ? (nctDup
-                    ? <button onClick={openDup} style={{ background: 'none', border: 'none', padding: 0, color: accent, fontSize: 10, fontWeight: 600, textDecoration: 'underline', cursor: 'pointer' }}>{t('research.form.openExisting')} →</button>
-                    : nctHint) : undefined}
+                  onBlur={onBlurFor(def.column)}
+                  hint={hintFor(def.column)}
                   error={errors[def.column]} />
               ))}
             </div>
@@ -105,6 +141,10 @@ export default function LeadFormModal() {
       {conflicts.length > 0 && (
         <NctConflictModal conflicts={conflicts} labelByCol={LABEL_BY_COL} picked={picked} setPicked={setPicked}
           onApply={applyPicked} onCancel={() => { setConflicts([]); setNctHint(filledHint) }} />
+      )}
+
+      {titleMatches.length > 0 && (
+        <TitleMatchModal studies={titleMatches} onPick={pickTitleMatch} onCancel={() => setTitleMatches([])} />
       )}
     </div>
   )

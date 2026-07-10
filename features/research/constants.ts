@@ -17,6 +17,7 @@ export const COUNTRY_FLAGS: Record<string, string> = {
 
 // — NCT# (identificador del estudio en ClinicalTrials.gov) — fuente única, no repetir literales.
 export const NCT_COLUMN = 'nct_number'
+export const TITLE_COLUMN = 'official_title' // se usa para buscar el estudio por título en CT.gov
 export const NCT_RE = /^NCT\d{8}$/i
 export const CLINICAL_TRIALS_BASE = 'https://clinicaltrials.gov'
 // Normaliza un NCT# para comparar/indexar/consultar: sin espacios, en mayúsculas.

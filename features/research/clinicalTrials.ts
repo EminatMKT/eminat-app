@@ -20,6 +20,34 @@ function normDate(d?: string): string | undefined {
 }
 
 export type NctResult = { study?: Record<string, any>; error?: I18nKey }
+export type TitleResult = { studies?: Record<string, any>[]; error?: I18nKey }
+
+// Mapea un protocolSection de CT.gov a un parcial con COLUMNAS REALES de research_leads,
+// descartando vacíos (el merge no debe pisar con strings vacíos). Reusado por NCT# y título.
+export function studyFromProtocol(p: any): Record<string, any> {
+  const idm = p.identificationModule || {}, st = p.statusModule || {}, des = p.designModule || {}
+  const cond = p.conditionsModule || {}, spo = p.sponsorCollaboratorsModule || {}, loc = p.contactsLocationsModule || {}, desc = p.descriptionModule || {}
+  const lead = spo.leadSponsor || {}
+  const countries = Array.from(new Set(((loc.locations || []) as any[]).map(l => l.country).filter(Boolean))).sort()
+
+  const study: Record<string, any> = {
+    [NCT_COLUMN]: idm.nctId,
+    official_title: idm.officialTitle || idm.briefTitle,
+    brief_explanation: desc.briefSummary,
+    conditions: (cond.conditions || []).join(', '),
+    phase: (des.phases || []).map((x: string) => PHASE_MAP[x] || prettify(x)).join(', '),
+    study_type: TYPE_MAP[des.studyType] || prettify(des.studyType || ''),
+    recruitment_status: STATUS_MAP[st.overallStatus] || prettify(st.overallStatus || ''),
+    study_start_date: normDate(st.startDateStruct?.date),
+    primary_completion_date: normDate(st.primaryCompletionDateStruct?.date),
+    lead_sponsor: lead.name,
+    sponsor_type: prettify(lead.class || ''),
+    countries: countries.join(', '),
+    record_link: idm.nctId ? `${CLINICAL_TRIALS_BASE}/study/${idm.nctId}` : undefined,
+  }
+  for (const k of Object.keys(study)) if (study[k] === '' || study[k] == null) delete study[k]
+  return study
+}
 
 export async function fetchStudyByNCT(nctRaw: string): Promise<NctResult> {
   const nct = normNct(nctRaw)
@@ -36,31 +64,24 @@ export async function fetchStudyByNCT(nctRaw: string): Promise<NctResult> {
 
   let json: any
   try { json = await res.json() } catch { return { error: 'research.nct.error' } }
+  return { study: studyFromProtocol(json.protocolSection || {}) }
+}
 
-  const p = json.protocolSection || {}
-  const idm = p.identificationModule || {}, st = p.statusModule || {}, des = p.designModule || {}
-  const cond = p.conditionsModule || {}, spo = p.sponsorCollaboratorsModule || {}, loc = p.contactsLocationsModule || {}, desc = p.descriptionModule || {}
-  const lead = spo.leadSponsor || {}
-  const countries = Array.from(new Set(((loc.locations || []) as any[]).map(l => l.country).filter(Boolean))).sort()
+// Busca estudios por título en CT.gov (query.titles). Devuelve hasta 5 candidatos mapeados
+// para que el usuario elija cuál es su estudio (útil en leads sin NCT#). Errores research.title.*.
+export async function fetchStudiesByTitle(titleRaw: string): Promise<TitleResult> {
+  const title = (titleRaw || '').trim()
+  if (title.length < 8) return { error: 'research.title.tooShort' }
 
-  const study: Record<string, any> = {
-    [NCT_COLUMN]: idm.nctId || nct,
-    official_title: idm.officialTitle || idm.briefTitle,
-    brief_explanation: desc.briefSummary,
-    conditions: (cond.conditions || []).join(', '),
-    phase: (des.phases || []).map((x: string) => PHASE_MAP[x] || prettify(x)).join(', '),
-    study_type: TYPE_MAP[des.studyType] || prettify(des.studyType || ''),
-    recruitment_status: STATUS_MAP[st.overallStatus] || prettify(st.overallStatus || ''),
-    study_start_date: normDate(st.startDateStruct?.date),
-    primary_completion_date: normDate(st.primaryCompletionDateStruct?.date),
-    lead_sponsor: lead.name,
-    sponsor_type: prettify(lead.class || ''),
-    countries: countries.join(', '),
-    record_link: `${CLINICAL_TRIALS_BASE}/study/${idm.nctId || nct}`,
-  }
-  // Descartar vacíos: el merge no debe pisar lo que el usuario ya cargó con strings vacíos.
-  for (const k of Object.keys(study)) if (study[k] === '' || study[k] == null) delete study[k]
-  return { study }
+  const url = `${CLINICAL_TRIALS_BASE}/api/v2/studies?query.titles=${encodeURIComponent(title)}&pageSize=5&fields=protocolSection`
+  let res: Response
+  try { res = await fetch(url) } catch { return { error: 'research.title.error' } }
+  if (!res.ok) return { error: 'research.title.error' }
+
+  let json: any
+  try { json = await res.json() } catch { return { error: 'research.title.error' } }
+  const studies = ((json.studies || []) as any[]).map(s => studyFromProtocol(s.protocolSection || {})).filter(s => s[NCT_COLUMN])
+  return { studies }
 }
 
 // Separa lo que trae CT.gov en: `fills` (campos vacíos en el lead → rellenar sin preguntar)
