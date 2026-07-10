@@ -15,4 +15,11 @@ export const COUNTRY_FLAGS: Record<string, string> = {
 
 // Los campos de un lead (form/export/import/validación) viven en ./fields.ts.
 
+// — NCT# (identificador del estudio en ClinicalTrials.gov) — fuente única, no repetir literales.
+export const NCT_COLUMN = 'nct_number'
+export const NCT_RE = /^NCT\d{8}$/i
+export const CLINICAL_TRIALS_BASE = 'https://clinicaltrials.gov'
+// Normaliza un NCT# para comparar/indexar/consultar: sin espacios, en mayúsculas.
+export const normNct = (v: any) => (v ?? '').toString().trim().toUpperCase()
+
 export const MAIL_ESTADO_COLOR: Record<string, string> = { Borrador: '#9CA3AF', Programado: '#60A5FA', Enviado: '#34D399', Cancelado: '#F87171' }

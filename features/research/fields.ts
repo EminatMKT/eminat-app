@@ -5,7 +5,7 @@
 // LEAD_FIELDS / FIELD_LABELS / CSV_COLUMN_MAP sueltos, que usaban nombres amigables
 // distintos de las columnas y rompían el guardado, la edición, el detalle y el import.
 // Las etiquetas y mensajes son claves i18n (ver shared/i18n) — nada de texto hardcodeado.
-import { PIPELINE_COLS } from './constants'
+import { PIPELINE_COLS, NCT_COLUMN } from './constants'
 import type { I18nKey } from '@/shared/i18n'
 
 export type LeadFieldType = 'text' | 'email' | 'tel' | 'url' | 'date' | 'textarea' | 'select' | 'datalist' | 'checkbox'
@@ -36,7 +36,7 @@ export const GROUP_LABEL_KEY: Record<LeadFieldGroup, I18nKey> = {
 export const LEAD_FIELD_DEFS: LeadFieldDef[] = [
   // — Estudio —
   { column: 'date_added', labelKey: 'research.field.date_added', type: 'date', group: 'Estudio' },
-  { column: 'nct_number', labelKey: 'research.field.nct_number', type: 'text', group: 'Estudio' },
+  { column: NCT_COLUMN, labelKey: 'research.field.nct_number', type: 'text', group: 'Estudio' },
   { column: 'official_title', labelKey: 'research.field.official_title', type: 'text', group: 'Estudio', fullWidth: true, required: true },
   { column: 'conditions', labelKey: 'research.field.conditions', type: 'text', group: 'Estudio' },
   { column: 'brief_explanation', labelKey: 'research.field.brief_explanation', type: 'textarea', group: 'Estudio', fullWidth: true },
@@ -112,7 +112,7 @@ export function validateLead(data: Record<string, any>): I18nKey | null {
   const val = (c: string) => (data[c] ?? '').toString().trim()
   if (!val('official_title')) return 'research.validation.title'
   if (!val('stage')) return 'research.validation.stage'
-  if (!val('nct_number') && !val('contact_name') && !val('contact_email')) return 'research.validation.nctOrContact'
+  if (!val(NCT_COLUMN) && !val('contact_name') && !val('contact_email')) return 'research.validation.nctOrContact'
   for (const c of ['contact_email', 'contact2_email']) {
     const v = val(c)
     if (v && !EMAIL_RE.test(v)) return 'research.validation.email'

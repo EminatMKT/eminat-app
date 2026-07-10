@@ -1,6 +1,7 @@
 // Planificación pura de una importación de leads. Decide insert/update/skip según el modo
 // de duplicados y el match por NCT# contra los leads ya existentes. Sin React, sin red.
 import { leadColumnFor, coerceLeadValue } from './fields'
+import { normNct } from './constants'
 
 export type DupMode = 'update' | 'skip' | 'duplicate'
 
@@ -11,7 +12,6 @@ export interface ImportPlan {
 }
 
 const normHeader = (h: string) => h.trim().toLowerCase().replace(/ /g, '_').replace(/#/g, '')
-const normNct = (v: any) => (v ?? '').toString().trim().toUpperCase()
 
 // header (columna real o alias legacy) → columna real; null = ignorar.
 export function guessMapping(headers: string[]): (string | null)[] {

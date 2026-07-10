@@ -3,26 +3,47 @@ import { useState } from 'react'
 import { RESEARCH_THEME } from '../../theme'
 import { useT } from '@/shared/i18n'
 import { LEAD_FIELD_DEFS, LEAD_GROUPS, GROUP_LABEL_KEY } from '../../fields'
-import { fetchStudyByNCT } from '../../clinicalTrials'
+import { fetchStudyByNCT, splitStudyMerge, type StudyConflict } from '../../clinicalTrials'
+import { NCT_COLUMN } from '../../constants'
 import { useResearch } from '../ResearchContext'
 import LeadFormField from './LeadFormField'
+import NctConflictModal from './NctConflictModal'
+
+const LABEL_BY_COL = Object.fromEntries(LEAD_FIELD_DEFS.map(f => [f.column, f.labelKey]))
 
 export default function LeadFormModal() {
   const { s1, border, t1, t2, t3, accent } = RESEARCH_THEME
   const { t } = useT()
   const { modalNewLead, newLead, setNewLead, editingLead, closeLeadForm, saveLead } = useResearch()
   const [nctHint, setNctHint] = useState<React.ReactNode>(null)
+  const [conflicts, setConflicts] = useState<StudyConflict[]>([])
+  const [picked, setPicked] = useState<Set<string>>(new Set())
   if (!modalNewLead) return null
+
+  const filledHint = <span style={{ color: '#34D399' }}>✓ {t('research.nct.filled')}</span>
 
   // Autocompleta desde ClinicalTrials.gov al salir del campo NCT#.
   async function handleNctBlur() {
-    const nct = (newLead.nct_number || '').trim()
+    const nct = (newLead[NCT_COLUMN] || '').trim()
     if (!nct) { setNctHint(null); return }
     setNctHint(<span style={{ color: t3 }}>{t('research.nct.searching')}</span>)
     const { study, error } = await fetchStudyByNCT(nct)
     if (error) { setNctHint(<span style={{ color: '#F87171' }}>{t(error)}</span>); return }
-    setNewLead((p: any) => ({ ...p, ...study }))
-    setNctHint(<span style={{ color: '#34D399' }}>✓ {t('research.nct.filled')}</span>)
+    const { fills, conflicts: conf } = splitStudyMerge(newLead, study)
+    setNewLead((p: any) => ({ ...p, ...fills })) // vacíos: rellenar sin preguntar
+    if (conf.length) {
+      setConflicts(conf); setPicked(new Set()) // conflictos: el usuario elige cuáles pisar
+      setNctHint(<span style={{ color: t3 }}>{t('research.nct.conflicts', { n: conf.length })}</span>)
+    } else {
+      setNctHint(filledHint)
+    }
+  }
+
+  function applyPicked() {
+    const patch: Record<string, any> = {}
+    for (const c of conflicts) if (picked.has(c.column)) patch[c.column] = c.incoming
+    setNewLead((p: any) => ({ ...p, ...patch }))
+    setConflicts([]); setNctHint(filledHint)
   }
 
   return (
@@ -40,8 +61,8 @@ export default function LeadFormModal() {
               {LEAD_FIELD_DEFS.filter(f => f.group === group).map(def => (
                 <LeadFormField key={def.column} def={def} value={newLead[def.column]}
                   onChange={v => setNewLead((p: any) => ({ ...p, [def.column]: v }))}
-                  onBlur={def.column === 'nct_number' ? handleNctBlur : undefined}
-                  hint={def.column === 'nct_number' ? nctHint : undefined} />
+                  onBlur={def.column === NCT_COLUMN ? handleNctBlur : undefined}
+                  hint={def.column === NCT_COLUMN ? nctHint : undefined} />
               ))}
             </div>
           </div>
@@ -52,6 +73,11 @@ export default function LeadFormModal() {
           <button onClick={async () => { const ok = await saveLead(newLead); if (ok) closeLeadForm() }} style={{ flex: 2, padding: '10px', borderRadius: 10, background: accent, color: 'white', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{t(editingLead ? 'research.form.save' : 'research.form.create')}</button>
         </div>
       </div>
+
+      {conflicts.length > 0 && (
+        <NctConflictModal conflicts={conflicts} labelByCol={LABEL_BY_COL} picked={picked} setPicked={setPicked}
+          onApply={applyPicked} onCancel={() => { setConflicts([]); setNctHint(filledHint) }} />
+      )}
     </div>
   )
 }

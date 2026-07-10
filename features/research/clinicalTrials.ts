@@ -3,8 +3,7 @@
 // desde el browser. Devuelve un parcial con COLUMNAS REALES de research_leads, listo para
 // mergear en el form. Errores como clave i18n (research.nct.*).
 import type { I18nKey } from '@/shared/i18n'
-
-const NCT_RE = /^NCT\d{8}$/i
+import { NCT_COLUMN, NCT_RE, CLINICAL_TRIALS_BASE, normNct } from './constants'
 
 const PHASE_MAP: Record<string, string> = { EARLY_PHASE1: 'Early Phase 1', PHASE1: 'Phase 1', PHASE2: 'Phase 2', PHASE3: 'Phase 3', PHASE4: 'Phase 4', NA: 'N/A' }
 const STATUS_MAP: Record<string, string> = { RECRUITING: 'Recruiting', NOT_YET_RECRUITING: 'Not yet recruiting', ENROLLING_BY_INVITATION: 'Enrolling by invitation', ACTIVE_NOT_RECRUITING: 'Active, not recruiting', COMPLETED: 'Completed', SUSPENDED: 'Suspended', TERMINATED: 'Terminated', WITHDRAWN: 'Withdrawn', UNKNOWN: 'Unknown status' }
@@ -23,12 +22,12 @@ function normDate(d?: string): string | undefined {
 export type NctResult = { study?: Record<string, any>; error?: I18nKey }
 
 export async function fetchStudyByNCT(nctRaw: string): Promise<NctResult> {
-  const nct = (nctRaw || '').trim().toUpperCase()
+  const nct = normNct(nctRaw)
   if (!NCT_RE.test(nct)) return { error: 'research.nct.invalid' }
 
   let res: Response
   try {
-    res = await fetch(`https://clinicaltrials.gov/api/v2/studies/${nct}?fields=protocolSection`)
+    res = await fetch(`${CLINICAL_TRIALS_BASE}/api/v2/studies/${nct}?fields=protocolSection`)
   } catch {
     return { error: 'research.nct.error' }
   }
@@ -45,7 +44,7 @@ export async function fetchStudyByNCT(nctRaw: string): Promise<NctResult> {
   const countries = Array.from(new Set(((loc.locations || []) as any[]).map(l => l.country).filter(Boolean))).sort()
 
   const study: Record<string, any> = {
-    nct_number: idm.nctId || nct,
+    [NCT_COLUMN]: idm.nctId || nct,
     official_title: idm.officialTitle || idm.briefTitle,
     brief_explanation: desc.briefSummary,
     conditions: (cond.conditions || []).join(', '),
@@ -57,9 +56,24 @@ export async function fetchStudyByNCT(nctRaw: string): Promise<NctResult> {
     lead_sponsor: lead.name,
     sponsor_type: prettify(lead.class || ''),
     countries: countries.join(', '),
-    record_link: `https://clinicaltrials.gov/study/${idm.nctId || nct}`,
+    record_link: `${CLINICAL_TRIALS_BASE}/study/${idm.nctId || nct}`,
   }
   // Descartar vacíos: el merge no debe pisar lo que el usuario ya cargó con strings vacíos.
   for (const k of Object.keys(study)) if (study[k] === '' || study[k] == null) delete study[k]
   return { study }
+}
+
+// Separa lo que trae CT.gov en: `fills` (campos vacíos en el lead → rellenar sin preguntar)
+// y `conflicts` (campos con valor distinto → el usuario elige cuáles pisar). nct_number
+// siempre va a fills (solo se normaliza el casing del NCT que el usuario acaba de tipear).
+export type StudyConflict = { column: string; current: any; incoming: any }
+export function splitStudyMerge(current: Record<string, any>, study: Record<string, any>) {
+  const fills: Record<string, any> = {}
+  const conflicts: StudyConflict[] = []
+  for (const col of Object.keys(study)) {
+    const cur = current[col]
+    if (col === NCT_COLUMN || cur === undefined || cur === null || cur === '') { fills[col] = study[col]; continue }
+    if (String(cur) !== String(study[col])) conflicts.push({ column: col, current: cur, incoming: study[col] })
+  }
+  return { fills, conflicts }
 }

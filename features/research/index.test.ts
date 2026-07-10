@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import * as research from './index'
 import { EXPORT_HEADERS, leadColumnFor, validateLead, buildLeadPayload } from './fields'
-import { fetchStudyByNCT } from './clinicalTrials'
+import { fetchStudyByNCT, splitStudyMerge } from './clinicalTrials'
 
 describe('features/research API pública', () => {
   it('expone ResearchModule', () => {
@@ -53,6 +53,17 @@ describe('fetchStudyByNCT (validación de formato, sin red)', () => {
     expect(await fetchStudyByNCT('no-es-nct')).toEqual({ error: 'research.nct.invalid' })
     expect(await fetchStudyByNCT('')).toEqual({ error: 'research.nct.invalid' })
     expect(await fetchStudyByNCT('NCT123')).toEqual({ error: 'research.nct.invalid' })
+  })
+})
+
+describe('splitStudyMerge (autocompletado NCT# no destructivo)', () => {
+  it('rellena vacíos, normaliza el nct_number, y aísla conflictos sin pisar', () => {
+    const current = { nct_number: 'nct04', official_title: 'Título a mano', conditions: '', phase: 'Phase 2' }
+    const study = { nct_number: 'NCT04', official_title: 'Official Title', conditions: 'Cancer', phase: 'Phase 2' }
+    const { fills, conflicts } = splitStudyMerge(current, study)
+    // vacío (conditions) y nct_number (siempre) → fills; phase igual → nada; official_title distinto → conflicto
+    expect(fills).toEqual({ nct_number: 'NCT04', conditions: 'Cancer' })
+    expect(conflicts).toEqual([{ column: 'official_title', current: 'Título a mano', incoming: 'Official Title' }])
   })
 })
 
