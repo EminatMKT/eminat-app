@@ -19,6 +19,17 @@ export function useResearchData() {
 
   useEffect(() => { loadData() }, [])
 
+  // Realtime: el pool de leads es compartido → reflejar en vivo lo que suben/editan/borran
+  // otros usuarios sin refrescar. Dedup por id absorbe el eco de las acciones propias.
+  useEffect(() => {
+    const ch = researchRepo.subscribeToLeads<Lead>({
+      onInsert: row => setLeads(prev => prev.some(l => l.id === row.id) ? prev : [row, ...prev]),
+      onUpdate: row => setLeads(prev => prev.map(l => l.id === row.id ? { ...l, ...row } : l)),
+      onDelete: row => setLeads(prev => prev.filter(l => l.id !== row.id)),
+    })
+    return () => { researchRepo.removeChannel(ch) }
+  }, [])
+
   async function loadData() {
     const [{ data: l }, { data: a }, { data: c }] = await Promise.all([
       researchRepo.listLeads(),
