@@ -4,6 +4,8 @@ import { useT } from '@/shared/i18n'
 import { researchRepo, removeChannel } from '@/shared/data'
 import { PIPELINE_COLS } from '../constants'
 import { EXPORT_HEADERS, validateLead, buildLeadPayload } from '../fields'
+import { LEAD_FILTERS } from '../filters'
+import { applyFilters, type FilterValues } from '@/shared/lib/filters'
 import type { ImportPlan } from '../importPlan'
 import { escapeHtml } from '@/shared/lib/html'
 import type { Lead, Activity, Campaign } from '../types'
@@ -15,7 +17,7 @@ export function useResearchData() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [loading, setLoading] = useState(true)
-  const [filters, setFilters] = useState({ stage: '', phase: '', status: '', country: '', sponsor: '' })
+  const [filterValues, setFilterValues] = useState<FilterValues>({})
 
   useEffect(() => { loadData() }, [])
 
@@ -42,16 +44,9 @@ export function useResearchData() {
     setLoading(false)
   }
 
-  const filteredLeads = leads.filter(l => {
-    if (filters.stage && l.stage !== filters.stage) return false
-    if (filters.phase && String(l.phase) !== filters.phase) return false
-    if (filters.status && l.recruitment_status !== filters.status) return false
-    if (filters.country && !(l.countries || '').includes(filters.country)) return false
-    if (filters.sponsor && l.lead_sponsor !== filters.sponsor) return false
-    return true
-  })
-
-  const uniqueVals = (field: string) => Array.from(new Set(leads.map(l => l[field]).filter(Boolean)))
+  const filteredLeads = applyFilters(leads, LEAD_FILTERS, filterValues)
+  const setFilterValue = (key: string, value: string) => setFilterValues(p => ({ ...p, [key]: value }))
+  const clearFilters = () => setFilterValues({})
 
   const totalLeads = leads.length
   const activeLeads = leads.filter(l => !['Cerrado', 'Awarded'].includes(l.stage || '')).length
@@ -159,8 +154,8 @@ export function useResearchData() {
 
   return {
     leads, activities, campaigns, loading, setCampaigns,
-    filters, setFilters,
-    filteredLeads, uniqueVals,
+    filterValues, setFilterValue, clearFilters,
+    filteredLeads,
     totalLeads, activeLeads, awarded, inNeg,
     stageData, phaseData, sponsorData, countryData, countrySorted,
     saveLead, deleteLead, addActivity, updateStage, confirmImport, handleExport, handlePrint,
