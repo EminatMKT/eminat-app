@@ -16,6 +16,8 @@
 
 - [ ] **[Tema] Toggle claro/oscuro no funciona** — 🔄 **En PR #17, pendiente review del superior.** Resuelto: getTheme(dark)/useTheme + N-temas; toggle themea contenido, home, sidebar/topbar/submenú; research y accounting reconciliados. Falta solo el OK visual del superior para mergear (puede pedir que ciertas partes vayan siempre oscuras). _(creado por: EminatMKT · 2026-06-19)_
 
+- [ ] **[Form/NCT] Confirmar antes de sobreescribir al autocompletar por NCT#** — Hay muchos leads cargados **sin** NCT#. Si al **editar** uno de esos (que ya tiene título/condiciones/fase/etc. cargados a mano) se le pone el NCT# y se sale del campo, el autocompletado de ClinicalTrials.gov **pisa esos campos sin preguntar**: el merge es `setNewLead((p) => ({ ...p, ...study }))` en `features/research/components/leads/LeadFormModal.tsx` (`handleNctBlur`), y `study` (de `features/research/clinicalTrials.ts`) trae todas las claves no-vacías que devuelve la API. Propuesta: antes de mergear, si el estudio traído pisaría campos que el usuario **ya tiene con valor distinto**, mostrar un popup de confirmación (ej. "Se van a reemplazar N campos con datos de ClinicalTrials.gov: título, fase… ¿Continuar?") con opción de **cancelar** o quizá **mergear solo los vacíos**. Definir en el brainstorm: ¿pisar todo / solo vacíos / elegir campo por campo? _(creado por: EminatMKT · 2026-07-09)_
+
 ---
 
 ## Q2 — Importante, No Urgente
