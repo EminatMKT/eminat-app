@@ -6,6 +6,7 @@
 // distintos de las columnas y rompían el guardado, la edición, el detalle y el import.
 // Las etiquetas y mensajes son claves i18n (ver shared/i18n) — nada de texto hardcodeado.
 import { PIPELINE_COLS, NCT_COLUMN } from './constants'
+import { resolveToCanonical } from '@/shared/lib/canonical'
 import type { I18nKey } from '@/shared/i18n'
 
 export type LeadFieldType = 'text' | 'email' | 'tel' | 'url' | 'date' | 'textarea' | 'select' | 'datalist' | 'checkbox'
@@ -83,21 +84,6 @@ export const LEAD_FIELD_DEFS: LeadFieldDef[] = [
 ]
 
 const LEAD_COLUMNS = LEAD_FIELD_DEFS.map(f => f.column)
-
-// Resolutor genérico: mapea un texto libre a un valor canónico de un conjunto conocido, vía
-// match exacto (case-insensitive), tabla de alias, o un derivador a medida. null = no reconocido.
-// Es el mismo problema para encabezado→columna y para valor→dominio, así que ambos lo usan.
-export function resolveToCanonical(
-  raw: string,
-  canonical: readonly string[],
-  opts?: { aliases?: Record<string, string>; derive?: (v: string) => string | null },
-): string | null {
-  const v = (raw ?? '').trim()
-  if (!v) return null
-  const hit = canonical.find(c => c.toLowerCase() === v.toLowerCase())
-  if (hit) return hit
-  return opts?.aliases?.[v.toLowerCase()] ?? opts?.derive?.(v) ?? null
-}
 
 // Aliases de headers CSV legacy (nombres amigables) -> columna real, para importar
 // archivos exportados con el formato viejo. Las columnas reales se aceptan tal cual.

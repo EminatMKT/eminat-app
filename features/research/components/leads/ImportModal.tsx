@@ -4,7 +4,7 @@ import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { RESEARCH_THEME, inputStyle } from '../../theme'
 import { LEAD_FIELD_DEFS, DOMAIN_FIELDS, domainOptions, normalizeDomainValue } from '../../fields'
-import { detectSeparator, parseDelimited } from '../../delimited'
+import { detectSeparator, parseDelimited } from '@/shared/lib/delimited'
 import { guessMapping, indexByNct, buildImportPlan, type DupMode, type ValueMap } from '../../importPlan'
 import { useResearch } from '../ResearchContext'
 

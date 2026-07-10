@@ -1,10 +1,5 @@
 import { supabase } from '@/shared/db/supabase'
-import {
-  REALTIME_LISTEN_TYPES,
-  REALTIME_POSTGRES_CHANGES_LISTEN_EVENT as CHANGE,
-  type RealtimeChannel,
-  type RealtimePostgresChangesPayload,
-} from '@supabase/supabase-js'
+import { subscribeToTable, type RealtimeChannel, type RowChangeHandlers } from './realtime'
 import { TABLES, COLUMNS } from './tables'
 
 // Capa de acceso a datos del dominio Research:
@@ -32,29 +27,9 @@ export const insertLeads = (records: any[]) =>
   supabase.from(TABLES.researchLeads).insert(records).select()
 
 // Realtime: propaga a todos los usuarios del módulo los INSERT/UPDATE/DELETE sobre el
-// pool compartido (research_leads no es por-usuario). El dispatch por-evento vive acá:
-// el consumidor recibe callbacks tipados y nunca compara strings. Dedup por id de su lado.
-export interface RowChangeHandlers<T> {
-  onInsert?: (row: T) => void
-  onUpdate?: (row: T) => void
-  onDelete?: (row: Partial<T>) => void
-}
-
+// pool compartido (research_leads no es por-usuario). Dedup por id del lado del consumidor.
 export const subscribeToLeads = <T extends { id: string }>(h: RowChangeHandlers<T>): RealtimeChannel =>
-  supabase
-    .channel(`realtime:${TABLES.researchLeads}`)
-    .on<T>(
-      REALTIME_LISTEN_TYPES.POSTGRES_CHANGES,
-      { event: CHANGE.ALL, schema: 'public', table: TABLES.researchLeads },
-      payload => {
-        if (payload.eventType === CHANGE.INSERT) h.onInsert?.(payload.new)
-        else if (payload.eventType === CHANGE.UPDATE) h.onUpdate?.(payload.new)
-        else if (payload.eventType === CHANGE.DELETE) h.onDelete?.(payload.old)
-      },
-    )
-    .subscribe()
-
-export const removeChannel = (channel: RealtimeChannel) => supabase.removeChannel(channel)
+  subscribeToTable<T>({ channel: `realtime:${TABLES.researchLeads}`, table: TABLES.researchLeads }, h)
 
 // --- research_activities ---
 

@@ -1,4 +1,5 @@
 import { supabase } from '@/shared/db/supabase'
+import { subscribeToTable } from './realtime'
 import { TABLES, COLUMNS } from './tables'
 
 // Capa de acceso a datos para la tabla `notificaciones`.
@@ -22,14 +23,4 @@ export const markAllRead = () =>
 // Suscripción realtime a inserts de notificaciones del usuario.
 // Devuelve el canal para que el caller pueda hacer supabase.removeChannel(canal).
 export const subscribeToUserNotifs = (userId: string, onInsert: (row: any) => void) =>
-  supabase
-    .channel(`notif-${userId}`)
-    .on(
-      'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: TABLES.notificaciones, filter: `usuario_id=eq.${userId}` },
-      (payload: any) => onInsert(payload.new)
-    )
-    .subscribe()
-
-// Remueve un canal realtime previamente creado.
-export const removeChannel = (channel: any) => supabase.removeChannel(channel)
+  subscribeToTable({ channel: `notif-${userId}`, table: TABLES.notificaciones, filter: `usuario_id=eq.${userId}` }, { onInsert })

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
-import { researchRepo } from '@/shared/data'
+import { researchRepo, removeChannel } from '@/shared/data'
 import { PIPELINE_COLS } from '../constants'
 import { EXPORT_HEADERS, validateLead, buildLeadPayload } from '../fields'
 import type { ImportPlan } from '../importPlan'
@@ -27,7 +27,7 @@ export function useResearchData() {
       onUpdate: row => setLeads(prev => prev.map(l => l.id === row.id ? { ...l, ...row } : l)),
       onDelete: row => setLeads(prev => prev.filter(l => l.id !== row.id)),
     })
-    return () => { researchRepo.removeChannel(ch) }
+    return () => { removeChannel(ch) }
   }, [])
 
   async function loadData() {
