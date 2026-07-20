@@ -15,7 +15,7 @@ export default function LeadFormField({ def, value, onChange, onBlur, hint, help
         return (
           <select value={v} onChange={e => onChange(e.target.value)} style={style}>
             <option value="">{t('research.common.select')}</option>
-            {def.options?.map(o => <option key={o} value={o}>{o}</option>)}
+            {def.options?.map(o => <option key={o} value={o}>{def.optionLabelKey?.[o] ? t(def.optionLabelKey[o]) : o}</option>)}
           </select>
         )
       case 'datalist':

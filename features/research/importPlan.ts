@@ -1,7 +1,7 @@
 // Planificación pura de una importación de leads. Decide insert/update/skip según el modo
 // de duplicados y el match por NCT# contra los leads ya existentes. Sin React, sin red.
 import { leadColumnFor, coerceLeadValue, normalizeDomainValue } from './fields'
-import { normNct } from './constants'
+import { normNct, DEFAULT_STAGE } from './constants'
 
 // NCT# es único (research_leads_nct_number_key): no existe "duplicar" un NCT ya presente.
 // Filas sin NCT# (o con NCT nuevo) siempre insertan; con NCT existente: update o skip.
@@ -54,7 +54,12 @@ export function buildImportPlan(input: {
     // Descartar filas sin ningún valor (todas las celdas mapeadas vacías → null).
     if (!Object.values(values).some(v => v !== null)) continue
     const id = existingByNct.get(normNct(values.nct_number))
-    if (!id) { plan.toInsert.push(values); continue } // sin match (o sin NCT#) → insertar
+    if (!id) {
+      // Insert: si el CSV no trae stage (columna ausente o celda vacía), arranca en la etapa default.
+      if (values.stage == null) values.stage = DEFAULT_STAGE
+      plan.toInsert.push(values)
+      continue
+    }
     if (dupMode === 'skip') { plan.skipped++; continue }
     plan.toUpdate.push({ id, values }) // 'update'
   }

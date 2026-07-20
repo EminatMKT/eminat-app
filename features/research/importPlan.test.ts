@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { guessMapping, indexByNct, buildImportPlan } from './importPlan'
+import { DEFAULT_STAGE, STAGE } from './constants'
 
 describe('guessMapping', () => {
   it('resuelve columnas reales, aliases legacy y marca desconocidas como null', () => {
@@ -57,5 +58,32 @@ describe('buildImportPlan', () => {
     const m = ['nct_number', 'phase'] as (string | null)[]
     const p = buildImportPlan({ rows: [['NCTa', '9']], mapping: m, existingByNct: new Map(), dupMode: 'update', valueMap: { phase: { '9': 'Phase 4' } } })
     expect(p.toInsert[0].phase).toBe('Phase 4')
+  })
+})
+
+describe('default de stage en import', () => {
+  const mapping = ['nct_number', 'official_title', 'stage']
+  it('un insert sin stage arranca en la etapa default', () => {
+    const plan = buildImportPlan({
+      rows: [['NCT00000001', 'Estudio A', '']],
+      mapping, existingByNct: new Map(), dupMode: 'update',
+    })
+    expect(plan.toInsert).toHaveLength(1)
+    expect(plan.toInsert[0].stage).toBe(DEFAULT_STAGE)
+  })
+  it('un insert con stage explícito lo respeta', () => {
+    const plan = buildImportPlan({
+      rows: [['NCT00000002', 'Estudio B', STAGE.GANADO]],
+      mapping, existingByNct: new Map(), dupMode: 'update',
+    })
+    expect(plan.toInsert[0].stage).toBe(STAGE.GANADO)
+  })
+  it('un update sin stage NO fuerza el default (no pisa el valor existente)', () => {
+    const plan = buildImportPlan({
+      rows: [['NCT00000003', 'Estudio C', '']],
+      mapping, existingByNct: new Map([['NCT00000003', 'id-3']]), dupMode: 'update',
+    })
+    expect(plan.toUpdate).toHaveLength(1)
+    expect(plan.toUpdate[0].values.stage ?? null).toBeNull()
   })
 })

@@ -1,3 +1,6 @@
+// ponytail: componente oculto por pedido de dirección (reunión 2026-07-20). No borrar — restaurar
+// descomentando este archivo y su uso en DashboardTab ("Leads by Country"). Ver .todo Q1.
+/*
 import { RESEARCH_THEME } from '../theme'
 import { COUNTRY_FLAGS } from '../constants'
 
@@ -11,3 +14,4 @@ export default function CountryChip({ country, count }: { country: string; count
     </div>
   )
 }
+*/

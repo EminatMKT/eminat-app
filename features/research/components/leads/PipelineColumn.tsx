@@ -1,12 +1,13 @@
 'use client'
 import { RESEARCH_THEME } from '../../theme'
-import { PIPELINE_COLORS } from '../../constants'
+import { PIPELINE_COLORS, stageLabel } from '../../constants'
+import { useT } from '@/shared/i18n'
 import { useResearch } from '../ResearchContext'
 import PipelineCard from './PipelineCard'
-import type { Lead } from '../../types'
+import type { Lead, Stage } from '../../types'
 
 type Props = {
-  col: string
+  col: Stage
   leads: Lead[]
   dragId: string | null
   setDragId: (id: string | null) => void
@@ -17,6 +18,7 @@ type Props = {
 export default function PipelineColumn({ col, leads, dragId, setDragId, dragOver, setDragOver }: Props) {
   const { s1, s2, border, t1, t3 } = RESEARCH_THEME
   const { updateStage, setModalLead } = useResearch()
+  const { t } = useT()
   const colLeads = leads.filter(l => l.stage === col)
   return (
     <div
@@ -25,7 +27,7 @@ export default function PipelineColumn({ col, leads, dragId, setDragId, dragOver
       onDragLeave={() => setDragOver(null)}
       style={{ flex: 1, minWidth: 170, borderRadius: 14, background: dragOver === col ? `${PIPELINE_COLORS[col]}08` : s2, border: dragOver === col ? `2px dashed ${PIPELINE_COLORS[col]}` : `1px solid ${border}`, transition: 'all .15s' }}>
       <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `2px solid ${PIPELINE_COLORS[col]}` }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: t1 }}>{col}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: t1 }}>{stageLabel(col, t)}</span>
         <span style={{ fontSize: 10, color: t3, background: s1, padding: '1px 7px', borderRadius: 10, fontFamily: 'DM Mono' }}>{colLeads.length}</span>
       </div>
       <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: 6, minHeight: 80 }}>
