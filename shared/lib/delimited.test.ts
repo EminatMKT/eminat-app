@@ -34,4 +34,10 @@ describe('parseDelimited', () => {
   it('parsea con tab como separador', () => {
     expect(parseDelimited('a\tb\n1\t2', '\t').rows).toEqual([['1', '2']])
   })
+  it('un salto de línea dentro de comillas NO parte el registro (notes multilínea)', () => {
+    const csv = 'title,notes\n"Estudio X","Llamé al sponsor.\nHablamos el lunes."'
+    const { rows } = parseDelimited(csv, ',')
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toEqual(['Estudio X', 'Llamé al sponsor.\nHablamos el lunes.'])
+  })
 })

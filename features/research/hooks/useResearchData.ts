@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { researchRepo, removeChannel } from '@/shared/data'
-import { PIPELINE_COLS } from '../constants'
+import { STAGE } from '../constants'
 import { EXPORT_HEADERS, validateLead, buildLeadPayload } from '../fields'
 import { LEAD_FILTERS } from '../filters'
 import { applyFilters, type FilterValues } from '@/shared/lib/filters'
 import type { ImportPlan } from '../importPlan'
 import { escapeHtml } from '@/shared/lib/html'
-import type { Lead, Activity, Campaign } from '../types'
+import type { Lead, Activity, Campaign, Stage } from '../types'
 
 export function useResearchData() {
   const { mostrarMensaje } = useApp()
@@ -49,12 +49,26 @@ export function useResearchData() {
   const clearFilters = () => setFilterValues({})
 
   const totalLeads = leads.length
-  const activeLeads = leads.filter(l => !['Cerrado', 'Awarded'].includes(l.stage || '')).length
-  const awarded = leads.filter(l => l.stage === 'Awarded').length
-  const inNeg = leads.filter(l => l.stage === 'Negociación').length
+  const activeLeads = leads.filter(l => l.stage === STAGE.NUEVO || l.stage === STAGE.CONTACTADO).length
+  const nuevos = leads.filter(l => l.stage === STAGE.NUEVO).length
+  const contactados = leads.filter(l => l.stage === STAGE.CONTACTADO).length
+  const ganados = leads.filter(l => l.stage === STAGE.GANADO).length
 
-  const stageData = PIPELINE_COLS.map(s => ({ name: s, value: leads.filter(l => l.stage === s).length })).filter(d => d.value > 0)
-  const phaseData = [1, 2, 3, 4].map(p => ({ name: `Phase ${p}`, value: leads.filter(l => Number(l.phase) === p).length }))
+  // Fiel a la tabla: agrupa por el stage REAL de cada lead (migrado o no). Nada se oculta por
+  // estado de migración; un valor legacy ('Awarded', etc.) aparece tal cual. null/'' → 'Sin etapa'.
+  const stageData = Object.entries(leads.reduce((m: Record<string, number>, l) => {
+    const s = (l.stage || '').trim() || 'Sin etapa'
+    m[s] = (m[s] || 0) + 1
+    return m
+  }, {})).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
+  // Fiel a la tabla, igual que stageData: agrupa por el valor REAL de phase (canónico 'Phase 2',
+  // combos, 'N/A' o legacy crudo '2'). El cómputo viejo (Number(phase)===1..4) no contaba los
+  // valores canónicos que guarda la app ('Phase 2' → NaN). null/'' → 'Sin fase'.
+  const phaseData = Object.entries(leads.reduce((m: Record<string, number>, l) => {
+    const p = (l.phase ?? '').toString().trim() || 'Sin fase'
+    m[p] = (m[p] || 0) + 1
+    return m
+  }, {})).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
   const sponsorData = Object.entries(leads.reduce((m: any, l) => { if (l.lead_sponsor) { m[l.lead_sponsor] = (m[l.lead_sponsor] || 0) + 1 } return m }, {}))
     .map(([name, value]) => ({ name, value: value as number }))
     .sort((a, b) => b.value - a.value).slice(0, 8)
@@ -96,7 +110,7 @@ export function useResearchData() {
     mostrarMensaje('ok', 'Actividad registrada')
   }
 
-  async function updateStage(leadId: string, newStage: string) {
+  async function updateStage(leadId: string, newStage: Stage) {
     await researchRepo.updateLeadStage(leadId, newStage)
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, stage: newStage } : l))
   }
@@ -156,7 +170,7 @@ export function useResearchData() {
     leads, activities, campaigns, loading, setCampaigns,
     filterValues, setFilterValue, clearFilters,
     filteredLeads,
-    totalLeads, activeLeads, awarded, inNeg,
+    totalLeads, activeLeads, nuevos, contactados, ganados,
     stageData, phaseData, sponsorData, countryData, countrySorted,
     saveLead, deleteLead, addActivity, updateStage, confirmImport, handleExport, handlePrint,
     duplicateCampaign, deleteCampaign,
