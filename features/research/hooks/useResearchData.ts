@@ -61,7 +61,14 @@ export function useResearchData() {
     m[s] = (m[s] || 0) + 1
     return m
   }, {})).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
-  const phaseData = [1, 2, 3, 4].map(p => ({ name: `Phase ${p}`, value: leads.filter(l => Number(l.phase) === p).length }))
+  // Fiel a la tabla, igual que stageData: agrupa por el valor REAL de phase (canónico 'Phase 2',
+  // combos, 'N/A' o legacy crudo '2'). El cómputo viejo (Number(phase)===1..4) no contaba los
+  // valores canónicos que guarda la app ('Phase 2' → NaN). null/'' → 'Sin fase'.
+  const phaseData = Object.entries(leads.reduce((m: Record<string, number>, l) => {
+    const p = (l.phase ?? '').toString().trim() || 'Sin fase'
+    m[p] = (m[p] || 0) + 1
+    return m
+  }, {})).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
   const sponsorData = Object.entries(leads.reduce((m: any, l) => { if (l.lead_sponsor) { m[l.lead_sponsor] = (m[l.lead_sponsor] || 0) + 1 } return m }, {}))
     .map(([name, value]) => ({ name, value: value as number }))
     .sort((a, b) => b.value - a.value).slice(0, 8)
