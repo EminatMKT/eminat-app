@@ -1,5 +1,6 @@
 'use client'
 import { RESEARCH_THEME } from '../../theme'
+import { STAGE } from '../../constants'
 import { useResearch } from '../ResearchContext'
 import StatCard from '../StatCard'
 import OpportunityRow from './OpportunityRow'
@@ -7,13 +8,14 @@ import OpportunityRow from './OpportunityRow'
 export default function OportunidadesTab() {
   const { s1, s2, border, t3 } = RESEARCH_THEME
   const { leads } = useResearch()
-  const opps = leads.filter(l => ['Awarded', 'Negociación'].includes(l.stage || ''))
+  // Oportunidad = lead ya trabajado con valor potencial: Contactado (en gestión) o Ganado (cerrado).
+  const opps = leads.filter(l => l.stage === STAGE.CONTACTADO || l.stage === STAGE.GANADO)
   const totalEstimado = opps.reduce((s, l) => s + (Number(l.valor_estimado) || 0), 0)
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 16 }}>
         <StatCard label="Pipeline Total" value={opps.length} color="#60A5FA" />
-        <StatCard label="Total Awarded" value={opps.filter(l => l.stage === 'Awarded').length} color="#34D399" />
+        <StatCard label="Total Ganado" value={opps.filter(l => l.stage === STAGE.GANADO).length} color="#34D399" />
         <StatCard label="Estimated Value" value={`$${totalEstimado.toLocaleString()}`} color="#FBB040" />
       </div>
       <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>

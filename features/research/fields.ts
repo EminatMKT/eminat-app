@@ -5,7 +5,7 @@
 // LEAD_FIELDS / FIELD_LABELS / CSV_COLUMN_MAP sueltos, que usaban nombres amigables
 // distintos de las columnas y rompían el guardado, la edición, el detalle y el import.
 // Las etiquetas y mensajes son claves i18n (ver shared/i18n) — nada de texto hardcodeado.
-import { PIPELINE_COLS, NCT_COLUMN } from './constants'
+import { PIPELINE_COLS, NCT_COLUMN, STAGE_LABEL_KEY } from './constants'
 import { resolveToCanonical } from '@/shared/lib/canonical'
 import type { I18nKey } from '@/shared/i18n'
 
@@ -20,6 +20,8 @@ export interface LeadFieldDef {
   fullWidth?: boolean
   required?: boolean
   options?: string[] // select / datalist
+  // Traduce el texto visible de cada opción (value se mantiene canónico). Solo display.
+  optionLabelKey?: Record<string, I18nKey>
   // Deriva un valor entrante no-exacto al dominio (import). null = no reconocido.
   normalize?: (raw: string) => string | null
 }
@@ -65,7 +67,7 @@ export const LEAD_FIELD_DEFS: LeadFieldDef[] = [
   { column: 'record_link', labelKey: 'research.field.record_link', type: 'url', group: 'Estudio', fullWidth: true },
   { column: 'lead_sponsor', labelKey: 'research.field.lead_sponsor', type: 'text', group: 'Estudio' },
   { column: 'sponsor_type', labelKey: 'research.field.sponsor_type', type: 'text', group: 'Estudio' },
-  { column: 'stage', labelKey: 'research.field.stage', type: 'select', group: 'Estudio', options: PIPELINE_COLS, required: true },
+  { column: 'stage', labelKey: 'research.field.stage', type: 'select', group: 'Estudio', options: PIPELINE_COLS, optionLabelKey: STAGE_LABEL_KEY, required: true },
   // — Contacto —
   { column: 'contact_name', labelKey: 'research.field.contact_name', type: 'text', group: 'Contacto' },
   { column: 'contact_role', labelKey: 'research.field.contact_role', type: 'text', group: 'Contacto' },

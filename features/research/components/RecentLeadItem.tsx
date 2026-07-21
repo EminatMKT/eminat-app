@@ -1,3 +1,6 @@
+// ponytail: componente oculto por pedido de dirección (reunión 2026-07-20). No borrar — restaurar
+// descomentando este archivo y su uso en DashboardTab (bloque "Recently added leads").
+/*
 import { RESEARCH_THEME } from '../theme'
 import StageBadge from './StageBadge'
 import type { Lead } from '../types'
@@ -15,3 +18,4 @@ export default function RecentLeadItem({ lead: l }: { lead: Lead }) {
     </div>
   )
 }
+*/

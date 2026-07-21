@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Lead, Campaign } from '../types'
+import { DEFAULT_STAGE } from '../constants'
 
 // Estado de apertura de modales, compartido entre header, tabs y pipeline.
 export function useResearchModals() {
@@ -13,7 +14,7 @@ export function useResearchModals() {
   // Modal del wizard de mailing: null = cerrado; { campaign, step } al abrir.
   const [mailModal, setMailModal] = useState<{ campaign: Campaign | null; step: number } | null>(null)
 
-  const openNewLead = () => { setNewLead({}); setEditingLead(null); setModalNewLead(true) }
+  const openNewLead = () => { setNewLead({ stage: DEFAULT_STAGE }); setEditingLead(null); setModalNewLead(true) }
   const openEditLead = (l: Lead) => { setNewLead(l); setEditingLead(l); setModalLead(null); setModalNewLead(true) }
   const closeLeadForm = () => { setModalNewLead(false); setEditingLead(null) }
   const openMailModal = (campaign: Campaign | null, step = 0) => setMailModal({ campaign, step })

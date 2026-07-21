@@ -1,5 +1,21 @@
 // Filas de Supabase (research_leads/activities/campaigns). Campos dinámicos →
 // tipamos los conocidos y dejamos índice abierto para el resto.
+import type { I18nKey } from '@/shared/i18n'
+
+// — Etapas propias del CRM (columna research_leads.stage) —
+// Union canónica: los valores EXACTOS que se guardan (la migración manual mapea a estos).
+// El mapa de datos `STAGE_META` (constants.ts) se valida `satisfies Record<Stage, StageMeta>`
+// → si allá falta o sobra una etapa, es error de tsc (no pueden desincronizarse).
+export type Stage = 'Nuevo' | 'Contactado' | 'Ganado' | 'Sin respuesta'
+
+// Metadata de display por etapa (clave i18n + color). El DATO vive en constants.ts (STAGE_META).
+export type StageMeta = { labelKey: I18nKey; color: string }
+
+// Valor que puede tener la columna `stage`: una etapa canónica (con autocomplete) O un string
+// legacy sin migrar. El `& {}` preserva las sugerencias del union sin cerrar el tipo — la DB
+// puede tener valores viejos durante la transición (la migración de datos es manual).
+export type StageValue = Stage | (string & {})
+
 export interface Lead {
   id: string
   date_added?: string
@@ -26,7 +42,7 @@ export interface Lead {
   contact2_role?: string
   contact2_email?: string
   contact2_phone?: string
-  stage?: string
+  stage?: StageValue
   next_followup_date?: string
   email_date?: string
   notes?: string

@@ -2,9 +2,11 @@
 
 _Última actualización: 2026-07-10_
 
-## Research: lead form + CT.gov + import + filtros (rama `fix/research-lead-form-campos-validaciones`, cerrado 2026-07-10)
+## Research: lead form + CT.gov + import + filtros (rama `fix/research-lead-form-campos-validaciones`, **entregado a prod 2026-07-10**)
 
-_Código completo (suite 95/95, tsc 0). Pendiente solo la entrega: migraciones Supabase dev+prod y PR → development._
+_Código completo (suite 95/95, tsc 0). **Entrega cerrada:** migración `20260710130000_realtime_research_leads` pusheada a dev (`ydcadspinryybextlvyi`) + prod (`ruedelunbtaomhrzgelc`); PR #31 → development, PR #32 (release) → main → **deploy a prod**, PR #33 back-merge main → development (3 ramas en sync). Smoke test de Realtime (INSERT/UPDATE/DELETE en vivo) verificado._
+
+- [x] **[Datos/prod] Deduplicar `research_leads` en prod (105 → 35)** — el pool tenía cada ensayo triplicado (1 fila canónica con NCT# + 2 duplicados con `nct_number = NULL`; el `UNIQUE(nct_number)` no los frenaba porque Postgres permite múltiples NULL). ✓ _resuelto: borradas las 70 filas NULL por lista explícita de ids vía REST/service_role, conservando la canónica; 0 pérdida CRM/catálogo, tablas hijas vacías (0 cascada). Backup+restore en `supabase/rollback/predump-research-leads-dedup-20260710-*` (gitignored). Verificado post: 35 leads, todos con NCT#, 0 dups — responsable: EminatMKT · 2026-07-10T17:10-05:00_
 
 - [x] **[Research] Unificar campos del lead: form completo + validaciones + export/import paridad** — form/export/import usaban nombres amigables ≠ columnas reales → save roto, edición/detalle vacíos, cobertura 17/30. Fix: `features/research/fields.ts` fuente única (`{column,labelKey,type,group,required,options,normalize}`); form agrupado con input por tipo; `saveLead` con columnas reales; export/import derivan de fields. _(creado por: EminatMKT · 2026-07-09)_ ✓ _resuelto: fields.ts unificado + i18n es/en del form/detalle — responsable: EminatMKT · 2026-07-10T16:22-05:00_
 

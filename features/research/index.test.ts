@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import * as research from './index'
 import { EXPORT_HEADERS, leadColumnFor, validateLead, validateLeadFields, buildLeadPayload, normalizeDomainValue } from './fields'
 import { fetchStudyByNCT, splitStudyMerge, studyFromProtocol } from './clinicalTrials'
+import { PIPELINE_COLS, PIPELINE_ACTIVE_COLS, ARCHIVED_STAGE, DEFAULT_STAGE, STAGE, STAGE_LABEL_KEY, stageLabel } from './constants'
 
 describe('features/research API pública', () => {
   it('expone ResearchModule', () => {
@@ -29,7 +30,7 @@ describe('mapeo de columnas CSV (round-trip export<->import)', () => {
 })
 
 describe('validateLead', () => {
-  const base = { official_title: 'Estudio X', stage: 'Identificado', nct_number: 'NCT01' }
+  const base = { official_title: 'Estudio X', stage: DEFAULT_STAGE, nct_number: 'NCT01' }
   it('acepta un lead válido', () => {
     expect(validateLead(base)).toBeNull()
   })
@@ -38,8 +39,8 @@ describe('validateLead', () => {
     expect(validateLead({ ...base, stage: '' })).toBe('research.validation.stage')
   })
   it('exige NCT# o un contacto', () => {
-    expect(validateLead({ official_title: 'X', stage: 'Identificado' })).toBe('research.validation.nctOrContact')
-    expect(validateLead({ official_title: 'X', stage: 'Identificado', contact_name: 'Dr. A' })).toBeNull()
+    expect(validateLead({ official_title: 'X', stage: DEFAULT_STAGE })).toBe('research.validation.nctOrContact')
+    expect(validateLead({ official_title: 'X', stage: DEFAULT_STAGE, contact_name: 'Dr. A' })).toBeNull()
   })
   it('valida formato de email y URL', () => {
     expect(validateLead({ ...base, contact_email: 'no-es-mail' })).toBe('research.validation.email')
@@ -50,7 +51,7 @@ describe('validateLead', () => {
 
 describe('validateLeadFields (errores por-campo, no en el header)', () => {
   it('devuelve mapa vacío si es válido', () => {
-    expect(validateLeadFields({ official_title: 'X', stage: 'Identificado', nct_number: 'NCT01' })).toEqual({})
+    expect(validateLeadFields({ official_title: 'X', stage: DEFAULT_STAGE, nct_number: 'NCT01' })).toEqual({})
   })
   it('ancla nct-o-contacto en nct_number cuando falta identificación', () => {
     expect(validateLeadFields({})).toEqual({
@@ -61,7 +62,7 @@ describe('validateLeadFields (errores por-campo, no en el header)', () => {
   })
   it('mapea el error de email a su propia columna', () => {
     // contact_email presente satisface nct-o-contacto; solo queda el error de formato
-    expect(validateLeadFields({ official_title: 'X', stage: 'Identificado', contact_email: 'malo' }))
+    expect(validateLeadFields({ official_title: 'X', stage: DEFAULT_STAGE, contact_email: 'malo' }))
       .toEqual({ contact_email: 'research.validation.email' })
   })
 })
@@ -130,5 +131,34 @@ describe('buildLeadPayload', () => {
     expect(p.nct_number).toBeNull()
     expect(p.spain_focus).toBe(true)
     expect('campo_basura' in p).toBe(false)
+  })
+})
+
+describe('etapas del CRM (constantes + display)', () => {
+  // GOLDEN — hardcode INTENCIONAL: pin de los valores canónicos EXACTOS que se guardan en
+  // research_leads.stage y a los que la migración manual mapea. Si cambian, es un breaking
+  // change deliberado y este test se actualiza a conciencia. El resto de los tests usan las
+  // constantes/tipos (STAGE / DEFAULT_STAGE / STAGE_LABEL_KEY), no literales sueltos.
+  it('los valores canónicos son exactamente estos 4, en orden', () => {
+    expect(PIPELINE_COLS).toEqual(['Nuevo', 'Contactado', 'Ganado', 'Sin respuesta'])
+    expect(STAGE).toEqual({ NUEVO: 'Nuevo', CONTACTADO: 'Contactado', GANADO: 'Ganado', SIN_RESPUESTA: 'Sin respuesta' })
+  })
+  it('el archivado es una etapa real pero queda fuera del pipeline activo (Kanban/pie)', () => {
+    expect(PIPELINE_COLS).toContain(ARCHIVED_STAGE)
+    expect(PIPELINE_ACTIVE_COLS).toEqual([STAGE.NUEVO, STAGE.CONTACTADO, STAGE.GANADO])
+    expect(PIPELINE_ACTIVE_COLS).not.toContain(ARCHIVED_STAGE)
+  })
+  it('el default de un lead nuevo es la primera etapa (Nuevo)', () => {
+    expect(DEFAULT_STAGE).toBe(STAGE.NUEVO)
+    expect(PIPELINE_COLS[0]).toBe(DEFAULT_STAGE)
+  })
+  it('cada etapa tiene una clave i18n de display', () => {
+    for (const s of PIPELINE_COLS) expect(STAGE_LABEL_KEY[s]).toBeTruthy()
+  })
+  it('stageLabel traduce por clave y cae al literal crudo si no la hay', () => {
+    const t = (k: string) => k // identidad: devuelve la clave (asignable a (k: I18nKey) => string)
+    expect(stageLabel(STAGE.NUEVO, t)).toBe(STAGE_LABEL_KEY[STAGE.NUEVO]) // traduce por su clave i18n
+    expect(stageLabel('EtapaLegacyVieja', t)).toBe('EtapaLegacyVieja')    // valor legacy sin clave → crudo
+    expect(stageLabel(undefined, t)).toBe('—')                            // vacío → guion
   })
 })

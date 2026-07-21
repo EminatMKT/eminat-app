@@ -16,25 +16,27 @@ export function detectSeparator(headerLine: string): string {
   return best
 }
 
-// Parser de una fila tolerante a comillas y "" escapadas dentro de campos.
-function parseRow(line: string, sep: string): string[] {
-  const out: string[] = []
-  let cur = '', inQ = false
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i]
+// Parser en una sola pasada, consciente de comillas a nivel REGISTRO: un salto de línea
+// DENTRO de comillas es parte del campo (ej. notes multilínea), no un separador de fila —
+// por eso NO se puede split('\n') primero. Soporta "" escapadas y el separador dentro de comillas.
+export function parseDelimited(text: string, sep: string): { headers: string[]; rows: string[][] } {
+  const norm = text.replace(/\r\n?/g, '\n')
+  const rows: string[][] = []
+  let row: string[] = [], cur = '', inQ = false
+  for (let i = 0; i < norm.length; i++) {
+    const c = norm[i]
     if (inQ) {
-      if (c === '"') { if (line[i + 1] === '"') { cur += '"'; i++ } else inQ = false }
+      if (c === '"') { if (norm[i + 1] === '"') { cur += '"'; i++ } else inQ = false }
       else cur += c
     } else if (c === '"') inQ = true
-    else if (c === sep) { out.push(cur); cur = '' }
+    else if (c === sep) { row.push(cur); cur = '' }
+    else if (c === '\n') { row.push(cur); rows.push(row); row = []; cur = '' }
     else cur += c
   }
-  out.push(cur)
-  return out
-}
-
-export function parseDelimited(text: string, sep: string): { headers: string[]; rows: string[][] } {
-  const lines = text.replace(/\r\n?/g, '\n').split('\n').filter(l => l.trim())
-  if (!lines.length) return { headers: [], rows: [] }
-  return { headers: parseRow(lines[0], sep), rows: lines.slice(1).map(l => parseRow(l, sep)) }
+  row.push(cur); rows.push(row) // último campo + última fila (sin \n final)
+  // Descarta líneas en blanco (equivale al viejo filter(l => l.trim())): una fila de un solo
+  // campo vacío = línea vacía o whitespace. Filas con separadores (',,') se conservan.
+  const nonEmpty = rows.filter(r => !(r.length === 1 && r[0].trim() === ''))
+  if (!nonEmpty.length) return { headers: [], rows: [] }
+  return { headers: nonEmpty[0], rows: nonEmpty.slice(1) }
 }
