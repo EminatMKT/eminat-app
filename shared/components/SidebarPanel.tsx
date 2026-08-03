@@ -29,7 +29,7 @@ export default function SidebarPanel({ open, panel, activeTab, onTabChange, setM
       </div>
       <nav style={{ flex: 1, padding: '0 8px', overflowY: 'auto' }}>
         {subItems.map(item => (
-          <PanelItem key={item.id} icon={item.icon} label={item.label} active={activeTab === item.tab} onClick={() => {
+          <PanelItem key={item.id} icon={item.icon} label={item.label} active={item.tabs ? item.tabs.includes(activeTab ?? '') : activeTab === item.tab} onClick={() => {
             // Si el panel es de otro módulo, navegá a ese módulo antes de cambiar de tab.
             if (!pathname.startsWith(targetPath)) router.push(targetPath)
             onTabChange?.(item.tab)

@@ -14,7 +14,7 @@ const emptyNuevaAct = (): NuevaActForm => ({
 export function useStratixData() {
   const { usuario, actividades, equipo, usuarios, esAdmin, mostrarMensaje, setActividades } = useApp()
 
-  const [mktTab, setMktTab] = useState('kanban')
+  const [mktTab, setMktTab] = useState('overview')
   const [trimestre, setTrimestre] = useState('General')
   const [mesKanban, setMesKanban] = useState('')
   const [ganttVista, setGanttVista] = useState('Month')
