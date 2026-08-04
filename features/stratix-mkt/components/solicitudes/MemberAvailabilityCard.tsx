@@ -60,7 +60,7 @@ export default function MemberAvailabilityCard({ refKey, nombre }: { refKey: str
           <div style={{ fontSize: 10, color: t3, marginBottom: 6 }}>Tasks in progress:</div>
           {tareasActivas.slice(0, 2).map(a => (
             <div key={a.id} style={{ fontSize: 11, color: t2, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              <span style={{ color: getColorMarca(a.area_ref), marginRight: 5 }}>●</span>{a.titulo}
+              <span style={{ color: getColorMarca(a.empresa), marginRight: 5 }}>●</span>{a.titulo}
             </div>
           ))}
           {tareasActivas.length > 2 && <div style={{ fontSize: 10, color: t3 }}>+{tareasActivas.length - 2} more</div>}

@@ -6,7 +6,7 @@ export default function ReportTableRow({ a }: { a: any }) {
   return (
     <tr key={a.id} style={{ borderBottom: `1px solid ${border}` }}>
       <td style={{ padding: '8px 12px', color: t1 }}>{a.titulo}</td>
-      <td style={{ padding: '8px 12px', color: t3 }}>{a.area_ref}</td>
+      <td style={{ padding: '8px 12px', color: t3 }}>{a.empresa}</td>
       <td style={{ padding: '8px 12px', color: t3, fontFamily: 'DM Mono' }}>{a.horas}h</td>
       <td style={{ padding: '8px 12px', color: t3, fontFamily: 'DM Mono' }}>{a.dias_produccion}</td>
       <td style={{ padding: '8px 12px' }}>

@@ -12,7 +12,7 @@ export default function TaskTableRow({ a }: { a: any }) {
         {a.descripcion && <div style={{ fontSize: 10, color: t3, marginTop: 2, maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.descripcion}</div>}
       </td>
       <td style={{ padding: '10px 14px' }}>
-        <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: `${getColorMarca(a.area_ref)}25`, color: getColorMarca(a.area_ref), fontWeight: 600 }}>{a.area_ref}</span>
+        <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: `${getColorMarca(a.empresa)}25`, color: getColorMarca(a.empresa), fontWeight: 600 }}>{a.empresa}</span>
       </td>
       {esAdmin && <td style={{ padding: '10px 14px', fontSize: 11, color: t3 }}>{MIEMBROS_REFS[a.responsable_ref] || a.responsable_ref}</td>}
       <td style={{ padding: '10px 14px', fontSize: 11, color: t3 }}>{a.mes}</td>

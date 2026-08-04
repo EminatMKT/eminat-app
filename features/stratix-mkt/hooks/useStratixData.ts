@@ -6,7 +6,7 @@ import { ACTIVE_MIEMBROS_REFS, isExcludedFromStratix360 } from '../team'
 import type { NuevaActForm } from '../types'
 
 const emptyNuevaAct = (): NuevaActForm => ({
-  titulo: '', descripcion: '', area_ref: 'EMC', responsable_ref: 'DG_Joselyn',
+  titulo: '', descripcion: '', empresa: 'EMC', responsable_ref: 'DG_Joselyn',
   mes: MESES[new Date().getMonth()], horas: '', dias_produccion: '',
   estado: 'Pendiente', fecha_entrega: '', solicitado_por: 'Coord_MFreddy', drive_url: '',
 })
@@ -54,7 +54,7 @@ export function useStratixData() {
     completadas: actividades.filter(a => a.mes === mes && a.estado === 'Completado').length,
   }))
   const maxTotal = Math.max(...datosPorMes.map(d => d.total), 1)
-  const datosPorMarca = MARCAS_LIST.map(m => ({ ...m, total: actsFiltradas.filter(a => a.area_ref === m.codigo).length })).filter(m => m.total > 0)
+  const datosPorMarca = MARCAS_LIST.map(m => ({ ...m, total: actsFiltradas.filter(a => a.empresa === m.codigo).length })).filter(m => m.total > 0)
   const maxMarca = Math.max(...datosPorMarca.map(d => d.total), 1)
   const refsTeam = esAdmin ? Object.keys(ACTIVE_MIEMBROS_REFS) : [usuario?.responsable_ref].filter(Boolean)
   const datosPorMiembro = refsTeam.map(ref => ({
@@ -67,7 +67,7 @@ export function useStratixData() {
 
   const actsFiltradasSol = actividades
     .filter(a => filtroEstadoSol === 'All' || a.estado === filtroEstadoSol)
-    .filter(a => busquedaSol === '' || a.titulo?.toLowerCase().includes(busquedaSol.toLowerCase()) || a.area_ref?.toLowerCase().includes(busquedaSol.toLowerCase()))
+    .filter(a => busquedaSol === '' || a.titulo?.toLowerCase().includes(busquedaSol.toLowerCase()) || a.empresa?.toLowerCase().includes(busquedaSol.toLowerCase()))
 
   const mesesDisponibles = actividades.map(a => a.mes).filter(Boolean).filter((m, i, arr) => arr.indexOf(m) === i)
   const actsKanban = mesKanban ? actividades.filter(a => a.mes === mesKanban) : actividades
@@ -115,7 +115,7 @@ export function useStratixData() {
     try {
       const payload: any = {
         titulo: nuevaAct.titulo.trim(),
-        area_ref: nuevaAct.area_ref,
+        empresa: nuevaAct.empresa,
         responsable_ref: nuevaAct.responsable_ref,
         mes: nuevaAct.mes,
         trimestre: mesATrimestre[nuevaAct.mes] || 'Q1',
@@ -136,7 +136,7 @@ export function useStratixData() {
       if (data && nuevaAct.responsable_ref !== usuario?.responsable_ref) {
         const responsableUser = usuarios.find((u: any) => u.responsable_ref === nuevaAct.responsable_ref)
         if (responsableUser?.id) {
-          await notificacionesRepo.insert({ usuario_id: responsableUser.id, tipo: 'tarea_asignada', titulo: 'New task assigned', mensaje: `"${nuevaAct.titulo}" — ${nuevaAct.area_ref} · ${nuevaAct.mes}`, actividad_id: data.id, leida: false })
+          await notificacionesRepo.insert({ usuario_id: responsableUser.id, tipo: 'tarea_asignada', titulo: 'New task assigned', mensaje: `"${nuevaAct.titulo}" — ${nuevaAct.empresa} · ${nuevaAct.mes}`, actividad_id: data.id, leida: false })
         }
       }
 
@@ -156,7 +156,7 @@ export function useStratixData() {
     const rows = actsRep.map((a: any, i: number) => `<tr>
       <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:center;color:#666">${i + 1}</td>
       <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#111;font-weight:500">${escapeHtml(a.titulo || '')}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#555">${escapeHtml(a.area_ref || '')}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#555">${escapeHtml(a.empresa || '')}</td>
       <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#555;font-family:monospace;text-align:center">${a.horas || 0}h</td>
       <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#555;font-family:monospace;text-align:center">${a.dias_produccion || 0}</td>
       <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#555;text-align:center">${escapeHtml(a.mes || '')}</td>

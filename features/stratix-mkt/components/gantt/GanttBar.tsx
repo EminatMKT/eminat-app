@@ -15,7 +15,7 @@ export default function GanttBar({ a, fechaMin }: { a: any; fechaMin: Date }) {
         <div style={{ fontSize: 11, fontWeight: 600, color: t1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.titulo}</div>
         <div style={{ fontSize: 9, color: t3, marginTop: 2 }}>
           <span style={{ marginRight: 6 }}>{MIEMBROS_REFS[a.responsable_ref] || a.responsable_ref}</span>
-          <span style={{ padding: '1px 5px', borderRadius: 4, background: `${getColorMarca(a.area_ref)}25`, color: getColorMarca(a.area_ref), fontSize: 8 }}>{a.area_ref}</span>
+          <span style={{ padding: '1px 5px', borderRadius: 4, background: `${getColorMarca(a.empresa)}25`, color: getColorMarca(a.empresa), fontSize: 8 }}>{a.empresa}</span>
         </div>
       </div>
       <div style={{ flex: 1, position: 'relative', height: 48, overflowX: 'hidden' }}>

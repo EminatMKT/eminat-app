@@ -4,7 +4,7 @@ export type Actividad = {
   id?: string
   titulo?: string
   descripcion?: string
-  area_ref?: string
+  empresa?: string
   responsable_ref?: string
   mes?: string
   trimestre?: string
@@ -25,7 +25,7 @@ export type ResumenHoras = { ref: string; nombre: string; total: number; complet
 export type NuevaActForm = {
   titulo: string
   descripcion: string
-  area_ref: string
+  empresa: string
   responsable_ref: string
   mes: string
   horas: string
