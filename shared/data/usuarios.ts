@@ -17,7 +17,7 @@ export const countOnlineSince = (iso: string) =>
 // Lista usuarios activos ordenados por nombre, con estructura organizacional embebida.
 export const listActivos = () =>
   supabase.from(TABLES.usuarios)
-    .select('*, equipos!usuarios_equipo_id_fkey(codigo, nombre, lider_id, departamentos(codigo, nombre)), cargos(codigo, nombre)')
+    .select('*, equipos!usuarios_equipo_id_fkey(codigo, nombre, lider_id, departamentos(codigo, nombre)), usuario_cargos(cargos(codigo, nombre))')
     .eq('activo', true).order('nombre', { ascending: true })
 
 // Lista todos los usuarios ordenados por created_at desc.

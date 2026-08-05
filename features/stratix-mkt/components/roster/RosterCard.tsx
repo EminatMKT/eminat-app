@@ -13,7 +13,7 @@ export default function RosterCard({ user, esLider }: { user: any; esLider: bool
     ? actividades.filter((a) => a.responsable_ref === user.responsable_ref && a.estado === 'En proceso').length
     : 0
   const swatch = user.color || accent
-  const cargo = user.cargos?.nombre || user.cargo || ''
+  const cargo = (user.usuario_cargos || []).map((uc: any) => uc.cargos?.nombre).filter(Boolean).join(', ')
   return (
     <div style={{ background: s1, border: `1px solid ${esLider ? `${accent}55` : border}`, borderRadius: 14, padding: 16, boxShadow: esLider ? `0 2px 8px ${accent}20` : '0 1px 3px rgba(0,0,0,0.06)', position: 'relative', opacity: tieneCuenta ? 1 : 0.92 }}>
       {esLider && (
