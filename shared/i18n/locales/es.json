@@ -445,5 +445,12 @@
   "cob.debtByStudy": "Deuda por estudio",
   "cob.pastDue": "Vencido",
   "cob.upcoming": "Por vencer",
-  "cob.pastDueVsUpcoming": "Vencido vs Por vencer"
+  "cob.pastDueVsUpcoming": "Vencido vs Por vencer",
+  "stratix.team.title": "Equipo de Marketing",
+  "stratix.team.leader": "LÍDER",
+  "stratix.team.accountPending": "Cuenta por crear",
+  "stratix.team.noAccountYet": "sin cuenta todavía",
+  "stratix.team.activeNow": "Activo ahora",
+  "stratix.team.offline": "Desconectado",
+  "stratix.team.inProgress": "{n} en progreso"
 }

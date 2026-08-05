@@ -445,5 +445,12 @@
   "cob.debtByStudy": "Debt by Study",
   "cob.pastDue": "Past Due",
   "cob.upcoming": "Upcoming",
-  "cob.pastDueVsUpcoming": "Past Due vs Upcoming"
+  "cob.pastDueVsUpcoming": "Past Due vs Upcoming",
+  "stratix.team.title": "Marketing Team",
+  "stratix.team.leader": "LEADER",
+  "stratix.team.accountPending": "Account pending",
+  "stratix.team.noAccountYet": "no account yet",
+  "stratix.team.activeNow": "Active now",
+  "stratix.team.offline": "Offline",
+  "stratix.team.inProgress": "{n} in progress"
 }
