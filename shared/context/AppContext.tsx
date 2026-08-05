@@ -81,7 +81,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined)
 export function AppProvider({ children }: { children: ReactNode }) {
   const { sessionError, ...app } = useAppData()
 
-  const miembrosRef = deriveMiembrosRef(app.usuarios)
+  const miembrosRef = deriveMiembrosRef(app.adminUsuarios)
   const miembrosAsignables = deriveMiembrosAsignables(app.usuarios)
   const equipoMarketing = deriveEquipoMarketing(app.usuarios)
 

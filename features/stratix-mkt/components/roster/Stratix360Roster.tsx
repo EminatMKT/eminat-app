@@ -4,9 +4,9 @@ import { useT } from '@/shared/i18n'
 import RosterCard from './RosterCard'
 
 export default function Stratix360Roster() {
-  const { accent, equipoMarketing, usuarios } = useApp()
+  const { accent, equipoMarketing } = useApp()
   const { t } = useT()
-  const liderId = usuarios.find((u) => u.equipos?.lider_id)?.equipos?.lider_id ?? null
+  const liderId = equipoMarketing.find((u) => u.equipos?.lider_id)?.equipos?.lider_id ?? null
 
   return (
     <div>
