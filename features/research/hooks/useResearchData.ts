@@ -69,18 +69,18 @@ export function useResearchData() {
     m[p] = (m[p] || 0) + 1
     return m
   }, {})).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
-  const sponsorData = Object.entries(leads.reduce((m: any, l) => { if (l.lead_sponsor) { m[l.lead_sponsor] = (m[l.lead_sponsor] || 0) + 1 } return m }, {}))
+  const sponsorData = Object.entries(leads.reduce((m: Record<string, number>, l) => { if (l.lead_sponsor) { m[l.lead_sponsor] = (m[l.lead_sponsor] || 0) + 1 } return m }, {}))
     .map(([name, value]) => ({ name, value: value as number }))
     .sort((a, b) => b.value - a.value).slice(0, 8)
 
-  const countryData: Record<string, number> = leads.reduce((m: any, l) => {
+  const countryData: Record<string, number> = leads.reduce((m: Record<string, number>, l) => {
     const countries = (l.countries || '').split(',').map((c: string) => c.trim()).filter(Boolean)
     countries.forEach((c: string) => { m[c] = (m[c] || 0) + 1 })
     return m
   }, {})
   const countrySorted = Object.entries(countryData).sort((a, b) => b[1] - a[1])
 
-  async function saveLead(data: any): Promise<boolean> {
+  async function saveLead(data: Partial<Lead>): Promise<boolean> {
     const invalid = validateLead(data)
     if (invalid) { mostrarMensaje('error', t(invalid)); return false }
     const payload = buildLeadPayload(data)
@@ -123,7 +123,7 @@ export function useResearchData() {
       inserted = data || []
     }
     // Aplicar updates uno a uno; si uno falla, cortamos pero conservamos lo ya aplicado.
-    const applied: { id: string; values: Record<string, any> }[] = []
+    const applied: { id: string; values: Record<string, unknown> }[] = []
     let failed: string | null = null
     for (const u of plan.toUpdate) {
       const { error } = await researchRepo.updateLead(u.id, u.values)

@@ -2,9 +2,12 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { RESEARCH_THEME, inputStyle } from '../../theme'
 
+// Borrador editable del wizard de mailing (los campos que este paso toca).
+type CampaignDraft = { nombre: string; asunto: string; contenido: string; estado: string }
+
 type Props = {
-  campaign: any
-  setCampaign: Dispatch<SetStateAction<any>>
+  campaign: CampaignDraft
+  setCampaign: Dispatch<SetStateAction<CampaignDraft>>
   onCancel: () => void
   onSaveDraft: () => void
   onNext: () => void
@@ -14,11 +17,11 @@ export default function MailContentStep({ campaign, setCampaign, onCancel, onSav
   const { border, t1, t2, t3, accent } = RESEARCH_THEME
   return (
     <div>
-      <div style={{ marginBottom: 14 }}><label style={{ fontSize: 11, color: t2, display: 'block', marginBottom: 4, fontWeight: 600 }}>Campaign name</label><input value={campaign.nombre} onChange={e => setCampaign((p: any) => ({ ...p, nombre: e.target.value }))} style={inputStyle} placeholder="Ej: Newsletter Abril 2026" /></div>
-      <div style={{ marginBottom: 14 }}><label style={{ fontSize: 11, color: t2, display: 'block', marginBottom: 4, fontWeight: 600 }}>Email subject</label><input value={campaign.asunto} onChange={e => setCampaign((p: any) => ({ ...p, asunto: e.target.value }))} style={inputStyle} placeholder="Ej: Nuevas oportunidades de clinical trials" /></div>
+      <div style={{ marginBottom: 14 }}><label style={{ fontSize: 11, color: t2, display: 'block', marginBottom: 4, fontWeight: 600 }}>Campaign name</label><input value={campaign.nombre} onChange={e => setCampaign(p => ({ ...p, nombre: e.target.value }))} style={inputStyle} placeholder="Ej: Newsletter Abril 2026" /></div>
+      <div style={{ marginBottom: 14 }}><label style={{ fontSize: 11, color: t2, display: 'block', marginBottom: 4, fontWeight: 600 }}>Email subject</label><input value={campaign.asunto} onChange={e => setCampaign(p => ({ ...p, asunto: e.target.value }))} style={inputStyle} placeholder="Ej: Nuevas oportunidades de clinical trials" /></div>
       <div style={{ marginBottom: 14 }}>
         <label style={{ fontSize: 11, color: t2, display: 'block', marginBottom: 4, fontWeight: 600 }}>Email content</label>
-        <textarea value={campaign.contenido} onChange={e => setCampaign((p: any) => ({ ...p, contenido: e.target.value }))} style={{ ...inputStyle, minHeight: 200, resize: 'vertical', lineHeight: 1.7 }} placeholder="Write the email content. Each line will become a separate paragraph." />
+        <textarea value={campaign.contenido} onChange={e => setCampaign(p => ({ ...p, contenido: e.target.value }))} style={{ ...inputStyle, minHeight: 200, resize: 'vertical', lineHeight: 1.7 }} placeholder="Write the email content. Each line will become a separate paragraph." />
         <div style={{ fontSize: 10, color: t3, marginTop: 4 }}>Tip: Each line break becomes a separate paragraph in the final email.</div>
       </div>
       <div style={{ display: 'flex', gap: 10 }}>

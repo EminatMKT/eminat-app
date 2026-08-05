@@ -11,7 +11,7 @@ export const list = (responsableRef?: string) => {
 }
 
 // Crea una actividad (insert + select + single).
-export const create = (payload: any) =>
+export const create = (payload: Record<string, unknown>) =>
   supabase.from(TABLES.actividades).insert(payload).select().single()
 
 // Actualiza el estado de una actividad.

@@ -28,13 +28,13 @@ export default function RoleModal({ role, onClose }: { role?: RoleRow; onClose: 
     setGuardando(true)
     try {
       const { res, result } = role
-        ? await apiSend('PATCH', `/api/admin/roles/${role.key}`, { label: label.trim(), modules })
-        : await apiPost('/api/admin/roles', { label: label.trim(), modules })
+        ? await apiSend<{ error?: string }>('PATCH', `/api/admin/roles/${role.key}`, { label: label.trim(), modules })
+        : await apiPost<{ error?: string }>('/api/admin/roles', { label: label.trim(), modules })
       if (!res.ok) { setError(result.error || t('admin.roleSaveFailed')); setGuardando(false); return }
       await reloadRoles()
       onClose()
-    } catch (err: any) {
-      setError(err?.message || t('admin.roleSaveNetErr'))
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : '') || t('admin.roleSaveNetErr'))
     }
     setGuardando(false)
   }

@@ -12,7 +12,7 @@ export type ValueMap = Record<string, Record<string, string>>
 
 // Valor final de una celda: override del usuario ?? auto-normalización al dominio. Un valor
 // de dominio no reconocido (null) cae a '' (→ null) para no romper el insert ni el CHECK.
-function resolveValue(col: string, raw: string, valueMap?: ValueMap): any {
+function resolveValue(col: string, raw: string, valueMap?: ValueMap): string {
   const override = valueMap?.[col]?.[raw]
   if (override !== undefined) return override
   const norm = normalizeDomainValue(col, raw)
@@ -20,8 +20,8 @@ function resolveValue(col: string, raw: string, valueMap?: ValueMap): any {
 }
 
 export interface ImportPlan {
-  toInsert: Record<string, any>[]
-  toUpdate: { id: string; values: Record<string, any> }[]
+  toInsert: Record<string, unknown>[]
+  toUpdate: { id: string; values: Record<string, unknown> }[]
   skipped: number
 }
 
@@ -33,7 +33,7 @@ export function guessMapping(headers: string[]): (string | null)[] {
 }
 
 // nct_number normalizado → id del lead existente (ignora leads sin NCT#).
-export function indexByNct(leads: { id: string; nct_number?: any }[]): Map<string, string> {
+export function indexByNct(leads: { id: string; nct_number?: string | null }[]): Map<string, string> {
   const m = new Map<string, string>()
   for (const l of leads) { const k = normNct(l.nct_number); if (k) m.set(k, l.id) }
   return m
@@ -49,7 +49,7 @@ export function buildImportPlan(input: {
   const { rows, mapping, existingByNct, dupMode, valueMap } = input
   const plan: ImportPlan = { toInsert: [], toUpdate: [], skipped: 0 }
   for (const row of rows) {
-    const values: Record<string, any> = {}
+    const values: Record<string, unknown> = {}
     mapping.forEach((col, i) => { if (col) values[col] = coerceLeadValue(col, resolveValue(col, (row[i] ?? '').trim(), valueMap)) })
     // Descartar filas sin ningún valor (todas las celdas mapeadas vacías → null).
     if (!Object.values(values).some(v => v !== null)) continue

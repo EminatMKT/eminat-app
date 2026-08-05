@@ -1,8 +1,9 @@
 'use client'
 import { useApp, getColorMarca } from '@/shared/context/AppContext'
 import { useStratix } from '../StratixContext'
+import type { Actividad } from '../../types'
 
-export default function KanbanTaskCard({ a }: { a: any }) {
+export default function KanbanTaskCard({ a }: { a: Actividad }) {
   const { s1, border, accent, t1, t3, miembrosRef } = useApp()
   const { dragId, onDragStart, onDragEnd, setModalVerAct } = useStratix()
   const marcaColor = getColorMarca(a.empresa)

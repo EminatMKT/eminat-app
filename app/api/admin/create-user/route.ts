@@ -120,8 +120,9 @@ async function sendWelcomeEmail(args: {
     })
     if (error) return `No se envió el correo: ${error.message}`
     return null
-  } catch (err: any) {
-    return `No se envió el correo: ${err?.message || 'error desconocido'}`
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : ''
+    return `No se envió el correo: ${message || 'error desconocido'}`
   }
 }
 
@@ -192,10 +193,11 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (dbError) {
+      const dbErrorCode = (dbError as { code?: string }).code
       console.error(`${TAG} usuarios insert failed — rolling back auth`, {
         userId,
         email,
-        code: (dbError as any).code,
+        code: dbErrorCode,
         error: dbError.message,
       })
       // Rollback Auth user. If the rollback itself fails, surface both
@@ -213,7 +215,7 @@ export async function POST(req: NextRequest) {
         ? ` (rollback de la cuenta de Auth también falló: ${rollbackError.message} — borra el auth.users con id ${userId} desde el dashboard de Supabase).`
         : ' (la cuenta de Auth fue revertida; no hay orphan).'
       return NextResponse.json(
-        { error: `${dbError.message}.${detail}`, dbErrorCode: (dbError as any).code },
+        { error: `${dbError.message}.${detail}`, dbErrorCode },
         { status: 400 },
       )
     }
@@ -228,14 +230,15 @@ export async function POST(req: NextRequest) {
 
     console.log(`${TAG} success`, { userId, email })
     return NextResponse.json({ user: userData, emailWarning }, { status: 201 })
-  } catch (err: any) {
-    console.error(`${TAG} unexpected — attempting auth rollback`, { userId, message: err?.message })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : ''
+    console.error(`${TAG} unexpected — attempting auth rollback`, { userId, message })
     // Defensive: also try rollback on unexpected failure.
     if (userId) {
       try { await db.auth.admin.deleteUser(userId) } catch {}
     }
     return NextResponse.json(
-      { error: err?.message || 'Error inesperado al crear el usuario.' },
+      { error: message || 'Error inesperado al crear el usuario.' },
       { status: 500 },
     )
   }

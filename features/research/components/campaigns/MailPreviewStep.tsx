@@ -2,8 +2,11 @@
 import { RESEARCH_THEME } from '../../theme'
 import EmailPreview from './EmailPreview'
 
+// Borrador editable del wizard de mailing (los campos que este paso muestra).
+type CampaignDraft = { nombre: string; asunto: string; contenido: string; estado: string }
+
 type Props = {
-  campaign: any
+  campaign: CampaignDraft
   recipientsCount: number
   sending: boolean
   onBack: () => void

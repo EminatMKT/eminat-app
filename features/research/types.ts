@@ -48,7 +48,7 @@ export interface Lead {
   notes?: string
   internal_note?: string
   valor_estimado?: string | number
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export interface Activity {
@@ -57,7 +57,7 @@ export interface Activity {
   tipo: string
   nota: string
   fecha: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export interface Campaign {
@@ -72,5 +72,5 @@ export interface Campaign {
   total_clicks?: number
   fecha_envio?: string
   created_at?: string
-  [key: string]: any
+  [key: string]: unknown
 }

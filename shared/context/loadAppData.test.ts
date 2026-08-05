@@ -20,7 +20,7 @@ vi.mock('@/shared/data', () => {
   }
 })
 
-import { startAppData } from './loadAppData'
+import { startAppData, type Setters } from './loadAppData'
 
 function setters() {
   return {
@@ -37,7 +37,7 @@ describe('startAppData — resiliencia del loading', () => {
     vi.useFakeTimers()
     try {
       const s = setters()
-      startAppData(s as any)
+      startAppData(s as unknown as Setters)
       // Deja correr el perfil (resuelve ok) y luego vence el timeout de roles.
       await vi.advanceTimersByTimeAsync(15000)
       expect(s.setUsuario).toHaveBeenCalled()           // perfil cargó

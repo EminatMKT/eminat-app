@@ -16,7 +16,7 @@ export default function DebtByStudyChart({ data }: { data: Datum[] }) {
         <BarChart data={data}>
           <XAxis dataKey="name" tick={{ fontSize: 9, fill: t3 }} />
           <YAxis tick={{ fontSize: 9, fill: t3 }} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
-          <Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} />
+          <Tooltip formatter={(v: unknown) => fmt(Number(v))} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} />
           <Legend wrapperStyle={{ fontSize: 10 }} />
           <Bar dataKey="vencido" fill="#F87171" radius={[4, 4, 0, 0]} name={t('cob.pastDue')} />
           <Bar dataKey="por_vencer" fill="#FBB040" radius={[4, 4, 0, 0]} name={t('cob.upcoming')} />

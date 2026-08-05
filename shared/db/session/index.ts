@@ -26,9 +26,32 @@ export async function signOutAndRedirect(
 }
 
 // ── B — Carga del perfil crítico, fail-closed ─────────────────────
+// Perfil mínimo que el caller (loadAppData) consume tras loadProfile. La fila real
+// trae más columnas; acá solo declaramos las que se leen aguas abajo.
+export type ProfileUser = {
+  id: string
+  rol?: string
+  activo?: boolean
+  responsable_ref?: string | null
+}
+
+// Cliente Supabase acotado a lo que usa loadProfile. `select` devuelve `unknown`:
+// el builder concreto (recursivo y muy genérico en supabase-js) dispararía un chequeo
+// de instanciación excesivamente profundo (TS2589) si se modelara la cadena entera;
+// devolver unknown corta esa comparación y la cadena eq→eq→single se estrecha adentro.
 type SupabaseLike = {
   auth: { getUser: () => Promise<{ data: { user: { email?: string } | null } }> }
-  from: (table: string) => any
+  from: (table: string) => { select: (columns: string) => unknown }
+}
+
+// Forma de la cadena de filtros que loadProfile invoca sobre el resultado de select.
+// PromiseLike (no Promise) porque los builders de supabase-js son thenables.
+type ProfileFilterChain = {
+  eq: (column: string, value: unknown) => {
+    eq: (column: string, value: unknown) => {
+      single: () => PromiseLike<{ data: unknown; error: unknown }>
+    }
+  }
 }
 
 // Tipo plano (no discriminated union): el proyecto compila con strict:false, donde
@@ -36,7 +59,7 @@ type SupabaseLike = {
 // el caller accede a .reason / .usuario sin depender del narrowing.
 export type ProfileResult = {
   ok: boolean
-  usuario?: any
+  usuario?: ProfileUser
   reason?: 'no-session' | 'no-profile' | 'error'
 }
 
@@ -47,15 +70,14 @@ export async function loadProfile(client: SupabaseLike): Promise<ProfileResult> 
     const { data: { user } } = await client.auth.getUser()
     if (!user) return { ok: false, reason: 'no-session' }
 
-    const { data: usuario, error } = await client
-      .from('usuarios')
-      .select('*')
+    const query = client.from('usuarios').select('*') as ProfileFilterChain
+    const { data: usuario, error } = await query
       .eq('email', user.email)
       .eq('activo', true)
       .single()
 
     if (error || !usuario) return { ok: false, reason: 'no-profile' }
-    return { ok: true, usuario }
+    return { ok: true, usuario: usuario as ProfileUser }
   } catch {
     return { ok: false, reason: 'error' }
   }

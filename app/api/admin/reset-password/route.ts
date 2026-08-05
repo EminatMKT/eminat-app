@@ -61,10 +61,11 @@ export async function POST(req: NextRequest) {
 
     console.error(`${TAG} auth.updateUserById failed`, { userId, error: lastError })
     return NextResponse.json({ error: lastError || 'No se pudo actualizar la contraseña.' }, { status: 400 })
-  } catch (err: any) {
-    console.error(`${TAG} unexpected`, { message: err?.message })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : ''
+    console.error(`${TAG} unexpected`, { message })
     return NextResponse.json(
-      { error: err?.message || 'Error inesperado al resetear la contraseña.' },
+      { error: message || 'Error inesperado al resetear la contraseña.' },
       { status: 500 },
     )
   }

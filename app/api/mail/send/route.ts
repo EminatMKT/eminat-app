@@ -40,7 +40,8 @@ export async function POST(req: NextRequest) {
       total_sent: recipients.length,
       batches: results.length,
     })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Internal server error' }, { status: 500 })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : ''
+    return NextResponse.json({ error: message || 'Internal server error' }, { status: 500 })
   }
 }

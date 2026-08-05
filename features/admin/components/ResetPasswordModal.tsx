@@ -24,11 +24,11 @@ export default function ResetPasswordModal({ target, onClose }: { target: ResetT
     setGuardando(true)
     setResetError(null)
     try {
-      const { res, result } = await apiPost('/api/admin/reset-password', { userId: target.id, password: resetPwd })
+      const { res, result } = await apiPost<{ error?: string }>('/api/admin/reset-password', { userId: target.id, password: resetPwd })
       if (!res.ok) { setResetError(result.error || t('admin.reset.failed')); setGuardando(false); return }
       setResetSuccess({ pwd: resetPwd, nombre: target.nombre })
-    } catch (err: any) {
-      setResetError(err.message || t('admin.reset.netErr'))
+    } catch (err: unknown) {
+      setResetError((err instanceof Error ? err.message : '') || t('admin.reset.netErr'))
     }
     setGuardando(false)
   }

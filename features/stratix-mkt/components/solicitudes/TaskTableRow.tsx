@@ -1,8 +1,9 @@
 'use client'
 import { useApp, ESTADO_COLORS, getColorMarca } from '@/shared/context/AppContext'
 import { useStratix } from '../StratixContext'
+import type { Actividad } from '../../types'
 
-export default function TaskTableRow({ a }: { a: any }) {
+export default function TaskTableRow({ a }: { a: Actividad }) {
   const { t1, t3, border, esAdmin, miembrosRef } = useApp()
   const { setModalVerAct } = useStratix()
   return (

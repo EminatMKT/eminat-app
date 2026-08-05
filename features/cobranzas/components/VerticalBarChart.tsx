@@ -15,7 +15,7 @@ export default function VerticalBarChart({ title, data, yWidth = 100 }: { title:
         <BarChart data={data} layout="vertical">
           <XAxis type="number" tick={{ fontSize: 9, fill: t3 }} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
           <YAxis type="category" dataKey="name" tick={{ fontSize: 9, fill: t3 }} width={yWidth} />
-          <Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} />
+          <Tooltip formatter={(v: unknown) => fmt(Number(v))} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} />
           <Bar dataKey="value" radius={[0, 6, 6, 0]}>
             {data.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
           </Bar>

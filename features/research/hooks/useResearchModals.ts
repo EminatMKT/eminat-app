@@ -6,7 +6,7 @@ import { DEFAULT_STAGE } from '../constants'
 export function useResearchModals() {
   const [modalLead, setModalLead] = useState<Lead | null>(null)
   const [modalNewLead, setModalNewLead] = useState(false)
-  const [newLead, setNewLead] = useState<any>({})
+  const [newLead, setNewLead] = useState<Partial<Lead>>({})
   const [editingLead, setEditingLead] = useState<Lead | null>(null)
   const [modalActivity, setModalActivity] = useState<Lead | null>(null)
   const [modalImport, setModalImport] = useState(false)

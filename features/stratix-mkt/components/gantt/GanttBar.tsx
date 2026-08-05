@@ -1,8 +1,9 @@
 'use client'
 import { useApp, ESTADO_COLORS, getColorMarca } from '@/shared/context/AppContext'
 import { useStratix } from '../StratixContext'
+import type { Actividad } from '../../types'
 
-export default function GanttBar({ a, fechaMin }: { a: any; fechaMin: Date }) {
+export default function GanttBar({ a, fechaMin }: { a: Actividad; fechaMin: Date }) {
   const { accent, border, t1, t3, miembrosRef } = useApp()
   const { setModalVerAct } = useStratix()
   const fechaAct = new Date(a.fecha_entrega)

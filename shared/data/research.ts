@@ -10,10 +10,10 @@ import { TABLES, COLUMNS } from './tables'
 export const listLeads = () =>
   supabase.from(TABLES.researchLeads).select('*').order(COLUMNS.createdAt, { ascending: false })
 
-export const updateLead = (id: string, data: any) =>
+export const updateLead = (id: string, data: Record<string, unknown>) =>
   supabase.from(TABLES.researchLeads).update(data).eq('id', id)
 
-export const insertLead = (data: any) =>
+export const insertLead = (data: Record<string, unknown>) =>
   supabase.from(TABLES.researchLeads).insert([data]).select()
 
 export const deleteLead = (id: string) =>
@@ -23,7 +23,7 @@ export const updateLeadStage = (id: string, stage: string) =>
   supabase.from(TABLES.researchLeads).update({ stage }).eq('id', id)
 
 // Import masivo. Devuelve las filas insertadas (.select()) para refrescar el estado en el acto.
-export const insertLeads = (records: any[]) =>
+export const insertLeads = (records: Record<string, unknown>[]) =>
   supabase.from(TABLES.researchLeads).insert(records).select()
 
 // Realtime: propaga a todos los usuarios del módulo los INSERT/UPDATE/DELETE sobre el
@@ -36,7 +36,7 @@ export const subscribeToLeads = <T extends { id: string }>(h: RowChangeHandlers<
 export const listActivities = () =>
   supabase.from(TABLES.researchActivities).select('*').order(COLUMNS.createdAt, { ascending: false })
 
-export const insertActivity = (record: any) =>
+export const insertActivity = (record: Record<string, unknown>) =>
   supabase.from(TABLES.researchActivities).insert([record]).select()
 
 // --- research_campaigns ---
@@ -44,10 +44,10 @@ export const insertActivity = (record: any) =>
 export const listCampaigns = () =>
   supabase.from(TABLES.researchCampaigns).select('*').order(COLUMNS.createdAt, { ascending: false })
 
-export const insertCampaign = (payload: any) =>
+export const insertCampaign = (payload: Record<string, unknown>) =>
   supabase.from(TABLES.researchCampaigns).insert([payload]).select()
 
-export const updateCampaign = (id: string, payload: any) =>
+export const updateCampaign = (id: string, payload: Record<string, unknown>) =>
   supabase.from(TABLES.researchCampaigns).update(payload).eq('id', id).select()
 
 export const deleteCampaign = (id: string) =>
@@ -55,5 +55,5 @@ export const deleteCampaign = (id: string) =>
 
 // --- research_campaign_recipients ---
 
-export const insertRecipients = (records: any[]) =>
+export const insertRecipients = (records: Record<string, unknown>[]) =>
   supabase.from(TABLES.researchCampaignRecipients).insert(records)

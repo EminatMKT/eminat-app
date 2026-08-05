@@ -116,10 +116,11 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (dbError) {
+      const dbErrorCode = (dbError as { code?: string }).code
       console.error(`${TAG} usuarios update failed`, {
         id,
         error: dbError.message,
-        code: (dbError as any).code,
+        code: dbErrorCode,
         fields: Object.keys(updatePayload),
       })
       // Revert Auth email if we touched it earlier.
@@ -132,12 +133,12 @@ export async function POST(req: NextRequest) {
           ? ` (no se pudo revertir el email en Auth: ${revertError.message} — corre el rollback manual en el dashboard).`
           : ' (email de Auth revertido).'
         return NextResponse.json(
-          { error: `${dbError.message}.${tail}`, dbErrorCode: (dbError as any).code },
+          { error: `${dbError.message}.${tail}`, dbErrorCode },
           { status: 400 },
         )
       }
       return NextResponse.json(
-        { error: dbError.message, dbErrorCode: (dbError as any).code },
+        { error: dbError.message, dbErrorCode },
         { status: 400 },
       )
     }
@@ -152,10 +153,11 @@ export async function POST(req: NextRequest) {
 
     console.log(`${TAG} success`, { id, fields: Object.keys(updatePayload) })
     return NextResponse.json({ user: userData })
-  } catch (err: any) {
-    console.error(`${TAG} unexpected`, { message: err?.message })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : ''
+    console.error(`${TAG} unexpected`, { message })
     return NextResponse.json(
-      { error: err?.message || 'Error inesperado al actualizar el usuario.' },
+      { error: message || 'Error inesperado al actualizar el usuario.' },
       { status: 500 },
     )
   }

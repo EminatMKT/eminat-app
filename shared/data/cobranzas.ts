@@ -12,5 +12,5 @@ export const list = (table: TableName) =>
   supabase.from(table).select('*').order(COLUMNS.createdAt, { ascending: false })
 
 // Inserta filas en una tabla cobranzas.
-export const insert = (table: TableName, records: any[]) =>
+export const insert = (table: TableName, records: Record<string, unknown>[]) =>
   supabase.from(table).insert(records)

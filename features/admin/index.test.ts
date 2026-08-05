@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import * as admin from './index'
 import { generateTempPassword } from './password'
 import { eligibleHeirs, STRATIX360_CROSS_ROLE_HEIR_EMAILS } from './heirs'
+import type { AdminUser } from './types'
 
 describe('features/admin API pública', () => {
   it('expone AdminModule', () => {
@@ -21,14 +22,14 @@ describe('generateTempPassword', () => {
 })
 
 describe('eligibleHeirs', () => {
-  const target = { id: 't', rol: 'stratix360', activo: true } as any
+  const target = { id: 't', rol: 'stratix360', activo: true } as AdminUser
   it('incluye activos del mismo rol y excluye al propio target e inactivos', () => {
     const users = [
       target,
       { id: 'a', rol: 'stratix360', activo: true, nombre: 'Ana', responsable_ref: 'r1' },
       { id: 'b', rol: 'stratix360', activo: false, nombre: 'Beto' },
       { id: 'c', rol: 'medical', activo: true, nombre: 'Caro' },
-    ] as any
+    ] as AdminUser[]
     const ids = eligibleHeirs(users, target).map(u => u.id)
     expect(ids).toContain('a')
     expect(ids).not.toContain('t')
@@ -37,7 +38,7 @@ describe('eligibleHeirs', () => {
   })
   it('aplica la excepción cross-rol de Stratix 360 por email', () => {
     const freddyEmail = Array.from(STRATIX360_CROSS_ROLE_HEIR_EMAILS)[0]
-    const users = [target, { id: 'f', rol: 'admin', activo: true, nombre: 'Freddy', email: freddyEmail, responsable_ref: 'rf' }] as any
+    const users = [target, { id: 'f', rol: 'admin', activo: true, nombre: 'Freddy', email: freddyEmail, responsable_ref: 'rf' }] as AdminUser[]
     expect(eligibleHeirs(users, target).map(u => u.id)).toContain('f')
   })
 })

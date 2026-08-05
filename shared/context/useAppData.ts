@@ -6,25 +6,26 @@ import { clearAuthCookies } from '@/shared/db/clearAuthCookies'
 import { rolesRepo } from '@/shared/data'
 import type { RoleRow, RoleModuleMap, ModuleSlug } from '@/shared/auth/permissions'
 import { startAppData } from './loadAppData'
+import type { Usuario, Notificacion, Actividad, Equipo } from './loadAppData'
 import { useClock } from './useClock'
 
 // Estado global de la app + carga inicial + handlers. La derivación de permisos
 // y el theming los arma AppProvider sobre lo que devuelve este hook.
 export function useAppData() {
-  const [usuario, setUsuario] = useState<any>(null)
+  const [usuario, setUsuario] = useState<Usuario | null>(null)
   // Estado terminal cuando el perfil no carga: AppProvider renderiza una pantalla
   // estable en vez de auto-navegar (evita el bucle de reloads ante fallo persistente).
   const [sessionError, setSessionError] = useState<null | 'no-session' | 'no-profile' | 'error'>(null)
-  const [actividades, setActividades] = useState<any[]>([])
-  const [equipo, setEquipo] = useState<any[]>([])
-  const [usuarios, setUsuarios] = useState<any[]>([])
+  const [actividades, setActividades] = useState<Actividad[]>([])
+  const [equipo, setEquipo] = useState<Equipo[]>([])
+  const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [loading, setLoading] = useState(true)
   const [dark, setDark] = useState(true)
   const [onlineCount, setOnlineCount] = useState(0)
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
-  const [notificaciones, setNotificaciones] = useState<any[]>([])
+  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
   const [notifAbiertas, setNotifAbiertas] = useState(false)
-  const [adminUsuarios, setAdminUsuarios] = useState<any[]>([])
+  const [adminUsuarios, setAdminUsuarios] = useState<Usuario[]>([])
   const [roles, setRoles] = useState<RoleRow[]>([])
   const [roleModuleMap, setRoleModuleMap] = useState<RoleModuleMap>({})
   const horaActual = useClock()

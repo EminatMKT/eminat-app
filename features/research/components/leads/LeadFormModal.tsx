@@ -24,11 +24,11 @@ export default function LeadFormModal() {
   const [errors, setErrors] = useState<Record<string, I18nKey>>({})
   const [nctDup, setNctDup] = useState<Lead | null>(null)
   const [titleHint, setTitleHint] = useState<React.ReactNode>(null)
-  const [titleMatches, setTitleMatches] = useState<Record<string, any>[]>([])
+  const [titleMatches, setTitleMatches] = useState<Partial<Lead>[]>([])
   if (!modalNewLead) return null
 
-  function setField(column: string, v: any) {
-    setNewLead((p: any) => ({ ...p, [column]: v }))
+  function setField(column: string, v: string | boolean) {
+    setNewLead(p => ({ ...p, [column]: v }))
     if (errors[column]) setErrors(e => { const { [column]: _, ...rest } = e; return rest }) // limpiar error al editar
     if (column === NCT_COLUMN) setNctDup(null)
   }
@@ -51,9 +51,9 @@ export default function LeadFormModal() {
   const filledHint = <span style={{ color: '#34D399' }}>✓ {t('research.nct.filled')}</span>
 
   // Mergea un estudio de CT.gov: rellena vacíos y, si hay conflictos, abre el popup de elección.
-  function mergeStudy(study: Record<string, any>) {
+  function mergeStudy(study: Record<string, unknown>) {
     const { fills, conflicts: conf } = splitStudyMerge(newLead, study)
-    setNewLead((p: any) => ({ ...p, ...fills })) // vacíos: rellenar sin preguntar
+    setNewLead(p => ({ ...p, ...fills })) // vacíos: rellenar sin preguntar
     if (conf.length) {
       setConflicts(conf); setPicked(new Set()) // conflictos: el usuario elige cuáles pisar
       setNctHint(<span style={{ color: t3 }}>{t('research.nct.conflicts', { n: conf.length })}</span>)
@@ -85,15 +85,15 @@ export default function LeadFormModal() {
     else setTitleHint(<span style={{ color: t3 }}>{t('research.title.noMatch')}</span>)
   }
 
-  function pickTitleMatch(study: Record<string, any>) {
+  function pickTitleMatch(study: Partial<Lead>) {
     setTitleMatches([])
     mergeStudy(study) // rellena NCT# (vacío) + campos, con confirmación de conflictos
   }
 
   function applyPicked() {
-    const patch: Record<string, any> = {}
+    const patch: Record<string, unknown> = {}
     for (const c of conflicts) if (picked.has(c.column)) patch[c.column] = c.incoming
-    setNewLead((p: any) => ({ ...p, ...patch }))
+    setNewLead(p => ({ ...p, ...patch }))
     setConflicts([]); setNctHint(filledHint)
   }
 
@@ -124,7 +124,7 @@ export default function LeadFormModal() {
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase', color: accent, marginBottom: 10 }}>{t(GROUP_LABEL_KEY[group])}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {LEAD_FIELD_DEFS.filter(f => f.group === group).map(def => (
-                <LeadFormField key={def.column} def={def} value={newLead[def.column]}
+                <LeadFormField key={def.column} def={def} value={newLead[def.column] as string | number | boolean | null | undefined}
                   onChange={v => setField(def.column, v)}
                   onBlur={onBlurFor(def.column)}
                   action={onBlurFor(def.column)}

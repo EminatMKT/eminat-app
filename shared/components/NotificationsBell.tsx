@@ -5,17 +5,17 @@ import { useT } from '@/shared/i18n'
 import { modulePath } from '@/shared/auth/permissions'
 import { notificacionesRepo } from '@/shared/data'
 import { D } from './appShellConfig'
-import NotificationItem from './NotificationItem'
+import NotificationItem, { type Notif } from './NotificationItem'
 
 export default function NotificationsBell() {
   const router = useRouter()
   const { t } = useT()
   const { accent, notificaciones, notifAbiertas, setNotifAbiertas, setNotificaciones } = useApp()
-  const unread = notificaciones.filter((n: any) => !n.leida).length
+  const unread = notificaciones.filter((n: Notif) => !n.leida).length
 
   return (
     <div style={{ position: 'relative' }}>
-      <button onClick={() => { setNotifAbiertas(!notifAbiertas); if (!notifAbiertas) { const ids = notificaciones.filter((n: any) => !n.leida).map((n: any) => n.id); if (ids.length > 0) notificacionesRepo.markReadByIds(ids).then(() => setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))) } }}
+      <button onClick={() => { setNotifAbiertas(!notifAbiertas); if (!notifAbiertas) { const ids = notificaciones.filter((n: Notif) => !n.leida).map((n: Notif) => n.id); if (ids.length > 0) notificacionesRepo.markReadByIds(ids).then(() => setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))) } }}
         style={{ position: 'relative', padding: '7px 9px', borderRadius: 10, border: `1px solid ${D.border}`, background: notifAbiertas ? `${accent}20` : D.s2, color: notifAbiertas ? accent : D.t2, fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>
         🔔
         {unread > 0 && (
@@ -36,7 +36,7 @@ export default function NotificationsBell() {
                 <div style={{ fontSize: 28, marginBottom: 8 }}>🔔</div>
                 <div style={{ fontSize: 12 }}>{t('notif.empty')}</div>
               </div>
-            ) : notificaciones.map((n: any) => (
+            ) : notificaciones.map((n: Notif) => (
               <NotificationItem key={n.id} notif={n} onClick={() => { if (n.actividad_id) { router.push(modulePath('stratix-mkt')); setNotifAbiertas(false) } }} />
             ))}
           </div>

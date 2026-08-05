@@ -1,9 +1,15 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
+import type { Usuario } from '@/shared/context/loadAppData'
 
-export default function TeamOnlineRow({ u }: { u: any }) {
+// Campos canónicos de `Usuario` (Pick) + el embed N:N `usuario_cargos`.
+type TeamUser = Pick<Usuario, 'nombre' | 'apellido' | 'color'> & {
+  usuario_cargos?: { cargos?: { codigo: string; nombre: string } | null }[]
+}
+
+export default function TeamOnlineRow({ u }: { u: TeamUser }) {
   const { s1, border, accent, t1, t3, usuarios } = useApp()
-  const userInfo = usuarios.find((us: any) => us.nombre === u.nombre)
+  const userInfo = usuarios.find((us) => us.nombre === u.nombre)
   const isOnline = userInfo?.online_at ? new Date(userInfo.online_at) > new Date(Date.now() - 5 * 60 * 1000) : false
   return (
     <div style={{ padding: '8px 14px', borderBottom: `1px solid ${border}`, display: 'flex', alignItems: 'center', gap: 8 }}>

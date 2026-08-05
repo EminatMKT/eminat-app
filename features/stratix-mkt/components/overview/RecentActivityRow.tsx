@@ -1,7 +1,8 @@
 'use client'
 import { useApp, ESTADO_COLORS } from '@/shared/context/AppContext'
+import type { Actividad } from '../../types'
 
-export default function RecentActivityRow({ a }: { a: any }) {
+export default function RecentActivityRow({ a }: { a: Actividad }) {
   const { border, t1, t3 } = useApp()
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: `1px solid ${border}` }}>

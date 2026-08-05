@@ -3,10 +3,12 @@ import { RESEARCH_THEME, inputStyle } from '../../theme'
 import { useT, type I18nKey } from '@/shared/i18n'
 import type { LeadFieldDef } from '../../fields'
 
-export default function LeadFormField({ def, value, onChange, onBlur, hint, help, error, action }: { def: LeadFieldDef; value: any; onChange: (v: any) => void; onBlur?: () => void; hint?: React.ReactNode; help?: React.ReactNode; error?: I18nKey; action?: () => void }) {
+export default function LeadFormField({ def, value, onChange, onBlur, hint, help, error, action }: { def: LeadFieldDef; value: string | number | boolean | null | undefined; onChange: (v: string | boolean) => void; onBlur?: () => void; hint?: React.ReactNode; help?: React.ReactNode; error?: I18nKey; action?: () => void }) {
   const { t3, accent } = RESEARCH_THEME
   const { t } = useT()
-  const v = value ?? ''
+  // Los campos de texto/select siempre reciben string; el `as` solo satisface al valor del input
+  // (para checkbox se usa `value` directamente vía `checked`, nunca `v`).
+  const v = (value ?? '') as string | number
   const style = error ? { ...inputStyle, borderColor: '#F87171' } : inputStyle
 
   function control() {

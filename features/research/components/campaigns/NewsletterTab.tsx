@@ -31,10 +31,10 @@ export default function NewsletterTab() {
   }
 
   const steps = [
-    <NewsletterContactsStep selected={nlSelected} onToggle={toggle} search={nlSearch} setSearch={setNlSearch} onNext={() => setNlStep(1)} />,
-    <NewsletterCampaignStep campaign={nlCampaign} setCampaign={setNlCampaign} onBack={() => setNlStep(0)} onNext={() => setNlStep(2)} />,
-    <NewsletterPreviewStep campaign={nlCampaign} recipientsCount={nlSelected.length} onBack={() => setNlStep(1)} onSend={send} />,
-    <NewsletterResultsStep recipientsCount={nlSelected.length} type={nlCampaign.type} onReset={() => { setNlStep(0); setNlSelected([]); setNlCampaign({ subject: '', content: '', type: 'Email' }) }} />,
+    <NewsletterContactsStep key="contacts" selected={nlSelected} onToggle={toggle} search={nlSearch} setSearch={setNlSearch} onNext={() => setNlStep(1)} />,
+    <NewsletterCampaignStep key="campaign" campaign={nlCampaign} setCampaign={setNlCampaign} onBack={() => setNlStep(0)} onNext={() => setNlStep(2)} />,
+    <NewsletterPreviewStep key="preview" campaign={nlCampaign} recipientsCount={nlSelected.length} onBack={() => setNlStep(1)} onSend={send} />,
+    <NewsletterResultsStep key="results" recipientsCount={nlSelected.length} type={nlCampaign.type} onReset={() => { setNlStep(0); setNlSelected([]); setNlCampaign({ subject: '', content: '', type: 'Email' }) }} />,
   ]
 
   return (

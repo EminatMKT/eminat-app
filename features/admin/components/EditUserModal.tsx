@@ -5,22 +5,17 @@ import { useT } from '@/shared/i18n'
 import { companyOptions } from '@/shared/constants/companies'
 import { MODULE_META, getModulesForRole } from '@/shared/auth/permissions'
 import { apiPost } from '@/shared/api'
+import type { Usuario } from '@/shared/context/loadAppData'
 import Modal from '@/shared/components/Modal'
 import ErrorBlock from './ErrorBlock'
 
-export type EditUserDraft = {
-  id: string
-  nombre: string
-  apellido: string
-  email: string
-  currentEmail: string
-  rol: string
-  tipo: string
-  color: string
-  ubicacion: string
-  empresa: string
-  cargo: string
-}
+// Estado del form de edición: columnas canónicas de `Usuario` como campos
+// requeridos (el form nunca deja undefined — se coerce a '' al abrir) vía
+// Required<Pick<...>>, más `currentEmail` (para el cambio atómico de email) y
+// `tipo`, que no viven en la fila canónica.
+export type EditUserDraft = Required<
+  Pick<Usuario, 'id' | 'nombre' | 'apellido' | 'email' | 'rol' | 'color' | 'ubicacion' | 'empresa' | 'cargo'>
+> & { currentEmail: string; tipo: string }
 
 export default function EditUserModal({ user, onClose }: { user: EditUserDraft; onClose: () => void }) {
   const { setAdminUsuarios, mostrarMensaje, border, s2, t2, t3, accent, inputStyle, roles, roleModuleMap } = useApp()
@@ -34,7 +29,7 @@ export default function EditUserModal({ user, onClose }: { user: EditUserDraft; 
     if (!form.nombre || !form.apellido || !form.email) { setEditError(t('admin.edit.fillRequired')); return }
     setGuardando(true)
     try {
-      const { res, result } = await apiPost('/api/admin/update-user', {
+      const { res, result } = await apiPost<{ error?: string; user?: Partial<Usuario> }>('/api/admin/update-user', {
         id: form.id, currentEmail: form.currentEmail, email: form.email, nombre: form.nombre, apellido: form.apellido,
         rol: form.rol, tipo: form.tipo, color: form.color, ubicacion: form.ubicacion, empresa: form.empresa, cargo: form.cargo,
       })
@@ -42,8 +37,8 @@ export default function EditUserModal({ user, onClose }: { user: EditUserDraft; 
       setAdminUsuarios(prev => prev.map(u => u.id === form.id ? { ...u, ...result.user } : u))
       mostrarMensaje('ok', t('admin.edit.updated'))
       onClose()
-    } catch (err: any) {
-      setEditError(err.message || t('admin.edit.netErr'))
+    } catch (err: unknown) {
+      setEditError((err instanceof Error ? err.message : '') || t('admin.edit.netErr'))
     }
     setGuardando(false)
   }

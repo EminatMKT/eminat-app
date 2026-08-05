@@ -1,3 +1,5 @@
+import type { Usuario } from '@/shared/context/loadAppData'
+
 export type StatusOverride = '' | 'aprobado' | 'finalizado' | 'por_aprobar'
 
 export type ReassignState = {
@@ -8,19 +10,10 @@ export type ReassignState = {
 
 export type ResetTarget = { id: string; nombre: string; email: string }
 
-// Usuario tal como lo trae adminUsuarios del contexto (campos usados por el módulo).
-export type AdminUser = {
-  id: string
-  nombre?: string
-  apellido?: string
-  email?: string
-  rol?: string
-  tipo?: string
-  color?: string
-  ubicacion?: string
-  empresa?: string
-  cargo?: string
-  activo?: boolean
-  validado?: boolean
-  responsable_ref?: string | null
-}
+// Usuario tal como lo trae adminUsuarios del contexto (subconjunto de columnas
+// que usa el módulo admin). Deriva de la fila canónica `Usuario` vía Pick para no
+// re-listar campos a mano; `tipo` es el único campo extra que no vive en Usuario.
+export type AdminUser = Pick<
+  Usuario,
+  'id' | 'nombre' | 'apellido' | 'email' | 'rol' | 'color' | 'ubicacion' | 'empresa' | 'cargo' | 'activo' | 'validado' | 'responsable_ref'
+> & { tipo?: string }

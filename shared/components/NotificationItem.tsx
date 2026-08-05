@@ -2,8 +2,18 @@
 import { useApp } from '@/shared/context/AppContext'
 import { D } from './appShellConfig'
 
+// Forma mínima de una notificación consumida por el dropdown (los campos que se leen en la UI).
+export interface Notif {
+  id: string
+  actividad_id?: string | null
+  leida?: boolean
+  titulo?: string
+  mensaje?: string
+  created_at?: string
+}
+
 // Una fila del dropdown de notificaciones.
-export default function NotificationItem({ notif: n, onClick }: { notif: any; onClick: () => void }) {
+export default function NotificationItem({ notif: n, onClick }: { notif: Notif; onClick: () => void }) {
   const { accent } = useApp()
   return (
     <div onClick={onClick}

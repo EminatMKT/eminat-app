@@ -48,7 +48,7 @@ export default function ActivityDetailModal() {
               <button key={col} onClick={async () => {
                 await actividadesRepo.updateEstado(modalVerAct.id, col)
                 setActividades(prev => prev.map(a => a.id === modalVerAct.id ? { ...a, estado: col } : a))
-                setModalVerAct((p: any) => ({ ...p, estado: col }))
+                setModalVerAct((p) => ({ ...p, estado: col }))
                 mostrarMensaje('ok', `Status → "${col}"`)
               }} style={{ padding: '6px 14px', borderRadius: 20, fontSize: 12, border: `2px solid ${modalVerAct.estado === col ? ESTADO_COLORS[col] : border}`, background: modalVerAct.estado === col ? `${ESTADO_COLORS[col]}20` : 'transparent', color: modalVerAct.estado === col ? ESTADO_COLORS[col] : t2, cursor: 'pointer', fontWeight: modalVerAct.estado === col ? 700 : 400 }}>{col}</button>
             ))}

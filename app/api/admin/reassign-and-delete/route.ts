@@ -111,13 +111,14 @@ export async function POST(req: NextRequest) {
     )
 
     if (rpcError) {
+      const dbErrorCode = (rpcError as { code?: string }).code
       console.error(`${TAG} RPC failed`, {
         oldId, newId,
         error: rpcError.message,
-        code: (rpcError as any).code,
+        code: dbErrorCode,
       })
       return NextResponse.json(
-        { error: rpcError.message || 'La herencia atómica falló.', dbErrorCode: (rpcError as any).code },
+        { error: rpcError.message || 'La herencia atómica falló.', dbErrorCode },
         { status: 500 },
       )
     }
@@ -144,24 +145,27 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    const rpcResult = rpcData as { transferred?: number; notifs_deleted?: number } | null
+
     console.log(`${TAG} success`, {
       oldId,
-      transferred: (rpcData as any)?.transferred,
+      transferred: rpcResult?.transferred,
       authDeleted,
     })
 
     return NextResponse.json({
       ok: true,
-      transferred:    (rpcData as any)?.transferred    ?? 0,
-      notifsDeleted:  (rpcData as any)?.notifs_deleted ?? 0,
+      transferred:    rpcResult?.transferred    ?? 0,
+      notifsDeleted:  rpcResult?.notifs_deleted ?? 0,
       oldUser:        { id: oldRow.id, email: oldRow.email, nombre: oldRow.nombre, apellido: oldRow.apellido },
       authDeleted,
       authNote,
     })
-  } catch (err: any) {
-    console.error(`${TAG} unexpected`, { message: err?.message })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : ''
+    console.error(`${TAG} unexpected`, { message })
     return NextResponse.json(
-      { error: err?.message || 'Error inesperado en la herencia.' },
+      { error: message || 'Error inesperado en la herencia.' },
       { status: 500 },
     )
   }

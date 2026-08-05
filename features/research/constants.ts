@@ -66,6 +66,6 @@ export const TITLE_COLUMN = 'official_title' // se usa para buscar el estudio po
 export const NCT_RE = /^NCT\d{8}$/i
 export const CLINICAL_TRIALS_BASE = 'https://clinicaltrials.gov'
 // Normaliza un NCT# para comparar/indexar/consultar: sin espacios, en mayúsculas.
-export const normNct = (v: any) => (v ?? '').toString().trim().toUpperCase()
+export const normNct = (v: unknown) => String(v ?? '').trim().toUpperCase()
 
 export const MAIL_ESTADO_COLOR: Record<string, string> = { Borrador: '#9CA3AF', Programado: '#60A5FA', Enviado: '#34D399', Cancelado: '#F87171' }

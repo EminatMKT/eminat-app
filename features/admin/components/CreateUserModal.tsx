@@ -32,7 +32,7 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
     setGuardando(true)
     try {
       const cargo = nuevoUsr.cargo || CARGOS_DIR[nuevoUsr.email.toLowerCase()] || ''
-      const { res, result } = await apiPost('/api/admin/create-user', {
+      const { res, result } = await apiPost<{ error?: string; emailWarning?: string | null }>('/api/admin/create-user', {
         email: nuevoUsr.email, password: nuevoUsr.password, nombre: nuevoUsr.nombre, apellido: nuevoUsr.apellido,
         rol: nuevoUsr.rol, tipo: nuevoUsr.tipo, color: nuevoUsr.color, empresa: nuevoUsr.empresa,
         ubicacion: 'Guayaquil, Ecuador', cargo,
@@ -41,8 +41,8 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
       setCreateSuccess({ pwd: nuevoUsr.password, nombre: `${nuevoUsr.nombre} ${nuevoUsr.apellido}`, email: nuevoUsr.email, cargo, emailWarning: result.emailWarning || null })
       const { data } = await usuariosRepo.listAll()
       setAdminUsuarios((data || []).map(u => ({ ...u, cargo: u.cargo || CARGOS_DIR[u.email?.toLowerCase()] || '' })))
-    } catch (err: any) {
-      setCreateError(err.message || t('admin.create.netErr'))
+    } catch (err: unknown) {
+      setCreateError((err instanceof Error ? err.message : '') || t('admin.create.netErr'))
     }
     setGuardando(false)
   }

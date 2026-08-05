@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type ChangeEvent } from 'react'
 import { useApp, MESES } from '@/shared/context/AppContext'
 import { cobranzasRepo } from '@/shared/data'
 import { escapeHtml } from '@/shared/lib/html'
@@ -55,8 +55,8 @@ export function useCobranzasData() {
   const totalVentas = ventasFilt.reduce((s, v) => s + num(v.monto), 0)
   const ventas1Q = ventasFilt.filter(v => v.periodo === '1Q').reduce((s, v) => s + num(v.monto), 0)
   const ventas2Q = ventasFilt.filter(v => v.periodo === '2Q').reduce((s, v) => s + num(v.monto), 0)
-  const ventasLabs = Object.entries(ventasFilt.reduce((m: any, v) => { m[v.laboratorio || 'N/A'] = (m[v.laboratorio || 'N/A'] || 0) + num(v.monto); return m }, {})).map(([name, value]) => ({ name, value: Number(value) }))
-  const ventasEstudios = Object.entries(ventasFilt.reduce((m: any, v) => { m[v.estudio || 'N/A'] = (m[v.estudio || 'N/A'] || 0) + num(v.monto); return m }, {})).map(([name, value]) => ({ name, value: Number(value) }))
+  const ventasLabs = Object.entries(ventasFilt.reduce((m: Record<string, number>, v) => { m[v.laboratorio || 'N/A'] = (m[v.laboratorio || 'N/A'] || 0) + num(v.monto); return m }, {})).map(([name, value]) => ({ name, value: Number(value) }))
+  const ventasEstudios = Object.entries(ventasFilt.reduce((m: Record<string, number>, v) => { m[v.estudio || 'N/A'] = (m[v.estudio || 'N/A'] || 0) + num(v.monto); return m }, {})).map(([name, value]) => ({ name, value: Number(value) }))
   const labsUniq = Array.from(new Set(cobVentas.map(v => v.laboratorio).filter(Boolean)))
   const estudiosUniqV = Array.from(new Set(cobVentas.map(v => v.estudio).filter(Boolean)))
 
@@ -70,7 +70,7 @@ export function useCobranzasData() {
   const totalPorVencer = cuentasFilt.reduce((s, c) => s + num(c.por_vencer), 0)
   const totalAdeudado = totalVencido + totalPorVencer
   const cuentasDonut = [{ name: 'Past Due', value: totalVencido }, { name: 'Upcoming', value: totalPorVencer }]
-  const cuentasEstudios = Object.entries(cuentasFilt.reduce((m: any, c) => { const k = c.estudio || 'N/A'; if (!m[k]) m[k] = { vencido: 0, por_vencer: 0 }; m[k].vencido += num(c.vencido); m[k].por_vencer += num(c.por_vencer); return m }, {})).map(([name, v]: any) => ({ name, vencido: v.vencido, por_vencer: v.por_vencer }))
+  const cuentasEstudios = Object.entries(cuentasFilt.reduce((m: Record<string, { vencido: number; por_vencer: number }>, c) => { const k = c.estudio || 'N/A'; if (!m[k]) m[k] = { vencido: 0, por_vencer: 0 }; m[k].vencido += num(c.vencido); m[k].por_vencer += num(c.por_vencer); return m }, {})).map(([name, v]) => ({ name, vencido: v.vencido, por_vencer: v.por_vencer }))
   const labsUniqC = Array.from(new Set(cobCuentas.map(c => c.laboratorio).filter(Boolean)))
   const estudiosUniqC = Array.from(new Set(cobCuentas.map(c => c.estudio).filter(Boolean)))
 
@@ -84,15 +84,15 @@ export function useCobranzasData() {
   const totalDep = depsFilt.reduce((s, d) => s + num(d.depositado), 0)
   const dep1Q = depsFilt.filter(d => d.periodo === '1Q').reduce((s, d) => s + num(d.depositado), 0)
   const dep2Q = depsFilt.filter(d => d.periodo === '2Q').reduce((s, d) => s + num(d.depositado), 0)
-  const depBancos = Object.entries(depsFilt.reduce((m: any, d) => { m[d.banco || 'N/A'] = (m[d.banco || 'N/A'] || 0) + num(d.depositado); return m }, {})).map(([name, value]) => ({ name, value: Number(value) }))
-  const depContratantes = Object.entries(depsFilt.reduce((m: any, d) => { m[d.contratante || 'N/A'] = (m[d.contratante || 'N/A'] || 0) + num(d.depositado); return m }, {})).map(([name, value]) => ({ name, value: Number(value) }))
+  const depBancos = Object.entries(depsFilt.reduce((m: Record<string, number>, d) => { m[d.banco || 'N/A'] = (m[d.banco || 'N/A'] || 0) + num(d.depositado); return m }, {})).map(([name, value]) => ({ name, value: Number(value) }))
+  const depContratantes = Object.entries(depsFilt.reduce((m: Record<string, number>, d) => { m[d.contratante || 'N/A'] = (m[d.contratante || 'N/A'] || 0) + num(d.depositado); return m }, {})).map(([name, value]) => ({ name, value: Number(value) }))
   const bancosUniq = Array.from(new Set(cobDepositos.map(d => d.banco).filter(Boolean)))
   const contratantesUniq = Array.from(new Set(cobDepositos.map(d => d.contratante).filter(Boolean)))
 
   const clearFilters = () => setCobFiltros({ periodo: '', laboratorio: '', estudio: '', banco: '', contratante: '', tipo: '' })
 
   const handleExport = () => {
-    let rows: any[] = []
+    let rows: (string | number | undefined)[][] = []
     const headers = EXPORT_HEADERS[cobTab]
     if (cobTab === 'ventas') rows = ventasFilt.map(v => [v.mes, v.periodo, v.laboratorio, v.estudio, v.monto])
     else if (cobTab === 'cuentas') rows = cuentasFilt.map(c => [c.laboratorio, c.estudio, c.tipo, c.vencido, c.por_vencer, num(c.vencido) + num(c.por_vencer)])
@@ -104,7 +104,7 @@ export function useCobranzasData() {
     URL.revokeObjectURL(url)
   }
 
-  const handleImportCSV = async (e: any) => {
+  const handleImportCSV = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     const text = await file.text()
@@ -113,7 +113,7 @@ export function useCobranzasData() {
     if (!rows.length) { mostrarMensaje('error', 'Empty file'); return }
     const cols = headers.map(h => h.trim().toLowerCase().replace(/ /g, '_'))
     const records = rows.map(vals => {
-      const obj: any = {}
+      const obj: Record<string, string> = {}
       cols.forEach((h, i) => { obj[h] = (vals[i] ?? '').trim() })
       return obj
     })

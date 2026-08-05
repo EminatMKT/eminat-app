@@ -11,6 +11,7 @@ import {
 } from '@/shared/auth/permissions'
 import { THEME, inputStyle } from '@/shared/theme/tokens'
 import { useAppData } from './useAppData'
+import type { Usuario, Notificacion, Actividad, Equipo } from './loadAppData'
 import SessionErrorScreen from './SessionErrorScreen'
 import { deriveMiembrosRef, deriveMiembrosAsignables, deriveEquipoMarketing } from './team-derivations'
 
@@ -34,27 +35,27 @@ export const EMPRESA_COLORS = _COMPANY_COLORS
 // ── Context ────────────────────────────────────────────────────────────
 
 interface AppContextType {
-  usuario: any
-  actividades: any[]
-  equipo: any[]
-  usuarios: any[]
+  usuario: Usuario | null
+  actividades: Actividad[]
+  equipo: Equipo[]
+  usuarios: Usuario[]
   miembrosRef: Record<string, string>
   miembrosAsignables: { ref: string; nombre: string }[]
-  equipoMarketing: any[]
+  equipoMarketing: Usuario[]
   loading: boolean
   dark: boolean
   setDark: (v: boolean) => void
   horaActual: string
   onlineCount: number
   mensaje: { tipo: 'ok' | 'error'; texto: string } | null
-  notificaciones: any[]
+  notificaciones: Notificacion[]
   notifAbiertas: boolean
   setNotifAbiertas: (v: boolean) => void
-  setNotificaciones: React.Dispatch<React.SetStateAction<any[]>>
-  adminUsuarios: any[]
-  setAdminUsuarios: React.Dispatch<React.SetStateAction<any[]>>
-  setActividades: React.Dispatch<React.SetStateAction<any[]>>
-  setUsuarios: React.Dispatch<React.SetStateAction<any[]>>
+  setNotificaciones: React.Dispatch<React.SetStateAction<Notificacion[]>>
+  adminUsuarios: Usuario[]
+  setAdminUsuarios: React.Dispatch<React.SetStateAction<Usuario[]>>
+  setActividades: React.Dispatch<React.SetStateAction<Actividad[]>>
+  setUsuarios: React.Dispatch<React.SetStateAction<Usuario[]>>
   mostrarMensaje: (tipo: 'ok' | 'error', texto: string) => void
   handleLogout: () => void
   esAdmin: boolean

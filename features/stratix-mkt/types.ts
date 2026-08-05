@@ -1,21 +1,7 @@
-// Actividad de marketing (tabla `actividades`). Index signature porque varias
-// vistas leen campos opcionales y los registros vienen de Supabase.
-export type Actividad = {
-  id?: string
-  titulo?: string
-  descripcion?: string
-  empresa?: string
-  responsable_ref?: string
-  mes?: string
-  trimestre?: string
-  estado?: string
-  horas?: number | string
-  dias_produccion?: number | string
-  fecha_entrega?: string
-  solicitado_por?: string
-  drive_url?: string
-  [k: string]: unknown
-}
+// Actividad de marketing (tabla `actividades`). Tipo canónico definido en el
+// contexto compartido (una sola fuente de forma); se re-exporta acá para que las
+// vistas de Stratix lo importen desde '../types' como siempre.
+export type { Actividad } from '@/shared/context/loadAppData'
 
 // Resumen de horas/tareas por miembro (lo computa useStratixData.resumenHoras;
 // lo consumen HoursSummaryCard y TeamReportCard).

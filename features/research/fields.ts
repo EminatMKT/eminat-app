@@ -116,15 +116,15 @@ export const domainOptions = (column: string): string[] | undefined =>
 // Resuelve un valor entrante al dominio de la columna, reusando resolveToCanonical.
 // '' => '' (vacío, ok). Un string => valor canónico del dominio. null => no reconocido
 // (el usuario debe mapearlo en el import). El derivador sale del propio def (ej. phase).
-export function normalizeDomainValue(column: string, raw: any): string | null {
+export function normalizeDomainValue(column: string, raw: unknown): string | null {
   const def = LEAD_FIELD_DEFS.find(f => f.column === column)
-  const v = (raw ?? '').toString().trim()
+  const v = String(raw ?? '').trim()
   if (!v || !def?.options) return v // vacío, o campo sin dominio: tal cual
   return resolveToCanonical(v, def.options, { derive: def.normalize })
 }
 
 // Normaliza un valor del form para la DB: checkbox -> boolean; '' / undefined -> null.
-export function coerceLeadValue(column: string, value: any): any {
+export function coerceLeadValue(column: string, value: unknown): unknown {
   const def = LEAD_FIELD_DEFS.find(f => f.column === column)
   if (def?.type === 'checkbox') return value === true || value === 'true'
   if (value === '' || value === undefined) return null
@@ -132,8 +132,8 @@ export function coerceLeadValue(column: string, value: any): any {
 }
 
 // Payload de solo columnas conocidas, listo para insert/update (no incluye id/timestamps).
-export function buildLeadPayload(data: Record<string, any>): Record<string, any> {
-  const out: Record<string, any> = {}
+export function buildLeadPayload(data: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {}
   for (const f of LEAD_FIELD_DEFS) out[f.column] = coerceLeadValue(f.column, data[f.column])
   return out
 }
@@ -142,8 +142,8 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 // Valida un lead. Devuelve un mapa columna → CLAVE i18n del error (vacío = válido).
 // La regla nct-o-contacto se ancla en nct_number (primer campo del grupo obligatorio).
-export function validateLeadFields(data: Record<string, any>): Record<string, I18nKey> {
-  const val = (c: string) => (data[c] ?? '').toString().trim()
+export function validateLeadFields(data: Record<string, unknown>): Record<string, I18nKey> {
+  const val = (c: string) => String(data[c] ?? '').trim()
   const errors: Record<string, I18nKey> = {}
   if (!val('official_title')) errors.official_title = 'research.validation.title'
   if (!val('stage')) errors.stage = 'research.validation.stage'
@@ -158,6 +158,6 @@ export function validateLeadFields(data: Record<string, any>): Record<string, I1
 }
 
 // Primer error como clave i18n, o null. Red de seguridad para saveLead (la UI valida por campo).
-export function validateLead(data: Record<string, any>): I18nKey | null {
+export function validateLead(data: Record<string, unknown>): I18nKey | null {
   return Object.values(validateLeadFields(data))[0] ?? null
 }

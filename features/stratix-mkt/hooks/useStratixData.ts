@@ -3,7 +3,7 @@ import { useApp, MESES, MESES_Q, mesATrimestre, MARCAS_LIST } from '@/shared/con
 import { actividadesRepo, notificacionesRepo } from '@/shared/data'
 import { escapeHtml } from '@/shared/lib/html'
 import { isExcludedFromStratix360 } from '../team'
-import type { NuevaActForm } from '../types'
+import type { Actividad, NuevaActForm } from '../types'
 
 const emptyNuevaAct = (): NuevaActForm => ({
   titulo: '', descripcion: '', empresa: 'EMC', responsable_ref: 'DG_Joselyn',
@@ -24,7 +24,7 @@ export function useStratixData() {
   const [dragId, setDragId] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState<string | null>(null)
   const [modalNuevaAct, setModalNuevaAct] = useState(false)
-  const [modalVerAct, setModalVerAct] = useState<any>(null)
+  const [modalVerAct, setModalVerAct] = useState<Actividad | null>(null)
   const [creandoAct, setCreandoAct] = useState(false)
   const [nuevaAct, setNuevaAct] = useState<NuevaActForm>(emptyNuevaAct())
   const [busquedaSol, setBusquedaSol] = useState('')
@@ -113,7 +113,7 @@ export function useStratixData() {
     if (!nuevaAct.titulo.trim()) { mostrarMensaje('error', 'Title is required'); return }
     setCreandoAct(true)
     try {
-      const payload: any = {
+      const payload: Record<string, unknown> = {
         titulo: nuevaAct.titulo.trim(),
         empresa: nuevaAct.empresa,
         responsable_ref: nuevaAct.responsable_ref,
@@ -134,7 +134,7 @@ export function useStratixData() {
       setActividades(prev => [data, ...prev])
 
       if (data && nuevaAct.responsable_ref !== usuario?.responsable_ref) {
-        const responsableUser = usuarios.find((u: any) => u.responsable_ref === nuevaAct.responsable_ref)
+        const responsableUser = usuarios.find((u) => u.responsable_ref === nuevaAct.responsable_ref)
         if (responsableUser?.id) {
           await notificacionesRepo.insert({ usuario_id: responsableUser.id, tipo: 'tarea_asignada', titulo: 'New task assigned', mensaje: `"${nuevaAct.titulo}" — ${nuevaAct.empresa} · ${nuevaAct.mes}`, actividad_id: data.id, leida: false })
         }
@@ -153,7 +153,7 @@ export function useStratixData() {
     const w = window.open('', '_blank', 'width=900,height=700')
     if (!w) return
     const estadoColor = (e: string) => ({ 'Completado': '#34D399', 'Por aprobar': '#FBB040', 'En proceso': '#7C6FF7', 'Pendiente': '#9494B3' }[e] || '#999')
-    const rows = actsRep.map((a: any, i: number) => `<tr>
+    const rows = actsRep.map((a, i: number) => `<tr>
       <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:center;color:#666">${i + 1}</td>
       <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#111;font-weight:500">${escapeHtml(a.titulo || '')}</td>
       <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#555">${escapeHtml(a.empresa || '')}</td>

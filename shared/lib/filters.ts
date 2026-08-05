@@ -16,9 +16,9 @@ export function applyFilters<T>(items: T[], defs: FilterDef<T>[], values: Filter
 }
 
 // Valores distintos presentes en los datos para una columna (reutiliza la data como opciones).
-export const distinctValues = <T,>(items: T[], get: (i: T) => any): string[] =>
+export const distinctValues = <T,>(items: T[], get: (i: T) => unknown): string[] =>
   Array.from(new Set(items.map(get).filter(Boolean).map(String))).sort()
 
 // Igual que distinctValues pero para columnas multivalor separadas por coma (ej. países).
-export const distinctTokens = <T,>(items: T[], get: (i: T) => any): string[] =>
+export const distinctTokens = <T,>(items: T[], get: (i: T) => unknown): string[] =>
   Array.from(new Set(items.flatMap(i => String(get(i) ?? '').split(',').map(s => s.trim()).filter(Boolean)))).sort()

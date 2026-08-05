@@ -43,5 +43,5 @@ export const updateUbicacion = (id: string, ubicacion: string) =>
 // Realtime: escucha UPDATE de la propia fila del usuario para propagar en vivo lo
 // que el admin cambie (rol, activo) sin esperar un refresh. Mismo patrón que las
 // notificaciones; filtrado por id para recibir solo la fila propia.
-export const subscribeToUserRow = (id: string, onUpdate: (row: any) => void) =>
-  subscribeToTable({ channel: `user-row-${id}`, table: TABLES.usuarios, filter: `id=eq.${id}` }, { onUpdate })
+export const subscribeToUserRow = <T extends { id: string }>(id: string, onUpdate: (row: T) => void) =>
+  subscribeToTable<T>({ channel: `user-row-${id}`, table: TABLES.usuarios, filter: `id=eq.${id}` }, { onUpdate })

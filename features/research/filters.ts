@@ -6,8 +6,8 @@ import { domainOptions } from './fields'
 import { distinctValues, distinctTokens, type FilterDef } from '@/shared/lib/filters'
 import type { Lead } from './types'
 
-const eq = (get: (l: Lead) => any) => (l: Lead, v: string) => String(get(l) ?? '') === v
-const includes = (get: (l: Lead) => any) => (l: Lead, v: string) => String(get(l) ?? '').includes(v)
+const eq = (get: (l: Lead) => unknown) => (l: Lead, v: string) => String(get(l) ?? '') === v
+const includes = (get: (l: Lead) => unknown) => (l: Lead, v: string) => String(get(l) ?? '').includes(v)
 const domain = (column: string) => () => domainOptions(column) ?? []
 
 export const LEAD_FILTERS: FilterDef<Lead>[] = [

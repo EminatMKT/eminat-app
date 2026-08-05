@@ -33,8 +33,8 @@ describe('signOutAndRedirect', () => {
 // ── B — carga del perfil crítico, fail-closed ──────────────────────
 function fakeClient(opts: {
   user?: { email: string } | null
-  row?: any
-  rowError?: any
+  row?: Record<string, unknown> | null
+  rowError?: { code: string } | null
   getUserThrows?: boolean
 }) {
   return {
@@ -59,25 +59,25 @@ function fakeClient(opts: {
 describe('loadProfile', () => {
   it('devuelve el usuario cuando hay sesión y perfil activo', async () => {
     const client = fakeClient({ user: { email: 'f@eminat.net' }, row: { id: '1', nombre: 'Freddy', rol: 'superadmin' } })
-    const res = await loadProfile(client as any)
+    const res = await loadProfile(client as Parameters<typeof loadProfile>[0])
     expect(res).toEqual({ ok: true, usuario: { id: '1', nombre: 'Freddy', rol: 'superadmin' } })
   })
 
   it('reporta no-session cuando no hay usuario autenticado', async () => {
     const client = fakeClient({ user: null })
-    const res = await loadProfile(client as any)
+    const res = await loadProfile(client as Parameters<typeof loadProfile>[0])
     expect(res).toEqual({ ok: false, reason: 'no-session' })
   })
 
   it('reporta no-profile cuando no hay fila activa que matchee', async () => {
     const client = fakeClient({ user: { email: 'f@eminat.net' }, row: null, rowError: { code: 'PGRST116' } })
-    const res = await loadProfile(client as any)
+    const res = await loadProfile(client as Parameters<typeof loadProfile>[0])
     expect(res).toEqual({ ok: false, reason: 'no-profile' })
   })
 
   it('reporta error cuando la consulta lanza una excepción', async () => {
     const client = fakeClient({ user: { email: 'f@eminat.net' }, getUserThrows: true })
-    const res = await loadProfile(client as any)
+    const res = await loadProfile(client as Parameters<typeof loadProfile>[0])
     expect(res).toEqual({ ok: false, reason: 'error' })
   })
 })

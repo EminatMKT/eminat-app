@@ -2,12 +2,14 @@
 import { RESEARCH_THEME } from '../../theme'
 import { useT } from '@/shared/i18n'
 import { NCT_COLUMN } from '../../constants'
+import type { Lead } from '../../types'
 
 // Candidatos de ClinicalTrials.gov encontrados por título (para leads sin NCT#). El usuario
 // elige cuál es su estudio → se rellena NCT# + campos (merge no destructivo, con confirmación).
+// Cada candidato es un parcial con columnas reales de research_leads (mapeado por studyFromProtocol).
 export default function TitleMatchModal({ studies, onPick, onCancel }: {
-  studies: Record<string, any>[]
-  onPick: (study: Record<string, any>) => void
+  studies: Partial<Lead>[]
+  onPick: (study: Partial<Lead>) => void
   onCancel: () => void
 }) {
   const { s1, s2, border, t1, t2, t3, accent } = RESEARCH_THEME

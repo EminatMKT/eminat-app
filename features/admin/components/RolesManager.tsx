@@ -17,12 +17,12 @@ export default function RolesManager() {
   async function borrar(r: RoleRow) {
     setBorrando(r.key)
     try {
-      const { res, result } = await apiSend('DELETE', `/api/admin/roles/${r.key}`)
+      const { res, result } = await apiSend<{ error?: string }>('DELETE', `/api/admin/roles/${r.key}`)
       if (!res.ok) { mostrarMensaje('error', result.error || 'No se pudo borrar el rol.'); setBorrando(null); return }
       await reloadRoles()
       mostrarMensaje('ok', 'Rol borrado')
-    } catch (err: any) {
-      mostrarMensaje('error', err?.message || 'Error de red al borrar el rol.')
+    } catch (err: unknown) {
+      mostrarMensaje('error', (err instanceof Error ? err.message : '') || 'Error de red al borrar el rol.')
     }
     setBorrando(null)
   }

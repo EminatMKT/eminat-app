@@ -1,8 +1,17 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
+import type { Usuario } from '@/shared/context/loadAppData'
 
-export default function RosterCard({ user, esLider }: { user: any; esLider: boolean }) {
+interface UsuarioCargo { cargos?: { codigo: string; nombre: string } | null }
+// Campos canónicos de `Usuario` (Pick) + `auth_id` y el embed N:N `usuario_cargos`,
+// que no viven en la fila canónica.
+type RosterUser = Pick<Usuario, 'nombre' | 'apellido' | 'email' | 'online_at' | 'responsable_ref' | 'color'> & {
+  auth_id?: string | null
+  usuario_cargos?: UsuarioCargo[]
+}
+
+export default function RosterCard({ user, esLider }: { user: RosterUser; esLider: boolean }) {
   const { s1, border, accent, t1, t2, t3, actividades } = useApp()
   const { t } = useT()
   const nombreCompleto = `${user.nombre || ''} ${user.apellido || ''}`.trim()
@@ -13,7 +22,7 @@ export default function RosterCard({ user, esLider }: { user: any; esLider: bool
     ? actividades.filter((a) => a.responsable_ref === user.responsable_ref && a.estado === 'En proceso').length
     : 0
   const swatch = user.color || accent
-  const cargo = (user.usuario_cargos || []).map((uc: any) => uc.cargos?.nombre).filter(Boolean).join(', ')
+  const cargo = (user.usuario_cargos || []).map((uc) => uc.cargos?.nombre).filter(Boolean).join(', ')
   return (
     <div style={{ background: s1, border: `1px solid ${esLider ? `${accent}55` : border}`, borderRadius: 14, padding: 16, boxShadow: esLider ? `0 2px 8px ${accent}20` : '0 1px 3px rgba(0,0,0,0.06)', position: 'relative', opacity: tieneCuenta ? 1 : 0.92 }}>
       {esLider && (

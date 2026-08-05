@@ -20,7 +20,7 @@ export interface RowChangeHandlers<T> {
 
 // Suscribe a los cambios de una tabla (opcionalmente filtrada por fila) y despacha por evento.
 // La RLS del usuario ya gatea qué filas recibe. Devuelve el canal (usar removeChannel al salir).
-export function subscribeToTable<T extends Record<string, any>>(
+export function subscribeToTable<T extends Record<string, unknown>>(
   opts: { channel: string; table: string; filter?: string; schema?: string },
   h: RowChangeHandlers<T>,
 ): RealtimeChannel {

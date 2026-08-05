@@ -13,7 +13,7 @@ export default function MemberCard({ member: m }: { member: Member }) {
         <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 20, background: `${ec}20`, color: ec }}>{m.empresa.replace('Eminat ', '').replace(' by Eminat', '')}</span>
       </div>
       <div style={{ fontSize: 12, fontWeight: 700, color: t1 }}>{m.nombre}{m.credenciales && <span style={{ fontSize: 9, color: t3, marginLeft: 4 }}>{m.credenciales}</span>}</div>
-      {m.nickname && <div style={{ fontSize: 10, color: t3 }}>"{m.nickname}"</div>}
+      {m.nickname && <div style={{ fontSize: 10, color: t3 }}>&ldquo;{m.nickname}&rdquo;</div>}
       <div style={{ fontSize: 11, color: t2, marginTop: 3 }}>{m.cargo}</div>
       <div style={{ borderTop: `1px solid ${border}`, marginTop: 8, paddingTop: 8 }}>
         <a href={`mailto:${m.email}`} style={{ fontSize: 10, color: accent, textDecoration: 'none', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>✉ {m.email}</a>

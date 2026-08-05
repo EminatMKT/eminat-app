@@ -11,7 +11,7 @@ export default function MemberAvailabilityCard({ refKey, nombre }: { refKey: str
   const horasLibres = Math.max(horasSemanales - horasOcupadas, 0)
   const pctOcupado = Math.min((horasOcupadas / horasSemanales) * 100, 100)
   const disponible = pctOcupado < 75
-  const userInfo = usuarios.find((u: any) => u.responsable_ref === refKey)
+  const userInfo = usuarios.find((u) => u.responsable_ref === refKey)
   const isOnline = userInfo?.online_at ? new Date(userInfo.online_at) > new Date(Date.now() - 5 * 60 * 1000) : false
   return (
     <div style={{ background: s1, border: `2px solid ${disponible ? '#34D39930' : '#F8717130'}`, borderRadius: 16, padding: 18, transition: 'all .2s' }}>
@@ -43,7 +43,7 @@ export default function MemberAvailabilityCard({ refKey, nombre }: { refKey: str
         <div style={{ fontSize: 9, color: t3, marginTop: 4, textAlign: 'right' }}>{Math.round(pctOcupado)}% capacity used</div>
       </div>
       <div>
-        <div style={{ fontSize: 10, color: t3, marginBottom: 6, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Today's schedule (9am-6pm)</div>
+        <div style={{ fontSize: 10, color: t3, marginBottom: 6, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.05em' }}>Today&apos;s schedule (9am-6pm)</div>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
           {SLOTS.map(hora => {
             const slotOcupado = pctOcupado > 85 || (pctOcupado > 60 && (hora >= 10 && hora <= 14))

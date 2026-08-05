@@ -58,7 +58,7 @@ export default function OverviewTab() {
           </div>
           <div style={{ maxHeight: 180, overflowY: 'auto' }}>
             {equipoSinMi.map(u => (
-              <TeamOnlineRow key={u.id} u={u} />
+              <TeamOnlineRow key={String(u.id)} u={u} />
             ))}
           </div>
         </div>

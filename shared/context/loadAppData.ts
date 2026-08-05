@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { supabase } from '@/shared/db/supabase'
 import { usuariosRepo, actividadesRepo, notificacionesRepo, rolesRepo, removeChannel } from '@/shared/data'
+import type { RealtimeChannel } from '@/shared/data/realtime'
 import { loadProfile } from '@/shared/db/session'
 import * as auth from '@/shared/db/auth'
 import { clearAuthCookies } from '@/shared/db/clearAuthCookies'
@@ -14,16 +15,74 @@ function withTimeout<T>(p: Promise<T>, ms: number, fallback: T): Promise<T> {
   return Promise.race([p, new Promise<T>(res => setTimeout(() => res(fallback), ms))])
 }
 
-type Setters = {
-  setUsuario: (u: any) => void
+// Formas de las filas dinámicas que devuelve Supabase. Se declaran acá (única
+// fuente) y useAppData/AppContext las importan para tipar estado y contexto.
+// Campos opcionales: son proyecciones de la DB, no todas las columnas vienen
+// siempre. La estructura de `equipos` refleja el embed de usuariosRepo.listActivos.
+export interface Usuario {
+  id: string
+  rol?: string
+  nombre?: string
+  apellido?: string
+  color?: string
+  ubicacion?: string
+  email?: string
+  empresa?: string
+  cargo?: string
+  marca_hora?: string
+  activo?: boolean
+  validado?: boolean
+  online_at?: string | null
+  responsable_ref?: string | null
+  equipos?: {
+    codigo?: string | null
+    nombre?: string | null
+    lider_id?: string | null
+    departamentos?: { codigo?: string | null; nombre?: string | null } | null
+  } | null
+}
+
+export interface Notificacion {
+  id?: string
+  leida?: boolean
+  actividad_id?: string | null
+  titulo?: string
+  mensaje?: string
+  created_at?: string
+}
+
+// Actividad de marketing (tabla `actividades`). Tipo canónico compartido: este
+// módulo la almacena/pasa sin leer sus campos, pero las vistas de Stratix leen
+// campos opcionales. Index signature porque los registros vienen de Supabase.
+// `features/stratix-mkt/types` la re-exporta para no duplicar la forma.
+export type Actividad = {
+  id?: string
+  titulo?: string
+  descripcion?: string
+  empresa?: string
+  responsable_ref?: string
+  mes?: string
+  trimestre?: string
+  estado?: string
+  horas?: number | string
+  dias_produccion?: number | string
+  fecha_entrega?: string
+  solicitado_por?: string
+  drive_url?: string
+  [k: string]: unknown
+}
+export type Equipo = Record<string, unknown>
+
+export type Setters = {
+  setUsuario: (u: Usuario) => void
   setSessionError: (r: 'no-session' | 'no-profile' | 'error') => void
   setLoading: (v: boolean) => void
   setOnlineCount: (n: number) => void
-  setNotificaciones: Dispatch<SetStateAction<any[]>>
-  setActividades: (a: any[]) => void
-  setEquipo: (e: any[]) => void
-  setUsuarios: (u: any[]) => void
-  setAdminUsuarios: (u: any[]) => void
+  setNotificaciones: Dispatch<SetStateAction<Notificacion[]>>
+  setActividades: (a: Actividad[]) => void
+  setEquipo: (e: Equipo[]) => void
+  setUsuarios: (u: Usuario[]) => void
+  setAdminUsuarios: (u: Usuario[]) => void
   setRoles: (r: RoleRow[]) => void
   setRoleModuleMap: (m: RoleModuleMap) => void
 }
@@ -33,8 +92,8 @@ type Setters = {
 // adminUsuarios. Devuelve el cleanup (intervalo de heartbeat + canal realtime).
 export function startAppData(s: Setters): () => void {
   let heartbeatInterval: ReturnType<typeof setInterval>
-  let realtimeChannel: any
-  let userRowChannel: any
+  let realtimeChannel: RealtimeChannel | undefined
+  let userRowChannel: RealtimeChannel | undefined
 
   async function init() {
     try {
@@ -104,7 +163,7 @@ export function startAppData(s: Setters): () => void {
       const { data: notifs } = await notificacionesRepo.listForUser(usr.id)
       s.setNotificaciones(notifs || [])
 
-      realtimeChannel = notificacionesRepo.subscribeToUserNotifs(usr.id, (row: any) => {
+      realtimeChannel = notificacionesRepo.subscribeToUserNotifs(usr.id, (row: Notificacion) => {
         s.setNotificaciones(prev => [row, ...prev])
       })
 
@@ -113,7 +172,7 @@ export function startAppData(s: Setters): () => void {
       // online_at) comparando contra el último rol/activo conocido.
       let lastRol = usr.rol
       let lastActivo = usr.activo
-      userRowChannel = usuariosRepo.subscribeToUserRow(usr.id, (row: any) => {
+      userRowChannel = usuariosRepo.subscribeToUserRow(usr.id, (row: Usuario) => {
         if (row.rol === lastRol && row.activo === lastActivo) return
         lastRol = row.rol; lastActivo = row.activo
         // Desactivado por el admin → expulsar al login.
@@ -148,7 +207,7 @@ export function startAppData(s: Setters): () => void {
 
       // 9. Load adminUsuarios with CARGOS_DIR mapping
       const { data: allUsrs } = await usuariosRepo.listAll()
-      s.setAdminUsuarios((allUsrs || []).map((u: any) => ({ ...u, cargo: u.cargo || CARGOS_DIR[u.email?.toLowerCase()] || '' })))
+      s.setAdminUsuarios((allUsrs || []).map((u: Usuario) => ({ ...u, cargo: u.cargo || CARGOS_DIR[u.email?.toLowerCase()] || '' })))
     } catch (err) {
       console.error('AppContext init error:', err)
     } finally {

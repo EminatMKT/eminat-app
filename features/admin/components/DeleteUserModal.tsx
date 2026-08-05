@@ -26,7 +26,7 @@ export default function DeleteUserModal({ userId, onClose }: { userId: string; o
     setDeleteError(null)
     setDeleting(true)
     try {
-      const { res, result } = await apiPost('/api/admin/delete-user', { id })
+      const { res, result } = await apiPost<{ ok?: boolean; blockedBy?: string; taskCount?: number; error?: string; authDeleted?: boolean; authNote?: string }>('/api/admin/delete-user', { id })
       if (!res.ok || !result.ok) {
         // Si el fallo es FK constraint, surface la cantidad de tareas que bloquean
         // y flip a la UI de reasignar para transferir en vez de solo bloquear.
@@ -47,8 +47,8 @@ export default function DeleteUserModal({ userId, onClose }: { userId: string; o
       onClose()
       const authBit = result.authDeleted ? t('admin.del.authBoth') : result.authNote ? t('admin.del.authNote', { note: result.authNote }) : t('admin.del.authNone')
       mostrarMensaje('ok', t('admin.del.deleted') + authBit)
-    } catch (err: any) {
-      setDeleteError(err?.message || t('admin.del.netErr'))
+    } catch (err: unknown) {
+      setDeleteError((err instanceof Error ? err.message : '') || t('admin.del.netErr'))
     }
     setDeleting(false)
   }
@@ -62,15 +62,15 @@ export default function DeleteUserModal({ userId, onClose }: { userId: string; o
     if (!heir.responsable_ref) { setDeleteError(t('admin.del.heirNoRef', { name: `${heir.nombre} ${heir.apellido}` })); return }
     setDeleting(true)
     try {
-      const { res, result } = await apiPost('/api/admin/reassign-and-delete', { oldId, newId: heir.id, newRef: heir.responsable_ref, statusOverride: reassignState.statusOverride || null })
+      const { res, result } = await apiPost<{ ok?: boolean; error?: string; transferred?: number }>('/api/admin/reassign-and-delete', { oldId, newId: heir.id, newRef: heir.responsable_ref, statusOverride: reassignState.statusOverride || null })
       if (!res.ok || !result.ok) { setDeleteError(result.error || t('admin.del.inheritFailed')); setDeleting(false); return }
       setAdminUsuarios(prev => prev.filter(u => u.id !== oldId))
       onClose()
       const heirName = `${heir.nombre} ${heir.apellido}`.trim()
       const count = result.transferred ?? 0
       mostrarMensaje('ok', count === 1 ? t('admin.del.inheritedOne', { count, name: heirName }) : t('admin.del.inheritedMany', { count, name: heirName }))
-    } catch (err: any) {
-      setDeleteError(err?.message || t('admin.del.inheritNetErr'))
+    } catch (err: unknown) {
+      setDeleteError((err instanceof Error ? err.message : '') || t('admin.del.inheritNetErr'))
     }
     setDeleting(false)
   }
@@ -81,13 +81,13 @@ export default function DeleteUserModal({ userId, onClose }: { userId: string; o
     setDeleteError(null)
     setDeleting(true)
     try {
-      const { res, result } = await apiPost('/api/admin/reassign-and-delete', { oldId })
+      const { res, result } = await apiPost<{ ok?: boolean; error?: string }>('/api/admin/reassign-and-delete', { oldId })
       if (!res.ok || !result.ok) { setDeleteError(result.error || t('admin.del.cleanupFailed')); setDeleting(false); return }
       setAdminUsuarios(prev => prev.filter(u => u.id !== oldId))
       onClose()
       mostrarMensaje('ok', t('admin.del.deleted'))
-    } catch (err: any) {
-      setDeleteError(err?.message || t('admin.del.netErr'))
+    } catch (err: unknown) {
+      setDeleteError((err instanceof Error ? err.message : '') || t('admin.del.netErr'))
     }
     setDeleting(false)
   }
@@ -96,13 +96,13 @@ export default function DeleteUserModal({ userId, onClose }: { userId: string; o
     setDeleteError(null)
     setDeleting(true)
     try {
-      const { res, result } = await apiPost('/api/admin/update-user', { id, activo: false })
+      const { res, result } = await apiPost<{ error?: string }>('/api/admin/update-user', { id, activo: false })
       if (!res.ok) { setDeleteError(result.error || t('admin.del.deactivateFailed')); setDeleting(false); return }
       setAdminUsuarios(prev => prev.map(u => u.id === id ? { ...u, activo: false } : u))
       onClose()
       mostrarMensaje('ok', t('admin.del.deactivated'))
-    } catch (err: any) {
-      setDeleteError(err?.message || t('admin.del.deactivateNetErr'))
+    } catch (err: unknown) {
+      setDeleteError((err instanceof Error ? err.message : '') || t('admin.del.deactivateNetErr'))
     }
     setDeleting(false)
   }

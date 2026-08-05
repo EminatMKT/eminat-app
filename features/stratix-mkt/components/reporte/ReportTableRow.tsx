@@ -1,7 +1,8 @@
 'use client'
 import { useApp, ESTADO_COLORS } from '@/shared/context/AppContext'
+import type { Actividad } from '../../types'
 
-export default function ReportTableRow({ a }: { a: any }) {
+export default function ReportTableRow({ a }: { a: Actividad }) {
   const { border, t1, t3 } = useApp()
   return (
     <tr key={a.id} style={{ borderBottom: `1px solid ${border}` }}>

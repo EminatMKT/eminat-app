@@ -23,7 +23,7 @@ export default function LeadDetailModal() {
           <button onClick={() => setModalLead(null)} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>✕</button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-          {LEAD_FIELD_DEFS.filter(d => { const v = lead[d.column]; return v !== null && v !== undefined && v !== '' && v !== false }).map(d => <LeadDetailField key={d.column} def={d} value={lead[d.column]} />)}
+          {LEAD_FIELD_DEFS.filter(d => { const v = lead[d.column]; return v !== null && v !== undefined && v !== '' && v !== false }).map(d => <LeadDetailField key={d.column} def={d} value={lead[d.column] as string | number | boolean | null | undefined} />)}
         </div>
         <div style={{ borderTop: `1px solid ${border}`, paddingTop: 14, marginBottom: 14 }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: t1, marginBottom: 8 }}>Activities</div>

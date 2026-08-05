@@ -5,10 +5,14 @@ import { researchRepo } from '@/shared/data'
 import { RESEARCH_THEME } from '../../theme'
 import { escapeHtml } from '@/shared/lib/html'
 import { useResearch } from '../ResearchContext'
+import type { Campaign } from '../../types'
 import MailStepTab from './MailStepTab'
 import MailContentStep from './MailContentStep'
 import MailRecipientsStep from './MailRecipientsStep'
 import MailPreviewStep from './MailPreviewStep'
+
+// Borrador editable del wizard de mailing (campos que el form toca; el resto lo pone `upsert`).
+type CampaignDraft = { nombre: string; asunto: string; contenido: string; estado: string }
 
 export default function MailCampaignModal() {
   const { s1, border, t1, t3 } = RESEARCH_THEME
@@ -16,7 +20,7 @@ export default function MailCampaignModal() {
   const { mailModal, setMailModal, leads, setCampaigns } = useResearch()
 
   const seed = mailModal?.campaign
-  const [campaign, setCampaign] = useState<any>({ nombre: seed?.nombre || '', asunto: seed?.asunto || '', contenido: seed?.contenido || '', estado: seed?.estado || 'Borrador' })
+  const [campaign, setCampaign] = useState<CampaignDraft>({ nombre: seed?.nombre || '', asunto: seed?.asunto || '', contenido: seed?.contenido || '', estado: seed?.estado || 'Borrador' })
   const [editingCampaignId, setEditingCampaignId] = useState<string | null>(seed?.id ?? null)
   const [step, setStep] = useState(mailModal?.step ?? 0)
   const [recipients, setRecipients] = useState<string[]>([])
@@ -27,12 +31,12 @@ export default function MailCampaignModal() {
   const close = () => setMailModal(null)
 
   const steps = [
-    <MailContentStep campaign={campaign} setCampaign={setCampaign} onCancel={close} onSaveDraft={() => saveDraft(false)} onNext={() => setStep(1)} />,
-    <MailRecipientsStep recipients={recipients} setRecipients={setRecipients} search={search} setSearch={setSearch} onBack={() => setStep(0)} onNext={() => setStep(2)} />,
-    <MailPreviewStep campaign={campaign} recipientsCount={recipients.length} sending={sending} onBack={() => setStep(1)} onSaveDraft={() => saveDraft(true)} onSend={sendNow} />,
+    <MailContentStep key="content" campaign={campaign} setCampaign={setCampaign} onCancel={close} onSaveDraft={() => saveDraft(false)} onNext={() => setStep(1)} />,
+    <MailRecipientsStep key="recipients" recipients={recipients} setRecipients={setRecipients} search={search} setSearch={setSearch} onBack={() => setStep(0)} onNext={() => setStep(2)} />,
+    <MailPreviewStep key="preview" campaign={campaign} recipientsCount={recipients.length} sending={sending} onBack={() => setStep(1)} onSaveDraft={() => saveDraft(true)} onSend={sendNow} />,
   ]
 
-  async function upsert(payload: any) {
+  async function upsert(payload: Partial<Campaign>) {
     if (editingCampaignId) {
       const { data } = await researchRepo.updateCampaign(editingCampaignId, payload)
       if (data) setCampaigns(prev => prev.map(c => c.id === editingCampaignId ? data[0] : c))

@@ -7,7 +7,7 @@ export function useUserActions() {
   const { setAdminUsuarios, mostrarMensaje } = useApp()
 
   async function cambiarRol(id: string, rol: string) {
-    const { res, result } = await apiPost('/api/admin/update-user', { id, rol })
+    const { res, result } = await apiPost<{ error?: string }>('/api/admin/update-user', { id, rol })
     if (!res.ok) { mostrarMensaje('error', result.error || 'No se pudo cambiar el rol.'); return }
     setAdminUsuarios(prev => prev.map(u => u.id === id ? { ...u, rol } : u))
     mostrarMensaje('ok', 'Role updated')
@@ -17,12 +17,12 @@ export function useUserActions() {
     // Ruteado por el endpoint admin server-side para usar service_role y no
     // depender de lo que permita RLS al cliente. Surface de errores reales.
     try {
-      const { res, result } = await apiPost('/api/admin/update-user', { id, activo: !activo })
+      const { res, result } = await apiPost<{ error?: string }>('/api/admin/update-user', { id, activo: !activo })
       if (!res.ok) { mostrarMensaje('error', result.error || 'No se pudo cambiar el estado.'); return }
       setAdminUsuarios(prev => prev.map(u => u.id === id ? { ...u, activo: !activo } : u))
       mostrarMensaje('ok', !activo ? 'User activated' : 'User deactivated')
-    } catch (err: any) {
-      mostrarMensaje('error', err?.message || 'Error de red al cambiar el estado.')
+    } catch (err: unknown) {
+      mostrarMensaje('error', (err instanceof Error ? err.message : '') || 'Error de red al cambiar el estado.')
     }
   }
 

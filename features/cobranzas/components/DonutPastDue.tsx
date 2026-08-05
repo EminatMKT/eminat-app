@@ -18,7 +18,7 @@ export default function DonutPastDue({ data }: { data: Datum[] }) {
           <Pie data={data} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value">
             <Cell fill="#F87171" /><Cell fill="#FBB040" />
           </Pie>
-          <Tooltip formatter={(v: any) => fmt(Number(v))} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} />
+          <Tooltip formatter={(v: unknown) => fmt(Number(v))} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} />
         </PieChart>
       </ResponsiveContainer>
       <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 8 }}>
