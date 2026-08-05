@@ -14,9 +14,11 @@ export const touchOnline = (id: string) =>
 export const countOnlineSince = (iso: string) =>
   supabase.from(TABLES.usuarios).select('*', { count: 'exact', head: true }).gte(COLUMNS.onlineAt, iso)
 
-// Lista usuarios activos ordenados por nombre.
+// Lista usuarios activos ordenados por nombre, con estructura organizacional embebida.
 export const listActivos = () =>
-  supabase.from(TABLES.usuarios).select('*').eq('activo', true).order('nombre', { ascending: true })
+  supabase.from(TABLES.usuarios)
+    .select('*, equipos(codigo, nombre, lider_id, departamentos(codigo, nombre)), cargos(codigo, nombre)')
+    .eq('activo', true).order('nombre', { ascending: true })
 
 // Lista todos los usuarios ordenados por created_at desc.
 export const listAll = () =>

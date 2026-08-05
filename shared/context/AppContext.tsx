@@ -12,6 +12,7 @@ import {
 import { THEME, inputStyle } from '@/shared/theme/tokens'
 import { useAppData } from './useAppData'
 import SessionErrorScreen from './SessionErrorScreen'
+import { deriveMiembrosRef, deriveMiembrosAsignables, deriveEquipoMarketing } from './team-derivations'
 
 // ── Re-exports (back-compat) ───────────────────────────────────────────
 // Las constantes viven ahora en módulos propios; se re-exportan desde acá para
@@ -37,6 +38,9 @@ interface AppContextType {
   actividades: any[]
   equipo: any[]
   usuarios: any[]
+  miembrosRef: Record<string, string>
+  miembrosAsignables: { ref: string; nombre: string }[]
+  equipoMarketing: any[]
   loading: boolean
   dark: boolean
   setDark: (v: boolean) => void
@@ -77,6 +81,10 @@ const AppContext = createContext<AppContextType | undefined>(undefined)
 export function AppProvider({ children }: { children: ReactNode }) {
   const { sessionError, ...app } = useAppData()
 
+  const miembrosRef = deriveMiembrosRef(app.usuarios)
+  const miembrosAsignables = deriveMiembrosAsignables(app.usuarios)
+  const equipoMarketing = deriveEquipoMarketing(app.usuarios)
+
   // Derived values — all permissions flow from shared/auth/permissions.
   const role: Role | null = normalizeRole(app.usuario?.rol)
   const modules: ModuleSlug[] = getModulesForRole(app.roleModuleMap, role)
@@ -89,6 +97,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider
       value={{
         ...app,
+        miembrosRef,
+        miembrosAsignables,
+        equipoMarketing,
         esAdmin,
         cargo,
         role,
