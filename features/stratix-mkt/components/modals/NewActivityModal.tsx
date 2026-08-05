@@ -1,12 +1,9 @@
 'use client'
 import { useApp, MESES, MARCAS_LIST, COLUMNAS_KANBAN, SOLICITANTES } from '@/shared/context/AppContext'
 import { useStratix } from '../StratixContext'
-import { ACTIVE_MIEMBROS_REFS } from '../../team'
-
-const MIEMBROS_ENTRIES = Object.entries(ACTIVE_MIEMBROS_REFS)
 
 export default function NewActivityModal() {
-  const { s1, border, accent, t1, t2, t3, inputStyle } = useApp()
+  const { s1, border, accent, t1, t2, t3, inputStyle, miembrosAsignables } = useApp()
   const { modalNuevaAct, setModalNuevaAct, nuevaAct, setNuevaAct, creandoAct, crearActividad } = useStratix()
   if (!modalNuevaAct) return null
 
@@ -38,7 +35,7 @@ export default function NewActivityModal() {
           <div>
             <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>👤 Assignee <span style={{ color: '#F87171' }}>*</span></label>
             <select value={nuevaAct.responsable_ref} onChange={e => setNuevaAct(p => ({ ...p, responsable_ref: e.target.value }))} style={inputStyle}>
-              {MIEMBROS_ENTRIES.map(([ref, nombre]) => <option key={ref} value={ref}>{nombre}</option>)}
+              {miembrosAsignables.map((m) => <option key={m.ref} value={m.ref}>{m.nombre}</option>)}
             </select>
           </div>
         </div>

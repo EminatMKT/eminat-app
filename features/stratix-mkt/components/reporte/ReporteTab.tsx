@@ -1,14 +1,12 @@
 'use client'
 import { useApp, MESES } from '@/shared/context/AppContext'
 import { useStratix } from '../StratixContext'
-import { ACTIVE_MIEMBROS_REFS } from '../../team'
 import ReportTableRow from './ReportTableRow'
 
-const MIEMBROS_ENTRIES = Object.entries(ACTIVE_MIEMBROS_REFS)
 const REPORT_HEADERS = ['Task', 'Area', 'Hours', 'Prod. Days', 'Status']
 
 export default function ReporteTab() {
-  const { s1, s2, border, accent, t1, t3, inputStyle, esAdmin } = useApp()
+  const { s1, s2, border, accent, t1, t3, inputStyle, esAdmin, miembrosAsignables } = useApp()
   const {
     mesReporte, setMesReporte, miembroReporte, setMiembroReporte,
     actsRep, totalHorasRep, totalDiasRep, completadasRep, nombreRep, refRep, handlePrintReport,
@@ -33,7 +31,7 @@ export default function ReporteTab() {
           {esAdmin && (
             <select value={miembroReporte} onChange={e => setMiembroReporte(e.target.value)} style={{ ...inputStyle, width: 'auto', padding: '6px 12px' }}>
               <option value="">Select</option>
-              {MIEMBROS_ENTRIES.map(([ref, nombre]) => <option key={ref} value={ref}>{nombre}</option>)}
+              {miembrosAsignables.map((m) => <option key={m.ref} value={m.ref}>{m.nombre}</option>)}
             </select>
           )}
           <select value={mesReporte} onChange={e => setMesReporte(e.target.value)} style={{ ...inputStyle, width: 'auto', padding: '6px 12px' }}>

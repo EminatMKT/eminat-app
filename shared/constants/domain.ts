@@ -45,16 +45,6 @@ export const ESTADO_COLORS: Record<string, string> = {
 
 export const COLUMNAS_KANBAN = ['Pendiente', 'En proceso', 'Por aprobar', 'Completado']
 
-export const MIEMBROS_REFS: Record<string, string> = {
-  DG_Joselyn: 'Joselyn',
-  DGA_David: 'David',
-  Jonathan_CRM: 'Jonathan',
-  DG_Ariana: 'Ariana',
-  'CM_ Naomi': 'Naomi',
-  EV_Bryan: 'Bryan',
-  Coord_MFreddy: 'Freddy',
-}
-
 export const SOLICITANTES = [
   { value: 'Coord_MFreddy', label: 'Freddy Crespin — Marketing Director' },
   { value: 'Rafaella', label: 'Rafaella' },

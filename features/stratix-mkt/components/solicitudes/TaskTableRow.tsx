@@ -1,9 +1,9 @@
 'use client'
-import { useApp, ESTADO_COLORS, MIEMBROS_REFS, getColorMarca } from '@/shared/context/AppContext'
+import { useApp, ESTADO_COLORS, getColorMarca } from '@/shared/context/AppContext'
 import { useStratix } from '../StratixContext'
 
 export default function TaskTableRow({ a }: { a: any }) {
-  const { t1, t3, border, esAdmin } = useApp()
+  const { t1, t3, border, esAdmin, miembrosRef } = useApp()
   const { setModalVerAct } = useStratix()
   return (
     <tr key={a.id} onClick={() => setModalVerAct(a)} style={{ borderBottom: `1px solid ${border}`, cursor: 'pointer' }}>
@@ -14,7 +14,7 @@ export default function TaskTableRow({ a }: { a: any }) {
       <td style={{ padding: '10px 14px' }}>
         <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: `${getColorMarca(a.empresa)}25`, color: getColorMarca(a.empresa), fontWeight: 600 }}>{a.empresa}</span>
       </td>
-      {esAdmin && <td style={{ padding: '10px 14px', fontSize: 11, color: t3 }}>{MIEMBROS_REFS[a.responsable_ref] || a.responsable_ref}</td>}
+      {esAdmin && <td style={{ padding: '10px 14px', fontSize: 11, color: t3 }}>{miembrosRef[a.responsable_ref] || a.responsable_ref}</td>}
       <td style={{ padding: '10px 14px', fontSize: 11, color: t3 }}>{a.mes}</td>
       <td style={{ padding: '10px 14px', fontSize: 11, color: t3, fontFamily: 'DM Mono' }}>{a.horas}h</td>
       <td style={{ padding: '10px 14px' }}>

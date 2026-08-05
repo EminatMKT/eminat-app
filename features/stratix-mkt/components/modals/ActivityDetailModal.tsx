@@ -1,16 +1,16 @@
 'use client'
-import { useApp, ESTADO_COLORS, MIEMBROS_REFS, SOLICITANTES, COLUMNAS_KANBAN, mesATrimestre, getColorMarca } from '@/shared/context/AppContext'
+import { useApp, ESTADO_COLORS, SOLICITANTES, COLUMNAS_KANBAN, mesATrimestre, getColorMarca } from '@/shared/context/AppContext'
 import { actividadesRepo } from '@/shared/data'
 import { useStratix } from '../StratixContext'
 import DetailField from './DetailField'
 
 export default function ActivityDetailModal() {
-  const { s1, s2, border, accent, t1, t2, t3, setActividades, mostrarMensaje } = useApp()
+  const { s1, s2, border, accent, t1, t2, t3, setActividades, mostrarMensaje, miembrosRef } = useApp()
   const { modalVerAct, setModalVerAct } = useStratix()
   if (!modalVerAct) return null
 
   const fields = [
-    { label: 'Assignee', value: MIEMBROS_REFS[modalVerAct.responsable_ref] || modalVerAct.responsable_ref },
+    { label: 'Assignee', value: miembrosRef[modalVerAct.responsable_ref] || modalVerAct.responsable_ref },
     { label: 'Requested by', value: SOLICITANTES.find(s => s.value === modalVerAct.solicitado_por)?.label || modalVerAct.solicitado_por || '—' },
     { label: 'Month', value: modalVerAct.mes },
     { label: 'Quarter', value: modalVerAct.trimestre || mesATrimestre[modalVerAct.mes || 'Enero'] || 'Q1' },

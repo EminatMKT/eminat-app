@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { useApp, MESES, MESES_Q, mesATrimestre, MARCAS_LIST, MIEMBROS_REFS } from '@/shared/context/AppContext'
+import { useApp, MESES, MESES_Q, mesATrimestre, MARCAS_LIST } from '@/shared/context/AppContext'
 import { actividadesRepo, notificacionesRepo } from '@/shared/data'
 import { escapeHtml } from '@/shared/lib/html'
-import { ACTIVE_MIEMBROS_REFS, isExcludedFromStratix360 } from '../team'
+import { isExcludedFromStratix360 } from '../team'
 import type { NuevaActForm } from '../types'
 
 const emptyNuevaAct = (): NuevaActForm => ({
@@ -12,7 +12,7 @@ const emptyNuevaAct = (): NuevaActForm => ({
 })
 
 export function useStratixData() {
-  const { usuario, actividades, equipo, usuarios, esAdmin, mostrarMensaje, setActividades } = useApp()
+  const { usuario, actividades, equipo, usuarios, esAdmin, mostrarMensaje, setActividades, miembrosRef, miembrosAsignables } = useApp()
 
   const [mktTab, setMktTab] = useState('overview')
   const [trimestre, setTrimestre] = useState('General')
@@ -56,9 +56,9 @@ export function useStratixData() {
   const maxTotal = Math.max(...datosPorMes.map(d => d.total), 1)
   const datosPorMarca = MARCAS_LIST.map(m => ({ ...m, total: actsFiltradas.filter(a => a.empresa === m.codigo).length })).filter(m => m.total > 0)
   const maxMarca = Math.max(...datosPorMarca.map(d => d.total), 1)
-  const refsTeam = esAdmin ? Object.keys(ACTIVE_MIEMBROS_REFS) : [usuario?.responsable_ref].filter(Boolean)
+  const refsTeam = esAdmin ? miembrosAsignables.map((m) => m.ref) : [usuario?.responsable_ref].filter(Boolean)
   const datosPorMiembro = refsTeam.map(ref => ({
-    ref, nombre: MIEMBROS_REFS[ref] || ref,
+    ref, nombre: miembrosRef[ref] || ref,
     total: actsFiltradas.filter(a => a.responsable_ref === ref).length,
     completadas: actsFiltradas.filter(a => a.responsable_ref === ref && a.estado === 'Completado').length,
     horas: Math.round(actsFiltradas.filter(a => a.responsable_ref === ref).reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10,
@@ -76,7 +76,7 @@ export function useStratixData() {
   const actsHoras = mesHoras ? actividades.filter(a => a.mes === mesHoras) : actividades
   const resumenHoras = refsTeam.map(ref => {
     const acts = actsHoras.filter(a => a.responsable_ref === ref)
-    return { ref, nombre: MIEMBROS_REFS[ref] || ref, total: acts.length, completadas: acts.filter(a => a.estado === 'Completado').length, horas: Math.round(acts.reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10, dias: acts.reduce((acc, a) => acc + (Number(a.dias_produccion) || 0), 0) }
+    return { ref, nombre: miembrosRef[ref] || ref, total: acts.length, completadas: acts.filter(a => a.estado === 'Completado').length, horas: Math.round(acts.reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10, dias: acts.reduce((acc, a) => acc + (Number(a.dias_produccion) || 0), 0) }
   }).filter(r => r.total > 0)
 
   const refRep = miembroReporte || refsTeam[0] || ''
@@ -89,7 +89,7 @@ export function useStratixData() {
   const totalHorasRep = Math.round(actsRep.reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10
   const totalDiasRep = actsRep.reduce((acc, a) => acc + (Number(a.dias_produccion) || 0), 0)
   const completadasRep = actsRep.filter(a => a.estado === 'Completado').length
-  const nombreRep = MIEMBROS_REFS[refRep] || usuario?.nombre || refRep
+  const nombreRep = miembrosRef[refRep] || usuario?.nombre || refRep
 
   // Drag and drop
   const onDragStart = (id: string) => setDragId(id)

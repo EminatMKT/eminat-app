@@ -1,9 +1,9 @@
 'use client'
-import { useApp, ESTADO_COLORS, MIEMBROS_REFS, getColorMarca } from '@/shared/context/AppContext'
+import { useApp, ESTADO_COLORS, getColorMarca } from '@/shared/context/AppContext'
 import { useStratix } from '../StratixContext'
 
 export default function GanttBar({ a, fechaMin }: { a: any; fechaMin: Date }) {
-  const { accent, border, t1, t3 } = useApp()
+  const { accent, border, t1, t3, miembrosRef } = useApp()
   const { setModalVerAct } = useStratix()
   const fechaAct = new Date(a.fecha_entrega)
   const diaOffset = Math.max(Math.ceil((fechaAct.getTime() - fechaMin.getTime()) / 86400000), 0)
@@ -14,7 +14,7 @@ export default function GanttBar({ a, fechaMin }: { a: any; fechaMin: Date }) {
       <div style={{ width: 220, flexShrink: 0, padding: '10px 14px', borderRight: `1px solid ${border}` }}>
         <div style={{ fontSize: 11, fontWeight: 600, color: t1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.titulo}</div>
         <div style={{ fontSize: 9, color: t3, marginTop: 2 }}>
-          <span style={{ marginRight: 6 }}>{MIEMBROS_REFS[a.responsable_ref] || a.responsable_ref}</span>
+          <span style={{ marginRight: 6 }}>{miembrosRef[a.responsable_ref] || a.responsable_ref}</span>
           <span style={{ padding: '1px 5px', borderRadius: 4, background: `${getColorMarca(a.empresa)}25`, color: getColorMarca(a.empresa), fontSize: 8 }}>{a.empresa}</span>
         </div>
       </div>
