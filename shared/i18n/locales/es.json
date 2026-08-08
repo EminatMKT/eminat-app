@@ -201,6 +201,8 @@
   "admin.org.editTitle": "Editar en {tipo}",
   "admin.org.empty": "Todavía no hay entradas en este catálogo.",
   "admin.org.inUse": "{n} en uso",
+  "admin.org.sinUso": "{n} sin usar",
+  "admin.org.sinUsoTip": "Entradas que no están asignadas a ningún registro: se pueden borrar.",
   "admin.org.inUseTip": "Está en uso. Reasigná los registros antes de borrarlo.",
   "admin.org.required": "El campo {campo} es obligatorio.",
   "admin.org.saveFailed": "No se pudo guardar.",

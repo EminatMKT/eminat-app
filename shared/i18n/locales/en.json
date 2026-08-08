@@ -201,6 +201,8 @@
   "admin.org.editTitle": "Edit in {tipo}",
   "admin.org.empty": "No entries in this catalog yet.",
   "admin.org.inUse": "{n} in use",
+  "admin.org.sinUso": "{n} unused",
+  "admin.org.sinUsoTip": "Entries not assigned to any record: they can be deleted.",
   "admin.org.inUseTip": "Currently in use. Reassign its records before deleting.",
   "admin.org.required": "The {campo} field is required.",
   "admin.org.saveFailed": "Could not save.",

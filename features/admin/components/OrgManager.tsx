@@ -17,7 +17,7 @@ import OrgModal from './OrgModal'
 // borrado sale de ORG_CATALOGS — agregar un campo no toca este componente.
 // `cat` vive en AdminModule (es la tab activa del shell), igual que mktTab en Stratix.
 export default function OrgManager({ cat, onCatChange }: { cat: OrgCat; onCatChange: (c: OrgCat) => void }) {
-  const { t1, border, reloadOrg, mostrarMensaje } = useApp()
+  const { t1, t3, border, reloadOrg, mostrarMensaje } = useApp()
   const { t } = useT()
   const [busqueda, setBusqueda] = useState('')
   const [modal, setModal] = useState<{ row?: OrgRow } | null>(null)
@@ -26,6 +26,10 @@ export default function OrgManager({ cat, onCatChange }: { cat: OrgCat; onCatCha
 
   const q = busqueda.trim().toLowerCase()
   const filtradas = q ? rows.filter(r => r.nombre.toLowerCase().includes(q) || r.codigo.toLowerCase().includes(q)) : rows
+  // Lo único que la lista no deja ver de un vistazo: cuántas entradas no las usa
+  // nadie, o sea cuáles se pueden depurar. Se cuenta sobre el catálogo completo,
+  // no sobre lo filtrado, porque es una propiedad del catálogo.
+  const sinUso = rows.filter(r => dependents(r) === 0).length
 
   async function borrar(row: OrgRow) {
     setBorrando(row.id)
@@ -50,7 +54,13 @@ export default function OrgManager({ cat, onCatChange }: { cat: OrgCat; onCatCha
       </div>
 
       <ListToolbar busqueda={busqueda} setBusqueda={setBusqueda}
-        action={<NewButton label={t(ORG_CATALOGS[cat].newKey)} onClick={() => setModal({})} />} />
+        action={<NewButton label={t(ORG_CATALOGS[cat].newKey)} onClick={() => setModal({})} />}>
+        {sinUso > 0 && (
+          <span title={t('admin.org.sinUsoTip')} style={{ fontSize: 11, color: t3, whiteSpace: 'nowrap' }}>
+            {t('admin.org.sinUso', { n: sinUso })}
+          </span>
+        )}
+      </ListToolbar>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {filtradas.length === 0 && <div style={{ fontSize: 12, color: t1, opacity: 0.6 }}>{t('admin.org.empty')}</div>}
