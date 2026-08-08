@@ -19,6 +19,9 @@ export type OrgField = {
 
 export type CatalogDef = {
   labelKey: I18nKey
+  /** Etiqueta del botón de alta, en singular ("Nueva empresa"). Va por catálogo
+   *  y no compuesta, porque el género cambia con el sustantivo. */
+  newKey: I18nKey
   fields: OrgField[]
   /** Dependientes que bloquean el borrado (patrón Roles: bloquear + avisar). */
   blockedBy: { table: string; column: string }[]
@@ -30,6 +33,7 @@ export const ORG_CATALOGS: Record<OrgCat, CatalogDef> = {
   // catálogos se muestra al usuario, como chip corto en la tabla de personas.
   empresas: {
     labelKey: 'admin.org.empresas',
+    newKey: 'admin.org.newEmpresa',
     fields: [
       { name: 'nombre', type: 'text', labelKey: 'admin.org.nombre', required: true },
       { name: 'codigo', type: 'text', labelKey: 'admin.org.codigo' },
@@ -44,6 +48,7 @@ export const ORG_CATALOGS: Record<OrgCat, CatalogDef> = {
   },
   departamentos: {
     labelKey: 'admin.org.departamentos',
+    newKey: 'admin.org.newDepartamento',
     fields: [
       { name: 'nombre', type: 'text', labelKey: 'admin.org.nombre', required: true },
       { name: 'color', type: 'color', labelKey: 'admin.org.color' },
@@ -53,6 +58,7 @@ export const ORG_CATALOGS: Record<OrgCat, CatalogDef> = {
   },
   equipos: {
     labelKey: 'admin.org.equipos',
+    newKey: 'admin.org.newEquipo',
     fields: [
       { name: 'nombre', type: 'text', labelKey: 'admin.org.nombre', required: true },
       { name: 'departamento_id', type: 'select', labelKey: 'admin.org.departamento', required: true, options: 'departamentos' },
@@ -62,6 +68,7 @@ export const ORG_CATALOGS: Record<OrgCat, CatalogDef> = {
   },
   cargos: {
     labelKey: 'admin.org.cargos',
+    newKey: 'admin.org.newCargo',
     fields: [
       { name: 'nombre', type: 'text', labelKey: 'admin.org.nombre', required: true },
     ],
@@ -72,6 +79,7 @@ export const ORG_CATALOGS: Record<OrgCat, CatalogDef> = {
   // y no uno con un discriminador.
   jornadas: {
     labelKey: 'admin.org.jornadas',
+    newKey: 'admin.org.newJornada',
     fields: [
       { name: 'nombre', type: 'text', labelKey: 'admin.org.nombre', required: true },
       { name: 'horas_dia', type: 'number', labelKey: 'admin.org.horasDia', required: true },
@@ -80,6 +88,7 @@ export const ORG_CATALOGS: Record<OrgCat, CatalogDef> = {
   },
   vinculaciones: {
     labelKey: 'admin.org.vinculaciones',
+    newKey: 'admin.org.newVinculacion',
     fields: [
       { name: 'nombre', type: 'text', labelKey: 'admin.org.nombre', required: true },
     ],

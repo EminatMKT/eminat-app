@@ -45,7 +45,7 @@ export default function OrgManager({ cat, onCatChange }: { cat: OrgCat; onCatCha
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
-        <NewButton label={t('admin.org.newBtn')} onClick={() => setModal({})} />
+        <NewButton label={t(ORG_CATALOGS[cat].newKey)} onClick={() => setModal({})} />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
