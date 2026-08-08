@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { requireAdmin } from '@/shared/db/requireAdmin'
 import { isLastAdmin } from '@/shared/auth/roleValidation'
+import { syncUsuarioCargos } from '@/shared/db/usuarioCargos'
 
 /**
  * Server-side admin endpoint — partial user update.
@@ -45,8 +46,8 @@ export async function POST(req: NextRequest) {
       tipo,
       color,
       ubicacion,
-      empresa,
-      cargo,
+      empresa_id,
+      cargoIds,
       activo,
       validado,
     } = body
@@ -64,12 +65,14 @@ export async function POST(req: NextRequest) {
     if (tipo !== undefined) updatePayload.tipo = tipo
     if (color !== undefined) updatePayload.color = color
     if (ubicacion !== undefined) updatePayload.ubicacion = ubicacion
-    if (empresa !== undefined) updatePayload.empresa = empresa
-    if (cargo !== undefined) updatePayload.cargo = cargo
+    if (empresa_id !== undefined) updatePayload.empresa_id = empresa_id || null
     if (activo !== undefined) updatePayload.activo = activo
     if (validado !== undefined) updatePayload.validado = validado
 
-    if (Object.keys(updatePayload).length === 0) {
+    // Los cargos NO son columna de `usuarios` (N:N en usuario_cargos), así que
+    // van aparte — pero cuentan como "algo para actualizar".
+    const syncCargos = Array.isArray(cargoIds)
+    if (Object.keys(updatePayload).length === 0 && !syncCargos) {
       return NextResponse.json({ error: 'Sin campos para actualizar.' }, { status: 400 })
     }
 
@@ -107,16 +110,18 @@ export async function POST(req: NextRequest) {
     }
 
     // 2) Update usuarios. count:'exact' lets us detect "0 rows affected"
-    //    (which would mean no row with that id exists).
-    const { data: userData, error: dbError, count } = await db
-      .from('usuarios')
-      .update(updatePayload, { count: 'exact' })
-      .eq('id', id)
-      .select()
-      .single()
+    //    (which would mean no row with that id exists). Si el request solo trae
+    //    cargoIds no hay columnas que tocar y salteamos el update.
+    let dbError: { message: string; code?: string } | null = null
+    let count: number | null = 1
+    if (Object.keys(updatePayload).length > 0) {
+      const res = await db.from('usuarios').update(updatePayload, { count: 'exact' }).eq('id', id)
+      dbError = res.error
+      count = res.count
+    }
 
     if (dbError) {
-      const dbErrorCode = (dbError as { code?: string }).code
+      const dbErrorCode = dbError.code
       console.error(`${TAG} usuarios update failed`, {
         id,
         error: dbError.message,
@@ -151,7 +156,18 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    console.log(`${TAG} success`, { id, fields: Object.keys(updatePayload) })
+    // 3) Cargos N:N. Va después del update para no dejar el puente sincronizado
+    //    si la fila de usuarios falló.
+    if (syncCargos) {
+      const cargoErr = await syncUsuarioCargos(db, id, cargoIds)
+      if (cargoErr) return NextResponse.json({ error: cargoErr.message }, { status: 400 })
+    }
+
+    // Releemos con el embed para que la UI reciba los cargos ya actualizados.
+    const { data: userData } = await db.from('usuarios')
+      .select('*, usuario_cargos(cargo_id, cargos(codigo, nombre))').eq('id', id).single()
+
+    console.log(`${TAG} success`, { id, fields: Object.keys(updatePayload), cargos: syncCargos })
     return NextResponse.json({ user: userData })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : ''

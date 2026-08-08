@@ -20,6 +20,10 @@ export default function PasswordInput({ value, onChange, show, setShow }: Props)
         type={show ? 'text' : 'password'}
         value={value}
         onChange={e => onChange(e.target.value)}
+        // Es la contraseña que se le asigna a OTRA persona, no la del admin: sin
+        // esto el gestor del navegador ofrece autocompletar con las credenciales
+        // guardadas del que está logueado.
+        autoComplete="new-password"
         style={{ ...inputStyle, paddingRight: 92, fontFamily: 'DM Mono, monospace' }}
         placeholder={t('admin.pwdMinPlaceholder')}
       />

@@ -3,8 +3,8 @@ import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { normalizeRole, ADMIN_ROLE, DEFAULT_ROLE, MODULE_META, getModulesForRole } from '@/shared/auth/permissions'
-import { COMPANY_COLORS, companyShort } from '@/shared/constants/companies'
 import { useUserActions } from '../hooks/useUserActions'
+import { cargoNamesOf } from '../org-catalogs'
 import ConfirmModal from '@/shared/components/ConfirmModal'
 import type { AdminUser, ResetTarget } from '../types'
 
@@ -30,7 +30,7 @@ function boldTerms(text: string, terms: string[]) {
 }
 
 export default function UserRow({ user: u, onEdit, onReset, onDelete }: Props) {
-  const { s2, border, t1, t2, t3, accent, roles, roleModuleMap } = useApp()
+  const { s2, border, t1, t2, t3, accent, roles, roleModuleMap, empresas } = useApp()
   const { t } = useT()
   const { cambiarRol, toggleActivo, validarUsuario } = useUserActions()
   const isProtected = normalizeRole(u.rol) === ADMIN_ROLE
@@ -47,8 +47,14 @@ export default function UserRow({ user: u, onEdit, onReset, onDelete }: Props) {
         </div>
       </td>
       <td style={{ padding: '10px 14px', fontSize: 10, color: t3, fontFamily: 'DM Mono' }}>{u.email}</td>
-      <td style={{ padding: '10px 14px', fontSize: 11, color: t2 }}>{u.cargo || '—'}</td>
-      <td style={{ padding: '10px 14px' }}>{u.empresa ? <span style={{ fontSize: 9, padding: '2px 6px', borderRadius: 20, background: `${COMPANY_COLORS[u.empresa] || accent}20`, color: COMPANY_COLORS[u.empresa] || accent }}>{companyShort(u.empresa)}</span> : <span style={{ fontSize: 10, color: t3 }}>—</span>}</td>
+      <td style={{ padding: '10px 14px', fontSize: 11, color: t2 }}>{cargoNamesOf(u).join(', ') || '—'}</td>
+      {/* Chip de empresa: color y sigla salen del catálogo (empresas.color/codigo). */}
+      <td style={{ padding: '10px 14px' }}>{(() => {
+        const emp = empresas.find(e => e.id === u.empresa_id)
+        if (!emp) return <span style={{ fontSize: 10, color: t3 }}>—</span>
+        const c = emp.color || accent
+        return <span title={emp.nombre} style={{ fontSize: 9, padding: '2px 6px', borderRadius: 20, background: `${c}20`, color: c }}>{emp.codigo}</span>
+      })()}</td>
       {/* Solo sin_asignar usa el select inline (asignación rápida). El resto muestra el rol
           como badge: el cambio se hace desde el modal de editar. Admin en rojo, otros en acento. */}
       <td style={{ padding: '10px 14px' }}>{normalizeRole(u.rol) === DEFAULT_ROLE ? <select value={u.rol} onChange={e => { if (e.target.value !== u.rol) setConfirm({ kind: 'assign', value: e.target.value }) }} style={{ padding: '3px 8px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 11, cursor: 'pointer', outline: 'none' }}>{roles.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}</select> : <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: isProtected ? 'rgba(248,113,113,.12)' : `${accent}1a`, color: isProtected ? '#F87171' : accent }}>{roleLabel}</span>}</td>

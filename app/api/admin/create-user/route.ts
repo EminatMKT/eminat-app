@@ -4,6 +4,7 @@ import { DEFAULT_ROLE } from '@/shared/auth/permissions'
 import { serverEnv } from '@/shared/db/env.server'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { requireAdmin } from '@/shared/db/requireAdmin'
+import { syncUsuarioCargos, cargoNames } from '@/shared/db/usuarioCargos'
 import { MAIL_FROM, MARKETING_COORDINATOR_EMAIL, MARKETING_INBOX_EMAIL } from '@/shared/constants/contacts'
 
 /**
@@ -138,7 +139,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { email, password, nombre, apellido, rol, tipo, color, empresa, ubicacion, cargo } = body
+    const { email, password, nombre, apellido, rol, tipo, color, empresa_id, ubicacion, cargoIds = [] } = body
 
     if (!email || !password || !nombre || !apellido) {
       return NextResponse.json(
@@ -183,9 +184,8 @@ export async function POST(req: NextRequest) {
         rol: rol || DEFAULT_ROLE,
         tipo: tipo || 'B',
         color: color || '#7C6FF7',
-        empresa: empresa || 'Eminat Group',
+        empresa_id: empresa_id || null,
         ubicacion: ubicacion || 'Guayaquil, Ecuador',
-        cargo: cargo || '',
         activo: true,
         validado: true,
       })
@@ -222,7 +222,13 @@ export async function POST(req: NextRequest) {
 
     console.log(`${TAG} usuarios inserted`, { userId, email })
 
-    // 3. Best-effort welcome email. Never fails the request.
+    // 3. Cargos N:N. Best-effort igual que el email: el usuario ya existe, un
+    //    fallo acá se corrige desde Editar usuario sin dejar nada a medias.
+    const cargoErr = await syncUsuarioCargos(db, userId, cargoIds)
+    if (cargoErr) console.warn(`${TAG} cargos no asignados`, { userId, error: cargoErr.message })
+    const cargo = await cargoNames(db, cargoIds)
+
+    // 4. Best-effort welcome email. Never fails the request.
     const { data: roleRow } = await db.from('roles').select('label').eq('key', rol || DEFAULT_ROLE).maybeSingle()
     const areaLabel = roleRow?.label || (rol || DEFAULT_ROLE)
     const emailWarning = await sendWelcomeEmail({ nombre, apellido, email, password, areaLabel, cargo })
