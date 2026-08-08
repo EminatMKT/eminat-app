@@ -6,6 +6,7 @@ import { DEFAULT_ROLE } from '@/shared/auth/permissions'
 import AppShell from '@/shared/components/AppShell'
 import AccessDenied from '@/shared/components/AccessDenied'
 import TabButton from '@/shared/components/ui/TabButton'
+import NewButton from '@/shared/components/ui/NewButton'
 import { PageTransition } from '@/shared/motion'
 import StatsBar from './StatsBar'
 import RoleFilterBar from './RoleFilterBar'
@@ -26,7 +27,7 @@ import type { AdminUser, ResetTarget } from '../types'
 type Vista = 'usuarios' | 'roles' | OrgCat
 
 export default function AdminModule() {
-  const { esAdmin, adminUsuarios, border, accent } = useApp()
+  const { esAdmin, adminUsuarios, border } = useApp()
   const { t } = useT()
   const [vista, setVista] = useState<Vista>('usuarios')
   const [busqueda, setBusqueda] = useState('')
@@ -51,8 +52,7 @@ export default function AdminModule() {
     vinculacion_id: u.vinculacion_id ?? null, cargoIds: cargoIdsOf(u),
   })
 
-  // Mismo estilo que "Nuevo rol" y el "Nuevo" de los catálogos: acento, no rojo.
-  const crearBtn = <button onClick={() => setModalCrear(true)} style={{ padding: '7px 16px', borderRadius: 10, background: accent, color: 'white', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>{t('admin.newUser')}</button>
+  const crearBtn = <NewButton label={t('admin.newUser')} onClick={() => setModalCrear(true)} />
 
   return (
     <AppShell activeTab={vista} onTabChange={v => setVista(v as Vista)}>

@@ -5,6 +5,7 @@ import { useT } from '@/shared/i18n'
 import { apiSend } from '@/shared/api'
 import type { OrgRow } from '@/shared/context/loadAppData'
 import TabButton from '@/shared/components/ui/TabButton'
+import NewButton from '@/shared/components/ui/NewButton'
 import { ORG_CATALOGS, ORG_CATS, type OrgCat } from '../org-catalogs'
 import { useOrgCatalog } from '../hooks/useOrgCatalog'
 import OrgCard from './OrgCard'
@@ -15,7 +16,7 @@ import OrgModal from './OrgModal'
 // borrado sale de ORG_CATALOGS — agregar un campo no toca este componente.
 // `cat` vive en AdminModule (es la tab activa del shell), igual que mktTab en Stratix.
 export default function OrgManager({ cat, onCatChange }: { cat: OrgCat; onCatChange: (c: OrgCat) => void }) {
-  const { t1, border, accent, reloadOrg, mostrarMensaje } = useApp()
+  const { t1, border, reloadOrg, mostrarMensaje } = useApp()
   const { t } = useT()
   const [modal, setModal] = useState<{ row?: OrgRow } | null>(null)
   const [borrando, setBorrando] = useState<string | null>(null)
@@ -44,7 +45,7 @@ export default function OrgManager({ cat, onCatChange }: { cat: OrgCat; onCatCha
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
-        <button onClick={() => setModal({})} style={{ padding: '7px 16px', borderRadius: 10, background: accent, color: 'white', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>{t('admin.org.newBtn')}</button>
+        <NewButton label={t('admin.org.newBtn')} onClick={() => setModal({})} />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

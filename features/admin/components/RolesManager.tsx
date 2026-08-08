@@ -4,11 +4,12 @@ import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { type RoleRow } from '@/shared/auth/permissions'
 import { apiSend } from '@/shared/api'
+import NewButton from '@/shared/components/ui/NewButton'
 import RoleModal from './RoleModal'
 import RoleCard from './RoleCard'
 
 export default function RolesManager() {
-  const { roles, reloadRoles, t1, accent, mostrarMensaje } = useApp()
+  const { roles, reloadRoles, t1, mostrarMensaje } = useApp()
   const { t } = useT()
   const [modalRole, setModalRole] = useState<RoleRow | null>(null)
   const [modalNew, setModalNew] = useState(false)
@@ -31,7 +32,7 @@ export default function RolesManager() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
         <div style={{ fontFamily: 'Syne', fontSize: 15, fontWeight: 700, color: t1 }}>{t('admin.systemRoles')}</div>
-        <button onClick={() => setModalNew(true)} style={{ padding: '7px 16px', borderRadius: 10, background: accent, color: 'white', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>{t('admin.newRole')}</button>
+        <NewButton label={t('admin.newRole')} onClick={() => setModalNew(true)} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {roles.map(r => (
