@@ -86,6 +86,20 @@ _Código completo (suite 95/95, tsc 0). **Entrega cerrada:** migración `2026071
 
 ---
 
+## Lote de confirmaciones del panel admin (verificado como hecho 2026-08-08)
+
+> Los 4 items pedían un **único `ConfirmModal` compartido**, no 4 modales. Se implementó así: `shared/components/ConfirmModal.tsx` con `título/mensaje/acción/destructive` + modo opcional *type-to-confirm* (`confirmPhrase`). Estaban terminados desde antes; la auditoría del backlog los encontró abiertos por error.
+
+- [x] **[UX] Borrado definitivo: exigir escribir el email del usuario** — El botón "Borrado definitivo" (irreversible: borra la fila de `usuarios` + auth + hijos) se confirmaba con un clic. Pedido: tipo GitHub, deshabilitar hasta escribir el email exacto. _(creado por: EminatMKT · 2026-06-25)_ ✓ _resuelto: `DeleteUserModal` pasa `confirmPhrase={target.email}` + `confirmPhraseLabel` al ConfirmModal. "Desactivar (más seguro)" queda sin esa fricción, como se pedía — responsable: EminatMKT · 2026-08-08T15:45-05:00_
+
+- [x] **[UX] Confirmar activar/desactivar usuario** — El toggle de `UserRow` aplicaba al instante y desactivar le corta el acceso a la persona. _(creado por: EminatMKT · 2026-06-25)_ ✓ _resuelto: ConfirmModal con `destructive` al desactivar, y el mensaje interpola el nombre en negrita — responsable: EminatMKT · 2026-08-08T15:45-05:00_
+
+- [x] **[UX] Confirmar la primera asignación de rol (select inline)** — El `<select>` que aparece solo para `sin_asignar` aplicaba `cambiarRol` al instante: un clic accidental daba acceso. _(creado por: EminatMKT · 2026-06-25)_ ✓ _resuelto: ConfirmModal que además **previsualiza los módulos** que otorga el rol elegido antes de confirmar — responsable: EminatMKT · 2026-08-08T15:45-05:00_
+
+- [x] **[UX] Filtro de roles (badges): ocultar vacíos + scroll horizontal** — Se pintaba un badge por cada rol existente, incluidos los que no filtran a nadie. _(creado por: EminatMKT · 2026-06-25)_ ✓ _resuelto: `RoleFilterBar` filtra a los roles con ≥1 usuario (más el activo, para no romper el filtro vigente si se vacía) y la fila scrollea en horizontal con `mask-image` en el borde derecho, sin scrollbar visible — responsable: EminatMKT · 2026-08-08T15:45-05:00_
+
+---
+
 ## Estructura organizacional — equipo real y catálogos administrables (cerrado 2026-08-08)
 
 - [x] **[Refactor/DB] Des-hardcodear los miembros del equipo Stratix 360** — El equipo vivía hardcodeado en 3 lugares: `MIEMBROS_REFS` (`shared/constants/domain.ts`), `STRATIX360_ROSTER` (`roster-data.ts`) y las exclusiones por nombre/email de `team.ts`. Realineado 2026-08-04 tras los audios de Freddy: se descartó el organigrama por disciplinas + `es_lider` (contradecía BR2 y BR4) y quedó la pestaña Team como **lista plana** de usuarios del departamento Marketing. _(creado por: EminatMKT · 2026-08-03)_ ✓ _resuelto: Fase A completa — tablas `equipos`/`cargos` + FK en `usuarios`, seed del equipo real, Team tab data-driven desde `usuarios`, refs y asignables derivados en el contexto, i18n del tab (`stratix.team.*`). Se corrigieron en el camino dos bugs de runtime: policy SELECT faltante en `departamentos` y la desambiguación del embed `equipos!usuarios_equipo_id_fkey` (PGRST201). Commits 2e08c06..41dcde1 — responsable: EminatMKT · 2026-08-08T15:05-05:00_
