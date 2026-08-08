@@ -54,7 +54,7 @@ export default function AdminModule() {
   const crearBtn = <button onClick={() => setModalCrear(true)} style={{ padding: '7px 16px', borderRadius: 10, background: '#F87171', color: 'white', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>{t('admin.newUser')}</button>
 
   return (
-    <AppShell actions={vista === 'usuarios' ? crearBtn : undefined} activeTab={vista} onTabChange={v => setVista(v as Vista)}>
+    <AppShell activeTab={vista} onTabChange={v => setVista(v as Vista)}>
       <PageTransition>
         {/* Barra de la sección Usuarios — mismo formato que StratixTabNav. */}
         {!isOrgCat(vista) && (
@@ -65,6 +65,9 @@ export default function AdminModule() {
         )}
         {vista === 'usuarios' && (
           <>
+            {/* El alta vive en la sub-pestaña, no en el topbar: mismo lugar que
+                "Nuevo rol" en Roles y "Nuevo" en los catálogos de Organización. */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>{crearBtn}</div>
             <StatsBar />
             <RoleFilterBar busqueda={busqueda} setBusqueda={setBusqueda} filtroRol={filtroRol} setFiltroRol={setFiltroRol} />
             <UserTable users={adminFiltrado} onEdit={openEdit} onReset={setModalReset} onDelete={setModalEliminar} />
