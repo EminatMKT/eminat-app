@@ -66,11 +66,8 @@ export default function AdminModule() {
         )}
         {vista === 'usuarios' && (
           <>
-            {/* El alta vive en la sub-pestaña, no en el topbar: mismo lugar que
-                "Nuevo rol" en Roles y "Nuevo" en los catálogos de Organización. */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>{crearBtn}</div>
             <StatsBar />
-            <RoleFilterBar busqueda={busqueda} setBusqueda={setBusqueda} filtroRol={filtroRol} setFiltroRol={setFiltroRol} />
+            <RoleFilterBar busqueda={busqueda} setBusqueda={setBusqueda} filtroRol={filtroRol} setFiltroRol={setFiltroRol} action={crearBtn} />
             <UserTable users={adminFiltrado} onEdit={openEdit} onReset={setModalReset} onDelete={setModalEliminar} />
           </>
         )}

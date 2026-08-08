@@ -6,6 +6,7 @@ import { apiSend } from '@/shared/api'
 import type { OrgRow } from '@/shared/context/loadAppData'
 import TabButton from '@/shared/components/ui/TabButton'
 import NewButton from '@/shared/components/ui/NewButton'
+import ListToolbar from '@/shared/components/ui/ListToolbar'
 import { ORG_CATALOGS, ORG_CATS, type OrgCat } from '../org-catalogs'
 import { useOrgCatalog } from '../hooks/useOrgCatalog'
 import OrgCard from './OrgCard'
@@ -18,9 +19,13 @@ import OrgModal from './OrgModal'
 export default function OrgManager({ cat, onCatChange }: { cat: OrgCat; onCatChange: (c: OrgCat) => void }) {
   const { t1, border, reloadOrg, mostrarMensaje } = useApp()
   const { t } = useT()
+  const [busqueda, setBusqueda] = useState('')
   const [modal, setModal] = useState<{ row?: OrgRow } | null>(null)
   const [borrando, setBorrando] = useState<string | null>(null)
   const { rows, dependents, describe } = useOrgCatalog(cat)
+
+  const q = busqueda.trim().toLowerCase()
+  const filtradas = q ? rows.filter(r => r.nombre.toLowerCase().includes(q) || r.codigo.toLowerCase().includes(q)) : rows
 
   async function borrar(row: OrgRow) {
     setBorrando(row.id)
@@ -44,13 +49,12 @@ export default function OrgManager({ cat, onCatChange }: { cat: OrgCat; onCatCha
         ))}
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
-        <NewButton label={t(ORG_CATALOGS[cat].newKey)} onClick={() => setModal({})} />
-      </div>
+      <ListToolbar busqueda={busqueda} setBusqueda={setBusqueda}
+        action={<NewButton label={t(ORG_CATALOGS[cat].newKey)} onClick={() => setModal({})} />} />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {rows.length === 0 && <div style={{ fontSize: 12, color: t1, opacity: 0.6 }}>{t('admin.org.empty')}</div>}
-        {rows.map(row => (
+        {filtradas.length === 0 && <div style={{ fontSize: 12, color: t1, opacity: 0.6 }}>{t('admin.org.empty')}</div>}
+        {filtradas.map(row => (
           <OrgCard key={row.id} row={row} detail={describe(row)} deps={dependents(row)}
             deleting={borrando === row.id} onEdit={() => setModal({ row })} onDelete={() => borrar(row)} />
         ))}

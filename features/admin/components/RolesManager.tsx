@@ -5,15 +5,20 @@ import { useT } from '@/shared/i18n'
 import { type RoleRow } from '@/shared/auth/permissions'
 import { apiSend } from '@/shared/api'
 import NewButton from '@/shared/components/ui/NewButton'
+import ListToolbar from '@/shared/components/ui/ListToolbar'
 import RoleModal from './RoleModal'
 import RoleCard from './RoleCard'
 
 export default function RolesManager() {
-  const { roles, reloadRoles, t1, mostrarMensaje } = useApp()
+  const { roles, reloadRoles, mostrarMensaje } = useApp()
   const { t } = useT()
+  const [busqueda, setBusqueda] = useState('')
   const [modalRole, setModalRole] = useState<RoleRow | null>(null)
   const [modalNew, setModalNew] = useState(false)
   const [borrando, setBorrando] = useState<string | null>(null)
+
+  const q = busqueda.trim().toLowerCase()
+  const filtrados = q ? roles.filter(r => r.label.toLowerCase().includes(q) || r.key.includes(q)) : roles
 
   async function borrar(r: RoleRow) {
     setBorrando(r.key)
@@ -30,12 +35,12 @@ export default function RolesManager() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-        <div style={{ fontFamily: 'Syne', fontSize: 15, fontWeight: 700, color: t1 }}>{t('admin.systemRoles')}</div>
-        <NewButton label={t('admin.newRole')} onClick={() => setModalNew(true)} />
-      </div>
+      {/* Mismo encabezado que Usuarios y los catálogos: buscador + alta. El título
+          lo da la sub-pestaña, así que repetirlo acá era ruido. */}
+      <ListToolbar busqueda={busqueda} setBusqueda={setBusqueda}
+        action={<NewButton label={t('admin.newRole')} onClick={() => setModalNew(true)} />} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {roles.map(r => (
+        {filtrados.map(r => (
           <RoleCard key={r.key} role={r} onEdit={setModalRole} onDelete={borrar} deleting={borrando === r.key} />
         ))}
       </div>
