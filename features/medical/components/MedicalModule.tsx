@@ -7,7 +7,6 @@ import AccessDenied from '@/shared/components/AccessDenied'
 import { PageTransition } from '@/shared/motion'
 import { useMedicalStyles } from '../hooks/useMedicalStyles'
 import { MedicalProvider } from './MedicalContext'
-import TabButton from '@/shared/components/ui/TabButton'
 import DashboardTab from './DashboardTab'
 import PacientesTab from './PacientesTab'
 import CitasTab from './CitasTab'
@@ -17,16 +16,13 @@ import PacienteModal from './PacienteModal'
 import CitaModal from './CitaModal'
 import IncidenteModal from './IncidenteModal'
 
-const TABS = [
-  { id: 'dashboard', labelKey: 'med.tabDashboard', icon: '📊' },
-  { id: 'pacientes', labelKey: 'med.tabPatients', icon: '👥' },
-  { id: 'citas', labelKey: 'med.tabAppointments', icon: '📅' },
-  { id: 'hipaa', labelKey: 'med.tabHipaa', icon: '🛡️' },
-  { id: 'audit', labelKey: 'med.tabAudit', icon: '📋' },
-] as const
-
+// Las secciones (Dashboard/Pacientes/Citas/HIPAA/Audit) viven SOLO en el panel
+// vertical del shell (SUB_ITEMS.medical). Antes se repetían acá como barra
+// horizontal: la misma navegación dos veces, que es lo que la convención del
+// shell evita — vertical = secciones, horizontal = sub-vistas de la sección
+// activa. Medical no tiene sub-vistas, así que se queda sin barra horizontal.
 export default function MedicalModule() {
-  const { modules, border } = useApp()
+  const { modules } = useApp()
   const { t } = useT()
   const { hipaaShield } = useMedicalStyles()
   const [tab, setTab] = useState('dashboard')
@@ -40,10 +36,9 @@ export default function MedicalModule() {
     <AppShell activeTab={tab} onTabChange={setTab}>
       <PageTransition>
         <MedicalProvider>
-          <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: `1px solid ${border}`, alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', gap: 4 }}>
-              {TABS.map(item => <TabButton key={item.id} label={t(item.labelKey)} icon={item.icon} active={tab === item.id} onClick={() => setTab(item.id)} />)}
-            </div>
+          {/* El sello de cumplimiento no era parte de la navegación: vivía en la
+              misma fila que las tabs y se queda, ahora solo. */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 18 }}>
             <div style={hipaaShield}>🛡️ {t('med.hipaaCompliant')}</div>
           </div>
 

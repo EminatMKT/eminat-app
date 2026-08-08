@@ -86,6 +86,12 @@ _Código completo (suite 95/95, tsc 0). **Entrega cerrada:** migración `2026071
 
 ---
 
+## Navegación del shell — criterio único (cerrado 2026-08-08)
+
+- [x] **[UX] Decidir criterio de navegación: tabs horizontales vs panel vertical** — Convivían dos familias sin criterio: panel vertical (stratix-mkt, medical, research) vs tabs horizontales (admin, cobranzas, accounting), y Medical tenía **las dos** para las mismas 5 secciones. Admin además imitaba ese doble-uso "temporalmente" mientras se decidía. _(creado por: EminatMKT · 2026-06-25)_ ✓ _resuelto: criterio adoptado — **el panel vertical lista las SECCIONES y la barra horizontal solo las sub-vistas de la sección activa; nada se duplica entre ejes**. El item de panel con sub-vistas declara `tabs: [...]` y apunta con `tab` a la primera, así queda resaltado en cualquiera de ellas (patrón "Production" de mkt, que ya era el correcto). Aplicado a **admin** (se le quitó el doble-nav: Usuarios → Usuarios/Roles · Organización → los 6 catálogos) y a **Medical** (se borró la barra horizontal que repetía las 5 secciones del panel; el sello "Cumple HIPAA", que vivía en esa misma fila y no era navegación, se conservó). Cobranzas y accounting no tienen panel vertical, así que su barra horizontal ES su navegación de sección y no viola la regla. Commits de5e2a9 y el de Medical — responsable: EminatMKT · 2026-08-08T15:50-05:00_
+
+---
+
 ## Lote de confirmaciones del panel admin (verificado como hecho 2026-08-08)
 
 > Los 4 items pedían un **único `ConfirmModal` compartido**, no 4 modales. Se implementó así: `shared/components/ConfirmModal.tsx` con `título/mensaje/acción/destructive` + modo opcional *type-to-confirm* (`confirmPhrase`). Estaban terminados desde antes; la auditoría del backlog los encontró abiertos por error.
