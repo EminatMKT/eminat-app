@@ -33,6 +33,8 @@ export interface Usuario {
   online_at?: string | null
   responsable_ref?: string | null
   equipo_id?: string | null
+  jornada_id?: string | null
+  vinculacion_id?: string | null
   // Cargos N:N (tabla puente usuario_cargos). `cargos` viene embebido cuando la
   // query lo pide; `cargo_id` siempre, para editar la selección.
   usuario_cargos?: { cargo_id?: string; cargos?: { codigo: string; nombre: string } | null }[]
@@ -86,6 +88,7 @@ export interface OrgRow {
   icono?: string | null
   departamento_id?: string | null
   lider_id?: string | null
+  horas_dia?: number
   activo?: boolean
 }
 
@@ -106,19 +109,25 @@ export type Setters = {
 
 // Los cuatro catálogos organizacionales, en la misma forma que los expone el
 // contexto (una clave por OrgCat).
-export type OrgCatalogs = { empresas: OrgRow[]; departamentos: OrgRow[]; equipos: OrgRow[]; cargos: OrgRow[] }
+export type OrgCatalogs = {
+  empresas: OrgRow[]; departamentos: OrgRow[]; equipos: OrgRow[]
+  cargos: OrgRow[]; jornadas: OrgRow[]; vinculaciones: OrgRow[]
+}
 
 // Los lee el panel admin (CRUD) y los selects de la ficha de usuario. Se comparte
 // con useAppData.reloadOrg para no duplicar las queries.
 export async function fetchOrg(): Promise<OrgCatalogs> {
-  const [emp, dep, eq, car] = await Promise.all([
-    orgRepo.listEmpresas(), orgRepo.listDepartamentos(), orgRepo.listEquipos(), orgRepo.listCargos(),
+  const [emp, dep, eq, car, jor, vin] = await Promise.all([
+    orgRepo.listEmpresas(), orgRepo.listDepartamentos(), orgRepo.listEquipos(),
+    orgRepo.listCargos(), orgRepo.listJornadas(), orgRepo.listVinculaciones(),
   ])
   return {
     empresas: (emp.data as OrgRow[]) || [],
     departamentos: (dep.data as OrgRow[]) || [],
     equipos: (eq.data as OrgRow[]) || [],
     cargos: (car.data as OrgRow[]) || [],
+    jornadas: (jor.data as OrgRow[]) || [],
+    vinculaciones: (vin.data as OrgRow[]) || [],
   }
 }
 

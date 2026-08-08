@@ -46,8 +46,9 @@ export default function AdminModule() {
 
   const openEdit = (u: AdminUser) => setModalEditar({
     id: u.id, nombre: u.nombre || '', apellido: u.apellido || '', email: u.email || '', currentEmail: u.email || '',
-    rol: u.rol || DEFAULT_ROLE, tipo: u.tipo || 'B', color: u.color || '#7C6FF7', ubicacion: u.ubicacion || 'Guayaquil, Ecuador',
-    empresa_id: u.empresa_id ?? null, cargoIds: cargoIdsOf(u),
+    rol: u.rol || DEFAULT_ROLE, color: u.color || '#7C6FF7', ubicacion: u.ubicacion || 'Guayaquil, Ecuador',
+    empresa_id: u.empresa_id ?? null, jornada_id: u.jornada_id ?? null,
+    vinculacion_id: u.vinculacion_id ?? null, cargoIds: cargoIdsOf(u),
   })
 
   const crearBtn = <button onClick={() => setModalCrear(true)} style={{ padding: '7px 16px', borderRadius: 10, background: '#F87171', color: 'white', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>{t('admin.newUser')}</button>

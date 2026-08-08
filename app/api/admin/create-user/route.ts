@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { email, password, nombre, apellido, rol, tipo, color, empresa_id, ubicacion, cargoIds = [] } = body
+    const { email, password, nombre, apellido, rol, color, empresa_id, jornada_id, vinculacion_id, ubicacion, cargoIds = [] } = body
 
     if (!email || !password || !nombre || !apellido) {
       return NextResponse.json(
@@ -182,9 +182,10 @@ export async function POST(req: NextRequest) {
         apellido,
         email,
         rol: rol || DEFAULT_ROLE,
-        tipo: tipo || 'B',
         color: color || '#7C6FF7',
         empresa_id: empresa_id || null,
+        jornada_id: jornada_id || null,
+        vinculacion_id: vinculacion_id || null,
         ubicacion: ubicacion || 'Guayaquil, Ecuador',
         activo: true,
         validado: true,

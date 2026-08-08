@@ -5,12 +5,12 @@ import type { OrgRow, Usuario } from '@/shared/context/loadAppData'
 // (qué campos pinta el form) como la API (whitelist de columnas + qué bloquea el
 // borrado), para que agregar un campo sea un solo cambio.
 
-export type OrgCat = 'empresas' | 'departamentos' | 'equipos' | 'cargos'
+export type OrgCat = 'empresas' | 'departamentos' | 'equipos' | 'cargos' | 'jornadas' | 'vinculaciones'
 
 export type OrgField = {
   /** Columna de la fila canónica OrgRow — el form no puede inventar campos. */
   name: keyof OrgRow
-  type: 'text' | 'color' | 'icon' | 'select'
+  type: 'text' | 'number' | 'color' | 'icon' | 'select'
   labelKey: I18nKey
   required?: boolean
   /** Fuente de opciones del select (catálogo del contexto). */
@@ -67,12 +67,30 @@ export const ORG_CATALOGS: Record<OrgCat, CatalogDef> = {
     ],
     blockedBy: [{ table: 'usuario_cargos', column: 'cargo_id' }],
   },
+  // Jornada y vinculación son EJES DISTINTOS de la misma persona: se puede ser
+  // staff a medio tiempo o pasante a tiempo completo. Por eso son dos catálogos
+  // y no uno con un discriminador.
+  jornadas: {
+    labelKey: 'admin.org.jornadas',
+    fields: [
+      { name: 'nombre', type: 'text', labelKey: 'admin.org.nombre', required: true },
+      { name: 'horas_dia', type: 'number', labelKey: 'admin.org.horasDia', required: true },
+    ],
+    blockedBy: [{ table: 'usuarios', column: 'jornada_id' }],
+  },
+  vinculaciones: {
+    labelKey: 'admin.org.vinculaciones',
+    fields: [
+      { name: 'nombre', type: 'text', labelKey: 'admin.org.nombre', required: true },
+    ],
+    blockedBy: [{ table: 'usuarios', column: 'vinculacion_id' }],
+  },
 }
 
 export const ORG_CATS = Object.keys(ORG_CATALOGS) as OrgCat[]
 export const isOrgCat = (s: string): s is OrgCat => s in ORG_CATALOGS
 
-// Las tres tablas tienen `codigo` UNIQUE NOT NULL pero no es dato de negocio:
+// Todas las tablas tienen `codigo` UNIQUE NOT NULL pero no es dato de negocio:
 // se deriva del nombre (mismo criterio que validateNewRole con los roles) y queda
 // fijo aunque después renombren — la unicidad la garantiza el UNIQUE de la DB.
 export function codigoFrom(nombre: string): string {

@@ -61,6 +61,8 @@ export default function OrgModal({ cat, row, onClose }: { cat: OrgCat; row?: Org
               {!f.required && <option value="">{t('admin.org.none')}</option>}
               {optionsFor(f).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
+          ) : f.type === 'number' ? (
+            <input type="number" min={0} max={24} step={0.5} value={value(f)} onChange={e => set(f, e.target.value)} style={inputStyle} />
           ) : f.type === 'icon' ? (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               {ICONOS.map(ic => {

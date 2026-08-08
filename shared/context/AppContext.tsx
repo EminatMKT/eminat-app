@@ -62,6 +62,8 @@ interface AppContextType {
   departamentos: OrgRow[]
   equipos: OrgRow[]
   cargos: OrgRow[]
+  jornadas: OrgRow[]
+  vinculaciones: OrgRow[]
   reloadOrg: () => Promise<void>
   role: Role | null
   modules: ModuleSlug[]

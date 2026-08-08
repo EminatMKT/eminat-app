@@ -16,6 +16,8 @@ export const TABLES = {
   roles: 'roles',
   roleModules: 'role_modules',
   empresas: 'empresas',
+  jornadas: 'jornadas',
+  vinculaciones: 'vinculaciones',
   departamentos: 'departamentos',
   equipos: 'equipos',
   cargos: 'cargos',

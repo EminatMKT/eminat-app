@@ -32,10 +32,13 @@ export function useAppData() {
   const [departamentos, setDepartamentos] = useState<OrgRow[]>([])
   const [equipos, setEquipos] = useState<OrgRow[]>([])
   const [cargos, setCargos] = useState<OrgRow[]>([])
+  const [jornadas, setJornadas] = useState<OrgRow[]>([])
+  const [vinculaciones, setVinculaciones] = useState<OrgRow[]>([])
   const horaActual = useClock()
 
   const setOrg = useCallback((o: OrgCatalogs) => {
-    setEmpresas(o.empresas); setDepartamentos(o.departamentos); setEquipos(o.equipos); setCargos(o.cargos)
+    setEmpresas(o.empresas); setDepartamentos(o.departamentos); setEquipos(o.equipos)
+    setCargos(o.cargos); setJornadas(o.jornadas); setVinculaciones(o.vinculaciones)
   }, [])
 
   // Re-lee los tres catálogos tras un alta/edición/borrado en el tab Organización.
@@ -80,6 +83,6 @@ export function useAppData() {
     mensaje, notificaciones, setNotificaciones, notifAbiertas, setNotifAbiertas,
     adminUsuarios, setAdminUsuarios, mostrarMensaje, handleLogout,
     roles, setRoles, roleModuleMap, setRoleModuleMap, reloadRoles,
-    empresas, departamentos, equipos, cargos, reloadOrg,
+    empresas, departamentos, equipos, cargos, jornadas, vinculaciones, reloadOrg,
   }
 }

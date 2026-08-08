@@ -12,22 +12,26 @@ import type { OrgCat } from '../org-catalogs'
 // darle filas/regla acá no compila (antes se coló `empresas` sin filas y reventó
 // en runtime con `rows.length` sobre undefined).
 export function useOrgCatalog(cat: OrgCat) {
-  const { empresas, departamentos, equipos, cargos, adminUsuarios } = useApp()
+  const { empresas, departamentos, equipos, cargos, jornadas, vinculaciones, adminUsuarios } = useApp()
   const { t } = useT()
 
-  const filas: Record<OrgCat, OrgRow[]> = { empresas, departamentos, equipos, cargos }
+  const filas: Record<OrgCat, OrgRow[]> = { empresas, departamentos, equipos, cargos, jornadas, vinculaciones }
 
   const reglas: Record<OrgCat, (row: OrgRow) => number> = {
     empresas: row => adminUsuarios.filter(u => u.empresa_id === row.id).length,
     departamentos: row => equipos.filter(e => e.departamento_id === row.id).length,
     equipos: row => adminUsuarios.filter(u => u.equipo_id === row.id).length,
     cargos: row => adminUsuarios.filter(u => (u.usuario_cargos || []).some(uc => uc.cargo_id === row.id)).length,
+    jornadas: row => adminUsuarios.filter(u => u.jornada_id === row.id).length,
+    vinculaciones: row => adminUsuarios.filter(u => u.vinculacion_id === row.id).length,
   }
 
   const detalles: Record<OrgCat, (row: OrgRow) => string> = {
     empresas: () => '',
     departamentos: () => '',
     cargos: () => '',
+    vinculaciones: () => '',
+    jornadas: row => t('admin.org.horasResumen', { n: row.horas_dia ?? 0 }),
     equipos: row => {
       const dep = departamentos.find(d => d.id === row.departamento_id)?.nombre
       const lider = adminUsuarios.find(u => u.id === row.lider_id)

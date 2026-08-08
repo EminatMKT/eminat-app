@@ -30,7 +30,7 @@ function boldTerms(text: string, terms: string[]) {
 }
 
 export default function UserRow({ user: u, onEdit, onReset, onDelete }: Props) {
-  const { s2, border, t1, t2, t3, accent, roles, roleModuleMap, empresas } = useApp()
+  const { s2, border, t1, t2, t3, accent, roles, roleModuleMap, empresas, jornadas, vinculaciones } = useApp()
   const { t } = useT()
   const { cambiarRol, toggleActivo, validarUsuario } = useUserActions()
   const isProtected = normalizeRole(u.rol) === ADMIN_ROLE
@@ -43,7 +43,9 @@ export default function UserRow({ user: u, onEdit, onReset, onDelete }: Props) {
       <td style={{ padding: '10px 14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
           <div style={{ width: 28, height: 28, borderRadius: '50%', background: u.color || accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'white', flexShrink: 0 }}>{u.nombre?.[0]}{u.apellido?.[0]}</div>
-          <div><div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>{u.nombre} {u.apellido}</div><div style={{ fontSize: 9, color: t3 }}>Tipo {u.tipo || 'B'} · {u.ubicacion || 'Ecuador'}</div></div>
+          {/* Jornada y vinculación salen de sus catálogos; antes decía "Tipo A/B",
+              que además rotulaba mal el dato (era la jornada, no el vínculo). */}
+          <div><div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>{u.nombre} {u.apellido}</div><div style={{ fontSize: 9, color: t3 }}>{[vinculaciones.find(v => v.id === u.vinculacion_id)?.nombre, jornadas.find(j => j.id === u.jornada_id)?.nombre, u.ubicacion || 'Ecuador'].filter(Boolean).join(' · ')}</div></div>
         </div>
       </td>
       <td style={{ padding: '10px 14px', fontSize: 10, color: t3, fontFamily: 'DM Mono' }}>{u.email}</td>

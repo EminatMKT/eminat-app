@@ -14,3 +14,9 @@ export const listCargos = () =>
 
 export const listEmpresas = () =>
   supabase.from(TABLES.empresas).select('*').order('nombre', { ascending: true })
+
+export const listJornadas = () =>
+  supabase.from(TABLES.jornadas).select('*').order('horas_dia', { ascending: false })
+
+export const listVinculaciones = () =>
+  supabase.from(TABLES.vinculaciones).select('*').order('nombre', { ascending: true })

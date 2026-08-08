@@ -9,13 +9,18 @@ import Modal from '@/shared/components/Modal'
 import { generateTempPassword } from '../password'
 import PasswordInput from './PasswordInput'
 import CargosPicker from './CargosPicker'
+import CatalogSelect from './CatalogSelect'
 import CredentialsPanel from './CredentialsPanel'
 import ErrorBlock from './ErrorBlock'
 
-const DEFAULT_NEW = { nombre: '', apellido: '', email: '', password: '', rol: DEFAULT_ROLE, tipo: 'B', color: '#7C6FF7', empresa_id: '', cargoIds: [] as string[] }
+const DEFAULT_NEW = {
+  nombre: '', apellido: '', email: '', password: '', rol: DEFAULT_ROLE, color: '#7C6FF7',
+  empresa_id: null as string | null, jornada_id: null as string | null,
+  vinculacion_id: null as string | null, cargoIds: [] as string[],
+}
 
 export default function CreateUserModal({ onClose }: { onClose: () => void }) {
-  const { setAdminUsuarios, border, t2, t3, accent, inputStyle, roles, cargos, empresas } = useApp()
+  const { setAdminUsuarios, border, t2, t3, accent, inputStyle, roles, cargos, empresas, jornadas, vinculaciones } = useApp()
   const { t } = useT()
   const [nuevoUsr, setNuevoUsr] = useState(DEFAULT_NEW)
   const [showCreatePwd, setShowCreatePwd] = useState(false)
@@ -34,7 +39,8 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
       const cargo = cargos.filter(c => nuevoUsr.cargoIds.includes(c.id)).map(c => c.nombre).join(', ')
       const { res, result } = await apiPost<{ error?: string; emailWarning?: string | null }>('/api/admin/create-user', {
         email: nuevoUsr.email, password: nuevoUsr.password, nombre: nuevoUsr.nombre, apellido: nuevoUsr.apellido,
-        rol: nuevoUsr.rol, tipo: nuevoUsr.tipo, color: nuevoUsr.color, empresa_id: nuevoUsr.empresa_id || null,
+        rol: nuevoUsr.rol, color: nuevoUsr.color, empresa_id: nuevoUsr.empresa_id,
+        jornada_id: nuevoUsr.jornada_id, vinculacion_id: nuevoUsr.vinculacion_id,
         ubicacion: 'Guayaquil, Ecuador', cargoIds: nuevoUsr.cargoIds,
       })
       if (!res.ok) { setCreateError(result.error || t('admin.create.failed')); setGuardando(false); return }
@@ -66,12 +72,14 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
               </div>
               <PasswordInput value={nuevoUsr.password} onChange={v => setNuevoUsr(p => ({ ...p, password: v }))} show={showCreatePwd} setShow={setShowCreatePwd} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t('common.role')}</label><select value={nuevoUsr.rol} onChange={e => setNuevoUsr(p => ({ ...p, rol: e.target.value }))} style={inputStyle}>{roles.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}</select></div>
-              <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t('common.type')}</label><select value={nuevoUsr.tipo} onChange={e => setNuevoUsr(p => ({ ...p, tipo: e.target.value }))} style={inputStyle}><option value="A">{t('admin.typeA')}</option><option value="B">{t('admin.typeB')}</option></select></div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t('common.role')}</label>
+              <select value={nuevoUsr.rol} onChange={e => setNuevoUsr(p => ({ ...p, rol: e.target.value }))} style={inputStyle}>{roles.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}</select>
             </div>
             <CargosPicker value={nuevoUsr.cargoIds} onChange={ids => setNuevoUsr(p => ({ ...p, cargoIds: ids }))} />
-            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t('common.company')}</label><select value={nuevoUsr.empresa_id} onChange={e => setNuevoUsr(p => ({ ...p, empresa_id: e.target.value }))} style={inputStyle}><option value="">{t('admin.org.none')}</option>{empresas.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}</select></div>
+            <CatalogSelect labelKey="common.company" value={nuevoUsr.empresa_id} rows={empresas} onChange={id => setNuevoUsr(p => ({ ...p, empresa_id: id }))} />
+            <CatalogSelect labelKey="common.jornada" value={nuevoUsr.jornada_id} rows={jornadas} onChange={id => setNuevoUsr(p => ({ ...p, jornada_id: id }))} />
+            <CatalogSelect labelKey="common.vinculacion" value={nuevoUsr.vinculacion_id} rows={vinculaciones} onChange={id => setNuevoUsr(p => ({ ...p, vinculacion_id: id }))} />
             <div style={{ marginBottom: 20 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 8 }}>{t('common.avatarColor')}</label><div style={{ display: 'flex', gap: 8 }}>{COLORES_AVATAR.map(c => <div key={c} onClick={() => setNuevoUsr(p => ({ ...p, color: c }))} style={{ width: 24, height: 24, borderRadius: '50%', background: c, cursor: 'pointer', border: nuevoUsr.color === c ? '3px solid white' : '2px solid transparent', boxSizing: 'border-box' }} />)}</div></div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>{t('common.cancel')}</button>
