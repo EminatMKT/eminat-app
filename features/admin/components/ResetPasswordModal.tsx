@@ -11,7 +11,7 @@ import ErrorBlock from './ErrorBlock'
 import type { ResetTarget } from '../types'
 
 export default function ResetPasswordModal({ target, onClose }: { target: ResetTarget; onClose: () => void }) {
-  const { border, t1, t2, t3 } = useApp()
+  const { border, t1, t2, t3, accent } = useApp()
   const { t } = useT()
   const [resetPwd, setResetPwd] = useState(() => generateTempPassword())
   const [showResetPwd, setShowResetPwd] = useState(true)
@@ -49,7 +49,7 @@ export default function ResetPasswordModal({ target, onClose }: { target: ResetT
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>{t('common.cancel')}</button>
-              <button onClick={ejecutarReset} disabled={guardando} style={{ flex: 2, padding: '10px', borderRadius: 10, border: 'none', background: '#60A5FA', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{guardando ? t('admin.reset.updating') : t('admin.reset.setNew')}</button>
+              <button onClick={ejecutarReset} disabled={guardando} style={{ flex: 2, padding: '10px', borderRadius: 10, border: 'none', background: accent, color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{guardando ? t('admin.reset.updating') : t('admin.reset.setNew')}</button>
             </div>
           </>
         )}

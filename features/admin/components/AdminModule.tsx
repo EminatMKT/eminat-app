@@ -26,7 +26,7 @@ import type { AdminUser, ResetTarget } from '../types'
 type Vista = 'usuarios' | 'roles' | OrgCat
 
 export default function AdminModule() {
-  const { esAdmin, adminUsuarios, border } = useApp()
+  const { esAdmin, adminUsuarios, border, accent } = useApp()
   const { t } = useT()
   const [vista, setVista] = useState<Vista>('usuarios')
   const [busqueda, setBusqueda] = useState('')
@@ -51,7 +51,8 @@ export default function AdminModule() {
     vinculacion_id: u.vinculacion_id ?? null, cargoIds: cargoIdsOf(u),
   })
 
-  const crearBtn = <button onClick={() => setModalCrear(true)} style={{ padding: '7px 16px', borderRadius: 10, background: '#F87171', color: 'white', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>{t('admin.newUser')}</button>
+  // Mismo estilo que "Nuevo rol" y el "Nuevo" de los catálogos: acento, no rojo.
+  const crearBtn = <button onClick={() => setModalCrear(true)} style={{ padding: '7px 16px', borderRadius: 10, background: accent, color: 'white', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>{t('admin.newUser')}</button>
 
   return (
     <AppShell activeTab={vista} onTabChange={v => setVista(v as Vista)}>
