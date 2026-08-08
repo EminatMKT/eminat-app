@@ -24,6 +24,13 @@ export function subscribeToTable<T extends Record<string, unknown>>(
   opts: { channel: string; table: string; filter?: string; schema?: string },
   h: RowChangeHandlers<T>,
 ): RealtimeChannel {
+  // StrictMode y Fast Refresh montan el efecto dos veces. `supabase.channel(name)`
+  // devuelve el canal EXISTENTE si ya hay uno homónimo, y llamar `.on()` sobre un
+  // canal ya suscrito lanza "cannot add postgres_changes callbacks after subscribe()".
+  // Descartamos el previo para que el segundo montaje empiece de cero.
+  const previo = supabase.getChannels().find(c => c.topic === `realtime:${opts.channel}`)
+  if (previo) supabase.removeChannel(previo)
+
   return supabase
     .channel(opts.channel)
     .on<T>(

@@ -1,13 +1,12 @@
 import type { Dispatch, SetStateAction } from 'react'
 import { supabase } from '@/shared/db/supabase'
-import { usuariosRepo, actividadesRepo, notificacionesRepo, rolesRepo, removeChannel } from '@/shared/data'
+import { usuariosRepo, actividadesRepo, notificacionesRepo, rolesRepo, orgRepo, removeChannel } from '@/shared/data'
 import type { RealtimeChannel } from '@/shared/data/realtime'
 import { loadProfile } from '@/shared/db/session'
 import * as auth from '@/shared/db/auth'
 import { clearAuthCookies } from '@/shared/db/clearAuthCookies'
 import { normalizeRole, getModulesForRole, moduleForPath, ROUTES } from '@/shared/auth/permissions'
 import type { RoleRow, RoleModuleMap, ModuleSlug } from '@/shared/auth/permissions'
-import { CARGOS_DIR } from '@/shared/constants/directorio'
 
 // Carrera promesa-vs-timeout: si la promesa no resuelve en `ms`, devuelve `fallback`.
 // Evita que un await colgado (red/auth) deje el spinner "Cargando…" para siempre.
@@ -27,13 +26,16 @@ export interface Usuario {
   color?: string
   ubicacion?: string
   email?: string
-  empresa?: string
-  cargo?: string
+  empresa_id?: string | null
   marca_hora?: string
   activo?: boolean
   validado?: boolean
   online_at?: string | null
   responsable_ref?: string | null
+  equipo_id?: string | null
+  // Cargos N:N (tabla puente usuario_cargos). `cargos` viene embebido cuando la
+  // query lo pide; `cargo_id` siempre, para editar la selección.
+  usuario_cargos?: { cargo_id?: string; cargos?: { codigo: string; nombre: string } | null }[]
   equipos?: {
     codigo?: string | null
     nombre?: string | null
@@ -73,6 +75,20 @@ export type Actividad = {
 }
 export type Equipo = Record<string, unknown>
 
+// Fila de cualquiera de los tres catálogos organizacionales (departamentos,
+// equipos, cargos). Una sola forma: `id/codigo/nombre` son comunes y el resto
+// son columnas propias de un catálogo — opcionales para el resto.
+export interface OrgRow {
+  id: string
+  codigo: string
+  nombre: string
+  color?: string
+  icono?: string | null
+  departamento_id?: string | null
+  lider_id?: string | null
+  activo?: boolean
+}
+
 export type Setters = {
   setUsuario: (u: Usuario) => void
   setSessionError: (r: 'no-session' | 'no-profile' | 'error') => void
@@ -85,6 +101,25 @@ export type Setters = {
   setAdminUsuarios: (u: Usuario[]) => void
   setRoles: (r: RoleRow[]) => void
   setRoleModuleMap: (m: RoleModuleMap) => void
+  setOrg: (o: OrgCatalogs) => void
+}
+
+// Los cuatro catálogos organizacionales, en la misma forma que los expone el
+// contexto (una clave por OrgCat).
+export type OrgCatalogs = { empresas: OrgRow[]; departamentos: OrgRow[]; equipos: OrgRow[]; cargos: OrgRow[] }
+
+// Los lee el panel admin (CRUD) y los selects de la ficha de usuario. Se comparte
+// con useAppData.reloadOrg para no duplicar las queries.
+export async function fetchOrg(): Promise<OrgCatalogs> {
+  const [emp, dep, eq, car] = await Promise.all([
+    orgRepo.listEmpresas(), orgRepo.listDepartamentos(), orgRepo.listEquipos(), orgRepo.listCargos(),
+  ])
+  return {
+    empresas: (emp.data as OrgRow[]) || [],
+    departamentos: (dep.data as OrgRow[]) || [],
+    equipos: (eq.data as OrgRow[]) || [],
+    cargos: (car.data as OrgRow[]) || [],
+  }
 }
 
 // Carga inicial de la app tras montar el provider: perfil (crítico), heartbeat,
@@ -163,33 +198,44 @@ export function startAppData(s: Setters): () => void {
       const { data: notifs } = await notificacionesRepo.listForUser(usr.id)
       s.setNotificaciones(notifs || [])
 
-      realtimeChannel = notificacionesRepo.subscribeToUserNotifs(usr.id, (row: Notificacion) => {
-        s.setNotificaciones(prev => [row, ...prev])
-      })
+      // Las suscripciones Realtime son ACCESORIAS: si fallan, el usuario pierde el
+      // vivo pero no los datos. Antes un throw acá abortaba el resto del init
+      // (actividades, equipo, usuarios, catálogos) por el catch de abajo.
+      try {
+        realtimeChannel = notificacionesRepo.subscribeToUserNotifs(usr.id, (row: Notificacion) => {
+          s.setNotificaciones(prev => [row, ...prev])
+        })
+      } catch (err) {
+        console.warn('Realtime de notificaciones no disponible:', err)
+      }
 
       // Realtime sobre la propia fila: el admin cambia rol/activo y se refleja YA,
       // sin esperar un refresh. Ignora updates irrelevantes (p.ej. el heartbeat de
       // online_at) comparando contra el último rol/activo conocido.
       let lastRol = usr.rol
       let lastActivo = usr.activo
-      userRowChannel = usuariosRepo.subscribeToUserRow(usr.id, (row: Usuario) => {
-        if (row.rol === lastRol && row.activo === lastActivo) return
-        lastRol = row.rol; lastActivo = row.activo
-        // Desactivado por el admin → expulsar al login.
-        if (row.activo === false) {
-          clearAuthCookies()
-          void auth.signOut().catch(() => {})
-          window.location.href = ROUTES.login
-          return
-        }
-        // Cambio de rol → refrescar perfil (AppContext recalcula módulos solo).
-        s.setUsuario(row)
-        // Si quedó parado en un módulo que ya no tiene, mandarlo a Home.
-        const slug = moduleForPath(window.location.pathname)
-        if (slug && !getModulesForRole(map, normalizeRole(row.rol)).includes(slug)) {
-          window.location.href = ROUTES.home
-        }
-      })
+      try {
+        userRowChannel = usuariosRepo.subscribeToUserRow(usr.id, (row: Usuario) => {
+          if (row.rol === lastRol && row.activo === lastActivo) return
+          lastRol = row.rol; lastActivo = row.activo
+          // Desactivado por el admin → expulsar al login.
+          if (row.activo === false) {
+            clearAuthCookies()
+            void auth.signOut().catch(() => {})
+            window.location.href = ROUTES.login
+            return
+          }
+          // Cambio de rol → refrescar perfil (AppContext recalcula módulos solo).
+          s.setUsuario(row)
+          // Si quedó parado en un módulo que ya no tiene, mandarlo a Home.
+          const slug = moduleForPath(window.location.pathname)
+          if (slug && !getModulesForRole(map, normalizeRole(row.rol)).includes(slug)) {
+            window.location.href = ROUTES.home
+          }
+        })
+      } catch (err) {
+        console.warn('Realtime de la fila de usuario no disponible:', err)
+      }
 
       // 6. Load actividades
       const { data: acts } = await actividadesRepo.list(
@@ -205,9 +251,12 @@ export function startAppData(s: Setters): () => void {
       const { data: usrs } = await usuariosRepo.listActivos()
       s.setUsuarios(usrs || [])
 
-      // 9. Load adminUsuarios with CARGOS_DIR mapping
+      // 9. Load adminUsuarios (trae los cargos N:N embebidos para la tabla admin)
       const { data: allUsrs } = await usuariosRepo.listAll()
-      s.setAdminUsuarios((allUsrs || []).map((u: Usuario) => ({ ...u, cargo: u.cargo || CARGOS_DIR[u.email?.toLowerCase()] || '' })))
+      s.setAdminUsuarios(allUsrs || [])
+
+      // 10. Catálogos organizacionales (CRUD del tab Organización + multiselect de cargos)
+      s.setOrg(await fetchOrg())
     } catch (err) {
       console.error('AppContext init error:', err)
     } finally {

@@ -20,9 +20,12 @@ export const listActivos = () =>
     .select('*, equipos!usuarios_equipo_id_fkey(codigo, nombre, lider_id, departamentos(codigo, nombre)), usuario_cargos(cargos(codigo, nombre))')
     .eq('activo', true).order('nombre', { ascending: true })
 
-// Lista todos los usuarios ordenados por created_at desc.
+// Lista todos los usuarios ordenados por created_at desc, con sus cargos N:N
+// embebidos (los usa la tabla del panel admin y el multiselect de edición).
 export const listAll = () =>
-  supabase.from(TABLES.usuarios).select('*').order(COLUMNS.createdAt, { ascending: false })
+  supabase.from(TABLES.usuarios)
+    .select('*, usuario_cargos(cargo_id, cargos(codigo, nombre))')
+    .order(COLUMNS.createdAt, { ascending: false })
 
 // Vista del equipo de hoy.
 export const equipoHoy = () =>

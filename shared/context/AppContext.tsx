@@ -11,7 +11,7 @@ import {
 } from '@/shared/auth/permissions'
 import { THEME, inputStyle } from '@/shared/theme/tokens'
 import { useAppData } from './useAppData'
-import type { Usuario, Notificacion, Actividad, Equipo } from './loadAppData'
+import type { Usuario, Notificacion, Actividad, Equipo, OrgRow } from './loadAppData'
 import SessionErrorScreen from './SessionErrorScreen'
 import { deriveMiembrosRef, deriveMiembrosAsignables, deriveEquipoMarketing } from './team-derivations'
 
@@ -25,12 +25,6 @@ export {
   getColorMarca, getIniciales,
 } from '@/shared/constants/domain'
 export { CARGOS_DIR, DIRECTORIO_DATA, DEPS_DIR } from '@/shared/constants/directorio'
-
-// Re-exported from shared/constants/companies.ts for back-compat with existing imports.
-// New code should import directly from '@/shared/constants/companies'.
-import { COMPANY_NAMES as _COMPANY_NAMES, COMPANY_COLORS as _COMPANY_COLORS } from '@/shared/constants/companies'
-export const EMPRESAS = _COMPANY_NAMES
-export const EMPRESA_COLORS = _COMPANY_COLORS
 
 // ── Context ────────────────────────────────────────────────────────────
 
@@ -63,6 +57,12 @@ interface AppContextType {
   roles: RoleRow[]
   roleModuleMap: RoleModuleMap
   reloadRoles: () => Promise<void>
+  // Catálogos organizacionales (tab Organización del admin + selects de la ficha).
+  empresas: OrgRow[]
+  departamentos: OrgRow[]
+  equipos: OrgRow[]
+  cargos: OrgRow[]
+  reloadOrg: () => Promise<void>
   role: Role | null
   modules: ModuleSlug[]
   bg: string

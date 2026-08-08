@@ -5,8 +5,8 @@ import { signOutAndRedirect } from '@/shared/db/session'
 import { clearAuthCookies } from '@/shared/db/clearAuthCookies'
 import { rolesRepo } from '@/shared/data'
 import type { RoleRow, RoleModuleMap, ModuleSlug } from '@/shared/auth/permissions'
-import { startAppData } from './loadAppData'
-import type { Usuario, Notificacion, Actividad, Equipo } from './loadAppData'
+import { startAppData, fetchOrg } from './loadAppData'
+import type { Usuario, Notificacion, Actividad, Equipo, OrgRow, OrgCatalogs } from './loadAppData'
 import { useClock } from './useClock'
 
 // Estado global de la app + carga inicial + handlers. La derivación de permisos
@@ -28,7 +28,18 @@ export function useAppData() {
   const [adminUsuarios, setAdminUsuarios] = useState<Usuario[]>([])
   const [roles, setRoles] = useState<RoleRow[]>([])
   const [roleModuleMap, setRoleModuleMap] = useState<RoleModuleMap>({})
+  const [empresas, setEmpresas] = useState<OrgRow[]>([])
+  const [departamentos, setDepartamentos] = useState<OrgRow[]>([])
+  const [equipos, setEquipos] = useState<OrgRow[]>([])
+  const [cargos, setCargos] = useState<OrgRow[]>([])
   const horaActual = useClock()
+
+  const setOrg = useCallback((o: OrgCatalogs) => {
+    setEmpresas(o.empresas); setDepartamentos(o.departamentos); setEquipos(o.equipos); setCargos(o.cargos)
+  }, [])
+
+  // Re-lee los tres catálogos tras un alta/edición/borrado en el tab Organización.
+  const reloadOrg = useCallback(async () => setOrg(await fetchOrg()), [setOrg])
 
   const mostrarMensaje = useCallback((tipo: 'ok' | 'error', texto: string) => {
     setMensaje({ tipo, texto })
@@ -60,8 +71,8 @@ export function useAppData() {
   useEffect(() => startAppData({
     setUsuario, setSessionError, setLoading, setOnlineCount,
     setNotificaciones, setActividades, setEquipo, setUsuarios, setAdminUsuarios,
-    setRoles, setRoleModuleMap,
-  }), [])
+    setRoles, setRoleModuleMap, setOrg,
+  }), [setOrg])
 
   return {
     usuario, sessionError, actividades, setActividades, equipo, usuarios, setUsuarios,
@@ -69,5 +80,6 @@ export function useAppData() {
     mensaje, notificaciones, setNotificaciones, notifAbiertas, setNotifAbiertas,
     adminUsuarios, setAdminUsuarios, mostrarMensaje, handleLogout,
     roles, setRoles, roleModuleMap, setRoleModuleMap, reloadRoles,
+    empresas, departamentos, equipos, cargos, reloadOrg,
   }
 }

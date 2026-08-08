@@ -15,6 +15,11 @@ export const TABLES = {
   cobranzasDepositos: 'cobranzas_depositos',
   roles: 'roles',
   roleModules: 'role_modules',
+  empresas: 'empresas',
+  departamentos: 'departamentos',
+  equipos: 'equipos',
+  cargos: 'cargos',
+  usuarioCargos: 'usuario_cargos',
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]
