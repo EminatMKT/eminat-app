@@ -44,10 +44,13 @@ export const SUB_ITEMS: Record<PanelKey, SubItem[]> = {
     { id: 'res-pipeline', icon: '🎯', label: 'Pipeline', tab: 'pipeline' },
     { id: 'res-opps', icon: '📋', label: 'Opportunities', tab: 'oportunidades' },
   ],
-  // ponytail: panel de admin = imitación temporal del doble-uso de medical (decisión de UX pendiente, ver .todo)
+  // Dos secciones, cada una con sus sub-vistas en la barra horizontal (misma
+  // forma que "Production" en mkt: `tab` apunta a la primera del grupo).
+  // Roles vive DENTRO de Usuarios: es una faceta de la gestión de personas,
+  // no un par de Organización.
   admin: [
-    { id: 'adm-usuarios', icon: '👥', label: 'Usuarios', tab: 'usuarios' },
-    { id: 'adm-roles', icon: '🔐', label: 'Roles', tab: 'roles' },
+    { id: 'adm-usuarios', icon: '👥', label: 'Usuarios', tab: 'usuarios', tabs: ['usuarios', 'roles'] },
+    { id: 'adm-org', icon: '🏛️', label: 'Organización', tab: 'empresas', tabs: ['empresas', 'departamentos', 'equipos', 'cargos'] },
   ],
 }
 
@@ -56,7 +59,7 @@ export const PANEL_META: Record<PanelKey, { title: string; sub: string; slug: Mo
   mkt: { title: 'Stratix 360', sub: 'Marketing & Production', slug: 'stratix-mkt' },
   research: { title: 'Research', sub: 'Clinical Research Ops', slug: 'research' },
   medical: { title: 'Medical', sub: 'HIPAA Compliance', slug: 'medical' },
-  admin: { title: 'Admin', sub: 'Usuarios y roles', slug: 'admin' },
+  admin: { title: 'Admin', sub: 'Usuarios, roles y organización', slug: 'admin' },
 }
 
 // Rail principal: NAV (tipado) filtrado por los `modules` del usuario en runtime.
