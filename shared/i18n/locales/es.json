@@ -185,6 +185,7 @@
   "admin.org.cargos": "Cargos",
   "admin.org.nombre": "Nombre",
   "admin.org.color": "Color",
+  "admin.org.inactiveOption": "{nombre} (inactiva)",
   "admin.org.activo": "Activa",
   "admin.org.activoHint": "Si se desactiva, deja de ofrecerse — las actividades ya cargadas no se tocan.",
   "admin.org.recibeActividades": "Recibe actividades",

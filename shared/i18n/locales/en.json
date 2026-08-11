@@ -185,6 +185,7 @@
   "admin.org.cargos": "Titles",
   "admin.org.nombre": "Name",
   "admin.org.color": "Color",
+  "admin.org.inactiveOption": "{nombre} (inactive)",
   "admin.org.activo": "Active",
   "admin.org.activoHint": "If turned off, it stops being offered — existing activities are left untouched.",
   "admin.org.recibeActividades": "Receives activities",
