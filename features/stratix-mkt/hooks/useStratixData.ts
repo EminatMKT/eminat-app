@@ -185,7 +185,6 @@ export function useStratixData() {
       <div>
         <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Team member</div>
         <div style="font-size:20px;font-weight:700">${escapeHtml(nombreRep)}</div>
-        <div style="font-size:11px;color:#888;font-family:monospace;margin-top:2px">${escapeHtml(idRep)}</div>
       </div>
       <div style="text-align:right">
         <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Period</div>
