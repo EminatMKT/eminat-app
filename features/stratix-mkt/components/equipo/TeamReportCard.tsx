@@ -14,7 +14,6 @@ export default function TeamReportCard({ r }: { r: ResumenHoras }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div>
           <div style={{ fontSize: 15, fontWeight: 700, color: t1 }}>{r.nombre}</div>
-          <div style={{ fontSize: 10, color: t3 }}>{r.ref}</div>
         </div>
         <div style={{ fontFamily: 'Syne', fontSize: 28, fontWeight: 800, color: '#60A5FA' }}>{r.horas}h</div>
       </div>

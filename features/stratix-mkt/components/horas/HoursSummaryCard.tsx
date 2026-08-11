@@ -14,7 +14,6 @@ export default function HoursSummaryCard({ r }: { r: ResumenHoras }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div>
           <div style={{ fontSize: 15, fontWeight: 700, color: t1 }}>{r.nombre}</div>
-          <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono' }}>{r.ref}</div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ fontFamily: 'Syne', fontSize: 30, fontWeight: 800, color: '#60A5FA', lineHeight: 1 }}>{r.horas}h</div>

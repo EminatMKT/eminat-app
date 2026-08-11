@@ -22,7 +22,7 @@ export default function EquipoTab() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {resumenHoras.map(r => (
-            <TeamReportCard key={r.ref} r={r} />
+            <TeamReportCard key={r.id} r={r} />
           ))}
         </div>
       )}

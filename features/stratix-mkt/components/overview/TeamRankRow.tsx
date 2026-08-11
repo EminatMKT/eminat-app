@@ -1,7 +1,7 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
 
-type Miembro = { ref: string; nombre: string; total: number; completadas: number; horas: number }
+type Miembro = { id: string; nombre: string; total: number; completadas: number; horas: number }
 
 export default function TeamRankRow({ m, i, maxMiembro }: { m: Miembro; i: number; maxMiembro: number }) {
   const { accent, border, t1, t3 } = useApp()

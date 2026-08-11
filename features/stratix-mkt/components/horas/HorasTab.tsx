@@ -17,7 +17,7 @@ export default function HorasTab() {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {resumenHoras.map(r => (
-          <HoursSummaryCard key={r.ref} r={r} />
+          <HoursSummaryCard key={r.id} r={r} />
         ))}
       </div>
     </div>

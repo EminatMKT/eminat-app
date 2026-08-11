@@ -12,7 +12,7 @@ export default function SolicitudesAvailabilityView() {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
         {miembrosAsignables.map((m) => (
-          <MemberAvailabilityCard key={m.ref} refKey={m.ref} nombre={m.nombre} />
+          <MemberAvailabilityCard key={m.id} userId={m.id} nombre={m.nombre} />
         ))}
       </div>
     </div>

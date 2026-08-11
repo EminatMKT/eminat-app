@@ -4,15 +4,15 @@ import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 
 const SLOTS = [9, 10, 11, 12, 13, 14, 15, 16, 17]
 
-export default function MemberAvailabilityCard({ refKey, nombre }: { refKey: string; nombre: string }) {
+export default function MemberAvailabilityCard({ userId, nombre }: { userId: string; nombre: string }) {
   const { s1, border, accent, t1, t2, t3, usuarios, actividades, colorMarca } = useApp()
-  const tareasActivas = actividades.filter(a => a.responsable_ref === refKey && (a.estado === 'En proceso' || a.estado === 'Pendiente'))
+  const tareasActivas = actividades.filter(a => a.responsable_id === userId && (a.estado === 'En proceso' || a.estado === 'Pendiente'))
   const horasOcupadas = Math.round(tareasActivas.reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10
   const horasSemanales = 40
   const horasLibres = Math.max(horasSemanales - horasOcupadas, 0)
   const pctOcupado = Math.min((horasOcupadas / horasSemanales) * 100, 100)
   const disponible = pctOcupado < 75
-  const userInfo = usuarios.find((u) => u.responsable_ref === refKey)
+  const userInfo = usuarios.find((u) => u.id === userId)
   const isOnline = userInfo?.online_at ? new Date(userInfo.online_at) > new Date(Date.now() - 5 * 60 * 1000) : false
   return (
     <div style={{ background: s1, border: `2px solid ${disponible ? '#34D39930' : '#F8717130'}`, borderRadius: 16, padding: 18, transition: 'all .2s' }}>

@@ -79,7 +79,7 @@ export default function OverviewTab() {
           </div>
           <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             {datosPorMiembro.map((m, i) => (
-              <TeamRankRow key={m.ref} m={m} i={i} maxMiembro={maxMiembro} />
+              <TeamRankRow key={m.id} m={m} i={i} maxMiembro={maxMiembro} />
             ))}
           </div>
         </div>

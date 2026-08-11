@@ -6,7 +6,7 @@ import type { Usuario } from '@/shared/context/loadAppData'
 interface UsuarioCargo { cargos?: { codigo: string; nombre: string } | null }
 // Campos canónicos de `Usuario` (Pick) + `auth_id` y el embed N:N `usuario_cargos`,
 // que no viven en la fila canónica.
-type RosterUser = Pick<Usuario, 'nombre' | 'apellido' | 'email' | 'online_at' | 'responsable_ref' | 'color'> & {
+type RosterUser = Pick<Usuario, 'id' | 'nombre' | 'apellido' | 'email' | 'online_at' | 'color'> & {
   auth_id?: string | null
   usuario_cargos?: UsuarioCargo[]
 }
@@ -18,9 +18,7 @@ export default function RosterCard({ user, esLider }: { user: RosterUser; esLide
   const initials = nombreCompleto.split(' ').slice(0, 2).map((p: string) => p[0]).join('').toUpperCase()
   const tieneCuenta = !!user.auth_id
   const isOnline = user.online_at ? new Date(user.online_at) > new Date(Date.now() - 5 * 60 * 1000) : false
-  const tareasHoy = user.responsable_ref
-    ? actividades.filter((a) => a.responsable_ref === user.responsable_ref && a.estado === 'En proceso').length
-    : 0
+  const tareasHoy = actividades.filter((a) => a.responsable_id === user.id && a.estado === 'En proceso').length
   const swatch = user.color || accent
   const cargo = (user.usuario_cargos || []).map((uc) => uc.cargos?.nombre).filter(Boolean).join(', ')
   return (

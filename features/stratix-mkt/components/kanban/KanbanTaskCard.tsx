@@ -5,10 +5,10 @@ import { useStratix } from '../StratixContext'
 import type { Actividad } from '../../types'
 
 export default function KanbanTaskCard({ a }: { a: Actividad }) {
-  const { s1, border, accent, t1, t3, miembrosRef, colorMarca } = useApp()
+  const { s1, border, accent, t1, t3, miembrosPorId, colorMarca } = useApp()
   const { dragId, onDragStart, onDragEnd, setModalVerAct } = useStratix()
   const marcaColor = colorMarca[a.empresa] ?? COLOR_MARCA_FALLBACK
-  const nombreMiembro = miembrosRef[a.responsable_ref]
+  const nombreMiembro = miembrosPorId[a.responsable_id]
   return (
     <div key={a.id} draggable onDragStart={() => onDragStart(a.id)} onDragEnd={onDragEnd} onClick={() => setModalVerAct(a)}
       style={{ background: s1, borderRadius: 12, padding: '12px 13px', border: `1px solid ${dragId === a.id ? accent : border}`, cursor: 'grab', opacity: dragId === a.id ? .4 : 1, boxShadow: '0 1px 4px rgba(0,0,0,0.15)', transition: 'all .15s' }}>
@@ -22,7 +22,7 @@ export default function KanbanTaskCard({ a }: { a: Actividad }) {
           <div style={{ width: 22, height: 22, borderRadius: '50%', background: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: 'white', flexShrink: 0 }}>
             {nombreMiembro?.[0] || '?'}
           </div>
-          <span style={{ fontSize: 10, color: t3 }}>{nombreMiembro || a.responsable_ref}</span>
+          <span style={{ fontSize: 10, color: t3 }}>{nombreMiembro ?? '—'}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {a.horas && <span style={{ fontSize: 9, color: t3 }}>⏱ {a.horas}h</span>}

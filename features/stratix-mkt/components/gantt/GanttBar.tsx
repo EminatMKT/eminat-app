@@ -5,7 +5,7 @@ import { useStratix } from '../StratixContext'
 import type { Actividad } from '../../types'
 
 export default function GanttBar({ a, fechaMin }: { a: Actividad; fechaMin: Date }) {
-  const { accent, border, t1, t3, miembrosRef, colorMarca } = useApp()
+  const { accent, border, t1, t3, miembrosPorId, colorMarca } = useApp()
   const { setModalVerAct } = useStratix()
   const fechaAct = new Date(a.fecha_entrega)
   const diaOffset = Math.max(Math.ceil((fechaAct.getTime() - fechaMin.getTime()) / 86400000), 0)
@@ -17,7 +17,7 @@ export default function GanttBar({ a, fechaMin }: { a: Actividad; fechaMin: Date
       <div style={{ width: 220, flexShrink: 0, padding: '10px 14px', borderRight: `1px solid ${border}` }}>
         <div style={{ fontSize: 11, fontWeight: 600, color: t1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.titulo}</div>
         <div style={{ fontSize: 9, color: t3, marginTop: 2 }}>
-          <span style={{ marginRight: 6 }}>{miembrosRef[a.responsable_ref] || a.responsable_ref}</span>
+          <span style={{ marginRight: 6 }}>{miembrosPorId[a.responsable_id] ?? '—'}</span>
           <span style={{ padding: '1px 5px', borderRadius: 4, background: `${marcaColor}25`, color: marcaColor, fontSize: 8 }}>{a.empresa}</span>
         </div>
       </div>

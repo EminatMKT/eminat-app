@@ -31,7 +31,7 @@ export default function ReporteTab() {
           {esAdmin && (
             <select value={miembroReporte} onChange={e => setMiembroReporte(e.target.value)} style={{ ...inputStyle, width: 'auto', padding: '6px 12px' }}>
               <option value="">Select</option>
-              {miembrosAsignables.map((m) => <option key={m.ref} value={m.ref}>{m.nombre}</option>)}
+              {miembrosAsignables.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
             </select>
           )}
           <select value={mesReporte} onChange={e => setMesReporte(e.target.value)} style={{ ...inputStyle, width: 'auto', padding: '6px 12px' }}>

@@ -5,7 +5,7 @@ import { useStratix } from '../StratixContext'
 import type { Actividad } from '../../types'
 
 export default function TaskTableRow({ a }: { a: Actividad }) {
-  const { t1, t3, border, esAdmin, miembrosRef, colorMarca } = useApp()
+  const { t1, t3, border, esAdmin, miembrosPorId, colorMarca } = useApp()
   const { setModalVerAct } = useStratix()
   const marcaColor = colorMarca[a.empresa] ?? COLOR_MARCA_FALLBACK
   return (
@@ -17,7 +17,7 @@ export default function TaskTableRow({ a }: { a: Actividad }) {
       <td style={{ padding: '10px 14px' }}>
         <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: `${marcaColor}25`, color: marcaColor, fontWeight: 600 }}>{a.empresa}</span>
       </td>
-      {esAdmin && <td style={{ padding: '10px 14px', fontSize: 11, color: t3 }}>{miembrosRef[a.responsable_ref] || a.responsable_ref}</td>}
+      {esAdmin && <td style={{ padding: '10px 14px', fontSize: 11, color: t3 }}>{miembrosPorId[a.responsable_id] ?? '—'}</td>}
       <td style={{ padding: '10px 14px', fontSize: 11, color: t3 }}>{a.mes}</td>
       <td style={{ padding: '10px 14px', fontSize: 11, color: t3, fontFamily: 'DM Mono' }}>{a.horas}h</td>
       <td style={{ padding: '10px 14px' }}>
