@@ -1,10 +1,11 @@
 'use client'
-import { useApp, getColorMarca } from '@/shared/context/AppContext'
+import { useApp } from '@/shared/context/AppContext'
+import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 
 const SLOTS = [9, 10, 11, 12, 13, 14, 15, 16, 17]
 
 export default function MemberAvailabilityCard({ refKey, nombre }: { refKey: string; nombre: string }) {
-  const { s1, border, accent, t1, t2, t3, usuarios, actividades } = useApp()
+  const { s1, border, accent, t1, t2, t3, usuarios, actividades, colorMarca } = useApp()
   const tareasActivas = actividades.filter(a => a.responsable_ref === refKey && (a.estado === 'En proceso' || a.estado === 'Pendiente'))
   const horasOcupadas = Math.round(tareasActivas.reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10
   const horasSemanales = 40
@@ -60,7 +61,7 @@ export default function MemberAvailabilityCard({ refKey, nombre }: { refKey: str
           <div style={{ fontSize: 10, color: t3, marginBottom: 6 }}>Tasks in progress:</div>
           {tareasActivas.slice(0, 2).map(a => (
             <div key={a.id} style={{ fontSize: 11, color: t2, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              <span style={{ color: getColorMarca(a.empresa), marginRight: 5 }}>●</span>{a.titulo}
+              <span style={{ color: colorMarca[a.empresa] ?? COLOR_MARCA_FALLBACK, marginRight: 5 }}>●</span>{a.titulo}
             </div>
           ))}
           {tareasActivas.length > 2 && <div style={{ fontSize: 10, color: t3 }}>+{tareasActivas.length - 2} more</div>}

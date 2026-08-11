@@ -1,11 +1,13 @@
 'use client'
-import { useApp, ESTADO_COLORS, getColorMarca } from '@/shared/context/AppContext'
+import { useApp, ESTADO_COLORS } from '@/shared/context/AppContext'
+import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 import { useStratix } from '../StratixContext'
 import type { Actividad } from '../../types'
 
 export default function TaskTableRow({ a }: { a: Actividad }) {
-  const { t1, t3, border, esAdmin, miembrosRef } = useApp()
+  const { t1, t3, border, esAdmin, miembrosRef, colorMarca } = useApp()
   const { setModalVerAct } = useStratix()
+  const marcaColor = colorMarca[a.empresa] ?? COLOR_MARCA_FALLBACK
   return (
     <tr key={a.id} onClick={() => setModalVerAct(a)} style={{ borderBottom: `1px solid ${border}`, cursor: 'pointer' }}>
       <td style={{ padding: '10px 14px' }}>
@@ -13,7 +15,7 @@ export default function TaskTableRow({ a }: { a: Actividad }) {
         {a.descripcion && <div style={{ fontSize: 10, color: t3, marginTop: 2, maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.descripcion}</div>}
       </td>
       <td style={{ padding: '10px 14px' }}>
-        <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: `${getColorMarca(a.empresa)}25`, color: getColorMarca(a.empresa), fontWeight: 600 }}>{a.empresa}</span>
+        <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: `${marcaColor}25`, color: marcaColor, fontWeight: 600 }}>{a.empresa}</span>
       </td>
       {esAdmin && <td style={{ padding: '10px 14px', fontSize: 11, color: t3 }}>{miembrosRef[a.responsable_ref] || a.responsable_ref}</td>}
       <td style={{ padding: '10px 14px', fontSize: 11, color: t3 }}>{a.mes}</td>

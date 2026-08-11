@@ -1,12 +1,13 @@
 'use client'
-import { useApp, getColorMarca } from '@/shared/context/AppContext'
+import { useApp } from '@/shared/context/AppContext'
+import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 import { useStratix } from '../StratixContext'
 import type { Actividad } from '../../types'
 
 export default function KanbanTaskCard({ a }: { a: Actividad }) {
-  const { s1, border, accent, t1, t3, miembrosRef } = useApp()
+  const { s1, border, accent, t1, t3, miembrosRef, colorMarca } = useApp()
   const { dragId, onDragStart, onDragEnd, setModalVerAct } = useStratix()
-  const marcaColor = getColorMarca(a.empresa)
+  const marcaColor = colorMarca[a.empresa] ?? COLOR_MARCA_FALLBACK
   const nombreMiembro = miembrosRef[a.responsable_ref]
   return (
     <div key={a.id} draggable onDragStart={() => onDragStart(a.id)} onDragEnd={onDragEnd} onClick={() => setModalVerAct(a)}
