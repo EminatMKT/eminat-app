@@ -13,7 +13,7 @@ import { THEME, inputStyle } from '@/shared/theme/tokens'
 import { useAppData } from './useAppData'
 import type { Usuario, Notificacion, Actividad, Equipo, OrgRow } from './loadAppData'
 import SessionErrorScreen from './SessionErrorScreen'
-import { deriveMiembrosRef, deriveMiembrosAsignables, deriveEquipoMarketing } from './team-derivations'
+import { deriveMiembrosPorId, deriveMiembrosAsignables, deriveEquipoMarketing } from './team-derivations'
 import { deriveMarcas, deriveColorMarca } from './empresa-derivations'
 
 // ── Re-exports (back-compat) ───────────────────────────────────────────
@@ -34,8 +34,8 @@ interface AppContextType {
   actividades: Actividad[]
   equipo: Equipo[]
   usuarios: Usuario[]
-  miembrosRef: Record<string, string>
-  miembrosAsignables: { ref: string; nombre: string }[]
+  miembrosPorId: Record<string, string>
+  miembrosAsignables: { id: string; nombre: string }[]
   equipoMarketing: Usuario[]
   loading: boolean
   dark: boolean
@@ -90,7 +90,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined)
 export function AppProvider({ children }: { children: ReactNode }) {
   const { sessionError, ...app } = useAppData()
 
-  const miembrosRef = deriveMiembrosRef(app.adminUsuarios)
+  const miembrosPorId = deriveMiembrosPorId(app.adminUsuarios)
   const miembrosAsignables = deriveMiembrosAsignables(app.usuarios)
   const equipoMarketing = deriveEquipoMarketing(app.usuarios)
   const marcas = useMemo(() => deriveMarcas(app.empresas), [app.empresas])
@@ -108,7 +108,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider
       value={{
         ...app,
-        miembrosRef,
+        miembrosPorId,
         miembrosAsignables,
         equipoMarketing,
         marcas,
