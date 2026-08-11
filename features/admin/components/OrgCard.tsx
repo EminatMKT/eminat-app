@@ -16,7 +16,7 @@ export default function OrgCard({ row, detail, deps, deleting, onEdit, onDelete 
   const { s1, border, t1, t2, t3, esAdmin } = useApp()
   const { t } = useT()
   // `deps` cuenta actividades, y el contexto solo las trae completas para el rol
-  // de sistema `admin` — para cualquier otro vienen filtradas por responsable_ref.
+  // de sistema `admin` — para cualquier otro vienen filtradas por `responsable_id`.
   // Sin este guard, un rol dinámico con el módulo admin asignado vería un conteo
   // subestimado y el botón habilitado, y el rechazo llegaría recién del 403 de la
   // API. La UI no debe ofrecer lo que el backend va a negar.

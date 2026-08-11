@@ -26,7 +26,7 @@ describe('eligibleHeirs', () => {
   it('incluye activos del mismo rol y excluye al propio target e inactivos', () => {
     const users = [
       target,
-      { id: 'a', rol: 'stratix360', activo: true, nombre: 'Ana', responsable_ref: 'r1' },
+      { id: 'a', rol: 'stratix360', activo: true, nombre: 'Ana' },
       { id: 'b', rol: 'stratix360', activo: false, nombre: 'Beto' },
       { id: 'c', rol: 'medical', activo: true, nombre: 'Caro' },
     ] as AdminUser[]
@@ -38,7 +38,7 @@ describe('eligibleHeirs', () => {
   })
   it('aplica la excepción cross-rol de Stratix 360 por email', () => {
     const freddyEmail = Array.from(STRATIX360_CROSS_ROLE_HEIR_EMAILS)[0]
-    const users = [target, { id: 'f', rol: 'admin', activo: true, nombre: 'Freddy', email: freddyEmail, responsable_ref: 'rf' }] as AdminUser[]
+    const users = [target, { id: 'f', rol: 'admin', activo: true, nombre: 'Freddy', email: freddyEmail }] as AdminUser[]
     expect(eligibleHeirs(users, target).map(u => u.id)).toContain('f')
   })
 })

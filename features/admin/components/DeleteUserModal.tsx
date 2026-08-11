@@ -59,10 +59,9 @@ export default function DeleteUserModal({ userId, onClose }: { userId: string; o
     if (!reassignState.heirId) { setDeleteError(t('admin.del.pickHeir')); return }
     const heir = adminUsuarios.find(u => u.id === reassignState.heirId)
     if (!heir) { setDeleteError(t('admin.del.heirNotFound')); return }
-    if (!heir.responsable_ref) { setDeleteError(t('admin.del.heirNoRef', { name: `${heir.nombre} ${heir.apellido}` })); return }
     setDeleting(true)
     try {
-      const { res, result } = await apiPost<{ ok?: boolean; error?: string; transferred?: number }>('/api/admin/reassign-and-delete', { oldId, newId: heir.id, newRef: heir.responsable_ref, statusOverride: reassignState.statusOverride || null })
+      const { res, result } = await apiPost<{ ok?: boolean; error?: string; transferred?: number }>('/api/admin/reassign-and-delete', { oldId, newId: heir.id, statusOverride: reassignState.statusOverride || null })
       if (!res.ok || !result.ok) { setDeleteError(result.error || t('admin.del.inheritFailed')); setDeleting(false); return }
       setAdminUsuarios(prev => prev.filter(u => u.id !== oldId))
       onClose()
@@ -128,7 +127,7 @@ export default function DeleteUserModal({ userId, onClose }: { userId: string; o
     }
     const heirs = eligibleHeirs(adminUsuarios, target)
     const selectedHeir = heirs.find(h => h.id === reassignState.heirId)
-    const heirReady = !!selectedHeir && !!selectedHeir.responsable_ref
+    const heirReady = !!selectedHeir
     const n = reassignState.taskCount
     return (
       <Modal title={t('admin.del.reassignTitle')} width={520} onClose={onClose}>
@@ -145,16 +144,11 @@ export default function DeleteUserModal({ userId, onClose }: { userId: string; o
               {heirs.length === 0 ? (
                 <option value="" disabled>{t('admin.del.noMembers')}</option>
               ) : heirs.map(h => (
-                <option key={h.id} value={h.id} disabled={!h.responsable_ref}>
-                  {h.nombre} {h.apellido}{h.responsable_ref ? ` · ${h.responsable_ref}` : t('admin.del.notEligibleSuffix')}
+                <option key={h.id} value={h.id}>
+                  {h.nombre} {h.apellido}
                 </option>
               ))}
             </select>
-            {selectedHeir && !selectedHeir.responsable_ref && (
-              <div style={{ marginTop: 6, fontSize: 11, color: '#F87171' }}>
-                {t('admin.del.heirNoRefHint1')} <code>responsable_ref</code> {t('admin.del.heirNoRefHint2')}
-              </div>
-            )}
           </div>
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t('admin.del.statusLabel')}</label>

@@ -19,7 +19,6 @@ import { isLastAdmin } from '@/shared/auth/roleValidation'
  *   {
  *     oldId: string            // usuarios.id of the user to remove
  *     newId: string            // usuarios.id of the heir
- *     newRef: string           // heir's usuarios.responsable_ref (parallel text label)
  *     statusOverride?: 'aprobado' | 'finalizado' | 'por_aprobar' | null
  *   }
  *
@@ -37,20 +36,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { oldId, newId, newRef, statusOverride } = body as {
-      oldId?: string; newId?: string; newRef?: string; statusOverride?: string | null
+    const { oldId, newId, statusOverride } = body as {
+      oldId?: string; newId?: string; statusOverride?: string | null
     }
 
     // Heredero OPCIONAL: sin heredero (newId ausente) el RPC solo limpia hijos y
-    // borra — caso de usuario con 0 tareas. Con heredero, newId y newRef van juntos.
+    // borra — caso de usuario con 0 tareas.
     if (!oldId) {
       return NextResponse.json({ error: 'oldId es requerido.' }, { status: 400 })
-    }
-    if (newId && !newRef) {
-      return NextResponse.json(
-        { error: 'newRef es requerido cuando se especifica un heredero.' },
-        { status: 400 },
-      )
     }
     if (newId && oldId === newId) {
       return NextResponse.json(
@@ -65,7 +58,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    console.log(`${TAG} start`, { oldId, newId, newRef, statusOverride: statusOverride ?? null })
+    console.log(`${TAG} start`, { oldId, newId, statusOverride: statusOverride ?? null })
 
     // Lookup old user to (a) refuse admin-tier deletes and (b) capture
     // auth_id / id so we can clean up auth.users after the RPC.
@@ -105,7 +98,6 @@ export async function POST(req: NextRequest) {
       {
         p_old_id: oldId,
         p_new_id: newId ?? null,
-        p_new_ref: newRef ?? null,
         p_status_override: statusOverride ?? null,
       },
     )
