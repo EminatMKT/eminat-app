@@ -1,10 +1,29 @@
 'use client'
+import { useEffect } from 'react'
 import { useApp, MESES, COLUMNAS_KANBAN, SOLICITANTES } from '@/shared/context/AppContext'
 import { useStratix } from '../StratixContext'
 
 export default function NewActivityModal() {
   const { s1, border, accent, t1, t2, t3, inputStyle, miembrosAsignables, marcas } = useApp()
   const { modalNuevaAct, setModalNuevaAct, nuevaAct, setNuevaAct, creandoAct, crearActividad } = useStratix()
+
+  // El form arranca con valores por defecto fijos, pero las dos listas son
+  // dinámicas: si el default ya no está entre las opciones —el admin desmarcó esa
+  // empresa, esa persona dejó el equipo— el navegador muestra la primera opción
+  // mientras el estado conserva el valor viejo, y se guardaría el que no se ve.
+  // Sincronizar el estado con lo que el select realmente muestra cierra ese hueco.
+  useEffect(() => {
+    if (marcas.length && !marcas.some(m => m.codigo === nuevaAct.empresa)) {
+      setNuevaAct(p => ({ ...p, empresa: marcas[0].codigo }))
+    }
+  }, [marcas, nuevaAct.empresa, setNuevaAct])
+
+  useEffect(() => {
+    if (miembrosAsignables.length && !miembrosAsignables.some(m => m.ref === nuevaAct.responsable_ref)) {
+      setNuevaAct(p => ({ ...p, responsable_ref: miembrosAsignables[0].ref }))
+    }
+  }, [miembrosAsignables, nuevaAct.responsable_ref, setNuevaAct])
+
   if (!modalNuevaAct) return null
 
   return (
