@@ -32,7 +32,6 @@ export type ProfileUser = {
   id: string
   rol?: string
   activo?: boolean
-  responsable_ref?: string | null
 }
 
 // Cliente Supabase acotado a lo que usa loadProfile. `select` devuelve `unknown`:

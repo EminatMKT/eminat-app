@@ -39,18 +39,6 @@ export const ESTADO_COLORS: Record<string, string> = {
 
 export const COLUMNAS_KANBAN = ['Pendiente', 'En proceso', 'Por aprobar', 'Completado']
 
-export const SOLICITANTES = [
-  { value: 'Coord_MFreddy', label: 'Freddy Crespin — Marketing Director' },
-  { value: 'Rafaella', label: 'Rafaella' },
-  { value: 'CEO_Vivi', label: 'Vivi Negrete — CEO' },
-  { value: 'COO_Javier', label: 'Javier Andrade — COO' },
-  { value: 'EMC', label: 'EMC — Medical Center' },
-  { value: 'ERG', label: 'ERG — Research Group' },
-  { value: 'SVN', label: 'SVN — Soy Vivi Negrete' },
-  { value: 'VNF', label: 'VNF — Foundation' },
-  { value: 'PREMIER', label: 'PREMIER — Premier' },
-]
-
 export const COLORES_AVATAR = ['#7C6FF7', '#34D399', '#F472B6', '#60A5FA', '#FB923C', '#FBB040', '#A78BFA', '#F87171']
 
 export function getIniciales(nombre: string) {

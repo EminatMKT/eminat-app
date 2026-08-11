@@ -31,7 +31,6 @@ export interface Usuario {
   activo?: boolean
   validado?: boolean
   online_at?: string | null
-  responsable_ref?: string | null
   equipo_id?: string | null
   jornada_id?: string | null
   vinculacion_id?: string | null
@@ -64,14 +63,14 @@ export type Actividad = {
   titulo?: string
   descripcion?: string
   empresa?: string
-  responsable_ref?: string
+  responsable_id?: string
   mes?: string
   trimestre?: string
   estado?: string
   horas?: number | string
   dias_produccion?: number | string
   fecha_entrega?: string
-  solicitado_por?: string
+  solicitante_id?: string
   drive_url?: string
   [k: string]: unknown
 }
@@ -252,7 +251,9 @@ export function startAppData(s: Setters): () => void {
       //    después, todo Stratix se pintaría un instante con el color de fallback
       //    y repintaría al resolverse — chips del topbar incluidos.
       const [{ data: acts }, org] = await Promise.all([
-        actividadesRepo.list(!isAdmin && usr.responsable_ref ? usr.responsable_ref : undefined),
+        // Un no-admin ve solo lo suyo. Antes el filtro era el ref y quien no tenía
+        // caía en `undefined` — o sea, sin filtro: veía todas las actividades.
+        actividadesRepo.list(!isAdmin ? usr.id : undefined),
         fetchOrg(),
       ])
       s.setActividades(acts || [])

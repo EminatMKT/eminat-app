@@ -22,7 +22,7 @@ import { deriveMarcas, deriveColorMarca } from './empresa-derivations'
 // puede importar directo de shared/constants/* y shared/theme/*.
 export {
   MESES, TRIMESTRES, MESES_Q, mesATrimestre, ESTADO_COLORS,
-  COLUMNAS_KANBAN, SOLICITANTES, COLORES_AVATAR,
+  COLUMNAS_KANBAN, COLORES_AVATAR,
   getIniciales,
 } from '@/shared/constants/domain'
 export { CARGOS_DIR, DIRECTORIO_DATA, DEPS_DIR } from '@/shared/constants/directorio'

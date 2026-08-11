@@ -3,10 +3,10 @@ import { TABLES, COLUMNS } from './tables'
 
 // Capa de acceso a datos para la tabla `actividades`.
 
-// Lista actividades por created_at desc. Si se pasa responsableRef, filtra por él.
-export const list = (responsableRef?: string) => {
+// Lista actividades por created_at desc. Si se pasa responsableId, filtra por él.
+export const list = (responsableId?: string) => {
   let q = supabase.from(TABLES.actividades).select('*').order(COLUMNS.createdAt, { ascending: false })
-  if (responsableRef) q = q.eq('responsable_ref', responsableRef)
+  if (responsableId) q = q.eq('responsable_id', responsableId)
   return q
 }
 
