@@ -45,6 +45,41 @@ declara: una sola lista, dos relaciones distintas.
 | Relación `actividades` → `empresas` | FK por clave natural sobre `codigo` | Ver abajo. El código sigue leyendo `a.empresa` como string, así que los call sites de color no cambian de forma. |
 | Acceso al color desde el front | Mapa derivado en `AppContext` | Un solo lugar deriva, O(1) en render. Kanban y Gantt pintan decenas de celdas. |
 
+### Semántica de `activo` × `recibe_actividades`
+
+Los dos flags no son independientes. **`activo` es el interruptor maestro**: significa "esta
+empresa existe en el grupo" y gobierna las dos relaciones (pertenencia y atribución).
+`recibe_actividades` es un permiso adicional que solo tiene efecto si la empresa está
+activa.
+
+| `activo` | `recibe_actividades` | Significado | Selector de actividad | Selector de pertenencia |
+|---|---|---|---|---|
+| ✅ | ✅ | Marca viva del grupo | aparece | aparece |
+| ✅ | ❌ | Empresa donde trabaja gente, sin marketing propio | no aparece | aparece |
+| ❌ | ✅ | *inalcanzable por construcción* | — | — |
+| ❌ | ❌ | Empresa que ya no opera | no aparece | no aparece |
+
+La tercera fila se vuelve inalcanzable porque el form deshabilita `recibe_actividades`
+cuando `activo` está apagado. Aun así el front nunca asume esa invariante: filtra por
+`activo && recibe_actividades`, no solo por el segundo.
+
+**Desactivar una empresa NO toca las actividades existentes.** Es la regla que gobierna
+todo lo demás:
+
+- Las actividades de una empresa desactivada **se siguen viendo** en Kanban, Gantt,
+  reportes y gráficas, **con el color de su empresa**. Por eso `colorMarca` no filtra.
+- No se pueden crear actividades nuevas para esa empresa.
+- No se puede borrar la empresa mientras tenga actividades: la FK lo impide, con o sin
+  `activo`. Desactivar es la salida suave; borrar sigue bloqueado.
+- Los totales históricos por marca no cambian. El histórico es registro, no se reescribe
+  cuando cambia la configuración.
+
+Una consecuencia a tener presente si más adelante se agrega **edición de la empresa de una
+actividad ya creada**: ese `<select>` tendría que incluir el valor actual aunque su
+empresa esté desactivada o no sea atribuible, o al guardar pisaría la empresa con la
+primera opción de la lista. Hoy no aplica — `ActivityDetailModal:29` solo la muestra en un
+`<span>`, no la edita.
+
 ### Por qué `codigo` sí sirve como clave natural
 
 El proyecto tiene un antecedente de clave natural que salió mal — `responsable_ref` — así
@@ -95,11 +130,17 @@ puede borrar.
 
 `ORG_CATALOGS` es config-driven, así que el grueso es declarativo:
 
-1. Un campo más en `empresas.fields`:
-   `{ name: 'recibe_actividades', type: 'checkbox', labelKey: 'admin.org.recibeActividades' }`
+1. Dos campos más en `empresas.fields`:
+   `{ name: 'activo', type: 'checkbox', labelKey: 'admin.org.activo' }` y
+   `{ name: 'recibe_actividades', type: 'checkbox', labelKey: 'admin.org.recibeActividades' }`.
+   `recibe_actividades` se deshabilita cuando `activo` está apagado, para que el estado
+   contradictorio de la matriz no se pueda armar desde la UI.
 2. **`type: 'checkbox'` no existe todavía** en el form genérico (hoy:
    `text | number | color | icon | select`). Hay que agregarlo al renderer del modal. Es
-   el único componente nuevo del trabajo.
+   el único componente nuevo del trabajo, y sirve a los dos campos.
+
+   `activo` se expone acá porque sin eso el filtro del front sería especulativo: la
+   columna existe con default `true` y hoy **no hay forma de cambiarla** salvo por SQL.
 3. `blockedBy` gana `matchOn?: 'id' | 'codigo'` con default `'id'`, y la entrada de
    actividades pasa a `{ table: 'actividades', column: 'empresa', matchOn: 'codigo' }`.
 
@@ -165,6 +206,8 @@ valores son refs y su destino depende de esa decisión.
 | Código sin entrada en `colorMarca` | Fallback `'#7C6FF7'`, el mismo default de hoy |
 | Empresa con actividades, intento de borrado | La FK lo bloquea; el admin ve "está en uso por N registros" |
 | Empresa desmarcada como atribuible | Sigue pintando el color en actividades viejas; no aparece en el selector de nuevas |
+| Empresa **desactivada** con actividades | Idéntico: las actividades se ven con su color y cuentan en los totales. Solo se cierra la creación de nuevas |
+| Empresa desactivada con personas asignadas | El borrado sigue bloqueado por `usuarios.empresa_id`. Desactivar no desasigna a nadie |
 | `AccountRow`: `acc.brand` no matchea ningún `codigo` | Fallback de color. Es el comportamiento actual: `social_accounts.brand` es texto libre y no se toca acá |
 
 ## Testing
@@ -173,14 +216,20 @@ Hay `vitest` configurado (`pnpm test`). Los tests que importan son los de la der
 
 - `marcas` excluye una empresa con `activo = false`
 - `marcas` excluye una empresa con `recibe_actividades = false`
-- `colorMarca` **sí** incluye una empresa con `recibe_actividades = false`
+- `marcas` excluye una empresa con `activo = false` **aunque** `recibe_actividades = true`
+  (la fila contradictoria de la matriz: el front no confía en que la UI la impida)
+- `colorMarca` **sí** incluye una empresa desactivada y una no atribuible
 
-El tercero es el que importa: es la regresión que este diseño introduce si alguien
-unifica los dos memos en uno.
+El último es el que importa: es la regresión que este diseño introduce si alguien unifica
+los dos memos en uno, y la que rompería el histórico.
 
-Verificación manual, con Supabase local levantado: crear una empresa desde Admin →
-Organización con el checkbox tildado, y confirmar que aparece en el selector de nueva
-actividad de Stratix.
+Verificación manual, con Supabase local levantado:
+
+1. Crear una empresa desde Admin → Organización con ambos checkboxes tildados, y
+   confirmar que aparece en el selector de nueva actividad de Stratix.
+2. Desactivar una empresa **que tenga actividades** (por ejemplo `EMC`) y confirmar que
+   sus tarjetas siguen en el Kanban con su color y siguen contando en la gráfica por
+   marca, pero que ya no se ofrece al crear una actividad nueva.
 
 ## Fuera de scope
 
@@ -222,6 +271,11 @@ deuda para poder declararla consistente.
   tablas que nadie usa. Sus entradas en `blockedBy` siguen con `matchOn: 'id'`, que para
   ellas es correcto.
 - **`social_accounts.brand`**: texto libre sin FK. Otro trabajo.
+- **`activo` en los otros cinco catálogos**: `departamentos`, `equipos`, `cargos`,
+  `jornadas` y `vinculaciones` también tienen la columna, y ninguno la expone — igual que
+  empresas hasta esta fase. Agregarlas es una línea por catálogo ahora que el renderer
+  soporta `checkbox`, pero desactivar un cargo o un departamento tiene implicancias
+  propias (qué pasa con las personas que lo tienen asignado) que no se analizaron acá.
 - **Limpieza de refs sucios** (`CM_ Naomi` con espacio, `Jonathan_CRM` invertido,
   `DG_Ariana` con el nombre viejo): sin sentido si el ref se elimina en la fase 2.
 
