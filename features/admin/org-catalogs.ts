@@ -27,8 +27,11 @@ export type CatalogDef = {
    *  y no compuesta, porque el género cambia con el sustantivo. */
   newKey: I18nKey
   fields: OrgField[]
-  /** Dependientes que bloquean el borrado (patrón Roles: bloquear + avisar). */
-  blockedBy: { table: string; column: string }[]
+  /** Dependientes que bloquean el borrado (patrón Roles: bloquear + avisar).
+   *  `matchOn` dice contra qué valor de la fila compara la columna dependiente:
+   *  'id' para las FK por uuid, 'codigo' para las que apuntan a la clave natural
+   *  (actividades.empresa -> empresas.codigo). Default 'id'. */
+  blockedBy: { table: string; column: string; matchOn?: 'id' | 'codigo' }[]
 }
 
 export const ORG_CATALOGS: Record<OrgCat, CatalogDef> = {
@@ -47,7 +50,12 @@ export const ORG_CATALOGS: Record<OrgCat, CatalogDef> = {
     ],
     blockedBy: [
       { table: 'usuarios', column: 'empresa_id' },
-      { table: 'actividades', column: 'empresa_id' },
+      // Actividades referencia la clave natural, no el uuid: su FK es
+      // actividades.empresa -> empresas.codigo. Sin `matchOn` este chequeo
+      // compararía códigos contra un uuid, contaría 0 y dejaría intentar el
+      // borrado. solicitudes y slots_calendario siguen con empresa_id a
+      // propósito: están vacías y su migración quedó fuera de scope.
+      { table: 'actividades', column: 'empresa', matchOn: 'codigo' },
       { table: 'solicitudes', column: 'empresa_id' },
       { table: 'slots_calendario', column: 'empresa_id' },
     ],

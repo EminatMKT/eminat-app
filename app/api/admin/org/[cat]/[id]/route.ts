@@ -29,8 +29,16 @@ export async function DELETE(_req: NextRequest, { params }: { params: { cat: str
   // CASCADE: borrar un cargo asignado debe ser una decisión explícita, no un efecto).
   // Una empresa tiene varios dependientes (personas, actividades, solicitudes…):
   // se suman todos para reportar el total en uso.
-  const counts = await Promise.all(ORG_CATALOGS[params.cat].blockedBy.map(({ table, column }) =>
-    db.from(table).select('*', { count: 'exact', head: true }).eq(column, params.id),
+  // Las FK por clave natural comparan contra `codigo`, no contra el uuid: hay que
+  // leer la fila antes para saber qué valor buscar.
+  const necesitaCodigo = ORG_CATALOGS[params.cat].blockedBy.some(b => b.matchOn === 'codigo')
+  const codigo = necesitaCodigo
+    ? (await db.from(params.cat).select('codigo').eq('id', params.id).single()).data?.codigo
+    : undefined
+
+  const counts = await Promise.all(ORG_CATALOGS[params.cat].blockedBy.map(({ table, column, matchOn }) =>
+    db.from(table).select('*', { count: 'exact', head: true })
+      .eq(column, matchOn === 'codigo' ? codigo : params.id),
   ))
   const enUso = counts.reduce((n, r) => n + (r.count || 0), 0)
   if (enUso > 0) {
