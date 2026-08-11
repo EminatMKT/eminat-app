@@ -247,11 +247,16 @@ export function startAppData(s: Setters): () => void {
         console.warn('Realtime de la fila de usuario no disponible:', err)
       }
 
-      // 6. Load actividades
-      const { data: acts } = await actividadesRepo.list(
-        !isAdmin && usr.responsable_ref ? usr.responsable_ref : undefined
-      )
+      // 6. Actividades y catálogos, en paralelo. Van juntos a propósito: el color
+      //    de cada actividad sale del catálogo de empresas, así que si llegara
+      //    después, todo Stratix se pintaría un instante con el color de fallback
+      //    y repintaría al resolverse — chips del topbar incluidos.
+      const [{ data: acts }, org] = await Promise.all([
+        actividadesRepo.list(!isAdmin && usr.responsable_ref ? usr.responsable_ref : undefined),
+        fetchOrg(),
+      ])
       s.setActividades(acts || [])
+      s.setOrg(org)
 
       // 7. Load equipo from v_equipo_hoy
       const { data: eq } = await usuariosRepo.equipoHoy()
@@ -265,8 +270,6 @@ export function startAppData(s: Setters): () => void {
       const { data: allUsrs } = await usuariosRepo.listAll()
       s.setAdminUsuarios(allUsrs || [])
 
-      // 10. Catálogos organizacionales (CRUD del tab Organización + multiselect de cargos)
-      s.setOrg(await fetchOrg())
     } catch (err) {
       console.error('AppContext init error:', err)
     } finally {

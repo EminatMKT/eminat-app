@@ -13,7 +13,7 @@ const emptyNuevaAct = (): NuevaActForm => ({
 })
 
 export function useStratixData() {
-  const { usuario, actividades, equipo, usuarios, esAdmin, mostrarMensaje, setActividades, miembrosRef, miembrosAsignables, marcas } = useApp()
+  const { usuario, actividades, equipo, usuarios, esAdmin, mostrarMensaje, setActividades, miembrosRef, miembrosAsignables, colorMarca } = useApp()
 
   const [mktTab, setMktTab] = useState('overview')
   const [trimestre, setTrimestre] = useState('General')
@@ -55,11 +55,21 @@ export function useStratixData() {
     completadas: actividades.filter(a => a.mes === mes && a.estado === 'Completado').length,
   }))
   const maxTotal = Math.max(...datosPorMes.map(d => d.total), 1)
-  // El color se resuelve acá porque BrandBar lo tipa como requerido y el catálogo
-  // lo declara opcional.
-  const datosPorMarca = marcas
-    .map(m => ({ ...m, color: m.color ?? COLOR_MARCA_FALLBACK, total: actsFiltradas.filter(a => a.empresa === m.codigo).length }))
+  // Las barras salen de las marcas que las actividades REALMENTE usan, no del
+  // catálogo de las ofrecibles: si se desactiva una empresa, sus actividades
+  // siguen contando en los totales de arriba, así que su barra tiene que seguir
+  // acá o la suma de las barras deja de dar el total. Mismo criterio que
+  // `colorMarca`, que tampoco filtra.
+  const codigosUsados = Array.from(new Set(actsFiltradas.map(a => a.empresa)))
+  const datosPorMarca = codigosUsados
+    .map(codigo => ({
+      codigo,
+      // BrandBar tipa `color` como requerido y el catálogo lo declara opcional.
+      color: colorMarca[codigo] ?? COLOR_MARCA_FALLBACK,
+      total: actsFiltradas.filter(a => a.empresa === codigo).length,
+    }))
     .filter(m => m.total > 0)
+    .sort((a, b) => b.total - a.total)
   const maxMarca = Math.max(...datosPorMarca.map(d => d.total), 1)
   const refsTeam = esAdmin ? miembrosAsignables.map((m) => m.ref) : [usuario?.responsable_ref].filter(Boolean)
   const datosPorMiembro = refsTeam.map(ref => ({

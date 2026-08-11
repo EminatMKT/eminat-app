@@ -103,8 +103,21 @@ La validación ocurre en `app/login/page.tsx` antes de llamar a Supabase Auth.
 
 ## Marcas del grupo Eminat
 
-Las constantes de marcas viven en `shared/constants/domain.ts` (`MARCAS_LIST`,
-`SOLICITANTES`, `getColorMarca`), re-exportadas por `shared/context/AppContext.tsx`:
+Las marcas **salen de la tabla `empresas`**, que el admin administra desde `/admin` →
+Organización. Se leen del contexto:
+
+- `useApp().marcas` — las ofrecibles para una actividad nueva (`activo && recibe_actividades`)
+- `useApp().colorMarca` — mapa `codigo → color` de **todas**, sin filtrar
+
+La asimetría es deliberada: si se desactiva una empresa, sus actividades históricas tienen
+que seguir pintándose con su color y contando en las gráficas; solo deja de ofrecerse para
+actividades nuevas. Las derivaciones viven en `shared/context/empresa-derivations.ts` con
+sus tests.
+
+Las 11 filas del catálogo cubren dos relaciones distintas: **pertenencia** (dónde trabaja
+una persona, `usuarios.empresa_id`) y **atribución** (a qué marca se imputa una actividad,
+`actividades.empresa → empresas.codigo`). `recibe_actividades` distingue cuáles reciben lo
+segundo; hoy son 7:
 
 - **EMC** — Eminat Medical Center (`@emc.health`)
 - **SVN** — Servi-Net
@@ -114,11 +127,9 @@ Las constantes de marcas viven en `shared/constants/domain.ts` (`MARCAS_LIST`,
 - **ORNELLA** — Ornella
 - **Eminat Mentor**
 
-> ⚠️ `MARCAS_LIST` está **hardcodeada y desincronizada** con la tabla `empresas` (7 vs 11
-> marcas). Crear una empresa en Admin → Organización no la hace aparecer en el formulario de
-> actividades de Stratix. Migrar esos consumos a `useApp().empresas` es tarea pendiente;
-> afecta 5 lugares (selector de actividad, gráfica "por marca" de Overview, SocialTab, chips
-> del topbar, `getColorMarca`).
+`SOLICITANTES` sigue hardcodeada en `shared/constants/domain.ts`: sus valores son
+`responsable_ref`, así que se elimina junto con ese campo en la fase 2 (ver
+`docs/superpowers/specs/2026-08-11-stratix-empresas-design.md`).
 
 ## Estructura clave del código
 
@@ -178,8 +189,13 @@ supabase/
   `Pick`/`Omit`/`Partial` sobre los tipos existentes
 - Nombres de columnas FK: `<entidad>_id` cuando la FK apunta a una **clave surrogate** (uuid),
   ej. `departamento_id`. **Nombre natural** (sin `_id`) cuando apunta a una **clave natural
-  legible**, ej. `usuarios.rol` → `roles.key` (el valor ES el slug del rol, no un id oculto;
-  `rol_id` sería engañoso). El sufijo `_id` implica surrogate; no usarlo para claves naturales.
+  sana**, ej. `usuarios.rol` → `roles.key` o `actividades.empresa` → `empresas.codigo`. El
+  sufijo `_id` implica surrogate; no usarlo para claves naturales.
+- Una clave natural es **sana** si cumple las tres: legible, `UNIQUE` + `NOT NULL`, y **no
+  codifica datos que ya existen por separado**. La tercera es la que se olvida:
+  `usuarios.responsable_ref` (`DG_Ariana`) parece una clave natural pero mete adentro el
+  cargo y el nombre, así que se desincroniza cuando la persona se renombra — y encima no es
+  única ni obligatoria. Ante una clave natural que falla alguna, usar surrogate.
 
 ## Grafo de conocimiento
 
