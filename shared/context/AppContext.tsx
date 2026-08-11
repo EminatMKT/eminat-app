@@ -21,9 +21,9 @@ import { deriveMarcas, deriveColorMarca } from './empresa-derivations'
 // no romper los imports existentes (`@/shared/context/AppContext`). Código nuevo
 // puede importar directo de shared/constants/* y shared/theme/*.
 export {
-  MESES, TRIMESTRES, MESES_Q, mesATrimestre, MARCAS_LIST, ESTADO_COLORS,
+  MESES, TRIMESTRES, MESES_Q, mesATrimestre, ESTADO_COLORS,
   COLUMNAS_KANBAN, SOLICITANTES, COLORES_AVATAR,
-  getColorMarca, getIniciales,
+  getIniciales,
 } from '@/shared/constants/domain'
 export { CARGOS_DIR, DIRECTORIO_DATA, DEPS_DIR } from '@/shared/constants/directorio'
 

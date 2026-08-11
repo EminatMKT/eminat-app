@@ -26,15 +26,9 @@ export const mesATrimestre: Record<string, string> = {
   Octubre: 'Q4', Noviembre: 'Q4', Diciembre: 'Q4',
 }
 
-export const MARCAS_LIST = [
-  { codigo: 'EMC', color: '#60A5FA', label: 'Medical Center' },
-  { codigo: 'SVN', color: '#F472B6', label: 'Soy Vivi Negrete' },
-  { codigo: 'ERG', color: '#A78BFA', label: 'Research Group' },
-  { codigo: 'VNF', color: '#FB923C', label: 'VN Foundation' },
-  { codigo: 'PREMIER', color: '#34D399', label: 'Premier' },
-  { codigo: 'ORNELLA', color: '#F87171', label: 'Ornella IA' },
-  { codigo: 'MENTOR', color: '#FBB040', label: 'Eminat Mentor' },
-]
+// Las marcas ya no viven acá: salen de la tabla `empresas`, que el admin
+// administra desde /admin → Organización. Se leen del contexto con
+// `useApp().marcas` (las atribuibles) y `useApp().colorMarca` (código → color).
 
 export const ESTADO_COLORS: Record<string, string> = {
   Completado: '#34D399',
@@ -61,8 +55,4 @@ export const COLORES_AVATAR = ['#7C6FF7', '#34D399', '#F472B6', '#60A5FA', '#FB9
 
 export function getIniciales(nombre: string) {
   return nombre.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
-}
-
-export function getColorMarca(codigo: string) {
-  return MARCAS_LIST.find(m => m.codigo === codigo)?.color || '#7C6FF7'
 }
