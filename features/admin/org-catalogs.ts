@@ -12,6 +12,10 @@ export type OrgField = {
   name: keyof OrgRow
   type: 'text' | 'number' | 'color' | 'icon' | 'select' | 'checkbox'
   labelKey: I18nKey
+  /** Aclaración al lado del label, para campos cuyo efecto no es obvio por el
+   *  nombre. Se declara acá y no en el form: el renderer sirve a los 6 catálogos
+   *  y no debe conocer el nombre de ningún campo en particular. */
+  hintKey?: I18nKey
   required?: boolean
   /** Fuente de opciones del select (catálogo del contexto). */
   options?: 'departamentos' | 'usuarios'
@@ -38,8 +42,8 @@ export const ORG_CATALOGS: Record<OrgCat, CatalogDef> = {
       { name: 'nombre', type: 'text', labelKey: 'admin.org.nombre', required: true },
       { name: 'codigo', type: 'text', labelKey: 'admin.org.codigo' },
       { name: 'color', type: 'color', labelKey: 'admin.org.color' },
-      { name: 'activo', type: 'checkbox', labelKey: 'admin.org.activo' },
-      { name: 'recibe_actividades', type: 'checkbox', labelKey: 'admin.org.recibeActividades' },
+      { name: 'activo', type: 'checkbox', labelKey: 'admin.org.activo', hintKey: 'admin.org.activoHint' },
+      { name: 'recibe_actividades', type: 'checkbox', labelKey: 'admin.org.recibeActividades', hintKey: 'admin.org.recibeActividadesHint' },
     ],
     blockedBy: [
       { table: 'usuarios', column: 'empresa_id' },

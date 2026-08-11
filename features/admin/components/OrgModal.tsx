@@ -58,6 +58,12 @@ export default function OrgModal({ cat, row, onClose }: { cat: OrgCat; row?: Org
         // `recibe_actividades` solo tiene sentido sobre una empresa activa: si el
         // interruptor maestro está apagado, este queda deshabilitado para que el
         // estado contradictorio no se pueda armar desde la UI.
+        //
+        // Es la única regla del renderer que nombra un campo concreto. El hint sí
+        // se declara en ORG_CATALOGS (`hintKey`) porque cualquier campo puede
+        // querer uno; esta condición no se declaró porque haría falta una función
+        // en la config —que dejaría de ser datos— para un solo caso. Si aparece un
+        // segundo campo con deshabilitado condicional, ahí se abstrae.
         const off = f.name === 'recibe_actividades' && form.activo === false
         return (
           <div key={f.name} style={{ marginBottom: 14 }}>
@@ -68,10 +74,8 @@ export default function OrgModal({ cat, row, onClose }: { cat: OrgCat; row?: Org
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: off ? 'not-allowed' : 'pointer', opacity: off ? 0.5 : 1 }}>
                 <input type="checkbox" checked={checked(f)} disabled={off}
                   onChange={e => set(f, e.target.checked)} style={{ cursor: off ? 'not-allowed' : 'pointer' }} />
-                <span style={{ fontSize: 12, color: t2 }}>{t(f.labelKey)}</span>
-                <span style={{ fontSize: 10, color: t3 }}>
-                  {f.name === 'activo' ? t('admin.org.activoHint') : t('admin.org.recibeActividadesHint')}
-                </span>
+                <span style={{ fontSize: 12, color: t2, whiteSpace: 'nowrap' }}>{t(f.labelKey)}</span>
+                {f.hintKey && <span style={{ fontSize: 10, color: t3 }}>{t(f.hintKey)}</span>}
               </label>
             ) : f.type === 'select' ? (
               <select value={value(f)} onChange={e => set(f, e.target.value)} style={inputStyle}>
