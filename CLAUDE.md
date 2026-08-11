@@ -11,27 +11,47 @@ Sistema operativo interno de Eminat Group. Plataforma de gestión empresarial de
 
 ## Entornos y base de datos
 
-Hay **dos proyectos Supabase independientes**, con datos totalmente aislados:
+**Tres tiers, una base por tier.** Lo declara el enum de `NEXT_PUBLIC_APP_ENV` en
+`shared/db/env.client.ts`:
 
-| Entorno | Proyecto | Ref | Dónde se configuran las vars |
+| Tier | Base | Ref / URL | Dónde se configuran las vars |
 |---|---|---|---|
-| **Producción** | `eminat-app` (org Pro) | `ruedelunbtaomhrzgelc` | Vercel → Environment Variables (scope Production), `APP_ENV=vercel` |
-| **Desarrollo** | `eminat-app-dev` (org free) | `ydcadspinryybextlvyi` | `.env.local` (gitignored), `APP_ENV=development` |
+| **`local`** | Supabase local (Docker, `supabase start`) | `http://127.0.0.1:54321` | `.env.local` (gitignored), `NEXT_PUBLIC_APP_ENV=local` |
+| **`development`** | `eminat-app-dev` (org free) | `ydcadspinryybextlvyi` | Vercel → scope Preview (rama `development`) |
+| **`production`** | `eminat-app` (org Pro) | `ruedelunbtaomhrzgelc` | Vercel → scope Production |
 
-- En local **siempre** se apunta a dev. `lib/env.client.ts` exporta `isProdDb`/`isDevDb`
-  y un `superRefine` que **rompe el build** si `APP_ENV=development` apunta al ref de prod.
-- `AppShell.tsx` muestra un badge **"DEV"** en el topbar cuando `isDevDb` es true.
+- **En local se corre contra Supabase local, no contra el dev remoto.** El tier
+  `development` es Vercel Preview.
+- El prefijo `NEXT_PUBLIC_` no es opcional: la validación corre también en el cliente
+  (`isProdDb`/badge) y sin el prefijo Next no inyecta la var al bundle.
+- `shared/db/env.client.ts` exporta `isProdDb`/`isDevDb` y un `superRefine` que **rompe el
+  build** si un tier que no es `production` apunta al ref de la base de prod.
+- `isDevDb` es true para `local` **y** `development`; con eso `DevBadge` pinta el badge
+  **"DEV"** en el topbar.
+
+### Levantar el entorno local
+
+```bash
+pnpm supabase start   # Postgres 54322 · API/REST 54321 · Studio 54323
+pnpm dev              # Next en 3000
+```
+
+`supabase/config.toml` versiona la config local; `supabase/seed/` tiene los seeds de datos
+de prueba.
 
 ### Migraciones de esquema (CLI de Supabase)
 
 El esquema se versiona en `supabase/migrations/` con la CLI (`supabase`, devDependency).
-Dev y prod se mantienen sincronizados así:
+Local, dev y prod se mantienen sincronizados así:
 
 ```bash
 # Crear una nueva migración tras un cambio de esquema
 pnpm supabase migration new <nombre>
 
-# Aplicar al proyecto linkeado (cambiar de proyecto con `link`)
+# Aplicarla en local (no necesita link)
+pnpm supabase db reset          # recrea la base local desde migrations/ + seed/
+
+# Aplicar a un proyecto remoto (cambiar de proyecto con `link`)
 pnpm supabase link --project-ref ydcadspinryybextlvyi   # dev
 pnpm supabase db push
 pnpm supabase link --project-ref ruedelunbtaomhrzgelc    # prod
@@ -83,7 +103,8 @@ La validación ocurre en `app/login/page.tsx` antes de llamar a Supabase Auth.
 
 ## Marcas del grupo Eminat
 
-Las constantes de marcas y empresas viven en `lib/companies.ts` y `lib/AppContext.tsx`:
+Las constantes de marcas viven en `shared/constants/domain.ts` (`MARCAS_LIST`,
+`SOLICITANTES`, `getColorMarca`), re-exportadas por `shared/context/AppContext.tsx`:
 
 - **EMC** — Eminat Medical Center (`@emc.health`)
 - **SVN** — Servi-Net
@@ -93,36 +114,47 @@ Las constantes de marcas y empresas viven en `lib/companies.ts` y `lib/AppContex
 - **ORNELLA** — Ornella
 - **Eminat Mentor**
 
+> ⚠️ `MARCAS_LIST` está **hardcodeada y desincronizada** con la tabla `empresas` (7 vs 11
+> marcas). Crear una empresa en Admin → Organización no la hace aparecer en el formulario de
+> actividades de Stratix. Migrar esos consumos a `useApp().empresas` es tarea pendiente;
+> afecta 5 lugares (selector de actividad, gráfica "por marca" de Overview, SocialTab, chips
+> del topbar, `getColorMarca`).
+
 ## Estructura clave del código
+
+**Ya no existe `lib/`**: el código transversal vive en `shared/` y cada módulo de negocio en
+`features/<modulo>/`. Las páginas de `app/` son thin routes que montan el feature.
 
 ```
 middleware.ts          ← gate de sesión en el Edge (redirect a /login)
-shared/auth/
-  permissions.ts       ← helpers de permisos map-driven (roles dinámicos desde la DB)
-lib/
-  AppContext.tsx        ← contexto global: usuario autenticado, actividades, constantes de dominio
-  supabase.ts          ← singleton del cliente Supabase (browser)
-  companies.ts         ← constantes de marcas y utilidades
-  motion.tsx           ← componentes de animación reutilizables (Framer Motion)
+shared/
+  auth/permissions.ts  ← helpers de permisos map-driven (roles dinámicos desde la DB)
+  context/AppContext.tsx ← contexto global: usuario autenticado, actividades, catálogos
+  db/
+    env.client.ts      ← schema zod de las vars públicas + isProdDb/isDevDb
+    env.server.ts      ← vars solo-servidor (service_role, Resend)
+    supabase.ts        ← singleton del cliente Supabase (browser)
+    supabaseAdmin.ts   ← cliente service_role (solo rutas API)
+    requireAdmin.ts    ← guard de las rutas API de admin
+  constants/domain.ts  ← marcas, meses/trimestres, columnas de Kanban, colores
+  components/          ← AppShell, Sidebar, Topbar, DevBadge, Onboarding, ui/
+  motion/index.tsx     ← componentes de animación reutilizables (Framer Motion)
+  i18n/                ← claves es.json / en.json + useT()
+features/              ← un directorio por módulo de negocio
+  accounting/  admin/  cobranzas/  directorio/
+  medical/     overview/  research/  stratix-mkt/
 app/
   layout.tsx           ← layout raíz (fuentes Syne + DM Mono)
   (app)/               ← grupo de rutas protegidas
     layout.tsx         ← envuelve con AppProvider
     page.tsx           ← Launchpad
-    admin/             ← panel de administración de usuarios
-    stratix-mkt/       ← módulo Stratix 360
-    medical/           ← módulo médico
-    research/          ← módulo de investigación
-    cobranzas/         ← módulo de cobranzas
-    accounting/        ← módulo de contabilidad
+    admin/ stratix-mkt/ medical/ research/ cobranzas/ accounting/
   api/
     admin/             ← CRUD de usuarios (create, delete, reassign-and-delete, reset-password, update)
     mail/              ← envío de emails (send via Resend, campaigns CRUD)
-  components/
-    AppShell.tsx       ← shell de navegación con sidebar + topbar + modo oscuro
-    ResearchModule.tsx ← módulo de investigación (componente autónomo, muy grande)
-    NavBar.tsx         ← barra de navegación lateral
-    Onboarding.tsx     ← flujo de onboarding con spotlight animado
+supabase/
+  config.toml          ← config del stack local
+  migrations/  seed/  rollback/
 ```
 
 ## Flujo de autenticación
@@ -134,11 +166,16 @@ app/
 
 ## Convenciones
 
-- Páginas de módulos: exportan un único componente default (ej. `AccountingPage`)
-- Rutas API: usan `export async function POST/GET/PUT/DELETE` de Next.js App Router
-- Animaciones: siempre usar los componentes de `lib/motion.tsx`, no Framer Motion directo
+- Páginas de módulos: thin routes en `app/` que montan el componente de `features/<modulo>/`
+- Rutas API: usan `export async function POST/GET/PUT/DELETE` de Next.js App Router — el
+  `route.ts` **solo** exporta handlers HTTP; los helpers van en otro archivo
+- Animaciones: siempre usar los componentes de `shared/motion`, no Framer Motion directo
 - Permisos: en componentes, `useApp().modules.includes('<slug>')`; en lógica pura, `getModulesForRole(map, role).includes('<slug>')` de `shared/auth/permissions.ts` (ya no hay `canAccess`)
-- Supabase en cliente: importar el singleton de `lib/supabase.ts`
+- Supabase en cliente: importar el singleton de `shared/db/supabase.ts`
+- i18n: los componentes nuevos usan `useT()`/`t()` con sus claves en `es.json` y `en.json` —
+  no marcar con `i18n-ignore`
+- TypeScript: `any` está prohibido por ESLint (`no-explicit-any: error`); usar
+  `Pick`/`Omit`/`Partial` sobre los tipos existentes
 - Nombres de columnas FK: `<entidad>_id` cuando la FK apunta a una **clave surrogate** (uuid),
   ej. `departamento_id`. **Nombre natural** (sin `_id`) cuando apunta a una **clave natural
   legible**, ej. `usuarios.rol` → `roles.key` (el valor ES el slug del rol, no un id oculto;
