@@ -1,10 +1,10 @@
 'use client'
 import { useEffect } from 'react'
-import { useApp, MESES, COLUMNAS_KANBAN, SOLICITANTES } from '@/shared/context/AppContext'
+import { useApp, MESES, COLUMNAS_KANBAN } from '@/shared/context/AppContext'
 import { useStratix } from '../StratixContext'
 
 export default function NewActivityModal() {
-  const { s1, border, accent, t1, t2, t3, inputStyle, miembrosAsignables, marcas } = useApp()
+  const { s1, border, accent, t1, t2, t3, inputStyle, miembrosAsignables, marcas, usuarios } = useApp()
   const { modalNuevaAct, setModalNuevaAct, nuevaAct, setNuevaAct, creandoAct, crearActividad } = useStratix()
 
   // El form arranca con valores por defecto fijos, pero las dos listas son
@@ -19,10 +19,10 @@ export default function NewActivityModal() {
   }, [marcas, nuevaAct.empresa, setNuevaAct])
 
   useEffect(() => {
-    if (miembrosAsignables.length && !miembrosAsignables.some(m => m.ref === nuevaAct.responsable_ref)) {
-      setNuevaAct(p => ({ ...p, responsable_ref: miembrosAsignables[0].ref }))
+    if (miembrosAsignables.length && !miembrosAsignables.some(m => m.id === nuevaAct.responsable_id)) {
+      setNuevaAct(p => ({ ...p, responsable_id: miembrosAsignables[0].id }))
     }
-  }, [miembrosAsignables, nuevaAct.responsable_ref, setNuevaAct])
+  }, [miembrosAsignables, nuevaAct.responsable_id, setNuevaAct])
 
   if (!modalNuevaAct) return null
 
@@ -53,15 +53,18 @@ export default function NewActivityModal() {
           </div>
           <div>
             <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>👤 Assignee <span style={{ color: '#F87171' }}>*</span></label>
-            <select value={nuevaAct.responsable_ref} onChange={e => setNuevaAct(p => ({ ...p, responsable_ref: e.target.value }))} style={inputStyle}>
-              {miembrosAsignables.map((m) => <option key={m.ref} value={m.ref}>{m.nombre}</option>)}
+            <select value={nuevaAct.responsable_id} onChange={e => setNuevaAct(p => ({ ...p, responsable_id: e.target.value }))} style={inputStyle}>
+              {miembrosAsignables.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
             </select>
           </div>
         </div>
         <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>📨 Requested by</label>
-          <select value={nuevaAct.solicitado_por} onChange={e => setNuevaAct(p => ({ ...p, solicitado_por: e.target.value }))} style={inputStyle}>
-            {SOLICITANTES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+          <select value={nuevaAct.solicitante_id} onChange={e => setNuevaAct(p => ({ ...p, solicitante_id: e.target.value }))} style={inputStyle}>
+            <option value="">—</option>
+            {usuarios.filter(u => u.activo && u.id).map(u => (
+              <option key={u.id} value={u.id as string}>{`${u.nombre || ''} ${u.apellido || ''}`.trim()}</option>
+            ))}
           </select>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 14 }}>

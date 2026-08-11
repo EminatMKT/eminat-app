@@ -4,16 +4,17 @@ import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 import { actividadesRepo, notificacionesRepo } from '@/shared/data'
 import { escapeHtml } from '@/shared/lib/html'
 import { isExcludedFromStratix360 } from '../team'
+import { esActividadDeMiembro } from '../report-filter'
 import type { Actividad, NuevaActForm } from '../types'
 
-const emptyNuevaAct = (): NuevaActForm => ({
-  titulo: '', descripcion: '', empresa: 'EMC', responsable_ref: 'DG_Joselyn',
+const emptyNuevaAct = (solicitanteId = ''): NuevaActForm => ({
+  titulo: '', descripcion: '', empresa: '', responsable_id: '',
   mes: MESES[new Date().getMonth()], horas: '', dias_produccion: '',
-  estado: 'Pendiente', fecha_entrega: '', solicitado_por: 'Coord_MFreddy', drive_url: '',
+  estado: 'Pendiente', fecha_entrega: '', solicitante_id: solicitanteId, drive_url: '',
 })
 
 export function useStratixData() {
-  const { usuario, actividades, equipo, usuarios, esAdmin, mostrarMensaje, setActividades, miembrosRef, miembrosAsignables, colorMarca } = useApp()
+  const { usuario, actividades, equipo, esAdmin, mostrarMensaje, setActividades, miembrosPorId, miembrosAsignables, colorMarca } = useApp()
 
   const [mktTab, setMktTab] = useState('overview')
   const [trimestre, setTrimestre] = useState('General')
@@ -27,7 +28,7 @@ export function useStratixData() {
   const [modalNuevaAct, setModalNuevaAct] = useState(false)
   const [modalVerAct, setModalVerAct] = useState<Actividad | null>(null)
   const [creandoAct, setCreandoAct] = useState(false)
-  const [nuevaAct, setNuevaAct] = useState<NuevaActForm>(emptyNuevaAct())
+  const [nuevaAct, setNuevaAct] = useState<NuevaActForm>(emptyNuevaAct(usuario?.id || ''))
   const [busquedaSol, setBusquedaSol] = useState('')
   const [filtroEstadoSol, setFiltroEstadoSol] = useState('All')
   const [solTab, setSolTab] = useState('lista')
@@ -71,12 +72,12 @@ export function useStratixData() {
     .filter(m => m.total > 0)
     .sort((a, b) => b.total - a.total)
   const maxMarca = Math.max(...datosPorMarca.map(d => d.total), 1)
-  const refsTeam = esAdmin ? miembrosAsignables.map((m) => m.ref) : [usuario?.responsable_ref].filter(Boolean)
-  const datosPorMiembro = refsTeam.map(ref => ({
-    ref, nombre: miembrosRef[ref] || ref,
-    total: actsFiltradas.filter(a => a.responsable_ref === ref).length,
-    completadas: actsFiltradas.filter(a => a.responsable_ref === ref && a.estado === 'Completado').length,
-    horas: Math.round(actsFiltradas.filter(a => a.responsable_ref === ref).reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10,
+  const idsTeam = esAdmin ? miembrosAsignables.map((m) => m.id) : [usuario?.id].filter(Boolean) as string[]
+  const datosPorMiembro = idsTeam.map(id => ({
+    id, nombre: miembrosPorId[id] ?? '—',
+    total: actsFiltradas.filter(a => a.responsable_id === id).length,
+    completadas: actsFiltradas.filter(a => a.responsable_id === id && a.estado === 'Completado').length,
+    horas: Math.round(actsFiltradas.filter(a => a.responsable_id === id).reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10,
   })).filter(d => d.total > 0).sort((a, b) => b.total - a.total)
   const maxMiembro = Math.max(...datosPorMiembro.map(d => d.total), 1)
 
@@ -89,22 +90,17 @@ export function useStratixData() {
   const porColumna = (col: string) => actsKanban.filter(a => a.estado === col)
 
   const actsHoras = mesHoras ? actividades.filter(a => a.mes === mesHoras) : actividades
-  const resumenHoras = refsTeam.map(ref => {
-    const acts = actsHoras.filter(a => a.responsable_ref === ref)
-    return { ref, nombre: miembrosRef[ref] || ref, total: acts.length, completadas: acts.filter(a => a.estado === 'Completado').length, horas: Math.round(acts.reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10, dias: acts.reduce((acc, a) => acc + (Number(a.dias_produccion) || 0), 0) }
+  const resumenHoras = idsTeam.map(id => {
+    const acts = actsHoras.filter(a => a.responsable_id === id)
+    return { id, nombre: miembrosPorId[id] ?? '—', total: acts.length, completadas: acts.filter(a => a.estado === 'Completado').length, horas: Math.round(acts.reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10, dias: acts.reduce((acc, a) => acc + (Number(a.dias_produccion) || 0), 0) }
   }).filter(r => r.total > 0)
 
-  const refRep = miembroReporte || refsTeam[0] || ''
-  const actsRep = actividades.filter(a => {
-    if (!mesReporte) return a.responsable_ref === refRep || (refRep === 'Coord_MFreddy' && a.solicitado_por === refRep)
-    const matchMes = a.mes === mesReporte
-    if (refRep === 'Coord_MFreddy') return matchMes && (a.responsable_ref === refRep || a.solicitado_por === refRep)
-    return matchMes && a.responsable_ref === refRep
-  })
+  const idRep = miembroReporte || idsTeam[0] || ''
+  const actsRep = actividades.filter(a => esActividadDeMiembro(a, idRep, mesReporte || undefined))
   const totalHorasRep = Math.round(actsRep.reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10
   const totalDiasRep = actsRep.reduce((acc, a) => acc + (Number(a.dias_produccion) || 0), 0)
   const completadasRep = actsRep.filter(a => a.estado === 'Completado').length
-  const nombreRep = miembrosRef[refRep] || usuario?.nombre || refRep
+  const nombreRep = miembrosPorId[idRep] ?? usuario?.nombre ?? '—'
 
   // Drag and drop
   const onDragStart = (id: string) => setDragId(id)
@@ -131,11 +127,11 @@ export function useStratixData() {
       const payload: Record<string, unknown> = {
         titulo: nuevaAct.titulo.trim(),
         empresa: nuevaAct.empresa,
-        responsable_ref: nuevaAct.responsable_ref,
+        responsable_id: nuevaAct.responsable_id,
         mes: nuevaAct.mes,
         trimestre: mesATrimestre[nuevaAct.mes] || 'Q1',
         estado: nuevaAct.estado,
-        solicitado_por: nuevaAct.solicitado_por,
+        solicitante_id: nuevaAct.solicitante_id || null,
       }
       if (nuevaAct.descripcion) payload.descripcion = nuevaAct.descripcion
       if (nuevaAct.horas) payload.horas = Number(nuevaAct.horas)
@@ -148,15 +144,12 @@ export function useStratixData() {
 
       setActividades(prev => [data, ...prev])
 
-      if (data && nuevaAct.responsable_ref !== usuario?.responsable_ref) {
-        const responsableUser = usuarios.find((u) => u.responsable_ref === nuevaAct.responsable_ref)
-        if (responsableUser?.id) {
-          await notificacionesRepo.insert({ usuario_id: responsableUser.id, tipo: 'tarea_asignada', titulo: 'New task assigned', mensaje: `"${nuevaAct.titulo}" — ${nuevaAct.empresa} · ${nuevaAct.mes}`, actividad_id: data.id, leida: false })
-        }
+      if (data && nuevaAct.responsable_id && nuevaAct.responsable_id !== usuario?.id) {
+        await notificacionesRepo.insert({ usuario_id: nuevaAct.responsable_id, tipo: 'tarea_asignada', titulo: 'New task assigned', mensaje: `"${nuevaAct.titulo}" — ${nuevaAct.empresa} · ${nuevaAct.mes}`, actividad_id: data.id, leida: false })
       }
 
       setModalNuevaAct(false)
-      setNuevaAct(emptyNuevaAct())
+      setNuevaAct(emptyNuevaAct(usuario?.id || ''))
       mostrarMensaje('ok', 'Task created successfully')
     } catch (e) {
       mostrarMensaje('error', 'Unexpected error creating the task')
@@ -192,7 +185,7 @@ export function useStratixData() {
       <div>
         <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Team member</div>
         <div style="font-size:20px;font-weight:700">${escapeHtml(nombreRep)}</div>
-        <div style="font-size:11px;color:#888;font-family:monospace;margin-top:2px">${escapeHtml(refRep)}</div>
+        <div style="font-size:11px;color:#888;font-family:monospace;margin-top:2px">${escapeHtml(idRep)}</div>
       </div>
       <div style="text-align:right">
         <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">Period</div>
@@ -263,8 +256,8 @@ export function useStratixData() {
     // computed
     actsFiltradas, totalQ, completadasQ, enProcesoQ, pendientesQ, pctCompletado, totalHoras, totalDias,
     diasRestantes, horasDisponibles, equipoSinMi, datosPorMes, maxTotal, datosPorMarca, maxMarca, hoy,
-    refsTeam, datosPorMiembro, maxMiembro, mesesDisponibles, actsKanban, porColumna,
-    resumenHoras, refRep, actsRep, totalHorasRep, totalDiasRep, completadasRep, nombreRep,
+    idsTeam, datosPorMiembro, maxMiembro, mesesDisponibles, actsKanban, porColumna,
+    resumenHoras, idRep, actsRep, totalHorasRep, totalDiasRep, completadasRep, nombreRep,
     // handlers
     onDragStart, onDragOverCol, onDragEnd, onDrop, crearActividad, getGanttActs, handlePrintReport,
   }

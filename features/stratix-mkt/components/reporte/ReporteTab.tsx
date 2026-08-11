@@ -9,7 +9,7 @@ export default function ReporteTab() {
   const { s1, s2, border, accent, t1, t3, inputStyle, esAdmin, miembrosAsignables } = useApp()
   const {
     mesReporte, setMesReporte, miembroReporte, setMiembroReporte,
-    actsRep, totalHorasRep, totalDiasRep, completadasRep, nombreRep, refRep, handlePrintReport,
+    actsRep, totalHorasRep, totalDiasRep, completadasRep, nombreRep, idRep, handlePrintReport,
   } = useStratix()
 
   const summary = [
@@ -54,7 +54,7 @@ export default function ReporteTab() {
         <div style={{ borderTop: `1px solid ${border}`, paddingTop: 14, marginBottom: 14 }}>
           <div style={{ fontSize: 10, color: t3, marginBottom: 4 }}>Team member</div>
           <div style={{ fontSize: 18, fontWeight: 700, color: t1 }}>{nombreRep}</div>
-          <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono' }}>{refRep}</div>
+          <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono' }}>{idRep}</div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 18 }}>
           {summary.map(s => (
