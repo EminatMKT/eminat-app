@@ -13,9 +13,14 @@ export default function OrgCard({ row, detail, deps, deleting, onEdit, onDelete 
   onEdit: () => void
   onDelete: () => void
 }) {
-  const { s1, border, t1, t2, t3 } = useApp()
+  const { s1, border, t1, t2, t3, esAdmin } = useApp()
   const { t } = useT()
-  const canDelete = deps === 0
+  // `deps` cuenta actividades, y el contexto solo las trae completas para el rol
+  // de sistema `admin` — para cualquier otro vienen filtradas por responsable_ref.
+  // Sin este guard, un rol dinámico con el módulo admin asignado vería un conteo
+  // subestimado y el botón habilitado, y el rechazo llegaría recién del 403 de la
+  // API. La UI no debe ofrecer lo que el backend va a negar.
+  const canDelete = deps === 0 && esAdmin
   return (
     <div data-testid={`org-${row.codigo}`} style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
       <div style={{ minWidth: 0 }}>

@@ -32,9 +32,15 @@ export async function DELETE(_req: NextRequest, { params }: { params: { cat: str
   // Las FK por clave natural comparan contra `codigo`, no contra el uuid: hay que
   // leer la fila antes para saber qué valor buscar.
   const necesitaCodigo = ORG_CATALOGS[params.cat].blockedBy.some(b => b.matchOn === 'codigo')
-  const codigo = necesitaCodigo
-    ? (await db.from(params.cat).select('codigo').eq('id', params.id).single()).data?.codigo
-    : undefined
+  let codigo: string | undefined
+  if (necesitaCodigo) {
+    const { data, error } = await db.from(params.cat).select('codigo').eq('id', params.id).single()
+    // Sin el código no se puede contar por clave natural, y seguir daría un "0 en
+    // uso" falso que habilita el borrado: la FK igual lo frenaría, pero con el
+    // error crudo de Postgres que este chequeo existe para evitar.
+    if (error) return NextResponse.json({ error: 'No se pudo verificar si está en uso. Reintentá.' }, { status: 503 })
+    codigo = data?.codigo
+  }
 
   const counts = await Promise.all(ORG_CATALOGS[params.cat].blockedBy.map(({ table, column, matchOn }) =>
     db.from(table).select('*', { count: 'exact', head: true })

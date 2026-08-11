@@ -22,6 +22,11 @@ export function useOrgCatalog(cat: OrgCat) {
     // atribución (actividades, por `codigo`). Contar solo las personas mostraba
     // "0 en uso" con el botón de borrar habilitado en una empresa con
     // actividades, y el rechazo recién aparecía al clickear.
+    //
+    // La API suma dos tablas más —`solicitudes` y `slots_calendario`— que acá no
+    // se cuentan porque están vacías y su migración quedó fuera de scope. Si
+    // dejan de estarlo, este conteo hay que ampliarlo junto con el de la API o
+    // vuelve la misma discrepancia.
     empresas: row =>
       adminUsuarios.filter(u => u.empresa_id === row.id).length +
       actividades.filter(a => a.empresa === row.codigo).length,
