@@ -1,11 +1,11 @@
-# Stratix 360 contra el catálogo de empresas
+# Fase 1 — Stratix 360 contra el catálogo de empresas
 
 **Fecha:** 2026-08-11
 **Estado:** aprobado, pendiente de implementar
+**Continúa en:** fase 2 (eliminar `responsable_ref`), sin spec todavía
 
-Eliminar `MARCAS_LIST` y `SOLICITANTES` de `shared/constants/domain.ts` y hacer que
-Stratix 360 lea las marcas del catálogo `empresas`, que el admin ya administra desde
-`/admin` → Organización.
+Eliminar `MARCAS_LIST` de `shared/constants/domain.ts` y hacer que Stratix 360 lea las
+marcas del catálogo `empresas`, que el admin ya administra desde `/admin` → Organización.
 
 ## Problema
 
@@ -13,9 +13,9 @@ Crear una empresa en Admin → Organización no la hace aparecer en el formulari
 actividades de Stratix. Renombrarla o cambiarle el color tampoco se refleja. El módulo
 admin quedó terminado pero Stratix sigue leyendo una lista hardcodeada.
 
-Es el resto de una migración a medias: `empresa_rename_eje_unico` creó las columnas FK
-y `empresas_catalogo_pertenencia` unificó el catálogo, pero el paso de cablear las
-lecturas del front quedó pendiente.
+Es el resto de una migración a medias: `empresa_rename_eje_unico` creó las columnas FK y
+`empresas_catalogo_pertenencia` unificó el catálogo, pero cablear las lecturas del front
+quedó pendiente.
 
 ## Estado actual (verificado en la DB local, 2026-08-11)
 
@@ -26,20 +26,15 @@ lecturas del front quedó pendiente.
 | Filas en `actividades` | 18 |
 | `actividades.empresa` (texto) | 18/18 poblado, 7 códigos distintos |
 | `actividades.empresa_id` (uuid) | 0/18 |
-| `actividades.solicitado_por` | 18/18, **un solo valor**: `Coord_MFreddy` |
-| `actividades.solicitante_id` | 0/18 |
 | `slots_calendario`, `solicitudes` | 0 filas |
 
 Los 7 códigos usados en `actividades.empresa` existen exactos en `empresas.codigo`, así
-que ningún backfill necesita mapeo de alias.
+que el backfill no necesita mapeo de alias.
 
 Las 4 empresas que están en el catálogo pero no en `MARCAS_LIST` — `EMINAT`, `STRATIX`,
 `ONDARA`, `DACOACH` — entraron por la migración de pertenencia. Responden a *dónde
 trabaja una persona*, no a *a qué marca se atribuye una actividad*. La migración lo
-declara explícitamente: una sola lista, dos relaciones distintas.
-
-`actividades` arrastra **tres pares** de columna-texto en uso + FK vacía:
-`empresa`/`empresa_id`, `solicitado_por`/`solicitante_id`, `responsable_ref`/`responsable_id`.
+declara: una sola lista, dos relaciones distintas.
 
 ## Decisiones
 
@@ -47,9 +42,30 @@ declara explícitamente: una sola lista, dos relaciones distintas.
 |---|---|---|
 | Distinguir marcas de empresas de pertenencia | Columna `recibe_actividades` | Deja la semántica explícita en datos y administrable. Reusar `activo` la habría sobrecargado y habría sacado esas 4 del selector de pertenencia de usuarios. |
 | Nombre de la columna | `recibe_actividades` | Dice literalmente qué habilita, sin exigir conocer el vocabulario del dominio. |
-| Relación `actividades` → `empresas` | FK por clave natural sobre `codigo` | Precedente vigente `usuarios.rol → roles.key`. El código sigue leyendo `a.empresa` como string, así que los 6 call sites de color no cambian de forma. |
-| `solicitado_por` | FK a `usuarios` | Las 5 opciones-marca del dropdown nunca se usaron: el dato real es "una persona pidió esto". |
+| Relación `actividades` → `empresas` | FK por clave natural sobre `codigo` | Ver abajo. El código sigue leyendo `a.empresa` como string, así que los call sites de color no cambian de forma. |
 | Acceso al color desde el front | Mapa derivado en `AppContext` | Un solo lugar deriva, O(1) en render. Kanban y Gantt pintan decenas de celdas. |
+
+### Por qué `codigo` sí sirve como clave natural
+
+El proyecto tiene un antecedente de clave natural que salió mal — `responsable_ref` — así
+que la elección necesita justificarse en vez de asumirse. `empresas.codigo` es sano y
+`responsable_ref` no, por tres razones:
+
+| | `empresas.codigo` | `usuarios.responsable_ref` |
+|---|---|---|
+| `UNIQUE` | sí | no |
+| Completo | `NOT NULL` | 3 de 10 personas no tienen |
+| ¿Codifica otros datos? | no, `EMC` es solo un código | sí: cargo + nombre, ambos ya en tablas |
+
+La tercera fila es la que importa. Un identificador que contiene el nombre de la persona
+deja de ser estable justo cuando el nombre cambia — que es lo único que un identificador
+debería sobrevivir. `DG_Ariana` dice "Ariana" porque ella se llama Arianna y el string
+nunca se actualizó. `EMC` no tiene ese problema: no deriva de nada, se muestra tal cual
+como chip en la UI, y es el dato.
+
+**El criterio, entonces, no es "natural vs surrogate" como dice hoy el `CLAUDE.md`, sino
+si la clave natural es sana: legible, `UNIQUE`, `NOT NULL`, y sin codificar datos que ya
+existen por separado.** Vale afinar esa convención cuando se toque el doc.
 
 ## Capa de datos
 
@@ -61,25 +77,19 @@ ALTER TABLE empresas ADD COLUMN recibe_actividades boolean NOT NULL DEFAULT fals
 UPDATE empresas SET recibe_actividades = true
  WHERE codigo IN ('EMC','SVN','ERG','VNF','PREMIER','ORNELLA','MENTOR');
 
--- 2. Integridad por clave natural (precedente: usuarios.rol → roles.key)
+-- 2. Integridad por clave natural
 ALTER TABLE actividades
   ADD CONSTRAINT actividades_empresa_fkey
   FOREIGN KEY (empresa) REFERENCES empresas(codigo) ON UPDATE CASCADE;
 ALTER TABLE actividades DROP COLUMN empresa_id;
-
--- 3. Solicitante: texto libre → persona real (la FK ya existía, vacía)
-UPDATE actividades SET solicitante_id = (SELECT id FROM usuarios WHERE nombre = 'Freddy')
- WHERE solicitado_por = 'Coord_MFreddy';
-ALTER TABLE actividades DROP COLUMN solicitado_por;
 ```
 
-El backfill de `recibe_actividades` marca exactamente las 7 que hoy muestra
-`MARCAS_LIST`. Nadie ve un cambio de comportamiento el día del deploy; lo que cambia es
-que a partir de ahí se administra.
+El backfill marca exactamente las 7 que hoy muestra `MARCAS_LIST`. Nadie ve un cambio de
+comportamiento el día del deploy; lo que cambia es que a partir de ahí se administra.
 
 `ON UPDATE CASCADE` hace que renombrar un código desde el admin propague a las
 actividades. El borrado queda en `RESTRICT` (default): una empresa con actividades no se
-puede borrar, que es el comportamiento deseado.
+puede borrar.
 
 ## Admin
 
@@ -101,8 +111,8 @@ con el error crudo de Postgres en lugar del mensaje "está en uso por N registro
 Efecto secundario deseable: con la FK real, Postgres bloquea el borrado aunque el chequeo
 de la app falle. `blockedBy` pasa a ser el mensaje legible, no la única defensa.
 
-También hay que agregar `recibe_actividades` al tipo `OrgRow` y las claves i18n
-(`es.json` y `en.json`) — sin `i18n-ignore`.
+También hay que agregar `recibe_actividades` al tipo `OrgRow` y las claves i18n (`es.json`
+y `en.json`) — sin `i18n-ignore`.
 
 ## Contexto
 
@@ -121,13 +131,11 @@ atribuible, las actividades históricas que la referencian tienen que seguir pin
 con su color: solo deja de ofrecerse para actividades nuevas. Un `colorMarca` filtrado
 volvería violeta genérico esas tarjetas de un día para el otro.
 
-Son dos memos separados por la misma razón. No unificarlos.
+Son dos memos separados por esa razón. No unificarlos.
 
 ## Call sites
 
-Doce, en diez archivos — cuatro de `MARCAS_LIST`, dos de `SOLICITANTES` y seis de
-`getColorMarca`. `NewActivityModal` y `ActivityDetailModal` aparecen dos veces cada uno
-porque usan dos constantes distintas:
+Diez, en nueve archivos — cuatro de `MARCAS_LIST` y seis de `getColorMarca`:
 
 | Archivo | Línea | Hoy | Queda |
 |---|---|---|---|
@@ -135,8 +143,6 @@ porque usan dos constantes distintas:
 | `features/stratix-mkt/hooks/useStratixData.ts` | 57 | `MARCAS_LIST` | `marcas` |
 | `features/stratix-mkt/components/social/SocialTab.tsx` | 20 | `MARCAS_LIST` | `marcas` |
 | `features/stratix-mkt/components/modals/NewActivityModal.tsx` | 32 | `MARCAS_LIST` | `marcas` |
-| `features/stratix-mkt/components/modals/NewActivityModal.tsx` | 45 | `SOLICITANTES` | `usuarios` |
-| `features/stratix-mkt/components/modals/ActivityDetailModal.tsx` | 14 | `SOLICITANTES` | lookup en `usuarios` |
 | `features/stratix-mkt/components/modals/ActivityDetailModal.tsx` | 29 | `getColorMarca` | `colorMarca[…]` |
 | `features/stratix-mkt/components/kanban/KanbanTaskCard.tsx` | 9 | `getColorMarca` | `colorMarca[…]` |
 | `features/stratix-mkt/components/gantt/GanttBar.tsx` | 19 | `getColorMarca` | `colorMarca[…]` |
@@ -144,33 +150,26 @@ porque usan dos constantes distintas:
 | `features/stratix-mkt/components/solicitudes/MemberAvailabilityCard.tsx` | 63 | `getColorMarca` | `colorMarca[…]` |
 | `features/stratix-mkt/components/social/AccountRow.tsx` | 11 | `getColorMarca` | `colorMarca[…]` |
 
-Los diez archivos ya llaman `useApp()`, así que ninguno necesita cablear el contexto.
+Los nueve archivos ya llaman `useApp()`, así que ninguno necesita cablear el contexto.
 
-El selector de solicitante se puebla de `usuarios` y guarda `solicitante_id`. Para
-mostrar el nombre se hace **lookup en memoria** contra `usuarios` del contexto, no un
-embed de PostgREST: `actividades` tiene tres FKs a `usuarios` (`responsable_id`,
-`solicitante_id`, `aprobado_por_id`), así que un embed sería ambiguo y devolvería
-`PGRST201` en runtime. La query de actividades no se toca.
-
-Se borran de `shared/constants/domain.ts`: `MARCAS_LIST`, `SOLICITANTES`,
-`getColorMarca`, y sus re-exports en `AppContext`. `MESES`, `TRIMESTRES`,
-`ESTADO_COLORS`, `COLUMNAS_KANBAN` y `COLORES_AVATAR` se quedan: son constantes de
-verdad, no catálogos administrables.
+Se borran de `shared/constants/domain.ts`: `MARCAS_LIST` y `getColorMarca`, y sus
+re-exports en `AppContext`. `MESES`, `TRIMESTRES`, `ESTADO_COLORS`, `COLUMNAS_KANBAN` y
+`COLORES_AVATAR` se quedan: son constantes de verdad, no catálogos administrables.
+`SOLICITANTES` **también se queda por ahora** — se elimina en la fase 2, porque sus
+valores son refs y su destino depende de esa decisión.
 
 ## Errores y bordes
 
 | Caso | Comportamiento |
 |---|---|
 | Código sin entrada en `colorMarca` | Fallback `'#7C6FF7'`, el mismo default de hoy |
-| `solicitante_id` en NULL (usuario borrado, `ON DELETE SET NULL`) | `'—'`, el fallback que `ActivityDetailModal` ya tiene |
-| Empresa con actividades, intento de borrado | FK lo bloquea; el admin ve "está en uso por N registros" |
+| Empresa con actividades, intento de borrado | La FK lo bloquea; el admin ve "está en uso por N registros" |
 | Empresa desmarcada como atribuible | Sigue pintando el color en actividades viejas; no aparece en el selector de nuevas |
-| `AccountRow`: `acc.brand` no matchea ningún `codigo` | Fallback de color. Es el comportamiento actual: `social_accounts.brand` es texto libre y no se toca en este trabajo |
+| `AccountRow`: `acc.brand` no matchea ningún `codigo` | Fallback de color. Es el comportamiento actual: `social_accounts.brand` es texto libre y no se toca acá |
 
 ## Testing
 
-Hay `vitest` configurado (`pnpm test`). Los tests que importan son los de la derivación
-en el contexto:
+Hay `vitest` configurado (`pnpm test`). Los tests que importan son los de la derivación:
 
 - `marcas` excluye una empresa con `activo = false`
 - `marcas` excluye una empresa con `recibe_actividades = false`
@@ -181,25 +180,57 @@ unifica los dos memos en uno.
 
 Verificación manual, con Supabase local levantado: crear una empresa desde Admin →
 Organización con el checkbox tildado, y confirmar que aparece en el selector de nueva
-actividad de Stratix sin recargar la sesión.
+actividad de Stratix.
 
 ## Fuera de scope
 
-- **`responsable_ref` / `responsable_id`**: mismo patrón de texto + FK vacía, pero el
-  selector de responsable ya lee de `usuarios` y funciona. No es dato hardcodeado y
-  arreglarlo no sirve a este objetivo.
+### Fase 2 — eliminar `responsable_ref` (spec propio, pendiente)
+
+`actividades` arrastra tres pares de columna-texto en uso + FK uuid vacía:
+`empresa`/`empresa_id` (que resuelve esta fase), `solicitado_por`/`solicitante_id`, y
+`responsable_ref`/`responsable_id`. Los dos últimos se resuelven juntos porque
+`solicitado_por` guarda un ref: su único valor en las 18 filas es `Coord_MFreddy`, que es
+el `responsable_ref` de Freddy.
+
+El diagnóstico de por qué el ref tiene que desaparecer, para no rehacerlo:
+
+- Viene de `remote_schema.sql`, el dump del esquema original. No fue una decisión de
+  diseño, es herencia.
+- No lo consume ningún sistema externo: no hay código de Google Sheets y `sheet_row` está
+  en 0 filas.
+- Codifica cargo + nombre, datos que ya viven por separado en `usuario_cargos`/`cargos` y
+  `usuarios.nombre`.
+- Se desincroniza: `DG_Ariana` quedó con el nombre viejo de Arianna.
+- No es `UNIQUE` ni `NOT NULL`: 3 de 10 personas no tienen ref, y por eso **no pueden ser
+  responsables de una actividad ni heredar tareas** cuando se borra a alguien.
+
+El trabajo: `responsable_ref` y `solicitado_por` pasan a las FK uuid que ya existen, la UI
+compone la etiqueta con nombre + cargo, y `SOLICITANTES` se borra. Son ~25 call sites,
+incluidos los filtros y agrupaciones de `useStratixData` (con un caso especial para
+`Coord_MFreddy` que mezcla responsable con solicitante), el mapa `miembrosRef`, el flujo
+de reasignación al borrar usuarios (`reassign-and-delete` transfiere por `newRef` y
+`DeleteUserModal` deshabilita herederos sin ref), y dos archivos de test.
+
+Descartada la alternativa de sanar el ref con `UNIQUE` + `NOT NULL`: le daría integridad
+a un artefacto que no debería existir, y obligaría a inventar tres refs nuevos — generar
+deuda para poder declararla consistente.
+
+### Otros
+
 - **`slots_calendario` y `solicitudes`**: su única referencia a empresa es `empresa_id`
   (uuid), están en 0 filas y no tienen funcionalidad. Migrarlas ahora es trabajo sobre
-  tablas que nadie usa. Cuando se implementen, se alinean con la convención de `codigo`.
-  Sus entradas en `blockedBy` siguen usando `matchOn: 'id'`, que para ellas es correcto.
+  tablas que nadie usa. Sus entradas en `blockedBy` siguen con `matchOn: 'id'`, que para
+  ellas es correcto.
 - **`social_accounts.brand`**: texto libre sin FK. Otro trabajo.
+- **Limpieza de refs sucios** (`CM_ Naomi` con espacio, `Jonathan_CRM` invertido,
+  `DG_Ariana` con el nombre viejo): sin sentido si el ref se elimina en la fase 2.
 
 ## Riesgos
 
-**El `DROP COLUMN` es irreversible.** `empresa_id` y `solicitado_por` se van en la misma
-migración que crea la FK. Dev y prod tienen datos distintos de local: antes de
-`db push` a cada uno hay que verificar que no haya códigos en `actividades.empresa` que
-falten en `empresas.codigo`, o la creación de la FK falla a mitad de la migración.
+**El `DROP COLUMN` es irreversible.** `empresa_id` se va en la misma migración que crea la
+FK. Dev y prod tienen datos distintos de local: antes de `db push` a cada uno hay que
+verificar que no haya códigos en `actividades.empresa` que falten en `empresas.codigo`, o
+la creación de la FK falla a mitad de la migración.
 
 ```sql
 -- correr en cada entorno ANTES del push
@@ -210,6 +241,6 @@ SELECT DISTINCT a.empresa FROM actividades a
 
 Si devuelve filas, hay que crear esas empresas o corregir los códigos antes de migrar.
 
-**El backfill de `solicitante_id` asume que existe un usuario llamado `Freddy`.** En
-local existe. En dev y prod hay que confirmarlo, o las 18 filas quedan con
-`solicitante_id` en NULL y el detalle de actividad muestra `'—'`.
+**El backfill de `recibe_actividades` es por lista fija de códigos.** Si dev o prod tienen
+marcas en uso que no estén en esos 7, quedan sin marcar y desaparecen del selector. La
+misma consulta de arriba las revela.
