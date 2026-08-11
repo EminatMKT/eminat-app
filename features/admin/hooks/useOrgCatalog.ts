@@ -12,13 +12,19 @@ import type { OrgCat } from '../org-catalogs'
 // darle filas/regla acá no compila (antes se coló `empresas` sin filas y reventó
 // en runtime con `rows.length` sobre undefined).
 export function useOrgCatalog(cat: OrgCat) {
-  const { empresas, departamentos, equipos, cargos, jornadas, vinculaciones, adminUsuarios } = useApp()
+  const { empresas, departamentos, equipos, cargos, jornadas, vinculaciones, adminUsuarios, actividades } = useApp()
   const { t } = useT()
 
   const filas: Record<OrgCat, OrgRow[]> = { empresas, departamentos, equipos, cargos, jornadas, vinculaciones }
 
   const reglas: Record<OrgCat, (row: OrgRow) => number> = {
-    empresas: row => adminUsuarios.filter(u => u.empresa_id === row.id).length,
+    // Una empresa la usan dos relaciones distintas: pertenencia (personas) y
+    // atribución (actividades, por `codigo`). Contar solo las personas mostraba
+    // "0 en uso" con el botón de borrar habilitado en una empresa con
+    // actividades, y el rechazo recién aparecía al clickear.
+    empresas: row =>
+      adminUsuarios.filter(u => u.empresa_id === row.id).length +
+      actividades.filter(a => a.empresa === row.codigo).length,
     departamentos: row => equipos.filter(e => e.departamento_id === row.id).length,
     equipos: row => adminUsuarios.filter(u => u.equipo_id === row.id).length,
     cargos: row => adminUsuarios.filter(u => (u.usuario_cargos || []).some(uc => uc.cargo_id === row.id)).length,
