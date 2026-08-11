@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useApp, MESES, MESES_Q, mesATrimestre, MARCAS_LIST } from '@/shared/context/AppContext'
+import { useApp, MESES, MESES_Q, mesATrimestre } from '@/shared/context/AppContext'
+import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 import { actividadesRepo, notificacionesRepo } from '@/shared/data'
 import { escapeHtml } from '@/shared/lib/html'
 import { isExcludedFromStratix360 } from '../team'
@@ -12,7 +13,7 @@ const emptyNuevaAct = (): NuevaActForm => ({
 })
 
 export function useStratixData() {
-  const { usuario, actividades, equipo, usuarios, esAdmin, mostrarMensaje, setActividades, miembrosRef, miembrosAsignables } = useApp()
+  const { usuario, actividades, equipo, usuarios, esAdmin, mostrarMensaje, setActividades, miembrosRef, miembrosAsignables, marcas } = useApp()
 
   const [mktTab, setMktTab] = useState('overview')
   const [trimestre, setTrimestre] = useState('General')
@@ -54,7 +55,11 @@ export function useStratixData() {
     completadas: actividades.filter(a => a.mes === mes && a.estado === 'Completado').length,
   }))
   const maxTotal = Math.max(...datosPorMes.map(d => d.total), 1)
-  const datosPorMarca = MARCAS_LIST.map(m => ({ ...m, total: actsFiltradas.filter(a => a.empresa === m.codigo).length })).filter(m => m.total > 0)
+  // El color se resuelve acá porque BrandBar lo tipa como requerido y el catálogo
+  // lo declara opcional.
+  const datosPorMarca = marcas
+    .map(m => ({ ...m, color: m.color ?? COLOR_MARCA_FALLBACK, total: actsFiltradas.filter(a => a.empresa === m.codigo).length }))
+    .filter(m => m.total > 0)
   const maxMarca = Math.max(...datosPorMarca.map(d => d.total), 1)
   const refsTeam = esAdmin ? miembrosAsignables.map((m) => m.ref) : [usuario?.responsable_ref].filter(Boolean)
   const datosPorMiembro = refsTeam.map(ref => ({

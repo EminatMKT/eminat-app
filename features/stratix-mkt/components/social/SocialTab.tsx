@@ -1,5 +1,6 @@
 'use client'
-import { useApp, MARCAS_LIST } from '@/shared/context/AppContext'
+import { useApp } from '@/shared/context/AppContext'
+import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 import { SOCIAL_PLATFORMS } from '../../data'
 import { fNum, cardStyle } from './social-format'
 import StratixKpiCard from '../StratixKpiCard'
@@ -8,7 +9,7 @@ import PlatformCard from './PlatformCard'
 import ContentSummaryCard from './ContentSummaryCard'
 
 export default function SocialTab() {
-  const { s1, border, accent, t1 } = useApp()
+  const { s1, border, accent, t1, marcas } = useApp()
 
   const platforms = SOCIAL_PLATFORMS
   const totalFollowers = platforms.reduce((s, p) => s + p.accounts.reduce((a, ac) => a + ac.followers, 0), 0)
@@ -17,9 +18,10 @@ export default function SocialTab() {
   const totalPosts = platforms.reduce((s, p) => s + p.accounts.reduce((a, ac) => a + ac.posts, 0), 0)
   const avgEngagement = (() => { const all = platforms.flatMap(p => p.accounts); return all.length > 0 ? Math.round(all.reduce((a, ac) => a + ac.engagement, 0) / all.length * 10) / 10 : 0 })()
 
-  const brandTotals = MARCAS_LIST.map(m => {
+  const brandTotals = marcas.map(m => {
     const accs = platforms.flatMap(p => p.accounts.filter(a => a.brand === m.codigo))
-    return { ...m, followers: accs.reduce((s, a) => s + a.followers, 0), growth: accs.reduce((s, a) => s + a.followersChange, 0), reach: accs.reduce((s, a) => s + a.reach, 0), engagement: accs.length > 0 ? Math.round(accs.reduce((s, a) => s + a.engagement, 0) / accs.length * 10) / 10 : 0, posts: accs.reduce((s, a) => s + a.posts, 0) }
+    // BrandStats tipa `color` como requerido; el catálogo lo declara opcional.
+    return { ...m, color: m.color ?? COLOR_MARCA_FALLBACK, followers: accs.reduce((s, a) => s + a.followers, 0), growth: accs.reduce((s, a) => s + a.followersChange, 0), reach: accs.reduce((s, a) => s + a.reach, 0), engagement: accs.length > 0 ? Math.round(accs.reduce((s, a) => s + a.engagement, 0) / accs.length * 10) / 10 : 0, posts: accs.reduce((s, a) => s + a.posts, 0) }
   }).filter(b => b.followers > 0).sort((a, b) => b.followers - a.followers)
 
   const totalReels = platforms.reduce((s, p) => s + p.accounts.reduce((a, ac) => a + ac.reels, 0), 0)

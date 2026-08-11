@@ -1,9 +1,9 @@
 'use client'
-import { useApp, MESES, MARCAS_LIST, COLUMNAS_KANBAN, SOLICITANTES } from '@/shared/context/AppContext'
+import { useApp, MESES, COLUMNAS_KANBAN, SOLICITANTES } from '@/shared/context/AppContext'
 import { useStratix } from '../StratixContext'
 
 export default function NewActivityModal() {
-  const { s1, border, accent, t1, t2, t3, inputStyle, miembrosAsignables } = useApp()
+  const { s1, border, accent, t1, t2, t3, inputStyle, miembrosAsignables, marcas } = useApp()
   const { modalNuevaAct, setModalNuevaAct, nuevaAct, setNuevaAct, creandoAct, crearActividad } = useStratix()
   if (!modalNuevaAct) return null
 
@@ -29,7 +29,7 @@ export default function NewActivityModal() {
           <div>
             <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>🎨 Brand / Area <span style={{ color: '#F87171' }}>*</span></label>
             <select value={nuevaAct.empresa} onChange={e => setNuevaAct(p => ({ ...p, empresa: e.target.value }))} style={inputStyle}>
-              {MARCAS_LIST.map(a => <option key={a.codigo} value={a.codigo}>{a.codigo} — {a.label}</option>)}
+              {marcas.map(a => <option key={a.codigo} value={a.codigo}>{a.codigo} — {a.nombre}</option>)}
             </select>
           </div>
           <div>

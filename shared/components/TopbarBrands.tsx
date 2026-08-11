@@ -1,12 +1,14 @@
 'use client'
-import { MARCAS_LIST } from '@/shared/context/AppContext'
+import { useApp } from '@/shared/context/AppContext'
+import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 import BrandChip from './BrandChip'
 
 // Chips de las marcas del grupo en el topbar.
 export default function TopbarBrands() {
+  const { marcas } = useApp()
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      {MARCAS_LIST.map(m => <BrandChip key={m.codigo} codigo={m.codigo} color={m.color} />)}
+      {marcas.map(m => <BrandChip key={m.codigo} codigo={m.codigo} color={m.color ?? COLOR_MARCA_FALLBACK} />)}
     </div>
   )
 }
