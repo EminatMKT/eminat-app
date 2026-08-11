@@ -19,12 +19,13 @@ export default function OrgModal({ cat, row, onClose }: { cat: OrgCat; row?: Org
   const { border, t2, t3, accent, inputStyle, departamentos, adminUsuarios, reloadOrg } = useApp()
   const { t } = useT()
   const def = ORG_CATALOGS[cat]
-  const [form, setForm] = useState<Partial<OrgRow>>(row ?? { color: COLORES_AVATAR[0] })
+  const [form, setForm] = useState<Partial<OrgRow>>(row ?? { color: COLORES_AVATAR[0], activo: true })
   const [error, setError] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
 
   const value = (f: OrgField) => String(form[f.name] ?? '')
-  const set = (f: OrgField, v: string) => setForm(p => ({ ...p, [f.name]: v }))
+  const checked = (f: OrgField) => form[f.name] === true
+  const set = (f: OrgField, v: string | boolean) => setForm(p => ({ ...p, [f.name]: v }))
 
   // Opciones de los select: catálogos ya cargados en el contexto, sin fetch propio.
   const optionsFor = (f: OrgField) =>
@@ -53,43 +54,60 @@ export default function OrgModal({ cat, row, onClose }: { cat: OrgCat; row?: Org
   return (
     <Modal title={t(row ? 'admin.org.editTitle' : 'admin.org.newTitle', { tipo: t(def.labelKey) })} width={460} onClose={onClose}>
       <ErrorBlock msg={error} />
-      {def.fields.map(f => (
-        <div key={f.name} style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t(f.labelKey)}{f.required ? ' *' : ''}</label>
-          {f.type === 'select' ? (
-            <select value={value(f)} onChange={e => set(f, e.target.value)} style={inputStyle}>
-              {!f.required && <option value="">{t('admin.org.none')}</option>}
-              {optionsFor(f).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
-          ) : f.type === 'number' ? (
-            <input type="number" min={0} max={24} step={0.5} value={value(f)} onChange={e => set(f, e.target.value)} style={inputStyle} />
-          ) : f.type === 'icon' ? (
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-              {ICONOS.map(ic => {
-                const on = value(f) === ic
-                return (
-                  <button key={ic} type="button" onClick={() => set(f, on ? '' : ic)}
-                    style={{ width: 32, height: 32, fontSize: 16, lineHeight: 1, borderRadius: 8, cursor: 'pointer', border: `1px solid ${on ? accent : border}`, background: on ? `${accent}1A` : 'transparent' }}>
-                    {ic}
-                  </button>
-                )
-              })}
-              {/* Escape hatch: cualquier emoji fuera del set curado. */}
-              <input type="text" value={value(f)} onChange={e => set(f, e.target.value)} maxLength={4}
-                placeholder="…" title={t('admin.org.iconoLibre')}
-                style={{ ...inputStyle, width: 46, textAlign: 'center', padding: '6px 0' }} />
-            </div>
-          ) : f.type === 'color' ? (
-            <div style={{ display: 'flex', gap: 8 }}>
-              {COLORES_AVATAR.map(c => (
-                <div key={c} onClick={() => set(f, c)} style={{ width: 24, height: 24, borderRadius: '50%', background: c, cursor: 'pointer', border: value(f) === c ? '3px solid white' : '2px solid transparent', boxSizing: 'border-box' }} />
-              ))}
-            </div>
-          ) : (
-            <input type="text" value={value(f)} onChange={e => set(f, e.target.value)} style={inputStyle} />
-          )}
-        </div>
-      ))}
+      {def.fields.map(f => {
+        // `recibe_actividades` solo tiene sentido sobre una empresa activa: si el
+        // interruptor maestro está apagado, este queda deshabilitado para que el
+        // estado contradictorio no se pueda armar desde la UI.
+        const off = f.name === 'recibe_actividades' && form.activo === false
+        return (
+          <div key={f.name} style={{ marginBottom: 14 }}>
+            {f.type !== 'checkbox' && (
+              <label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t(f.labelKey)}{f.required ? ' *' : ''}</label>
+            )}
+            {f.type === 'checkbox' ? (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: off ? 'not-allowed' : 'pointer', opacity: off ? 0.5 : 1 }}>
+                <input type="checkbox" checked={checked(f)} disabled={off}
+                  onChange={e => set(f, e.target.checked)} style={{ cursor: off ? 'not-allowed' : 'pointer' }} />
+                <span style={{ fontSize: 12, color: t2 }}>{t(f.labelKey)}</span>
+                <span style={{ fontSize: 10, color: t3 }}>
+                  {f.name === 'activo' ? t('admin.org.activoHint') : t('admin.org.recibeActividadesHint')}
+                </span>
+              </label>
+            ) : f.type === 'select' ? (
+              <select value={value(f)} onChange={e => set(f, e.target.value)} style={inputStyle}>
+                {!f.required && <option value="">{t('admin.org.none')}</option>}
+                {optionsFor(f).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            ) : f.type === 'number' ? (
+              <input type="number" min={0} max={24} step={0.5} value={value(f)} onChange={e => set(f, e.target.value)} style={inputStyle} />
+            ) : f.type === 'icon' ? (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                {ICONOS.map(ic => {
+                  const on = value(f) === ic
+                  return (
+                    <button key={ic} type="button" onClick={() => set(f, on ? '' : ic)}
+                      style={{ width: 32, height: 32, fontSize: 16, lineHeight: 1, borderRadius: 8, cursor: 'pointer', border: `1px solid ${on ? accent : border}`, background: on ? `${accent}1A` : 'transparent' }}>
+                      {ic}
+                    </button>
+                  )
+                })}
+                {/* Escape hatch: cualquier emoji fuera del set curado. */}
+                <input type="text" value={value(f)} onChange={e => set(f, e.target.value)} maxLength={4}
+                  placeholder="…" title={t('admin.org.iconoLibre')}
+                  style={{ ...inputStyle, width: 46, textAlign: 'center', padding: '6px 0' }} />
+              </div>
+            ) : f.type === 'color' ? (
+              <div style={{ display: 'flex', gap: 8 }}>
+                {COLORES_AVATAR.map(c => (
+                  <div key={c} onClick={() => set(f, c)} style={{ width: 24, height: 24, borderRadius: '50%', background: c, cursor: 'pointer', border: value(f) === c ? '3px solid white' : '2px solid transparent', boxSizing: 'border-box' }} />
+                ))}
+              </div>
+            ) : (
+              <input type="text" value={value(f)} onChange={e => set(f, e.target.value)} style={inputStyle} />
+            )}
+          </div>
+        )
+      })}
       <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
         <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>{t('common.cancel')}</button>
         <button onClick={guardar} disabled={guardando} style={{ flex: 2, padding: '10px', borderRadius: 10, border: 'none', background: accent, color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{guardando ? t('common.saving') : t('common.save')}</button>

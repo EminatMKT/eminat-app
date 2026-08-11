@@ -10,7 +10,7 @@ export type OrgCat = 'empresas' | 'departamentos' | 'equipos' | 'cargos' | 'jorn
 export type OrgField = {
   /** Columna de la fila canónica OrgRow — el form no puede inventar campos. */
   name: keyof OrgRow
-  type: 'text' | 'number' | 'color' | 'icon' | 'select'
+  type: 'text' | 'number' | 'color' | 'icon' | 'select' | 'checkbox'
   labelKey: I18nKey
   required?: boolean
   /** Fuente de opciones del select (catálogo del contexto). */
@@ -38,6 +38,8 @@ export const ORG_CATALOGS: Record<OrgCat, CatalogDef> = {
       { name: 'nombre', type: 'text', labelKey: 'admin.org.nombre', required: true },
       { name: 'codigo', type: 'text', labelKey: 'admin.org.codigo' },
       { name: 'color', type: 'color', labelKey: 'admin.org.color' },
+      { name: 'activo', type: 'checkbox', labelKey: 'admin.org.activo' },
+      { name: 'recibe_actividades', type: 'checkbox', labelKey: 'admin.org.recibeActividades' },
     ],
     blockedBy: [
       { table: 'usuarios', column: 'empresa_id' },
