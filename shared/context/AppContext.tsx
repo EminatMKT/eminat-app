@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext, ReactNode } from 'react'
+import { createContext, useContext, useMemo, ReactNode } from 'react'
 import {
   normalizeRole,
   getModulesForRole,
@@ -14,6 +14,7 @@ import { useAppData } from './useAppData'
 import type { Usuario, Notificacion, Actividad, Equipo, OrgRow } from './loadAppData'
 import SessionErrorScreen from './SessionErrorScreen'
 import { deriveMiembrosRef, deriveMiembrosAsignables, deriveEquipoMarketing } from './team-derivations'
+import { deriveMarcas, deriveColorMarca } from './empresa-derivations'
 
 // ── Re-exports (back-compat) ───────────────────────────────────────────
 // Las constantes viven ahora en módulos propios; se re-exportan desde acá para
@@ -59,6 +60,11 @@ interface AppContextType {
   reloadRoles: () => Promise<void>
   // Catálogos organizacionales (tab Organización del admin + selects de la ficha).
   empresas: OrgRow[]
+  // Derivados de `empresas` para Stratix. `marcas` filtra por activo +
+  // recibe_actividades; `colorMarca` cubre TODAS para no perder el color de las
+  // actividades históricas de una empresa desactivada.
+  marcas: OrgRow[]
+  colorMarca: Record<string, string>
   departamentos: OrgRow[]
   equipos: OrgRow[]
   cargos: OrgRow[]
@@ -87,6 +93,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const miembrosRef = deriveMiembrosRef(app.adminUsuarios)
   const miembrosAsignables = deriveMiembrosAsignables(app.usuarios)
   const equipoMarketing = deriveEquipoMarketing(app.usuarios)
+  const marcas = useMemo(() => deriveMarcas(app.empresas), [app.empresas])
+  const colorMarca = useMemo(() => deriveColorMarca(app.empresas), [app.empresas])
 
   // Derived values — all permissions flow from shared/auth/permissions.
   const role: Role | null = normalizeRole(app.usuario?.rol)
@@ -103,6 +111,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         miembrosRef,
         miembrosAsignables,
         equipoMarketing,
+        marcas,
+        colorMarca,
         esAdmin,
         cargo,
         role,

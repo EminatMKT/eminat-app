@@ -90,6 +90,7 @@ export interface OrgRow {
   lider_id?: string | null
   horas_dia?: number
   activo?: boolean
+  recibe_actividades?: boolean
 }
 
 export type Setters = {
