@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { DEFAULT_ROLE } from '@/shared/auth/permissions'
+import { clientEnv } from '@/shared/db/env.client'
 import { serverEnv } from '@/shared/db/env.server'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { requireAdmin } from '@/shared/db/requireAdmin'
@@ -26,6 +27,7 @@ import { MAIL_FROM, MARKETING_COORDINATOR_EMAIL, MARKETING_INBOX_EMAIL } from '@
 
 const LOGIN_URL = 'https://app.stratixsolutions.us'
 const MAIL_CC = MARKETING_COORDINATOR_EMAIL
+const APP_ENV = clientEnv.NEXT_PUBLIC_APP_ENV
 
 function buildWelcomeEmail(args: {
   nombre: string
@@ -71,7 +73,7 @@ function buildWelcomeEmail(args: {
             <tr><td style="padding:6px 0 0">
               <div style="padding:14px 16px;background:#0A0A0F;border:1px solid rgba(124,58,237,0.45);border-radius:10px;font-family:'Courier New',monospace;font-size:18px;color:#ffffff;letter-spacing:.05em;text-align:center;font-weight:700">${escapeHtml(password)}</div>
             </td></tr>
-            <tr><td style="padding:8px 0 0;font-size:11px;color:rgba(255,255,255,0.55)">Cámbiala en tu primer inicio de sesión.</td></tr>
+            <tr><td style="padding:8px 0 0;font-size:11px;color:rgba(255,255,255,0.55)">Es temporal: cambiala apenas entres, desde tu perfil.</td></tr>
           </table>
         </td></tr>
 
@@ -110,6 +112,13 @@ async function sendWelcomeEmail(args: {
 }): Promise<string | null> {
   try {
     const { RESEND_API_KEY } = serverEnv
+    if (!RESEND_API_KEY) return 'No se envió el correo: falta RESEND_API_KEY.'
+    // Fuera de producción NO se manda nada: el destinatario es una casilla
+    // corporativa real y la contraseña viaja en el cuerpo. Probar el alta
+    // contra la base local no puede terminar en el buzón de un compañero.
+    if (APP_ENV !== 'production') {
+      return `No se envió el correo (entorno ${APP_ENV}). Comparte la contraseña manualmente.`
+    }
     const resend = new Resend(RESEND_API_KEY)
     const html = buildWelcomeEmail(args)
     const { error } = await resend.emails.send({
@@ -139,7 +148,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json()
-    const { email, password, nombre, apellido, rol, color, empresa_id, jornada_id, vinculacion_id, ubicacion, cargoIds = [] } = body
+    const { email, password, nombre, apellido, rol, color, empresa_id, jornada_id, vinculacion_id, ubicacion, equipo_id, cargoIds = [] } = body
 
     if (!email || !password || !nombre || !apellido) {
       return NextResponse.json(
@@ -151,6 +160,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'La contraseña debe tener al menos 8 caracteres.' },
         { status: 400 },
+      )
+    }
+
+    // 0. ¿Ya hay una fila para este correo? Pasa con toda persona que exista
+    //    en `usuarios` sin cuenta —lo que dejan los seeds, y lo que queda si un
+    //    borrado se abortó a mitad—. Sin esto el INSERT de abajo choca contra
+    //    el índice único de email, se hace rollback del Auth, y esa persona
+    //    nunca puede tener acceso desde el panel.
+    //    Se ENLAZA, no se inserta: el `id` viejo se conserva porque las
+    //    actividades le apuntan por FK. Queda id != auth_id, que es el caso
+    //    que reset-password y delete-user ya resuelven probando ambos.
+    const { data: existing } = await db
+      .from('usuarios')
+      .select('id, auth_id, nombre, apellido')
+      .eq('email', email)
+      .maybeSingle()
+
+    if (existing?.auth_id) {
+      return NextResponse.json(
+        { error: `${existing.nombre} ${existing.apellido} ya tiene una cuenta con ese correo. Usa "Restablecer" para cambiarle la contraseña.` },
+        { status: 409 },
       )
     }
 
@@ -171,31 +201,30 @@ export async function POST(req: NextRequest) {
     userId = authData.user.id
     console.log(`${TAG} auth user created`, { email, userId })
 
-    // 2. Companion usuarios row. id MUST equal the Auth user id so
-    //    profile lookups by id (and JWT claims) work consistently.
-    const { data: userData, error: dbError } = await db
-      .from('usuarios')
-      .insert({
-        id: userId,
-        auth_id: userId,
-        nombre,
-        apellido,
-        email,
-        rol: rol || DEFAULT_ROLE,
-        color: color || '#7C6FF7',
-        empresa_id: empresa_id || null,
-        jornada_id: jornada_id || null,
-        vinculacion_id: vinculacion_id || null,
-        ubicacion: ubicacion || 'Guayaquil, Ecuador',
-        activo: true,
-        validado: true,
-      })
-      .select()
-      .single()
+    // 2. La fila de `usuarios`. En el alta nueva el id ES el de Auth, para que
+    //    las búsquedas por id (y los claims del JWT) resuelvan igual. En el
+    //    enlace de una fila que ya existía se conserva su id y solo se setea
+    //    `auth_id`, porque cambiarlo desprendería sus actividades.
+    const campos = {
+      nombre,
+      apellido,
+      rol: rol || DEFAULT_ROLE,
+      color: color || '#7C6FF7',
+      empresa_id: empresa_id || null,
+      jornada_id: jornada_id || null,
+      vinculacion_id: vinculacion_id || null,
+      equipo_id: equipo_id || null,
+      ubicacion: ubicacion || 'Guayaquil, Ecuador',
+      activo: true,
+      validado: true,
+    }
+    const { data: userData, error: dbError } = existing
+      ? await db.from('usuarios').update({ ...campos, auth_id: userId }).eq('id', existing.id).select().single()
+      : await db.from('usuarios').insert({ ...campos, id: userId, auth_id: userId, email }).select().single()
 
     if (dbError) {
       const dbErrorCode = (dbError as { code?: string }).code
-      console.error(`${TAG} usuarios insert failed — rolling back auth`, {
+      console.error(`${TAG} usuarios ${existing ? 'link' : 'insert'} failed — rolling back auth`, {
         userId,
         email,
         code: dbErrorCode,
@@ -221,12 +250,15 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    console.log(`${TAG} usuarios inserted`, { userId, email })
+    // El id de la fila de `usuarios`, que NO es el de Auth cuando se enlazó
+    // una preexistente. Todo lo que referencia a la persona usa este.
+    const usuarioId = existing ? existing.id : userId
+    console.log(`${TAG} usuarios ${existing ? 'linked' : 'inserted'}`, { usuarioId, authId: userId, email })
 
     // 3. Cargos N:N. Best-effort igual que el email: el usuario ya existe, un
     //    fallo acá se corrige desde Editar usuario sin dejar nada a medias.
-    const cargoErr = await syncUsuarioCargos(db, userId, cargoIds)
-    if (cargoErr) console.warn(`${TAG} cargos no asignados`, { userId, error: cargoErr.message })
+    const cargoErr = await syncUsuarioCargos(db, usuarioId, cargoIds)
+    if (cargoErr) console.warn(`${TAG} cargos no asignados`, { usuarioId, error: cargoErr.message })
     const cargo = await cargoNames(db, cargoIds)
 
     // 4. Best-effort welcome email. Never fails the request.
