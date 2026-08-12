@@ -251,7 +251,8 @@ export function startAppData(s: Setters): () => void {
       //    después, todo Stratix se pintaría un instante con el color de fallback
       //    y repintaría al resolverse — chips del topbar incluidos.
       const [{ data: acts }, org] = await Promise.all([
-        // Un no-admin ve solo lo suyo. Antes el filtro era el ref y quien no tenía
+        // Un no-admin ve solo lo suyo: lo que ejecuta y lo que pidió (el repo
+        // filtra por las dos FK). Antes el filtro era el ref y quien no tenía
         // caía en `undefined` — o sea, sin filtro: veía todas las actividades.
         actividadesRepo.list(!isAdmin ? usr.id : undefined),
         fetchOrg(),

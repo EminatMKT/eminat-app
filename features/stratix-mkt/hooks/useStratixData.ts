@@ -4,7 +4,7 @@ import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 import { actividadesRepo, notificacionesRepo } from '@/shared/data'
 import { escapeHtml } from '@/shared/lib/html'
 import { isExcludedFromStratix360 } from '../team'
-import { esActividadDeMiembro } from '../report-filter'
+import { esActividadDeMiembro, totalesProduccion } from '../report-filter'
 import type { Actividad, NuevaActForm } from '../types'
 
 const emptyNuevaAct = (solicitanteId = ''): NuevaActForm => ({
@@ -96,9 +96,11 @@ export function useStratixData() {
   }).filter(r => r.total > 0)
 
   const idRep = miembroReporte || idsTeam[0] || ''
+  // El listado incluye lo solicitado; las horas y los días de producción, no
+  // (ver `totalesProduccion`: se pagan una vez, a quien las ejecutó). La
+  // divergencia entre `actsRep.length` y estas dos cifras es deliberada.
   const actsRep = actividades.filter(a => esActividadDeMiembro(a, idRep, mesReporte || undefined))
-  const totalHorasRep = Math.round(actsRep.reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10
-  const totalDiasRep = actsRep.reduce((acc, a) => acc + (Number(a.dias_produccion) || 0), 0)
+  const { horas: totalHorasRep, dias: totalDiasRep } = totalesProduccion(actsRep, idRep)
   const completadasRep = actsRep.filter(a => a.estado === 'Completado').length
   const nombreRep = miembrosPorId[idRep] ?? usuario?.nombre ?? '—'
 
