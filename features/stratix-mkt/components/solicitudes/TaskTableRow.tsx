@@ -19,7 +19,7 @@ export default function TaskTableRow({ a }: { a: Actividad }) {
       </td>
       {esAdmin && <td style={{ padding: '10px 14px', fontSize: 11, color: t3 }}>{miembrosPorId[a.responsable_id] ?? '—'}</td>}
       <td style={{ padding: '10px 14px', fontSize: 11, color: t3 }}>{a.mes}</td>
-      <td style={{ padding: '10px 14px', fontSize: 11, color: t3, fontFamily: 'DM Mono' }}>{a.horas}h</td>
+      <td style={{ padding: '10px 14px', fontSize: 11, color: t3, fontFamily: 'DM Mono' }}>{a.horas || 0}h</td>
       <td style={{ padding: '10px 14px' }}>
         <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: `${ESTADO_COLORS[a.estado] || t3}20`, color: ESTADO_COLORS[a.estado] || t3 }}>{a.estado}</span>
       </td>
