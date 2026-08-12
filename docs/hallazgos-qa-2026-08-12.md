@@ -1,5 +1,8 @@
 # Hallazgos del QA — 12 de agosto de 2026
 
+> **Estado: 10 de los 11 arreglados y verificados en un segundo QA.** Queda abierto
+> solo el #5, que no es un error sino un spec. Ver el cierre del documento.
+
 Salieron haciendo el QA en navegador de la fase 2 (`responsable_ref` → FK uuid), en la base
 local. **Ninguno los introdujo la fase 2**: son cosas que el QA destapó al pasar por encima.
 Ordenados por gravedad.
@@ -347,3 +350,51 @@ rol, pero sin `auth_id` y sin fila en Auth — el tab Team los marca "Cuenta por
 
 Por eso los dos últimos checks del QA (Kanban con nombres y tarea delegada que sobrevive al
 reload, ambos como usuario `stratix360`) siguen pendientes: no hay con qué iniciar esa sesión.
+
+---
+
+# Segundo QA — 12 de agosto, misma tarde
+
+Los 10 hallazgos arreglables se verificaron en el navegador, con sesión de admin y de
+`stratix360`. Todos pasan.
+
+| # | Qué se comprobó | Resultado |
+|---|---|---|
+| 1 | Borrado frenado por FK sobre Bryan (5 tareas) → 409, y **cancelar** | Su fila en `auth.users` sigue ahí. Antes ese click la destruía |
+| 2 | Reporte de Quinn: 1 tarea, fila de 6h, total 0h | La columna **Responsable: Bryan Núñez** lo explica sola |
+| 3 | Crear tarea sin elegir Assignee | "Assignee is required", no se creó nada |
+| 6 | Alta con `bryan@eminat.net`, que ya existía | Enlazó: 11 usuarios (sin duplicar), id conservado, 5 actividades intactas |
+| 7 | Columna Estado | 9 en "Sin cuenta", Freddy en "Pendiente" (tiene cuenta, sin validar), Bryan y Quinn "Activo" |
+| 8 | Alta desde local | "No se envió el correo: el entorno es local, no producción" |
+| 9 | Panel de admin con la key de mail ausente | Arranca y funciona |
+| 10 | Copy del modal | Pide cambiar la contraseña en vez de afirmar que se cambiará |
+| 11 | Selector de equipo en alta y edición | Quinn pasó a MKT y se volvió asignable |
+
+El #2 dio la mejor demostración posible sin buscarla: el reporte de Quinn lista una tarea con
+6h en la fila y 0h en el total, porque Quinn la pidió y Bryan la ejecuta. Sin la columna, eso
+parecía un error de cálculo.
+
+## Dos defectos que el segundo QA encontró en los propios arreglos
+
+Ambos corregidos en `d727ed0`, y son la misma confusión: **dar de alta no es editar.**
+
+- El enlace escribía todos los campos del formulario, así que dejar los catálogos en
+  "— Sin asignar —" le vaciaba empresa, jornada, vinculación y equipo a la persona. Vaciar
+  `equipo_id` es lo peor: la deja sin poder recibir tareas, o sea reintroduce el #11.
+- `syncUsuarioCargos` borra lo que no venga en la lista, así que enlazar sin tocar los cargos
+  se los vaciaba. A Bryan le borró "Video Editor" de verdad, y hubo que devolvérselo.
+
+Ahora, al enlazar, solo se escribe lo que se eligió explícitamente.
+
+## 12. El aviso previo al borrado solo cuenta las tareas que la persona ejecuta
+
+**Menor.** Salió al borrar a Quinn.
+
+El conteo que decide el mensaje sale de `.eq('responsable_id', id)`. Quinn no ejecutaba
+ninguna tarea pero había **solicitado** una, así que el modal afirmó *"No tiene tareas
+asignadas"* y ofreció el borrado directo — y la FK de `solicitante_id` igual lo frenó.
+
+Terminó bien porque el flujo sin heredero vacía `solicitante_id` y sigue, pero el aviso le
+mintió al admin sobre qué estaba por pasar, y de paso se perdió el dato de quién había pedido
+esa tarea sin avisar. El conteo debería mirar también `solicitante_id`, y el aviso decir que
+esa referencia se va a vaciar.
