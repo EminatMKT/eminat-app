@@ -15,11 +15,11 @@ import ErrorBlock from './ErrorBlock'
 // Required<Pick<...>>, más `currentEmail` (para el cambio atómico de email),
 // `tipo` y `cargoIds` (selección N:N, se persiste en usuario_cargos).
 export type EditUserDraft = Required<
-  Pick<Usuario, 'id' | 'nombre' | 'apellido' | 'email' | 'rol' | 'color' | 'ubicacion' | 'empresa_id' | 'jornada_id' | 'vinculacion_id'>
+  Pick<Usuario, 'id' | 'nombre' | 'apellido' | 'email' | 'rol' | 'color' | 'ubicacion' | 'empresa_id' | 'jornada_id' | 'vinculacion_id' | 'equipo_id'>
 > & { currentEmail: string; cargoIds: string[] }
 
 export default function EditUserModal({ user, onClose }: { user: EditUserDraft; onClose: () => void }) {
-  const { setAdminUsuarios, mostrarMensaje, border, s2, t2, t3, accent, inputStyle, roles, roleModuleMap, empresas, jornadas, vinculaciones } = useApp()
+  const { setAdminUsuarios, mostrarMensaje, border, s2, t2, t3, accent, inputStyle, roles, roleModuleMap, empresas, jornadas, vinculaciones, equipos } = useApp()
   const { t } = useT()
   const [form, setForm] = useState<EditUserDraft>(user)
   const [editError, setEditError] = useState<string | null>(null)
@@ -34,7 +34,8 @@ export default function EditUserModal({ user, onClose }: { user: EditUserDraft; 
         id: form.id, currentEmail: form.currentEmail, email: form.email, nombre: form.nombre, apellido: form.apellido,
         rol: form.rol, color: form.color, ubicacion: form.ubicacion,
         empresa_id: form.empresa_id, jornada_id: form.jornada_id,
-        vinculacion_id: form.vinculacion_id, cargoIds: form.cargoIds,
+        vinculacion_id: form.vinculacion_id, equipo_id: form.equipo_id,
+        cargoIds: form.cargoIds,
       })
       if (!res.ok) { setEditError(result.error || t('admin.edit.failed')); setGuardando(false); return }
       setAdminUsuarios(prev => prev.map(u => u.id === form.id ? { ...u, ...result.user } : u))
@@ -85,6 +86,9 @@ export default function EditUserModal({ user, onClose }: { user: EditUserDraft; 
         <CatalogSelect labelKey="common.company" value={form.empresa_id} rows={empresas} onChange={id => setForm(p => ({ ...p, empresa_id: id }))} />
         <CatalogSelect labelKey="common.jornada" value={form.jornada_id} rows={jornadas} onChange={id => setForm(p => ({ ...p, jornada_id: id }))} />
         <CatalogSelect labelKey="common.vinculacion" value={form.vinculacion_id} rows={vinculaciones} onChange={id => setForm(p => ({ ...p, vinculacion_id: id }))} />
+        {/* Es la vía para reparar a quien quedó sin equipo — sin esto no era
+            asignable en Stratix y no había forma de arreglarlo desde el panel. */}
+        <CatalogSelect labelKey="common.equipo" value={form.equipo_id} rows={equipos} onChange={id => setForm(p => ({ ...p, equipo_id: id }))} />
         <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t('common.location')}</label><input type="text" value={form.ubicacion} onChange={e => setForm(p => ({ ...p, ubicacion: e.target.value }))} style={inputStyle} /></div>
         <div style={{ marginBottom: 20 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 8 }}>{t('common.avatarColor')}</label><div style={{ display: 'flex', gap: 8 }}>{COLORES_AVATAR.map(c => <div key={c} onClick={() => setForm(p => ({ ...p, color: c }))} style={{ width: 24, height: 24, borderRadius: '50%', background: c, cursor: 'pointer', border: form.color === c ? '3px solid white' : '2px solid transparent', boxSizing: 'border-box' }} />)}</div></div>
         <div style={{ display: 'flex', gap: 10 }}>

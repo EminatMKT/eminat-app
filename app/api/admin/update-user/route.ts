@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
       empresa_id,
       jornada_id,
       vinculacion_id,
+      equipo_id,
       cargoIds,
       activo,
       validado,
@@ -70,6 +71,7 @@ export async function POST(req: NextRequest) {
     if (empresa_id !== undefined) updatePayload.empresa_id = empresa_id || null
     if (jornada_id !== undefined) updatePayload.jornada_id = jornada_id || null
     if (vinculacion_id !== undefined) updatePayload.vinculacion_id = vinculacion_id || null
+    if (equipo_id !== undefined) updatePayload.equipo_id = equipo_id || null
     if (activo !== undefined) updatePayload.activo = activo
     if (validado !== undefined) updatePayload.validado = validado
 

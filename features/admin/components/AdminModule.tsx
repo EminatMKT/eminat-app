@@ -49,7 +49,8 @@ export default function AdminModule() {
     id: u.id, nombre: u.nombre || '', apellido: u.apellido || '', email: u.email || '', currentEmail: u.email || '',
     rol: u.rol || DEFAULT_ROLE, color: u.color || '#7C6FF7', ubicacion: u.ubicacion || 'Guayaquil, Ecuador',
     empresa_id: u.empresa_id ?? null, jornada_id: u.jornada_id ?? null,
-    vinculacion_id: u.vinculacion_id ?? null, cargoIds: cargoIdsOf(u),
+    vinculacion_id: u.vinculacion_id ?? null, equipo_id: u.equipo_id ?? null,
+    cargoIds: cargoIdsOf(u),
   })
 
   const crearBtn = <NewButton label={t('admin.newUser')} onClick={() => setModalCrear(true)} />
