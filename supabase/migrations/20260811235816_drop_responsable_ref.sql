@@ -22,7 +22,14 @@ ALTER TABLE public.usuarios DROP COLUMN responsable_ref;
 -- El RPC pierde p_new_ref. La firma cambia, así que CREATE OR REPLACE no basta:
 -- dejaría viva la sobrecarga de 4 argumentos y la ruta API podría pegarle a la
 -- vieja. DROP explícito con la firma completa.
-DROP FUNCTION IF EXISTS public.admin_reassign_and_delete(uuid, uuid, text, text);
+--
+-- SIN `IF EXISTS`, A PROPÓSITO — no lo agregues como "mejora de seguridad". Si en
+-- dev o prod la función tiene otra firma, con IF EXISTS el DROP no haría nada y el
+-- CREATE de abajo dejaría DOS sobrecargas vivas: PostgREST podría resolver la
+-- equivocada y volveríamos al bug que esta migración elimina. Sin él, la migración
+-- falla ruidosamente dentro de su transacción y revierte limpio — que es lo que
+-- queremos en un entorno que no podemos inspeccionar antes.
+DROP FUNCTION public.admin_reassign_and_delete(uuid, uuid, text, text);
 
 CREATE FUNCTION public.admin_reassign_and_delete(
   p_old_id uuid,
