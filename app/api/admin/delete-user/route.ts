@@ -92,29 +92,14 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 2) Best-effort auth.users delete. Try auth_id first (the explicit
-    //    link), fall back to id (rows created via /api/admin/create-user
-    //    use id = auth_id by construction).
-    let authDeleted = false
-    let authNote: string | null = null
-    const authCandidates = [row.auth_id, row.id].filter(
-      (v): v is string => typeof v === 'string' && v.length > 0,
-    )
-    for (const uid of authCandidates) {
-      const { error: authErr } = await db.auth.admin.deleteUser(uid)
-      if (!authErr) {
-        authDeleted = true
-        break
-      }
-      // "User not found" → try the next candidate; any other error → record
-      // it but keep going (we still want to remove the public.usuarios row).
-      const msg = authErr.message || ''
-      if (!/not.?found/i.test(msg)) {
-        authNote = `auth.users delete (id=${uid}) reportó: ${msg}`
-      }
-    }
-
-    // 3) Public.usuarios delete with service_role (bypasses RLS).
+    // 2) Public.usuarios delete PRIMERO, con service_role (bypasea RLS).
+    //    EL ORDEN IMPORTA: si esto va después del borrado de Auth, un DELETE
+    //    frenado por una FK —el caso normal de cualquiera con actividades—
+    //    deja a la persona con su fila intacta pero SIN cuenta, sin poder
+    //    entrar nunca más, y el admin solo ve un mensaje de error. Borrando
+    //    la fila primero, la FK aborta sin haber destruido nada.
+    //    Cubre TODA fuente de FK (actividades, notificaciones, historial…),
+    //    no solo las que sepamos enumerar acá.
     const { error: dbError, count } = await db
       .from('usuarios')
       .delete({ count: 'exact' })
@@ -123,7 +108,7 @@ export async function POST(req: NextRequest) {
     if (dbError) {
       const dbErrorCode = (dbError as { code?: string }).code
       const isFk = dbErrorCode === '23503'
-      console.error(`${TAG} usuarios delete failed`, { id, code: dbErrorCode, error: dbError.message, isFk })
+      console.error(`${TAG} usuarios delete failed — auth INTACTO`, { id, code: dbErrorCode, error: dbError.message, isFk })
       if (isFk) {
         // Count the actividades the user owns so the UI can offer the
         // reassign-and-delete flow with the number up-front.
@@ -138,24 +123,49 @@ export async function POST(req: NextRequest) {
             dbErrorCode,
             blockedBy: 'foreign_key',
             taskCount: taskCount ?? 0,
-            authDeleted,
-            authNote,
+            authDeleted: false,
+            authNote: null,
           },
           { status: 409 },
         )
       }
       return NextResponse.json(
-        { error: `DB delete falló: ${dbError.message}`, dbErrorCode, authDeleted, authNote },
+        { error: `DB delete falló: ${dbError.message}`, dbErrorCode, authDeleted: false, authNote: null },
         { status: 500 },
       )
     }
 
     if (!count) {
-      console.warn(`${TAG} 0 rows affected`, { id })
+      console.warn(`${TAG} 0 rows affected — auth INTACTO`, { id })
       return NextResponse.json(
-        { error: 'La fila no se borró (0 filas afectadas). Puede que ya no exista.', authDeleted, authNote },
+        { error: 'La fila no se borró (0 filas afectadas). Puede que ya no exista.', authDeleted: false, authNote: null },
         { status: 404 },
       )
+    }
+
+    // 3) Recién ahora, el auth.users. Best-effort: la fila ya no está, así que
+    //    fallar acá deja una cuenta huérfana (puede autenticarse pero se queda
+    //    sin perfil y la app la desloguea) — molesto y reparable a mano, muy
+    //    lejos del daño de perder el acceso con la fila viva.
+    //    Prueba auth_id primero (el vínculo explícito) y cae a id (las filas
+    //    creadas por /api/admin/create-user usan id = auth_id por construcción).
+    let authDeleted = false
+    let authNote: string | null = null
+    const authCandidates = [row.auth_id, row.id].filter(
+      (v): v is string => typeof v === 'string' && v.length > 0,
+    )
+    for (const uid of authCandidates) {
+      const { error: authErr } = await db.auth.admin.deleteUser(uid)
+      if (!authErr) {
+        authDeleted = true
+        break
+      }
+      // "User not found" → probar el siguiente candidato; cualquier otro error
+      // se registra para que el admin sepa que quedó una cuenta huérfana.
+      const msg = authErr.message || ''
+      if (!/not.?found/i.test(msg)) {
+        authNote = `auth.users delete (id=${uid}) reportó: ${msg}`
+      }
     }
 
     console.log(`${TAG} success`, { id, email: row.email, authDeleted, authNote })
