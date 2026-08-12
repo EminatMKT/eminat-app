@@ -18,11 +18,9 @@ export default function NewActivityModal() {
     }
   }, [marcas, nuevaAct.empresa, setNuevaAct])
 
-  useEffect(() => {
-    if (miembrosAsignables.length && !miembrosAsignables.some(m => m.id === nuevaAct.responsable_id)) {
-      setNuevaAct(p => ({ ...p, responsable_id: miembrosAsignables[0].id }))
-    }
-  }, [miembrosAsignables, nuevaAct.responsable_id, setNuevaAct])
+  // Antes acá se preseleccionaba `miembrosAsignables[0]`. Se quitó a propósito:
+  // el responsable de una tarea es una decisión, no un default — quien no bajaba
+  // la vista se la asignaba al primero de la lista sin enterarse.
 
   if (!modalNuevaAct) return null
 
@@ -54,6 +52,11 @@ export default function NewActivityModal() {
           <div>
             <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>👤 Assignee <span style={{ color: '#F87171' }}>*</span></label>
             <select value={nuevaAct.responsable_id} onChange={e => setNuevaAct(p => ({ ...p, responsable_id: e.target.value }))} style={inputStyle}>
+              {/* Placeholder obligatorio: sin él el navegador pinta el primer
+                  miembro de la lista y quien no baja la vista le asigna la
+                  tarea sin haberlo elegido. La validación de crearActividad
+                  rechaza el vacío. */}
+              <option value="">— Select —</option>
               {miembrosAsignables.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
             </select>
           </div>
