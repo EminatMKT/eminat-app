@@ -116,8 +116,10 @@ async function sendWelcomeEmail(args: {
     // Fuera de producción NO se manda nada: el destinatario es una casilla
     // corporativa real y la contraseña viaja en el cuerpo. Probar el alta
     // contra la base local no puede terminar en el buzón de un compañero.
+    // El texto NO cierra pidiendo compartirla a mano: CredentialsPanel ya
+    // agrega `admin.shareManually` a continuación de este warning.
     if (APP_ENV !== 'production') {
-      return `No se envió el correo (entorno ${APP_ENV}). Comparte la contraseña manualmente.`
+      return `No se envió el correo: el entorno es "${APP_ENV}", no producción.`
     }
     const resend = new Resend(RESEND_API_KEY)
     const html = buildWelcomeEmail(args)
@@ -128,11 +130,13 @@ async function sendWelcomeEmail(args: {
       subject: 'Tu acceso a Stratix Solutions',
       html,
     })
-    if (error) return `No se envió el correo: ${error.message}`
+    // El punto final importa: CredentialsPanel concatena este texto con
+    // `admin.shareManually`, y los mensajes de Resend no traen puntuación.
+    if (error) return `No se envió el correo: ${error.message}.`
     return null
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : ''
-    return `No se envió el correo: ${message || 'error desconocido'}`
+    return `No se envió el correo: ${message || 'error desconocido'}.`
   }
 }
 
@@ -210,17 +214,27 @@ export async function POST(req: NextRequest) {
       apellido,
       rol: rol || DEFAULT_ROLE,
       color: color || '#7C6FF7',
-      empresa_id: empresa_id || null,
-      jornada_id: jornada_id || null,
-      vinculacion_id: vinculacion_id || null,
-      equipo_id: equipo_id || null,
       ubicacion: ubicacion || 'Guayaquil, Ecuador',
       activo: true,
       validado: true,
     }
+    // Los catálogos van aparte porque enlazar y crear los tratan distinto. Al
+    // crear, un campo vacío es null y listo. Al ENLAZAR, la persona ya podía
+    // tener empresa, jornada o equipo cargados: pisarlos con null porque el
+    // admin no volvió a elegirlos le borraría datos —y en el caso de `equipo_id`
+    // la dejaría sin poder recibir tareas—. Dar de alta no es editar: solo se
+    // escribe lo que se eligió explícitamente.
+    const catalogos = { empresa_id, jornada_id, vinculacion_id, equipo_id }
+    const catalogosCrear = Object.fromEntries(
+      Object.entries(catalogos).map(([k, v]) => [k, v || null]),
+    )
+    const catalogosEnlazar = Object.fromEntries(
+      Object.entries(catalogos).filter(([, v]) => v),
+    )
+
     const { data: userData, error: dbError } = existing
-      ? await db.from('usuarios').update({ ...campos, auth_id: userId }).eq('id', existing.id).select().single()
-      : await db.from('usuarios').insert({ ...campos, id: userId, auth_id: userId, email }).select().single()
+      ? await db.from('usuarios').update({ ...campos, ...catalogosEnlazar, auth_id: userId }).eq('id', existing.id).select().single()
+      : await db.from('usuarios').insert({ ...campos, ...catalogosCrear, id: userId, auth_id: userId, email }).select().single()
 
     if (dbError) {
       const dbErrorCode = (dbError as { code?: string }).code
@@ -257,8 +271,14 @@ export async function POST(req: NextRequest) {
 
     // 3. Cargos N:N. Best-effort igual que el email: el usuario ya existe, un
     //    fallo acá se corrige desde Editar usuario sin dejar nada a medias.
-    const cargoErr = await syncUsuarioCargos(db, usuarioId, cargoIds)
-    if (cargoErr) console.warn(`${TAG} cargos no asignados`, { usuarioId, error: cargoErr.message })
+    //    Al ENLAZAR con la lista vacía NO se sincroniza: `syncUsuarioCargos`
+    //    borra lo que no venga, así que no elegir cargos le vaciaría los que la
+    //    persona ya tenía. Misma regla que los catálogos de arriba: dar de alta
+    //    escribe lo que se eligió, no borra lo que no se tocó.
+    if (!existing || cargoIds.length) {
+      const cargoErr = await syncUsuarioCargos(db, usuarioId, cargoIds)
+      if (cargoErr) console.warn(`${TAG} cargos no asignados`, { usuarioId, error: cargoErr.message })
+    }
     const cargo = await cargoNames(db, cargoIds)
 
     // 4. Best-effort welcome email. Never fails the request.
