@@ -123,7 +123,14 @@ export function useStratixData() {
   }
 
   async function crearActividad() {
+    // Los tres son NOT NULL en la DB (`responsable_id` y `empresa` además son FK).
+    // Sin este chequeo, un usuario de Stratix fuera de MKT —cuyo select de
+    // responsable renderiza vacío porque `miembrosAsignables` lo está— manda
+    // `responsable_id: ''` y recibe un `invalid input syntax for type uuid` crudo
+    // de Postgres. La columna de texto vieja se lo tragaba en silencio.
     if (!nuevaAct.titulo.trim()) { mostrarMensaje('error', 'Title is required'); return }
+    if (!nuevaAct.responsable_id) { mostrarMensaje('error', 'Assignee is required'); return }
+    if (!nuevaAct.empresa) { mostrarMensaje('error', 'Brand / Area is required'); return }
     setCreandoAct(true)
     try {
       const payload: Record<string, unknown> = {
