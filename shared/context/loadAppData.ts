@@ -31,6 +31,9 @@ export interface Usuario {
   activo?: boolean
   validado?: boolean
   online_at?: string | null
+  // Vínculo con auth.users. NULL = la persona existe en `usuarios` pero no
+  // tiene cuenta: no puede iniciar sesión por más que esté activa y validada.
+  auth_id?: string | null
   equipo_id?: string | null
   jornada_id?: string | null
   vinculacion_id?: string | null

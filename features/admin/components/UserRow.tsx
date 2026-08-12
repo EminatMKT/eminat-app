@@ -65,7 +65,10 @@ export default function UserRow({ user: u, onEdit, onReset, onDelete }: Props) {
       {/* Solo sin_asignar usa el select inline (asignación rápida). El resto muestra el rol
           como badge: el cambio se hace desde el modal de editar. Admin en rojo, otros en acento. */}
       <td style={{ padding: '10px 14px' }}>{normalizeRole(u.rol) === DEFAULT_ROLE ? <select value={u.rol} onChange={e => { if (e.target.value !== u.rol) setConfirm({ kind: 'assign', value: e.target.value }) }} style={{ padding: '3px 8px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 11, cursor: 'pointer', outline: 'none' }}>{roles.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}</select> : <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: isProtected ? 'rgba(248,113,113,.12)' : `${accent}1a`, color: isProtected ? '#F87171' : accent }}>{roleLabel}</span>}</td>
-      <td style={{ padding: '10px 14px' }}>{u.validado && u.activo ? <span style={{ fontSize: 11, color: '#34D399' }}>{t('admin.statusActive')}</span> : !u.validado ? <span style={{ fontSize: 11, color: '#FBB040' }}>{t('admin.statusPending')}</span> : <span style={{ fontSize: 11, color: '#F87171' }}>{t('admin.statusInactive')}</span>}</td>
+      {/* "Sin cuenta" va PRIMERO: sin fila en auth.users la persona no entra,
+          por más que esté activa y validada. Mirando solo esos dos flags la
+          columna decía "Activo" de alguien que no podía iniciar sesión. */}
+      <td style={{ padding: '10px 14px' }}>{!u.auth_id ? <span style={{ fontSize: 11, color: '#FBB040' }}>{t('admin.statusNoAccount')}</span> : u.validado && u.activo ? <span style={{ fontSize: 11, color: '#34D399' }}>{t('admin.statusActive')}</span> : !u.validado ? <span style={{ fontSize: 11, color: '#FBB040' }}>{t('admin.statusPending')}</span> : <span style={{ fontSize: 11, color: '#F87171' }}>{t('admin.statusInactive')}</span>}</td>
       <td style={{ padding: '10px 14px' }}>
         {/* Las acciones viven en el menú de la fila: cinco botones por fila ocupaban
             media tabla y dejaban sin lugar a las columnas de datos. */}

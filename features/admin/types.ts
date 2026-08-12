@@ -15,5 +15,5 @@ export type ResetTarget = { id: string; nombre: string; email: string }
 // re-listar campos a mano; `tipo` es el único campo extra que no vive en Usuario.
 export type AdminUser = Pick<
   Usuario,
-  'id' | 'nombre' | 'apellido' | 'email' | 'rol' | 'color' | 'ubicacion' | 'empresa_id' | 'activo' | 'validado' | 'equipo_id' | 'usuario_cargos' | 'jornada_id' | 'vinculacion_id'
+  'id' | 'nombre' | 'apellido' | 'email' | 'rol' | 'color' | 'ubicacion' | 'empresa_id' | 'activo' | 'validado' | 'equipo_id' | 'usuario_cargos' | 'jornada_id' | 'vinculacion_id' | 'auth_id'
 >
