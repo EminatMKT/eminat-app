@@ -2,11 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { serverEnv } from '@/shared/db/env.server'
 
-const { RESEND_API_KEY } = serverEnv
-const resend = new Resend(RESEND_API_KEY)
+// Perezoso a propósito: `new Resend(undefined)` tira "Missing API key", y a
+// nivel de módulo eso rompe la ruta entera al importarla. Construyéndolo acá
+// adentro, sin key la respuesta es un 503 legible en vez de un 500 opaco.
+function getResend() {
+  const { RESEND_API_KEY } = serverEnv
+  return RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null
+}
 
 export async function POST(req: NextRequest) {
   try {
+    const resend = getResend()
+    if (!resend) {
+      return NextResponse.json({ error: 'Envío de correo no configurado: falta RESEND_API_KEY.' }, { status: 503 })
+    }
     const body = await req.json()
     const { to, subject, html, from } = body
 
