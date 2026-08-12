@@ -185,6 +185,15 @@ supabase/
 - Animaciones: siempre usar los componentes de `shared/motion`, no Framer Motion directo
 - Permisos: en componentes, `useApp().modules.includes('<slug>')`; en lógica pura, `getModulesForRole(map, role).includes('<slug>')` de `shared/auth/permissions.ts` (ya no hay `canAccess`)
 - Supabase en cliente: importar el singleton de `shared/db/supabase.ts`
+- **Datos de prueba: por el frontend, no por seed.** Para poblar la base —usuarios, actividades,
+  catálogos— usar la UI de la app. El seed SQL es la **última** opción, no la primera.
+  El motivo no es estético: un seed escribe filas que ningún formulario podría producir, y esa
+  diferencia esconde agujeros de la UI hasta que es tarde. El QA del 12/08/2026 lo mostró en
+  los dos sentidos — el seed dejó 9 usuarios sin cuenta de Auth (imposible por la UI), y a la
+  vez les puso `equipo_id`, tapando que **el panel no tiene dónde asignar un equipo**. Cada fila
+  insertada por SQL es una funcionalidad que nadie probó. Ver `docs/hallazgos-qa-2026-08-12.md`.
+  Si el frontend no permite crear algo que hace falta, eso **es el bug**: arreglar el formulario
+  antes que escribir el INSERT.
 - i18n: los componentes nuevos usan `useT()`/`t()` con sus claves en `es.json` y `en.json` —
   no marcar con `i18n-ignore`
 - TypeScript: `any` está prohibido por ESLint (`no-explicit-any: error`); usar
