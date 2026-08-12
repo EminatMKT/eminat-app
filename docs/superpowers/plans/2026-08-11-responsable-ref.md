@@ -1296,3 +1296,22 @@ con `a.solicitado_por` — esa no aborta nada, pero los solicitantes que no resu
 pierden en silencio como NULL.
 
 Tomar un `pg_dump` de `actividades` y `usuarios` en cada entorno antes del push.
+
+**Las dos tablas, no solo `actividades`.** El backup local de esta fase cubrió solo
+`actividades`, y eso no alcanza: la migración también dropea `usuarios.responsable_ref`. Sin
+el dump de `usuarios` no hay forma de reconstruir el mapeo ref → persona, que es justamente
+lo que permitiría rehacer el backfill si algo sale mal.
+
+**Gotcha de entorno: el `pg_dump` del host es v14 y el servidor es Postgres 17.** Un
+`pg_dump` directo aborta con `server version mismatch`. Hay que correrlo **dentro del
+contenedor**, que trae el binario de la versión correcta:
+
+```bash
+docker exec supabase_db_eminat-app pg_dump -U postgres -d postgres \
+  -t public.actividades -t public.usuarios --data-only \
+  > supabase/rollback/predump-responsable-ref-YYYYMMDD.sql
+```
+
+Contra dev/prod, mismo criterio: usar un cliente v17 (el del contenedor sirve, pasándole la
+connection string del proyecto con `-d`) o `pnpm supabase db dump --linked`, que no depende
+del `pg_dump` del host.

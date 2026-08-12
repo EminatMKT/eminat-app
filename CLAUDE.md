@@ -127,9 +127,11 @@ segundo; hoy son 7:
 - **ORNELLA** — Ornella
 - **Eminat Mentor**
 
-`SOLICITANTES` sigue hardcodeada en `shared/constants/domain.ts`: sus valores son
-`responsable_ref`, así que se elimina junto con ese campo en la fase 2 (ver
-`docs/superpowers/specs/2026-08-11-stratix-empresas-design.md`).
+Quién pide una actividad sale de `actividades.solicitante_id`, una FK a `usuarios` — el
+dropdown ofrece a todos los usuarios activos. La constante `SOLICITANTES` que vivía
+hardcodeada en `shared/constants/domain.ts` ya no existe: sus valores eran
+`responsable_ref`, y ese campo se eliminó en la fase 2 (ver
+`docs/superpowers/specs/2026-08-11-responsable-ref-design.md`).
 
 ## Estructura clave del código
 
