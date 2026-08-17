@@ -20,10 +20,17 @@ export default function FilterBar<T>({ defs, items, values, onChange, onClear, l
   const active = defs.some(d => values[d.key])
   return (
     <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap', alignItems: 'center' }}>
-      {defs.map(d => (
+      {defs.map(d => d.kind && d.kind !== 'select' ? (
+        // El input date ignora el placeholder (muestra dd/mm/aaaa), así que su label va visible.
+        <label key={d.key} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: mutedColor }}>
+          {d.kind === 'date' && labelFor(d)}
+          <input type={d.kind} value={values[d.key] ?? ''} placeholder={labelFor(d)}
+            onChange={e => onChange(d.key, e.target.value)} style={selectStyle} />
+        </label>
+      ) : (
         <select key={d.key} value={values[d.key] ?? ''} onChange={e => onChange(d.key, e.target.value)} style={selectStyle}>
           <option value="">{labelFor(d)}</option>
-          {d.options(items).map(o => <option key={o} value={o}>{o}</option>)}
+          {(d.options?.(items) ?? []).map(o => <option key={o} value={o}>{o}</option>)}
         </select>
       ))}
       {active && <button onClick={onClear} style={clearStyle}>✕ {clearLabel}</button>}
