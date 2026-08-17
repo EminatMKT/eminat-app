@@ -17,6 +17,12 @@ describe('guessMapping de email_count', () => {
   it('mapea "Email Count" y la variante con el nombre de Royner a email_count', () => {
     expect(guessMapping(['Email Count', 'Email Count (Royner)'])).toEqual(['email_count', 'email_count'])
   })
+
+  // Misma tabla, mismo correo, misma clase de bug: la columna se llama "Etapa" y sin alias
+  // el import la descartaba sin decir nada, dejando los leads en la etapa que ya tenían.
+  it('mapea el header en español "Etapa" a stage', () => {
+    expect(guessMapping(['Etapa'])).toEqual(['stage'])
+  })
 })
 
 describe('indexByNct', () => {

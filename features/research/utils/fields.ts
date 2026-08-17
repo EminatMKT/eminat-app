@@ -110,6 +110,8 @@ const CSV_ALIASES: Record<string, string> = {
   'email_count_(royner)': 'email_count',
   email_count_royner: 'email_count',
   intentos: 'email_count',
+  // La misma tabla trae la etapa bajo el header en español.
+  etapa: 'stage',
 }
 
 // Export: headers = columnas reales (round-trip directo). El orden es el de LEAD_FIELD_DEFS.

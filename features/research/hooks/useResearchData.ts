@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { researchRepo, removeChannel } from '@/shared/data'
-import { STAGE } from '../constants'
+import { STAGE, COUNT_COLUMN } from '../constants'
 import { EXPORT_HEADERS, validateLead, buildLeadPayload } from '../utils/fields'
 import { LEAD_FILTERS } from '../utils/filters'
 import { applyFilters, type FilterValues } from '@/shared/lib/filters'
 import type { ImportPlan } from '../utils/importPlan'
+import { totalEmails } from '../utils/counters'
 import { escapeHtml } from '@/shared/lib/html'
 import type { Lead, Activity, Campaign, Stage } from '../types'
 
@@ -53,6 +54,8 @@ export function useResearchData() {
   const nuevos = leads.filter(l => l.stage === STAGE.NUEVO).length
   const contactados = leads.filter(l => l.stage === STAGE.CONTACTADO).length
   const ganados = leads.filter(l => l.stage === STAGE.GANADO).length
+  // El esfuerzo real: 81 registros únicos esconden ~165-170 alcances (reunión 12/08/2026).
+  const totalCorreos = totalEmails(leads)
 
   // Fiel a la tabla: agrupa por el stage REAL de cada lead (migrado o no). Nada se oculta por
   // estado de migración; un valor legacy ('Awarded', etc.) aparece tal cual. null/'' → 'Sin etapa'.
@@ -115,6 +118,15 @@ export function useResearchData() {
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, stage: newStage } : l))
   }
 
+  // Única vía de escritura manual del contador: la confirma el pop-up. Se guarda solo esta
+  // columna (no el lead entero) para no arrastrar estado viejo de ningún form.
+  async function setEmailCount(leadId: string, count: number) {
+    const { error } = await researchRepo.updateLead(leadId, { [COUNT_COLUMN]: count })
+    if (error) { mostrarMensaje('error', 'Error: ' + error.message); return false }
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, email_count: count } : l))
+    return true
+  }
+
   async function confirmImport(plan: ImportPlan) {
     let inserted: Lead[] = []
     if (plan.toInsert.length) {
@@ -170,9 +182,9 @@ export function useResearchData() {
     leads, activities, campaigns, loading, setCampaigns,
     filterValues, setFilterValue, clearFilters,
     filteredLeads,
-    totalLeads, activeLeads, nuevos, contactados, ganados,
+    totalLeads, activeLeads, nuevos, contactados, ganados, totalCorreos,
     stageData, phaseData, sponsorData, countryData, countrySorted,
-    saveLead, deleteLead, addActivity, updateStage, confirmImport, handleExport, handlePrint,
+    saveLead, deleteLead, addActivity, updateStage, setEmailCount, confirmImport, handleExport, handlePrint,
     duplicateCampaign, deleteCampaign,
   }
 }

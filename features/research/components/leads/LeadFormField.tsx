@@ -10,6 +10,15 @@ export default function LeadFormField({ def, value, onChange, onBlur, hint, help
   const style = error ? { ...inputStyle, borderColor: '#F87171' } : inputStyle
 
   function control() {
+    // Campo de solo lectura: se muestra pero no se edita acá. Su escritura tiene una vía
+    // dedicada con confirmación (el pop-up del contador), y `buildLeadPayload` lo excluye,
+    // así que un input editable prometería un guardado que no ocurre.
+    if (def.readOnly) {
+      return (
+        <input value={v === '' ? '—' : v} readOnly disabled
+          style={{ ...style, background: '#F3F4F6', color: t3, cursor: 'not-allowed' }} />
+      )
+    }
     switch (def.type) {
       case 'select':
         return (

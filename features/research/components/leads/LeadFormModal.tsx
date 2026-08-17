@@ -5,7 +5,7 @@ import { useT } from '@/shared/i18n'
 import { LEAD_FIELD_DEFS, LEAD_GROUPS, GROUP_LABEL_KEY, validateLeadFields } from '../../utils/fields'
 import type { I18nKey } from '@/shared/i18n'
 import { fetchStudyByNCT, fetchStudiesByTitle, splitStudyMerge, type StudyConflict } from '../../utils/clinicalTrials'
-import { NCT_COLUMN, TITLE_COLUMN, normNct } from '../../constants'
+import { NCT_COLUMN, TITLE_COLUMN, COUNT_COLUMN, normNct } from '../../constants'
 import type { Lead } from '../../types'
 import { useResearch } from '../ResearchContext'
 import LeadFormField from './LeadFormField'
@@ -100,7 +100,11 @@ export default function LeadFormModal() {
   // onBlur/action/hint/help dependen de la columna: NCT# autocompleta; título busca en CT.gov.
   const onBlurFor = (col: string) => col === NCT_COLUMN ? handleNctBlur : col === TITLE_COLUMN ? handleTitleBlur : undefined
   const helpFor = (col: string): React.ReactNode =>
-    col === NCT_COLUMN ? t('research.nct.help') : col === TITLE_COLUMN ? t('research.title.help') : undefined
+    col === NCT_COLUMN ? t('research.nct.help')
+      : col === TITLE_COLUMN ? t('research.title.help')
+      // El contador se ve acá pero no se toca: hay que decir dónde sí se edita.
+      : col === COUNT_COLUMN ? t('research.count.formHint')
+      : undefined
   function hintFor(col: string): React.ReactNode {
     if (col === NCT_COLUMN) {
       return nctDup

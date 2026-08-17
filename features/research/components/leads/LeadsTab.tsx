@@ -22,7 +22,7 @@ export default function LeadsTab() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11, minWidth: 1200 }}>
             <thead><tr style={{ background: s2 }}>
-              {['Date', 'Conditions', 'NCT#', 'Title', 'Phase', 'Status', 'Countries', 'Sponsor', 'Contact', 'Email', 'Stage', 'Follow-up', 'Actions'].map(h =>
+              {['Date', 'Conditions', 'NCT#', 'Title', 'Phase', 'Status', 'Countries', 'Sponsor', 'Contact', 'Email', 'Emails', 'Stage', 'Follow-up', 'Actions'].map(h =>
                 <th key={h} style={{ padding: '9px 10px', textAlign: 'left', fontSize: 9, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400, whiteSpace: 'nowrap' }}>{h}</th>
               )}
             </tr></thead>

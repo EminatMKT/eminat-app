@@ -1,12 +1,14 @@
 'use client'
 import { RESEARCH_THEME } from '../../theme'
+import { useT } from '@/shared/i18n'
 import { useResearch } from '../ResearchContext'
 import StageBadge from '../StageBadge'
 import type { Lead } from '../../types'
 
 export default function LeadRow({ lead: l }: { lead: Lead }) {
   const { border, t1, t2, t3, accent } = RESEARCH_THEME
-  const { setModalLead, openEditLead, setModalActivity } = useResearch()
+  const { t } = useT()
+  const { setModalLead, openEditLead, setModalActivity, setModalCount } = useResearch()
   return (
     <tr style={{ borderBottom: `1px solid ${border}` }}>
       <td style={{ padding: '7px 10px', color: t3, fontSize: 10, whiteSpace: 'nowrap' }}>{l.date_added || '—'}</td>
@@ -19,6 +21,20 @@ export default function LeadRow({ lead: l }: { lead: Lead }) {
       <td style={{ padding: '7px 10px', color: t2, fontSize: 10, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.lead_sponsor || '—'}</td>
       <td style={{ padding: '7px 10px', color: t2, fontSize: 10 }}>{l.contact_name || '—'}</td>
       <td style={{ padding: '7px 10px', color: '#60A5FA', fontSize: 10 }}>{l.contact_email || '—'}</td>
+      <td style={{ padding: '7px 10px', textAlign: 'center' }}>
+        {/* Contador de correos: se edita SOLO por el pop-up (confirmación), nunca inline —
+            un clic accidental acá cuesta la trazabilidad del seguimiento. */}
+        <button onClick={() => setModalCount(l)} title={t('research.count.title')}
+          style={{
+            minWidth: 30, padding: '2px 8px', borderRadius: 20, cursor: 'pointer', fontWeight: 700, fontSize: 10,
+            fontFamily: 'DM Mono',
+            border: `1px solid ${l.email_count ? `${accent}55` : border}`,
+            background: l.email_count ? `${accent}18` : 'transparent',
+            color: l.email_count ? accent : t3,
+          }}>
+          {l.email_count ?? '—'}
+        </button>
+      </td>
       <td style={{ padding: '7px 10px' }}><StageBadge stage={l.stage} /></td>
       <td style={{ padding: '7px 10px', color: t3, fontSize: 10, whiteSpace: 'nowrap' }}>{l.next_followup_date || '—'}</td>
       <td style={{ padding: '7px 10px' }}>
