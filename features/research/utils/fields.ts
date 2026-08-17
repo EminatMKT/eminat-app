@@ -5,11 +5,11 @@
 // LEAD_FIELDS / FIELD_LABELS / CSV_COLUMN_MAP sueltos, que usaban nombres amigables
 // distintos de las columnas y rompían el guardado, la edición, el detalle y el import.
 // Las etiquetas y mensajes son claves i18n (ver shared/i18n) — nada de texto hardcodeado.
-import { PIPELINE_COLS, NCT_COLUMN, STAGE_LABEL_KEY } from './constants'
+import { PIPELINE_COLS, NCT_COLUMN, STAGE_LABEL_KEY } from '../constants'
 import { resolveToCanonical } from '@/shared/lib/canonical'
 import type { I18nKey } from '@/shared/i18n'
 
-export type LeadFieldType = 'text' | 'email' | 'tel' | 'url' | 'date' | 'textarea' | 'select' | 'datalist' | 'checkbox'
+export type LeadFieldType = 'text' | 'email' | 'tel' | 'url' | 'date' | 'textarea' | 'select' | 'datalist' | 'checkbox' | 'number'
 export type LeadFieldGroup = 'Estudio' | 'Contacto' | 'Seguimiento'
 
 export interface LeadFieldDef {
@@ -19,6 +19,10 @@ export interface LeadFieldDef {
   group: LeadFieldGroup
   fullWidth?: boolean
   required?: boolean
+  // Se muestra en el form pero no se edita ahí. Su escritura manual tiene una vía dedicada
+  // (ej. el pop-up del contador), y `buildLeadPayload` lo excluye para que guardar el form
+  // no lo pise con lo que tenga el estado del modal.
+  readOnly?: boolean
   options?: string[] // select / datalist
   // Traduce el texto visible de cada opción (value se mantiene canónico). Solo display.
   optionLabelKey?: Record<string, I18nKey>
@@ -79,6 +83,9 @@ export const LEAD_FIELD_DEFS: LeadFieldDef[] = [
   { column: 'contact2_email', labelKey: 'research.field.contact2_email', type: 'email', group: 'Contacto' },
   { column: 'contact2_phone', labelKey: 'research.field.contact2_phone', type: 'tel', group: 'Contacto' },
   // — Seguimiento —
+  // Contador de intentos de contacto (correos enviados a ese estudio). Lo escribe el pop-up con
+  // confirmación o el import; en el form va READ-ONLY a propósito — ver `readOnly` abajo.
+  { column: 'email_count', labelKey: 'research.field.email_count', type: 'number', group: 'Seguimiento', readOnly: true },
   { column: 'next_followup_date', labelKey: 'research.field.next_followup_date', type: 'date', group: 'Seguimiento' },
   { column: 'email_date', labelKey: 'research.field.email_date', type: 'date', group: 'Seguimiento' },
   { column: 'notes', labelKey: 'research.field.notes', type: 'textarea', group: 'Seguimiento', fullWidth: true },
@@ -98,6 +105,11 @@ const CSV_ALIASES: Record<string, string> = {
   second_email: 'contact2_email',
   next_followup: 'next_followup_date',
   note: 'internal_note',
+  // El correo de Federico (12/08/2026) titula la columna "Email Count (Royner)". normHeader la
+  // deja en 'email_count_(royner)': sin este alias el import la ignora en silencio.
+  'email_count_(royner)': 'email_count',
+  email_count_royner: 'email_count',
+  intentos: 'email_count',
 }
 
 // Export: headers = columnas reales (round-trip directo). El orden es el de LEAD_FIELD_DEFS.
@@ -127,14 +139,31 @@ export function normalizeDomainValue(column: string, raw: any): string | null {
 export function coerceLeadValue(column: string, value: any): any {
   const def = LEAD_FIELD_DEFS.find(f => f.column === column)
   if (def?.type === 'checkbox') return value === true || value === 'true'
+  if (def?.type === 'number') return coerceCount(value)
   if (value === '' || value === undefined) return null
   return value
 }
 
+// Entero >= 0 o null. El dato viene del Excel de Royner, así que tolera la coma decimal del
+// locale es ("3,0") y devuelve null —no NaN— ante basura o negativos: un NaN llegaría al
+// insert y lo reventaría en runtime, y "no sé cuántos" no es lo mismo que "cero correos".
+function coerceCount(value: any): number | null {
+  const raw = (value ?? '').toString().trim().replace(',', '.')
+  if (!raw) return null
+  const n = Number(raw)
+  return Number.isFinite(n) && n >= 0 ? Math.trunc(n) : null
+}
+
 // Payload de solo columnas conocidas, listo para insert/update (no incluye id/timestamps).
+// Los campos `readOnly` quedan FUERA: se escriben por su vía dedicada (el pop-up del contador),
+// y si viajaran acá, guardar el form los pisaría con lo que tenga el estado del modal —
+// editar un teléfono podría borrar el contador.
 export function buildLeadPayload(data: Record<string, any>): Record<string, any> {
   const out: Record<string, any> = {}
-  for (const f of LEAD_FIELD_DEFS) out[f.column] = coerceLeadValue(f.column, data[f.column])
+  for (const f of LEAD_FIELD_DEFS) {
+    if (f.readOnly) continue
+    out[f.column] = coerceLeadValue(f.column, data[f.column])
+  }
   return out
 }
 

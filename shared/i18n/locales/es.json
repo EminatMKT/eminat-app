@@ -31,6 +31,7 @@
   "research.field.contact2_role": "2do rol",
   "research.field.contact2_email": "2do email",
   "research.field.contact2_phone": "2do teléfono",
+  "research.field.email_count": "Correos enviados",
   "research.field.next_followup_date": "Próximo seguimiento",
   "research.field.email_date": "Fecha de email",
   "research.field.notes": "Notas",

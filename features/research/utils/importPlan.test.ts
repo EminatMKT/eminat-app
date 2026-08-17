@@ -1,12 +1,21 @@
 import { describe, it, expect } from 'vitest'
-import { guessMapping, indexByNct, buildImportPlan } from './importPlan'
-import { DEFAULT_STAGE, STAGE } from './constants'
+import { guessMapping, indexByNct, buildImportPlan, planCounterChanges, stripCounterFor } from './importPlan'
+import { DEFAULT_STAGE, STAGE } from '../constants'
 
 describe('guessMapping', () => {
   it('resuelve columnas reales, aliases legacy y marca desconocidas como null', () => {
     expect(guessMapping(['nct_number', 'NCT#', 'nct', 'basura']))
       .toEqual(['nct_number', 'nct_number', 'nct_number', null])
     expect(guessMapping(['status', 'email'])).toEqual(['recruitment_status', 'contact_email'])
+  })
+})
+
+describe('guessMapping de email_count', () => {
+  // El correo de Federico (12/08/2026) trae la columna como "Email Count (Royner)". Sin alias,
+  // normHeader la vuelve 'email_count_(royner)', no matchea, y el import la ignora EN SILENCIO
+  // — justo la columna que motiva la feature.
+  it('mapea "Email Count" y la variante con el nombre de Royner a email_count', () => {
+    expect(guessMapping(['Email Count', 'Email Count (Royner)'])).toEqual(['email_count', 'email_count'])
   })
 })
 
@@ -58,6 +67,61 @@ describe('buildImportPlan', () => {
     const m = ['nct_number', 'phase'] as (string | null)[]
     const p = buildImportPlan({ rows: [['NCTa', '9']], mapping: m, existingByNct: new Map(), dupMode: 'update', valueMap: { phase: { '9': 'Phase 4' } } })
     expect(p.toInsert[0].phase).toBe('Phase 4')
+  })
+})
+
+// El contador tiene DOS escritores (el pop-up de la app y el Excel de Royner vía import).
+// Decisión 2026-08-17: el import pisa, pero avisa antes y deja desmarcar lead por lead.
+describe('email_count en un update de import', () => {
+  const mapping = ['nct_number', 'email_count']
+  const existingByNct = new Map([['NCT01', 'id-1']])
+
+  it('una celda vacía NO pisa el contador existente — vacío es "no lo informé", no "ponelo en cero"', () => {
+    const plan = buildImportPlan({ rows: [['NCT01', '']], mapping, existingByNct, dupMode: 'update' })
+    expect(plan.toUpdate).toHaveLength(1)
+    expect(plan.toUpdate[0].values).not.toHaveProperty('email_count')
+  })
+
+  it('una celda con valor sí pisa', () => {
+    const plan = buildImportPlan({ rows: [['NCT01', '3']], mapping, existingByNct, dupMode: 'update' })
+    expect(plan.toUpdate[0].values.email_count).toBe(3)
+  })
+
+  it('pisa, no suma: importar el mismo archivo dos veces deja el mismo valor', () => {
+    const rows = [['NCT01', '3']]
+    const once = buildImportPlan({ rows, mapping, existingByNct, dupMode: 'update' })
+    const twice = buildImportPlan({ rows, mapping, existingByNct, dupMode: 'update' })
+    expect(twice.toUpdate[0].values.email_count).toBe(once.toUpdate[0].values.email_count)
+  })
+})
+
+describe('planCounterChanges', () => {
+  const mapping = ['nct_number', 'email_count']
+  const existingByNct = new Map([['NCT01', 'id-1'], ['NCT02', 'id-2']])
+
+  it('lista solo los leads cuyo contador cambia de valor', () => {
+    const plan = buildImportPlan({ rows: [['NCT01', '3'], ['NCT02', '2']], mapping, existingByNct, dupMode: 'update' })
+    const changes = planCounterChanges(plan, new Map([['id-1', 2], ['id-2', 2]]))
+    expect(changes).toEqual([{ id: 'id-1', nct: 'NCT01', from: 2, to: 3 }])
+  })
+
+  it('un lead que todavía no tiene contador se reporta desde null', () => {
+    const plan = buildImportPlan({ rows: [['NCT01', '3']], mapping, existingByNct, dupMode: 'update' })
+    expect(planCounterChanges(plan, new Map())).toEqual([{ id: 'id-1', nct: 'NCT01', from: null, to: 3 }])
+  })
+})
+
+describe('stripCounterFor', () => {
+  it('saca el contador de los updates desmarcados y deja intacto el resto del lead', () => {
+    const plan = buildImportPlan({
+      rows: [['NCT01', '3', 'Estudio A']],
+      mapping: ['nct_number', 'email_count', 'official_title'],
+      existingByNct: new Map([['NCT01', 'id-1']]),
+      dupMode: 'update',
+    })
+    const kept = stripCounterFor(plan, new Set(['id-1']))
+    expect(kept.toUpdate[0].values).not.toHaveProperty('email_count')
+    expect(kept.toUpdate[0].values.official_title).toBe('Estudio A')
   })
 })
 

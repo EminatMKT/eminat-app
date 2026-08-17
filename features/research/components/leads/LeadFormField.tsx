@@ -1,7 +1,7 @@
 'use client'
 import { RESEARCH_THEME, inputStyle } from '../../theme'
 import { useT, type I18nKey } from '@/shared/i18n'
-import type { LeadFieldDef } from '../../fields'
+import type { LeadFieldDef } from '../../utils/fields'
 
 export default function LeadFormField({ def, value, onChange, onBlur, hint, help, error, action }: { def: LeadFieldDef; value: any; onChange: (v: any) => void; onBlur?: () => void; hint?: React.ReactNode; help?: React.ReactNode; error?: I18nKey; action?: () => void }) {
   const { t3, accent } = RESEARCH_THEME

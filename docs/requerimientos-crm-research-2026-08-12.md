@@ -40,7 +40,7 @@ Impacto en el código actual:
 
 - `research_leads` necesita la columna `email_count` (migración).
 - `features/research/types.ts` → agregar `email_count?: number` a `Lead`.
-- `features/research/fields.ts` → nuevo `LeadFieldDef` en el grupo `Seguimiento`. **Ojo:**
+- `features/research/utils/fields.ts` → nuevo `LeadFieldDef` en el grupo `Seguimiento`. **Ojo:**
   `LeadFieldType` no tiene `'number'`, hay que agregarlo.
 - `features/research/components/leads/LeadRow.tsx` + `LeadsTab.tsx` → la celda con el botón.
 - Modal de confirmación nuevo (hay precedentes en `components/leads/`).
@@ -52,7 +52,7 @@ Impacto en el código actual:
   de la semana tal a tal"*.
 - Idea mencionada, **no comprometida**: dejar elegir qué filtros se muestran.
 
-Impacto: `features/research/filters.ts` ya centraliza los filtros en `LEAD_FILTERS` y agregar uno
+Impacto: `features/research/utils/filters.ts` ya centraliza los filtros en `LEAD_FILTERS` y agregar uno
 es editar el array. Pero el `FilterDef` actual es `options` + `match(lead, value: string)` — un
 **rango de fechas no entra en esa forma** y la barra de búsqueda libre tampoco. Hay que extender
 el tipo, no solo agregar una entrada.

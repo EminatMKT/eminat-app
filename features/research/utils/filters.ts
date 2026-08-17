@@ -4,7 +4,7 @@
 // solo los campos libres (sponsor, país) se derivan de la data presente.
 import { domainOptions } from './fields'
 import { distinctValues, distinctTokens, type FilterDef } from '@/shared/lib/filters'
-import type { Lead } from './types'
+import type { Lead } from '../types'
 
 const eq = (get: (l: Lead) => any) => (l: Lead, v: string) => String(get(l) ?? '') === v
 const includes = (get: (l: Lead) => any) => (l: Lead, v: string) => String(get(l) ?? '').includes(v)

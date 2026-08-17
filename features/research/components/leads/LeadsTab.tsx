@@ -2,7 +2,7 @@
 import { RESEARCH_THEME, selectStyle } from '../../theme'
 import { useT, type I18nKey } from '@/shared/i18n'
 import FilterBar from '@/shared/components/FilterBar'
-import { LEAD_FILTERS } from '../../filters'
+import { LEAD_FILTERS } from '../../utils/filters'
 import { useResearch } from '../ResearchContext'
 import LeadRow from './LeadRow'
 

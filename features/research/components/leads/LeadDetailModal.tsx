@@ -1,6 +1,6 @@
 'use client'
 import { RESEARCH_THEME } from '../../theme'
-import { LEAD_FIELD_DEFS } from '../../fields'
+import { LEAD_FIELD_DEFS } from '../../utils/fields'
 import { useResearch } from '../ResearchContext'
 import LeadDetailField from './LeadDetailField'
 import LeadActivityItem from './LeadActivityItem'
