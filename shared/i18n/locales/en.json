@@ -60,6 +60,7 @@
   "research.action.import": "Import",
   "research.action.export": "Export",
   "research.action.pdf": "PDF",
+  "research.section.indicators": "Indicators",
   "research.chart.pipelineByStage": "Pipeline by stage",
   "research.chart.leadsByPhase": "Studies by phase",
   "research.leads.tableTitle": "Records",

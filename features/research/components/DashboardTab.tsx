@@ -2,6 +2,7 @@
 // import { RESEARCH_THEME } from '../theme' // ponytail: sin uso tras comentar los bloques de dirección — restaurar junto con "Leads by Country"/"Top Sponsors"/"Recently added" (usan s1/border/t1/t3)
 import { useResearch } from './ResearchContext'
 import StatCard from './StatCard'
+import Panel from './Panel'
 // import CountryChip from './CountryChip' // ponytail: oculto por pedido de dirección (reunión 2026-07-20) — restaurar descomentando esto + el bloque "Leads by Country"
 // import RecentLeadItem from './RecentLeadItem' // ponytail: oculto por pedido de dirección — restaurar con el bloque "Recently added leads"
 import StagePieChart from './StagePieChart'
@@ -26,8 +27,14 @@ export default function DashboardTab() {
           ("ese sería uno de los del final a la derecha"). Los 81 únicos abrían la fila y tapaban
           los ~165-170 alcances reales. Nuevo y Ganado se quedan: en la reunión los dio por buenos
           ("el nuevo ya lo tienes, el contactado lo tienes, el ganado evidentemente está ahí"),
-          nunca pidió sacarlos. auto-fit para que la fila baje de renglón antes que apretujarse. */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(165px, 1fr))', gap: 10, marginBottom: 16 }}>
+          nunca pidió sacarlos. auto-fit para que la fila baje de renglón antes que apretujarse.
+          Van dentro de un Panel para que la fila deje de flotar sobre el fondo y quede rotulada,
+          igual que las gráficas de abajo. */}
+      <div style={{ marginBottom: 14 }}>
+      {/* Sin `right` con la base: cada card ya la lleva en su pie, y a la derecha del título
+          quedaba lejos de las cards de ese extremo. Se dice una vez por card, no dos veces. */}
+      <Panel title={t('research.section.indicators')}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(165px, 1fr))', gap: 10 }}>
         <StatCard label={t('research.kpi.totalEmails')} value={totalCorreos} color="#F472B6"
           footnote={t('research.kpi.emailsSum')}
           breakdown={{
@@ -53,6 +60,8 @@ export default function DashboardTab() {
           footnote={mesEnCurso} />
         <StatCard label={t('research.kpi.uniqueLeads')} value={totalLeads} color="#7C6FF7"
           footnote={t('research.kpi.uniqueNct')} />
+      </div>
+      </Panel>
       </div>
 
       {/* Oculto por dirección (reunión 2026-07-20) — restaurar descomentando + reactivar imports/destructure de countrySorted:
