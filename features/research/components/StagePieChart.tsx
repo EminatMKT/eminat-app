@@ -31,7 +31,7 @@ export default function StagePieChart({ data }: { data: { name: string; value: n
     )
   }
   return (
-    <Panel collapsible title={t('research.chart.pipelineByStage')}>
+    <Panel collapsible persistKey="research-pipeline" title={t('research.chart.pipelineByStage')}>
       {/* Leyenda a la derecha y no debajo: mismo pedido de legibilidad a distancia. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ flex: '1 1 55%', minWidth: 0 }}>

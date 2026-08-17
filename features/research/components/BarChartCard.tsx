@@ -11,12 +11,12 @@ type Datum = { name: string; value: number }
 // La cifra va SOBRE la barra y el eje de valores desaparece: proyectado, nadie sigue una barra
 // hasta una escala lateral. Misma razón que el % dentro del pie.
 // ⚠️ isAnimationActive={false} es necesario para que se vean las etiquetas (ver StagePieChart).
-export default function BarChartCard({ title, data, vertical = false, height, yWidth = 120 }: { title: string; data: Datum[]; vertical?: boolean; height?: number; yWidth?: number }) {
+export default function BarChartCard({ title, data, vertical = false, height, yWidth = 120, persistKey }: { title: string; data: Datum[]; vertical?: boolean; height?: number; yWidth?: number; persistKey?: string }) {
   const { s1, border, t1, t2 } = RESEARCH_THEME
   const tooltipStyle = { background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }
   const figure = { fontFamily: 'Syne', fontSize: 13, fontWeight: 800 }
   return (
-    <Panel collapsible title={title}>
+    <Panel collapsible persistKey={persistKey} title={title}>
       <ResponsiveContainer width="100%" height={height ?? (vertical ? 200 : 220)}>
         {vertical ? (
           <BarChart data={data} layout="vertical" margin={{ right: 28 }}>

@@ -1,22 +1,24 @@
 'use client'
-import { useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { RESEARCH_THEME } from '../theme'
+import { usePersistedState } from '@/shared/lib/usePersistedState'
 
 // Contenedor único de los bloques del módulo (gráficas, tabla de leads, barra de filtros).
 // Antes cada bloque repetía su propio borde/radio/sombra y su título con otro tamaño: un panel
 // solo hace que todo el módulo respire igual y que el ojo encuentre siempre el título en el
 // mismo lugar. `right` es para lo que acompaña al título (contadores, acciones).
 // `collapsible` deja recoger el bloque: en una presentación se muestra una sección a la vez.
-export default function Panel({ title, right, children, flush = false, collapsible = false, defaultCollapsed = false }: {
+export default function Panel({ title, right, children, flush = false, collapsible = false, defaultCollapsed = false, persistKey }: {
   title?: string
   right?: ReactNode
   children: ReactNode
   flush?: boolean // el contenido llega hasta el borde (tablas), sin padding propio
   collapsible?: boolean
   defaultCollapsed?: boolean
+  persistKey?: string // con esto, el panel recuerda si quedó recogido entre sesiones
 }) {
   const { s1, border, t1, t3 } = RESEARCH_THEME
-  const [collapsed, setCollapsed] = useState(defaultCollapsed)
+  const [collapsed, setCollapsed] = usePersistedState(persistKey ? `eminat-panel-${persistKey}` : null, defaultCollapsed)
   const canToggle = collapsible && !!title
   return (
     <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
