@@ -40,7 +40,7 @@ export default function DashboardTab() {
       {/* El botón del detalle va con borde y chevron: sin eso se leía como una etiqueta más de
           la cabecera y nadie adivinaba que era un control. */}
       <Panel collapsible persistKey="research-indicators" title={t('research.section.indicators')}
-        right={<button type="button" onClick={() => setDetalle(d => !d)} className="tool-btn"
+        right={<button type="button" onClick={() => setDetalle(d => !d)} aria-pressed={detalle} className="tool-btn"
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 999, cursor: 'pointer', fontFamily: 'DM Mono', fontSize: 9, textTransform: 'uppercase', letterSpacing: '.1em', color: RESEARCH_THEME.t2, background: RESEARCH_THEME.s1, border: `1px solid ${RESEARCH_THEME.border}` }}>
           <span style={{ fontSize: 8 }}>{detalle ? '▲' : '▼'}</span>
           {detalle ? t('research.section.hideDetail') : t('research.section.showDetail')}
@@ -94,7 +94,7 @@ export default function DashboardTab() {
 
       {/* Oculto por dirección (reunión 2026-07-20) — Top Sponsors + Recently added. Restaurar descomentando + reactivar imports/destructure (sponsorData, leads, RecentLeadItem):
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <BarChartCard title="Top Sponsors" data={sponsorData} vertical />
+        <BarChartCard persistKey="research-sponsors" title={t('research.chart.topSponsors')} data={sponsorData} vertical />
         <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
           <div style={{ padding: '12px 16px', borderBottom: `1px solid ${border}`, fontSize: 12, fontWeight: 600, color: t1 }}>Recently added leads</div>
           {leads.slice(0, 5).map(l => <RecentLeadItem key={l.id} lead={l} />)}

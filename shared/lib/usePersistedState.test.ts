@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { readPref, writePref, oneOf } from './usePersistedState'
+import { writeUserPreference, userPrefKey, LAST_MODULE_KEY } from './useUserPreference'
 
 // localStorage mínimo: los tests corren en entorno node, sin DOM.
 const store = new Map<string, string>()
@@ -42,5 +43,19 @@ describe('readPref / writePref (el par que usan el hook y ModuleGate)', () => {
     expect(readPref('tab', 'dashboard', isTab)).toBe('dashboard')
     writePref('tab', 'leads')
     expect(readPref('tab', 'dashboard', isTab)).toBe('leads')
+  })
+
+  it('lo que escribe ModuleGate es exactamente lo que lee el Launchpad', () => {
+    // El round-trip completo, con la clave namespaceada incluida: es el camino real que estaba
+    // roto (escritor fuera de React ↔ lector del hook), no solo el formato del valor.
+    writeUserPreference('u-1', LAST_MODULE_KEY, 'research')
+    expect(readPref(userPrefKey('u-1', LAST_MODULE_KEY), null as string | null)).toBe('research')
+  })
+
+  it('cada usuario lee lo suyo en la misma máquina', () => {
+    writeUserPreference('u-1', LAST_MODULE_KEY, 'research')
+    writeUserPreference('u-2', LAST_MODULE_KEY, 'medical')
+    expect(readPref(userPrefKey('u-1', LAST_MODULE_KEY), null as string | null)).toBe('research')
+    expect(readPref(userPrefKey('u-2', LAST_MODULE_KEY), null as string | null)).toBe('medical')
   })
 })

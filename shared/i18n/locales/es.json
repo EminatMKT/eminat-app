@@ -66,6 +66,7 @@
   "research.section.showDetail": "Ver detalle",
   "research.chart.pipelineByStage": "Pipeline por etapa",
   "research.chart.leadsByPhase": "Estudios por fase",
+  "research.chart.topSponsors": "Top sponsors",
   "research.leads.tableTitle": "Registros",
   "research.leads.emptyTitle": "Sin registros para estos filtros",
   "research.leads.emptyHint": "Probá limpiar la búsqueda o ampliar el rango de fechas.",

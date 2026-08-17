@@ -45,21 +45,27 @@ export function stageLabel(stage: string | undefined, t: (k: I18nKey) => string)
 
 export const CHART_COLORS = ['#34D399', '#60A5FA', '#A78BFA', '#F472B6', '#FBB040', '#F87171', '#7C6FF7', '#FB923C', '#22D3EE', '#9494B3']
 
-// Color de una etapa, para el pie y su leyenda. Existe porque cada uno resolvía el suyo: el pie
-// caía a CHART_COLORS[i] y la leyenda a `accent`, así que un valor legacy salía naranja en el
-// gráfico y violeta en la leyenda. Y CHART_COLORS repite varios hexes del pipeline (#FBB040 es
-// el de Contactado), de ahí el naranja duplicado: dos porciones distintas, el mismo color.
+// Colores del pie de etapas y su leyenda, resueltos DE UNA VEZ para todo el gráfico. Antes cada
+// uno resolvía el suyo (el pie caía a CHART_COLORS[i], la leyenda a `accent`) y el mismo dato
+// salía naranja en el gráfico y violeta en la leyenda. Además CHART_COLORS repite hexes del
+// pipeline (#FBB040 ES el de Contactado), así que una etapa legacy podía competir con una
+// canónica. Acá se resuelve por conjunto y no nombre por nombre: es la única forma de garantizar
+// que dos etapas distintas del MISMO gráfico no compartan color.
+const CANONICAL_STAGES = new Set<string>(Object.keys(PIPELINE_COLORS))
 const PIPELINE_HEXES = new Set<string>(Object.values(PIPELINE_COLORS))
 const EXTRA_COLORS = CHART_COLORS.filter(c => !PIPELINE_HEXES.has(c))
 
-export function stageColor(name: string): string {
-  const canonical = (PIPELINE_COLORS as Record<string, string>)[name]
-  if (canonical) return canonical
-  // Determinista por NOMBRE y no por posición: stageData se ordena por cantidad, así que un
-  // índice posicional le cambiaría el color a un valor legacy con solo mover un lead.
-  let h = 0
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
-  return EXTRA_COLORS[h % EXTRA_COLORS.length]
+export function stageColors(names: string[]): Record<string, string> {
+  // Orden ALFABÉTICO de las legacy presentes, no el del gráfico: stageData viene ordenado por
+  // cantidad, así que con un índice posicional el color de una etapa cambiaría al cargar un lead.
+  // Con el orden por nombre, el color solo se mueve si aparece o desaparece un valor legacy.
+  const legacy = Array.from(new Set(names)).filter(n => !CANONICAL_STAGES.has(n)).sort()
+  return Object.fromEntries(names.map(n => [
+    n,
+    CANONICAL_STAGES.has(n)
+      ? (PIPELINE_COLORS as Record<string, string>)[n]
+      : EXTRA_COLORS[legacy.indexOf(n) % EXTRA_COLORS.length],
+  ]))
 }
 
 // ponytail: sin uso tras comentar "Leads by Country" (dirección, reunión 2026-07-20). Su único
