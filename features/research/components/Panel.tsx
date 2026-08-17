@@ -19,13 +19,13 @@ type PanelBase = {
 // La clave es explícita y no derivada del título: el título está traducido y cambiaría de clave
 // (y de estado) al pasar de español a inglés.
 type PanelProps = PanelBase & (
-  | { collapsible: true; persistKey: string; defaultCollapsed?: boolean }
-  | { collapsible?: false; persistKey?: never; defaultCollapsed?: never }
+  | { collapsible: true; persistKey: string }
+  | { collapsible?: false; persistKey?: never }
 )
 
-export default function Panel({ title, right, children, flush = false, collapsible = false, defaultCollapsed = false, persistKey }: PanelProps) {
+export default function Panel({ title, right, children, flush = false, collapsible = false, persistKey }: PanelProps) {
   const { s1, border, t1, t3 } = RESEARCH_THEME
-  const [collapsed, setCollapsed] = useUserPreference(persistKey ? `panel-${persistKey}` : null, defaultCollapsed)
+  const [collapsed, setCollapsed] = useUserPreference(persistKey ? `panel-${persistKey}` : null, false)
   const canToggle = collapsible && !!title
   return (
     <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>

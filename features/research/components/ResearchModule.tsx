@@ -6,10 +6,11 @@ import { PageTransition } from '@/shared/motion'
 import { ResearchProvider } from './ResearchContext'
 import ResearchContent from './ResearchContent'
 import { useUserPreference } from '@/shared/lib/useUserPreference'
+import { oneOf } from '@/shared/lib/usePersistedState'
 
 export default function ResearchModule() {
   const { modules } = useApp()
-  const [tab, setTab] = useUserPreference('tab-research', 'dashboard')
+  const [tab, setTab] = useUserPreference('tab-research', 'dashboard', oneOf('dashboard', 'leads', 'newsletter', 'sms', 'mailing', 'pipeline', 'oportunidades'))
 
   if (!modules.includes('research')) return <AccessDenied message="You don't have access to the Research module." />
 

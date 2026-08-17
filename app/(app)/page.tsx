@@ -4,7 +4,7 @@ import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import AppShell from '@/shared/components/AppShell'
 import { PageTransition } from '@/shared/motion'
-import { MODULE_META, ROUTES, modulePath, type ModuleSlug } from '@/shared/auth/permissions'
+import { MODULE_META, ROUTES, modulePath, isModuleSlug, type ModuleSlug } from '@/shared/auth/permissions'
 import { useUserPreference, LAST_MODULE_KEY } from '@/shared/lib/useUserPreference'
 
 // ── Dark theme (matches AppShell's sidebar palette) ───────────────────
@@ -105,7 +105,7 @@ export default function LaunchpadPage() {
   // El atajo solo aparece si el módulo guardado sigue existiendo Y el rol todavía lo tiene:
   // si a alguien le sacan un permiso, el botón no puede seguir invitándolo a una pantalla
   // que le va a responder "no tenés acceso".
-  const [ultimoGuardado] = useUserPreference<ModuleSlug | null>(LAST_MODULE_KEY, null)
+  const [ultimoGuardado] = useUserPreference<ModuleSlug | null>(LAST_MODULE_KEY, null, isModuleSlug)
   const ultimo = ultimoGuardado && modules.includes(ultimoGuardado) ? ultimoGuardado : null
 
   return (

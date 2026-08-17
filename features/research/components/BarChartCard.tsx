@@ -11,7 +11,7 @@ type Datum = { name: string; value: number }
 // La cifra va SOBRE la barra y el eje de valores desaparece: proyectado, nadie sigue una barra
 // hasta una escala lateral. Misma razón que el % dentro del pie.
 // ⚠️ isAnimationActive={false} es necesario para que se vean las etiquetas (ver StagePieChart).
-export default function BarChartCard({ title, data, vertical = false, height, yWidth = 120, persistKey }: { title: string; data: Datum[]; vertical?: boolean; height?: number; yWidth?: number; persistKey?: string }) {
+export default function BarChartCard({ title, data, vertical = false, height, persistKey }: { title: string; data: Datum[]; vertical?: boolean; height?: number; persistKey: string }) {
   const { s1, border, t1, t2 } = RESEARCH_THEME
   const tooltipStyle = { background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }
   const figure = { fontFamily: 'Syne', fontSize: 13, fontWeight: 800 }
@@ -21,7 +21,7 @@ export default function BarChartCard({ title, data, vertical = false, height, yW
         {vertical ? (
           <BarChart data={data} layout="vertical" margin={{ right: 28 }}>
             <XAxis type="number" hide />
-            <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: t2 }} width={yWidth} axisLine={false} tickLine={false} />
+            <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: t2 }} width={120} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} cursor={{ fill: `${t2}12` }} />
             <Bar dataKey="value" radius={[0, 6, 6, 0]} isAnimationActive={false}>
               {data.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}

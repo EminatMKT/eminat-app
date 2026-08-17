@@ -68,8 +68,10 @@ export function useResearchData() {
   const totalCorreos = totalEmails(leads)
   const cadencia = cadenceBreakdown(leads)
   // "Mes / fecha de registro" (card 4 del pedido): cuántos leads entraron en el mes en curso.
-  // date_added es DATE (YYYY-MM-DD) → prefijo del mes, sin parsear ni zonas horarias.
-  const mesActual = new Date().toISOString().slice(0, 7)
+  // date_added es DATE (YYYY-MM-DD) → alcanza con comparar el prefijo del mes. El mes se toma
+  // en hora LOCAL ('sv-SE' da YYYY-MM-DD): con toISOString, en UTC-4 el último día del mes a
+  // partir de las 20:00 la card ya contaba el mes siguiente mientras el rótulo decía el actual.
+  const mesActual = new Date().toLocaleDateString('sv-SE').slice(0, 7)
   const cargadosEsteMes = leads.filter(l => (l.date_added ?? '').startsWith(mesActual)).length
 
   // Fiel a la tabla: agrupa por el stage REAL de cada lead (migrado o no). Nada se oculta por

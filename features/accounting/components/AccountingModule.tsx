@@ -11,6 +11,7 @@ import ReceivablesTab from './ReceivablesTab'
 import BankingTab from './BankingTab'
 import LabsTab from './LabsTab'
 import { useUserPreference } from '@/shared/lib/useUserPreference'
+import { oneOf } from '@/shared/lib/usePersistedState'
 
 type TabKey = 'summary' | 'sales' | 'receivables' | 'banking' | 'labs'
 
@@ -23,7 +24,7 @@ const tabs: { key: TabKey; label: string; icon: string }[] = [
 ]
 
 export default function AccountingModule() {
-  const [tab, setTab] = useUserPreference<TabKey>('tab-accounting', 'summary')
+  const [tab, setTab] = useUserPreference<TabKey>('tab-accounting', 'summary', oneOf('summary', 'sales', 'receivables', 'banking', 'labs'))
   return (
     <AppShell>
       <div className="-mx-6 -my-5 min-h-full bg-gray-50 px-7 py-6">

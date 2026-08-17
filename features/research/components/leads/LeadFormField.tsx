@@ -16,7 +16,7 @@ export default function LeadFormField({ def, value, onChange, onBlur, hint, help
     if (def.readOnly) {
       return (
         <input value={v === '' ? '—' : v} readOnly disabled
-          style={{ ...style, background: '#F3F4F6', color: t3, cursor: 'not-allowed' }} />
+          style={{ ...style, background: 'rgba(128,128,128,.10)', color: t3, cursor: 'not-allowed' }} />
       )
     }
     switch (def.type) {

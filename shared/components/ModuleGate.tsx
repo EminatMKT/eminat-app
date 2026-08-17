@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { useApp } from '@/shared/context/AppContext'
 import { moduleForPath } from '@/shared/auth/permissions'
-import { userPrefKey, LAST_MODULE_KEY } from '@/shared/lib/useUserPreference'
+import { writeUserPreference, LAST_MODULE_KEY } from '@/shared/lib/useUserPreference'
 import AccessDenied from './AccessDenied'
 
 // Gate central por módulo: una sola fuente de verdad (antes cada módulo lo hacía suelto y se
@@ -20,7 +20,7 @@ export default function ModuleGate({ children }: { children: React.ReactNode }) 
   const userId: string | undefined = usuario?.id
   useEffect(() => {
     if (!allowed || !slug || !userId) return
-    try { localStorage.setItem(userPrefKey(userId, LAST_MODULE_KEY), slug) } catch { /* best-effort */ }
+    writeUserPreference(userId, LAST_MODULE_KEY, slug)
   }, [allowed, slug, userId])
 
   if (!loading && slug && !modules.includes(slug)) {

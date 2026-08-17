@@ -17,6 +17,7 @@ import PacienteModal from './PacienteModal'
 import CitaModal from './CitaModal'
 import IncidenteModal from './IncidenteModal'
 import { useUserPreference } from '@/shared/lib/useUserPreference'
+import { oneOf } from '@/shared/lib/usePersistedState'
 
 const TABS = [
   { id: 'dashboard', labelKey: 'med.tabDashboard', icon: '📊' },
@@ -30,7 +31,7 @@ export default function MedicalModule() {
   const { modules, border } = useApp()
   const { t } = useT()
   const { hipaaShield } = useMedicalStyles()
-  const [tab, setTab] = useUserPreference('tab-medical', 'dashboard')
+  const [tab, setTab] = useUserPreference('tab-medical', 'dashboard', oneOf(...TABS.map(x => x.id)))
   const [modalPaciente, setModalPaciente] = useState(false)
   const [modalCita, setModalCita] = useState(false)
   const [modalIncidente, setModalIncidente] = useState(false)

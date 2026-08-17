@@ -5,6 +5,7 @@ import { escapeHtml } from '@/shared/lib/html'
 import { ACTIVE_MIEMBROS_REFS, isExcludedFromStratix360 } from '../team'
 import type { NuevaActForm } from '../types'
 import { useUserPreference } from '@/shared/lib/useUserPreference'
+import { oneOf } from '@/shared/lib/usePersistedState'
 
 const emptyNuevaAct = (): NuevaActForm => ({
   titulo: '', descripcion: '', area_ref: 'EMC', responsable_ref: 'DG_Joselyn',
@@ -15,7 +16,7 @@ const emptyNuevaAct = (): NuevaActForm => ({
 export function useStratixData() {
   const { usuario, actividades, equipo, usuarios, esAdmin, mostrarMensaje, setActividades } = useApp()
 
-  const [mktTab, setMktTab] = useUserPreference('tab-stratix', 'kanban')
+  const [mktTab, setMktTab] = useUserPreference('tab-stratix', 'kanban', oneOf('overview', 'kanban', 'gantt', 'horas', 'solicitudes', 'social', 'competencia', 'equipo', 'reporte'))
   const [trimestre, setTrimestre] = useState('General')
   const [mesKanban, setMesKanban] = useState('')
   const [ganttVista, setGanttVista] = useState('Month')
