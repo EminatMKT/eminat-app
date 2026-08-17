@@ -1,17 +1,24 @@
 import { RESEARCH_THEME } from '../theme'
 
-// Absoluto y porcentaje UNO AL LADO DEL OTRO — es el "ideal" que pidió Federico (12/08/2026), y
-// deja sin trabajo al selector absolutos/% que planteó como alternativa: no hay nada que alternar
-// si los dos valores están siempre a la vista. Tamaño subido para leerse proyectado en la sala.
+// Un renglón de la leyenda, en TRES celdas de la grilla del contenedor (por eso devuelve un
+// fragmento y no una caja propia): etiqueta · absoluto · porcentaje.
+//
+// Ley de continuidad: como los nombres miden distinto, con los tres datos apilados en una sola
+// línea las cifras arrancaban en una posición distinta por renglón y el ojo no podía bajar en
+// recta para comparar. En columnas, cada cifra queda sobre la anterior y se lee de arriba abajo
+// sin releer el nombre. Absoluto y % juntos son el pedido de Federico (12/08/2026).
 export default function StageLegendItem({ name, value, total, color }: { name: string; value: number; total: number; color: string }) {
-  const { t1, t3 } = RESEARCH_THEME
+  const { t1, t2, t3 } = RESEARCH_THEME
   const pct = total > 0 ? Math.round((value / total) * 100) : 0
+  const figure = { fontFamily: 'DM Mono', fontVariantNumeric: 'tabular-nums', textAlign: 'right' } as const
   return (
-    <span style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
-      <span style={{ width: 10, height: 10, borderRadius: 3, background: color, flexShrink: 0 }} />
-      <span style={{ color: t3 }}>{name}</span>
-      <span style={{ color: t1, fontWeight: 700, fontFamily: 'DM Mono' }}>{value}</span>
-      <span style={{ color: t3, fontFamily: 'DM Mono' }}>· {pct}%</span>
-    </span>
+    <>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: t2, whiteSpace: 'nowrap' }}>
+        <span style={{ width: 10, height: 10, borderRadius: 3, background: color, flexShrink: 0 }} />
+        {name}
+      </span>
+      <span style={{ ...figure, fontSize: 12, fontWeight: 700, color: t1 }}>{value}</span>
+      <span style={{ ...figure, fontSize: 12, color: t3 }}>{pct}%</span>
+    </>
   )
 }

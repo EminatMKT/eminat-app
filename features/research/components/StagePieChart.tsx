@@ -47,7 +47,9 @@ export default function StagePieChart({ data }: { data: { name: string; value: n
             </Pie><Tooltip formatter={(value, name) => [value, stageLabel(String(name), t)]} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} /></PieChart>
           </ResponsiveContainer>
         </div>
-        <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* Grilla de 3 columnas: los nombres miden distinto, así que solo alineando las cifras
+            en columna el ojo puede bajar en recta y compararlas (ley de continuidad). */}
+        <div style={{ flex: '0 0 auto', display: 'grid', gridTemplateColumns: 'auto max-content max-content', columnGap: 12, rowGap: 9, alignItems: 'baseline' }}>
           {data.map(d => <StageLegendItem key={d.name} name={stageLabel(d.name, t)} value={d.value} total={total} color={colors[d.name]} />)}
         </div>
       </div>
