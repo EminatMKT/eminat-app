@@ -91,7 +91,7 @@
   "research.count.formHint": "Se actualiza desde la columna de la tabla de leads.",
   "research.kpi.totalEmails": "Correos enviados",
   "research.kpi.uniqueLeads": "Registros únicos",
-  "research.kpi.cadenceHint": "leads: {a} con 1 correo · {b} con 2 · {c} con 3+",
+  "research.kpi.cadenceHint": "leads por cadencia · 1 correo: {a} · 2 correos: {b} · 3+ correos: {c}",
   "research.kpi.addedThisMonth": "Cargados este mes",
   "research.kpi.pctOfTotal": "{p}% del total",
   "research.import.ignoredSection": "Columnas que se van a descartar",
