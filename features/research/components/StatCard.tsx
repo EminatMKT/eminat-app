@@ -13,7 +13,7 @@ export interface StatBreakdown {
   rows: { label: string; value: ReactNode }[]
 }
 
-export default function StatCard({ label, value, color, size = 'md', badge, footnote, breakdown }: {
+export default function StatCard({ label, value, color, size = 'md', badge, footnote, breakdown, showDetail = true }: {
   label: string
   value: ReactNode
   color: string
@@ -21,6 +21,9 @@ export default function StatCard({ label, value, color, size = 'md', badge, foot
   badge?: string
   footnote?: string
   breakdown?: StatBreakdown
+  // El detalle (pie + desglose) se puede recoger desde afuera. Va por prop y no por estado
+  // propio a propósito: si cada card decidiera sola, la fila quedaría dispareja.
+  showDetail?: boolean
 }) {
   const { s1, border, t1, t2, t3 } = RESEARCH_THEME
   const sm = size === 'sm'
@@ -39,7 +42,7 @@ export default function StatCard({ label, value, color, size = 'md', badge, foot
         {badge && <span style={{ fontFamily: 'DM Mono', fontSize: 10, fontWeight: 700, color, background: `${color}1F`, borderRadius: 999, padding: '3px 8px', lineHeight: 1 }}>{badge}</span>}
       </div>
 
-      {(footnote || breakdown) && (
+      {showDetail && (footnote || breakdown) && (
         <div style={{ marginTop: 'auto', paddingTop: 12 }}>
           <div style={{ borderTop: `1px solid ${border}`, opacity: 0.7, marginBottom: 8 }} />
           {footnote && <div style={{ fontSize: 10.5, color: t2, lineHeight: 1.4, marginBottom: breakdown ? 10 : 0 }}>{footnote}</div>}

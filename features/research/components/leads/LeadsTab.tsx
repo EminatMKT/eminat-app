@@ -25,7 +25,7 @@ export default function LeadsTab() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* Los filtros viven en su propio panel: dejan de flotar sueltos sobre el fondo y se
           entiende que son la barra de herramientas de la tabla de abajo. */}
-      <Panel>
+      <Panel collapsible title={t('research.section.filters')}>
         <FilterBar defs={LEAD_FILTERS} items={leads} values={filterValues} onChange={setFilterValue} onClear={clearFilters}
           labelFor={d => t(d.labelKey as I18nKey)}
           clearLabel={t('research.filter.clear')}
@@ -36,7 +36,7 @@ export default function LeadsTab() {
 
       {/* Las acciones viven acá y no en el encabezado del módulo: operan sobre ESTA tabla
           (export y PDF salen de `filteredLeads`, o sea de lo que el usuario está viendo). */}
-      <Panel flush
+      <Panel flush collapsible
         title={t('research.leads.tableTitle')}
         right={<div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span style={{ fontFamily: 'DM Mono', fontSize: 10, color: accent, background: `${accent}14`, borderRadius: 999, padding: '4px 10px' }}>

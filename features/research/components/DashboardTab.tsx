@@ -1,5 +1,6 @@
 'use client'
-// import { RESEARCH_THEME } from '../theme' // ponytail: sin uso tras comentar los bloques de dirección — restaurar junto con "Leads by Country"/"Top Sponsors"/"Recently added" (usan s1/border/t1/t3)
+import { useState } from 'react'
+import { RESEARCH_THEME } from '../theme'
 import { useResearch } from './ResearchContext'
 import StatCard from './StatCard'
 import Panel from './Panel'
@@ -11,6 +12,7 @@ import { useT } from '@/shared/i18n'
 
 export default function DashboardTab() {
   const { t, locale } = useT()
+  const [detalle, setDetalle] = useState(true)
   const { totalLeads, totalCorreos, cadencia, contactadosConCorreo, nuevos, ganados, sinRespuesta, cargadosEsteMes, stageData, phaseData } = useResearch()
   // El absoluto y el % juntos en la misma card (pedido de Federico, 12/08/2026). El % es el que
   // sostiene la narrativa: "de todo lo que enviamos, no nos han respondido la mitad".
@@ -32,10 +34,16 @@ export default function DashboardTab() {
           igual que las gráficas de abajo. */}
       <div style={{ marginBottom: 14 }}>
       {/* Sin `right` con la base: cada card ya la lleva en su pie, y a la derecha del título
-          quedaba lejos de las cards de ese extremo. Se dice una vez por card, no dos veces. */}
-      <Panel title={t('research.section.indicators')}>
+          quedaba lejos de las cards de ese extremo. Se dice una vez por card, no dos veces.
+          El detalle se recoge para TODAS las cards a la vez: si fuera card por card, la fila
+          quedaría dispareja y los números dejarían de compararse a la misma altura. */}
+      <Panel collapsible title={t('research.section.indicators')}
+        right={<button type="button" onClick={() => setDetalle(d => !d)}
+          style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'DM Mono', fontSize: 9, textTransform: 'uppercase', letterSpacing: '.1em', color: RESEARCH_THEME.t3, padding: 0 }}>
+          {detalle ? t('research.section.hideDetail') : t('research.section.showDetail')}
+        </button>}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(165px, 1fr))', gap: 10 }}>
-        <StatCard label={t('research.kpi.totalEmails')} value={totalCorreos} color="#F472B6"
+        <StatCard showDetail={detalle} label={t('research.kpi.totalEmails')} value={totalCorreos} color="#F472B6"
           footnote={t('research.kpi.emailsSum')}
           breakdown={{
             caption: t('research.kpi.cadenceCaption'),
@@ -45,20 +53,20 @@ export default function DashboardTab() {
               { label: t('research.kpi.cadence3'), value: cadencia.threePlus },
             ],
           }} />
-        <StatCard label={t('research.stage.sin_respuesta')} value={sinRespuesta} color="#9494B3"
+        <StatCard showDetail={detalle} label={t('research.stage.sin_respuesta')} value={sinRespuesta} color="#9494B3"
           badge={pct(sinRespuesta)} footnote={ofLoaded} />
         {/* Contactado = leads con ≥1 correo, NO la etapa: es la definición textual de Federico
             (min 12:49). Un lead en `Sin respuesta` con 3 correos también fue contactado. El
             rótulo lleva la aclaración porque si no, la card discrepa del pie sin explicación. */}
-        <StatCard label={t('research.kpi.contactedLabel')} value={contactadosConCorreo} color="#FBB040"
+        <StatCard showDetail={detalle} label={t('research.kpi.contactedLabel')} value={contactadosConCorreo} color="#FBB040"
           badge={pct(contactadosConCorreo)} footnote={ofLoaded} />
-        <StatCard label={t('research.stage.nuevo')} value={nuevos} color="#60A5FA"
+        <StatCard showDetail={detalle} label={t('research.stage.nuevo')} value={nuevos} color="#60A5FA"
           badge={pct(nuevos)} footnote={ofLoaded} />
-        <StatCard label={t('research.stage.ganado')} value={ganados} color="#34D399"
+        <StatCard showDetail={detalle} label={t('research.stage.ganado')} value={ganados} color="#34D399"
           badge={pct(ganados)} footnote={ofLoaded} />
-        <StatCard label={t('research.kpi.addedThisMonth')} value={cargadosEsteMes} color="#F59E0B"
+        <StatCard showDetail={detalle} label={t('research.kpi.addedThisMonth')} value={cargadosEsteMes} color="#F59E0B"
           footnote={mesEnCurso} />
-        <StatCard label={t('research.kpi.uniqueLeads')} value={totalLeads} color="#7C6FF7"
+        <StatCard showDetail={detalle} label={t('research.kpi.uniqueLeads')} value={totalLeads} color="#7C6FF7"
           footnote={t('research.kpi.uniqueNct')} />
       </div>
       </Panel>

@@ -16,7 +16,7 @@ export default function BarChartCard({ title, data, vertical = false, height, yW
   const tooltipStyle = { background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }
   const figure = { fontFamily: 'Syne', fontSize: 13, fontWeight: 800 }
   return (
-    <Panel title={title}>
+    <Panel collapsible title={title}>
       <ResponsiveContainer width="100%" height={height ?? (vertical ? 200 : 220)}>
         {vertical ? (
           <BarChart data={data} layout="vertical" margin={{ right: 28 }}>
