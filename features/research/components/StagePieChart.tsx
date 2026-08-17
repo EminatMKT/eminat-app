@@ -39,10 +39,14 @@ export default function StagePieChart({ data }: { data: { name: string; value: n
         <div style={{ flex: '1 1 55%', minWidth: 0 }}>
           <ResponsiveContainer width="100%" height={220}>
             {/* Relleno, no dona (innerRadius 0): la porción se ve entera desde el fondo de la sala.
+                Sin paddingAngle ni borde: el hueco entre porciones no era cosmético, le comía
+                ángulo a cada una y en un pie el ángulo ES el dato — un 25% con separación se lee
+                como menos de un cuarto. Un pie muestra partes de un TODO; el todo tiene que
+                verse entero.
                 ⚠️ `isAnimationActive={false}` NO es cosmético: recharts 3 renderiza las etiquetas
                 con `showLabels: !isAnimating` (es6/polar/Pie.js), y acá el fin de la animación no
                 destapa el flag → con la animación puesta el % no aparece nunca. */}
-            <PieChart><Pie data={data} cx="50%" cy="50%" innerRadius={0} outerRadius={95} paddingAngle={2} dataKey="value" labelLine={false} label={percentLabel} isAnimationActive={false}>
+            <PieChart><Pie data={data} cx="50%" cy="50%" innerRadius={0} outerRadius={95} paddingAngle={0} stroke="none" dataKey="value" labelLine={false} label={percentLabel} isAnimationActive={false}>
               {data.map(d => <Cell key={d.name} fill={colors[d.name]} />)}
             </Pie><Tooltip formatter={(value, name) => [value, stageLabel(String(name), t)]} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} /></PieChart>
           </ResponsiveContainer>
