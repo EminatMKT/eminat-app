@@ -37,9 +37,12 @@ export default function DashboardTab() {
           quedaba lejos de las cards de ese extremo. Se dice una vez por card, no dos veces.
           El detalle se recoge para TODAS las cards a la vez: si fuera card por card, la fila
           quedaría dispareja y los números dejarían de compararse a la misma altura. */}
+      {/* El botón del detalle va con borde y chevron: sin eso se leía como una etiqueta más de
+          la cabecera y nadie adivinaba que era un control. */}
       <Panel collapsible persistKey="research-indicators" title={t('research.section.indicators')}
-        right={<button type="button" onClick={() => setDetalle(d => !d)}
-          style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'DM Mono', fontSize: 9, textTransform: 'uppercase', letterSpacing: '.1em', color: RESEARCH_THEME.t3, padding: 0 }}>
+        right={<button type="button" onClick={() => setDetalle(d => !d)} className="tool-btn"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 999, cursor: 'pointer', fontFamily: 'DM Mono', fontSize: 9, textTransform: 'uppercase', letterSpacing: '.1em', color: RESEARCH_THEME.t2, background: RESEARCH_THEME.s1, border: `1px solid ${RESEARCH_THEME.border}` }}>
+          <span style={{ fontSize: 8 }}>{detalle ? '▲' : '▼'}</span>
           {detalle ? t('research.section.hideDetail') : t('research.section.showDetail')}
         </button>}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(165px, 1fr))', gap: 10 }}>
