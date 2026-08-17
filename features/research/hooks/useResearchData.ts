@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { researchRepo, removeChannel } from '@/shared/data'
-import { STAGE } from '../constants'
-import { EXPORT_HEADERS, validateLead, buildLeadPayload } from '../fields'
-import { LEAD_FILTERS } from '../filters'
+import { STAGE, COUNT_COLUMN } from '../constants'
+import { EXPORT_HEADERS, validateLead, buildLeadPayload } from '../utils/fields'
+import { LEAD_FILTERS } from '../utils/filters'
 import { applyFilters, type FilterValues } from '@/shared/lib/filters'
-import type { ImportPlan } from '../importPlan'
+import { useUserPreference } from '@/shared/lib/useUserPreference'
+import type { ImportPlan } from '../utils/importPlan'
+import { totalEmails, cadenceBreakdown } from '../utils/counters'
 import { escapeHtml } from '@/shared/lib/html'
 import type { Lead, Activity, Campaign, Stage } from '../types'
 
@@ -17,7 +19,10 @@ export function useResearchData() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [loading, setLoading] = useState(true)
-  const [filterValues, setFilterValues] = useState<FilterValues>({})
+  // Los filtros se recuerdan: Royner trabaja su tanda por rango de fechas y no tiene por qué
+  // rearmarla cada vez que entra. El riesgo de "me faltan leads" lo cubre la barra, que muestra
+  // los filtros activos, su conteo en la cabecera (visible aun con el panel recogido) y Limpiar.
+  const [filterValues, setFilterValues] = useUserPreference<FilterValues>('research-lead-filters', {})
 
   useEffect(() => { loadData() }, [])
 
@@ -53,6 +58,21 @@ export function useResearchData() {
   const nuevos = leads.filter(l => l.stage === STAGE.NUEVO).length
   const contactados = leads.filter(l => l.stage === STAGE.CONTACTADO).length
   const ganados = leads.filter(l => l.stage === STAGE.GANADO).length
+  const sinRespuesta = leads.filter(l => l.stage === STAGE.SIN_RESPUESTA).length
+  // "Cuántos han sido contactados, INDEPENDIENTEMENTE de cuántos correos se han enviado, cuántos
+  // leads ya están en proceso, ya se envió al menos un correo" (Federico, 12/08/2026 min 12:49).
+  // Ojo: NO es la etapa `Contactado` — un lead en `Sin respuesta` con 3 correos también fue
+  // contactado. Ese solapamiento lo reconoció él mismo en la misma reunión.
+  const contactadosConCorreo = leads.filter(l => (l.email_count ?? 0) >= 1).length
+  // El esfuerzo real: 81 registros únicos esconden ~165-170 alcances (reunión 12/08/2026).
+  const totalCorreos = totalEmails(leads)
+  const cadencia = cadenceBreakdown(leads)
+  // "Mes / fecha de registro" (card 4 del pedido): cuántos leads entraron en el mes en curso.
+  // date_added es DATE (YYYY-MM-DD) → alcanza con comparar el prefijo del mes. El mes se toma
+  // en hora LOCAL ('sv-SE' da YYYY-MM-DD): con toISOString, en UTC-4 el último día del mes a
+  // partir de las 20:00 la card ya contaba el mes siguiente mientras el rótulo decía el actual.
+  const mesActual = new Date().toLocaleDateString('sv-SE').slice(0, 7)
+  const cargadosEsteMes = leads.filter(l => (l.date_added ?? '').startsWith(mesActual)).length
 
   // Fiel a la tabla: agrupa por el stage REAL de cada lead (migrado o no). Nada se oculta por
   // estado de migración; un valor legacy ('Awarded', etc.) aparece tal cual. null/'' → 'Sin etapa'.
@@ -115,6 +135,15 @@ export function useResearchData() {
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, stage: newStage } : l))
   }
 
+  // Única vía de escritura manual del contador: la confirma el pop-up. Se guarda solo esta
+  // columna (no el lead entero) para no arrastrar estado viejo de ningún form.
+  async function setEmailCount(leadId: string, count: number) {
+    const { error } = await researchRepo.updateLead(leadId, { [COUNT_COLUMN]: count })
+    if (error) { mostrarMensaje('error', 'Error: ' + error.message); return false }
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, email_count: count } : l))
+    return true
+  }
+
   async function confirmImport(plan: ImportPlan) {
     let inserted: Lead[] = []
     if (plan.toInsert.length) {
@@ -170,9 +199,9 @@ export function useResearchData() {
     leads, activities, campaigns, loading, setCampaigns,
     filterValues, setFilterValue, clearFilters,
     filteredLeads,
-    totalLeads, activeLeads, nuevos, contactados, ganados,
+    totalLeads, activeLeads, nuevos, contactados, contactadosConCorreo, ganados, sinRespuesta, totalCorreos, cadencia, cargadosEsteMes,
     stageData, phaseData, sponsorData, countryData, countrySorted,
-    saveLead, deleteLead, addActivity, updateStage, confirmImport, handleExport, handlePrint,
+    saveLead, deleteLead, addActivity, updateStage, setEmailCount, confirmImport, handleExport, handlePrint,
     duplicateCampaign, deleteCampaign,
   }
 }

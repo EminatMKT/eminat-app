@@ -17,11 +17,13 @@ import EditUserModal, { type EditUserDraft } from './EditUserModal'
 import ResetPasswordModal from './ResetPasswordModal'
 import DeleteUserModal from './DeleteUserModal'
 import type { AdminUser, ResetTarget } from '../types'
+import { useUserPreference } from '@/shared/lib/useUserPreference'
+import { oneOf } from '@/shared/lib/usePersistedState'
 
 export default function AdminModule() {
   const { esAdmin, adminUsuarios, border } = useApp()
   const { t } = useT()
-  const [vista, setVista] = useState<'usuarios' | 'roles'>('usuarios')
+  const [vista, setVista] = useUserPreference<'usuarios' | 'roles'>('tab-admin', 'usuarios', oneOf('usuarios', 'roles'))
   const [busqueda, setBusqueda] = useState('')
   const [filtroRol, setFiltroRol] = useState('todos')
   const [modalCrear, setModalCrear] = useState(false)
