@@ -10,17 +10,24 @@ import { useT } from '@/shared/i18n'
 
 export default function DashboardTab() {
   const { t } = useT()
-  const { totalLeads, totalCorreos, nuevos, contactados, ganados, stageData, phaseData } = useResearch()
+  const { totalLeads, totalCorreos, cadencia, contactados, sinRespuesta, cargadosEsteMes, stageData, phaseData } = useResearch()
 
   return (
     <div>
-      {/* Orden pedido por Federico (12/08/2026): el esfuerzo primero, los registros únicos al
-          final. Hoy los 81 únicos abrían la fila y tapaban los ~165-170 alcances reales. */}
+      {/* Orden pedido por Federico (12/08/2026), de izquierda a derecha por prioridad de lectura:
+          esfuerzo → sin respuesta → contactado → carga del mes → registros únicos al final.
+          Hoy los 81 únicos abrían la fila y tapaban los ~165-170 alcances reales.
+          Nuevo y Ganado salieron de la fila por ese pedido; siguen en el pie del pie chart.
+          ponytail: comentados, no borrados (UI de stakeholder) — restaurar es descomentar:
+          <StatCard label={t('research.stage.nuevo')} value={nuevos} color="#60A5FA" />
+          <StatCard label={t('research.stage.ganado')} value={ganados} color="#34D399" />
+          (requieren volver a destructurar `nuevos` y `ganados` de useResearch) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 16 }}>
-        <StatCard label={t('research.kpi.totalEmails')} value={totalCorreos} color="#F472B6" />
-        <StatCard label={t('research.stage.nuevo')} value={nuevos} color="#60A5FA" />
+        <StatCard label={t('research.kpi.totalEmails')} value={totalCorreos} color="#F472B6"
+          hint={t('research.kpi.cadenceHint', { a: cadencia.one, b: cadencia.two, c: cadencia.threePlus })} />
+        <StatCard label={t('research.stage.sin_respuesta')} value={sinRespuesta} color="#9494B3" />
         <StatCard label={t('research.stage.contactado')} value={contactados} color="#FBB040" />
-        <StatCard label={t('research.stage.ganado')} value={ganados} color="#34D399" />
+        <StatCard label={t('research.kpi.addedThisMonth')} value={cargadosEsteMes} color="#60A5FA" />
         <StatCard label={t('research.kpi.uniqueLeads')} value={totalLeads} color="#7C6FF7" />
       </div>
 

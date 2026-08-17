@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { nextCount, totalEmails } from './counters'
+import { nextCount, totalEmails, cadenceBreakdown } from './counters'
 
 describe('nextCount (el botón + del pop-up)', () => {
   it('un lead sin contador arranca en 1 al registrar el primer correo', () => {
@@ -22,5 +22,21 @@ describe('totalEmails (la KPI card del 28/08)', () => {
 
   it('sin leads es 0, no NaN', () => {
     expect(totalEmails([])).toBe(0)
+  })
+})
+
+describe('cadenceBreakdown (leads con 1, 2 o 3 toques)', () => {
+  it('agrupa los leads por cantidad de toques', () => {
+    expect(cadenceBreakdown([{ email_count: 1 }, { email_count: 2 }, { email_count: 2 }, { email_count: 3 }]))
+      .toEqual({ one: 1, two: 2, threePlus: 1 })
+  })
+
+  it('los leads sin correos no entran en ningún grupo', () => {
+    expect(cadenceBreakdown([{ email_count: 0 }, { email_count: null }, {}]))
+      .toEqual({ one: 0, two: 0, threePlus: 0 })
+  })
+
+  it('la cadencia es de 3 toques, así que 4 o más caen en el grupo de 3+', () => {
+    expect(cadenceBreakdown([{ email_count: 5 }]).threePlus).toBe(1)
   })
 })

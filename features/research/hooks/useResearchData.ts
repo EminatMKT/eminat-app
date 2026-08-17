@@ -7,7 +7,7 @@ import { EXPORT_HEADERS, validateLead, buildLeadPayload } from '../utils/fields'
 import { LEAD_FILTERS } from '../utils/filters'
 import { applyFilters, type FilterValues } from '@/shared/lib/filters'
 import type { ImportPlan } from '../utils/importPlan'
-import { totalEmails } from '../utils/counters'
+import { totalEmails, cadenceBreakdown } from '../utils/counters'
 import { escapeHtml } from '@/shared/lib/html'
 import type { Lead, Activity, Campaign, Stage } from '../types'
 
@@ -54,8 +54,14 @@ export function useResearchData() {
   const nuevos = leads.filter(l => l.stage === STAGE.NUEVO).length
   const contactados = leads.filter(l => l.stage === STAGE.CONTACTADO).length
   const ganados = leads.filter(l => l.stage === STAGE.GANADO).length
+  const sinRespuesta = leads.filter(l => l.stage === STAGE.SIN_RESPUESTA).length
   // El esfuerzo real: 81 registros únicos esconden ~165-170 alcances (reunión 12/08/2026).
   const totalCorreos = totalEmails(leads)
+  const cadencia = cadenceBreakdown(leads)
+  // "Mes / fecha de registro" (card 4 del pedido): cuántos leads entraron en el mes en curso.
+  // date_added es DATE (YYYY-MM-DD) → prefijo del mes, sin parsear ni zonas horarias.
+  const mesActual = new Date().toISOString().slice(0, 7)
+  const cargadosEsteMes = leads.filter(l => (l.date_added ?? '').startsWith(mesActual)).length
 
   // Fiel a la tabla: agrupa por el stage REAL de cada lead (migrado o no). Nada se oculta por
   // estado de migración; un valor legacy ('Awarded', etc.) aparece tal cual. null/'' → 'Sin etapa'.
@@ -182,7 +188,7 @@ export function useResearchData() {
     leads, activities, campaigns, loading, setCampaigns,
     filterValues, setFilterValue, clearFilters,
     filteredLeads,
-    totalLeads, activeLeads, nuevos, contactados, ganados, totalCorreos,
+    totalLeads, activeLeads, nuevos, contactados, ganados, sinRespuesta, totalCorreos, cadencia, cargadosEsteMes,
     stageData, phaseData, sponsorData, countryData, countrySorted,
     saveLead, deleteLead, addActivity, updateStage, setEmailCount, confirmImport, handleExport, handlePrint,
     duplicateCampaign, deleteCampaign,
