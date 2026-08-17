@@ -11,6 +11,9 @@ import { useT } from '@/shared/i18n'
 export default function DashboardTab() {
   const { t } = useT()
   const { totalLeads, totalCorreos, cadencia, contactados, sinRespuesta, cargadosEsteMes, stageData, phaseData } = useResearch()
+  // El absoluto y el % juntos en la misma card (pedido de Federico, 12/08/2026). El % es el que
+  // sostiene la narrativa: "de todo lo que enviamos, no nos han respondido la mitad".
+  const pctOfTotal = (n: number) => t('research.kpi.pctOfTotal', { p: totalLeads > 0 ? Math.round((n / totalLeads) * 100) : 0 })
 
   return (
     <div>
@@ -25,8 +28,8 @@ export default function DashboardTab() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 16 }}>
         <StatCard label={t('research.kpi.totalEmails')} value={totalCorreos} color="#F472B6"
           hint={t('research.kpi.cadenceHint', { a: cadencia.one, b: cadencia.two, c: cadencia.threePlus })} />
-        <StatCard label={t('research.stage.sin_respuesta')} value={sinRespuesta} color="#9494B3" />
-        <StatCard label={t('research.stage.contactado')} value={contactados} color="#FBB040" />
+        <StatCard label={t('research.stage.sin_respuesta')} value={sinRespuesta} color="#9494B3" hint={pctOfTotal(sinRespuesta)} />
+        <StatCard label={t('research.stage.contactado')} value={contactados} color="#FBB040" hint={pctOfTotal(contactados)} />
         <StatCard label={t('research.kpi.addedThisMonth')} value={cargadosEsteMes} color="#60A5FA" />
         <StatCard label={t('research.kpi.uniqueLeads')} value={totalLeads} color="#7C6FF7" />
       </div>
