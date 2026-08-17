@@ -10,7 +10,7 @@ import { useT } from '@/shared/i18n'
 
 export default function DashboardTab() {
   const { t } = useT()
-  const { totalLeads, totalCorreos, cadencia, contactados, sinRespuesta, cargadosEsteMes, stageData, phaseData } = useResearch()
+  const { totalLeads, totalCorreos, cadencia, contactadosConCorreo, nuevos, ganados, sinRespuesta, cargadosEsteMes, stageData, phaseData } = useResearch()
   // El absoluto y el % juntos en la misma card (pedido de Federico, 12/08/2026). El % es el que
   // sostiene la narrativa: "de todo lo que enviamos, no nos han respondido la mitad".
   const pctOfTotal = (n: number) => t('research.kpi.pctOfTotal', { p: totalLeads > 0 ? Math.round((n / totalLeads) * 100) : 0 })
@@ -18,19 +18,22 @@ export default function DashboardTab() {
   return (
     <div>
       {/* Orden pedido por Federico (12/08/2026), de izquierda a derecha por prioridad de lectura:
-          esfuerzo → sin respuesta → contactado → carga del mes → registros únicos al final.
-          Hoy los 81 únicos abrían la fila y tapaban los ~165-170 alcances reales.
-          Nuevo y Ganado salieron de la fila por ese pedido; siguen en el pie del pie chart.
-          ponytail: comentados, no borrados (UI de stakeholder) — restaurar es descomentar:
-          <StatCard label={t('research.stage.nuevo')} value={nuevos} color="#60A5FA" />
-          <StatCard label={t('research.stage.ganado')} value={ganados} color="#34D399" />
-          (requieren volver a destructurar `nuevos` y `ganados` de useResearch) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 16 }}>
+          esfuerzo → sin respuesta → contactado → el resto del pipeline → registros únicos al final
+          ("ese sería uno de los del final a la derecha"). Los 81 únicos abrían la fila y tapaban
+          los ~165-170 alcances reales. Nuevo y Ganado se quedan: en la reunión los dio por buenos
+          ("el nuevo ya lo tienes, el contactado lo tienes, el ganado evidentemente está ahí"),
+          nunca pidió sacarlos. auto-fit para que la fila baje de renglón antes que apretujarse. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(165px, 1fr))', gap: 10, marginBottom: 16 }}>
         <StatCard label={t('research.kpi.totalEmails')} value={totalCorreos} color="#F472B6"
           hint={t('research.kpi.cadenceHint', { a: cadencia.one, b: cadencia.two, c: cadencia.threePlus })} />
         <StatCard label={t('research.stage.sin_respuesta')} value={sinRespuesta} color="#9494B3" hint={pctOfTotal(sinRespuesta)} />
-        <StatCard label={t('research.stage.contactado')} value={contactados} color="#FBB040" hint={pctOfTotal(contactados)} />
-        <StatCard label={t('research.kpi.addedThisMonth')} value={cargadosEsteMes} color="#60A5FA" />
+        {/* Contactado = leads con ≥1 correo, NO la etapa: es la definición textual de Federico
+            (min 12:49). Un lead en `Sin respuesta` con 3 correos también fue contactado. */}
+        <StatCard label={t('research.stage.contactado')} value={contactadosConCorreo} color="#FBB040"
+          hint={`${t('research.kpi.atLeastOneEmail')} · ${pctOfTotal(contactadosConCorreo)}`} />
+        <StatCard label={t('research.stage.nuevo')} value={nuevos} color="#60A5FA" hint={pctOfTotal(nuevos)} />
+        <StatCard label={t('research.stage.ganado')} value={ganados} color="#34D399" hint={pctOfTotal(ganados)} />
+        <StatCard label={t('research.kpi.addedThisMonth')} value={cargadosEsteMes} color="#F59E0B" />
         <StatCard label={t('research.kpi.uniqueLeads')} value={totalLeads} color="#7C6FF7" />
       </div>
 

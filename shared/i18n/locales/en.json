@@ -94,6 +94,7 @@
   "research.kpi.cadenceHint": "leads by cadence · 1 email: {a} · 2 emails: {b} · 3+ emails: {c}",
   "research.kpi.addedThisMonth": "Added this month",
   "research.kpi.pctOfTotal": "{p}% of total",
+  "research.kpi.atLeastOneEmail": "with 1 email or more",
   "research.import.ignoredSection": "Columns about to be dropped",
   "research.import.ignoredNote": "{n} column(s) in the file won't be imported because they match no field. Assign them below under “Column mapping” if you need them:",
   "research.import.counterSection": "Counters about to be overwritten",

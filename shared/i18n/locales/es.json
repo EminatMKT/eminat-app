@@ -94,6 +94,7 @@
   "research.kpi.cadenceHint": "leads por cadencia · 1 correo: {a} · 2 correos: {b} · 3+ correos: {c}",
   "research.kpi.addedThisMonth": "Cargados este mes",
   "research.kpi.pctOfTotal": "{p}% del total",
+  "research.kpi.atLeastOneEmail": "con 1 correo o más",
   "research.import.ignoredSection": "Columnas que se van a descartar",
   "research.import.ignoredNote": "{n} columna(s) del archivo no se importan porque no coinciden con ningún campo. Asignalas abajo en «Mapeo de columnas» si las necesitás:",
   "research.import.counterSection": "Contadores que se van a pisar",

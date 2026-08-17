@@ -55,6 +55,11 @@ export function useResearchData() {
   const contactados = leads.filter(l => l.stage === STAGE.CONTACTADO).length
   const ganados = leads.filter(l => l.stage === STAGE.GANADO).length
   const sinRespuesta = leads.filter(l => l.stage === STAGE.SIN_RESPUESTA).length
+  // "Cuántos han sido contactados, INDEPENDIENTEMENTE de cuántos correos se han enviado, cuántos
+  // leads ya están en proceso, ya se envió al menos un correo" (Federico, 12/08/2026 min 12:49).
+  // Ojo: NO es la etapa `Contactado` — un lead en `Sin respuesta` con 3 correos también fue
+  // contactado. Ese solapamiento lo reconoció él mismo en la misma reunión.
+  const contactadosConCorreo = leads.filter(l => (l.email_count ?? 0) >= 1).length
   // El esfuerzo real: 81 registros únicos esconden ~165-170 alcances (reunión 12/08/2026).
   const totalCorreos = totalEmails(leads)
   const cadencia = cadenceBreakdown(leads)
@@ -188,7 +193,7 @@ export function useResearchData() {
     leads, activities, campaigns, loading, setCampaigns,
     filterValues, setFilterValue, clearFilters,
     filteredLeads,
-    totalLeads, activeLeads, nuevos, contactados, ganados, sinRespuesta, totalCorreos, cadencia, cargadosEsteMes,
+    totalLeads, activeLeads, nuevos, contactados, contactadosConCorreo, ganados, sinRespuesta, totalCorreos, cadencia, cargadosEsteMes,
     stageData, phaseData, sponsorData, countryData, countrySorted,
     saveLead, deleteLead, addActivity, updateStage, setEmailCount, confirmImport, handleExport, handlePrint,
     duplicateCampaign, deleteCampaign,
