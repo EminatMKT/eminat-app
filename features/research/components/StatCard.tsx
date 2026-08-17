@@ -30,7 +30,9 @@ export default function StatCard({ label, value, color, size = 'md', badge, foot
       {/* Barra de acento: a distancia se distingue la card por el color antes que por el texto. */}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: color }} />
 
-      <div style={{ ...eyebrow, marginBottom: 8 }}>{label}</div>
+      {/* Alto fijo de dos renglones: un rótulo largo ("Contactado (1+ correo)") no puede empujar
+          su número más abajo que el de las cards vecinas — en una fila, los números se comparan. */}
+      <div style={{ ...eyebrow, lineHeight: 1.35, minHeight: '2.7em', marginBottom: 6 }}>{label}</div>
 
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <span style={{ fontFamily: 'Syne', fontSize: sm ? 26 : 34, fontWeight: 800, color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
@@ -40,7 +42,7 @@ export default function StatCard({ label, value, color, size = 'md', badge, foot
       {(footnote || breakdown) && (
         <div style={{ marginTop: 'auto', paddingTop: 12 }}>
           <div style={{ borderTop: `1px solid ${border}`, opacity: 0.7, marginBottom: 8 }} />
-          {footnote && <div style={{ fontSize: 10.5, color: t2, lineHeight: 1.4 }}>{footnote}</div>}
+          {footnote && <div style={{ fontSize: 10.5, color: t2, lineHeight: 1.4, marginBottom: breakdown ? 10 : 0 }}>{footnote}</div>}
           {breakdown && (
             <>
               {breakdown.caption && <div style={{ ...eyebrow, marginBottom: 6 }}>{breakdown.caption}</div>}
