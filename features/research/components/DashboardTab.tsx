@@ -40,7 +40,9 @@ export default function DashboardTab() {
           para toda la sección, que es lo que es. */}
       <Panel collapsible persistKey="research-indicators" title={t('research.section.indicators')}
         right={<span style={{ fontSize: 10, color: RESEARCH_THEME.t3, fontFamily: 'DM Mono' }}>{ofLoaded}</span>}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(165px, 1fr))', gap: 10 }}>
+      {/* alignItems:start — al desplegar el detalle de una card, las otras no tienen por qué
+          estirarse con ella y quedar con un hueco blanco al pie. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(165px, 1fr))', gap: 10, alignItems: 'start' }}>
         <StatCard detailKey="kpi-emails" label={t('research.kpi.totalEmails')} value={totalCorreos} color="#F472B6"
           footnote={t('research.kpi.emailsSum')}
           breakdown={{

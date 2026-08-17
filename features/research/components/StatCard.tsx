@@ -38,23 +38,25 @@ export default function StatCard({ label, value, color, size = 'md', badge, foot
 
       {/* Alto fijo de dos renglones: un rótulo largo ("Contactado (1+ correo)") no puede empujar
           su número más abajo que el de las cards vecinas — en una fila, los números se comparan. */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, minHeight: '2.7em', marginBottom: 6 }}>
-        <div style={{ ...eyebrow, lineHeight: 1.35 }}>{label}</div>
-        {hasDetail && detailKey && (
-          <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-label={label}
-            style={{ flexShrink: 0, width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, cursor: 'pointer', border: `1px solid ${border}`, background: 'transparent', color: t3, fontSize: 8, lineHeight: 1 }}>
-            {open ? '▲' : '▼'}
-          </button>
-        )}
-      </div>
+      <div style={{ ...eyebrow, lineHeight: 1.35, minHeight: '2.7em', marginBottom: 6 }}>{label}</div>
 
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <span style={{ fontFamily: 'Syne', fontSize: sm ? 26 : 34, fontWeight: 800, color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
         {badge && <span style={{ fontFamily: 'DM Mono', fontSize: 10, fontWeight: 700, color, background: `${color}1F`, borderRadius: 999, padding: '3px 8px', lineHeight: 1 }}>{badge}</span>}
       </div>
 
+      {/* El control va abajo a la izquierda, después del detalle, con el MISMO chevron que la
+          cabecera de un Panel: ▼ abierto, girado 90° cuando está recogido. Antes usaba ▲/▼, o
+          sea el gesto contrario al del resto del módulo para la misma acción. */}
+      {hasDetail && detailKey && (
+        <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-label={label}
+          style={{ order: 2, alignSelf: 'flex-start', marginTop: showDetail ? 10 : 'auto', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, cursor: 'pointer', border: `1px solid ${border}`, background: 'transparent', color: t3, fontSize: 8, lineHeight: 1 }}>
+          <span style={{ display: 'inline-block', transform: open ? 'none' : 'rotate(-90deg)', transition: 'transform .15s ease' }}>▼</span>
+        </button>
+      )}
+
       {showDetail && (
-        <div style={{ marginTop: 'auto', paddingTop: 12 }}>
+        <div style={{ order: 1, marginTop: 'auto', paddingTop: 12 }}>
           <div style={{ borderTop: `1px solid ${border}`, opacity: 0.7, marginBottom: 8 }} />
           {footnote && <div style={{ fontSize: 10.5, color: t2, lineHeight: 1.4, marginBottom: breakdown ? 10 : 0 }}>{footnote}</div>}
           {breakdown && (
