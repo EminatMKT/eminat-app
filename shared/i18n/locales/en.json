@@ -88,6 +88,8 @@
   "research.count.formHint": "Updated from the column in the leads table.",
   "research.kpi.totalEmails": "Emails Sent",
   "research.kpi.uniqueLeads": "Unique Records",
+  "research.import.ignoredSection": "Columns about to be dropped",
+  "research.import.ignoredNote": "{n} column(s) in the file won't be imported because they match no field. Assign them below under “Column mapping” if you need them:",
   "research.import.counterSection": "Counters about to be overwritten",
   "research.import.counterWarning": "{n} lead(s) change their counter. Uncheck the ones you'd rather keep.",
   "research.import.counterFrom": "current",

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { guessMapping, indexByNct, buildImportPlan, planCounterChanges, stripCounterFor } from './importPlan'
+import { guessMapping, indexByNct, buildImportPlan, planCounterChanges, stripCounterFor, ignoredHeaders } from './importPlan'
 import { DEFAULT_STAGE, STAGE } from '../constants'
 
 describe('guessMapping', () => {
@@ -22,6 +22,27 @@ describe('guessMapping de email_count', () => {
   // el import la descartaba sin decir nada, dejando los leads en la etapa que ya tenían.
   it('mapea el header en español "Etapa" a stage', () => {
     expect(guessMapping(['Etapa'])).toEqual(['stage'])
+  })
+})
+
+// El import descarta en silencio toda columna que no mapea, y el resumen cuenta FILAS, no
+// columnas: se lee "3 a actualizar" sin saber que media tabla se tiró. Esto lista lo tirado.
+describe('ignoredHeaders', () => {
+  it('lista los headers que no mapean a ninguna columna', () => {
+    expect(ignoredHeaders(['nct_number', 'Notas del vendedor', 'phase'], ['nct_number', null, 'phase']))
+      .toEqual(['Notas del vendedor'])
+  })
+
+  it('no reporta nada cuando todas las columnas mapean', () => {
+    expect(ignoredHeaders(['nct_number', 'phase'], ['nct_number', 'phase'])).toEqual([])
+  })
+
+  it('ignora los headers vacíos: una coma de más al final del CSV no es una columna perdida', () => {
+    expect(ignoredHeaders(['nct_number', '', '   '], ['nct_number', null, null])).toEqual([])
+  })
+
+  it('no repite un header duplicado que aparece dos veces sin mapear', () => {
+    expect(ignoredHeaders(['Comentario', 'Comentario'], [null, null])).toEqual(['Comentario'])
   })
 })
 

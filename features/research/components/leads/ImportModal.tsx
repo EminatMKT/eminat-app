@@ -5,7 +5,7 @@ import { useT } from '@/shared/i18n'
 import { RESEARCH_THEME, inputStyle } from '../../theme'
 import { LEAD_FIELD_DEFS, DOMAIN_FIELDS, domainOptions, normalizeDomainValue } from '../../utils/fields'
 import { detectSeparator, parseDelimited } from '@/shared/lib/delimited'
-import { guessMapping, indexByNct, buildImportPlan, planCounterChanges, stripCounterFor, type DupMode, type ValueMap } from '../../utils/importPlan'
+import { guessMapping, indexByNct, buildImportPlan, planCounterChanges, stripCounterFor, ignoredHeaders, type DupMode, type ValueMap } from '../../utils/importPlan'
 import { useResearch } from '../ResearchContext'
 import CounterChangeRow from './CounterChangeRow'
 
@@ -41,6 +41,9 @@ export default function ImportModal() {
   )
   // El contador tiene dos escritores (pop-up y este import): antes de pisar, mostrar qué
   // cambia y dejar destildarlo. El plan que se ejecuta es el ya filtrado, no `plan`.
+  // Lo que el import va a tirar. Va ARRIBA de todo lo demás: el resumen del final cuenta
+  // filas, así que sin esto se lee "3 a actualizar" sin saber que faltaron columnas.
+  const dropped = useMemo(() => ignoredHeaders(parsed.headers, mapping), [parsed.headers, mapping])
   const countById = useMemo(() => new Map(leads.map(l => [l.id, l.email_count ?? null])), [leads])
   const counterChanges = useMemo(() => planCounterChanges(plan, countById), [plan, countById])
   const finalPlan = useMemo(() => stripCounterFor(plan, keepCount), [plan, keepCount])
@@ -143,6 +146,19 @@ export default function ImportModal() {
                 ))}</tbody>
               </table>
             </div>
+
+            {/* COLUMNAS DESCARTADAS */}
+            {dropped.length > 0 && (
+              <>
+                <div style={sectionTitle}>{t('research.import.ignoredSection')}</div>
+                <div style={{ fontSize: 11, color: warn, lineHeight: 1.5 }}>{t('research.import.ignoredNote', { n: dropped.length })}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                  {dropped.map(h => (
+                    <span key={h} style={{ fontSize: 10, fontFamily: 'DM Mono', padding: '3px 9px', borderRadius: 20, border: `1px solid ${warn}55`, background: `${warn}18`, color: warn }}>{h}</span>
+                  ))}
+                </div>
+              </>
+            )}
 
             {/* CONTADORES A PISAR */}
             {counterChanges.length > 0 && (

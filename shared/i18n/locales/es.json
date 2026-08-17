@@ -88,6 +88,8 @@
   "research.count.formHint": "Se actualiza desde la columna de la tabla de leads.",
   "research.kpi.totalEmails": "Correos enviados",
   "research.kpi.uniqueLeads": "Registros únicos",
+  "research.import.ignoredSection": "Columnas que se van a descartar",
+  "research.import.ignoredNote": "{n} columna(s) del archivo no se importan porque no coinciden con ningún campo. Asignalas abajo en «Mapeo de columnas» si las necesitás:",
   "research.import.counterSection": "Contadores que se van a pisar",
   "research.import.counterWarning": "{n} lead(s) cambian de contador. Destildá los que no quieras tocar.",
   "research.import.counterFrom": "actual",

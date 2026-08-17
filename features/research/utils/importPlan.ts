@@ -32,6 +32,25 @@ export function guessMapping(headers: string[]): (string | null)[] {
   return headers.map(h => leadColumnFor(normHeader(h)))
 }
 
+// Headers del archivo que NO se van a importar porque no mapean a ninguna columna.
+//
+// El import los descarta sin decir nada y el resumen cuenta FILAS, no columnas: se lee
+// "3 a actualizar" sin enterarse de que media tabla se tiró. El caso que lo destapó fue el
+// header `Etapa` de la tabla de Federico — los contadores entraban, las etapas no, y los
+// leads quedaban con la etapa vieja en silencio.
+//
+// Agregar alias tapa casos de a uno; esto expone el hueco entero. Los headers en blanco no
+// cuentan: una coma de más al final del CSV no es una columna que el usuario haya perdido.
+export function ignoredHeaders(headers: string[], mapping: (string | null)[]): string[] {
+  const out: string[] = []
+  headers.forEach((h, i) => {
+    const name = (h ?? '').trim()
+    if (!name || mapping[i] || out.includes(name)) return
+    out.push(name)
+  })
+  return out
+}
+
 // nct_number normalizado → id del lead existente (ignora leads sin NCT#).
 export function indexByNct(leads: { id: string; nct_number?: any }[]): Map<string, string> {
   const m = new Map<string, string>()
