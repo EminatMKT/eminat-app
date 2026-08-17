@@ -21,11 +21,19 @@ export default function LeadsTab() {
   const { s2, border, t2, t3, accent } = RESEARCH_THEME
   const { t } = useT()
   const { leads, filterValues, setFilterValue, clearFilters, filteredLeads, openNewLead, setModalImport, handleExport, handlePrint } = useResearch()
+  const activos = LEAD_FILTERS.filter(d => filterValues[d.key]).length
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* Los filtros viven en su propio panel: dejan de flotar sueltos sobre el fondo y se
-          entiende que son la barra de herramientas de la tabla de abajo. */}
-      <Panel collapsible persistKey="research-filters" title={t('research.section.filters')}>
+          entiende que son la barra de herramientas de la tabla de abajo. El conteo de activos va
+          en la CABECERA porque los filtros ahora se recuerdan entre sesiones: si el panel quedó
+          recogido, esto es lo único que explica por qué la tabla trae menos filas de las esperadas. */}
+      <Panel collapsible persistKey="research-filters" title={t('research.section.filters')}
+        right={activos > 0
+          ? <span style={{ fontFamily: 'DM Mono', fontSize: 10, color: accent, background: `${accent}14`, borderRadius: 999, padding: '4px 10px' }}>
+              {t('research.filter.activeCount', { n: activos })}
+            </span>
+          : undefined}>
         <FilterBar defs={LEAD_FILTERS} items={leads} values={filterValues} onChange={setFilterValue} onClear={clearFilters}
           labelFor={d => t(d.labelKey as I18nKey)}
           clearLabel={t('research.filter.clear')}

@@ -5,6 +5,7 @@ import { useT } from '@/shared/i18n'
 import AppShell from '@/shared/components/AppShell'
 import { PageTransition } from '@/shared/motion'
 import { MODULE_META, ROUTES, modulePath, type ModuleSlug } from '@/shared/auth/permissions'
+import { useUserPreference, LAST_MODULE_KEY } from '@/shared/lib/useUserPreference'
 
 // ── Dark theme (matches AppShell's sidebar palette) ───────────────────
 const D = {
@@ -101,6 +102,11 @@ export default function LaunchpadPage() {
   const { usuario, modules, esAdmin } = useApp()
   const { t } = useT()
   const router = useRouter()
+  // El atajo solo aparece si el módulo guardado sigue existiendo Y el rol todavía lo tiene:
+  // si a alguien le sacan un permiso, el botón no puede seguir invitándolo a una pantalla
+  // que le va a responder "no tenés acceso".
+  const [ultimoGuardado] = useUserPreference<ModuleSlug | null>(LAST_MODULE_KEY, null)
+  const ultimo = ultimoGuardado && modules.includes(ultimoGuardado) ? ultimoGuardado : null
 
   return (
     <AppShell>
@@ -164,6 +170,18 @@ export default function LaunchpadPage() {
                 {t('launchpad.subtitle')}
               </p>
             </div>
+
+            {/* Atajo al último módulo. Se OFRECE, no se redirige automáticamente: si el
+                Launchpad mandara solo, no habría forma de llegar a él ni de cambiar de módulo
+                sin pasar por el sidebar. */}
+            {ultimo && (
+              <button onClick={() => router.push(modulePath(ultimo))}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 22, padding: '10px 16px', borderRadius: 12, background: D.accentSoft, border: `1px solid ${D.accent}30`, color: D.t1, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <ModuleIcon slug={ultimo} />
+                {t('launchpad.resume', { module: MODULE_META[ultimo].name })}
+                <span style={{ color: D.t2 }}>→</span>
+              </button>
+            )}
 
             {/* Admin "Ver todo" — only visible to admin role */}
             {esAdmin && <VerTodoBanner onClick={() => router.push(ROUTES.overview)} />}

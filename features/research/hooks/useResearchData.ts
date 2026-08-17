@@ -6,6 +6,7 @@ import { STAGE, COUNT_COLUMN } from '../constants'
 import { EXPORT_HEADERS, validateLead, buildLeadPayload } from '../utils/fields'
 import { LEAD_FILTERS } from '../utils/filters'
 import { applyFilters, type FilterValues } from '@/shared/lib/filters'
+import { useUserPreference } from '@/shared/lib/useUserPreference'
 import type { ImportPlan } from '../utils/importPlan'
 import { totalEmails, cadenceBreakdown } from '../utils/counters'
 import { escapeHtml } from '@/shared/lib/html'
@@ -18,7 +19,10 @@ export function useResearchData() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [loading, setLoading] = useState(true)
-  const [filterValues, setFilterValues] = useState<FilterValues>({})
+  // Los filtros se recuerdan: Royner trabaja su tanda por rango de fechas y no tiene por qué
+  // rearmarla cada vez que entra. El riesgo de "me faltan leads" lo cubre la barra, que muestra
+  // los filtros activos, su conteo en la cabecera (visible aun con el panel recogido) y Limpiar.
+  const [filterValues, setFilterValues] = useUserPreference<FilterValues>('research-lead-filters', {})
 
   useEffect(() => { loadData() }, [])
 

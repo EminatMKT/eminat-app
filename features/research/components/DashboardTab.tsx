@@ -8,11 +8,11 @@ import Panel from './Panel'
 import StagePieChart from './StagePieChart'
 import BarChartCard from './BarChartCard'
 import { useT } from '@/shared/i18n'
-import { usePersistedState } from '@/shared/lib/usePersistedState'
+import { useUserPreference } from '@/shared/lib/useUserPreference'
 
 export default function DashboardTab() {
   const { t, locale } = useT()
-  const [detalle, setDetalle] = usePersistedState('eminat-research-kpi-detail', true)
+  const [detalle, setDetalle] = useUserPreference('research-kpi-detail', true)
   const { totalLeads, totalCorreos, cadencia, contactadosConCorreo, nuevos, ganados, sinRespuesta, cargadosEsteMes, stageData, phaseData } = useResearch()
   // El absoluto y el % juntos en la misma card (pedido de Federico, 12/08/2026). El % es el que
   // sostiene la narrativa: "de todo lo que enviamos, no nos han respondido la mitad".
