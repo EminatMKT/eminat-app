@@ -63,7 +63,7 @@ export default function DashboardTab() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
         <StagePieChart data={stageData} />
-        <BarChartCard title="Leads by Phase" data={phaseData} />
+        <BarChartCard title={t('research.chart.leadsByPhase')} data={phaseData} />
       </div>
 
       {/* Oculto por dirección (reunión 2026-07-20) — Top Sponsors + Recently added. Restaurar descomentando + reactivar imports/destructure (sponsorData, leads, RecentLeadItem):

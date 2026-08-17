@@ -4,6 +4,7 @@ import { RESEARCH_THEME } from '../theme'
 import { PIPELINE_COLORS, CHART_COLORS, stageLabel } from '../constants'
 import { useT } from '@/shared/i18n'
 import StageLegendItem from './StageLegendItem'
+import Panel from './Panel'
 
 const RAD = Math.PI / 180
 
@@ -30,8 +31,7 @@ export default function StagePieChart({ data }: { data: { name: string; value: n
     )
   }
   return (
-    <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-      <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', marginBottom: 12 }}>Pipeline by Stage</div>
+    <Panel title={t('research.chart.pipelineByStage')}>
       {/* Leyenda a la derecha y no debajo: mismo pedido de legibilidad a distancia. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ flex: '1 1 55%', minWidth: 0 }}>
@@ -49,6 +49,6 @@ export default function StagePieChart({ data }: { data: { name: string; value: n
           {data.map(d => <StageLegendItem key={d.name} name={stageLabel(d.name, t)} value={d.value} total={total} color={PIPELINE_COLORS[d.name] || accent} />)}
         </div>
       </div>
-    </div>
+    </Panel>
   )
 }
