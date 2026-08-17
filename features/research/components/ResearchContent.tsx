@@ -24,7 +24,7 @@ export default function ResearchContent({ tab }: { tab: string }) {
 
   return (
     <div>
-      <ResearchHeader tab={tab} />
+      <ResearchHeader />
       {tab === 'dashboard' && <DashboardTab />}
       {tab === 'leads' && <LeadsTab />}
       {tab === 'newsletter' && <NewsletterTab />}

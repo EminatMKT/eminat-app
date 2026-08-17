@@ -5,6 +5,7 @@ import FilterBar from '@/shared/components/FilterBar'
 import { LEAD_FILTERS } from '../../utils/filters'
 import { useResearch } from '../ResearchContext'
 import Panel from '../Panel'
+import ToolbarButton from '../ToolbarButton'
 import LeadRow from './LeadRow'
 
 // Cabeceras de la tabla. Claves cortas propias (`research.col.*`) y no las de `research.field.*`:
@@ -19,7 +20,7 @@ const COLUMNS: I18nKey[] = [
 export default function LeadsTab() {
   const { s2, border, t2, t3, accent } = RESEARCH_THEME
   const { t } = useT()
-  const { leads, filterValues, setFilterValue, clearFilters, filteredLeads } = useResearch()
+  const { leads, filterValues, setFilterValue, clearFilters, filteredLeads, openNewLead, setModalImport, handleExport, handlePrint } = useResearch()
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* Los filtros viven en su propio panel: dejan de flotar sueltos sobre el fondo y se
@@ -33,11 +34,19 @@ export default function LeadsTab() {
           clearStyle={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 11, cursor: 'pointer' }} />
       </Panel>
 
+      {/* Las acciones viven acá y no en el encabezado del módulo: operan sobre ESTA tabla
+          (export y PDF salen de `filteredLeads`, o sea de lo que el usuario está viendo). */}
       <Panel flush
         title={t('research.leads.tableTitle')}
-        right={<span style={{ fontFamily: 'DM Mono', fontSize: 10, color: accent, background: `${accent}14`, borderRadius: 999, padding: '4px 10px' }}>
-          {t('research.filter.results', { n: filteredLeads.length })}
-        </span>}>
+        right={<div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: 'DM Mono', fontSize: 10, color: accent, background: `${accent}14`, borderRadius: 999, padding: '4px 10px' }}>
+            {t('research.filter.results', { n: filteredLeads.length })}
+          </span>
+          <ToolbarButton primary onClick={openNewLead}>+ {t('research.form.newLead')}</ToolbarButton>
+          <ToolbarButton icon="📥" onClick={() => setModalImport(true)}>{t('research.action.import')}</ToolbarButton>
+          <ToolbarButton icon="📤" onClick={handleExport}>{t('research.action.export')}</ToolbarButton>
+          <ToolbarButton icon="🖨" onClick={handlePrint}>{t('research.action.pdf')}</ToolbarButton>
+        </div>}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5, minWidth: 1200 }}>
             <thead><tr style={{ background: s2 }}>
