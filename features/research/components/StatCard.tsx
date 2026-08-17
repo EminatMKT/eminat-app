@@ -45,18 +45,19 @@ export default function StatCard({ label, value, color, size = 'md', badge, foot
         {badge && <span style={{ fontFamily: 'DM Mono', fontSize: 10, fontWeight: 700, color, background: `${color}1F`, borderRadius: 999, padding: '3px 8px', lineHeight: 1 }}>{badge}</span>}
       </div>
 
-      {/* El control va abajo a la izquierda, después del detalle, con el MISMO chevron que la
-          cabecera de un Panel: ▼ abierto, girado 90° cuando está recogido. Antes usaba ▲/▼, o
-          sea el gesto contrario al del resto del módulo para la misma acción. */}
+      {/* El control queda ANCLADO acá, entre el número y el detalle: lo que crece al desplegar es
+          lo de abajo, no él. Si se moviera al pie del detalle, el segundo clic caería en otro
+          lado del que quedó el cursor. Mismo chevron que la cabecera de un Panel: ▼ abierto,
+          girado 90° al recoger — el gesto del módulo para "esto se despliega". */}
       {hasDetail && detailKey && (
         <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-label={label}
-          style={{ order: 2, alignSelf: 'flex-start', marginTop: showDetail ? 10 : 'auto', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, cursor: 'pointer', border: `1px solid ${border}`, background: 'transparent', color: t3, fontSize: 8, lineHeight: 1 }}>
+          style={{ alignSelf: 'flex-start', marginTop: 12, width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, cursor: 'pointer', border: `1px solid ${border}`, background: 'transparent', color: t3, fontSize: 8, lineHeight: 1 }}>
           <span style={{ display: 'inline-block', transform: open ? 'none' : 'rotate(-90deg)', transition: 'transform .15s ease' }}>▼</span>
         </button>
       )}
 
       {showDetail && (
-        <div style={{ order: 1, marginTop: 'auto', paddingTop: 12 }}>
+        <div style={{ paddingTop: 12 }}>
           <div style={{ borderTop: `1px solid ${border}`, opacity: 0.7, marginBottom: 8 }} />
           {footnote && <div style={{ fontSize: 10.5, color: t2, lineHeight: 1.4, marginBottom: breakdown ? 10 : 0 }}>{footnote}</div>}
           {breakdown && (
