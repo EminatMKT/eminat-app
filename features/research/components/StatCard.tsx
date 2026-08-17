@@ -1,19 +1,54 @@
+import type { ReactNode } from 'react'
 import { RESEARCH_THEME } from '../theme'
+import StatBreakdownRow from './StatBreakdownRow'
 
-export default function StatCard({ label, value, color, size = 'md', hint }: { label: string; value: React.ReactNode; color: string; size?: 'sm' | 'md'; hint?: string }) {
-  const { s1, border, t3 } = RESEARCH_THEME
+// Card de indicador. Se lee en tres golpes, siempre en el mismo orden:
+//   1. la barra de color + el rótulo dicen QUÉ métrica es,
+//   2. el número (y el % al lado) dicen CUÁNTO,
+//   3. el pie explica SOBRE QUÉ está calculado — sin ese renglón un "25%" no significa nada.
+// El bloque de abajo se ancla al fondo (marginTop:auto) para que en una fila de cards los pies
+// queden todos a la misma altura aunque unas tengan desglose y otras no.
+export interface StatBreakdown {
+  caption?: string
+  rows: { label: string; value: ReactNode }[]
+}
+
+export default function StatCard({ label, value, color, size = 'md', badge, footnote, breakdown }: {
+  label: string
+  value: ReactNode
+  color: string
+  size?: 'sm' | 'md'
+  badge?: string
+  footnote?: string
+  breakdown?: StatBreakdown
+}) {
+  const { s1, border, t1, t2, t3 } = RESEARCH_THEME
+  const sm = size === 'sm'
+  const eyebrow = { fontSize: 9, color: t3, textTransform: 'uppercase', letterSpacing: '.12em', fontFamily: 'DM Mono' } as const
   return (
-    <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: size === 'sm' ? '14px 16px' : '16px 18px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-      <div style={{ fontSize: 9, color: t3, textTransform: 'uppercase', letterSpacing: '.1em', fontFamily: 'DM Mono', marginBottom: 6 }}>{label}</div>
-      {/* El hint va al costado del número, un renglón por dato (se parte por '·'): en una sola
-          línea el desglose de cadencia se leía como una sopa de números, y debajo empujaba la
-          altura de la card. El dato grande manda a la izquierda, el detalle acompaña a la derecha. */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ fontFamily: 'Syne', fontSize: size === 'sm' ? 24 : 28, fontWeight: 800, color }}>{value}</div>
-        {hint && <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono', lineHeight: 1.6, textAlign: 'right' }}>
-          {hint.split('·').map(line => <div key={line}>{line.trim()}</div>)}
-        </div>}
+    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: sm ? 84 : 104, background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: sm ? '15px 16px 14px' : '18px 18px 16px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+      {/* Barra de acento: a distancia se distingue la card por el color antes que por el texto. */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: color }} />
+
+      <div style={{ ...eyebrow, marginBottom: 8 }}>{label}</div>
+
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontFamily: 'Syne', fontSize: sm ? 26 : 34, fontWeight: 800, color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
+        {badge && <span style={{ fontFamily: 'DM Mono', fontSize: 10, fontWeight: 700, color, background: `${color}1F`, borderRadius: 999, padding: '3px 8px', lineHeight: 1 }}>{badge}</span>}
       </div>
+
+      {(footnote || breakdown) && (
+        <div style={{ marginTop: 'auto', paddingTop: 12 }}>
+          <div style={{ borderTop: `1px solid ${border}`, opacity: 0.7, marginBottom: 8 }} />
+          {footnote && <div style={{ fontSize: 10.5, color: t2, lineHeight: 1.4 }}>{footnote}</div>}
+          {breakdown && (
+            <>
+              {breakdown.caption && <div style={{ ...eyebrow, marginBottom: 6 }}>{breakdown.caption}</div>}
+              {breakdown.rows.map(r => <StatBreakdownRow key={r.label} label={r.label} value={r.value} />)}
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }

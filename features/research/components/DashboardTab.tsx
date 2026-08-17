@@ -13,7 +13,9 @@ export default function DashboardTab() {
   const { totalLeads, totalCorreos, cadencia, contactadosConCorreo, nuevos, ganados, sinRespuesta, cargadosEsteMes, stageData, phaseData } = useResearch()
   // El absoluto y el % juntos en la misma card (pedido de Federico, 12/08/2026). El % es el que
   // sostiene la narrativa: "de todo lo que enviamos, no nos han respondido la mitad".
-  const pctOfTotal = (n: number) => t('research.kpi.pctOfTotal', { p: totalLeads > 0 ? Math.round((n / totalLeads) * 100) : 0 })
+  const pct = (n: number) => `${totalLeads > 0 ? Math.round((n / totalLeads) * 100) : 0}%`
+  // Cada pie dice sobre qué está calculado el número: un "25%" suelto no se interpreta solo.
+  const overRecords = t('research.kpi.overRecords', { n: totalLeads })
 
   return (
     <div>
@@ -25,16 +27,28 @@ export default function DashboardTab() {
           nunca pidió sacarlos. auto-fit para que la fila baje de renglón antes que apretujarse. */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(165px, 1fr))', gap: 10, marginBottom: 16 }}>
         <StatCard label={t('research.kpi.totalEmails')} value={totalCorreos} color="#F472B6"
-          hint={t('research.kpi.cadenceHint', { a: cadencia.one, b: cadencia.two, c: cadencia.threePlus })} />
-        <StatCard label={t('research.stage.sin_respuesta')} value={sinRespuesta} color="#9494B3" hint={pctOfTotal(sinRespuesta)} />
+          breakdown={{
+            caption: t('research.kpi.cadenceCaption'),
+            rows: [
+              { label: t('research.kpi.cadence1'), value: cadencia.one },
+              { label: t('research.kpi.cadence2'), value: cadencia.two },
+              { label: t('research.kpi.cadence3'), value: cadencia.threePlus },
+            ],
+          }} />
+        <StatCard label={t('research.stage.sin_respuesta')} value={sinRespuesta} color="#9494B3"
+          badge={pct(sinRespuesta)} footnote={`${t('research.kpi.inThisStage')} ${overRecords}`} />
         {/* Contactado = leads con ≥1 correo, NO la etapa: es la definición textual de Federico
             (min 12:49). Un lead en `Sin respuesta` con 3 correos también fue contactado. */}
         <StatCard label={t('research.stage.contactado')} value={contactadosConCorreo} color="#FBB040"
-          hint={`${t('research.kpi.atLeastOneEmail')} · ${pctOfTotal(contactadosConCorreo)}`} />
-        <StatCard label={t('research.stage.nuevo')} value={nuevos} color="#60A5FA" hint={pctOfTotal(nuevos)} />
-        <StatCard label={t('research.stage.ganado')} value={ganados} color="#34D399" hint={pctOfTotal(ganados)} />
-        <StatCard label={t('research.kpi.addedThisMonth')} value={cargadosEsteMes} color="#F59E0B" />
-        <StatCard label={t('research.kpi.uniqueLeads')} value={totalLeads} color="#7C6FF7" />
+          badge={pct(contactadosConCorreo)} footnote={`${t('research.kpi.atLeastOneEmail')} ${overRecords}`} />
+        <StatCard label={t('research.stage.nuevo')} value={nuevos} color="#60A5FA"
+          badge={pct(nuevos)} footnote={`${t('research.kpi.inThisStage')} ${overRecords}`} />
+        <StatCard label={t('research.stage.ganado')} value={ganados} color="#34D399"
+          badge={pct(ganados)} footnote={`${t('research.kpi.inThisStage')} ${overRecords}`} />
+        <StatCard label={t('research.kpi.addedThisMonth')} value={cargadosEsteMes} color="#F59E0B"
+          footnote={t('research.kpi.byAddedDate')} />
+        <StatCard label={t('research.kpi.uniqueLeads')} value={totalLeads} color="#7C6FF7"
+          footnote={t('research.kpi.uniqueNct')} />
       </div>
 
       {/* Oculto por dirección (reunión 2026-07-20) — restaurar descomentando + reactivar imports/destructure de countrySorted:
