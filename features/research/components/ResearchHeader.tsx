@@ -1,25 +1,30 @@
 'use client'
 import { RESEARCH_THEME } from '../theme'
+import { useT } from '@/shared/i18n'
 import { useResearch } from './ResearchContext'
+import ToolbarButton from './ToolbarButton'
 
 export default function ResearchHeader({ tab }: { tab: string }) {
-  const { s2, border, t1, t2, t3, accent } = RESEARCH_THEME
+  const { border, t1, t3, accent } = RESEARCH_THEME
+  const { t } = useT()
   const { openNewLead, setModalImport, handleExport, handlePrint } = useResearch()
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+    // Una línea fina cierra el encabezado: separa la identidad del módulo del contenido sin
+    // meter otra caja. El bloque de acciones se alinea con el borde derecho de los paneles.
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, paddingBottom: 14, marginBottom: 16, borderBottom: `1px solid ${border}` }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 10, background: '#60A5FA20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🔬</div>
+        <div style={{ width: 40, height: 40, borderRadius: 11, background: `${accent}14`, border: `1px solid ${accent}26`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19 }}>🔬</div>
         <div>
-          <div style={{ fontFamily: 'Syne', fontSize: 16, fontWeight: 800, color: t1 }}>Eminat Research Group</div>
-          <div style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono' }}>Clinical Research Operations</div>
+          <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 800, color: t1, letterSpacing: '-.02em' }}>Eminat Research Group</div>
+          <div style={{ fontSize: 9, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.14em', marginTop: 2 }}>{t('research.header.tagline')}</div>
         </div>
       </div>
       {tab === 'leads' && (
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          <button onClick={openNewLead} style={{ padding: '6px 14px', borderRadius: 8, background: accent, color: 'white', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>+ New Lead</button>
-          <button onClick={() => setModalImport(true)} style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>📥 Import</button>
-          <button onClick={handleExport} style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>📤 Export</button>
-          <button onClick={handlePrint} style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}>🖨 PDF</button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <ToolbarButton primary onClick={openNewLead}>+ {t('research.form.newLead')}</ToolbarButton>
+          <ToolbarButton icon="📥" onClick={() => setModalImport(true)}>{t('research.action.import')}</ToolbarButton>
+          <ToolbarButton icon="📤" onClick={handleExport}>{t('research.action.export')}</ToolbarButton>
+          <ToolbarButton icon="🖨" onClick={handlePrint}>{t('research.action.pdf')}</ToolbarButton>
         </div>
       )}
     </div>
