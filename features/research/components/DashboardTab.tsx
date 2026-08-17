@@ -31,10 +31,6 @@ export default function DashboardTab() {
           Van dentro de un Panel para que la fila deje de flotar sobre el fondo y quede rotulada,
           igual que las gráficas de abajo. */}
       <div style={{ marginBottom: 14 }}>
-      {/* Sin `right` con la base: cada card ya la lleva en su pie, y a la derecha del título
-          quedaba lejos de las cards de ese extremo. Se dice una vez por card, no dos veces.
-          El detalle se recoge para TODAS las cards a la vez: si fuera card por card, la fila
-          quedaría dispareja y los números dejarían de compararse a la misma altura. */}
       {/* La base del % sube al encabezado: al sacarle el pie a las cards de etapa, era el único
           lugar donde seguía dicho sobre qué está calculado ese "25%". Acá se dice una sola vez
           para toda la sección, que es lo que es. */}
@@ -60,8 +56,9 @@ export default function DashboardTab() {
         <StatCard label={t('research.kpi.contactedLabel')} value={contactadosConCorreo} color="#FBB040" badge={pct(contactadosConCorreo)} />
         <StatCard label={t('research.stage.nuevo')} value={nuevos} color="#60A5FA" badge={pct(nuevos)} />
         <StatCard label={t('research.stage.ganado')} value={ganados} color="#34D399" badge={pct(ganados)} />
-        <StatCard label={t('research.kpi.addedThisMonth')} value={cargadosEsteMes} color="#F59E0B" badge={mesEnCurso} />
-        <StatCard label={t('research.kpi.uniqueLeads')} value={totalLeads} color="#7C6FF7" />
+        <StatCard label={t('research.kpi.addedThisMonth')} value={cargadosEsteMes} color="#F59E0B" badge={mesEnCurso} badgeNeutral />
+        <StatCard detailKey="kpi-unique" label={t('research.kpi.uniqueLeads')} value={totalLeads} color="#7C6FF7"
+          footnote={t('research.kpi.uniqueNct')} />
       </div>
       </Panel>
       </div>

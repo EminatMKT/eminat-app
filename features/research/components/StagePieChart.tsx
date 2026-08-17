@@ -3,7 +3,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, type PieLabelRenderP
 import { RESEARCH_THEME } from '../theme'
 import { stageLabel, stageColors } from '../constants'
 import { useT } from '@/shared/i18n'
-import StageLegendItem from './StageLegendItem'
+import StageLegendItem, { LEGEND_COLUMNS } from './StageLegendItem'
 import Panel from './Panel'
 
 const RAD = Math.PI / 180
@@ -39,10 +39,12 @@ export default function StagePieChart({ data }: { data: { name: string; value: n
         <div style={{ flex: '1 1 55%', minWidth: 0 }}>
           <ResponsiveContainer width="100%" height={220}>
             {/* Relleno, no dona (innerRadius 0): la porción se ve entera desde el fondo de la sala.
-                Sin paddingAngle ni borde: el hueco entre porciones no era cosmético, le comía
-                ángulo a cada una y en un pie el ángulo ES el dato — un 25% con separación se lee
-                como menos de un cuarto. Un pie muestra partes de un TODO; el todo tiene que
-                verse entero.
+                Sin paddingAngle: el hueco no era cosmético, le comía ángulo a cada porción y en
+                un pie el ángulo ES el dato — un 25% separado se lee como menos de un cuarto. Un
+                pie muestra partes de un TODO y así vuelve a verse entero. `stroke="none"` es
+                aparte y es decisión del usuario (nada de líneas blancas): el costo es que dos
+                colores vecinos parecidos se funden; si molesta, un stroke de 1px NO cuesta
+                ángulo.
                 ⚠️ `isAnimationActive={false}` NO es cosmético: recharts 3 renderiza las etiquetas
                 con `showLabels: !isAnimating` (es6/polar/Pie.js), y acá el fin de la animación no
                 destapa el flag → con la animación puesta el % no aparece nunca. */}
@@ -52,8 +54,11 @@ export default function StagePieChart({ data }: { data: { name: string; value: n
           </ResponsiveContainer>
         </div>
         {/* Grilla de 3 columnas: los nombres miden distinto, así que solo alineando las cifras
-            en columna el ojo puede bajar en recta y compararlas (ley de continuidad). */}
-        <div style={{ flex: '0 0 auto', display: 'grid', gridTemplateColumns: 'auto max-content max-content', columnGap: 12, rowGap: 9, alignItems: 'baseline' }}>
+            en columna el ojo puede bajar en recta y compararlas (ley de continuidad).
+            `0 1 auto` + minWidth 0: la leyenda cede ancho antes que dejar sin espacio al pie —
+            un nombre largo ('Discovery/Feasibility') llegaba a recortar el gráfico en pantallas
+            de ~1024px. Lo que se achica es el nombre (con elipsis), nunca las cifras. */}
+        <div style={{ flex: '0 1 auto', minWidth: 0, display: 'grid', gridTemplateColumns: LEGEND_COLUMNS, columnGap: 12, rowGap: 9, alignItems: 'baseline' }}>
           {data.map(d => <StageLegendItem key={d.name} name={stageLabel(d.name, t)} value={d.value} total={total} color={colors[d.name]} />)}
         </div>
       </div>

@@ -21,13 +21,14 @@ describe('stageColors (pie y leyenda comparten un único mapa)', () => {
     for (const name of LEGACY) expect(pipeline).not.toContain(map[name])
   })
 
-  it('dos etapas legacy del mismo gráfico no comparten color', () => {
-    // El segundo bug: el hash por nombre mandaba Identificado, Contacto y Docs al mismo violeta.
-    // La paleta tiene 6 colores, así que se verifica hasta ese tope — que es lo que puede
-    // convivir en un gráfico legible.
-    const presentes = LEGACY.slice(0, 6)
-    const colores = presentes.map(n => stageColors(presentes)[n])
-    expect(new Set(colores).size).toBe(presentes.length)
+  it('ninguna etapa del mismo gráfico comparte color, ni en el peor caso', () => {
+    // El segundo bug: el hash mandaba Identificado, Contacto y Docs al mismo violeta. El tercero:
+    // el módulo sobre una paleta de 6 hacía colisionar de a pares al pasar de 6 legacy. Por eso
+    // se verifica el PEOR caso real y completo (las 10 legacy + las 4 canónicas), no un recorte
+    // del tamaño de la paleta — ese tope era una propiedad de la paleta, no de los datos.
+    const todas = [...LEGACY, ...Object.keys(PIPELINE_COLORS)]
+    const map = stageColors(todas)
+    expect(new Set(todas.map(n => map[n])).size).toBe(todas.length)
   })
 
   it('el color no depende del orden del gráfico', () => {

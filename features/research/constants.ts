@@ -49,8 +49,9 @@ export const CHART_COLORS = ['#34D399', '#60A5FA', '#A78BFA', '#F472B6', '#FBB04
 // uno resolvía el suyo (el pie caía a CHART_COLORS[i], la leyenda a `accent`) y el mismo dato
 // salía naranja en el gráfico y violeta en la leyenda. Además CHART_COLORS repite hexes del
 // pipeline (#FBB040 ES el de Contactado), así que una etapa legacy podía competir con una
-// canónica. Acá se resuelve por conjunto y no nombre por nombre: es la única forma de garantizar
-// que dos etapas distintas del MISMO gráfico no compartan color.
+// canónica. Se resuelve por conjunto y no nombre por nombre: es lo que permite garantizar que
+// dos etapas distintas del MISMO gráfico nunca compartan color, incluso pasadas las 6 de la
+// paleta fija (el CHECK todavía admite 9 legacy + el balde 'Sin etapa' = 10 posibles).
 const CANONICAL_STAGES = new Set<string>(Object.keys(PIPELINE_COLORS))
 const PIPELINE_HEXES = new Set<string>(Object.values(PIPELINE_COLORS))
 const EXTRA_COLORS = CHART_COLORS.filter(c => !PIPELINE_HEXES.has(c))
@@ -60,12 +61,17 @@ export function stageColors(names: string[]): Record<string, string> {
   // cantidad, así que con un índice posicional el color de una etapa cambiaría al cargar un lead.
   // Con el orden por nombre, el color solo se mueve si aparece o desaparece un valor legacy.
   const legacy = Array.from(new Set(names)).filter(n => !CANONICAL_STAGES.has(n)).sort()
-  return Object.fromEntries(names.map(n => [
-    n,
-    CANONICAL_STAGES.has(n)
-      ? (PIPELINE_COLORS as Record<string, string>)[n]
-      : EXTRA_COLORS[legacy.indexOf(n) % EXTRA_COLORS.length],
-  ]))
+  return Object.fromEntries(names.map(n => [n, CANONICAL_STAGES.has(n)
+    ? (PIPELINE_COLORS as Record<string, string>)[n]
+    : legacyColor(legacy.indexOf(n))]))
+}
+
+// Pasada la paleta fija se generan colores por ángulo áureo en vez de dar la vuelta con un
+// módulo: repetir era lo que hacía que dos porciones salieran iguales, y justamente las de la
+// cola son las más chicas — quedan bajo el 5% que necesita etiqueta, así que el color es el
+// ÚNICO dato que las identifica.
+function legacyColor(i: number): string {
+  return i < EXTRA_COLORS.length ? EXTRA_COLORS[i] : `hsl(${(i * 137.5) % 360} 62% 62%)`
 }
 
 // ponytail: sin uso tras comentar "Leads by Country" (dirección, reunión 2026-07-20). Su único
