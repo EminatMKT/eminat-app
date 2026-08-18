@@ -15,6 +15,9 @@ tsconfig.tsbuildinfo
 .understand-anything/
 .tmp/
 
+# backlog local (todo-plugin) — sin trackear para que sobreviva el cambio de rama
+.todo/
+
 # playwright
 /test-results/
 /playwright-report/

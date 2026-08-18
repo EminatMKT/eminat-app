@@ -3,7 +3,7 @@
 // desde el browser. Devuelve un parcial con COLUMNAS REALES de research_leads, listo para
 // mergear en el form. Errores como clave i18n (research.nct.*).
 import type { I18nKey } from '@/shared/i18n'
-import { NCT_COLUMN, NCT_RE, CLINICAL_TRIALS_BASE, normNct } from './constants'
+import { NCT_COLUMN, NCT_RE, CLINICAL_TRIALS_BASE, normNct } from '../constants'
 
 const PHASE_MAP: Record<string, string> = { EARLY_PHASE1: 'Early Phase 1', PHASE1: 'Phase 1', PHASE2: 'Phase 2', PHASE3: 'Phase 3', PHASE4: 'Phase 4', NA: 'N/A' }
 const STATUS_MAP: Record<string, string> = { RECRUITING: 'Recruiting', NOT_YET_RECRUITING: 'Not yet recruiting', ENROLLING_BY_INVITATION: 'Enrolling by invitation', ACTIVE_NOT_RECRUITING: 'Active, not recruiting', COMPLETED: 'Completed', SUSPENDED: 'Suspended', TERMINATED: 'Terminated', WITHDRAWN: 'Withdrawn', UNKNOWN: 'Unknown status' }

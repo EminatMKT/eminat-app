@@ -1,7 +1,7 @@
 'use client'
 import { RESEARCH_THEME } from '../../theme'
 import { useT, type I18nKey } from '@/shared/i18n'
-import type { StudyConflict } from '../../clinicalTrials'
+import type { StudyConflict } from '../../utils/clinicalTrials'
 
 // Diálogo de resolución campo-por-campo: cuando el autocompletado NCT# traería valores
 // distintos de los ya cargados, el usuario elige (checkbox) cuáles pisar. Sin marcar = conserva.

@@ -1,7 +1,7 @@
 'use client'
 import { RESEARCH_THEME } from '../../theme'
 import { useT } from '@/shared/i18n'
-import type { LeadFieldDef } from '../../fields'
+import type { LeadFieldDef } from '../../utils/fields'
 
 export default function LeadDetailField({ def, value }: { def: LeadFieldDef; value: any }) {
   const { s2, t1, t3 } = RESEARCH_THEME

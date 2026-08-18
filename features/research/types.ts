@@ -43,6 +43,9 @@ export interface Lead {
   contact2_email?: string
   contact2_phone?: string
   stage?: StageValue
+  // Intentos de contacto registrados (correos enviados a ese estudio). null = todavía ninguno
+  // registrado, que NO es lo mismo que 0 — el import respeta esa diferencia.
+  email_count?: number | null
   next_followup_date?: string
   email_date?: string
   notes?: string

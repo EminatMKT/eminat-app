@@ -3,10 +3,11 @@ import { useMemo, useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { RESEARCH_THEME, inputStyle } from '../../theme'
-import { LEAD_FIELD_DEFS, DOMAIN_FIELDS, domainOptions, normalizeDomainValue } from '../../fields'
+import { LEAD_FIELD_DEFS, DOMAIN_FIELDS, domainOptions, normalizeDomainValue } from '../../utils/fields'
 import { detectSeparator, parseDelimited } from '@/shared/lib/delimited'
-import { guessMapping, indexByNct, buildImportPlan, type DupMode, type ValueMap } from '../../importPlan'
+import { guessMapping, indexByNct, buildImportPlan, planCounterChanges, stripCounterFor, ignoredHeaders, type DupMode, type ValueMap } from '../../utils/importPlan'
 import { useResearch } from '../ResearchContext'
+import CounterChangeRow from './CounterChangeRow'
 
 const SEP_OPTIONS = [
   { value: ',', labelKey: 'research.import.sep.comma' },
@@ -27,6 +28,8 @@ export default function ImportModal() {
   const [mapping, setMapping] = useState<(string | null)[]>([])
   const [dupMode, setDupMode] = useState<DupMode>('update')
   const [valueMap, setValueMap] = useState<ValueMap>({}) // override manual de valores de dominio
+  // Leads cuyo contador el usuario decidió NO pisar (destildados en el preview).
+  const [keepCount, setKeepCount] = useState<Set<string>>(new Set())
   // Todos los hooks van ANTES de cualquier return condicional (Rules of Hooks):
   // si el early-return quedara en medio, abrir el modal renderiza más hooks que el
   // render previo → "Rendered more hooks than during the previous render".
@@ -36,6 +39,15 @@ export default function ImportModal() {
     () => buildImportPlan({ rows: parsed.rows, mapping, existingByNct, dupMode, valueMap }),
     [parsed.rows, mapping, existingByNct, dupMode, valueMap],
   )
+  // El contador tiene dos escritores (pop-up y este import): antes de pisar, mostrar qué
+  // cambia y dejar destildarlo. El plan que se ejecuta es el ya filtrado, no `plan`.
+  // Lo que el import va a tirar. Va ARRIBA de todo lo demás: el resumen del final cuenta
+  // filas, así que sin esto se lee "3 a actualizar" sin saber que faltaron columnas.
+  const dropped = useMemo(() => ignoredHeaders(parsed.headers, mapping), [parsed.headers, mapping])
+  const countById = useMemo(() => new Map(leads.map(l => [l.id, l.email_count ?? null])), [leads])
+  const counterChanges = useMemo(() => planCounterChanges(plan, countById), [plan, countById])
+  const finalPlan = useMemo(() => stripCounterFor(plan, keepCount), [plan, keepCount])
+
   // Por cada columna de dominio mapeada, los valores distintos entrantes y su canónico
   // auto-sugerido (mismo tratamiento que el mapeo de encabezados, un nivel más abajo).
   const domainGroups = useMemo(() => {
@@ -60,7 +72,7 @@ export default function ImportModal() {
   }, [mapping, parsed.rows])
   if (!modalImport) return null
 
-  const close = () => { setModalImport(false); setRaw(null); setMapping([]); setSep(','); setDupMode('update'); setValueMap({}) }
+  const close = () => { setModalImport(false); setRaw(null); setMapping([]); setSep(','); setDupMode('update'); setValueMap({}); setKeepCount(new Set()) }
   const setValue = (col: string, rawv: string, canonical: string) =>
     setValueMap(m => ({ ...m, [col]: { ...m[col], [rawv]: canonical } }))
   const unresolved = domainGroups.reduce((n, g) => n + g.values.filter(v => !v.resolved && !(valueMap[g.column]?.[v.raw])).length, 0)
@@ -86,7 +98,7 @@ export default function ImportModal() {
 
   async function doImport() {
     if (!canImport) { mostrarMensaje('error', t('research.import.noColumns')); return }
-    if (await confirmImport(plan)) close()
+    if (await confirmImport(finalPlan)) close()
   }
 
   const sectionTitle = { fontSize: 11, fontWeight: 700, letterSpacing: '.14em', textTransform: 'uppercase' as const, color: accent, margin: '18px 0 10px' }
@@ -134,6 +146,37 @@ export default function ImportModal() {
                 ))}</tbody>
               </table>
             </div>
+
+            {/* COLUMNAS DESCARTADAS */}
+            {dropped.length > 0 && (
+              <>
+                <div style={sectionTitle}>{t('research.import.ignoredSection')}</div>
+                <div style={{ fontSize: 11, color: warn, lineHeight: 1.5 }}>{t('research.import.ignoredNote', { n: dropped.length })}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                  {dropped.map(h => (
+                    <span key={h} style={{ fontSize: 10, fontFamily: 'DM Mono', padding: '3px 9px', borderRadius: 20, border: `1px solid ${warn}55`, background: `${warn}18`, color: warn }}>{h}</span>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* CONTADORES A PISAR */}
+            {counterChanges.length > 0 && (
+              <>
+                <div style={sectionTitle}>{t('research.import.counterSection')}</div>
+                <div style={{ fontSize: 11, color: warn, marginBottom: 8 }}>{t('research.import.counterWarning', { n: counterChanges.length })}</div>
+                <div style={{ maxHeight: 160, overflowY: 'auto', border: `1px solid ${border}`, borderRadius: 10 }}>
+                  {counterChanges.map(c => (
+                    <CounterChangeRow key={c.id} change={c} apply={!keepCount.has(c.id)}
+                      onToggle={() => setKeepCount(prev => {
+                        const next = new Set(prev)
+                        next.has(c.id) ? next.delete(c.id) : next.add(c.id)
+                        return next
+                      })} />
+                  ))}
+                </div>
+              </>
+            )}
 
             {/* DUPLICADOS */}
             <div style={sectionTitle}>{t('research.import.dupSection')}</div>
@@ -190,7 +233,7 @@ export default function ImportModal() {
             )}
 
             <div style={{ fontSize: 12, color: accent, marginTop: 12, fontWeight: 600 }}>
-              {t('research.import.summary', { ins: plan.toInsert.length, upd: plan.toUpdate.length, skip: plan.skipped })}
+              {t('research.import.summary', { ins: finalPlan.toInsert.length, upd: finalPlan.toUpdate.length, skip: finalPlan.skipped })}
             </div>
           </>
         )}

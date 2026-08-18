@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import * as research from './index'
-import { EXPORT_HEADERS, leadColumnFor, validateLead, validateLeadFields, buildLeadPayload, normalizeDomainValue } from './fields'
-import { fetchStudyByNCT, splitStudyMerge, studyFromProtocol } from './clinicalTrials'
+import { EXPORT_HEADERS, leadColumnFor, validateLead, validateLeadFields, buildLeadPayload, normalizeDomainValue } from './utils/fields'
+import { fetchStudyByNCT, splitStudyMerge, studyFromProtocol } from './utils/clinicalTrials'
 import { PIPELINE_COLS, PIPELINE_ACTIVE_COLS, ARCHIVED_STAGE, DEFAULT_STAGE, STAGE, STAGE_LABEL_KEY, stageLabel } from './constants'
 
 describe('features/research API pública', () => {
