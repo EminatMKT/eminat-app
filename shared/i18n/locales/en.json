@@ -96,6 +96,8 @@
   "research.chart.leadsByPhase": "Studies by phase",
   "research.chart.leadsBySpecialty": "Studies by specialty",
   "research.chart.unclassified": "Unclassified",
+  "research.chart.clickToFilter": "Click to filter",
+  "research.chart.clearFilter": "Clear filter",
   "research.chart.topSponsors": "Top sponsors",
   "research.leads.tableTitle": "Records",
   "research.leads.emptyTitle": "No records for these filters",

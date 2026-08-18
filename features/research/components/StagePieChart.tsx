@@ -5,6 +5,7 @@ import { stageLabel, stageColors } from '../constants'
 import { useT } from '@/shared/i18n'
 import StageLegendItem, { LEGEND_COLUMNS } from './StageLegendItem'
 import Panel from './Panel'
+import ChartFilterHint from './ChartFilterHint'
 
 const RAD = Math.PI / 180
 
@@ -36,7 +37,8 @@ export default function StagePieChart({ data, onSelect, selected }: { data: { na
     )
   }
   return (
-    <Panel collapsible persistKey="research-pipeline" title={t('research.chart.pipelineByStage')}>
+    <Panel collapsible persistKey="research-pipeline" title={t('research.chart.pipelineByStage')}
+      right={onSelect ? <ChartFilterHint label={selected ? stageLabel(selected, t) : undefined} onClear={() => selected && onSelect(selected)} /> : undefined}>
       {/* Leyenda a la derecha y no debajo: mismo pedido de legibilidad a distancia. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ flex: '1 1 55%', minWidth: 0 }}>

@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, LabelList, ResponsiveContai
 import { RESEARCH_THEME } from '../theme'
 import { CHART_COLORS } from '../constants'
 import Panel from './Panel'
+import ChartFilterHint from './ChartFilterHint'
 
 // `key` es el VALOR con el que se filtra al clickear (la etiqueta puede estar traducida);
 // si no viene, se filtra por el nombre — sirve para las gráficas cuyo nombre YA es el valor
@@ -24,11 +25,14 @@ export default function BarChartCard({ title, data, vertical = false, height, pe
   const figure = { fontFamily: 'Syne', fontSize: 13, fontWeight: 800 }
   const valueOf = (d: Datum) => d.key ?? d.name
   const dim = (d: Datum) => (selected && valueOf(d) !== selected ? 0.28 : 1)
+  // `activeBar` resalta la barra bajo el cursor: junto al cursor de mano es lo que dice "esto
+  // se clickea" antes de clickearlo. Sin él, un gráfico interactivo se ve igual que uno inerte.
   const barProps = onSelect
-    ? { onClick: (d: any) => onSelect(valueOf(d?.payload ?? d)), style: { cursor: 'pointer' } }
+    ? { onClick: (d: any) => onSelect(valueOf(d?.payload ?? d)), style: { cursor: 'pointer' }, activeBar: { fillOpacity: 1, stroke: t1, strokeWidth: 1.5 } }
     : {}
   return (
-    <Panel collapsible persistKey={persistKey} title={title}>
+    <Panel collapsible persistKey={persistKey} title={title}
+      right={onSelect ? <ChartFilterHint label={data.find(d => valueOf(d) === selected)?.name} onClear={() => selected && onSelect(selected)} /> : undefined}>
       <ResponsiveContainer width="100%" height={height ?? (vertical ? 200 : 220)}>
         {vertical ? (
           <BarChart data={data} layout="vertical" margin={{ right: 28 }}>
