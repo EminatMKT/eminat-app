@@ -11,7 +11,7 @@ import { useT } from '@/shared/i18n'
 
 export default function DashboardTab() {
   const { t, locale } = useT()
-  const { totalLeads, totalCorreos, cadencia, contactadosConCorreo, nuevos, ganados, sinRespuesta, cargadosEsteMes, stageData, phaseData } = useResearch()
+  const { totalLeads, totalCorreos, cadencia, contactadosConCorreo, nuevos, ganados, sinRespuesta, cargadosEsteMes, stageData, phaseData, specialtyData } = useResearch()
   // El absoluto y el % juntos en la misma card (pedido de Federico, 12/08/2026). El % es el que
   // sostiene la narrativa: "de todo lo que enviamos, no nos han respondido la mitad".
   const pct = (n: number) => `${totalLeads > 0 ? Math.round((n / totalLeads) * 100) : 0}%`
@@ -78,6 +78,14 @@ export default function DashboardTab() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14, alignItems: 'start' }}>
         <StagePieChart data={stageData} />
         <BarChartCard persistKey="research-phases" title={t('research.chart.leadsByPhase')} data={phaseData} />
+      </div>
+
+      {/* Por especialidad va en barras HORIZONTALES y no verticales como fase: "Gastroenterología"
+          no entra bajo una barra de 60px sin cortarse ni rotarse. Mismo motivo por el que Top
+          Sponsors usa vertical. Ocupa el ancho completo porque la lista es larga (15 + los sin
+          clasificar) y es el gráfico que se lleva a la conversación con la farmacéutica. */}
+      <div style={{ marginBottom: 14 }}>
+        <BarChartCard persistKey="research-specialties" title={t('research.chart.leadsBySpecialty')} data={specialtyData} vertical height={320} />
       </div>
 
       {/* Oculto por dirección (reunión 2026-07-20) — Top Sponsors + Recently added. Restaurar descomentando + reactivar imports/destructure (sponsorData, leads, RecentLeadItem):

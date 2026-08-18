@@ -94,6 +94,8 @@
   "research.section.showDetail": "Ver detalle",
   "research.chart.pipelineByStage": "Pipeline por etapa",
   "research.chart.leadsByPhase": "Estudios por fase",
+  "research.chart.leadsBySpecialty": "Estudios por especialidad",
+  "research.chart.unclassified": "Sin clasificar",
   "research.chart.topSponsors": "Top sponsors",
   "research.leads.tableTitle": "Registros",
   "research.leads.emptyTitle": "Sin registros para estos filtros",

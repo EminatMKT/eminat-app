@@ -9,7 +9,7 @@ import { applyFilters, type FilterValues } from '@/shared/lib/filters'
 import { useUserPreference } from '@/shared/lib/useUserPreference'
 import type { ImportPlan } from '../utils/importPlan'
 import { totalEmails, cadenceBreakdown } from '../utils/counters'
-import { pendingSpecialty, type Specialty } from '../utils/specialty'
+import { pendingSpecialty, specialtyLabel, type Specialty } from '../utils/specialty'
 import { fetchStudyByNCT } from '../utils/clinicalTrials'
 import { escapeHtml } from '@/shared/lib/html'
 import type { Lead, Activity, Campaign, Stage } from '../types'
@@ -94,6 +94,21 @@ export function useResearchData() {
     m[p] = (m[p] || 0) + 1
     return m
   }, {})).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
+  // Fiel a la tabla igual que los de arriba, con dos diferencias propias de esta columna:
+  // la etiqueta va TRADUCIDA (lo guardado es el literal español canónico, y el tablero se
+  // proyecta también en inglés), y los sin clasificar entran como una barra más en vez de
+  // quedar fuera. Eso último no es cosmético: son ~1 de cada 4 estudios, y esconderlos haría
+  // leer el gráfico como si estuviera todo clasificado.
+  const sinClasificar = t('research.chart.unclassified')
+  const specialtyData = Object.entries(leads.reduce((m: Record<string, number>, l) => {
+    const s = (l.especialidad || '').trim() ? specialtyLabel(l.especialidad, t) : sinClasificar
+    m[s] = (m[s] || 0) + 1
+    return m
+  }, {})).map(([name, value]) => ({ name, value }))
+    // Ordena por cantidad PERO deja 'Sin clasificar' siempre al final, aunque sea el más grande
+    // (hoy lo es: 1 de cada 4). Rankeado junto a las demás, el gráfico proyectado diría que el
+    // área más grande de Eminat es "sin clasificar" — que no es un área, es trabajo pendiente.
+    .sort((a, b) => (a.name === sinClasificar ? 1 : b.name === sinClasificar ? -1 : b.value - a.value))
   const sponsorData = Object.entries(leads.reduce((m: any, l) => { if (l.lead_sponsor) { m[l.lead_sponsor] = (m[l.lead_sponsor] || 0) + 1 } return m }, {}))
     .map(([name, value]) => ({ name, value: value as number }))
     .sort((a, b) => b.value - a.value).slice(0, 8)
@@ -245,7 +260,7 @@ export function useResearchData() {
     filterValues, setFilterValue, clearFilters,
     filteredLeads,
     totalLeads, activeLeads, nuevos, contactados, contactadosConCorreo, ganados, sinRespuesta, totalCorreos, cadencia, cargadosEsteMes,
-    stageData, phaseData, sponsorData, countryData, countrySorted,
+    stageData, phaseData, specialtyData, sponsorData, countryData, countrySorted,
     saveLead, deleteLead, addActivity, updateStage, setEmailCount, confirmImport, handleExport, handlePrint,
     scanSpecialties, applySpecialties,
     duplicateCampaign, deleteCampaign,
