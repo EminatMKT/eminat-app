@@ -9,7 +9,7 @@ import { applyFilters, type FilterValues } from '@/shared/lib/filters'
 import { useUserPreference } from '@/shared/lib/useUserPreference'
 import type { ImportPlan } from '../utils/importPlan'
 import { totalEmails, cadenceBreakdown } from '../utils/counters'
-import { pendingSpecialty, specialtyLabel, type Specialty } from '../utils/specialty'
+import { pendingSpecialty, specialtyLabel, NO_SPECIALTY, type Specialty } from '../utils/specialty'
 import { fetchStudyByNCT } from '../utils/clinicalTrials'
 import { escapeHtml } from '@/shared/lib/html'
 import type { Lead, Activity, Campaign, Stage } from '../types'
@@ -58,30 +58,42 @@ export function useResearchData() {
   const setFilterValue = (key: string, value: string) => setFilterValues(p => ({ ...p, [key]: value }))
   const clearFilters = () => setFilterValues({})
 
-  const totalLeads = leads.length
-  const activeLeads = leads.filter(l => l.stage === STAGE.NUEVO || l.stage === STAGE.CONTACTADO).length
-  const nuevos = leads.filter(l => l.stage === STAGE.NUEVO).length
-  const contactados = leads.filter(l => l.stage === STAGE.CONTACTADO).length
-  const ganados = leads.filter(l => l.stage === STAGE.GANADO).length
-  const sinRespuesta = leads.filter(l => l.stage === STAGE.SIN_RESPUESTA).length
+  // Cross-filter: cada gráfica se calcula con todos los filtros MENOS el suyo. Si no, al
+  // clickear "Oncología" la propia gráfica de especialidad se queda con una sola barra: se
+  // pierde el contexto y no hay forma de clickear otra para cambiar de selección. Las tarjetas
+  // de KPI sí usan `filteredLeads` (todos los filtros): ahí el número filtrado ES el que se pide.
+  const exceptOwn = (key: string) => applyFilters(leads, LEAD_FILTERS.filter(d => d.key !== key), filterValues)
+
+  // — KPIs y agregados de las gráficas —
+  // TODO lo de acá abajo se calcula sobre `filteredLeads`, no sobre `leads`: el dashboard
+  // responde a la barra de filtros igual que la tabla (comportamiento tipo Power BI, pedido
+  // 18/08/2026). Sin filtros activos, filteredLeads === leads y los números son los de siempre.
+  // ⚠️ Con un filtro puesto, las cifras del tablero YA NO son el total del pipeline. El chip de
+  // "activos: N" en el panel de filtros es lo que evita presentar un número filtrado sin saberlo.
+  const totalLeads = filteredLeads.length
+  const activeLeads = filteredLeads.filter(l => l.stage === STAGE.NUEVO || l.stage === STAGE.CONTACTADO).length
+  const nuevos = filteredLeads.filter(l => l.stage === STAGE.NUEVO).length
+  const contactados = filteredLeads.filter(l => l.stage === STAGE.CONTACTADO).length
+  const ganados = filteredLeads.filter(l => l.stage === STAGE.GANADO).length
+  const sinRespuesta = filteredLeads.filter(l => l.stage === STAGE.SIN_RESPUESTA).length
   // "Cuántos han sido contactados, INDEPENDIENTEMENTE de cuántos correos se han enviado, cuántos
   // leads ya están en proceso, ya se envió al menos un correo" (Federico, 12/08/2026 min 12:49).
   // Ojo: NO es la etapa `Contactado` — un lead en `Sin respuesta` con 3 correos también fue
   // contactado. Ese solapamiento lo reconoció él mismo en la misma reunión.
-  const contactadosConCorreo = leads.filter(l => (l.email_count ?? 0) >= 1).length
+  const contactadosConCorreo = filteredLeads.filter(l => (l.email_count ?? 0) >= 1).length
   // El esfuerzo real: 81 registros únicos esconden ~165-170 alcances (reunión 12/08/2026).
-  const totalCorreos = totalEmails(leads)
-  const cadencia = cadenceBreakdown(leads)
+  const totalCorreos = totalEmails(filteredLeads)
+  const cadencia = cadenceBreakdown(filteredLeads)
   // "Mes / fecha de registro" (card 4 del pedido): cuántos leads entraron en el mes en curso.
   // date_added es DATE (YYYY-MM-DD) → alcanza con comparar el prefijo del mes. El mes se toma
   // en hora LOCAL ('sv-SE' da YYYY-MM-DD): con toISOString, en UTC-4 el último día del mes a
   // partir de las 20:00 la card ya contaba el mes siguiente mientras el rótulo decía el actual.
   const mesActual = new Date().toLocaleDateString('sv-SE').slice(0, 7)
-  const cargadosEsteMes = leads.filter(l => (l.date_added ?? '').startsWith(mesActual)).length
+  const cargadosEsteMes = filteredLeads.filter(l => (l.date_added ?? '').startsWith(mesActual)).length
 
   // Fiel a la tabla: agrupa por el stage REAL de cada lead (migrado o no). Nada se oculta por
   // estado de migración; un valor legacy ('Awarded', etc.) aparece tal cual. null/'' → 'Sin etapa'.
-  const stageData = Object.entries(leads.reduce((m: Record<string, number>, l) => {
+  const stageData = Object.entries(exceptOwn('stage').reduce((m: Record<string, number>, l) => {
     const s = (l.stage || '').trim() || 'Sin etapa'
     m[s] = (m[s] || 0) + 1
     return m
@@ -89,7 +101,7 @@ export function useResearchData() {
   // Fiel a la tabla, igual que stageData: agrupa por el valor REAL de phase (canónico 'Phase 2',
   // combos, 'N/A' o legacy crudo '2'). El cómputo viejo (Number(phase)===1..4) no contaba los
   // valores canónicos que guarda la app ('Phase 2' → NaN). null/'' → 'Sin fase'.
-  const phaseData = Object.entries(leads.reduce((m: Record<string, number>, l) => {
+  const phaseData = Object.entries(exceptOwn('phase').reduce((m: Record<string, number>, l) => {
     const p = (l.phase ?? '').toString().trim() || 'Sin fase'
     m[p] = (m[p] || 0) + 1
     return m
@@ -99,21 +111,28 @@ export function useResearchData() {
   // proyecta también en inglés), y los sin clasificar entran como una barra más en vez de
   // quedar fuera. Eso último no es cosmético: son ~1 de cada 4 estudios, y esconderlos haría
   // leer el gráfico como si estuviera todo clasificado.
-  const sinClasificar = t('research.chart.unclassified')
-  const specialtyData = Object.entries(leads.reduce((m: Record<string, number>, l) => {
-    const s = (l.especialidad || '').trim() ? specialtyLabel(l.especialidad, t) : sinClasificar
-    m[s] = (m[s] || 0) + 1
+  // Agrupa por el VALOR canónico (o el centinela), no por la etiqueta: el `key` es lo que viaja
+  // al filtro cuando se clickea la barra, y la etiqueta cambia con el idioma. `name` es solo
+  // para mostrar, traducido — el tablero también se proyecta en inglés.
+  const specialtyData = Object.entries(exceptOwn('specialty').reduce((m: Record<string, number>, l) => {
+    const k = (l.especialidad || '').trim() || NO_SPECIALTY
+    m[k] = (m[k] || 0) + 1
     return m
-  }, {})).map(([name, value]) => ({ name, value }))
+  }, {})).map(([key, value]) => ({
+    key,
+    name: key === NO_SPECIALTY ? t('research.chart.unclassified') : specialtyLabel(key, t),
+    value,
+  }))
     // Ordena por cantidad PERO deja 'Sin clasificar' siempre al final, aunque sea el más grande
     // (hoy lo es: 1 de cada 4). Rankeado junto a las demás, el gráfico proyectado diría que el
     // área más grande de Eminat es "sin clasificar" — que no es un área, es trabajo pendiente.
-    .sort((a, b) => (a.name === sinClasificar ? 1 : b.name === sinClasificar ? -1 : b.value - a.value))
-  const sponsorData = Object.entries(leads.reduce((m: any, l) => { if (l.lead_sponsor) { m[l.lead_sponsor] = (m[l.lead_sponsor] || 0) + 1 } return m }, {}))
+    .sort((a, b) => (a.key === NO_SPECIALTY ? 1 : b.key === NO_SPECIALTY ? -1 : b.value - a.value))
+
+  const sponsorData = Object.entries(filteredLeads.reduce((m: any, l) => { if (l.lead_sponsor) { m[l.lead_sponsor] = (m[l.lead_sponsor] || 0) + 1 } return m }, {}))
     .map(([name, value]) => ({ name, value: value as number }))
     .sort((a, b) => b.value - a.value).slice(0, 8)
 
-  const countryData: Record<string, number> = leads.reduce((m: any, l) => {
+  const countryData: Record<string, number> = filteredLeads.reduce((m: any, l) => {
     const countries = (l.countries || '').split(',').map((c: string) => c.trim()).filter(Boolean)
     countries.forEach((c: string) => { m[c] = (m[c] || 0) + 1 })
     return m

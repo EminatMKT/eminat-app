@@ -1,11 +1,10 @@
 'use client'
-import { RESEARCH_THEME, selectStyle } from '../../theme'
+import { RESEARCH_THEME } from '../../theme'
 import { useT, type I18nKey } from '@/shared/i18n'
-import FilterBar from '@/shared/components/FilterBar'
-import { LEAD_FILTERS } from '../../utils/filters'
 import { FROZEN_COLS } from '../../constants'
 import { useResearch } from '../ResearchContext'
 import Panel from '../Panel'
+import FiltersPanel from '../FiltersPanel'
 import ToolbarButton from '../ToolbarButton'
 import LeadRow from './LeadRow'
 
@@ -26,27 +25,10 @@ const COLUMNS: I18nKey[] = [
 export default function LeadsTab() {
   const { s2, border, t2, t3, accent } = RESEARCH_THEME
   const { t } = useT()
-  const { leads, filterValues, setFilterValue, clearFilters, filteredLeads, openNewLead, setModalImport, setModalSpecialty, handleExport, handlePrint } = useResearch()
-  const activos = LEAD_FILTERS.filter(d => filterValues[d.key]).length
+  const { filteredLeads, openNewLead, setModalImport, setModalSpecialty, handleExport, handlePrint } = useResearch()
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {/* Los filtros viven en su propio panel: dejan de flotar sueltos sobre el fondo y se
-          entiende que son la barra de herramientas de la tabla de abajo. El conteo de activos va
-          en la CABECERA porque los filtros ahora se recuerdan entre sesiones: si el panel quedó
-          recogido, esto es lo único que explica por qué la tabla trae menos filas de las esperadas. */}
-      <Panel collapsible persistKey="research-filters" title={t('research.section.filters')}
-        right={activos > 0
-          ? <span style={{ fontFamily: 'DM Mono', fontSize: 10, color: accent, background: `${accent}14`, borderRadius: 999, padding: '4px 10px' }}>
-              {t('research.filter.activeCount', { n: activos })}
-            </span>
-          : undefined}>
-        <FilterBar defs={LEAD_FILTERS} items={leads} values={filterValues} onChange={setFilterValue} onClear={clearFilters}
-          labelFor={d => t(d.labelKey as I18nKey)}
-          clearLabel={t('research.filter.clear')}
-          resultsLabel="" /* el conteo vive en la cabecera de la tabla, no repetido acá */
-          selectStyle={selectStyle} mutedColor={t3}
-          clearStyle={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 11, cursor: 'pointer' }} />
-      </Panel>
+      <FiltersPanel />
 
       {/* Las acciones viven acá y no en el encabezado del módulo: operan sobre ESTA tabla
           (export y PDF salen de `filteredLeads`, o sea de lo que el usuario está viendo). */}

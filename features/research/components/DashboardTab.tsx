@@ -5,13 +5,14 @@ import StatCard from './StatCard'
 import Panel from './Panel'
 // import CountryChip from './CountryChip' // ponytail: oculto por pedido de dirección (reunión 2026-07-20) — restaurar descomentando esto + el bloque "Leads by Country"
 // import RecentLeadItem from './RecentLeadItem' // ponytail: oculto por pedido de dirección — restaurar con el bloque "Recently added leads"
+import FiltersPanel from './FiltersPanel'
 import StagePieChart from './StagePieChart'
 import BarChartCard from './BarChartCard'
 import { useT } from '@/shared/i18n'
 
 export default function DashboardTab() {
   const { t, locale } = useT()
-  const { totalLeads, totalCorreos, cadencia, contactadosConCorreo, nuevos, ganados, sinRespuesta, cargadosEsteMes, stageData, phaseData, specialtyData } = useResearch()
+  const { totalLeads, totalCorreos, cadencia, contactadosConCorreo, nuevos, ganados, sinRespuesta, cargadosEsteMes, stageData, phaseData, specialtyData, filterValues, setFilterValue } = useResearch()
   // El absoluto y el % juntos en la misma card (pedido de Federico, 12/08/2026). El % es el que
   // sostiene la narrativa: "de todo lo que enviamos, no nos han respondido la mitad".
   const pct = (n: number) => `${totalLeads > 0 ? Math.round((n / totalLeads) * 100) : 0}%`
@@ -19,9 +20,16 @@ export default function DashboardTab() {
   // y el pie la base de esa proporción. Se lee de corrido: "2 · 25% · de 8 leads cargados".
   const ofLoaded = t('research.kpi.ofLoadedLeads', { n: totalLeads })
   const mesEnCurso = new Date().toLocaleDateString(locale === 'en' ? 'en-US' : 'es-ES', { month: 'long', year: 'numeric' })
+  // Clic en una barra/porción = filtrar el tablero por ese valor; clic en la que ya está activa
+  // = sacarlo. Sin el toggle, para volver atrás habría que ir a buscar el desplegable — y el
+  // gesto natural después de clickear algo es volver a clickearlo.
+  const toggle = (key: string) => (v: string) => setFilterValue(key, filterValues[key] === v ? '' : v)
 
   return (
     <div>
+      {/* Los filtros mandan sobre TODO el tablero, no solo sobre la tabla: es el mismo estado
+          del contexto, así que lo que se filtre acá sigue puesto al pasar a Leads. */}
+      <div style={{ marginBottom: 14 }}><FiltersPanel /></div>
       {/* Orden pedido por Federico (12/08/2026), de izquierda a derecha por prioridad de lectura:
           esfuerzo → sin respuesta → contactado → el resto del pipeline → registros únicos al final
           ("ese sería uno de los del final a la derecha"). Los 81 únicos abrían la fila y tapaban
@@ -76,8 +84,8 @@ export default function DashboardTab() {
       {/* alignItems:start — si no, recoger una gráfica deja un hueco del alto de su vecina
           abierta, porque el grid iguala alturas por fila. */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14, alignItems: 'start' }}>
-        <StagePieChart data={stageData} />
-        <BarChartCard persistKey="research-phases" title={t('research.chart.leadsByPhase')} data={phaseData} />
+        <StagePieChart data={stageData} onSelect={toggle('stage')} selected={filterValues.stage} />
+        <BarChartCard persistKey="research-phases" title={t('research.chart.leadsByPhase')} data={phaseData} onSelect={toggle('phase')} selected={filterValues.phase} />
       </div>
 
       {/* Por especialidad va en barras HORIZONTALES y no verticales como fase: "Gastroenterología"
@@ -85,7 +93,7 @@ export default function DashboardTab() {
           Sponsors usa vertical. Ocupa el ancho completo porque la lista es larga (15 + los sin
           clasificar) y es el gráfico que se lleva a la conversación con la farmacéutica. */}
       <div style={{ marginBottom: 14 }}>
-        <BarChartCard persistKey="research-specialties" title={t('research.chart.leadsBySpecialty')} data={specialtyData} vertical height={320} />
+        <BarChartCard persistKey="research-specialties" title={t('research.chart.leadsBySpecialty')} data={specialtyData} vertical height={320} onSelect={toggle('specialty')} selected={filterValues.specialty} />
       </div>
 
       {/* Oculto por dirección (reunión 2026-07-20) — Top Sponsors + Recently added. Restaurar descomentando + reactivar imports/destructure (sponsorData, leads, RecentLeadItem):

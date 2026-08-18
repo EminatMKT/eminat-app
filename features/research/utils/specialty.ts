@@ -103,6 +103,12 @@ export const SPECIALTY_LABEL_KEY = {
   [SPECIALTY.OTRAS]:            'research.specialty.otras',
 } satisfies Record<Specialty, I18nKey>
 
+// Centinela de "sin clasificar" para el filtro y para la barra del gráfico. Es un valor FIJO
+// y no la etiqueta traducida porque viaja al estado del filtro, que se recuerda entre sesiones:
+// con la traducción, cambiar de idioma dejaría guardado un filtro que ya no matchea nada.
+// No colisiona con el dominio: 'Sin clasificar' no es una especialidad.
+export const NO_SPECIALTY = 'Sin clasificar'
+
 // Opciones del select, en el mismo orden de prioridad y con 'Otras' al final.
 export const SPECIALTIES: Specialty[] = [...MESH_ROOTS.map(([s]) => s), SPECIALTY.OTRAS]
 

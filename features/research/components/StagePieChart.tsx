@@ -8,7 +8,10 @@ import Panel from './Panel'
 
 const RAD = Math.PI / 180
 
-export default function StagePieChart({ data }: { data: { name: string; value: number }[] }) {
+// `onSelect` hace del pie un filtro: clic en una porción filtra el tablero por esa etapa
+// (mismo gesto que las barras). El nombre de la porción YA es el valor canónico de `stage`,
+// así que se filtra por él directamente. La porción activa se marca atenuando las otras.
+export default function StagePieChart({ data, onSelect, selected }: { data: { name: string; value: number }[]; onSelect?: (value: string) => void; selected?: string }) {
   const { s1, border } = RESEARCH_THEME
   const { t } = useT()
   const total = data.reduce((sum, d) => sum + d.value, 0)
@@ -49,7 +52,8 @@ export default function StagePieChart({ data }: { data: { name: string; value: n
                 con `showLabels: !isAnimating` (es6/polar/Pie.js), y acá el fin de la animación no
                 destapa el flag → con la animación puesta el % no aparece nunca. */}
             <PieChart><Pie data={data} cx="50%" cy="50%" innerRadius={0} outerRadius={95} paddingAngle={0} stroke="none" dataKey="value" labelLine={false} label={percentLabel} isAnimationActive={false}>
-              {data.map(d => <Cell key={d.name} fill={colors[d.name]} />)}
+              {data.map(d => <Cell key={d.name} fill={colors[d.name]} fillOpacity={selected && d.name !== selected ? 0.28 : 1}
+                onClick={onSelect ? () => onSelect(d.name) : undefined} style={onSelect ? { cursor: 'pointer' } : undefined} />)}
             </Pie><Tooltip formatter={(value, name) => [value, stageLabel(String(name), t)]} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} /></PieChart>
           </ResponsiveContainer>
         </div>

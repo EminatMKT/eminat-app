@@ -3,6 +3,7 @@
 // Las opciones REUSAN las listas canónicas del def de campo (domainOptions) donde existen;
 // solo los campos libres (sponsor, país) se derivan de la data presente.
 import { domainOptions } from './fields'
+import { NO_SPECIALTY } from './specialty'
 import { distinctValues, distinctTokens, type FilterDef } from '@/shared/lib/filters'
 import type { Lead } from '../types'
 
@@ -27,5 +28,9 @@ export const LEAD_FILTERS: FilterDef<Lead>[] = [
   { key: 'sponsor', labelKey: 'research.filter.allSponsors', options: items => distinctValues(items, l => l.lead_sponsor), match: eq(l => l.lead_sponsor) },
   // Es el filtro que responde "¿cuántos estudios de oncología tenemos?" sin exportar nada —
   // el motivo por el que existe la columna. Dominio cerrado ⇒ opciones del def, no de la data.
-  { key: 'specialty', labelKey: 'research.filter.allSpecialties', options: domain('especialidad'), match: eq(l => l.especialidad) },
+  // El centinela NO_SPECIALTY se suma al dominio para poder pedir "los que faltan clasificar"
+  // (1 de cada 4). Sin él no se puede: un valor vacío significa "filtro apagado".
+  { key: 'specialty', labelKey: 'research.filter.allSpecialties',
+    options: () => [...(domainOptions('especialidad') ?? []), NO_SPECIALTY],
+    match: (l, v) => (v === NO_SPECIALTY ? !(l.especialidad || '').trim() : String(l.especialidad ?? '') === v) },
 ]
