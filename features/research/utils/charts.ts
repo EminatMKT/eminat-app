@@ -12,6 +12,7 @@
 // vacío necesita un valor propio, y ese valor tiene que ser el mismo de los dos lados.
 import type { I18nKey } from '@/shared/i18n'
 import { specialtyLabel, NO_SPECIALTY } from './specialty'
+import { domainOptions, normalizeDomainValue } from './fields'
 import type { Lead } from '../types'
 
 export const NO_STAGE = 'Sin etapa'
@@ -41,12 +42,37 @@ export function stageBuckets(leads: Lead[]): ChartDatum[] {
     .map(([key, value]) => ({ key, name: key, value })).sort(byValueDesc)
 }
 
-// Igual que stageBuckets, por el valor REAL de phase (canónico 'Phase 2', combos, 'N/A' o
-// legacy crudo '2'). El cómputo viejo (Number(phase)===1..4) no contaba los valores canónicos
-// que guarda la app ('Phase 2' → NaN).
+// Fases ATÓMICAS: las del dominio que no son una combinación de otras dos. Se deriva en vez de
+// listarse para que agregar una fase al dominio no obligue a acordarse de esto. La regla mira
+// si las dos mitades de un '/' son a su vez fases del dominio — que es lo que distingue
+// 'Phase 1/Phase 2' (combinada) de 'N/A', que lleva una barra adentro y NO es dos cosas.
+function atomicPhases(): string[] {
+  const dominio = domainOptions('phase') ?? []
+  return dominio.filter(p => !(p.includes('/') && p.split('/').every(x => dominio.includes(x.trim()))))
+}
+export const PHASE_TOKENS = atomicPhases()
+
+// Las fases en las que cuenta un lead. ÚNICA fuente para la gráfica y para el filtro: la barra
+// 'Phase 2' y el filtro 'Phase 2' preguntan por esto mismo, así que no pueden discrepar.
+//
+// Decisión del 18/08: un estudio 'Phase 1/Phase 2' cuenta en LAS DOS barras, porque la pregunta
+// real es "cuántos estudios tenemos en fase 2" — que es lo que el filtro ya respondía. Antes la
+// barra contaba el valor exacto y el filtro traía también los combinados: la barra decía 7 y
+// los KPIs mostraban 12. El costo aceptado es que las barras suman más que el total de estudios.
+//
+// El legacy numérico del Excel de Royner ('2') se normaliza al canónico para que caiga en la
+// misma barra que los demás en vez de abrir una barra propia.
+export function phasesOf(lead: Lead): string[] {
+  const raw = (lead.phase ?? '').toString().trim()
+  if (!raw) return [NO_PHASE]
+  const tokens = PHASE_TOKENS.filter(p => raw.includes(p))
+  return tokens.length ? tokens : [normalizeDomainValue('phase', raw) || raw]
+}
+
 export function phaseBuckets(leads: Lead[]): ChartDatum[] {
-  return Object.entries(countBy(leads, l => (l.phase ?? '').toString(), NO_PHASE))
-    .map(([key, value]) => ({ key, name: key, value })).sort(byValueDesc)
+  const counts: Record<string, number> = {}
+  for (const l of leads) for (const p of phasesOf(l)) counts[p] = (counts[p] || 0) + 1
+  return Object.entries(counts).map(([key, value]) => ({ key, name: key, value })).sort(byValueDesc)
 }
 
 // Los sin clasificar entran como una barra más en vez de quedar fuera: son ~1 de cada 4

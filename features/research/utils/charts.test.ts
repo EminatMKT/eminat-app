@@ -41,11 +41,38 @@ describe('invariante barra ↔ filtro', () => {
     invariante(specialtyBuckets(leads, t), 'specialty')
   })
 
-  it('fase: la barra "Sin fase" filtra los que no tienen fase, no cero', () => {
+  it('fase: cada barra filtra exactamente lo que cuenta, combinados y legacy incluidos', () => {
     const buckets = phaseBuckets(leads)
-    const sinFase = buckets.find(b => b.key === NO_PHASE)!
-    expect(sinFase.value).toBe(2) // el 4 (cadena vacía) y el 5 (sin la propiedad)
-    expect(applyFilters(leads, LEAD_FILTERS, { phase: NO_PHASE }).length).toBe(sinFase.value)
+    expect(buckets.find(b => b.key === NO_PHASE)?.value).toBe(2) // el 4 (vacía) y el 5 (sin la prop)
+    invariante(buckets, 'phase')
+  })
+
+  // Decisión del 18/08: un estudio 'Phase 1/Phase 2' cuenta en las DOS barras, porque la
+  // pregunta que se hace es "cuántos estudios tenemos en fase 2" y el filtro ya respondía eso
+  // por inclusión. Antes la barra contaba el valor exacto y el filtro traía los combinados:
+  // la barra decía 7 y los KPIs mostraban 12.
+  it('fase: un estudio combinado cuenta en cada una de sus fases', () => {
+    const combinados = [
+      { id: 'a', phase: 'Phase 1/Phase 2' },
+      { id: 'b', phase: 'Phase 2' },
+    ] as unknown as Lead[]
+    const buckets = phaseBuckets(combinados)
+    expect(buckets.find(b => b.key === 'Phase 2')?.value).toBe(2)
+    expect(buckets.find(b => b.key === 'Phase 1')?.value).toBe(1)
+    expect(buckets.find(b => b.key === 'Phase 1/Phase 2')).toBeUndefined()
+  })
+
+  // 'N/A' lleva una barra adentro: partir por '/' lo rompería en 'N' y 'A'.
+  it('fase: N/A es una fase entera, no dos', () => {
+    const buckets = phaseBuckets([{ id: 'a', phase: 'N/A' }] as unknown as Lead[])
+    expect(buckets.map(b => b.key)).toEqual(['N/A'])
+  })
+
+  // El Excel de Royner trae la fase como número suelto. Se normaliza al canónico para que caiga
+  // en la misma barra que los demás en vez de abrir una barra '2' propia.
+  it('fase: el legacy numérico cae en la barra canónica', () => {
+    const buckets = phaseBuckets([{ id: 'a', phase: 2 }] as unknown as Lead[])
+    expect(buckets.map(b => b.key)).toEqual(['Phase 2'])
   })
 })
 
@@ -54,9 +81,8 @@ describe('agrupadores', () => {
     expect(stageBuckets(leads).find(b => b.key === '   ')).toBeUndefined()
   })
 
-  it('conserva los valores legacy en vez de esconderlos', () => {
+  it('conserva las etapas legacy en vez de esconderlas', () => {
     expect(stageBuckets(leads).map(b => b.key)).toContain('Awarded')
-    expect(phaseBuckets(leads).map(b => b.key)).toContain('2')
   })
 
   it('la especialidad sin clasificar va última aunque sea la más numerosa', () => {

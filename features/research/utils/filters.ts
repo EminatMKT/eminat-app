@@ -4,7 +4,7 @@
 // solo los campos libres (sponsor, país) se derivan de la data presente.
 import { domainOptions } from './fields'
 import { NO_SPECIALTY } from './specialty'
-import { NO_STAGE, NO_PHASE } from './charts'
+import { NO_STAGE, NO_PHASE, PHASE_TOKENS, phasesOf } from './charts'
 import { distinctValues, distinctTokens, type FilterDef } from '@/shared/lib/filters'
 import type { Lead } from '../types'
 
@@ -30,9 +30,13 @@ export const LEAD_FILTERS: FilterDef<Lead>[] = [
     options: () => [...(domainOptions('stage') ?? []), NO_STAGE],
     match: (l, v) => (v === NO_STAGE ? !(l.stage ?? '').toString().trim() : String(l.stage ?? '') === v) },
   // phase es multivalor ("Phase 1/Phase 2") → match por inclusión sobre las opciones del dominio.
+  // Mismo `phasesOf` que usa la gráfica: la barra 'Phase 2' y este filtro preguntan lo mismo, y
+  // charts.test.ts verifica que devuelvan lo mismo. Las opciones son las fases ATÓMICAS (más el
+  // centinela): ofrecer 'Phase 1/Phase 2' en el desplegable no tendría sentido cuando un estudio
+  // combinado ya aparece al elegir cualquiera de sus dos fases.
   { key: 'phase', labelKey: 'research.filter.allPhases',
-    options: () => [...(domainOptions('phase') ?? []), NO_PHASE],
-    match: (l, v) => (v === NO_PHASE ? !(l.phase ?? '').toString().trim() : String(l.phase ?? '').includes(v)) },
+    options: () => [...PHASE_TOKENS, NO_PHASE],
+    match: (l, v) => phasesOf(l).includes(v) },
   { key: 'status', labelKey: 'research.filter.allStatuses', options: domain('recruitment_status'), match: eq(l => l.recruitment_status) },
   { key: 'country', labelKey: 'research.filter.allCountries', options: items => distinctTokens(items, l => l.countries), match: includes(l => l.countries) },
   { key: 'sponsor', labelKey: 'research.filter.allSponsors', options: items => distinctValues(items, l => l.lead_sponsor), match: eq(l => l.lead_sponsor) },
