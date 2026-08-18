@@ -77,7 +77,7 @@ body {
    Se apunta por el contenedor y no por la clase del <g>, que es generada y cambia. No se
    pierde accesibilidad: esos nodos tienen tabindex="-1", o sea que no se llega a ellos por
    teclado — el mismo filtro está en los desplegables del panel de filtros. */
-.recharts-wrapper :focus, .recharts-wrapper:focus { outline: none; }
+.recharts-wrapper [tabindex="-1"]:focus { outline: none; }
 
 .sticky-cell { background: #FFFFFF; }
 .data-row:hover .sticky-cell { background: #F4F4F4; }

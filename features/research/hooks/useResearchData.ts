@@ -9,7 +9,8 @@ import { applyFilters, type FilterValues } from '@/shared/lib/filters'
 import { useUserPreference } from '@/shared/lib/useUserPreference'
 import type { ImportPlan } from '../utils/importPlan'
 import { totalEmails, cadenceBreakdown } from '../utils/counters'
-import { pendingSpecialty, specialtyLabel, NO_SPECIALTY, type Specialty } from '../utils/specialty'
+import { pendingSpecialty, type Specialty } from '../utils/specialty'
+import { stageBuckets, phaseBuckets, specialtyBuckets } from '../utils/charts'
 import { fetchStudyByNCT } from '../utils/clinicalTrials'
 import { escapeHtml } from '@/shared/lib/html'
 import type { Lead, Activity, Campaign, Stage } from '../types'
@@ -91,48 +92,17 @@ export function useResearchData() {
   const mesActual = new Date().toLocaleDateString('sv-SE').slice(0, 7)
   const cargadosEsteMes = filteredLeads.filter(l => (l.date_added ?? '').startsWith(mesActual)).length
 
-  // Fiel a la tabla: agrupa por el stage REAL de cada lead (migrado o no). Nada se oculta por
-  // estado de migración; un valor legacy ('Awarded', etc.) aparece tal cual. null/'' → 'Sin etapa'.
-  const stageData = Object.entries(exceptOwn('stage').reduce((m: Record<string, number>, l) => {
-    const s = (l.stage || '').trim() || 'Sin etapa'
-    m[s] = (m[s] || 0) + 1
-    return m
-  }, {})).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
-  // Fiel a la tabla, igual que stageData: agrupa por el valor REAL de phase (canónico 'Phase 2',
-  // combos, 'N/A' o legacy crudo '2'). El cómputo viejo (Number(phase)===1..4) no contaba los
-  // valores canónicos que guarda la app ('Phase 2' → NaN). null/'' → 'Sin fase'.
-  const phaseData = Object.entries(exceptOwn('phase').reduce((m: Record<string, number>, l) => {
-    const p = (l.phase ?? '').toString().trim() || 'Sin fase'
-    m[p] = (m[p] || 0) + 1
-    return m
-  }, {})).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
-  // Fiel a la tabla igual que los de arriba, con dos diferencias propias de esta columna:
-  // la etiqueta va TRADUCIDA (lo guardado es el literal español canónico, y el tablero se
-  // proyecta también en inglés), y los sin clasificar entran como una barra más en vez de
-  // quedar fuera. Eso último no es cosmético: son ~1 de cada 4 estudios, y esconderlos haría
-  // leer el gráfico como si estuviera todo clasificado.
-  // Agrupa por el VALOR canónico (o el centinela), no por la etiqueta: el `key` es lo que viaja
-  // al filtro cuando se clickea la barra, y la etiqueta cambia con el idioma. `name` es solo
-  // para mostrar, traducido — el tablero también se proyecta en inglés.
-  const specialtyData = Object.entries(exceptOwn('specialty').reduce((m: Record<string, number>, l) => {
-    const k = (l.especialidad || '').trim() || NO_SPECIALTY
-    m[k] = (m[k] || 0) + 1
-    return m
-  }, {})).map(([key, value]) => ({
-    key,
-    name: key === NO_SPECIALTY ? t('research.chart.unclassified') : specialtyLabel(key, t),
-    value,
-  }))
-    // Ordena por cantidad PERO deja 'Sin clasificar' siempre al final, aunque sea el más grande
-    // (hoy lo es: 1 de cada 4). Rankeado junto a las demás, el gráfico proyectado diría que el
-    // área más grande de Eminat es "sin clasificar" — que no es un área, es trabajo pendiente.
-    .sort((a, b) => (a.key === NO_SPECIALTY ? 1 : b.key === NO_SPECIALTY ? -1 : b.value - a.value))
+  // Los agrupadores viven en ./utils/charts porque comparten los centinelas de "sin valor" con
+  // el match de los filtros: son las dos mitades de la misma regla. Ver charts.test.ts.
+  const stageData = stageBuckets(exceptOwn('stage'))
+  const phaseData = phaseBuckets(exceptOwn('phase'))
+  const specialtyData = specialtyBuckets(exceptOwn('specialty'), t)
 
-  const sponsorData = Object.entries(filteredLeads.reduce((m: any, l) => { if (l.lead_sponsor) { m[l.lead_sponsor] = (m[l.lead_sponsor] || 0) + 1 } return m }, {}))
+  const sponsorData = Object.entries(exceptOwn('sponsor').reduce((m: any, l) => { if (l.lead_sponsor) { m[l.lead_sponsor] = (m[l.lead_sponsor] || 0) + 1 } return m }, {}))
     .map(([name, value]) => ({ name, value: value as number }))
     .sort((a, b) => b.value - a.value).slice(0, 8)
 
-  const countryData: Record<string, number> = filteredLeads.reduce((m: any, l) => {
+  const countryData: Record<string, number> = exceptOwn('country').reduce((m: any, l) => {
     const countries = (l.countries || '').split(',').map((c: string) => c.trim()).filter(Boolean)
     countries.forEach((c: string) => { m[c] = (m[c] || 0) + 1 })
     return m

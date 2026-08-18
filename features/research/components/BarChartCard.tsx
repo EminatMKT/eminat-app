@@ -24,15 +24,18 @@ export default function BarChartCard({ title, data, vertical = false, height, pe
   const tooltipStyle = { background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }
   const figure = { fontFamily: 'Syne', fontSize: 13, fontWeight: 800 }
   const valueOf = (d: Datum) => d.key ?? d.name
+  // recharts entrega el dato de la barra a veces envuelto en `payload` y a veces plano, y su
+  // tipo del callback no encaja con el nuestro. Se estrecha acá, en un solo lugar y sin `any`.
+  const payloadOf = (d: unknown) => ((d as { payload?: Datum })?.payload ?? d) as Datum
   const dim = (d: Datum) => (selected && valueOf(d) !== selected ? 0.28 : 1)
   // `activeBar` resalta la barra bajo el cursor: junto al cursor de mano es lo que dice "esto
   // se clickea" antes de clickearlo. Sin él, un gráfico interactivo se ve igual que uno inerte.
   const barProps = onSelect
-    ? { onClick: (d: any) => onSelect(valueOf(d?.payload ?? d)), style: { cursor: 'pointer' }, activeBar: { fillOpacity: 1, stroke: t1, strokeWidth: 1.5 } }
+    ? { onClick: (d: unknown) => onSelect(valueOf(payloadOf(d))), style: { cursor: 'pointer' }, activeBar: { fillOpacity: 1, stroke: t1, strokeWidth: 1.5 } }
     : {}
   return (
     <Panel collapsible persistKey={persistKey} title={title}
-      right={onSelect ? <ChartFilterHint label={data.find(d => valueOf(d) === selected)?.name} onClear={() => selected && onSelect(selected)} /> : undefined}>
+      right={onSelect ? <ChartFilterHint label={selected ? (data.find(d => valueOf(d) === selected)?.name ?? selected) : undefined} onClear={() => selected && onSelect(selected)} /> : undefined}>
       <ResponsiveContainer width="100%" height={height ?? (vertical ? 200 : 220)}>
         {vertical ? (
           <BarChart data={data} layout="vertical" margin={{ right: 28 }}>

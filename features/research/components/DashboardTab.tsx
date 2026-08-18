@@ -1,5 +1,6 @@
 'use client'
 import { RESEARCH_THEME } from '../theme'
+import { LEAD_FILTERS } from '../utils/filters'
 import { useResearch } from './ResearchContext'
 import StatCard from './StatCard'
 import Panel from './Panel'
@@ -12,13 +13,15 @@ import { useT } from '@/shared/i18n'
 
 export default function DashboardTab() {
   const { t, locale } = useT()
-  const { totalLeads, totalCorreos, cadencia, contactadosConCorreo, nuevos, ganados, sinRespuesta, cargadosEsteMes, stageData, phaseData, specialtyData, filterValues, setFilterValue } = useResearch()
+  const { totalLeads, totalCorreos, cadencia, contactadosConCorreo, nuevos, ganados, sinRespuesta, cargadosEsteMes, stageData, phaseData, specialtyData, filterValues, setFilterValue, clearFilters } = useResearch()
   // El absoluto y el % juntos en la misma card (pedido de Federico, 12/08/2026). El % es el que
   // sostiene la narrativa: "de todo lo que enviamos, no nos han respondido la mitad".
   const pct = (n: number) => `${totalLeads > 0 ? Math.round((n / totalLeads) * 100) : 0}%`
   // Cada parte de la card hace UN trabajo: el rótulo dice qué se cuenta, el badge la proporción,
   // y el pie la base de esa proporción. Se lee de corrido: "2 · 25% · de 8 leads cargados".
   const ofLoaded = t('research.kpi.ofLoadedLeads', { n: totalLeads })
+  const activos = LEAD_FILTERS.filter(d => filterValues[d.key]).length
+  const { accent } = RESEARCH_THEME
   const mesEnCurso = new Date().toLocaleDateString(locale === 'en' ? 'en-US' : 'es-ES', { month: 'long', year: 'numeric' })
   // Clic en una barra/porción = filtrar el tablero por ese valor; clic en la que ya está activa
   // = sacarlo. Sin el toggle, para volver atrás habría que ir a buscar el desplegable — y el
@@ -42,8 +45,21 @@ export default function DashboardTab() {
       {/* La base del % sube al encabezado: al sacarle el pie a las cards de etapa, era el único
           lugar donde seguía dicho sobre qué está calculado ese "25%". Acá se dice una sola vez
           para toda la sección, que es lo que es. */}
+      {/* El aviso de filtrado va PEGADO a los KPIs y no solo arriba en el panel de filtros: al
+          scrollear hasta acá —que es donde se pasa la presentación— el chip de "activos" queda
+          fuera de pantalla, y los filtros sin gráfica (fecha, país, sponsor, NCT#) no tienen
+          ninguna otra señal. Sumado a que los filtros se recuerdan entre sesiones, sin esto hay
+          un camino real a proyectar 34 leads creyendo que son 81. Es clickeable: limpia todo. */}
       <Panel collapsible persistKey="research-indicators" title={t('research.section.indicators')}
-        right={<span style={{ fontSize: 10, color: RESEARCH_THEME.t3, fontFamily: 'DM Mono' }}>{ofLoaded}</span>}>
+        right={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          {activos > 0 && (
+            <button onClick={clearFilters} title={t('research.filter.clear')}
+              style={{ fontFamily: 'DM Mono', fontSize: 10, color: accent, background: `${accent}14`, border: `1px solid ${accent}55`, borderRadius: 999, padding: '4px 10px', cursor: 'pointer' }}>
+              {t('research.kpi.filtered', { n: activos })} ✕
+            </button>
+          )}
+          <span style={{ fontSize: 10, color: RESEARCH_THEME.t3, fontFamily: 'DM Mono' }}>{ofLoaded}</span>
+        </span>}>
       {/* alignItems:start — al desplegar el detalle de una card, las otras no tienen por qué
           estirarse con ella y quedar con un hueco blanco al pie. */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(165px, 1fr))', gap: 10, alignItems: 'start' }}>

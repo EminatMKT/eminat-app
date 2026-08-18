@@ -4,6 +4,7 @@
 // solo los campos libres (sponsor, país) se derivan de la data presente.
 import { domainOptions } from './fields'
 import { NO_SPECIALTY } from './specialty'
+import { NO_STAGE, NO_PHASE } from './charts'
 import { distinctValues, distinctTokens, type FilterDef } from '@/shared/lib/filters'
 import type { Lead } from '../types'
 
@@ -20,9 +21,18 @@ export const LEAD_FILTERS: FilterDef<Lead>[] = [
   // (YYYY-MM-DD) → comparación lexicográfica. Sin fecha = fuera del rango.
   { key: 'addedFrom', labelKey: 'research.filter.addedFrom', kind: 'date', match: (l, v) => !!l.date_added && l.date_added >= v },
   { key: 'addedTo', labelKey: 'research.filter.addedTo', kind: 'date', match: (l, v) => !!l.date_added && l.date_added <= v },
-  { key: 'stage', labelKey: 'research.filter.allStages', options: domain('stage'), match: eq(l => l.stage) },
+  // Los centinelas de "sin valor" (acá y en fase/especialidad) existen porque cada barra del
+  // dashboard es clickeable: la barra "Sin etapa" tiene que poder filtrar sus leads, y un valor
+  // vacío no sirve para eso — significa "filtro apagado". Van también a `options` para que se
+  // puedan elegir a mano. El centinela y el bucket de la gráfica salen del MISMO módulo
+  // (./charts) y charts.test.ts verifica que digan lo mismo.
+  { key: 'stage', labelKey: 'research.filter.allStages',
+    options: () => [...(domainOptions('stage') ?? []), NO_STAGE],
+    match: (l, v) => (v === NO_STAGE ? !(l.stage ?? '').toString().trim() : String(l.stage ?? '') === v) },
   // phase es multivalor ("Phase 1/Phase 2") → match por inclusión sobre las opciones del dominio.
-  { key: 'phase', labelKey: 'research.filter.allPhases', options: domain('phase'), match: includes(l => l.phase) },
+  { key: 'phase', labelKey: 'research.filter.allPhases',
+    options: () => [...(domainOptions('phase') ?? []), NO_PHASE],
+    match: (l, v) => (v === NO_PHASE ? !(l.phase ?? '').toString().trim() : String(l.phase ?? '').includes(v)) },
   { key: 'status', labelKey: 'research.filter.allStatuses', options: domain('recruitment_status'), match: eq(l => l.recruitment_status) },
   { key: 'country', labelKey: 'research.filter.allCountries', options: items => distinctTokens(items, l => l.countries), match: includes(l => l.countries) },
   { key: 'sponsor', labelKey: 'research.filter.allSponsors', options: items => distinctValues(items, l => l.lead_sponsor), match: eq(l => l.lead_sponsor) },
