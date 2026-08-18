@@ -25,4 +25,7 @@ export const LEAD_FILTERS: FilterDef<Lead>[] = [
   { key: 'status', labelKey: 'research.filter.allStatuses', options: domain('recruitment_status'), match: eq(l => l.recruitment_status) },
   { key: 'country', labelKey: 'research.filter.allCountries', options: items => distinctTokens(items, l => l.countries), match: includes(l => l.countries) },
   { key: 'sponsor', labelKey: 'research.filter.allSponsors', options: items => distinctValues(items, l => l.lead_sponsor), match: eq(l => l.lead_sponsor) },
+  // Es el filtro que responde "¿cuántos estudios de oncología tenemos?" sin exportar nada —
+  // el motivo por el que existe la columna. Dominio cerrado ⇒ opciones del def, no de la data.
+  { key: 'specialty', labelKey: 'research.filter.allSpecialties', options: domain('especialidad'), match: eq(l => l.especialidad) },
 ]

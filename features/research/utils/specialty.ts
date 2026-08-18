@@ -135,3 +135,11 @@ export function canonicalSpecialty(raw: string): Specialty | null {
 export function pendingSpecialty<T extends { nct_number?: string; especialidad?: string | null }>(leads: T[]): T[] {
   return leads.filter(l => (l.nct_number || '').trim() && !(l.especialidad || '').trim())
 }
+
+// Etiqueta traducida de una especialidad. Cae al literal crudo si no está en el dominio —
+// mismo criterio que `stageLabel` con las etapas legacy: si la DB tiene algo que el código no
+// conoce, se muestra, no se esconde.
+export function specialtyLabel(v: string | null | undefined, t: (k: I18nKey) => string): string {
+  const key = (SPECIALTY_LABEL_KEY as Record<string, I18nKey>)[v ?? '']
+  return key ? t(key) : (v || '—')
+}

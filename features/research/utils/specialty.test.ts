@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { specialtyFromMesh, canonicalSpecialty, pendingSpecialty, SPECIALTY, SPECIALTIES } from './specialty'
+import { specialtyFromMesh, canonicalSpecialty, pendingSpecialty, specialtyLabel, SPECIALTY, SPECIALTIES } from './specialty'
 
 // Los casos de abajo NO son inventados: son las respuestas reales de
 // https://clinicaltrials.gov/api/v2/studies (relevadas el 18/08/2026 sobre 50 estudios
@@ -117,5 +117,25 @@ describe('pendingSpecialty', () => {
 
   it('ignora los leads sin NCT#: no hay ficha que consultar', () => {
     expect(pendingSpecialty(leads).some(l => l.id === '4' || l.id === '5')).toBe(false)
+  })
+})
+
+// La tabla y la ficha muestran la especialidad traducida, no el literal guardado.
+describe('specialtyLabel', () => {
+  const t = ((k: string) => `[${k}]`) as any
+
+  it('traduce el valor canónico', () => {
+    expect(specialtyLabel(SPECIALTY.ONCOLOGIA, t)).toBe('[research.specialty.oncologia]')
+  })
+
+  it('sin especialidad muestra un guión, no una cadena vacía', () => {
+    expect(specialtyLabel(null, t)).toBe('—')
+    expect(specialtyLabel(undefined, t)).toBe('—')
+  })
+
+  // Mismo criterio que stageLabel con las etapas legacy: si la DB tiene un valor que el
+  // dominio no conoce, se muestra crudo en vez de esconderlo.
+  it('un valor desconocido se muestra tal cual', () => {
+    expect(specialtyLabel('Traumatología', t)).toBe('Traumatología')
   })
 })

@@ -3,6 +3,7 @@ import { RESEARCH_THEME, selectStyle } from '../../theme'
 import { useT, type I18nKey } from '@/shared/i18n'
 import FilterBar from '@/shared/components/FilterBar'
 import { LEAD_FILTERS } from '../../utils/filters'
+import { FROZEN_COLS } from '../../constants'
 import { useResearch } from '../ResearchContext'
 import Panel from '../Panel'
 import ToolbarButton from '../ToolbarButton'
@@ -10,8 +11,13 @@ import LeadRow from './LeadRow'
 
 // Cabeceras de la tabla. Claves cortas propias (`research.col.*`) y no las de `research.field.*`:
 // el label de formulario ("Nombre de contacto") no entra en una columna de tabla.
+//
+// NCT# y título van PRIMEROS porque son las columnas congeladas (FROZEN_COLS) y `position:
+// sticky` solo pega al borde izquierdo: para que sirvan de ancla al desplazarse tienen que
+// estar al principio. El orden de las celdas en LeadRow sigue este mismo array.
 const COLUMNS: I18nKey[] = [
-  'research.col.date', 'research.col.conditions', 'research.col.nct', 'research.col.title',
+  'research.col.nct', 'research.col.title',
+  'research.col.date', 'research.col.conditions', 'research.col.especialidad',
   'research.col.phase', 'research.col.status', 'research.col.countries', 'research.col.sponsor',
   'research.col.contact', 'research.col.email', 'research.col.emails', 'research.col.stage',
   'research.col.followup', 'research.col.actions',
@@ -74,9 +80,17 @@ export default function LeadsTab() {
         <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 230px)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5, minWidth: 1200 }}>
             <thead><tr>
-              {COLUMNS.map(key =>
-                <th key={key} style={{ position: 'sticky', top: 0, zIndex: 1, background: s2, padding: '10px 12px', textAlign: 'left', fontSize: 9, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.1em', borderBottom: `1px solid ${border}`, fontWeight: 400, whiteSpace: 'nowrap' }}>{t(key)}</th>
-              )}
+              {COLUMNS.map((key, i) => {
+                // Las congeladas se pegan arriba Y a la izquierda, y van por encima del resto
+                // de la cabecera: al desplazarse en las dos direcciones, se cruzan.
+                const f = FROZEN_COLS[i]
+                return (
+                  <th key={key} className={f ? 'sticky-cell' : undefined}
+                    style={{ position: 'sticky', top: 0, left: f?.left, zIndex: f ? 3 : 2, background: s2, width: f?.width, minWidth: f?.width, padding: '10px 12px', textAlign: 'left', fontSize: 9, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.1em', borderBottom: `1px solid ${border}`, fontWeight: 400, whiteSpace: 'nowrap' }}>
+                    {t(key)}
+                  </th>
+                )
+              })}
             </tr></thead>
             <tbody>{filteredLeads.map(l => <LeadRow key={l.id} lead={l} />)}</tbody>
           </table>
