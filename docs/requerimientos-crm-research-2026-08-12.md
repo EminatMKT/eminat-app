@@ -97,6 +97,44 @@ orden de preferencia:
 Nota: `BarChartCard "Leads by Phase"` ya existe en el dashboard, y `Top Sponsors` existe pero está
 comentado desde la reunión del 20/07/2026. Parte de esto puede ser restaurar, no construir.
 
+### Averiguado el 18/08/2026 — qué provee realmente la API de clinicaltrials.gov
+
+Resuelve la salida 1 de arriba: **la API NO tiene campo `specialty`** (verificado contra el
+esquema completo en `/api/v2/studies/metadata`). Pero la especialidad **se puede derivar** de un
+dato que sí trae y que hoy no estamos bajando.
+
+**Qué trae** — `derivedSection.conditionBrowseModule`:
+
+| Campo | Qué es | Sirve |
+|---|---|---|
+| `meshes[]` | La condición normalizada al diccionario MeSH (id + término). "Breast Cancer", "Breast Carcinoma" y "CA de mama" → todas `D001943` | ✅ Resuelve el problema de nombres no estándar |
+| `ancestors[]` | La cadena de ancestros MeSH, que sube hasta ~26 categorías raíz (`Neoplasms`, `Cardiovascular Diseases`, `Endocrine System Diseases`…) | ✅ **Esa raíz es el proxy de especialidad**, mapeable ~1:1 |
+| `browseLeaves` / `browseBranches` | Serían la clasificación en ramas ya hecha | ❌ Declarados en el metadata pero **vuelven vacíos** en todas las respuestas probadas (`fields=DerivedSection`, path punteado y nombres legacy). No usar |
+
+**Dos límites, medidos sobre 50 estudios reales `RECRUITING` con sponsor `INDUSTRY`:**
+
+1. **12/50 (24%) no traen ningún MeSH** → ahí no hay nada que derivar. No es al azar: son los
+   registrados más recientemente (mediana 2025 vs 2024 en los que sí traen) porque CT.gov tarda en
+   catalogarlos. Es justo la población que rastrea Royner.
+2. **22/50 (44%) caen en más de una especialidad.** Cáncer de mama sube por `Neoplasms` +
+   `Skin Diseases` + `Female Urogenital Diseases` + `Endocrine System Diseases`. Hace falta una
+   **regla de prioridad** (ej. si aparece `Neoplasms`, gana oncología), no una lista.
+
+**Salida recomendada: 1 + 2, no una u otra.** Derivar de MeSH cuando viene (3 de cada 4) y dejar
+igual la columna `especialidad` editable, para el cuarto que queda vacío y para corregir cuando la
+derivación pifie. La salida 1 sola deja el 24% en blanco; la 2 sola le carga a Royner trabajo
+manual que la máquina hace en el 76%.
+
+**Costo de implementación:** `features/research/utils/clinicalTrials.ts` pide hoy solo
+`fields=protocolSection`, así que no baja `derivedSection` — hay que agregarlo al fetch, más una
+tabla de ~26 raíces MeSH → especialidad, la regla de prioridad y la columna editable.
+
+**Sponsor y fase no necesitan nada.** Ya se importan limpios de CT.gov y están en la base
+(`lead_sponsor`, `sponsor_type`, `phase`). La vista *"AstraZeneca tiene 10 estudios, todos fase 3"*
+es mostrar lo que ya hay.
+
+**Estado: NO implementar antes del 28/08.** Sigue siendo Prioridad 4.
+
 ## Visualización
 
 - **Selector absolutos / porcentaje** en los indicadores, **por defecto absolutos**. Ideal: los

@@ -20,7 +20,7 @@ const COLUMNS: I18nKey[] = [
 export default function LeadsTab() {
   const { s2, border, t2, t3, accent } = RESEARCH_THEME
   const { t } = useT()
-  const { leads, filterValues, setFilterValue, clearFilters, filteredLeads, openNewLead, setModalImport, handleExport, handlePrint } = useResearch()
+  const { leads, filterValues, setFilterValue, clearFilters, filteredLeads, openNewLead, setModalImport, setModalSpecialty, handleExport, handlePrint } = useResearch()
   const activos = LEAD_FILTERS.filter(d => filterValues[d.key]).length
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -52,6 +52,7 @@ export default function LeadsTab() {
           </span>
           <ToolbarButton primary onClick={openNewLead}>+ {t('research.form.newLead')}</ToolbarButton>
           <ToolbarButton icon="📥" onClick={() => setModalImport(true)}>{t('research.action.import')}</ToolbarButton>
+          <ToolbarButton icon="🩺" onClick={() => setModalSpecialty(true)}>{t('research.action.deriveSpecialty')}</ToolbarButton>
           <ToolbarButton icon="📤" onClick={handleExport}>{t('research.action.export')}</ToolbarButton>
           <ToolbarButton icon="🖨" onClick={handlePrint}>{t('research.action.pdf')}</ToolbarButton>
         </div>}>

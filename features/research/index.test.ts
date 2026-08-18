@@ -90,6 +90,21 @@ describe('studyFromProtocol (mapeo CT.gov → columnas)', () => {
     expect(s.record_link).toBe('https://clinicaltrials.gov/study/NCT01')
     expect('conditions' in s).toBe(false) // vacío descartado
   })
+
+  it('deriva la especialidad del MeSH que viene en derivedSection', () => {
+    const s = studyFromProtocol(
+      { identificationModule: { nctId: 'NCT01' } },
+      { conditionBrowseModule: { meshes: [{ id: 'D001943', term: 'Breast Neoplasms' }], ancestors: [{ id: 'D009369', term: 'Neoplasms' }] } },
+    )
+    expect(s.especialidad).toBe('Oncología')
+  })
+
+  // El 24% de los estudios llega sin MeSH. La columna tiene que quedar vacía para que se vea
+  // que falta clasificar — no rellenarse con un default que nadie decidió.
+  it('sin MeSH no agrega especialidad en vez de inventar una', () => {
+    const s = studyFromProtocol({ identificationModule: { nctId: 'NCT01' } }, { conditionBrowseModule: {} })
+    expect('especialidad' in s).toBe(false)
+  })
 })
 
 describe('splitStudyMerge (autocompletado NCT# no destructivo)', () => {
@@ -117,6 +132,13 @@ describe('normalizeDomainValue (valores de dominio en import)', () => {
   it('select estricto: case-insensitive al dominio; desconocido → null', () => {
     expect(normalizeDomainValue('study_type', 'interventional')).toBe('Interventional')
     expect(normalizeDomainValue('study_type', 'otro')).toBeNull()
+  })
+  // Prueba que el campo esté declarado en LEAD_FIELD_DEFS con su dominio y su normalize:
+  // sin la definición, normalizeDomainValue devuelve el texto crudo tal cual entró.
+  it('especialidad: resuelve el texto de una planilla y rechaza lo que no es del dominio', () => {
+    expect(normalizeDomainValue('especialidad', 'oncologia')).toBe('Oncología')
+    expect(normalizeDomainValue('especialidad', 'Oncology')).toBe('Oncología')
+    expect(normalizeDomainValue('especialidad', 'Traumatología')).toBeNull()
   })
   it('vacío → "" y campo sin dominio → valor tal cual', () => {
     expect(normalizeDomainValue('phase', '')).toBe('')

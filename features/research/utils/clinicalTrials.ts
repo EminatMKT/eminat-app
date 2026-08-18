@@ -4,6 +4,7 @@
 // mergear en el form. Errores como clave i18n (research.nct.*).
 import type { I18nKey } from '@/shared/i18n'
 import { NCT_COLUMN, NCT_RE, CLINICAL_TRIALS_BASE, normNct } from '../constants'
+import { specialtyFromMesh } from './specialty'
 
 const PHASE_MAP: Record<string, string> = { EARLY_PHASE1: 'Early Phase 1', PHASE1: 'Phase 1', PHASE2: 'Phase 2', PHASE3: 'Phase 3', PHASE4: 'Phase 4', NA: 'N/A' }
 const STATUS_MAP: Record<string, string> = { RECRUITING: 'Recruiting', NOT_YET_RECRUITING: 'Not yet recruiting', ENROLLING_BY_INVITATION: 'Enrolling by invitation', ACTIVE_NOT_RECRUITING: 'Active, not recruiting', COMPLETED: 'Completed', SUSPENDED: 'Suspended', TERMINATED: 'Terminated', WITHDRAWN: 'Withdrawn', UNKNOWN: 'Unknown status' }
@@ -24,7 +25,10 @@ export type TitleResult = { studies?: Record<string, any>[]; error?: I18nKey }
 
 // Mapea un protocolSection de CT.gov a un parcial con COLUMNAS REALES de research_leads,
 // descartando vacíos (el merge no debe pisar con strings vacíos). Reusado por NCT# y título.
-export function studyFromProtocol(p: any): Record<string, any> {
+// `derived` es el `derivedSection` de CT.gov, de donde sale la especialidad (ver ./specialty).
+// Es opcional porque no todos los estudios lo traen y porque el mapeo del protocolSection no
+// depende de él: sin MeSH, la clave `especialidad` simplemente no se agrega.
+export function studyFromProtocol(p: any, derived?: any): Record<string, any> {
   const idm = p.identificationModule || {}, st = p.statusModule || {}, des = p.designModule || {}
   const cond = p.conditionsModule || {}, spo = p.sponsorCollaboratorsModule || {}, loc = p.contactsLocationsModule || {}, desc = p.descriptionModule || {}
   const lead = spo.leadSponsor || {}
@@ -43,6 +47,7 @@ export function studyFromProtocol(p: any): Record<string, any> {
     lead_sponsor: lead.name,
     sponsor_type: prettify(lead.class || ''),
     countries: countries.join(', '),
+    especialidad: specialtyFromMesh(derived?.conditionBrowseModule || {}),
     record_link: idm.nctId ? `${CLINICAL_TRIALS_BASE}/study/${idm.nctId}` : undefined,
   }
   for (const k of Object.keys(study)) if (study[k] === '' || study[k] == null) delete study[k]
@@ -55,7 +60,7 @@ export async function fetchStudyByNCT(nctRaw: string): Promise<NctResult> {
 
   let res: Response
   try {
-    res = await fetch(`${CLINICAL_TRIALS_BASE}/api/v2/studies/${nct}?fields=protocolSection`)
+    res = await fetch(`${CLINICAL_TRIALS_BASE}/api/v2/studies/${nct}?fields=protocolSection,derivedSection`)
   } catch {
     return { error: 'research.nct.error' }
   }
@@ -64,7 +69,7 @@ export async function fetchStudyByNCT(nctRaw: string): Promise<NctResult> {
 
   let json: any
   try { json = await res.json() } catch { return { error: 'research.nct.error' } }
-  return { study: studyFromProtocol(json.protocolSection || {}) }
+  return { study: studyFromProtocol(json.protocolSection || {}, json.derivedSection) }
 }
 
 // Busca estudios por título en CT.gov (query.titles). Devuelve hasta 5 candidatos mapeados
@@ -73,14 +78,14 @@ export async function fetchStudiesByTitle(titleRaw: string): Promise<TitleResult
   const title = (titleRaw || '').trim()
   if (title.length < 8) return { error: 'research.title.tooShort' }
 
-  const url = `${CLINICAL_TRIALS_BASE}/api/v2/studies?query.titles=${encodeURIComponent(title)}&pageSize=5&fields=protocolSection`
+  const url = `${CLINICAL_TRIALS_BASE}/api/v2/studies?query.titles=${encodeURIComponent(title)}&pageSize=5&fields=protocolSection,derivedSection`
   let res: Response
   try { res = await fetch(url) } catch { return { error: 'research.title.error' } }
   if (!res.ok) return { error: 'research.title.error' }
 
   let json: any
   try { json = await res.json() } catch { return { error: 'research.title.error' } }
-  const studies = ((json.studies || []) as any[]).map(s => studyFromProtocol(s.protocolSection || {})).filter(s => s[NCT_COLUMN])
+  const studies = ((json.studies || []) as any[]).map(s => studyFromProtocol(s.protocolSection || {}, s.derivedSection)).filter(s => s[NCT_COLUMN])
   return { studies }
 }
 

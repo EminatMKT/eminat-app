@@ -9,8 +9,13 @@ import { applyFilters, type FilterValues } from '@/shared/lib/filters'
 import { useUserPreference } from '@/shared/lib/useUserPreference'
 import type { ImportPlan } from '../utils/importPlan'
 import { totalEmails, cadenceBreakdown } from '../utils/counters'
+import { pendingSpecialty, type Specialty } from '../utils/specialty'
+import { fetchStudyByNCT } from '../utils/clinicalTrials'
 import { escapeHtml } from '@/shared/lib/html'
 import type { Lead, Activity, Campaign, Stage } from '../types'
+
+export type SpecialtyMatch = { id: string; nct: string; title: string; especialidad: Specialty }
+export type SpecialtyScan = { found: SpecialtyMatch[]; missing: { id: string; nct: string }[]; total: number }
 
 export function useResearchData() {
   const { mostrarMensaje } = useApp()
@@ -144,6 +149,46 @@ export function useResearchData() {
     return true
   }
 
+  // — Backfill de especialidad —
+  // Consulta CT.gov por cada lead que tiene NCT# y no tiene especialidad, y devuelve QUÉ
+  // derivaría, sin escribir nada. La escritura la hace applySpecialties después de que una
+  // persona lo confirme en el modal: derivar es una inferencia, no un hecho, y se revisa antes
+  // de guardarla sobre 81 filas de una.
+  //
+  // Va de a uno y no en paralelo a propósito: son ~80 requests a un servicio público y gratuito
+  // que no es nuestro, y el modal muestra el avance, así que la espera es visible y tolerable.
+  async function scanSpecialties(onProgress?: (done: number, total: number) => void): Promise<SpecialtyScan> {
+    const pending = pendingSpecialty(leads)
+    const found: SpecialtyMatch[] = []
+    const missing: { id: string; nct: string }[] = []
+    for (let i = 0; i < pending.length; i++) {
+      const l = pending[i]
+      const nct = (l.nct_number || '').trim()
+      const { study } = await fetchStudyByNCT(nct)
+      const especialidad = study?.especialidad as Specialty | undefined
+      if (especialidad) found.push({ id: l.id, nct, title: l.official_title || '', especialidad })
+      else missing.push({ id: l.id, nct })
+      onProgress?.(i + 1, pending.length)
+    }
+    return { found, missing, total: pending.length }
+  }
+
+  // Escribe lo confirmado. Si una fila falla, corta y conserva lo ya aplicado (mismo criterio
+  // que confirmImport): mejor un backfill parcial y visible que un rollback silencioso.
+  async function applySpecialties(found: SpecialtyMatch[]): Promise<boolean> {
+    const applied: SpecialtyMatch[] = []
+    for (const m of found) {
+      const { error } = await researchRepo.updateLead(m.id, { especialidad: m.especialidad })
+      if (error) { mostrarMensaje('error', 'Error: ' + error.message); break }
+      applied.push(m)
+    }
+    if (applied.length) {
+      const byId = new Map(applied.map(m => [m.id, m.especialidad]))
+      setLeads(prev => prev.map(l => byId.has(l.id) ? { ...l, especialidad: byId.get(l.id)! } : l))
+    }
+    return applied.length === found.length
+  }
+
   async function confirmImport(plan: ImportPlan) {
     let inserted: Lead[] = []
     if (plan.toInsert.length) {
@@ -202,6 +247,7 @@ export function useResearchData() {
     totalLeads, activeLeads, nuevos, contactados, contactadosConCorreo, ganados, sinRespuesta, totalCorreos, cadencia, cargadosEsteMes,
     stageData, phaseData, sponsorData, countryData, countrySorted,
     saveLead, deleteLead, addActivity, updateStage, setEmailCount, confirmImport, handleExport, handlePrint,
+    scanSpecialties, applySpecialties,
     duplicateCampaign, deleteCampaign,
   }
 }
