@@ -56,11 +56,22 @@ export default function LeadsTab() {
           <ToolbarButton icon="📤" onClick={handleExport}>{t('research.action.export')}</ToolbarButton>
           <ToolbarButton icon="🖨" onClick={handlePrint}>{t('research.action.pdf')}</ToolbarButton>
         </div>}>
-        <div style={{ overflowX: 'auto' }}>
+        {/* La tabla scrollea en su PROPIO visor, no con la página. Con 14 columnas siempre
+            desborda a lo ancho, y con la barra horizontal al final del documento había que bajar
+            hasta el último lead (en prod son ~81) para poder correrse a la derecha. Acá la barra
+            queda pegada al borde de abajo del visor, a la vista sin importar cuántos leads haya.
+            El `thead` sticky va en el mismo paquete: a 14 columnas, scrollear sin cabecera es
+            adivinar qué columna se está leyendo.
+            ponytail: los 430px son la altura de lo que va ARRIBA de la tabla en este layout
+            (topbar + encabezado del módulo + panel de filtros abierto). Si se recoge el panel de
+            filtros sobra un poco de espacio en blanco — no se rompe nada. Si el layout de arriba
+            cambia de alto, este número se ajusta; medirlo en runtime sería más código del que
+            vale. */}
+        <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 430px)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5, minWidth: 1200 }}>
-            <thead><tr style={{ background: s2 }}>
+            <thead><tr>
               {COLUMNS.map(key =>
-                <th key={key} style={{ padding: '10px 12px', textAlign: 'left', fontSize: 9, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.1em', borderBottom: `1px solid ${border}`, fontWeight: 400, whiteSpace: 'nowrap' }}>{t(key)}</th>
+                <th key={key} style={{ position: 'sticky', top: 0, zIndex: 1, background: s2, padding: '10px 12px', textAlign: 'left', fontSize: 9, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', letterSpacing: '.1em', borderBottom: `1px solid ${border}`, fontWeight: 400, whiteSpace: 'nowrap' }}>{t(key)}</th>
               )}
             </tr></thead>
             <tbody>{filteredLeads.map(l => <LeadRow key={l.id} lead={l} />)}</tbody>
