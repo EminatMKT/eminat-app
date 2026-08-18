@@ -62,12 +62,16 @@ export default function LeadsTab() {
             queda pegada al borde de abajo del visor, a la vista sin importar cuántos leads haya.
             El `thead` sticky va en el mismo paquete: a 14 columnas, scrollear sin cabecera es
             adivinar qué columna se está leyendo.
-            ponytail: los 430px son la altura de lo que va ARRIBA de la tabla en este layout
-            (topbar + encabezado del módulo + panel de filtros abierto). Si se recoge el panel de
-            filtros sobra un poco de espacio en blanco — no se rompe nada. Si el layout de arriba
-            cambia de alto, este número se ajusta; medirlo en runtime sería más código del que
-            vale. */}
-        <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 430px)' }}>
+            ponytail: el número está elegido a ojo contra este layout, no calculado. Lo que va
+            arriba de la tabla ocupa ~423px, así que ajustarlo al pixel daba una tabla de 7 filas
+            que se veía achatada. Con 230 la tabla se pasa del alto de la ventana y la página
+            scrollea ~190px — decisión explícita: ese scroll es SIEMPRE el mismo, haya 9 leads o
+            500, que es justo lo que no pasaba antes (ahí crecía con cada lead y por eso la barra
+            horizontal se volvía inalcanzable).
+            Si se recoge el panel de filtros sobra espacio en blanco: la tabla no lo absorbe
+            porque el número es fijo. Para que lo absorba habría que medir en runtime o pasar
+            todo el módulo a flex — más código del que vale hasta que moleste. */}
+        <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 230px)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5, minWidth: 1200 }}>
             <thead><tr>
               {COLUMNS.map(key =>
