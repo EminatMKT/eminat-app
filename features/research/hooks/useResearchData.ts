@@ -5,6 +5,7 @@ import { researchRepo, removeChannel } from '@/shared/data'
 import { STAGE, COUNT_COLUMN } from '../constants'
 import { EXPORT_HEADERS, validateLead, buildLeadPayload } from '../utils/fields'
 import { LEAD_FILTERS } from '../utils/filters'
+import { localMonth } from '@/shared/utils/dates'
 import { applyFilters, type FilterValues } from '@/shared/utils/filters'
 import { useUserPreference } from '@/shared/hooks/useUserPreference'
 import type { ImportPlan } from '../utils/importPlan'
@@ -89,7 +90,7 @@ export function useResearchData() {
   // date_added es DATE (YYYY-MM-DD) → alcanza con comparar el prefijo del mes. El mes se toma
   // en hora LOCAL ('sv-SE' da YYYY-MM-DD): con toISOString, en UTC-4 el último día del mes a
   // partir de las 20:00 la card ya contaba el mes siguiente mientras el rótulo decía el actual.
-  const mesActual = new Date().toLocaleDateString('sv-SE').slice(0, 7)
+  const mesActual = localMonth()
   const cargadosEsteMes = filteredLeads.filter(l => (l.date_added ?? '').startsWith(mesActual)).length
 
   // Los agrupadores viven en ./utils/charts porque comparten los centinelas de "sin valor" con

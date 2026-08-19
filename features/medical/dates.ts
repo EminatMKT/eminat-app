@@ -1,6 +1,6 @@
-export function formatDate(d: Date) {
-  return d.toISOString().split('T')[0]
-}
+// La fecha calendario es transversal (Medical, Research), así que vive en shared/utils/dates.
+// Se conserva el nombre `formatDate` porque es el que usa Medical desde siempre.
+export { localDate as formatDate } from '@/shared/utils/dates'
 
 export function addDays(d: Date, n: number) {
   const r = new Date(d)

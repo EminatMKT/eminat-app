@@ -3,12 +3,13 @@ import { useState } from 'react'
 import { RESEARCH_THEME, inputStyle } from '../../theme'
 import { useT } from '@/shared/i18n'
 import { useResearch } from '../ResearchContext'
+import { localDate } from '@/shared/utils/dates'
 
 export default function ActivityModal() {
   const { s1, border, t1, t2, t3, accent } = RESEARCH_THEME
   const { t } = useT()
   const { modalActivity, setModalActivity, addActivity } = useResearch()
-  const [newActivity, setNewActivity] = useState({ tipo: 'email', nota: '', fecha: new Date().toISOString().split('T')[0] })
+  const [newActivity, setNewActivity] = useState({ tipo: 'email', nota: '', fecha: localDate() })
   if (!modalActivity) return null
   const lead = modalActivity
 
