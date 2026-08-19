@@ -115,3 +115,24 @@ en un archivo sin abrirlo.
 **Motivo:** `useUserPreference` nació en Research y hoy la usan Admin, Medical y Stratix — las
 preferencias de UI no eran de Research, eran de la app. Al revés también cuenta: `useOrgCatalog`
 sabe de empresas, departamentos y cargos, y no tiene nada que hacer fuera de Admin.
+
+## La misma forma para cualquier módulo que pueda testearse
+
+No es solo para componentes: **si un `.ts` puede tener un test automatizado, es una carpeta.**
+
+```
+dates/
+  index.ts
+  index.test.ts
+```
+
+El import no cambia —`@/shared/utils/dates` resuelve el `index.ts`—, así que convertir un archivo
+suelto en carpeta no toca a ninguno de sus llamadores.
+
+Se queda como archivo suelto lo que no se puede testear solo: un módulo de constantes, un archivo
+de tipos, una re-exportación.
+
+**Motivo:** con archivos sueltos el test queda como vecino y se pierde de vista — se ve
+`filters.ts` en una lista de veinte archivos y no se sabe si tiene test sin buscarlo. Con la
+carpeta, abrirla ya responde la pregunta, y el que borra el módulo se lleva el test con él en vez
+de dejarlo huérfano.
