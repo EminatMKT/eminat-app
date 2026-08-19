@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { localDate, localMonth } from './dates'
+import { localDate, localMonth } from './index'
 
 // Los dos casos son las dos puntas del día, y entre ambos atrapan el bug en cualquier zona:
 // con `toISOString()` la noche se adelanta un día en las zonas detrás de UTC (la nuestra, UTC-4)
