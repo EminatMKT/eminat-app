@@ -16,5 +16,8 @@ Cada regla lleva su **motivo**. Una regla sin motivo se obedece mal: sin saber c
 protege, no se sabe cuándo aplica ni cuándo dejó de tener sentido.
 
 @arquitectura.md
+@base-de-datos.md
+@codigo.md
 @componentes.md
+@proceso.md
 @ui.md

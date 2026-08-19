@@ -1,0 +1,49 @@
+# Base de datos
+
+## `supabase db reset` está prohibido en este repo
+
+Para aplicar migraciones en local se usa `pnpm supabase migration up`. Nunca `db reset`.
+
+**Motivo:** `supabase/config.toml` apunta `sql_paths` a un `seed.sql` que **no existe**. Un reset
+borra las actividades de la base local y no hay seed que las devuelva. No es un reset, es un
+borrado sin vuelta: los datos de prueba de este repo se cargan por la UI (ver abajo), así que no
+están en ningún `.sql` esperando para restaurarse.
+
+Si la CLI sugiere `migration repair` o `db pull` porque el historial local está desalineado con
+una rama sin mergear: **tampoco**. Reescriben el historial de esa rama. El workaround es aplicar
+el `.sql` por psql, que es idempotente.
+
+## Antes de un `db push` a dev o a prod: backup y precheck, en ese orden
+
+1. **Backup** de **todas** las tablas que la migración toca, no solo la obvia.
+2. **Precheck**: correr la consulta que demuestra que la migración no va a abortar a mitad de
+   camino (un `SET NOT NULL` sobre una columna con huérfanos aborta y no tiene rollback).
+3. Recién ahí el `push`, y después una consulta que verifique el resultado.
+
+El `pg_dump` corre **dentro del contenedor**:
+
+```bash
+docker exec supabase_db_eminat-app pg_dump -U postgres -d postgres \
+  -t public.<tabla> --data-only > supabase/rollback/predump-<nombre>-YYYYMMDD.sql
+```
+
+**Motivo:** dos cosas que ya pasaron. El `pg_dump` del host es v14 y el servidor es Postgres 17,
+así que un dump directo aborta con `server version mismatch` — y eso se descubre en el peor
+momento, justo antes de un push. Y el backup de la fase 2 cubrió solo `actividades` cuando la
+migración también dropeaba `usuarios.responsable_ref`: sin esa tabla no había forma de
+reconstruir el mapeo ref → persona, que era exactamente lo que permitía rehacer el backfill.
+
+## Los datos de prueba se cargan por el frontend, no por seed
+
+Para poblar la base —usuarios, actividades, catálogos— se usa la UI de la app. El seed SQL es la
+**última** opción, no la primera.
+
+Si el frontend no permite crear algo que hace falta, **eso es el bug**: se arregla el formulario
+antes de escribir el INSERT.
+
+**Motivo:** un seed escribe filas que ningún formulario podría producir, y esa diferencia esconde
+agujeros de la UI hasta que es tarde. El QA del 12/08/2026 lo mostró en los dos sentidos: el seed
+dejó 9 usuarios sin cuenta de Auth (imposible por la UI) y a la vez les puso `equipo_id`, tapando
+que **el panel no tenía dónde asignar un equipo** — o sea que nadie creado desde el panel podía
+recibir una tarea. Cada fila insertada por SQL es una funcionalidad que nadie probó.
+Ver `docs/hallazgos-qa-2026-08-12.md`.

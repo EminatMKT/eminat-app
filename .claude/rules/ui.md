@@ -21,3 +21,15 @@ listado), la pantalla dice cuál es la regla — con un chip, un pie de tarjeta 
 ("listar sí, sumar no"); sin la columna *Responsable*, 6h en la fila y 0h en el total parecen un
 error de cálculo. Lo mismo con los filtros del tablero: sin el chip "filtrado · N", un número
 filtrado se presenta como si fuera el total.
+
+## Lo que solo se puede hacer con el mouse necesita otro camino
+
+Si una acción existe únicamente como clic sobre un elemento gráfico —una barra, una porción de
+un pie, un área del canvas— tiene que existir la misma acción por otra vía (un desplegable, un
+botón), o quedar anotada en `.todo/TODO.md` como deuda. Lo que no se acepta es que no quede
+registro.
+
+**Motivo:** el cross-filter del tablero de Research se maneja clickeando barras y no se puede usar
+con teclado. Hoy no bloquea a nadie porque los mismos filtros están en los desplegables del panel
+— pero eso es una coincidencia afortunada, no una decisión. La próxima gráfica clickeable puede
+no tenerla.
