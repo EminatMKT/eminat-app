@@ -1,9 +1,9 @@
-# shared/
+# src/shared/
 
 Código transversal: lo usa **más de una** feature (o la app entera).
 
 **Un directorio por tipo de cosa**, con el mismo nombre que su equivalente dentro de una feature:
-un hook compartido va a `shared/hooks/` porque un hook de módulo va a `features/<modulo>/hooks/`.
+un hook compartido va a `src/shared/hooks/` porque un hook de módulo va a `src/features/<modulo>/hooks/`.
 No hay bolsas mezcladas — `lib/` era una (cuatro funciones puras y dos hooks adentro) y por eso
 se partió el 19/08/2026.
 
@@ -21,7 +21,7 @@ se partió el 19/08/2026.
 | `constants/` | Constantes de dominio transversales |
 | `theme/` | Tokens y estilos de la app |
 
-**Regla:** si lo usa **una sola** feature → va en `features/esa/`, no acá. El criterio completo,
+**Regla:** si lo usa **una sola** feature → va en `src/features/esa/`, no acá. El criterio completo,
 con sus motivos, está en `.claude/rules/arquitectura.md` y `.claude/rules/componentes.md`.
 
 Imports vía `@/shared/...`.

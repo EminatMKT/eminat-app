@@ -14,9 +14,9 @@ nunca `any`, y nunca un `as` que solo silencia al compilador.
 regla se sostiene en cada rama o no se sostiene: reconciliar dos ramas donde una tipó y la otra
 no es el conflicto más caro que tuvo este repo.
 
-## Las páginas de `app/` son thin routes
+## Las páginas de `src/app/` son thin routes
 
-Una página monta el componente de `features/<modulo>/` y nada más. La lógica vive en el feature.
+Una página monta el componente de `src/features/<modulo>/` y nada más. La lógica vive en el feature.
 
 ## Un `route.ts` solo exporta handlers HTTP
 
@@ -24,7 +24,7 @@ Una página monta el componente de `features/<modulo>/` y nada más. La lógica 
 
 **Motivo:** Next trata cualquier otro export de un `route.ts` como parte del contrato de la ruta.
 
-## Las animaciones salen de `shared/motion`
+## Las animaciones salen de `src/shared/motion`
 
 Nunca Framer Motion directo en un componente.
 
@@ -34,7 +34,7 @@ alguna vez hace falta respetar `prefers-reduced-motion`.
 ## Los permisos se preguntan, no se deducen
 
 En componentes: `useApp().modules.includes('<slug>')`. En lógica pura:
-`getModulesForRole(map, role).includes('<slug>')` de `shared/auth/permissions.ts`.
+`getModulesForRole(map, role).includes('<slug>')` de `src/shared/auth/permissions.ts`.
 
 Nunca comparar contra el nombre de un rol. Los roles son dinámicos —los crea el admin desde
 `/admin`— así que un `rol === 'colaborador'` hardcodeado es una condición que el admin puede
@@ -42,7 +42,7 @@ volver falsa sin tocar código.
 
 ## Supabase en el cliente: el singleton
 
-Se importa el cliente de `shared/db/supabase.ts`. No se instancia uno nuevo.
+Se importa el cliente de `src/shared/db/supabase.ts`. No se instancia uno nuevo.
 
 ## i18n: integrar, no ignorar
 
@@ -93,11 +93,11 @@ la respuesta es borrarlo. Protegerlo es conservar la superficie de ataque y adem
 mantenerla.
 
 **Motivo:** `/api/mail/campaigns` no tenía un solo llamador; Research lee y escribe campañas por
-`shared/data/research.ts`, bajo RLS. Guardarla "por si acaso" era pagar riesgo por cero uso.
+`src/shared/data/research.ts`, bajo RLS. Guardarla "por si acaso" era pagar riesgo por cero uso.
 
 ## Las fechas del calendario se calculan en hora local
 
-Para una fecha `YYYY-MM-DD` se usa `localDate()` / `localMonth()` de `shared/utils/dates`.
+Para una fecha `YYYY-MM-DD` se usa `localDate()` / `localMonth()` de `src/shared/utils/dates`.
 **Nunca `toISOString().split('T')[0]`.**
 
 **Motivo:** `toISOString()` convierte a UTC primero. En UTC-4, a partir de las 20:00 devuelve el
@@ -146,8 +146,8 @@ puede ser el de Research o el de cualquiera, y hay que reconstruir la ruta menta
 saberlo. Con `@/features/research/theme` se lee de una.
 
 Y hay un motivo mecánico, más fuerte ahora: las reglas de este directorio hacen que los archivos
-**se muevan** —un componente pasa a carpeta, un módulo sube a `shared/`—, y una ruta relativa
-larga se rompe en cada mudanza, mientras que el alias sobrevive. Cuando `shared/lib/` se partió en
+**se muevan** —un componente pasa a carpeta, un módulo sube a `src/shared/`—, y una ruta relativa
+larga se rompe en cada mudanza, mientras que el alias sobrevive. Cuando `src/shared/lib/` se partió en
 `hooks/` y `utils/`, los 29 archivos que importaban con `@/` se arreglaron con un `sed`; si
 hubieran usado rutas relativas, cada uno habría necesitado contar niveles a mano.
 

@@ -1,12 +1,15 @@
 import { describe, it, expect } from 'vitest'
 import { readdirSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { ALL_MODULES } from './permissions'
 
 // Garantiza que el registro de módulos (ALL_MODULES, derivado de MODULE_META) NO se
 // desincronice de las carpetas de ruta del App Router. La carpeta ES la ruta; el slug
 // debe espejarla 1:1. Si agregás un módulo y te olvidás de MODULE_META (o al revés), falla.
-const APP_DIR = join(process.cwd(), 'app', '(app)')
+// Relativo a ESTE archivo, no al cwd: con cwd, mover el código a src/ dejó el test
+// buscando ./app/(app) en la raíz del repo, que ya no existe (19/08/2026).
+const APP_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'app', '(app)')
 
 // Carpetas de ruta que existen a propósito SIN ser módulos (stubs / vistas especiales).
 const NON_MODULE_ROUTES = ['finanzas', 'overview']

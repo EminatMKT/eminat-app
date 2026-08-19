@@ -12,7 +12,7 @@ Sistema operativo interno de Eminat Group. Plataforma de gestión empresarial de
 ## Entornos y base de datos
 
 **Tres tiers, una base por tier.** Lo declara el enum de `NEXT_PUBLIC_APP_ENV` en
-`shared/db/env.client.ts`:
+`src/shared/db/env.client.ts`:
 
 | Tier | Base | Ref / URL | Dónde se configuran las vars |
 |---|---|---|---|
@@ -24,7 +24,7 @@ Sistema operativo interno de Eminat Group. Plataforma de gestión empresarial de
   `development` es Vercel Preview.
 - El prefijo `NEXT_PUBLIC_` no es opcional: la validación corre también en el cliente
   (`isProdDb`/badge) y sin el prefijo Next no inyecta la var al bundle.
-- `shared/db/env.client.ts` exporta `isProdDb`/`isDevDb` y un `superRefine` que **rompe el
+- `src/shared/db/env.client.ts` exporta `isProdDb`/`isDevDb` y un `superRefine` que **rompe el
   build** si un tier que no es `production` apunta al ref de la base de prod.
 - `isDevDb` es true para `local` **y** `development`; con eso `DevBadge` pinta el badge
   **"DEV"** en el topbar.
@@ -72,7 +72,7 @@ Los roles son **dinámicos**: viven en la tabla `roles` (+ `role_modules`) y el 
 | `sin_asignar` | sistema (`is_system`) | Default de altas nuevas. Cero módulos (solo Home) |
 | *(dinámicos)* | creados por el admin | Los módulos que el admin les asigne (`role_modules`) |
 
-La lógica de permisos vive en `shared/auth/permissions.ts` — helpers puros **map-driven** (`getModulesForRole(map, role)`, `normalizeRole`, `moduleForPath`), ya no una matriz. El mapa `roleModuleMap` se carga en `AppContext` desde la DB. La RLS de Postgres gatea los datos por módulo vía `has_module(slug)`; `usuarios.rol` solo se cambia por la API admin (service_role), protegido por el trigger `prevent_rol_self_change`. El middleware `middleware.ts` solo gatea la sesión (redirect login).
+La lógica de permisos vive en `src/shared/auth/permissions.ts` — helpers puros **map-driven** (`getModulesForRole(map, role)`, `normalizeRole`, `moduleForPath`), ya no una matriz. El mapa `roleModuleMap` se carga en `AppContext` desde la DB. La RLS de Postgres gatea los datos por módulo vía `has_module(slug)`; `usuarios.rol` solo se cambia por la API admin (service_role), protegido por el trigger `prevent_rol_self_change`. El middleware `middleware.ts` solo gatea la sesión (redirect login).
 
 ## Dominios corporativos autorizados
 
@@ -84,7 +84,7 @@ Solo se puede hacer login con estos dominios:
 | `@emc.health` | Medical Center |
 | `@vivinegretefoundation.org` | Foundation |
 
-La validación ocurre en `app/login/page.tsx` antes de llamar a Supabase Auth.
+La validación ocurre en `src/app/login/page.tsx` antes de llamar a Supabase Auth.
 
 ## Módulos de negocio
 
@@ -111,7 +111,7 @@ Organización. Se leen del contexto:
 
 La asimetría es deliberada: si se desactiva una empresa, sus actividades históricas tienen
 que seguir pintándose con su color y contando en las gráficas; solo deja de ofrecerse para
-actividades nuevas. Las derivaciones viven en `shared/context/empresa-derivations.ts` con
+actividades nuevas. Las derivaciones viven en `src/shared/context/empresa-derivations.ts` con
 sus tests.
 
 Las 11 filas del catálogo cubren dos relaciones distintas: **pertenencia** (dónde trabaja
@@ -129,44 +129,50 @@ segundo; hoy son 7:
 
 Quién pide una actividad sale de `actividades.solicitante_id`, una FK a `usuarios` — el
 dropdown ofrece a todos los usuarios activos. La constante `SOLICITANTES` que vivía
-hardcodeada en `shared/constants/domain.ts` ya no existe: sus valores eran
+hardcodeada en `src/shared/constants/domain.ts` ya no existe: sus valores eran
 `responsable_ref`, y ese campo se eliminó en la fase 2 (ver
 `docs/superpowers/specs/2026-08-11-responsable-ref-design.md`).
 
 ## Estructura clave del código
 
-**Ya no existe `lib/`**: el código transversal vive en `shared/` y cada módulo de negocio en
-`features/<modulo>/`. Las páginas de `app/` son thin routes que montan el feature.
+**Todo el código de la app vive en `src/`**: es lo que compila el bundler. Lo que está fuera de
+`src/` no es la app — es el repo: `supabase/` (la CLI lo busca en la raíz), `e2e/` (Playwright),
+`public/` (Next lo sirve desde la raíz), `docs/` y los archivos de config.
+
+El código transversal vive en `src/shared/` y cada módulo de negocio en `src/features/<modulo>/`.
+Las páginas de `src/app/` son thin routes que montan el feature.
 
 ```
-middleware.ts          ← gate de sesión en el Edge (redirect a /login)
-shared/
-  auth/permissions.ts  ← helpers de permisos map-driven (roles dinámicos desde la DB)
-  context/AppContext.tsx ← contexto global: usuario autenticado, actividades, catálogos
-  db/
-    env.client.ts      ← schema zod de las vars públicas + isProdDb/isDevDb
-    env.server.ts      ← vars solo-servidor (service_role, Resend)
-    supabase.ts        ← singleton del cliente Supabase (browser)
-    supabaseAdmin.ts   ← cliente service_role (solo rutas API)
-    requireAdmin.ts    ← guard de las rutas API de admin
-  constants/domain.ts  ← marcas, meses/trimestres, columnas de Kanban, colores
-  components/          ← UI compartida (AppShell, Sidebar, Topbar, dashboard/)
-  hooks/               ← hooks transversales (useUserPreference, usePersistedState, useClock)
-  utils/               ← funciones puras (api, canonical, delimited, filters, html)
-  motion/index.tsx     ← componentes de animación reutilizables (Framer Motion)
-  i18n/                ← claves es.json / en.json + useT()
-features/              ← un directorio por módulo de negocio
-  accounting/  admin/  cobranzas/  directorio/
-  medical/     overview/  research/  stratix-mkt/
-app/
-  layout.tsx           ← layout raíz (fuentes Syne + DM Mono)
-  (app)/               ← grupo de rutas protegidas
-    layout.tsx         ← envuelve con AppProvider
-    page.tsx           ← Launchpad
-    admin/ stratix-mkt/ medical/ research/ cobranzas/ accounting/
-  api/
-    admin/             ← CRUD de usuarios (create, delete, reassign-and-delete, reset-password, update)
-    mail/              ← envío de emails (send via Resend, campaigns CRUD)
+src/
+  middleware.ts        ← gate de sesión en el Edge (redirect a /login)
+  shared/
+    auth/permissions.ts← helpers de permisos map-driven (roles dinámicos desde la DB)
+    context/           ← AppContext: usuario autenticado, actividades, catálogos
+    db/
+      env.client.ts    ← schema zod de las vars públicas + isProdDb/isDevDb
+      env.server.ts    ← vars solo-servidor (service_role, Resend)
+      supabase.ts      ← singleton del cliente Supabase (browser)
+      supabaseAdmin.ts ← cliente service_role (solo rutas API)
+      requireAdmin.ts  ← guard de las rutas API de admin
+      requireAccess.ts ← guard de sesión/módulo del resto de las rutas API
+    constants/domain.ts← marcas, meses/trimestres, columnas de Kanban, colores
+    components/        ← UI compartida (AppShell, Sidebar, Topbar, dashboard/)
+    hooks/             ← hooks transversales (useUserPreference, usePersistedState, useClock)
+    utils/             ← funciones puras (api, canonical, dates, delimited, filters, html)
+    motion/index.tsx   ← componentes de animación reutilizables (Framer Motion)
+    i18n/              ← claves es.json / en.json + useT()
+  features/            ← un directorio por módulo de negocio
+    accounting/  admin/  cobranzas/  directorio/
+    medical/     overview/  research/  stratix-mkt/
+  app/
+    layout.tsx         ← layout raíz (fuentes Syne + DM Mono)
+    (app)/             ← grupo de rutas protegidas
+      layout.tsx       ← envuelve con AppProvider
+      page.tsx         ← Launchpad
+      admin/ stratix-mkt/ medical/ research/ cobranzas/ accounting/
+    api/
+      admin/           ← CRUD de usuarios (create, delete, reassign-and-delete, reset-password, update)
+      mail/            ← envío de correo (send via Resend, con guard de módulo)
 supabase/
   config.toml          ← config del stack local
   migrations/  seed/  rollback/
@@ -182,7 +188,7 @@ supabase/
 ## Convenciones
 
 Se mudaron a `.claude/rules/` — eran órdenes sobre cómo escribir, no descripción del proyecto.
-`codigo.md` tiene las que estaban acá (thin routes, `route.ts` solo handlers, `shared/motion`,
+`codigo.md` tiene las que estaban acá (thin routes, `route.ts` solo handlers, `src/shared/motion`,
 permisos por módulo, el singleton de Supabase, i18n sin `i18n-ignore`, el ban de `any` y el
 naming de FK); `base-de-datos.md` se quedó con la de datos de prueba por el frontend.
 

@@ -52,10 +52,10 @@ esto la alternativa es una clase por valor posible, que no existe cuando el valo
 
 ### Los colores salen de variables CSS, no de objetos JS
 
-`app/globals.css` ya define los tokens oscuros de la app en `:root` (`--bg`, `--s1`, `--s2`,
+`src/app/globals.css` ya define los tokens oscuros de la app en `:root` (`--bg`, `--s1`, `--s2`,
 `--s3`, `--accent`, `--t1`, `--t2`, `--t3`). Un `.module.css` los usa directo: `color: var(--t1)`.
 
-Los tokens **claros del tablero** todavía viven en JS (`shared/components/dashboard/theme.ts`).
+Los tokens **claros del tablero** todavía viven en JS (`src/shared/components/dashboard/theme.ts`).
 El primer componente de tablero que se migre los pasa a variables CSS y deja el objeto JS leyendo
 de ahí, no al revés: la fuente de verdad de un color tiene que ser el CSS.
 
@@ -77,7 +77,7 @@ contexto y los helpers no viven adentro del `.tsx`** — van a su propio archivo
 tiene el directorio, adentro de él:
 
 ```
-features/<modulo>/
+src/features/<modulo>/
   components/     ← .tsx, lo más chicos posible
   hooks/          ← useLoQueSea.ts
   context/        ← el provider y su hook de acceso
@@ -102,13 +102,13 @@ están instalados.
 La pregunta de `arquitectura.md` —¿esto lo pediría otro módulo?— **no es solo para componentes**.
 Vale igual para un hook, un contexto o una función de utilidad.
 
-- Si es del módulo: `features/<modulo>/hooks/`, `context/`, `utils/`.
-- Si otro módulo lo pediría: `shared/hooks/`, `shared/utils/`, o `shared/context/` si es estado
+- Si es del módulo: `src/features/<modulo>/hooks/`, `context/`, `utils/`.
+- Si otro módulo lo pediría: `src/shared/hooks/`, `src/shared/utils/`, o `src/shared/context/` si es estado
   global.
 
 **Un directorio por tipo, del mismo nombre en los dos lados.** Un hook compartido va a
-`shared/hooks/` porque un hook de módulo va a `features/<modulo>/hooks/`; una función pura va a
-`shared/utils/` porque su equivalente de módulo va a `utils/`. Nada de bolsas mezcladas: `lib/`
+`src/shared/hooks/` porque un hook de módulo va a `src/features/<modulo>/hooks/`; una función pura va a
+`src/shared/utils/` porque su equivalente de módulo va a `utils/`. Nada de bolsas mezcladas: `lib/`
 existía y tenía adentro cuatro funciones puras y dos hooks, así que no se podía saber qué había
 en un archivo sin abrirlo.
 

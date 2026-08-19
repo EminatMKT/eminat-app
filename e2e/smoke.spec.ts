@@ -1,7 +1,7 @@
 import { test, expect, Page } from '@playwright/test'
 import { PASSWORD, ensureUser } from './seed'
-import { NAV } from '../shared/components/appShellConfig'
-import { modulePath } from '../shared/auth/permissions'
+import { NAV } from '../src/shared/components/appShellConfig'
+import { modulePath } from '../src/shared/auth/permissions'
 
 // Smoke test: como admin (ve todos los módulos), recorre cada uno y verifica que
 // CARGA sin crashear — no prueba features a fondo, solo "¿prende sin humo?".
