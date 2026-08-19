@@ -4,7 +4,8 @@
 export interface FilterDef<T> {
   key: string
   labelKey: string // clave i18n del placeholder "Todos …" (la traduce el caller)
-  options: (items: T[]) => string[] // valores elegibles; se derivan de los datos o de un dominio
+  kind?: 'select' | 'text' | 'date' // control a renderizar; default 'select'
+  options?: (items: T[]) => string[] // solo para 'select': valores elegibles (de los datos o de un dominio)
   match: (item: T, value: string) => boolean // ¿el item pasa este filtro para ese valor?
 }
 

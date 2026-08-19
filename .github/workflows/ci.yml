@@ -27,18 +27,38 @@ jobs:
 
   e2e:
     runs-on: ubuntu-latest
+    # No es la solución al cuelgue —para eso está sacar apt de arriba— sino el tope: sin esto
+    # el default de GitHub son 6 HORAS de runner bloqueando el merge.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with: { version: 10 }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
+      # Pinneada, no `latest`: con `latest` una release de Supabase puede romper el CI sin que
+      # nadie toque el repo, y encima el CI correría una CLI distinta de la del devDependency.
+      # Se sube a mano junto con el package.json.
       - uses: supabase/setup-cli@v1
-        with: { version: latest }
+        with: { version: 2.106.0 }
       - run: pnpm install --frozen-lockfile
       # `supabase start` levanta Postgres+Auth+REST locales y aplica supabase/migrations.
       - run: supabase start
-      - run: pnpm exec playwright install --with-deps chromium
+      # Navegador cacheado y SIN `--with-deps`. Ese flag instalaba librerías del sistema con
+      # apt en cada corrida, metiendo un mirror de Ubuntu en el camino crítico: el 18/08 el
+      # mirror de Azure de los runners dejó de responder y el job estuvo 20+ min agotando
+      # reintentos antes de caer al mirror canónico. La imagen `ubuntu-latest` ya trae Chrome
+      # y sus librerías, que son las mismas que necesita el chromium de Playwright — así que
+      # apt deja de correr. Si algún día faltara una lib, el navegador falla al arrancar en
+      # segundos y con mensaje claro, no colgado esperando a un servidor.
+      - name: Cache del navegador de Playwright
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install chromium
       - name: e2e (Playwright contra Supabase local)
         run: pnpm e2e
         env:

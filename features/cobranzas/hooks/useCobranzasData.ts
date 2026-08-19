@@ -6,6 +6,8 @@ import { detectSeparator, parseDelimited } from '@/shared/lib/delimited'
 import { fmt } from '../format'
 import { TABLE, ADD_FIELDS, NUMERIC_FIELDS, EXPORT_HEADERS, TAB_TITLE } from './../constants'
 import type { CobTab, Filtros, Venta, Cuenta, Deposito } from '../types'
+import { useUserPreference } from '@/shared/lib/useUserPreference'
+import { oneOf } from '@/shared/lib/usePersistedState'
 
 const num = (v: unknown) => Number(v) || 0
 
@@ -13,7 +15,7 @@ export function useCobranzasData() {
   const { modules, mostrarMensaje } = useApp()
   const canCobranzas = modules.includes('cobranzas')
 
-  const [cobTab, setCobTab] = useState<CobTab>('ventas')
+  const [cobTab, setCobTab] = useUserPreference<CobTab>('tab-cobranzas', 'ventas', oneOf('ventas', 'cuentas', 'depositos'))
   const [cobMes, setCobMes] = useState(MESES[new Date().getMonth()])
   const [cobVentas, setCobVentas] = useState<Venta[]>([])
   const [cobCuentas, setCobCuentas] = useState<Cuenta[]>([])

@@ -17,8 +17,10 @@ import CreateUserModal from './CreateUserModal'
 import EditUserModal, { type EditUserDraft } from './EditUserModal'
 import ResetPasswordModal from './ResetPasswordModal'
 import DeleteUserModal from './DeleteUserModal'
-import { cargoIdsOf, isOrgCat, type OrgCat } from '../org-catalogs'
+import { cargoIdsOf, isOrgCat, ORG_CATS, type OrgCat } from '../org-catalogs'
 import type { AdminUser, ResetTarget } from '../types'
+import { useUserPreference } from '@/shared/lib/useUserPreference'
+import { oneOf } from '@/shared/lib/usePersistedState'
 
 // Convención de navegación del shell (ver appShellConfig): el sidebar lista las
 // SECCIONES (Usuarios · Organización) y la barra horizontal solo las sub-vistas
@@ -29,7 +31,7 @@ type Vista = 'usuarios' | 'roles' | OrgCat
 export default function AdminModule() {
   const { esAdmin, adminUsuarios, border } = useApp()
   const { t } = useT()
-  const [vista, setVista] = useState<Vista>('usuarios')
+  const [vista, setVista] = useUserPreference<Vista>('tab-admin', 'usuarios', oneOf('usuarios', 'roles', ...ORG_CATS))
   const [busqueda, setBusqueda] = useState('')
   const [filtroRol, setFiltroRol] = useState('todos')
   const [modalCrear, setModalCrear] = useState(false)

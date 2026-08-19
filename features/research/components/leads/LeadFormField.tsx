@@ -1,7 +1,7 @@
 'use client'
 import { RESEARCH_THEME, inputStyle } from '../../theme'
 import { useT, type I18nKey } from '@/shared/i18n'
-import type { LeadFieldDef } from '../../fields'
+import type { LeadFieldDef } from '../../utils/fields'
 
 export default function LeadFormField({ def, value, onChange, onBlur, hint, help, error, action }: { def: LeadFieldDef; value: string | number | boolean | null | undefined; onChange: (v: string | boolean) => void; onBlur?: () => void; hint?: React.ReactNode; help?: React.ReactNode; error?: I18nKey; action?: () => void }) {
   const { t3, accent } = RESEARCH_THEME
@@ -12,6 +12,15 @@ export default function LeadFormField({ def, value, onChange, onBlur, hint, help
   const style = error ? { ...inputStyle, borderColor: '#F87171' } : inputStyle
 
   function control() {
+    // Campo de solo lectura: se muestra pero no se edita acá. Su escritura tiene una vía
+    // dedicada con confirmación (el pop-up del contador), y `buildLeadPayload` lo excluye,
+    // así que un input editable prometería un guardado que no ocurre.
+    if (def.readOnly) {
+      return (
+        <input value={v === '' ? '—' : v} readOnly disabled
+          style={{ ...style, background: 'rgba(128,128,128,.10)', color: t3, cursor: 'not-allowed' }} />
+      )
+    }
     switch (def.type) {
       case 'select':
         return (

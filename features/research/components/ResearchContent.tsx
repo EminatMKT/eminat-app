@@ -12,6 +12,8 @@ import OportunidadesTab from './leads/OportunidadesTab'
 import LeadDetailModal from './leads/LeadDetailModal'
 import LeadFormModal from './leads/LeadFormModal'
 import ActivityModal from './leads/ActivityModal'
+import EmailCountModal from './leads/EmailCountModal'
+import SpecialtyBackfillModal from './leads/SpecialtyBackfillModal'
 import ImportModal from './leads/ImportModal'
 import MailCampaignModal from './campaigns/MailCampaignModal'
 import CampaignViewModal from './campaigns/CampaignViewModal'
@@ -23,7 +25,7 @@ export default function ResearchContent({ tab }: { tab: string }) {
 
   return (
     <div>
-      <ResearchHeader tab={tab} />
+      <ResearchHeader />
       {tab === 'dashboard' && <DashboardTab />}
       {tab === 'leads' && <LeadsTab />}
       {tab === 'newsletter' && <NewsletterTab />}
@@ -35,6 +37,8 @@ export default function ResearchContent({ tab }: { tab: string }) {
       <LeadDetailModal />
       <LeadFormModal />
       <ActivityModal />
+      <EmailCountModal />
+      <SpecialtyBackfillModal />
       <ImportModal />
       <MailCampaignModal />
       <CampaignViewModal />

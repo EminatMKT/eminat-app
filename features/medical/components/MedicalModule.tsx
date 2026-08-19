@@ -15,6 +15,9 @@ import AuditTab from './AuditTab'
 import PacienteModal from './PacienteModal'
 import CitaModal from './CitaModal'
 import IncidenteModal from './IncidenteModal'
+import { useUserPreference } from '@/shared/lib/useUserPreference'
+import { oneOf } from '@/shared/lib/usePersistedState'
+import { SUB_ITEMS } from '@/shared/components/appShellConfig'
 
 // Las secciones (Dashboard/Pacientes/Citas/HIPAA/Audit) viven SOLO en el panel
 // vertical del shell (SUB_ITEMS.medical). Antes se repetían acá como barra
@@ -25,7 +28,7 @@ export default function MedicalModule() {
   const { modules } = useApp()
   const { t } = useT()
   const { hipaaShield } = useMedicalStyles()
-  const [tab, setTab] = useState('dashboard')
+  const [tab, setTab] = useUserPreference('tab-medical', 'dashboard', oneOf(...SUB_ITEMS.medical.map(x => x.tab)))
   const [modalPaciente, setModalPaciente] = useState(false)
   const [modalCita, setModalCita] = useState(false)
   const [modalIncidente, setModalIncidente] = useState(false)

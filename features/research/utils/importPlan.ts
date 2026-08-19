@@ -1,7 +1,7 @@
 // Planificación pura de una importación de leads. Decide insert/update/skip según el modo
 // de duplicados y el match por NCT# contra los leads ya existentes. Sin React, sin red.
 import { leadColumnFor, coerceLeadValue, normalizeDomainValue } from './fields'
-import { normNct, DEFAULT_STAGE } from './constants'
+import { normNct, DEFAULT_STAGE, COUNT_COLUMN } from '../constants'
 
 // NCT# es único (research_leads_nct_number_key): no existe "duplicar" un NCT ya presente.
 // Filas sin NCT# (o con NCT nuevo) siempre insertan; con NCT existente: update o skip.
@@ -30,6 +30,25 @@ const normHeader = (h: string) => h.trim().toLowerCase().replace(/ /g, '_').repl
 // header (columna real o alias legacy) → columna real; null = ignorar.
 export function guessMapping(headers: string[]): (string | null)[] {
   return headers.map(h => leadColumnFor(normHeader(h)))
+}
+
+// Headers del archivo que NO se van a importar porque no mapean a ninguna columna.
+//
+// El import los descarta sin decir nada y el resumen cuenta FILAS, no columnas: se lee
+// "3 a actualizar" sin enterarse de que media tabla se tiró. El caso que lo destapó fue el
+// header `Etapa` de la tabla de Federico — los contadores entraban, las etapas no, y los
+// leads quedaban con la etapa vieja en silencio.
+//
+// Agregar alias tapa casos de a uno; esto expone el hueco entero. Los headers en blanco no
+// cuentan: una coma de más al final del CSV no es una columna que el usuario haya perdido.
+export function ignoredHeaders(headers: string[], mapping: (string | null)[]): string[] {
+  const out: string[] = []
+  headers.forEach((h, i) => {
+    const name = (h ?? '').trim()
+    if (!name || mapping[i] || out.includes(name)) return
+    out.push(name)
+  })
+  return out
 }
 
 // nct_number normalizado → id del lead existente (ignora leads sin NCT#).
@@ -61,7 +80,48 @@ export function buildImportPlan(input: {
       continue
     }
     if (dupMode === 'skip') { plan.skipped++; continue }
+    // El contador solo se pisa si el CSV trae un valor. Celda vacía = "no lo informé", NO
+    // "ponelo en cero": sin esto, exportar y reimportar sin llenar la columna borraría los
+    // conteos que Royner cargó por el pop-up. Mismo criterio que `stage` en un update.
+    if (values[COUNT_COLUMN] == null) delete values[COUNT_COLUMN]
     plan.toUpdate.push({ id, values }) // 'update'
   }
   return plan
+}
+
+// Un cambio de contador que el import haría sobre un lead ya existente. Alimenta el preview:
+// el import PISA (nunca suma, para que reimportar el mismo archivo sea idempotente), pero
+// avisa antes y deja desmarcar lead por lead — el contador tiene dos escritores.
+export interface CounterChange {
+  id: string
+  nct: string
+  from: number | null
+  to: number
+}
+
+// Los updates del plan que efectivamente cambian el contador, contra los valores actuales.
+export function planCounterChanges(plan: ImportPlan, currentById: Map<string, number | null>): CounterChange[] {
+  const changes: CounterChange[] = []
+  for (const u of plan.toUpdate) {
+    const to = u.values[COUNT_COLUMN]
+    if (typeof to !== 'number') continue
+    const from = currentById.get(u.id) ?? null
+    if (from === to) continue
+    changes.push({ id: u.id, nct: normNct(u.values.nct_number), from, to })
+  }
+  return changes
+}
+
+// Devuelve el plan sin el contador para los leads desmarcados en el preview. El resto de las
+// columnas de esos leads se importa igual — se descarta el contador, no la fila.
+export function stripCounterFor(plan: ImportPlan, ids: Set<string>): ImportPlan {
+  return {
+    ...plan,
+    toUpdate: plan.toUpdate.map(u => {
+      if (!ids.has(u.id)) return u
+      const values = { ...u.values }
+      delete values[COUNT_COLUMN]
+      return { id: u.id, values }
+    }),
+  }
 }

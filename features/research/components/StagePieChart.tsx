@@ -1,24 +1,73 @@
 'use client'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, type PieLabelRenderProps } from 'recharts'
 import { RESEARCH_THEME } from '../theme'
-import { PIPELINE_COLORS, CHART_COLORS, stageLabel } from '../constants'
+import { stageLabel, stageColors } from '../constants'
 import { useT } from '@/shared/i18n'
-import StageLegendItem from './StageLegendItem'
+import StageLegendItem, { LEGEND_COLUMNS } from './StageLegendItem'
+import Panel from './Panel'
+import ChartFilterHint from './ChartFilterHint'
 
-export default function StagePieChart({ data }: { data: { name: string; value: number }[] }) {
-  const { s1, border, accent } = RESEARCH_THEME
+const RAD = Math.PI / 180
+
+// `onSelect` hace del pie un filtro: clic en una porción filtra el tablero por esa etapa
+// (mismo gesto que las barras). El nombre de la porción YA es el valor canónico de `stage`,
+// así que se filtra por él directamente. La porción activa se marca atenuando las otras.
+export default function StagePieChart({ data, onSelect, selected }: { data: { name: string; value: number }[]; onSelect?: (value: string) => void; selected?: string }) {
+  const { s1, border } = RESEARCH_THEME
   const { t } = useT()
+  const total = data.reduce((sum, d) => sum + d.value, 0)
+  // Una sola resolución para todo el gráfico: el Cell y su renglón de leyenda leen el mismo mapa.
+  const colors = stageColors(data.map(d => d.name))
+
+  // Porcentaje DENTRO de la porción (pedido de Federico, 12/08/2026: el dashboard se proyecta en
+  // la sala de conferencias y hoy no se lee de lejos). El % se calcula del propio `data` por
+  // índice, no del `percent` que pasa recharts — así no depende de qué trae el render prop.
+  // Las porciones de menos de 5% van sin texto: no entra y se pisa con las vecinas.
+  const percentLabel = ({ cx, cy, midAngle, outerRadius, index }: PieLabelRenderProps) => {
+    const value = data[Number(index)]?.value ?? 0
+    if (!total || value / total < 0.05) return null
+    const r = Number(outerRadius) * 0.6
+    const x = Number(cx) + r * Math.cos(-Number(midAngle) * RAD)
+    const y = Number(cy) + r * Math.sin(-Number(midAngle) * RAD)
+    return (
+      <text x={x} y={y} fill="#FFFFFF" textAnchor="middle" dominantBaseline="central"
+        style={{ fontFamily: 'Syne', fontSize: 15, fontWeight: 800 }}>
+        {Math.round((value / total) * 100)}%
+      </text>
+    )
+  }
   return (
-    <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-      <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', marginBottom: 12 }}>Pipeline by Stage</div>
-      <ResponsiveContainer width="100%" height={200}>
-        <PieChart><Pie data={data} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3} dataKey="value">
-          {data.map((d, i) => <Cell key={i} fill={PIPELINE_COLORS[d.name] || CHART_COLORS[i % CHART_COLORS.length]} />)}
-        </Pie><Tooltip formatter={(value, name) => [value, stageLabel(String(name), t)]} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} /></PieChart>
-      </ResponsiveContainer>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center', marginTop: 8 }}>
-        {data.map(d => <StageLegendItem key={d.name} name={stageLabel(d.name, t)} value={d.value} color={PIPELINE_COLORS[d.name] || accent} />)}
+    <Panel collapsible persistKey="research-pipeline" title={t('research.chart.pipelineByStage')}
+      right={onSelect ? <ChartFilterHint label={selected ? stageLabel(selected, t) : undefined} onClear={() => selected && onSelect(selected)} /> : undefined}>
+      {/* Leyenda a la derecha y no debajo: mismo pedido de legibilidad a distancia. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ flex: '1 1 55%', minWidth: 0 }}>
+          <ResponsiveContainer width="100%" height={220}>
+            {/* Relleno, no dona (innerRadius 0): la porción se ve entera desde el fondo de la sala.
+                Sin paddingAngle: el hueco no era cosmético, le comía ángulo a cada porción y en
+                un pie el ángulo ES el dato — un 25% separado se lee como menos de un cuarto. Un
+                pie muestra partes de un TODO y así vuelve a verse entero. `stroke="none"` es
+                aparte y es decisión del usuario (nada de líneas blancas): el costo es que dos
+                colores vecinos parecidos se funden; si molesta, un stroke de 1px NO cuesta
+                ángulo.
+                ⚠️ `isAnimationActive={false}` NO es cosmético: recharts 3 renderiza las etiquetas
+                con `showLabels: !isAnimating` (es6/polar/Pie.js), y acá el fin de la animación no
+                destapa el flag → con la animación puesta el % no aparece nunca. */}
+            <PieChart><Pie data={data} cx="50%" cy="50%" innerRadius={0} outerRadius={95} paddingAngle={0} stroke="none" dataKey="value" labelLine={false} label={percentLabel} isAnimationActive={false}>
+              {data.map(d => <Cell key={d.name} fill={colors[d.name]} fillOpacity={selected && d.name !== selected ? 0.28 : 1}
+                onClick={onSelect ? () => onSelect(d.name) : undefined} style={onSelect ? { cursor: 'pointer' } : undefined} />)}
+            </Pie><Tooltip formatter={(value, name) => [value, stageLabel(String(name), t)]} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} /></PieChart>
+          </ResponsiveContainer>
+        </div>
+        {/* Grilla de 3 columnas: los nombres miden distinto, así que solo alineando las cifras
+            en columna el ojo puede bajar en recta y compararlas (ley de continuidad).
+            `0 1 auto` + minWidth 0: la leyenda cede ancho antes que dejar sin espacio al pie —
+            un nombre largo ('Discovery/Feasibility') llegaba a recortar el gráfico en pantallas
+            de ~1024px. Lo que se achica es el nombre (con elipsis), nunca las cifras. */}
+        <div style={{ flex: '0 1 auto', minWidth: 0, display: 'grid', gridTemplateColumns: LEGEND_COLUMNS, columnGap: 12, rowGap: 9, alignItems: 'baseline' }}>
+          {data.map(d => <StageLegendItem key={d.name} name={stageLabel(d.name, t)} value={d.value} total={total} color={colors[d.name]} />)}
+        </div>
       </div>
-    </div>
+    </Panel>
   )
 }

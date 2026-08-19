@@ -1,6 +1,7 @@
 // Filas de Supabase (research_leads/activities/campaigns). Campos dinámicos →
 // tipamos los conocidos y dejamos índice abierto para el resto.
 import type { I18nKey } from '@/shared/i18n'
+import type { Specialty } from './utils/specialty'
 
 // — Etapas propias del CRM (columna research_leads.stage) —
 // Union canónica: los valores EXACTOS que se guardan (la migración manual mapea a estos).
@@ -22,6 +23,9 @@ export interface Lead {
   nct_number?: string
   official_title?: string
   conditions?: string
+  // Especialidad médica (dominio cerrado, ver utils/specialty.ts). Se deriva del MeSH de
+  // CT.gov o la elige una persona. undefined/null = sin clasificar, distinto de 'Otras'.
+  especialidad?: Specialty | null
   brief_explanation?: string
   phase?: string | number
   study_type?: string
@@ -43,6 +47,9 @@ export interface Lead {
   contact2_email?: string
   contact2_phone?: string
   stage?: StageValue
+  // Intentos de contacto registrados (correos enviados a ese estudio). null = todavía ninguno
+  // registrado, que NO es lo mismo que 0 — el import respeta esa diferencia.
+  email_count?: number | null
   next_followup_date?: string
   email_date?: string
   notes?: string
