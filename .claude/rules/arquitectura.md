@@ -36,3 +36,26 @@ que falte.
 
 **Motivo:** hoy hay tres `StatCard` distintos (`accounting`, `admin`, `research`) que hacen casi
 lo mismo. Cada copia se arregla por separado, así que el bug se arregla una vez y sobrevive dos.
+
+## Un componente nuevo nace en `shared/` si otro módulo podría pedirlo
+
+La otra mitad de la regla de arriba. Al crear un componente, la pregunta es siempre: **¿otro
+módulo pediría este mismo componente?** Si la respuesta es sí —aunque hoy no lo use nadie más—
+va directo a `shared/components/`, no a `features/<modulo>/`.
+
+Sirve preguntarse cómo se lo nombraría en voz alta. Si el nombre natural no menciona el módulo
+—una tarjeta de indicador, un panel recogible, una barra de filtros, un modal de confirmación—
+es compartido. Si no se lo puede nombrar sin decir "de leads" o "de actividades", es del módulo.
+
+**Esto NO es permiso para agregar generalidad de más.** Mandarlo a `shared/` no significa
+inventarle props "por si acaso": significa **no meterle el dominio adentro**. Se escribe con los
+props que el primer uso necesita, y nada más; lo que lo hace compartible es que no importa de
+`features/`, no que tenga quince opciones.
+
+**Cuando es mitad y mitad, se parte.** La parte genérica va a `shared/` y el pegamento con el
+dominio se queda en el módulo: `FilterBar` es compartido y `FiltersPanel` —que le pasa
+`LEAD_FILTERS` y el contexto de Research— vive en Research.
+
+**Motivo:** mover un componente después cuesta mucho más que nacerlo en el lugar correcto. El
+tablero de Research tardó tres meses en llegar a `shared/`, y para entonces ya había tres
+`StatCard` en el repo. Cuando se dudó, el costo lo pagó el que vino después.
