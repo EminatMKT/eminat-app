@@ -134,3 +134,22 @@ regla "listar sí, sumar no" —el reporte lista lo que la persona pidió pero s
 ejecuta— es exactamente el tipo de decisión que un test congela y una refactorización silenciosa
 deshace. Research ya tiene sus tests de cálculo; Stratix, que es donde está el reporte de pago,
 no.
+
+## Nada de `../../`: fuera del vecindario se importa con `@/`
+
+- `./loQueSea` — mismo directorio. Bien.
+- `../loQueSea` — un nivel arriba, dentro del mismo módulo. Aceptable.
+- `../../` o más — **prohibido**. Se escribe `@/features/<modulo>/...` o `@/shared/...`.
+
+**Motivo:** en cuanto subís dos niveles ya no se sabe desde dónde se está mirando: `../../theme`
+puede ser el de Research o el de cualquiera, y hay que reconstruir la ruta mentalmente para
+saberlo. Con `@/features/research/theme` se lee de una.
+
+Y hay un motivo mecánico, más fuerte ahora: las reglas de este directorio hacen que los archivos
+**se muevan** —un componente pasa a carpeta, un módulo sube a `shared/`—, y una ruta relativa
+larga se rompe en cada mudanza, mientras que el alias sobrevive. Cuando `shared/lib/` se partió en
+`hooks/` y `utils/`, los 29 archivos que importaban con `@/` se arreglaron con un `sed`; si
+hubieran usado rutas relativas, cada uno habría necesitado contar niveles a mano.
+
+Quedan 88 sitios con `../../` de antes. Se corrigen por contacto, como los estilos inline: el que
+toca un archivo, le arregla los imports.
