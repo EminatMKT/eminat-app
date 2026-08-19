@@ -1,4 +1,5 @@
 import type { I18nKey } from '@/shared/i18n'
+import { CHART_COLORS } from '@/shared/components/dashboard/theme'
 import type { Stage, StageMeta } from './types'
 
 // ÚNICO lugar con los literales canónicos de las etapas (columna research_leads.stage).
@@ -43,7 +44,9 @@ export function stageLabel(stage: string | undefined, t: (k: I18nKey) => string)
   return key ? t(key) : (stage || '—')
 }
 
-export const CHART_COLORS = ['#34D399', '#60A5FA', '#A78BFA', '#F472B6', '#FBB040', '#F87171', '#7C6FF7', '#FB923C', '#22D3EE', '#9494B3']
+// Re-export: la paleta es de shared/components/dashboard/theme, pero `stageColors` (abajo) la
+// necesita acá para descartar los hexes que ya usa el pipeline.
+export { CHART_COLORS } from '@/shared/components/dashboard/theme'
 
 // Colores del pie de etapas y su leyenda, resueltos DE UNA VEZ para todo el gráfico. Antes cada
 // uno resolvía el suyo (el pie caía a CHART_COLORS[i], la leyenda a `accent`) y el mismo dato

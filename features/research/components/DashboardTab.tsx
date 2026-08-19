@@ -1,14 +1,15 @@
 'use client'
 import { RESEARCH_THEME } from '../theme'
 import { LEAD_FILTERS } from '../utils/filters'
+import { stageColors, stageLabel } from '../constants'
 import { useResearch } from './ResearchContext'
-import StatCard from './StatCard'
-import Panel from './Panel'
+import StatCard from '@/shared/components/dashboard/StatCard'
+import Panel from '@/shared/components/dashboard/Panel'
 // import CountryChip from './CountryChip' // ponytail: oculto por pedido de dirección (reunión 2026-07-20) — restaurar descomentando esto + el bloque "Leads by Country"
 // import RecentLeadItem from './RecentLeadItem' // ponytail: oculto por pedido de dirección — restaurar con el bloque "Recently added leads"
 import FiltersPanel from './FiltersPanel'
-import StagePieChart from './StagePieChart'
-import BarChartCard from './BarChartCard'
+import PieChartCard from '@/shared/components/dashboard/PieChartCard'
+import BarChartCard from '@/shared/components/dashboard/BarChartCard'
 import { useT } from '@/shared/i18n'
 
 export default function DashboardTab() {
@@ -100,7 +101,12 @@ export default function DashboardTab() {
       {/* alignItems:start — si no, recoger una gráfica deja un hueco del alto de su vecina
           abierta, porque el grid iguala alturas por fila. */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14, alignItems: 'start' }}>
-        <StagePieChart data={stageData} onSelect={toggle('stage')} selected={filterValues.stage} />
+        {/* El pie es genérico; lo que es de Research es el DOMINIO: `stageColors` garantiza que
+            dos etapas del mismo gráfico no compartan color, y `stageLabel` traduce el valor
+            canónico. El componente compartido no puede saber ninguna de las dos cosas. */}
+        <PieChartCard persistKey="research-pipeline" title={t('research.chart.pipelineByStage')}
+          data={stageData} colors={stageColors(stageData.map(d => d.name))} labelOf={n => stageLabel(n, t)}
+          onSelect={toggle('stage')} selected={filterValues.stage} />
         <BarChartCard persistKey="research-phases" title={t('research.chart.leadsByPhase')} data={phaseData} onSelect={toggle('phase')} selected={filterValues.phase} />
       </div>
 

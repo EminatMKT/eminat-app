@@ -1,23 +1,31 @@
 'use client'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, type PieLabelRenderProps } from 'recharts'
-import { RESEARCH_THEME } from '../theme'
-import { stageLabel, stageColors } from '../constants'
-import { useT } from '@/shared/i18n'
-import StageLegendItem, { LEGEND_COLUMNS } from './StageLegendItem'
+import { DASHBOARD_THEME } from './theme'
+import LegendItem, { LEGEND_COLUMNS } from './LegendItem'
 import Panel from './Panel'
 import ChartFilterHint from './ChartFilterHint'
 
 const RAD = Math.PI / 180
 
-// `onSelect` hace del pie un filtro: clic en una porción filtra el tablero por esa etapa
-// (mismo gesto que las barras). El nombre de la porción YA es el valor canónico de `stage`,
-// así que se filtra por él directamente. La porción activa se marca atenuando las otras.
-export default function StagePieChart({ data, onSelect, selected }: { data: { name: string; value: number }[]; onSelect?: (value: string) => void; selected?: string }) {
-  const { s1, border } = RESEARCH_THEME
-  const { t } = useT()
+// `onSelect` hace del pie un filtro: clic en una porción filtra el tablero por ese valor
+// (mismo gesto que las barras). El nombre de la porción ES el valor por el que se filtra, así
+// que se pasa tal cual. La porción activa se marca atenuando las otras.
+//
+// `colors` llega resuelto DE UNA VEZ para todo el gráfico —el Cell y su renglón de leyenda leen
+// el mismo mapa— porque quien conoce el dominio es quien puede garantizar que dos valores
+// distintos no compartan color (en Research lo hace `stageColors`). `labelOf` traduce el valor
+// crudo a lo que se muestra; por defecto se muestra tal cual.
+export default function PieChartCard({ title, persistKey, data, colors, labelOf = n => n, onSelect, selected }: {
+  title: string
+  persistKey: string
+  data: { name: string; value: number }[]
+  colors: Record<string, string>
+  labelOf?: (name: string) => string
+  onSelect?: (value: string) => void
+  selected?: string
+}) {
+  const { s1, border } = DASHBOARD_THEME
   const total = data.reduce((sum, d) => sum + d.value, 0)
-  // Una sola resolución para todo el gráfico: el Cell y su renglón de leyenda leen el mismo mapa.
-  const colors = stageColors(data.map(d => d.name))
 
   // Porcentaje DENTRO de la porción (pedido de Federico, 12/08/2026: el dashboard se proyecta en
   // la sala de conferencias y hoy no se lee de lejos). El % se calcula del propio `data` por
@@ -37,8 +45,8 @@ export default function StagePieChart({ data, onSelect, selected }: { data: { na
     )
   }
   return (
-    <Panel collapsible persistKey="research-pipeline" title={t('research.chart.pipelineByStage')}
-      right={onSelect ? <ChartFilterHint label={selected ? stageLabel(selected, t) : undefined} onClear={() => selected && onSelect(selected)} /> : undefined}>
+    <Panel collapsible persistKey={persistKey} title={title}
+      right={onSelect ? <ChartFilterHint label={selected ? labelOf(selected) : undefined} onClear={() => selected && onSelect(selected)} /> : undefined}>
       {/* Leyenda a la derecha y no debajo: mismo pedido de legibilidad a distancia. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ flex: '1 1 55%', minWidth: 0 }}>
@@ -56,7 +64,7 @@ export default function StagePieChart({ data, onSelect, selected }: { data: { na
             <PieChart><Pie data={data} cx="50%" cy="50%" innerRadius={0} outerRadius={95} paddingAngle={0} stroke="none" dataKey="value" labelLine={false} label={percentLabel} isAnimationActive={false}>
               {data.map(d => <Cell key={d.name} fill={colors[d.name]} fillOpacity={selected && d.name !== selected ? 0.28 : 1}
                 onClick={onSelect ? () => onSelect(d.name) : undefined} style={onSelect ? { cursor: 'pointer' } : undefined} />)}
-            </Pie><Tooltip formatter={(value, name) => [value, stageLabel(String(name), t)]} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} /></PieChart>
+            </Pie><Tooltip formatter={(value, name) => [value, labelOf(String(name))]} contentStyle={{ background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }} /></PieChart>
           </ResponsiveContainer>
         </div>
         {/* Grilla de 3 columnas: los nombres miden distinto, así que solo alineando las cifras
@@ -65,7 +73,7 @@ export default function StagePieChart({ data, onSelect, selected }: { data: { na
             un nombre largo ('Discovery/Feasibility') llegaba a recortar el gráfico en pantallas
             de ~1024px. Lo que se achica es el nombre (con elipsis), nunca las cifras. */}
         <div style={{ flex: '0 1 auto', minWidth: 0, display: 'grid', gridTemplateColumns: LEGEND_COLUMNS, columnGap: 12, rowGap: 9, alignItems: 'baseline' }}>
-          {data.map(d => <StageLegendItem key={d.name} name={stageLabel(d.name, t)} value={d.value} total={total} color={colors[d.name]} />)}
+          {data.map(d => <LegendItem key={d.name} name={labelOf(d.name)} value={d.value} total={total} color={colors[d.name]} />)}
         </div>
       </div>
     </Panel>

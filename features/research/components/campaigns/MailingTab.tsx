@@ -1,7 +1,7 @@
 'use client'
 import { RESEARCH_THEME } from '../../theme'
 import { useResearch } from '../ResearchContext'
-import StatCard from '../StatCard'
+import StatCard from '@/shared/components/dashboard/StatCard'
 import MailCampaignRow from './MailCampaignRow'
 
 export default function MailingTab() {

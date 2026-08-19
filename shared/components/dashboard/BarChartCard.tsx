@@ -1,7 +1,7 @@
 'use client'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, LabelList, ResponsiveContainer } from 'recharts'
-import { RESEARCH_THEME } from '../theme'
-import { CHART_COLORS } from '../constants'
+import { DASHBOARD_THEME } from './theme'
+import { CHART_COLORS } from './theme'
 import Panel from './Panel'
 import ChartFilterHint from './ChartFilterHint'
 
@@ -14,13 +14,13 @@ type Datum = { name: string; value: number; key?: string }
 // default → barras verticales (Leads by Phase).
 // La cifra va SOBRE la barra y el eje de valores desaparece: proyectado, nadie sigue una barra
 // hasta una escala lateral. Misma razón que el % dentro del pie.
-// ⚠️ isAnimationActive={false} es necesario para que se vean las etiquetas (ver StagePieChart).
+// ⚠️ isAnimationActive={false} es necesario para que se vean las etiquetas (ver PieChartCard).
 // `onSelect` convierte la gráfica en un filtro: clic en una barra filtra el tablero por ese
 // valor, clic en la misma barra lo saca (lo resuelve el caller comparando con `selected`).
 // La barra activa se distingue atenuando las otras, no coloreándola distinto: el color ya
 // codifica la categoría y pisarlo haría perder la lectura.
 export default function BarChartCard({ title, data, vertical = false, height, persistKey, onSelect, selected }: { title: string; data: Datum[]; vertical?: boolean; height?: number; persistKey: string; onSelect?: (value: string) => void; selected?: string }) {
-  const { s1, border, t1, t2 } = RESEARCH_THEME
+  const { s1, border, t1, t2 } = DASHBOARD_THEME
   const tooltipStyle = { background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }
   const figure = { fontFamily: 'Syne', fontSize: 13, fontWeight: 800 }
   const valueOf = (d: Datum) => d.key ?? d.name

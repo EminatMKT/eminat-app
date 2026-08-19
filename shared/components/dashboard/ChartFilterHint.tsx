@@ -1,5 +1,5 @@
 'use client'
-import { RESEARCH_THEME } from '../theme'
+import { DASHBOARD_THEME } from './theme'
 import { useT } from '@/shared/i18n'
 
 // Aviso de que la gráfica es clickeable, en la cabecera de su panel.
@@ -14,7 +14,7 @@ import { useT } from '@/shared/i18n'
 // menos de lo que debería.
 export default function ChartFilterHint({ label, onClear }: { label?: string; onClear: () => void }) {
   const { t } = useT()
-  const { t3, accent } = RESEARCH_THEME
+  const { t3, accent } = DASHBOARD_THEME
   if (!label) {
     return <span style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono' }}>{t('research.chart.clickToFilter')}</span>
   }

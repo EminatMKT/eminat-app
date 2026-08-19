@@ -1,6 +1,6 @@
 'use client'
 import type { ReactNode } from 'react'
-import { RESEARCH_THEME } from '../theme'
+import { DASHBOARD_THEME } from './theme'
 import { useT } from '@/shared/i18n'
 import { useUserPreference } from '@/shared/lib/useUserPreference'
 import StatBreakdownRow from './StatBreakdownRow'
@@ -27,7 +27,7 @@ export default function StatCard({ label, value, color, size = 'md', badge, badg
   breakdown?: StatBreakdown
   detailKey?: string // sin esto el detalle va siempre visible (no hay nada que recordar)
 }) {
-  const { s1, border, t1, t2, t3 } = RESEARCH_THEME
+  const { s1, border, t1, t2, t3 } = DASHBOARD_THEME
   const { t } = useT()
   const sm = size === 'sm'
   const eyebrow = { fontSize: 9, color: t3, textTransform: 'uppercase', letterSpacing: '.12em', fontFamily: 'DM Mono' } as const

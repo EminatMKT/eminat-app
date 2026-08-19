@@ -2,7 +2,7 @@
 import { RESEARCH_THEME } from '../../theme'
 import { STAGE } from '../../constants'
 import { useResearch } from '../ResearchContext'
-import StatCard from '../StatCard'
+import StatCard from '@/shared/components/dashboard/StatCard'
 import OpportunityRow from './OpportunityRow'
 
 export default function OportunidadesTab() {

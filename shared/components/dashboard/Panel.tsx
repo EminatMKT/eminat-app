@@ -1,6 +1,6 @@
 'use client'
 import type { ReactNode } from 'react'
-import { RESEARCH_THEME } from '../theme'
+import { DASHBOARD_THEME } from './theme'
 import { useUserPreference } from '@/shared/lib/useUserPreference'
 
 // Contenedor único de los bloques del módulo (gráficas, tabla de leads, barra de filtros).
@@ -24,7 +24,7 @@ type PanelProps = PanelBase & (
 )
 
 export default function Panel({ title, right, children, flush = false, collapsible = false, persistKey }: PanelProps) {
-  const { s1, border, t1, t3 } = RESEARCH_THEME
+  const { s1, border, t1, t3 } = DASHBOARD_THEME
   const [collapsed, setCollapsed] = useUserPreference(persistKey ? `panel-${persistKey}` : null, false)
   const canToggle = collapsible && !!title
   return (

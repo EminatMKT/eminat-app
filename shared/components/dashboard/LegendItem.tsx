@@ -1,4 +1,4 @@
-import { RESEARCH_THEME } from '../theme'
+import { DASHBOARD_THEME } from './theme'
 
 // Un renglón de la leyenda, en TRES celdas de la grilla del contenedor (por eso devuelve un
 // fragmento y no una caja propia): etiqueta · absoluto · porcentaje.
@@ -11,8 +11,8 @@ import { RESEARCH_THEME } from '../theme'
 // solo contrato y separarlos deja que uno cambie sin el otro.
 export const LEGEND_COLUMNS = 'minmax(0, auto) max-content max-content'
 
-export default function StageLegendItem({ name, value, total, color }: { name: string; value: number; total: number; color: string }) {
-  const { t1, t2, t3 } = RESEARCH_THEME
+export default function LegendItem({ name, value, total, color }: { name: string; value: number; total: number; color: string }) {
+  const { t1, t2, t3 } = DASHBOARD_THEME
   const pct = total > 0 ? Math.round((value / total) * 100) : 0
   const figure = { fontFamily: 'DM Mono', fontVariantNumeric: 'tabular-nums', textAlign: 'right' } as const
   return (

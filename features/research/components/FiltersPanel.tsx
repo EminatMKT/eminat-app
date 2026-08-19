@@ -4,7 +4,7 @@ import { useT, type I18nKey } from '@/shared/i18n'
 import FilterBar from '@/shared/components/FilterBar'
 import { LEAD_FILTERS } from '../utils/filters'
 import { useResearch } from './ResearchContext'
-import Panel from './Panel'
+import Panel from '@/shared/components/dashboard/Panel'
 
 // Panel de filtros del módulo, compartido por la tabla de leads Y el dashboard: los dos leen el
 // MISMO `filterValues` del contexto, así que filtrar en un lado se ve en el otro. Está extraído
