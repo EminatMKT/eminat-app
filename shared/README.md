@@ -2,13 +2,26 @@
 
 Código transversal: lo usa **más de una** feature (o la app entera).
 
-Subcarpetas:
-- `components/` — UI compartida (AppShell, NavBar, Onboarding)
-- `context/` — estado global (AppContext)
-- `auth/` — permisos (permissions)
-- `db/` — Supabase, env, session
-- `motion/` — wrappers de animación (Framer Motion)
-- `constants/` — constantes de marcas/empresas (companies)
+**Un directorio por tipo de cosa**, con el mismo nombre que su equivalente dentro de una feature:
+un hook compartido va a `shared/hooks/` porque un hook de módulo va a `features/<modulo>/hooks/`.
+No hay bolsas mezcladas — `lib/` era una (cuatro funciones puras y dos hooks adentro) y por eso
+se partió el 19/08/2026.
 
-**Regla:** si lo usa **una sola** feature → va en `features/esa/`, no acá.
+| Directorio | Qué va |
+|---|---|
+| `components/` | UI compartida — AppShell, Sidebar, Topbar, y `dashboard/` (el tablero) |
+| `hooks/` | Hooks transversales — `useUserPreference`, `usePersistedState`, `useClock` |
+| `utils/` | Funciones puras — `api`, `canonical`, `delimited`, `filters`, `html` |
+| `context/` | Estado global — `AppContext` y lo que solo existe para servirlo |
+| `data/` | Acceso a datos (repos de Supabase, realtime) |
+| `db/` | Cliente de Supabase, env, guards de las rutas API |
+| `auth/` | Permisos (`permissions.ts`) |
+| `i18n/` | `es.json` / `en.json` + `useT()` |
+| `motion/` | Wrappers de animación (Framer Motion) |
+| `constants/` | Constantes de dominio transversales |
+| `theme/` | Tokens y estilos de la app |
+
+**Regla:** si lo usa **una sola** feature → va en `features/esa/`, no acá. El criterio completo,
+con sus motivos, está en `.claude/rules/arquitectura.md` y `.claude/rules/componentes.md`.
+
 Imports vía `@/shared/...`.

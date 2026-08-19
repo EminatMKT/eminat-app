@@ -1,13 +1,13 @@
 import { useState, useEffect, type ChangeEvent } from 'react'
 import { useApp, MESES } from '@/shared/context/AppContext'
 import { cobranzasRepo } from '@/shared/data'
-import { escapeHtml } from '@/shared/lib/html'
-import { detectSeparator, parseDelimited } from '@/shared/lib/delimited'
+import { escapeHtml } from '@/shared/utils/html'
+import { detectSeparator, parseDelimited } from '@/shared/utils/delimited'
 import { fmt } from '../format'
 import { TABLE, ADD_FIELDS, NUMERIC_FIELDS, EXPORT_HEADERS, TAB_TITLE } from './../constants'
 import type { CobTab, Filtros, Venta, Cuenta, Deposito } from '../types'
-import { useUserPreference } from '@/shared/lib/useUserPreference'
-import { oneOf } from '@/shared/lib/usePersistedState'
+import { useUserPreference } from '@/shared/hooks/useUserPreference'
+import { oneOf } from '@/shared/hooks/usePersistedState'
 
 const num = (v: unknown) => Number(v) || 0
 

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { stageBuckets, specialtyBuckets, phaseBuckets, NO_STAGE, NO_PHASE } from './charts'
 import { LEAD_FILTERS } from './filters'
-import { applyFilters } from '@/shared/lib/filters'
+import { applyFilters } from '@/shared/utils/filters'
 import type { Lead } from '../types'
 
 // LA invariante del cross-filter: cada barra es clickeable y su `key` va al filtro, así que

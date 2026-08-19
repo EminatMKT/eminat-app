@@ -10,8 +10,8 @@ import SalesTab from './SalesTab'
 import ReceivablesTab from './ReceivablesTab'
 import BankingTab from './BankingTab'
 import LabsTab from './LabsTab'
-import { useUserPreference } from '@/shared/lib/useUserPreference'
-import { oneOf } from '@/shared/lib/usePersistedState'
+import { useUserPreference } from '@/shared/hooks/useUserPreference'
+import { oneOf } from '@/shared/hooks/usePersistedState'
 
 type TabKey = 'summary' | 'sales' | 'receivables' | 'banking' | 'labs'
 

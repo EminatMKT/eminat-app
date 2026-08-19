@@ -1,6 +1,6 @@
 'use client'
 import type { CSSProperties } from 'react'
-import type { FilterDef, FilterValues } from '@/shared/lib/filters'
+import type { FilterDef, FilterValues } from '@/shared/utils/filters'
 import SelectFilter from './SelectFilter'
 
 // Barra de filtros genérica, guiada por los defs. Theme-agnóstica: recibe estilos y labels

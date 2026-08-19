@@ -5,7 +5,7 @@
 import { domainOptions } from './fields'
 import { NO_SPECIALTY } from './specialty'
 import { NO_STAGE, NO_PHASE, PHASE_TOKENS, phasesOf } from './charts'
-import { distinctValues, distinctTokens, type FilterDef } from '@/shared/lib/filters'
+import { distinctValues, distinctTokens, type FilterDef } from '@/shared/utils/filters'
 import type { Lead } from '../types'
 
 const eq = (get: (l: Lead) => unknown) => (l: Lead, v: string) => String(get(l) ?? '') === v

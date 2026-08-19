@@ -7,7 +7,7 @@ import { rolesRepo } from '@/shared/data'
 import type { RoleRow, RoleModuleMap, ModuleSlug } from '@/shared/auth/permissions'
 import { startAppData, fetchOrg } from './loadAppData'
 import type { Usuario, Notificacion, Actividad, Equipo, OrgRow, OrgCatalogs } from './loadAppData'
-import { useClock } from './useClock'
+import { useClock } from '@/shared/hooks/useClock'
 
 // Estado global de la app + carga inicial + handlers. La derivación de permisos
 // y el theming los arma AppProvider sobre lo que devuelve este hook.

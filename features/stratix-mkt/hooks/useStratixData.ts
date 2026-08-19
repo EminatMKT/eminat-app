@@ -3,12 +3,12 @@ import { useApp, MESES, MESES_Q, mesATrimestre } from '@/shared/context/AppConte
 import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 import { actividadesRepo, notificacionesRepo } from '@/shared/data'
 import { useT } from '@/shared/i18n'
-import { escapeHtml } from '@/shared/lib/html'
+import { escapeHtml } from '@/shared/utils/html'
 import { isExcludedFromStratix360 } from '../team'
 import { esActividadDeMiembro, totalesProduccion } from '../report-filter'
 import type { Actividad, NuevaActForm } from '../types'
-import { useUserPreference } from '@/shared/lib/useUserPreference'
-import { oneOf } from '@/shared/lib/usePersistedState'
+import { useUserPreference } from '@/shared/hooks/useUserPreference'
+import { oneOf } from '@/shared/hooks/usePersistedState'
 
 const emptyNuevaAct = (solicitanteId = ''): NuevaActForm => ({
   titulo: '', descripcion: '', empresa: '', responsable_id: '',

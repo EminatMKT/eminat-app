@@ -6,7 +6,7 @@
 // distintos de las columnas y rompían el guardado, la edición, el detalle y el import.
 // Las etiquetas y mensajes son claves i18n (ver shared/i18n) — nada de texto hardcodeado.
 import { PIPELINE_COLS, NCT_COLUMN, STAGE_LABEL_KEY } from '../constants'
-import { resolveToCanonical } from '@/shared/lib/canonical'
+import { resolveToCanonical } from '@/shared/utils/canonical'
 import { SPECIALTIES, SPECIALTY_LABEL_KEY, canonicalSpecialty } from './specialty'
 import type { I18nKey } from '@/shared/i18n'
 

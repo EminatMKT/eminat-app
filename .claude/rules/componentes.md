@@ -103,8 +103,14 @@ La pregunta de `arquitectura.md` —¿esto lo pediría otro módulo?— **no es 
 Vale igual para un hook, un contexto o una función de utilidad.
 
 - Si es del módulo: `features/<modulo>/hooks/`, `context/`, `utils/`.
-- Si otro módulo lo pediría: `shared/lib/` (ahí ya viven `usePersistedState` y `useUserPreference`)
-  o `shared/context/` si es estado global.
+- Si otro módulo lo pediría: `shared/hooks/`, `shared/utils/`, o `shared/context/` si es estado
+  global.
+
+**Un directorio por tipo, del mismo nombre en los dos lados.** Un hook compartido va a
+`shared/hooks/` porque un hook de módulo va a `features/<modulo>/hooks/`; una función pura va a
+`shared/utils/` porque su equivalente de módulo va a `utils/`. Nada de bolsas mezcladas: `lib/`
+existía y tenía adentro cuatro funciones puras y dos hooks, así que no se podía saber qué había
+en un archivo sin abrirlo.
 
 **Motivo:** `useUserPreference` nació en Research y hoy la usan Admin, Medical y Stratix — las
 preferencias de UI no eran de Research, eran de la app. Al revés también cuenta: `useOrgCatalog`

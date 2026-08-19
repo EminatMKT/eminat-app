@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useApp, COLORES_AVATAR } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
-import { apiPost, apiSend } from '@/shared/api'
+import { apiPost, apiSend } from '@/shared/utils/api'
 import type { OrgRow } from '@/shared/context/loadAppData'
 import Modal from '@/shared/components/Modal'
 import { ORG_CATALOGS, type OrgCat, type OrgField } from '../org-catalogs'

@@ -5,8 +5,8 @@ import AccessDenied from '@/shared/components/AccessDenied'
 import { PageTransition } from '@/shared/motion'
 import { ResearchProvider } from './ResearchContext'
 import ResearchContent from './ResearchContent'
-import { useUserPreference } from '@/shared/lib/useUserPreference'
-import { oneOf } from '@/shared/lib/usePersistedState'
+import { useUserPreference } from '@/shared/hooks/useUserPreference'
+import { oneOf } from '@/shared/hooks/usePersistedState'
 
 export default function ResearchModule() {
   const { modules } = useApp()

@@ -19,8 +19,8 @@ import ResetPasswordModal from './ResetPasswordModal'
 import DeleteUserModal from './DeleteUserModal'
 import { cargoIdsOf, isOrgCat, ORG_CATS, type OrgCat } from '../org-catalogs'
 import type { AdminUser, ResetTarget } from '../types'
-import { useUserPreference } from '@/shared/lib/useUserPreference'
-import { oneOf } from '@/shared/lib/usePersistedState'
+import { useUserPreference } from '@/shared/hooks/useUserPreference'
+import { oneOf } from '@/shared/hooks/usePersistedState'
 
 // Convención de navegación del shell (ver appShellConfig): el sidebar lista las
 // SECCIONES (Usuarios · Organización) y la barra horizontal solo las sub-vistas

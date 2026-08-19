@@ -1,6 +1,6 @@
 'use client'
 import type { CSSProperties } from 'react'
-import type { FilterDef } from '@/shared/lib/filters'
+import type { FilterDef } from '@/shared/utils/filters'
 
 // Un <select> de la barra de filtros. Existe aparte por un caso concreto: las opciones se
 // derivan de los datos presentes (sponsors, países), y como los filtros ahora se recuerdan entre

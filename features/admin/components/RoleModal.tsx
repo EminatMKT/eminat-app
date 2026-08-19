@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { ALL_MODULES, ADMIN_ROLE, MODULE_META, type RoleRow } from '@/shared/auth/permissions'
-import { apiPost, apiSend } from '@/shared/api'
+import { apiPost, apiSend } from '@/shared/utils/api'
 import Modal from '@/shared/components/Modal'
 import ErrorBlock from './ErrorBlock'
 

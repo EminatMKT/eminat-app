@@ -2,7 +2,7 @@
 import type { ReactNode } from 'react'
 import { DASHBOARD_THEME } from './theme'
 import { useT } from '@/shared/i18n'
-import { useUserPreference } from '@/shared/lib/useUserPreference'
+import { useUserPreference } from '@/shared/hooks/useUserPreference'
 import StatBreakdownRow from './StatBreakdownRow'
 
 // Card de indicador. Se lee en dos golpes: la barra de color + el rótulo dicen QUÉ métrica es,

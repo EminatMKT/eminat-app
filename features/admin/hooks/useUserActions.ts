@@ -1,6 +1,6 @@
 import { useApp } from '@/shared/context/AppContext'
 import { usuariosRepo } from '@/shared/data'
-import { apiPost } from '@/shared/api'
+import { apiPost } from '@/shared/utils/api'
 
 // Acciones por fila que mutan adminUsuarios in-place (rol, activación, validación).
 export function useUserActions() {

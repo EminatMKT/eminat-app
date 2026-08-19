@@ -150,7 +150,9 @@ shared/
     supabaseAdmin.ts   ← cliente service_role (solo rutas API)
     requireAdmin.ts    ← guard de las rutas API de admin
   constants/domain.ts  ← marcas, meses/trimestres, columnas de Kanban, colores
-  components/          ← AppShell, Sidebar, Topbar, DevBadge, Onboarding, ui/
+  components/          ← UI compartida (AppShell, Sidebar, Topbar, dashboard/)
+  hooks/               ← hooks transversales (useUserPreference, usePersistedState, useClock)
+  utils/               ← funciones puras (api, canonical, delimited, filters, html)
   motion/index.tsx     ← componentes de animación reutilizables (Framer Motion)
   i18n/                ← claves es.json / en.json + useT()
 features/              ← un directorio por módulo de negocio

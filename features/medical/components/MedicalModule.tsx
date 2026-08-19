@@ -15,8 +15,8 @@ import AuditTab from './AuditTab'
 import PacienteModal from './PacienteModal'
 import CitaModal from './CitaModal'
 import IncidenteModal from './IncidenteModal'
-import { useUserPreference } from '@/shared/lib/useUserPreference'
-import { oneOf } from '@/shared/lib/usePersistedState'
+import { useUserPreference } from '@/shared/hooks/useUserPreference'
+import { oneOf } from '@/shared/hooks/usePersistedState'
 import { SUB_ITEMS } from '@/shared/components/appShellConfig'
 
 // Las secciones (Dashboard/Pacientes/Citas/HIPAA/Audit) viven SOLO en el panel

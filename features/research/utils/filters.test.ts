@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { LEAD_FILTERS } from './filters'
 import { NO_SPECIALTY } from './specialty'
-import { applyFilters } from '@/shared/lib/filters'
+import { applyFilters } from '@/shared/utils/filters'
 import type { Lead } from '../types'
 
 const lead = (nct: string, date_added?: string) => ({ id: nct, nct_number: nct, date_added } as Lead)

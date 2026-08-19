@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
-import { apiSend } from '@/shared/api'
+import { apiSend } from '@/shared/utils/api'
 import type { OrgRow } from '@/shared/context/loadAppData'
 import TabButton from '@/shared/components/ui/TabButton'
 import NewButton from '@/shared/components/ui/NewButton'
