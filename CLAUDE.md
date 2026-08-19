@@ -223,3 +223,11 @@ Después de cualquier compactación, antes de retomar cualquier tarea o skill en
 Esto tiene prioridad sobre cualquier skill en ejecución. Sin estos dos pasos, el estado de la sesión anterior se pierde.
 
 Durante la sesión, llamar `mem_save` después de cada decisión de arquitectura, bug fix, convención establecida o descubrimiento relevante — no esperar a que el usuario lo pida.
+
+## Reglas de código
+
+Las reglas sobre **cómo escribir código acá** viven en `.claude/rules/` y se cargan por el import
+de abajo. Este archivo describe cómo ES el proyecto; ese directorio dice cómo se trabaja. Ante una
+contradicción, gana la regla y hay que corregir este archivo.
+
+@.claude/rules/README.md
