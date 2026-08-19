@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { serverEnv } from '@/shared/db/env.server'
+import { requireModule } from '@/shared/db/requireAccess'
 
 // Perezoso a propósito: `new Resend(undefined)` tira "Missing API key", y a
 // nivel de módulo eso rompe la ruta entera al importarla. Construyéndolo acá
@@ -12,6 +13,12 @@ function getResend() {
 
 export async function POST(req: NextRequest) {
   try {
+    // Gate ANTES de tocar Resend: sin esto la ruta es un relay abierto —el caller elige `from`,
+    // y el dominio está verificado a nombre de Eminat—. Se pide el módulo `research` porque su
+    // único llamador es el modal de campañas de Research (MailCampaignModal).
+    const authz = await requireModule('research')
+    if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
+
     const resend = getResend()
     if (!resend) {
       return NextResponse.json({ error: 'Envío de correo no configurado: falta RESEND_API_KEY.' }, { status: 503 })
