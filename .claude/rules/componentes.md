@@ -69,3 +69,43 @@ test — inventarle uno es escribir el render dos veces.
 `jsdom` ni `@testing-library/react` instalados, así que un test que monte el componente no corre.
 Mientras eso no esté, el test cubre las funciones puras que el componente use. Son dos
 dependencias y cuatro líneas de `vitest.config.ts`: pedirlo cuando haga falta el primero.
+
+## El componente renderiza; todo lo demás vive afuera
+
+Un componente es lo más chico posible: recibe props y devuelve markup. **El estado, los hooks, el
+contexto y los helpers no viven adentro del `.tsx`** — van a su propio archivo, y si el módulo ya
+tiene el directorio, adentro de él:
+
+```
+features/<modulo>/
+  components/     ← .tsx, lo más chicos posible
+  hooks/          ← useLoQueSea.ts
+  context/        ← el provider y su hook de acceso
+  utils/          ← funciones puras, con su .test.ts al lado
+```
+
+Un componente que declara seis `useState`, un `useEffect` y una función de cálculo no es un
+componente: son tres cosas dentro de un archivo. El hook se extrae, y el `.tsx` queda mostrando
+qué se renderiza.
+
+**Motivo:** los archivos gordos son imanes de conflicto. El merge de `development` del 19/08 dio
+seis conflictos y **dos fueron los dos hooks gordos** —`useResearchData.ts` (280 líneas) y
+`useStratixData.ts` (286)—, justamente porque todo pasa por ahí y dos ramas siempre tocan el
+mismo archivo. Un hook por responsabilidad se mergea solo.
+
+Y hay un motivo más barato: una función pura en `utils/` se testea sin montar nada. La misma
+lógica adentro de un `.tsx` necesita jsdom, testing-library y un render — que hoy ni siquiera
+están instalados.
+
+## Los hooks, contextos y utils pasan por el mismo juicio que los componentes
+
+La pregunta de `arquitectura.md` —¿esto lo pediría otro módulo?— **no es solo para componentes**.
+Vale igual para un hook, un contexto o una función de utilidad.
+
+- Si es del módulo: `features/<modulo>/hooks/`, `context/`, `utils/`.
+- Si otro módulo lo pediría: `shared/lib/` (ahí ya viven `usePersistedState` y `useUserPreference`)
+  o `shared/context/` si es estado global.
+
+**Motivo:** `useUserPreference` nació en Research y hoy la usan Admin, Medical y Stratix — las
+preferencias de UI no eran de Research, eran de la app. Al revés también cuenta: `useOrgCatalog`
+sabe de empresas, departamentos y cargos, y no tiene nada que hacer fuera de Admin.
