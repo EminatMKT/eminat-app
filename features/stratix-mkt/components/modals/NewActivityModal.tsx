@@ -46,6 +46,11 @@ export default function NewActivityModal() {
           <div>
             <label style={{ fontSize: 12, color: t2, display: 'block', marginBottom: 6, fontWeight: 500 }}>🎨 Brand / Area <span style={{ color: '#F87171' }}>*</span></label>
             <select value={nuevaAct.empresa} onChange={e => setNuevaAct(p => ({ ...p, empresa: e.target.value }))} style={inputStyle}>
+              {/* Mismo placeholder que Assignee, y por un motivo extra: sin él el
+                  navegador pinta la primera marca mientras el estado sigue en '',
+                  así que la marca se ve elegida y guardar responde "Brand / Area
+                  is required". */}
+              <option value="">— Select —</option>
               {marcas.map(a => <option key={a.codigo} value={a.codigo}>{a.codigo} — {a.nombre}</option>)}
             </select>
           </div>

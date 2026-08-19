@@ -398,3 +398,14 @@ Terminó bien porque el flujo sin heredero vacía `solicitante_id` y sigue, pero
 mintió al admin sobre qué estaba por pasar, y de paso se perdió el dato de quién había pedido
 esa tarea sin avisar. El conteo debería mirar también `solicitante_id`, y el aviso decir que
 esa referencia se va a vaciar.
+
+**Arreglado (19/08/2026).** El 409 devuelve ahora `requestedCount` además de `taskCount`, y el
+modal agrega un renglón —en las dos ramas, con y sin heredero— avisando que lo solicitado no se
+hereda y queda sin solicitante. Los conteos siguen separados a propósito: `solicitante_id` no se
+transfiere (`admin_reassign_and_delete` lo pone en NULL), así que mezclarlos mandaría al flujo de
+heredero a alguien que no ejecuta ninguna tarea.
+
+En el mismo pase se le puso placeholder al select **Brand / Area** de "New task": no lo tenía, así
+que el navegador pintaba la primera marca mientras el estado seguía vacío — se veía una marca
+elegida y al guardar respondía "Brand / Area is required". Es el mismo defecto del hallazgo #3,
+que había quedado arreglado solo en el select de al lado.

@@ -4,6 +4,7 @@ export type StatusOverride = '' | 'aprobado' | 'finalizado' | 'por_aprobar'
 
 export type ReassignState = {
   taskCount: number
+  requestedCount: number
   heirId: string
   statusOverride: StatusOverride
 }

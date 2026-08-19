@@ -116,6 +116,14 @@ export async function POST(req: NextRequest) {
           .from('actividades')
           .select('id', { count: 'exact', head: true })
           .eq('responsable_id', id)
+        // Lo SOLICITADO va aparte y no se hereda: `admin_reassign_and_delete`
+        // pone `solicitante_id = NULL`. Se cuenta igual porque sin esto el modal
+        // afirma "no tiene tareas asignadas" a quien pidió tareas, y el admin no
+        // se entera de que va a perder el dato de quién las pidió.
+        const { count: requestedCount } = await db
+          .from('actividades')
+          .select('id', { count: 'exact', head: true })
+          .eq('solicitante_id', id)
         return NextResponse.json(
           {
             error:
@@ -123,6 +131,7 @@ export async function POST(req: NextRequest) {
             dbErrorCode,
             blockedBy: 'foreign_key',
             taskCount: taskCount ?? 0,
+            requestedCount: requestedCount ?? 0,
             authDeleted: false,
             authNote: null,
           },
