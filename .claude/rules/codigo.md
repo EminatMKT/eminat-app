@@ -66,3 +66,71 @@ datos que ya existen por separado**. Ante una que falle alguna, surrogate.
 **Motivo:** la tercera es la que se olvida. `usuarios.responsable_ref` (`DG_Ariana`) parecía una
 clave natural, pero metía adentro el cargo y el nombre: se desincronizaba cuando la persona se
 renombraba, y encima no era única ni obligatoria. Sacarla costó una fase entera de migración.
+
+## Cada ruta API se gatea sola
+
+El matcher de `middleware.ts` excluye `/api` **a propósito**: una ruta API tiene que responder 401
+en JSON, no redirigir a `/login`. Consecuencia directa: **el middleware no protege ninguna ruta
+API**. Cada handler abre con su guard, antes de tocar nada.
+
+- `requireAdmin()` — operaciones de admin.
+- `requireModule('<slug>')` — el resto. Delega en `has_module()`, la misma función de Postgres que
+  usan las policies de RLS, así que la ruta no puede desincronizarse de lo que la base permite.
+
+Y si una ruta usa `SUPABASE_SERVICE_ROLE_KEY`, el guard no es opcional bajo ninguna
+interpretación: service_role saltea la RLS, o sea que ahí no queda ninguna otra red.
+
+**Motivo:** `/api/mail/send` estuvo abierto a internet aceptando `to`, `subject`, `html` y `from`
+de cualquiera, contra la cuenta de Resend de la empresa y desde un dominio verificado a nombre de
+Eminat. `/api/mail/campaigns` era un CRUD con service_role, sin autenticar, sobre datos reales.
+Las dos venían de antes de que existiera `requireAdmin`, y nadie las volvió a mirar: **una ruta
+sin guard no falla, funciona de más**, y por eso no se nota.
+
+## Una ruta que nadie llama se borra, no se protege
+
+Al encontrar código muerto con permisos —una ruta sin llamadores, un handler service_role sin uso—
+la respuesta es borrarlo. Protegerlo es conservar la superficie de ataque y además el trabajo de
+mantenerla.
+
+**Motivo:** `/api/mail/campaigns` no tenía un solo llamador; Research lee y escribe campañas por
+`shared/data/research.ts`, bajo RLS. Guardarla "por si acaso" era pagar riesgo por cero uso.
+
+## Las fechas del calendario se calculan en hora local
+
+Para una fecha `YYYY-MM-DD` se usa `localDate()` / `localMonth()` de `shared/utils/dates`.
+**Nunca `toISOString().split('T')[0]`.**
+
+**Motivo:** `toISOString()` convierte a UTC primero. En UTC-4, a partir de las 20:00 devuelve el
+día siguiente. Ya rompió dos cosas: la agenda de Medical mostraba las citas de mañana como las de
+hoy, y una actividad cargada de noche nacía fechada mañana. Un bug que solo aparece después de
+las 20:00 es de los que nadie reproduce en una demo.
+
+## Ningún texto que ve un usuario se escribe inline
+
+Vale para los mensajes de error y de éxito, no solo para los componentes: `mostrarMensaje` y
+compañía reciben `t('clave')`, con la clave en `es.json` **y** `en.json`.
+
+**Motivo:** hay 45 llamadas con el texto hardcodeado, y el idioma cambia dentro del mismo archivo
+— `useUserActions.ts` dice *"No se pudo cambiar el rol."* y tres líneas más abajo *"Role
+updated"*. El usuario ve la mezcla justo cuando algo salió mal, que es el peor momento para
+parecer improvisado.
+
+## Los valores de dominio salen de constantes
+
+Un estado, una etapa, un tipo: se compara contra la constante del catálogo, nunca contra el
+literal escrito a mano. Research ya lo hace con `STAGE`; falta en Stratix, donde hay 12
+comparaciones sueltas contra `'Completado'`, `'Pendiente'` y compañía.
+
+**Motivo:** el día que el catálogo cambia un valor, el literal no da error de compilación: la
+pantalla simplemente deja de contar esas filas. Un bug que no rompe nada y solo hace que los
+números estén mal.
+
+## Lo que cuenta plata, horas o tareas lleva test
+
+Toda función que suma, cuenta o decide qué entra en un total va acompañada de su `.test.ts`.
+
+**Motivo:** son las que nadie mira dos veces y las que salen impresas en un reporte de pago. La
+regla "listar sí, sumar no" —el reporte lista lo que la persona pidió pero suma solo lo que
+ejecuta— es exactamente el tipo de decisión que un test congela y una refactorización silenciosa
+deshace. Research ya tiene sus tests de cálculo; Stratix, que es donde está el reporte de pago,
+no.
