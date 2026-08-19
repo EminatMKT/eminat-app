@@ -179,34 +179,10 @@ supabase/
 
 ## Convenciones
 
-- Páginas de módulos: thin routes en `app/` que montan el componente de `features/<modulo>/`
-- Rutas API: usan `export async function POST/GET/PUT/DELETE` de Next.js App Router — el
-  `route.ts` **solo** exporta handlers HTTP; los helpers van en otro archivo
-- Animaciones: siempre usar los componentes de `shared/motion`, no Framer Motion directo
-- Permisos: en componentes, `useApp().modules.includes('<slug>')`; en lógica pura, `getModulesForRole(map, role).includes('<slug>')` de `shared/auth/permissions.ts` (ya no hay `canAccess`)
-- Supabase en cliente: importar el singleton de `shared/db/supabase.ts`
-- **Datos de prueba: por el frontend, no por seed.** Para poblar la base —usuarios, actividades,
-  catálogos— usar la UI de la app. El seed SQL es la **última** opción, no la primera.
-  El motivo no es estético: un seed escribe filas que ningún formulario podría producir, y esa
-  diferencia esconde agujeros de la UI hasta que es tarde. El QA del 12/08/2026 lo mostró en
-  los dos sentidos — el seed dejó 9 usuarios sin cuenta de Auth (imposible por la UI), y a la
-  vez les puso `equipo_id`, tapando que **el panel no tiene dónde asignar un equipo**. Cada fila
-  insertada por SQL es una funcionalidad que nadie probó. Ver `docs/hallazgos-qa-2026-08-12.md`.
-  Si el frontend no permite crear algo que hace falta, eso **es el bug**: arreglar el formulario
-  antes que escribir el INSERT.
-- i18n: los componentes nuevos usan `useT()`/`t()` con sus claves en `es.json` y `en.json` —
-  no marcar con `i18n-ignore`
-- TypeScript: `any` está prohibido por ESLint (`no-explicit-any: error`); usar
-  `Pick`/`Omit`/`Partial` sobre los tipos existentes
-- Nombres de columnas FK: `<entidad>_id` cuando la FK apunta a una **clave surrogate** (uuid),
-  ej. `departamento_id`. **Nombre natural** (sin `_id`) cuando apunta a una **clave natural
-  sana**, ej. `usuarios.rol` → `roles.key` o `actividades.empresa` → `empresas.codigo`. El
-  sufijo `_id` implica surrogate; no usarlo para claves naturales.
-- Una clave natural es **sana** si cumple las tres: legible, `UNIQUE` + `NOT NULL`, y **no
-  codifica datos que ya existen por separado**. La tercera es la que se olvida:
-  `usuarios.responsable_ref` (`DG_Ariana`) parece una clave natural pero mete adentro el
-  cargo y el nombre, así que se desincroniza cuando la persona se renombra — y encima no es
-  única ni obligatoria. Ante una clave natural que falla alguna, usar surrogate.
+Se mudaron a `.claude/rules/` — eran órdenes sobre cómo escribir, no descripción del proyecto.
+`codigo.md` tiene las que estaban acá (thin routes, `route.ts` solo handlers, `shared/motion`,
+permisos por módulo, el singleton de Supabase, i18n sin `i18n-ignore`, el ban de `any` y el
+naming de FK); `base-de-datos.md` se quedó con la de datos de prueba por el frontend.
 
 ## Grafo de conocimiento
 
