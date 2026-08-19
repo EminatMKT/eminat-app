@@ -33,3 +33,23 @@ registro.
 con teclado. Hoy no bloquea a nadie porque los mismos filtros están en los desplegables del panel
 — pero eso es una coincidencia afortunada, no una decisión. La próxima gráfica clickeable puede
 no tenerla.
+
+## Hay plugins de diseño instalados: usarlos antes de improvisar
+
+Antes de escribir UI nueva o rediseñar una existente, invocar la skill que corresponda. Están
+disponibles en este entorno y no hay que pedir permiso para usarlas:
+
+| Skill | Cuándo |
+|---|---|
+| `frontend-design` | Pantalla, módulo o componente visual nuevo; rediseño de uno existente |
+| `dataviz` | **Antes** de escribir la primera línea de una gráfica: tipo de gráfico, paleta, ejes, leyendas |
+| `accessibility` | Auditar contra WCAG 2.2 — contraste, foco, teclado, lectores de pantalla |
+
+**No aplica** a un ajuste puntual: cambiar un texto, corregir un padding, agregar el placeholder
+de un select. Una skill de diseño para eso es ceremonia, no criterio.
+
+**Motivo:** improvisando sale lo genérico — el layout que ya vimos mil veces, la paleta por
+defecto, la gráfica que no se lee de lejos. `dataviz` en particular hay que abrirla **antes** y no
+después: el tipo de gráfico y la paleta son decisiones que se toman al empezar, y rehacerlas
+cuesta el gráfico entero. El pie del tablero de Research se rehizo tres veces —dona, huecos entre
+porciones, leyenda abajo— por decidir eso sobre la marcha.
