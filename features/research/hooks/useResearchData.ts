@@ -9,8 +9,14 @@ import { applyFilters, type FilterValues } from '@/shared/lib/filters'
 import { useUserPreference } from '@/shared/lib/useUserPreference'
 import type { ImportPlan } from '../utils/importPlan'
 import { totalEmails, cadenceBreakdown } from '../utils/counters'
+import { pendingSpecialty, type Specialty } from '../utils/specialty'
+import { stageBuckets, phaseBuckets, specialtyBuckets } from '../utils/charts'
+import { fetchStudyByNCT } from '../utils/clinicalTrials'
 import { escapeHtml } from '@/shared/lib/html'
 import type { Lead, Activity, Campaign, Stage } from '../types'
+
+export type SpecialtyMatch = { id: string; nct: string; title: string; especialidad: Specialty }
+export type SpecialtyScan = { found: SpecialtyMatch[]; missing: { id: string; nct: string }[]; total: number }
 
 export function useResearchData() {
   const { mostrarMensaje } = useApp()
@@ -53,47 +59,50 @@ export function useResearchData() {
   const setFilterValue = (key: string, value: string) => setFilterValues(p => ({ ...p, [key]: value }))
   const clearFilters = () => setFilterValues({})
 
-  const totalLeads = leads.length
-  const activeLeads = leads.filter(l => l.stage === STAGE.NUEVO || l.stage === STAGE.CONTACTADO).length
-  const nuevos = leads.filter(l => l.stage === STAGE.NUEVO).length
-  const contactados = leads.filter(l => l.stage === STAGE.CONTACTADO).length
-  const ganados = leads.filter(l => l.stage === STAGE.GANADO).length
-  const sinRespuesta = leads.filter(l => l.stage === STAGE.SIN_RESPUESTA).length
+  // Cross-filter: cada gráfica se calcula con todos los filtros MENOS el suyo. Si no, al
+  // clickear "Oncología" la propia gráfica de especialidad se queda con una sola barra: se
+  // pierde el contexto y no hay forma de clickear otra para cambiar de selección. Las tarjetas
+  // de KPI sí usan `filteredLeads` (todos los filtros): ahí el número filtrado ES el que se pide.
+  const exceptOwn = (key: string) => applyFilters(leads, LEAD_FILTERS.filter(d => d.key !== key), filterValues)
+
+  // — KPIs y agregados de las gráficas —
+  // TODO lo de acá abajo se calcula sobre `filteredLeads`, no sobre `leads`: el dashboard
+  // responde a la barra de filtros igual que la tabla (comportamiento tipo Power BI, pedido
+  // 18/08/2026). Sin filtros activos, filteredLeads === leads y los números son los de siempre.
+  // ⚠️ Con un filtro puesto, las cifras del tablero YA NO son el total del pipeline. El chip de
+  // "activos: N" en el panel de filtros es lo que evita presentar un número filtrado sin saberlo.
+  const totalLeads = filteredLeads.length
+  const activeLeads = filteredLeads.filter(l => l.stage === STAGE.NUEVO || l.stage === STAGE.CONTACTADO).length
+  const nuevos = filteredLeads.filter(l => l.stage === STAGE.NUEVO).length
+  const contactados = filteredLeads.filter(l => l.stage === STAGE.CONTACTADO).length
+  const ganados = filteredLeads.filter(l => l.stage === STAGE.GANADO).length
+  const sinRespuesta = filteredLeads.filter(l => l.stage === STAGE.SIN_RESPUESTA).length
   // "Cuántos han sido contactados, INDEPENDIENTEMENTE de cuántos correos se han enviado, cuántos
   // leads ya están en proceso, ya se envió al menos un correo" (Federico, 12/08/2026 min 12:49).
   // Ojo: NO es la etapa `Contactado` — un lead en `Sin respuesta` con 3 correos también fue
   // contactado. Ese solapamiento lo reconoció él mismo en la misma reunión.
-  const contactadosConCorreo = leads.filter(l => (l.email_count ?? 0) >= 1).length
+  const contactadosConCorreo = filteredLeads.filter(l => (l.email_count ?? 0) >= 1).length
   // El esfuerzo real: 81 registros únicos esconden ~165-170 alcances (reunión 12/08/2026).
-  const totalCorreos = totalEmails(leads)
-  const cadencia = cadenceBreakdown(leads)
+  const totalCorreos = totalEmails(filteredLeads)
+  const cadencia = cadenceBreakdown(filteredLeads)
   // "Mes / fecha de registro" (card 4 del pedido): cuántos leads entraron en el mes en curso.
   // date_added es DATE (YYYY-MM-DD) → alcanza con comparar el prefijo del mes. El mes se toma
   // en hora LOCAL ('sv-SE' da YYYY-MM-DD): con toISOString, en UTC-4 el último día del mes a
   // partir de las 20:00 la card ya contaba el mes siguiente mientras el rótulo decía el actual.
   const mesActual = new Date().toLocaleDateString('sv-SE').slice(0, 7)
-  const cargadosEsteMes = leads.filter(l => (l.date_added ?? '').startsWith(mesActual)).length
+  const cargadosEsteMes = filteredLeads.filter(l => (l.date_added ?? '').startsWith(mesActual)).length
 
-  // Fiel a la tabla: agrupa por el stage REAL de cada lead (migrado o no). Nada se oculta por
-  // estado de migración; un valor legacy ('Awarded', etc.) aparece tal cual. null/'' → 'Sin etapa'.
-  const stageData = Object.entries(leads.reduce((m: Record<string, number>, l) => {
-    const s = (l.stage || '').trim() || 'Sin etapa'
-    m[s] = (m[s] || 0) + 1
-    return m
-  }, {})).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
-  // Fiel a la tabla, igual que stageData: agrupa por el valor REAL de phase (canónico 'Phase 2',
-  // combos, 'N/A' o legacy crudo '2'). El cómputo viejo (Number(phase)===1..4) no contaba los
-  // valores canónicos que guarda la app ('Phase 2' → NaN). null/'' → 'Sin fase'.
-  const phaseData = Object.entries(leads.reduce((m: Record<string, number>, l) => {
-    const p = (l.phase ?? '').toString().trim() || 'Sin fase'
-    m[p] = (m[p] || 0) + 1
-    return m
-  }, {})).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value)
-  const sponsorData = Object.entries(leads.reduce((m: any, l) => { if (l.lead_sponsor) { m[l.lead_sponsor] = (m[l.lead_sponsor] || 0) + 1 } return m }, {}))
+  // Los agrupadores viven en ./utils/charts porque comparten los centinelas de "sin valor" con
+  // el match de los filtros: son las dos mitades de la misma regla. Ver charts.test.ts.
+  const stageData = stageBuckets(exceptOwn('stage'))
+  const phaseData = phaseBuckets(exceptOwn('phase'))
+  const specialtyData = specialtyBuckets(exceptOwn('specialty'), t)
+
+  const sponsorData = Object.entries(exceptOwn('sponsor').reduce((m: any, l) => { if (l.lead_sponsor) { m[l.lead_sponsor] = (m[l.lead_sponsor] || 0) + 1 } return m }, {}))
     .map(([name, value]) => ({ name, value: value as number }))
     .sort((a, b) => b.value - a.value).slice(0, 8)
 
-  const countryData: Record<string, number> = leads.reduce((m: any, l) => {
+  const countryData: Record<string, number> = exceptOwn('country').reduce((m: any, l) => {
     const countries = (l.countries || '').split(',').map((c: string) => c.trim()).filter(Boolean)
     countries.forEach((c: string) => { m[c] = (m[c] || 0) + 1 })
     return m
@@ -142,6 +151,46 @@ export function useResearchData() {
     if (error) { mostrarMensaje('error', 'Error: ' + error.message); return false }
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, email_count: count } : l))
     return true
+  }
+
+  // — Backfill de especialidad —
+  // Consulta CT.gov por cada lead que tiene NCT# y no tiene especialidad, y devuelve QUÉ
+  // derivaría, sin escribir nada. La escritura la hace applySpecialties después de que una
+  // persona lo confirme en el modal: derivar es una inferencia, no un hecho, y se revisa antes
+  // de guardarla sobre 81 filas de una.
+  //
+  // Va de a uno y no en paralelo a propósito: son ~80 requests a un servicio público y gratuito
+  // que no es nuestro, y el modal muestra el avance, así que la espera es visible y tolerable.
+  async function scanSpecialties(onProgress?: (done: number, total: number) => void): Promise<SpecialtyScan> {
+    const pending = pendingSpecialty(leads)
+    const found: SpecialtyMatch[] = []
+    const missing: { id: string; nct: string }[] = []
+    for (let i = 0; i < pending.length; i++) {
+      const l = pending[i]
+      const nct = (l.nct_number || '').trim()
+      const { study } = await fetchStudyByNCT(nct)
+      const especialidad = study?.especialidad as Specialty | undefined
+      if (especialidad) found.push({ id: l.id, nct, title: l.official_title || '', especialidad })
+      else missing.push({ id: l.id, nct })
+      onProgress?.(i + 1, pending.length)
+    }
+    return { found, missing, total: pending.length }
+  }
+
+  // Escribe lo confirmado. Si una fila falla, corta y conserva lo ya aplicado (mismo criterio
+  // que confirmImport): mejor un backfill parcial y visible que un rollback silencioso.
+  async function applySpecialties(found: SpecialtyMatch[]): Promise<boolean> {
+    const applied: SpecialtyMatch[] = []
+    for (const m of found) {
+      const { error } = await researchRepo.updateLead(m.id, { especialidad: m.especialidad })
+      if (error) { mostrarMensaje('error', 'Error: ' + error.message); break }
+      applied.push(m)
+    }
+    if (applied.length) {
+      const byId = new Map(applied.map(m => [m.id, m.especialidad]))
+      setLeads(prev => prev.map(l => byId.has(l.id) ? { ...l, especialidad: byId.get(l.id)! } : l))
+    }
+    return applied.length === found.length
   }
 
   async function confirmImport(plan: ImportPlan) {
@@ -200,8 +249,9 @@ export function useResearchData() {
     filterValues, setFilterValue, clearFilters,
     filteredLeads,
     totalLeads, activeLeads, nuevos, contactados, contactadosConCorreo, ganados, sinRespuesta, totalCorreos, cadencia, cargadosEsteMes,
-    stageData, phaseData, sponsorData, countryData, countrySorted,
+    stageData, phaseData, specialtyData, sponsorData, countryData, countrySorted,
     saveLead, deleteLead, addActivity, updateStage, setEmailCount, confirmImport, handleExport, handlePrint,
+    scanSpecialties, applySpecialties,
     duplicateCampaign, deleteCampaign,
   }
 }

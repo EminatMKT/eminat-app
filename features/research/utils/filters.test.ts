@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { LEAD_FILTERS } from './filters'
+import { NO_SPECIALTY } from './specialty'
 import { applyFilters } from '@/shared/lib/filters'
 import type { Lead } from '../types'
 
@@ -22,5 +23,31 @@ describe('filtros de leads (NCT# y rango de carga)', () => {
 
   it('deja fuera del rango a los leads sin fecha de carga', () => {
     expect(ncts({ addedFrom: '2000-01-01' })).not.toContain('NCT00000333')
+  })
+})
+
+// El gráfico "Estudios por especialidad" tiene una barra de "Sin clasificar" (hoy 1 de cada 4
+// estudios). Clickearla tiene que poder filtrar esos, y "sin valor" no se expresa con el
+// match por igualdad de siempre: string vacío significa "filtro apagado".
+describe('filtro de especialidad', () => {
+  const byEsp = [
+    { id: '1', especialidad: 'Oncología' },
+    { id: '2', especialidad: 'Cardiología' },
+    { id: '3' },
+    { id: '4', especialidad: '' },
+  ] as Lead[]
+  const ids = (v: string) => applyFilters(byEsp, LEAD_FILTERS, { specialty: v }).map(l => l.id)
+
+  it('filtra por una especialidad del dominio', () => {
+    expect(ids('Oncología')).toEqual(['1'])
+  })
+
+  it('el centinela de sin clasificar trae los que no tienen ninguna', () => {
+    expect(ids(NO_SPECIALTY)).toEqual(['3', '4'])
+  })
+
+  it('el centinela está entre las opciones del filtro, si no no se puede elegir a mano', () => {
+    const def = LEAD_FILTERS.find(f => f.key === 'specialty')!
+    expect(def.options!(byEsp)).toContain(NO_SPECIALTY)
   })
 })

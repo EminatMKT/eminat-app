@@ -3,6 +3,8 @@ import { RESEARCH_THEME } from '../../theme'
 import { useT } from '@/shared/i18n'
 import { useResearch } from '../ResearchContext'
 import StageBadge from '../StageBadge'
+import { FROZEN_COLS } from '../../constants'
+import { specialtyLabel } from '../../utils/specialty'
 import type { Lead } from '../../types'
 
 export default function LeadRow({ lead: l }: { lead: Lead }) {
@@ -17,10 +19,14 @@ export default function LeadRow({ lead: l }: { lead: Lead }) {
   const iconBtn = { width: 26, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 7, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 11, cursor: 'pointer' }
   return (
     <tr className="data-row" style={{ borderBottom: `1px solid ${border}` }}>
+      {/* Las dos primeras quedan congeladas al desplazarse a lo ancho: son las que dicen de qué
+          estudio es la fila. El fondo opaco lo pone la clase `sticky-cell` (globals.css) — sin
+          fondo, las columnas de atrás se verían por debajo al pasar. */}
+      <td className="sticky-cell" style={{ ...mono, color: accent, position: 'sticky', left: FROZEN_COLS[0].left, zIndex: 1, width: FROZEN_COLS[0].width, minWidth: FROZEN_COLS[0].width }}>{l.nct_number || '—'}</td>
+      <td className="sticky-cell" style={{ ...clip(FROZEN_COLS[1].width), color: t1, fontWeight: 600, position: 'sticky', left: FROZEN_COLS[1].left, zIndex: 1, width: FROZEN_COLS[1].width, minWidth: FROZEN_COLS[1].width }}>{l.official_title || '—'}</td>
       <td style={{ ...mono, color: t3 }}>{l.date_added || '—'}</td>
       <td style={clip(130)}>{l.conditions || '—'}</td>
-      <td style={{ ...mono, color: accent }}>{l.nct_number || '—'}</td>
-      <td style={{ ...clip(220), color: t1, fontWeight: 600 }}>{l.official_title || '—'}</td>
+      <td style={clip(130)}>{specialtyLabel(l.especialidad, t)}</td>
       <td style={{ ...cell, textAlign: 'center' }}>
         <span style={{ fontSize: 10, padding: '3px 9px', borderRadius: 999, background: `${accent}18`, color: accent, fontWeight: 700, whiteSpace: 'nowrap' }}>{l.phase || '—'}</span>
       </td>
