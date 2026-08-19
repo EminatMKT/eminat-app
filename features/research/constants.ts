@@ -87,6 +87,15 @@ export const COUNTRY_FLAGS: Record<string, string> = {
 }
 */
 
+// Columnas congeladas de la tabla de leads: las dos primeras (NCT# y título), que son las que
+// dicen DE QUÉ ESTUDIO es la fila. Sin esto, al desplazarse a la derecha se ven fase, sponsor y
+// etapa de una fila que ya no se sabe cuál es.
+// El ancho vive acá y no en cada componente porque `left` de la segunda ES el ancho de la
+// primera: si la cabecera y la fila usan números distintos, las columnas se solapan.
+// `position: sticky` solo pega al borde izquierdo, así que estas dos TIENEN que ser las
+// primeras de la tabla — de ahí el orden de COLUMNS en LeadsTab.
+export const FROZEN_COLS = [{ width: 118, left: 0 }, { width: 240, left: 118 }] as const
+
 // Los campos de un lead (form/export/import/validación) viven en ./utils/fields.ts.
 
 // — NCT# (identificador del estudio en ClinicalTrials.gov) — fuente única, no repetir literales.

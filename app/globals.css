@@ -67,6 +67,21 @@ body {
 .data-row { transition: background .12s ease; }
 .data-row:hover { background: rgba(128, 128, 128, .09); }
 
+/* Celdas congeladas de la tabla de leads (NCT# y título). Llevan fondo OPACO propio: sin él,
+   las columnas de atrás se ven por debajo al desplazarse a lo ancho. Ese fondo tapa el tinte
+   de hover de la fila, así que hay que dárselo aparte — el valor es el blanco de la fila ya
+   mezclado con el tinte. El área de Research usa siempre tema claro (ver theme.ts). */
+/* Al clickear una barra/porción, recharts deja el foco en un <g> interno (clase generada,
+   `recharts-zIndex-layer_300`, con tabindex="-1") y el navegador le dibuja un recuadro negro
+   alrededor de TODA la gráfica. Con el cross-filter eso pasa en cada clic.
+   Se apunta por el contenedor y no por la clase del <g>, que es generada y cambia. No se
+   pierde accesibilidad: esos nodos tienen tabindex="-1", o sea que no se llega a ellos por
+   teclado — el mismo filtro está en los desplegables del panel de filtros. */
+.recharts-wrapper [tabindex="-1"]:focus { outline: none; }
+
+.sticky-cell { background: #FFFFFF; }
+.data-row:hover .sticky-cell { background: #F4F4F4; }
+
 .tool-btn { transition: filter .12s ease, border-color .12s ease; }
 .tool-btn:hover { filter: brightness(.97); border-color: rgba(128, 128, 128, .45); }
 

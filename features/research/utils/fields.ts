@@ -7,6 +7,7 @@
 // Las etiquetas y mensajes son claves i18n (ver shared/i18n) — nada de texto hardcodeado.
 import { PIPELINE_COLS, NCT_COLUMN, STAGE_LABEL_KEY } from '../constants'
 import { resolveToCanonical } from '@/shared/lib/canonical'
+import { SPECIALTIES, SPECIALTY_LABEL_KEY, canonicalSpecialty } from './specialty'
 import type { I18nKey } from '@/shared/i18n'
 
 export type LeadFieldType = 'text' | 'email' | 'tel' | 'url' | 'date' | 'textarea' | 'select' | 'datalist' | 'checkbox' | 'number'
@@ -60,6 +61,7 @@ export const LEAD_FIELD_DEFS: LeadFieldDef[] = [
   { column: NCT_COLUMN, labelKey: 'research.field.nct_number', type: 'text', group: 'Estudio' },
   { column: 'official_title', labelKey: 'research.field.official_title', type: 'text', group: 'Estudio', fullWidth: true, required: true },
   { column: 'conditions', labelKey: 'research.field.conditions', type: 'text', group: 'Estudio' },
+  { column: 'especialidad', labelKey: 'research.field.especialidad', type: 'select', group: 'Estudio', options: SPECIALTIES, optionLabelKey: SPECIALTY_LABEL_KEY, normalize: canonicalSpecialty },
   { column: 'brief_explanation', labelKey: 'research.field.brief_explanation', type: 'textarea', group: 'Estudio', fullWidth: true },
   { column: 'phase', labelKey: 'research.field.phase', type: 'datalist', group: 'Estudio', options: PHASES, normalize: canonicalPhase },
   { column: 'study_type', labelKey: 'research.field.study_type', type: 'select', group: 'Estudio', options: STUDY_TYPES },
