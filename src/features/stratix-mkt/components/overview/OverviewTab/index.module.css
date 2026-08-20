@@ -1,11 +1,11 @@
 /* Solo la GRILLA del tablero. Lo que se ve adentro de cada bloque lo ponen los componentes
    compartidos de shared/components/dashboard, que este archivo no debe conocer. */
 
+/* Sin margen propio: ahora la fila vive dentro de un Panel, que ya trae su padding. */
 .kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 10px;
-  margin-bottom: 14px;
 }
 
 /* Las gráficas van SOLAS en su fila. Compartirla con la lista de gente —que es alta y no se

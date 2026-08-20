@@ -49,11 +49,17 @@ export default function OverviewTab() {
     <div>
       <TrimestreSelector />
 
-      <StaggerGrid className={s.kpis}>
-        {kpis.map(k => (
-          <StatCard key={k.label} size="sm" label={k.label} value={k.value} color={k.color} badge={k.badge} footnote={k.footnote} />
-        ))}
-      </StaggerGrid>
+      {/* Dentro de un Panel, como en Research: sueltas, las cards flotan sobre el fondo y la
+          fila queda sin rótulo, mientras todo lo demás del tablero sí lo tiene. */}
+      <div className={s.fila}>
+        <Panel collapsible persistKey="stratix-indicadores" title={t('stratix.dash.indicators')}>
+          <StaggerGrid className={s.kpis}>
+            {kpis.map(k => (
+              <StatCard key={k.label} size="sm" label={k.label} value={k.value} color={k.color} badge={k.badge} footnote={k.footnote} />
+            ))}
+          </StaggerGrid>
+        </Panel>
+      </div>
 
       <div className={s.charts}>
         <BarChartCard persistKey="stratix-months" title={t('stratix.dash.byMonth', { q: trimestre })} data={mesesData} />

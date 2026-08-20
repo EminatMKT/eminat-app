@@ -705,6 +705,7 @@
   "stratix.newTask": "Nueva tarea",
   "stratix.dash.activeNow": "● Activo ahora",
   "stratix.dash.offline": "Desconectado",
+  "stratix.dash.indicators": "Indicadores",
   "stratix.dash.totalTasks": "Tareas totales",
   "stratix.dash.completed": "Completadas",
   "stratix.dash.inProgress": "En proceso",
