@@ -2,7 +2,9 @@
 import { useApp, MESES } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
+import StatBox from '@/shared/components/ui/StatBox'
 import ReportTableRow from '../ReportTableRow'
+import s from './index.module.css'
 
 // La columna "Assignee" hace legible por qué las horas de las filas no cierran
 // con el total: el reporte LISTA lo que la persona solicitó, pero solo SUMA lo
@@ -18,7 +20,7 @@ const REPORT_HEADERS = [
 ] as const
 
 export default function ReporteTab() {
-  const { s1, s2, border, accent, t1, t3, inputStyle, esAdmin, miembrosAsignables, miembrosPorId } = useApp()
+  const { accent, esAdmin, miembrosAsignables, miembrosPorId } = useApp()
   const { t } = useT()
   const {
     mesReporte, setMesReporte, miembroReporte, setMiembroReporte,
@@ -34,54 +36,47 @@ export default function ReporteTab() {
 
   return (
     <div id="reporte-content">
-      <div id="print-header" style={{ display: 'none', textAlign: 'center', marginBottom: 24, paddingBottom: 16, borderBottom: '2px solid #333' }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 22, fontWeight: 800, color: '#111' }}>{t('stratix.report.brand')}</div>
-        <div style={{ fontSize: 14, fontWeight: 600, marginTop: 4, color: '#333' }}>{t('stratix.report.title')}</div>
+      <div id="print-header" className={s.printHeader}>
+        <div className={s.printMarca}>{t('stratix.report.brand')}</div>
+        <div className={s.printTitulo}>{t('stratix.report.title')}</div>
       </div>
-      <div id="reporte-controls" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <span style={{ fontSize: 14, fontWeight: 600, color: t1 }}>{t('stratix.report.title')}</span>
-        <div style={{ display: 'flex', gap: 8 }}>
+      <div id="reporte-controls" className={s.controles}>
+        <span className={s.rotulo}>{t('stratix.report.title')}</span>
+        <div className={s.acciones}>
           {esAdmin && (
-            <select value={miembroReporte} onChange={e => setMiembroReporte(e.target.value)} style={{ ...inputStyle, width: 'auto', padding: '6px 12px' }}>
+            <select className={s.select} value={miembroReporte} onChange={e => setMiembroReporte(e.target.value)}>
               <option value="">{t('common.select')}</option>
-              {miembrosAsignables.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+              {miembrosAsignables.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
             </select>
           )}
-          <select value={mesReporte} onChange={e => setMesReporte(e.target.value)} style={{ ...inputStyle, width: 'auto', padding: '6px 12px' }}>
+          <select className={s.select} value={mesReporte} onChange={e => setMesReporte(e.target.value)}>
             {MESES.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
-          <button onClick={handlePrintReport} style={{ padding: '7px 14px', borderRadius: 8, background: accent, color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>{t('stratix.report.print')}</button>
+          <button type="button" className={s.imprimir} onClick={handlePrintReport}>{t('stratix.report.print')}</button>
         </div>
       </div>
-      <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '24px 28px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+      <div className={s.hoja}>
+        <div className={s.head}>
           <div>
-            <div style={{ fontFamily: 'Syne', fontSize: 20, fontWeight: 800, color: t1 }}>{t('stratix.report.heading')}</div>
-            <div style={{ fontSize: 12, color: t3 }}>{t('stratix.report.subheading')}</div>
+            <div className={s.titulo}>{t('stratix.report.heading')}</div>
+            <div className={s.sub}>{t('stratix.report.subheading')}</div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 10, color: t3 }}>{t('stratix.report.period')}</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: t1 }}>{mesReporte} 2026</div>
+          <div className={s.periodo}>
+            <div className={s.dato}>{t('stratix.report.period')}</div>
+            <div className={s.valor}>{mesReporte} 2026</div>
           </div>
         </div>
-        <div style={{ borderTop: `1px solid ${border}`, paddingTop: 14, marginBottom: 14 }}>
-          <div style={{ fontSize: 10, color: t3, marginBottom: 4 }}>{t('stratix.report.teamMember')}</div>
-          <div style={{ fontSize: 18, fontWeight: 700, color: t1 }}>{nombreRep}</div>
+        <div className={s.persona}>
+          <div className={s.dato}>{t('stratix.report.teamMember')}</div>
+          <div className={s.nombre}>{nombreRep}</div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 18 }}>
-          {summary.map(s => (
-            <div key={s.label} style={{ background: s2, borderRadius: 10, padding: '12px', textAlign: 'center' }}>
-              <div style={{ fontFamily: 'Syne', fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 10, color: t3, marginTop: 4 }}>{s.label}</div>
-            </div>
-          ))}
+        <div className={s.resumen}>
+          {summary.map(item => <StatBox key={item.label} size="lg" label={item.label} value={item.value} color={item.color} />)}
         </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <table className={s.tabla}>
           <thead>
-            <tr style={{ background: s2 }}>
-              {REPORT_HEADERS.map(clave => (
-                <th key={clave} style={{ padding: '9px 12px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{t(clave)}</th>
-              ))}
+            <tr className={s.encabezado}>
+              {REPORT_HEADERS.map(clave => <th key={clave} className={s.th}>{t(clave)}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -90,10 +85,10 @@ export default function ReporteTab() {
             ))}
           </tbody>
         </table>
-        {actsRep.length === 0 && <div style={{ textAlign: 'center', padding: 40, color: t3 }}>{t('stratix.report.empty')}</div>}
-        <div style={{ marginTop: 40, paddingTop: 20, borderTop: `1px solid ${border}`, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 60 }}>
-          <div style={{ textAlign: 'center' }}><div style={{ borderTop: `1px solid ${border}`, paddingTop: 8, fontSize: 11, color: t3 }}>{t('stratix.report.signMember')}</div></div>
-          <div style={{ textAlign: 'center' }}><div style={{ borderTop: `1px solid ${border}`, paddingTop: 8, fontSize: 11, color: t3 }}>{t('stratix.report.signCoordinator')}</div></div>
+        {actsRep.length === 0 && <div className={s.vacio}>{t('stratix.report.empty')}</div>}
+        <div className={s.firmas}>
+          <div className={s.firma}><div className={s.linea}>{t('stratix.report.signMember')}</div></div>
+          <div className={s.firma}><div className={s.linea}>{t('stratix.report.signCoordinator')}</div></div>
         </div>
       </div>
     </div>
