@@ -39,10 +39,8 @@ archivo o falta un commit.
 —un `git mv` o un `git rm` de un paso anterior— se sube sola y en silencio, aunque el `git add`
 inmediatamente anterior haya nombrado solo dos archivos.
 
-**Esto lo frena un hook**, no la buena memoria: `.claude/hooks/git-guard.py` bloquea
-`git add -A` y bloquea un `git commit` cuyo índice mezcle unidades de trabajo (las reglas con
-el código, o dos features distintos). Las claves de i18n y `.todo/` no cuentan como unidad,
-porque acompañan a cualquier cambio. Si la mezcla es deliberada: `MIXTO=1 git commit …`.
+**No hay que acordarse de mirarlo:** `.claude/hooks/rules-review.py` imprime el índice —y los
+títulos de este archivo— justo antes de cada `git commit`.
 
 **Motivo:** el 20/08/2026 pasó **cuatro veces en el mismo día**. Un `fix(lint)` de cuatro archivos
 se llevó puesta la mudanza entera de los componentes de Stratix, que estaba stageada de antes;
