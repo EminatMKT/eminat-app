@@ -89,6 +89,10 @@ La prueba: si el valor se puede escribir en el `.css` sin conocer la fila de la 
 **Motivo de la excepción:** sin ella la alternativa es una clase por valor posible, que no existe
 cuando el valor sale de la base — o manipular el DOM por `ref`, que es peor que el problema.
 
+**Esto lo frena un hook:** `.claude/hooks/style-guard.py` rechaza escribir un `.tsx` de `src/`
+con un `style` cuya primera clave no empiece con `--`. Revisa lo que se está por escribir, no el
+archivo entero: los componentes viejos se migran por contacto.
+
 ### Los colores salen de variables CSS, no de objetos JS
 
 `src/app/globals.css` ya define los tokens oscuros de la app en `:root` (`--bg`, `--s1`, `--s2`,

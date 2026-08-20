@@ -10,5 +10,27 @@
     "claude-plugins-official@frontend-design": true,
     "claude-plugins-official@security-guidance": true,
     "nextjs-praxis-guard@nextjs-praxis-guard": true
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/git-guard.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/style-guard.py\""
+          }
+        ]
+      }
+    ]
   }
 }
