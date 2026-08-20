@@ -1,22 +1,20 @@
 'use client'
-import { useApp, ESTADO_COLORS } from '@/shared/context/AppContext'
-import type { Actividad } from '@/features/stratix-mkt/types'
-import { estadoLabel } from '@/shared/constants/domain'
+import type { CSSProperties } from 'react'
+import { ESTADO_COLORS, estadoLabel } from '@/shared/constants/domain'
 import { useT } from '@/shared/i18n'
+import type { Actividad } from '@/features/stratix-mkt/types'
+import s from './index.module.css'
 
 export default function ReportTableRow({ a, responsable }: { a: Actividad; responsable: string }) {
   const { t } = useT()
-  const { border, t1, t3 } = useApp()
   return (
-    <tr key={a.id} style={{ borderBottom: `1px solid ${border}` }}>
-      <td style={{ padding: '8px 12px', color: t1 }}>{a.titulo}</td>
-      <td style={{ padding: '8px 12px', color: t3 }}>{a.empresa}</td>
-      <td style={{ padding: '8px 12px', color: t3 }}>{responsable}</td>
-      <td style={{ padding: '8px 12px', color: t3, fontFamily: 'DM Mono' }}>{a.horas || 0}h</td>
-      <td style={{ padding: '8px 12px', color: t3, fontFamily: 'DM Mono' }}>{a.dias_produccion}</td>
-      <td style={{ padding: '8px 12px' }}>
-        <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, background: `${ESTADO_COLORS[a.estado] || t3}20`, color: ESTADO_COLORS[a.estado] || t3 }}>{estadoLabel(a.estado, t)}</span>
-      </td>
+    <tr className={s.row} style={{ '--estado': ESTADO_COLORS[a.estado] || 'var(--c-t3)' } as CSSProperties}>
+      <td className={s.titulo}>{a.titulo}</td>
+      <td className={s.td}>{a.empresa}</td>
+      <td className={s.td}>{responsable}</td>
+      <td className={`${s.td} ${s.mono}`}>{a.horas || 0}h</td>
+      <td className={`${s.td} ${s.mono}`}>{a.dias_produccion}</td>
+      <td className={s.plano}><span className={s.chip}>{estadoLabel(a.estado, t)}</span></td>
     </tr>
   )
 }
