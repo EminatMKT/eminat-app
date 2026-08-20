@@ -52,3 +52,17 @@ conversación.
 
 **Motivo:** `.todo/` es lo único que sobrevive a que se cierre la sesión. Todo lo demás hay que
 reconstruirlo leyendo commits.
+
+## El build de verificación no se corre contra el `.next` del dev server
+
+Para verificar se usa `pnpm build:check`, que escribe en `.next-verify/`. **Nunca `next build` a
+secas con `pnpm dev` levantado.**
+
+**Motivo:** los dos comandos comparten `.next/`. Un `next build` corrido con el server levantado
+le pisa los artefactos, y a partir de ahí el dev sirve **503 en sus propios chunks**
+(`main-app.js`, `app/layout.js`, `layout.css`): la app queda en "Cargando…" para siempre y no
+tira ningún error en consola, así que parece un bug del código. Pasó el 20/08/2026 y costó media
+hora de diagnóstico que no tenía nada que ver con el cambio que se estaba probando.
+
+`next.config.js` lee `NEXT_BUILD_DIR`, así que la separación está hecha en el repo y no depende
+de que alguien se acuerde.
