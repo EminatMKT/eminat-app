@@ -4,7 +4,8 @@ import { useT } from '@/shared/i18n'
 import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 import { SOCIAL_PLATFORMS } from '@/features/stratix-mkt/data'
 import { fNum } from '@/features/stratix-mkt/utils/social-format'
-import StratixKpiCard from '@/features/stratix-mkt/components/StratixKpiCard'
+import StatCard from '@/shared/components/dashboard/StatCard'
+import Panel from '@/shared/components/dashboard/Panel'
 import BrandStats from '../BrandStats'
 import PlatformCard from '../PlatformCard'
 import ContentSummaryCard from '../ContentSummaryCard'
@@ -49,31 +50,28 @@ export default function SocialTab() {
     <div>
       <div className={s.kpis}>
         {kpis.map(k => (
-          <StratixKpiCard key={k.label} kpi={k} />
+          <StatCard key={k.label} size="sm" label={k.label} value={k.value} color={k.valueColor}
+            badge={k.subAccent ? String(k.sub) : undefined} footnote={k.subAccent ? undefined : String(k.sub)} />
         ))}
       </div>
 
-      <div className={`${s.card} ${s.marcas}`}>
-        <div className={s.titulo}>{t('stratix.social.byBrand')}</div>
-        <div className={s.grid}>
-          {brandTotals.map(b => (
-            <BrandStats key={b.codigo} b={b} />
-          ))}
-        </div>
+      <div className={s.marcas}>
+        <Panel title={t('stratix.social.byBrand')}>
+          <div className={s.grid}>
+            {brandTotals.map(b => <BrandStats key={b.codigo} b={b} />)}
+          </div>
+        </Panel>
       </div>
 
       {platforms.map(platform => (
         <PlatformCard key={platform.name} platform={platform} />
       ))}
 
-      <div className={s.card}>
-        <div className={s.titulo}>{t('stratix.social.contentSummary')}</div>
+      <Panel title={t('stratix.social.contentSummary')}>
         <div className={s.contenido}>
-          {contentItems.map(item => (
-            <ContentSummaryCard key={item.label} item={item} />
-          ))}
+          {contentItems.map(item => <ContentSummaryCard key={item.label} item={item} />)}
         </div>
-      </div>
+      </Panel>
     </div>
   )
 }

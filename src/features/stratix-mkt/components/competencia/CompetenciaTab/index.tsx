@@ -3,7 +3,8 @@ import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { COMPETITORS, EMINAT_DATA } from '@/features/stratix-mkt/data'
 import { fNum } from '@/features/stratix-mkt/utils/comp-format'
-import StratixKpiCard from '@/features/stratix-mkt/components/StratixKpiCard'
+import StatCard from '@/shared/components/dashboard/StatCard'
+import Panel from '@/shared/components/dashboard/Panel'
 import CompetitorComparisonBar from '../CompetitorComparisonBar'
 import CompetitorCard from '../CompetitorCard'
 import AdvantageRow from '../AdvantageRow'
@@ -62,19 +63,21 @@ export default function CompetenciaTab() {
     <div>
       <div className={s.kpis}>
         {kpis.map(k => (
-          <StratixKpiCard key={k.label} kpi={k} />
+          <StatCard key={k.label} size="sm" label={k.label} value={k.value} color={k.valueColor}
+            badge={k.subAccent ? String(k.sub) : undefined} footnote={k.subAccent ? undefined : String(k.sub)} />
         ))}
       </div>
 
-      <div className={`${s.card} ${s.comparacion}`}>
-        <div className={s.titulo}>{t('stratix.comp.igComparison')}</div>
-        <div className={s.barras}>
+      <div className={s.comparacion}>
+        <Panel title={t('stratix.comp.igComparison')}>
+          <div className={s.barras}>
           <ComparisonBar propia nombre={t('stratix.comp.eminatAll')} pct={(eminatData.igFollowers / maxIG) * 100}
             valor={fNum(eminatData.igFollowers)} relleno={`linear-gradient(90deg, ${accent}, #A78BFA)`} />
-          {competitors.map(c => (
-            <CompetitorComparisonBar key={c.name} c={c} maxIG={maxIG} />
-          ))}
-        </div>
+            {competitors.map(c => (
+              <CompetitorComparisonBar key={c.name} c={c} maxIG={maxIG} />
+            ))}
+          </div>
+        </Panel>
       </div>
 
       <div className={s.fichas}>
