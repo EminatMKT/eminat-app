@@ -1,33 +1,42 @@
 'use client'
+import type { CSSProperties } from 'react'
 import { useApp, ESTADO_COLORS } from '@/shared/context/AppContext'
 import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
-import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
-import type { Actividad } from '@/features/stratix-mkt/types'
 import { estadoLabel } from '@/shared/constants/domain'
 import { useT } from '@/shared/i18n'
+import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
+import { DIA_W } from '@/features/stratix-mkt/utils/gantt-layout'
+import type { Actividad } from '@/features/stratix-mkt/types'
+import s from './index.module.css'
+
+const DIA_MS = 86400000
 
 export default function GanttBar({ a, fechaMin }: { a: Actividad; fechaMin: Date }) {
   const { t } = useT()
-  const { accent, border, t1, t3, miembrosPorId, colorMarca } = useApp()
+  const { accent, miembrosPorId, colorMarca } = useApp()
   const { setModalVerAct } = useStratix()
-  const fechaAct = new Date(a.fecha_entrega)
-  const diaOffset = Math.max(Math.ceil((fechaAct.getTime() - fechaMin.getTime()) / 86400000), 0)
-  const colorBarra = ESTADO_COLORS[a.estado] || accent
-  const marcaColor = colorMarca[a.empresa] ?? COLOR_MARCA_FALLBACK
+  const diaOffset = Math.max(Math.ceil((new Date(a.fecha_entrega).getTime() - fechaMin.getTime()) / DIA_MS), 0)
   const diasProd = Math.max(Number(a.dias_produccion) || 1, 1)
+  const vars = {
+    '--left': `${diaOffset * DIA_W + 4}px`,
+    '--width': `${Math.max(diasProd * DIA_W - 8, 36)}px`,
+    '--estado': ESTADO_COLORS[a.estado] || accent,
+    '--marca': colorMarca[a.empresa] ?? COLOR_MARCA_FALLBACK,
+  } as CSSProperties
+
   return (
-    <div key={a.id} onClick={() => setModalVerAct(a)} style={{ display: 'flex', borderBottom: `1px solid ${border}`, cursor: 'pointer' }}>
-      <div style={{ width: 220, flexShrink: 0, padding: '10px 14px', borderRight: `1px solid ${border}` }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: t1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.titulo}</div>
-        <div style={{ fontSize: 9, color: t3, marginTop: 2 }}>
-          <span style={{ marginRight: 6 }}>{miembrosPorId[a.responsable_id] ?? '—'}</span>
-          <span style={{ padding: '1px 5px', borderRadius: 4, background: `${marcaColor}25`, color: marcaColor, fontSize: 8 }}>{a.empresa}</span>
+    <div className={s.row} style={vars} onClick={() => setModalVerAct(a)}>
+      <div className={s.info}>
+        <div className={s.titulo}>{a.titulo}</div>
+        <div className={s.meta}>
+          <span className={s.quien}>{miembrosPorId[a.responsable_id] ?? '—'}</span>
+          <span className={s.marca}>{a.empresa}</span>
         </div>
       </div>
-      <div style={{ flex: 1, position: 'relative', height: 48, overflowX: 'hidden' }}>
-        <div style={{ position: 'absolute', left: diaOffset * 44 + 4, top: '50%', transform: 'translateY(-50%)', height: 22, width: Math.max(diasProd * 44 - 8, 36), borderRadius: 8, background: `${colorBarra}25`, border: `1.5px solid ${colorBarra}`, display: 'flex', alignItems: 'center', padding: '0 8px', gap: 4 }}>
-          <div style={{ width: 5, height: 5, borderRadius: '50%', background: colorBarra, flexShrink: 0 }} />
-          <span style={{ fontSize: 9, color: colorBarra, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 600 }}>{estadoLabel(a.estado, t)}</span>
+      <div className={s.pista}>
+        <div className={s.barra}>
+          <div className={s.punto} />
+          <span className={s.estado}>{estadoLabel(a.estado, t)}</span>
         </div>
       </div>
     </div>

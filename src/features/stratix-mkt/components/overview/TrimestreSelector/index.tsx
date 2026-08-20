@@ -1,5 +1,6 @@
 'use client'
 import { TRIMESTRES } from '@/shared/context/AppContext'
+import PillToggle from '@/shared/components/ui/PillToggle'
 import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
 import s from './index.module.css'
 
@@ -9,9 +10,7 @@ export default function TrimestreSelector() {
   return (
     <div className={s.bar}>
       {TRIMESTRES.map(q => (
-        <button key={q} type="button" onClick={() => setTrimestre(q)}
-          aria-pressed={trimestre === q}
-          className={`${s.chip} ${trimestre === q ? s.on : ''}`}>{q}</button>
+        <PillToggle key={q} label={q} active={trimestre === q} onClick={() => setTrimestre(q)} />
       ))}
     </div>
   )

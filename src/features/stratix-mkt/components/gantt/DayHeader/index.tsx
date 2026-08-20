@@ -1,14 +1,18 @@
 'use client'
-import { useApp } from '@/shared/context/AppContext'
+import type { CSSProperties } from 'react'
+import { DIA_W } from '@/features/stratix-mkt/utils/gantt-layout'
+import s from './index.module.css'
+
+const INICIALES_DIA = ['D', 'L', 'M', 'X', 'J', 'V', 'S']
 
 export default function DayHeader({ d, hoy }: { d: Date; hoy: Date }) {
-  const { accent, border, t3 } = useApp()
   const esHoy = d.toDateString() === hoy.toDateString()
   const esFinde = d.getDay() === 0 || d.getDay() === 6
   return (
-    <div style={{ minWidth: 44, textAlign: 'center', padding: '8px 4px', fontSize: 9, color: esHoy ? accent : esFinde ? '#F87171' : t3, fontFamily: 'DM Mono', background: esHoy ? `${accent}10` : esFinde ? 'rgba(248,113,113,0.05)' : 'transparent', borderRight: `1px solid ${border}` }}>
-      <div style={{ fontWeight: esHoy ? 700 : 400 }}>{d.getDate()}</div>
-      <div>{['D', 'L', 'M', 'X', 'J', 'V', 'S'][d.getDay()]}</div>
+    <div className={`${s.day} ${esHoy ? s.hoy : ''} ${esFinde ? s.finde : ''}`}
+      style={{ '--dia-w': `${DIA_W}px` } as CSSProperties}>
+      <div className={s.num}>{d.getDate()}</div>
+      <div>{INICIALES_DIA[d.getDay()]}</div>
     </div>
   )
 }

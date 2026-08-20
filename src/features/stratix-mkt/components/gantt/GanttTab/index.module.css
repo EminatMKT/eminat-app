@@ -1,0 +1,23 @@
+.bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-t1);
+}
+
+.sub {
+  font-size: 11px;
+  color: var(--c-t3);
+  margin-left: 8px;
+}
+
+.views {
+  display: flex;
+  gap: 6px;
+}

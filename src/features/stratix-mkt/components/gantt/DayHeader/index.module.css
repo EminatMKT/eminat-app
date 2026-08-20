@@ -1,0 +1,29 @@
+/* --dia-w llega desde utils/gantt-layout: el mismo ancho que usa la barra para su offset. */
+.day {
+  min-width: var(--dia-w);
+  text-align: center;
+  padding: 8px 4px;
+  font-size: 9px;
+  font-family: 'DM Mono', monospace;
+  color: var(--c-t3);
+  border-right: 1px solid var(--c-border);
+}
+
+/* Hoy y fin de semana son estados del día, no datos: dos clases. */
+.day.hoy {
+  color: var(--c-accent);
+  background: color-mix(in srgb, var(--c-accent) 6%, transparent);
+}
+
+.day.finde {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.05);
+}
+
+.num {
+  font-weight: 400;
+}
+
+.day.hoy .num {
+  font-weight: 700;
+}
