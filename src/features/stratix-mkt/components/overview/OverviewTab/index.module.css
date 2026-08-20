@@ -69,14 +69,17 @@
   }
 }
 
-/* El Gantt y las horas cierran el tablero: se leen después de los indicadores y las gráficas,
-   y responden al mismo filtro de trimestre que ellos. */
-.calendario {
-  margin-top: 14px;
+/* Cada bloque de ancho completo lleva su propia separación: así el orden de lectura del tablero
+   se cambia moviendo el JSX, sin tocar márgenes de nadie. */
+.fila {
+  margin-bottom: 14px;
 }
 
+/* Las horas por persona en grilla y no apiladas: son una tarjeta por miembro del equipo, y en
+   columna estiraban el tablero media pantalla por cada persona nueva. En grilla entran tres o
+   cuatro por fila y el bloque deja de crecer con el equipo. */
 .horas {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 12px;
 }

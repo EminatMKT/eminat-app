@@ -60,7 +60,7 @@ export default function OverviewTab() {
         <BarChartCard persistKey="stratix-brands" title={t('stratix.dash.byBrand', { q: trimestre })} data={marcasData} colors={marcasColors} vertical />
       </div>
 
-      <div className={s.activity}>
+      <div className={`${s.activity} ${s.fila}`}>
         <Panel collapsible persistKey="stratix-actividad" title={t('stratix.dash.recent')} flush
           right={<button className={s.viewAll} onClick={() => setMktTab('solicitudes')}>{t('stratix.dash.viewAll')}</button>}>
           {recientes.map(a => <RecentActivityRow key={a.id} a={a} />)}
@@ -80,15 +80,17 @@ export default function OverviewTab() {
         </div>
       </div>
 
-      {/* Gantt y horas: se miran, no se tocan, así que son del tablero y no de Production.
-          Los dos leen del mismo conjunto filtrado que las gráficas de arriba. */}
-      <div className={s.calendario}>
+      {/* Los dos bloques largos cierran el tablero. Arriba va lo que se lee de un vistazo —los
+          indicadores, las gráficas, quién está y qué pasó—; el Gantt son 18 filas y el resumen
+          una tarjeta por persona, así que puestos arriba empujan todo lo demás fuera de la
+          pantalla. Los dos se recogen para dejar el tablero en una sola vista. */}
+      <div className={s.fila}>
         <Panel collapsible persistKey="stratix-gantt" title={t('stratix.gantt.title')}>
           <GanttChart />
         </Panel>
       </div>
 
-      <div className={s.calendario}>
+      <div className={s.fila}>
         <Panel collapsible persistKey="stratix-horas" title={t('stratix.hours.teamSummary')}>
           <div className={s.horas}>
             {resumenHoras.map(r => <HoursSummaryCard key={r.id} r={r} />)}
