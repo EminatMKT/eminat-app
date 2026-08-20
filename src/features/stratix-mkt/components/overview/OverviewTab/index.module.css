@@ -8,21 +8,30 @@
   margin-bottom: 14px;
 }
 
-/* La columna fija de la derecha es la lista de personas: no crece con el ancho porque un
-   nombre y un punto de estado no necesitan más, y lo que sí gana con espacio son las gráficas. */
+/* Las gráficas van SOLAS en su fila. Compartirla con la lista de gente —que es alta y no se
+   recoge— hacía que al plegar las dos gráficas la fila conservara su altura y quedara un hueco
+   de 250px: el panel se recogía pero el espacio no lo devolvía nadie. */
 .charts {
   display: grid;
-  grid-template-columns: 1fr 1fr 300px;
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-bottom: 14px;
-  align-items: start; /* sin esto, recoger un panel deja el hueco de su vecino abierto */
+  align-items: start;
 }
 
+/* La columna fija de la derecha apila las dos cajas de personas: un nombre y un punto de estado
+   no necesitan más ancho, y lo que sí gana con espacio es la lista de actividad. */
 .activity {
   display: grid;
   grid-template-columns: 1fr 300px;
   gap: 12px;
   align-items: start;
+}
+
+.gente {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 /* Un tablero proyectado no scrollea, pero en un monitor la lista de gente puede ser larga. */

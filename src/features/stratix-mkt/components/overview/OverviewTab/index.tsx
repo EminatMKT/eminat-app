@@ -58,12 +58,6 @@ export default function OverviewTab() {
       <div className={s.charts}>
         <BarChartCard persistKey="stratix-months" title={t('stratix.dash.byMonth', { q: trimestre })} data={mesesData} />
         <BarChartCard persistKey="stratix-brands" title={t('stratix.dash.byBrand', { q: trimestre })} data={marcasData} colors={marcasColors} vertical />
-        <Panel title={t('stratix.dash.today')} flush
-          right={<span className={s.online}>{t('stratix.dash.online', { n: onlineCount > 0 ? onlineCount : 1 })}</span>}>
-          <div className={s.people}>
-            {equipoSinMi.map(u => <TeamOnlineRow key={String(u.id)} u={u} />)}
-          </div>
-        </Panel>
       </div>
 
       <div className={s.activity}>
@@ -71,11 +65,19 @@ export default function OverviewTab() {
           right={<button className={s.viewAll} onClick={() => setMktTab('solicitudes')}>{t('stratix.dash.viewAll')}</button>}>
           {recientes.map(a => <RecentActivityRow key={a.id} a={a} />)}
         </Panel>
-        <Panel title={t('stratix.dash.ranking')}>
-          <div className={s.ranking}>
-            {datosPorMiembro.map((m, i) => <TeamRankRow key={m.id} m={m} i={i} maxMiembro={maxMiembro} />)}
-          </div>
-        </Panel>
+        <div className={s.gente}>
+          <Panel title={t('stratix.dash.today')} flush
+            right={<span className={s.online}>{t('stratix.dash.online', { n: onlineCount > 0 ? onlineCount : 1 })}</span>}>
+            <div className={s.people}>
+              {equipoSinMi.map(u => <TeamOnlineRow key={String(u.id)} u={u} />)}
+            </div>
+          </Panel>
+          <Panel title={t('stratix.dash.ranking')}>
+            <div className={s.ranking}>
+              {datosPorMiembro.map((m, i) => <TeamRankRow key={m.id} m={m} i={i} maxMiembro={maxMiembro} />)}
+            </div>
+          </Panel>
+        </div>
       </div>
 
       {/* Gantt y horas: se miran, no se tocan, así que son del tablero y no de Production.
