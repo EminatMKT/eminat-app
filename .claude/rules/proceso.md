@@ -23,6 +23,28 @@ El qué ya lo dice el diff.
 no explica ninguna decisión. Y mezclar cosas rompe la única herramienta barata que hay para
 deshacer: un revert de un commit mixto se lleva puesto lo que no tenía nada que ver.
 
+### Nada de `git add -A`: se stagea por ruta
+
+```bash
+git add ruta/uno.ts ruta/dos.css   # lo de ESTE commit, nombrado
+git status -s                       # leerlo ANTES de commitear
+git commit -m "…"
+```
+
+**El commit se revisa antes de hacerlo, no después.** `git status -s` con el índice ya armado
+dice exactamente qué va a entrar; si aparece un archivo que el mensaje no menciona, o sobra el
+archivo o falta un commit.
+
+**La trampa es `git commit` sin rutas: commitea el índice ENTERO.** Cualquier cosa stageada antes
+—un `git mv` o un `git rm` de un paso anterior— se sube sola y en silencio, aunque el `git add`
+inmediatamente anterior haya nombrado solo dos archivos.
+
+**Motivo:** el 20/08/2026 pasó **tres veces en el mismo día**. Un `fix(lint)` de cuatro archivos
+se llevó puesta la mudanza entera de los componentes de Stratix, que estaba stageada de antes;
+un refactor se llevó las reglas nuevas; y un fix de build se llevó un fix de navegación. Las tres
+veces hubo que deshacer y rearmar los commits, que cuesta más que stagear bien la primera vez —
+y si alguno se hubiera pusheado, ya no había forma barata de separarlos.
+
 ## Un cambio que altera lo que alguien ya vio se avisa
 
 Si un cambio mueve cifras, cambia un comportamiento o rompe una costumbre de alguien que ya usa
