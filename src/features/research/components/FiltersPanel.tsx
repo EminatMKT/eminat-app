@@ -1,5 +1,7 @@
 'use client'
-import { RESEARCH_THEME, selectStyle } from '../theme'
+import { RESEARCH_THEME } from '../theme'
+// Los estilos de la barra de filtros salen de shared: eran este objeto copiado en Stratix.
+import { filterSelectStyle, filterClearStyle } from '@/shared/components/dashboard/theme'
 import { useT, type I18nKey } from '@/shared/i18n'
 import FilterBar from '@/shared/components/ui/FilterBar'
 import { LEAD_FILTERS } from '../utils/filters'
@@ -15,7 +17,7 @@ import Panel from '@/shared/components/dashboard/Panel'
 // sesiones, así que si el panel quedó recogido, este chip es lo ÚNICO que explica por qué las
 // cifras del tablero no son las del pipeline completo.
 export default function FiltersPanel() {
-  const { border, t2, t3, accent } = RESEARCH_THEME
+  const { t3, accent } = RESEARCH_THEME
   const { t } = useT()
   const { leads, filterValues, setFilterValue, clearFilters } = useResearch()
   const activos = LEAD_FILTERS.filter(d => filterValues[d.key]).length
@@ -32,8 +34,7 @@ export default function FiltersPanel() {
         labelFor={d => t(d.labelKey as I18nKey)}
         clearLabel={t('research.filter.clear')}
         resultsLabel="" /* el conteo vive en la cabecera de la tabla, no repetido acá */
-        selectStyle={selectStyle} mutedColor={t3}
-        clearStyle={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 11, cursor: 'pointer' }} />
+        selectStyle={filterSelectStyle} clearStyle={filterClearStyle} mutedColor={t3} />
     </Panel>
   )
 }

@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react'
+
 // Tokens del lenguaje visual de los TABLEROS (no de los módulos operativos).
 //
 // Un tablero se proyecta: se mira de lejos, en una sala, y por eso va SIEMPRE en claro,
@@ -15,6 +17,21 @@ export const DASHBOARD_THEME = {
   t3: '#9CA3AF',
   accent: '#7C6FF7',
   warn: '#FBBF24', // ámbar de aviso (ej. valores de import sin reconocer)
+}
+
+// Los dos estilos que pide `FilterBar` para sus controles. Viven acá y no en cada módulo
+// porque la barra de filtros de un tablero tiene que verse igual en Research y en Stratix —
+// eran el mismo objeto copiado, que es exactamente cómo empezaron los tres StatCard.
+// Son objetos de estilo y no clases porque la API de FilterBar recibe CSSProperties.
+export const filterSelectStyle: CSSProperties = {
+  padding: '6px 12px', borderRadius: 10, border: `1px solid #D1D5DB`,
+  background: DASHBOARD_THEME.s1, color: DASHBOARD_THEME.t1,
+  fontSize: 12, fontFamily: 'DM Sans', outline: 'none',
+}
+
+export const filterClearStyle: CSSProperties = {
+  padding: '6px 12px', borderRadius: 8, border: `1px solid ${DASHBOARD_THEME.border}`,
+  background: 'transparent', color: DASHBOARD_THEME.t2, fontSize: 11, cursor: 'pointer',
 }
 
 // Paleta por defecto de las series sin color propio. `features/research/constants.ts` la
