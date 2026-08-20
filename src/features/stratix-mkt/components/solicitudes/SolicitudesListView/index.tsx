@@ -1,39 +1,46 @@
 'use client'
-import { useApp, ESTADO_COLORS } from '@/shared/context/AppContext'
+import { useApp } from '@/shared/context/AppContext'
+import { useT, type I18nKey } from '@/shared/i18n'
+import PillToggle from '@/shared/components/ui/PillToggle'
+import { COLUMNAS_KANBAN, ESTADO_COLORS, estadoLabel } from '@/shared/constants/domain'
 import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
 import TaskTableRow from '../TaskTableRow'
-import { COLUMNAS_KANBAN } from '@/shared/constants/domain'
+import s from './index.module.css'
 
-const ESTADOS_FILTRO = ['All', ...COLUMNAS_KANBAN]
+const TODOS = 'All'
+const ESTADOS_FILTRO = [TODOS, ...COLUMNAS_KANBAN]
+const COLS: I18nKey[] = ['stratix.col.title', 'stratix.col.brand', 'stratix.col.month',
+  'stratix.col.hours', 'stratix.col.status', 'stratix.col.due', 'stratix.col.drive']
 
 export default function SolicitudesListView() {
-  const { s1, s2, border, accent, t2, t3, inputStyle, esAdmin } = useApp()
+  const { esAdmin } = useApp()
+  const { t } = useT()
   const { busquedaSol, setBusquedaSol, filtroEstadoSol, setFiltroEstadoSol, actsFiltradasSol } = useStratix()
-  const headers = ['Title', 'Brand', ...(esAdmin ? ['Assignee'] : []), 'Month', 'Hours', 'Status', 'Due', 'Drive']
+  // La columna de responsable solo existe para admin: el resto ve únicamente lo suyo.
+  const cols = esAdmin ? [COLS[0], COLS[1], 'stratix.col.assignee' as I18nKey, ...COLS.slice(2)] : COLS
   return (
     <div>
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-        <input type="text" placeholder="Search by title, area..." value={busquedaSol} onChange={e => setBusquedaSol(e.target.value)} style={{ ...inputStyle, width: 280 }} />
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      <div className={s.filtros}>
+        <input className={s.buscar} type="text" placeholder={t('stratix.sol.search')}
+          value={busquedaSol} onChange={e => setBusquedaSol(e.target.value)} />
+        <div className={s.estados}>
           {ESTADOS_FILTRO.map(e => (
-            <button key={e} onClick={() => setFiltroEstadoSol(e)} style={{ padding: '6px 12px', borderRadius: 20, fontSize: 11, border: `1px solid ${filtroEstadoSol === e ? ESTADO_COLORS[e] || accent : border}`, background: filtroEstadoSol === e ? `${ESTADO_COLORS[e] || accent}20` : 'transparent', color: filtroEstadoSol === e ? ESTADO_COLORS[e] || accent : t2, cursor: 'pointer' }}>{e}</button>
+            <PillToggle key={e} size="sm" color={ESTADO_COLORS[e]}
+              label={e === TODOS ? t('stratix.sol.all') : estadoLabel(e, t)}
+              active={filtroEstadoSol === e} onClick={() => setFiltroEstadoSol(e)} />
           ))}
         </div>
       </div>
-      <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <div className={s.marco}>
+        <div className={s.visor}>
+          <table className={s.tabla}>
             <thead>
-              <tr style={{ background: s2 }}>
-                {headers.map(h => (
-                  <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 10, color: t3, fontFamily: 'DM Mono', textTransform: 'uppercase', borderBottom: `1px solid ${border}`, fontWeight: 400 }}>{h}</th>
-                ))}
+              <tr className={s.encabezado}>
+                {cols.map(c => <th key={c} className={s.th}>{t(c)}</th>)}
               </tr>
             </thead>
             <tbody>
-              {actsFiltradasSol.map(a => (
-                <TaskTableRow key={a.id} a={a} />
-              ))}
+              {actsFiltradasSol.map(a => <TaskTableRow key={a.id} a={a} />)}
             </tbody>
           </table>
         </div>

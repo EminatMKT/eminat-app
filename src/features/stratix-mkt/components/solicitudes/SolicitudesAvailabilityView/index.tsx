@@ -1,19 +1,20 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
 import MemberAvailabilityCard from '../MemberAvailabilityCard'
+import s from './index.module.css'
 
 export default function SolicitudesAvailabilityView() {
-  const { t1, t3, miembrosAsignables } = useApp()
+  const { miembrosAsignables } = useApp()
+  const { t } = useT()
   return (
     <div>
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, fontFamily: 'Syne', color: t1, marginBottom: 4 }}>Team availability</div>
-        <div style={{ fontSize: 12, color: t3 }}>Monday to Friday · 9:00 AM — 6:00 PM · Guayaquil, Ecuador time</div>
+      <div className={s.head}>
+        <div className={s.title}>{t('stratix.avail.title')}</div>
+        <div className={s.sub}>{t('stratix.avail.sub')}</div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
-        {miembrosAsignables.map((m) => (
-          <MemberAvailabilityCard key={m.id} userId={m.id} nombre={m.nombre} />
-        ))}
+      <div className={s.grid}>
+        {miembrosAsignables.map(m => <MemberAvailabilityCard key={m.id} userId={m.id} nombre={m.nombre} />)}
       </div>
     </div>
   )
