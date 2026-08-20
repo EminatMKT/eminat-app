@@ -17,11 +17,12 @@ export default function SelectFilter<T>({ def, items, value, onChange, label, st
 }) {
   const options = def.options?.(items) ?? []
   const orphan = value && !options.includes(value) ? value : null
+  const labelOf = (v: string) => def.optionLabel?.(v) ?? v
   return (
     <select value={value} onChange={e => onChange(e.target.value)} style={style}>
       <option value="">{label}</option>
-      {options.map(o => <option key={o} value={o}>{o}</option>)}
-      {orphan && <option value={orphan}>{orphan}</option>}
+      {options.map(o => <option key={o} value={o}>{labelOf(o)}</option>)}
+      {orphan && <option value={orphan}>{labelOf(orphan)}</option>}
     </select>
   )
 }
