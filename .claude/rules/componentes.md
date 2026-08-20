@@ -136,6 +136,34 @@ del padre, cada retoque de una celda obliga a releer el bucle entero y el diff t
 todos los demás cambios también tocan. Además es la única forma de que la fila tenga su propio
 `.module.css`: inline, sus estilos se mezclan con los del contenedor.
 
+## El tipo de las props va arriba, no dentro de la firma
+
+```tsx
+// ❌ la firma se lee dos veces: los nombres y, entremedio, sus tipos
+export default function Field({ label, required = false, children }: {
+  label: string
+  required?: boolean
+  children: ReactNode
+}) {
+
+// ✅ el contrato arriba, la firma abajo
+type Props = {
+  label: string
+  required?: boolean
+  children: ReactNode
+}
+
+export default function Field({ label, required = false, children }: Props) {
+```
+
+El tipo se llama `Props` salvo que el componente exporte más de uno; ahí lleva el nombre del
+componente (`FieldProps`) y se exporta si alguien lo necesita.
+
+**Motivo:** el contrato del componente es lo primero que se busca al abrirlo, y embutido en la
+firma queda partido entre la desestructuración y el tipo. Con seis props, la línea del `function`
+se estira quince renglones y el cuerpo empieza donde ya nadie lo ve. Aparte, un tipo con nombre
+se puede exportar y reusar; uno inline hay que copiarlo.
+
 ## El componente renderiza; todo lo demás vive afuera
 
 Un componente es lo más chico posible: recibe props y devuelve markup. **El estado, los hooks, el
