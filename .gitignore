@@ -30,3 +30,6 @@ tsconfig.tsbuildinfo
 
 # dumps de prod (datos sensibles) — nunca commitear
 supabase/rollback/predump-*
+
+# caché de los hooks de .claude
+__pycache__/
