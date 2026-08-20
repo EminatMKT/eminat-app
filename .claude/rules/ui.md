@@ -53,3 +53,21 @@ defecto, la gráfica que no se lee de lejos. `dataviz` en particular hay que abr
 después: el tipo de gráfico y la paleta son decisiones que se toman al empezar, y rehacerlas
 cuesta el gráfico entero. El pie del tablero de Research se rehizo tres veces —dona, huecos entre
 porciones, leyenda abajo— por decidir eso sobre la marcha.
+
+## La acción primaria vive en la barra de su vista, no en el topbar
+
+El botón que crea, importa o exporta va **dentro del contenido**, en la barra de la vista que lo
+usa y al lado de lo que opera — junto a los filtros de esa tabla o de ese tablero.
+
+**Referencia: Admin.** El alta de usuarios es `<NewButton>` pasado como `action` a
+`RoleFilterBar`, la misma barra donde están la búsqueda y el filtro de rol. Ese es el patrón a
+copiar, y `NewButton` es el componente que se reusa: pone el `+` él mismo, así que el símbolo no
+se desincroniza entre pantallas.
+
+El topbar es del **shell**: título, notificaciones, quién está en línea, tema. No es de la vista.
+
+**Motivo:** un botón de la vista puesto en el topbar aparece y desaparece según la pestaña —el
+shell parpadea al moverse entre Kanban y Gantt— y queda lejos de las tarjetas que crea, en la
+otra punta de la pantalla. Además compite con los controles del shell, que son de otra jerarquía:
+el usuario los lee juntos y no lo son. "New task" estuvo ahí arriba en Stratix hasta el
+20/08/2026, y era la misma corrección que ya se había pedido para Admin.

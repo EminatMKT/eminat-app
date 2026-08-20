@@ -1,5 +1,4 @@
 'use client'
-import { useApp } from '@/shared/context/AppContext'
 import AppShell from '@/shared/components/AppShell'
 import { SUB_ITEMS } from '@/shared/components/appShellConfig'
 import { PageTransition } from '@/shared/motion'
@@ -44,18 +43,10 @@ const sectionTitle = (tab: string) => {
 }
 
 export default function StratixContent() {
-  const { accent } = useApp()
-  const { mktTab, setMktTab, setNuevaAct, setModalNuevaAct } = useStratix()
-
-  const actions = mktTab === 'kanban' ? (
-    <button onClick={() => { setNuevaAct(p => ({ ...p, estado: 'Pendiente' })); setModalNuevaAct(true) }}
-      style={{ padding: '7px 16px', borderRadius: 10, background: accent, color: 'white', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span style={{ fontSize: 16 }}>+</span> New task
-    </button>
-  ) : undefined
+  const { mktTab, setMktTab } = useStratix()
 
   return (
-    <AppShell title={sectionTitle(mktTab)} activeTab={mktTab} onTabChange={setMktTab} actions={actions}>
+    <AppShell title={sectionTitle(mktTab)} activeTab={mktTab} onTabChange={setMktTab}>
       <PageTransition>
         <div>
           {TAB_NAV_TABS.includes(mktTab) && <StratixTabNav />}
