@@ -26,10 +26,14 @@ deshacer: un revert de un commit mixto se lleva puesto lo que no tenía nada que
 ### Nada de `git add -A`: se stagea por ruta
 
 ```bash
-git add ruta/uno.ts ruta/dos.css   # lo de ESTE commit, nombrado
-git status -s                       # leerlo ANTES de commitear
-git commit -m "…"
+git add ruta/uno.ts ruta/dos.css                  # los nuevos, que commit no toma solo
+git commit ruta/uno.ts ruta/dos.css -m "…"        # la ruta TAMBIÉN en el commit
 ```
+
+**La ruta va en el `commit`, no solo en el `add`.** Es la única forma mecánica de que no entre
+otra cosa: `git commit` con rutas ignora el resto del índice. Con `git add` solo, cualquier cosa
+stageada antes viaja igual, y mirar `git status` no alcanza si se lo corre en el mismo comando
+que el commit — la salida se lee cuando ya pasó.
 
 **El commit se revisa antes de hacerlo, no después.** `git status -s` con el índice ya armado
 dice exactamente qué va a entrar; si aparece un archivo que el mensaje no menciona, o sobra el
