@@ -1,0 +1,85 @@
+/* --estado es el color de la columna (Pendiente, En proceso…): sale del catálogo, no de acá. */
+.col {
+  border-radius: 14px;
+  overflow: hidden;
+  min-height: 100px;
+  background: var(--c-s2);
+  border: 1px solid var(--c-border);
+  transition: all 0.15s;
+}
+
+/* Arrastrando algo encima: estado, no dato. */
+.col.over {
+  background: color-mix(in srgb, var(--estado) 4%, transparent);
+  border: 2px dashed var(--estado);
+}
+
+.head {
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--estado);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--estado);
+}
+
+.name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-t1);
+}
+
+.count {
+  font-size: 11px;
+  color: var(--c-t3);
+  background: var(--c-s3);
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-family: 'DM Mono', monospace;
+}
+
+.cards {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.add {
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px dashed var(--c-border);
+  background: transparent;
+  color: var(--c-t3);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.plus {
+  font-size: 16px;
+}
+
+.drop {
+  border: 2px dashed var(--c-border);
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  color: var(--c-t3);
+  font-size: 11px;
+}

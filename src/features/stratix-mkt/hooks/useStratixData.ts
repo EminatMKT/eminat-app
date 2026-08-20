@@ -9,11 +9,12 @@ import { esActividadDeMiembro, totalesProduccion } from '../report-filter'
 import type { Actividad, NuevaActForm } from '../types'
 import { useUserPreference } from '@/shared/hooks/useUserPreference'
 import { oneOf } from '@/shared/hooks/usePersistedState'
+import { ESTADO, ESTADO_COLORS } from '@/shared/constants/domain'
 
 const emptyNuevaAct = (solicitanteId = ''): NuevaActForm => ({
   titulo: '', descripcion: '', empresa: '', responsable_id: '',
   mes: MESES[new Date().getMonth()], horas: '', dias_produccion: '',
-  estado: 'Pendiente', fecha_entrega: '', solicitante_id: solicitanteId, drive_url: '',
+  estado: ESTADO.PENDIENTE, fecha_entrega: '', solicitante_id: solicitanteId, drive_url: '',
 })
 
 export function useStratixData() {
@@ -41,9 +42,9 @@ export function useStratixData() {
   const mesesQ = MESES_Q[trimestre]
   const actsFiltradas = trimestre === 'General' ? actividades : actividades.filter(a => mesesQ.includes(a.mes))
   const totalQ = actsFiltradas.length
-  const completadasQ = actsFiltradas.filter(a => a.estado === 'Completado').length
-  const enProcesoQ = actsFiltradas.filter(a => a.estado === 'En proceso').length
-  const pendientesQ = actsFiltradas.filter(a => a.estado === 'Pendiente').length
+  const completadasQ = actsFiltradas.filter(a => a.estado === ESTADO.COMPLETADO).length
+  const enProcesoQ = actsFiltradas.filter(a => a.estado === ESTADO.EN_PROCESO).length
+  const pendientesQ = actsFiltradas.filter(a => a.estado === ESTADO.PENDIENTE).length
   const pctCompletado = totalQ > 0 ? Math.round((completadasQ / totalQ) * 100) : 0
   const totalHoras = Math.round(actsFiltradas.reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10
   const totalDias = actsFiltradas.reduce((acc, a) => acc + (Number(a.dias_produccion) || 0), 0)
@@ -56,7 +57,7 @@ export function useStratixData() {
   const datosPorMes = mesesFull.map((mes, i) => ({
     mes: mesesGraf[i],
     total: actividades.filter(a => a.mes === mes).length,
-    completadas: actividades.filter(a => a.mes === mes && a.estado === 'Completado').length,
+    completadas: actividades.filter(a => a.mes === mes && a.estado === ESTADO.COMPLETADO).length,
   }))
   const maxTotal = Math.max(...datosPorMes.map(d => d.total), 1)
   // Las barras salen de las marcas que las actividades REALMENTE usan, no del
@@ -79,7 +80,7 @@ export function useStratixData() {
   const datosPorMiembro = idsTeam.map(id => ({
     id, nombre: miembrosPorId[id] ?? '—',
     total: actsFiltradas.filter(a => a.responsable_id === id).length,
-    completadas: actsFiltradas.filter(a => a.responsable_id === id && a.estado === 'Completado').length,
+    completadas: actsFiltradas.filter(a => a.responsable_id === id && a.estado === ESTADO.COMPLETADO).length,
     horas: Math.round(actsFiltradas.filter(a => a.responsable_id === id).reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10,
   })).filter(d => d.total > 0).sort((a, b) => b.total - a.total)
   const maxMiembro = Math.max(...datosPorMiembro.map(d => d.total), 1)
@@ -95,7 +96,7 @@ export function useStratixData() {
   const actsHoras = mesHoras ? actividades.filter(a => a.mes === mesHoras) : actividades
   const resumenHoras = idsTeam.map(id => {
     const acts = actsHoras.filter(a => a.responsable_id === id)
-    return { id, nombre: miembrosPorId[id] ?? '—', total: acts.length, completadas: acts.filter(a => a.estado === 'Completado').length, horas: Math.round(acts.reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10, dias: acts.reduce((acc, a) => acc + (Number(a.dias_produccion) || 0), 0) }
+    return { id, nombre: miembrosPorId[id] ?? '—', total: acts.length, completadas: acts.filter(a => a.estado === ESTADO.COMPLETADO).length, horas: Math.round(acts.reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10, dias: acts.reduce((acc, a) => acc + (Number(a.dias_produccion) || 0), 0) }
   }).filter(r => r.total > 0)
 
   const idRep = miembroReporte || idsTeam[0] || ''
@@ -104,7 +105,7 @@ export function useStratixData() {
   // divergencia entre `actsRep.length` y estas dos cifras es deliberada.
   const actsRep = actividades.filter(a => esActividadDeMiembro(a, idRep, mesReporte || undefined))
   const { horas: totalHorasRep, dias: totalDiasRep } = totalesProduccion(actsRep, idRep)
-  const completadasRep = actsRep.filter(a => a.estado === 'Completado').length
+  const completadasRep = actsRep.filter(a => a.estado === ESTADO.COMPLETADO).length
   const nombreRep = miembrosPorId[idRep] ?? usuario?.nombre ?? '—'
 
   // Drag and drop
@@ -172,7 +173,8 @@ export function useStratixData() {
   function handlePrintReport() {
     const w = window.open('', '_blank', 'width=900,height=700')
     if (!w) return
-    const estadoColor = (e: string) => ({ 'Completado': '#34D399', 'Por aprobar': '#FBB040', 'En proceso': '#7C6FF7', 'Pendiente': '#9494B3' }[e] || '#999')
+    // El mismo mapa del catálogo, no una copia: era la cuarta lista de colores de estado.
+    const estadoColor = (e: string) => ESTADO_COLORS[e] || '#999'
     const rows = actsRep.map((a, i: number) => `<tr>
       <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:center;color:#666">${i + 1}</td>
       <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;color:#111;font-weight:500">${escapeHtml(a.titulo || '')}</td>
