@@ -19,7 +19,10 @@ type Datum = { name: string; value: number; key?: string }
 // valor, clic en la misma barra lo saca (lo resuelve el caller comparando con `selected`).
 // La barra activa se distingue atenuando las otras, no coloreándola distinto: el color ya
 // codifica la categoría y pisarlo haría perder la lectura.
-export default function BarChartCard({ title, data, vertical = false, height, persistKey, onSelect, selected }: { title: string; data: Datum[]; vertical?: boolean; height?: number; persistKey: string; onSelect?: (value: string) => void; selected?: string }) {
+// `colors` es opcional y mapea valor → color: existe para las categorías que YA tienen un color
+// propio en el dominio (las marcas de Eminat), donde la paleta genérica sería un color inventado
+// encima de uno que la gente ya reconoce. Sin él, se pinta con CHART_COLORS por posición.
+export default function BarChartCard({ title, data, vertical = false, height, persistKey, colors, onSelect, selected }: { title: string; data: Datum[]; vertical?: boolean; height?: number; persistKey: string; colors?: Record<string, string>; onSelect?: (value: string) => void; selected?: string }) {
   const { s1, border, t1, t2 } = DASHBOARD_THEME
   const tooltipStyle = { background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }
   const figure = { fontFamily: 'Syne', fontSize: 13, fontWeight: 800 }
@@ -28,6 +31,7 @@ export default function BarChartCard({ title, data, vertical = false, height, pe
   // tipo del callback no encaja con el nuestro. Se estrecha acá, en un solo lugar y sin `any`.
   const payloadOf = (d: unknown) => ((d as { payload?: Datum })?.payload ?? d) as Datum
   const dim = (d: Datum) => (selected && valueOf(d) !== selected ? 0.28 : 1)
+  const fillOf = (d: Datum, i: number) => colors?.[valueOf(d)] ?? CHART_COLORS[i % CHART_COLORS.length]
   // `activeBar` resalta la barra bajo el cursor: junto al cursor de mano es lo que dice "esto
   // se clickea" antes de clickearlo. Sin él, un gráfico interactivo se ve igual que uno inerte.
   const barProps = onSelect
@@ -43,7 +47,7 @@ export default function BarChartCard({ title, data, vertical = false, height, pe
             <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: t2 }} width={120} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={tooltipStyle} cursor={{ fill: `${t2}12` }} />
             <Bar dataKey="value" radius={[0, 6, 6, 0]} isAnimationActive={false} {...barProps}>
-              {data.map((d, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} fillOpacity={dim(d)} />)}
+              {data.map((d, i) => <Cell key={i} fill={fillOf(d, i)} fillOpacity={dim(d)} />)}
               <LabelList dataKey="value" position="right" fill={t1} style={figure} />
             </Bar>
           </BarChart>
@@ -53,7 +57,7 @@ export default function BarChartCard({ title, data, vertical = false, height, pe
             <YAxis hide />
             <Tooltip contentStyle={tooltipStyle} cursor={{ fill: `${t2}12` }} />
             <Bar dataKey="value" radius={[6, 6, 0, 0]} isAnimationActive={false} {...barProps}>
-              {data.map((d, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} fillOpacity={dim(d)} />)}
+              {data.map((d, i) => <Cell key={i} fill={fillOf(d, i)} fillOpacity={dim(d)} />)}
               <LabelList dataKey="value" position="top" fill={t1} style={figure} />
             </Bar>
           </BarChart>

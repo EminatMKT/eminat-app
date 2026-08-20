@@ -1,6 +1,6 @@
 'use client'
 import { useApp, ESTADO_COLORS } from '@/shared/context/AppContext'
-import type { Actividad } from '../../types'
+import type { Actividad } from '@/features/stratix-mkt/types'
 
 export default function RecentActivityRow({ a }: { a: Actividad }) {
   const { border, t1, t3, miembrosPorId } = useApp()

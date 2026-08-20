@@ -1,0 +1,80 @@
+'use client'
+import { useApp } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
+import { StaggerGrid } from '@/shared/motion'
+import StatCard from '@/shared/components/dashboard/StatCard'
+import Panel from '@/shared/components/dashboard/Panel'
+import BarChartCard from '@/shared/components/dashboard/BarChartCard'
+import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
+import TrimestreSelector from '../TrimestreSelector'
+import TeamOnlineRow from '../TeamOnlineRow'
+import RecentActivityRow from '../RecentActivityRow'
+import TeamRankRow from '../TeamRankRow'
+import s from './index.module.css'
+
+// El tablero de Stratix, armado con los MISMOS componentes que el de Research: una cosa es el
+// tablero y otra la producción (ver .claude/rules/arquitectura.md). Por eso vive en su propia
+// sección del sidebar y no como primera pestaña de Production.
+//
+// Lo que este archivo aporta es el dominio —qué métrica va en cada card, con qué color, y que
+// las marcas conserven el suyo— más la grilla. El aspecto de cada bloque es de shared/.
+export default function OverviewTab() {
+  const { accent, onlineCount } = useApp()
+  const { t } = useT()
+  const {
+    trimestre, totalQ, completadasQ, enProcesoQ, pendientesQ, pctCompletado, totalHoras, totalDias,
+    diasRestantes, horasDisponibles, datosPorMes, datosPorMarca,
+    equipoSinMi, actsFiltradas, datosPorMiembro, maxMiembro, setMktTab,
+  } = useStratix()
+
+  const kpis = [
+    { label: t('stratix.dash.totalTasks'), value: totalQ, color: accent, footnote: t('stratix.dash.tasks') },
+    { label: t('stratix.dash.completed'), value: completadasQ, color: '#34D399', badge: `${pctCompletado}%` },
+    { label: t('stratix.dash.inProgress'), value: enProcesoQ, color: '#FBB040' },
+    { label: t('stratix.dash.pending'), value: pendientesQ, color: '#9494B3', footnote: t('stratix.dash.notStarted') },
+    { label: t('stratix.dash.totalHours'), value: `${totalHoras}h`, color: '#F472B6', footnote: t('stratix.dash.prodDays', { n: totalDias }) },
+    { label: t('stratix.dash.availableHours'), value: `${horasDisponibles}h`, color: '#60A5FA', footnote: t('stratix.dash.daysRemaining', { n: diasRestantes }) },
+  ]
+
+  const mesesData = datosPorMes.map(d => ({ name: d.mes, value: d.total }))
+  const marcasData = datosPorMarca.map(m => ({ name: m.codigo, value: m.total }))
+  // El color sale del catálogo de empresas, no de la paleta genérica: una marca desactivada
+  // tiene que seguir pintándose como siempre (ver CLAUDE.md, "Marcas del grupo Eminat").
+  const marcasColors = Object.fromEntries(datosPorMarca.map(m => [m.codigo, m.color]))
+  const recientes = actsFiltradas.slice(0, 6)
+
+  return (
+    <div>
+      <TrimestreSelector />
+
+      <StaggerGrid className={s.kpis}>
+        {kpis.map(k => (
+          <StatCard key={k.label} size="sm" label={k.label} value={k.value} color={k.color} badge={k.badge} footnote={k.footnote} />
+        ))}
+      </StaggerGrid>
+
+      <div className={s.charts}>
+        <BarChartCard persistKey="stratix-months" title={t('stratix.dash.byMonth', { q: trimestre })} data={mesesData} />
+        <BarChartCard persistKey="stratix-brands" title={t('stratix.dash.byBrand', { q: trimestre })} data={marcasData} colors={marcasColors} vertical />
+        <Panel title={t('stratix.dash.today')} flush
+          right={<span className={s.online}>{t('stratix.dash.online', { n: onlineCount > 0 ? onlineCount : 1 })}</span>}>
+          <div className={s.people}>
+            {equipoSinMi.map(u => <TeamOnlineRow key={String(u.id)} u={u} />)}
+          </div>
+        </Panel>
+      </div>
+
+      <div className={s.activity}>
+        <Panel title={t('stratix.dash.recent')} flush
+          right={<button className={s.viewAll} onClick={() => setMktTab('solicitudes')}>{t('stratix.dash.viewAll')}</button>}>
+          {recientes.map(a => <RecentActivityRow key={a.id} a={a} />)}
+        </Panel>
+        <Panel title={t('stratix.dash.ranking')}>
+          <div className={s.ranking}>
+            {datosPorMiembro.map((m, i) => <TeamRankRow key={m.id} m={m} i={i} maxMiembro={maxMiembro} />)}
+          </div>
+        </Panel>
+      </div>
+    </div>
+  )
+}

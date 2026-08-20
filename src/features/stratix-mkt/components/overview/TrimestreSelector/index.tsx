@@ -1,6 +1,6 @@
 'use client'
 import { useApp, TRIMESTRES } from '@/shared/context/AppContext'
-import { useStratix } from '../StratixContext'
+import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
 
 export default function TrimestreSelector() {
   const { accent, border, t2 } = useApp()

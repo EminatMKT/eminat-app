@@ -16,7 +16,9 @@ import CompetenciaTab from './competencia/CompetenciaTab'
 import ActivityDetailModal from './modals/ActivityDetailModal'
 import NewActivityModal from './modals/NewActivityModal'
 
-const TAB_NAV_TABS = ['overview', 'kanban', 'gantt', 'horas']
+// La barra horizontal es de Production. El tablero no la lleva: salió del grupo y es su propia
+// sección del sidebar, así que mostrarle las pestañas de producción sería volver a mezclarlos.
+const TAB_NAV_TABS = ['kanban', 'gantt', 'horas']
 
 const tabViews: Record<string, JSX.Element> = {
   overview: <OverviewTab />,
