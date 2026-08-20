@@ -1,17 +1,22 @@
 'use client'
+import type { CSSProperties } from 'react'
 import { useApp, ESTADO_COLORS } from '@/shared/context/AppContext'
 import type { Actividad } from '@/features/stratix-mkt/types'
+import s from './index.module.css'
 
+// Una fila de "Actividad reciente". El color del estado entra como variable y se usa dos veces
+// —el punto y el chip—, así el JSX lo pasa una sola vez y el CSS decide qué hace con él.
 export default function RecentActivityRow({ a }: { a: Actividad }) {
-  const { border, t1, t3, miembrosPorId } = useApp()
+  const { miembrosPorId } = useApp()
+  const estadoColor = ESTADO_COLORS[a.estado] || 'var(--c-t3)'
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: `1px solid ${border}` }}>
-      <div style={{ width: 5, height: 5, borderRadius: '50%', background: ESTADO_COLORS[a.estado] || t3, flexShrink: 0 }} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 500, color: t1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.titulo}</div>
-        <div style={{ fontSize: 9, color: t3 }}>{a.empresa} · {miembrosPorId[a.responsable_id] ?? '—'} · {a.mes}</div>
+    <div className={s.row} style={{ '--estado': estadoColor } as CSSProperties}>
+      <div className={s.dot} />
+      <div className={s.body}>
+        <div className={s.title}>{a.titulo}</div>
+        <div className={s.meta}>{a.empresa} · {miembrosPorId[a.responsable_id] ?? '—'} · {a.mes}</div>
       </div>
-      <span style={{ padding: '2px 7px', borderRadius: 20, fontSize: 9, background: `${ESTADO_COLORS[a.estado] || t3}20`, color: ESTADO_COLORS[a.estado] || t3, whiteSpace: 'nowrap' }}>{a.estado}</span>
+      <span className={s.badge}>{a.estado}</span>
     </div>
   )
 }

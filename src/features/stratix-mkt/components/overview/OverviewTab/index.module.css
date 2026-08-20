@@ -39,7 +39,7 @@
 
 .viewAll {
   font-size: 10px;
-  color: var(--accent, #7c6ff7);
+  color: var(--c-accent);
   background: none;
   border: none;
   cursor: pointer;

@@ -1,0 +1,23 @@
+.bar {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 16px;
+}
+
+.chip {
+  padding: 5px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--c-border);
+  background: transparent;
+  color: var(--c-t2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Elegido: estado, no dato — una clase, no un color calculado en el JSX. */
+.chip.on {
+  border-color: var(--c-accent);
+  background: var(--c-accent);
+  color: #fff;
+}

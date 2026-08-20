@@ -7,6 +7,12 @@ html, body, * {
   font-family: var(--font-poppins), 'Poppins', system-ui, sans-serif !important;
 }
 
+/* Dos paletas, y hay que saber cuál se usa:
+   --*   → el SHELL, que es oscuro (sidebar, topbar, el body detrás de todo).
+   --c-* → el CONTENIDO, que es claro (c = contenido). Es el espejo en CSS de
+           src/shared/theme/tokens.ts, que sigue existiendo para los ~200 archivos que
+           todavía pintan con `style`. Al tocar un color hay que cambiarlo en los dos
+           lados hasta que no quede ninguno; el .css es el que manda. */
 :root {
   --bg: #08080D;
   --s1: #0E0E18;
@@ -16,6 +22,16 @@ html, body, * {
   --t1: #EDEDFF;
   --t2: #9494B3;
   --t3: #52526B;
+
+  --c-bg: #F9FAFB;
+  --c-s1: #FFFFFF;
+  --c-s2: #FFFFFF;
+  --c-s3: #F3F4F6;
+  --c-border: #E5E7EB;
+  --c-t1: #111827;
+  --c-t2: #6B7280;
+  --c-t3: #9CA3AF;
+  --c-accent: #7C6FF7;
 }
 
 * {

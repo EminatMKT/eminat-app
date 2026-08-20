@@ -590,6 +590,8 @@
   "cob.pastDue": "Past Due",
   "cob.upcoming": "Upcoming",
   "cob.pastDueVsUpcoming": "Past Due vs Upcoming",
+  "stratix.dash.activeNow": "● Active now",
+  "stratix.dash.offline": "Offline",
   "stratix.dash.totalTasks": "Total tasks",
   "stratix.dash.completed": "Completed",
   "stratix.dash.inProgress": "In progress",

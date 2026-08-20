@@ -590,6 +590,8 @@
   "cob.pastDue": "Vencido",
   "cob.upcoming": "Por vencer",
   "cob.pastDueVsUpcoming": "Vencido vs Por vencer",
+  "stratix.dash.activeNow": "● Activo ahora",
+  "stratix.dash.offline": "Desconectado",
   "stratix.dash.totalTasks": "Tareas totales",
   "stratix.dash.completed": "Completadas",
   "stratix.dash.inProgress": "En proceso",

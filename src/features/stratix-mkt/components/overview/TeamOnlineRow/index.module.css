@@ -1,0 +1,57 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.avatarWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* --color es el de la persona, que sale de la base; el resto es siempre igual. */
+.avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color, var(--c-accent));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 2px solid var(--c-s1);
+  background: #555;
+}
+
+/* Estado, no dato: dos clases y no un color calculado en el JSX. */
+.dot.on {
+  background: #34d399;
+}
+
+.name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-t1);
+}
+
+.status {
+  font-size: 9px;
+  color: var(--c-t3);
+}
+
+.status.on {
+  color: #34d399;
+}

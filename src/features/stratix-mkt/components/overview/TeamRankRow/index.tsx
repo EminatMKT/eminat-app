@@ -1,24 +1,26 @@
-'use client'
-import { useApp } from '@/shared/context/AppContext'
+import type { CSSProperties } from 'react'
+import s from './index.module.css'
 
 type Miembro = { id: string; nombre: string; total: number; completadas: number; horas: number }
 
+// Un renglón del ranking: posición, nombre, cifras y la barra de avance.
+// Ya no lee colores del contexto — los toma de las variables CSS del contenido (--c-*).
 export default function TeamRankRow({ m, i, maxMiembro }: { m: Miembro; i: number; maxMiembro: number }) {
-  const { accent, border, t1, t3 } = useApp()
+  const pct = maxMiembro > 0 ? (m.total / maxMiembro) * 100 : 0
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 9, color: t3, width: 12 }}>{i + 1}</span>
-          <span style={{ fontSize: 11, color: t1, fontWeight: 500 }}>{m.nombre}</span>
+      <div className={s.head}>
+        <div className={s.who}>
+          <span className={s.pos}>{i + 1}</span>
+          <span className={s.name}>{m.nombre}</span>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <span style={{ fontSize: 9, color: '#34D399' }}>{m.completadas}✓</span>
-          <span style={{ fontSize: 9, color: t3 }}>{m.horas}h</span>
+        <div className={s.figures}>
+          <span className={s.done}>{m.completadas}✓</span>
+          <span className={s.hours}>{m.horas}h</span>
         </div>
       </div>
-      <div style={{ height: 4, borderRadius: 2, background: border, overflow: 'hidden' }}>
-        <div style={{ height: '100%', borderRadius: 2, background: accent, width: `${(m.total / maxMiembro) * 100}%` }} />
+      <div className={s.track}>
+        <div className={s.fill} style={{ '--pct': `${pct}%` } as CSSProperties} />
       </div>
     </div>
   )
