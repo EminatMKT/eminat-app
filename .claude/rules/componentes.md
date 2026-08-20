@@ -18,6 +18,32 @@ Se importa por la carpeta: `import Componente from '@/shared/components/Componen
 **Motivo:** las tres piezas de un componente se leen y se cambian juntas. Con archivos sueltos
 quedan en tres puntos distintos del árbol y el test es el que se pierde.
 
+### Una carpeta que agrupa NO es la carpeta de un componente
+
+Son dos cosas distintas y no se mezclan:
+
+- **Carpeta de agrupación** — nombre temático en minúsculas (`overview/`, `leads/`, `modals/`).
+  Adentro solo van carpetas de componentes. **Nunca** tiene un `index.tsx` propio.
+- **Carpeta de componente** — nombre del componente en PascalCase (`OverviewTab/`), y adentro
+  `index.tsx` + `index.module.css` + `index.test.tsx`.
+
+```
+overview/              ← agrupa; no tiene index.tsx
+  OverviewTab/
+    index.tsx
+    index.module.css
+  TrimestreSelector/
+    index.tsx
+  TeamRankRow/
+    index.tsx
+```
+
+**Motivo:** un `index.tsx` colgado del grupo le roba el nombre al componente. `overview/index.tsx`
+se importa como `./overview` y en el editor abre una pestaña que dice "index" — no se sabe cuál de
+los cinco archivos `index.tsx` abiertos es. Con `overview/OverviewTab/index.tsx` la ruta dice el
+nombre y el import también. Y si mañana el grupo necesita un segundo componente de primer nivel,
+no hay dónde ponerlo sin mover el primero.
+
 **Los componentes viejos se dejan como están.** Se migra el que se esté tocando por otro motivo,
 no el repo entero de una: 209 archivos usan `style={{}}` hoy y una migración masiva es un diff que
 nadie puede revisar.
