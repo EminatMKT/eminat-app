@@ -1,0 +1,59 @@
+.card {
+  background: var(--c-s1);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.nombre {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--c-t1);
+}
+
+.total {
+  text-align: right;
+}
+
+.horas {
+  font-family: 'Syne', sans-serif;
+  font-size: 30px;
+  font-weight: 800;
+  color: #60a5fa;
+  line-height: 1;
+}
+
+.dias {
+  font-size: 10px;
+  color: var(--c-t3);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.track {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--c-border);
+  overflow: hidden;
+}
+
+/* --pct: qué proporción de las tareas de esta persona está completada. */
+.fill {
+  height: 100%;
+  border-radius: 3px;
+  background: #34d399;
+  width: var(--pct);
+}

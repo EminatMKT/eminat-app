@@ -1,24 +1,25 @@
 'use client'
 import { useApp, MESES } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
 import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
 import HoursSummaryCard from '../HoursSummaryCard'
+import s from './index.module.css'
 
 export default function HorasTab() {
-  const { t1, inputStyle, esAdmin } = useApp()
+  const { esAdmin } = useApp()
+  const { t } = useT()
   const { mesHoras, setMesHoras, resumenHoras } = useStratix()
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <span style={{ fontSize: 14, fontWeight: 600, color: t1 }}>{esAdmin ? 'Team summary' : 'Your hours'}</span>
-        <select value={mesHoras} onChange={e => setMesHoras(e.target.value)} style={{ ...inputStyle, width: 'auto', padding: '6px 12px' }}>
-          <option value="">All months</option>
+      <div className={s.bar}>
+        <span className={s.title}>{t(esAdmin ? 'stratix.hours.teamSummary' : 'stratix.hours.yours')}</span>
+        <select className={s.select} value={mesHoras} onChange={e => setMesHoras(e.target.value)}>
+          <option value="">{t('stratix.allMonths')}</option>
           {MESES.map(m => <option key={m} value={m}>{m}</option>)}
         </select>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {resumenHoras.map(r => (
-          <HoursSummaryCard key={r.id} r={r} />
-        ))}
+      <div className={s.lista}>
+        {resumenHoras.map(r => <HoursSummaryCard key={r.id} r={r} />)}
       </div>
     </div>
   )

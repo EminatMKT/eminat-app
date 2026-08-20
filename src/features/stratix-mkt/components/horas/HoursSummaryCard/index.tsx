@@ -1,35 +1,34 @@
 'use client'
+import type { CSSProperties } from 'react'
 import { useApp } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
 import type { ResumenHoras } from '@/features/stratix-mkt/types'
+import HoursStat from '../HoursStat'
+import s from './index.module.css'
 
 export default function HoursSummaryCard({ r }: { r: ResumenHoras }) {
-  const { s1, s2, border, accent, t1, t3 } = useApp()
+  const { accent, t1 } = useApp()
+  const { t } = useT()
+  const pct = r.total > 0 ? Math.round((r.completadas / r.total) * 100) : 0
   const stats = [
-    { label: 'Total tasks', value: r.total, color: t1 },
-    { label: 'Completed', value: r.completadas, color: '#34D399' },
-    { label: 'Completion rate', value: `${r.total > 0 ? Math.round((r.completadas / r.total) * 100) : 0}%`, color: accent },
+    { label: t('stratix.hours.totalTasks'), value: r.total, color: t1 },
+    { label: t('stratix.hours.completed'), value: r.completadas, color: '#34D399' },
+    { label: t('stratix.hours.rate'), value: `${pct}%`, color: accent },
   ]
   return (
-    <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, padding: '16px 20px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: t1 }}>{r.nombre}</div>
-        </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontFamily: 'Syne', fontSize: 30, fontWeight: 800, color: '#60A5FA', lineHeight: 1 }}>{r.horas}h</div>
-          <div style={{ fontSize: 10, color: t3 }}>{r.dias} production days</div>
+    <div className={s.card}>
+      <div className={s.head}>
+        <div className={s.nombre}>{r.nombre}</div>
+        <div className={s.total}>
+          <div className={s.horas}>{r.horas}h</div>
+          <div className={s.dias}>{t('stratix.hours.prodDays', { n: r.dias })}</div>
         </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 10 }}>
-        {stats.map(s => (
-          <div key={s.label} style={{ background: s2, borderRadius: 10, padding: '10px', textAlign: 'center' }}>
-            <div style={{ fontSize: 22, fontWeight: 800, fontFamily: 'Syne', color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: 10, color: t3, marginTop: 2 }}>{s.label}</div>
-          </div>
-        ))}
+      <div className={s.stats}>
+        {stats.map(st => <HoursStat key={st.label} label={st.label} value={st.value} color={st.color} />)}
       </div>
-      <div style={{ height: 5, borderRadius: 3, background: border, overflow: 'hidden' }}>
-        <div style={{ height: '100%', borderRadius: 3, background: '#34D399', width: `${r.total > 0 ? (r.completadas / r.total) * 100 : 0}%` }} />
+      <div className={s.track}>
+        <div className={s.fill} style={{ '--pct': `${pct}%` } as CSSProperties} />
       </div>
     </div>
   )

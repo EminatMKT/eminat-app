@@ -1,8 +1,10 @@
 'use client'
+import type { CSSProperties } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
-import type { Usuario } from '@/shared/context/loadAppData'
 import { ESTADO } from '@/shared/constants/domain'
+import type { Usuario } from '@/shared/context/loadAppData'
+import s from './index.module.css'
 
 interface UsuarioCargo { cargos?: { codigo: string; nombre: string } | null }
 // Campos canónicos de `Usuario` (Pick) + `auth_id` y el embed N:N `usuario_cargos`,
@@ -12,43 +14,43 @@ type RosterUser = Pick<Usuario, 'id' | 'nombre' | 'apellido' | 'email' | 'online
   usuario_cargos?: UsuarioCargo[]
 }
 
+// Se considera en línea si marcó presencia en los últimos 5 minutos.
+const ONLINE_WINDOW_MS = 5 * 60 * 1000
+
 export default function RosterCard({ user, esLider }: { user: RosterUser; esLider: boolean }) {
-  const { s1, border, accent, t1, t2, t3, actividades } = useApp()
+  const { actividades } = useApp()
   const { t } = useT()
   const nombreCompleto = `${user.nombre || ''} ${user.apellido || ''}`.trim()
-  const initials = nombreCompleto.split(' ').slice(0, 2).map((p: string) => p[0]).join('').toUpperCase()
+  const iniciales = nombreCompleto.split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase()
   const tieneCuenta = !!user.auth_id
-  const isOnline = user.online_at ? new Date(user.online_at) > new Date(Date.now() - 5 * 60 * 1000) : false
-  const tareasHoy = actividades.filter((a) => a.responsable_id === user.id && a.estado === ESTADO.EN_PROCESO).length
-  const swatch = user.color || accent
-  const cargo = (user.usuario_cargos || []).map((uc) => uc.cargos?.nombre).filter(Boolean).join(', ')
+  const isOnline = user.online_at ? new Date(user.online_at) > new Date(Date.now() - ONLINE_WINDOW_MS) : false
+  const enProceso = actividades.filter(a => a.responsable_id === user.id && a.estado === ESTADO.EN_PROCESO).length
+  const cargo = (user.usuario_cargos || []).map(uc => uc.cargos?.nombre).filter(Boolean).join(', ')
+
   return (
-    <div style={{ background: s1, border: `1px solid ${esLider ? `${accent}55` : border}`, borderRadius: 14, padding: 16, boxShadow: esLider ? `0 2px 8px ${accent}20` : '0 1px 3px rgba(0,0,0,0.06)', position: 'relative', opacity: tieneCuenta ? 1 : 0.92 }}>
-      {esLider && (
-        <span style={{ position: 'absolute', top: 10, right: 10, fontSize: 9, fontWeight: 700, letterSpacing: '.1em', padding: '2px 8px', borderRadius: 10, background: accent, color: 'white' }}>{t('stratix.team.leader')}</span>
-      )}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-        <div style={{ position: 'relative', flexShrink: 0 }}>
-          <div style={{ width: 44, height: 44, borderRadius: '50%', background: swatch, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700, color: 'white' }}>{initials}</div>
-          <div style={{ position: 'absolute', bottom: 0, right: 0, width: 11, height: 11, borderRadius: '50%', background: tieneCuenta ? (isOnline ? '#34D399' : '#555') : '#9CA3AF', border: `2px solid ${s1}` }} />
+    <div className={`${s.card} ${esLider ? s.lider : ''} ${tieneCuenta ? '' : s.sinCuenta}`}
+      style={{ '--swatch': user.color } as CSSProperties}>
+      {esLider && <span className={s.badge}>{t('stratix.team.leader')}</span>}
+      <div className={s.head}>
+        <div className={s.avatarWrap}>
+          <div className={s.avatar}>{iniciales}</div>
+          <div className={`${s.dot} ${tieneCuenta ? s.conCuenta : ''} ${tieneCuenta && isOnline ? s.online : ''}`} />
         </div>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: t1 }}>{nombreCompleto}</div>
-          <div style={{ fontSize: 11, color: t2, marginTop: 1 }}>{cargo}</div>
+        <div className={s.datos}>
+          <div className={s.nombre}>{nombreCompleto}</div>
+          <div className={s.cargo}>{cargo}</div>
         </div>
       </div>
-      <div style={{ fontSize: 10, color: t3, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {tieneCuenta ? `✉ ${user.email}` : `✉ — ${t('stratix.team.noAccountYet')}`}
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className={s.mail}>{tieneCuenta ? `✉ ${user.email}` : `✉ — ${t('stratix.team.noAccountYet')}`}</div>
+      <div className={s.pie}>
         {tieneCuenta ? (
-          <span style={{ fontSize: 10, color: isOnline ? '#34D399' : t3 }}>{isOnline ? `● ${t('stratix.team.activeNow')}` : t('stratix.team.offline')}</span>
+          <span className={`${s.estado} ${isOnline ? s.online : ''}`}>
+            {isOnline ? `● ${t('stratix.team.activeNow')}` : t('stratix.team.offline')}
+          </span>
         ) : (
-          <span style={{ fontSize: 10, fontWeight: 600, color: '#FBB040', background: '#FBB04015', padding: '2px 8px', borderRadius: 10 }}>{t('stratix.team.accountPending')}</span>
+          <span className={s.aviso}>{t('stratix.team.accountPending')}</span>
         )}
-        {tareasHoy > 0 && (
-          <span style={{ fontSize: 10, color: '#FBB040', background: '#FBB04015', padding: '2px 8px', borderRadius: 10 }}>{t('stratix.team.inProgress', { n: tareasHoy })}</span>
-        )}
+        {enProceso > 0 && <span className={s.carga}>{t('stratix.team.inProgress', { n: enProceso })}</span>}
       </div>
     </div>
   )
