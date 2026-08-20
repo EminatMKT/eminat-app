@@ -61,18 +61,18 @@ export default function OverviewTab() {
       </div>
 
       <div className={s.activity}>
-        <Panel title={t('stratix.dash.recent')} flush
+        <Panel collapsible persistKey="stratix-actividad" title={t('stratix.dash.recent')} flush
           right={<button className={s.viewAll} onClick={() => setMktTab('solicitudes')}>{t('stratix.dash.viewAll')}</button>}>
           {recientes.map(a => <RecentActivityRow key={a.id} a={a} />)}
         </Panel>
         <div className={s.gente}>
-          <Panel title={t('stratix.dash.today')} flush
+          <Panel collapsible persistKey="stratix-hoy" title={t('stratix.dash.today')} flush
             right={<span className={s.online}>{t('stratix.dash.online', { n: onlineCount > 0 ? onlineCount : 1 })}</span>}>
             <div className={s.people}>
               {equipoSinMi.map(u => <TeamOnlineRow key={String(u.id)} u={u} />)}
             </div>
           </Panel>
-          <Panel title={t('stratix.dash.ranking')}>
+          <Panel collapsible persistKey="stratix-ranking" title={t('stratix.dash.ranking')}>
             <div className={s.ranking}>
               {datosPorMiembro.map((m, i) => <TeamRankRow key={m.id} m={m} i={i} maxMiembro={maxMiembro} />)}
             </div>
