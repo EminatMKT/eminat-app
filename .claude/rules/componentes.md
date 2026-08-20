@@ -109,6 +109,33 @@ test — inventarle uno es escribir el render dos veces.
 Mientras eso no esté, el test cubre las funciones puras que el componente use. Son dos
 dependencias y cuatro líneas de `vitest.config.ts`: pedirlo cuando haga falta el primero.
 
+## Lo que se repite en un `.map()` es un componente
+
+Un bloque de markup dentro de un `.map()` o de un bucle no se escribe inline: se extrae a su
+componente, con su carpeta.
+
+```tsx
+// ❌ el JSX del padre se lee mitad estructura, mitad detalle de una fila
+{leyenda.map(([estado, color]) => (
+  <div className={s.item} style={{ '--estado': color }}>
+    <div className={s.muestra} />
+    {estadoLabel(estado, t)}
+  </div>
+))}
+
+// ✅ el padre dice QUÉ lista, y la fila sabe cómo se dibuja
+{leyenda.map(([estado, color]) => <EstadoLeyendaItem key={estado} estado={estado} color={color} />)}
+```
+
+**Qué cuenta como bloque:** markup con estructura —más de un elemento— o un elemento con lógica
+propia (clase condicional, variables CSS, handler). Un `<option>` que solo muestra su texto no lo
+es, y hacerle un componente es ruido.
+
+**Motivo:** la fila es lo que más cambia y es lo que hay que poder leer sola; mientras vive dentro
+del padre, cada retoque de una celda obliga a releer el bucle entero y el diff toca el archivo que
+todos los demás cambios también tocan. Además es la única forma de que la fila tenga su propio
+`.module.css`: inline, sus estilos se mezclan con los del contenedor.
+
 ## El componente renderiza; todo lo demás vive afuera
 
 Un componente es lo más chico posible: recibe props y devuelve markup. **El estado, los hooks, el
