@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useApp, MESES, MESES_Q, mesATrimestre } from '@/shared/context/AppContext'
+import { useApp, MESES, mesATrimestre } from '@/shared/context/AppContext'
 import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 import { actividadesRepo, notificacionesRepo } from '@/shared/data'
 import { useT } from '@/shared/i18n'
@@ -10,6 +10,8 @@ import type { Actividad, NuevaActForm } from '../types'
 import { useUserPreference } from '@/shared/hooks/useUserPreference'
 import { oneOf } from '@/shared/hooks/usePersistedState'
 import { ESTADO, ESTADO_COLORS } from '@/shared/constants/domain'
+import { applyFilters, type FilterValues } from '@/shared/utils/filters'
+import { actividadFilters } from '@/features/stratix-mkt/utils/act-filters'
 
 const emptyNuevaAct = (solicitanteId = ''): NuevaActForm => ({
   titulo: '', descripcion: '', empresa: '', responsable_id: '',
@@ -22,7 +24,11 @@ export function useStratixData() {
   const { t } = useT()
 
   const [mktTab, setMktTab] = useUserPreference('tab-stratix', 'kanban', oneOf('overview', 'kanban', 'solicitudes', 'social', 'competencia', 'equipo', 'reporte'))
-  const [trimestre, setTrimestre] = useState('General')
+  // El tablero se filtra con el motor declarativo de `shared/utils/filters`, el mismo que
+  // Research: antes era un `useState('General')` con las pills de trimestre y nada más. Se
+  // recuerda entre sesiones por usuario, así que el panel muestra cuántos hay activos — si no,
+  // se abre el tablero con un filtro puesto de la semana pasada y las cifras no se explican.
+  const [filterValues, setFilterValues] = useUserPreference<FilterValues>('stratix-act-filters', {})
   const [mesKanban, setMesKanban] = useState('')
   const [mesReporte, setMesReporte] = useState(MESES[new Date().getMonth()])
   const [miembroReporte, setMiembroReporte] = useState('')
@@ -37,8 +43,16 @@ export function useStratixData() {
   const [solTab, setSolTab] = useState('lista')
 
   // Computed values
-  const mesesQ = MESES_Q[trimestre]
-  const actsFiltradas = trimestre === 'General' ? actividades : actividades.filter(a => mesesQ.includes(a.mes))
+  const actFilters = actividadFilters({ t, nombrePorId: miembrosPorId })
+  const setFilterValue = (key: string, value: string) => setFilterValues(p => ({ ...p, [key]: value }))
+  const clearFilters = () => setFilterValues({})
+  const filtrosActivos = actFilters.filter(d => filterValues[d.key]).length
+  const actsFiltradas = applyFilters(actividades, actFilters, filterValues)
+  // Cross-filter: cada gráfica se calcula con todos los filtros MENOS el suyo. Si no, al
+  // clickear la barra de Julio esa misma gráfica queda con una sola barra y no hay forma de
+  // clickear otro mes para cambiar de selección. Los KPIs sí usan `actsFiltradas` (todos los
+  // filtros): ahí el número filtrado ES el que se pide. Mismo criterio que Research.
+  const exceptOwn = (key: string) => applyFilters(actividades, actFilters.filter(d => d.key !== key), filterValues)
   const totalQ = actsFiltradas.length
   const completadasQ = actsFiltradas.filter(a => a.estado === ESTADO.COMPLETADO).length
   const enProcesoQ = actsFiltradas.filter(a => a.estado === ESTADO.EN_PROCESO).length
@@ -50,12 +64,15 @@ export function useStratixData() {
   const diasRestantes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate() - hoy.getDate()
   const horasDisponibles = diasRestantes * 8
   const equipoSinMi = equipo.filter((u) => u.nombre !== usuario?.nombre && !isExcludedFromStratix360(u))
-  const mesesFull = trimestre === 'General' ? MESES_Q['General'] : mesesQ
-  const mesesGraf = trimestre === 'General' ? ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'] : mesesQ.map(m => m.slice(0, 3))
-  const datosPorMes = mesesFull.map((mes, i) => ({
-    mes: mesesGraf[i],
-    total: actividades.filter(a => a.mes === mes).length,
-    completadas: actividades.filter(a => a.mes === mes && a.estado === ESTADO.COMPLETADO).length,
+  // Los 12 meses siempre: la gráfica se lee de un vistazo justamente porque el eje no cambia
+  // de largo según el filtro, y un mes vacío se ve vacío en vez de desaparecer. `mes` es la
+  // etiqueta corta que se dibuja y `key` el valor canónico con el que filtra el clic.
+  const actsPorMes = exceptOwn('mes')
+  const datosPorMes = MESES.map(mes => ({
+    mes: mes.slice(0, 3),
+    key: mes,
+    total: actsPorMes.filter(a => a.mes === mes).length,
+    completadas: actsPorMes.filter(a => a.mes === mes && a.estado === ESTADO.COMPLETADO).length,
   }))
   const maxTotal = Math.max(...datosPorMes.map(d => d.total), 1)
   // Las barras salen de las marcas que las actividades REALMENTE usan, no del
@@ -63,13 +80,14 @@ export function useStratixData() {
   // siguen contando en los totales de arriba, así que su barra tiene que seguir
   // acá o la suma de las barras deja de dar el total. Mismo criterio que
   // `colorMarca`, que tampoco filtra.
-  const codigosUsados = Array.from(new Set(actsFiltradas.map(a => a.empresa)))
+  const actsPorMarca = exceptOwn('empresa')
+  const codigosUsados = Array.from(new Set(actsPorMarca.map(a => a.empresa)))
   const datosPorMarca = codigosUsados
     .map(codigo => ({
       codigo,
       // BrandBar tipa `color` como requerido y el catálogo lo declara opcional.
       color: colorMarca[codigo] ?? COLOR_MARCA_FALLBACK,
-      total: actsFiltradas.filter(a => a.empresa === codigo).length,
+      total: actsPorMarca.filter(a => a.empresa === codigo).length,
     }))
     .filter(m => m.total > 0)
     .sort((a, b) => b.total - a.total)
@@ -252,7 +270,8 @@ export function useStratixData() {
 
   return {
     // state
-    mktTab, setMktTab, trimestre, setTrimestre, mesKanban, setMesKanban,
+    mktTab, setMktTab, mesKanban, setMesKanban,
+    actFilters, filterValues, setFilterValue, clearFilters, filtrosActivos,
     mesReporte, setMesReporte,
     miembroReporte, setMiembroReporte, dragId, dragOver,
     modalNuevaAct, setModalNuevaAct, modalVerAct, setModalVerAct,
