@@ -1,15 +1,18 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
 import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 import { SOCIAL_PLATFORMS } from '@/features/stratix-mkt/data'
-import { fNum, cardStyle } from '@/features/stratix-mkt/utils/social-format'
+import { fNum } from '@/features/stratix-mkt/utils/social-format'
 import StratixKpiCard from '@/features/stratix-mkt/components/StratixKpiCard'
 import BrandStats from '../BrandStats'
 import PlatformCard from '../PlatformCard'
 import ContentSummaryCard from '../ContentSummaryCard'
+import s from './index.module.css'
 
 export default function SocialTab() {
-  const { s1, border, accent, t1, marcas } = useApp()
+  const { accent, marcas } = useApp()
+  const { t } = useT()
 
   const platforms = SOCIAL_PLATFORMS
   const totalFollowers = platforms.reduce((s, p) => s + p.accounts.reduce((a, ac) => a + ac.followers, 0), 0)
@@ -28,48 +31,44 @@ export default function SocialTab() {
   const totalStories = platforms.reduce((s, p) => s + p.accounts.reduce((a, ac) => a + ac.stories, 0), 0)
 
   const kpis = [
-    { label: 'Total Followers', value: fNum(totalFollowers), valueColor: accent, sub: `+${fNum(totalGrowth)} this month`, subAccent: true },
-    { label: 'Total Reach', value: fNum(totalReach), valueColor: '#60A5FA', sub: 'people reached' },
-    { label: 'Avg Engagement', value: `${avgEngagement}%`, valueColor: '#34D399', sub: 'average interaction' },
-    { label: 'Posts This Month', value: String(totalPosts), valueColor: '#F472B6', sub: 'publications' },
-    { label: 'Growth', value: `+${Math.round(totalGrowth / Math.max(totalFollowers - totalGrowth, 1) * 100 * 10) / 10}%`, valueColor: '#FBB040', sub: 'current month' },
+    { label: t('stratix.social.totalFollowers'), value: fNum(totalFollowers), valueColor: accent, sub: t('stratix.social.thisMonth', { n: fNum(totalGrowth) }), subAccent: true },
+    { label: t('stratix.social.totalReach'), value: fNum(totalReach), valueColor: '#60A5FA', sub: t('stratix.social.reached') },
+    { label: t('stratix.social.avgEngagement'), value: `${avgEngagement}%`, valueColor: '#34D399', sub: t('stratix.social.avgInteraction') },
+    { label: t('stratix.social.postsMonth'), value: String(totalPosts), valueColor: '#F472B6', sub: t('stratix.social.publications') },
+    { label: t('stratix.social.growth'), value: `+${Math.round(totalGrowth / Math.max(totalFollowers - totalGrowth, 1) * 100 * 10) / 10}%`, valueColor: '#FBB040', sub: t('stratix.social.currentMonth') },
   ]
 
   const contentItems = [
-    { label: 'Reels / Videos', value: totalReels, icon: '🎬', color: '#E1306C' },
-    { label: 'Stories', value: totalStories, icon: '📱', color: '#FBB040' },
-    { label: 'Static Posts', value: totalPosts - totalReels, icon: '🖼️', color: '#60A5FA' },
-    { label: 'Total Pieces', value: totalPosts + totalStories, icon: '📊', color: accent },
+    { label: t('stratix.social.reels'), value: totalReels, icon: '🎬', color: '#E1306C' },
+    { label: t('stratix.social.stories'), value: totalStories, icon: '📱', color: '#FBB040' },
+    { label: t('stratix.social.static'), value: totalPosts - totalReels, icon: '🖼️', color: '#60A5FA' },
+    { label: t('stratix.social.totalPieces'), value: totalPosts + totalStories, icon: '📊', color: accent },
   ]
 
   return (
     <div>
-      {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 20 }}>
+      <div className={s.kpis}>
         {kpis.map(k => (
           <StratixKpiCard key={k.label} kpi={k} />
         ))}
       </div>
 
-      {/* Brand Performance */}
-      <div style={{ ...cardStyle(s1, border), marginBottom: 16 }}>
-        <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 14 }}>Performance by Brand</div>
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(brandTotals.length, 5)}, 1fr)`, gap: 12 }}>
+      <div className={`${s.card} ${s.marcas}`}>
+        <div className={s.titulo}>{t('stratix.social.byBrand')}</div>
+        <div className={s.grid}>
           {brandTotals.map(b => (
             <BrandStats key={b.codigo} b={b} />
           ))}
         </div>
       </div>
 
-      {/* Platform Details */}
       {platforms.map(platform => (
         <PlatformCard key={platform.name} platform={platform} />
       ))}
 
-      {/* Content Calendar Summary */}
-      <div style={cardStyle(s1, border)}>
-        <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 14 }}>Monthly Content Summary</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+      <div className={s.card}>
+        <div className={s.titulo}>{t('stratix.social.contentSummary')}</div>
+        <div className={s.contenido}>
           {contentItems.map(item => (
             <ContentSummaryCard key={item.label} item={item} />
           ))}

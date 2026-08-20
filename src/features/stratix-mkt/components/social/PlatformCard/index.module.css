@@ -1,0 +1,60 @@
+.card {
+  background: var(--c-s1);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  margin-bottom: 16px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.icono {
+  font-size: 18px;
+}
+
+.nombre {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--c-t1);
+}
+
+.espaciador {
+  flex: 1;
+}
+
+.total {
+  font-size: 11px;
+  color: var(--c-t3);
+}
+
+.cifra {
+  font-weight: 700;
+  color: var(--c-t1);
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.encabezado {
+  border-bottom: 1px solid var(--c-border);
+}
+
+.th {
+  text-align: left;
+  padding: 8px 10px;
+  color: var(--c-t3);
+  font-weight: 600;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

@@ -1,14 +1,18 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
 import { COMPETITORS, EMINAT_DATA } from '@/features/stratix-mkt/data'
-import { fNum, cardStyle } from '@/features/stratix-mkt/utils/comp-format'
+import { fNum } from '@/features/stratix-mkt/utils/comp-format'
 import StratixKpiCard from '@/features/stratix-mkt/components/StratixKpiCard'
 import CompetitorComparisonBar from '../CompetitorComparisonBar'
 import CompetitorCard from '../CompetitorCard'
 import AdvantageRow from '../AdvantageRow'
+import ComparisonBar from '../ComparisonBar'
+import s from './index.module.css'
 
 export default function CompetenciaTab() {
-  const { s1, s2, border, accent, t1 } = useApp()
+  const { accent, t1 } = useApp()
+  const { t } = useT()
 
   const eminatData = EMINAT_DATA
   // El original ordena `competitors` in-place por IG desc (en el bar chart) y
@@ -56,42 +60,31 @@ export default function CompetenciaTab() {
 
   return (
     <div>
-      {/* Market Position Overview */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+      <div className={s.kpis}>
         {kpis.map(k => (
           <StratixKpiCard key={k.label} kpi={k} />
         ))}
       </div>
 
-      {/* Instagram Comparison Bar Chart */}
-      <div style={{ ...cardStyle(s1, border), marginBottom: 16 }}>
-        <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 16 }}>Instagram Comparison — Miami Followers</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {/* Eminat */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 180, fontSize: 12, fontWeight: 700, color: accent, textAlign: 'right' }}>Eminat (all brands)</div>
-            <div style={{ flex: 1, height: 28, borderRadius: 6, background: s2 }}>
-              <div style={{ height: '100%', borderRadius: 6, background: `linear-gradient(90deg, ${accent}, #A78BFA)`, width: `${(eminatData.igFollowers / maxIG) * 100}%`, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 8, transition: 'width .5s' }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: 'white' }}>{fNum(eminatData.igFollowers)}</span>
-              </div>
-            </div>
-          </div>
+      <div className={`${s.card} ${s.comparacion}`}>
+        <div className={s.titulo}>{t('stratix.comp.igComparison')}</div>
+        <div className={s.barras}>
+          <ComparisonBar propia nombre={t('stratix.comp.eminatAll')} pct={(eminatData.igFollowers / maxIG) * 100}
+            valor={fNum(eminatData.igFollowers)} relleno={`linear-gradient(90deg, ${accent}, #A78BFA)`} />
           {competitors.map(c => (
             <CompetitorComparisonBar key={c.name} c={c} maxIG={maxIG} />
           ))}
         </div>
       </div>
 
-      {/* Competitor Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div className={s.fichas}>
         {competitors.map(comp => (
           <CompetitorCard key={comp.name} comp={comp} />
         ))}
 
-        {/* Eminat Advantages Card */}
-        <div style={{ ...cardStyle(s1, border), border: `2px solid ${accent}`, background: `${accent}05` }}>
-          <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 16, color: accent, marginBottom: 12 }}>Eminat Competitive Advantages</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className={`${s.card} ${s.ventajas}`}>
+          <div className={s.tituloVentajas}>{t('stratix.comp.advantages')}</div>
+          <div className={s.lista}>
             {advantages.map(v => (
               <AdvantageRow key={v.title} v={v} />
             ))}

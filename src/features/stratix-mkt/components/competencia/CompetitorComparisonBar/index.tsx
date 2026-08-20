@@ -1,20 +1,16 @@
 'use client'
-import { useApp } from '@/shared/context/AppContext'
-import { fNum, badgeStyle } from '@/features/stratix-mkt/utils/comp-format'
+import ColorBadge from '@/shared/components/ui/ColorBadge'
+import { fNum } from '@/features/stratix-mkt/utils/comp-format'
 import { TENDENCIA_COLORS, TENDENCIA_ICONS } from '@/features/stratix-mkt/data'
 import type { Competitor } from '@/features/stratix-mkt/data'
+import ComparisonBar from '../ComparisonBar'
 
+// La barra de un competidor: la forma la pone ComparisonBar, el dominio —color y etiqueta de
+// tendencia— lo pone este.
 export default function CompetitorComparisonBar({ c, maxIG }: { c: Competitor; maxIG: number }) {
-  const { s2, t2 } = useApp()
+  const color = TENDENCIA_COLORS[c.tendencia]
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <div style={{ width: 180, fontSize: 11, color: t2, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-      <div style={{ flex: 1, height: 22, borderRadius: 6, background: s2 }}>
-        <div style={{ height: '100%', borderRadius: 6, background: TENDENCIA_COLORS[c.tendencia], opacity: 0.6, width: `${(c.igFollowers / maxIG) * 100}%`, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 8, transition: 'width .5s' }}>
-          <span style={{ fontSize: 10, fontWeight: 600, color: 'white' }}>{fNum(c.igFollowers)}</span>
-        </div>
-      </div>
-      <span style={badgeStyle(TENDENCIA_COLORS[c.tendencia])}>{TENDENCIA_ICONS[c.tendencia]} {c.tendencia}</span>
-    </div>
+    <ComparisonBar nombre={c.name} pct={(c.igFollowers / maxIG) * 100} valor={fNum(c.igFollowers)} relleno={color}
+      right={<ColorBadge color={color}>{TENDENCIA_ICONS[c.tendencia]} {c.tendencia}</ColorBadge>} />
   )
 }
