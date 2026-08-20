@@ -7,7 +7,11 @@ import KanbanTaskCard from '../KanbanTaskCard'
 import s from './index.module.css'
 import { ESTADO, estadoLabel } from '@/shared/constants/domain'
 
-export default function KanbanColumn({ col }: { col: string }) {
+type Props = {
+  col: string
+}
+
+export default function KanbanColumn({ col }: Props) {
   const { t } = useT()
   const { dragOver, onDragOverCol, onDrop, porColumna, setNuevaAct, setModalNuevaAct } = useStratix()
   const cards = porColumna(col)

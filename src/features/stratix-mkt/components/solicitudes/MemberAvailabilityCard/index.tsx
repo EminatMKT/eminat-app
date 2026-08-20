@@ -12,7 +12,12 @@ const SLOTS = [9, 10, 11, 12, 13, 14, 15, 16, 17]
 const ONLINE_WINDOW_MS = 5 * 60 * 1000
 const MAX_TAREAS_VISIBLES = 2
 
-export default function MemberAvailabilityCard({ userId, nombre }: { userId: string; nombre: string }) {
+type Props = {
+  userId: string
+  nombre: string
+}
+
+export default function MemberAvailabilityCard({ userId, nombre }: Props) {
   const { usuarios, actividades } = useApp()
   const { t } = useT()
   const activas = actividades.filter(a => a.responsable_id === userId

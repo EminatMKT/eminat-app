@@ -5,7 +5,13 @@ type Miembro = { id: string; nombre: string; total: number; completadas: number;
 
 // Un renglón del ranking: posición, nombre, cifras y la barra de avance.
 // Ya no lee colores del contexto — los toma de las variables CSS del contenido (--c-*).
-export default function TeamRankRow({ m, i, maxMiembro }: { m: Miembro; i: number; maxMiembro: number }) {
+type Props = {
+  m: Miembro
+  i: number
+  maxMiembro: number
+}
+
+export default function TeamRankRow({ m, i, maxMiembro }: Props) {
   const pct = maxMiembro > 0 ? (m.total / maxMiembro) * 100 : 0
   return (
     <div>

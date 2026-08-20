@@ -5,7 +5,12 @@ import { useT } from '@/shared/i18n'
 import type { Actividad } from '@/features/stratix-mkt/types'
 import s from './index.module.css'
 
-export default function ReportTableRow({ a, responsable }: { a: Actividad; responsable: string }) {
+type Props = {
+  a: Actividad
+  responsable: string
+}
+
+export default function ReportTableRow({ a, responsable }: Props) {
   const { t } = useT()
   return (
     <tr className={s.row} style={{ '--estado': ESTADO_COLORS[a.estado] || 'var(--c-t3)' } as CSSProperties}>

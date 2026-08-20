@@ -2,7 +2,11 @@ import s from './index.module.css'
 
 type Advantage = { icon: string; title: string; desc: string }
 
-export default function AdvantageRow({ v }: { v: Advantage }) {
+type Props = {
+  v: Advantage
+}
+
+export default function AdvantageRow({ v }: Props) {
   return (
     <div className={s.fila}>
       <span className={s.icono}>{v.icon}</span>

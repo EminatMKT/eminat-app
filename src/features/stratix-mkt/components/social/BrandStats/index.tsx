@@ -6,7 +6,11 @@ import s from './index.module.css'
 
 type BrandTotal = { codigo: string; color: string; followers: number; growth: number; reach: number; engagement: number; posts: number }
 
-export default function BrandStats({ b }: { b: BrandTotal }) {
+type Props = {
+  b: BrandTotal
+}
+
+export default function BrandStats({ b }: Props) {
   const { t } = useT()
   return (
     <div className={s.card} style={{ '--marca': b.color } as CSSProperties}>

@@ -5,7 +5,12 @@ import s from './index.module.css'
 
 const INICIALES_DIA = ['D', 'L', 'M', 'X', 'J', 'V', 'S']
 
-export default function DayHeader({ d, hoy }: { d: Date; hoy: Date }) {
+type Props = {
+  d: Date
+  hoy: Date
+}
+
+export default function DayHeader({ d, hoy }: Props) {
   const esHoy = d.toDateString() === hoy.toDateString()
   const esFinde = d.getDay() === 0 || d.getDay() === 6
   return (

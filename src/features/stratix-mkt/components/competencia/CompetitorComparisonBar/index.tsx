@@ -7,7 +7,12 @@ import ComparisonBar from '../ComparisonBar'
 
 // La barra de un competidor: la forma la pone ComparisonBar, el dominio —color y etiqueta de
 // tendencia— lo pone este.
-export default function CompetitorComparisonBar({ c, maxIG }: { c: Competitor; maxIG: number }) {
+type Props = {
+  c: Competitor
+  maxIG: number
+}
+
+export default function CompetitorComparisonBar({ c, maxIG }: Props) {
   const color = TENDENCIA_COLORS[c.tendencia]
   return (
     <ComparisonBar nombre={c.name} pct={(c.igFollowers / maxIG) * 100} valor={fNum(c.igFollowers)} relleno={color}

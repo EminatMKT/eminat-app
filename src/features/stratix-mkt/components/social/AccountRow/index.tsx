@@ -10,7 +10,11 @@ import s from './index.module.css'
 // Umbrales de interacción: verde bueno, ámbar aceptable, rojo flojo.
 const engColor = (e: number) => (e >= 5 ? '#34D399' : e >= 3 ? '#FBB040' : '#F87171')
 
-export default function AccountRow({ acc }: { acc: SocialAccount }) {
+type Props = {
+  acc: SocialAccount
+}
+
+export default function AccountRow({ acc }: Props) {
   const { colorMarca } = useApp()
   const { t } = useT()
   return (

@@ -10,7 +10,11 @@ const COLS: I18nKey[] = ['stratix.social.col.account', 'stratix.social.col.brand
   'stratix.social.col.growth', 'stratix.social.col.posts', 'stratix.social.col.reach',
   'stratix.social.col.engagement', 'stratix.social.col.impressions', 'stratix.social.col.best']
 
-export default function PlatformCard({ platform }: { platform: SocialPlatform }) {
+type Props = {
+  platform: SocialPlatform
+}
+
+export default function PlatformCard({ platform }: Props) {
   const { t } = useT()
   const seguidores = platform.accounts.reduce((acc, a) => acc + a.followers, 0)
   return (

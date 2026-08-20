@@ -11,7 +11,11 @@ import s from './index.module.css'
 // Umbrales de la nota de Google (sobre 5).
 const notaClase = (n: number) => (n >= 4.5 ? 'buena' : n >= 4 ? 'aceptable' : '')
 
-export default function CompetitorCard({ comp }: { comp: Competitor }) {
+type Props = {
+  comp: Competitor
+}
+
+export default function CompetitorCard({ comp }: Props) {
   const { t } = useT()
   return (
     <div className={s.card}>

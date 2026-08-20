@@ -17,7 +17,12 @@ type RosterUser = Pick<Usuario, 'id' | 'nombre' | 'apellido' | 'email' | 'online
 // Se considera en línea si marcó presencia en los últimos 5 minutos.
 const ONLINE_WINDOW_MS = 5 * 60 * 1000
 
-export default function RosterCard({ user, esLider }: { user: RosterUser; esLider: boolean }) {
+type Props = {
+  user: RosterUser
+  esLider: boolean
+}
+
+export default function RosterCard({ user, esLider }: Props) {
   const { actividades } = useApp()
   const { t } = useT()
   const nombreCompleto = `${user.nombre || ''} ${user.apellido || ''}`.trim()

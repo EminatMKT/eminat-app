@@ -6,7 +6,11 @@ import type { ResumenHoras } from '@/features/stratix-mkt/types'
 import StatBox from '@/shared/components/ui/StatBox'
 import s from './index.module.css'
 
-export default function HoursSummaryCard({ r }: { r: ResumenHoras }) {
+type Props = {
+  r: ResumenHoras
+}
+
+export default function HoursSummaryCard({ r }: Props) {
   const { accent, t1 } = useApp()
   const { t } = useT()
   const pct = r.total > 0 ? Math.round((r.completadas / r.total) * 100) : 0

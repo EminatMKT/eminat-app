@@ -8,7 +8,11 @@ import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
 import type { Actividad } from '@/features/stratix-mkt/types'
 import s from './index.module.css'
 
-export default function TaskTableRow({ a }: { a: Actividad }) {
+type Props = {
+  a: Actividad
+}
+
+export default function TaskTableRow({ a }: Props) {
   const { t } = useT()
   const { esAdmin, miembrosPorId, colorMarca } = useApp()
   const { setModalVerAct } = useStratix()

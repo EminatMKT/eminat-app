@@ -13,7 +13,11 @@ type TeamUser = Pick<Usuario, 'nombre' | 'apellido' | 'color'> & {
 // Se considera en línea si marcó presencia en los últimos 5 minutos.
 const ONLINE_WINDOW_MS = 5 * 60 * 1000
 
-export default function TeamOnlineRow({ u }: { u: TeamUser }) {
+type Props = {
+  u: TeamUser
+}
+
+export default function TeamOnlineRow({ u }: Props) {
   const { usuarios } = useApp()
   const { t } = useT()
   const userInfo = usuarios.find(us => us.nombre === u.nombre)

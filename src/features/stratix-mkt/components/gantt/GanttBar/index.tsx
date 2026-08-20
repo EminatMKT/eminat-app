@@ -11,7 +11,12 @@ import s from './index.module.css'
 
 const DIA_MS = 86400000
 
-export default function GanttBar({ a, fechaMin }: { a: Actividad; fechaMin: Date }) {
+type Props = {
+  a: Actividad
+  fechaMin: Date
+}
+
+export default function GanttBar({ a, fechaMin }: Props) {
   const { t } = useT()
   const { accent, miembrosPorId, colorMarca } = useApp()
   const { setModalVerAct } = useStratix()

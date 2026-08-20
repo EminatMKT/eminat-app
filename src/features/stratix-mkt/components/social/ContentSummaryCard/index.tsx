@@ -3,7 +3,11 @@ import s from './index.module.css'
 
 type Item = { label: string; value: number; icon: string; color: string }
 
-export default function ContentSummaryCard({ item }: { item: Item }) {
+type Props = {
+  item: Item
+}
+
+export default function ContentSummaryCard({ item }: Props) {
   return (
     <div className={s.card} style={{ '--color': item.color } as CSSProperties}>
       <div className={s.icono}>{item.icon}</div>
