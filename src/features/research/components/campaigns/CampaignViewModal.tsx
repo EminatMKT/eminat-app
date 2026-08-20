@@ -2,7 +2,7 @@
 import { RESEARCH_THEME } from '../../theme'
 import { MAIL_ESTADO_COLOR } from '../../constants'
 import { useResearch } from '../ResearchContext'
-import CampaignStatBox from './CampaignStatBox'
+import StatBox from '@/shared/components/ui/StatBox'
 import EmailPreview from './EmailPreview'
 
 export default function CampaignViewModal() {
@@ -25,7 +25,7 @@ export default function CampaignViewModal() {
           <button onClick={() => setMailViewCampaign(null)} style={{ background: 'none', border: 'none', color: t3, fontSize: 20, cursor: 'pointer' }}>&#10005;</button>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20 }}>
-          {stats.map(k => <CampaignStatBox key={k.label} label={k.label} value={k.value} color={k.color} />)}
+          {stats.map(k => <StatBox key={k.label} label={k.label} value={k.value} color={k.color} />)}
         </div>
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 11, color: t3, marginBottom: 4 }}>Subject</div>

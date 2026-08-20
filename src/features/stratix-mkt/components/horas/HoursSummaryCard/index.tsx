@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import type { ResumenHoras } from '@/features/stratix-mkt/types'
-import HoursStat from '../HoursStat'
+import StatBox from '@/shared/components/ui/StatBox'
 import s from './index.module.css'
 
 export default function HoursSummaryCard({ r }: { r: ResumenHoras }) {
@@ -25,7 +25,7 @@ export default function HoursSummaryCard({ r }: { r: ResumenHoras }) {
         </div>
       </div>
       <div className={s.stats}>
-        {stats.map(st => <HoursStat key={st.label} label={st.label} value={st.value} color={st.color} />)}
+        {stats.map(st => <StatBox key={st.label} size="lg" label={st.label} value={st.value} color={st.color} />)}
       </div>
       <div className={s.track}>
         <div className={s.fill} style={{ '--pct': `${pct}%` } as CSSProperties} />
