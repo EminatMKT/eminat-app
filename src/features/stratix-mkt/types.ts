@@ -4,7 +4,7 @@
 export type { Actividad } from '@/shared/context/loadAppData'
 
 // Resumen de horas/tareas por miembro (lo computa useStratixData.resumenHoras;
-// lo consumen HoursSummaryCard y TeamReportCard).
+// lo consume HoursSummaryCard).
 export type ResumenHoras = { id: string; nombre: string; total: number; completadas: number; horas: number; dias: number }
 
 // Estado del formulario "New task".

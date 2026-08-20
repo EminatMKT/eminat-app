@@ -171,3 +171,29 @@ de tipos, una re-exportación.
 `filters.ts` en una lista de veinte archivos y no se sabe si tiene test sin buscarlo. Con la
 carpeta, abrirla ya responde la pregunta, y el que borra el módulo se lleva el test con él en vez
 de dejarlo huérfano.
+
+## Un componente que solo devuelve otro no es un componente
+
+Si el cuerpo entero es `return <Otro />`, el envoltorio sobra: se monta `<Otro />` directamente
+donde estaba el envoltorio.
+
+```tsx
+// ❌ no aporta nada: un nombre, un archivo y un import de más
+export default function EquipoTab() {
+  return <Stratix360Roster />
+}
+
+// ✅ el que rendereaba la sección ES el roster
+const tabViews = { equipo: <Stratix360Roster />, … }
+```
+
+Si el envoltorio existía porque **el nombre de adentro no dice lo que significa en ese lugar**, lo
+que se hace es **renombrar el de adentro** — no agregar una capa para renombrarlo desde afuera.
+
+**Excepción: las páginas de `src/app/`.** Ahí el envoltorio es el contrato con el router: la ruta
+tiene que existir como archivo y su trabajo es montar el feature (ver la regla de thin routes en
+`codigo.md`).
+
+**Motivo:** un pasamanos hay que abrirlo para descubrir que no hace nada, y además miente sobre la
+estructura — parece que Team tiene lógica propia cuando no tiene ninguna. Suelen ser restos: este
+quedó cuando a `EquipoTab` se le sacó la barra de sub-vistas que duplicaba el sidebar.

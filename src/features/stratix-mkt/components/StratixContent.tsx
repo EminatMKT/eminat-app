@@ -1,6 +1,7 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
 import AppShell from '@/shared/components/AppShell'
+import { SUB_ITEMS } from '@/shared/components/appShellConfig'
 import { PageTransition } from '@/shared/motion'
 import { useStratix } from './StratixContext'
 import StratixTabNav from './StratixTabNav'
@@ -9,7 +10,7 @@ import KanbanTab from './kanban/KanbanTab'
 import GanttTab from './gantt/GanttTab'
 import HorasTab from './horas/HorasTab'
 import SolicitudesTab from './solicitudes/SolicitudesTab'
-import EquipoTab from './equipo/EquipoTab'
+import Stratix360Roster from './roster/Stratix360Roster'
 import ReporteTab from './reporte/ReporteTab'
 import SocialTab from './social/SocialTab'
 import CompetenciaTab from './competencia/CompetenciaTab'
@@ -26,10 +27,20 @@ const tabViews: Record<string, JSX.Element> = {
   gantt: <GanttTab />,
   horas: <HorasTab />,
   solicitudes: <SolicitudesTab />,
-  equipo: <EquipoTab />,
+  // La sección Team ES el roster: no hay envoltorio en el medio (ver componentes.md).
+  equipo: <Stratix360Roster />,
   reporte: <ReporteTab />,
   social: <SocialTab />,
   competencia: <CompetenciaTab />,
+}
+
+// El título sigue a la SECCIÓN abierta, no al módulo. Antes era fijo ("Stratix 360 —
+// Producción") y con el tablero afuera de Production quedaba mintiendo: el sidebar decía
+// Dashboard y el encabezado, Producción. Sale de SUB_ITEMS para que los dos digan lo mismo
+// siempre, incluso si mañana se renombra una sección.
+const sectionTitle = (tab: string) => {
+  const item = SUB_ITEMS.mkt.find(i => (i.tabs ? i.tabs.includes(tab) : i.tab === tab))
+  return item ? `Stratix 360 — ${item.label}` : 'Stratix 360'
 }
 
 export default function StratixContent() {
@@ -44,7 +55,7 @@ export default function StratixContent() {
   ) : undefined
 
   return (
-    <AppShell activeTab={mktTab} onTabChange={setMktTab} actions={actions}>
+    <AppShell title={sectionTitle(mktTab)} activeTab={mktTab} onTabChange={setMktTab} actions={actions}>
       <PageTransition>
         <div>
           {TAB_NAV_TABS.includes(mktTab) && <StratixTabNav />}

@@ -36,7 +36,6 @@ export function useStratixData() {
   const [busquedaSol, setBusquedaSol] = useState('')
   const [filtroEstadoSol, setFiltroEstadoSol] = useState('All')
   const [solTab, setSolTab] = useState('lista')
-  const [subVista, setSubVista] = useState('team')
 
   // Computed values
   const mesesQ = MESES_Q[trimestre]
@@ -265,7 +264,7 @@ export function useStratixData() {
     miembroReporte, setMiembroReporte, dragId, dragOver,
     modalNuevaAct, setModalNuevaAct, modalVerAct, setModalVerAct,
     creandoAct, nuevaAct, setNuevaAct,
-    busquedaSol, setBusquedaSol, filtroEstadoSol, setFiltroEstadoSol, actsFiltradasSol, solTab, setSolTab, subVista, setSubVista,
+    busquedaSol, setBusquedaSol, filtroEstadoSol, setFiltroEstadoSol, actsFiltradasSol, solTab, setSolTab,
     // computed
     actsFiltradas, totalQ, completadasQ, enProcesoQ, pendientesQ, pctCompletado, totalHoras, totalDias,
     diasRestantes, horasDisponibles, equipoSinMi, datosPorMes, maxTotal, datosPorMarca, maxMarca, hoy,
