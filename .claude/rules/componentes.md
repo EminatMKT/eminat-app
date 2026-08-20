@@ -38,6 +38,10 @@ overview/              ← agrupa; no tiene index.tsx
     index.tsx
 ```
 
+**Dos `.tsx` no comparten carpeta.** Si en un directorio hay dos componentes, hay dos carpetas.
+La única forma de que un `.tsx` conviva con otro archivo es que sean las piezas del MISMO
+componente: `index.tsx` con su `index.module.css` y su `index.test.tsx`.
+
 **Motivo:** un `index.tsx` colgado del grupo le roba el nombre al componente. `overview/index.tsx`
 se importa como `./overview` y en el editor abre una pestaña que dice "index" — no se sabe cuál de
 los cinco archivos `index.tsx` abiertos es. Con `overview/OverviewTab/index.tsx` la ruta dice el

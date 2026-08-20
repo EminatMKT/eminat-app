@@ -118,12 +118,28 @@ parecer improvisado.
 ## Los valores de dominio salen de constantes
 
 Un estado, una etapa, un tipo: se compara contra la constante del catálogo, nunca contra el
-literal escrito a mano. Research ya lo hace con `STAGE`; falta en Stratix, donde hay 12
-comparaciones sueltas contra `'Completado'`, `'Pendiente'` y compañía.
+literal escrito a mano. Research lo hace con `STAGE` y Stratix con `ESTADO`, los dos en el mismo
+formato: un objeto META del que derivan listas, colores y etiquetas.
 
 **Motivo:** el día que el catálogo cambia un valor, el literal no da error de compilación: la
 pantalla simplemente deja de contar esas filas. Un bug que no rompe nada y solo hace que los
 números estén mal.
+
+### El valor canónico NO es la etiqueta
+
+La constante guarda **el dato**: lo que está en la base y contra lo que se compara. Lo que se
+muestra sale de i18n, con una clave por valor y un helper que traduce (`estadoLabel(estado, t)`,
+`stageLabel(stage, t)`). **Nunca se renderiza la constante.**
+
+El catálogo se escribe como un solo objeto META —valor → `{ labelKey, color, … }`— y de ahí
+derivan las listas, los colores y las etiquetas. Agregar un valor es agregar una fila, y el
+compilador reclama lo que falte.
+
+**Motivo:** los valores canónicos de este repo están en español porque así se guardaron
+(`'Pendiente'`, `'Por aprobar'`). Al renderizarlos directo, el Kanban rotulaba sus columnas
+"Pendiente" con la app en inglés: el dato se estaba usando de texto de interfaz. Pasó el
+20/08/2026, al mismo tiempo que se creaba la constante para dejar de comparar contra literales —
+las dos mitades del problema viven juntas.
 
 ## Lo que cuenta plata, horas o tareas lleva test
 
