@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import s from './index.module.css'
+import s from '@/shared/components/ui/Field/index.module.css'
 
 // Un campo de formulario: su rótulo y su control. El asterisco de obligatorio lo pone el
 // componente, así que no se escribe a mano en cada formulario ni se olvida en uno.

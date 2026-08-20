@@ -5,7 +5,7 @@ import { useT } from '@/shared/i18n'
 import { normalizeRole, ADMIN_ROLE, DEFAULT_ROLE, MODULE_META, getModulesForRole } from '@/shared/auth/permissions'
 import { useUserActions } from '../hooks/useUserActions'
 import { cargoNamesOf } from '../org-catalogs'
-import ConfirmModal from '@/shared/components/ConfirmModal'
+import ConfirmModal from '@/shared/components/ui/ConfirmModal'
 import RowMenu from '@/shared/components/ui/RowMenu'
 import type { AdminUser, ResetTarget } from '../types'
 

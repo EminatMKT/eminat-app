@@ -1,6 +1,6 @@
 'use client'
 import type { CSSProperties } from 'react'
-import s from './index.module.css'
+import s from '@/shared/components/ui/PillToggle/index.module.css'
 
 // Píldora de selección: el control que eligen "una de estas" sin desplegar nada — los
 // trimestres del tablero, las vistas del Gantt. Es el mismo botón en los dos lados, así que

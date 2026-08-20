@@ -1,6 +1,6 @@
 'use client'
-import AppShell from '@/shared/components/AppShell'
-import { SUB_ITEMS } from '@/shared/components/appShellConfig'
+import AppShell from '@/shared/components/shell/AppShell'
+import { SUB_ITEMS } from '@/shared/components/shell/appShellConfig'
 import { PageTransition } from '@/shared/motion'
 import { useStratix } from '../StratixContext'
 import StratixTabNav from '../StratixTabNav'

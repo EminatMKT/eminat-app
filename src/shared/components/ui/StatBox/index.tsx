@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react'
-import s from './index.module.css'
+import s from '@/shared/components/ui/StatBox/index.module.css'
 
 // Existía tres veces con tres nombres: CampaignStatBox (Research), HoursStat (Stratix) y el
 // StatCard de Accounting. Lo detectó praxis-similar-components con 0.95 de similitud.

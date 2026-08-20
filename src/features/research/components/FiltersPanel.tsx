@@ -1,7 +1,7 @@
 'use client'
 import { RESEARCH_THEME, selectStyle } from '../theme'
 import { useT, type I18nKey } from '@/shared/i18n'
-import FilterBar from '@/shared/components/FilterBar'
+import FilterBar from '@/shared/components/ui/FilterBar'
 import { LEAD_FILTERS } from '../utils/filters'
 import { useResearch } from './ResearchContext'
 import Panel from '@/shared/components/dashboard/Panel'

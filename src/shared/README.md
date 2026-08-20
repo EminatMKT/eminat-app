@@ -9,7 +9,7 @@ se partió el 19/08/2026.
 
 | Directorio | Qué va |
 |---|---|
-| `components/` | UI compartida — AppShell, Sidebar, Topbar, y `dashboard/` (el tablero) |
+| `components/` | UI compartida, agrupada por para qué sirve (ver abajo) |
 | `hooks/` | Hooks transversales — `useUserPreference`, `usePersistedState`, `useClock` |
 | `utils/` | Funciones puras — `api`, `canonical`, `delimited`, `filters`, `html` |
 | `context/` | Estado global — `AppContext` y lo que solo existe para servirlo |
@@ -20,6 +20,18 @@ se partió el 19/08/2026.
 | `motion/` | Wrappers de animación (Framer Motion) |
 | `constants/` | Constantes de dominio transversales |
 | `theme/` | Tokens y estilos de la app |
+
+### Los grupos de `components/`
+
+| Grupo | Qué va |
+|---|---|
+| `shell/` | El marco de la app: AppShell, Sidebar, Topbar y todo lo que cuelga de ellos, más `appShellConfig` |
+| `ui/` | Controles genéricos: Modal, Field, TabBar, TabButton, PillToggle, StatBox, ColorBadge, FilterBar… |
+| `dashboard/` | Los bloques de un tablero: Panel, StatCard, BarChartCard, PieChartCard y sus tokens |
+| `access/` | Los que deciden si se ve algo: AccessDenied, ModuleGate |
+
+Cada componente es una carpeta con su `index.tsx` (ver `.claude/rules/componentes.md`), así que
+el import no nombra el archivo: `@/shared/components/ui/Modal`.
 
 **Regla:** si lo usa **una sola** feature → va en `src/features/esa/`, no acá. El criterio completo,
 con sus motivos, está en `.claude/rules/arquitectura.md` y `.claude/rules/componentes.md`.

@@ -1,6 +1,6 @@
 import { test, expect, Page } from '@playwright/test'
 import { PASSWORD, ensureUser } from './seed'
-import { NAV } from '../src/shared/components/appShellConfig'
+import { NAV } from '../src/shared/components/shell/appShellConfig'
 import { modulePath } from '../src/shared/auth/permissions'
 
 // Smoke test: como admin (ve todos los módulos), recorre cada uno y verifica que

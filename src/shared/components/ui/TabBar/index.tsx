@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import s from './index.module.css'
+import s from '@/shared/components/ui/TabBar/index.module.css'
 
 // Contenedor de las pestañas de una sección. Los TabButton van adentro.
 type Props = {

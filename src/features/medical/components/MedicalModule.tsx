@@ -2,8 +2,8 @@
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
-import AppShell from '@/shared/components/AppShell'
-import AccessDenied from '@/shared/components/AccessDenied'
+import AppShell from '@/shared/components/shell/AppShell'
+import AccessDenied from '@/shared/components/access/AccessDenied'
 import { PageTransition } from '@/shared/motion'
 import { useMedicalStyles } from '../hooks/useMedicalStyles'
 import { MedicalProvider } from './MedicalContext'
@@ -17,7 +17,7 @@ import CitaModal from './CitaModal'
 import IncidenteModal from './IncidenteModal'
 import { useUserPreference } from '@/shared/hooks/useUserPreference'
 import { oneOf } from '@/shared/hooks/usePersistedState'
-import { SUB_ITEMS } from '@/shared/components/appShellConfig'
+import { SUB_ITEMS } from '@/shared/components/shell/appShellConfig'
 
 // Las secciones (Dashboard/Pacientes/Citas/HIPAA/Audit) viven SOLO en el panel
 // vertical del shell (SUB_ITEMS.medical). Antes se repetían acá como barra

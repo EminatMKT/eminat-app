@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useApp } from '@/shared/context/AppContext'
-import AppShell from '@/shared/components/AppShell'
+import AppShell from '@/shared/components/shell/AppShell'
 import { PageTransition } from '@/shared/motion'
 import { BRANDS } from '../data'
 import type { Brand } from '../types'

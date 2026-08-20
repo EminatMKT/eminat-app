@@ -1,5 +1,5 @@
 'use client'
-import AppShell from '@/shared/components/AppShell'
+import AppShell from '@/shared/components/shell/AppShell'
 import { ACCENT } from '../data'
 import { totals } from '../aggregates'
 import { fmt } from '../format'

@@ -1,6 +1,6 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
-import AppShell from '@/shared/components/AppShell'
+import AppShell from '@/shared/components/shell/AppShell'
 import { PageTransition, StaggerGrid } from '@/shared/motion'
 import { useDirectorioFilter } from '../hooks/useDirectorioFilter'
 import DepartmentFilter from './DepartmentFilter'
