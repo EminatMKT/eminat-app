@@ -14,9 +14,10 @@ const DIA_MS = 86400000
 type Props = {
   a: Actividad
   fechaMin: Date
+  dias: number
 }
 
-export default function GanttBar({ a, fechaMin }: Props) {
+export default function GanttBar({ a, fechaMin, dias }: Props) {
   const { t } = useT()
   const { accent, miembrosPorId, colorMarca } = useApp()
   const { setModalVerAct } = useStratix()
@@ -27,6 +28,7 @@ export default function GanttBar({ a, fechaMin }: Props) {
     '--width': `${Math.max(diasProd * DIA_W - 8, 36)}px`,
     '--estado': ESTADO_COLORS[a.estado] || accent,
     '--marca': colorMarca[a.empresa] ?? COLOR_MARCA_FALLBACK,
+    '--ancho': `${dias * DIA_W}px`,
   } as CSSProperties
 
   return (

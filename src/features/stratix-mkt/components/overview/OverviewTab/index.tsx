@@ -10,6 +10,8 @@ import TrimestreSelector from '../TrimestreSelector'
 import TeamOnlineRow from '../TeamOnlineRow'
 import RecentActivityRow from '../RecentActivityRow'
 import TeamRankRow from '../TeamRankRow'
+import GanttChart from '@/features/stratix-mkt/components/gantt/GanttChart'
+import HoursSummaryCard from '@/features/stratix-mkt/components/horas/HoursSummaryCard'
 import s from './index.module.css'
 
 // El tablero de Stratix, armado con los MISMOS componentes que el de Research: una cosa es el
@@ -24,7 +26,7 @@ export default function OverviewTab() {
   const {
     trimestre, totalQ, completadasQ, enProcesoQ, pendientesQ, pctCompletado, totalHoras, totalDias,
     diasRestantes, horasDisponibles, datosPorMes, datosPorMarca,
-    equipoSinMi, actsFiltradas, datosPorMiembro, maxMiembro, setMktTab,
+    equipoSinMi, actsFiltradas, datosPorMiembro, maxMiembro, setMktTab, resumenHoras,
   } = useStratix()
 
   const kpis = [
@@ -72,6 +74,22 @@ export default function OverviewTab() {
         <Panel title={t('stratix.dash.ranking')}>
           <div className={s.ranking}>
             {datosPorMiembro.map((m, i) => <TeamRankRow key={m.id} m={m} i={i} maxMiembro={maxMiembro} />)}
+          </div>
+        </Panel>
+      </div>
+
+      {/* Gantt y horas: se miran, no se tocan, así que son del tablero y no de Production.
+          Los dos leen del mismo conjunto filtrado que las gráficas de arriba. */}
+      <div className={s.calendario}>
+        <Panel collapsible persistKey="stratix-gantt" title={t('stratix.gantt.title')}>
+          <GanttChart />
+        </Panel>
+      </div>
+
+      <div className={s.calendario}>
+        <Panel collapsible persistKey="stratix-horas" title={t('stratix.hours.teamSummary')}>
+          <div className={s.horas}>
+            {resumenHoras.map(r => <HoursSummaryCard key={r.id} r={r} />)}
           </div>
         </Panel>
       </div>

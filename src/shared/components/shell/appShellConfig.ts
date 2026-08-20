@@ -19,12 +19,11 @@ export type PanelKey = 'mkt' | 'medical' | 'research' | 'admin'
 // Sub-tabs de los módulos con panel secundario.
 export const SUB_ITEMS: Record<PanelKey, SubItem[]> = {
   mkt: [
-    // El tablero es su propia sección, igual que en Research y Medical: se mira de lejos y no se
-    // toca, mientras que Kanban/Gantt/Hours son donde se trabaja (ver .claude/rules/arquitectura.md).
-    // Hubo un item "Dashboard"→overview que se borró por duplicado, porque apuntaba al MISMO grupo
-    // que Production; deja de serlo ahora que `overview` salió del array `tabs` de abajo.
+    // El tablero es su propia sección: se mira de lejos y no se toca. Production es UNA vista, la
+    // única donde se trabaja —el Kanban—, así que tampoco tiene sub-vistas: el Gantt y las horas
+    // se leen, no se tocan, y por eso viven en el tablero (ver .claude/rules/arquitectura.md).
     { id: 'mkt-dash', icon: '📊', label: 'Dashboard', tab: 'overview' },
-    { id: 'sub-prod', icon: '⚡', label: 'Production', tab: 'kanban', tabs: ['kanban', 'gantt', 'horas'] },
+    { id: 'sub-prod', icon: '⚡', label: 'Production', tab: 'kanban' },
     { id: 'sub-sol', icon: '📋', label: 'Requests', tab: 'solicitudes' },
     { id: 'sub-social', icon: '📱', label: 'Social Media', tab: 'social' },
     { id: 'sub-competencia', icon: '🎯', label: 'Competitors', tab: 'competencia' },

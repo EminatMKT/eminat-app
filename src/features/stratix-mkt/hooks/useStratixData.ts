@@ -21,11 +21,9 @@ export function useStratixData() {
   const { usuario, actividades, equipo, esAdmin, mostrarMensaje, setActividades, miembrosPorId, miembrosAsignables, colorMarca } = useApp()
   const { t } = useT()
 
-  const [mktTab, setMktTab] = useUserPreference('tab-stratix', 'kanban', oneOf('overview', 'kanban', 'gantt', 'horas', 'solicitudes', 'social', 'competencia', 'equipo', 'reporte'))
+  const [mktTab, setMktTab] = useUserPreference('tab-stratix', 'kanban', oneOf('overview', 'kanban', 'solicitudes', 'social', 'competencia', 'equipo', 'reporte'))
   const [trimestre, setTrimestre] = useState('General')
   const [mesKanban, setMesKanban] = useState('')
-  const [ganttVista, setGanttVista] = useState('Month')
-  const [mesHoras, setMesHoras] = useState('')
   const [mesReporte, setMesReporte] = useState(MESES[new Date().getMonth()])
   const [miembroReporte, setMiembroReporte] = useState('')
   const [dragId, setDragId] = useState<string | null>(null)
@@ -93,9 +91,11 @@ export function useStratixData() {
   const actsKanban = mesKanban ? actividades.filter(a => a.mes === mesKanban) : actividades
   const porColumna = (col: string) => actsKanban.filter(a => a.estado === col)
 
-  const actsHoras = mesHoras ? actividades.filter(a => a.mes === mesHoras) : actividades
+  // Horas y Gantt son bloques del TABLERO: leen del mismo conjunto que las gráficas, así que
+  // el filtro de trimestre los mueve a los tres a la vez. Antes cada uno tenía su propio
+  // selector —un mes acá, un Week/Month/Qn allá— y podían estar mirando períodos distintos.
   const resumenHoras = idsTeam.map(id => {
-    const acts = actsHoras.filter(a => a.responsable_id === id)
+    const acts = actsFiltradas.filter(a => a.responsable_id === id)
     return { id, nombre: miembrosPorId[id] ?? '—', total: acts.length, completadas: acts.filter(a => a.estado === ESTADO.COMPLETADO).length, horas: Math.round(acts.reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10, dias: acts.reduce((acc, a) => acc + (Number(a.dias_produccion) || 0), 0) }
   }).filter(r => r.total > 0)
 
@@ -245,24 +245,15 @@ export function useStratixData() {
     w.document.close()
   }
 
-  const getGanttActs = () => {
-    const mesesGantt: Record<string, string[]> = { Q1: ['Enero', 'Febrero', 'Marzo'], Q2: ['Abril', 'Mayo', 'Junio'], Q3: ['Julio', 'Agosto', 'Septiembre'], Q4: ['Octubre', 'Noviembre', 'Diciembre'] }
-    let acts = actividades.filter(a => a.fecha_entrega)
-    if (mesesGantt[ganttVista]) acts = acts.filter(a => mesesGantt[ganttVista].includes(a.mes))
-    else if (ganttVista === 'Week') {
-      const ini = new Date(hoy); ini.setDate(hoy.getDate() - hoy.getDay())
-      const fin = new Date(ini); fin.setDate(ini.getDate() + 6)
-      acts = acts.filter(a => { const f = new Date(a.fecha_entrega); return f >= ini && f <= fin })
-    } else if (ganttVista === 'Month') {
-      acts = acts.filter(a => { const f = new Date(a.fecha_entrega); return f.getMonth() === hoy.getMonth() && f.getFullYear() === hoy.getFullYear() })
-    }
-    return acts.sort((a, b) => new Date(a.fecha_entrega).getTime() - new Date(b.fecha_entrega).getTime())
-  }
+  // Solo las que tienen fecha de entrega: sin fecha no hay barra que dibujar.
+  const ganttActs = actsFiltradas
+    .filter(a => a.fecha_entrega)
+    .sort((a, b) => new Date(a.fecha_entrega).getTime() - new Date(b.fecha_entrega).getTime())
 
   return {
     // state
     mktTab, setMktTab, trimestre, setTrimestre, mesKanban, setMesKanban,
-    ganttVista, setGanttVista, mesHoras, setMesHoras, mesReporte, setMesReporte,
+    mesReporte, setMesReporte,
     miembroReporte, setMiembroReporte, dragId, dragOver,
     modalNuevaAct, setModalNuevaAct, modalVerAct, setModalVerAct,
     creandoAct, nuevaAct, setNuevaAct,
@@ -273,6 +264,6 @@ export function useStratixData() {
     idsTeam, datosPorMiembro, maxMiembro, mesesDisponibles, actsKanban, porColumna,
     resumenHoras, idRep, actsRep, totalHorasRep, totalDiasRep, completadasRep, nombreRep,
     // handlers
-    onDragStart, onDragOverCol, onDragEnd, onDrop, crearActividad, getGanttActs, handlePrintReport,
+    onDragStart, onDragOverCol, onDragEnd, onDrop, crearActividad, ganttActs, handlePrintReport,
   }
 }

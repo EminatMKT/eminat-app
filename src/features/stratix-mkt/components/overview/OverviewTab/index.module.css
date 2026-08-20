@@ -59,3 +59,15 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* El Gantt y las horas cierran el tablero: se leen después de los indicadores y las gráficas,
+   y responden al mismo filtro de trimestre que ellos. */
+.calendario {
+  margin-top: 14px;
+}
+
+.horas {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

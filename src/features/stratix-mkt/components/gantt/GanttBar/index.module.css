@@ -5,6 +5,10 @@
 }
 
 .info {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--c-s1);
   width: 220px;
   flex-shrink: 0;
   padding: 10px 14px;
@@ -39,11 +43,13 @@
   background: color-mix(in srgb, var(--marca) 15%, transparent);
 }
 
+/* --ancho: el rango completo en píxeles. La barra se posiciona con `left` adentro de esta
+   pista, así que la pista tiene que medir lo mismo que el encabezado de días. */
 .pista {
-  flex: 1;
   position: relative;
   height: 48px;
-  overflow-x: hidden;
+  width: var(--ancho);
+  flex-shrink: 0;
 }
 
 /* --left y --width salen de la fecha de entrega y de los días de producción; --estado, del
