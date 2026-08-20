@@ -3,6 +3,7 @@ import { stageBuckets, specialtyBuckets, phaseBuckets, NO_STAGE, NO_PHASE } from
 import { LEAD_FILTERS } from './filters'
 import { applyFilters } from '@/shared/utils/filters'
 import type { Lead } from '../types'
+import type { I18nKey } from '@/shared/i18n'
 
 // LA invariante del cross-filter: cada barra es clickeable y su `key` va al filtro, así que
 // filtrar por el valor de una barra tiene que devolver EXACTAMENTE los leads que esa barra
@@ -20,7 +21,7 @@ const leads = [
   { id: '6', stage: 'Awarded', phase: 2 },                  // legacy: etapa vieja y fase numérica
 ] as unknown as Lead[]
 
-const t = ((k: string) => k) as any
+const t = ((k: string) => k) as (k: I18nKey) => string
 
 // Filtrar por el key de la barra devuelve tantos leads como dice la barra.
 const invariante = (buckets: { key: string; value: number }[], filterKey: string) => {

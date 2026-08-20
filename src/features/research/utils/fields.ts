@@ -151,7 +151,7 @@ export function coerceLeadValue(column: string, value: unknown): unknown {
 // Entero >= 0 o null. El dato viene del Excel de Royner, así que tolera la coma decimal del
 // locale es ("3,0") y devuelve null —no NaN— ante basura o negativos: un NaN llegaría al
 // insert y lo reventaría en runtime, y "no sé cuántos" no es lo mismo que "cero correos".
-function coerceCount(value: any): number | null {
+function coerceCount(value: unknown): number | null {
   const raw = (value ?? '').toString().trim().replace(',', '.')
   if (!raw) return null
   const n = Number(raw)

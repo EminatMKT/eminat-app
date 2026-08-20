@@ -17,8 +17,8 @@ export async function register() {
       if (error) throw error
 
       console.log(`\x1b[32m✓ Supabase OK\x1b[0m — auth service responde (${NEXT_PUBLIC_SUPABASE_URL})`)
-    } catch (err: any) {
-      console.error(`\x1b[31m✗ Supabase FAILED\x1b[0m — ${err?.message ?? err}`)
+    } catch (err: unknown) {
+      console.error(`\x1b[31m✗ Supabase FAILED\x1b[0m — ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 }

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { specialtyFromMesh, canonicalSpecialty, pendingSpecialty, specialtyLabel, SPECIALTY, SPECIALTIES } from './specialty'
+import type { I18nKey } from '@/shared/i18n'
 
 // Los casos de abajo NO son inventados: son las respuestas reales de
 // https://clinicaltrials.gov/api/v2/studies (relevadas el 18/08/2026 sobre 50 estudios
@@ -122,7 +123,7 @@ describe('pendingSpecialty', () => {
 
 // La tabla y la ficha muestran la especialidad traducida, no el literal guardado.
 describe('specialtyLabel', () => {
-  const t = ((k: string) => `[${k}]`) as any
+  const t = ((k: string) => `[${k}]`) as (k: I18nKey) => string
 
   it('traduce el valor canónico', () => {
     expect(specialtyLabel(SPECIALTY.ONCOLOGIA, t)).toBe('[research.specialty.oncologia]')
