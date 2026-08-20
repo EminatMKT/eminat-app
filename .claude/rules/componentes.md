@@ -48,7 +48,10 @@ no hay dónde ponerlo sin mover el primero.
 no el repo entero de una: 209 archivos usan `style={{}}` hoy y una migración masiva es un diff que
 nadie puede revisar.
 
-## Los estilos van en CSS Modules, no en `style={{}}`
+## El atributo `style` está prohibido
+
+Ninguna regla de diseño se escribe en el JSX. Ni colores, ni tamaños, ni espaciados, ni bordes,
+ni layout. Todo eso vive en el `index.module.css` del componente:
 
 ```tsx
 import s from './index.module.css'
@@ -61,10 +64,10 @@ export default function Panel({ children }) {
 props de layout inline hace que haya que leer 200 caracteres para encontrar el `{children}`. El
 CSS aparte deja el `.tsx` mostrando **qué** se renderiza y el `.css` **cómo** se ve.
 
-### Los valores que cambian en runtime pasan por variables CSS
+### La única excepción: pasar un DATO como variable CSS
 
-Lo que sale de los datos —el ancho de una barra, el color de una marca, una opacidad calculada—
-no puede estar en el `.css`. Va como custom property y el `.css` la consume:
+Lo que sale de la base no puede estar en el `.css` —el ancho de una barra, el color de una marca—
+porque no se conoce al escribirlo. Va como custom property, y el `.css` decide qué hacer con ella:
 
 ```tsx
 <div className={s.bar} style={{ '--fill': `${pct}%`, '--color': colorMarca[codigo] } as CSSProperties} />
@@ -73,8 +76,14 @@ no puede estar en el `.css`. Va como custom property y el `.css` la consume:
 .bar { width: var(--fill); background: var(--color); }
 ```
 
-**Motivo:** es el único `style` que queda justificado — pasa un dato, no una regla de diseño. Sin
-esto la alternativa es una clase por valor posible, que no existe cuando el valor sale de la base.
+**Esto no reabre la puerta.** Solo se admite si el valor viene de los datos y **solo** para
+declarar variables: en cuanto aparece una propiedad CSS real (`padding`, `display`, `fontSize`,
+`borderRadius`) dentro de un `style`, está mal, aunque venga en el mismo objeto que una variable.
+La prueba: si el valor se puede escribir en el `.css` sin conocer la fila de la base, va en el
+`.css`.
+
+**Motivo de la excepción:** sin ella la alternativa es una clase por valor posible, que no existe
+cuando el valor sale de la base — o manipular el DOM por `ref`, que es peor que el problema.
 
 ### Los colores salen de variables CSS, no de objetos JS
 
