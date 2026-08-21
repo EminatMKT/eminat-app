@@ -47,3 +47,43 @@ dejó 9 usuarios sin cuenta de Auth (imposible por la UI) y a la vez les puso `e
 que **el panel no tenía dónde asignar un equipo** — o sea que nadie creado desde el panel podía
 recibir una tarea. Cada fila insertada por SQL es una funcionalidad que nadie probó.
 Ver `docs/hallazgos-qa-2026-08-12.md`.
+
+## Un dominio cerrado no se escribe en un `CHECK`: va a su tabla de catálogo
+
+Una columna cuyo valor sale de una lista **no** lleva `CHECK (col IN ('a','b','c'))`. Va a una
+tabla de catálogo con su clave natural, y la columna la referencia por FK. El catálogo se
+administra desde `/admin` → Organización agregándole una entrada a `ORG_CATALOGS`
+(`src/features/admin/org-catalogs.ts`): el CRUD ya es config-driven para los seis que hay, así
+que sumar uno son unas líneas, no una pantalla.
+
+Lo mismo vale para la lista escrita en un `.ts`. `SEGUROS` y `GENEROS` en
+`src/features/medical/constants.ts` son la misma enumeración hardcodeada, solo que en el otro
+idioma.
+
+**La excepción, y es angosta:** si agregar un valor **exige código nuevo** —una rama, un color,
+una columna de Kanban, un parser—, la tabla mentiría: dejaría dar de alta un valor que la app
+no sabe manejar. Ahí queda como dominio cerrado, con `CHECK` **y** su objeto META en
+TypeScript, los dos juntos.
+
+La prueba es una sola pregunta: **¿alguien que no toca código puede agregar un valor y que
+funcione?** Si sí, es catálogo. Si hay que desplegar para que ese valor sirva de algo, es
+dominio cerrado.
+
+| Columna | Dónde va | Por qué |
+|---|---|---|
+| `pacientes.seguro` | tabla `seguros` | una aseguradora nueva no es código |
+| `pacientes.genero` | tabla `generos` | solo se muestra |
+| `research_leads.stage` | `CHECK` + `PIPELINE_COLS` | cada etapa tiene su columna en el pipeline y su color |
+| `paciente_fuentes.fuente` | `CHECK` + `FUENTE_META` | un sistema clínico nuevo necesita su parser de nombres |
+| `pacientes.estado` | `CHECK` + META | el tablero cuenta `activo` aparte; un valor nuevo no se contaría solo |
+
+**Motivo:** el repo ya lo pagó dos veces, y las dos costaron una migración. La matriz
+rol→módulos vivía hardcodeada en TypeScript hasta que hubo que crear un rol para un contrato
+nuevo; las marcas del grupo eran una constante `MARCAS` hasta que `empresas` tuvo que existir
+para poder dar de baja una sin borrarle el color a sus actividades históricas. En los dos casos
+el valor **no era código**: parecía código porque estaba escrito en un archivo `.ts`.
+
+Un `CHECK` inline es esa misma constante escrita en SQL, y encima protegida por una migración:
+para agregar `Oscar Health` a la lista de seguros hay que escribir un
+`ALTER TABLE … DROP CONSTRAINT`, aplicarlo en local, pushearlo a dev y después a prod — con
+backup y precheck, según la regla de acá arriba. Todo eso por el nombre de una aseguradora.
