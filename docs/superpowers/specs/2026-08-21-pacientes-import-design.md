@@ -210,12 +210,19 @@ BEGIN
   FOREACH tbl IN ARRAY tablas LOOP
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', tbl);
     EXECUTE format('DROP POLICY IF EXISTS "mod_access" ON public.%I', tbl);
-    EXECUTE format('DROP POLICY IF EXISTS "admin_all"  ON public.%I', tbl);
     EXECUTE format('CREATE POLICY "mod_access" ON public.%I USING (public.has_module(%L))', tbl, slug);
-    EXECUTE format('CREATE POLICY "admin_all"  ON public.%I USING (public.is_admin())', tbl);
   END LOOP;
 END $$;
 ```
+
+**Sin policy `admin_all`.** La versión anterior de este spec creaba las dos, y la segunda no
+hace nada: `has_module()` **ya** abre con `SELECT public.is_admin() OR …`, así que el admin pasa
+por `mod_access`. Una policy de más no es inocua — es una regla que alguien va a mantener, y que
+sugiere que el acceso de admin depende de ella cuando no.
+
+La policy es `FOR ALL` sin `WITH CHECK`, y eso es correcto acá: Postgres usa la expresión de
+`USING` también para el `INSERT`, y `has_module()` no mira la fila, así que sirve igual para
+leer y para escribir.
 
 ### Por qué el slug va en una variable y con `RAISE`
 
@@ -242,11 +249,32 @@ nunca duplica ni vuelve a preguntar.
 
 **La clave NO incluye `paciente_id`, y eso es deliberado.** La primera versión de este spec
 usaba `PRIMARY KEY (paciente_id, fuente)` — "un paciente tiene a lo sumo una identidad por
-sistema". Es falso en este archivo: eClinPro trae **44 duplicados internos** y eClinicalWorks 1.
-Al fusionar dos filas de la misma hoja, ese paciente necesita dos filas con
-`fuente = 'eclinpro'`, y la clave compuesta con `paciente_id` lo rechazaría. Con la clave sobre
-`(fuente, clave_origen)` un paciente puede acumular todas las identidades que haga falta, y
-sigue siendo imposible que una fila de origen apunte a dos pacientes.
+sistema". Es falso: eClinPro tiene **dos personas con la misma fecha de nacimiento cargadas dos
+veces con el nombre invertido** (`everett c lee` / `lee c everett`, `dunlap lateju` /
+`lateju dunlap`). Son dos cadenas crudas distintas, o sea dos claves distintas, o sea dos
+identidades de la **misma** fuente para el mismo paciente — y la clave con `paciente_id` las
+rechazaría al fusionarlas. Con la clave sobre `(fuente, clave_origen)` un paciente acumula
+todas las identidades que haga falta, y sigue siendo imposible que una fila de origen apunte a
+dos pacientes.
+
+Son dos casos, no 44. El número de 44 duplicados internos que aparece más arriba mide otra
+cosa —personas repetidas dentro de una hoja— y la mayoría de esos son la misma fila dos veces,
+que es el problema de la sección que sigue.
+
+### Colisiones dentro del mismo lote
+
+**47 filas del archivo son literalmente la misma fila repetida:** misma cadena de nombre, misma
+fecha de nacimiento. 46 en eClinPro y 1 en eClinicalWorks (`perez pereyra sol a|2004-04-12`).
+
+Calculan la **misma `clave_origen`**, así que un insert directo del lote choca contra la
+`PRIMARY KEY` y **aborta a mitad de camino**. No es un caso de fusión: no son dos personas ni
+dos identidades, es el export que trae la fila dos veces.
+
+El plan las colapsa **antes de escribir**: dos filas con la misma `clave_origen` son una sola,
+se quedan con la primera y las diferencias entre ellas —si las hay— se listan en el paso 4 como
+choque, igual que cualquier otro. El resumen las cuenta aparte, en su propia línea: "47 filas
+repetidas en el archivo". Descartarlas en silencio sería exactamente lo que la lección de
+Research prohíbe.
 
 ### Nombres de columna
 
@@ -281,10 +309,22 @@ el dato **crudo**, nunca sobre el interpretado:
 
 | Fuente | `clave_origen` |
 |---|---|
-| `emed` | el `Chart#` — 1.266 valores, todos únicos. Un ID de verdad |
-| `ecw`, `eclinpro` | `norm(cadena original del nombre) + '|' + fecha_nacimiento` |
+| `emed` | el `Chart#` **normalizado a entero** — 1.266 valores, todos únicos. Un ID de verdad |
+| `ecw`, `eclinpro` | `norm(cadena cruda del nombre)` + separador + `fecha_nacimiento` |
+| `manual` | el `id` del paciente — no hay sistema externo del que derivar una clave |
 
 `norm` = minúsculas, sin acentos, sin puntuación, colapsando espacios.
+
+**El `Chart#` se normaliza a entero, y no es un detalle cosmético.** Excel lo guarda como número
+y llega `2.0`, no `2`. Si un parser devolviera `'2.0'` y otro `'2'`, la misma persona tendría dos
+claves distintas y el import la duplicaría — sobre la columna que es la identidad, que es el peor
+lugar posible para una ambigüedad de formateo. Se normaliza con `String(Math.trunc(Number(v)))`
+y se testea.
+
+**`manual` usa el `id` del paciente**, no una clave derivada del nombre: un paciente cargado a
+mano no viene de ningún sistema, así que no hay cadena cruda que reconocer la próxima vez. Su
+fila en `paciente_fuentes` existe para que el matcheo sepa que ese paciente ya tiene una
+identidad propia y no le invente una.
 
 **Sobre la cadena original, no sobre el nombre partido.** Esto importa: en el paso 4 la persona
 puede corregir cómo se partió `Maria Elena Aranguren`. Si la clave saliera del resultado de esa
@@ -349,6 +389,14 @@ interpretado, y se corrige en línea o se excluye.
 La anotación `DUPLICADO ROCHE` se saca del apellido y se guarda en `notas` — no se descarta en
 silencio. `Formato visitas no borrar - Prueba` no se importa.
 
+**`telefono_alt` queda `null` si es igual a `telefono`.** En eClinicalWorks, Home y Cell son el
+mismo número en 199 de 241 filas: copiarlo en las dos columnas inventaría un segundo teléfono
+que no existe, y después alguien lo llamaría creyendo que probó dos vías.
+
+Ninguna fila del archivo deja `nombre` o `apellido` vacíos con las tres reglas de parseo — lo
+verifiqué sobre las 5.072. Aun así el paso 4 marca la fila si alguna queda vacía, porque las dos
+columnas son `NOT NULL` y un archivo futuro no tiene por qué parecerse a este.
+
 **Paso 5 — dos listas.** Arriba las exactas con contador y "desmarcar todas"; abajo las
 parciales, sin marcar, con las dos filas enfrentadas para comparar.
 
@@ -358,8 +406,23 @@ es peor que no tener resumen.
 
 ### Escritura
 
-Inserts en lotes de ~500 contra Supabase, bajo RLS. El plan se calcula entero antes de
-escribir nada: el paso 6 muestra el resultado final, no una estimación.
+El plan se calcula entero antes de escribir nada: el paso 6 muestra el resultado final, no una
+estimación. Después se escribe en lotes de ~500 contra Supabase, bajo RLS.
+
+**No hay transacción, así que la escritura tiene que ser reanudable.** Son ~10 lotes por HTTP:
+si el séptimo falla —timeout, corte de red, RLS— quedan 3.500 pacientes escritos y ninguna
+forma de saber dónde cortó. Reintentar el archivo entero con un `INSERT` pelado chocaría contra
+la `PRIMARY KEY` de todo lo ya escrito y volvería a abortar, esta vez en el lote 1.
+
+La salida no es una transacción que no existe: es que **reintentar sea inofensivo**. Cada lote
+va como `upsert` sobre `paciente_fuentes` con `onConflict: 'fuente,clave_origen'`, que es la
+misma propiedad de idempotencia que ya tiene el import a nivel archivo, aplicada a nivel lote.
+Un reintento reescribe lo que ya estaba y sigue por donde iba.
+
+El orden importa: primero `pacientes` con `.select('id')` para recuperar los uuid generados,
+después `paciente_fuentes` con esos ids. Un corte entre las dos mitades deja pacientes sin
+identidad de origen — que el reintento arregla, porque el matcheo los encuentra por nombre+DOB
+y les completa la fila que falta en vez de duplicarlos.
 
 ## Estructura de archivos
 
@@ -404,6 +467,10 @@ Los casos salen del archivo real, no se inventan:
 | Notación científica | `9.547060773E9` | `(954) 706-0773` |
 | Teléfono corto | `7.868181E8` | marcado, no truncado |
 | Teléfono basura | `0.0` | marcado |
+| Home == Cell | `879-657-8892` en las dos columnas | `telefono_alt` queda `null`, no se duplica |
+| Chart# de Excel | `2.0` | `'2'` — nunca `'2.0'` |
+| Fila repetida en el archivo | dos filas con la misma cadena y el mismo DOB | una sola, contada como repetida |
+| Reintento de un lote | reescribir un lote ya escrito | upsert, sin violación de PK |
 | Nombre ECW | `ACEBEY,JONATHAN` | apellido `Acebey`, nombre `Jonathan` |
 | Nombre ECP con separador | `Javier - Andrade` | nombre `Javier`, apellido `Andrade` |
 | Nombre ECP sin separador | `Maria Elena Aranguren` | marcado como ambiguo |
@@ -430,8 +497,9 @@ un `seed.sql` que no existe.
 **Antes del push a dev o prod:** el backup cubre cero tablas porque las dos son nuevas y no hay
 `SET NOT NULL` sobre datos existentes que pueda abortar a mitad de camino. **El paso no se
 omite: se resuelve en vacío, y queda dicho.** Lo que sí lleva verificación es la corrida
-posterior: conteo de filas, que el `UNIQUE (fuente, clave_origen)` esté, y que las policies
-respondan.
+posterior: conteo de filas, que la `PRIMARY KEY (fuente, clave_origen)` esté, y que las policies
+respondan **desde una sesión que no sea admin** — con un usuario admin, `has_module()` devuelve
+`true` por el short-circuit y la verificación no prueba nada.
 
 ### PHI: el archivo real va solo a producción
 
