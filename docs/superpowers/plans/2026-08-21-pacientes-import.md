@@ -171,10 +171,16 @@ lo resucite en la siguiente carga."
 ## Task 2: Los catálogos de dominio en TypeScript
 
 **Files:**
-- Modify: `src/features/medical/constants.ts:4-5`
+- Move: `src/features/medical/constants.ts` → `src/features/medical/constants/index.ts`
+  (con `git mv`, para conservar el historial)
+- Create: `src/features/medical/constants/index.test.ts`
 - Modify: `src/features/medical/types.ts:1-19`
-- Create: `src/features/medical/constants.test.ts`
 - Modify: `src/shared/i18n/es.json`, `src/shared/i18n/en.json`
+
+**Por qué pasa a carpeta:** `componentes.md` exime de ser carpeta a "un módulo de constantes",
+y este deja de serlo en cuanto le entran `generoLabel` y compañía — funciones con test. Ningún
+importador cambia: `'../constants'` y `@/features/medical/constants` resuelven el `index.ts`
+igual, así que el `git mv` no toca a ninguno de sus llamadores.
 
 **Interfaces:**
 - Produces: `GENERO_META`, `ESTADO_PACIENTE_META`, `FUENTE_META`, `GENEROS`, `ESTADOS_PACIENTE`,
@@ -623,8 +629,10 @@ describe('serialADate', () => {
     expect(serialADate('39872.0')).toEqual({ valor: '2009-02-28', marcada: false })
   })
   it('marca las fechas futuras en vez de aceptarlas', () => {
-    // 2068-10-06 en el archivo: error de siglo al tipear.
-    expect(serialADate('61576')).toMatchObject({ marcada: true, motivo: 'futura' })
+    // 61642 es 2068-10-06, una de las cuatro fechas futuras del archivo (error de
+    // siglo al tipear). El serial va verificado: cualquier número futuro haría pasar
+    // el test igual, así que uno equivocado mentiría sin que nada lo delate.
+    expect(serialADate('61642')).toMatchObject({ marcada: true, motivo: 'futura' })
   })
   it('marca la celda vacía sin inventar una fecha', () => {
     expect(serialADate('')).toEqual({ valor: null, marcada: true, motivo: 'sinFecha' })
@@ -735,9 +743,16 @@ El cerebro del import. Todo función pura, todo con test.
 
 **Interfaces:**
 - Consumes: `repararMojibake`, `normalizarCaja`, `normalizarChart` de `../normalizers`.
-- Produces: `parseNombre(fuente, crudo)` → `{ nombre, apellido, nota, ambiguo }`;
-  `claveOrigen(fuente, fila)` → `string`; `nucleo(nombre, apellido)` → `string[]` (multiconjunto
-  ordenado de tokens de ≥2 letras).
+- Produces:
+  ```ts
+  // eMedicalPractice trae First/Last en columnas separadas: meterle un separador en el
+  // medio inventaría un formato que el archivo no tiene, y esa cadena inventada
+  // terminaría dentro de la clave de identidad.
+  type Crudo = string | { first: string; last: string }
+  parseNombre(fuente: FuentePaciente, crudo: Crudo): { nombre: string; apellido: string; nota: string | null; ambiguo: boolean }
+  claveOrigen(fuente: FuentePaciente, fila: { nombreCrudo?: string; dobCrudo?: string; chart?: string; fila?: number }): string
+  nucleo(nombre: string, apellido: string): string[]   // multiconjunto ordenado, tokens de ≥2 letras
+  ```
 
 - [ ] **Step 1: Escribir el test que falla**
 
@@ -779,7 +794,9 @@ describe('parseNombre', () => {
   })
 
   it('repara el mojibake antes de todo', () => {
-    expect(parseNombre('emed', 'Yenni|PeÃ±a')).toMatchObject({ apellido: 'Peña' })
+    // emed recibe las dos columnas, no una cadena con separador.
+    expect(parseNombre('emed', { first: 'Yenni', last: 'PeÃ±a' }))
+      .toMatchObject({ nombre: 'Yenni', apellido: 'Peña' })
   })
 
   it('normaliza la caja', () => {
@@ -899,6 +916,21 @@ describe('candidatos', () => {
     const f = { nombre: 'Rosa Elvira', apellido: 'Ardila de Delgado', fecha_nacimiento: '1964-09-13',
                 telefono: '(786) 555-9999', email: 'otra@y.com' }
     expect(candidatos(f, [rosa])[0]).toMatchObject({ nivel: 'parcial' })
+  })
+
+  it('AUSENTE no es disjunto: sin contacto, la exacta sigue siendo exacta', () => {
+    // El 86% de eClinPro no trae email. Si "sin dato" contara como disjunto, casi
+    // ninguna de las 805 exactas quedaría pre-marcada y volverían a ser trabajo
+    // manual — justo lo que los dos niveles existen para evitar.
+    const f = { nombre: 'Rosa Elvira', apellido: 'Ardila de Delgado', fecha_nacimiento: '1964-09-13',
+                telefono: null, email: null }
+    expect(candidatos(f, [rosa])[0]).toMatchObject({ nivel: 'exacta' })
+  })
+
+  it('un solo dato de contacto coincidente alcanza para seguir siendo exacta', () => {
+    const f = { nombre: 'Rosa Elvira', apellido: 'Ardila de Delgado', fecha_nacimiento: '1964-09-13',
+                telefono: '(305) 555-0101', email: 'otra@y.com' }
+    expect(candidatos(f, [rosa])[0]).toMatchObject({ nivel: 'exacta' })
   })
 
   it('los homónimos con distinto nombre NO son candidatos', () => {
@@ -1110,6 +1142,16 @@ cargado."
   }): ImportPlan
   ```
 - `ImportPlan` = `{ toInsert, toUpdate, toMerge, repetidas, tumbas, skipped }`.
+
+**`Identity` es un adaptador, no las funciones de Medical directamente.** Las de la Tarea 6
+reciben un objeto (`{ nombreCrudo, dobCrudo, chart, fila }`) y las de la Tarea 7 devuelven el
+paciente entero; el contrato compartido habla de `fila: string[]` e `id`. Quien traduce es el
+adaptador que Medical arma en la Tarea 10, que es donde está el `mapping` que dice qué columna
+del archivo es cuál. **`src/shared/import/` no conoce ninguna de las dos formas de Medical.**
+
+Los campos agregados (`toMerge`, `repetidas`, `tumbas`) no rompen los tests de Research:
+verificado que `importPlan.test.ts` asierta por campo (`p.toInsert`, `p.skipped`), nunca la
+forma entera del objeto.
 
 - [ ] **Step 1: Escribir el test que falla**
 
