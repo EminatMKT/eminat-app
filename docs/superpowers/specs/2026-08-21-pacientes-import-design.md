@@ -5,6 +5,12 @@
 **Módulo:** `medical`
 **Archivo origen:** `EMINAT PT REGISTRY - ECW, ECLINPRO, EMED.xlsx` — 3 hojas, 5.072 filas
 
+> **Revisión 2** — este documento fue revisado por dos pasadas adversariales independientes
+> (una contra el SQL ejecutado en Postgres local, otra contra el archivo real) que encontraron
+> 32 defectos, cinco de ellos capaces de corromper datos en producción. Todos están aplicados.
+> Los números de la revisión 1 estaban medidos con una regla de parseo defectuosa y **no son
+> comparables** con los de acá.
+
 ## Problema
 
 El módulo Medical **no toca la base**. `useMedicalData` monta `generateDemoData()` en memoria,
@@ -14,15 +20,13 @@ paciente y recargar la página lo borra.
 Al mismo tiempo hay un registro real de ~5.000 pacientes repartido en tres sistemas clínicos
 distintos, en un Excel de tres hojas, que hoy no tiene forma de entrar al sistema.
 
-Research ya resolvió el import genérico —parser de texto delimitado, mapeo de headers,
-plan de insert/update, preview con resumen— pero apunta a una tabla real con RLS, que es
-justamente lo que Medical no tiene.
+Research ya resolvió el import genérico —parser de texto delimitado, mapeo de headers, plan de
+insert/update, preview con resumen— pero apunta a una tabla real con RLS, que es justamente lo
+que Medical no tiene.
 
 Este spec cubre las dos mitades: la tabla y el import.
 
 ## Perfil del archivo (medido, no supuesto)
-
-Las tres hojas son tres sistemas con tres formatos:
 
 | | eClinicalWorks | eClinPro | eMedicalPractice |
 |---|---|---|---|
@@ -31,7 +35,7 @@ Las tres hojas son tres sistemas con tres formatos:
 | DOB | 285 | 3.480 (**41 vacías**) | 1.266 |
 | Teléfono | 2 columnas, formato limpio | 2 columnas, notación científica | 1 columna, notación científica |
 | Sexo | `M` / `F` | *(no trae)* | `Male` / `Female` |
-| Email | 225 (78%) | 478 (**13%**) | 494 (39%) |
+| Email | 225 (79%) | 478 (14%) | 494 (39%) |
 | ID propio | — | — | `Chart#`, 1.266 únicos |
 
 **Total:** 5.072 filas, 5.031 con fecha de nacimiento.
@@ -40,82 +44,96 @@ Las tres hojas son tres sistemas con tres formatos:
 
 Ninguna es hipotética; todas salen de contar el archivo.
 
-1. **416 nombres de eClinPro sin separador.** 100 de 2 palabras, 206 de 3, 97 de 4, 13 de 5+.
-   `Dalia Tellez` parte bien; `Maria Elena Aranguren` y `Katia D Triana Perez` no.
-2. **158 filas con anotaciones dentro del nombre.** 157 con `DUPLICADO ROCHE` pegado al
-   apellido, y `Formato visitas no borrar - Prueba`, que no es un paciente. Más `1Reinier - t`,
-   la única fila con dígitos en el nombre.
-3. **4 fechas de nacimiento en el futuro:** `2067-09-28`, `2068-10-06`, `2067-07-23`,
+1. **416 nombres de eClinPro sin separador**, y **312 de esos llevan la inicial del segundo
+   nombre en segunda posición** (`SANDRA V NEGRETE`, `Katia D Triana Perez`). Una regla ingenua
+   de "primer token = nombre, resto = apellido" mete la inicial dentro del apellido y rompe todo
+   el matcheo — ver § Parseo del nombre.
+2. **8 filas con encoding roto (mojibake UTF-8→latin-1):** `Yenni PeÃ±a`, `Maggie MuÃ±oz`,
+   `Bethsabe EstupiÃ±an`, `Roberto PeÃ±a`, `Clara MuÃ±oz`, `Martin PeÃ±a`, `Julio PeÃ±a`,
+   `Penelope PeÃ±a`. Siete tienen contraparte con el mismo DOB en otra hoja. Reparan limpio con
+   `latin-1 → utf-8`.
+3. **158 filas con anotaciones dentro del nombre.** 157 con `DUPLICADO ROCHE`, de las cuales
+   **8 están en filas sin separador**, así que la anotación cae adentro del apellido junto con
+   la inicial. Más `1Reinier - t`, la única fila con dígitos en el nombre.
+4. **Dos filas que no son pacientes:** `Formato visitas no borrar - Prueba` (eClinPro) y
+   **`T,TEMPLATES`** (eClinicalWorks, con DOB 1975-01-31, sexo M y un teléfono de Massachusetts
+   — el único del archivo). La segunda pasa las tres reglas de parseo sin marcar nada.
+5. **2.226 de 5.072 nombres están enteros en mayúsculas** (eClinPro 2.004, ECW 141, eMed 81) y
+   7 enteros en minúsculas.
+6. **4 fechas de nacimiento en el futuro:** `2067-09-28`, `2068-10-06`, `2067-07-23`,
    `2062-11-21`. Error de siglo al tipear.
-4. **41 filas sin fecha de nacimiento** (eClinPro).
-5. **30 teléfonos que no dan 10 dígitos**, incluido un `0.0` y cuatro de 11 dígitos con
-   prefijo `1`. 4.673 de 4.717 vienen en notación científica (`9.547060773E9`).
-6. **En eClinicalWorks, Home y Cell son el mismo número en 199 de 241 filas.**
-7. **Emails compartidos entre pacientes distintos** — 7 en ECW, 4 en eClinPro, 6 en eMed.
-   Son familias: el email **no puede llevar `UNIQUE`**.
-8. **Todas las fechas vienen como serial de Excel** (`39872.0`), no como fecha.
+7. **41 filas sin fecha de nacimiento**, todas en eClinPro.
+8. **5.483 de 6.011 teléfonos vienen en notación científica** (`9.547060773E9`), y **30 no dan
+   10 dígitos**: 23 de 9 dígitos, 4 de 11, 2 que son `0.0`, y **uno de 13** (`5.52199E12`, fila
+   de `ELENA - GEZEL`). De los cuatro de 11 dígitos, **uno solo** tiene prefijo `1`
+   (`17543678071`); los otros tres son un número válido con un dígito de más al final
+   (`81370956960` = 813-709-5696 + `0`). Ver § Teléfonos: la regla obvia los rompe.
+9. **En eClinicalWorks, Home y Cell son el mismo número en 199 de 241 filas.**
+10. **Emails compartidos entre pacientes distintos** — 7 en ECW, 4 en eClinPro, 6 en eMed. Son
+    familias: el email **no puede llevar `UNIQUE`**.
+11. **Todas las fechas vienen como serial de Excel** (`39872.0`), no como fecha.
+12. **186 apellidos multi-palabra en eMedicalPractice**, 26 con partícula (`de la fuente`,
+    `perez de goncalves`, `san jorge`).
 
 ### Duplicados reales
 
-Con la clave por conjunto de partes del nombre + fecha de nacimiento, contando personas que
-aparecen en más de una fuente:
+Medido **con las reglas corregidas** de § Parseo y § Identidad (mojibake reparado, anotaciones
+limpias, iniciales en el nombre, multiconjunto sin iniciales), contando personas que aparecen
+en más de una fuente:
 
 ```
-coincidencia exacta (mismo conjunto de partes + DOB) ......... 726
-coincidencia por 1er nombre + 1er apellido + DOB ............. 876
-──────────────────────────────────────────────────────────────────
-solo detectables contemplando nombres/apellidos compuestos ... 164
-duplicados internos de una misma hoja ........................ 45  (ECW 1 · eClinPro 44)
+nivel EXACTO   (mismo multiconjunto de partes ≥2 letras + DOB) ....  805
+nivel PARCIAL  (mismo primer nombre + primer apellido + DOB) ...... 1.023
+──────────────────────────────────────────────────────────────────────────
+que SOLO ve el parcial ...........................................  226
+duplicados internos de una misma hoja ............................   47   (ECW 1 · eClinPro 44 · eMed 2)
+filas literalmente repetidas .....................................   47
 ```
 
-Los 164 son el patrón cubano-venezolano: un sistema guarda el segundo nombre o el apellido
-materno y otro no.
+Fusionando solo lo exacto quedan **4.132 pacientes**; aceptando todas las parciales, ~3.900.
+
+Los 226 del nivel parcial son el patrón cubano-venezolano —un sistema guarda el segundo nombre
+o el apellido materno y otro no:
 
 ```
 1964-09-13   ecw: rosa elvira / ardila de delgado
              eclinpro: rosa / ardila
              emed: rosa / ardila de delgado
-
-1990-09-02   ecw: dugleidys carolina / faneites milano
-             emed: dugleidys / faneites
 ```
 
-De los 164, en 78 varía el nombre de pila y en 120 el apellido. **Sin contemplarlos, 164
-personas entran duplicadas y nadie pregunta nada.**
-
-5.072 filas convergen a ~4.100–4.250 pacientes según cuántas parciales se acepten.
+**Con la regla de parseo de la revisión 1, 149 de estas personas no las agarraba ningún nivel**
+y entraban duplicadas en silencio. El parseo corregido sube las exactas de 726 a 805.
 
 ## Decisiones
 
 ### 1. Tabla real, no persistencia en memoria
 
-Solo `pacientes`. Citas, logs HIPAA, incidentes y capacitaciones **siguen siendo demo** en
-esta etapa. Motivo: es lo mínimo que hace que los 5.000 pacientes sobrevivan a un F5, y
-mover el módulo entero es otro trabajo.
+Solo `pacientes`. Citas, logs HIPAA, incidentes y capacitaciones **siguen siendo demo**. Es lo
+mínimo que hace que los 5.000 pacientes sobrevivan a un F5; mover el módulo entero es otro
+trabajo.
 
 ### 2. `paciente_fuentes` como tabla hija, no `fuentes text[]`
 
-La primera versión fue un array de fuentes en el paciente — es lo que se pidió literalmente.
-Tiene un agujero concreto: la clave de identidad es **nombre + fecha de nacimiento**, o sea
-datos editables. Al corregir un apellido mal tipeado la clave cambia, el import del mes
-siguiente no reconoce a esa persona, la crea de nuevo y **vuelve a preguntar por un duplicado
-ya resuelto**.
+La primera versión fue un array de fuentes en el paciente. Tiene un agujero concreto: la clave
+de identidad se apoya en el nombre, o sea en datos editables. Al corregir un apellido mal
+tipeado la clave cambia, el import del mes siguiente no reconoce a esa persona, la crea de nuevo
+y **vuelve a preguntar por un duplicado ya resuelto**.
 
-Se arregla guardando con qué clave llegó cada fuente, no solo qué fuentes tiene. Eso ya no es
-un array: es una tabla hija, que además le da lugar al `Chart#` de eMedicalPractice y al
-nombre original tal cual lo tenía cada sistema.
+Se arregla guardando con qué clave llegó cada fuente, no solo qué fuentes tiene. Eso ya no es un
+array: es una tabla hija, que además le da lugar al `Chart#` y al nombre original de cada
+sistema.
 
-**Descartado:** `fuentes text[]` + `claves_origen text[]` en el paciente. Dos arrays que
-tienen que mantenerse alineados por posición es peor que la tabla.
+**Descartado:** `fuentes text[]` + `claves_origen text[]`. Dos arrays alineados por posición es
+peor que la tabla.
 
 ### 3. Sin tabla de excepciones para "no son la misma persona"
 
-Cuando alguien decide que dos registros son personas distintas, se crea el paciente aparte.
-Eso deja un paciente **de esa misma fuente con esa misma clave**, así que en el próximo import
-la fila se reconoce a sí misma por `(fuente, clave_origen)` y actualiza sin preguntar.
+Cuando alguien decide que dos registros son personas distintas, se crea el paciente aparte. Eso
+deja un paciente **de esa misma fuente con esa misma clave**, así que en el próximo import la
+fila se reconoce por `(fuente, clave_origen)` y actualiza sin preguntar.
 
-La decisión queda registrada en el propio dato. No hace falta una lista de descartes que
-alguien tenga que mantener.
+La decisión queda registrada en el propio dato — **siempre que el dato sobreviva**, que es por
+lo que el borrado no cascadea (§ Borrado).
 
 ### 4. `nombre` y `apellido` como texto libre — no se parte en cuatro columnas
 
@@ -124,48 +142,61 @@ Contemplar los nombres y apellidos compuestos **no** significa modelar
 
 - **Ninguna fuente trae el corte.** eMedicalPractice tiene un solo campo `Last Name` y adentro
   dice `ardila de delgado`.
-- **No se puede derivar.** De los 196 apellidos multi-palabra de eMedicalPractice, 23 llevan
-  partícula: `de la fuente`, `perez de goncalves`, `san jorge`, `de la vega`. Ahí el corte
-  paterno/materno no es mecánico.
+- **No se puede derivar.** De los 186 apellidos multi-palabra de eMedicalPractice, 26 llevan
+  partícula: `de la fuente`, `perez de goncalves`, `san jorge`. Ahí el corte no es mecánico.
 - Partirlo es **inventar un dato que el origen no tiene** — la misma clase de error que costó
   una fase entera de migración sacar de `responsable_ref`.
 
-Lo compuesto se contempla donde importa: en el **matcheo** (§ Identidad) y en `nombre_origen`,
-que preserva la cadena original por si el corte hace falta después.
+Lo compuesto se contempla en el **matcheo** (§ Identidad) y en `nombre_origen`, que preserva la
+cadena cruda por si el corte hace falta después.
 
 ### 5. `Age` no se guarda
 
 eClinicalWorks trae `17 Y 5 M`. Es un atributo derivado de `fecha_nacimiento` y se calcula al
-mostrarlo. Una columna que codifica un dato que ya existe por separado se desincroniza sola.
+mostrarlo.
 
 ### 6. El import va por la UI, no por seed
 
-Coherente con la regla del repo: un seed escribe filas que ningún formulario podría producir y
-esconde los agujeros de la UI. El modal de import **es** la funcionalidad, no el andamio.
+Un seed escribe filas que ningún formulario podría producir y esconde los agujeros de la UI. El
+modal de import **es** la funcionalidad, no el andamio.
+
+### 7. Las enumeraciones van a un `DOMAIN` con nombre
+
+`genero`, `estado` y `fuente` se declaran como `DOMAIN` arriba de la tabla, nunca en la línea de
+la columna. Ver `.claude/rules/base-de-datos.md`.
 
 ## Esquema
 
 ```sql
 -- pnpm supabase migration new pacientes  →  supabase/migrations/<timestamp>_pacientes.sql
+--
+-- IDEMPOTENTE: el workaround del repo cuando el historial de la CLI se desalinea es aplicar
+-- el .sql por psql, así que todo objeto se crea con IF NOT EXISTS o dentro de un guard.
 
--- Los enums, declarados aparte y con nombre. Nombrados por lo que representan, no por
--- dónde se usan: `estado_paciente` sigue sirviendo cuando lo use una segunda tabla.
-CREATE DOMAIN public.genero AS text
-  CHECK (VALUE IN ('M','F','NB','ND'));
-CREATE DOMAIN public.estado_paciente AS text
-  CHECK (VALUE IN ('activo','inactivo','alta'));
-CREATE DOMAIN public.fuente_paciente AS text
-  CHECK (VALUE IN ('ecw','eclinpro','emed','manual'));
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'genero') THEN
+    CREATE DOMAIN public.genero AS text
+      CONSTRAINT genero_valores CHECK (VALUE IN ('M','F','NB','ND'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'estado_paciente') THEN
+    CREATE DOMAIN public.estado_paciente AS text
+      CONSTRAINT estado_paciente_valores CHECK (VALUE IN ('activo','inactivo','alta'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'fuente_paciente') THEN
+    CREATE DOMAIN public.fuente_paciente AS text
+      CONSTRAINT fuente_paciente_valores CHECK (VALUE IN ('ecw','eclinpro','emed','manual'));
+  END IF;
+END $$;
 
-CREATE SEQUENCE public.pacientes_mrn_seq;
+CREATE SEQUENCE IF NOT EXISTS public.pacientes_mrn_seq;
 
-CREATE TABLE public.pacientes (
+CREATE TABLE IF NOT EXISTS public.pacientes (
   id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   mrn               text UNIQUE NOT NULL
-                      DEFAULT 'MRN-' || to_char(now(), 'YYYY') || '-' ||
-                              lpad(nextval('public.pacientes_mrn_seq')::text, 5, '0'),
-  nombre            text NOT NULL,
-  apellido          text NOT NULL,
+                      DEFAULT 'MRN-' || to_char(now() AT TIME ZONE 'America/New_York', 'YYYY')
+                              || '-' || to_char(nextval('public.pacientes_mrn_seq'), 'FM000000'),
+  nombre            text NOT NULL CONSTRAINT pacientes_nombre_no_vacio   CHECK (btrim(nombre)   <> ''),
+  apellido          text NOT NULL CONSTRAINT pacientes_apellido_no_vacio CHECK (btrim(apellido) <> ''),
   fecha_nacimiento  date,
   genero            public.genero,
   telefono          text,
@@ -182,8 +213,9 @@ CREATE TABLE public.pacientes (
   updated_at        timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE public.paciente_fuentes (
-  paciente_id   uuid NOT NULL REFERENCES public.pacientes(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS public.paciente_fuentes (
+  -- NULL = tumba: la persona se borró a propósito y NO debe recrearse (ver § Borrado)
+  paciente_id   uuid REFERENCES public.pacientes(id) ON DELETE SET NULL,
   fuente        public.fuente_paciente NOT NULL,
   clave_origen  text NOT NULL,     -- identificador estable DE ESA FUENTE (ver § Identidad)
   nombre_origen text,              -- la cadena tal cual la tenía ese sistema
@@ -191,13 +223,18 @@ CREATE TABLE public.paciente_fuentes (
   importado_at  timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (fuente, clave_origen)
 );
-CREATE INDEX paciente_fuentes_paciente_id_idx ON public.paciente_fuentes(paciente_id);
+CREATE INDEX IF NOT EXISTS paciente_fuentes_paciente_id_idx
+  ON public.paciente_fuentes(paciente_id);
 
-CREATE TRIGGER trg_pacientes_updated_at BEFORE UPDATE ON public.pacientes
+CREATE OR REPLACE TRIGGER trg_pacientes_updated_at BEFORE UPDATE ON public.pacientes
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
+-- GRANTs explícitos. NO son opcionales: ver § Los GRANT.
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.pacientes, public.paciente_fuentes
+  TO authenticated, service_role;
+GRANT USAGE ON SEQUENCE public.pacientes_mrn_seq TO authenticated, service_role;
+
 -- El slug se declara UNA vez y las policies se generan, como en dynamic_roles.sql.
--- El RAISE es el guard que ahí falta: ver la nota de abajo.
 DO $$
 DECLARE
   slug   text   := 'medical';
@@ -205,167 +242,282 @@ DECLARE
   tbl    text;
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.role_modules WHERE module_slug = slug) THEN
-    RAISE EXCEPTION 'slug de módulo desconocido: %', slug;
+    RAISE EXCEPTION 'slug de módulo % sin ningún rol asignado: o está mal escrito, o el admin '
+                    'le quitó el módulo a todos los roles. Verificar antes de seguir.', slug;
   END IF;
   FOREACH tbl IN ARRAY tablas LOOP
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', tbl);
     EXECUTE format('DROP POLICY IF EXISTS "mod_access" ON public.%I', tbl);
-    EXECUTE format('CREATE POLICY "mod_access" ON public.%I USING (public.has_module(%L))', tbl, slug);
+    -- El (SELECT …) NO es decorativo: fuerza un InitPlan. Ver § RLS por fila.
+    EXECUTE format('CREATE POLICY "mod_access" ON public.%I USING ((SELECT public.has_module(%L)))',
+                   tbl, slug);
   END LOOP;
 END $$;
 ```
 
-**Sin policy `admin_all`.** La versión anterior de este spec creaba las dos, y la segunda no
-hace nada: `has_module()` **ya** abre con `SELECT public.is_admin() OR …`, así que el admin pasa
-por `mod_access`. Una policy de más no es inocua — es una regla que alguien va a mantener, y que
-sugiere que el acceso de admin depende de ella cuando no.
+### Los `GRANT`, y por qué local miente
 
-La policy es `FOR ALL` sin `WITH CHECK`, y eso es correcto acá: Postgres usa la expresión de
-`USING` también para el `INSERT`, y `has_module()` no mira la fila, así que sirve igual para
-leer y para escribir.
+`supabase/config.toml` tiene `auto_expose_new_tables` **comentado**, y su propio comentario dice
+que sin ese flag *"new entities are NOT auto-exposed, matching the new cloud default"*.
 
-### Por qué el slug va en una variable y con `RAISE`
+En **local** la migración funciona igual, porque la base tiene *default privileges* heredados que
+otorgan a `anon`/`authenticated`/`service_role`. En **dev y prod no**: cada request de PostgREST
+devuelve `42501 permission denied for table pacientes`, y el `nextval` del MRN falla por falta de
+`USAGE` sobre la sequence.
 
-Repetir `'medical'` en cuatro policies no es solo ruido: **un slug mal escrito no falla, se
-vuelve invisible**.
+O sea: **todo el desarrollo y todo el QA pasan, y el módulo nace muerto en la nube.**
+`20260624210414_dynamic_roles.sql` (líneas 128-129) ya hace los `GRANT` explícitos para sus dos
+tablas; esta migración los copia. **No se granea a `anon`**: el default local le da hasta
+`TRUNCATE`, que no pasa por RLS.
 
-`role_modules.module_slug` es `text NOT NULL`, sin FK y sin tabla de catálogo detrás — no hay
-nada en la base que valide un slug. Y `has_module()` abre con `SELECT public.is_admin() OR …`,
-así que una policy que dijera `has_module('medial')` **devolvería `true` para el admin**. El
-admin es exactamente quien escribe y prueba la migración: vería la tabla funcionando perfecto
-mientras está invisible para todos los demás.
+### RLS por fila: el `(SELECT …)` que multiplica por 575
 
-El `RAISE EXCEPTION` cierra eso sin agregar ninguna tabla: si el slug no existe en
-`role_modules`, la migración aborta en el momento de aplicarse en vez de dejar dos tablas
-mudas. Cuesta tres líneas.
+`has_module()` es `STABLE SECURITY DEFINER` y hace un `EXISTS` con JOIN. Escrita pelada, el
+planner la ejecuta **una vez por fila escaneada**. Medido en local con 5.000 filas:
 
-**Lo que no arregla, y queda anotado:** falta un catálogo `modules` con FK desde
-`role_modules.module_slug`. Está fuera de scope de este spec — toca la migración de roles
-dinámicos, que ya está en producción.
+```
+USING (public.has_module('medical'))        → Filter: has_module(…)      195,4 ms
+USING ((SELECT public.has_module('medical'))) → Filter: (InitPlan 1).col1   0,3 ms
+```
 
-**`PRIMARY KEY (fuente, clave_origen)` es la garantía de idempotencia:** una fila de
-eClinicalWorks apunta a un solo paciente, para siempre. Reimportar el mismo archivo actualiza,
-nunca duplica ni vuelve a preguntar.
+El paréntesis fuerza un InitPlan y la función corre una sola vez. El patrón pelado se copió de
+`dynamic_roles.sql`, donde no dolía porque `research_leads` tiene 35 filas; acá son 5.000 y
+crece.
 
-**La clave NO incluye `paciente_id`, y eso es deliberado.** La primera versión de este spec
-usaba `PRIMARY KEY (paciente_id, fuente)` — "un paciente tiene a lo sumo una identidad por
-sistema". Es falso: eClinPro tiene **dos personas con la misma fecha de nacimiento cargadas dos
-veces con el nombre invertido** (`everett c lee` / `lee c everett`, `dunlap lateju` /
-`lateju dunlap`). Son dos cadenas crudas distintas, o sea dos claves distintas, o sea dos
-identidades de la **misma** fuente para el mismo paciente — y la clave con `paciente_id` las
-rechazaría al fusionarlas. Con la clave sobre `(fuente, clave_origen)` un paciente acumula
-todas las identidades que haga falta, y sigue siendo imposible que una fila de origen apunte a
-dos pacientes.
+### El MRN
 
-Son dos casos, no 44. El número de 44 duplicados internos que aparece más arriba mide otra
-cosa —personas repetidas dentro de una hoja— y la mayoría de esos son la misma fila dos veces,
-que es el problema de la sección que sigue.
+- `to_char(nextval(...), 'FM000000')` y **no** `lpad(…, 5, '0')`: `lpad` **trunca**, así que el
+  paciente 100.000 recibiría el MRN del 10.000 y violaría el `UNIQUE`. Un MRN es un identificador
+  de por vida; el error está escrito hoy aunque muerda en diez años.
+- `now() AT TIME ZONE 'America/New_York'`: el servidor corre en UTC, así que `to_char(now(),'YYYY')`
+  le pone `MRN-2027-…` a un alta del 31/12 a las 20:30 en Florida. Es el mismo bug que
+  `codigo.md` prohíbe, reescrito en SQL.
+- La sequence es **global y no se reinicia por año**, así que `MRN-2027-…` arranca donde quedó
+  2026. El formato sugiere un contador anual que no existe; se acepta a sabiendas, porque el MRN
+  solo necesita ser único.
 
-### Colisiones dentro del mismo lote
+### Sin policy `admin_all`
 
-**47 filas del archivo son literalmente la misma fila repetida:** misma cadena de nombre, misma
-fecha de nacimiento. 46 en eClinPro y 1 en eClinicalWorks (`perez pereyra sol a|2004-04-12`).
+`has_module()` ya abre con `SELECT public.is_admin() OR …`, así que el admin pasa por
+`mod_access`. Una policy de más no es inocua: es una regla que alguien mantiene y que sugiere
+que el acceso de admin depende de ella.
 
-Calculan la **misma `clave_origen`**, así que un insert directo del lote choca contra la
-`PRIMARY KEY` y **aborta a mitad de camino**. No es un caso de fusión: no son dos personas ni
-dos identidades, es el export que trae la fila dos veces.
+La policy es `FOR ALL` sin `WITH CHECK`, y es correcto: Postgres copia la expresión de `USING` al
+`WITH CHECK`, verificado rechazando `INSERT` y `UPDATE` con un rol `authenticated`.
 
-El plan las colapsa **antes de escribir**: dos filas con la misma `clave_origen` son una sola,
-se quedan con la primera y las diferencias entre ellas —si las hay— se listan en el paso 4 como
-choque, igual que cualquier otro. El resumen las cuenta aparte, en su propia línea: "47 filas
-repetidas en el archivo". Descartarlas en silencio sería exactamente lo que la lección de
-Research prohíbe.
+### El guard del `RAISE`, y lo que no cubre
+
+Valida que el slug tenga **algún rol asignado hoy**, no que sea válido — `role_modules` es data
+que el admin edita desde `/admin`. Si le quitara `medical` al último rol que lo tiene, la
+migración abortaría con el slug correcto. Por eso el mensaje nombra las dos causas.
+
+Es el mejor guard disponible mientras no exista un catálogo `modules` con FK desde
+`role_modules.module_slug` — anotado en `.todo/TODO.md`, fuera de scope porque toca la migración
+de roles dinámicos, que ya está en producción.
+
+### Borrado: `ON DELETE SET NULL`, no `CASCADE`
+
+Con `CASCADE`, borrar un paciente se lleva sus filas de `paciente_fuentes` — que son el único
+registro de "esta fila de origen ya se procesó". El próximo import no encuentra la clave y
+**resucita a la persona** con MRN nuevo. Para 5.000 personas con PHI y una pestaña HIPAA al
+lado, eso no puede pasar.
+
+Con `SET NULL`, la fila sobrevive como **tumba**: `paciente_id IS NULL` significa "esto se borró
+a propósito, no recrear". El import las cuenta en su propia línea del resumen —"N filas
+correspondían a pacientes eliminados"— y no las toca.
 
 ### Nombres de columna
 
 - `paciente_id` — surrogate uuid, lleva `_id`.
-- `fuente` — clave natural sana (legible, del catálogo cerrado, no codifica nada que exista
-  por separado), va sin sufijo. Mismo criterio que `actividades.empresa`.
+- `fuente` — clave natural sana, va sin sufijo. Mismo criterio que `actividades.empresa`.
 
 ### Catálogos de dominio
 
-Cada enum se declara **dos veces y en dos lugares**, y las dos mitades tienen que listar lo
-mismo:
+Cada enum se declara **dos veces y en dos lugares**, y las dos mitades listan lo mismo:
 
-- En SQL, como `DOMAIN` con nombre —`public.genero`, `public.estado_paciente`,
-  `public.fuente_paciente`— arriba de la tabla, en la misma migración. Fija **qué se puede
-  guardar**. Nunca en la línea de la columna.
-- En TypeScript, como objeto META en `src/features/medical/constants.ts`, con `labelKey` y
-  color por valor, y su helper (`generoLabel(v, t)`, `fuenteLabel(v, t)`). Fija **cómo se ve**.
+- En SQL, como `DOMAIN` con `CONSTRAINT` nombrado. Fija **qué se puede guardar**. El nombre del
+  constraint es explícito porque el autogenerado (`genero_check`) hay que ir a buscarlo a
+  `pg_constraint` para poder cambiar el dominio después.
+- En TypeScript, como objeto META en `src/features/medical/constants.ts`, con `labelKey` y color
+  por valor. Fija **cómo se ve**.
 
 El canónico es `'M'`; lo que se muestra sale de i18n. La constante nunca se renderiza.
 
-**Esto rompe el `GENEROS` actual** (`'Masculino'`, `'Femenino'`, `'No binario'`,
-`'Prefiere no decir'`), que se renderizaba directo desde la constante. Hay que tocar
-`PacienteModal`, `PatientRow` y `demo-data`. Es la misma corrección que se hizo en Stratix el
-20/08/2026.
+**Esto rompe el `GENEROS` actual** (`'Masculino'`, `'Femenino'`, …), que se renderizaba directo.
+Hay que tocar `PacienteModal`, `PatientRow` y `demo-data`.
+
+## Parseo del nombre
+
+El orden **es** parte de la regla, porque cada paso condiciona al siguiente:
+
+```
+1  REPARAR ENCODING   'PeÃ±a' → 'Peña'   (latin-1 → utf-8, solo si el resultado es válido)
+2  QUITAR ANOTACIÓN   'Gonzalez DUPLICADO ROCHE' → 'Gonzalez'   (a `notas`, no se descarta)
+3  PARTIR             según la fuente
+4  NORMALIZAR CAJA    'GONZALEZ ESPONDA' → 'Gonzalez Esponda'
+```
+
+**El paso 2 va antes del 3 y eso es load-bearing:** 8 de las 157 filas anotadas no tienen
+separador, así que sin limpiar primero la anotación termina adentro del apellido
+(`E Betancourt Alvarez DUPLICADO ROCHE`). Peor: el apellido anotado **contiene** al de su
+contraparte, así que la regla de fusión lo promovería como "más completo" y guardaría
+`MAESTRE DUPLICADO ROCHE`. Son 18 filas donde eso pasaría.
+
+| Fuente | Regla |
+|---|---|
+| `ecw` | `APELLIDO,NOMBRE` — una sola coma en 285/285, ninguna parte vacía |
+| `eclinpro` con `" - "` | `Nombre - Apellido` |
+| `eclinpro` sin separador | nombre = primer token **+ las iniciales que le sigan**; apellido = desde el primer token de ≥2 letras |
+| `emed` | columnas `First Name` / `Last Name` |
+
+**La regla de las iniciales es la corrección más importante de esta revisión.** `SANDRA V NEGRETE`
+tiene que dar nombre `Sandra V` y apellido `Negrete`; con "primer token = nombre, resto =
+apellido" daba apellido `V Negrete`, y así **312 filas** quedaban con el apellido empezando en
+una letra suelta. Eso rompía los dos niveles de matcheo a la vez —la inicial es un token extra
+en el conjunto y es el "primer apellido" en el nivel parcial— y **149 personas entraban
+duplicadas sin que nadie preguntara**.
+
+Lo que la regla **no** resuelve: `Maria Elena Aranguren` sigue siendo ambiguo (¿`Maria` +
+`Elena Aranguren` o `Maria Elena` + `Aranguren`?). Esas filas van al paso 4 del import para que
+la persona decida.
+
+**Normalización de caja:** 2.226 de 5.072 nombres están enteros en mayúsculas. Sin normalizar, la
+tabla mostraría `GONZALEZ ESPONDA` al lado de `Gonzalez Esponda` según qué fuente cargó primero.
+Se guarda en Title Case; la grafía original nunca se pierde, queda en `nombre_origen`.
+
+## Teléfonos
+
+`norm` de un teléfono: expandir la notación científica, quedarse con los dígitos, y **solo
+entonces** decidir.
+
+- **10 dígitos** → `(954) 706-0773`.
+- **11 dígitos que empiezan en `1`** → sacar el `1`. Aplica a **uno solo** del archivo.
+- **Cualquier otra longitud** → se guarda crudo y **la fila se marca en el paso 4**.
+
+La regla que parecía obvia —"11 dígitos, sacar el primero"— **inventa teléfonos inválidos**: tres
+de los cuatro de 11 dígitos son un número válido con un cero de más al final (`81370956960` =
+813-709-5696 + `0`), y sacarles el primer dígito da `1370956960`, que no es un teléfono de nadie.
+Por eso el default es marcar, no arreglar.
+
+**`telefono_alt` queda `null` si es igual a `telefono`.** En eClinicalWorks son el mismo número
+en 199 de 241 filas: duplicarlo inventaría una segunda vía de contacto, y alguien la llamaría
+creyendo que probó dos.
 
 ## Identidad y duplicados
 
 ### Clave por fuente (idempotencia)
 
-`clave_origen` es **el identificador más estable que ofrezca esa fuente**, y se calcula sobre
-el dato **crudo**, nunca sobre el interpretado:
+`clave_origen` es **el identificador más estable que ofrezca esa fuente**, calculado sobre el
+dato **crudo**:
 
 | Fuente | `clave_origen` |
 |---|---|
-| `emed` | el `Chart#` **normalizado a entero** — 1.266 valores, todos únicos. Un ID de verdad |
-| `ecw`, `eclinpro` | `norm(cadena cruda del nombre)` + separador + `fecha_nacimiento` |
+| `emed` | el `Chart#` normalizado a entero — 1.266 valores, todos únicos |
+| `ecw`, `eclinpro` | `norm(nombre crudo)` + `\|` + **el valor crudo de la celda de DOB** |
 | `manual` | el `id` del paciente — no hay sistema externo del que derivar una clave |
 
-`norm` = minúsculas, sin acentos, sin puntuación, colapsando espacios.
+`norm` = reparar mojibake, minúsculas, sin acentos, sin puntuación, espacios colapsados.
+Verificado que **ningún nombre del archivo contiene `|`**, así que el separador es seguro.
 
-**El `Chart#` se normaliza a entero, y no es un detalle cosmético.** Excel lo guarda como número
-y llega `2.0`, no `2`. Si un parser devolviera `'2.0'` y otro `'2'`, la misma persona tendría dos
-claves distintas y el import la duplicaría — sobre la columna que es la identidad, que es el peor
-lugar posible para una ambigüedad de formateo. Se normaliza con `String(Math.trunc(Number(v)))`
-y se testea.
+**El `Chart#` se normaliza a entero.** Excel lo guarda como número y llega `2.0`, no `2`. Si un
+parser devolviera `'2.0'` y otro `'2'`, la misma persona tendría dos claves — sobre la columna
+que *es* la identidad. `String(Math.trunc(Number(v)))`, y se testea.
 
-**`manual` usa el `id` del paciente**, no una clave derivada del nombre: un paciente cargado a
-mano no viene de ningún sistema, así que no hay cadena cruda que reconocer la próxima vez. Su
-fila en `paciente_fuentes` existe para que el matcheo sepa que ese paciente ya tiene una
-identidad propia y no le invente una.
+**El DOB entra crudo (`'39872'`), no interpretado (`'2009-02-28'`).** La revisión 1 usaba la
+fecha resuelta y se contradecía sola: argumentaba tres veces que la clave sale del crudo "nunca
+del interpretado", y la mitad de la clave *era* una interpretación. Con la fecha resuelta,
+corregir una de las 4 fechas futuras en el paso 4 duplicaba al paciente en el import siguiente, y
+cualquier bugfix en el conversor serial→fecha reclasificaba **las 5.031 filas con DOB de golpe**.
 
-**Sobre la cadena original, no sobre el nombre partido.** Esto importa: en el paso 4 la persona
-puede corregir cómo se partió `Maria Elena Aranguren`. Si la clave saliera del resultado de esa
-corrección, el import del mes siguiente calcularía una clave distinta para la misma fila y la
-crearía de nuevo. La cadena cruda no cambia nunca, así que la fila se reconoce a sí misma sin
-importar cómo se haya interpretado.
-
-La fecha vacía se admite: la clave sigue siendo estable **dentro de esa fuente**, que es todo
-lo que se necesita para reconocer la fila la próxima vez.
+**Las filas sin DOB llevan el índice de fila al final de la clave.** Sin eso, dos homónimos sin
+fecha calculan la misma clave y se funden sin que nadie opine: pasa de verdad con
+`maitte ponce` y `teresa cabrera`, así que las 41 filas producirían 39 pacientes mientras el
+resumen diría 41.
 
 Si `(fuente, clave_origen)` ya existe → esa fila **es** ese paciente: actualiza, no pregunta.
 
+### Colisiones dentro del mismo lote
+
+**47 filas del archivo son la misma fila repetida** (46 en eClinPro, 1 en eClinicalWorks). Al
+calcular la misma `clave_origen`, un insert directo choca contra la `PRIMARY KEY` y **aborta a
+mitad de lote** — verificado: un upsert con la clave repetida da `ON CONFLICT DO UPDATE command
+cannot affect row a second time`.
+
+El plan las colapsa **antes de escribir**, y las cuenta en su propia línea del resumen.
+
+**Pero 7 de las 47 no son idénticas: difieren en caja o acentos** (`NATHALIE - CEDEÑO` contra
+`NATHALIE - CEDENO`, `JUAN CARLOS - PEREZ NOA` contra `Juan Carlos - Perez Noa`). Colisionan
+recién después de `norm`. "Se queda la primera" elegiría el apellido por orden de archivo, así
+que **la que conserva acentos gana**, y si las dos difieren en algo más que la caja la fila va al
+paso 4 como choque.
+
 ### Clave de candidatos (fusión entre fuentes)
 
-Solo corre para filas que no se reconocieron a sí mismas. Dos niveles:
+Solo corre para filas que no se reconocieron a sí mismas. **Se comparan multiconjuntos de tokens
+de ≥2 letras** — las iniciales quedan afuera del núcleo comparable.
 
 | Nivel | Regla | En el modal |
 |---|---|---|
-| **Exacta** | mismo **conjunto** de partes de nombre + apellido, y mismo DOB | pre-marcada para fusionar |
-| **Parcial** | mismo primer nombre + primer apellido + DOB, conjuntos distintos | **sin marcar**, decisión explícita |
+| **Exacta** | mismo multiconjunto de partes ≥2 letras, mismo DOB | pre-marcada para fusionar |
+| **Parcial** | mismo primer nombre + primer apellido (ambos ≥2 letras) + DOB, núcleos distintos | **sin marcar**, decisión explícita |
 
-El conjunto es insensible al orden y a en qué campo cayó cada parte. Eso también agarra las
-filas invertidas: `AIDA,MARTINEZ` en eClinicalWorks contra `First: Martinez / Last: Aida` en
-eMedicalPractice es la misma persona, y los dos sistemas la tienen dada vuelta.
+**Multiconjunto y no conjunto.** Con conjuntos, `Hernandez Hernandez` y `Hernandez` son iguales,
+así que `Hernandez Hernandez,Raul` (ECW) caía como **exacta pre-marcada** contra `Raul Hernandez`
+de las otras dos fuentes — y la regla de fusión después promovía el apellido duplicado contra el
+voto de 2 de 3. Pasa con `Sardina Sardina`, `Garcia Garcia` y 9 filas más con token repetido.
+Con multiconjuntos esos grupos bajan a parcial, que es donde tienen que decidirse.
 
-**Las filas sin fecha de nacimiento no generan candidatos** — entran como pacientes nuevos.
-Son 41 y quedan contadas en el resumen, no descartadas en silencio.
+**Sin iniciales en el núcleo.** Es la otra mitad del arreglo del parseo: `Rosa F Martinez Amaro`
+y `ROSA FRANCISCA MARTINEZ AMARO` no comparten el token `f`, pero sí el núcleo.
 
-**No se afloja más que esto.** Hay 813 combinaciones de apellido + fecha de nacimiento con dos
-o más personas distintas: con una clave más laxa el sistema fusionaría hermanos y mellizos.
+El multiconjunto es insensible al orden y a en qué campo cayó cada parte, así que también agarra
+las filas invertidas: `AIDA,MARTINEZ` en eClinicalWorks contra `First: Martinez / Last: Aida` en
+eMedicalPractice es la misma persona con los dos sistemas equivocados igual.
+
+**Una exacta con teléfono Y email disjuntos NO se pre-marca: baja a parcial.** Son 4 grupos, y
+son justo los que más merecen una mirada — dos registros cuya única evidencia de identidad es el
+nombre y la fecha, con datos de contacto que no coinciden en nada:
+
+```
+MAYDELIN,FELIX  (ecw)   7868138344  raulalejandro.turbo@gmail.com
+Felix Maydelin  (emed)  7868138344  raulalejandro.turbo@gmail.com
+Maydelin Felix  (emed)  7864846208  maydelinfa@gmail.com          ← ¿otra persona?
+```
+
+**Las filas sin fecha de nacimiento no generan candidatos** — entran como pacientes nuevos, y se
+cuentan en el resumen.
+
+**No se afloja más que esto.** Hay **97 combinaciones de apellido + fecha con dos o más personas
+distintas** (familias, mellizos): con una clave más laxa el sistema fusionaría hermanos. De los
+40 grupos con primer nombre distinto, la mayoría son erratas de la misma persona
+(`henry`/`hnery`, `jackeline`/`jacqueline`) y solo ~5 son candidatos plausibles a hermano —
+`garcia laura/lucia 1989-01-09`, `patino mirna/vilma 1970-07-11`.
+
+*(La revisión 1 decía 813. Ese número contaba **filas**, así que la misma persona presente en dos
+hojas contaba como dos personas distintas. La conclusión no cambia; el número estaba 8× inflado.)*
 
 ### Qué pasa al fusionar
 
 1. Se conserva lo que el paciente ya tiene. Un campo con valor nunca se pisa.
 2. Los campos vacíos se rellenan con lo que trae la fila nueva.
 3. Se agrega la fila en `paciente_fuentes`.
-4. **El nombre más completo gana, pero solo si el corto es subconjunto del largo.**
-   `ardila` → `ardila de delgado` sube, porque es estrictamente más información.
-   `castillo araiz` vs `castillo arauz` no es subconjunto: se conserva el existente y el
-   choque se lista.
+4. **El nombre se resuelve como UNA partición, no como dos campos independientes**, y solo se
+   promueve el más completo si su núcleo (sin iniciales) contiene estrictamente al otro.
+   `ardila` → `ardila de delgado` sube. `castillo araiz` vs `castillo arauz` no es subconjunto:
+   gana el existente y el choque se lista.
 5. Todo choque de valores se muestra en el resumen. Nada se resuelve en silencio.
+
+**Por qué "una partición y no dos campos":** comparando nombre y apellido por separado, el
+sistema promovía el más largo de cada lado sin mirar el otro, y las iniciales terminaban en los
+dos:
+
+```
+ECW      'Candia,Maria F'   → nombre 'Maria F'  apellido 'Candia'
+eClinPro 'MARIA F CANDIA'   → nombre 'MARIA'    apellido 'F CANDIA'
+  resultado de la revisión 1:  "Maria F" / "F Candia"     ← la inicial duplicada
+```
+
+Son 10 grupos afectados, 8 con la inicial repetida en los dos campos.
 
 ## El flujo del import
 
@@ -375,54 +527,87 @@ o más personas distintas: con una clave más laxa el sistema fusionaría herman
 3  MAPEO        headers → columnas, auto-adivinado + columnas descartadas   ← ya existe
 4  SANEAMIENTO  las filas con problema, editables o excluibles              ← nuevo
 5  DUPLICADOS   exactas pre-marcadas · parciales sin marcar                 ← nuevo
-6  RESUMEN      N nuevos · N fusionados · N actualizados · N excluidos
+6  RESUMEN      por categoría, incluido todo lo que se dejó afuera
 ```
 
-**Paso 2.** Va de a una hoja por vez, y no es una limitación: las tres tienen headers
-distintos, así que cada una necesita su propio mapeo.
+**Paso 2.** Una hoja por vez: las tres tienen headers distintos, así que cada una necesita su
+propio mapeo.
 
-**Paso 4 — saneamiento.** No es un validador genérico: son los cuatro problemas medidos de
-este archivo. Nombre partido de forma ambigua, fecha de nacimiento futura o ausente, teléfono
-que no da 10 dígitos, fila que no es un paciente. Cada una muestra el valor crudo al lado del
-interpretado, y se corrige en línea o se excluye.
+**Paso 4 — saneamiento.** No es un validador genérico: son los problemas medidos de este archivo.
 
-La anotación `DUPLICADO ROCHE` se saca del apellido y se guarda en `notas` — no se descarta en
-silencio. `Formato visitas no borrar - Prueba` no se importa.
+| Marca | Cuántas |
+|---|---|
+| Encoding roto (`Ã`, `Â`) | 8 |
+| Nombre ambiguo (sin separador y sin inicial que lo resuelva) | ~104 |
+| Fecha de nacimiento futura | 4 |
+| Sin fecha de nacimiento | 41 |
+| Teléfono que no da 10 dígitos ni 11-con-1 | 30 |
+| Fila que no parece un paciente | 2 |
+| `nombre` o `apellido` vacío tras el parseo | 0 hoy, se marca igual |
 
-**`telefono_alt` queda `null` si es igual a `telefono`.** En eClinicalWorks, Home y Cell son el
-mismo número en 199 de 241 filas: copiarlo en las dos columnas inventaría un segundo teléfono
-que no existe, y después alguien lo llamaría creyendo que probó dos vías.
-
-Ninguna fila del archivo deja `nombre` o `apellido` vacíos con las tres reglas de parseo — lo
-verifiqué sobre las 5.072. Aun así el paso 4 marca la fila si alguna queda vacía, porque las dos
-columnas son `NOT NULL` y un archivo futuro no tiene por qué parecerse a este.
+La detección de "no es un paciente" **no puede ser una lista de una cadena**: `T,TEMPLATES` pasa
+las tres reglas de parseo sin marcar nada. Se marca cualquier fila con un token de 1–2 caracteres
+en nombre o apellido, y la persona decide — `FE - PENA LOBAINA` sí es alguien.
 
 **Paso 5 — dos listas.** Arriba las exactas con contador y "desmarcar todas"; abajo las
-parciales, sin marcar, con las dos filas enfrentadas para comparar.
+parciales, sin marcar, con las dos filas enfrentadas.
 
-**Paso 6.** El resumen cuenta filas y **también** lo que se dejó afuera, por categoría. La
-lección de Research: un resumen que dice "3 a actualizar" mientras se descartaba media tabla
-es peor que no tener resumen.
+**Paso 6.** El resumen cuenta filas y **también** lo que se dejó afuera, por categoría: nuevas,
+fusionadas, actualizadas, repetidas en el archivo, excluidas a mano, y correspondientes a
+pacientes eliminados. La lección de Research: un resumen que dice "3 a actualizar" mientras se
+descartaba media tabla es peor que no tener resumen.
 
-### Escritura
+## Escritura
 
-El plan se calcula entero antes de escribir nada: el paso 6 muestra el resultado final, no una
-estimación. Después se escribe en lotes de ~500 contra Supabase, bajo RLS.
+El plan se calcula entero antes de escribir nada. Después se escribe en lotes de ~500.
 
-**No hay transacción, así que la escritura tiene que ser reanudable.** Son ~10 lotes por HTTP:
-si el séptimo falla —timeout, corte de red, RLS— quedan 3.500 pacientes escritos y ninguna
-forma de saber dónde cortó. Reintentar el archivo entero con un `INSERT` pelado chocaría contra
-la `PRIMARY KEY` de todo lo ya escrito y volvería a abortar, esta vez en el lote 1.
+### Leer con paginación, o el matcheo ve el 24% de la tabla
 
-La salida no es una transacción que no existe: es que **reintentar sea inofensivo**. Cada lote
-va como `upsert` sobre `paciente_fuentes` con `onConflict: 'fuente,clave_origen'`, que es la
-misma propiedad de idempotencia que ya tiene el import a nivel archivo, aplicada a nivel lote.
-Un reintento reescribe lo que ya estaba y sigue por donde iba.
+`supabase/config.toml` tiene **`max_rows = 1000`**. PostgREST trunca la respuesta y devuelve
+**200 OK** con `Content-Range: 0-999/*` — no es un error y supabase-js no lo reporta.
 
-El orden importa: primero `pacientes` con `.select('id')` para recuperar los uuid generados,
-después `paciente_fuentes` con esos ids. Un corte entre las dos mitades deja pacientes sin
-identidad de origen — que el reintento arregla, porque el matcheo los encuentra por nombre+DOB
-y les completa la fila que falta en vez de duplicarlos.
+Con 4.132 pacientes, el matcheo client-side se calcularía contra 1.000: los otros 3.132 no
+generarían candidatos, entrarían como nuevos, y el upsert de `paciente_fuentes` les movería la
+identidad al paciente nuevo dejando el viejo huérfano. **Duplicación masiva en silencio, que es
+exactamente lo que este spec existe para evitar.**
+
+Los pacientes se leen con `.range()` en bucle hasta agotar. Y antes del push hay que **verificar
+el `db-max-rows` de dev y prod**, que es un setting del Dashboard que nadie tiene fijado por
+escrito.
+
+### El reintento tiene que ser inofensivo, y para eso el uuid lo genera el cliente
+
+No hay transacción: son ~10 lotes por HTTP. La revisión 1 ponía el `upsert` **solo** sobre
+`paciente_fuentes` y dejaba `pacientes` como `insert(...).select('id')` — que no es idempotente,
+porque `pacientes` no tiene ninguna clave natural única sobre la que hacer `onConflict`.
+
+El escenario: falla el lote 7 tras escribir los 500 pacientes y antes de sus identidades. Se
+reintenta → **500 pacientes duplicados** con MRN nuevos, y el upsert de `paciente_fuentes` mueve
+las claves a los uuid nuevos dejando los 500 originales huérfanos, sin fuente, invisibles para
+todo import futuro y presentes en la lista. Y la defensa que escribí —"el reintento lo arregla
+porque el matcheo los encuentra"— contradecía la línea de arriba: si el plan ya se calculó, el
+matcheo no vuelve a correr.
+
+**El cliente genera el `id` uuid** y las dos tablas van como `upsert`: `pacientes` con
+`onConflict: 'id'`, `paciente_fuentes` con `onConflict: 'fuente,clave_origen'`. Un reintento
+reescribe lo mismo y sigue. **El plan se recalcula en cada reintento**, contra el estado real de
+la base.
+
+Eso además elimina el `.select('id')` para recuperar los uuid generados, que asumía que la fila
+*i* del `RETURNING` corresponde a la fila *i* del payload. Postgres no contrata ese orden: de
+facto hoy coincide —verificado— que es justo lo que haría el bug invisible hasta que no lo sea.
+Pegar la identidad de origen al paciente equivocado, en una tabla de PHI, sin que nada falle, es
+el peor resultado posible de todo este trabajo.
+
+### Todas las columnas en cada objeto
+
+PostgREST exige que todos los objetos de un array de inserción tengan **el mismo conjunto de
+claves**, o devuelve `PGRST102 / "All object keys must match"`. Como solo el 14% de eClinPro trae
+email y `telefono_alt` se omite cuando es igual a `telefono`, cada fila se arma con **todas** las
+columnas y `null` explícito.
+
+*(NO VERIFICADO: no se pudo ejercitar PostgREST autenticado. Se confirma con un POST real de dos
+objetos con claves distintas y un JWT de usuario.)*
 
 ## Estructura de archivos
 
@@ -437,16 +622,15 @@ src/features/research/
   utils/fields.ts                                  aporta LEAD_FIELD_DEFS + identidad por NCT#
 
 src/features/medical/
-  utils/normalizers/     index.ts + index.test.ts  serial→fecha, teléfono, género, limpiar nombre
+  utils/normalizers/     index.ts + index.test.ts  mojibake, serial→fecha, teléfono, caja, género
   utils/pacienteIdentity/index.ts + index.test.ts  parseo por fuente, clave, matcheo, fusión
   utils/pacienteFields.ts                          PACIENTE_FIELD_DEFS
-  data/pacientes.ts                                lectura/escritura Supabase
+  data/pacientes.ts                                lectura paginada + upsert por lotes
   hooks/usePacientes.ts
 ```
 
 El componente compartido **no importa nada de `src/features/`**. Lo específico de cada archivo
-vive en el `normalize` de su catálogo de campos: `APELLIDO,NOMBRE` y `Nombre - Apellido` se
-parten ahí, el serial `39872` se convierte ahí, y `9.547060773E9` vuelve a ser teléfono ahí.
+vive en el `normalize` de su catálogo de campos.
 
 Al mudarse a `src/shared/`, `ImportModal` pasa a CSS Modules: hoy es todo `style={{}}` contra
 `RESEARCH_THEME`, y en compartido no puede seguir importando el tema de Research.
@@ -457,33 +641,45 @@ de error y de éxito.
 ## Tests
 
 Obligatorios: los normalizadores y la identidad cuentan filas y deciden qué entra en un total.
-Los casos salen del archivo real, no se inventan:
+Los casos salen del archivo real.
 
 | Caso | Entrada | Esperado |
 |---|---|---|
 | Serial de Excel | `39872.0` | `2009-02-28` |
 | Fecha futura | `2068-10-06` | marcada, no importada en silencio |
-| Sin fecha | `''` | clave válida, sin candidatos |
+| Sin fecha | `''` | clave válida con índice de fila, sin candidatos |
+| Dos homónimos sin fecha | `maitte ponce` ×2 | dos pacientes, no uno |
+| Mojibake | `PeÃ±a` | `Peña`, y misma clave que `PEÑA` |
 | Notación científica | `9.547060773E9` | `(954) 706-0773` |
-| Teléfono corto | `7.868181E8` | marcado, no truncado |
+| 11 dígitos con `1` | `17543678071` | `(754) 367-8071` |
+| 11 dígitos sin `1` | `81370956960` | marcado — **no** `1370956960` |
+| 13 dígitos | `5.52199E12` | marcado |
 | Teléfono basura | `0.0` | marcado |
-| Home == Cell | `879-657-8892` en las dos columnas | `telefono_alt` queda `null`, no se duplica |
-| Chart# de Excel | `2.0` | `'2'` — nunca `'2.0'` |
-| Fila repetida en el archivo | dos filas con la misma cadena y el mismo DOB | una sola, contada como repetida |
-| Reintento de un lote | reescribir un lote ya escrito | upsert, sin violación de PK |
+| Home == Cell | mismo número en las dos columnas | `telefono_alt` `null` |
 | Nombre ECW | `ACEBEY,JONATHAN` | apellido `Acebey`, nombre `Jonathan` |
 | Nombre ECP con separador | `Javier - Andrade` | nombre `Javier`, apellido `Andrade` |
-| Nombre ECP sin separador | `Maria Elena Aranguren` | marcado como ambiguo |
-| Anotación | `Gustavo - Gonzalez DUPLICADO ROCHE` | apellido `Gonzalez`, nota `DUPLICADO ROCHE` |
-| Fila que no es paciente | `Formato visitas no borrar - Prueba` | excluida |
+| **Inicial en ECP sin separador** | `SANDRA V NEGRETE` | nombre `Sandra V`, apellido `Negrete` |
+| Ambiguo de verdad | `Maria Elena Aranguren` | marcado como ambiguo |
+| Anotación sin separador | `Rodrigo E Betancourt Alvarez DUPLICADO ROCHE` | apellido `Betancourt Alvarez`, nota aparte |
+| Caja | `GONZALEZ ESPONDA` | `Gonzalez Esponda` |
+| Filas que no son pacientes | `T,TEMPLATES` · `Formato visitas no borrar - Prueba` | las dos marcadas |
+| Chart# de Excel | `2.0` | `'2'` — nunca `'2.0'` |
 | Género | `M` / `Male` / `Femenino` | `M` / `M` / `F` |
 | Match exacto | `rosa / ardila de delgado` vs `ardila de delgado, rosa` | exacta |
 | Match parcial | `rosa / ardila` vs `rosa elvira / ardila de delgado` | parcial |
+| **Apellido repetido** | `Hernandez Hernandez,Raul` vs `Raul \| Hernandez` | parcial, **no** exacta |
+| **Exacta con contacto disjunto** | mismo nombre y DOB, teléfono y email distintos | parcial, sin pre-marcar |
 | Homónimos | mismo apellido + DOB, nombre distinto | **no** es candidato |
+| Fila repetida en el archivo | dos filas con la misma cadena y el mismo DOB | una sola, contada como repetida |
+| Repetida con acento | `CEDEÑO` vs `CEDENO` | una sola; gana la acentuada |
 | Idempotencia | reimportar la misma hoja | 0 nuevos, 0 preguntas |
-| Idempotencia tras corregir | corregir un nombre ambiguo en el paso 4 y reimportar | 0 nuevos: la clave sale del crudo |
+| Idempotencia tras corregir nombre | corregir un ambiguo en el paso 4 y reimportar | 0 nuevos |
+| **Idempotencia tras corregir fecha** | corregir una fecha futura y reimportar | 0 nuevos |
+| Reintento de lote | reescribir un lote ya escrito | upsert, sin violación de PK |
+| Paciente borrado | borrar y reimportar su hoja | no se recrea; se cuenta como tumba |
 | Fusión de nombre | `ardila` + `ardila de delgado` | gana el largo |
 | Fusión con choque | `castillo araiz` + `castillo arauz` | gana el existente, choque listado |
+| **Fusión con inicial** | `Candia,Maria F` + `MARIA F CANDIA` | `Maria F` / `Candia` — la inicial no se duplica |
 
 Verificación antes de dar nada por terminado: `npx tsc --noEmit`, `npx vitest run`,
 `pnpm build:check` (nunca `next build` con el dev server levantado), y abrir el import en el
@@ -491,15 +687,21 @@ navegador con una hoja de prueba.
 
 ## Migración y despliegue
 
-**Local:** `pnpm supabase migration up`. Nunca `db reset` — `config.toml` apunta `sql_paths` a
-un `seed.sql` que no existe.
+**Local:** `pnpm supabase migration up`. Nunca `db reset` — `config.toml` apunta `sql_paths` a un
+`seed.sql` que no existe.
 
 **Antes del push a dev o prod:** el backup cubre cero tablas porque las dos son nuevas y no hay
-`SET NOT NULL` sobre datos existentes que pueda abortar a mitad de camino. **El paso no se
-omite: se resuelve en vacío, y queda dicho.** Lo que sí lleva verificación es la corrida
-posterior: conteo de filas, que la `PRIMARY KEY (fuente, clave_origen)` esté, y que las policies
-respondan **desde una sesión que no sea admin** — con un usuario admin, `has_module()` devuelve
-`true` por el short-circuit y la verificación no prueba nada.
+`SET NOT NULL` sobre datos existentes que pueda abortar. **El paso no se omite: se resuelve en
+vacío, y queda dicho.**
+
+Verificación posterior, en este orden:
+
+1. Conteo de filas y que la `PRIMARY KEY (fuente, clave_origen)` exista.
+2. **Que las policies respondan desde una sesión que NO sea admin.** Con un usuario admin
+   `has_module()` devuelve `true` por el short-circuit y la verificación no prueba nada.
+3. **Que los `GRANT` estén** (`\dp public.pacientes`). Es lo único que separa "anda en local" de
+   "anda en la nube".
+4. El `db-max-rows` del proyecto en el Dashboard.
 
 ### PHI: el archivo real va solo a producción
 
@@ -507,26 +709,30 @@ Son 5.072 personas con nombre, fecha de nacimiento, teléfono y correo, y el mó
 pestaña HIPAA al lado. La base `development` es una org free de Supabase.
 
 **El archivo real se importa únicamente en producción.** Local y dev se prueban con un recorte
-inventado que reproduzca las anomalías (nombres de los tres formatos, un serial, un teléfono
-en notación científica, un duplicado exacto y uno parcial).
+inventado que reproduzca las anomalías: los tres formatos de nombre, un mojibake, una inicial sin
+separador, un serial, un teléfono de 11 dígitos sin prefijo 1, un duplicado exacto y uno parcial.
 
 ## Fuera de scope
 
 - **Citas, logs HIPAA, incidentes y capacitaciones** siguen siendo demo.
-- **Deshacer una fusión.** Hoy la salida es editar el paciente y crear el otro a mano. La
-  tabla lo permite (basta borrar la fila de `paciente_fuentes`), pero no hay UI.
+- **Deshacer una fusión.** La tabla lo permite (borrar la fila de `paciente_fuentes`), pero no
+  hay UI.
 - **Export de pacientes.** Research lo tiene; acá no se pide todavía.
-- **Deduplicar contra pacientes cargados a mano.** La fuente `manual` participa del matcheo
-  igual que las otras, pero no hay un barrido retroactivo.
-- **Búsqueda por similitud fonética** (Soundex, trigramas). Los dos niveles de clave cubren lo
+- **Catálogo `modules` con FK desde `role_modules.module_slug`.** Toca la migración de roles
+  dinámicos, que ya está en producción. Anotado en `.todo/TODO.md`.
+- **Corregir las erratas de tipeo entre fuentes** (`henry`/`hnery`, `jackeline`/`jacqueline`).
+  Quedan como personas distintas hasta que alguien las una a mano.
+- **Búsqueda por similitud fonética** (Soundex, trigramas). Los niveles de clave cubren lo
   medido; agregar fuzzy sin un caso que lo pida es inventar recall que nadie verificó.
 
 ## Avisos (`.todo/TODO.md`)
 
-1. **Medical deja de mostrar los 8 pacientes demo.** La pestaña Pacientes arranca vacía hasta
-   el primer import.
+1. **Medical deja de mostrar los 8 pacientes demo.** La pestaña Pacientes arranca vacía hasta el
+   primer import.
 2. **Las citas siguen siendo demo y hablan de gente que ya no está en la tabla.** Guardan
-   `paciente_nombre` adentro, así que se siguen viendo, pero el detalle de un paciente real no
-   va a mostrar citas. Deuda aceptada a sabiendas.
-3. **`GENEROS` cambia de valores canónicos** (`'Masculino'` → `'M'`). Quien tenga un filtro o
-   una vista apoyada en el texto viejo la va a ver vacía.
+   `paciente_nombre` adentro, así que se siguen viendo, pero el detalle de un paciente real no va
+   a mostrar citas. Deuda aceptada a sabiendas.
+3. **`GENEROS` cambia de valores canónicos** (`'Masculino'` → `'M'`). Un filtro o una vista
+   apoyada en el texto viejo se va a ver vacía.
+4. **Los nombres se guardan en Title Case**, no como venían. `GONZALEZ ESPONDA` se ve
+   `Gonzalez Esponda`; la grafía original queda en `paciente_fuentes.nombre_origen`.
