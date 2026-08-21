@@ -1229,7 +1229,23 @@ cargado."
 - Create: `src/shared/import/identity.ts`
 - Create: `src/shared/import/buildImportPlan/index.ts`
 - Create: `src/shared/import/buildImportPlan/index.test.ts`
+- **Create: `src/shared/import/index.ts`** — el barrel del directorio
 - Modify: `src/features/research/utils/importPlan.ts`
+
+**El barrel es de esta tarea, no de la anterior.** `.claude/rules/codigo.md` pide un `index.ts`
+por directorio de `src/shared/`, y la Tarea 8 dejó `src/shared/import/` sin él a propósito: con un
+solo módulo adentro y ningún llamador, un barrel solo re-exportaría una cosa. Acá el directorio
+pasa a tener tres (`parseWorkbook`, `buildImportPlan`, `identity`) y el barrel deja de ser
+ceremonia. Va con re-exportación **nombrada**, que es la forma default de la regla:
+
+```ts
+export { parseWorkbook, readSheet } from './parseWorkbook'
+export { buildImportPlan } from './buildImportPlan'
+export type { Identity, ImportPlan } from './identity'
+```
+
+Antes de escribirlo, verificar que ninguno de los tres módulos importe de `@/shared/import` — ahí
+nace el ciclo que la regla prohíbe.
 
 **Interfaces:**
 - Produces:
