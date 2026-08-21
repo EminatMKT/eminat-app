@@ -169,3 +169,49 @@ hubieran usado rutas relativas, cada uno habría necesitado contar niveles a man
 
 Quedan 88 sitios con `../../` de antes. Se corrigen por contacto, como los estilos inline: el que
 toca un archivo, le arregla los imports.
+
+## Un directorio de `src/shared/` se importa por su barrel, no módulo por módulo
+
+```ts
+// ❌ una línea por archivo, y el que agrega el tercero suma otra
+import { localDate } from '@/shared/utils/dates'
+import { resolveToCanonical } from '@/shared/utils/canonical'
+
+// ✅ una sola llamada al módulo
+import { localDate, resolveToCanonical } from '@/shared/utils'
+```
+
+Cada directorio de `src/shared/` lleva su `index.ts` que **re-exporta** lo público de sus
+módulos. `src/shared/data/index.ts` ya lo hace y su comentario dice el porqué; esto lo vuelve la
+regla para el resto.
+
+**Dos formas, y la elección no es de gusto:**
+
+- **Re-exportación nombrada** —`export { localDate } from './dates'`— cuando los nombres ya son
+  únicos y se explican solos. Es el caso de `utils`: `localDate`, `resolveToCanonical`,
+  `parseDelimited` no se pisan con nada.
+- **Namespace** —`export * as researchRepo from './research'`— cuando varios módulos tienen
+  miembros que se llaman igual. Es el caso de `data`: cada repo tiene su `list`, su `insert` y su
+  `update`, y sin el namespace el barrel sería una colisión de nombres.
+
+**Dos cosas que un barrel no hace nunca:**
+
+1. **No define nada.** Solo re-exporta. Un `index.ts` con lógica adentro es un módulo más que
+   encima se llama como el directorio.
+2. **No re-exporta un módulo que importe del barrel.** Ahí nace el ciclo, y los ciclos por barrel
+   son de los que no se ven leyendo: el archivo A importa `@/shared/x`, el barrel de `x` exporta
+   B, y B importa `@/shared/x`. Antes de agregar un módulo al barrel, verificar que no importe de
+   su propio directorio por el alias.
+
+**Los imports viejos se migran por contacto**, como los `../../` y los estilos inline: el que toca
+un archivo, le arregla los imports. Nada de una migración masiva que nadie puede revisar.
+
+**Motivo:** un módulo compartido que se usa de a poco genera una línea de import por función, y esa
+lista crece sola — el que necesita la tercera utilidad agrega la tercera línea, sin decidir nada.
+El barrel hace que **usar más de `src/shared/` no cueste más ruido**, que es justo lo que se quiere
+incentivar: la alternativa a "importar es incómodo" no es importar menos, es reescribir la función
+en el módulo, y así es como aparecen los tres `StatCard`.
+
+**El costo, dicho:** un barrel de re-exportación nombrada arrastra a sus vecinos al grafo de
+módulos hasta que el bundler los sacude. Con `export { x } from './y'` (nombrado, no
+`export * from`) Next 14 lo resuelve bien, y por eso la forma nombrada es la default acá.
