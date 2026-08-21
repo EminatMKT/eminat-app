@@ -86,3 +86,47 @@ Y hay dos motivos mecánicos que el inline no da:
 - **El inline se copia.** En cuanto una segunda tabla necesita el mismo dominio, la lista se
   escribe dos veces y a partir de ahí se desincronizan en silencio: agregar un valor en una y
   no en la otra no falla, simplemente rechaza filas en un lado y no en el otro.
+
+## El slug del módulo va en una variable, y la migración aborta si no existe
+
+Una policy de RLS no lleva el slug escrito adentro, y menos repetido por tabla. Se declara una
+vez en un `DO` block, se verifica que exista, y las policies se generan:
+
+```sql
+DO $$
+DECLARE
+  slug   text   := 'medical';
+  tablas text[] := ARRAY['pacientes','paciente_fuentes'];
+  tbl    text;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.role_modules WHERE module_slug = slug) THEN
+    RAISE EXCEPTION 'slug de módulo desconocido: %', slug;
+  END IF;
+  FOREACH tbl IN ARRAY tablas LOOP
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS "mod_access" ON public.%I', tbl);
+    EXECUTE format('CREATE POLICY "mod_access" ON public.%I USING (public.has_module(%L))', tbl, slug);
+  END LOOP;
+END $$;
+```
+
+`20260624210414_dynamic_roles.sql` ya generaba las policies desde un array —el patrón está
+hecho, no hay que inventarlo—, pero **sin** el `RAISE`. Esa es la parte nueva.
+
+**Motivo:** un slug mal escrito **no falla, se vuelve invisible** — y es invisible justo para
+quien podría notarlo.
+
+`role_modules.module_slug` es `text NOT NULL`, sin FK y sin tabla `modules` detrás: nada en la
+base valida un slug. Y `has_module()` abre con `SELECT public.is_admin() OR …`, así que
+`has_module('medial')` devuelve **`true` para el admin**. El admin es exactamente quien escribe
+la migración y quien la prueba: ve la tabla andando perfecto mientras está muda para todo el
+resto del equipo. No hay error en ninguna consola, ni fila rechazada, ni policy que falle.
+
+Es la misma forma que el guard faltante de las rutas API —**no falla, funciona de más**— con la
+diferencia de que acá funciona de más para una sola persona, y esa persona es la que revisa.
+
+El `RAISE EXCEPTION` cuesta tres líneas y hace que la migración aborte **al aplicarse**, en vez
+de dejar tablas silenciosas que alguien va a descubrir cuando un médico diga que no ve nada.
+
+El arreglo de fondo es un catálogo `modules` con FK desde `role_modules.module_slug`. Mientras
+no exista, esta regla es lo que hay: está anotado en `.todo/TODO.md`.
