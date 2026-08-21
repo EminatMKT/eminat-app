@@ -1,15 +1,18 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useApp } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
 import { generateDemoData } from '../demo-data'
 import { formatDate, addDays } from '../dates'
 import { DOCTORES, SALAS } from '../constants'
+import { usePacientes } from './usePacientes'
 import type { Paciente, Cita, HipaaLog, HipaaIncidente, HipaaTraining } from '../types'
 
 export function useMedicalData() {
   const { usuario, mostrarMensaje } = useApp()
+  const { t } = useT()
 
   const [demo] = useState(() => generateDemoData())
-  const [pacientes, setPacientes] = useState<Paciente[]>([])
+  const { pacientes, addPaciente: addPacienteDb } = usePacientes()
   const [citas, setCitas] = useState<Cita[]>([])
   const [auditLogs, setAuditLogs] = useState<HipaaLog[]>([])
   const [incidentes, setIncidentes] = useState<HipaaIncidente[]>([])
@@ -22,7 +25,6 @@ export function useMedicalData() {
   const [filterAuditNivel, setFilterAuditNivel] = useState('todos')
 
   useEffect(() => {
-    setPacientes(demo.pacientes)
     setCitas(demo.citas)
     setAuditLogs(demo.auditLogs)
     setIncidentes(demo.incidentes)
@@ -70,20 +72,16 @@ export function useMedicalData() {
     setAuditLogs(prev => [newLog, ...prev])
   }
 
-  function addPaciente(form: Partial<Paciente>): boolean {
-    if (!form.nombre || !form.apellido) { mostrarMensaje('error', 'Nombre y apellido son requeridos'); return false }
-    const newP: Paciente = {
-      id: `p${Date.now()}`,
-      mrn: `MRN-2024-${String(pacientes.length + 1).padStart(4, '0')}`,
-      nombre: form.nombre || '', apellido: form.apellido || '', fecha_nacimiento: form.fecha_nacimiento || '',
-      genero: form.genero || null, telefono: form.telefono || '', telefono_alt: form.telefono_alt || null, email: form.email || '',
-      seguro: form.seguro || '', seguro_id: form.seguro_id || '', direccion: form.direccion || '',
-      estado: 'activo', alergias: form.alergias || '', condiciones: form.condiciones || '', notas: form.notas || '',
-      created_at: hoy, updated_at: hoy,
-    }
-    setPacientes(prev => [newP, ...prev])
-    logAction('CREATE_RECORD', 'patient_registration', newP.id, `${newP.nombre} ${newP.apellido}`, `Registro de nuevo paciente — ${newP.mrn}`)
-    mostrarMensaje('ok', `Paciente ${newP.nombre} ${newP.apellido} registrado`)
+  async function addPaciente(form: Partial<Paciente>): Promise<boolean> {
+    if (!form.nombre || !form.apellido) { mostrarMensaje('error', t('med.patientNameRequired')); return false }
+    // mrn no se manda: lo genera la base por DEFAULT (secuencia). Dos generadores sobre
+    // una columna UNIQUE chocan — ver migración de pacientes.
+    const result = await addPacienteDb(form)
+    if ('error' in result) { mostrarMensaje('error', t('med.patientSaveError', { error: result.error.message })); return false }
+    const row = result.data
+    // Audit trail de HIPAA: no es opcional, aunque no se vea en pantalla.
+    logAction('CREATE_RECORD', 'patient_registration', row.id, `${row.nombre} ${row.apellido}`, `Registro de nuevo paciente — ${row.mrn}`)
+    mostrarMensaje('ok', t('med.patientRegistered', { name: `${row.nombre} ${row.apellido}` }))
     return true
   }
 

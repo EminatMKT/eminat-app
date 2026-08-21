@@ -5,6 +5,7 @@ import { useMedical } from './MedicalContext'
 import { useMedicalStyles } from '../hooks/useMedicalStyles'
 import Badge from './Badge'
 import { calcAge } from '../dates'
+import { ESTADO_PACIENTE_META, generoLabel, estadoPacienteLabel } from '../constants'
 import type { Paciente } from '../types'
 
 export default function PatientRow({ paciente: p, onSelect }: { paciente: Paciente; onSelect: (p: Paciente) => void }) {
@@ -20,10 +21,10 @@ export default function PatientRow({ paciente: p, onSelect }: { paciente: Pacien
         {p.alergias && p.alergias !== 'Ninguna' && <div style={{ fontSize: 9, color: '#F87171' }}>⚠️ Allergies: {p.alergias}</div>}
       </td>
       <td style={{ padding: '10px', color: t2 }}>{calcAge(p.fecha_nacimiento)}</td>
-      <td style={{ padding: '10px', color: t2 }}>{p.genero}</td>
+      <td style={{ padding: '10px', color: t2 }}>{p.genero ? generoLabel(p.genero, t) : ''}</td>
       <td style={{ padding: '10px', color: t2, fontSize: 11 }}>{p.seguro}</td>
       <td style={{ padding: '10px', color: t3, fontSize: 11 }}>{p.telefono}</td>
-      <td style={{ padding: '10px' }}><Badge color={p.estado === 'activo' ? '#34D399' : p.estado === 'alta' ? '#FBB040' : '#F87171'}>{p.estado}</Badge></td>
+      <td style={{ padding: '10px' }}><Badge color={ESTADO_PACIENTE_META[p.estado].color}>{estadoPacienteLabel(p.estado, t)}</Badge></td>
       <td style={{ padding: '10px' }}>
         <button onClick={e => { e.stopPropagation(); onSelect(p) }} style={{ ...btnSecondary, fontSize: 10, padding: '4px 10px' }}>{t('common.view')}</button>
       </td>

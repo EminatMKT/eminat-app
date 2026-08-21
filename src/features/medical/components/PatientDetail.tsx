@@ -6,6 +6,7 @@ import { useMedicalStyles } from '../hooks/useMedicalStyles'
 import Badge from './Badge'
 import PatientApptRow from './PatientApptRow'
 import { calcAge } from '../dates'
+import { ESTADO_PACIENTE_META, generoLabel, estadoPacienteLabel } from '../constants'
 import type { Paciente } from '../types'
 
 const COLS = ['med.colDate', 'med.colTime', 'med.colType', 'med.colDoctor', 'med.colRoom', 'med.colStatus'] as const
@@ -24,14 +25,14 @@ export default function PatientDetail({ paciente, onBack }: { paciente: Paciente
         <div style={cardStyle}>
           <div style={{ fontFamily: 'Syne', fontWeight: 700, fontSize: 14, color: t1, marginBottom: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             {t('med.patientDetails')}
-            <Badge color={paciente.estado === 'activo' ? '#34D399' : paciente.estado === 'alta' ? '#FBB040' : '#F87171'}>{paciente.estado}</Badge>
+            <Badge color={ESTADO_PACIENTE_META[paciente.estado].color}>{estadoPacienteLabel(paciente.estado, t)}</Badge>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 12 }}>
             {([
               ['med.colMrn', paciente.mrn],
               ['med.detailName', `${paciente.nombre} ${paciente.apellido}`],
               ['med.dob', `${paciente.fecha_nacimiento} (${calcAge(paciente.fecha_nacimiento)} ${t('med.yearsSuffix')})`],
-              ['med.gender', paciente.genero],
+              ['med.gender', paciente.genero ? generoLabel(paciente.genero, t) : ''],
               ['med.phone', paciente.telefono],
               ['common.email', paciente.email],
               ['med.insurance', `${paciente.seguro} — ${paciente.seguro_id}`],

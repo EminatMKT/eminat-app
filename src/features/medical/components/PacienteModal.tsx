@@ -4,8 +4,8 @@ import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { useMedical } from './MedicalContext'
 import { useMedicalStyles } from '../hooks/useMedicalStyles'
-import { GENEROS, SEGUROS, generoLabel } from '../constants'
-import type { Genero } from '../constants'
+import { GENEROS, ESTADOS_PACIENTE, SEGUROS, generoLabel, estadoPacienteLabel } from '../constants'
+import type { Genero, EstadoPaciente } from '../constants'
 import type { Paciente } from '../types'
 
 export default function PacienteModal({ onClose }: { onClose: () => void }) {
@@ -30,6 +30,13 @@ export default function PacienteModal({ onClose }: { onClose: () => void }) {
               {GENEROS.map(g => <option key={g} value={g}>{generoLabel(g, t)}</option>)}
             </select>
           </div>
+          <div>
+            <label style={labelStyle}>{t('med.status')}</label>
+            <select value={form.estado || ''} onChange={e => setForm(p => ({ ...p, estado: (e.target.value || undefined) as EstadoPaciente | undefined }))} style={inputStyle}>
+              <option value="">{t('med.select')}</option>
+              {ESTADOS_PACIENTE.map(es => <option key={es} value={es}>{estadoPacienteLabel(es, t)}</option>)}
+            </select>
+          </div>
           <div><label style={labelStyle}>{t('med.phone')}</label><input value={form.telefono || ''} onChange={e => setForm(p => ({ ...p, telefono: e.target.value }))} style={inputStyle} /></div>
           <div><label style={labelStyle}>{t('common.email')}</label><input type="email" value={form.email || ''} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} style={inputStyle} /></div>
           <div>
@@ -47,7 +54,7 @@ export default function PacienteModal({ onClose }: { onClose: () => void }) {
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
           <button onClick={onClose} style={btnSecondary}>{t('common.cancel')}</button>
-          <button onClick={() => { if (addPaciente(form)) onClose() }} style={btnPrimary}>{t('med.registerPatient')}</button>
+          <button onClick={async () => { if (await addPaciente(form)) onClose() }} style={btnPrimary}>{t('med.registerPatient')}</button>
         </div>
       </div>
     </div>
