@@ -5,6 +5,7 @@ import { useT } from '@/shared/i18n'
 import { useMedical } from './MedicalContext'
 import { useMedicalStyles } from '../hooks/useMedicalStyles'
 import { GENEROS, SEGUROS } from '../constants'
+import type { Genero } from '../constants'
 import type { Paciente } from '../types'
 
 export default function PacienteModal({ onClose }: { onClose: () => void }) {
@@ -24,7 +25,7 @@ export default function PacienteModal({ onClose }: { onClose: () => void }) {
           <div><label style={labelStyle}>{t('med.dob')}</label><input type="date" value={form.fecha_nacimiento || ''} onChange={e => setForm(p => ({ ...p, fecha_nacimiento: e.target.value }))} style={inputStyle} /></div>
           <div>
             <label style={labelStyle}>{t('med.gender')}</label>
-            <select value={form.genero || ''} onChange={e => setForm(p => ({ ...p, genero: e.target.value }))} style={inputStyle}>
+            <select value={form.genero || ''} onChange={e => setForm(p => ({ ...p, genero: (e.target.value || null) as Genero | null }))} style={inputStyle}>
               <option value="">{t('med.select')}</option>
               {GENEROS.map(g => <option key={g} value={g}>{g}</option>)}
             </select>

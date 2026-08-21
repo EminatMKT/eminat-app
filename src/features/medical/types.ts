@@ -1,21 +1,33 @@
+import type { Genero, EstadoPaciente, FuentePaciente } from './constants'
+
 export interface Paciente {
   id: string
   mrn: string
   nombre: string
   apellido: string
-  fecha_nacimiento: string
-  genero: string
-  telefono: string
-  email: string
-  seguro: string
-  seguro_id: string
-  direccion: string
-  estado: 'activo' | 'inactivo' | 'alta'
-  alergias: string
-  condiciones: string
-  notas: string
+  fecha_nacimiento: string | null
+  genero: Genero | null
+  telefono: string | null
+  telefono_alt: string | null
+  email: string | null
+  seguro: string | null
+  seguro_id: string | null
+  direccion: string | null
+  estado: EstadoPaciente
+  alergias: string | null
+  condiciones: string | null
+  notas: string | null
   created_at: string
   updated_at: string
+}
+
+export interface PacienteFuente {
+  paciente_id: string | null
+  fuente: FuentePaciente
+  clave_origen: string
+  nombre_origen: string | null
+  ref_externa: string | null
+  importado_at: string
 }
 
 export interface Cita {

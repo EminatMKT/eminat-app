@@ -76,7 +76,7 @@ export function useMedicalData() {
       id: `p${Date.now()}`,
       mrn: `MRN-2024-${String(pacientes.length + 1).padStart(4, '0')}`,
       nombre: form.nombre || '', apellido: form.apellido || '', fecha_nacimiento: form.fecha_nacimiento || '',
-      genero: form.genero || '', telefono: form.telefono || '', email: form.email || '',
+      genero: form.genero || null, telefono: form.telefono || '', telefono_alt: form.telefono_alt || null, email: form.email || '',
       seguro: form.seguro || '', seguro_id: form.seguro_id || '', direccion: form.direccion || '',
       estado: 'activo', alergias: form.alergias || '', condiciones: form.condiciones || '', notas: form.notas || '',
       created_at: hoy, updated_at: hoy,
