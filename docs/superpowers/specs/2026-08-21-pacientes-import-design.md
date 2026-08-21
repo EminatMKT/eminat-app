@@ -609,17 +609,32 @@ columnas y `null` explícito.
 *(NO VERIFICADO: no se pudo ejercitar PostgREST autenticado. Se confirma con un POST real de dos
 objetos con claves distintas y un JWT de usuario.)*
 
-### SheetJS y las fechas crudas — VERIFICADO (21/08/2026)
+### SheetJS y las fechas crudas — verificado con un alcance más chico del que se dijo
 
-El otro supuesto que este spec marcaba como no verificado ya está comprobado: con
+**Corrección de una afirmación previa de este spec.** El 21/08/2026 se escribió acá que el
+supuesto quedaba "VERIFICADO", apoyándose en un test de la Tarea 8. Una revisión posterior hizo
+la prueba de mutación —cambiar `cellDates: false` por `true`, que es el bug que duplicaría los
+4.132 pacientes— y **los tests siguieron pasando**. El fixture creaba una celda numérica sin
+formato de fecha, y con ese tipo de celda la opción no tiene efecto: lo que el test ejercitaba
+era `raw: false`, no `cellDates`.
+
+Lo que **sí** está comprobado, y alcanza para el archivo real: con
 `XLSX.read(buf, { cellDates: false, raw: true })` y
-`sheet_to_json(hoja, { header: 1, raw: false, defval: '' })`, **las fechas salen como el serial
-crudo** (`'39872'`), no como `Date`. Se ejercita con un test que construye un libro en memoria y
-lo lee de vuelta.
+`sheet_to_json(hoja, { header: 1, raw: false, defval: '' })`, una celda numérica **sin formato de
+fecha** sale como el serial crudo (`'39872'`), no como `Date`. Las 5.031 fechas del registro son
+exactamente de ese tipo (§ Anomalías, punto 11), así que el comportamiento en producción es el
+correcto.
 
-Importa porque la clave de identidad se calcula sobre ese crudo: si SheetJS hubiera devuelto
-`Date`, la clave habría cambiado de formato y el import habría **duplicado los 4.132 pacientes**
-en vez de reconocerlos.
+Lo que **falta** cubrir es la celda **con** formato de fecha aplicado, que es donde `cellDates`
+manda de verdad. Una cuarta fuente cuyo DOB venga formateado no la detectaría el test actual.
+
+Importa tanto porque la clave de identidad se calcula sobre ese crudo: si SheetJS devolviera
+`Date`, la clave cambiaría de formato y el import **duplicaría los 4.132 pacientes** en vez de
+reconocerlos.
+
+La lección, que ya es la tercera vez en este plan: **un test que pasa no prueba nada hasta que se
+lo vio fallar.** El criterio de aceptación de un test que fija una opción es que rompa al romper
+la opción.
 
 ## Estructura de archivos
 
