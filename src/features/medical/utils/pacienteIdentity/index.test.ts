@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseNombre, claveOrigen, nucleo } from './index'
+import { parseNombre, claveOrigen, nucleo, candidatos, fusionar } from './index'
 
 describe('parseNombre', () => {
   it('eClinicalWorks: APELLIDO,NOMBRE', () => {
@@ -96,5 +96,91 @@ describe('nucleo', () => {
 
   it('no distingue en qué campo cayó cada parte', () => {
     expect(nucleo('Martinez', 'Aida')).toEqual(nucleo('Aida', 'Martinez'))
+  })
+})
+
+describe('candidatos', () => {
+  const rosa = { id: '1', nombre: 'Rosa Elvira', apellido: 'Ardila de Delgado', fecha_nacimiento: '1964-09-13', telefono: '(305) 555-0101', email: 'r@x.com' }
+
+  it('exacta: mismo núcleo y mismo DOB', () => {
+    const f = { nombre: 'Ardila de Delgado', apellido: 'Rosa Elvira', fecha_nacimiento: '1964-09-13' }
+    expect(candidatos(f, [rosa])[0]).toMatchObject({ nivel: 'exacta' })
+  })
+
+  it('parcial: el núcleo corto está contenido en el largo', () => {
+    const f = { nombre: 'Rosa', apellido: 'Ardila', fecha_nacimiento: '1964-09-13' }
+    expect(candidatos(f, [rosa])[0]).toMatchObject({ nivel: 'parcial' })
+  })
+
+  it('el apellido repetido NO es exacta', () => {
+    const raul = { id: '2', nombre: 'Raul', apellido: 'Hernandez', fecha_nacimiento: '1970-01-01' }
+    const f = { nombre: 'Raul', apellido: 'Hernandez Hernandez', fecha_nacimiento: '1970-01-01' }
+    expect(candidatos(f, [raul])[0]).toMatchObject({ nivel: 'parcial' })
+  })
+
+  it('una exacta con teléfono Y email disjuntos baja a parcial', () => {
+    const f = { nombre: 'Rosa Elvira', apellido: 'Ardila de Delgado', fecha_nacimiento: '1964-09-13',
+                telefono: '(786) 555-9999', email: 'otra@y.com' }
+    expect(candidatos(f, [rosa])[0]).toMatchObject({ nivel: 'parcial' })
+  })
+
+  it('AUSENTE no es disjunto: sin contacto, la exacta sigue siendo exacta', () => {
+    // El 86% de eClinPro no trae email. Si "sin dato" contara como disjunto, casi
+    // ninguna de las 805 exactas quedaría pre-marcada y volverían a ser trabajo
+    // manual — justo lo que los dos niveles existen para evitar.
+    const f = { nombre: 'Rosa Elvira', apellido: 'Ardila de Delgado', fecha_nacimiento: '1964-09-13',
+                telefono: null, email: null }
+    expect(candidatos(f, [rosa])[0]).toMatchObject({ nivel: 'exacta' })
+  })
+
+  it('un solo dato de contacto coincidente alcanza para seguir siendo exacta', () => {
+    const f = { nombre: 'Rosa Elvira', apellido: 'Ardila de Delgado', fecha_nacimiento: '1964-09-13',
+                telefono: '(305) 555-0101', email: 'otra@y.com' }
+    expect(candidatos(f, [rosa])[0]).toMatchObject({ nivel: 'exacta' })
+  })
+
+  it('los homónimos con distinto nombre NO son candidatos', () => {
+    const laura = { id: '3', nombre: 'Laura', apellido: 'Garcia', fecha_nacimiento: '1989-01-09' }
+    const f = { nombre: 'Lucia', apellido: 'Garcia', fecha_nacimiento: '1989-01-09' }
+    expect(candidatos(f, [laura])).toEqual([])
+  })
+
+  it('sin DOB no hay candidatos', () => {
+    const f = { nombre: 'Rosa Elvira', apellido: 'Ardila de Delgado', fecha_nacimiento: null }
+    expect(candidatos(f, [rosa])).toEqual([])
+  })
+})
+
+describe('fusionar', () => {
+  it('rellena los vacíos y no pisa lo que ya tiene valor', () => {
+    const e = { nombre: 'Rosa', apellido: 'Ardila', telefono: '(305) 555-0101', email: null }
+    const n = { nombre: 'Rosa', apellido: 'Ardila', telefono: '(786) 555-9999', email: 'r@x.com' }
+    const { paciente, choques } = fusionar(e, n)
+    expect(paciente.telefono).toBe('(305) 555-0101')
+    expect(paciente.email).toBe('r@x.com')
+    expect(choques).toContain('telefono')
+  })
+
+  it('el nombre gana si su núcleo contiene al otro', () => {
+    const { paciente } = fusionar(
+      { nombre: 'Rosa', apellido: 'Ardila' },
+      { nombre: 'Rosa Elvira', apellido: 'Ardila de Delgado' })
+    expect(paciente.apellido).toBe('Ardila de Delgado')
+  })
+
+  it('la inicial NO se duplica en los dos campos', () => {
+    // Comparando nombre y apellido por separado salía "Maria F" / "F Candia".
+    const { paciente } = fusionar(
+      { nombre: 'Maria F', apellido: 'Candia' },
+      { nombre: 'Maria',   apellido: 'F Candia' })
+    expect(paciente.apellido).toBe('Candia')
+  })
+
+  it('sin relación de subconjunto gana el existente y se lista el choque', () => {
+    const { paciente, choques } = fusionar(
+      { nombre: 'Isabella', apellido: 'Castillo Araiz' },
+      { nombre: 'Isabella', apellido: 'Castillo Arauz' })
+    expect(paciente.apellido).toBe('Castillo Araiz')
+    expect(choques).toContain('apellido')
   })
 })

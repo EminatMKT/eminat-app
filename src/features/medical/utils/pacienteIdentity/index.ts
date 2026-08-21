@@ -4,6 +4,7 @@
 
 import { repararMojibake, normalizarCaja, normalizarChart } from '../normalizers'
 import type { FuentePaciente } from '@/features/medical/constants'
+import type { Paciente } from '@/features/medical/types'
 
 // eMedicalPractice trae First/Last en columnas separadas: meterle un separador en el medio
 // inventaría un formato que el archivo no tiene, y esa cadena inventada terminaría dentro de
@@ -138,4 +139,140 @@ export function nucleo(nombre: string, apellido: string): string[] {
     .split(/\s+/)
     .filter((token) => token.length >= 2)
     .sort()
+}
+
+// Lo mínimo que el matcheo mira. `telefono`/`email` quedan opcionales -y no un Pick directo
+// de Paciente- porque una fila recién parseada o un paciente ya guardado pueden no traerlos:
+// pedirlos obligatorios forzaría a cada fixture a inventar un valor que no tiene.
+type Contacto = Partial<Pick<Paciente, 'telefono' | 'email'>>
+
+export type Identificable = Pick<Paciente, 'id' | 'nombre' | 'apellido' | 'fecha_nacimiento'> & Contacto
+
+function tieneValor(v: unknown): boolean {
+  return v !== undefined && v !== null && v !== ''
+}
+
+// Multiset A contenido en multiset B: cada token de A aparece en B con multiplicidad al
+// menos igual. 'hernandez' repetido dos veces en A necesita dos 'hernandez' en B, no uno.
+function contieneMultiset(grande: readonly string[], chico: readonly string[]): boolean {
+  const restante = [...grande]
+  for (const token of chico) {
+    const idx = restante.indexOf(token)
+    if (idx === -1) return false
+    restante.splice(idx, 1)
+  }
+  return true
+}
+
+type RelacionNucleos = 'igual' | 'contiene' | 'ninguna'
+
+function relacionNucleos(a: readonly string[], b: readonly string[]): RelacionNucleos {
+  const aEnB = contieneMultiset(b, a)
+  const bEnA = contieneMultiset(a, b)
+  if (aEnB && bEnA) return 'igual'
+  if (aEnB || bEnA) return 'contiene'
+  return 'ninguna'
+}
+
+// Una coincidencia exacta baja a parcial SOLO si teléfono Y email tienen valor en los dos
+// lados y ninguno de los dos coincide. Si de un lado falta el dato, no hay evidencia de que
+// sean personas distintas: el 86% de eClinPro no trae email, y "ausente" no es "disjunto".
+function contactoDisjunto(a: Contacto, b: Contacto): boolean {
+  const telefonoAmbos = tieneValor(a.telefono) && tieneValor(b.telefono)
+  const emailAmbos = tieneValor(a.email) && tieneValor(b.email)
+  if (!telefonoAmbos || !emailAmbos) return false
+  return a.telefono !== b.telefono && a.email !== b.email
+}
+
+// Dos niveles de matcheo: 'exacta' -mismo núcleo de nombre y mismo DOB, sin contacto
+// disjunto- y 'parcial' -un núcleo contenido en el otro, o una exacta degradada por
+// contacto disjunto-.
+type NivelMatch = 'exacta' | 'parcial'
+type Candidato = { nivel: NivelMatch; paciente: Identificable }
+
+// Sin DOB no hay candidatos: es el único ancla dura que tenemos.
+export function candidatos(
+  fila: Omit<Identificable, 'id'>,
+  pacientes: readonly Identificable[],
+): Candidato[] {
+  if (!fila.fecha_nacimiento) return []
+
+  const nucleoFila = nucleo(fila.nombre, fila.apellido)
+  const resultado: Candidato[] = []
+
+  for (const paciente of pacientes) {
+    if (paciente.fecha_nacimiento !== fila.fecha_nacimiento) continue
+
+    const relacion = relacionNucleos(nucleoFila, nucleo(paciente.nombre, paciente.apellido))
+    if (relacion === 'ninguna') continue
+
+    const nivel: NivelMatch =
+      relacion === 'igual' && !contactoDisjunto(fila, paciente) ? 'exacta' : 'parcial'
+    resultado.push({ nivel, paciente })
+  }
+  return resultado
+}
+
+// Campo con valor gana sobre el entrante; solo se rellenan los vacíos. Si los dos tienen
+// valor y difieren, el existente sigue ganando pero el choque se anota -nada se resuelve
+// en silencio.
+function fusionarCampoSimple<K extends keyof Paciente>(
+  paciente: Partial<Paciente>,
+  choques: string[],
+  campo: K,
+  valorExistente: Paciente[K] | undefined,
+  valorEntrante: Paciente[K] | undefined,
+): void {
+  if (tieneValor(valorExistente)) {
+    if (tieneValor(valorEntrante) && valorExistente !== valorEntrante) {
+      choques.push(String(campo))
+    }
+    paciente[campo] = valorExistente
+    return
+  }
+  if (tieneValor(valorEntrante)) {
+    paciente[campo] = valorEntrante
+  }
+}
+
+// El nombre se resuelve como UNA partición: se comparan los núcleos de nombre+apellido una
+// sola vez, y si uno contiene al otro se adoptan los DOS campos del más completo. Comparar
+// nombre y apellido por separado deja que cada lado promueva su propio más largo, y la
+// inicial termina duplicada en los dos campos ('Maria F' / 'F Candia').
+export function fusionar(
+  existente: Partial<Paciente>,
+  entrante: Partial<Paciente>,
+): { paciente: Partial<Paciente>; choques: string[] } {
+  const paciente: Partial<Paciente> = {}
+  const choques: string[] = []
+
+  const nucleoExistente = nucleo(existente.nombre ?? '', existente.apellido ?? '')
+  const nucleoEntrante = nucleo(entrante.nombre ?? '', entrante.apellido ?? '')
+  const relacion = relacionNucleos(nucleoExistente, nucleoEntrante)
+
+  if (relacion === 'ninguna') {
+    fusionarCampoSimple(paciente, choques, 'nombre', existente.nombre, entrante.nombre)
+    fusionarCampoSimple(paciente, choques, 'apellido', existente.apellido, entrante.apellido)
+  } else if (relacion === 'contiene' && contieneMultiset(nucleoEntrante, nucleoExistente)) {
+    // el entrante contiene al existente: es el más completo, adopta sus dos campos juntos.
+    paciente.nombre = entrante.nombre
+    paciente.apellido = entrante.apellido
+  } else {
+    // núcleos iguales, o el existente es el más completo: se queda como está.
+    paciente.nombre = existente.nombre
+    paciente.apellido = existente.apellido
+  }
+
+  const campos = new Set<keyof Paciente>([
+    ...(Object.keys(existente) as (keyof Paciente)[]),
+    ...(Object.keys(entrante) as (keyof Paciente)[]),
+  ])
+  campos.delete('nombre')
+  campos.delete('apellido')
+
+  for (const campo of Array.from(campos)) {
+    fusionarCampoSimple(paciente, choques, campo, existente[campo], entrante[campo])
+  }
+
+  return { paciente, choques }
 }
