@@ -51,7 +51,7 @@ supabase/migrations/<ts>_pacientes.sql     ← Tarea 1
 
 src/shared/data/
   tables.ts                (modificar)     ← + pacientes, pacienteFuentes
-  pacientes.ts             (crear)         ← lectura paginada + upsert por lotes
+  paginated.ts             (crear)         ← listAllRows<T>, genérico y sin dominio
 
 src/features/medical/
   types.ts                 (modificar)     ← Paciente con los campos nuevos
@@ -387,7 +387,23 @@ desaparecer: una fila vieja tiene que verse."
 
 **Files:**
 - Modify: `src/shared/data/tables.ts:4-24`
-- Create: `src/shared/data/pacientes.ts`
+- Create: `src/shared/data/paginated.ts` — el bucle de paginación, genérico y sin dominio
+- Create: `src/features/medical/data/pacientes.ts` — las funciones tipadas de pacientes
+
+**Por qué dos archivos y no uno.** La primera versión de esta tarea ponía todo en
+`src/shared/data/pacientes.ts` con `import type { Paciente } from '@/features/medical/types'`.
+Eso habría sido **el primer archivo de `src/shared/` en importar de `src/features/`** en todo el
+repo (verificado: hoy son cero), rompiendo la restricción global y encadenando el módulo
+compartido al dominio de Medical. Y contradecía al spec, que ubica el archivo en
+`src/features/medical/data/pacientes.ts`.
+
+El corte es el de siempre: **lo genérico arriba, el dominio abajo.** `listAllRows<T>(tabla, orden)`
+no sabe qué es un paciente y va a `src/shared/data/paginated.ts`; `listPacientes()` y compañía
+saben de `Paciente` y viven en Medical.
+
+No es generalidad de más: `src/shared/data/research.ts:11` hace hoy `.select('*')` sin `.range()`,
+así que tiene el mismo bug de `max_rows` latente — no muerde porque Research tiene 35 leads.
+El helper ya tiene su segundo consumidor identificado.
 
 **Interfaces:**
 - Consumes: `TABLES` de `@/shared/data/tables`.
@@ -408,21 +424,20 @@ En `src/shared/data/tables.ts`, dentro de `TABLES`:
   pacienteFuentes: 'paciente_fuentes',
 ```
 
-- [ ] **Step 2: Escribir la capa de datos**
+- [ ] **Step 2: Escribir el helper genérico de paginación**
 
-Crear `src/shared/data/pacientes.ts`:
+Crear `src/shared/data/paginated.ts`. **No importa nada de `src/features/`** — no sabe qué fila
+está leyendo:
 
 ```ts
 import { supabase } from '@/shared/db/supabase'
-import { TABLES } from './tables'
-import type { Paciente, PacienteFuente } from '@/features/medical/types'
 
 // PostgREST corta en `max_rows` (1000 en supabase/config.toml) y devuelve 200 OK con
 // Content-Range, no un error: supabase-js no avisa nada. Sin paginar, el matcheo del
 // import se calcularía contra 1.000 de 4.132 pacientes y duplicaría el resto EN SILENCIO.
 const PAGE = 1000
 
-async function listAll<T>(tabla: string, orden: string): Promise<T[]> {
+export async function listAllRows<T>(tabla: string, orden: string): Promise<T[]> {
   const out: T[] = []
   for (let desde = 0; ; desde += PAGE) {
     const { data, error } = await supabase
@@ -432,9 +447,20 @@ async function listAll<T>(tabla: string, orden: string): Promise<T[]> {
     if (!data || data.length < PAGE) return out
   }
 }
+```
 
-export const listPacientes = () => listAll<Paciente>(TABLES.pacientes, 'apellido')
-export const listPacienteFuentes = () => listAll<PacienteFuente>(TABLES.pacienteFuentes, 'fuente')
+- [ ] **Step 3: Escribir la capa de datos de pacientes**
+
+Crear `src/features/medical/data/pacientes.ts`:
+
+```ts
+import { supabase } from '@/shared/db/supabase'
+import { TABLES } from '@/shared/data/tables'
+import { listAllRows } from '@/shared/data/paginated'
+import type { Paciente, PacienteFuente } from '../types'
+
+export const listPacientes = () => listAllRows<Paciente>(TABLES.pacientes, 'apellido')
+export const listPacienteFuentes = () => listAllRows<PacienteFuente>(TABLES.pacienteFuentes, 'fuente')
 
 export const insertPaciente = (data: Partial<Paciente>) =>
   supabase.from(TABLES.pacientes).insert([data]).select().single()
@@ -454,22 +480,22 @@ export const upsertPacienteFuentes = (rows: PacienteFuente[]) =>
   supabase.from(TABLES.pacienteFuentes).upsert(rows, { onConflict: 'fuente,clave_origen' })
 ```
 
-- [ ] **Step 3: Verificar que compila**
+- [ ] **Step 4: Verificar que compila**
 
 Run: `pnpm typecheck`
 Esperado: sin errores.
 
-- [ ] **Step 4: Verificar la paginación contra la base local**
+- [ ] **Step 5: Verificar la paginación contra la base local**
 
 Este no se puede testear con vitest (necesita la base). Se verifica a mano en la consola del
 navegador con el dev server levantado, **después** de la Tarea 4 cuando el módulo ya lea de acá.
 Anotarlo como pendiente y seguir.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add src/shared/data/pacientes.ts
-git commit src/shared/data/pacientes.ts src/shared/data/tables.ts \
+git add src/shared/data/paginated.ts src/features/medical/data/pacientes.ts
+git commit src/shared/data/paginated.ts src/features/medical/data/pacientes.ts src/shared/data/tables.ts \
   -m "feat(medical): capa de datos de pacientes, con lectura paginada
 
 max_rows=1000 y PostgREST trunca devolviendo 200 OK: sin .range() en bucle el
