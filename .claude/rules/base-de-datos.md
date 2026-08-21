@@ -47,3 +47,42 @@ dejó 9 usuarios sin cuenta de Auth (imposible por la UI) y a la vez les puso `e
 que **el panel no tenía dónde asignar un equipo** — o sea que nadie creado desde el panel podía
 recibir una tarea. Cada fila insertada por SQL es una funcionalidad que nadie probó.
 Ver `docs/hallazgos-qa-2026-08-12.md`.
+
+## El enum no se escribe en la línea de la columna: va a un `DOMAIN` con nombre
+
+```sql
+-- ❌ la lista de valores tapa la definición de la columna
+genero  text CHECK (genero IN ('M','F','NB','ND')),
+estado  text NOT NULL DEFAULT 'activo' CHECK (estado IN ('activo','inactivo','alta')),
+
+-- ✅ el dominio se declara una vez, con nombre, y la columna dice qué es
+CREATE DOMAIN public.genero AS text
+  CHECK (VALUE IN ('M','F','NB','ND'));
+CREATE DOMAIN public.estado_paciente AS text
+  CHECK (VALUE IN ('activo','inactivo','alta'));
+
+genero  public.genero,
+estado  public.estado_paciente NOT NULL DEFAULT 'activo',
+```
+
+El `DOMAIN` va **arriba de la tabla, en la misma migración**, y se nombra por lo que
+representa (`estado_paciente`), no por dónde se usa (`pacientes_estado`): el nombre tiene que
+seguir sirviendo cuando lo use una segunda tabla.
+
+Sigue valiendo la regla de que el valor canónico **no** es la etiqueta (ver `codigo.md`): el
+`DOMAIN` fija qué se puede guardar, y el objeto META de TypeScript le pone el `labelKey` y el
+color a cada valor. Son las dos mitades del mismo catálogo y tienen que listar lo mismo.
+
+**Motivo:** una columna se lee para saber **qué es**, y con el `CHECK` inline la línea dedica
+más caracteres a la lista que al tipo — con seis valores no entra en el ancho de la pantalla y
+la definición de la tabla deja de poder leerse de un vistazo. Es la misma razón por la que el
+atributo `style` está prohibido en el JSX: el detalle tapa la estructura.
+
+Y hay dos motivos mecánicos que el inline no da:
+
+- **Un `CHECK` inline es anónimo.** Postgres le inventa un nombre (`pacientes_genero_check`,
+  y con suerte ese) y para cambiar el dominio hay que ir a buscarlo a `pg_constraint` antes de
+  poder dropearlo. Un `DOMAIN` se altera por su nombre, que es el que uno eligió.
+- **El inline se copia.** En cuanto una segunda tabla necesita el mismo dominio, la lista se
+  escribe dos veces y a partir de ahí se desincronizan en silencio: agregar un valor en una y
+  no en la otra no falla, simplemente rechaza filas en un lado y no en el otro.
