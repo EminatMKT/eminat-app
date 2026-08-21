@@ -933,8 +933,36 @@ para que corregir el parseo no rompa la idempotencia."
 
 **Interfaces:**
 - Consumes: `nucleo`, `parseNombre` de este mismo módulo.
-- Produces: `candidatos(fila, pacientes)` → `{ nivel: 'exacta' | 'parcial', paciente }[]`;
-  `fusionar(existente, entrante)` → `{ paciente, choques: string[] }`.
+- Produces:
+  ```ts
+  // Las dos funciones piden lo MÍNIMO que necesitan, no un Paciente entero.
+  export type Identificable = Pick<Paciente,
+    'id' | 'nombre' | 'apellido' | 'fecha_nacimiento' | 'telefono' | 'email'>
+
+  export function candidatos(
+    fila: Omit<Identificable, 'id'>,
+    pacientes: readonly Identificable[],
+  ): { nivel: 'exacta' | 'parcial'; paciente: Identificable }[]
+
+  export function fusionar(
+    existente: Partial<Paciente>,
+    entrante: Partial<Paciente>,
+  ): { paciente: Partial<Paciente>; choques: string[] }
+  ```
+
+**Por qué `Pick` y `Partial` y no `Paciente`.** `Paciente` tiene 18 propiedades y **todas son
+requeridas** — las nullables son `T | null`, no opcionales. Con la firma pidiendo `Paciente`, cada
+fixture de test necesitaría doce campos de relleno (`mrn`, `created_at`, `seguro_id`…) que la
+función ni mira, o un `as Paciente` para callar al compilador — y el `as` está prohibido por
+`codigo.md`, que manda salir por `Pick`/`Omit`/`Partial` exactamente en este caso.
+
+Además es mejor contrato: `candidatos` compara nombre, fecha y contacto, así que **eso** es lo que
+tiene que pedir. Los fixtures de los tests de abajo tipan tal cual están escritos.
+
+**Regla de contacto disjunto — la definición precisa**, porque de acá salen los dos tests de
+"ausente ≠ disjunto": una coincidencia exacta baja a parcial **solo si** `telefono` y `email`
+tienen valor **en los dos lados** y **ninguno de los dos coincide**. Si de un lado falta el dato,
+no hay evidencia de que sean personas distintas, y la coincidencia se queda en exacta.
 
 - [ ] **Step 1: Escribir el test que falla**
 
