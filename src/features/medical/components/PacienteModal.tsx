@@ -4,7 +4,7 @@ import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { useMedical } from './MedicalContext'
 import { useMedicalStyles } from '../hooks/useMedicalStyles'
-import { GENEROS, SEGUROS } from '../constants'
+import { GENEROS, SEGUROS, generoLabel } from '../constants'
 import type { Genero } from '../constants'
 import type { Paciente } from '../types'
 
@@ -27,7 +27,7 @@ export default function PacienteModal({ onClose }: { onClose: () => void }) {
             <label style={labelStyle}>{t('med.gender')}</label>
             <select value={form.genero || ''} onChange={e => setForm(p => ({ ...p, genero: (e.target.value || null) as Genero | null }))} style={inputStyle}>
               <option value="">{t('med.select')}</option>
-              {GENEROS.map(g => <option key={g} value={g}>{g}</option>)}
+              {GENEROS.map(g => <option key={g} value={g}>{generoLabel(g, t)}</option>)}
             </select>
           </div>
           <div><label style={labelStyle}>{t('med.phone')}</label><input value={form.telefono || ''} onChange={e => setForm(p => ({ ...p, telefono: e.target.value }))} style={inputStyle} /></div>
