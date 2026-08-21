@@ -148,6 +148,15 @@ esconde los agujeros de la UI. El modal de import **es** la funcionalidad, no el
 ```sql
 -- pnpm supabase migration new pacientes  →  supabase/migrations/<timestamp>_pacientes.sql
 
+-- Los enums, declarados aparte y con nombre. Nombrados por lo que representan, no por
+-- dónde se usan: `estado_paciente` sigue sirviendo cuando lo use una segunda tabla.
+CREATE DOMAIN public.genero AS text
+  CHECK (VALUE IN ('M','F','NB','ND'));
+CREATE DOMAIN public.estado_paciente AS text
+  CHECK (VALUE IN ('activo','inactivo','alta'));
+CREATE DOMAIN public.fuente_paciente AS text
+  CHECK (VALUE IN ('ecw','eclinpro','emed','manual'));
+
 CREATE SEQUENCE public.pacientes_mrn_seq;
 
 CREATE TABLE public.pacientes (
@@ -158,15 +167,14 @@ CREATE TABLE public.pacientes (
   nombre            text NOT NULL,
   apellido          text NOT NULL,
   fecha_nacimiento  date,
-  genero            text CHECK (genero IN ('M','F','NB','ND')),
+  genero            public.genero,
   telefono          text,
   telefono_alt      text,
   email             text,              -- SIN unique: hay familias que comparten correo
   seguro            text,
   seguro_id         text,
   direccion         text,
-  estado            text NOT NULL DEFAULT 'activo'
-                      CHECK (estado IN ('activo','inactivo','alta')),
+  estado            public.estado_paciente NOT NULL DEFAULT 'activo',
   alergias          text,
   condiciones       text,
   notas             text,
@@ -176,7 +184,7 @@ CREATE TABLE public.pacientes (
 
 CREATE TABLE public.paciente_fuentes (
   paciente_id   uuid NOT NULL REFERENCES public.pacientes(id) ON DELETE CASCADE,
-  fuente        text NOT NULL CHECK (fuente IN ('ecw','eclinpro','emed','manual')),
+  fuente        public.fuente_paciente NOT NULL,
   clave_origen  text NOT NULL,     -- identificador estable DE ESA FUENTE (ver § Identidad)
   nombre_origen text,              -- la cadena tal cual la tenía ese sistema
   ref_externa   text,              -- Chart# de eMedicalPractice; null en las otras
@@ -216,9 +224,16 @@ sigue siendo imposible que una fila de origen apunte a dos pacientes.
 
 ### Catálogos de dominio
 
-`genero`, `estado` y `fuente` son catálogos: van como objeto META en
-`src/features/medical/constants.ts`, con `labelKey` por valor y su helper
-(`generoLabel(v, t)`, `fuenteLabel(v, t)`). El canónico es `'M'`; lo que se ve sale de i18n.
+Cada enum se declara **dos veces y en dos lugares**, y las dos mitades tienen que listar lo
+mismo:
+
+- En SQL, como `DOMAIN` con nombre —`public.genero`, `public.estado_paciente`,
+  `public.fuente_paciente`— arriba de la tabla, en la misma migración. Fija **qué se puede
+  guardar**. Nunca en la línea de la columna.
+- En TypeScript, como objeto META en `src/features/medical/constants.ts`, con `labelKey` y
+  color por valor, y su helper (`generoLabel(v, t)`, `fuenteLabel(v, t)`). Fija **cómo se ve**.
+
+El canónico es `'M'`; lo que se muestra sale de i18n. La constante nunca se renderiza.
 
 **Esto rompe el `GENEROS` actual** (`'Masculino'`, `'Femenino'`, `'No binario'`,
 `'Prefiere no decir'`), que se renderizaba directo desde la constante. Hay que tocar
