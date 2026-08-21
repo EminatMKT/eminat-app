@@ -143,10 +143,37 @@ mostrarlo. Una columna que codifica un dato que ya existe por separado se desinc
 Coherente con la regla del repo: un seed escribe filas que ningún formulario podría producir y
 esconde los agujeros de la UI. El modal de import **es** la funcionalidad, no el andamio.
 
+### 7. Las enumeraciones abiertas salen del esquema
+
+`genero` y `seguro` no llevan `CHECK` ni constante en `.ts`: van a `generos` y `seguros`, dos
+tablas de catálogo administrables desde `/admin`. `estado` y `fuente` sí quedan como dominio
+cerrado, porque agregarles un valor exige código.
+
+Esto llegó como regla nueva mientras se escribía el spec y está en
+`.claude/rules/base-de-datos.md`. El corte no es "toda lista va a una tabla": es que una lista
+que alguien puede querer extender sin desplegar no tiene por qué estar protegida por una
+migración. Agregar `Oscar Health` no puede costar un `ALTER TABLE … DROP CONSTRAINT` con
+backup, precheck y dos pushes.
+
 ## Esquema
 
 ```sql
 -- pnpm supabase migration new pacientes  →  supabase/migrations/<timestamp>_pacientes.sql
+
+-- Catálogos: valores que alguien puede agregar sin desplegar código.
+-- Misma forma que empresas/departamentos/cargos, para entrar a ORG_CATALOGS sin caso especial.
+CREATE TABLE public.generos (
+  codigo text PRIMARY KEY,
+  nombre text NOT NULL,
+  orden  integer NOT NULL DEFAULT 0,
+  activo boolean NOT NULL DEFAULT true
+);
+CREATE TABLE public.seguros (
+  codigo text PRIMARY KEY,
+  nombre text NOT NULL,
+  orden  integer NOT NULL DEFAULT 0,
+  activo boolean NOT NULL DEFAULT true
+);
 
 CREATE SEQUENCE public.pacientes_mrn_seq;
 
@@ -158,12 +185,12 @@ CREATE TABLE public.pacientes (
   nombre            text NOT NULL,
   apellido          text NOT NULL,
   fecha_nacimiento  date,
-  genero            text CHECK (genero IN ('M','F','NB','ND')),
+  genero            text REFERENCES public.generos(codigo),
   telefono          text,
   telefono_alt      text,
   email             text,              -- SIN unique: hay familias que comparten correo
-  seguro            text,
-  seguro_id         text,
+  seguro            text REFERENCES public.seguros(codigo),
+  seguro_id         text,              -- el nro de póliza de esa persona, no el catálogo
   direccion         text,
   estado            text NOT NULL DEFAULT 'activo'
                       CHECK (estado IN ('activo','inactivo','alta')),
@@ -194,7 +221,28 @@ CREATE POLICY "mod_access" ON public.pacientes USING (public.has_module('medical
 CREATE POLICY "mod_access" ON public.paciente_fuentes USING (public.has_module('medical'));
 CREATE POLICY "admin_all"  ON public.pacientes USING (public.is_admin());
 CREATE POLICY "admin_all"  ON public.paciente_fuentes USING (public.is_admin());
+
+-- Los catálogos se leen desde cualquier módulo y solo el admin los escribe:
+-- mismo par de policies que empresas/departamentos/cargos.
+ALTER TABLE public.generos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seguros ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "generos_select_authenticated" ON public.generos FOR SELECT TO authenticated USING (true);
+CREATE POLICY "seguros_select_authenticated" ON public.seguros FOR SELECT TO authenticated USING (true);
+CREATE POLICY "admin_all" ON public.generos USING (public.is_admin());
+CREATE POLICY "admin_all" ON public.seguros USING (public.is_admin());
+
+INSERT INTO public.generos (codigo, nombre, orden) VALUES
+  ('M','Masculino',1), ('F','Femenino',2), ('NB','No binario',3), ('ND','Prefiere no decir',4);
+INSERT INTO public.seguros (codigo, nombre, orden) VALUES
+  ('medicare','Medicare',1), ('medicaid','Medicaid',2), ('blue-cross','Blue Cross',3),
+  ('aetna','Aetna',4), ('unitedhealth','UnitedHealth',5), ('cigna','Cigna',6),
+  ('humana','Humana',7), ('privado','Privado',8), ('sin-seguro','Sin seguro',9);
 ```
+
+Las filas iniciales de un catálogo **sí** van en la migración, y eso no contradice la regla de
+cargar los datos por el frontend: no son datos de prueba, son el dominio. Es lo mismo que ya
+hicieron `roles`, `empresas` y `jornadas`. Lo que la regla exige es que el panel **también**
+pueda crearlas — y puede, porque los dos catálogos entran a `ORG_CATALOGS`.
 
 **`PRIMARY KEY (fuente, clave_origen)` es la garantía de idempotencia:** una fila de
 eClinicalWorks apunta a un solo paciente, para siempre. Reimportar el mismo archivo actualiza,
@@ -214,16 +262,38 @@ sigue siendo imposible que una fila de origen apunte a dos pacientes.
 - `fuente` — clave natural sana (legible, del catálogo cerrado, no codifica nada que exista
   por separado), va sin sufijo. Mismo criterio que `actividades.empresa`.
 
-### Catálogos de dominio
+### Enumeraciones: catálogo o dominio cerrado
 
-`genero`, `estado` y `fuente` son catálogos: van como objeto META en
-`src/features/medical/constants.ts`, con `labelKey` por valor y su helper
-(`generoLabel(v, t)`, `fuenteLabel(v, t)`). El canónico es `'M'`; lo que se ve sale de i18n.
+Aplicando la regla de `.claude/rules/base-de-datos.md`, las cuatro listas de este esquema no
+van todas al mismo lado. La pregunta es si alguien que no toca código puede agregar un valor y
+que funcione:
 
-**Esto rompe el `GENEROS` actual** (`'Masculino'`, `'Femenino'`, `'No binario'`,
-`'Prefiere no decir'`), que se renderizaba directo desde la constante. Hay que tocar
-`PacienteModal`, `PatientRow` y `demo-data`. Es la misma corrección que se hizo en Stratix el
-20/08/2026.
+| Columna | Dónde | Por qué |
+|---|---|---|
+| `genero` | tabla `generos` | solo se muestra; agregar un valor no toca ninguna rama |
+| `seguro` | tabla `seguros` | una aseguradora nueva no es un despliegue |
+| `estado` | `CHECK` + `ESTADO_PACIENTE_META` | el tablero cuenta `activo` aparte: un valor nuevo no se contaría solo |
+| `fuente` | `CHECK` + `FUENTE_META` | un sistema clínico nuevo necesita su parser de nombres, su normalizador y su clave |
+
+Los dos catálogos entran a `ORG_CATALOGS` (`src/features/admin/org-catalogs.ts`) como una
+entrada más — el CRUD de `/admin` → Organización ya es config-driven para los seis que hay, así
+que no hay pantalla nueva que escribir. `blockedBy` apunta a `pacientes.genero` y
+`pacientes.seguro` con `matchOn: 'codigo'`, porque las dos FK van contra la clave natural.
+
+El `nombre` de un catálogo **no pasa por i18n**: es dato escrito por el admin, igual que
+`empresas.nombre` o `departamentos.nombre`. Lo que sí pasa por i18n son los dos dominios
+cerrados, que llevan su `labelKey` por valor y su helper (`estadoPacienteLabel(v, t)`,
+`fuenteLabel(v, t)`) — el canónico es `'activo'`, lo que se ve sale de `es.json` / `en.json`.
+
+**Esto reemplaza `GENEROS` y `SEGUROS`** de `src/features/medical/constants.ts`, que hoy son
+listas hardcodeadas que se renderizan directo. Hay que tocar `PacienteModal`, `PatientRow` y
+`demo-data`, y los `<select>` pasan a leer del contexto — con su `<option value="">` de
+placeholder, según la regla de selects obligatorios.
+
+El import resuelve el valor entrante contra el catálogo con `resolveToCanonical`
+(`src/shared/utils/canonical.ts`), el mismo mecanismo que usa Research: `M` → `M`,
+`Male` → `M`, `Masculino` → `M`. Un valor que no resuelve no se descarta: se muestra en el paso
+de mapeo para que la persona lo asigne o cree el valor de catálogo que falta.
 
 ## Identidad y duplicados
 
@@ -326,6 +396,9 @@ src/shared/import/
 src/features/research/
   utils/fields.ts                                  aporta LEAD_FIELD_DEFS + identidad por NCT#
 
+src/features/admin/
+  org-catalogs.ts                                  + entradas `generos` y `seguros` en ORG_CATALOGS
+
 src/features/medical/
   utils/normalizers/     index.ts + index.test.ts  serial→fecha, teléfono, género, limpiar nombre
   utils/pacienteIdentity/index.ts + index.test.ts  parseo por fuente, clave, matcheo, fusión
@@ -362,7 +435,8 @@ Los casos salen del archivo real, no se inventan:
 | Nombre ECP sin separador | `Maria Elena Aranguren` | marcado como ambiguo |
 | Anotación | `Gustavo - Gonzalez DUPLICADO ROCHE` | apellido `Gonzalez`, nota `DUPLICADO ROCHE` |
 | Fila que no es paciente | `Formato visitas no borrar - Prueba` | excluida |
-| Género | `M` / `Male` / `Femenino` | `M` / `M` / `F` |
+| Género contra el catálogo | `M` / `Male` / `Femenino` | `M` / `M` / `F` |
+| Género no reconocido | `Masc.` | no resuelve → va al mapeo, no se descarta |
 | Match exacto | `rosa / ardila de delgado` vs `ardila de delgado, rosa` | exacta |
 | Match parcial | `rosa / ardila` vs `rosa elvira / ardila de delgado` | parcial |
 | Homónimos | mismo apellido + DOB, nombre distinto | **no** es candidato |
@@ -413,5 +487,7 @@ en notación científica, un duplicado exacto y uno parcial).
 2. **Las citas siguen siendo demo y hablan de gente que ya no está en la tabla.** Guardan
    `paciente_nombre` adentro, así que se siguen viendo, pero el detalle de un paciente real no
    va a mostrar citas. Deuda aceptada a sabiendas.
-3. **`GENEROS` cambia de valores canónicos** (`'Masculino'` → `'M'`). Quien tenga un filtro o
-   una vista apoyada en el texto viejo la va a ver vacía.
+3. **`GENEROS` y `SEGUROS` dejan de ser listas de código y pasan a catálogos administrables.**
+   El valor guardado cambia (`'Masculino'` → `'M'`, `'Blue Cross'` → `'blue-cross'`), así que
+   un filtro o una vista apoyada en el texto viejo se va a ver vacía. A cambio, agregar una
+   aseguradora pasa a hacerse desde `/admin` → Organización, sin tocar código.
