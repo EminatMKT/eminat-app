@@ -1071,26 +1071,45 @@ donde la única evidencia de identidad es el nombre y la fecha."
 - Create: `src/shared/import/parseWorkbook/index.test.ts`
 
 **Interfaces:**
-- Produces: `parseWorkbook(buf: ArrayBuffer)` → `{ hojas: string[] }`;
-  `readSheet(buf, hoja)` → `{ headers: string[]; rows: string[][] }`.
+- Produces: `parseWorkbook(buf: ArrayBuffer): Promise<{ hojas: string[] }>`;
+  `readSheet(buf, hoja): Promise<{ headers: string[]; rows: string[][] }>`.
+  **Asíncronas** porque la librería se importa de forma dinámica (ver Step 1b).
   **Todas las celdas salen como string crudo**, sin convertir fechas ni números: la conversión es
   de los normalizadores, y la clave de origen depende del crudo.
 
 - [ ] **Step 1: Agregar la dependencia**
 
 ```bash
-pnpm add xlsx
+pnpm add https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
 pnpm audit
 ```
 
-⚠️ **Verificar la salida de `pnpm audit`.** Si reporta una vulnerabilidad de prototype pollution en
-`xlsx`, la versión de npm está congelada y hay que instalar el tarball mantenido:
+**La decisión ya está tomada; esto no se reevalúa.** Verificado el 21/08/2026:
 
-```bash
-pnpm add https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
+| Origen | Versión | Por qué no |
+|---|---|---|
+| `pnpm add xlsx` (npm) | **0.18.5**, congelada | SheetJS dejó de publicar en npm después de esa versión. Es la rama vieja |
+| `pnpm add @e965/xlsx` (npm) | 0.20.3 | Un tercero republicando código ajeno. Confiar en un mantenedor que no podemos identificar, para la librería que **parsea archivos con datos de pacientes**, es peor que el problema que resuelve |
+| **cdn.sheetjs.com** (tarball) | **0.20.3** | ✅ Canal oficial del mantenedor. `pnpm` guarda el hash de integridad en el lockfile, así que las instalaciones siguientes quedan verificadas |
+
+El CDN responde `200` y pesa 2,4 MB. **Costo de esta decisión:** el build necesita alcanzar
+`cdn.sheetjs.com`, no solo el registry de npm. Si algún día el CI no puede, la salida es
+vendorizar el tarball, no volver a la 0.18.5.
+
+- [ ] **Step 1b: Importar la librería de forma dinámica**
+
+2,4 MB no pueden entrar al bundle principal por una pantalla que se usa una vez por mes. La
+importación va **adentro de la función que la usa**, no en el tope del archivo:
+
+```ts
+export async function parseWorkbook(buf: ArrayBuffer) {
+  const XLSX = await import('xlsx')   // ← code-split: sale del bundle principal
+  …
+}
 ```
 
-Anotar en el commit cuál de las dos se usó y por qué.
+Esto vuelve `parseWorkbook` y `readSheet` asíncronas. Los tests las esperan con `await`, y el
+modal ya trabaja con promesas (hoy hace `await file.text()`).
 
 - [ ] **Step 2: Escribir el test que falla**
 
@@ -1114,22 +1133,22 @@ function libroDePrueba(): ArrayBuffer {
 }
 
 describe('parseWorkbook', () => {
-  it('lista las hojas en orden', () => {
-    expect(parseWorkbook(libroDePrueba()).hojas).toEqual(['eClinicalWorks', 'eClinPro'])
+  it('lista las hojas en orden', async () => {
+    expect((await parseWorkbook(libroDePrueba())).hojas).toEqual(['eClinicalWorks', 'eClinPro'])
   })
 })
 
 describe('readSheet', () => {
-  it('devuelve headers y filas de la hoja pedida', () => {
-    const { headers, rows } = readSheet(libroDePrueba(), 'eClinPro')
+  it('devuelve headers y filas de la hoja pedida', async () => {
+    const { headers, rows } = await readSheet(libroDePrueba(), 'eClinPro')
     expect(headers).toEqual(['Name', 'DOB'])
     expect(rows[0][0]).toBe('Javier - Andrade')
   })
 
-  it('la fecha sale CRUDA como serial, no convertida', () => {
+  it('la fecha sale CRUDA como serial, no convertida', async () => {
     // Si SheetJS la devolviera como Date, la clave de origen cambiaría de formato
     // y el import dejaría de reconocer las filas ya cargadas.
-    const { rows } = readSheet(libroDePrueba(), 'eClinicalWorks')
+    const { rows } = await readSheet(libroDePrueba(), 'eClinicalWorks')
     expect(rows[0][1]).toBe('39872')
   })
 })
