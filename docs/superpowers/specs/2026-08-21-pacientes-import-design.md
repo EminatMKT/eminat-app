@@ -196,13 +196,45 @@ CREATE INDEX paciente_fuentes_paciente_id_idx ON public.paciente_fuentes(pacient
 CREATE TRIGGER trg_pacientes_updated_at BEFORE UPDATE ON public.pacientes
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
-ALTER TABLE public.pacientes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.paciente_fuentes ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "mod_access" ON public.pacientes USING (public.has_module('medical'));
-CREATE POLICY "mod_access" ON public.paciente_fuentes USING (public.has_module('medical'));
-CREATE POLICY "admin_all"  ON public.pacientes USING (public.is_admin());
-CREATE POLICY "admin_all"  ON public.paciente_fuentes USING (public.is_admin());
+-- El slug se declara UNA vez y las policies se generan, como en dynamic_roles.sql.
+-- El RAISE es el guard que ahí falta: ver la nota de abajo.
+DO $$
+DECLARE
+  slug   text   := 'medical';
+  tablas text[] := ARRAY['pacientes','paciente_fuentes'];
+  tbl    text;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.role_modules WHERE module_slug = slug) THEN
+    RAISE EXCEPTION 'slug de módulo desconocido: %', slug;
+  END IF;
+  FOREACH tbl IN ARRAY tablas LOOP
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS "mod_access" ON public.%I', tbl);
+    EXECUTE format('DROP POLICY IF EXISTS "admin_all"  ON public.%I', tbl);
+    EXECUTE format('CREATE POLICY "mod_access" ON public.%I USING (public.has_module(%L))', tbl, slug);
+    EXECUTE format('CREATE POLICY "admin_all"  ON public.%I USING (public.is_admin())', tbl);
+  END LOOP;
+END $$;
 ```
+
+### Por qué el slug va en una variable y con `RAISE`
+
+Repetir `'medical'` en cuatro policies no es solo ruido: **un slug mal escrito no falla, se
+vuelve invisible**.
+
+`role_modules.module_slug` es `text NOT NULL`, sin FK y sin tabla de catálogo detrás — no hay
+nada en la base que valide un slug. Y `has_module()` abre con `SELECT public.is_admin() OR …`,
+así que una policy que dijera `has_module('medial')` **devolvería `true` para el admin**. El
+admin es exactamente quien escribe y prueba la migración: vería la tabla funcionando perfecto
+mientras está invisible para todos los demás.
+
+El `RAISE EXCEPTION` cierra eso sin agregar ninguna tabla: si el slug no existe en
+`role_modules`, la migración aborta en el momento de aplicarse en vez de dejar dos tablas
+mudas. Cuesta tres líneas.
+
+**Lo que no arregla, y queda anotado:** falta un catálogo `modules` con FK desde
+`role_modules.module_slug`. Está fuera de scope de este spec — toca la migración de roles
+dinámicos, que ya está en producción.
 
 **`PRIMARY KEY (fuente, clave_origen)` es la garantía de idempotencia:** una fila de
 eClinicalWorks apunta a un solo paciente, para siempre. Reimportar el mismo archivo actualiza,
