@@ -609,6 +609,18 @@ columnas y `null` explícito.
 *(NO VERIFICADO: no se pudo ejercitar PostgREST autenticado. Se confirma con un POST real de dos
 objetos con claves distintas y un JWT de usuario.)*
 
+### SheetJS y las fechas crudas — VERIFICADO (21/08/2026)
+
+El otro supuesto que este spec marcaba como no verificado ya está comprobado: con
+`XLSX.read(buf, { cellDates: false, raw: true })` y
+`sheet_to_json(hoja, { header: 1, raw: false, defval: '' })`, **las fechas salen como el serial
+crudo** (`'39872'`), no como `Date`. Se ejercita con un test que construye un libro en memoria y
+lo lee de vuelta.
+
+Importa porque la clave de identidad se calcula sobre ese crudo: si SheetJS hubiera devuelto
+`Date`, la clave habría cambiado de formato y el import habría **duplicado los 4.132 pacientes**
+en vez de reconocerlos.
+
 ## Estructura de archivos
 
 ```
