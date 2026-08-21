@@ -12,7 +12,7 @@ export type Crudo = string | { first: string; last: string }
 
 type ParseoNombre = { nombre: string; apellido: string; nota: string | null; ambiguo: boolean }
 
-type FilaClave = { nombreCrudo?: string; dobCrudo?: string; chart?: string; fila?: number }
+type FilaClave = { nombreCrudo?: string; dobCrudo?: string; chart?: string; fila?: number; id?: string }
 
 // Anotaciones conocidas que aparecen pegadas al nombre en el archivo fuente. Hoy es una sola
 // ('DUPLICADO ROCHE', 157 filas), pero se deja como lista para que agregar la próxima sea
@@ -111,6 +111,12 @@ function normalizarParaComparar(s: string): string {
 export function claveOrigen(fuente: FuentePaciente, fila: FilaClave): string {
   if (fuente === 'emed') {
     return normalizarChart(fila.chart ?? '')
+  }
+
+  // Un paciente manual no viene de ningún sistema externo del que reconocer una fila el mes
+  // que viene: su clave es su propio id, no una derivación del nombre que alguien puede editar.
+  if (fuente === 'manual') {
+    return String(fila.id ?? '')
   }
 
   const nombreNorm = normalizarParaComparar(fila.nombreCrudo ?? '')

@@ -59,8 +59,10 @@ describe('claveOrigen', () => {
   })
 
   it('el mojibake NO cambia la clave', () => {
-    expect(claveOrigen('emed', { nombreCrudo: 'PeÃ±a', dobCrudo: '1' }))
-      .toBe(claveOrigen('emed', { nombreCrudo: 'Peña', dobCrudo: '1' }))
+    // 'ecw', no 'emed': la clave de emed sale del Chart#, así que con 'emed' los dos
+    // lados daban '' y el test pasaba sin ejercitar nada.
+    expect(claveOrigen('ecw', { nombreCrudo: 'PeÃ±a,Yenni', dobCrudo: '27958.0' }))
+      .toBe(claveOrigen('ecw', { nombreCrudo: 'Peña,Yenni', dobCrudo: '27958.0' }))
   })
 
   it('sin DOB, la clave lleva el índice de fila', () => {
@@ -69,6 +71,14 @@ describe('claveOrigen', () => {
     const a = claveOrigen('eclinpro', { nombreCrudo: 'Maitte - Ponce', dobCrudo: '', fila: 12 })
     const b = claveOrigen('eclinpro', { nombreCrudo: 'Maitte - Ponce', dobCrudo: '', fila: 87 })
     expect(a).not.toBe(b)
+  })
+
+  it('manual usa el id del paciente, no nombre+DOB', () => {
+    // Un paciente cargado a mano no viene de ningún sistema externo: editarle el
+    // nombre no puede cambiarle la clave, o el matcheo deja de reconocerlo.
+    expect(claveOrigen('manual', { id: 'uuid-1' })).toBe('uuid-1')
+    expect(claveOrigen('manual', { id: 'uuid-1', nombreCrudo: 'Nombre Viejo' }))
+      .toBe(claveOrigen('manual', { id: 'uuid-1', nombreCrudo: 'Nombre Nuevo' }))
   })
 })
 
