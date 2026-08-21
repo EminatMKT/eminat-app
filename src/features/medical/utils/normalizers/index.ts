@@ -66,7 +66,10 @@ export function normalizarTelefono(v: string): Marcable<string | null> {
   if (!raw) return { valor: null, marcada: false }
 
   const digitos = soloDigitos(raw)
-  if (!digitos) return { valor: null, marcada: false }
+  // Celda vacía (ya cubierta arriba) y celda con basura ('N/A', '-') NO son lo mismo: no
+  // informar un teléfono es legítimo, pero una celda con contenido que no da ningún dígito es
+  // un dato roto que hay que marcar, no descartar en silencio como si nunca hubiera existido.
+  if (!digitos) return { valor: raw, marcada: true, motivo: 'telefonoInvalido' }
 
   if (digitos.length === 10) {
     return { valor: formatearTelefono(digitos), marcada: false }
@@ -115,6 +118,14 @@ export function normalizarGenero(v: string): string | null {
 
 // El Chart# de eMedicalPractice es la CLAVE DE IDENTIDAD de esa fuente. Excel lo entrega como
 // float ('2.0'); si un parser devolviera '2.0' y otro '2', la misma persona tendría dos claves.
+// Sin guarda, un valor no numérico da literalmente 'NaN' — y si dos filas distintas cayeran
+// ahí, colisionarían en la misma clave y se fusionarían dos pacientes que no tienen nada que
+// ver, en silencio. Si no es finito se devuelve el crudo recortado: no inventa una clave, y
+// preserva la distinción que el dato todavía tenga. El marcado de una fila con chart inválido
+// es trabajo del paso de saneamiento, no de esta función — por eso la firma sigue en `string`.
 export function normalizarChart(v: string): string {
-  return String(Math.trunc(Number(v)))
+  const raw = String(v ?? '').trim()
+  if (!raw) return ''
+  const n = Number(raw)
+  return Number.isFinite(n) ? String(Math.trunc(n)) : raw
 }

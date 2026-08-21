@@ -48,6 +48,13 @@ describe('normalizarTelefono', () => {
   it('la celda vacía no se marca: no informar un teléfono no es un error', () => {
     expect(normalizarTelefono('')).toEqual({ valor: null, marcada: false })
   })
+  it('el whitespace cuenta como vacío, no como basura', () => {
+    expect(normalizarTelefono('   ')).toEqual({ valor: null, marcada: false })
+  })
+  it('MARCA la celda con contenido que no da ningún dígito, en vez de descartarla como vacía', () => {
+    expect(normalizarTelefono('N/A')).toEqual({ valor: 'N/A', marcada: true, motivo: 'telefonoInvalido' })
+    expect(normalizarTelefono('-')).toEqual({ valor: '-', marcada: true, motivo: 'telefonoInvalido' })
+  })
 })
 
 describe('normalizarCaja', () => {
@@ -76,5 +83,11 @@ describe('normalizarChart', () => {
     expect(normalizarChart('2.0')).toBe('2')
     expect(normalizarChart('1276.0')).toBe('1276')
     expect(normalizarChart('2')).toBe('2')
+  })
+  it('un valor no numérico no colisiona con otro en el string "NaN": se conserva el crudo', () => {
+    expect(normalizarChart('abc')).toBe('abc')
+  })
+  it('la celda vacía da string vacío, no "NaN"', () => {
+    expect(normalizarChart('')).toBe('')
   })
 })
