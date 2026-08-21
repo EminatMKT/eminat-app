@@ -55,7 +55,7 @@ src/shared/data/
 
 src/features/medical/
   types.ts                 (modificar)     ← Paciente con los campos nuevos
-  constants.ts             (modificar)     ← GENERO_META / ESTADO_PACIENTE_META / FUENTE_META
+  constants/index.ts       (mover+modif.)  ← GENERO_META / ESTADO_PACIENTE_META / FUENTE_META
   utils/normalizers/
     index.ts  index.test.ts (crear)        ← mojibake, serial→fecha, teléfono, caja, género
   utils/pacienteIdentity/
@@ -64,6 +64,7 @@ src/features/medical/
   hooks/usePacientes.ts    (crear)         ← estado + CRUD contra la data layer
   components/PacienteModal.tsx (modificar) ← selects desde los catálogos, placeholder vacío
   components/PatientRow.tsx    (modificar) ← generoLabel/estadoLabel en vez del texto crudo
+  components/PatientDetail.tsx (modificar) ← idem: pinta genero y estado crudos
 
 src/shared/import/
   parseWorkbook/  index.ts  index.test.ts  ← xlsx → { hojas, headers, rows }
@@ -175,7 +176,7 @@ lo resucite en la siguiente carga."
   (con `git mv`, para conservar el historial)
 - Create: `src/features/medical/constants/index.test.ts`
 - Modify: `src/features/medical/types.ts:1-19`
-- Modify: `src/shared/i18n/es.json`, `src/shared/i18n/en.json`
+- Modify: `src/shared/i18n/locales/es.json`, `src/shared/i18n/locales/en.json`
 
 **Por qué pasa a carpeta:** `componentes.md` exime de ser carpeta a "un módulo de constantes",
 y este deja de serlo en cuanto le entran `generoLabel` y compañía — funciones con test. Ningún
@@ -282,7 +283,7 @@ lo toca.
 
 - [ ] **Step 4: Agregar las claves i18n**
 
-En `src/shared/i18n/es.json`:
+En `src/shared/i18n/locales/es.json`:
 
 ```json
 "med.genero.M": "Masculino",
@@ -298,7 +299,7 @@ En `src/shared/i18n/es.json`:
 "med.fuente.manual": "Carga manual"
 ```
 
-En `src/shared/i18n/en.json`:
+En `src/shared/i18n/locales/en.json`:
 
 ```json
 "med.genero.M": "Male",
@@ -371,7 +372,7 @@ con que compile.
 ```bash
 git commit src/features/medical/constants.ts src/features/medical/constants.test.ts \
   src/features/medical/types.ts src/features/medical/demo-data.ts \
-  src/shared/i18n/es.json src/shared/i18n/en.json \
+  src/shared/i18n/locales/es.json src/shared/i18n/locales/en.json \
   -m "feat(medical): genero, estado y fuente pasan a objetos META con clave i18n
 
 El Kanban de Stratix rotulaba sus columnas en español con la app en inglés por
@@ -485,7 +486,26 @@ reintentable."
 - Create: `src/features/medical/hooks/usePacientes.ts`
 - Modify: `src/features/medical/hooks/useMedicalData.ts:10-30`
 - Modify: `src/features/medical/components/PacienteModal.tsx`
-- Modify: `src/features/medical/components/PatientRow.tsx`
+- Modify: `src/features/medical/components/PatientRow.tsx:23,26`
+- Modify: `src/features/medical/components/PatientDetail.tsx:27,34`
+
+**Tres cosas que hay que arrastrar de las tareas anteriores** (no están en el código que ves,
+están en lo que ese código dejó de ser cierto):
+
+1. **`addPaciente` de `useMedicalData.ts:73-86` hace tres cosas, no una.** Inserta, llama a
+   `logAction('CREATE_RECORD', 'patient_registration', …)` —que es el **audit trail de HIPAA**— y
+   muestra un mensaje. El reemplazo por el hook **no puede perder el `logAction`**: es una feature
+   de cumplimiento sobre una tabla de PHI, y perderla no rompe nada visible. El mensaje, además,
+   está hardcodeado en español (`Paciente ... registrado`): pasa a `t()` con su clave en los dos
+   JSON.
+2. **El MRN ya no se genera en el cliente.** `addPaciente` arma hoy `MRN-2024-${length+1}`; ahora
+   lo pone la base por `DEFAULT`. El insert **no debe mandar `mrn`** — dos generadores sobre una
+   columna `UNIQUE` chocan.
+3. **Los dos componentes pintan valores canónicos crudos**, porque hasta la Tarea 2 `genero` era
+   texto libre en español: `PatientRow.tsx:23` y `PatientDetail.tsx:34` muestran `'M'`, y los dos
+   pintan el color del estado con un ternario hardcodeado (`PatientRow.tsx:26`,
+   `PatientDetail.tsx:27`) que ahora duplica `ESTADO_PACIENTE_META[…].color`. Se usan
+   `generoLabel(…, t)` y `estadoPacienteLabel(…, t)`, y el color sale del META: el ternario se va.
 
 **Interfaces:**
 - Consumes: `listPacientes`, `insertPaciente`, `updatePaciente` de `@/shared/data/pacientes`;
@@ -1208,7 +1228,7 @@ tocarse, que es la prueba de que la promoción no cambió el comportamiento."
 - Create: `src/shared/import/ImportModal/index.tsx` + `index.module.css`
 - Create: `src/shared/import/SheetPicker/`, `SanitizeRow/`, `MergeCandidateRow/`
 - Delete: `src/features/research/components/leads/ImportModal.tsx`
-- Modify: `src/shared/i18n/es.json`, `en.json`
+- Modify: `src/shared/i18n/locales/es.json`, `en.json`
 
 - [ ] **Step 1: Mover el modal y pasarlo a CSS Modules**
 
