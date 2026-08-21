@@ -864,8 +864,18 @@ describe('claveOrigen', () => {
   })
 
   it('el mojibake NO cambia la clave', () => {
-    expect(claveOrigen('emed', { nombreCrudo: 'PeÃ±a', dobCrudo: '1' }))
-      .toBe(claveOrigen('emed', { nombreCrudo: 'Peña', dobCrudo: '1' }))
+    // 'ecw', NO 'emed': la clave de emed sale del Chart#, así que con 'emed' los dos
+    // lados dan '' y el test pasa sin ejercitar nada. Comprobar que falla si se le
+    // saca la reparación de mojibake a claveOrigen.
+    expect(claveOrigen('ecw', { nombreCrudo: 'PeÃ±a,Yenni', dobCrudo: '27958.0' }))
+      .toBe(claveOrigen('ecw', { nombreCrudo: 'Peña,Yenni', dobCrudo: '27958.0' }))
+  })
+
+  it('manual usa el id del paciente, no el nombre', () => {
+    // Un paciente cargado a mano no viene de ningún sistema: no hay cadena cruda que
+    // reconocer. Si usara nombre+DOB, editarle el nombre le cambiaría la clave.
+    expect(claveOrigen('manual', { id: 'uuid-1' })).toBe('uuid-1')
+    expect(claveOrigen('manual', { id: 'uuid-1', nombreCrudo: 'Otro Nombre' })).toBe('uuid-1')
   })
 
   it('sin DOB, la clave lleva el índice de fila', () => {
