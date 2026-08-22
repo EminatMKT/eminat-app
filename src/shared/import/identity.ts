@@ -19,13 +19,20 @@ export type Identity<Row extends string[] = string[]> = {
   // índice de la fila en el import actual — lo necesita una fuente que, sin él, no tenga con
   // qué distinguir dos filas (ver `pacienteIdentity.claveOrigen`, el caso sin DOB).
   claveOrigen: (fila: string[], i: number) => string
-  // La clave ya existe en el destino: devuelve su id. `undefined` = no existe todavía. Cadena
-  // vacía = existe pero es una "tumba" — un registro borrado a propósito (id null en el
-  // destino) que el import NO recrea.
-  existente: (clave: string) => string | undefined
+  // La clave ya existe en el destino: devuelve su id. `undefined` = no existe todavía. `null` =
+  // existe, pero es una "tumba" — un registro borrado a propósito (id null en el destino) que
+  // el import NO recrea. La misma forma que ya usa la base (`paciente_id: null`).
+  existente: (clave: string) => string | null | undefined
   // Candidatos de fusión cuando la clave no existe todavía: sin ninguno, la fila va derecho a
   // `toInsert`.
   candidatos: (fila: Row, i: number) => CandidatoFusion[]
+  // Colapsa dos filas con la misma clave de origen en una sola (la primera; la(s) siguiente(s)
+  // suman `repetidas`) en vez de procesarlas por separado. Default `false`: la mayoría de los
+  // módulos no tiene filas repetidas y colapsarlas en silencio cambiaría cuál gana un
+  // update, o el conteo de un `skip` — un comportamiento que Research ya tenía en producción y
+  // que un refactor no puede alterar sin que alguien lo pida. Medical sí lo prende: su archivo
+  // trae 47 filas literalmente repetidas.
+  colapsarRepetidas?: boolean
 }
 
 export interface MergeCandidate {

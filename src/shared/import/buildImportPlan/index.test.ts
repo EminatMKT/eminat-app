@@ -7,14 +7,18 @@ import type { Identity } from '../identity'
 const coerce = (_col: string, v: string): unknown => (v === '' ? null : v)
 
 // La primera columna de `mapping` hace de clave de origen en todos estos tests: `fila[0]`.
+// `existentes` usa `null` para el caso tumba (existe, pero apunta a un id borrado) y
+// `undefined` (ausente del Map) para "no existe todavía".
 function identityDePrueba(
-  existentes: Map<string, string>,
-  candidatosPorClave: Map<string, { nivel: 'exacta' | 'parcial'; id: string }[]> = new Map()
+  existentes: Map<string, string | null>,
+  candidatosPorClave: Map<string, { nivel: 'exacta' | 'parcial'; id: string }[]> = new Map(),
+  colapsarRepetidas = false
 ): Identity {
   return {
     claveOrigen: (fila) => fila[0],
     existente: (clave) => existentes.get(clave),
     candidatos: (fila) => candidatosPorClave.get(fila[0]) ?? [],
+    colapsarRepetidas,
   }
 }
 
@@ -33,8 +37,24 @@ describe('buildImportPlan', () => {
     expect(candidatosSpy).not.toHaveBeenCalled()
   })
 
-  it('dos filas con la misma clave_origen colapsan a una sola en toInsert y cuentan como repetida', () => {
+  // `colapsarRepetidas` es `false` por default: dos filas de la misma clave se procesan cada
+  // una por su cuenta, ninguna se descarta. Es el comportamiento que Research ya tenía en
+  // producción (fix del round 1: el colapso por default lo cambiaba en silencio — ver el
+  // caso "prendido" más abajo para el módulo que sí lo necesita, Medical).
+  it('con colapsarRepetidas apagado (default), dos filas de la misma clave producen DOS entradas y repetidas: 0', () => {
     const identity = identityDePrueba(new Map())
+
+    const plan = buildImportPlan({
+      rows: [['c2', 'Ana'], ['c2', 'Ana otra vez']],
+      mapping, identity, coerce,
+    })
+
+    expect(plan.toInsert).toHaveLength(2)
+    expect(plan.repetidas).toBe(0)
+  })
+
+  it('con colapsarRepetidas prendido, dos filas de la misma clave colapsan a una sola en toInsert y cuentan como repetida', () => {
+    const identity = identityDePrueba(new Map(), new Map(), true)
 
     const plan = buildImportPlan({
       rows: [['c2', 'Ana'], ['c2', 'Ana otra vez']],
@@ -45,9 +65,8 @@ describe('buildImportPlan', () => {
     expect(plan.repetidas).toBe(1)
   })
 
-  it('una clave que existe con paciente_id null es una tumba: no se recrea', () => {
-    // Cadena vacía = "existe, pero el destino la tiene con id null" — un borrado a propósito.
-    const identity = identityDePrueba(new Map([['c3', '']]))
+  it('una clave que existe con id null es una tumba: no se recrea', () => {
+    const identity = identityDePrueba(new Map([['c3', null]]))
 
     const plan = buildImportPlan({ rows: [['c3', 'Ana']], mapping, identity, coerce })
 

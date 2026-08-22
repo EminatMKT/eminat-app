@@ -12,6 +12,9 @@ export function buildImportPlan<Row extends string[] = string[]>(input: {
 }): ImportPlan {
   const { rows, mapping, identity, coerce } = input
   const plan: ImportPlan = { toInsert: [], toUpdate: [], toMerge: [], repetidas: 0, tumbas: 0, skipped: 0 }
+  // Solo se llena si `identity.colapsarRepetidas` está prendido: por default cada fila se
+  // procesa por su cuenta, aunque comparta clave con otra — es el comportamiento que Research
+  // ya tenía en producción (ver el flag, en `../identity`).
   const vistas = new Set<string>()
 
   rows.forEach((fila, i) => {
@@ -23,16 +26,18 @@ export function buildImportPlan<Row extends string[] = string[]>(input: {
     if (!Object.values(values).some((v) => v !== null)) return
 
     const clave = identity.claveOrigen(fila, i)
-    // Dos filas con la misma clave de origen son la misma fila repetida en el archivo: la
-    // segunda no se procesa de nuevo, solo se cuenta.
-    if (vistas.has(clave)) { plan.repetidas++; return }
-    vistas.add(clave)
+    if (identity.colapsarRepetidas) {
+      // Dos filas con la misma clave de origen son la misma fila repetida en el archivo: la
+      // segunda no se procesa de nuevo, solo se cuenta.
+      if (vistas.has(clave)) { plan.repetidas++; return }
+      vistas.add(clave)
+    }
 
     const id = identity.existente(clave)
     if (id !== undefined) {
-      // Cadena vacía = tumba: la clave existe pero el destino la tiene con id null (un
-      // registro borrado a propósito). El import no la recrea.
-      if (id === '') { plan.tumbas++; return }
+      // `null` = tumba: la clave existe pero el destino la tiene con id null (un registro
+      // borrado a propósito). El import no la recrea.
+      if (id === null) { plan.tumbas++; return }
       plan.toUpdate.push({ id, values })
       return
     }

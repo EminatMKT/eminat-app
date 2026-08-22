@@ -83,6 +83,19 @@ describe('buildImportPlan', () => {
     expect(p.toInsert).toHaveLength(0)
   })
 
+  // Sin NCT# no hay clave que matchee: la identidad de Research (`identityPorNct`) le da a
+  // cada fila una clave única por índice para que dos filas sin NCT# nunca se pisen entre sí.
+  // Fix del round 1 (2026-08-21): esto no tenía test propio — solo lo ejercitaba de casualidad
+  // el fixture compartido de arriba, que trae una sola fila sin NCT#.
+  it('dos filas sin NCT# con datos distintos entran las dos, no una', () => {
+    const p = buildImportPlan({
+      rows: [['', 'Estudio A'], ['', 'Estudio B']],
+      mapping, existingByNct: new Map(), dupMode: 'update',
+    })
+    expect(p.toInsert).toHaveLength(2)
+    expect(p.toInsert.map(r => r.official_title)).toEqual(['Estudio A', 'Estudio B'])
+  })
+
   it('auto-normaliza valores de dominio (phase 2 → Phase 2); no resuelto → null', () => {
     const m = ['nct_number', 'phase'] as (string | null)[]
     const p = buildImportPlan({ rows: [['NCTa', '2'], ['NCTb', '9']], mapping: m, existingByNct: new Map(), dupMode: 'update' })
