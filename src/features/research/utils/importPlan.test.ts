@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { guessMapping, indexByNct, buildImportPlan, planCounterChanges, stripCounterFor, ignoredHeaders } from './importPlan'
+import { buildImportPlan as buildPlanCompartido } from '@/shared/import'
+import { guessMapping, indexByNct, buildImportPlan, identityPorNct, planCounterChanges, stripCounterFor, ignoredHeaders } from './importPlan'
 import { DEFAULT_STAGE, STAGE } from '../constants'
 
 describe('guessMapping', () => {
@@ -85,15 +86,32 @@ describe('buildImportPlan', () => {
 
   // Sin NCT# no hay clave que matchee: la identidad de Research (`identityPorNct`) le da a
   // cada fila una clave única por índice para que dos filas sin NCT# nunca se pisen entre sí.
-  // Fix del round 1 (2026-08-21): esto no tenía test propio — solo lo ejercitaba de casualidad
-  // el fixture compartido de arriba, que trae una sola fila sin NCT#.
-  it('dos filas sin NCT# con datos distintos entran las dos, no una', () => {
+  it('dos filas sin NCT# con datos distintos entran las dos, no una (hoy, con colapsarRepetidas apagado)', () => {
     const p = buildImportPlan({
       rows: [['', 'Estudio A'], ['', 'Estudio B']],
       mapping, existingByNct: new Map(), dupMode: 'update',
     })
     expect(p.toInsert).toHaveLength(2)
     expect(p.toInsert.map(r => r.official_title)).toEqual(['Estudio A', 'Estudio B'])
+  })
+
+  // Fix round 2 (2026-08-21): el test de arriba NO ejercita el índice de `identityPorNct` —
+  // con `colapsarRepetidas` apagado, `vistas` ni se consulta, así que dos filas sin NCT# entran
+  // las dos aunque `claveOrigen` devolviera la MISMA clave para las dos (lo probé mutando el
+  // código: sacar el `${i}` no rompe ese test). El índice es defensa para cuando se prenda el
+  // flag (`.todo/TODO.md`, "El import aborta el lote entero..."), así que hay que forzar el
+  // flag acá para que la protección tenga un test que muera si se le saca el índice.
+  it('con colapsarRepetidas prendido (el día de mañana), el índice sigue distinguiendo dos filas sin NCT#', () => {
+    const identity = { ...identityPorNct(mapping, new Map()), colapsarRepetidas: true }
+    const coerce = (col: string, v: string) => (v === '' ? null : v)
+
+    const p = buildPlanCompartido({
+      rows: [['', 'Estudio A'], ['', 'Estudio B']],
+      mapping, identity, coerce,
+    })
+
+    expect(p.toInsert).toHaveLength(2)
+    expect(p.repetidas).toBe(0)
   })
 
   it('auto-normaliza valores de dominio (phase 2 → Phase 2); no resuelto → null', () => {

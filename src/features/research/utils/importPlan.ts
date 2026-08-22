@@ -65,7 +65,14 @@ export function indexByNct(leads: { id: string; nct_number?: string | null }[]):
 // Identidad de Research: la clave es el NCT# normalizado. Sin NCT#, cada fila es su propia
 // clave (por índice de fila) para que nunca colapse con otra fila sin NCT# — Research nunca
 // fusiona por nombre, así que sin esto todas las filas sin NCT# se pisarían entre sí.
-function identityPorNct(mapping: (string | null)[], existingByNct: Map<string, string>): Identity {
+//
+// El índice no protege nada HOY: `colapsarRepetidas` está apagado para Research (fix del round
+// 1), así que `vistas` ni se consulta. Pero el día que se prenda —`.todo/TODO.md`, "El import
+// aborta el lote entero si el archivo trae dos filas con el mismo NCT#"— el índice es lo único
+// que evita que dos leads sin NCT# se fusionen en silencio. Exportada para que el test de esa
+// defensa (`importPlan.test.ts`) pueda forzar el flag sin pasar por el wrapper público, que no
+// lo expone.
+export function identityPorNct(mapping: (string | null)[], existingByNct: Map<string, string>): Identity {
   const nctIdx = mapping.indexOf('nct_number')
   return {
     claveOrigen: (fila, i) => {
