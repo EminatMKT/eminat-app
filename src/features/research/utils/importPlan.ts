@@ -1,7 +1,17 @@
 // Planificación pura de una importación de leads. Decide insert/update/skip según el modo
 // de duplicados y el match por NCT# contra los leads ya existentes. Sin React, sin red.
+//
+// El algoritmo genérico (mapear+coercer cada celda, matchear por clave, colapsar filas
+// repetidas) vive en `@/shared/import`, compartido con Medical. Lo que sigue siendo de
+// Research es la IDENTIDAD —reconocer un lead por su NCT#— y dos reglas de negocio que un
+// plan genérico no puede saber: el default de `stage` en un insert, y que `email_count`
+// vacío en un update no pisa el valor existente.
+import { buildImportPlan as buildPlanCompartido } from '@/shared/import'
+import type { Identity, ImportPlan } from '@/shared/import'
 import { leadColumnFor, coerceLeadValue, normalizeDomainValue } from './fields'
 import { normNct, DEFAULT_STAGE, COUNT_COLUMN } from '../constants'
+
+export type { ImportPlan }
 
 // NCT# es único (research_leads_nct_number_key): no existe "duplicar" un NCT ya presente.
 // Filas sin NCT# (o con NCT nuevo) siempre insertan; con NCT existente: update o skip.
@@ -17,12 +27,6 @@ function resolveValue(col: string, raw: string, valueMap?: ValueMap): string {
   if (override !== undefined) return override
   const norm = normalizeDomainValue(col, raw)
   return norm === null ? '' : norm
-}
-
-export interface ImportPlan {
-  toInsert: Record<string, unknown>[]
-  toUpdate: { id: string; values: Record<string, unknown> }[]
-  skipped: number
 }
 
 const normHeader = (h: string) => h.trim().toLowerCase().replace(/ /g, '_').replace(/#/g, '')
@@ -58,6 +62,21 @@ export function indexByNct(leads: { id: string; nct_number?: string | null }[]):
   return m
 }
 
+// Identidad de Research: la clave es el NCT# normalizado. Sin NCT#, cada fila es su propia
+// clave (por índice de fila) para que nunca colapse con otra fila sin NCT# — Research nunca
+// fusiona por nombre, así que sin esto todas las filas sin NCT# se pisarían entre sí.
+function identityPorNct(mapping: (string | null)[], existingByNct: Map<string, string>): Identity {
+  const nctIdx = mapping.indexOf('nct_number')
+  return {
+    claveOrigen: (fila, i) => {
+      const norm = nctIdx >= 0 ? normNct(fila[nctIdx]) : ''
+      return norm || `__sin_nct__${i}`
+    },
+    existente: (clave) => existingByNct.get(clave),
+    candidatos: () => [], // Research no fusiona por similitud: solo matchea por NCT#.
+  }
+}
+
 export function buildImportPlan(input: {
   rows: string[][]
   mapping: (string | null)[]
@@ -66,27 +85,27 @@ export function buildImportPlan(input: {
   valueMap?: ValueMap
 }): ImportPlan {
   const { rows, mapping, existingByNct, dupMode, valueMap } = input
-  const plan: ImportPlan = { toInsert: [], toUpdate: [], skipped: 0 }
-  for (const row of rows) {
-    const values: Record<string, unknown> = {}
-    mapping.forEach((col, i) => { if (col) values[col] = coerceLeadValue(col, resolveValue(col, (row[i] ?? '').trim(), valueMap)) })
-    // Descartar filas sin ningún valor (todas las celdas mapeadas vacías → null).
-    if (!Object.values(values).some(v => v !== null)) continue
-    const id = existingByNct.get(normNct(values.nct_number))
-    if (!id) {
-      // Insert: si el CSV no trae stage (columna ausente o celda vacía), arranca en la etapa default.
-      if (values.stage == null) values.stage = DEFAULT_STAGE
-      plan.toInsert.push(values)
-      continue
-    }
-    if (dupMode === 'skip') { plan.skipped++; continue }
-    // El contador solo se pisa si el CSV trae un valor. Celda vacía = "no lo informé", NO
-    // "ponelo en cero": sin esto, exportar y reimportar sin llenar la columna borraría los
-    // conteos que Royner cargó por el pop-up. Mismo criterio que `stage` en un update.
-    if (values[COUNT_COLUMN] == null) delete values[COUNT_COLUMN]
-    plan.toUpdate.push({ id, values }) // 'update'
+  const coerce = (col: string, v: string) => coerceLeadValue(col, resolveValue(col, v, valueMap))
+  const plan = buildPlanCompartido({ rows, mapping, identity: identityPorNct(mapping, existingByNct), coerce })
+
+  // Insert: si el CSV no trae stage (columna ausente o celda vacía), arranca en la etapa default.
+  const toInsert = plan.toInsert.map(values => (values.stage == null ? { ...values, stage: DEFAULT_STAGE } : values))
+
+  if (dupMode === 'skip') {
+    return { ...plan, toInsert, toUpdate: [], skipped: plan.skipped + plan.toUpdate.length }
   }
-  return plan
+
+  // El contador solo se pisa si el CSV trae un valor. Celda vacía = "no lo informé", NO
+  // "ponelo en cero": sin esto, exportar y reimportar sin llenar la columna borraría los
+  // conteos que Royner cargó por el pop-up.
+  const toUpdate = plan.toUpdate.map(u => {
+    if (u.values[COUNT_COLUMN] != null) return u
+    const values = { ...u.values }
+    delete values[COUNT_COLUMN]
+    return { id: u.id, values }
+  })
+
+  return { ...plan, toInsert, toUpdate }
 }
 
 // Un cambio de contador que el import haría sobre un lead ya existente. Alimenta el preview:
