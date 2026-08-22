@@ -1321,7 +1321,44 @@ tocarse, que es la prueba de que la promoción no cambió el comportamiento."
 
 # FASE 5 — El modal
 
-## Task 10: El modal de 6 pasos
+## Task 10a: Promover el modal a `src/shared/`, sin cambiarle nada
+
+**El objetivo de esta mitad es que Research siga funcionando igual.** No se agregan pasos, no se
+agrega Medical: se mueve el modal, se le saca el dominio y se lo pasa a CSS Modules. Al terminar,
+el import de Research tiene que verse y comportarse **idéntico**.
+
+**Por qué partida.** El original son 243 líneas con **42 `style={{}}`** y **14 bloques dentro de
+`.map()`**. Mudarlo, convertirlo, extraerle los componentes de fila, agregarle dos pasos nuevos y
+construir el adaptador de Medical en una sola tarea produce un diff que nadie puede revisar, y
+deja sin punto de control el único momento en que se puede comprobar que Research no se rompió.
+
+**Files:**
+- Create: `src/shared/import/ImportModal/index.tsx` + `index.module.css`
+- Create: `src/shared/import/SheetPicker/`, `SanitizeRow/`, `MergeCandidateRow/` (carpetas vacías
+  de contenido todavía — se llenan en la 10b; acá solo se extraen las filas que YA existen)
+- Delete: `src/features/research/components/leads/ImportModal.tsx`
+- Modify: `src/features/research/components/ResearchContent.tsx:17,42`
+
+⚠️ **Hay TRES `ImportModal` en el repo.** El que se borra es el de Research
+(`features/research/components/leads/ImportModal.tsx`). El de Cobranzas
+(`features/cobranzas/components/ImportModal.tsx`, montado por `CobranzasContent.tsx:8`)
+**no se toca** — está fuera de scope.
+
+**Todo el dominio entra por props.** Si al mover el archivo aparece un import de `src/features/`,
+eso es la prueba de que falta un prop, no una excepción: catálogo de campos, identidad, tema,
+etiquetas y callbacks vienen de afuera. Research los pasa desde donde hoy monta el modal.
+
+**Los estilos van a `index.module.css`** usando los tokens de `src/app/globals.css` (`--s1`,
+`--s2`, `--t1`, `--accent`). Lo único que puede quedar en un `style` es un **dato** como variable
+CSS.
+
+**Verificación:** `pnpm typecheck`, `pnpm test`, `pnpm build:check`, y **abrir el import de
+Research en el navegador con un CSV de leads**. Es el módulo que ya está en producción: si esto se
+rompió, la promoción salió mal.
+
+---
+
+## Task 10b: Los pasos nuevos y el adaptador de Medical
 
 **Files:**
 - Create: `src/shared/import/ImportModal/index.tsx` + `index.module.css`
