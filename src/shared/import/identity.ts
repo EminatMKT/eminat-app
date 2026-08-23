@@ -3,6 +3,7 @@
 // niveles (`@/features/medical/utils/pacienteIdentity`). El resto del plan de import
 // (`buildImportPlan/`) es igual para los dos, así que la identidad entra por parámetro y
 // este archivo no conoce ninguna de las dos formas de dominio.
+import type { I18nKey } from '@/shared/i18n'
 
 // Nivel de confianza de un candidato de fusión: 'exacta' pre-marca la fusión, 'parcial' la deja
 // para revisión manual. Declarado una sola vez para que `Identity.candidatos` y
@@ -48,4 +49,21 @@ export interface ImportPlan {
   repetidas: number
   tumbas: number
   skipped: number
+}
+
+// Una anomalía del paso 4 (saneamiento): lo que un normalizador del módulo marcó en una celda
+// -mojibake, fecha futura, teléfono roto- con el crudo al lado de lo interpretado. `colIndex`
+// es la posición de la celda dentro de la fila del archivo (no la columna de destino): con ella
+// el modal sabe qué celda tocar si el usuario edita el valor. `null` = la anomalía es de la fila
+// entera (ej. "no parece un paciente") y no hay una celda puntual que editar — solo se excluye.
+// El mensaje va por clave i18n, nunca texto armado acá: quien detecta la anomalía es del
+// dominio (Medical), pero quien la RENDERIZA es este módulo compartido, y nada que un usuario
+// vea se escribe inline (ver codigo.md).
+export interface SanitizeIssue {
+  rowIndex: number
+  colIndex: number | null
+  messageKey: I18nKey
+  messageParams?: Record<string, string | number>
+  crudo: string
+  interpretado: string
 }

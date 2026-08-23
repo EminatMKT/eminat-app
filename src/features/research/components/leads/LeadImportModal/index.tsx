@@ -27,6 +27,8 @@ export default function LeadImportModal() {
   const existingByNct = useMemo(() => indexByNct(leads), [leads])
   const countById = useMemo(() => new Map(leads.map(l => [l.id, l.email_count ?? null])), [leads])
 
+  // El 5º parámetro (`hoja`) es del modo 'workbook' (Medical, que trabaja con .xlsx de varias
+  // hojas) — Research importa CSV de una sola tabla, así que siempre llega `null`.
   const buildPlan = useCallback(
     (rows: string[][], mapping: (string | null)[], dupMode: DupMode, valueMap: ValueMap): ImportPlan =>
       buildResearchPlan({ rows, mapping, existingByNct, dupMode, valueMap }),
@@ -60,6 +62,8 @@ export default function LeadImportModal() {
     <ImportModal<ImportPlan>
       open={modalImport}
       title={t('research.import.title')}
+      accept=".csv,.tsv,.txt"
+      kind="delimited"
       fieldDefs={LEAD_FIELD_DEFS}
       domainOptions={domainOptions}
       normalizeDomainValue={normalizeDomainValue}

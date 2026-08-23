@@ -1,0 +1,20 @@
+.fieldLabel {
+  font-size: 11px;
+  color: var(--c-t3);
+  font-weight: 600;
+}
+
+.cell {
+  font-size: 12px;
+  color: var(--c-t1);
+  word-break: break-word;
+}
+
+.diff {
+  font-weight: 700;
+  color: #B45309;
+  background: color-mix(in srgb, #FBBF24 18%, transparent);
+  border-radius: 4px;
+  padding: 1px 4px;
+  margin: -1px -4px;
+}
