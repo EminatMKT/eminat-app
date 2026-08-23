@@ -1,0 +1,12 @@
+.row {
+  border-bottom: 1px solid var(--c-border);
+}
+
+.cell {
+  padding: 5px 8px;
+  color: var(--c-t2);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -14,7 +14,7 @@ import LeadFormModal from './leads/LeadFormModal'
 import ActivityModal from './leads/ActivityModal'
 import EmailCountModal from './leads/EmailCountModal'
 import SpecialtyBackfillModal from './leads/SpecialtyBackfillModal'
-import ImportModal from './leads/ImportModal'
+import LeadImportModal from './leads/LeadImportModal'
 import MailCampaignModal from './campaigns/MailCampaignModal'
 import CampaignViewModal from './campaigns/CampaignViewModal'
 
@@ -39,7 +39,7 @@ export default function ResearchContent({ tab }: { tab: string }) {
       <ActivityModal />
       <EmailCountModal />
       <SpecialtyBackfillModal />
-      <ImportModal />
+      <LeadImportModal />
       <MailCampaignModal />
       <CampaignViewModal />
     </div>
