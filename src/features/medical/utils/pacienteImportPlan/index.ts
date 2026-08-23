@@ -164,6 +164,15 @@ function coercePacienteCelda(col: string, v: string, valueMap: ValueMap): unknow
   return v || null
 }
 
+// `estado` es lo único que distingue un plan vacío porque la hoja no se reconoció de un plan
+// vacío porque el archivo (con fuente reconocida) de verdad no traía filas — en shape
+// (`toInsert: []`, `toUpdate: []`, …) los dos son idénticos, y antes de este campo lo eran
+// también en el valor devuelto: quien llame SOLO con el resultado en la mano (un test, un log)
+// no tenía forma de saber cuál de los dos pasó. `ImportModal.validateSource` ya bloquea el botón
+// de Importar antes de llegar acá con una hoja no reconocida, pero esta función se puede llamar
+// sola —y se llama sola, en los tests— así que el resultado tiene que poder explicarse solo.
+export type PacienteImportPlan = ImportPlan & { estado: 'ok' | 'fuenteDesconocida' }
+
 export function buildPacienteImportPlan(input: {
   rows: string[][]
   mapping: (string | null)[]
@@ -172,9 +181,9 @@ export function buildPacienteImportPlan(input: {
   fuente: FuentePaciente | null
   existentes: Map<string, string | null>
   pacientes: readonly Identificable[]
-}): ImportPlan {
+}): PacienteImportPlan {
   const { rows, mapping, dupMode, valueMap, fuente, existentes, pacientes } = input
-  if (!fuente) return { toInsert: [], toUpdate: [], toMerge: [], repetidas: 0, tumbas: 0, skipped: 0 }
+  if (!fuente) return { toInsert: [], toUpdate: [], toMerge: [], repetidas: 0, tumbas: 0, skipped: 0, estado: 'fuenteDesconocida' }
 
   const { augmentedRows, augmentedMapping } = augmentar(fuente, rows, mapping)
   const identity = pacienteIdentityFor(fuente, mapping, existentes, pacientes)
@@ -182,9 +191,9 @@ export function buildPacienteImportPlan(input: {
   const plan = buildPlanCompartido({ rows: augmentedRows, mapping: augmentedMapping, identity, coerce })
 
   if (dupMode === 'skip') {
-    return { ...plan, toUpdate: [], skipped: plan.skipped + plan.toUpdate.length }
+    return { ...plan, toUpdate: [], skipped: plan.skipped + plan.toUpdate.length, estado: 'ok' }
   }
-  return plan
+  return { ...plan, estado: 'ok' }
 }
 
 function tieneTokenCorto(texto: string): boolean {
@@ -192,14 +201,22 @@ function tieneTokenCorto(texto: string): boolean {
 }
 
 // Paso 4: saneamiento. No es un validador genérico — son los problemas medidos del archivo real
-// (ver "## Paso 4" del spec). `fuente=null` (hoja sin reconocer) no marca nada: sin fuente no
-// hay forma de parsear el nombre, y el import ya está bloqueado por otro lado.
+// (ver "## Paso 4" del spec). `fuente=null` (hoja sin reconocer): sin fuente no hay forma de
+// parsear el nombre, así que no se evalúa nada — pero "no evalué nada" y "evalué y no encontré
+// nada" son problemas opuestos, y `estado` es lo que los distingue: sin él, los dos devolvían el
+// mismo `[]` y quien mirara solo el resultado (un test, la sección de saneamiento del modal) no
+// podía saber cuál pasó. `ImportModal.validateSource` ya bloquea el botón antes de llegar acá con
+// una hoja no reconocida; este campo es para cuando la función se llama sola.
+export type PacienteAnomaliesResult =
+  | { estado: 'fuenteDesconocida' }
+  | { estado: 'ok'; issues: SanitizeIssue[] }
+
 export function detectPacienteAnomalies(
   fuente: FuentePaciente | null,
   rows: string[][],
   mapping: (string | null)[],
-): SanitizeIssue[] {
-  if (!fuente) return []
+): PacienteAnomaliesResult {
+  if (!fuente) return { estado: 'fuenteDesconocida' }
   const iNombreCrudo = fuente === 'emed' ? mapping.indexOf(COL_NOMBRE) : mapping.indexOf(COL_NOMBRE_CRUDO)
   const iDob = mapping.indexOf(COL_DOB)
   const iTel = mapping.indexOf(COL_TEL)
@@ -251,7 +268,7 @@ export function detectPacienteAnomalies(
       if (r.marcada) issues.push({ rowIndex, colIndex: iTelCol, messageKey: 'med.import.anomaly.invalidPhone', crudo: raw, interpretado: r.valor ?? '' })
     }
   })
-  return issues
+  return { estado: 'ok', issues }
 }
 
 const PACIENTE_KEYS = ['nombre', 'apellido', 'fecha_nacimiento', 'genero', 'telefono', 'telefono_alt', 'email'] as const

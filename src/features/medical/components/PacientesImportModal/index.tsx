@@ -2,7 +2,7 @@
 import { useCallback, useMemo } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
-import { ImportModal, type ImportPlan } from '@/shared/import'
+import { ImportModal, type ImportPlan, type SourceWarning } from '@/shared/import'
 import { useMedical } from '../MedicalContext'
 import {
   PACIENTE_FIELD_DEFS, domainOptions, normalizeDomainValue, guessMapping, ignoredHeaders,
@@ -45,10 +45,20 @@ export default function PacientesImportModal({ onClose }: Props) {
   )
 
   const detectAnomalies = useCallback(
-    (rows: string[][], mapping: (string | null)[], hoja: string | null) =>
-      detectPacienteAnomalies(hoja ? fuenteDeHoja(hoja) : null, rows, mapping),
+    (rows: string[][], mapping: (string | null)[], hoja: string | null) => {
+      const resultado = detectPacienteAnomalies(hoja ? fuenteDeHoja(hoja) : null, rows, mapping)
+      return resultado.estado === 'ok' ? resultado.issues : []
+    },
     [],
   )
+
+  // Paso 2b: la misma heurística de `fuenteDeHoja` que ya usan `buildPlan`/`detectAnomalies`,
+  // ahora también audible ANTES de calcular nada — `validateSource` es lo único de este archivo
+  // que dice el mensaje que el usuario ve; `ImportModal` solo lo renderiza y bloquea el botón.
+  const validateSource = useCallback((hoja: string | null): SourceWarning | null => {
+    if (!hoja || fuenteDeHoja(hoja)) return null
+    return { messageKey: 'med.import.unknownSource', messageParams: { hoja } }
+  }, [])
 
   const resolveCandidate = useCallback((id: string) => {
     const p = pacientesById.get(id)
@@ -92,6 +102,7 @@ export default function PacientesImportModal({ onClose }: Props) {
       guessMapping={guessMapping}
       computeDropped={ignoredHeaders}
       detectAnomalies={detectAnomalies}
+      validateSource={validateSource}
       resolveCandidate={resolveCandidate}
       buildPlan={buildPlan}
       onConfirm={onConfirm}

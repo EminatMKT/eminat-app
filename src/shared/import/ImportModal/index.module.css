@@ -166,6 +166,16 @@
   margin-top: 2px;
 }
 
+/* Paso 2b: mismo ámbar de aviso que `.warnText`, con margen propio porque se planta antes de
+   `.previewTableWrap` en vez de debajo de un `.sectionTitle`. */
+.sourceWarning {
+  font-size: 12px;
+  font-weight: 600;
+  color: #FBBF24;
+  line-height: 1.5;
+  margin-bottom: 10px;
+}
+
 .domainGroup {
   margin-bottom: 10px;
 }

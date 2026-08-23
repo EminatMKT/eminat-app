@@ -67,3 +67,11 @@ export interface SanitizeIssue {
   crudo: string
   interpretado: string
 }
+
+// Aviso de "no sé qué es este archivo", paso 2 (hoja). Misma forma que `SanitizeIssue`: el
+// mensaje va por clave i18n, el módulo del dominio decide cuál y con qué parámetros (Medical
+// no reconoce la hoja por su nombre), y este módulo compartido solo lo renderiza y usa su
+// presencia para bloquear el botón de Importar — sin eso, un heurístico que falla queda mudo y
+// el botón sigue habilitado sobre un plan vacío (ver el comentario de `ImportModal.validateSource`).
+// `null` = sin problema.
+export type SourceWarning = { messageKey: I18nKey; messageParams?: Record<string, string | number> }

@@ -6,6 +6,7 @@ import {
 import { claveOrigen } from '../pacienteIdentity'
 import type { PacienteFuente } from '@/features/medical/types'
 import type { Identificable } from '../pacienteIdentity'
+import type { SanitizeIssue } from '@/shared/import'
 
 // mapping usado en casi todos los casos: una fila cruda con nombre en un solo campo (ECW /
 // eClinPro), fecha de nacimiento, género, teléfono, teléfono alterno y email.
@@ -40,13 +41,24 @@ describe('indexPorClave', () => {
 })
 
 describe('buildPacienteImportPlan', () => {
-  it('sin fuente reconocida no procesa ninguna fila', () => {
-    const plan = buildPacienteImportPlan({
+  it('sin fuente reconocida no procesa ninguna fila, y el estado lo distingue de un archivo vacío', () => {
+    const sinFuente = buildPacienteImportPlan({
       rows: [['PEREZ,JUAN', '39872', 'M', '7541234567', '', 'juan@x.com']],
       mapping: MAPPING, dupMode: 'update', valueMap: {}, fuente: null,
       existentes: new Map(), pacientes: [],
     })
-    expect(plan.toInsert).toHaveLength(0)
+    expect(sinFuente.toInsert).toHaveLength(0)
+    expect(sinFuente.estado).toBe('fuenteDesconocida')
+
+    // Mismo plan vacío en shape (`toInsert: []`), pero con la fuente reconocida y CERO filas
+    // de verdad: sin `estado` no hay forma de distinguir "no sé qué es esto" de "esto es
+    // válido y no traía nada" — son problemas opuestos y antes devolvían exactamente lo mismo.
+    const archivoVacio = buildPacienteImportPlan({
+      rows: [], mapping: MAPPING, dupMode: 'update', valueMap: {}, fuente: 'ecw',
+      existentes: new Map(), pacientes: [],
+    })
+    expect(archivoVacio.toInsert).toHaveLength(0)
+    expect(archivoVacio.estado).toBe('ok')
   })
 
   it('arma una fila nueva con el nombre parseado, la fecha resuelta y el teléfono formateado', () => {
@@ -133,42 +145,57 @@ describe('buildPacienteImportPlan', () => {
 })
 
 describe('detectPacienteAnomalies', () => {
-  it('sin fuente reconocida no marca nada', () => {
-    expect(detectPacienteAnomalies(null, [['x', '', '', '', '', '']], MAPPING)).toEqual([])
+  // El resto de estos tests asume fuente reconocida (`estado: 'ok'`) — este helper solo
+  // destapa `issues` sin repetir el narrowing del discriminante en cada caso; el narrowing en
+  // sí, y el caso `'fuenteDesconocida'`, los cubre el primer test.
+  function issuesOf(r: ReturnType<typeof detectPacienteAnomalies>): SanitizeIssue[] {
+    return r.estado === 'ok' ? r.issues : []
+  }
+
+  it('sin fuente reconocida no puede evaluar nada, y el estado lo distingue de haber evaluado y no encontrado nada', () => {
+    const sinFuente = detectPacienteAnomalies(null, [['x', '', '', '', '', '']], MAPPING)
+    expect(sinFuente.estado).toBe('fuenteDesconocida')
+    expect(issuesOf(sinFuente)).toEqual([])
+
+    // Mismo `issuesOf` vacío, pero con la fuente reconocida y una fila limpia: antes de
+    // `estado` los dos casos devolvían exactamente el mismo `[]`.
+    const limpio = detectPacienteAnomalies('ecw', [['Perez,Juan', '39872', '', '7541234567', '', '']], MAPPING)
+    expect(limpio.estado).toBe('ok')
+    expect(issuesOf(limpio)).toEqual([])
   })
 
   it('marca el mojibake en el nombre', () => {
-    const issues = detectPacienteAnomalies('ecw', [['PeÃ±a,Juan', '39872', '', '', '', '']], MAPPING)
+    const issues = issuesOf(detectPacienteAnomalies('ecw', [['PeÃ±a,Juan', '39872', '', '', '', '']], MAPPING))
     expect(issues.some(i => i.messageKey === 'med.import.anomaly.mojibake')).toBe(true)
   })
 
   it('marca la fecha futura', () => {
-    const issues = detectPacienteAnomalies('ecw', [['Perez,Juan', '60000', '', '', '', '']], MAPPING)
+    const issues = issuesOf(detectPacienteAnomalies('ecw', [['Perez,Juan', '60000', '', '', '', '']], MAPPING))
     expect(issues.some(i => i.messageKey === 'med.import.anomaly.futureDob')).toBe(true)
   })
 
   it('marca la fecha faltante', () => {
-    const issues = detectPacienteAnomalies('ecw', [['Perez,Juan', '', '', '', '', '']], MAPPING)
+    const issues = issuesOf(detectPacienteAnomalies('ecw', [['Perez,Juan', '', '', '', '', '']], MAPPING))
     expect(issues.some(i => i.messageKey === 'med.import.anomaly.missingDob')).toBe(true)
   })
 
   it('marca un teléfono que no da 10 dígitos', () => {
-    const issues = detectPacienteAnomalies('ecw', [['Perez,Juan', '39872', '', '123', '', '']], MAPPING)
+    const issues = issuesOf(detectPacienteAnomalies('ecw', [['Perez,Juan', '39872', '', '123', '', '']], MAPPING))
     expect(issues.some(i => i.messageKey === 'med.import.anomaly.invalidPhone' && i.colIndex === 3)).toBe(true)
   })
 
   it('marca una fila que no parece un paciente sin ser una lista de una cadena', () => {
-    const issues = detectPacienteAnomalies('ecw', [['T,TEMPLATES', '39872', '', '', '', '']], MAPPING)
+    const issues = issuesOf(detectPacienteAnomalies('ecw', [['T,TEMPLATES', '39872', '', '', '', '']], MAPPING))
     expect(issues.some(i => i.messageKey === 'med.import.anomaly.notAPatient')).toBe(true)
   })
 
   it('marca nombre o apellido vacío tras el parseo', () => {
-    const issues = detectPacienteAnomalies('ecw', [[',', '39872', '', '', '', '']], MAPPING)
+    const issues = issuesOf(detectPacienteAnomalies('ecw', [[',', '39872', '', '', '', '']], MAPPING))
     expect(issues.some(i => i.messageKey === 'med.import.anomaly.emptyName')).toBe(true)
   })
 
   it('un nombre limpio y bien formado no genera ninguna anomalía', () => {
-    const issues = detectPacienteAnomalies('ecw', [['Perez,Juan', '39872', '', '7541234567', '', '']], MAPPING)
+    const issues = issuesOf(detectPacienteAnomalies('ecw', [['Perez,Juan', '39872', '', '7541234567', '', '']], MAPPING))
     expect(issues).toEqual([])
   })
 })

@@ -4,7 +4,7 @@ import { useApp } from '@/shared/context/AppContext'
 import { useT, type I18nKey } from '@/shared/i18n'
 import { detectSeparator, parseDelimited } from '@/shared/utils'
 import Modal from '@/shared/components/ui/Modal'
-import type { ImportPlan, SanitizeIssue } from '../identity'
+import type { ImportPlan, SanitizeIssue, SourceWarning } from '../identity'
 import { parseWorkbook, readSheet } from '../parseWorkbook'
 import MappingRow from '../MappingRow'
 import DomainValueRow from '../DomainValueRow'
@@ -60,6 +60,12 @@ type Props<P extends ImportPlan> = {
   // Medical la necesita para saber de qué sistema es la fila (`fuenteDeHoja`), algo que ni
   // `rows` ni `mapping` cargan por sí solos.
   detectAnomalies?: (rows: string[][], mapping: (string | null)[], hoja: string | null) => SanitizeIssue[]
+  // Paso 2b. Valida la hoja elegida contra lo que el módulo sabe reconocer como fuente —
+  // `null` = sin problema. Sin esto no se valida nada (Research no tiene hojas). Mientras haya
+  // aviso, el botón de Importar queda deshabilitado: un heurístico de nombre de hoja que no
+  // reconoce el archivo tiene que frenar al usuario ANTES de calcular un plan vacío en silencio,
+  // no dejarlo apretar un botón que no va a hacer nada (ver `pacienteImportPlan.fuenteDeHoja`).
+  validateSource?: (hoja: string | null) => SourceWarning | null
   // Paso 5. Resuelve un id de candidato (los que devuelve `buildPlan` en `toMerge`) a lo que
   // hay que mostrar de ese registro ya existente. Sin esto, el paso no se renderiza.
   resolveCandidate?: (id: string) => { label: string; values: Record<string, unknown> } | undefined
@@ -81,7 +87,7 @@ type Props<P extends ImportPlan> = {
 
 export default function ImportModal<P extends ImportPlan = ImportPlan>({
   open, title, accept, kind, fieldDefs, domainOptions, normalizeDomainValue, guessMapping, computeDropped,
-  detectAnomalies, resolveCandidate, buildPlan, dupLabelKey, selectFileLabelKey,
+  detectAnomalies, validateSource, resolveCandidate, buildPlan, dupLabelKey, selectFileLabelKey,
   renderExtra, transformPlan, onConfirm, onClose,
 }: Props<P>) {
   const { mostrarMensaje } = useApp()
@@ -128,6 +134,12 @@ export default function ImportModal<P extends ImportPlan = ImportPlan>({
   }, [parsed.headers, guessMapping])
 
   const dropped = useMemo(() => computeDropped(parsed.headers, mapping), [parsed.headers, mapping, computeDropped])
+
+  // Paso 2b: `null` mientras no haya problema. Con aviso, el resumen del paso 6 seguiría
+  // calculando sobre un plan vacío si no fuera por `canImport` más abajo — acá solo se decide
+  // SI hay problema; qué hacer con eso (deshabilitar el botón) es más abajo, junto al resto de
+  // `canImport`.
+  const sourceWarning = useMemo(() => (validateSource ? validateSource(hoja) : null), [validateSource, hoja])
 
   // Paso 4: anomalías detectadas sobre las filas CRUDAS (antes de excluir/editar nada — el
   // saneamiento decide qué se corrige, no al revés).
@@ -279,7 +291,10 @@ export default function ImportModal<P extends ImportPlan = ImportPlan>({
   }
 
   const loaded = kind === 'workbook' ? workbookBuf !== null : raw !== null
-  const canImport = parsed.rows.length > 0 && mapping.some(Boolean)
+  // Sin `!sourceWarning`, un heurístico que no reconoce la hoja deja el botón habilitado sobre
+  // un plan que `buildPlan` ya calculó vacío — apretarlo no hace nada y no lo dice en ningún
+  // lado (ver el comentario de `validateSource`).
+  const canImport = parsed.rows.length > 0 && mapping.some(Boolean) && !sourceWarning
 
   async function doImport() {
     if (!canImport) { mostrarMensaje('error', t('import.noColumns')); return }
@@ -326,6 +341,10 @@ export default function ImportModal<P extends ImportPlan = ImportPlan>({
               <button type="button" onClick={() => resetFileState()} className={s.changeFile}>{t(selectFileLabelKey ?? 'import.selectFile')}</button>
             </div>
           )}
+          {/* Paso 2b: junto al selector de hoja si hay más de una, arriba del todo (primer aviso
+              tras cargar el archivo) si hay una sola — es el único momento en que el usuario
+              puede corregirlo, así que va antes que cualquier otra sección. */}
+          {sourceWarning && <div className={s.sourceWarning}>{t(sourceWarning.messageKey, sourceWarning.messageParams)}</div>}
           <div className={s.previewTableWrap}>
             <table className={s.previewTable}>
               <thead><tr className={s.previewHeadRow}>
