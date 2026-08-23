@@ -4,6 +4,7 @@
 // "## Escritura" en docs/superpowers/specs/2026-08-21-pacientes-import-design.md.
 import { upsertPacientes, upsertPacienteFuentes } from '@/features/medical/data/pacientes'
 import { fusionar } from '@/features/medical/utils/pacienteIdentity'
+import { ESTADO_PACIENTE_DEFAULT } from '@/features/medical/constants'
 import type { Paciente, PacienteFuente } from '@/features/medical/types'
 
 const TAMANO_LOTE = 500
@@ -36,18 +37,38 @@ function recortar(p: Partial<Paciente> | undefined): Partial<Paciente> {
   return out
 }
 
-export interface FilaEscritura {
-  // Paciente que YA existe en la base -fusión con un candidato elegido, o reimport del mismo
-  // `clave_origen`-. `null` = alta nueva: esta función genera el id con `crypto.randomUUID()`
-  // ANTES de escribir, y ese mismo id viaja en `pacientes` y en `paciente_fuentes`.
-  id: string | null
-  // Datos ya guardados del paciente, cuando `id` no es null. Puede venir con la fila COMPLETA
-  // de la base (incluido id/mrn/created_at/updated_at) sin que eso rompa nada: se recorta acá
-  // adentro antes de tocar `fusionar()`.
+type FuenteEscritura = Pick<PacienteFuente, 'fuente' | 'clave_origen' | 'nombre_origen' | 'ref_externa'>
+
+// Unión discriminada por `tipo`, no un `existente?` suelto: con un campo opcional, un caller
+// puede armar `{ id: 'uuid-real', entrante }` sin `existente`, y esa fila pisa CON NULL el
+// resto de un paciente que ya existía -sin fusión, sin error, en una tabla de PHI-. Con la
+// unión, "hay id pero no existente" deja de poder escribirse: el compilador lo rechaza en vez
+// de que lo descubra un paciente al que se le borró el teléfono.
+//
+// El discriminante es `tipo` (string literal) y NO `id: null | string`: este repo corre con
+// `strict: false` en `tsconfig.json` -o sea `strictNullChecks` apagado-, y ahí `null` es
+// asignable a cualquier tipo, así que TypeScript no logra angostar la unión comparando contra
+// `null`. Con un literal de texto la angostura no depende de esa opción.
+export type FilaEscritura =
+  | { tipo: 'nueva'; entrante: Partial<Paciente>; fuente: FuenteEscritura }
+  | { tipo: 'existente'; id: string; existente: Partial<Paciente>; entrante: Partial<Paciente>; fuente: FuenteEscritura }
+
+// Misma forma que `FilaEscritura` pero con el id YA resuelto -string siempre-, para el resto
+// del módulo. `existente` sigue opcional acá: ausente de verdad en una alta nueva, nunca por
+// descuido, porque solo `resolverId` la construye.
+interface FilaResuelta {
+  id: string
   existente?: Partial<Paciente>
-  // Datos que trae el archivo para esta fila.
   entrante: Partial<Paciente>
-  fuente: Pick<PacienteFuente, 'fuente' | 'clave_origen' | 'nombre_origen' | 'ref_externa'>
+  fuente: FuenteEscritura
+}
+
+// El id se resuelve UNA sola vez, antes de cualquier request: así el mismo lote reintentado
+// por la capa de red (no por el llamador) manda siempre el mismo id, y el upsert por
+// `onConflict: 'id'` lo vuelve inofensivo en vez de duplicar el paciente.
+function resolverId(fila: FilaEscritura): FilaResuelta {
+  if (fila.tipo === 'nueva') return { id: crypto.randomUUID(), entrante: fila.entrante, fuente: fila.fuente }
+  return { id: fila.id, existente: fila.existente, entrante: fila.entrante, fuente: fila.fuente }
 }
 
 // Trocea un array en grupos de `tamano`, sin lotes vacíos: 1.000 filas con tamaño 500 da 2
@@ -58,16 +79,21 @@ export function lotes<T>(filas: readonly T[], tamano: number): T[][] {
   return out
 }
 
-function resolverPaciente(fila: Pick<FilaEscritura, 'existente' | 'entrante'>): Partial<Paciente> {
+function resolverPaciente(fila: FilaResuelta): Partial<Paciente> {
   const { paciente } = fusionar(recortar(fila.existente), recortar(fila.entrante))
   return paciente
+}
+
+function vacio(v: string | undefined): boolean {
+  return !v || v.trim() === ''
 }
 
 // Todas las columnas de `pacientes` que trae el import, con `null` explícito cuando falta -
 // PostgREST exige el mismo conjunto de claves en todo el array del upsert (`PGRST102` si no).
 // La lista sale de los campos declarados arriba, nunca de `Object.keys` de la fila: el 86% de
 // eClinPro no trae email y `telefono_alt` se omite cuando es igual a `telefono`, así que
-// `Object.keys` produciría un conjunto de claves distinto por fila.
+// `Object.keys` produciría un conjunto de claves distinto por fila. `nombre`/`apellido` llegan
+// ya validados por `prepararFilas` -acá no se vuelve a chequear, solo se arma la columna.
 function payloadPaciente(id: string, v: Partial<Paciente>): Partial<Paciente> & { id: string } {
   return {
     id,
@@ -81,14 +107,16 @@ function payloadPaciente(id: string, v: Partial<Paciente>): Partial<Paciente> & 
     seguro: v.seguro ?? null,
     seguro_id: v.seguro_id ?? null,
     direccion: v.direccion ?? null,
-    estado: v.estado ?? 'activo',
+    // Mismo valor que el DOMAIN de la migración -ver el comentario de la constante-, nunca un
+    // literal repetido acá: el día que el catálogo cambia, este archivo lo hereda solo.
+    estado: v.estado ?? ESTADO_PACIENTE_DEFAULT,
     alergias: v.alergias ?? null,
     condiciones: v.condiciones ?? null,
     notas: v.notas ?? null,
   }
 }
 
-function payloadFuente(pacienteId: string, fuente: FilaEscritura['fuente']): PacienteFuente {
+function payloadFuente(pacienteId: string, fuente: FuenteEscritura): PacienteFuente {
   return {
     paciente_id: pacienteId,
     fuente: fuente.fuente,
@@ -99,11 +127,54 @@ function payloadFuente(pacienteId: string, fuente: FilaEscritura['fuente']): Pac
   }
 }
 
+export interface FilaRechazada {
+  indice: number
+  claveOrigen: string
+  motivo: 'sin_nombre' | 'sin_apellido'
+}
+
+interface FilaLista {
+  id: string
+  paciente: Partial<Paciente>
+  fuente: FuenteEscritura
+}
+
+// Límite de confianza: acá entran datos de un archivo. `pacientes_nombre_no_vacio` y
+// `pacientes_apellido_no_vacio` rechazan la fila en la base, pero rechazan el LOTE entero -500
+// filas adentro, con un mensaje de constraint que no dice cuál fue-. El saneamiento de la
+// pantalla de import (Tarea 10b) debería garantizar que esto no llegue vacío; esta función no
+// se apoya en eso y valida igual, ANTES del primer request. Nada se descarta en silencio: la
+// fila rechazada no entra a ningún lote, pero sí a `rechazadas`, con su índice y su
+// `clave_origen` para que quien resuma el import la pueda contar.
+function prepararFilas(filas: readonly FilaEscritura[]): { listas: FilaLista[]; rechazadas: FilaRechazada[] } {
+  const listas: FilaLista[] = []
+  const rechazadas: FilaRechazada[] = []
+
+  filas.forEach((fila, indice) => {
+    const resuelta = resolverId(fila)
+    const paciente = resolverPaciente(resuelta)
+
+    if (vacio(paciente.nombre)) {
+      rechazadas.push({ indice, claveOrigen: fila.fuente.clave_origen, motivo: 'sin_nombre' })
+      return
+    }
+    if (vacio(paciente.apellido)) {
+      rechazadas.push({ indice, claveOrigen: fila.fuente.clave_origen, motivo: 'sin_apellido' })
+      return
+    }
+
+    listas.push({ id: resuelta.id, paciente, fuente: resuelta.fuente })
+  })
+
+  return { listas, rechazadas }
+}
+
 export interface ResultadoEscritura {
   lotesTotales: number
   lotesEscritos: number
   filasEscritas: number
   filasTotales: number
+  rechazadas: FilaRechazada[]
   error: { mensaje: string; paso: 'pacientes' | 'fuentes'; lote: number } | null
 }
 
@@ -112,23 +183,20 @@ export interface ResultadoEscritura {
 // se recalcula acá adentro: un reintento vuelve a armar el plan contra el estado real de la
 // base (matcheo incluido) y llama de nuevo con filas nuevas; esta función solo escribe.
 export async function escribirImport(filas: readonly FilaEscritura[]): Promise<ResultadoEscritura> {
-  // El id se resuelve UNA sola vez, antes de cualquier request: así el mismo lote reintentado
-  // por la capa de red (no por el llamador) manda siempre el mismo id, y el upsert por
-  // `onConflict: 'id'` lo vuelve inofensivo en vez de duplicar el paciente.
-  const resueltas = filas.map((fila) => ({ ...fila, id: fila.id ?? crypto.randomUUID() }))
-  const gruposDeFilas = lotes(resueltas, TAMANO_LOTE)
+  const { listas, rechazadas } = prepararFilas(filas)
+  const gruposDeFilas = lotes(listas, TAMANO_LOTE)
 
   let filasEscritas = 0
   for (let i = 0; i < gruposDeFilas.length; i++) {
     const grupo = gruposDeFilas[i]
-    const lotePacientes = grupo.map((f) => payloadPaciente(f.id, resolverPaciente(f)))
+    const lotePacientes = grupo.map((f) => payloadPaciente(f.id, f.paciente))
     const loteFuentes = grupo.map((f) => payloadFuente(f.id, f.fuente))
 
     const { error: errorPacientes } = await upsertPacientes(lotePacientes)
     if (errorPacientes) {
       return {
         lotesTotales: gruposDeFilas.length, lotesEscritos: i,
-        filasEscritas, filasTotales: filas.length,
+        filasEscritas, filasTotales: filas.length, rechazadas,
         error: { mensaje: errorPacientes.message, paso: 'pacientes', lote: i },
       }
     }
@@ -139,7 +207,7 @@ export async function escribirImport(filas: readonly FilaEscritura[]): Promise<R
       // así que cuentan en `filasEscritas` aunque el lote no se dé por completo.
       return {
         lotesTotales: gruposDeFilas.length, lotesEscritos: i,
-        filasEscritas: filasEscritas + lotePacientes.length, filasTotales: filas.length,
+        filasEscritas: filasEscritas + lotePacientes.length, filasTotales: filas.length, rechazadas,
         error: { mensaje: errorFuentes.message, paso: 'fuentes', lote: i },
       }
     }
@@ -149,6 +217,6 @@ export async function escribirImport(filas: readonly FilaEscritura[]): Promise<R
 
   return {
     lotesTotales: gruposDeFilas.length, lotesEscritos: gruposDeFilas.length,
-    filasEscritas, filasTotales: filas.length, error: null,
+    filasEscritas, filasTotales: filas.length, rechazadas, error: null,
   }
 }

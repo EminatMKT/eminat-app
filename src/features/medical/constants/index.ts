@@ -31,6 +31,11 @@ export const FUENTE_META = {
 
 export type Genero = keyof typeof GENERO_META
 export type EstadoPaciente = keyof typeof ESTADO_PACIENTE_META
+
+// Mismo valor que el DEFAULT de la columna `estado` en la migración de pacientes
+// (`supabase/migrations/20260821212925_pacientes.sql`): las dos mitades tienen que coincidir,
+// como el resto de este catálogo con el DOMAIN de la base.
+export const ESTADO_PACIENTE_DEFAULT: EstadoPaciente = 'activo'
 export type FuentePaciente = keyof typeof FUENTE_META
 
 export const GENEROS = Object.keys(GENERO_META) as Genero[]
