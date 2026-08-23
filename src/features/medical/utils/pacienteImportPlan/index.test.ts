@@ -78,6 +78,35 @@ describe('buildPacienteImportPlan', () => {
     expect(v.telefono_alt).toBeNull()
   })
 
+  it('una fecha ISO editada en el paso 4 no se reinterpreta como serial (coerce)', () => {
+    // La otra mitad del Bug A: sin el guard de `interpretarDob`, Number('2009-02-28') es NaN y
+    // `serialADate` la marca 'sinFecha' -la corrección del usuario a mano se perdería.
+    const plan = buildPacienteImportPlan({
+      rows: [['PEREZ,JUAN', '2009-02-28', 'M', '', '', '']],
+      mapping: MAPPING, dupMode: 'update', valueMap: {}, fuente: 'ecw',
+      existentes: new Map(), pacientes: [],
+    })
+    expect(plan.toInsert[0].fecha_nacimiento).toBe('2009-02-28')
+  })
+
+  it('BUG A: una fecha corregida a ISO en el paso 4 SÍ genera candidato de fusión (camposParaCandidato)', () => {
+    // Antes del fix, `camposParaCandidato` llamaba `serialADate` sin el guard ISO:
+    // `serialADate('2009-02-28').valor` da null, `candidatos()` descarta sin fecha_nacimiento,
+    // y la fila entraba como paciente NUEVO -mientras el valor escrito sí usaba la fecha
+    // corregida-, duplicando el paciente en silencio.
+    const pacientes: Identificable[] = [
+      { id: 'p1', nombre: 'Juan', apellido: 'Perez', fecha_nacimiento: '2009-02-28', telefono: null, email: null },
+    ]
+    const plan = buildPacienteImportPlan({
+      rows: [['PEREZ,JUAN', '2009-02-28', '', '', '', '']],
+      mapping: MAPPING, dupMode: 'update', valueMap: {}, fuente: 'ecw',
+      existentes: new Map(), pacientes,
+    })
+    expect(plan.toInsert).toHaveLength(0)
+    expect(plan.toMerge).toHaveLength(1)
+    expect(plan.toMerge[0].candidatos).toEqual([{ nivel: 'exacta', id: 'p1' }])
+  })
+
   it('una clave ya existente actualiza en vez de insertar', () => {
     const clave = claveOrigen('ecw', { nombreCrudo: 'PEREZ,JUAN', dobCrudo: '39872' })
     const existentes = new Map([[clave, 'uuid-1']])

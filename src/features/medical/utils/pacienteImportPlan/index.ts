@@ -105,6 +105,20 @@ function augmentar(fuente: FuentePaciente, rows: readonly string[][], mapping: (
   return { augmentedRows, augmentedMapping: [...mapping, ...SINTETICAS] }
 }
 
+// Interpreta la celda de fecha de nacimiento tal como puede llegar por CUALQUIERA de las dos
+// rutas que la leen: `coercePacienteCelda` (arma el valor que se escribe) y `camposParaCandidato`
+// (arma la fila que `candidatos()` usa para matchear). Un serial de Excel del archivo real, O una
+// fecha YYYY-MM-DD que el usuario escribió a mano en el paso 4 -no tiene por qué teclear un
+// serial-. Sin el guard, `serialADate('1988-05-09')` da `NaN` → `null`, y una fila con la fecha
+// recién corregida deja de generar candidatos (`candidatos()` descarta sin `fecha_nacimiento`)
+// mientras el VALOR que se escribe sí usa la fecha corregida: la fila entra como paciente nuevo
+// en vez de fusionarse, duplicando PHI justo para quien corrigió el dato a mano. Una sola función
+// para las dos rutas es lo que hace imposible que una tenga el guard y la otra no -que es
+// exactamente cómo apareció este bug.
+function interpretarDob(v: string): string | null {
+  return ISO_DATE.test(v) ? v : serialADate(v).valor
+}
+
 // Lo que `candidatos()` de `pacienteIdentity` necesita de una fila, leído de la fila YA
 // augmentada (nombre/apellido en las columnas sintéticas; DOB/teléfono/email en sus posiciones
 // originales, que `augmentar` no toca).
@@ -112,7 +126,7 @@ function camposParaCandidato(fila: readonly string[], mapping: (string | null)[]
   const iDob = mapping.indexOf(COL_DOB)
   const iTel = mapping.indexOf(COL_TEL)
   const iEmail = mapping.indexOf(COL_EMAIL)
-  const dob = iDob >= 0 ? serialADate(fila[iDob] ?? '').valor : null
+  const dob = iDob >= 0 ? interpretarDob(fila[iDob] ?? '') : null
   const tel = iTel >= 0 ? normalizarTelefono(fila[iTel] ?? '').valor : null
   const email = iEmail >= 0 ? (fila[iEmail] ?? '').trim() : ''
   return {
@@ -154,10 +168,7 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 function coercePacienteCelda(col: string, v: string, valueMap: ValueMap): unknown {
   if (col === COL_CLAVE || col === COL_NOMBRE_ORIGEN || col === COL_CHART || col === COL_FUENTE) return v
   if (col === COL_NOMBRE || col === COL_APELLIDO) return v
-  // Una edición del paso 4 puede reescribir la fecha directo en formato ISO (el usuario no
-  // tiene por qué escribir un serial de Excel a mano) — se respeta tal cual en vez de
-  // reinterpretarla como si fuera otro serial crudo.
-  if (col === COL_DOB) return ISO_DATE.test(v) ? v : serialADate(v).valor
+  if (col === COL_DOB) return interpretarDob(v)
   if (col === COL_TEL || col === COL_TEL_ALT) return normalizarTelefono(v).valor
   if (col === COL_GENERO) return resolveValue(COL_GENERO, v, valueMap) || null
   if (col === COL_EMAIL) return v || null
