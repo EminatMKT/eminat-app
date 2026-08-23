@@ -78,6 +78,19 @@ describe('buildPacienteImportPlan', () => {
     expect(v.telefono_alt).toBeNull()
   })
 
+  it('telefono_alt DISTINTO de telefono sobrevive -no se apaga solo porque las dos columnas vienen llenas', () => {
+    // El único test de arriba usa el MISMO número en las dos columnas, así que nada prueba que
+    // un alterno legítimo no se pierda. Cambiar `tel === telAlt` por solo `tel && telAlt` en
+    // `augmentar()` apagaría este teléfono real.
+    const plan = buildPacienteImportPlan({
+      rows: [['PEREZ,JUAN', '39872', 'M', '7541234567', '7869998888', 'juan@x.com']],
+      mapping: MAPPING, dupMode: 'update', valueMap: {}, fuente: 'ecw',
+      existentes: new Map(), pacientes: [],
+    })
+    expect(plan.toInsert[0].telefono).toBe('(754) 123-4567')
+    expect(plan.toInsert[0].telefono_alt).toBe('(786) 999-8888')
+  })
+
   it('una fecha ISO editada en el paso 4 no se reinterpreta como serial (coerce)', () => {
     // La otra mitad del Bug A: sin el guard de `interpretarDob`, Number('2009-02-28') es NaN y
     // `serialADate` la marca 'sinFecha' -la corrección del usuario a mano se perdería.

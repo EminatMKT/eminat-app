@@ -235,6 +235,40 @@ describe('escribirImport', () => {
     })
   })
 
+  it('el número de lote en el error es el LOTE que falló, no siempre 0', async () => {
+    // Los otros tests de error mandan una sola fila -un solo lote-, así que nada distingue
+    // `lote: i` de `lote: 0` fijo. Acá hace falta un segundo lote de verdad.
+    const filas: FilaEscritura[] = Array.from({ length: 501 }, (_, i) => nueva({ nombre: `N${i}`, apellido: `A${i}` }, `c${i}`))
+    upsertPacientesMock
+      .mockResolvedValueOnce({ data: null, error: null } as never)
+      .mockResolvedValueOnce({ data: null, error: { message: 'boom lote 2' } } as never)
+
+    const resultado = await escribirImport(filas)
+
+    expect(resultado.error).toEqual({ mensaje: 'boom lote 2', paso: 'pacientes', lote: 1 })
+    expect(resultado.lotesTotales).toBe(2)
+    expect(resultado.lotesEscritos).toBe(1)
+    expect(resultado.filasEscritas).toBe(500)
+  })
+  // Prueba de mutación: fijar `lote: 0` en vez de `lote: i` en las dos ramas de error hace
+  // fallar ESTE test (`resultado.error.lote` da 0 en vez de 1) sin tocar ningún otro -los demás
+  // mandan un solo lote y no distinguen "0 fijo" de "el índice real". Confirmado y revertido
+  // antes de este commit.
+
+  it('payloadFuente propaga nombre_origen y ref_externa -no los fija en null', async () => {
+    await escribirImport([{
+      tipo: 'nueva', entrante: { nombre: 'Ana', apellido: 'Ruiz' },
+      fuente: { fuente: 'emed', clave_origen: '7', nombre_origen: 'Ana Ruiz', ref_externa: '7' },
+    }])
+
+    const [loteFuentes] = upsertPacienteFuentesMock.mock.calls[0]
+    expect(loteFuentes[0].nombre_origen).toBe('Ana Ruiz')
+    expect(loteFuentes[0].ref_externa).toBe('7')
+  })
+  // Prueba de mutación: fijar `nombre_origen`/`ref_externa` en `null` en `payloadFuente` (en vez
+  // de leerlos de `fuente`) hace fallar ESTE test -son la traza de dónde salió el paciente, y
+  // ningún otro test los mira porque `fuente()` (el helper de este archivo) siempre los manda
+  // `null`-. Confirmado y revertido antes de este commit.
 })
 
 describe('escribirImport — Bug B: dos filas del archivo apuntan al mismo paciente', () => {

@@ -55,6 +55,13 @@ describe('normalizarTelefono', () => {
     expect(normalizarTelefono('N/A')).toEqual({ valor: 'N/A', marcada: true, motivo: 'telefonoInvalido' })
     expect(normalizarTelefono('-')).toEqual({ valor: '-', marcada: true, motivo: 'telefonoInvalido' })
   })
+  it('un decimal SIN notación científica no se trunca', () => {
+    // soloDigitos() solo debe expandir cuando el crudo trae 'e'/'E' (Excel guardó la columna
+    // como número grande). Sin ese guard, Number('754.3678071') igual da un número finito y
+    // Math.trunc lo corta en la parte entera -'754'-, mutilando el teléfono en vez de leer sus
+    // dígitos.
+    expect(normalizarTelefono('754.3678071')).toEqual({ valor: '(754) 367-8071', marcada: false })
+  })
 })
 
 describe('normalizarCaja', () => {

@@ -154,6 +154,16 @@ describe('candidatos', () => {
     expect(candidatos(f, [rosa])[0]).toMatchObject({ nivel: 'exacta' })
   })
 
+  it('teléfono presente en los dos lados y email ausente en uno: sigue exacta, no hay evidencia de conflicto', () => {
+    // Mixto y no "los dos ausentes" (ya cubierto arriba) ni "los dos presentes": teléfono
+    // distinto en los dos lados, pero `f` no trae email. Con `contactoDisjunto` mutado
+    // (`||` → `&&` en el guard de "ambos presentes") esto degrada a 'parcial' por falta de
+    // evidencia -exactamente lo que la regla existe para no hacer- en vez de por conflicto real.
+    const f = { nombre: 'Rosa Elvira', apellido: 'Ardila de Delgado', fecha_nacimiento: '1964-09-13',
+                telefono: '(786) 555-9999' }
+    expect(candidatos(f, [rosa])[0]).toMatchObject({ nivel: 'exacta' })
+  })
+
   it('los homónimos con distinto nombre NO son candidatos', () => {
     const laura = { id: '3', nombre: 'Laura', apellido: 'Garcia', fecha_nacimiento: '1989-01-09' }
     const f = { nombre: 'Lucia', apellido: 'Garcia', fecha_nacimiento: '1989-01-09' }
@@ -183,6 +193,18 @@ describe('fusionar', () => {
     expect(paciente.apellido).toBe('Ardila de Delgado')
   })
 
+  it('el nombre completo del EXISTENTE no se pisa con el entrante más corto', () => {
+    // La otra dirección del test de arriba: acá el EXISTENTE es el más completo. Con la
+    // condición `&& contieneMultiset(nucleoEntrante, nucleoExistente)` sacada de `fusionar()`,
+    // cualquier relación 'contiene' -sin importar de qué lado- toma la rama "gana el entrante",
+    // y un registro completo se pisa con uno incompleto.
+    const { paciente } = fusionar(
+      { nombre: 'Rosa Elvira', apellido: 'Ardila de Delgado' },
+      { nombre: 'Rosa', apellido: 'Ardila' })
+    expect(paciente.nombre).toBe('Rosa Elvira')
+    expect(paciente.apellido).toBe('Ardila de Delgado')
+  })
+
   it('la inicial NO se duplica en los dos campos', () => {
     // Comparando nombre y apellido por separado salía "Maria F" / "F Candia".
     const { paciente } = fusionar(
@@ -197,5 +219,15 @@ describe('fusionar', () => {
       { nombre: 'Isabella', apellido: 'Castillo Arauz' })
     expect(paciente.apellido).toBe('Castillo Araiz')
     expect(choques).toContain('apellido')
+  })
+
+  it('el mismo valor en los dos lados NO es un choque', () => {
+    // Sacando `&& valorExistente !== valorEntrante` de `fusionarCampoSimple`, fusionar dos
+    // filas con el MISMO teléfono reporta un choque -sería ruido en cada fusión donde el
+    // archivo trae el dato repetido, que es el caso más común.
+    const e = { nombre: 'Rosa', apellido: 'Ardila', telefono: '(305) 555-0101' }
+    const n = { nombre: 'Rosa', apellido: 'Ardila', telefono: '(305) 555-0101' }
+    const { choques } = fusionar(e, n)
+    expect(choques).not.toContain('telefono')
   })
 })
