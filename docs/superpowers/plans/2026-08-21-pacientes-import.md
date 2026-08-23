@@ -94,20 +94,20 @@ formulario, que es lo que la regla de datos de prueba pide.
 - Produces: tablas `public.pacientes` y `public.paciente_fuentes`; dominios `public.genero`,
   `public.estado_paciente`, `public.fuente_paciente`.
 
-- [ ] **Step 1: Crear el archivo de migración**
+- [x] **Step 1: Crear el archivo de migración**
 
 ```bash
 pnpm supabase migration new pacientes
 ```
 
-- [ ] **Step 2: Escribir el DDL**
+- [x] **Step 2: Escribir el DDL**
 
 Copiar **textual** el bloque SQL de la sección "Esquema" del spec. No reescribirlo de memoria: cada
 detalle está ahí por un defecto que se encontró ejecutándolo. En particular no cambiar
 `(SELECT public.has_module(…))` por la versión sin paréntesis, ni `to_char(…,'FM000000')` por
 `lpad`, ni `ON DELETE SET NULL` por `CASCADE`.
 
-- [ ] **Step 3: Aplicar en local**
+- [x] **Step 3: Aplicar en local**
 
 ```bash
 pnpm supabase migration up
@@ -117,7 +117,7 @@ Esperado: aplica sin error. Si la CLI se queja de historial desalineado, **no** 
 `migration repair` ni `db pull` (reescriben el historial de la rama): aplicar el `.sql` por psql,
 que es idempotente por diseño.
 
-- [ ] **Step 4: Verificar que el DDL hizo lo que dice**
+- [x] **Step 4: Verificar que el DDL hizo lo que dice**
 
 ```bash
 docker exec supabase_db_eminat-app psql -U postgres -d postgres -c "\d public.pacientes" \
@@ -133,7 +133,7 @@ Esperado, y hay que mirarlo de verdad:
   GRANT no entraron y el módulo va a fallar en la nube aunque en local ande.**
 - Los tres dominios existen.
 
-- [ ] **Step 5: Verificar la idempotencia**
+- [x] **Step 5: Verificar la idempotencia**
 
 ```bash
 docker exec supabase_db_eminat-app psql -U postgres -d postgres \
@@ -143,7 +143,7 @@ docker exec supabase_db_eminat-app psql -U postgres -d postgres \
 Esperado: corre por segunda vez **sin error**. Si aborta con `type "genero" already exists` o
 `relation … already exists`, falta un guard.
 
-- [ ] **Step 6: Verificar la RLS desde una sesión que no sea admin**
+- [x] **Step 6: Verificar la RLS desde una sesión que no sea admin**
 
 ```bash
 docker exec supabase_db_eminat-app psql -U postgres -d postgres -c "
@@ -155,7 +155,7 @@ docker exec supabase_db_eminat-app psql -U postgres -d postgres -c "
 
 Esperado: `0` sin error de permisos. Un `permission denied` acá significa que faltan los GRANT.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add supabase/migrations/*_pacientes.sql
@@ -188,7 +188,7 @@ igual, así que el `git mv` no toca a ninguno de sus llamadores.
   `generoLabel(v, t)`, `estadoPacienteLabel(v, t)`, `fuenteLabel(v, t)`, y los tipos
   `Genero = 'M'|'F'|'NB'|'ND'`, `EstadoPaciente`, `FuentePaciente`.
 
-- [ ] **Step 1: Escribir el test que falla**
+- [x] **Step 1: Escribir el test que falla**
 
 Crear `src/features/medical/constants.test.ts`:
 
@@ -222,12 +222,12 @@ describe('catálogos de Medical', () => {
 })
 ```
 
-- [ ] **Step 2: Correr el test y verificar que falla**
+- [x] **Step 2: Correr el test y verificar que falla**
 
 Run: `pnpm test -- constants.test.ts`
 Esperado: FAIL, `GENERO_META is not exported`.
 
-- [ ] **Step 3: Escribir los catálogos**
+- [x] **Step 3: Escribir los catálogos**
 
 En `src/features/medical/constants.ts`, **reemplazar** las líneas de `GENEROS` y `SEGUROS`:
 
@@ -281,7 +281,7 @@ export const fuenteLabel = (v: string, t: T) => label(FUENTE_META, v, t)
 **`SEGUROS` se deja como está** — sigue siendo texto libre en la columna `seguro`, y este plan no
 lo toca.
 
-- [ ] **Step 4: Agregar las claves i18n**
+- [x] **Step 4: Agregar las claves i18n**
 
 En `src/shared/i18n/locales/es.json`:
 
@@ -315,7 +315,7 @@ En `src/shared/i18n/locales/en.json`:
 "med.fuente.manual": "Manual entry"
 ```
 
-- [ ] **Step 5: Actualizar el tipo `Paciente`**
+- [x] **Step 5: Actualizar el tipo `Paciente`**
 
 En `src/features/medical/types.ts`, reemplazar la interfaz `Paciente`:
 
@@ -353,12 +353,12 @@ export interface PacienteFuente {
 }
 ```
 
-- [ ] **Step 6: Correr el test y verificar que pasa**
+- [x] **Step 6: Correr el test y verificar que pasa**
 
 Run: `pnpm test -- constants.test.ts`
 Esperado: PASS, 4 tests.
 
-- [ ] **Step 7: Arreglar lo que el typecheck rompa**
+- [x] **Step 7: Arreglar lo que el typecheck rompa**
 
 Run: `pnpm typecheck`
 
@@ -367,7 +367,7 @@ también (importa `GENEROS` esperando etiquetas). Arreglar `demo-data.ts` cambia
 los canónicos (`'F'`, `'M'`); `PacienteModal` se arregla entero en la Tarea 4, así que acá basta
 con que compile.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git commit src/features/medical/constants.ts src/features/medical/constants.test.ts \
@@ -415,7 +415,7 @@ El helper ya tiene su segundo consumidor identificado.
   - `upsertPacienteFuentes(rows: PacienteFuente[])` — `onConflict: 'fuente,clave_origen'`
   - `listPacienteFuentes(): Promise<PacienteFuente[]>` — paginada
 
-- [ ] **Step 1: Agregar las tablas al catálogo de nombres**
+- [x] **Step 1: Agregar las tablas al catálogo de nombres**
 
 En `src/shared/data/tables.ts`, dentro de `TABLES`:
 
@@ -424,7 +424,7 @@ En `src/shared/data/tables.ts`, dentro de `TABLES`:
   pacienteFuentes: 'paciente_fuentes',
 ```
 
-- [ ] **Step 2: Escribir el helper genérico de paginación**
+- [x] **Step 2: Escribir el helper genérico de paginación**
 
 Crear `src/shared/data/paginated.ts`. **No importa nada de `src/features/`** — no sabe qué fila
 está leyendo:
@@ -449,7 +449,7 @@ export async function listAllRows<T>(tabla: string, orden: string): Promise<T[]>
 }
 ```
 
-- [ ] **Step 3: Escribir la capa de datos de pacientes**
+- [x] **Step 3: Escribir la capa de datos de pacientes**
 
 Crear `src/features/medical/data/pacientes.ts`:
 
@@ -480,18 +480,18 @@ export const upsertPacienteFuentes = (rows: PacienteFuente[]) =>
   supabase.from(TABLES.pacienteFuentes).upsert(rows, { onConflict: 'fuente,clave_origen' })
 ```
 
-- [ ] **Step 4: Verificar que compila**
+- [x] **Step 4: Verificar que compila**
 
 Run: `pnpm typecheck`
 Esperado: sin errores.
 
-- [ ] **Step 5: Verificar la paginación contra la base local**
+- [x] **Step 5: Verificar la paginación contra la base local**
 
 Este no se puede testear con vitest (necesita la base). Se verifica a mano en la consola del
 navegador con el dev server levantado, **después** de la Tarea 4 cuando el módulo ya lea de acá.
 Anotarlo como pendiente y seguir.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/shared/data/paginated.ts src/features/medical/data/pacientes.ts
@@ -538,7 +538,7 @@ están en lo que ese código dejó de ser cierto):
   `generoLabel`, `estadoPacienteLabel`, `GENEROS`, `ESTADOS_PACIENTE` de `../constants`.
 - Produces: `usePacientes()` → `{ pacientes, loading, addPaciente, editPaciente, recargar }`.
 
-- [ ] **Step 1: Escribir el hook**
+- [x] **Step 1: Escribir el hook**
 
 Crear `src/features/medical/hooks/usePacientes.ts`:
 
@@ -576,13 +576,13 @@ export function usePacientes() {
 }
 ```
 
-- [ ] **Step 2: Sacar los pacientes del demo**
+- [x] **Step 2: Sacar los pacientes del demo**
 
 En `src/features/medical/hooks/useMedicalData.ts`: borrar `pacientes` del `useState` y del
 `useEffect` que copia `demo.pacientes`, e importar `usePacientes()` en su lugar. **Citas, logs,
 incidentes y capacitaciones siguen viniendo del demo** — no tocarlos.
 
-- [ ] **Step 3: Arreglar los selects del modal**
+- [x] **Step 3: Arreglar los selects del modal**
 
 En `PacienteModal.tsx`, los dos `<select>` pasan a usar los catálogos con etiqueta traducida y
 **placeholder vacío** (regla de selects obligatorios):
@@ -597,18 +597,18 @@ En `PacienteModal.tsx`, los dos `<select>` pasan a usar los catálogos con etiqu
 `estado` se agrega igual, con `ESTADOS_PACIENTE` — hoy el formulario no lo ofrece y la columna es
 `NOT NULL DEFAULT 'activo'`.
 
-- [ ] **Step 4: Traducir el género en la tabla**
+- [x] **Step 4: Traducir el género en la tabla**
 
 En `PatientRow.tsx`, donde se pinta `paciente.genero` o `paciente.estado`, envolver con
 `generoLabel(…, t)` / `estadoPacienteLabel(…, t)`.
 
-- [ ] **Step 5: Verificar**
+- [x] **Step 5: Verificar**
 
 ```bash
 pnpm typecheck && pnpm test
 ```
 
-- [ ] **Step 6: Probarlo en el navegador**
+- [x] **Step 6: Probarlo en el navegador**
 
 Con `pnpm dev` levantado, entrar a `/medical` → Pacientes. Esperado:
 - La lista arranca **vacía** (la tabla está vacía; es el aviso #1 del spec).
@@ -618,7 +618,7 @@ Con `pnpm dev` levantado, entrar a `/medical` → Pacientes. Esperado:
 
 **Si el paciente no persiste, no seguir.** El resto del plan se apoya en esto.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git commit src/features/medical/hooks/usePacientes.ts \
@@ -651,7 +651,7 @@ Funciones puras con su test. Nada de esto se ve todavía, y todo es lo que decid
   Los que pueden fallar devuelven `{ valor, marcada, motivo }` — **nunca lanzan y nunca
   descartan en silencio.**
 
-- [ ] **Step 1: Escribir el test que falla**
+- [x] **Step 1: Escribir el test que falla**
 
 Crear `index.test.ts`. **Todos los casos salen del archivo real** (ver § Tests del spec):
 
@@ -738,12 +738,12 @@ describe('normalizarChart', () => {
 })
 ```
 
-- [ ] **Step 2: Correr y verificar que falla**
+- [x] **Step 2: Correr y verificar que falla**
 
 Run: `pnpm test -- normalizers`
 Esperado: FAIL, no existe el módulo.
 
-- [ ] **Step 3: Implementar**
+- [x] **Step 3: Implementar**
 
 Crear `index.ts`. Puntos que no se pueden improvisar:
 
@@ -757,12 +757,12 @@ Crear `index.ts`. Puntos que no se pueden improvisar:
 - `normalizarTelefono`: expandir la notación científica con `Number(v)` y `Math.trunc`, quedarse
   con los dígitos, y **solo entonces** ramificar por longitud.
 
-- [ ] **Step 4: Correr y verificar que pasa**
+- [x] **Step 4: Correr y verificar que pasa**
 
 Run: `pnpm test -- normalizers`
 Esperado: PASS, 15 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/features/medical/utils/normalizers/
@@ -800,7 +800,7 @@ El cerebro del import. Todo función pura, todo con test.
   nucleo(nombre: string, apellido: string): string[]   // multiconjunto ordenado, tokens de ≥2 letras
   ```
 
-- [ ] **Step 1: Escribir el test que falla**
+- [x] **Step 1: Escribir el test que falla**
 
 ```ts
 import { describe, it, expect } from 'vitest'
@@ -905,21 +905,21 @@ describe('nucleo', () => {
 })
 ```
 
-- [ ] **Step 2: Correr y verificar que falla**
+- [x] **Step 2: Correr y verificar que falla**
 
 Run: `pnpm test -- pacienteIdentity`
 
-- [ ] **Step 3: Implementar**
+- [x] **Step 3: Implementar**
 
 `nucleo` = tokens de `nombre + apellido`, sin acentos, minúsculas, **filtrados a `length >= 2`**,
 ordenados, **sin deduplicar**.
 
-- [ ] **Step 4: Correr y verificar que pasa**
+- [x] **Step 4: Correr y verificar que pasa**
 
 Run: `pnpm test -- pacienteIdentity`
 Esperado: PASS, 13 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/features/medical/utils/pacienteIdentity/
@@ -974,7 +974,7 @@ tiene que pedir. Los fixtures de los tests de abajo tipan tal cual están escrit
 tienen valor **en los dos lados** y **ninguno de los dos coincide**. Si de un lado falta el dato,
 no hay evidencia de que sean personas distintas, y la coincidencia se queda en exacta.
 
-- [ ] **Step 1: Escribir el test que falla**
+- [x] **Step 1: Escribir el test que falla**
 
 ```ts
 describe('candidatos', () => {
@@ -1064,22 +1064,22 @@ describe('fusionar', () => {
 })
 ```
 
-- [ ] **Step 2: Correr y verificar que falla**
+- [x] **Step 2: Correr y verificar que falla**
 
 Run: `pnpm test -- pacienteIdentity`
 
-- [ ] **Step 3: Implementar**
+- [x] **Step 3: Implementar**
 
 `fusionar` resuelve el nombre como **una sola partición**: compara `nucleo(entrante)` contra
 `nucleo(existente)` una vez, y si uno contiene al otro adopta **los dos campos** del más completo.
 No comparar `nombre` y `apellido` por separado.
 
-- [ ] **Step 4: Correr y verificar que pasa**
+- [x] **Step 4: Correr y verificar que pasa**
 
 Run: `pnpm test -- pacienteIdentity`
 Esperado: PASS, 23 tests en total del módulo.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git commit src/features/medical/utils/pacienteIdentity/ \
@@ -1115,7 +1115,7 @@ donde la única evidencia de identidad es el nombre y la fecha."
   **Todas las celdas salen como string crudo**, sin convertir fechas ni números: la conversión es
   de los normalizadores, y la clave de origen depende del crudo.
 
-- [ ] **Step 1: Agregar la dependencia**
+- [x] **Step 1: Agregar la dependencia**
 
 ```bash
 pnpm add https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
@@ -1134,7 +1134,7 @@ El CDN responde `200` y pesa 2,4 MB. **Costo de esta decisión:** el build neces
 `cdn.sheetjs.com`, no solo el registry de npm. Si algún día el CI no puede, la salida es
 vendorizar el tarball, no volver a la 0.18.5.
 
-- [ ] **Step 1b: Importar la librería de forma dinámica**
+- [x] **Step 1b: Importar la librería de forma dinámica**
 
 2,4 MB no pueden entrar al bundle principal por una pantalla que se usa una vez por mes. La
 importación va **adentro de la función que la usa**, no en el tope del archivo:
@@ -1149,7 +1149,7 @@ export async function parseWorkbook(buf: ArrayBuffer) {
 Esto vuelve `parseWorkbook` y `readSheet` asíncronas. Los tests las esperan con `await`, y el
 modal ya trabaja con promesas (hoy hace `await file.text()`).
 
-- [ ] **Step 2: Escribir el test que falla**
+- [x] **Step 2: Escribir el test que falla**
 
 El test construye un workbook en memoria con la propia librería y lo lee de vuelta — no depende
 del archivo real, que tiene PHI y no va al repo:
@@ -1192,23 +1192,23 @@ describe('readSheet', () => {
 })
 ```
 
-- [ ] **Step 3: Correr y verificar que falla**
+- [x] **Step 3: Correr y verificar que falla**
 
 Run: `pnpm test -- parseWorkbook`
 
-- [ ] **Step 4: Implementar**
+- [x] **Step 4: Implementar**
 
 Usar `XLSX.read(buf, { type: 'array', cellDates: false, raw: true })` y
 `XLSX.utils.sheet_to_json(hoja, { header: 1, raw: false, defval: '' })`. **`cellDates: false` no es
 opcional**: con `true` las fechas vuelven como `Date` y la clave de origen cambia de formato.
 
-- [ ] **Step 5: Correr y verificar que pasa**
+- [x] **Step 5: Correr y verificar que pasa**
 
 Run: `pnpm test -- parseWorkbook`
 Esperado: PASS, 3 tests. **Si el tercero falla, es el supuesto sobre SheetJS que el spec marcó
 como NO VERIFICADO** — ajustar las opciones hasta que la fecha salga cruda, y actualizar el spec.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/shared/import/parseWorkbook/ package.json pnpm-lock.yaml
@@ -1272,7 +1272,7 @@ Los campos agregados (`toMerge`, `repetidas`, `tumbas`) no rompen los tests de R
 verificado que `importPlan.test.ts` asierta por campo (`p.toInsert`, `p.skipped`), nunca la
 forma entera del objeto.
 
-- [ ] **Step 1: Escribir el test que falla**
+- [x] **Step 1: Escribir el test que falla**
 
 Cubrir, como mínimo:
 - Una fila cuya `(fuente, clave)` ya existe → va a `toUpdate`, **no** genera candidatos.
@@ -1281,29 +1281,29 @@ Cubrir, como mínimo:
 - Una fila con candidato exacto → `toMerge` con `preMarcado: true`.
 - Una fila con candidato parcial → `toMerge` con `preMarcado: false`.
 
-- [ ] **Step 2: Correr y verificar que falla**
+- [x] **Step 2: Correr y verificar que falla**
 
 Run: `pnpm test -- buildImportPlan`
 
-- [ ] **Step 3: Implementar**
+- [x] **Step 3: Implementar**
 
 Partir de `src/features/research/utils/importPlan.ts` y **sacarle el dominio**: `normNct`,
 `DEFAULT_STAGE` y `COUNT_COLUMN` salen del archivo y entran por `identity` y `coerce`. El
 resultado no importa nada de `src/features/`.
 
-- [ ] **Step 4: Hacer que Research delegue**
+- [x] **Step 4: Hacer que Research delegue**
 
 `src/features/research/utils/importPlan.ts` conserva su API pública (`guessMapping`,
 `indexByNct`, `buildImportPlan`, `planCounterChanges`, `stripCounterFor`, `ignoredHeaders`) pero
 `buildImportPlan` pasa a llamar al compartido con la identidad por NCT#.
 
-- [ ] **Step 5: Verificar que Research no se rompió**
+- [x] **Step 5: Verificar que Research no se rompió**
 
 Run: `pnpm test -- importPlan`
 Esperado: **los tests existentes de Research pasan sin tocarlos.** Si hay que editarlos, la
 promoción cambió el comportamiento y está mal.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/shared/import/identity.ts src/shared/import/buildImportPlan/
@@ -1397,28 +1397,28 @@ Research no tiene y se escribe el adaptador de Medical.
   dos listas del paso 5 y el resumen por categoría
 - Modify: `src/shared/i18n/locales/es.json`, `en.json`
 
-- [ ] **Step 1: Agregar los pasos 2 (hoja) y 4 (saneamiento)**
+- [x] **Step 1: Agregar los pasos 2 (hoja) y 4 (saneamiento)**
 
 El selector de hoja **solo se renderiza si `hojas.length > 1`**. El saneamiento lista las filas
 marcadas por los normalizadores con el valor crudo al lado del interpretado, editable o excluible.
 
-- [ ] **Step 2: El paso 5, en dos listas**
+- [x] **Step 2: El paso 5, en dos listas**
 
 Arriba las exactas, pre-marcadas, con contador y "desmarcar todas". Abajo las parciales, **sin
 marcar**, con las dos filas enfrentadas.
 
-- [ ] **Step 3: El resumen del paso 6, por categoría**
+- [x] **Step 3: El resumen del paso 6, por categoría**
 
 Nuevas · fusionadas · actualizadas · repetidas en el archivo · excluidas a mano · de pacientes
 eliminados. **Nada se descarta sin aparecer en una de esas líneas.**
 
-- [ ] **Step 4: Verificar**
+- [x] **Step 4: Verificar**
 
 ```bash
 pnpm typecheck && pnpm test && pnpm build:check
 ```
 
-- [ ] **Step 5: Probarlo en el navegador con un recorte inventado**
+- [x] **Step 5: Probarlo en el navegador con un recorte inventado**
 
 **No usar el archivo real**: es PHI y va solo a producción. Armar un .xlsx de prueba con las
 anomalías —los tres formatos de nombre, un mojibake, una inicial sin separador, un serial, un
@@ -1429,12 +1429,12 @@ Verificar: el selector de hoja aparece; el saneamiento marca las anomalías; las
 pre-marcadas y las parciales no; el resumen cuadra; **y reimportar el mismo archivo da 0 nuevos y
 0 preguntas.**
 
-- [ ] **Step 6: Verificar que Research sigue importando**
+- [x] **Step 6: Verificar que Research sigue importando**
 
 Abrir `/research` → import y subir un CSV de leads. Es el módulo que ya estaba en producción: si
 esto se rompió, la promoción salió mal.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ---
 
@@ -1444,12 +1444,12 @@ esto se rompió, la promoción salió mal.
 - Modify: `src/features/medical/hooks/usePacientes.ts`
 - Create: `src/features/medical/utils/escribirImport.ts` + su test
 
-- [ ] **Step 1: Escribir el test del troceo**
+- [x] **Step 1: Escribir el test del troceo**
 
 Función pura `lotes(rows, 500)`: 1.200 filas → 3 lotes de 500/500/200. El id de cada paciente se
 genera **antes** de escribir, con `crypto.randomUUID()`, y viaja en el payload.
 
-- [ ] **Step 2: Implementar la escritura**
+- [x] **Step 2: Implementar la escritura**
 
 Orden: `upsertPacientes` primero, `upsertPacienteFuentes` después con los **mismos ids que ya
 están en el payload** — nunca leerlos del `RETURNING`. Cada objeto del lote lleva **todas** las
@@ -1464,12 +1464,12 @@ el sistema mismo asignó. La lista de campos fusionables se declara acá y se le
 un `Partial<Paciente>` ya recortado; `id`/`mrn`/`created_at`/`updated_at` los pone la escritura,
 no la fusión.
 
-- [ ] **Step 3: Probar el reintento**
+- [x] **Step 3: Probar el reintento**
 
 Con el dev server levantado: importar el recorte, cortar la red a mitad (DevTools → Offline),
 volver a habilitarla y reintentar. Esperado: **no se duplica nada** y el conteo final cuadra.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ---
 
@@ -1481,13 +1481,13 @@ Los cuatro de la sección "Avisos" del spec: la pestaña arranca vacía, las cit
 gente que no está en la tabla, `GENEROS` cambia de valores canónicos, y los nombres se guardan en
 Title Case.
 
-- [ ] **Step 2: Verificación final**
+- [x] **Step 2: Verificación final**
 
 ```bash
 pnpm typecheck && pnpm test && pnpm build:check
 ```
 
-- [ ] **Step 3: El push a dev/prod NO va en este plan**
+- [x] **Step 3: El push a dev/prod NO va en este plan**
 
 Es irreversible y tiene su propia checklist en el spec (§ Migración y despliegue), incluida la
 verificación de los GRANT y del `db-max-rows`, y la regla de que **el archivo real se importa
