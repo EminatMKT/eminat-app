@@ -234,4 +234,57 @@ describe('escribirImport', () => {
       lotesTotales: 1, lotesEscritos: 1, filasEscritas: 2, filasTotales: 2, rechazadas: [], error: null,
     })
   })
+
+})
+
+describe('escribirImport — Bug B: dos filas del archivo apuntan al mismo paciente', () => {
+  beforeEach(() => {
+    upsertPacientesMock.mockReset()
+    upsertPacienteFuentesMock.mockReset()
+    upsertPacientesMock.mockResolvedValue({ data: null, error: null } as never)
+    upsertPacienteFuentesMock.mockResolvedValue({ data: null, error: null } as never)
+  })
+
+  it('dos FilaEscritura "existente" con el MISMO id escriben UN paciente y DOS fuentes, sin reventar el lote', async () => {
+    // "MARIA GARCIA" y "MARIA G GARCIA": clave_origen distinta, pero el mismo candidato de
+    // fusión exacta (mismo núcleo + DOB) contra un paciente ya cargado -las dos llegan acá como
+    // 'existente' con el mismo id. Sin agrupar, esto era el HTTP 500 · 21000 · "ON CONFLICT DO
+    // UPDATE command cannot affect row a second time" verificado contra el Postgres local.
+    const filas: FilaEscritura[] = [
+      {
+        tipo: 'existente', id: 'p-1', existente: { nombre: 'Maria', apellido: 'Garcia' },
+        entrante: { telefono: '3055551111' }, fuente: fuente('maria garcia|1964-01-01'),
+      },
+      {
+        tipo: 'existente', id: 'p-1', existente: { nombre: 'Maria', apellido: 'Garcia' },
+        entrante: { telefono: '3055552222' }, fuente: fuente('maria g garcia|1964-01-01'),
+      },
+    ]
+
+    const resultado = await escribirImport(filas)
+
+    expect(resultado.error).toBeNull()
+    const [lotePacientes] = upsertPacientesMock.mock.calls[0]
+    expect(lotePacientes).toHaveLength(1)
+    expect(lotePacientes[0].id).toBe('p-1')
+
+    const [loteFuentes] = upsertPacienteFuentesMock.mock.calls[0]
+    expect(loteFuentes).toHaveLength(2)
+    expect(loteFuentes.every((f) => f.paciente_id === 'p-1')).toBe(true)
+    expect(loteFuentes.map((f) => f.clave_origen).sort()).toEqual(
+      ['maria g garcia|1964-01-01', 'maria garcia|1964-01-01'],
+    )
+  })
+
+  it('un grupo colapsado que queda sin nombre rechaza LAS DOS filas de origen, no solo una', () =>
+    escribirImport([
+      { tipo: 'existente', id: 'p-2', existente: {}, entrante: { apellido: 'Ruiz' }, fuente: fuente('a') },
+      { tipo: 'existente', id: 'p-2', existente: {}, entrante: { apellido: 'Ruiz' }, fuente: fuente('b') },
+    ]).then((resultado) => {
+      expect(resultado.rechazadas).toEqual([
+        { indice: 0, claveOrigen: 'a', motivo: 'sin_nombre' },
+        { indice: 1, claveOrigen: 'b', motivo: 'sin_nombre' },
+      ])
+      expect(upsertPacientesMock).not.toHaveBeenCalled()
+    }))
 })

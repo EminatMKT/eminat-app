@@ -215,6 +215,7 @@
   "import.summary.duplicatedInFile": "{n} repeated in the file",
   "import.summary.excluded": "{n} excluded by hand",
   "import.summary.deleted": "{n} belong to deleted patients",
+  "import.summary.sameTarget": "{n} point to the same existing record",
   "research.import.done": "{ins} imported, {upd} updated, {skip} skipped",
   "common.accessDenied": "Access denied",
   "common.signOut": "Sign out",

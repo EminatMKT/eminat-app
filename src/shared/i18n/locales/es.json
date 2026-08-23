@@ -215,6 +215,7 @@
   "import.summary.duplicatedInFile": "{n} repetidas en el archivo",
   "import.summary.excluded": "{n} excluidas a mano",
   "import.summary.deleted": "{n} de pacientes eliminados",
+  "import.summary.sameTarget": "{n} apuntan al mismo registro existente",
   "research.import.done": "{ins} importados, {upd} actualizados, {skip} saltados",
   "common.accessDenied": "Acceso denegado",
   "common.signOut": "Cerrar sesión",

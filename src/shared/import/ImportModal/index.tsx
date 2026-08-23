@@ -208,6 +208,23 @@ export default function ImportModal<P extends ImportPlan = ImportPlan>({
 
   const finalPlan = useMemo(() => (transformPlan ? transformPlan(resolvedPlan) : resolvedPlan), [resolvedPlan, transformPlan])
 
+  // Dos filas del archivo pueden resolver al MISMO id existente -dos variantes de un nombre que
+  // matchean por similitud contra un único paciente ya cargado (ver el spec: "MARIA GARCIA" y
+  // "MARIA G GARCIA" con el mismo núcleo). Quien escribe (Medical: `escribirImport`) las junta
+  // en una sola escritura, pero eso pasa DESPUÉS de este modal -acá solo se cuenta, para que el
+  // resumen del paso 6 no deje ese colapso afuera ("nada se descarta sin aparecer en una línea
+  // del resumen"). Genérico y no de Medical: si nunca hay dos `toUpdate` con el mismo id -hoy el
+  // caso de Research- el contador da 0 y la sección no cambia.
+  const colapsadas = useMemo(() => {
+    const vistos = new Set<string>()
+    let n = 0
+    for (const u of finalPlan.toUpdate) {
+      if (vistos.has(u.id)) n++
+      else vistos.add(u.id)
+    }
+    return n
+  }, [finalPlan])
+
   // Por cada columna de dominio mapeada, los valores distintos entrantes y su canónico
   // auto-sugerido (mismo tratamiento que el mapeo de encabezados, un nivel más abajo).
   const domainGroups = useMemo(() => {
@@ -468,12 +485,13 @@ export default function ImportModal<P extends ImportPlan = ImportPlan>({
           <div className={s.summary}>
             {t('import.summary', { ins: finalPlan.toInsert.length, upd: finalPlan.toUpdate.length, skip: finalPlan.skipped })}
           </div>
-          {(fusionadas > 0 || plan.repetidas > 0 || sanitizeExcluded.size > 0 || plan.tumbas > 0) && (
+          {(fusionadas > 0 || plan.repetidas > 0 || sanitizeExcluded.size > 0 || plan.tumbas > 0 || colapsadas > 0) && (
             <div className={s.summaryExtra}>
               {fusionadas > 0 && <span className={s.summaryChip}>{t('import.summary.merged', { n: fusionadas })}</span>}
               {plan.repetidas > 0 && <span className={s.summaryChip}>{t('import.summary.duplicatedInFile', { n: plan.repetidas })}</span>}
               {sanitizeExcluded.size > 0 && <span className={s.summaryChip}>{t('import.summary.excluded', { n: sanitizeExcluded.size })}</span>}
               {plan.tumbas > 0 && <span className={s.summaryChip}>{t('import.summary.deleted', { n: plan.tumbas })}</span>}
+              {colapsadas > 0 && <span className={s.summaryChip}>{t('import.summary.sameTarget', { n: colapsadas })}</span>}
             </div>
           )}
           {/* silencia el lint de variable no usada sin inventarle un uso visual falso */}

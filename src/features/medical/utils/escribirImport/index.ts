@@ -55,20 +55,23 @@ export type FilaEscritura =
 
 // Misma forma que `FilaEscritura` pero con el id YA resuelto -string siempre-, para el resto
 // del módulo. `existente` sigue opcional acá: ausente de verdad en una alta nueva, nunca por
-// descuido, porque solo `resolverId` la construye.
+// descuido, porque solo `resolverId` la construye. `origenIndice` es la posición en el array
+// de `filas` que recibió `escribirImport` -la necesita `agruparPorId` para que una fila
+// rechazada siga pudiendo reportar SU índice después de agruparse con otra.
 interface FilaResuelta {
   id: string
   existente?: Partial<Paciente>
   entrante: Partial<Paciente>
   fuente: FuenteEscritura
+  origenIndice: number
 }
 
 // El id se resuelve UNA sola vez, antes de cualquier request: así el mismo lote reintentado
 // por la capa de red (no por el llamador) manda siempre el mismo id, y el upsert por
 // `onConflict: 'id'` lo vuelve inofensivo en vez de duplicar el paciente.
-function resolverId(fila: FilaEscritura): FilaResuelta {
-  if (fila.tipo === 'nueva') return { id: crypto.randomUUID(), entrante: fila.entrante, fuente: fila.fuente }
-  return { id: fila.id, existente: fila.existente, entrante: fila.entrante, fuente: fila.fuente }
+function resolverId(fila: FilaEscritura, origenIndice: number): FilaResuelta {
+  if (fila.tipo === 'nueva') return { id: crypto.randomUUID(), entrante: fila.entrante, fuente: fila.fuente, origenIndice }
+  return { id: fila.id, existente: fila.existente, entrante: fila.entrante, fuente: fila.fuente, origenIndice }
 }
 
 // Trocea un array en grupos de `tamano`, sin lotes vacíos: 1.000 filas con tamaño 500 da 2
@@ -79,9 +82,33 @@ export function lotes<T>(filas: readonly T[], tamano: number): T[][] {
   return out
 }
 
-function resolverPaciente(fila: FilaResuelta): Partial<Paciente> {
-  const { paciente } = fusionar(recortar(fila.existente), recortar(fila.entrante))
-  return paciente
+// Un candidato de fusión por similitud (`pacienteIdentity.candidatos`) no distingue nombres
+// -"MARIA GARCIA" y "MARIA G GARCIA" tienen `clave_origen` distinta pero el mismo NÚCLEO- así
+// que dos filas del archivo pueden resolver al MISMO paciente existente sin ser la misma fila
+// (`colapsarRepetidas` no las junta: compara la clave completa, no el núcleo). Sin agrupar acá,
+// las dos llegan a `upsertPacientes` con el mismo `id` en el mismo array y Postgres aborta el
+// lote ENTERO con "ON CONFLICT DO UPDATE command cannot affect row a second time" -verificado
+// contra el Postgres local-, y no se escribe nada, ni siquiera las filas buenas del lote.
+//
+// Dos filas que apuntan al mismo paciente son UN paciente con DOS identidades de origen: se
+// escribe una sola fila en `pacientes` (fusionando los entrantes, en el mismo orden en que
+// aparecen en el archivo -cada miembro se fusiona sobre el resultado del anterior, así que el
+// primero gana un choque contra el segundo igual que ganaría contra la base) y DOS filas en
+// `paciente_fuentes` (`clave_origen` distinta en cada una: es la traza de que la misma persona
+// entró por dos variantes de su nombre, y esa traza no se pierde).
+function agruparPorId(filas: readonly FilaResuelta[]): FilaLista[] {
+  const orden: string[] = []
+  const grupos = new Map<string, FilaResuelta[]>()
+  for (const f of filas) {
+    if (!grupos.has(f.id)) { grupos.set(f.id, []); orden.push(f.id) }
+    grupos.get(f.id)!.push(f)
+  }
+  return orden.map((id) => {
+    const miembros = grupos.get(id)!
+    let acumulado = recortar(miembros[0].existente)
+    for (const m of miembros) acumulado = fusionar(acumulado, recortar(m.entrante)).paciente
+    return { id, paciente: acumulado, miembros: miembros.map((m) => ({ fuente: m.fuente, origenIndice: m.origenIndice })) }
+  })
 }
 
 function vacio(v: string | undefined): boolean {
@@ -136,7 +163,9 @@ export interface FilaRechazada {
 interface FilaLista {
   id: string
   paciente: Partial<Paciente>
-  fuente: FuenteEscritura
+  // Casi siempre uno -salvo el colapso de `agruparPorId`, donde dos filas del archivo apuntan
+  // al mismo paciente y cada una necesita su propia fila en `paciente_fuentes`.
+  miembros: { fuente: FuenteEscritura; origenIndice: number }[]
 }
 
 // Límite de confianza: acá entran datos de un archivo. `pacientes_nombre_no_vacio` y
@@ -146,24 +175,26 @@ interface FilaLista {
 // se apoya en eso y valida igual, ANTES del primer request. Nada se descarta en silencio: la
 // fila rechazada no entra a ningún lote, pero sí a `rechazadas`, con su índice y su
 // `clave_origen` para que quien resuma el import la pueda contar.
+//
+// La validación corre sobre el paciente YA agrupado (`agruparPorId`): un grupo de dos filas es
+// UN paciente, y si ese paciente fusionado queda sin nombre no hay "mitad" que escribir -las
+// DOS filas de origen se rechazan, cada una con su propio índice y su propia clave_origen, para
+// que ninguna de las dos desaparezca del resumen en silencio.
 function prepararFilas(filas: readonly FilaEscritura[]): { listas: FilaLista[]; rechazadas: FilaRechazada[] } {
+  const resueltas = filas.map((fila, indice) => resolverId(fila, indice))
+  const grupos = agruparPorId(resueltas)
+
   const listas: FilaLista[] = []
   const rechazadas: FilaRechazada[] = []
 
-  filas.forEach((fila, indice) => {
-    const resuelta = resolverId(fila)
-    const paciente = resolverPaciente(resuelta)
-
-    if (vacio(paciente.nombre)) {
-      rechazadas.push({ indice, claveOrigen: fila.fuente.clave_origen, motivo: 'sin_nombre' })
+  grupos.forEach((grupo) => {
+    const sinNombre = vacio(grupo.paciente.nombre)
+    const motivo = sinNombre ? 'sin_nombre' : vacio(grupo.paciente.apellido) ? 'sin_apellido' : null
+    if (motivo) {
+      grupo.miembros.forEach((m) => rechazadas.push({ indice: m.origenIndice, claveOrigen: m.fuente.clave_origen, motivo }))
       return
     }
-    if (vacio(paciente.apellido)) {
-      rechazadas.push({ indice, claveOrigen: fila.fuente.clave_origen, motivo: 'sin_apellido' })
-      return
-    }
-
-    listas.push({ id: resuelta.id, paciente, fuente: resuelta.fuente })
+    listas.push(grupo)
   })
 
   return { listas, rechazadas }
@@ -190,7 +221,9 @@ export async function escribirImport(filas: readonly FilaEscritura[]): Promise<R
   for (let i = 0; i < gruposDeFilas.length; i++) {
     const grupo = gruposDeFilas[i]
     const lotePacientes = grupo.map((f) => payloadPaciente(f.id, f.paciente))
-    const loteFuentes = grupo.map((f) => payloadFuente(f.id, f.fuente))
+    // flatMap: casi siempre un miembro por paciente, salvo el colapso de `agruparPorId` -ahí
+    // un solo `id` de `pacientes` se corresponde con DOS filas de `paciente_fuentes`.
+    const loteFuentes = grupo.flatMap((f) => f.miembros.map((m) => payloadFuente(f.id, m.fuente)))
 
     const { error: errorPacientes } = await upsertPacientes(lotePacientes)
     if (errorPacientes) {
