@@ -126,9 +126,11 @@ modela bien. Tener las dos cosas sería el mismo dato en dos lugares.
 **Cuál de varios teléfonos queda como principal — dicho explícitamente, porque si no cada quien
 asume otra cosa:**
 
-- **Paciente nuevo:** gana la **primera ranura de mapeo con valor** (`telefono`, y si vino vacía,
-  `telefono_2`). Es arbitrario, y está bien que lo sea: los dos números quedan guardados igual, y
-  el principal es solo cuál se muestra primero.
+- **Paciente nuevo:** gana el **primer valor no vacío en el orden de las columnas del archivo**
+  — o sea `values.telefono[0]`, con el array armado en el orden en que el mapeo recorre las
+  columnas (ver 2.b). Para eClinicalWorks eso es `Home Phone` antes que `Cell Phone`, por el orden
+  en que vienen en la hoja. Es arbitrario y está bien que lo sea: los dos números quedan guardados
+  igual, y el principal solo decide cuál se muestra primero.
 - **Paciente que ya existía:** **no se toca**. El principal sigue siendo el que tenía; el número
   entrante se suma como contacto. Es la misma regla de hoy —el existente gana— y se conserva a
   propósito: un import no debería cambiarle el teléfono de cabecera a un paciente que alguien ya
