@@ -65,12 +65,27 @@ describe('claveOrigen', () => {
       .toBe(claveOrigen('ecw', { nombreCrudo: 'Peña,Yenni', dobCrudo: '27958.0' }))
   })
 
-  it('sin DOB, la clave lleva el índice de fila', () => {
-    // maitte ponce y teresa cabrera aparecen dos veces sin fecha: sin el índice
+  it('sin DOB y sin teléfono, la clave lleva el índice de fila (último recurso)', () => {
+    // maitte ponce y teresa cabrera aparecen dos veces sin fecha: sin desempate
     // colapsan en un solo paciente y el resumen miente.
     const a = claveOrigen('eclinpro', { nombreCrudo: 'Maitte - Ponce', dobCrudo: '', fila: 12 })
     const b = claveOrigen('eclinpro', { nombreCrudo: 'Maitte - Ponce', dobCrudo: '', fila: 87 })
     expect(a).not.toBe(b)
+  })
+
+  it('BUG C: sin DOB, el TELÉFONO desempata homónimos -no el índice de fila', () => {
+    // El índice depende de la posición en `sanitizedRows`, que el paso 4 compacta al excluir
+    // filas: si el operador excluye distinto entre dos sesiones del mismo archivo, la clave
+    // cambia y el reimport no reconoce la fila -crea un paciente duplicado. El teléfono no se
+    // mueve cuando se excluye OTRA fila, así que es un desempate estable.
+    const a = claveOrigen('eclinpro', { nombreCrudo: 'Maitte - Ponce', dobCrudo: '', telefonoCrudo: '3055551111', fila: 12 })
+    const b = claveOrigen('eclinpro', { nombreCrudo: 'Maitte - Ponce', dobCrudo: '', telefonoCrudo: '3055552222', fila: 12 })
+    expect(a).not.toBe(b)
+    // Mismo teléfono, índice de fila DISTINTO -sigue dando la MISMA clave: es la fila
+    // reconociéndose a sí misma pase lo que pase con el índice.
+    const c = claveOrigen('eclinpro', { nombreCrudo: 'Maitte - Ponce', dobCrudo: '', telefonoCrudo: '3055551111', fila: 12 })
+    const d = claveOrigen('eclinpro', { nombreCrudo: 'Maitte - Ponce', dobCrudo: '', telefonoCrudo: '3055551111', fila: 999 })
+    expect(c).toBe(d)
   })
 
   it('manual usa el id del paciente, no nombre+DOB', () => {

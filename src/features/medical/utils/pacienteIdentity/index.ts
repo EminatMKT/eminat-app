@@ -2,7 +2,7 @@
 // cómo se parte un nombre según de qué sistema viene, y con qué clave se reconoce la misma
 // fila la próxima vez que se importe el mismo archivo. Funciones puras, nunca lanzan.
 
-import { repararMojibake, normalizarCaja, normalizarChart } from '../normalizers'
+import { repararMojibake, normalizarCaja, normalizarChart, normalizarTelefono } from '../normalizers'
 import type { FuentePaciente } from '@/features/medical/constants'
 import type { Paciente } from '@/features/medical/types'
 
@@ -13,7 +13,7 @@ export type Crudo = string | { first: string; last: string }
 
 type ParseoNombre = { nombre: string; apellido: string; nota: string | null; ambiguo: boolean }
 
-type FilaClave = { nombreCrudo?: string; dobCrudo?: string; chart?: string; fila?: number; id?: string }
+type FilaClave = { nombreCrudo?: string; dobCrudo?: string; chart?: string; telefonoCrudo?: string; fila?: number; id?: string }
 
 // Anotaciones conocidas que aparecen pegadas al nombre en el archivo fuente. Hoy es una sola
 // ('DUPLICADO ROCHE', 157 filas), pero se deja como lista para que agregar la próxima sea
@@ -122,13 +122,20 @@ export function claveOrigen(fuente: FuentePaciente, fila: FilaClave): string {
 
   const nombreNorm = normalizarParaComparar(fila.nombreCrudo ?? '')
   const dob = (fila.dobCrudo ?? '').trim()
+  if (dob) return `${nombreNorm}|${dob}`
 
-  // Sin DOB, dos homónimos calculan la misma clave y se funden en un solo paciente: el índice
-  // de fila los distingue.
-  if (!dob) {
-    return `${nombreNorm}|${fila.fila ?? ''}`
-  }
-  return `${nombreNorm}|${dob}`
+  // Sin DOB, dos homónimos calculan la misma clave y se funden en un solo paciente: hace falta
+  // un desempate. El teléfono normalizado es mejor que el índice de fila -medido contra las 41
+  // filas sin DOB del archivo real, las 41 traen teléfono y da 40 claves distintas (el índice
+  // también daba 41, pero por una razón que se rompe sola): el índice depende de la POSICIÓN de
+  // la fila en `sanitizedRows`, que el paso 4 compacta al excluir filas -si el operador excluye
+  // distinto entre dos sesiones del mismo archivo, la clave cambia y el reimport ya no reconoce
+  // la fila, duplicando el paciente. El teléfono no se mueve cuando se excluye OTRA fila.
+  // El índice queda como ÚLTIMO recurso -sin DOB y sin teléfono, 0 filas hoy- para que dos
+  // homónimos sin ningún dato de contacto sigan sin fundirse en un solo paciente.
+  const tel = normalizarTelefono(fila.telefonoCrudo ?? '').valor
+  if (tel) return `${nombreNorm}|tel:${tel}`
+  return `${nombreNorm}|${fila.fila ?? ''}`
 }
 
 // Multiconjunto ordenado de tokens de ≥2 letras, para la fusión entre fuentes. Las iniciales

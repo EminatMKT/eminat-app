@@ -89,7 +89,9 @@ function augmentar(fuente: FuentePaciente, rows: readonly string[][], mapping: (
     const parsed = parseNombre(fuente, crudo)
     const dobCrudo = iDob >= 0 ? (fila[iDob] ?? '') : ''
     const chart = iChart >= 0 ? (fila[iChart] ?? '') : ''
-    const clave = claveOrigenDe(fuente, { nombreCrudo: nombreOrigen, dobCrudo, chart, fila: i })
+    // Desempate sin DOB (ver el comentario de `claveOrigen`): el teléfono, no el índice de fila.
+    const telefonoCrudo = iTel >= 0 ? (fila[iTel] ?? '') : ''
+    const clave = claveOrigenDe(fuente, { nombreCrudo: nombreOrigen, dobCrudo, chart, telefonoCrudo, fila: i })
 
     // telefono_alt se apaga (vacío → coerce lo vuelve null) si coincide con telefono, una vez
     // normalizados los dos — "Home == Cell" del spec.
