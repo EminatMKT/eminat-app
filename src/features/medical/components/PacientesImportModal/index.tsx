@@ -1,0 +1,101 @@
+'use client'
+import { useCallback, useMemo } from 'react'
+import { useApp } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
+import { ImportModal, type ImportPlan } from '@/shared/import'
+import { useMedical } from '../MedicalContext'
+import {
+  PACIENTE_FIELD_DEFS, domainOptions, normalizeDomainValue, guessMapping, ignoredHeaders,
+} from '@/features/medical/utils/pacienteFields'
+import {
+  buildPacienteImportPlan, detectPacienteAnomalies, fuenteDeHoja, indexPorClave,
+  pacienteEntranteDe, fuenteEscrituraDe,
+  type DupMode, type ValueMap,
+} from '@/features/medical/utils/pacienteImportPlan'
+import type { Identificable } from '@/features/medical/utils/pacienteIdentity'
+import type { FilaEscritura } from '@/features/medical/utils/escribirImport'
+
+// Pegamento entre el mapeador genérico (`@/shared/import`) y el dominio de pacientes: le pasa
+// el catálogo de campos, arma el plan por (fuente, clave_origen) + candidatos por similitud
+// (`buildPacienteImportPlan`, que hace todo el trabajo de identidad) y traduce el plan ya
+// resuelto a `FilaEscritura[]` para `escribirImport` (Tarea 11) — la fusión de VALORES (qué
+// campo gana cuando existente y entrante difieren) la hace `escribirImport`, no acá: por eso
+// el caso 'existente' de `FilaEscritura` lleva el registro REAL de la base, no el que arma
+// este archivo.
+type Props = { onClose: () => void }
+
+export default function PacientesImportModal({ onClose }: Props) {
+  const { mostrarMensaje } = useApp()
+  const { t } = useT()
+  const { pacientes, pacienteFuentes, importarPacientes } = useMedical()
+
+  const pacientesIdentificables = useMemo<Identificable[]>(
+    () => pacientes.map(p => ({ id: p.id, nombre: p.nombre, apellido: p.apellido, fecha_nacimiento: p.fecha_nacimiento, telefono: p.telefono, email: p.email })),
+    [pacientes],
+  )
+  const pacientesById = useMemo(() => new Map(pacientes.map(p => [p.id, p])), [pacientes])
+
+  const buildPlan = useCallback(
+    (rows: string[][], mapping: (string | null)[], dupMode: DupMode, valueMap: ValueMap, hoja: string | null): ImportPlan => {
+      const fuente = hoja ? fuenteDeHoja(hoja) : null
+      const existentes = fuente ? indexPorClave(fuente, pacienteFuentes) : new Map<string, string | null>()
+      return buildPacienteImportPlan({ rows, mapping, dupMode, valueMap, fuente, existentes, pacientes: pacientesIdentificables })
+    },
+    [pacienteFuentes, pacientesIdentificables],
+  )
+
+  const detectAnomalies = useCallback(
+    (rows: string[][], mapping: (string | null)[], hoja: string | null) =>
+      detectPacienteAnomalies(hoja ? fuenteDeHoja(hoja) : null, rows, mapping),
+    [],
+  )
+
+  const resolveCandidate = useCallback((id: string) => {
+    const p = pacientesById.get(id)
+    if (!p) return undefined
+    return {
+      label: `${p.mrn} — ${p.nombre} ${p.apellido}`,
+      values: { nombre: p.nombre, apellido: p.apellido, fecha_nacimiento: p.fecha_nacimiento, telefono: p.telefono, telefono_alt: p.telefono_alt, email: p.email },
+    }
+  }, [pacientesById])
+
+  const onConfirm = useCallback(async (plan: ImportPlan): Promise<boolean> => {
+    const filas: FilaEscritura[] = [
+      ...plan.toInsert.map((values): FilaEscritura => ({ tipo: 'nueva', entrante: pacienteEntranteDe(values), fuente: fuenteEscrituraDe(values) })),
+      ...plan.toUpdate.map((u): FilaEscritura => ({
+        tipo: 'existente', id: u.id, existente: pacientesById.get(u.id) ?? {}, entrante: pacienteEntranteDe(u.values), fuente: fuenteEscrituraDe(u.values),
+      })),
+    ]
+    const resultado = await importarPacientes(filas)
+    if (resultado.error) {
+      mostrarMensaje('error', t('med.import.writeError', { lote: resultado.error.lote + 1, error: resultado.error.mensaje }))
+      return false
+    }
+    mostrarMensaje('ok', t('med.import.done', { ins: plan.toInsert.length, upd: plan.toUpdate.length }))
+    // Nada se traga en silencio: si la escritura rechazó filas (sin nombre o apellido), se
+    // avisa aparte — el resumen del paso 6 ya cubrió lo que se decidió ANTES de escribir.
+    if (resultado.rechazadas.length > 0) mostrarMensaje('error', t('med.import.rejected', { n: resultado.rechazadas.length }))
+    return true
+  }, [pacientesById, importarPacientes, mostrarMensaje, t])
+
+  return (
+    <ImportModal<ImportPlan>
+      open
+      title={t('med.import.title')}
+      accept=".xlsx"
+      kind="workbook"
+      selectFileLabelKey="med.import.selectFile"
+      dupLabelKey="med.import.dupLabel"
+      fieldDefs={PACIENTE_FIELD_DEFS}
+      domainOptions={domainOptions}
+      normalizeDomainValue={normalizeDomainValue}
+      guessMapping={guessMapping}
+      computeDropped={ignoredHeaders}
+      detectAnomalies={detectAnomalies}
+      resolveCandidate={resolveCandidate}
+      buildPlan={buildPlan}
+      onConfirm={onConfirm}
+      onClose={onClose}
+    />
+  )
+}

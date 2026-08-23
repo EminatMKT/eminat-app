@@ -10,7 +10,7 @@ import type { Paciente } from '../types'
 
 const COLS: (I18nKey | '')[] = ['med.colMrn', 'med.colPatient', 'med.colAge', 'med.colGender', 'med.colInsurance', 'med.colPhone', 'med.colStatus', '']
 
-export default function PacientesTab({ onNewPatient }: { onNewPatient: () => void }) {
+export default function PacientesTab({ onNewPatient, onImportPatients }: { onNewPatient: () => void; onImportPatients: () => void }) {
   const { t3, border, inputStyle } = useApp()
   const { t } = useT()
   const { searchPaciente, setSearchPaciente, filterEstadoPaciente, setFilterEstadoPaciente, filteredPacientes } = useMedical()
@@ -28,6 +28,7 @@ export default function PacientesTab({ onNewPatient }: { onNewPatient: () => voi
           <option value="alta">{t('med.statusDischarged')}</option>
         </select>
         <div style={{ flex: 1 }} />
+        <button onClick={onImportPatients} style={{ ...btnPrimary, background: 'transparent', border: `1px solid ${border}`, color: t3 }}>{t('med.importPatientsBtn')}</button>
         <button onClick={onNewPatient} style={btnPrimary}>{t('med.newPatientBtn')}</button>
       </div>
 

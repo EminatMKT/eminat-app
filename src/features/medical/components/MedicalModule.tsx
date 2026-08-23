@@ -13,6 +13,7 @@ import CitasTab from './CitasTab'
 import HipaaTab from './HipaaTab'
 import AuditTab from './AuditTab'
 import PacienteModal from './PacienteModal'
+import PacientesImportModal from './PacientesImportModal'
 import CitaModal from './CitaModal'
 import IncidenteModal from './IncidenteModal'
 import { useUserPreference } from '@/shared/hooks/useUserPreference'
@@ -30,6 +31,7 @@ export default function MedicalModule() {
   const { hipaaShield } = useMedicalStyles()
   const [tab, setTab] = useUserPreference('tab-medical', 'dashboard', oneOf(...SUB_ITEMS.medical.map(x => x.tab)))
   const [modalPaciente, setModalPaciente] = useState(false)
+  const [modalImportPacientes, setModalImportPacientes] = useState(false)
   const [modalCita, setModalCita] = useState(false)
   const [modalIncidente, setModalIncidente] = useState(false)
 
@@ -46,12 +48,13 @@ export default function MedicalModule() {
           </div>
 
           {tab === 'dashboard' && <DashboardTab />}
-          {tab === 'pacientes' && <PacientesTab onNewPatient={() => setModalPaciente(true)} />}
+          {tab === 'pacientes' && <PacientesTab onNewPatient={() => setModalPaciente(true)} onImportPatients={() => setModalImportPacientes(true)} />}
           {tab === 'citas' && <CitasTab onNewCita={() => setModalCita(true)} />}
           {tab === 'hipaa' && <HipaaTab onNewIncidente={() => setModalIncidente(true)} />}
           {tab === 'audit' && <AuditTab />}
 
           {modalPaciente && <PacienteModal onClose={() => setModalPaciente(false)} />}
+          {modalImportPacientes && <PacientesImportModal onClose={() => setModalImportPacientes(false)} />}
           {modalCita && <CitaModal onClose={() => setModalCita(false)} />}
           {modalIncidente && <IncidenteModal onClose={() => setModalIncidente(false)} />}
         </MedicalProvider>
