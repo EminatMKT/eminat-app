@@ -148,11 +148,69 @@ filas de ECW) **se borra**. El `UNIQUE (paciente_id, tipo, valor, fuente)` hace 
 base. Es lógica de aplicación que pasa a ser una restricción — y era una de las que la revisión
 por mutación marcó como no cubierta por ningún test.
 
-**Lo que NO cambia: la pantalla de mapeo sigue teniendo dos casilleros de teléfono.** eClinicalWorks
-trae `Home Phone` y `Cell Phone` en dos columnas y hay que poder apuntar las dos. Son dos **ranuras
-de mapeo**, no dos atributos: las dos desembocan en `tipo = 'telefono'`. La ranura se renombra a
-algo que diga que es del import y no de la base (`telefono_2`), para que nadie la confunda con una
-columna que ya no existe.
+### 2.b Varias columnas del archivo alimentando un mismo atributo
+
+eClinicalWorks trae `Home Phone` **y** `Cell Phone`; eClinPro trae `Phone - Cell` y `Phone - Home`.
+Las dos columnas son teléfonos del mismo paciente y las dos tienen que entrar.
+
+**El problema es una línea, y no es de Medical.** En el motor compartido:
+
+```ts
+// buildImportPlan/index.ts:22
+mapping.forEach((col, idx) => {
+  if (col) values[col] = coerce(col, (fila[idx] ?? '').trim())
+})
+```
+
+`values` es un `Record`: **dos columnas apuntando al mismo campo se pisan, gana la última, en
+silencio.** Eso ya pasa hoy y para cualquier campo. Es la razón por la que existe el
+`telefonoUsado ? 'telefono_alt' : 'telefono'` de `pacienteFields/index.ts:63` — `telefono_alt`
+nunca fue un concepto de dominio, nació para **esquivar esta colisión**.
+
+**Un valor por celda, varias celdas por atributo.** Medido sobre las 5.072 filas: **cero** celdas
+de teléfono o email traen dos valores adentro (un solo email con un separador, 1 de 478 — una coma
+mal puesta). Así que **no** hace falta partir celdas; construirlo sería especulativo.
+
+**El mecanismo: lo declara el catálogo, lo ejecuta el motor.**
+
+```ts
+export type ImportFieldDef = { column: string; labelKey: I18nKey; multi?: boolean }
+```
+
+```ts
+mapping.forEach((col, idx) => {
+  if (!col) return
+  const v = coerce(col, (fila[idx] ?? '').trim())
+  if (!esMulti(col)) { values[col] = v; return }      // igual que hoy
+  const acc = (values[col] ??= []) as unknown[]
+  if (v !== null && v !== '' && !acc.includes(v)) acc.push(v)
+})
+```
+
+`buildImportPlan` recibe qué columnas acumulan (derivado de los `fieldDefs` por el módulo que lo
+llama). **Research no declara ninguna**, así que nunca ve un array y su comportamiento no cambia.
+
+Tres cosas se caen solas:
+
+- **No hay ranuras numeradas.** Las dos columnas de ECW mapean a `telefono`, las dos. La pantalla
+  de mapeo no necesita ningún casillero nuevo: hoy ya permite elegir el mismo destino dos veces,
+  solo que uno se perdía.
+- **El hack de `guessMapping` desaparece**: la segunda columna de teléfono mapea a `telefono`.
+- **`.includes(v)` resuelve "Home == Cell"** (199 de 241 filas de ECW) en memoria, así que el
+  resumen cuenta honesto. El `UNIQUE` de la base queda como red, no como mecanismo.
+
+`values.telefono` pasa a ser `string[]` para los campos `multi`. `ImportPlan` no cambia de tipo
+—ya es `Record<string, unknown>`—; los consumidores de Medical toman `[0]` como principal y el
+array entero para los contactos.
+
+### 2.c Colisión en un campo que NO es multivaluado
+
+La otra mitad del mismo bug, que **existe hoy**: si alguien mapea dos columnas a `nombre`, una se
+descarta sin decir nada. Es la regla del spec anterior otra vez —**nada se descarta sin aparecer
+en una de esas líneas**— y acá se rompe en silencio.
+
+El modal avisa cuando dos columnas del archivo apuntan al mismo campo **no** multivaluado, con las
+dos columnas nombradas. No lo bloquea: puede ser deliberado. Pero lo dice.
 
 ### 3. `paciente_fuentes.dob_origen` — lo contradictorio
 
@@ -194,7 +252,10 @@ aparecer en una de esas líneas**. Un choque descartado es un dato descartado.
 | `src/features/medical/types.ts` | `PacienteContacto`; sacar `telefono_alt` de `Paciente`; `dob_origen` en `PacienteFuente` |
 | `src/features/medical/data/pacientes.ts` | listar y upsertear contactos |
 | `src/features/medical/utils/pacienteIdentity/` | contacto deja de ser choque; `fusionar` devuelve además los contactos acumulados |
-| `src/features/medical/utils/pacienteImportPlan/` | borrar la regla Home==Cell; `telefono_alt` → ranura `telefono_2`; juntar contactos por fila |
+| `src/shared/import/buildImportPlan/` | acumular en vez de pisar cuando el campo es `multi` |
+| `src/shared/import/ImportModal/` | `ImportFieldDef.multi`; avisar colisión en campo no-multi |
+| `src/features/medical/utils/pacienteFields/` | `multi: true` en teléfono y email; sacar el hack de `guessMapping` |
+| `src/features/medical/utils/pacienteImportPlan/` | borrar la regla Home==Cell; leer el array de contactos por fila |
 | `src/features/medical/utils/escribirImport/` | escribir `paciente_contactos`; propagar `choques` a `ResultadoEscritura` |
 | `src/features/medical/components/` | el detalle del paciente muestra los contactos con su procedencia; el resumen del import cuenta los choques |
 | `src/shared/i18n/locales/{es,en}.json` | claves nuevas, en los dos idiomas |
