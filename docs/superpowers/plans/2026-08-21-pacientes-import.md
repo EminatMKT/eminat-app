@@ -1334,8 +1334,11 @@ deja sin punto de control el único momento en que se puede comprobar que Resear
 
 **Files:**
 - Create: `src/shared/import/ImportModal/index.tsx` + `index.module.css`
-- Create: `src/shared/import/SheetPicker/`, `SanitizeRow/`, `MergeCandidateRow/` (carpetas vacías
-  de contenido todavía — se llenan en la 10b; acá solo se extraen las filas que YA existen)
+- Create: una carpeta por cada fila que HOY vive dentro de un `.map()` — la del mapeo de
+  encabezados, la de valor de dominio, el chip de columna descartada, la fila del preview.
+  `SheetPicker`, `SanitizeRow` y `MergeCandidateRow` son de la 10b: acá **no se crean**, ni
+  siquiera vacías. Una carpeta vacía no es un punto de partida, es un archivo que alguien abre
+  buscando algo.
 - Delete: `src/features/research/components/leads/ImportModal.tsx`
 - Modify: `src/features/research/components/ResearchContent.tsx:17,42`
 
@@ -1347,6 +1350,27 @@ deja sin punto de control el único momento en que se puede comprobar que Resear
 **Todo el dominio entra por props.** Si al mover el archivo aparece un import de `src/features/`,
 eso es la prueba de que falta un prop, no una excepción: catálogo de campos, identidad, tema,
 etiquetas y callbacks vienen de afuera. Research los pasa desde donde hoy monta el modal.
+
+**No se promueve entero: se parte.** El modal de hoy monta como `<ImportModal />` **sin props** y
+saca todo de Research, incluida una **sección de contadores** (`planCounterChanges` +
+`CounterChangeRow` + `keepCount` + `stripCounterFor`) que existe porque `email_count` tiene dos
+escritores en Research — y ninguno en Medical. Se aplica la regla "cuando es mitad y mitad, se
+parte" de `arquitectura.md`:
+
+- A `src/shared/import/ImportModal/` va el **mapeador**: chrome, archivo, separador, preview,
+  columnas descartadas, modo de duplicados, mapeo de encabezados, valores de dominio, resumen.
+- En Research queda el **pegamento**: le pasa sus catálogos, arma su plan y renderiza la sección
+  de contadores por un slot. Es `FilterBar`/`FiltersPanel` otra vez.
+
+Los dos slots que el compartido expone —renderizar una sección extra a partir del plan, y
+transformar el plan antes de ejecutarlo— son la necesidad **medida** del primer consumidor, no
+generalidad por si acaso. Ese envoltorio de Research **no** es el pasamanos que `componentes.md`
+prohíbe: tiene catálogos, plan y una sección propia adentro, no es `return <Otro />`.
+
+**i18n:** las claves genéricas (`separator`, `ignore`, `rowsDetected`, `dupSection`, `mapSection`,
+`valuesSection`, `summary`, `sep.*`, …) se mudan de `research.import.*` a `import.*` en **`es.json`
+y `en.json`**. "Separador" y "N filas detectadas" no son de Research. Las del contador y el título
+se quedan donde están.
 
 **Los estilos van a `index.module.css`** usando los tokens de `src/app/globals.css` (`--s1`,
 `--s2`, `--t1`, `--accent`). Lo único que puede quedar en un `style` es un **dato** como variable
@@ -1360,46 +1384,41 @@ rompió, la promoción salió mal.
 
 ## Task 10b: Los pasos nuevos y el adaptador de Medical
 
+**Empieza donde termina la 10a**: el modal ya vive en `src/shared/import/ImportModal/`, ya está en
+CSS Modules y Research lo consume por su envoltorio de dominio. Acá se le agregan los pasos que
+Research no tiene y se escribe el adaptador de Medical.
+
 **Files:**
-- Create: `src/shared/import/ImportModal/index.tsx` + `index.module.css`
-- Create: `src/shared/import/SheetPicker/`, `SanitizeRow/`, `MergeCandidateRow/`
-- Delete: `src/features/research/components/leads/ImportModal.tsx`
+- Create: `src/shared/import/SheetPicker/`, `SanitizeRow/`, `MergeCandidateRow/` (carpeta +
+  `index.tsx` + `index.module.css` cada uno)
+- Create: `src/features/medical/components/PacientesImportModal/` — el pegamento de Medical:
+  `PACIENTE_FIELD_DEFS`, la `Identity` de pacientes, y el plan armado con `candidatos`/`fusionar`
+- Modify: `src/shared/import/ImportModal/index.tsx` + `index.module.css` — los pasos 2 y 4, las
+  dos listas del paso 5 y el resumen por categoría
 - Modify: `src/shared/i18n/locales/es.json`, `en.json`
 
-- [ ] **Step 1: Mover el modal y pasarlo a CSS Modules**
-
-El actual es todo `style={{}}` contra `RESEARCH_THEME`. En compartido no puede importar el tema de
-Research: los valores van a `index.module.css` usando los tokens de `src/app/globals.css`
-(`--s1`, `--s2`, `--t1`, `--accent`). Lo único que puede quedar en un `style` es un **dato** pasado
-como variable CSS.
-
-- [ ] **Step 2: Extraer las filas del `.map()` a sus componentes**
-
-`SheetPicker`, `SanitizeRow` y `MergeCandidateRow`, cada uno su carpeta con su
-`index.module.css`. Ningún bloque de markup dentro de un `.map()` queda inline.
-
-- [ ] **Step 3: Agregar los pasos 2 (hoja) y 4 (saneamiento)**
+- [ ] **Step 1: Agregar los pasos 2 (hoja) y 4 (saneamiento)**
 
 El selector de hoja **solo se renderiza si `hojas.length > 1`**. El saneamiento lista las filas
 marcadas por los normalizadores con el valor crudo al lado del interpretado, editable o excluible.
 
-- [ ] **Step 4: El paso 5, en dos listas**
+- [ ] **Step 2: El paso 5, en dos listas**
 
 Arriba las exactas, pre-marcadas, con contador y "desmarcar todas". Abajo las parciales, **sin
 marcar**, con las dos filas enfrentadas.
 
-- [ ] **Step 5: El resumen del paso 6, por categoría**
+- [ ] **Step 3: El resumen del paso 6, por categoría**
 
 Nuevas · fusionadas · actualizadas · repetidas en el archivo · excluidas a mano · de pacientes
 eliminados. **Nada se descarta sin aparecer en una de esas líneas.**
 
-- [ ] **Step 6: Verificar**
+- [ ] **Step 4: Verificar**
 
 ```bash
 pnpm typecheck && pnpm test && pnpm build:check
 ```
 
-- [ ] **Step 7: Probarlo en el navegador con un recorte inventado**
+- [ ] **Step 5: Probarlo en el navegador con un recorte inventado**
 
 **No usar el archivo real**: es PHI y va solo a producción. Armar un .xlsx de prueba con las
 anomalías —los tres formatos de nombre, un mojibake, una inicial sin separador, un serial, un
@@ -1410,12 +1429,12 @@ Verificar: el selector de hoja aparece; el saneamiento marca las anomalías; las
 pre-marcadas y las parciales no; el resumen cuadra; **y reimportar el mismo archivo da 0 nuevos y
 0 preguntas.**
 
-- [ ] **Step 8: Verificar que Research sigue importando**
+- [ ] **Step 6: Verificar que Research sigue importando**
 
 Abrir `/research` → import y subir un CSV de leads. Es el módulo que ya estaba en producción: si
 esto se rompió, la promoción salió mal.
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 7: Commit**
 
 ---
 
@@ -1436,6 +1455,15 @@ Orden: `upsertPacientes` primero, `upsertPacienteFuentes` después con los **mis
 están en el payload** — nunca leerlos del `RETURNING`. Cada objeto del lote lleva **todas** las
 columnas con `null` explícito (PostgREST exige el mismo conjunto de claves en todo el array).
 
+⚠️ **Acotar qué campos se fusionan, con una lista explícita.** `fusionar()` recorre
+`Object.keys(existente) ∪ Object.keys(entrante)` (`pacienteIdentity/index.ts:266`): fusiona **lo
+que el objeto traiga**, no un conjunto declarado. Si se le pasa la fila entera de la base, entran
+`id`, `mrn`, `created_at` y `updated_at` — y un `mrn` distinto entre las dos filas se reporta como
+*choque*, o sea que el usuario ve un conflicto que no es del dato clínico sino de la identidad que
+el sistema mismo asignó. La lista de campos fusionables se declara acá y se le pasa a `fusionar()`
+un `Partial<Paciente>` ya recortado; `id`/`mrn`/`created_at`/`updated_at` los pone la escritura,
+no la fusión.
+
 - [ ] **Step 3: Probar el reintento**
 
 Con el dev server levantado: importar el recorte, cortar la red a mitad (DevTools → Offline),
@@ -1447,7 +1475,7 @@ volver a habilitarla y reintentar. Esperado: **no se duplica nada** y el conteo 
 
 ## Task 12: Avisos y cierre
 
-- [ ] **Step 1: Escribir los avisos en `.todo/TODO.md`**
+- [x] **Step 1: Escribir los avisos en `.todo/TODO.md`**
 
 Los cuatro de la sección "Avisos" del spec: la pestaña arranca vacía, las citas demo hablan de
 gente que no está en la tabla, `GENEROS` cambia de valores canónicos, y los nombres se guardan en
