@@ -606,8 +606,42 @@ claves**, o devuelve `PGRST102 / "All object keys must match"`. Como solo el 14%
 email y `telefono_alt` se omite cuando es igual a `telefono`, cada fila se arma con **todas** las
 columnas y `null` explícito.
 
-*(NO VERIFICADO: no se pudo ejercitar PostgREST autenticado. Se confirma con un POST real de dos
-objetos con claves distintas y un JWT de usuario.)*
+**VERIFICADO el 23/08/2026 contra el PostgREST local**, con dos POST reales a `/rest/v1/pacientes`:
+
+| Payload | Resultado |
+|---|---|
+| Dos objetos, uno con `email` y el otro sin | **HTTP 400** · `PGRST102` · `"All object keys must match"` |
+| Dos objetos, mismo conjunto de claves, uno con `email: null` | **HTTP 201**, las dos filas escritas |
+
+Lo importante del primer renglón no es que falle, sino **cómo** falla: rechaza el lote entero con
+un error explícito en vez de aceptar las filas y descartar las claves que faltan. Si hubiera sido
+lo segundo, el import perdería columnas en silencio y nadie se enteraría hasta buscar el teléfono
+de un paciente.
+
+*(Salvedad honesta: la prueba corrió con `service_role`, no con un JWT de usuario como decía este
+spec. La validación de claves de PostgREST es del parseo del payload y ocurre **antes** de la RLS
+—el 400 llega sin tocar la tabla—, así que el resultado no depende del rol. Lo que esta prueba
+**no** cubre es la RLS misma; eso ya está cubierto aparte por el gate del navegador.)*
+
+### El reintento quema un número de MRN — verificado, y es esperado
+
+Misma tanda de pruebas, el escenario del corte de red: se hizo el `upsert` de un paciente y su
+fuente, y después **el mismo payload otra vez**, como haría un reintento.
+
+- `pacientes` → 201 la primera vez, **200 la segunda**; `paciente_fuentes` igual.
+- El **MRN no cambió** (`MRN-2026-000006` las dos veces): el `DEFAULT` no vuelve a pisar la fila.
+- Quedó **una** fila en cada tabla, no dos. El reintento es inofensivo, que era lo que había que
+  demostrar.
+
+Pero la secuencia quedó en `last_value = 7` con un solo paciente hasta el `000006`: **el intento
+que terminó en conflicto igual consumió su `nextval`**. Postgres evalúa el `DEFAULT` de la fila
+propuesta antes de detectar el conflicto, y las secuencias no retroceden.
+
+Consecuencia práctica, que conviene tener escrita antes de que alguien la descubra auditando: **la
+numeración de MRN va a tener huecos**. Reintentar un lote de 500 quema 500 números. No es un bug
+—un MRN solo tiene que ser único, no correlativo— pero sí significa dos cosas: que el MRN **no
+sirve para contar pacientes** ni para inferir el orden de un import, y que "falta el
+`MRN-2026-000007`" no es evidencia de que se haya borrado nadie.
 
 ### SheetJS y las fechas crudas — verificado con un alcance más chico del que se dijo
 
