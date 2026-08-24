@@ -607,6 +607,38 @@ const indicesDe = (mapping: (string | null)[], col: string): number[] =>
 - En `detectPacienteAnomalies`: recorrer `iTels` entero, no `[iTel, iTelAlt]`.
 - `PACIENTE_KEYS`: sacar `'telefono_alt'`.
 
+- [ ] **Step 4b: La columna sintética que lleva el DOB crudo**
+
+`paciente_fuentes.dob_origen` existe desde la Tarea 1 y **hoy no lo escribe nadie**: se crearía
+una columna siempre en `null`, o sea todo el mecanismo de "lo contradictorio" del spec (§3) sin
+implementar. `augmentar` ya calcula `dobCrudo` para `claveOrigenDe`, así que llevarlo hasta la
+escritura cuesta una columna sintética más:
+
+```ts
+const COL_DOB_ORIGEN = '__dob_origen__'
+const SINTETICAS = [COL_NOMBRE, COL_APELLIDO, COL_CLAVE, COL_NOMBRE_ORIGEN, COL_DOB_ORIGEN, COL_FUENTE] as const
+```
+
+En `augmentar`, la fila augmentada suma `dobCrudo` en la posición de `COL_DOB_ORIGEN`. En
+`coercePacienteCelda`, `COL_DOB_ORIGEN` devuelve el valor **tal cual** (como `COL_CLAVE` y
+`COL_NOMBRE_ORIGEN`): es el crudo del archivo, no una fecha interpretada — una fecha ilegible es
+justo el caso que hay que poder investigar después.
+
+Y `fuenteEscrituraDe(values)` lo devuelve, para que la Tarea 6 lo escriba.
+
+Test:
+
+```ts
+it('el DOB crudo del archivo viaja a la fuente, sin interpretar', () => {
+  const plan = buildPacienteImportPlan({
+    rows: [['PEREZ,ANA', '31000', '3055550101', '', '']],
+    mapping: MAPPING_2TEL, dupMode: 'update', valueMap: {}, fuente: 'ecw',
+    existentes: new Map(), pacientes: [],
+  })
+  expect(fuenteEscrituraDe(plan.toInsert[0]).dob_origen).toBe('31000')
+})
+```
+
 - [ ] **Step 5: `contactosDe` y `pacienteEntranteDe`**
 
 ```ts
@@ -874,6 +906,31 @@ En `escribirImport`, `agruparPorId` hoy hace `fusionar(...).paciente` y tira el 
 ```
 
 agrupado contando cuántas filas chocaron en cada campo.
+
+- [ ] **Step 3b: `payloadFuente` escribe el DOB crudo**
+
+Hoy la Tarea 1 dejó `dob_origen: null` fijo en el literal, para que compilara. Acá se llena de
+verdad — sin esto la sección 3 del spec queda sin implementar:
+
+```ts
+function payloadFuente(pacienteId: string, fuente: FuenteEscritura): PacienteFuente {
+  return {
+    paciente_id: pacienteId,
+    fuente: fuente.fuente,
+    clave_origen: fuente.clave_origen,
+    nombre_origen: fuente.nombre_origen ?? null,
+    dob_origen: fuente.dob_origen ?? null,
+    ref_externa: fuente.ref_externa ?? null,
+    importado_at: new Date().toISOString(),
+  }
+}
+```
+
+`FuenteEscritura` suma `dob_origen?: string | null`.
+
+Test: dos filas de la misma persona con fechas distintas tienen que dejar **las dos** fechas
+crudas en sus respectivas filas de `paciente_fuentes` — que es lo que permite reconstruir qué
+dijo cada sistema.
 
 - [ ] **Step 4: Mostrarlos en el resumen**
 
@@ -1176,6 +1233,14 @@ Un cambio que altera lo que alguien ya vio se avisa (`proceso.md`). Como mínimo
 
 ## Notas de la auto-revisión
 
+- **Hueco encontrado ejecutando, no revisando (24/08):** `dob_origen` se creaba en la Tarea 1 y
+  **no lo escribía ninguna tarea** — habría llegado como una columna siempre en `null`, o sea la
+  §3 del spec entera sin implementar. Lo destapó el reporte del agente de la Tarea 1 al decir
+  "whichever task consumes the DOB gate will fill it in properly later": esa tarea no existía.
+  Ahora se llena entre el Step 4b de la Tarea 4 (la columna sintética que lo transporta) y el
+  Step 3b de la Tarea 6 (el `payloadFuente` que lo escribe). La auto-revisión de cobertura del
+  spec no lo cazó porque miré "¿hay tarea que toque `dob_origen`?" y la había — crearlo. La
+  pregunta correcta era "¿hay tarea que lo ESCRIBA?".
 - **Cobertura del spec:** las 5 secciones del diseño tienen tarea (1 → §1 y §3, 2/3 → §2.b y §2.c, 4 → §2 y §2.b, 5 → §1, 6 → §4, 7 → §3.b, 9 → §5). Los 7 criterios de verificación del spec están repartidos entre las tareas 1, 4, 5, 7, 9 y 11.
 - **`telefono_alt` se borra en la Tarea 8 y no antes**, para que el árbol compile entre tareas. Es la única dependencia de orden fuerte del plan, junto con "la Tarea 4 necesita la 2".
 - **Lo que este plan NO hace**, igual que el spec: no resuelve las contradicciones (las expone), no abre el matcheo a las filas sin DOB, y no hace multivaluados a dirección, seguro ni alergias — no vienen en el archivo.
