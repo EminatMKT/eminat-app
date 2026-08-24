@@ -5,6 +5,7 @@ import { useMedical } from './MedicalContext'
 import { useMedicalStyles } from '../hooks/useMedicalStyles'
 import Badge from './Badge'
 import PatientApptRow from './PatientApptRow'
+import PacienteContactos from './PacienteContactos'
 import { calcAge } from '../dates'
 import { ESTADO_PACIENTE_META, generoLabel, estadoPacienteLabel } from '../constants'
 import type { Paciente } from '../types'
@@ -14,9 +15,10 @@ const COLS = ['med.colDate', 'med.colTime', 'med.colType', 'med.colDoctor', 'med
 export default function PatientDetail({ paciente, onBack }: { paciente: Paciente; onBack: () => void }) {
   const { s2, t1, t2, t3, border } = useApp()
   const { t } = useT()
-  const { citas } = useMedical()
+  const { citas, pacienteContactos } = useMedical()
   const { cardStyle, btnSecondary } = useMedicalStyles()
   const apptHistory = citas.filter(c => c.paciente_id === paciente.id)
+  const contactos = pacienteContactos.filter(c => c.paciente_id === paciente.id)
   return (
     <div>
       <button onClick={onBack} style={{ ...btnSecondary, marginBottom: 16 }}>← {t('med.backToList')}</button>
@@ -76,6 +78,9 @@ export default function PatientDetail({ paciente, onBack }: { paciente: Paciente
             </div>
           )}
         </div>
+
+        {/* Contactos — todo teléfono/email visto, con su procedencia */}
+        <PacienteContactos paciente={paciente} contactos={contactos} />
 
         {/* Appointment History */}
         <div style={{ ...cardStyle, gridColumn: '1 / -1' }}>
