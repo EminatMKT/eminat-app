@@ -29,7 +29,7 @@ export const insertLeads = (records: Record<string, unknown>[]) =>
 // Realtime: propaga a todos los usuarios del módulo los INSERT/UPDATE/DELETE sobre el
 // pool compartido (research_leads no es por-usuario). Dedup por id del lado del consumidor.
 export const subscribeToLeads = <T extends { id: string }>(h: RowChangeHandlers<T>): RealtimeChannel =>
-  subscribeToTable<T>({ channel: `realtime:${TABLES.researchLeads}`, table: TABLES.researchLeads }, h)
+  subscribeToTable<T>({ channel: TABLES.researchLeads, table: TABLES.researchLeads }, h)
 
 // --- research_activities ---
 
