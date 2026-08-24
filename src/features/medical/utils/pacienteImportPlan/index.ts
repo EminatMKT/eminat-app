@@ -8,11 +8,18 @@
 // `nombre`+`apellido` como First/Last ya separados) según la fuente — y la clave de identidad no
 // es una celda del archivo, es un cálculo sobre varias. La solución es `augmentar`: antes de
 // llamar al plan genérico, cada fila se le pega columnas SINTÉTICAS al final —nombre y apellido
-// YA parseados, la clave de origen YA calculada, el teléfono alterno YA deduplicado contra el
-// principal— y se agregan esos mismos nombres a `mapping`. Como el genérico arma `values`
-// iterando `mapping` en orden y pisando claves repetidas, las columnas sintéticas (al final)
-// pisan cualquier mapeo directo que hubiera para 'nombre'/'apellido'/'telefono_alt', y la
-// identidad simplemente LEE esas columnas en vez de recalcularlas.
+// YA parseados, la clave de origen YA calculada, el DOB crudo tal como vino en el archivo— y se
+// agregan esos mismos nombres a `mapping`. Como el genérico arma `values` iterando `mapping` en
+// orden y pisando claves repetidas, las columnas sintéticas (al final) pisan cualquier mapeo
+// directo que hubiera para 'nombre'/'apellido', y la identidad simplemente LEE esas columnas en
+// vez de recalcularlas.
+//
+// El teléfono es distinto: `telefono` es un campo `multi` (ver `pacienteFields`), así que
+// `buildPlanCompartido` ya lo acumula en un array por su cuenta — no hace falta una columna
+// sintética para eso. Lo que sí hace falta es que nada que ubique "la" columna de teléfono se
+// quede con `mapping.indexOf(COL_TEL)`: eso devuelve solo la PRIMERA, y en cuanto hay una
+// segunda columna de teléfono (Home/Cell) todo lo que dependa de esa única posición deja de
+// verla en silencio. `indicesDe` es el reemplazo: devuelve TODAS las posiciones.
 import { buildImportPlan as buildPlanCompartido } from '@/shared/import'
 import type { Identity, ImportPlan, SanitizeIssue } from '@/shared/import'
 import {
@@ -35,7 +42,6 @@ const COL_DOB = 'fecha_nacimiento'
 const COL_GENERO = 'genero'
 const COL_EMAIL = 'email'
 const COL_TEL = 'telefono'
-const COL_TEL_ALT = 'telefono_alt'
 // Columnas sintéticas que `augmentar` apila al final de cada fila, en este orden fijo.
 // `__fuente__` viaja en cada fila -no solo como parámetro de `buildPacienteImportPlan`- porque
 // el plan resultante (`ImportPlan.toInsert`/`toUpdate`) son `Record<string, unknown>` sueltos:
@@ -43,9 +49,15 @@ const COL_TEL_ALT = 'telefono_alt'
 // arma `FilaEscritura` para `escribirImport` (el pegamento de Medical) la lee de ahí.
 const COL_CLAVE = '__clave_origen__'
 const COL_NOMBRE_ORIGEN = '__nombre_origen__'
+// El DOB tal como vino en el archivo, sin interpretar -a diferencia de `fecha_nacimiento`, que
+// ya pasó por `interpretarDob`-. Viaja hasta `paciente_fuentes.dob_origen` (ver
+// `fuenteEscrituraDe`): cuando dos fuentes contradicen la fecha de nacimiento, esta es la
+// columna que permite reconstruir qué dijo CADA sistema. Crudo a propósito: una fecha ilegible
+// es justo el caso que hay que poder investigar después.
+const COL_DOB_ORIGEN = '__dob_origen__'
 const COL_FUENTE = '__fuente__'
 export { COL_CLAVE, COL_NOMBRE_ORIGEN, COL_FUENTE }
-const SINTETICAS = [COL_NOMBRE, COL_APELLIDO, COL_CLAVE, COL_NOMBRE_ORIGEN, COL_TEL_ALT, COL_FUENTE] as const
+const SINTETICAS = [COL_NOMBRE, COL_APELLIDO, COL_CLAVE, COL_NOMBRE_ORIGEN, COL_DOB_ORIGEN, COL_FUENTE] as const
 
 // El nombre del hoja de un libro real trae el nombre del sistema de origen (ver el spec: el
 // archivo se llama "EMINAT PT REGISTRY - ECW, ECLINPRO, EMED.xlsx" y sus tres hojas se nombran
@@ -78,31 +90,40 @@ function crudoDeFila(fuente: FuentePaciente, fila: readonly string[], mapping: (
   return { crudo: texto, nombreOrigen: texto }
 }
 
+// `indexOf` devuelve SOLO la primera ocurrencia. Con `telefono` acumulando varias columnas del
+// archivo (`multi`, ver `pacienteFields`), quedarse con la primera apaga en silencio todo lo
+// que dependa de las demás — la validación del saneamiento, entre otras cosas.
+function indicesDe(mapping: (string | null)[], col: string): number[] {
+  return mapping.reduce<number[]>((acc, c, i) => (c === col ? [...acc, i] : acc), [])
+}
+
+// El mismo criterio de "principal" que usa `pacienteEntranteDe` para telefono/email -el primero
+// no vacío-, pero sobre la fila cruda: lo necesitan `claveOrigen` (desempate sin DOB) y
+// `camposParaCandidato` (matcheo), que trabajan antes de que exista un `values` acumulado.
+function primerNoVacio(fila: readonly string[], indices: readonly number[]): string {
+  for (const idx of indices) {
+    const v = fila[idx] ?? ''
+    if (v.trim()) return v
+  }
+  return ''
+}
+
 function augmentar(fuente: FuentePaciente, rows: readonly string[][], mapping: (string | null)[]) {
   const iDob = mapping.indexOf(COL_DOB)
   const iChart = mapping.indexOf(COL_CHART)
-  const iTel = mapping.indexOf(COL_TEL)
-  const iTelAlt = mapping.indexOf(COL_TEL_ALT)
+  const iTels = indicesDe(mapping, COL_TEL)
 
   const augmentedRows = rows.map((fila, i) => {
     const { crudo, nombreOrigen } = crudoDeFila(fuente, fila, mapping)
     const parsed = parseNombre(fuente, crudo)
     const dobCrudo = iDob >= 0 ? (fila[iDob] ?? '') : ''
     const chart = iChart >= 0 ? (fila[iChart] ?? '') : ''
-    // Desempate sin DOB (ver el comentario de `claveOrigen`): el teléfono, no el índice de fila.
-    const telefonoCrudo = iTel >= 0 ? (fila[iTel] ?? '') : ''
+    // Desempate sin DOB (ver el comentario de `claveOrigen`): el primer teléfono no vacío, no
+    // el índice de fila.
+    const telefonoCrudo = primerNoVacio(fila, iTels)
     const clave = claveOrigenDe(fuente, { nombreCrudo: nombreOrigen, dobCrudo, chart, telefonoCrudo, fila: i })
 
-    // telefono_alt se apaga (vacío → coerce lo vuelve null) si coincide con telefono, una vez
-    // normalizados los dos — "Home == Cell" del spec.
-    let telAltRaw = iTelAlt >= 0 ? (fila[iTelAlt] ?? '') : ''
-    if (iTel >= 0 && iTelAlt >= 0) {
-      const tel = normalizarTelefono(fila[iTel] ?? '').valor
-      const telAlt = normalizarTelefono(fila[iTelAlt] ?? '').valor
-      if (tel && telAlt && tel === telAlt) telAltRaw = ''
-    }
-
-    return [...fila, parsed.nombre, parsed.apellido, clave, nombreOrigen, telAltRaw, fuente]
+    return [...fila, parsed.nombre, parsed.apellido, clave, nombreOrigen, dobCrudo, fuente]
   })
   return { augmentedRows, augmentedMapping: [...mapping, ...SINTETICAS] }
 }
@@ -126,10 +147,11 @@ function interpretarDob(v: string): string | null {
 // originales, que `augmentar` no toca).
 function camposParaCandidato(fila: readonly string[], mapping: (string | null)[]): Omit<Identificable, 'id'> {
   const iDob = mapping.indexOf(COL_DOB)
-  const iTel = mapping.indexOf(COL_TEL)
+  const iTels = indicesDe(mapping, COL_TEL)
   const iEmail = mapping.indexOf(COL_EMAIL)
   const dob = iDob >= 0 ? interpretarDob(fila[iDob] ?? '') : null
-  const tel = iTel >= 0 ? normalizarTelefono(fila[iTel] ?? '').valor : null
+  // El teléfono para el matcheo es el primero no vacío -no "el" único, ya no existe tal cosa.
+  const tel = normalizarTelefono(primerNoVacio(fila, iTels)).valor
   const email = iEmail >= 0 ? (fila[iEmail] ?? '').trim() : ''
   return {
     nombre: fila[mapping.length + SINTETICAS.indexOf(COL_NOMBRE)] ?? '',
@@ -168,10 +190,12 @@ function resolveValue(col: string, raw: string, valueMap?: ValueMap): string {
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
 
 function coercePacienteCelda(col: string, v: string, valueMap: ValueMap): unknown {
-  if (col === COL_CLAVE || col === COL_NOMBRE_ORIGEN || col === COL_CHART || col === COL_FUENTE) return v
+  // El DOB de origen viaja CRUDO -sin interpretar-, igual que la clave y el nombre de origen:
+  // es el registro de qué dijo la fuente, no un dato que se vaya a usar en cálculos.
+  if (col === COL_CLAVE || col === COL_NOMBRE_ORIGEN || col === COL_CHART || col === COL_FUENTE || col === COL_DOB_ORIGEN) return v
   if (col === COL_NOMBRE || col === COL_APELLIDO) return v
   if (col === COL_DOB) return interpretarDob(v)
-  if (col === COL_TEL || col === COL_TEL_ALT) return normalizarTelefono(v).valor
+  if (col === COL_TEL) return normalizarTelefono(v).valor
   if (col === COL_GENERO) return resolveValue(COL_GENERO, v, valueMap) || null
   if (col === COL_EMAIL) return v || null
   return v || null
@@ -201,7 +225,9 @@ export function buildPacienteImportPlan(input: {
   const { augmentedRows, augmentedMapping } = augmentar(fuente, rows, mapping)
   const identity = pacienteIdentityFor(fuente, mapping, existentes, pacientes)
   const coerce = (col: string, v: string) => coercePacienteCelda(col, v, valueMap)
-  const plan = buildPlanCompartido({ rows: augmentedRows, mapping: augmentedMapping, identity, coerce })
+  // `telefono`/`email` acumulan: dos columnas del archivo mapeadas al mismo campo no se pisan,
+  // se juntan en un array (ver `pacienteFields.PACIENTE_FIELD_DEFS`, `multi: true`).
+  const plan = buildPlanCompartido({ rows: augmentedRows, mapping: augmentedMapping, identity, coerce, multi: [COL_TEL, COL_EMAIL] })
 
   if (dupMode === 'skip') {
     return { ...plan, toUpdate: [], skipped: plan.skipped + plan.toUpdate.length, estado: 'ok' }
@@ -232,8 +258,9 @@ export function detectPacienteAnomalies(
   if (!fuente) return { estado: 'fuenteDesconocida' }
   const iNombreCrudo = fuente === 'emed' ? mapping.indexOf(COL_NOMBRE) : mapping.indexOf(COL_NOMBRE_CRUDO)
   const iDob = mapping.indexOf(COL_DOB)
-  const iTel = mapping.indexOf(COL_TEL)
-  const iTelAlt = mapping.indexOf(COL_TEL_ALT)
+  // TODAS las columnas de teléfono, no solo la primera -de ahí salía la regresión muda: con una
+  // sola posición fija, la segunda columna dejaba de validarse sin ningún error visible.
+  const iTels = indicesDe(mapping, COL_TEL)
   const issues: SanitizeIssue[] = []
 
   rows.forEach((fila, rowIndex) => {
@@ -273,8 +300,7 @@ export function detectPacienteAnomalies(
         })
       }
     }
-    for (const iTelCol of [iTel, iTelAlt]) {
-      if (iTelCol < 0) continue
+    for (const iTelCol of iTels) {
       const raw = fila[iTelCol] ?? ''
       if (!raw.trim()) continue
       const r = normalizarTelefono(raw)
@@ -284,7 +310,7 @@ export function detectPacienteAnomalies(
   return { estado: 'ok', issues }
 }
 
-const PACIENTE_KEYS = ['nombre', 'apellido', 'fecha_nacimiento', 'genero', 'telefono', 'telefono_alt', 'email'] as const
+const PACIENTE_KEYS = ['nombre', 'apellido', 'fecha_nacimiento', 'genero', 'telefono', 'email'] as const
 
 // El parámetro de tipo `K` es lo que hace que el cast sea seguro: fijado el campo, TypeScript
 // sabe que `values[campo]` -que en runtime ya coercionó `coercePacienteCelda`- tiene que ser
@@ -292,7 +318,12 @@ const PACIENTE_KEYS = ['nombre', 'apellido', 'fecha_nacimiento', 'genero', 'tele
 // iteración y el cast deja de angostar (el mismo motivo por el que `escribirImport.ts` usa
 // exactamente esta forma para su propio `asignar`).
 function asignarCampo<K extends (typeof PACIENTE_KEYS)[number]>(destino: Partial<Paciente>, values: Record<string, unknown>, campo: K): void {
-  if (campo in values) destino[campo] = values[campo] as Paciente[K]
+  if (!(campo in values)) return
+  const v = values[campo]
+  // `telefono`/`email` son campos `multi`: `values[campo]` puede llegar como array (ver
+  // `buildImportPlan`). El PRINCIPAL -el que va a `pacientes.telefono`/`email`- es el primero
+  // no vacío; el resto de la lista no se pierde, viaja por `contactosDe`.
+  destino[campo] = (Array.isArray(v) ? (v[0] ?? null) : v) as Paciente[K]
 }
 
 // Recorta los `values` de una fila del plan (`Record<string, unknown>`, con las columnas
@@ -302,6 +333,24 @@ function asignarCampo<K extends (typeof PACIENTE_KEYS)[number]>(destino: Partial
 export function pacienteEntranteDe(values: Record<string, unknown>): Partial<Paciente> {
   const out: Partial<Paciente> = {}
   for (const k of PACIENTE_KEYS) asignarCampo(out, values, k)
+  return out
+}
+
+export type ContactoEntrante = { tipo: 'telefono' | 'email'; valor: string }
+
+// Todos los valores de contacto que trajo la fila, ya normalizados por `coercePacienteCelda`.
+// El principal (`pacienteEntranteDe`) es el primero de cada lista; acá están TODOS -es la
+// fuente de la que `escribirImport` (Tarea 5) arma lo que va a `paciente_contactos`.
+export function contactosDe(values: Record<string, unknown>): ContactoEntrante[] {
+  const out: ContactoEntrante[] = []
+  for (const tipo of ['telefono', 'email'] as const) {
+    const v = values[tipo]
+    const lista = Array.isArray(v) ? v : v == null ? [] : [v]
+    for (const item of lista) {
+      const valor = String(item ?? '').trim()
+      if (valor) out.push({ tipo, valor })
+    }
+  }
   return out
 }
 
@@ -315,6 +364,9 @@ export function fuenteEscrituraDe(values: Record<string, unknown>) {
     fuente,
     clave_origen,
     nombre_origen: (values[COL_NOMBRE_ORIGEN] as string) || null,
+    // Crudo, sin interpretar -ver el comentario de `COL_DOB_ORIGEN`-: lo que permite reconstruir
+    // qué DOB dijo CADA fuente cuando dos sistemas se contradicen.
+    dob_origen: (values[COL_DOB_ORIGEN] as string) || null,
     // Chart# de eMedicalPractice: es lo único que `ref_externa` guarda (ver el spec, columna
     // `ref_externa`) y coincide con la clave de esa fuente.
     ref_externa: fuente === 'emed' ? clave_origen : null,

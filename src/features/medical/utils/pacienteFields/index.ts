@@ -16,9 +16,8 @@ export const PACIENTE_FIELD_DEFS: ImportFieldDef[] = [
   { column: 'chart', labelKey: 'med.import.field.chart' },
   { column: 'fecha_nacimiento', labelKey: 'med.import.field.fechaNacimiento' },
   { column: 'genero', labelKey: 'med.import.field.genero' },
-  { column: 'telefono', labelKey: 'med.import.field.telefono' },
-  { column: 'telefono_alt', labelKey: 'med.import.field.telefonoAlt' },
-  { column: 'email', labelKey: 'med.import.field.email' },
+  { column: 'telefono', labelKey: 'med.import.field.telefono', multi: true },
+  { column: 'email', labelKey: 'med.import.field.email', multi: true },
 ]
 
 const PACIENTE_COLUMNS = PACIENTE_FIELD_DEFS.map(f => f.column)
@@ -48,22 +47,18 @@ const HEADER_ALIASES: Record<string, string> = {
   'e-mail': 'email',
 }
 
-// Cualquier header que hable de teléfono. La primera columna de teléfono de una fila mapea a
-// `telefono`; una SEGUNDA columna de teléfono (ECW trae Home y Cell) mapea a `telefono_alt` —
-// es el único campo de este catálogo donde el orden de aparición en el archivo importa.
+// Cualquier header que hable de teléfono. TODA columna de teléfono mapea al MISMO campo:
+// `telefono` acumula (`multi: true`, ver `ImportFieldDef`), así que ECW trayendo Home Y Cell
+// ya no necesita un segundo campo inventado para la segunda columna — las dos entran como
+// contactos del mismo paciente (`@/features/medical/utils/pacienteImportPlan`).
 const TELEFONO_RE = /phone|telefono|teléfono|tel$/
 
 const normHeader = (h: string) => h.trim().toLowerCase().replace(/_/g, ' ').replace(/\s+/g, ' ')
 
 export function guessMapping(headers: string[]): (string | null)[] {
-  let telefonoUsado = false
   return headers.map(h => {
     const norm = normHeader(h)
-    if (TELEFONO_RE.test(norm)) {
-      const col = telefonoUsado ? 'telefono_alt' : 'telefono'
-      telefonoUsado = true
-      return col
-    }
+    if (TELEFONO_RE.test(norm)) return 'telefono'
     return resolveToCanonical(norm, PACIENTE_COLUMNS, { aliases: HEADER_ALIASES })
   })
 }

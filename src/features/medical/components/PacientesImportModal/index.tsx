@@ -39,7 +39,15 @@ export default function PacientesImportModal({ onClose }: Props) {
     (rows: string[][], mapping: (string | null)[], dupMode: DupMode, valueMap: ValueMap, hoja: string | null): ImportPlan => {
       const fuente = hoja ? fuenteDeHoja(hoja) : null
       const existentes = fuente ? indexPorClave(fuente, pacienteFuentes) : new Map<string, string | null>()
-      return buildPacienteImportPlan({ rows, mapping, dupMode, valueMap, fuente, existentes, pacientes: pacientesIdentificables })
+      const plan = buildPacienteImportPlan({ rows, mapping, dupMode, valueMap, fuente, existentes, pacientes: pacientesIdentificables })
+      // Paso 5: `ImportModal` compara la fila entrante contra cada candidato con `String(valor)`.
+      // `telefono`/`email` son campos `multi` (Tarea 2/4): sin resolver el principal ACÁ, una
+      // fila con dos teléfonos se vería "3055550101,7865550202" y la comparación marcaría
+      // "distinto" casi siempre -justo donde una persona decide si dos registros son el mismo.
+      // El resto de las claves de cada fila (incluidas las sintéticas de `fuenteEscrituraDe`) se
+      // conserva sin tocar: esta misma fila es la que, si no se fusiona, pasa a `toInsert` y de
+      // ahí a `onConfirm`.
+      return { ...plan, toMerge: plan.toMerge.map(m => ({ ...m, values: { ...m.values, ...pacienteEntranteDe(m.values) } })) }
     },
     [pacienteFuentes, pacientesIdentificables],
   )
@@ -65,7 +73,7 @@ export default function PacientesImportModal({ onClose }: Props) {
     if (!p) return undefined
     return {
       label: `${p.mrn} — ${p.nombre} ${p.apellido}`,
-      values: { nombre: p.nombre, apellido: p.apellido, fecha_nacimiento: p.fecha_nacimiento, telefono: p.telefono, telefono_alt: p.telefono_alt, email: p.email },
+      values: { nombre: p.nombre, apellido: p.apellido, fecha_nacimiento: p.fecha_nacimiento, telefono: p.telefono, email: p.email },
     }
   }, [pacientesById])
 

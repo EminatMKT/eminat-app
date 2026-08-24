@@ -1,16 +1,19 @@
 import { describe, it, expect } from 'vitest'
 import {
   fuenteDeHoja, indexPorClave, buildPacienteImportPlan, detectPacienteAnomalies,
-  pacienteEntranteDe, fuenteEscrituraDe,
+  pacienteEntranteDe, fuenteEscrituraDe, contactosDe,
 } from './index'
 import { claveOrigen } from '../pacienteIdentity'
+import { guessMapping } from '../pacienteFields'
 import type { PacienteFuente } from '@/features/medical/types'
 import type { Identificable } from '../pacienteIdentity'
 import type { SanitizeIssue } from '@/shared/import'
 
 // mapping usado en casi todos los casos: una fila cruda con nombre en un solo campo (ECW /
-// eClinPro), fecha de nacimiento, género, teléfono, teléfono alterno y email.
-const MAPPING = ['nombre_crudo', 'fecha_nacimiento', 'genero', 'telefono', 'telefono_alt', 'email']
+// eClinPro), fecha de nacimiento, género, teléfono, una columna sin mapear (donde vivía el viejo
+// `telefono_alt`: ya no existe, `telefono` acumula solo — ver `MAPPING_2TEL` más abajo para el
+// caso de dos columnas de teléfono) y email.
+const MAPPING = ['nombre_crudo', 'fecha_nacimiento', 'genero', 'telefono', null, 'email']
 
 describe('fuenteDeHoja', () => {
   it('reconoce las tres hojas del archivo real por su nombre', () => {
@@ -63,7 +66,7 @@ describe('buildPacienteImportPlan', () => {
 
   it('arma una fila nueva con el nombre parseado, la fecha resuelta y el teléfono formateado', () => {
     const plan = buildPacienteImportPlan({
-      rows: [['PEREZ,JUAN', '39872', 'M', '7541234567', '7541234567', 'juan@x.com']],
+      rows: [['PEREZ,JUAN', '39872', 'M', '7541234567', '', 'juan@x.com']],
       mapping: MAPPING, dupMode: 'update', valueMap: {}, fuente: 'ecw',
       existentes: new Map(), pacientes: [],
     })
@@ -73,22 +76,11 @@ describe('buildPacienteImportPlan', () => {
     expect(v.apellido).toBe('Perez')
     expect(v.fecha_nacimiento).toBe('2009-02-28')
     expect(v.genero).toBe('M')
-    expect(v.telefono).toBe('(754) 123-4567')
-    // Home == Cell: telefono_alt se apaga.
-    expect(v.telefono_alt).toBeNull()
-  })
-
-  it('telefono_alt DISTINTO de telefono sobrevive -no se apaga solo porque las dos columnas vienen llenas', () => {
-    // El único test de arriba usa el MISMO número en las dos columnas, así que nada prueba que
-    // un alterno legítimo no se pierda. Cambiar `tel === telAlt` por solo `tel && telAlt` en
-    // `augmentar()` apagaría este teléfono real.
-    const plan = buildPacienteImportPlan({
-      rows: [['PEREZ,JUAN', '39872', 'M', '7541234567', '7869998888', 'juan@x.com']],
-      mapping: MAPPING, dupMode: 'update', valueMap: {}, fuente: 'ecw',
-      existentes: new Map(), pacientes: [],
-    })
-    expect(plan.toInsert[0].telefono).toBe('(754) 123-4567')
-    expect(plan.toInsert[0].telefono_alt).toBe('(786) 999-8888')
+    // `telefono` es un campo `multi` (ver `pacienteFields`): `values.telefono` es SIEMPRE un
+    // array, aunque el archivo solo traiga una columna. El principal lo resuelve
+    // `pacienteEntranteDe` -el caso de dos columnas de teléfono vive en
+    // `describe('varias columnas de telefono')`, más abajo.
+    expect(pacienteEntranteDe(v).telefono).toBe('(754) 123-4567')
   })
 
   it('una fecha ISO editada en el paso 4 no se reinterpreta como serial (coerce)', () => {
@@ -251,19 +243,20 @@ describe('pacienteEntranteDe / fuenteEscrituraDe', () => {
     })
     const values = plan.toInsert[0]
     const entrante = pacienteEntranteDe(values)
-    expect(entrante).toEqual({ nombre: 'Juan', apellido: 'Perez', fecha_nacimiento: '2009-02-28', genero: 'M', telefono: '(754) 123-4567', telefono_alt: null, email: 'juan@x.com' })
+    expect(entrante).toEqual({ nombre: 'Juan', apellido: 'Perez', fecha_nacimiento: '2009-02-28', genero: 'M', telefono: '(754) 123-4567', email: 'juan@x.com' })
     expect('__clave_origen__' in entrante).toBe(false)
 
     const fuente = fuenteEscrituraDe(values)
     expect(fuente.fuente).toBe('ecw')
     expect(fuente.clave_origen).toBe(claveOrigen('ecw', { nombreCrudo: 'PEREZ,JUAN', dobCrudo: '39872' }))
+    expect(fuente.dob_origen).toBe('39872')
     expect(fuente.ref_externa).toBeNull()
   })
 
   it('emed usa la clave de origen (el Chart#) como ref_externa', () => {
     const plan = buildPacienteImportPlan({
-      rows: [['Juan', 'Perez', '39872', '', '', '', '2']],
-      mapping: ['nombre', 'apellido', 'fecha_nacimiento', 'genero', 'telefono', 'telefono_alt', 'chart'],
+      rows: [['Juan', 'Perez', '39872', '', '', '2']],
+      mapping: ['nombre', 'apellido', 'fecha_nacimiento', 'genero', 'telefono', 'chart'],
       dupMode: 'update', valueMap: {}, fuente: 'emed',
       existentes: new Map(), pacientes: [],
     })
@@ -271,5 +264,67 @@ describe('pacienteEntranteDe / fuenteEscrituraDe', () => {
     expect(fuente.fuente).toBe('emed')
     expect(fuente.ref_externa).toBe(fuente.clave_origen)
     expect(fuente.clave_origen).toBe('2')
+  })
+})
+
+describe('varias columnas de telefono', () => {
+  // ECW: Chart#, nombre_crudo, DOB, telefono (Home), telefono (Cell), email
+  const MAPPING_2TEL = ['nombre_crudo', 'fecha_nacimiento', 'telefono', 'telefono', 'email']
+
+  it('las dos columnas de telefono entran como contactos', () => {
+    const plan = buildPacienteImportPlan({
+      rows: [['PEREZ,ANA', '31000', '3055550101', '7865550202', '']],
+      mapping: MAPPING_2TEL, dupMode: 'update', valueMap: {}, fuente: 'ecw',
+      existentes: new Map(), pacientes: [],
+    })
+    // `coercePacienteCelda` ya formateó cada celda con `normalizarTelefono` antes de que
+    // `contactosDe` la vea -igual que en cualquier otro test de este archivo ('(754) 123-4567',
+    // no '7541234567')-, así que el contacto guardado sale formateado, no en dígitos crudos.
+    expect(contactosDe(plan.toInsert[0]).map(c => c.valor).sort())
+      .toEqual(['(305) 555-0101', '(786) 555-0202'])
+  })
+
+  it('Home == Cell da UN solo contacto, sin codigo que lo fuerce', () => {
+    const plan = buildPacienteImportPlan({
+      rows: [['PEREZ,ANA', '31000', '3055550101', '3055550101', '']],
+      mapping: MAPPING_2TEL, dupMode: 'update', valueMap: {}, fuente: 'ecw',
+      existentes: new Map(), pacientes: [],
+    })
+    expect(contactosDe(plan.toInsert[0])).toHaveLength(1)
+  })
+
+  it('el principal es el primero no vacio', () => {
+    const plan = buildPacienteImportPlan({
+      rows: [['PEREZ,ANA', '31000', '', '7865550202', '']],
+      mapping: MAPPING_2TEL, dupMode: 'update', valueMap: {}, fuente: 'ecw',
+      existentes: new Map(), pacientes: [],
+    })
+    expect(pacienteEntranteDe(plan.toInsert[0]).telefono).toBe('(786) 555-0202')
+  })
+
+  it('el saneamiento valida TODAS las columnas de telefono, no solo la primera', () => {
+    const r = detectPacienteAnomalies('ecw', [['PEREZ,ANA', '31000', '3055550101', '123', '']], MAPPING_2TEL)
+    if (r.estado !== 'ok') throw new Error('esperaba estado ok')
+    expect(r.issues.some(i => i.messageKey === 'med.import.anomaly.invalidPhone')).toBe(true)
+  })
+
+  it('guessMapping manda las dos columnas de telefono a telefono', () => {
+    // 'Name', no 'Patient Name': `resolveToCanonical` matchea por IGUALDAD exacta contra
+    // `HEADER_ALIASES` (`canonical.ts`), no por substring -'Patient Name' no está en la tabla
+    // de alias y da `null`. Eso es un gap de la tabla de alias en sí, no del cambio de acá.
+    expect(guessMapping(['Name', 'DOB', 'Home Phone', 'Cell Phone', 'Email']))
+      .toEqual(['nombre_crudo', 'fecha_nacimiento', 'telefono', 'telefono', 'email'])
+  })
+
+  it('el DOB crudo del archivo viaja a la fuente, sin interpretar', () => {
+    // `dob_origen` es la mitad de "lo contradictorio" del spec (Step 4b): cuando dos fuentes
+    // dicen fechas de nacimiento distintas, esto es lo que permite reconstruir qué dijo CADA
+    // una. Va crudo a propósito -una fecha ilegible es justo el caso que hay que investigar-.
+    const plan = buildPacienteImportPlan({
+      rows: [['PEREZ,ANA', '31000', '3055550101', '', '']],
+      mapping: MAPPING_2TEL, dupMode: 'update', valueMap: {}, fuente: 'ecw',
+      existentes: new Map(), pacientes: [],
+    })
+    expect(fuenteEscrituraDe(plan.toInsert[0]).dob_origen).toBe('31000')
   })
 })
