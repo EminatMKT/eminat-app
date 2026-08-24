@@ -223,6 +223,18 @@ describe('detectPacienteAnomalies', () => {
     expect(issues.some(i => i.messageKey === 'med.import.anomaly.notAPatient')).toBe(true)
   })
 
+  // Los dos casos que la heurística vieja marcaba mal. Medido sobre la hoja real de
+  // eClinicalWorks: de 47 filas que señalaba, 46 eran pacientes de verdad como estos.
+  it('una inicial de segundo nombre NO es motivo de sospecha', () => {
+    const issues = issuesOf(detectPacienteAnomalies('ecw', [['Andrade,Erika M', '39872', '', '', '', '']], MAPPING))
+    expect(issues.some(i => i.messageKey === 'med.import.anomaly.notAPatient')).toBe(false)
+  })
+
+  it('una partícula de apellido compuesto NO es motivo de sospecha', () => {
+    const issues = issuesOf(detectPacienteAnomalies('ecw', [['ARDILA DE DELGADO,ROSA ELVIRA', '39872', '', '', '', '']], MAPPING))
+    expect(issues.some(i => i.messageKey === 'med.import.anomaly.notAPatient')).toBe(false)
+  })
+
   it('marca nombre o apellido vacío tras el parseo', () => {
     const issues = issuesOf(detectPacienteAnomalies('ecw', [[',', '39872', '', '', '', '']], MAPPING))
     expect(issues.some(i => i.messageKey === 'med.import.anomaly.emptyName')).toBe(true)

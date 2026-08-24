@@ -235,8 +235,19 @@ export function buildPacienteImportPlan(input: {
   return { ...plan, estado: 'ok' }
 }
 
-function tieneTokenCorto(texto: string): boolean {
-  return texto.trim().split(/\s+/).filter(Boolean).some(tok => tok.replace(/\.$/, '').length <= 2)
+// Sospechoso de NO ser un paciente: el campo ENTERO es una sigla ('T' de 'T,TEMPLATES').
+//
+// Antes esto marcaba cualquier campo que CONTUVIERA un token de <=2 letras, y sobre la hoja real
+// de eClinicalWorks eso daba 47 filas de las cuales 46 eran pacientes de verdad: se comía las
+// iniciales de segundo nombre ('Erika M') y las partículas de los apellidos compuestos españoles
+// ('Ardila de Delgado'), que son lo más común del archivo, no una anomalía. Con esta versión
+// marca 1 fila: la que efectivamente no es un paciente.
+//
+// Un saneamiento que grita 47 veces cuando 46 son correctas es peor que no avisar: enseña a
+// ignorarlo, y entonces la única de verdad pasa igual.
+function esSigla(texto: string): boolean {
+  const tokens = texto.trim().split(/\s+/).filter(Boolean)
+  return tokens.length === 1 && tokens[0].replace(/\.$/, '').length <= 2
 }
 
 // Paso 4: saneamiento. No es un validador genérico — son los problemas medidos del archivo real
@@ -282,7 +293,7 @@ export function detectPacienteAnomalies(
         rowIndex, colIndex: iNombreCrudo, messageKey: 'med.import.anomaly.emptyName',
         crudo: nombreOrigen, interpretado: `${parsed.nombre || '—'} / ${parsed.apellido || '—'}`,
       })
-    } else if (tieneTokenCorto(parsed.nombre) || tieneTokenCorto(parsed.apellido)) {
+    } else if (esSigla(parsed.nombre) || esSigla(parsed.apellido)) {
       issues.push({
         rowIndex, colIndex: null, messageKey: 'med.import.anomaly.notAPatient',
         crudo: nombreOrigen, interpretado: `${parsed.nombre} ${parsed.apellido}`,
