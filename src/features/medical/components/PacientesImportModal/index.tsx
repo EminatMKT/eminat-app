@@ -9,7 +9,7 @@ import {
 } from '@/features/medical/utils/pacienteFields'
 import {
   buildPacienteImportPlan, detectPacienteAnomalies, fuenteDeHoja, indexPorClave,
-  pacienteEntranteDe, fuenteEscrituraDe,
+  pacienteEntranteDe, fuenteEscrituraDe, contactosDe,
   type DupMode, type ValueMap,
 } from '@/features/medical/utils/pacienteImportPlan'
 import type { Identificable } from '@/features/medical/utils/pacienteIdentity'
@@ -77,9 +77,12 @@ export default function PacientesImportModal({ onClose }: Props) {
 
   const onConfirm = useCallback(async (plan: ImportPlan): Promise<boolean> => {
     const filas: FilaEscritura[] = [
-      ...plan.toInsert.map((values): FilaEscritura => ({ tipo: 'nueva', entrante: pacienteEntranteDe(values), fuente: fuenteEscrituraDe(values) })),
+      ...plan.toInsert.map((values): FilaEscritura => ({
+        tipo: 'nueva', entrante: pacienteEntranteDe(values), fuente: fuenteEscrituraDe(values), contactos: contactosDe(values),
+      })),
       ...plan.toUpdate.map((u): FilaEscritura => ({
-        tipo: 'existente', id: u.id, existente: pacientesById.get(u.id) ?? {}, entrante: pacienteEntranteDe(u.values), fuente: fuenteEscrituraDe(u.values),
+        tipo: 'existente', id: u.id, existente: pacientesById.get(u.id) ?? {}, entrante: pacienteEntranteDe(u.values),
+        fuente: fuenteEscrituraDe(u.values), contactos: contactosDe(u.values),
       })),
     ]
     const resultado = await importarPacientes(filas)

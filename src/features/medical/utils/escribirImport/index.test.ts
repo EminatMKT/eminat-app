@@ -1,15 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { lotes, escribirImport, type FilaEscritura } from './index'
-import { upsertPacientes, upsertPacienteFuentes } from '@/features/medical/data/pacientes'
+import { upsertPacientes, upsertPacienteFuentes, upsertPacienteContactos } from '@/features/medical/data/pacientes'
 import { ESTADO_PACIENTE_DEFAULT } from '@/features/medical/constants'
+import type { ContactoEntrante } from '@/features/medical/utils/pacienteImportPlan'
 
 vi.mock('@/features/medical/data/pacientes', () => ({
   upsertPacientes: vi.fn(),
   upsertPacienteFuentes: vi.fn(),
+  upsertPacienteContactos: vi.fn(),
 }))
 
 const upsertPacientesMock = vi.mocked(upsertPacientes)
 const upsertPacienteFuentesMock = vi.mocked(upsertPacienteFuentes)
+const upsertPacienteContactosMock = vi.mocked(upsertPacienteContactos)
 
 describe('lotes', () => {
   it('1.200 filas en lotes de 500 da 500/500/200', () => {
@@ -49,8 +52,10 @@ describe('escribirImport', () => {
   beforeEach(() => {
     upsertPacientesMock.mockReset()
     upsertPacienteFuentesMock.mockReset()
+    upsertPacienteContactosMock.mockReset()
     upsertPacientesMock.mockResolvedValue({ data: null, error: null } as never)
     upsertPacienteFuentesMock.mockResolvedValue({ data: null, error: null } as never)
+    upsertPacienteContactosMock.mockResolvedValue({ error: null } as Awaited<ReturnType<typeof upsertPacienteContactos>>)
   })
 
   it('escribe pacientes ANTES que paciente_fuentes', async () => {
@@ -232,6 +237,7 @@ describe('escribirImport', () => {
 
     expect(resultado).toEqual({
       lotesTotales: 1, lotesEscritos: 1, filasEscritas: 2, filasTotales: 2, rechazadas: [], error: null,
+      contactosEscritos: 0,
     })
   })
 
@@ -275,8 +281,10 @@ describe('escribirImport — Bug B: dos filas del archivo apuntan al mismo pacie
   beforeEach(() => {
     upsertPacientesMock.mockReset()
     upsertPacienteFuentesMock.mockReset()
+    upsertPacienteContactosMock.mockReset()
     upsertPacientesMock.mockResolvedValue({ data: null, error: null } as never)
     upsertPacienteFuentesMock.mockResolvedValue({ data: null, error: null } as never)
+    upsertPacienteContactosMock.mockResolvedValue({ error: null } as Awaited<ReturnType<typeof upsertPacienteContactos>>)
   })
 
   it('dos FilaEscritura "existente" con el MISMO id escriben UN paciente y DOS fuentes, sin reventar el lote', async () => {
@@ -321,4 +329,65 @@ describe('escribirImport — Bug B: dos filas del archivo apuntan al mismo pacie
       ])
       expect(upsertPacientesMock).not.toHaveBeenCalled()
     }))
+})
+
+describe('escribirImport — contactos', () => {
+  beforeEach(() => {
+    upsertPacientesMock.mockReset()
+    upsertPacienteFuentesMock.mockReset()
+    upsertPacienteContactosMock.mockReset()
+    upsertPacientesMock.mockResolvedValue({ data: null, error: null } as never)
+    upsertPacienteFuentesMock.mockResolvedValue({ data: null, error: null } as never)
+    upsertPacienteContactosMock.mockResolvedValue({ error: null } as Awaited<ReturnType<typeof upsertPacienteContactos>>)
+  })
+
+  const contactosEnviados = () => upsertPacienteContactosMock.mock.calls.flatMap((c) => c[0])
+
+  function existente(id: string, claveOrigen: string, contactos: ContactoEntrante[]): FilaEscritura {
+    return {
+      tipo: 'existente', id,
+      existente: { nombre: 'Maria', apellido: 'Garcia' },
+      entrante: { nombre: 'Maria', apellido: 'Garcia' },
+      fuente: fuente(claveOrigen),
+      contactos,
+    }
+  }
+
+  it('escribe los contactos DESPUES de pacientes y de fuentes', async () => {
+    const orden: string[] = []
+    upsertPacientesMock.mockImplementation((async () => { orden.push('pacientes'); return { data: null, error: null } }) as never)
+    upsertPacienteFuentesMock.mockImplementation((async () => { orden.push('fuentes'); return { data: null, error: null } }) as never)
+    upsertPacienteContactosMock.mockImplementation((async () => { orden.push('contactos'); return { error: null } }) as never)
+
+    await escribirImport([
+      { ...nueva({ nombre: 'Ana', apellido: 'Perez' }, 'k1'), contactos: [{ tipo: 'telefono', valor: '305' }] },
+    ])
+
+    expect(orden).toEqual(['pacientes', 'fuentes', 'contactos'])
+  })
+
+  it('dos filas fusionadas al mismo paciente NO mandan el contacto repetido', async () => {
+    await escribirImport([
+      existente('p1', 'a', [{ tipo: 'telefono', valor: '305' }]),
+      existente('p1', 'b', [{ tipo: 'telefono', valor: '305' }]),
+    ])
+    expect(contactosEnviados()).toHaveLength(1)
+  })
+
+  it('el mismo valor desde DOS fuentes distintas manda las dos filas', async () => {
+    // Que dos sistemas coincidan en un teléfono es la evidencia de que la fusión estuvo bien:
+    // colapsarlas borraría justo esa información.
+    const a = existente('p1', 'a', [{ tipo: 'telefono', valor: '305' }])
+    const b = existente('p1', 'b', [{ tipo: 'telefono', valor: '305' }])
+    b.fuente = { fuente: 'ecw', clave_origen: 'b', nombre_origen: null, ref_externa: null }
+    await escribirImport([a, b])
+    expect(contactosEnviados()).toHaveLength(2)
+  })
+
+  it('una fila rechazada por nombre vacio no manda sus contactos', async () => {
+    await escribirImport([
+      { ...nueva({ nombre: '', apellido: 'Perez' }, 'k1'), contactos: [{ tipo: 'telefono', valor: '305' }] },
+    ])
+    expect(contactosEnviados()).toHaveLength(0)
+  })
 })

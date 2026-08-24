@@ -2,10 +2,11 @@
 // `pacienteIdentity/` y `@/shared/import`-, solo escribe lo que ya se decidió: en lotes de
 // ~500, `pacientes` antes que `paciente_fuentes`, con el id que generó el cliente. Ver
 // "## Escritura" en docs/superpowers/specs/2026-08-21-pacientes-import-design.md.
-import { upsertPacientes, upsertPacienteFuentes } from '@/features/medical/data/pacientes'
+import { upsertPacientes, upsertPacienteFuentes, upsertPacienteContactos } from '@/features/medical/data/pacientes'
 import { fusionar } from '@/features/medical/utils/pacienteIdentity'
 import { ESTADO_PACIENTE_DEFAULT } from '@/features/medical/constants'
-import type { Paciente, PacienteFuente } from '@/features/medical/types'
+import type { ContactoEntrante } from '@/features/medical/utils/pacienteImportPlan'
+import type { Paciente, PacienteFuente, PacienteContacto } from '@/features/medical/types'
 
 const TAMANO_LOTE = 500
 
@@ -49,9 +50,12 @@ type FuenteEscritura = Pick<PacienteFuente, 'fuente' | 'clave_origen' | 'nombre_
 // `strict: false` en `tsconfig.json` -o sea `strictNullChecks` apagado-, y ahí `null` es
 // asignable a cualquier tipo, así que TypeScript no logra angostar la unión comparando contra
 // `null`. Con un literal de texto la angostura no depende de esa opción.
+// `contactos` es opcional: la mayoría de los tests de este archivo (y del alta manual, que no
+// pasa por acá) no traen ninguno. Cuando falta, se trata como lista vacía -no hay nada que
+// escribir en `paciente_contactos` para esa fila.
 export type FilaEscritura =
-  | { tipo: 'nueva'; entrante: Partial<Paciente>; fuente: FuenteEscritura }
-  | { tipo: 'existente'; id: string; existente: Partial<Paciente>; entrante: Partial<Paciente>; fuente: FuenteEscritura }
+  | { tipo: 'nueva'; entrante: Partial<Paciente>; fuente: FuenteEscritura; contactos?: ContactoEntrante[] }
+  | { tipo: 'existente'; id: string; existente: Partial<Paciente>; entrante: Partial<Paciente>; fuente: FuenteEscritura; contactos?: ContactoEntrante[] }
 
 // Misma forma que `FilaEscritura` pero con el id YA resuelto -string siempre-, para el resto
 // del módulo. `existente` sigue opcional acá: ausente de verdad en una alta nueva, nunca por
@@ -63,6 +67,7 @@ interface FilaResuelta {
   existente?: Partial<Paciente>
   entrante: Partial<Paciente>
   fuente: FuenteEscritura
+  contactos: ContactoEntrante[]
   origenIndice: number
 }
 
@@ -70,8 +75,9 @@ interface FilaResuelta {
 // por la capa de red (no por el llamador) manda siempre el mismo id, y el upsert por
 // `onConflict: 'id'` lo vuelve inofensivo en vez de duplicar el paciente.
 function resolverId(fila: FilaEscritura, origenIndice: number): FilaResuelta {
-  if (fila.tipo === 'nueva') return { id: crypto.randomUUID(), entrante: fila.entrante, fuente: fila.fuente, origenIndice }
-  return { id: fila.id, existente: fila.existente, entrante: fila.entrante, fuente: fila.fuente, origenIndice }
+  const contactos = fila.contactos ?? []
+  if (fila.tipo === 'nueva') return { id: crypto.randomUUID(), entrante: fila.entrante, fuente: fila.fuente, contactos, origenIndice }
+  return { id: fila.id, existente: fila.existente, entrante: fila.entrante, fuente: fila.fuente, contactos, origenIndice }
 }
 
 // Trocea un array en grupos de `tamano`, sin lotes vacíos: 1.000 filas con tamaño 500 da 2
@@ -107,7 +113,10 @@ function agruparPorId(filas: readonly FilaResuelta[]): FilaLista[] {
     const miembros = grupos.get(id)!
     let acumulado = recortar(miembros[0].existente)
     for (const m of miembros) acumulado = fusionar(acumulado, recortar(m.entrante)).paciente
-    return { id, paciente: acumulado, miembros: miembros.map((m) => ({ fuente: m.fuente, origenIndice: m.origenIndice })) }
+    return {
+      id, paciente: acumulado,
+      miembros: miembros.map((m) => ({ fuente: m.fuente, contactos: m.contactos, origenIndice: m.origenIndice })),
+    }
   })
 }
 
@@ -168,8 +177,47 @@ interface FilaLista {
   id: string
   paciente: Partial<Paciente>
   // Casi siempre uno -salvo el colapso de `agruparPorId`, donde dos filas del archivo apuntan
-  // al mismo paciente y cada una necesita su propia fila en `paciente_fuentes`.
-  miembros: { fuente: FuenteEscritura; origenIndice: number }[]
+  // al mismo paciente y cada una necesita su propia fila en `paciente_fuentes` (y sus propios
+  // contactos, con SU fuente -no la del paciente fusionado-).
+  miembros: { fuente: FuenteEscritura; contactos: ContactoEntrante[]; origenIndice: number }[]
+}
+
+// Misma forma que espera `upsertPacienteContactos`: la fila de `paciente_contactos` sin las
+// columnas que pone la base (`id`, `created_at`). Con nombre propio para no repetir el `Omit`
+// en cada firma de acá abajo.
+type ContactoPayload = Omit<PacienteContacto, 'id' | 'created_at'>
+
+// Los contactos de un paciente ya agrupado: uno por cada (tipo, valor) que trajo cada miembro,
+// con la fuente de ESE miembro -no la del paciente fusionado, que no significa nada para un
+// contacto individual.
+function payloadContactos(id: string, miembros: FilaLista['miembros']): ContactoPayload[] {
+  return miembros.flatMap((m) =>
+    m.contactos.map((c) => ({
+      paciente_id: id,
+      tipo: c.tipo,
+      valor: c.valor,
+      fuente: m.fuente.fuente,
+      clave_origen: m.fuente.clave_origen,
+    })),
+  )
+}
+
+// Dedup por la MISMA clave que el UNIQUE de la base.
+//
+// Ojo con el porqué, porque es fácil escribirlo mal: con `ignoreDuplicates: true` (DO NOTHING)
+// el lote NO aborta aunque vayan dos filas iguales — verificado contra Postgres. O sea que esto
+// no es lo que evita el crash; lo que lo evita es esa opción en `data/pacientes.ts`.
+// Se dedupea igual por dos razones concretas: que `contactosEscritos` cuente lo que de verdad
+// se escribió y no lo que se mandó, y que el día que alguien cambie a DO UPDATE el lote no
+// empiece a abortar en silencio.
+function dedupeContactos(rows: ContactoPayload[]): ContactoPayload[] {
+  const vistos = new Set<string>()
+  return rows.filter((r) => {
+    const k = `${r.paciente_id}|${r.tipo}|${r.valor}|${r.fuente}`
+    if (vistos.has(k)) return false
+    vistos.add(k)
+    return true
+  })
 }
 
 // Límite de confianza: acá entran datos de un archivo. `pacientes_nombre_no_vacio` y
@@ -210,30 +258,37 @@ export interface ResultadoEscritura {
   filasEscritas: number
   filasTotales: number
   rechazadas: FilaRechazada[]
-  error: { mensaje: string; paso: 'pacientes' | 'fuentes'; lote: number } | null
+  // Cuenta lo que de verdad se escribió (después del dedup de lote), no lo que se mandó.
+  contactosEscritos: number
+  error: { mensaje: string; paso: 'pacientes' | 'fuentes' | 'contactos'; lote: number } | null
 }
 
 // Sin transacción: son ~10 lotes por HTTP. Si un lote falla, se corta ahí -no se sigue de largo
 // en silencio- y se devuelve qué quedó escrito para que quien llama pueda decirlo. El plan NO
 // se recalcula acá adentro: un reintento vuelve a armar el plan contra el estado real de la
 // base (matcheo incluido) y llama de nuevo con filas nuevas; esta función solo escribe.
+//
+// El orden dentro de un lote es SIEMPRE pacientes → paciente_fuentes → paciente_contactos: un
+// contacto sin paciente viola la FK.
 export async function escribirImport(filas: readonly FilaEscritura[]): Promise<ResultadoEscritura> {
   const { listas, rechazadas } = prepararFilas(filas)
   const gruposDeFilas = lotes(listas, TAMANO_LOTE)
 
   let filasEscritas = 0
+  let contactosEscritos = 0
   for (let i = 0; i < gruposDeFilas.length; i++) {
     const grupo = gruposDeFilas[i]
     const lotePacientes = grupo.map((f) => payloadPaciente(f.id, f.paciente))
     // flatMap: casi siempre un miembro por paciente, salvo el colapso de `agruparPorId` -ahí
     // un solo `id` de `pacientes` se corresponde con DOS filas de `paciente_fuentes`.
     const loteFuentes = grupo.flatMap((f) => f.miembros.map((m) => payloadFuente(f.id, m.fuente)))
+    const loteContactos = dedupeContactos(grupo.flatMap((f) => payloadContactos(f.id, f.miembros)))
 
     const { error: errorPacientes } = await upsertPacientes(lotePacientes)
     if (errorPacientes) {
       return {
         lotesTotales: gruposDeFilas.length, lotesEscritos: i,
-        filasEscritas, filasTotales: filas.length, rechazadas,
+        filasEscritas, filasTotales: filas.length, rechazadas, contactosEscritos,
         error: { mensaje: errorPacientes.message, paso: 'pacientes', lote: i },
       }
     }
@@ -244,9 +299,22 @@ export async function escribirImport(filas: readonly FilaEscritura[]): Promise<R
       // así que cuentan en `filasEscritas` aunque el lote no se dé por completo.
       return {
         lotesTotales: gruposDeFilas.length, lotesEscritos: i,
-        filasEscritas: filasEscritas + lotePacientes.length, filasTotales: filas.length, rechazadas,
+        filasEscritas: filasEscritas + lotePacientes.length, filasTotales: filas.length, rechazadas, contactosEscritos,
         error: { mensaje: errorFuentes.message, paso: 'fuentes', lote: i },
       }
+    }
+
+    if (loteContactos.length > 0) {
+      const { error: errorContactos } = await upsertPacienteContactos(loteContactos)
+      if (errorContactos) {
+        // Igual que arriba: pacientes y fuentes de ESTE lote ya quedaron escritos.
+        return {
+          lotesTotales: gruposDeFilas.length, lotesEscritos: i,
+          filasEscritas: filasEscritas + lotePacientes.length, filasTotales: filas.length, rechazadas, contactosEscritos,
+          error: { mensaje: errorContactos.message, paso: 'contactos', lote: i },
+        }
+      }
+      contactosEscritos += loteContactos.length
     }
 
     filasEscritas += lotePacientes.length
@@ -254,6 +322,6 @@ export async function escribirImport(filas: readonly FilaEscritura[]): Promise<R
 
   return {
     lotesTotales: gruposDeFilas.length, lotesEscritos: gruposDeFilas.length,
-    filasEscritas, filasTotales: filas.length, rechazadas, error: null,
+    filasEscritas, filasTotales: filas.length, rechazadas, contactosEscritos, error: null,
   }
 }
