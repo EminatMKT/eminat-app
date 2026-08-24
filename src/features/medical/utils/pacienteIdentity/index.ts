@@ -197,7 +197,11 @@ function contactoDisjunto(a: Contacto, b: Contacto): boolean {
 type NivelMatch = 'exacta' | 'parcial'
 type Candidato = { nivel: NivelMatch; paciente: Identificable }
 
-// Sin DOB no hay candidatos: es el único ancla dura que tenemos.
+// Sin DOB no hay candidatos: es el único ancla dura que tenemos. Eso NO cambia.
+// Lo que cambia: con DOB en los dos lados pero distinto, el núcleo igual + un teléfono
+// compartido alcanza para ofrecer una fusión PARCIAL. Medido sobre el archivo real: 76 núcleos
+// con dos DOB comparten teléfono (la misma persona con una fecha mal cargada) y 59 no (homónimos
+// distintos, que siguen separados). Sin la condición del teléfono, esto fusionaría homónimos.
 export function candidatos(
   fila: Omit<Identificable, 'id'>,
   pacientes: readonly Identificable[],
@@ -208,16 +212,28 @@ export function candidatos(
   const resultado: Candidato[] = []
 
   for (const paciente of pacientes) {
-    if (paciente.fecha_nacimiento !== fila.fecha_nacimiento) continue
-
+    const mismoDob = paciente.fecha_nacimiento === fila.fecha_nacimiento
     const relacion = relacionNucleos(nucleoFila, nucleo(paciente.nombre, paciente.apellido))
     if (relacion === 'ninguna') continue
+
+    if (!mismoDob) {
+      // Nunca 'exacta': la fecha no coincide, así que la evidencia es más débil por definición.
+      // Parcial = sin pre-marcar, la persona decide con las dos fechas enfrentadas en pantalla.
+      if (relacion === 'igual' && telefonoCompartido(fila, paciente)) {
+        resultado.push({ nivel: 'parcial', paciente })
+      }
+      continue
+    }
 
     const nivel: NivelMatch =
       relacion === 'igual' && !contactoDisjunto(fila, paciente) ? 'exacta' : 'parcial'
     resultado.push({ nivel, paciente })
   }
   return resultado
+}
+
+function telefonoCompartido(a: Contacto, b: Contacto): boolean {
+  return tieneValor(a.telefono) && tieneValor(b.telefono) && a.telefono === b.telefono
 }
 
 // Campo con valor gana sobre el entrante; solo se rellenan los vacíos. Si los dos tienen

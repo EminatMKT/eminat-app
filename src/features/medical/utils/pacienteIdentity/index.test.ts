@@ -176,6 +176,70 @@ describe('candidatos', () => {
   })
 })
 
+describe('gate del DOB', () => {
+  const guardado = { id: 'p1', nombre: 'Ana', apellido: 'Perez', fecha_nacimiento: '1985-03-14', telefono: '3055550101', email: null }
+
+  it('mismo nombre + DOB distinto + telefono COMPARTIDO da candidato parcial', () => {
+    const r = candidatos(
+      { nombre: 'Ana', apellido: 'Perez', fecha_nacimiento: '1985-04-14', telefono: '3055550101' },
+      [guardado],
+    )
+    expect(r).toHaveLength(1)
+    expect(r[0].nivel).toBe('parcial')
+  })
+
+  it('mismo nombre + DOB distinto + telefono DISTINTO no da candidato', () => {
+    const r = candidatos(
+      { nombre: 'Ana', apellido: 'Perez', fecha_nacimiento: '1985-04-14', telefono: '7865559999' },
+      [guardado],
+    )
+    expect(r).toEqual([])
+  })
+
+  it('el telefono compartido NUNCA promueve a exacta', () => {
+    const r = candidatos(
+      { nombre: 'Ana', apellido: 'Perez', fecha_nacimiento: '1985-04-14', telefono: '3055550101' },
+      [guardado],
+    )
+    expect(r[0].nivel).not.toBe('exacta')
+  })
+
+  it('mismo DOB sigue dando exacta como antes', () => {
+    const r = candidatos(
+      { nombre: 'Ana', apellido: 'Perez', fecha_nacimiento: '1985-03-14', telefono: '3055550101' },
+      [guardado],
+    )
+    expect(r[0].nivel).toBe('exacta')
+  })
+
+  it('una fila SIN DOB sigue sin dar candidatos, aunque comparta telefono', () => {
+    const r = candidatos(
+      { nombre: 'Ana', apellido: 'Perez', fecha_nacimiento: null, telefono: '3055550101' },
+      [guardado],
+    )
+    expect(r).toEqual([])
+  })
+
+  it('nucleo distinto no matchea aunque compartan telefono (familia)', () => {
+    const r = candidatos(
+      { nombre: 'Carlos', apellido: 'Perez', fecha_nacimiento: '1990-01-01', telefono: '3055550101' },
+      [guardado],
+    )
+    expect(r).toEqual([])
+  })
+
+  it('nucleo CONTENIDO (no igual) con DOB distinto y telefono compartido no da candidato', () => {
+    // La condición nueva exige relacion === 'igual', no solo "no ninguna". Un núcleo contenido
+    // -"Ana" adentro de "Ana Maria Perez"- no alcanza para abrir el gate del DOB: si alcanzara,
+    // ninguno de los tests de arriba lo notaría, porque todos usan núcleos iguales o 'ninguna'.
+    const r = candidatos(
+      { nombre: 'Ana', apellido: 'Perez', fecha_nacimiento: '1985-04-14', telefono: '3055550101' },
+      [{ id: 'p2', nombre: 'Ana Maria', apellido: 'Perez', fecha_nacimiento: '1985-03-14', telefono: '3055550101', email: null }],
+    )
+    expect(r).toEqual([])
+  })
+})
+
 describe('fusionar', () => {
   it('rellena los vacíos y no pisa lo que ya tiene valor', () => {
     const e = { nombre: 'Rosa', apellido: 'Ardila', telefono: '(305) 555-0101', email: null }
