@@ -27,8 +27,19 @@ export function usePacientes() {
   const addPaciente = useCallback(async (data: Partial<Paciente>) => {
     const { data: row, error } = await insertPaciente(data)
     if (error) return { error }
-    setPacientes(p => [...p, row as Paciente])
-    return { data: row as Paciente }
+    const nuevo = row as Paciente
+    // Mismo criterio que `editPaciente`: el teléfono/email que se cargó en el alta manual
+    // también va a `paciente_contactos`, no solo a `pacientes.telefono`/`email`. Sin esto un
+    // paciente creado a mano queda con el dato en la columna principal pero CERO filas en
+    // `paciente_contactos`, y la pantalla de contactos (Tarea 10) lo muestra vacío.
+    const contactos: Omit<PacienteContacto, 'id' | 'created_at'>[] = []
+    for (const tipo of ['telefono', 'email'] as const) {
+      const v = (data[tipo] ?? '').trim()
+      if (v) contactos.push({ paciente_id: nuevo.id, tipo, valor: v, fuente: 'manual', clave_origen: null })
+    }
+    if (contactos.length) await upsertPacienteContactos(contactos)
+    setPacientes(p => [...p, nuevo])
+    return { data: nuevo }
   }, [])
 
   const editPaciente = useCallback(async (id: string, data: Partial<Paciente>) => {
