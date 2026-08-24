@@ -24,7 +24,7 @@ import s from './index.module.css'
 // pasos 2 (hoja), 4 (saneamiento) y 5 (duplicados por similitud) los pidió Medical y quedaron acá
 // porque son genéricos — ninguno conoce un paciente, solo re-empaquetan lo que `buildPlan`/
 // `detectAnomalies`/`resolveCandidate` les dan.
-export type ImportFieldDef = { column: string; labelKey: I18nKey }
+export type ImportFieldDef = { column: string; labelKey: I18nKey; multi?: boolean }
 export type DupMode = 'update' | 'skip'
 export type ValueMap = Record<string, Record<string, string>>
 

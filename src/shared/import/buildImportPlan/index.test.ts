@@ -114,3 +114,72 @@ describe('buildImportPlan', () => {
     expect(plan.tumbas).toBe(0)
   })
 })
+
+describe('columnas multi', () => {
+  const identityTrivial = {
+    claveOrigen: (_f: string[], i: number) => `k${i}`,
+    existente: () => undefined,
+    candidatos: () => [],
+  }
+  const coerce = (_col: string, v: string) => (v === '' ? null : v)
+
+  it('dos columnas al mismo campo multi acumulan en un array', () => {
+    const plan = buildImportPlan({
+      rows: [['305', '786']],
+      mapping: ['telefono', 'telefono'],
+      identity: identityTrivial,
+      coerce,
+      multi: ['telefono'],
+    })
+    expect(plan.toInsert[0].telefono).toEqual(['305', '786'])
+  })
+
+  it('el mismo valor en dos columnas multi no se duplica', () => {
+    const plan = buildImportPlan({
+      rows: [['305', '305']],
+      mapping: ['telefono', 'telefono'],
+      identity: identityTrivial,
+      coerce,
+      multi: ['telefono'],
+    })
+    expect(plan.toInsert[0].telefono).toEqual(['305'])
+  })
+
+  it('una celda vacía no entra al array', () => {
+    // Coerce propio, que NO traduce '' a null: con el `coerce` compartido del describe, la
+    // celda vacía ya llega como `null` a la lógica de acumulación, y el guard `v !== ''` de
+    // `buildImportPlan` queda sin ejercitar — mutar esa mitad del `if` no hacía fallar nada
+    // (verificado). Acá `v` puede llegar como cadena vacía de verdad, que es lo que ese guard
+    // existe para filtrar.
+    const coerceSinNulificar = (_col: string, v: string): unknown => v
+    const plan = buildImportPlan({
+      rows: [['305', '']],
+      mapping: ['telefono', 'telefono'],
+      identity: identityTrivial,
+      coerce: coerceSinNulificar,
+      multi: ['telefono'],
+    })
+    expect(plan.toInsert[0].telefono).toEqual(['305'])
+  })
+
+  it('SIN multi el comportamiento es el de hoy: la ultima columna gana', () => {
+    const plan = buildImportPlan({
+      rows: [['305', '786']],
+      mapping: ['telefono', 'telefono'],
+      identity: identityTrivial,
+      coerce,
+    })
+    expect(plan.toInsert[0].telefono).toBe('786')
+  })
+
+  it('una fila con solo un array vacio no cuenta como fila con datos', () => {
+    const plan = buildImportPlan({
+      rows: [['', '']],
+      mapping: ['telefono', 'telefono'],
+      identity: identityTrivial,
+      coerce,
+      multi: ['telefono'],
+    })
+    expect(plan.toInsert).toHaveLength(0)
+  })
+})

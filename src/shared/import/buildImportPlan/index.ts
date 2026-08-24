@@ -9,8 +9,12 @@ export function buildImportPlan<Row extends string[] = string[]>(input: {
   mapping: (string | null)[]
   identity: Identity<Row>
   coerce: (col: string, v: string) => unknown
+  // Columnas que ACUMULAN varias columnas del archivo en vez de pisarse. Vacío por default:
+  // sin esto, dos columnas mapeadas al mismo campo se pisaban y ganaba la última, en silencio.
+  multi?: readonly string[]
 }): ImportPlan {
-  const { rows, mapping, identity, coerce } = input
+  const { rows, mapping, identity, coerce, multi } = input
+  const acumulan = new Set(multi ?? [])
   const plan: ImportPlan = { toInsert: [], toUpdate: [], toMerge: [], repetidas: 0, tumbas: 0, skipped: 0 }
   // Solo se llena si `identity.colapsarRepetidas` está prendido: por default cada fila se
   // procesa por su cuenta, aunque comparta clave con otra — es el comportamiento que Research
@@ -20,10 +24,17 @@ export function buildImportPlan<Row extends string[] = string[]>(input: {
   rows.forEach((fila, i) => {
     const values: Record<string, unknown> = {}
     mapping.forEach((col, idx) => {
-      if (col) values[col] = coerce(col, (fila[idx] ?? '').trim())
+      if (!col) return
+      const v = coerce(col, (fila[idx] ?? '').trim())
+      if (!acumulan.has(col)) { values[col] = v; return }
+      const acc = (values[col] as unknown[] | undefined) ?? []
+      if (v !== null && v !== '' && !acc.includes(v)) acc.push(v)
+      values[col] = acc
     })
-    // Fila totalmente vacía (todas las celdas mapeadas dieron null): no cuenta para nada.
-    if (!Object.values(values).some((v) => v !== null)) return
+    // Una fila vacía no cuenta. Un array vacío tampoco tiene datos, aunque no sea `null`.
+    const conDatos = Object.values(values).some((v) =>
+      Array.isArray(v) ? v.length > 0 : v !== null)
+    if (!conDatos) return
 
     const clave = identity.claveOrigen(fila, i)
     if (identity.colapsarRepetidas) {
