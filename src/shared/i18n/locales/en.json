@@ -761,6 +761,7 @@
   "stratix.gantt.taskAssignee": "Task / Assignee",
   "stratix.gantt.empty": "No tasks with a due date for this view",
   "stratix.gantt.weekend": "Weekend",
+  "stratix.gantt.fueraDeRango": "{n} task(s) hidden: their due date is out of range",
   "stratix.estado.pendiente": "Pending",
   "stratix.estado.enProceso": "In progress",
   "stratix.estado.porAprobar": "To approve",

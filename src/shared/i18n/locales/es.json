@@ -761,6 +761,7 @@
   "stratix.gantt.taskAssignee": "Tarea / Responsable",
   "stratix.gantt.empty": "No hay tareas con fecha de entrega en esta vista",
   "stratix.gantt.weekend": "Fin de semana",
+  "stratix.gantt.fueraDeRango": "{n} tarea(s) no se muestran: su fecha de entrega está fuera de rango",
   "stratix.estado.pendiente": "Pendiente",
   "stratix.estado.enProceso": "En proceso",
   "stratix.estado.porAprobar": "Por aprobar",

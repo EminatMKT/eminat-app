@@ -4,26 +4,20 @@ import { ESTADO_COLORS, estadoLabel } from '@/shared/constants/domain'
 import { useT } from '@/shared/i18n'
 import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
 import { DIA_W } from '@/features/stratix-mkt/utils/gantt-layout'
+import { rangoGantt } from '@/features/stratix-mkt/utils/gantt-rango'
 import DayHeader from '../DayHeader'
 import EstadoLeyendaItem from '../EstadoLeyendaItem'
 import GanttBar from '../GanttBar'
 import s from './index.module.css'
 
 const DIA_MS = 86400000
-const MIN_DIAS = 7
 const MAX_BARRAS = 40
 
 export default function GanttChart() {
   const { t } = useT()
   const { ganttActs: actsGantt, hoy } = useStratix()
   const scroller = useRef<HTMLDivElement>(null)
-  const fechas = actsGantt.map(a => new Date(a.fecha_entrega)).sort((a, b) => a.getTime() - b.getTime())
-  const fechaMin = fechas[0] || hoy
-  const fechaMax = fechas[fechas.length - 1] || new Date(hoy.getTime() + 30 * DIA_MS)
-  // El rango sale de los datos filtrados: con el trimestre en "General" son todos los meses con
-  // entrega, y el Gantt scrollea. Antes se cortaba a 31 días desde el primero y las tareas de
-  // más adelante quedaban sin barra — invisible, porque la fila igual se dibujaba.
-  const totalDias = Math.max(Math.ceil((fechaMax.getTime() - fechaMin.getTime()) / DIA_MS) + 1, MIN_DIAS)
+  const { fechaMin, totalDias, descartadas } = rangoGantt(actsGantt.map(a => a.fecha_entrega), hoy)
   const dias = Array.from({ length: totalDias }, (_, i) => new Date(fechaMin.getTime() + i * DIA_MS))
 
   // Abre mostrando HOY y no el principio del rango: con el filtro en "General" el rango es todo
@@ -36,6 +30,9 @@ export default function GanttChart() {
 
   return (
     <div className={s.chart}>
+      {descartadas > 0 && (
+        <div className={s.aviso}>{t('stratix.gantt.fueraDeRango', { n: descartadas })}</div>
+      )}
       <div className={s.scroller} ref={scroller}>
         <div className={s.head}>
           <div className={s.headLabel}>{t('stratix.gantt.taskAssignee')}</div>

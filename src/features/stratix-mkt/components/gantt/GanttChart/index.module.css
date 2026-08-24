@@ -59,3 +59,14 @@
   gap: 16px;
   flex-wrap: wrap;
 }
+
+/* Un número que no cuadra tiene que poder explicarse solo: sin este aviso el usuario
+   ve menos barras de las que cargó y lo lee como que se perdieron tareas. */
+.aviso {
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: var(--s2);
+  color: var(--t2);
+  font-size: 13px;
+}
