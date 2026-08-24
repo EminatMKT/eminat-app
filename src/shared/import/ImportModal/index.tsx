@@ -74,9 +74,9 @@ type Props<P extends ImportPlan> = {
   // Medical de fuente+clave. Default: el texto genérico que ya tenía esta sección.
   dupLabelKey?: I18nKey
   selectFileLabelKey?: I18nKey
-  // Sección que un módulo cuelga entre "columnas descartadas" y "duplicados" — Research la usa
-  // para el preview de contadores a pisar. Recibe el plan YA resuelto (paso 5 incluido, ver
-  // comentario de `resolvedPlan` más abajo) pero ANTES de `transformPlan`.
+  // Sección que un módulo cuelga después del saneamiento, antes de duplicados por similitud —
+  // Research la usa para el preview de contadores a pisar. Recibe el plan YA resuelto (paso 5
+  // incluido, ver comentario de `resolvedPlan` más abajo) pero ANTES de `transformPlan`.
   renderExtra?: (plan: P) => ReactNode
   // Transforma el plan antes de ejecutarlo (Research saca de acá el contador de los leads
   // desmarcados en `renderExtra`). Sin esto, se ejecuta el plan ya resuelto.
@@ -386,6 +386,52 @@ export default function ImportModal<P extends ImportPlan = ImportPlan>({
             </table>
           </div>
 
+          {/* DUPLICADOS (por identidad exacta) */}
+          <div className={s.sectionTitle}>{t('import.dupSection')}</div>
+          <div className={s.fileRow}>
+            <span className={s.fileLabel}>{t(dupLabelKey ?? 'import.dupLabel')}</span>
+            <select value={dupMode} onChange={e => setDupMode(e.target.value as DupMode)} className={`${s.select} ${s.selectNarrow}`}>
+              <option value="update">{t('import.dup.update')}</option>
+              <option value="skip">{t('import.dup.skip')}</option>
+            </select>
+          </div>
+
+          {/* MAPEO */}
+          <div className={s.sectionTitle}>{t('import.mapSection')}</div>
+          {parsed.headers.map((h, i) => (
+            <MappingRow key={i} header={h} value={mapping[i] ?? null} fieldDefs={fieldDefs}
+              onChange={v => setMapping(m => m.map((c, j) => (j === i ? v : c)))} />
+          ))}
+          {colisiones.map(c => (
+            <div key={c.campo} className={s.warnText}>
+              {t('import.collisionNote', {
+                cols: c.cols.join(', '),
+                campo: t(fieldDefs.find(f => f.column === c.campo)!.labelKey),
+              })}
+            </div>
+          ))}
+
+          {/* VALORES DE DOMINIO — mismo patrón que el mapeo, pero valor→dominio */}
+          {domainGroups.length > 0 && (
+            <>
+              <div className={s.sectionTitle}>{t('import.valuesSection')}</div>
+              {domainGroups.map(g => {
+                const opts = domainOptions(g.column) ?? []
+                const labelKey = fieldDefs.find(f => f.column === g.column)!.labelKey
+                return (
+                  <div key={g.column} className={s.domainGroup}>
+                    <div className={s.domainGroupLabel}>{t(labelKey)}</div>
+                    {g.values.map(v => (
+                      <DomainValueRow key={v.raw} raw={v.raw} value={valueMap[g.column]?.[v.raw] ?? v.guess} resolved={v.resolved}
+                        options={opts} onChange={val => setValue(g.column, v.raw, val)} />
+                    ))}
+                  </div>
+                )
+              })}
+              {unresolved > 0 && <div className={s.warnTextTight}>{t('import.unresolvedNote', { n: unresolved })}</div>}
+            </>
+          )}
+
           {/* COLUMNAS DESCARTADAS */}
           {dropped.length > 0 && (
             <>
@@ -452,52 +498,6 @@ export default function ImportModal<P extends ImportPlan = ImportPlan>({
                 <MergeCandidateRow key={idx} fields={fieldDefs} entrante={m.values} candidatos={candidatosDe(m)}
                   selectedId={mergeSelections[idx]} onSelect={seleccionar(idx)} />
               ))}
-            </>
-          )}
-
-          {/* DUPLICADOS (por identidad exacta) */}
-          <div className={s.sectionTitle}>{t('import.dupSection')}</div>
-          <div className={s.fileRow}>
-            <span className={s.fileLabel}>{t(dupLabelKey ?? 'import.dupLabel')}</span>
-            <select value={dupMode} onChange={e => setDupMode(e.target.value as DupMode)} className={`${s.select} ${s.selectNarrow}`}>
-              <option value="update">{t('import.dup.update')}</option>
-              <option value="skip">{t('import.dup.skip')}</option>
-            </select>
-          </div>
-
-          {/* MAPEO */}
-          <div className={s.sectionTitle}>{t('import.mapSection')}</div>
-          {parsed.headers.map((h, i) => (
-            <MappingRow key={i} header={h} value={mapping[i] ?? null} fieldDefs={fieldDefs}
-              onChange={v => setMapping(m => m.map((c, j) => (j === i ? v : c)))} />
-          ))}
-          {colisiones.map(c => (
-            <div key={c.campo} className={s.warnText}>
-              {t('import.collisionNote', {
-                cols: c.cols.join(', '),
-                campo: t(fieldDefs.find(f => f.column === c.campo)!.labelKey),
-              })}
-            </div>
-          ))}
-
-          {/* VALORES DE DOMINIO — mismo patrón que el mapeo, pero valor→dominio */}
-          {domainGroups.length > 0 && (
-            <>
-              <div className={s.sectionTitle}>{t('import.valuesSection')}</div>
-              {domainGroups.map(g => {
-                const opts = domainOptions(g.column) ?? []
-                const labelKey = fieldDefs.find(f => f.column === g.column)!.labelKey
-                return (
-                  <div key={g.column} className={s.domainGroup}>
-                    <div className={s.domainGroupLabel}>{t(labelKey)}</div>
-                    {g.values.map(v => (
-                      <DomainValueRow key={v.raw} raw={v.raw} value={valueMap[g.column]?.[v.raw] ?? v.guess} resolved={v.resolved}
-                        options={opts} onChange={val => setValue(g.column, v.raw, val)} />
-                    ))}
-                  </div>
-                )
-              })}
-              {unresolved > 0 && <div className={s.warnTextTight}>{t('import.unresolvedNote', { n: unresolved })}</div>}
             </>
           )}
 
