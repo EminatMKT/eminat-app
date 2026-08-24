@@ -246,6 +246,21 @@ export default function ImportModal<P extends ImportPlan = ImportPlan>({
     })
     return groups
   }, [mapping, sanitizedRows, domainOptions, normalizeDomainValue])
+
+  // Dos columnas del archivo apuntando al MISMO campo no-multi: una se descarta. Un campo multi
+  // no colisiona, acumula (ver `buildImportPlan`).
+  const colisiones = useMemo(() => {
+    const multiCols = new Set(fieldDefs.filter(f => f.multi).map(f => f.column))
+    const porCampo = new Map<string, string[]>()
+    mapping.forEach((col, i) => {
+      if (!col || multiCols.has(col)) return
+      if (!porCampo.has(col)) porCampo.set(col, [])
+      porCampo.get(col)!.push(parsed.headers[i] ?? `#${i + 1}`)
+    })
+    return Array.from(porCampo.entries())
+      .filter(([, cols]) => cols.length > 1)
+      .map(([campo, cols]) => ({ campo, cols }))
+  }, [mapping, fieldDefs, parsed.headers])
   if (!open) return null
 
   const resetFileState = () => {
@@ -455,6 +470,14 @@ export default function ImportModal<P extends ImportPlan = ImportPlan>({
           {parsed.headers.map((h, i) => (
             <MappingRow key={i} header={h} value={mapping[i] ?? null} fieldDefs={fieldDefs}
               onChange={v => setMapping(m => m.map((c, j) => (j === i ? v : c)))} />
+          ))}
+          {colisiones.map(c => (
+            <div key={c.campo} className={s.warnText}>
+              {t('import.collisionNote', {
+                cols: c.cols.join(', '),
+                campo: t(fieldDefs.find(f => f.column === c.campo)!.labelKey),
+              })}
+            </div>
           ))}
 
           {/* VALORES DE DOMINIO — mismo patrón que el mapeo, pero valor→dominio */}

@@ -169,6 +169,7 @@
   "research.kpi.uniqueNct": "distinct studies (NCT#)",
   "import.ignoredSection": "Columns about to be dropped",
   "import.ignoredNote": "{n} column(s) in the file won't be imported because they match no field. Assign them below under “Column mapping” if you need them:",
+  "import.collisionNote": "{cols} map to the same field \"{campo}\". Only the last one is imported; the rest are discarded.",
   "research.import.counterSection": "Counters about to be overwritten",
   "research.import.counterWarning": "{n} lead(s) change their counter. Uncheck the ones you'd rather keep.",
   "research.import.counterFrom": "current",

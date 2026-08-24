@@ -169,6 +169,7 @@
   "research.kpi.uniqueNct": "estudios distintos (NCT#)",
   "import.ignoredSection": "Columnas que se van a descartar",
   "import.ignoredNote": "{n} columna(s) del archivo no se importan porque no coinciden con ningún campo. Asignalas abajo en «Mapeo de columnas» si las necesitás:",
+  "import.collisionNote": "{cols} apuntan al mismo campo «{campo}». Solo se importa la última: las demás se descartan.",
   "research.import.counterSection": "Contadores que se van a pisar",
   "research.import.counterWarning": "{n} lead(s) cambian de contador. Destildá los que no quieras tocar.",
   "research.import.counterFrom": "actual",
