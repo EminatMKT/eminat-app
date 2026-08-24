@@ -1,8 +1,16 @@
+/* Sticky contra el scroll de `.caja` (el shell de Modal, ver su index.module.css): con
+   preview de cientos de filas el botón Importar quedaba a decenas de clicks de scroll por
+   arriba. `.caja` es el ancestro que scrollea, así que `top: 0` alcanza sin tocar Modal —
+   el fondo opaco es necesario porque si no las filas se ven pasar por debajo del título. */
 .head {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--c-s1);
 }
 
 .titulo {
