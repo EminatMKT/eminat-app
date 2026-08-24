@@ -1,0 +1,88 @@
+.row {
+  display: flex;
+  border-bottom: 1px solid var(--c-border);
+  cursor: pointer;
+}
+
+.info {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--c-s1);
+  width: 220px;
+  flex-shrink: 0;
+  padding: 10px 14px;
+  border-right: 1px solid var(--c-border);
+}
+
+.titulo {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  font-size: 9px;
+  color: var(--c-t3);
+  margin-top: 2px;
+}
+
+.quien {
+  margin-right: 6px;
+}
+
+/* --marca: el color de la empresa, del catálogo. */
+.marca {
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 8px;
+  color: var(--marca);
+  background: color-mix(in srgb, var(--marca) 15%, transparent);
+}
+
+/* --ancho: el rango completo en píxeles. La barra se posiciona con `left` adentro de esta
+   pista, así que la pista tiene que medir lo mismo que el encabezado de días. */
+.pista {
+  position: relative;
+  height: 48px;
+  width: var(--ancho);
+  flex-shrink: 0;
+}
+
+/* --left y --width salen de la fecha de entrega y de los días de producción; --estado, del
+   estado. Nada de esto se puede saber al escribir el CSS. */
+.barra {
+  position: absolute;
+  left: var(--left);
+  width: var(--width);
+  top: 50%;
+  transform: translateY(-50%);
+  height: 22px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  color: var(--estado);
+  background: color-mix(in srgb, var(--estado) 15%, transparent);
+  border: 1.5px solid var(--estado);
+}
+
+.punto {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--estado);
+  flex-shrink: 0;
+}
+
+.estado {
+  font-size: 9px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

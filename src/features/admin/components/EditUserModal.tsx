@@ -1,0 +1,100 @@
+'use client'
+import { useState } from 'react'
+import { useApp, COLORES_AVATAR } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
+import { MODULE_META, getModulesForRole } from '@/shared/auth/permissions'
+import { apiPost } from '@/shared/utils/api'
+import type { Usuario } from '@/shared/context/loadAppData'
+import Modal from '@/shared/components/ui/Modal'
+import CargosPicker from './CargosPicker'
+import CatalogSelect from './CatalogSelect'
+import ErrorBlock from './ErrorBlock'
+
+// Estado del form de edición: columnas canónicas de `Usuario` como campos
+// requeridos (el form nunca deja undefined — se coerce a '' al abrir) vía
+// Required<Pick<...>>, más `currentEmail` (para el cambio atómico de email),
+// `tipo` y `cargoIds` (selección N:N, se persiste en usuario_cargos).
+export type EditUserDraft = Required<
+  Pick<Usuario, 'id' | 'nombre' | 'apellido' | 'email' | 'rol' | 'color' | 'ubicacion' | 'empresa_id' | 'jornada_id' | 'vinculacion_id' | 'equipo_id'>
+> & { currentEmail: string; cargoIds: string[] }
+
+export default function EditUserModal({ user, onClose }: { user: EditUserDraft; onClose: () => void }) {
+  const { setAdminUsuarios, mostrarMensaje, border, s2, t2, t3, accent, inputStyle, roles, roleModuleMap, empresas, jornadas, vinculaciones, equipos } = useApp()
+  const { t } = useT()
+  const [form, setForm] = useState<EditUserDraft>(user)
+  const [editError, setEditError] = useState<string | null>(null)
+  const [guardando, setGuardando] = useState(false)
+
+  async function guardarEdicion() {
+    setEditError(null)
+    if (!form.nombre || !form.apellido || !form.email) { setEditError(t('admin.edit.fillRequired')); return }
+    setGuardando(true)
+    try {
+      const { res, result } = await apiPost<{ error?: string; user?: Partial<Usuario> }>('/api/admin/update-user', {
+        id: form.id, currentEmail: form.currentEmail, email: form.email, nombre: form.nombre, apellido: form.apellido,
+        rol: form.rol, color: form.color, ubicacion: form.ubicacion,
+        empresa_id: form.empresa_id, jornada_id: form.jornada_id,
+        vinculacion_id: form.vinculacion_id, equipo_id: form.equipo_id,
+        cargoIds: form.cargoIds,
+      })
+      if (!res.ok) { setEditError(result.error || t('admin.edit.failed')); setGuardando(false); return }
+      setAdminUsuarios(prev => prev.map(u => u.id === form.id ? { ...u, ...result.user } : u))
+      mostrarMensaje('ok', t('admin.edit.updated'))
+      onClose()
+    } catch (err: unknown) {
+      setEditError((err instanceof Error ? err.message : '') || t('admin.edit.netErr'))
+    }
+    setGuardando(false)
+  }
+
+  return (
+    <Modal title={t('admin.edit.title')} width={480} onClose={onClose}>
+        <ErrorBlock msg={editError} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+          <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t('common.firstName')}</label><input type="text" value={form.nombre} onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))} style={inputStyle} /></div>
+          <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t('common.lastName')}</label><input type="text" value={form.apellido} onChange={e => setForm(p => ({ ...p, apellido: e.target.value }))} style={inputStyle} /></div>
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t('admin.edit.emailLabel')}</label>
+          <input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} style={inputStyle} />
+          {form.currentEmail && form.email && form.currentEmail.toLowerCase() !== form.email.toLowerCase() && (
+            <div style={{ marginTop: 6, fontSize: 10, color: '#FBB040' }}>
+              {t('admin.edit.emailChangeWarn')}
+            </div>
+          )}
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t('common.role')}</label>
+          <select value={form.rol} onChange={e => setForm(p => ({ ...p, rol: e.target.value }))} style={inputStyle}>{roles.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}</select>
+        </div>
+        {/* Preview en vivo de los módulos que otorga el rol elegido (transparencia sin
+            fricción: no hay confirmación porque "Guardar cambios" ya es el paso deliberado). */}
+        {(() => {
+          const mods = getModulesForRole(roleModuleMap, form.rol).map(m => MODULE_META[m]?.name).filter(Boolean)
+          return (
+            <div style={{ marginTop: -4, marginBottom: 14, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              {mods.length === 0
+                ? <span style={{ fontSize: 11, color: t3 }}>{t('admin.confirm.assignNoModules')}</span>
+                : <>
+                    <span style={{ fontSize: 11, color: t3 }}>{t('admin.confirm.assignModulesIntro')}</span>
+                    {mods.map(n => <span key={n} style={{ padding: '3px 9px', borderRadius: 20, fontSize: 10, background: s2, border: `1px solid ${border}`, color: t2 }}>{n}</span>)}
+                  </>}
+            </div>
+          )
+        })()}
+        <CargosPicker value={form.cargoIds} onChange={ids => setForm(p => ({ ...p, cargoIds: ids }))} />
+        <CatalogSelect labelKey="common.company" value={form.empresa_id} rows={empresas} onChange={id => setForm(p => ({ ...p, empresa_id: id }))} />
+        <CatalogSelect labelKey="common.jornada" value={form.jornada_id} rows={jornadas} onChange={id => setForm(p => ({ ...p, jornada_id: id }))} />
+        <CatalogSelect labelKey="common.vinculacion" value={form.vinculacion_id} rows={vinculaciones} onChange={id => setForm(p => ({ ...p, vinculacion_id: id }))} />
+        {/* Es la vía para reparar a quien quedó sin equipo — sin esto no era
+            asignable en Stratix y no había forma de arreglarlo desde el panel. */}
+        <CatalogSelect labelKey="common.equipo" value={form.equipo_id} rows={equipos} onChange={id => setForm(p => ({ ...p, equipo_id: id }))} />
+        <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t('common.location')}</label><input type="text" value={form.ubicacion} onChange={e => setForm(p => ({ ...p, ubicacion: e.target.value }))} style={inputStyle} /></div>
+        <div style={{ marginBottom: 20 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 8 }}>{t('common.avatarColor')}</label><div style={{ display: 'flex', gap: 8 }}>{COLORES_AVATAR.map(c => <div key={c} onClick={() => setForm(p => ({ ...p, color: c }))} style={{ width: 24, height: 24, borderRadius: '50%', background: c, cursor: 'pointer', border: form.color === c ? '3px solid white' : '2px solid transparent', boxSizing: 'border-box' }} />)}</div></div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>{t('common.cancel')}</button>
+          <button onClick={guardarEdicion} disabled={guardando} style={{ flex: 2, padding: '10px', borderRadius: 10, border: 'none', background: accent, color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{guardando ? t('common.saving') : t('common.saveChanges')}</button>
+        </div>
+    </Modal>
+  )
+}

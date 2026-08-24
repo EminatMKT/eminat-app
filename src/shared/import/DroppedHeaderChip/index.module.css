@@ -1,0 +1,11 @@
+/* Ámbar de aviso: no hay token en globals.css para el color de advertencia (--c-* solo
+   cubre la paleta neutra), así que queda el mismo literal que ya usaba DASHBOARD_THEME.warn. */
+.chip {
+  font-size: 10px;
+  font-family: 'DM Mono', monospace;
+  padding: 3px 9px;
+  border-radius: 20px;
+  border: 1px solid #FBBF2455;
+  background: #FBBF2418;
+  color: #FBBF24;
+}

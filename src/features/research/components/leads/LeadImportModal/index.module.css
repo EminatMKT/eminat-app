@@ -1,0 +1,24 @@
+/* Mismo lenguaje visual que `@/shared/import/ImportModal` — CSS Modules no comparte clases
+   entre archivos, así que estas cuatro reglas se repiten acá para la única sección propia
+   de Research (el contador). */
+.sectionTitle {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--c-accent);
+  margin: 18px 0 10px;
+}
+
+.warnText {
+  font-size: 11px;
+  color: #FBBF24;
+  margin-bottom: 8px;
+}
+
+.counterList {
+  max-height: 160px;
+  overflow-y: auto;
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+}

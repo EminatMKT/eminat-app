@@ -1,0 +1,19 @@
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+/* auto-fit en vez de un `repeat(N)` calculado en JS: la grilla se acomoda sola a cuántas
+   marcas tengan cuentas, sin que el componente tenga que contarlas. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.contenido {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}

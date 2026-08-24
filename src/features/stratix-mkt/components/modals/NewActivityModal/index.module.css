@@ -1,0 +1,73 @@
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.titulo {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--c-t1);
+}
+
+.sub {
+  font-size: 11px;
+  color: var(--c-t3);
+  margin-top: 2px;
+}
+
+.cerrar {
+  background: none;
+  border: none;
+  color: var(--c-t3);
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.dos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.tres {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.acciones {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.cancelar {
+  flex: 1;
+  padding: 11px;
+  border-radius: 10px;
+  border: 1px solid var(--c-border);
+  background: transparent;
+  color: var(--c-t2);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.crear {
+  flex: 2;
+  padding: 11px;
+  border-radius: 10px;
+  border: none;
+  background: var(--c-accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.crear:disabled {
+  background: var(--c-t3);
+  cursor: not-allowed;
+}

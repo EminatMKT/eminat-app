@@ -1,0 +1,57 @@
+.fila {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nombre {
+  width: 180px;
+  font-size: 11px;
+  color: var(--c-t2);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fila.propia .nombre {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-accent);
+}
+
+.track {
+  flex: 1;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--c-s2);
+}
+
+.fila.propia .track {
+  height: 28px;
+}
+
+/* --pct: el tamaño relativo al mayor. --relleno: el color o degradado de la barra. */
+.fill {
+  height: 100%;
+  width: var(--pct);
+  border-radius: 6px;
+  background: var(--relleno);
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 8px;
+  transition: width 0.5s;
+}
+
+/* La propia va a opacidad plena: es la referencia contra la que se comparan las demás. */
+.fila.propia .fill {
+  opacity: 1;
+}
+
+.cifra {
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+}

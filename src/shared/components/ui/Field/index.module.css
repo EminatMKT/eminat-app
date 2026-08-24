@@ -1,0 +1,49 @@
+.campo {
+  margin-bottom: 14px;
+}
+
+.label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--c-t2);
+  margin-bottom: 6px;
+}
+
+.obligatorio {
+  color: #f87171;
+}
+
+/* El control se estiliza desde acá y no desde cada formulario: así un input, un select y un
+   textarea del mismo campo se ven igual sin repetir la regla ni pasar un objeto de estilos.
+   Reemplaza al `inputStyle` que vivía en JS. */
+.campo input,
+.campo select,
+.campo textarea {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: var(--c-s1);
+  color: var(--c-t1);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+
+.campo textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.campo input:focus,
+.campo select:focus,
+.campo textarea:focus {
+  border-color: var(--c-accent);
+}
+
+/* Variante destacada: el título de la tarea, que es el campo que se escribe primero. */
+.campo.grande input {
+  font-size: 14px;
+  padding: 11px 14px;
+}

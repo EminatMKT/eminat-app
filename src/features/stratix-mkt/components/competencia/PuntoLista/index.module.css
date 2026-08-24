@@ -1,0 +1,15 @@
+.linea {
+  font-size: 10px;
+  color: var(--c-t2);
+  padding: 2px 0;
+  display: flex;
+  gap: 4px;
+}
+
+.signo {
+  color: #34d399;
+}
+
+.linea.contra .signo {
+  color: #f87171;
+}

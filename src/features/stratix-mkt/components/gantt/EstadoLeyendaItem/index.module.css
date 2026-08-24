@@ -1,0 +1,26 @@
+.item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--c-t3);
+}
+
+/* --estado: el color del estado que representa este renglón. */
+.muestra {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--estado) 19%, transparent);
+  border: 1.5px solid var(--estado);
+}
+
+/* El fin de semana no es un estado del catálogo: se pinta con su propio rojo. */
+.item.finde {
+  color: #f87171;
+}
+
+.item.finde .muestra {
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid #f87171;
+}

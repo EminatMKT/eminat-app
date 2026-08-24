@@ -1,0 +1,99 @@
+/* --marca: el color de la empresa. Arrastrando y vencida son estados, no datos. */
+.card {
+  background: var(--c-s1);
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  padding: 12px 13px;
+  cursor: grab;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  transition: all 0.15s;
+}
+
+.card.arrastrando {
+  border-color: var(--c-accent);
+  opacity: 0.4;
+}
+
+.tags {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.marca {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  color: var(--marca);
+  background: color-mix(in srgb, var(--marca) 15%, transparent);
+}
+
+.mes {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  color: var(--c-t3);
+  background: color-mix(in srgb, var(--c-t3) 13%, transparent);
+}
+
+.titulo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c-t1);
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+
+.pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.persona {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--c-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.quien {
+  font-size: 10px;
+  color: var(--c-t3);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dato {
+  font-size: 9px;
+  color: var(--c-t3);
+}
+
+/* Entrega pasada y sin completar. */
+.dato.vencida {
+  color: #f87171;
+}
+
+.link {
+  font-size: 9px;
+  color: #60a5fa;
+}

@@ -1,0 +1,61 @@
+.chart {
+  background: var(--c-s1);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.scroller {
+  overflow-x: auto;
+}
+
+.head {
+  display: flex;
+  border-bottom: 1px solid var(--c-border);
+  width: max-content;
+  min-width: 100%;
+}
+
+/* 220px es el mismo ancho que la columna de datos de GanttBar: si cambia uno, cambia el otro. */
+.headLabel {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--c-s1);
+  width: 220px;
+  flex-shrink: 0;
+  padding: 10px 14px;
+  font-size: 10px;
+  color: var(--c-t3);
+  font-family: 'DM Mono', monospace;
+  text-transform: uppercase;
+  border-right: 1px solid var(--c-border);
+}
+
+.dias {
+  display: flex;
+}
+
+/* Un solo scroll, el de afuera: arrastra el encabezado y las filas juntos, así los días siguen
+   coincidiendo con las barras. Y sin `overflow-y` acá, porque un contenedor que scrollea en
+   vertical scrollea también en horizontal, y eso rompía el `sticky` de la columna de tareas —
+   al correr los días, los nombres se iban con ellos. El alto lo acota el panel, que se recoge. */
+.filas {
+  width: max-content;
+  min-width: 100%;
+}
+
+.vacio {
+  text-align: center;
+  padding: 40px;
+  color: var(--c-t3);
+}
+
+.leyenda {
+  padding: 10px 14px;
+  border-top: 1px solid var(--c-border);
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}

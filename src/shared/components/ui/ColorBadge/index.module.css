@@ -1,0 +1,11 @@
+/* --badge: el color que ya significa algo — la marca, la plataforma, el nivel de engagement.
+   Se usa a dos intensidades: el texto pleno y el fondo teñido. */
+.badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  color: var(--badge);
+  background: color-mix(in srgb, var(--badge) 9%, transparent);
+}
