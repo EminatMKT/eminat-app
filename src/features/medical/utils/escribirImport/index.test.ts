@@ -237,7 +237,7 @@ describe('escribirImport', () => {
 
     expect(resultado).toEqual({
       lotesTotales: 1, lotesEscritos: 1, filasEscritas: 2, filasTotales: 2, rechazadas: [], error: null,
-      contactosEscritos: 0,
+      contactosEscritos: 0, choques: [],
     })
   })
 
@@ -389,5 +389,84 @@ describe('escribirImport — contactos', () => {
       { ...nueva({ nombre: '', apellido: 'Perez' }, 'k1'), contactos: [{ tipo: 'telefono', valor: '305' }] },
     ])
     expect(contactosEnviados()).toHaveLength(0)
+  })
+})
+
+describe('escribirImport — choques', () => {
+  beforeEach(() => {
+    upsertPacientesMock.mockReset()
+    upsertPacienteFuentesMock.mockReset()
+    upsertPacienteContactosMock.mockReset()
+    upsertPacientesMock.mockResolvedValue({ data: null, error: null } as never)
+    upsertPacienteFuentesMock.mockResolvedValue({ data: null, error: null } as never)
+    upsertPacienteContactosMock.mockResolvedValue({ error: null } as Awaited<ReturnType<typeof upsertPacienteContactos>>)
+  })
+
+  it('devuelve los choques agrupados por campo', async () => {
+    // Dos filas del archivo, mismo id (ya agrupadas por candidato de fusión), cada una con un
+    // DOB distinto al guardado -las dos chocan contra el mismo `acumulado` de fecha_nacimiento.
+    const resultado = await escribirImport([
+      {
+        tipo: 'existente', id: 'p1',
+        existente: { nombre: 'Ana', apellido: 'Perez', fecha_nacimiento: '1985-03-14' },
+        entrante: { nombre: 'Ana', apellido: 'Perez', fecha_nacimiento: '1985-04-14' },
+        fuente: fuente('a'),
+      },
+      {
+        tipo: 'existente', id: 'p1',
+        existente: { nombre: 'Ana', apellido: 'Perez', fecha_nacimiento: '1985-03-14' },
+        entrante: { nombre: 'Ana', apellido: 'Perez', fecha_nacimiento: '1985-05-14' },
+        fuente: fuente('b'),
+      },
+    ])
+
+    expect(resultado.choques).toEqual([{ campo: 'fecha_nacimiento', n: 2 }])
+  })
+
+  it('telefono/email distintos NO cuentan como choque', async () => {
+    const resultado = await escribirImport([{
+      tipo: 'existente', id: 'p1',
+      existente: { nombre: 'Ana', apellido: 'Perez', telefono: '305' },
+      entrante: { nombre: 'Ana', apellido: 'Perez', telefono: '786' },
+      fuente: fuente('a'),
+    }])
+
+    expect(resultado.choques).toEqual([])
+  })
+
+  it('una fila rechazada por nombre vacio no cuenta su choque', async () => {
+    const resultado = await escribirImport([{
+      tipo: 'existente', id: 'p1',
+      existente: { nombre: '', apellido: '', fecha_nacimiento: '1985-03-14' },
+      entrante: { fecha_nacimiento: '1985-04-14' },
+      fuente: fuente('a'),
+    }])
+
+    expect(resultado.rechazadas).toHaveLength(1)
+    expect(resultado.choques).toEqual([])
+  })
+
+  it('dob_origen de CADA fuente queda en SU propia fila de paciente_fuentes -no se pierde al chocar', async () => {
+    // La evidencia para reconstruir "eClinicalWorks dijo una fecha, eClinPro dijo otra" (spec
+    // §3): sin esto, `payloadFuente` seguiría fijando `dob_origen: null` a pesar del choque.
+    await escribirImport([
+      {
+        tipo: 'existente', id: 'p1',
+        existente: { nombre: 'Ana', apellido: 'Perez', fecha_nacimiento: '1985-03-14' },
+        entrante: { nombre: 'Ana', apellido: 'Perez', fecha_nacimiento: '1985-04-14' },
+        fuente: { ...fuente('a'), dob_origen: '31146' },
+      },
+      {
+        tipo: 'existente', id: 'p1',
+        existente: { nombre: 'Ana', apellido: 'Perez', fecha_nacimiento: '1985-03-14' },
+        entrante: { nombre: 'Ana', apellido: 'Perez', fecha_nacimiento: '1985-05-14' },
+        fuente: { ...fuente('b'), dob_origen: '1985-05-14' },
+      },
+    ])
+
+    const [loteFuentes] = upsertPacienteFuentesMock.mock.calls[0]
+    const porClave = new Map(loteFuentes.map((f) => [f.clave_origen, f.dob_origen]))
+    expect(porClave.get('a')).toBe('31146')
+    expect(porClave.get('b')).toBe('1985-05-14')
   })
 })

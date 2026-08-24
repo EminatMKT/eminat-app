@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useMemo } from 'react'
 import { useApp } from '@/shared/context/AppContext'
-import { useT } from '@/shared/i18n'
+import { useT, type I18nKey } from '@/shared/i18n'
 import { ImportModal, type ImportPlan, type SourceWarning } from '@/shared/import'
 import { useMedical } from '../MedicalContext'
 import {
@@ -22,6 +22,23 @@ import type { FilaEscritura } from '@/features/medical/utils/escribirImport'
 // campo gana cuando existente y entrante difieren) la hace `escribirImport`, no acá: por eso
 // el caso 'existente' de `FilaEscritura` lleva el registro REAL de la base, no el que arma
 // este archivo.
+// Etiqueta de cada campo que puede llegar a chocar (`CAMPOS_FUSIONABLES` en `escribirImport`),
+// para el resumen del paso 6. `fecha_nacimiento`/`genero` son los ÚNICOS choques reales de hoy
+// (ver el spec §4); el resto entra igual por si algún día dos fuentes contradicen un dato
+// clínico -sin clave conocida, se muestra el nombre crudo del campo en vez de romper.
+const CAMPO_LABEL_KEYS: Partial<Record<string, I18nKey>> = {
+  nombre: 'med.import.field.nombre',
+  apellido: 'med.import.field.apellido',
+  fecha_nacimiento: 'med.import.field.fechaNacimiento',
+  genero: 'med.import.field.genero',
+  seguro: 'med.insurance',
+  seguro_id: 'med.insuranceId',
+  direccion: 'med.address',
+  estado: 'med.status',
+  alergias: 'med.allergies',
+  condiciones: 'med.conditions',
+}
+
 type Props = { onClose: () => void }
 
 export default function PacientesImportModal({ onClose }: Props) {
@@ -94,6 +111,17 @@ export default function PacientesImportModal({ onClose }: Props) {
     // Nada se traga en silencio: si la escritura rechazó filas (sin nombre o apellido), se
     // avisa aparte — el resumen del paso 6 ya cubrió lo que se decidió ANTES de escribir.
     if (resultado.rechazadas.length > 0) mostrarMensaje('error', t('med.import.rejected', { n: resultado.rechazadas.length }))
+    // Y si algo chocó de verdad (fecha_nacimiento, genero — telefono/email ya no cuentan, son
+    // contactos), también: es la regla del spec, "nada se descarta sin aparecer acá".
+    if (resultado.choques.length > 0) {
+      const resumen = resultado.choques
+        .map((c) => {
+          const labelKey = CAMPO_LABEL_KEYS[c.campo]
+          return t('med.import.choques', { n: c.n, campo: labelKey ? t(labelKey) : c.campo })
+        })
+        .join(' · ')
+      mostrarMensaje('error', resumen)
+    }
     return true
   }, [pacientesById, importarPacientes, mostrarMensaje, t])
 

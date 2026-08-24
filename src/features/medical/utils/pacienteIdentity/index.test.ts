@@ -247,7 +247,8 @@ describe('fusionar', () => {
     const { paciente, choques } = fusionar(e, n)
     expect(paciente.telefono).toBe('(305) 555-0101')
     expect(paciente.email).toBe('r@x.com')
-    expect(choques).toContain('telefono')
+    // Desde la Tarea 6, telefono NO es choque -es un contacto, ver el describe de abajo-.
+    expect(choques).not.toContain('telefono')
   })
 
   it('el nombre gana si su núcleo contiene al otro', () => {
@@ -293,5 +294,21 @@ describe('fusionar', () => {
     const n = { nombre: 'Rosa', apellido: 'Ardila', telefono: '(305) 555-0101' }
     const { choques } = fusionar(e, n)
     expect(choques).not.toContain('telefono')
+  })
+
+  it('telefono y email NO generan choque: son contactos, no conflictos', () => {
+    const { choques } = fusionar(
+      { nombre: 'Ana', apellido: 'Perez', telefono: '305', email: 'a@x.test' },
+      { nombre: 'Ana', apellido: 'Perez', telefono: '786', email: 'b@x.test' },
+    )
+    expect(choques).toEqual([])
+  })
+
+  it('fecha_nacimiento SI genera choque', () => {
+    const { choques } = fusionar(
+      { nombre: 'Ana', apellido: 'Perez', fecha_nacimiento: '1985-03-14' },
+      { nombre: 'Ana', apellido: 'Perez', fecha_nacimiento: '1985-04-14' },
+    )
+    expect(choques).toEqual(['fecha_nacimiento'])
   })
 })

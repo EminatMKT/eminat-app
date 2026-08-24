@@ -614,6 +614,7 @@
   "med.import.anomaly.emptyName": "First or last name came out empty after parsing",
   "med.import.done": "{ins} new · {upd} updated",
   "med.import.rejected": "{n} row(s) rejected by the write step (missing first or last name)",
+  "med.import.choques": "{n} with {campo} in conflict — the saved value wins, the other stays in paciente_fuentes",
   "med.import.writeError": "Error writing batch {lote}: {error}",
   "common.save": "Save",
   "cob.billingDashboard": "Billing Dashboard",

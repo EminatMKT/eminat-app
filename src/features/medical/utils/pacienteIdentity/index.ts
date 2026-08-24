@@ -236,9 +236,15 @@ function telefonoCompartido(a: Contacto, b: Contacto): boolean {
   return tieneValor(a.telefono) && tieneValor(b.telefono) && a.telefono === b.telefono
 }
 
+// Un segundo teléfono o un segundo email NO son un conflicto: son otro contacto, y viven en
+// `paciente_contactos` (Tarea 5). Siguen fusionándose como campo principal -el existente sigue
+// ganando, `paciente_contactos` no cambia ese comportamiento- pero dejan de contarse como choque:
+// si no, el usuario vería 681 "conflictos" que en realidad son personas con dos números.
+const NO_SON_CHOQUE = new Set<keyof Paciente>(['telefono', 'email'])
+
 // Campo con valor gana sobre el entrante; solo se rellenan los vacíos. Si los dos tienen
 // valor y difieren, el existente sigue ganando pero el choque se anota -nada se resuelve
-// en silencio.
+// en silencio- salvo que el campo esté en `NO_SON_CHOQUE`.
 function fusionarCampoSimple<K extends keyof Paciente>(
   paciente: Partial<Paciente>,
   choques: string[],
@@ -247,7 +253,7 @@ function fusionarCampoSimple<K extends keyof Paciente>(
   valorEntrante: Paciente[K] | undefined,
 ): void {
   if (tieneValor(valorExistente)) {
-    if (tieneValor(valorEntrante) && valorExistente !== valorEntrante) {
+    if (tieneValor(valorEntrante) && valorExistente !== valorEntrante && !NO_SON_CHOQUE.has(campo)) {
       choques.push(String(campo))
     }
     paciente[campo] = valorExistente

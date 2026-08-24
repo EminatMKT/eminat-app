@@ -614,6 +614,7 @@
   "med.import.anomaly.emptyName": "Nombre o apellido quedó vacío tras el parseo",
   "med.import.done": "{ins} nuevos · {upd} actualizados",
   "med.import.rejected": "{n} fila(s) rechazadas por la escritura (sin nombre o apellido)",
+  "med.import.choques": "{n} con {campo} en conflicto — gana el valor guardado, el otro queda en paciente_fuentes",
   "med.import.writeError": "Error al escribir el lote {lote}: {error}",
   "common.save": "Guardar",
   "cob.billingDashboard": "Panel de facturación",

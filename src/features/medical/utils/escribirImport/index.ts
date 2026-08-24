@@ -38,7 +38,12 @@ function recortar(p: Partial<Paciente> | undefined): Partial<Paciente> {
   return out
 }
 
-type FuenteEscritura = Pick<PacienteFuente, 'fuente' | 'clave_origen' | 'nombre_origen' | 'ref_externa'>
+// `dob_origen` es opcional -y NO un `Pick` directo de `PacienteFuente`, donde es obligatorio-
+// porque la mayoría de los tests de este archivo (y el alta manual, que no pasa por acá) no
+// traen ninguno: pedirlo obligatorio forzaría a cada fixture a inventar un valor que no tiene.
+type FuenteEscritura = Pick<PacienteFuente, 'fuente' | 'clave_origen' | 'nombre_origen' | 'ref_externa'> & {
+  dob_origen?: string | null
+}
 
 // Unión discriminada por `tipo`, no un `existente?` suelto: con un campo opcional, un caller
 // puede armar `{ id: 'uuid-real', entrante }` sin `existente`, y esa fila pisa CON NULL el
@@ -112,9 +117,16 @@ function agruparPorId(filas: readonly FilaResuelta[]): FilaLista[] {
   return orden.map((id) => {
     const miembros = grupos.get(id)!
     let acumulado = recortar(miembros[0].existente)
-    for (const m of miembros) acumulado = fusionar(acumulado, recortar(m.entrante)).paciente
+    // Nada se descarta sin aparecer en una de las líneas de `ResultadoEscritura`: los choques
+    // que `fusionar` devuelve y antes se tiraban (`.paciente` solo) se acumulan acá.
+    const choques: string[] = []
+    for (const m of miembros) {
+      const r = fusionar(acumulado, recortar(m.entrante))
+      acumulado = r.paciente
+      choques.push(...r.choques)
+    }
     return {
-      id, paciente: acumulado,
+      id, paciente: acumulado, choques,
       miembros: miembros.map((m) => ({ fuente: m.fuente, contactos: m.contactos, origenIndice: m.origenIndice })),
     }
   })
@@ -158,10 +170,11 @@ function payloadFuente(pacienteId: string, fuente: FuenteEscritura): PacienteFue
     fuente: fuente.fuente,
     clave_origen: fuente.clave_origen,
     nombre_origen: fuente.nombre_origen ?? null,
-    // Lo que dijo esta fila del DOB, en crudo. Nadie la llena todavía -queda para la tarea que
-    // consuma el gate del DOB-, así que por ahora siempre null: no es el default silencioso de
-    // un campo que se ignora, es que este paso del plan no lo produce.
-    dob_origen: null,
+    // Lo que dijo ESTA fila del DOB, en crudo -tal como vino en el archivo, sin interpretar-.
+    // Es lo que permite reconstruir qué dijo cada sistema cuando dos fuentes se contradicen
+    // (ver `pacienteIdentity.NO_SON_CHOQUE`: fecha_nacimiento SÍ sigue siendo choque, y acá
+    // queda la evidencia para decidirlo).
+    dob_origen: fuente.dob_origen ?? null,
     ref_externa: fuente.ref_externa ?? null,
     importado_at: new Date().toISOString(),
   }
@@ -176,10 +189,25 @@ export interface FilaRechazada {
 interface FilaLista {
   id: string
   paciente: Partial<Paciente>
+  // Un choque por cada campo que `fusionar` reportó, UNA vez por cada miembro que chocó -no
+  // dedupeado-: es lo que hace que `contarChoques` pueda contar "2 filas con fecha_nacimiento
+  // en conflicto" en vez de solo "hubo un conflicto en este paciente".
+  choques: string[]
   // Casi siempre uno -salvo el colapso de `agruparPorId`, donde dos filas del archivo apuntan
   // al mismo paciente y cada una necesita su propia fila en `paciente_fuentes` (y sus propios
   // contactos, con SU fuente -no la del paciente fusionado-).
   miembros: { fuente: FuenteEscritura; contactos: ContactoEntrante[]; origenIndice: number }[]
+}
+
+// Cuenta los choques del lote entero, agrupados por campo -lo que ve el resumen del paso 6.
+// Solo mira `listas` (los grupos que SÍ se van a escribir): un grupo rechazado por nombre vacío
+// ya se reporta por `rechazadas`, y contar su choque además sería el mismo dato dos veces.
+function contarChoques(listas: readonly FilaLista[]): { campo: string; n: number }[] {
+  const conteo = new Map<string, number>()
+  for (const lista of listas) {
+    for (const campo of lista.choques) conteo.set(campo, (conteo.get(campo) ?? 0) + 1)
+  }
+  return Array.from(conteo.entries()).map(([campo, n]) => ({ campo, n }))
 }
 
 // Misma forma que espera `upsertPacienteContactos`: la fila de `paciente_contactos` sin las
@@ -260,6 +288,10 @@ export interface ResultadoEscritura {
   rechazadas: FilaRechazada[]
   // Cuenta lo que de verdad se escribió (después del dedup de lote), no lo que se mandó.
   contactosEscritos: number
+  // Lo que `fusionar` reportó como conflicto real -hoy: fecha_nacimiento y genero- agrupado por
+  // campo. Nada se descarta sin aparecer acá: es la regla del spec anterior, aplicada al caso
+  // que se le escapaba (ver "## 4" del spec de contactos multivaluados).
+  choques: { campo: string; n: number }[]
   error: { mensaje: string; paso: 'pacientes' | 'fuentes' | 'contactos'; lote: number } | null
 }
 
@@ -272,6 +304,7 @@ export interface ResultadoEscritura {
 // contacto sin paciente viola la FK.
 export async function escribirImport(filas: readonly FilaEscritura[]): Promise<ResultadoEscritura> {
   const { listas, rechazadas } = prepararFilas(filas)
+  const choques = contarChoques(listas)
   const gruposDeFilas = lotes(listas, TAMANO_LOTE)
 
   let filasEscritas = 0
@@ -288,7 +321,7 @@ export async function escribirImport(filas: readonly FilaEscritura[]): Promise<R
     if (errorPacientes) {
       return {
         lotesTotales: gruposDeFilas.length, lotesEscritos: i,
-        filasEscritas, filasTotales: filas.length, rechazadas, contactosEscritos,
+        filasEscritas, filasTotales: filas.length, rechazadas, contactosEscritos, choques,
         error: { mensaje: errorPacientes.message, paso: 'pacientes', lote: i },
       }
     }
@@ -299,7 +332,7 @@ export async function escribirImport(filas: readonly FilaEscritura[]): Promise<R
       // así que cuentan en `filasEscritas` aunque el lote no se dé por completo.
       return {
         lotesTotales: gruposDeFilas.length, lotesEscritos: i,
-        filasEscritas: filasEscritas + lotePacientes.length, filasTotales: filas.length, rechazadas, contactosEscritos,
+        filasEscritas: filasEscritas + lotePacientes.length, filasTotales: filas.length, rechazadas, contactosEscritos, choques,
         error: { mensaje: errorFuentes.message, paso: 'fuentes', lote: i },
       }
     }
@@ -310,7 +343,7 @@ export async function escribirImport(filas: readonly FilaEscritura[]): Promise<R
         // Igual que arriba: pacientes y fuentes de ESTE lote ya quedaron escritos.
         return {
           lotesTotales: gruposDeFilas.length, lotesEscritos: i,
-          filasEscritas: filasEscritas + lotePacientes.length, filasTotales: filas.length, rechazadas, contactosEscritos,
+          filasEscritas: filasEscritas + lotePacientes.length, filasTotales: filas.length, rechazadas, contactosEscritos, choques,
           error: { mensaje: errorContactos.message, paso: 'contactos', lote: i },
         }
       }
@@ -322,6 +355,6 @@ export async function escribirImport(filas: readonly FilaEscritura[]): Promise<R
 
   return {
     lotesTotales: gruposDeFilas.length, lotesEscritos: gruposDeFilas.length,
-    filasEscritas, filasTotales: filas.length, rechazadas, contactosEscritos, error: null,
+    filasEscritas, filasTotales: filas.length, rechazadas, contactosEscritos, choques, error: null,
   }
 }
