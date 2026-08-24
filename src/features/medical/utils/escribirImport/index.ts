@@ -149,6 +149,10 @@ function payloadFuente(pacienteId: string, fuente: FuenteEscritura): PacienteFue
     fuente: fuente.fuente,
     clave_origen: fuente.clave_origen,
     nombre_origen: fuente.nombre_origen ?? null,
+    // Lo que dijo esta fila del DOB, en crudo. Nadie la llena todavía -queda para la tarea que
+    // consuma el gate del DOB-, así que por ahora siempre null: no es el default silencioso de
+    // un campo que se ignora, es que este paso del plan no lo produce.
+    dob_origen: null,
     ref_externa: fuente.ref_externa ?? null,
     importado_at: new Date().toISOString(),
   }

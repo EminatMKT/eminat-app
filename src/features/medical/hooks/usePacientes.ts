@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { listPacientes, listPacienteFuentes, insertPaciente, updatePaciente } from '../data/pacientes'
+import { listPacientes, listPacienteFuentes, listPacienteContactos, insertPaciente, updatePaciente } from '../data/pacientes'
 import { escribirImport, type FilaEscritura, type ResultadoEscritura } from '../utils/escribirImport'
-import type { Paciente, PacienteFuente } from '../types'
+import type { Paciente, PacienteFuente, PacienteContacto } from '../types'
 
 export function usePacientes() {
   const [pacientes, setPacientes] = useState<Paciente[]>([])
@@ -9,13 +9,16 @@ export function usePacientes() {
   // carga entera junto con `pacientes` -mismo criterio, ver el spec de import: el matcheo tiene
   // que ver la tabla completa, no una página- aunque solo la use el modal de import.
   const [pacienteFuentes, setPacienteFuentes] = useState<PacienteFuente[]>([])
+  // Todo teléfono/email visto, con su procedencia. Misma razón que `pacienteFuentes`: se carga
+  // entera junto con el resto, no por paciente.
+  const [pacienteContactos, setPacienteContactos] = useState<PacienteContacto[]>([])
   const [loading, setLoading] = useState(true)
 
   const recargar = useCallback(async () => {
     setLoading(true)
     try {
-      const [p, f] = await Promise.all([listPacientes(), listPacienteFuentes()])
-      setPacientes(p); setPacienteFuentes(f)
+      const [p, f, c] = await Promise.all([listPacientes(), listPacienteFuentes(), listPacienteContactos()])
+      setPacientes(p); setPacienteFuentes(f); setPacienteContactos(c)
     } finally { setLoading(false) }
   }, [])
 
@@ -43,5 +46,5 @@ export function usePacientes() {
     return resultado
   }, [recargar])
 
-  return { pacientes, pacienteFuentes, loading, addPaciente, editPaciente, recargar, importarPacientes }
+  return { pacientes, pacienteFuentes, pacienteContactos, loading, addPaciente, editPaciente, recargar, importarPacientes }
 }

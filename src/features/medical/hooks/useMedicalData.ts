@@ -12,7 +12,7 @@ export function useMedicalData() {
   const { t } = useT()
 
   const [demo] = useState(() => generateDemoData())
-  const { pacientes, pacienteFuentes, addPaciente: addPacienteDb, importarPacientes } = usePacientes()
+  const { pacientes, pacienteFuentes, pacienteContactos, addPaciente: addPacienteDb, importarPacientes } = usePacientes()
   const [citas, setCitas] = useState<Cita[]>([])
   const [auditLogs, setAuditLogs] = useState<HipaaLog[]>([])
   const [incidentes, setIncidentes] = useState<HipaaIncidente[]>([])
@@ -121,7 +121,7 @@ export function useMedicalData() {
   }
 
   return {
-    pacientes, pacienteFuentes, importarPacientes, citas, auditLogs, incidentes, trainings,
+    pacientes, pacienteFuentes, pacienteContactos, importarPacientes, citas, auditLogs, incidentes, trainings,
     searchPaciente, setSearchPaciente, filterEstadoPaciente, setFilterEstadoPaciente,
     filterCitaFecha, setFilterCitaFecha, searchAudit, setSearchAudit, filterAuditNivel, setFilterAuditNivel,
     hoy, citasHoy, citasManana, pacientesActivos, incidentesAbiertos, trainingsPendientes, complianceScore,

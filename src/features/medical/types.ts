@@ -26,8 +26,19 @@ export interface PacienteFuente {
   fuente: FuentePaciente
   clave_origen: string
   nombre_origen: string | null
+  dob_origen: string | null
   ref_externa: string | null
   importado_at: string
+}
+
+export interface PacienteContacto {
+  id: string
+  paciente_id: string
+  tipo: 'telefono' | 'email'
+  valor: string
+  fuente: FuentePaciente
+  clave_origen: string | null
+  created_at: string
 }
 
 export interface Cita {

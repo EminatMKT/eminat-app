@@ -27,9 +27,9 @@ describe('fuenteDeHoja', () => {
 describe('indexPorClave', () => {
   it('filtra por fuente y preserva la tumba (paciente_id null)', () => {
     const fuentes: PacienteFuente[] = [
-      { paciente_id: 'p1', fuente: 'ecw', clave_origen: 'a', nombre_origen: null, ref_externa: null, importado_at: '' },
-      { paciente_id: null, fuente: 'ecw', clave_origen: 'b', nombre_origen: null, ref_externa: null, importado_at: '' },
-      { paciente_id: 'p2', fuente: 'eclinpro', clave_origen: 'a', nombre_origen: null, ref_externa: null, importado_at: '' },
+      { paciente_id: 'p1', fuente: 'ecw', clave_origen: 'a', nombre_origen: null, dob_origen: null, ref_externa: null, importado_at: '' },
+      { paciente_id: null, fuente: 'ecw', clave_origen: 'b', nombre_origen: null, dob_origen: null, ref_externa: null, importado_at: '' },
+      { paciente_id: 'p2', fuente: 'eclinpro', clave_origen: 'a', nombre_origen: null, dob_origen: null, ref_externa: null, importado_at: '' },
     ]
     const idx = indexPorClave('ecw', fuentes)
     expect(idx.get('a')).toBe('p1')
