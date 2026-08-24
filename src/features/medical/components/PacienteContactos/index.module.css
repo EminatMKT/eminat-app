@@ -1,0 +1,37 @@
+.card {
+  background: var(--c-s1);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  /* Ocupa el ancho completo del grid de dos columnas del detalle de paciente, igual que la
+     tabla de historial de citas que le sigue. */
+  grid-column: 1 / -1;
+}
+
+.title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--c-t1);
+  margin-bottom: 14px;
+}
+
+.empty {
+  text-align: center;
+  padding: 20px;
+  color: var(--c-t3);
+  font-size: 12px;
+}
+
+.groups {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.groupLabel {
+  font-size: 10px;
+  color: var(--c-t3);
+  margin-bottom: 4px;
+}
