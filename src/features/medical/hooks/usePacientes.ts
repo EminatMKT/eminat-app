@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { listPacientes, listPacienteFuentes, listPacienteContactos, insertPaciente, updatePaciente } from '../data/pacientes'
+import { listPacientes, listPacienteFuentes, listPacienteContactos, insertPaciente, updatePaciente, upsertPacienteContactos } from '../data/pacientes'
 import { escribirImport, type FilaEscritura, type ResultadoEscritura } from '../utils/escribirImport'
 import type { Paciente, PacienteFuente, PacienteContacto } from '../types'
 
@@ -32,11 +32,25 @@ export function usePacientes() {
   }, [])
 
   const editPaciente = useCallback(async (id: string, data: Partial<Paciente>) => {
+    // El principal pasa a ser el nuevo -acá sí, a diferencia de un import: una edición a mano es
+    // una decisión explícita de una persona-. Pero el anterior NO se pierde: queda como contacto.
+    // Sin esto, editar un teléfono lo pisa y lo borra, que es exactamente el bug que motivó todo
+    // este trabajo, reintroducido por la puerta del alta manual.
+    const previo = pacientes.find(p => p.id === id)
+    const contactos: Omit<PacienteContacto, 'id' | 'created_at'>[] = []
+    for (const tipo of ['telefono', 'email'] as const) {
+      for (const valor of [previo?.[tipo], data[tipo]]) {
+        const v = (valor ?? '').trim()
+        if (v) contactos.push({ paciente_id: id, tipo, valor: v, fuente: 'manual', clave_origen: null })
+      }
+    }
+    if (contactos.length) await upsertPacienteContactos(contactos)
+
     const { data: row, error } = await updatePaciente(id, data)
     if (error) return { error }
     setPacientes(p => p.map(x => (x.id === id ? (row as Paciente) : x)))
     return { data: row as Paciente }
-  }, [])
+  }, [pacientes])
 
   // Escritura por lotes del import: sin transacción, así que `recargar()` trae el estado real
   // de la base incluso si `escribirImport` cortó a mitad de camino por un lote que falló.

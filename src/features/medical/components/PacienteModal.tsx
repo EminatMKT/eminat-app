@@ -8,17 +8,39 @@ import { GENEROS, ESTADOS_PACIENTE, SEGUROS, generoLabel, estadoPacienteLabel } 
 import type { Genero, EstadoPaciente } from '../constants'
 import type { Paciente } from '../types'
 
-export default function PacienteModal({ onClose }: { onClose: () => void }) {
+// Mismo shape que devuelven `usePacientes().addPaciente` / `editPaciente`, ya envuelto en la
+// promesa: así la firma de `onSave`, más abajo, no repite el tipo entero.
+type GuardarPacienteResultado = Promise<{ data: Paciente } | { error: unknown }>
+
+type Props = {
+  onClose: () => void
+  // Sin `paciente`: alta manual (comportamiento de siempre). Con `paciente`: edición — y la
+  // escritura tiene que pasar por `onSave`, no por un `.update()` directo acá adentro: es
+  // `usePacientes().editPaciente` quien, antes de pisar `pacientes.telefono`/`email`, deja el
+  // valor anterior en `paciente_contactos` (fuente 'manual'). El modal no sabe de dónde sale esa
+  // función -de qué contexto, con qué wiring-, la recibe como cualquier otro dato. Ver el spec
+  // §5: sin esto, editar un teléfono a mano lo pisa y lo pierde, que es el bug que motivó
+  // `paciente_contactos`.
+  paciente?: Paciente
+  onSave?: (id: string, data: Partial<Paciente>) => GuardarPacienteResultado
+}
+
+export default function PacienteModal({ onClose, paciente, onSave }: Props) {
   const { t1, inputStyle } = useApp()
   const { t } = useT()
   const { addPaciente } = useMedical()
   const { modalOverlay, modalBox, labelStyle, btnPrimary, btnSecondary } = useMedicalStyles()
-  const [form, setForm] = useState<Partial<Paciente>>({})
+  const [form, setForm] = useState<Partial<Paciente>>(paciente ?? {})
+
+  const guardar = async () => {
+    if (paciente && onSave) { if (!('error' in await onSave(paciente.id, form))) onClose(); return }
+    if (await addPaciente(form)) onClose()
+  }
 
   return (
     <div style={modalOverlay} onClick={onClose}>
       <div style={modalBox} onClick={e => e.stopPropagation()}>
-        <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 16, color: t1, marginBottom: 20 }}>{t('med.newPatient')}</div>
+        <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 16, color: t1, marginBottom: 20 }}>{paciente ? t('common.edit') : t('med.newPatient')}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div><label style={labelStyle}>{t('common.firstName')} *</label><input value={form.nombre || ''} onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))} style={inputStyle} /></div>
           <div><label style={labelStyle}>{t('common.lastName')} *</label><input value={form.apellido || ''} onChange={e => setForm(p => ({ ...p, apellido: e.target.value }))} style={inputStyle} /></div>
@@ -54,7 +76,7 @@ export default function PacienteModal({ onClose }: { onClose: () => void }) {
         </div>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
           <button onClick={onClose} style={btnSecondary}>{t('common.cancel')}</button>
-          <button onClick={async () => { if (await addPaciente(form)) onClose() }} style={btnPrimary}>{t('med.registerPatient')}</button>
+          <button onClick={guardar} style={btnPrimary}>{paciente ? t('common.save') : t('med.registerPatient')}</button>
         </div>
       </div>
     </div>
