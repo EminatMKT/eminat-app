@@ -39,15 +39,13 @@ export default function PacientesImportModal({ onClose }: Props) {
     (rows: string[][], mapping: (string | null)[], dupMode: DupMode, valueMap: ValueMap, hoja: string | null): ImportPlan => {
       const fuente = hoja ? fuenteDeHoja(hoja) : null
       const existentes = fuente ? indexPorClave(fuente, pacienteFuentes) : new Map<string, string | null>()
-      const plan = buildPacienteImportPlan({ rows, mapping, dupMode, valueMap, fuente, existentes, pacientes: pacientesIdentificables })
-      // Paso 5: `ImportModal` compara la fila entrante contra cada candidato con `String(valor)`.
-      // `telefono`/`email` son campos `multi` (Tarea 2/4): sin resolver el principal ACÁ, una
-      // fila con dos teléfonos se vería "3055550101,7865550202" y la comparación marcaría
-      // "distinto" casi siempre -justo donde una persona decide si dos registros son el mismo.
-      // El resto de las claves de cada fila (incluidas las sintéticas de `fuenteEscrituraDe`) se
-      // conserva sin tocar: esta misma fila es la que, si no se fusiona, pasa a `toInsert` y de
-      // ahí a `onConfirm`.
-      return { ...plan, toMerge: plan.toMerge.map(m => ({ ...m, values: { ...m.values, ...pacienteEntranteDe(m.values) } })) }
+      // Paso 5: `plan.toMerge[i].values` viaja SIN tocar -array entero de telefono/email
+      // incluido- porque es el MISMO objeto que, si la fila no se fusiona, pasa a `toInsert` y
+      // de ahí a `contactosDe` (Tarea 5): resolver acá el principal le costaría el segundo
+      // teléfono a las filas que más lo necesitan (las candidatas a fusión). El paso 5 muestra
+      // el array como lista y compara por SOLAPE, no por igualdad de texto -ver
+      // `MergeCandidateRow.fmt`/`haySolape`, en `@/shared/import`-.
+      return buildPacienteImportPlan({ rows, mapping, dupMode, valueMap, fuente, existentes, pacientes: pacientesIdentificables })
     },
     [pacienteFuentes, pacientesIdentificables],
   )

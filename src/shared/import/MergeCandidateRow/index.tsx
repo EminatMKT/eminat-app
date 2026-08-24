@@ -23,9 +23,28 @@ type Props = {
   onSelect: (id: string | null) => void
 }
 
-function fmt(v: unknown): string {
+// `v` puede ser un array -un campo `multi` (ver `ImportFieldDef`) acumula varias columnas del
+// archivo, ej. dos teléfonos-. Genérico: no sabe qué es un teléfono, solo sabe mostrar una
+// lista.
+export function fmt(v: unknown): string {
+  if (Array.isArray(v)) return v.length ? v.map(x => String(x)).join(' · ') : '—'
   if (v === null || v === undefined || v === '') return '—'
   return String(v)
+}
+
+const comoLista = (v: unknown): string[] =>
+  (Array.isArray(v) ? v : [v]).map(x => String(x ?? '')).filter(Boolean)
+
+// Sin solape = distintos. Con al menos un valor en común NO hay conflicto: compartir un
+// teléfono entre dos registros es la evidencia MÁS fuerte de que son la misma persona, no
+// evidencia de que sean distintos -al revés de lo que hacía la comparación de texto anterior.
+// Si a alguno de los dos lados le falta el dato, tampoco es conflicto: "ausente" no es
+// "distinto" (mismo criterio que `pacienteIdentity.contactoDisjunto`, un nivel más abajo).
+export function haySolape(a: unknown, b: unknown): boolean {
+  const la = comoLista(a)
+  const lb = comoLista(b)
+  if (!la.length || !lb.length) return true
+  return la.some(x => lb.includes(x))
 }
 
 export default function MergeCandidateRow({ fields, entrante, candidatos, selectedId, onSelect }: Props) {
@@ -68,7 +87,7 @@ export default function MergeCandidateRow({ fields, entrante, candidatos, select
         {fields.map(f => {
           const entranteVal = fmt(entrante[f.column])
           const valores = [entranteVal, ...candidatos.map(c => fmt(c.values[f.column]))]
-          const distinta = candidatos.some(c => fmt(c.values[f.column]) !== entranteVal && fmt(c.values[f.column]) !== '—' && entranteVal !== '—')
+          const distinta = candidatos.some(c => !haySolape(c.values[f.column], entrante[f.column]))
           return <MergeFieldRow key={f.column} labelKey={f.labelKey} values={valores} diff={distinta} />
         })}
       </div>
