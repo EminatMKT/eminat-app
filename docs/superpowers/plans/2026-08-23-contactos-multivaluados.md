@@ -14,6 +14,9 @@
 
 - **Prohibido `any`** (ESLint `no-explicit-any: error`). Salida: `Pick`/`Omit`/`Partial`/`unknown` con narrowing.
 - **`tsconfig.json` tiene `"strict": false`** — sin `strictNullChecks`. **No discriminar una unión comparando contra `null`**: usar un discriminante de texto. Ya mordió antes en este proyecto.
+- **`tsconfig.json` no declara `target`**, así que `[...unMap.entries()]` **no compila** (haría falta
+  `downlevelIteration`). Usar `Array.from(unMap.entries())`. Lo descubrió la Tarea 3 ejecutando el
+  snippet literal del plan, que tenía el spread.
 - **`src/shared/` no puede importar `src/features/`.** Todo el dominio entra por props/parámetros.
 - **Imports:** nada de `../../`; `@/shared/...` o `@/features/<modulo>/...`. `src/shared/*` se importa por su barrel.
 - **Cero `style={{}}`** salvo un dato pasado como variable CSS.
