@@ -100,7 +100,9 @@ export default function NewActivityModal() {
           </select>
         </Field>
         <Field label={t('stratix.new.due')}>
-          <input type="date" value={nuevaAct.fecha_entrega}
+          {/* Sin min/max el navegador acepta un año de 3 dígitos: así entraron las seis
+              filas de 0206-03-23 que colgaban el Gantt (24/08/2026). */}
+          <input type="date" min="2020-01-01" max="2035-12-31" value={nuevaAct.fecha_entrega}
             onChange={e => setNuevaAct(p => ({ ...p, fecha_entrega: e.target.value }))} />
         </Field>
       </div>
