@@ -9,15 +9,22 @@
 
 export type Role = string
 
-export type ModuleSlug =
-  | 'stratix-mkt'
-  | 'cobranzas'
-  | 'research'
-  | 'medical'
-  | 'accounting'
-  | 'th-hr'
-  | 'directorio'
-  | 'admin'
+// Catálogo de módulos. El slug se escribe UNA vez, acá, y de este objeto derivan
+// el tipo y las listas — igual que ESTADO en Stratix y STAGE en Research. El
+// código pregunta por `MODULE.STRATIX_MKT`, nunca por el literal: un slug mal
+// escrito a mano no rompe el build, sólo deja de coincidir y la lista sale vacía.
+export const MODULE = {
+  STRATIX_MKT: 'stratix-mkt',
+  COBRANZAS: 'cobranzas',
+  RESEARCH: 'research',
+  MEDICAL: 'medical',
+  ACCOUNTING: 'accounting',
+  TH_HR: 'th-hr',
+  DIRECTORIO: 'directorio',
+  ADMIN: 'admin',
+} as const
+
+export type ModuleSlug = (typeof MODULE)[keyof typeof MODULE]
 
 export type RoleModuleMap = Record<string, ModuleSlug[]>
 export type RoleRow = { key: string; label: string; is_system: boolean }
