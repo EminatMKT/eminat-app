@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT, type I18nKey } from '@/shared/i18n'
 import { useMedical } from './MedicalContext'
@@ -6,6 +7,7 @@ import { useMedicalStyles } from '../hooks/useMedicalStyles'
 import Badge from './Badge'
 import PatientApptRow from './PatientApptRow'
 import PacienteContactos from './PacienteContactos'
+import PacienteModal from './PacienteModal'
 import { calcAge } from '../dates'
 import { ESTADO_PACIENTE_META, generoLabel, estadoPacienteLabel } from '../constants'
 import type { Paciente } from '../types'
@@ -15,13 +17,26 @@ const COLS = ['med.colDate', 'med.colTime', 'med.colType', 'med.colDoctor', 'med
 export default function PatientDetail({ paciente, onBack }: { paciente: Paciente; onBack: () => void }) {
   const { s2, t1, t2, t3, border } = useApp()
   const { t } = useT()
-  const { citas, pacienteContactos } = useMedical()
+  const { citas, pacienteContactos, editPaciente } = useMedical()
+  const [editando, setEditando] = useState(false)
   const { cardStyle, btnSecondary } = useMedicalStyles()
   const apptHistory = citas.filter(c => c.paciente_id === paciente.id)
   const contactos = pacienteContactos.filter(c => c.paciente_id === paciente.id)
   return (
     <div>
-      <button onClick={onBack} style={{ ...btnSecondary, marginBottom: 16 }}>← {t('med.backToList')}</button>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <button onClick={onBack} style={btnSecondary}>← {t('med.backToList')}</button>
+        {/* Sin este botón, `editPaciente` -que es quien guarda el teléfono anterior en
+            `paciente_contactos` antes de pisarlo- no tenía forma de ejecutarse desde la UI. */}
+        <button onClick={() => setEditando(true)} style={btnSecondary}>{t('common.edit')}</button>
+      </div>
+      {editando && (
+        <PacienteModal
+          paciente={paciente}
+          onSave={editPaciente}
+          onClose={() => setEditando(false)}
+        />
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         {/* Demographics */}
         <div style={cardStyle}>
