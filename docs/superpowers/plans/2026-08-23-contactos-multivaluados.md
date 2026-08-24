@@ -1220,6 +1220,17 @@ SELECT count(*) FROM (
 
 Esperado: **0 contactos nuevos**. El `UNIQUE` lo garantiza en la base; lo que se comprueba acá es que la aplicación no lo intente igual y aborte un lote.
 
+⚠️ **Un `--data-only` deja de servir en cuanto cambia el esquema.** Pasó en la Tarea 8: el
+predump se había tomado ANTES del `DROP COLUMN telefono_alt`, así que su
+`COPY public.pacientes (..., telefono_alt, ...)` ya no calzaba y el restore murió a mitad de
+camino, dejando la base en 0/0/0. Hubo que editar el `.sql` a mano para sacar la columna.
+
+Regla que sale de eso: **el dump que se usa para restaurar tiene que ser posterior a la última
+migración**. Los 6 dumps previos al drop quedaron renombrados a `*.OBSOLETO-esquema-viejo` para
+que nadie los agarre con un glob. El vigente es
+`supabase/rollback/predump-base-postdrop-*.sql` (287 pacientes / 284 fuentes / 0 contactos,
+`seq=308`).
+
 - [ ] **Step 4: Deshacer**
 
 ```bash
