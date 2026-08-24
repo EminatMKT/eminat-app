@@ -28,6 +28,11 @@ const PACIENTE_COLUMNS = PACIENTE_FIELD_DEFS.map(f => f.column)
 // que no matchee ningún alias simplemente se ignora, no rompe nada).
 const HEADER_ALIASES: Record<string, string> = {
   name: 'nombre_crudo',
+  // El header REAL de la hoja eClinicalWorks. `resolveToCanonical` compara por igualdad exacta,
+  // no por substring, así que 'name' NO cubre 'Patient Name': sin este alias las 285 filas de esa
+  // hoja entraban con nombre vacío y el saneamiento las marcaba TODAS. Lo destapó importar el
+  // archivo real; ningún fixture con header 'Name' lo habría visto.
+  'patient name': 'nombre_crudo',
   nombre: 'nombre_crudo',
   'first name': 'nombre',
   first: 'nombre',
@@ -45,6 +50,11 @@ const HEADER_ALIASES: Record<string, string> = {
   género: 'genero',
   email: 'email',
   'e-mail': 'email',
+  // El header REAL de la columna de teléfono de eMedicalPractice. No lo agarra `TELEFONO_RE`
+  // -no dice "phone" ni "tel"- y sin este alias las 1.266 filas de esa hoja entraban SIN
+  // teléfono. Va acá y no en la regex a propósito: la regex reconoce lo que se PARECE a un
+  // teléfono, y esto es un nombre propio de un sistema, no un parecido.
+  'contact#': 'telefono',
 }
 
 // Cualquier header que hable de teléfono. TODA columna de teléfono mapea al MISMO campo:

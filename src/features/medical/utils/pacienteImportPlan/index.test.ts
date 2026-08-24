@@ -312,7 +312,14 @@ describe('varias columnas de telefono', () => {
     // 'Name', no 'Patient Name': `resolveToCanonical` matchea por IGUALDAD exacta contra
     // `HEADER_ALIASES` (`canonical.ts`), no por substring -'Patient Name' no está en la tabla
     // de alias y da `null`. Eso es un gap de la tabla de alias en sí, no del cambio de acá.
-    expect(guessMapping(['Name', 'DOB', 'Home Phone', 'Cell Phone', 'Email']))
+    // Los headers REALES de las tres hojas. Dos bugs se escaparon por probar con headers
+    // inventados: 'Patient Name' no matcheaba (la tabla solo tenía 'name') y 'Contact#' tampoco
+    // (la regex de teléfono no lo reconoce). Los dos aparecieron recién al importar el archivo.
+    expect(guessMapping(['Chart#', 'First Name', 'Last Name', 'Gender', 'DOB', 'Contact#', 'Email']))
+      .toEqual(['chart', 'nombre', 'apellido', 'genero', 'fecha_nacimiento', 'telefono', 'email'])
+    expect(guessMapping(['Name', 'DOB', 'Phone - Cell', 'Phone - Home', 'Email']))
+      .toEqual(['nombre_crudo', 'fecha_nacimiento', 'telefono', 'telefono', 'email'])
+    expect(guessMapping(['Patient Name', 'DOB', 'Home Phone', 'Cell Phone', 'Email']))
       .toEqual(['nombre_crudo', 'fecha_nacimiento', 'telefono', 'telefono', 'email'])
   })
 
