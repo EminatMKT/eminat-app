@@ -16,7 +16,7 @@ const TAMANO_LOTE = 500
 // entre las dos filas se reportaría como choque de dato clínico, cuando en realidad es la
 // identidad que el sistema mismo le asignó al paciente existente.
 const CAMPOS_FUSIONABLES = [
-  'nombre', 'apellido', 'fecha_nacimiento', 'genero', 'telefono', 'telefono_alt',
+  'nombre', 'apellido', 'fecha_nacimiento', 'genero', 'telefono',
   'email', 'seguro', 'seguro_id', 'direccion', 'estado', 'alergias', 'condiciones', 'notas',
 ] as const
 
@@ -139,8 +139,8 @@ function vacio(v: string | undefined): boolean {
 // Todas las columnas de `pacientes` que trae el import, con `null` explícito cuando falta -
 // PostgREST exige el mismo conjunto de claves en todo el array del upsert (`PGRST102` si no).
 // La lista sale de los campos declarados arriba, nunca de `Object.keys` de la fila: el 86% de
-// eClinPro no trae email y `telefono_alt` se omite cuando es igual a `telefono`, así que
-// `Object.keys` produciría un conjunto de claves distinto por fila. `nombre`/`apellido` llegan
+// eClinPro no trae email, así que `Object.keys` produciría un conjunto de claves distinto por
+// fila. `nombre`/`apellido` llegan
 // ya validados por `prepararFilas` -acá no se vuelve a chequear, solo se arma la columna.
 function payloadPaciente(id: string, v: Partial<Paciente>): Partial<Paciente> & { id: string } {
   return {
@@ -150,7 +150,6 @@ function payloadPaciente(id: string, v: Partial<Paciente>): Partial<Paciente> & 
     fecha_nacimiento: v.fecha_nacimiento ?? null,
     genero: v.genero ?? null,
     telefono: v.telefono ?? null,
-    telefono_alt: v.telefono_alt ?? null,
     email: v.email ?? null,
     seguro: v.seguro ?? null,
     seguro_id: v.seguro_id ?? null,

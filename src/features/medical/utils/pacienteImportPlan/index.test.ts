@@ -10,9 +10,8 @@ import type { Identificable } from '../pacienteIdentity'
 import type { SanitizeIssue } from '@/shared/import'
 
 // mapping usado en casi todos los casos: una fila cruda con nombre en un solo campo (ECW /
-// eClinPro), fecha de nacimiento, género, teléfono, una columna sin mapear (donde vivía el viejo
-// `telefono_alt`: ya no existe, `telefono` acumula solo — ver `MAPPING_2TEL` más abajo para el
-// caso de dos columnas de teléfono) y email.
+// eClinPro), fecha de nacimiento, género, teléfono, una columna sin mapear (`telefono` acumula
+// solo — ver `MAPPING_2TEL` más abajo para el caso de dos columnas de teléfono) y email.
 const MAPPING = ['nombre_crudo', 'fecha_nacimiento', 'genero', 'telefono', null, 'email']
 
 describe('fuenteDeHoja', () => {

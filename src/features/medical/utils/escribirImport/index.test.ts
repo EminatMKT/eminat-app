@@ -106,7 +106,7 @@ describe('escribirImport', () => {
     const [lotePacientes] = upsertPacientesMock.mock.calls[0]
     const claves = Object.keys(lotePacientes[0]).sort()
     expect(Object.keys(lotePacientes[1]).sort()).toEqual(claves)
-    expect(lotePacientes[1]).toMatchObject({ email: null, telefono: null, telefono_alt: null })
+    expect(lotePacientes[1]).toMatchObject({ email: null, telefono: null })
   })
 
   it('acota los campos fusionables: id/mrn/created_at/updated_at de la fila existente NO se cuelan', async () => {

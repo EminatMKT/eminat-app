@@ -8,7 +8,6 @@ export interface Paciente {
   fecha_nacimiento: string | null
   genero: Genero | null
   telefono: string | null
-  telefono_alt: string | null
   email: string | null
   seguro: string | null
   seguro_id: string | null
