@@ -1,0 +1,23 @@
+.box {
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--c-s2);
+  text-align: center;
+}
+
+.red {
+  font-size: 9px;
+  color: var(--c-t3);
+  margin-bottom: 2px;
+}
+
+.valor {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-t1);
+}
+
+.extra {
+  font-size: 9px;
+  color: #34d399;
+}

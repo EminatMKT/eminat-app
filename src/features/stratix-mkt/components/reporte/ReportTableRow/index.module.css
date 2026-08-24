@@ -1,0 +1,30 @@
+.row {
+  border-bottom: 1px solid var(--c-border);
+}
+
+.td {
+  padding: 8px 12px;
+  color: var(--c-t3);
+}
+
+.titulo {
+  padding: 8px 12px;
+  color: var(--c-t1);
+}
+
+.mono {
+  font-family: 'DM Mono', monospace;
+}
+
+.plano {
+  padding: 8px 12px;
+}
+
+/* --estado: el color del estado de la actividad. */
+.chip {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  color: var(--estado);
+  background: color-mix(in srgb, var(--estado) 13%, transparent);
+}

@@ -1,0 +1,14 @@
+.linea {
+  font-size: 11px;
+  color: var(--c-t2);
+  margin-bottom: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --marca: el color de la empresa a la que se imputa la tarea. */
+.punto {
+  color: var(--marca);
+  margin-right: 5px;
+}

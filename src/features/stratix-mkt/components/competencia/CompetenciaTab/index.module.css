@@ -1,0 +1,41 @@
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.comparacion {
+  margin-bottom: 16px;
+}
+
+.barras {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fichas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+/* La tarjeta de ventajas es de Eminat: se distingue con el acento, no con otro layout. */
+.ventajas {
+  border: 2px solid var(--c-accent);
+  background: color-mix(in srgb, var(--c-accent) 2%, transparent);
+}
+
+.tituloVentajas {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--c-accent);
+  margin-bottom: 12px;
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}

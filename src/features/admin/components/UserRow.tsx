@@ -1,0 +1,122 @@
+'use client'
+import { useState } from 'react'
+import { useApp } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
+import { normalizeRole, ADMIN_ROLE, DEFAULT_ROLE, MODULE_META, getModulesForRole } from '@/shared/auth/permissions'
+import { useUserActions } from '../hooks/useUserActions'
+import { cargoNamesOf } from '../org-catalogs'
+import ConfirmModal from '@/shared/components/ui/ConfirmModal'
+import RowMenu from '@/shared/components/ui/RowMenu'
+import type { AdminUser, ResetTarget } from '../types'
+
+type Props = {
+  user: AdminUser
+  onEdit: (u: AdminUser) => void
+  onReset: (t: ResetTarget) => void
+  onDelete: (id: string) => void
+}
+
+// Resalta uno o más términos (nombre, rol…) dentro de un mensaje ya traducido,
+// sin romper el i18n: parte la frase por los términos interpolados y los envuelve
+// en <strong>.
+function boldTerms(text: string, terms: string[]) {
+  const valid = terms.filter(Boolean)
+  if (!valid.length) return text
+  const escaped = valid.map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const parts = text.split(new RegExp(`(${escaped.join('|')})`, 'g'))
+  return <>{parts.map((p, i) => {
+    if (valid.includes(p)) return <strong key={i}>{p}</strong>
+    return p
+  })}</>
+}
+
+export default function UserRow({ user: u, onEdit, onReset, onDelete }: Props) {
+  const { s2, border, t1, t2, t3, accent, roles, roleModuleMap, empresas, jornadas, vinculaciones } = useApp()
+  const { t } = useT()
+  const { cambiarRol, toggleActivo, validarUsuario } = useUserActions()
+  const isProtected = normalizeRole(u.rol) === ADMIN_ROLE
+  const roleLabel = roles.find(r => r.key === u.rol)?.label || u.rol
+  const nombre = `${u.nombre || ''} ${u.apellido || ''}`.trim()
+  const jornada = jornadas.find(j => j.id === u.jornada_id)?.nombre
+  const vinculacion = vinculaciones.find(v => v.id === u.vinculacion_id)?.nombre
+  const guion = <span style={{ color: t3 }}>—</span>
+  // Confirmación previa para acciones que hoy aplican al instante (sin deshacer fácil).
+  const [confirm, setConfirm] = useState<{ kind: 'toggle' } | { kind: 'assign'; value: string } | null>(null)
+  return (
+    <tr style={{ borderBottom: `1px solid ${border}` }}>
+      <td style={{ padding: '10px 14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: u.color || accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: 'white', flexShrink: 0 }}>{u.nombre?.[0]}{u.apellido?.[0]}</div>
+          {/* Jornada y vinculación tienen columna propia; acá queda la ubicación. */}
+          <div><div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>{u.nombre} {u.apellido}</div><div style={{ fontSize: 9, color: t3 }}>{u.ubicacion || 'Ecuador'}</div></div>
+        </div>
+      </td>
+      <td style={{ padding: '10px 14px', fontSize: 10, color: t3, fontFamily: 'DM Mono' }}>{u.email}</td>
+      <td style={{ padding: '10px 14px', fontSize: 11, color: t2 }}>{cargoNamesOf(u).join(', ') || '—'}</td>
+      {/* Chip de empresa: color y sigla salen del catálogo (empresas.color/codigo). */}
+      <td style={{ padding: '10px 14px' }}>{(() => {
+        const emp = empresas.find(e => e.id === u.empresa_id)
+        if (!emp) return <span style={{ fontSize: 10, color: t3 }}>—</span>
+        const c = emp.color || accent
+        return <span title={emp.nombre} style={{ fontSize: 9, padding: '2px 6px', borderRadius: 20, background: `${c}20`, color: c }}>{emp.codigo}</span>
+      })()}</td>
+      <td style={{ padding: '10px 14px', fontSize: 11, color: t2 }}>{jornada ?? guion}</td>
+      <td style={{ padding: '10px 14px', fontSize: 11, color: t2 }}>{vinculacion ?? guion}</td>
+      {/* Solo sin_asignar usa el select inline (asignación rápida). El resto muestra el rol
+          como badge: el cambio se hace desde el modal de editar. Admin en rojo, otros en acento. */}
+      <td style={{ padding: '10px 14px' }}>{normalizeRole(u.rol) === DEFAULT_ROLE ? <select value={u.rol} onChange={e => { if (e.target.value !== u.rol) setConfirm({ kind: 'assign', value: e.target.value }) }} style={{ padding: '3px 8px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 11, cursor: 'pointer', outline: 'none' }}>{roles.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}</select> : <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 6, background: isProtected ? 'rgba(248,113,113,.12)' : `${accent}1a`, color: isProtected ? '#F87171' : accent }}>{roleLabel}</span>}</td>
+      {/* "Sin cuenta" va PRIMERO: sin fila en auth.users la persona no entra,
+          por más que esté activa y validada. Mirando solo esos dos flags la
+          columna decía "Activo" de alguien que no podía iniciar sesión. */}
+      <td style={{ padding: '10px 14px' }}>{!u.auth_id ? <span style={{ fontSize: 11, color: '#FBB040' }}>{t('admin.statusNoAccount')}</span> : u.validado && u.activo ? <span style={{ fontSize: 11, color: '#34D399' }}>{t('admin.statusActive')}</span> : !u.validado ? <span style={{ fontSize: 11, color: '#FBB040' }}>{t('admin.statusPending')}</span> : <span style={{ fontSize: 11, color: '#F87171' }}>{t('admin.statusInactive')}</span>}</td>
+      <td style={{ padding: '10px 14px' }}>
+        {/* Las acciones viven en el menú de la fila: cinco botones por fila ocupaban
+            media tabla y dejaban sin lugar a las columnas de datos. */}
+        <RowMenu label={t('admin.rowMenu', { name: nombre })} items={[
+          { label: t('common.edit'), onClick: () => onEdit(u) },
+          { label: t('admin.resetPwd'), onClick: () => onReset({ id: u.id, nombre: u.nombre || '', email: u.email || '' }) },
+          ...(!u.validado ? [{ label: t('admin.validate'), onClick: () => validarUsuario(u.id) }] : []),
+          ...(!isProtected ? [{ label: u.activo ? t('admin.deactivate') : t('admin.activate'), onClick: () => setConfirm({ kind: 'toggle' }) }] : []),
+          ...(!isProtected ? [{ label: t('common.delete'), onClick: () => onDelete(u.id), danger: true }] : []),
+        ]} />
+        {confirm?.kind === 'assign' && (
+          <ConfirmModal
+            title={t('admin.confirm.assignTitle')}
+            message={(() => {
+              const roleLabel = roles.find(r => r.key === confirm.value)?.label || confirm.value
+              const mods = getModulesForRole(roleModuleMap, confirm.value).map(m => MODULE_META[m]?.name).filter(Boolean)
+              return (
+                <>
+                  {boldTerms(t('admin.confirm.assignMsg', { role: roleLabel, name: nombre }), [roleLabel, nombre])}
+                  <div style={{ marginTop: 10 }}>
+                    {mods.length === 0
+                      ? <span style={{ fontSize: 12, color: t3 }}>{t('admin.confirm.assignNoModules')}</span>
+                      : <>
+                          <div style={{ fontSize: 11, color: t3, marginBottom: 6 }}>{t('admin.confirm.assignModulesIntro')}</div>
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            {mods.map(n => <span key={n} style={{ padding: '3px 9px', borderRadius: 20, fontSize: 10, background: s2, border: `1px solid ${border}`, color: t2 }}>{n}</span>)}
+                          </div>
+                        </>}
+                  </div>
+                </>
+              )
+            })()}
+            confirmLabel={t('admin.confirm.assignBtn')}
+            onConfirm={async () => { await cambiarRol(u.id, confirm.value); setConfirm(null) }}
+            onClose={() => setConfirm(null)}
+          />
+        )}
+        {confirm?.kind === 'toggle' && (
+          <ConfirmModal
+            title={u.activo ? t('admin.confirm.deactivateTitle') : t('admin.confirm.activateTitle')}
+            message={boldTerms(t(u.activo ? 'admin.confirm.deactivateMsg' : 'admin.confirm.activateMsg', { name: nombre }), [nombre])}
+            confirmLabel={u.activo ? t('admin.deactivate') : t('admin.activate')}
+            destructive={!!u.activo}
+            onConfirm={async () => { await toggleActivo(u.id, !!u.activo); setConfirm(null) }}
+            onClose={() => setConfirm(null)}
+          />
+        )}
+      </td>
+    </tr>
+  )
+}

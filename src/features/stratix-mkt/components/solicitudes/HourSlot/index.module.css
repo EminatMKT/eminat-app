@@ -1,0 +1,15 @@
+.slot {
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-family: 'DM Mono', monospace;
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.08);
+  border: 1px solid rgba(52, 211, 153, 0.19);
+}
+
+.slot.ocupado {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.19);
+}

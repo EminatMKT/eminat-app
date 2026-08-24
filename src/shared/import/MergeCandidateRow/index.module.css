@@ -1,0 +1,87 @@
+.card {
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 10px;
+  background: var(--c-s1);
+  border-left-width: 4px;
+}
+
+.exacta {
+  border-left-color: var(--c-accent);
+  background: color-mix(in srgb, var(--c-accent) 6%, var(--c-s1));
+}
+
+.parcial {
+  border-left-color: #FBBF24;
+  background: color-mix(in srgb, #FBBF24 6%, var(--c-s1));
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.badgeExacta {
+  color: var(--c-accent);
+  background: color-mix(in srgb, var(--c-accent) 16%, transparent);
+}
+
+.badgeParcial {
+  color: #B45309;
+  background: color-mix(in srgb, #FBBF24 22%, transparent);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-t1);
+  cursor: pointer;
+}
+
+.toggle input {
+  accent-color: var(--c-accent);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.radios {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 110px repeat(calc(var(--cols) - 1), 1fr);
+  gap: 6px 14px;
+  align-items: baseline;
+}
+
+.colHead {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--c-t3);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--c-border);
+}

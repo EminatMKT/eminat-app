@@ -1,0 +1,89 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--c-border);
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.excluded {
+  opacity: 0.5;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 160px;
+}
+
+.rowLabel {
+  font-size: 10px;
+  color: var(--c-t3);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+.message {
+  font-size: 11px;
+  color: #FBBF24;
+}
+
+.compare {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 2;
+  min-width: 320px;
+}
+
+/* `flex-basis` en vez de solo `flex: 1`: sin un piso, tres columnas compitiendo por el mismo
+   espacio se aplastan a casi nada y `word-break` termina partiendo el texto letra por letra
+   -pasó de verdad con "PeÃ±a,Jose" reducido a una columna de una letra de ancho. */
+.raw {
+  font-size: 12px;
+  color: var(--c-t2);
+  flex: 1 1 110px;
+  min-width: 110px;
+  word-break: break-word;
+}
+
+.arrow {
+  color: var(--c-t3);
+  font-size: 12px;
+}
+
+.interpreted {
+  font-size: 12px;
+  color: var(--c-t1);
+  flex: 1 1 110px;
+  min-width: 110px;
+  word-break: break-word;
+}
+
+.input {
+  flex: 1 1 140px;
+  min-width: 140px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid #D1D5DB;
+  background: var(--c-s1);
+  color: var(--c-t1);
+  font-size: 12px;
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+}
+
+.excludeLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--c-t3);
+  white-space: nowrap;
+  cursor: pointer;
+}

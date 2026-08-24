@@ -1,0 +1,63 @@
+.row {
+  border-bottom: 1px solid var(--c-border);
+  cursor: pointer;
+}
+
+.td {
+  padding: 10px 14px;
+  font-size: 11px;
+  color: var(--c-t3);
+}
+
+.tdTitulo {
+  padding: 10px 14px;
+}
+
+.titulo {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--c-t1);
+}
+
+.desc {
+  font-size: 10px;
+  color: var(--c-t3);
+  margin-top: 2px;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mono {
+  font-family: 'DM Mono', monospace;
+}
+
+/* --marca y --estado salen del catálogo; el chip los usa a dos intensidades. */
+.chipMarca {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-weight: 600;
+  color: var(--marca);
+  background: color-mix(in srgb, var(--marca) 15%, transparent);
+}
+
+.chipEstado {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  color: var(--estado);
+  background: color-mix(in srgb, var(--estado) 13%, transparent);
+}
+
+/* Vencida: la fecha de entrega ya pasó y la tarea no está completada. */
+.td.vencida {
+  color: #f87171;
+}
+
+.link {
+  font-size: 10px;
+  color: #60a5fa;
+  text-decoration: none;
+}

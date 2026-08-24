@@ -1,0 +1,31 @@
+/* Caja de cifra: el recuadro chico con un número grande y su rótulo debajo. Lo que va DENTRO de
+   una tarjeta, no la tarjeta — para eso está shared/components/dashboard/StatCard. */
+.box {
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--c-s3);
+  text-align: center;
+}
+
+/* --color: el de la métrica; lo elige quien la muestra. */
+.valor {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color, var(--c-t1));
+}
+
+.label {
+  font-size: 10px;
+  color: var(--c-t3);
+  margin-top: 2px;
+}
+
+/* Variante grande: la usa el resumen de horas, donde la caja es el contenido principal. */
+.box.lg {
+  padding: 10px;
+}
+
+.box.lg .valor {
+  font-size: 22px;
+}

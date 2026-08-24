@@ -1,0 +1,119 @@
+.card {
+  position: relative;
+  background: var(--c-s1);
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.tendencia {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.head {
+  margin-bottom: 12px;
+}
+
+.nombre {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--c-t1);
+  margin-bottom: 2px;
+}
+
+.meta {
+  font-size: 11px;
+  color: var(--c-t3);
+}
+
+.web {
+  font-size: 10px;
+  color: var(--c-accent);
+  font-family: 'DM Mono', monospace;
+  margin-top: 2px;
+}
+
+.redes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--c-s2);
+}
+
+/* La nota de Google se lee por color: buena, aceptable, floja. */
+.nota {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f87171;
+}
+
+.nota.buena {
+  color: #34d399;
+}
+
+.nota.aceptable {
+  color: #fbb040;
+}
+
+.detalle {
+  font-size: 10px;
+  color: var(--c-t3);
+}
+
+.bloque {
+  margin-bottom: 10px;
+}
+
+.rotulo {
+  font-size: 10px;
+  color: var(--c-t3);
+  margin-bottom: 4px;
+}
+
+.servicios {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.servicio {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--c-s2);
+  color: var(--c-t2);
+}
+
+.foda {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.rotuloPro {
+  font-size: 10px;
+  font-weight: 600;
+  color: #34d399;
+  margin-bottom: 4px;
+}
+
+.rotuloContra {
+  font-size: 10px;
+  font-weight: 600;
+  color: #f87171;
+  margin-bottom: 4px;
+}

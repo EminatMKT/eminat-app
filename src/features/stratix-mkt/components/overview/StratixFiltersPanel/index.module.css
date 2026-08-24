@@ -1,0 +1,10 @@
+/* El chip de "activos: N" de la cabecera. Mismo look que el de Research: acento sobre su
+   propio fondo al 8%, para que se lea como un aviso y no como un botón. */
+.chip {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--c-accent);
+  background: color-mix(in srgb, var(--c-accent) 8%, transparent);
+  border-radius: 999px;
+  padding: 4px 10px;
+}

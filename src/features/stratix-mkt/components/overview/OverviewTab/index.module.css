@@ -1,0 +1,85 @@
+/* Solo la GRILLA del tablero. Lo que se ve adentro de cada bloque lo ponen los componentes
+   compartidos de shared/components/dashboard, que este archivo no debe conocer. */
+
+/* Sin margen propio: ahora la fila vive dentro de un Panel, que ya trae su padding. */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+/* Las gráficas van SOLAS en su fila. Compartirla con la lista de gente —que es alta y no se
+   recoge— hacía que al plegar las dos gráficas la fila conservara su altura y quedara un hueco
+   de 250px: el panel se recogía pero el espacio no lo devolvía nadie. */
+.charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+  align-items: start;
+}
+
+/* La columna fija de la derecha apila las dos cajas de personas: un nombre y un punto de estado
+   no necesitan más ancho, y lo que sí gana con espacio es la lista de actividad. */
+.activity {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 12px;
+  align-items: start;
+}
+
+.gente {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Un tablero proyectado no scrollea, pero en un monitor la lista de gente puede ser larga. */
+.people {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.ranking {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.viewAll {
+  font-size: 10px;
+  color: var(--c-accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.online {
+  font-size: 10px;
+  color: #34d399;
+  font-family: 'DM Mono', monospace;
+}
+
+/* Apilado en pantallas donde tres columnas dejarían las gráficas ilegibles. */
+@media (max-width: 1100px) {
+  .charts,
+  .activity {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Cada bloque de ancho completo lleva su propia separación: así el orden de lectura del tablero
+   se cambia moviendo el JSX, sin tocar márgenes de nadie. */
+.fila {
+  margin-bottom: 14px;
+}
+
+/* Las horas por persona en grilla y no apiladas: son una tarjeta por miembro del equipo, y en
+   columna estiraban el tablero media pantalla por cada persona nueva. En grilla entran tres o
+   cuatro por fila y el bloque deja de crecer con el equipo. */
+.horas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 12px;
+}

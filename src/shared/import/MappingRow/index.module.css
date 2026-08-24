@@ -1,0 +1,35 @@
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.header {
+  flex: 1;
+  font-size: 12px;
+  color: var(--c-t2);
+  font-family: 'DM Mono', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arrow {
+  color: var(--c-t3);
+}
+
+/* Mismo look que el resto de los selects del modal (ver ImportModal/index.module.css):
+   el border literal #D1D5DB es el que ya usaba `inputStyle`, distinto del --c-border del
+   contenedor — se mantiene para que el modal se vea idéntico al original. */
+.select {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid #D1D5DB;
+  background: var(--c-s1);
+  color: var(--c-t1);
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+}

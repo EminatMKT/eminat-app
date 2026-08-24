@@ -1,0 +1,53 @@
+.head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pos {
+  font-size: 9px;
+  color: var(--c-t3);
+  width: 12px;
+}
+
+.name {
+  font-size: 11px;
+  color: var(--c-t1);
+  font-weight: 500;
+}
+
+.figures {
+  display: flex;
+  gap: 8px;
+}
+
+.done {
+  font-size: 9px;
+  color: #34d399;
+}
+
+.hours {
+  font-size: 9px;
+  color: var(--c-t3);
+}
+
+.track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--c-border);
+  overflow: hidden;
+}
+
+/* --pct es el ÚNICO dato que no se puede saber acá: sale de las actividades de la persona. */
+.fill {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--c-accent);
+  width: var(--pct);
+}

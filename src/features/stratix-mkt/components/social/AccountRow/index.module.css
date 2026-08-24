@@ -1,0 +1,48 @@
+.row {
+  border-bottom: 1px solid var(--c-border);
+}
+
+.td {
+  padding: 10px;
+  color: var(--c-t2);
+  font-family: 'DM Mono', monospace;
+}
+
+.handle {
+  padding: 10px;
+  color: var(--c-t1);
+  font-weight: 500;
+}
+
+.destacado {
+  padding: 10px;
+  color: var(--c-t1);
+  font-weight: 700;
+  font-family: 'DM Mono', monospace;
+}
+
+.crece {
+  padding: 10px;
+  color: #34d399;
+  font-family: 'DM Mono', monospace;
+}
+
+.tenue {
+  padding: 10px;
+  color: var(--c-t3);
+  font-family: 'DM Mono', monospace;
+}
+
+.plano {
+  padding: 10px;
+}
+
+.mejor {
+  font-size: 11px;
+  color: var(--c-t2);
+}
+
+.mejorAlcance {
+  font-size: 9px;
+  color: var(--c-t3);
+}

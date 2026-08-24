@@ -1,0 +1,70 @@
+// Plan de import genérico: decide insert/update/fusión/tumba/repetida para cada fila de un
+// archivo. No sabe qué es un lead ni un paciente — lo único que varía entre módulos es la
+// identidad (`Identity`, en `../identity`) que cada uno le pasa: Research reconoce un lead por
+// su NCT#, Medical un paciente por nombre+DOB en dos niveles. Sin React, sin red.
+import type { Identity, ImportPlan } from '../identity'
+
+export function buildImportPlan<Row extends string[] = string[]>(input: {
+  rows: Row[]
+  mapping: (string | null)[]
+  identity: Identity<Row>
+  coerce: (col: string, v: string) => unknown
+  // Columnas que ACUMULAN varias columnas del archivo en vez de pisarse. Vacío por default:
+  // sin esto, dos columnas mapeadas al mismo campo se pisaban y ganaba la última, en silencio.
+  multi?: readonly string[]
+}): ImportPlan {
+  const { rows, mapping, identity, coerce, multi } = input
+  const acumulan = new Set(multi ?? [])
+  const plan: ImportPlan = { toInsert: [], toUpdate: [], toMerge: [], repetidas: 0, tumbas: 0, skipped: 0 }
+  // Solo se llena si `identity.colapsarRepetidas` está prendido: por default cada fila se
+  // procesa por su cuenta, aunque comparta clave con otra — es el comportamiento que Research
+  // ya tenía en producción (ver el flag, en `../identity`).
+  const vistas = new Set<string>()
+
+  rows.forEach((fila, i) => {
+    const values: Record<string, unknown> = {}
+    mapping.forEach((col, idx) => {
+      if (!col) return
+      const v = coerce(col, (fila[idx] ?? '').trim())
+      if (!acumulan.has(col)) { values[col] = v; return }
+      const acc = (values[col] as unknown[] | undefined) ?? []
+      if (v !== null && v !== '' && !acc.includes(v)) acc.push(v)
+      values[col] = acc
+    })
+    // Una fila vacía no cuenta. Un array vacío tampoco tiene datos, aunque no sea `null`.
+    const conDatos = Object.values(values).some((v) =>
+      Array.isArray(v) ? v.length > 0 : v !== null)
+    if (!conDatos) return
+
+    const clave = identity.claveOrigen(fila, i)
+    if (identity.colapsarRepetidas) {
+      // Dos filas con la misma clave de origen son la misma fila repetida en el archivo: la
+      // segunda no se procesa de nuevo, solo se cuenta.
+      if (vistas.has(clave)) { plan.repetidas++; return }
+      vistas.add(clave)
+    }
+
+    const id = identity.existente(clave)
+    if (id !== undefined) {
+      // `null` = tumba: la clave existe pero el destino la tiene con id null (un registro
+      // borrado a propósito). El import no la recrea.
+      if (id === null) { plan.tumbas++; return }
+      plan.toUpdate.push({ id, values })
+      return
+    }
+
+    const candidatosFila = identity.candidatos(fila, i)
+    if (candidatosFila.length > 0) {
+      plan.toMerge.push({
+        values,
+        candidatos: candidatosFila,
+        preMarcado: candidatosFila.some((c) => c.nivel === 'exacta'),
+      })
+      return
+    }
+
+    plan.toInsert.push(values)
+  })
+
+  return plan
+}

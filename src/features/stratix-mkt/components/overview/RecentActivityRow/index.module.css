@@ -1,0 +1,46 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+/* --estado es el color del estado de la actividad: lo decide el catálogo, no este archivo. */
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--estado);
+  flex-shrink: 0;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--c-t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  font-size: 9px;
+  color: var(--c-t3);
+}
+
+/* El chip usa el mismo color del estado a dos intensidades: el fondo con alfa (color-mix
+   evita tener que pasar dos variables desde el JSX) y el texto pleno. */
+.badge {
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-size: 9px;
+  white-space: nowrap;
+  color: var(--estado);
+  background: color-mix(in srgb, var(--estado) 13%, transparent);
+}

@@ -1,4 +1,16 @@
 -- =============================================================================
+-- ⛔ SUPERADO — NO CORRER TAL CUAL. Artefacto histórico, se conserva como registro.
+--
+--    La fase `responsable-ref` (migración 20260811235816_drop_responsable_ref)
+--    eliminó `actividades.responsable_ref`, `actividades.solicitado_por` y
+--    `usuarios.responsable_ref`, y recreó admin_reassign_and_delete sin p_new_ref.
+--    Este script recrea el RPC de 4 argumentos y escribe/lee `responsable_ref`
+--    (líneas ~52, ~63): sobre un esquema ya migrado FALLA con `column
+--    "responsable_ref" does not exist`.
+--
+--    Si hiciera falta revertir los roles dinámicos hoy, hay que restaurar el dump
+--    previo (ver abajo) o reescribir estos bloques contra el esquema actual.
+-- =============================================================================
 -- ROLLBACK — roles dinámicos (revierte las 3 migraciones de la rama)
 --   20260624210414_dynamic_roles
 --   20260626210000_reassign_optional_heir

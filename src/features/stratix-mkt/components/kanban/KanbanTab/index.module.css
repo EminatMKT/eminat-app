@@ -1,0 +1,48 @@
+.bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--c-t3);
+}
+
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.select {
+  width: auto;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: var(--c-s1);
+  color: var(--c-t1);
+  font-size: 13px;
+  outline: none;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  align-items: start; /* las columnas no se estiran a la más larga */
+}
+
+/* Cuatro columnas de Kanban abajo de ~1100px dejan las tarjetas ilegibles. */
+@media (max-width: 1100px) {
+  .board {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .board {
+    grid-template-columns: 1fr;
+  }
+}
