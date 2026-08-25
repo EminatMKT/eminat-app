@@ -17,9 +17,9 @@ protege, no se sabe cuándo aplica ni cuándo dejó de tener sentido.
 
 ## Una regla se puede hacer verificable desde acá mismo
 
-`.claude/hooks/rules-review.py` corre antes de cada Write/Edit y **no contiene ninguna regla**:
-las lee de estos archivos. Para que una regla se verifique sola, se le agrega un bloque dentro
-de su propia sección:
+El centinela (`rules/centinela/`, motor en Bun compartido por todos los CLIs) corre antes de cada
+Write/Edit y **no contiene ninguna regla**: las lee de estos archivos. Para que una regla se
+verifique sola, se le agrega un bloque dentro de su propia sección:
 
 ```markdown
 ## Los tipos no se aflojan para que compile
@@ -56,13 +56,29 @@ falso positivo que frena el trabajo hace más daño que la regla que protege.
 
 Una clave por línea: el separador no puede ser `|` porque los regex lo usan para alternancia.
 
-Campos: `pattern` (regex que dispara), `detector` (nombre de una función del hook, para lo que
+Campos: `pattern` (regex que dispara), `detector` (nombre de una función del centinela, para lo que
 un regex no expresa —la excepción de las variables CSS, por ejemplo—), `requires` (sólo evalúa
 si esto está), `absent` (dispara si esto NO está), `files` y `except` (sufijos y subcadenas de
 ruta).
 
-`python3 .claude/hooks/rules-review.py --self-check` corre los asserts del motor y verifica que
-toda regla con check tenga su **Motivo**; `--dump` lista los checks que encontró.
+**Todo check lleva sus `test:`**, una línea por caso, dentro del mismo bloque:
+
+```markdown
+<!-- check: block
+     pattern: :\s*any\b|\bas\s+any\b
+     files: .ts,.tsx
+     test: falla :: const x: any = 1
+     test: pasa :: const x: Company = 1
+-->
+```
+
+Formato: `test:` + `falla` o `pasa`, opcionalmente `existente` (para los checks `contact`: el
+mismo contenido en un archivo que ya existe), opcionalmente `@ruta/de/archivo.ts` cuando la regla
+filtra por ruta —; después de `::`, el contenido a evaluar. La ruta default es un `.tsx` genérico
+de features.
+
+`bun rules/centinela/main.ts --self-check` corre todos esos tests y verifica que toda regla con
+check tenga su **Motivo**. Falla en voz alta: es la herramienta con la que se editan las reglas.
 
 @arquitectura.md
 @base-de-datos.md

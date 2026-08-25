@@ -8,6 +8,10 @@ no descripciones del proyecto, así que su lugar es este directorio.
 <!-- check: block
      pattern: :\s*any\b|\bas\s+any\b|<any>
      files: .ts,.tsx
+     test: falla :: const x: any = 1
+     test: falla :: foo(bar as any)
+     test: pasa :: const x: Company = 1
+     test: falla existente :: const x: any = 1
 -->
 
 `any` está prohibido por ESLint (`no-explicit-any: error`). Cuando un tipo no cierra, la salida es
@@ -35,6 +39,8 @@ Una página monta el componente de `src/features/<modulo>/` y nada más. La lóg
      pattern: from\s+['"]framer-motion['"]
      files: .ts,.tsx
      except: /shared/motion
+     test: falla :: import { motion } from 'framer-motion'
+     test: pasa @src/shared/motion/index.tsx :: import { motion } from 'framer-motion'
 -->
 
 Nunca Framer Motion directo en un componente.
@@ -57,6 +63,8 @@ volver falsa sin tocar código.
      pattern: createClient\s*\(
      files: .ts,.tsx
      except: /shared/db/,/api/,instrumentation.ts
+     test: falla :: const db = createClient(url, key)
+     test: pasa :: import { supabase } from '@/shared/db/supabase'
 -->
 
 Se importa el cliente de `src/shared/db/supabase.ts`. No se instancia uno nuevo.
@@ -75,6 +83,8 @@ propósito (`src/shared/db/supabaseAdmin.ts`), que es otra cosa y por eso está 
 <!-- check: block
      pattern: i18n-ignore
      files: .ts,.tsx
+     test: falla :: <Text i18n-ignore>Hola</Text>
+     test: pasa :: <Text>{t('saludo')}</Text>
 -->
 
 Todo componente nuevo usa `useT()`/`t()` con sus claves en `es.json` **y** `en.json`. No se marca
@@ -104,6 +114,9 @@ renombraba, y encima no era única ni obligatoria. Sacarla costó una fase enter
      requires: export\s+(async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE)
      absent: requireAdmin|requireModule|requireAccess
      files: route.ts
+     test: falla @src/app/api/admin/x/route.ts :: export async function POST() { return 1 }
+     test: pasa @src/app/api/admin/x/route.ts :: export async function POST() { await requireAdmin() }
+     test: pasa @src/app/api/admin/x/route.ts :: const helper = 1
 -->
 
 El matcher de `middleware.ts` excluye `/api` **a propósito**: una ruta API tiene que responder 401
@@ -138,6 +151,8 @@ mantenerla.
      pattern: toISOString\(\)\s*\.\s*split\(
      files: .ts,.tsx
      except: /shared/utils/dates
+     test: falla :: d.toISOString().split('T')[0]
+     test: pasa @src/shared/utils/dates/index.ts :: d.toISOString().split('T')[0]
 -->
 
 Para una fecha `YYYY-MM-DD` se usa `localDate()` / `localMonth()` de `src/shared/utils/dates`.
@@ -199,6 +214,8 @@ no.
 <!-- check: contact
      pattern: from\s+['"]\.\./\.\./
      files: .ts,.tsx
+     test: falla :: import { theme } from '../../theme'
+     test: pasa existente :: import { theme } from '../../theme'
 -->
 
 - `./loQueSea` — mismo directorio. Bien.

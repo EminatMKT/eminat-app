@@ -57,6 +57,10 @@ nadie puede revisar.
 <!-- check: contact
      detector: style_inline
      files: .tsx
+     test: pasa :: <div style={{ '--fill': pct }} />
+     test: falla :: <div style={{ padding: 8 }} />
+     test: falla :: <div style={{ '--fill': p, padding: 8 }} />
+     test: pasa existente :: <div style={{ padding: 8 }} />
 -->
 
 Ninguna regla de diseño se escribe en el JSX. Ni colores, ni tamaños, ni espaciados, ni bordes,

@@ -43,7 +43,7 @@ archivo o falta un commit.
 —un `git mv` o un `git rm` de un paso anterior— se sube sola y en silencio, aunque el `git add`
 inmediatamente anterior haya nombrado solo dos archivos.
 
-**No hay que acordarse de mirarlo:** `.claude/hooks/rules-review.py` imprime el índice —y los
+**No hay que acordarse de mirarlo:** `rules/centinela/main.ts` imprime el índice —y los
 títulos de este archivo— justo antes de cada `git commit`.
 
 **Motivo:** el 20/08/2026 pasó **cuatro veces en el mismo día**. Un `fix(lint)` de cuatro archivos
