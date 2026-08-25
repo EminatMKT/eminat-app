@@ -16,7 +16,22 @@ export { versionDeExencion }
 // que tenía 327 líneas).
 const ALCANCE_DEFAULT = ["/src/", "/rules/centinela/"]
 
+// JavaScript no entiende el `(?i)` inline de PCRE/Python: lo toma como texto y el patrón pasa
+// a matchear cualquier cosa —28 de 28 migraciones frenaron por esto al escribirlo—. Se traduce
+// al flag, que es lo que quien escribe la regla quiso decir.
+export function compilar(patron: string): RegExp {
+  const m = patron.match(/^\(\?([imsu]+)\)/)
+  return m ? new RegExp(patron.slice(m[0].length), m[1]) : new RegExp(patron)
+}
+
+/** El "path" con el que se evalúa una línea de Bash. No es un archivo: es el canal. */
+export const CANAL_BASH = "<bash>"
+
 export function dispara(chk: Check, path: string, texto: string): boolean {
+  // Los checks de comando y los de archivo son excluyentes: cada uno mira su canal.
+  if (chk.comando) return path === CANAL_BASH && compilar(chk.comando).test(texto)
+  if (path === CANAL_BASH) return false
+
   // `paths:` amplía el alcance más allá de src/ (ej. migraciones SQL).
   if (chk.paths?.length) {
     if (!chk.paths.some((p) => path.includes(p))) return false
@@ -28,7 +43,7 @@ export function dispara(chk: Check, path: string, texto: string): boolean {
   }
   if (chk.files.length && !chk.files.some((f) => path.endsWith(f))) return false
   if (chk.except.some((x) => path.includes(x))) return false
-  if (chk.requires && !new RegExp(chk.requires).test(texto)) return false
+  if (chk.requires && !compilar(chk.requires).test(texto)) return false
   // Exención versionada: vale sólo si la marca es de la versión vigente de la regla. Una regla
   // que se endurece sube su `version:` y con eso invalida las marcas viejas, que pasan a pedir
   // revalidación en vez de seguir silenciando para siempre.
@@ -39,8 +54,8 @@ export function dispara(chk: Check, path: string, texto: string): boolean {
     if (versionDeExencion(texto, chk.exime) === (chk.version ?? 1)) return false
   }
   if (chk.detector) return Boolean(DETECTORES[chk.detector]?.(texto, path, chk.params))
-  if (chk.absent) return !new RegExp(chk.absent).test(texto)
-  return Boolean(chk.pattern && new RegExp(chk.pattern).test(texto))
+  if (chk.absent) return !compilar(chk.absent).test(texto)
+  return Boolean(chk.pattern && compilar(chk.pattern).test(texto))
 }
 
 /** → las reglas que este contenido no pasa. Vacío = pasa. */

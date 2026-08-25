@@ -18,7 +18,7 @@ export const RUTA_TEST = "src/features/x/components/Y/index.tsx" // ruta default
 
 const CHECK_RE = /<!--\s*check:\s*([\s\S]*?)\s*-->/g
 
-const CAMPOS_DEL_MOTOR = new Set(["pattern", "detector", "requires", "absent", "exime", "version", "files", "except", "paths"])
+const CAMPOS_DEL_MOTOR = new Set(["pattern", "detector", "requires", "absent", "exime", "version", "files", "except", "paths", "comando"])
 
 export function cargar(): Check[] {
   const checks: Check[] = []
@@ -51,6 +51,7 @@ export function cargar(): Check[] {
           detector: campos.detector,
           requires: campos.requires,
           absent: campos.absent,
+          comando: campos.comando,
           exime: campos.exime,
           version: campos.version ? Number(campos.version) : undefined,
           files: (campos.files ?? "").split(",").map((s) => s.trim()).filter(Boolean),

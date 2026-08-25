@@ -1,9 +1,20 @@
 # Base de datos
 
 ## `supabase db reset` está prohibido en este repo
-<!-- sin check: prohibición de un comando operativo, no patrón de contenido SQL -->
+<!-- check: block
+     comando: supabase\s+db\s+reset
+     version: 1
+     test: falla @<bash> :: pnpm supabase db reset
+     test: falla @<bash> :: npx supabase db reset --linked
+     test: pasa @<bash> :: pnpm supabase migration up
+     test: pasa @<bash> :: git commit -m "reset del formulario"
+-->
 
 Para aplicar migraciones en local se usa `pnpm supabase migration up`. Nunca `db reset`.
+
+⚠️ Esta regla estuvo marcada `sin check: prohibición de un comando operativo` hasta el
+25/08/2026, y era falso: el centinela intercepta Bash desde antes. La exención dejaba sin
+protección justo a la regla que evita un borrado sin vuelta.
 
 **Motivo:** `supabase/config.toml` apunta `sql_paths` a un `seed.sql` que **no existe**. Un reset
 borra las actividades de la base local y no hay seed que las devuelva. No es un reset, es un
@@ -36,7 +47,22 @@ migración también dropeaba `usuarios.responsable_ref`: sin esa tabla no había
 reconstruir el mapeo ref → persona, que era exactamente lo que permitía rehacer el backfill.
 
 ## Los datos de prueba se cargan por el frontend, no por seed
-<!-- sin check: política de flujo de carga de datos, invisible en la migración misma -->
+<!-- check: block
+     pattern: (?i)INSERT\s+INTO\s+"?(public"?\.)?"?(actividades|usuarios|pacientes|research_leads|notificaciones|solicitudes|paciente_contactos|paciente_fuentes)"?\b
+     paths: supabase/migrations/
+     files: .sql
+     version: 1
+     test: falla @supabase/migrations/20260825000000_x.sql :: INSERT INTO public.actividades (titulo) VALUES ('prueba');
+     test: falla @supabase/migrations/20260825000000_x.sql :: insert into "public"."usuarios" (email) values ('a@b.c');
+     test: pasa @supabase/migrations/20260825000000_x.sql :: INSERT INTO public.roles (key, label) VALUES ('admin', 'Admin');
+     test: pasa @supabase/migrations/20260825000000_x.sql :: INSERT INTO public.empresas (codigo) VALUES ('EMC');
+-->
+
+El check no mira si hay `INSERT`, mira **en qué tabla**: un catálogo —roles, empresas, cargos,
+jornadas— se siembra por migración y está bien, porque es estructura y no dato de trabajo. Lo
+que no puede entrar por SQL son las tablas donde la gente trabaja: actividades, usuarios,
+pacientes, leads. La lista vive en el `pattern` de la regla, no en el motor.
+
 
 Para poblar la base —usuarios, actividades, catálogos— se usa la UI de la app. El seed SQL es la
 **última** opción, no la primera.

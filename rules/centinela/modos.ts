@@ -1,6 +1,6 @@
 // Los protocolos de cada CLI: cómo entra el trabajo y cómo se responde. El despacho entre
 // modos vive en main.ts; acá está qué hace cada uno.
-import { revisar } from "./evaluar.ts"
+import { revisar, CANAL_BASH } from "./evaluar.ts"
 import { contexto } from "./contexto.ts"
 import { checklist } from "./mensajes.ts"
 import { sugerencia } from "./sugerencias.ts"
@@ -16,7 +16,15 @@ export async function modoHook(): Promise<number> {
   const path = String(ti.file_path ?? "").replace(/\\/g, "/")
 
   if (tool === "Bash") {
-    const ctx = contexto(String(ti.command ?? ""))
+    const cmd = String(ti.command ?? "")
+    // Hay reglas que protegen de algo que nunca llega a escribirse en un archivo: `db reset`
+    // borra la base local y no hay seed que la devuelva. Se frenan acá o no se frenan.
+    const prohibidos = revisar(CANAL_BASH, cmd, false)
+    if (prohibidos.length) {
+      console.error(checklist("el comando", prohibidos))
+      return 2
+    }
+    const ctx = contexto(cmd)
     if (ctx)
       console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", additionalContext: ctx } }))
     return 0

@@ -37,6 +37,9 @@ export type Check = {
   detector?: string
   requires?: string
   absent?: string
+  /** regex de un COMANDO prohibido. El check se evalúa contra la línea de Bash, no contra un
+   *  archivo: hay reglas —`db reset`— que protegen de algo que nunca llega a escribirse. */
+  comando?: string
   /** clave con la que un archivo puede eximirse de este check */
   exime?: string
   /** versión de la regla: una marca de exención más vieja que esto deja de valer */

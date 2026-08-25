@@ -64,7 +64,8 @@ Campos: `pattern` (regex que dispara), `detector` (nombre de una función del ce
 un regex no expresa —la excepción de las variables CSS, por ejemplo—), `requires` (sólo evalúa
 si esto está), `absent` (dispara si esto NO está), `files` y `except` (sufijos y subcadenas de
 ruta) y `paths` (subcadenas de ruta que amplían el alcance más allá de `src/`, ej. las migraciones
-en `supabase/migrations/`).
+en `supabase/migrations/`). Aparte está `comando`: en vez de mirar un archivo, mira la **línea de
+Bash** antes de ejecutarla — para prohibiciones que nunca llegan a escribirse (`supabase db reset`).
 
 **Todo check lleva sus `test:`**, una línea por caso, dentro del mismo bloque:
 

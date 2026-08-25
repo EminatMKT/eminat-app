@@ -46,6 +46,23 @@ export const RulesReview = async ({ directory }: { directory: string }) => {
       if (tool === "bash") {
         const cmd = args?.command
         if (!cmd) return
+        // Mismo canal que CANAL_BASH del motor: los checks `comando:` se evalúan contra la
+        // línea de Bash, no contra un archivo. Sin esto, opencode ejecutaría lo que Claude
+        // frena (`supabase db reset`).
+        const prohibido = run(["check", "<bash>"], String(cmd))
+        let fallanBash: { regla: string; motivo?: string }[] = []
+        try {
+          fallanBash = JSON.parse(prohibido.stdout.toString() || "{}").fallan ?? []
+        } catch {}
+        if (fallanBash.length) {
+          const lista = fallanBash
+            .map((f) => (f.motivo ? `  ✗ ${f.regla}\n    ${f.motivo}\n` : `  ✗ ${f.regla}`))
+            .join("\n")
+          throw new Error(
+            `CHECKLIST DE REGLAS — el comando no pasa ${fallanBash.length}:\n${lista}\n` +
+              "Corregí el comando. El texto completo de cada regla está en rules/.",
+          )
+        }
         const proc = run(["contexto", String(cmd)])
         const ctx = proc.stdout.toString().trim()
         if (ctx) console.log(`[rules-review] ${ctx}`)
