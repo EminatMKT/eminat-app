@@ -1,10 +1,12 @@
 // Deriva la data de equipo desde `usuarios` reales.
+import { normalizeRole, getModulesForRole, MODULE, type RoleModuleMap } from '@/shared/auth/permissions'
 
 type U = {
   id?: string | null
   nombre?: string | null
   apellido?: string | null
   activo?: boolean | null
+  rol?: string | null
   equipos?: { departamentos?: { codigo?: string | null } | null } | null
 }
 
@@ -21,12 +23,20 @@ export function deriveMiembrosPorId(usuarios: U[]): Record<string, string> {
   return map
 }
 
-// Equipo de marketing asignable: activos del departamento Marketing. Antes exigía
-// además `responsable_ref`, y ese filtro dejaba fuera a las tres personas que nunca
-// tuvieron ref — no eran asignables por un artefacto del esquema, no por una regla.
-export function deriveMiembrosAsignables(usuarios: U[]): { id: string; nombre: string }[] {
+// Asignables a una tarea de Stratix: activos que tienen el módulo. El permiso se
+// pregunta, no se deduce del organigrama (ver codigo.md).
+//
+// Antes filtraba por `equipos.departamentos.codigo === 'MKT'`, y ese filtro dejaba
+// el select de responsable vacío o incompleto para todo activo sin `equipo_id` —
+// que es el estado por defecto de cualquier alta del panel admin— o cuyo equipo
+// cuelga de otro departamento. No fallaba: simplemente no ofrecía a la persona.
+export function deriveMiembrosAsignables(
+  usuarios: U[],
+  roleModuleMap: RoleModuleMap,
+): { id: string; nombre: string }[] {
   return usuarios
-    .filter((u) => u.activo && u.id && esMarketing(u))
+    .filter((u) => u.activo && u.id)
+    .filter((u) => getModulesForRole(roleModuleMap, normalizeRole(u.rol)).includes(MODULE.STRATIX_MKT))
     .map((u) => ({ id: u.id as string, nombre: nombreCompleto(u) }))
 }
 
