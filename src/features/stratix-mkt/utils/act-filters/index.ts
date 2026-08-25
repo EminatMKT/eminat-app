@@ -6,7 +6,7 @@
 // muestran: el estado tiene su canónico en español (`ESTADO.PENDIENTE === 'Pendiente'`) y el
 // responsable es un uuid. Las dependencias entran por parámetro y no por contexto para que el
 // módulo siga siendo puro y testeable sin montar nada.
-import { MESES, TRIMESTRES, COLUMNAS_KANBAN, mesATrimestre, estadoLabel } from '@/shared/constants/domain'
+import { MESES, TRIMESTRES, TRIMESTRE_GENERAL, COLUMNAS_KANBAN, mesATrimestre, estadoLabel } from '@/shared/constants/domain'
 import { distinctValues, type FilterDef } from '@/shared/utils/filters'
 import type { I18nKey } from '@/shared/i18n'
 import type { Actividad } from '@/features/stratix-mkt/types'
@@ -22,7 +22,7 @@ type Deps = {
 export const trimestreDe = (a: Actividad): string => a.trimestre || mesATrimestre[a.mes ?? ''] || ''
 
 // 'General' es la ausencia de filtro, y eso ya lo representa el placeholder vacío del select.
-const QUARTERS = TRIMESTRES.filter(q => q !== 'General')
+const QUARTERS = TRIMESTRES.filter(q => q !== TRIMESTRE_GENERAL)
 
 export function actividadFilters({ t, nombrePorId }: Deps): FilterDef<Actividad>[] {
   return [

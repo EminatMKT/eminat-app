@@ -1,0 +1,20 @@
+.chip {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-family: inherit;
+  border: 1px solid var(--c-border);
+  background: transparent;
+  color: var(--c-t2);
+  cursor: pointer;
+}
+
+.activo {
+  border-color: var(--c-accent);
+  background: var(--c-accent);
+  color: white;
+}
+
+.cuenta {
+  opacity: .6;
+}

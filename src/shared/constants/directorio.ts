@@ -1,3 +1,4 @@
+import { SIN_FILTRO } from '@/shared/constants/domain'
 // Datos del directorio de personas y cargos. Hoy hardcodeados (seed);
 // candidatos a migrar a la DB (ver TODO). AppContext los re-exporta.
 
@@ -51,4 +52,4 @@ export const DIRECTORIO_DATA = [
   { nombre: 'Sara Hidalgo', cargo: 'Psychiatry', email: 'shidalgo@vivinegretefoundation.org', ubicacion: 'USA', credenciales: 'ARNP', departamento: 'VNF', empresa: 'Vivi Negrete Foundation', color: '#FB923C' },
 ]
 
-export const DEPS_DIR = ['Todos', 'Leadership', 'Directors', 'Finance', 'Business Dev', 'Research', 'Marketing', 'Digital & AI', 'VNF']
+export const DEPS_DIR = [SIN_FILTRO, 'Leadership', 'Directors', 'Finance', 'Business Dev', 'Research', 'Marketing', 'Digital & AI', 'VNF']
