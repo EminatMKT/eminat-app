@@ -1,4 +1,4 @@
-// centinela-exime: archivo-extenso@1 — 63 líneas y ya salieron los tipos (tipos.ts) y el
+// centinela-exime: archivo-extenso@2 — 63 líneas y ya salieron los tipos (tipos.ts) y el
 // parseo de markdown (parser-md.ts). Lo que queda es UNA función, `cargar()`: partirla más
 // dejaría mitades que sólo se usan entre sí.
 // Lectura de las reglas: carga de los checks con sus tests desde rules/*.md.

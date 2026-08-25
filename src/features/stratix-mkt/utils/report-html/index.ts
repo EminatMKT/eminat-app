@@ -15,7 +15,7 @@ type Datos = {
   hoy: Date
 }
 
-// centinela-exime: archivo-extenso@1 — es UNA plantilla HTML. Partirla dejaría el <head> en
+// centinela-exime: archivo-extenso@2 — es UNA plantilla HTML. Partirla dejaría el <head> en
 // un archivo y el <body> en otro: se lee peor, no mejor. Las partes que sí eran lógica
 // (escapado, colores del estado) ya salen de funciones compartidas.
 // La hoja imprimible del reporte de un miembro. Es una PLANTILLA, no lógica de pantalla: vive

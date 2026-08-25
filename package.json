@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit && tsc -p rules/centinela --noEmit",
     "e2e": "playwright test",
-    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true"
+    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
+    "rules:check": "bun rules/centinela/main.ts --self-check"
   },
   "dependencies": {
     "@lottiefiles/react-lottie-player": "^3.5.3",

@@ -4,6 +4,7 @@
 
 import { cargar } from "./reglas.ts"
 import { revisar } from "./evaluar.ts"
+import { reglasCambiadasSinVersionar } from "./versionado.ts"
 
 export function selfCheck(): number {
   const checks = cargar()
@@ -27,6 +28,14 @@ export function selfCheck(): number {
         )
     }
   }
+  const sinVersionar = reglasCambiadasSinVersionar()
+  if (sinVersionar.length)
+    throw new Error(
+      `${sinVersionar.length} regla(s) cambiaron sin subir su version:\n  ` +
+        sinVersionar.join("\n  ") +
+        "\nSubí la version: de cada una. Las marcas de exención firmadas contra la versión vieja tienen que revisarse.",
+    )
+
   if (checks.some((c) => c.regla.includes("README")))
     throw new Error("el ejemplo del README se carga como check: falta ignorar los bloques ```")
   console.log(`self-check OK — ${checks.length} checks y ${nTests} tests leídos de rules/`)

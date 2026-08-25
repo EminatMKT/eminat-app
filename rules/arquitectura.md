@@ -29,6 +29,7 @@ encadena los dos módulos y el próximo que lo reuse hereda leads que no le impo
 <!-- check: block
      paths: src/shared/components/dashboard/
      pattern: from\s+['"](@/features|\.\./\.\./)
+     version: 1
      test: falla @src/shared/components/dashboard/StatCard/index.tsx :: import { STAGE } from '@/features/research'
      test: pasa @src/shared/components/dashboard/StatCard/index.tsx :: import { fmtMonto } from '@/shared/utils'
 -->
@@ -76,6 +77,7 @@ tablero de Research tardó tres meses en llegar a `src/shared/`, y para entonces
      pattern: (?<!Array)\.from\(
      files: .ts,.tsx
      except: /shared/data/,/api/,test
+     version: 1
      test: falla :: const { data } = await supabase.from('leads').select('*')
      test: pasa existente :: const { data } = await supabase.from('leads').select('*')
      test: pasa @src/shared/data/research.ts :: await supabase.from('leads').select('*')

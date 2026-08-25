@@ -15,6 +15,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # `pnpm typecheck`, no `tsc` pelado: son DOS proyectos. El centinela corre con Bun y tiene
       # su propio tsconfig (rules/centinela); con `tsc --noEmit` a secas quedaba fuera del gate.
+      # El centinela se valida a sí mismo: corre los tests que las reglas declaran y verifica
+      # que ninguna haya cambiado sin subir su version. Estaba fuera del gate y por eso un
+      # detector roto podía pasar sin que nadie se enterara.
+      - uses: oven-sh/setup-bun@v2
+      - run: pnpm rules:check
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build

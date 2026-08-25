@@ -9,6 +9,7 @@ opción, y la validación rechaza el vacío.
      requires: <select
      absent: value=""
      files: .tsx
+     version: 1
      test: falla :: <select>{opciones.map(o => <option>{o}</option>)}</select>
      test: pasa existente :: <select>{opciones.map(o => <option>{o}</option>)}</select>
      test: pasa :: <select><option value="">— Select —</option>{opciones.map(o => <option>{o}</option>)}</select>

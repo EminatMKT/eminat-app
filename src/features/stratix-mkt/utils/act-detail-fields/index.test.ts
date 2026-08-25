@@ -1,4 +1,4 @@
-// centinela-exime: archivo-extenso@1 — son casos de prueba, no lógica: cada `it` es un
+// centinela-exime: archivo-extenso@2 — son casos de prueba, no lógica: cada `it` es un
 // escenario y partirlos en archivos esconde qué está cubierto y qué no.
 import { describe, it, expect } from 'vitest'
 import { camposDeActividad, rastroDeActividad, fechaLarga } from './index'

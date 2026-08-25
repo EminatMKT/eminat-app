@@ -8,6 +8,7 @@ no descripciones del proyecto, así que su lugar es este directorio.
 <!-- check: block
      pattern: :\s*any\b|\bas\s+any\b|<any>
      files: .ts,.tsx
+     version: 1
      test: falla :: const x: any = 1
      test: falla :: foo(bar as any)
      test: pasa :: const x: Company = 1
@@ -17,6 +18,7 @@ no descripciones del proyecto, así que su lugar es este directorio.
 <!-- check: contact
      pattern: as\s+unknown\s+as
      files: .ts,.tsx
+     version: 1
      test: falla :: const x = dato as unknown as Company
      test: pasa :: const x = dato as Company
 -->
@@ -48,6 +50,7 @@ Una página monta el componente de `src/features/<modulo>/` y nada más. La lóg
      pattern: from\s+['"]framer-motion['"]
      files: .ts,.tsx
      except: /shared/motion
+     version: 1
      test: falla :: import { motion } from 'framer-motion'
      test: pasa @src/shared/motion/index.tsx :: import { motion } from 'framer-motion'
 -->
@@ -73,6 +76,7 @@ volver falsa sin tocar código.
      pattern: createClient\s*\(
      files: .ts,.tsx
      except: /shared/db/,/api/,instrumentation.ts
+     version: 1
      test: falla :: const db = createClient(url, key)
      test: pasa :: import { supabase } from '@/shared/db/supabase'
 -->
@@ -94,6 +98,7 @@ propósito (`src/shared/db/supabaseAdmin.ts`), que es otra cosa y por eso está 
      pattern: supabaseAdmin|SUPABASE_SERVICE_ROLE_KEY
      files: .ts,.tsx
      except: /api/,/shared/db/,instrumentation.ts
+     version: 1
      test: falla @src/features/x/hooks/useExport.ts :: import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
      test: pasa @src/app/api/admin/x/route.ts :: import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 -->
@@ -111,6 +116,7 @@ Y el guard faltante no falla: funciona de más, y lo nota primero alguien de afu
 <!-- check: block
      pattern: i18n-ignore
      files: .ts,.tsx
+     version: 1
      test: falla :: <Text i18n-ignore>Hola</Text>
      test: pasa :: <Text>{t('saludo')}</Text>
 -->
@@ -143,6 +149,7 @@ renombraba, y encima no era única ni obligatoria. Sacarla costó una fase enter
      requires: export\s+(async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE)
      absent: requireAdmin|requireModule|requireAccess
      files: route.ts
+     version: 1
      test: falla @src/app/api/admin/x/route.ts :: export async function POST() { return 1 }
      test: pasa @src/app/api/admin/x/route.ts :: export async function POST() { await requireAdmin() }
      test: pasa @src/app/api/admin/x/route.ts :: const helper = 1
@@ -181,6 +188,7 @@ mantenerla.
      pattern: toISOString\(\)\s*\.\s*split\(
      files: .ts,.tsx
      except: /shared/utils/dates
+     version: 1
      test: falla :: d.toISOString().split('T')[0]
      test: pasa @src/shared/utils/dates/index.ts :: d.toISOString().split('T')[0]
 -->
@@ -198,6 +206,7 @@ las 20:00 es de los que nadie reproduce en una demo.
 <!-- check: block
      detector: texto_sin_traducir
      files: .ts,.tsx
+     version: 1
      test: pasa :: mostrarMensaje('ok', t('stratix.edit.saved'))
      test: pasa :: <div>{t('stratix.new.title')}</div>
      test: pasa :: <span className={s.x}>{nombre}</span>
@@ -269,6 +278,7 @@ no.
 <!-- check: contact
      pattern: from\s+['"]\.\./\.\./
      files: .ts,.tsx
+     version: 1
      test: falla :: import { theme } from '../../theme'
      test: pasa existente :: import { theme } from '../../theme'
 -->
@@ -339,6 +349,7 @@ módulos hasta que el bundler los sacude. Con `export { x } from './y'` (nombrad
 <!-- check: contact
      pattern: from\s+['"]@/shared/(utils|hooks|data|db)/[a-z]
      files: .ts,.tsx
+     version: 1
      test: falla :: import { parseDelimited } from '@/shared/utils/delimited'
      test: pasa :: import { parseDelimited, localDate } from '@/shared/utils'
 -->
@@ -349,6 +360,7 @@ módulos hasta que el bundler los sacude. Con `export { x } from './y'` (nombrad
      detector: tres_tipos_o_mas
      files: .ts,.tsx
      except: types.ts,/types/,.d.ts,/constants/
+     version: 1
      test: falla :: type A = { x: string }; type B = { y: string }; interface C { z: string }
      test: falla :: type A = { x: 1 }; enum B { UNO }; const C = { x: 1 } as const
      test: falla :: const A = { x: 1 } as const; const B = ['a'] as const; const C = { y: 2 } as const
@@ -394,6 +406,7 @@ dos líneas en un refactor que nadie pidió.
      detector: centinela_sin_filtro
      files: .ts,.tsx
      except: /constants/
+     version: 1
      test: falla :: const [f, setF] = useState('All')
      test: falla :: if (filtro !== 'Todos') return false
      test: falla :: const [t, setT] = useState<'all' | 'DATA'>('all')
@@ -421,6 +434,7 @@ comparado **y** el texto que se pintaba en el chip, así que en inglés el chip 
 <!-- check: block
      detector: objeto_literal_en_return
      files: .ts,.tsx
+     version: 1
      test: pasa :: return { ok: true }
      test: pasa :: return { data, error, cargando }
      test: pasa :: const resultado = { a, b, c, d, e }; return resultado
@@ -459,7 +473,7 @@ campos en un literal: hoy no hay forma de ver ese contrato sin leer el final del
      detector: archivo_extenso
      blando: 50
      exime: archivo-extenso
-     version: 1
+     version: 2
      files: .ts,.tsx
      test: pasa :: const x = 1
 -->
@@ -469,6 +483,7 @@ campos en un literal: hoy no hay forma de ver ese contrato sin leer el final del
      duro: 150
      files: .ts,.tsx
      except: .test.
+     version: 1
      test: pasa @src/features/x/utils/y/index.test.ts :: describe('x', () => {})
      test: pasa :: const x = 1
 -->
@@ -543,6 +558,7 @@ peor que la deuda anotada.
      detector: index_que_define
      agrupadores: hooks,utils,components,constants,context,data,modals,ui
      files: .ts,.tsx
+     version: 1
      test: pasa @src/features/x/hooks/index.ts :: export { useTablero } from './useTablero'
      test: falla @src/features/x/hooks/index.ts :: export const TABS = ['a']; const helper = () => 1
      test: pasa @src/features/x/hooks/useTablero/index.ts :: export function useTablero() { const x = 1; return x }

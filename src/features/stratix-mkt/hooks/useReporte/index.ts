@@ -6,7 +6,7 @@ import { esActividadDeMiembro, totalesProduccion } from '@/features/stratix-mkt/
 import { reportHtml } from '@/features/stratix-mkt/utils/report-html'
 import type { ReporteCriterios } from '@/features/stratix-mkt/types'
 
-// centinela-exime: archivo-extenso@1 — son 56 líneas y la mitad son el armado de los datos
+// centinela-exime: archivo-extenso@2 — son 56 líneas y la mitad son el armado de los datos
 // que la plantilla necesita; sacarlo a otro archivo dejaría dos mitades que sólo se usan
 // entre sí.
 // El reporte de producción de un miembro y su hoja imprimible. `idsTeam` viene del tablero:

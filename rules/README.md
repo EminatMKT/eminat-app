@@ -31,6 +31,7 @@ verifique sola, se le agrega un bloque dentro de su propia sección:
      pattern: :\s*any\b|\bas\s+any\b
      files: .ts,.tsx
      except: /shared/utils/dates
+     version: 1
 -->
 
 `any` está prohibido por ESLint…
@@ -71,6 +72,7 @@ en `supabase/migrations/`).
 <!-- check: block
      pattern: :\s*any\b|\bas\s+any\b
      files: .ts,.tsx
+     version: 1
      test: falla :: const x: any = 1
      test: pasa :: const x: Company = 1
 -->

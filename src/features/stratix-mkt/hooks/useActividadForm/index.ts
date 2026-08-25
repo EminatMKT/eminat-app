@@ -16,7 +16,7 @@ const formVacio = (solicitanteId: string): FormActividad => ({
   abierto: false, guardando: false, editando: null, valores: emptyNuevaAct(solicitanteId),
 })
 
-// centinela-exime: archivo-extenso@1 — alta, edición y borrado comparten el MISMO payload y
+// centinela-exime: archivo-extenso@2 — alta, edición y borrado comparten el MISMO payload y
 // el mismo estado de formulario; separarlas duplicaría la construcción del payload, que es
 // justo lo que hace que crear y editar no se desincronicen.
 // El alta, la edición y el borrado de una tarea, más la ficha que los dispara. El formulario es

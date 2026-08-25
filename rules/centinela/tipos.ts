@@ -16,6 +16,8 @@ export type PayloadHook = {
 export type Falla = {
   regla: string
   motivo: string
+  /** `clave@version` a estampar si corresponde firmarla. Ausente = la regla no admite exención. */
+  firma?: string
 }
 
 // --- El parser de reglas: la forma de un check y la de sus tests declarados ---

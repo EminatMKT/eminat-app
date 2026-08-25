@@ -1,10 +1,11 @@
-// centinela-exime: archivo-extenso@1 — 62 líneas para dos funciones que son una sola idea:
+// centinela-exime: archivo-extenso@2 — 62 líneas para dos funciones que son una sola idea:
 // `dispara` decide por un check y `revisar` recorre todos. La exención versionada ya salió
 // a exencion.ts; separar estas dos sería partir una condición de su bucle.
 // Evaluación: dado un check cargado y un contenido, ¿dispara la regla?
 
 import { existsSync } from "node:fs"
 import { cargar, type Check } from "./reglas.ts"
+import type { Falla } from "./tipos.ts"
 import { DETECTORES } from "./detectores.ts"
 import { versionDeExencion } from "./exencion.ts"
 
@@ -48,10 +49,17 @@ export function revisar(path: string, texto: string, esNuevo?: boolean, checks?:
   if (esNuevo === undefined) {
     try { esNuevo = !existsSync(path) } catch { esNuevo = false }
   }
-  const fallan: { regla: string; motivo: string }[] = []
+  const fallan: Falla[] = []
   for (const chk of lista) {
     try {
-      if (dispara(chk, path, texto) && (esNuevo || !chk.soloNuevos)) fallan.push({ regla: chk.regla, motivo: chk.motivo })
+      if (dispara(chk, path, texto) && (esNuevo || !chk.soloNuevos))
+        fallan.push({
+          regla: chk.regla,
+          motivo: chk.motivo,
+          // La versión VIGENTE, no la que alguien recuerde: una marca contra la versión vieja
+          // no exime, y buscarla a mano en el .md es donde se equivoca todo el mundo.
+          firma: chk.exime ? `${chk.exime}@${chk.version ?? 1}` : undefined,
+        })
     } catch (e) {
       // Un check roto NO se ignora: se reporta como falla. Antes esto era `continue`, y el
       // resultado era que un detector con un bug —una constante borrada, un regex inválido— se

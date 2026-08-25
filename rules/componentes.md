@@ -63,6 +63,7 @@ nadie puede revisar.
 <!-- check: contact
      detector: style_inline
      files: .tsx
+     version: 1
      test: pasa :: <div style={{ '--fill': pct }} />
      test: falla :: <div style={{ padding: 8 }} />
      test: falla :: <div style={{ '--fill': p, padding: 8 }} />
@@ -122,6 +123,7 @@ todas las copias porque nunca hubo una lista de dónde están.
 <!-- check: block
      pattern: (font-size|padding|margin|gap|border-radius|width|height|top|right|bottom|left|inset)[a-z-]*:\s*[^;]*\b\d+px
      files: .css
+     version: 1
      test: falla @src/features/x/components/Y/index.module.css :: .x { font-size: 12px; }
      test: falla @src/features/x/components/Y/index.module.css :: .x { gap: 10px; }
      test: falla @src/features/x/components/Y/index.module.css :: .x { border-radius: 10px; }
@@ -162,6 +164,7 @@ cambio arregla el tablero proyectado, que es donde este repo mira sus números.
      pattern: #[0-9a-fA-F]{6}\b
      files: .tsx
      except: /shared/constants/
+     version: 1
      test: falla :: <Bar dataKey="h" fill="#7C6FF7" />
      test: falla :: const estilo = { background: '#1a2b3c' }
      test: pasa :: <Bar dataKey="h" fill={meta.color} />
@@ -212,6 +215,7 @@ todos los demás cambios también tocan. Además es la única forma de que la fi
 <!-- check: block
      pattern: =\{\s*(async\s+)?(\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>\s*\{
      files: .tsx
+     version: 1
      test: falla :: onConfirm={async () => { await crear(); setAbierto(false) }}
      test: falla :: onChange={e => { setFecha(e.target.value); guardar() }}
      test: falla existente :: onClick={async () => { const r = await borrar(); if (r) cerrar() }}
@@ -252,6 +256,7 @@ así que deja de mezclarse con los cambios de markup en el mismo renglón.
 <!-- check: block
      detector: dos_componentes_en_archivo
      files: .tsx
+     version: 1
      test: falla :: function Uno() { return <p /> } function Dos() { return <p /> }
      test: falla :: export default function Uno() { return <p /> } const Dos = () => <p />
      test: pasa :: export default function Uno() { return <p /> }
@@ -273,6 +278,7 @@ trabajos distintos chocan en el mismo diff.
 <!-- check: block
      detector: tabla_en_componente
      files: .tsx
+     version: 1
      test: falla :: const filas = [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 4 }, { a: 5 }, { a: 6 }]
      test: pasa :: const filas = [{ a: 1 }, { a: 2 }, { a: 3 }]
      test: pasa :: const filas = camposDeActividad(act, { t, locale })
@@ -309,6 +315,7 @@ se encontró que la ficha decía "Verificada: Sí" para toda tarea.
 <!-- check: block
      detector: jsx_en_prop
      files: .tsx
+     version: 1
      test: pasa :: header={<ActivityDetailHeader act={a} onCerrar={cerrar} />}
      test: pasa :: icon={<Check />}
      test: pasa :: label={<><b>{n}</b> pendientes</>}
@@ -494,6 +501,7 @@ posibilidad de olvidar un campo.
 <!-- check: block
      detector: estado_accedido_por_camino
      files: .ts,.tsx
+     version: 1
      test: falla :: const [form, setForm] = useState(v); if (form.titulo) return form.empresa
      test: pasa :: const [form, setForm] = useState(v); const { titulo, empresa } = form; if (titulo) return empresa
      test: pasa :: const [actividades, setActividades] = useState([]); return actividades.length

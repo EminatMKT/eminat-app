@@ -13,6 +13,7 @@ o haría falta un detector nuevo del centinela), la sección sale con su marcado
      paths: rules/
      files: .md
      except: README.md
+     version: 1
      test: falla @rules/x.md :: ## Regla sin check
      test: pasa @rules/x.md :: texto suelto antes del primer encabezado
      test: pasa @rules/x.md :: ## Regla exenta <!-- sin check: criterio humano -->
@@ -29,6 +30,7 @@ un silencio que nadie distingue de un olvido.
      detector: marca_sin_inventario
      files: .ts,.tsx
      except: rules/centinela/detectores/,rules/EXENCIONES.md
+     version: 1
      test: pasa :: const x = 1
      test: falla :: // centinela-exime: archivo-extenso@1 — razón buena pero el archivo no está en la tabla
      test: pasa @src/features/stratix-mkt/utils/report-html/index.ts :: // centinela-exime: archivo-extenso@1 — es UNA plantilla HTML
@@ -39,6 +41,7 @@ un silencio que nadie distingue de un olvido.
      detector: marca_mal_formada
      files: .ts,.tsx,.md
      except: rules/centinela/
+     version: 1
      test: pasa :: // centinela-exime: useState@1 — la ficha y el formulario son dos cosas
      test: pasa :: // centinela-exime: archivo-extenso@2 - es una plantilla HTML
      test: pasa :: const x = 1
@@ -131,6 +134,24 @@ centinela reporta `(CHECK ROTO)` y frena; no lo saltea. Un `catch { continue }` 
 detector con un bug en un detector que "no dispara nunca", que es la peor forma de fallar que
 puede tener un guardia: silenciosa y del lado que parece bueno.
 
+**Y un verificador que no corre en el gate es un verificador apagado.** Vale para los tres:
+las reglas (`pnpm rules:check`), los tipos (`pnpm typecheck`) y los tests (`pnpm test`) van en
+`.githooks/pre-push` **y** en `.github/workflows/ci.yml`. El hook local se saltea con
+`--no-verify`; el gate duro es CI.
+
+<!-- check: block
+     detector: gate_incompleto
+     verificadores: rules:check,typecheck,test
+     paths: .github/,.githooks/
+     files: .yml,pre-push
+     version: 1
+     test: falla @.githooks/pre-push :: echo 'reglas + typecheck + tests'; pnpm typecheck && pnpm test
+     test: pasa @.githooks/pre-push :: pnpm rules:check && pnpm typecheck && pnpm test
+     test: falla @.github/workflows/ci.yml :: - run: pnpm typecheck
+     test: pasa @.github/workflows/ci.yml :: run pnpm rules:check; run pnpm typecheck; run pnpm test
+     test: pasa @src/features/x/y.ts :: pnpm typecheck
+-->
+
 **Motivo:** el 25/08/2026 se editó `detectores.ts` con un reemplazo por índices que borró dos
 funciones y una constante. El `tsc` del proyecto no lo vio —el centinela corre con Bun, fuera del
 `tsconfig` de la app— y el self-check **tampoco**, porque `revisar()` envolvía cada check en un
@@ -217,6 +238,7 @@ reconstruirlo leyendo commits.
 <!-- check: block
      detector: componente_fuera_de_carpeta
      files: .tsx
+     version: 1
      test: falla @src/features/directorio/components/DepartmentChip.tsx :: export default function DepartmentChip() { return <p /> }
      test: pasa @src/features/directorio/components/DepartmentChip/index.tsx :: export default function DepartmentChip() { return <p /> }
      test: pasa @src/app/(app)/page.tsx :: export default function Page() { return <p /> }
@@ -246,6 +268,7 @@ alto. Por eso ahora lo pregunta el hook y no la memoria.
 <!-- check: contact
      pattern: (//|\{/\*|/\*)\s*(TODO|FIXME)
      files: .ts,.tsx
+     version: 1
      test: falla :: // TODO: mover esto a shared cuando madure
      test: falla :: { /* FIXME revisar el caso del borde */ }
      test: pasa :: const todoList = [] // la palabra suelta no es un comentario pendiente

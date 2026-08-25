@@ -7,7 +7,7 @@ import { applyFilters, type FilterValues } from '@/shared/utils'
 import { actividadFilters } from '@/features/stratix-mkt/utils/act-filters'
 import { isExcludedFromStratix360 } from '@/features/stratix-mkt/team'
 
-// centinela-exime: archivo-extenso@1 — son 20 derivaciones del MISMO conjunto filtrado
+// centinela-exime: archivo-extenso@2 — son 20 derivaciones del MISMO conjunto filtrado
 // (`actsFiltradas`): partirlas obligaría a recalcular el filtro en cada pedazo o a pasarlo
 // de mano en mano, que es más frágil que tenerlas juntas. La responsabilidad es una sola.
 // Los filtros del tablero y todo lo que se deriva de ellos: KPIs, gráficas y el conjunto

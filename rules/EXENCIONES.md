@@ -21,13 +21,13 @@ nueva. Es a propósito — una excusa sin fecha de vencimiento es deuda invisibl
 
 | archivo | regla | desde | por qué, en corto |
 |---|---|---|---|
-| `src/features/stratix-mkt/hooks/useTablero/index.ts` | `archivo-extenso@1` | 2026-08-25 | 20 derivaciones del mismo conjunto filtrado |
-| `src/features/stratix-mkt/hooks/useActividadForm/index.ts` | `archivo-extenso@1` | 2026-08-25 | alta, edición y borrado comparten el payload |
+| `src/features/stratix-mkt/hooks/useTablero/index.ts` | `archivo-extenso@2` | 2026-08-25 | 20 derivaciones del mismo conjunto filtrado |
+| `src/features/stratix-mkt/hooks/useActividadForm/index.ts` | `archivo-extenso@2` | 2026-08-25 | alta, edición y borrado comparten el payload |
 | `src/features/stratix-mkt/hooks/useActividadForm/index.ts` | `useState@1` | 2026-08-25 | la ficha y el formulario son dos cosas |
-| `src/features/stratix-mkt/hooks/useReporte/index.ts` | `archivo-extenso@1` | 2026-08-25 | la otra mitad sólo se usa desde acá |
+| `src/features/stratix-mkt/hooks/useReporte/index.ts` | `archivo-extenso@2` | 2026-08-25 | la otra mitad sólo se usa desde acá |
 | `src/features/stratix-mkt/hooks/useKanban/index.ts` | `useState@1` | 2026-08-25 | el mes y el gesto de arrastre no se tocan |
 | `src/features/stratix-mkt/hooks/useSolicitudes/index.ts` | `useState@1` | 2026-08-25 | la pestaña elige vista, los criterios filtran |
-| `src/features/stratix-mkt/utils/report-html/index.ts` | `archivo-extenso@1` | 2026-08-25 | es UNA plantilla HTML |
-| `src/features/stratix-mkt/utils/act-detail-fields/index.test.ts` | `archivo-extenso@1` | 2026-08-25 | son casos de prueba, no lógica |
-| `rules/centinela/reglas.ts` | `archivo-extenso@1` | 2026-08-25 | ya salieron los tipos y el parser |
-| `rules/centinela/evaluar.ts` | `archivo-extenso@1` | 2026-08-25 | dos funciones que son una sola idea |
+| `src/features/stratix-mkt/utils/report-html/index.ts` | `archivo-extenso@2` | 2026-08-25 | es UNA plantilla HTML |
+| `src/features/stratix-mkt/utils/act-detail-fields/index.test.ts` | `archivo-extenso@2` | 2026-08-25 | son casos de prueba, no lógica |
+| `rules/centinela/reglas.ts` | `archivo-extenso@2` | 2026-08-25 | ya salieron los tipos y el parser |
+| `rules/centinela/evaluar.ts` | `archivo-extenso@2` | 2026-08-25 | dos funciones que son una sola idea |
