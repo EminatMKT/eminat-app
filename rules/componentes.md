@@ -117,6 +117,47 @@ de ahí, no al revés: la fuente de verdad de un color tiene que ser el CSS.
 paleta: el día que se cambie el tema o la paleta, ese componente no se entera, y nadie encuentra
 todas las copias porque nunca hubo una lista de dónde están.
 
+## Las medidas van en `rem`, no en píxeles
+
+<!-- check: block
+     pattern: (font-size|padding|margin|gap|border-radius|width|height|top|right|bottom|left|inset)[a-z-]*:\s*[^;]*\b\d+px
+     files: .css
+     test: falla @src/features/x/components/Y/index.module.css :: .x { font-size: 12px; }
+     test: falla @src/features/x/components/Y/index.module.css :: .x { gap: 10px; }
+     test: falla @src/features/x/components/Y/index.module.css :: .x { border-radius: 10px; }
+     test: pasa @src/features/x/components/Y/index.module.css :: .x { font-size: .75rem; gap: .5rem; }
+     test: pasa @src/features/x/components/Y/index.module.css :: .x { border: 1px solid var(--c-border); }
+     test: pasa @src/features/x/components/Y/index.module.css :: .x { box-shadow: 0 1px 2px rgba(16,24,40,.04); }
+     test: pasa @src/features/x/components/Y/index.module.css :: .x { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+     test: falla existente @src/features/x/components/Y/index.module.css :: .x { font-size: 12px; }
+-->
+
+Tamaños de letra, espaciados, radios y dimensiones se escriben en `rem`. Un `px` fija la medida
+a la pantalla; un `rem` la ata al tamaño de letra que el usuario eligió en su navegador.
+
+```css
+/* ❌ el texto crece si el usuario sube la letra, el padding no: el texto se apreta contra el borde */
+.card { font-size: 13px; padding: 12px; border-radius: 12px; }
+
+/* ✅ la tarjeta entera escala junta */
+.card { font-size: .8125rem; padding: .75rem; border-radius: .75rem; }
+```
+
+**Qué sigue en píxeles, a propósito:** `border`, `outline`, `box-shadow` y los `transform` de un
+píxel. Son líneas de contorno, no medidas de contenido: un borde de 1px tiene que seguir siendo
+de 1px aunque el usuario agrande la letra — si escala, se convierte en un marco grueso. El check
+mira sólo las propiedades de tamaño y espaciado, así que esas pasan solas.
+
+**La conversión es mecánica** (`bun rules/px-a-rem.ts <archivo>` la hace y muestra el diff), pero
+**revisala**: la base es 16px = 1rem, y algún valor pensado para una pantalla concreta puede
+querer otro número en vez de su conversión exacta.
+
+**Motivo:** hoy 62 de los 63 `.css` del repo tienen medidas en píxeles, así que esto se paga por
+contacto y de a un archivo. Vale la pena porque es accesibilidad real y barata: quien sube el
+tamaño de letra del navegador —por vista cansada, por una pantalla lejos— hoy consigue que el
+texto crezca dentro de una caja que no crece, que es peor que no poder agrandarlo. Y el mismo
+cambio arregla el tablero proyectado, que es donde este repo mira sus números.
+
 <!-- check: contact
      pattern: #[0-9a-fA-F]{6}\b
      files: .tsx
