@@ -1,6 +1,6 @@
-// Corre los tests declarados dentro de cada check (líneas `test:`) y valida
-// que toda regla verificable tenga su **Motivo**. Los casos viven junto a la
-// regla; acá sólo está el loop.
+// Corre los tests declarados dentro de cada check (líneas `test:`) y valida que toda regla
+// verificable tenga su **Motivo**, sus tests y —si admite exención— su `version:`.
+// Los casos viven junto a la regla; acá sólo está el loop.
 
 import { cargar } from "./reglas.ts"
 import { revisar } from "./evaluar.ts"
@@ -12,6 +12,11 @@ export function selfCheck(): number {
   for (const c of checks) {
     if (!c.motivo) throw new Error(`«${c.regla}» declara un check pero no tiene **Motivo:**`)
     if (!c.tests.length) throw new Error(`«${c.regla}» declara un check pero no tiene ningún test:`)
+    // Una regla que admite exención TIENE que declarar su versión. Sin ella cae al 1 por
+    // defecto en silencio, y el día que haya que invalidar sus marcas no hay de dónde subir:
+    // la caducidad —lo único que impide que una excusa dure para siempre— quedaría de adorno.
+    if (c.exime && c.version === undefined)
+      throw new Error(`«${c.regla}» declara \`exime: ${c.exime}\` pero no \`version:\`. Sin versión, sus marcas no caducan nunca.`)
     for (const t of c.tests) {
       nTests++
       const falla = revisar(t.path, t.contenido, t.esNuevo, [c]).length > 0

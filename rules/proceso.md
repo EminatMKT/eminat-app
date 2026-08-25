@@ -65,10 +65,21 @@ verifica que alguien las haya revisado y firmado.**
 | `@versión` | la versión de esa regla, la que declara `version:` | no exime |
 | `— razón` | qué se revisó y por qué se decidió así | no exime |
 
-**Una regla la habilita declarando `exime: <clave>` y `version: N` en su bloque `check:`.** El
-motor mira la marca ANTES que al detector: si coincide clave y la versión es la vigente, el
-archivo pasa. Si la regla cambia, se sube su `version:` y **todas sus marcas caducan solas** — el
-archivo vuelve a frenar y alguien tiene que releer si la excusa sigue siendo cierta.
+**Una regla la habilita declarando `exime: <clave>` y `version: N` en su bloque `check:`.** Las
+dos, no una: el self-check falla si hay `exime:` sin `version:`, porque sin versión la marca no
+caduca nunca y la caducidad es lo único que impide que una excusa dure para siempre.
+
+El motor mira la marca ANTES que al detector y compara **por igualdad exacta**, no "mayor o
+igual": una marca `@0` sobre una regla `@1` no vale, y una `@99` tampoco. Con `>=` alcanzaba con
+firmar un número grande para no caducar jamás — un escape permanente disfrazado de firma.
+
+Las claves son **por regla**: una marca de `useState@1` no exime de `archivo-extenso`, aunque
+esté en el mismo archivo. Un archivo que incumple dos reglas lleva dos marcas y dos filas en el
+inventario.
+
+Cuando una regla cambia se sube su `version:` y **todas sus marcas caducan de golpe**: los
+archivos vuelven a frenar y alguien tiene que releer si la excusa sigue siendo cierta con la
+regla nueva.
 
 **Y la marca se paga en visibilidad: además del comentario, el archivo va listado en
 `rules/EXENCIONES.md`.** Sin la fila, la marca no vale. Es la única contra que tiene el
