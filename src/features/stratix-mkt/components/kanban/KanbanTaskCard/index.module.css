@@ -59,7 +59,10 @@
 }
 
 .marca {
-  color: var(--marca);
+  /* Oscurecido por lo mismo que el chip de la ficha: el color puro sobre el blanco de la
+     tarjeta daba ~2:1. La barra de la izquierda ya lleva el color puro, así que la identidad
+     no se pierde. */
+  color: color-mix(in srgb, var(--marca) 62%, #000);
   font-weight: 500;
 }
 
@@ -125,8 +128,9 @@
   font-weight: 700;
   flex-shrink: 0;
   /* Tinta de la marca en vez del acento global: dos tarjetas de marcas distintas se
-     distinguen incluso por el avatar, y el violeta deja de repetirse en toda la columna. */
-  color: var(--marca);
+     distinguen incluso por el avatar, y el violeta deja de repetirse en toda la columna.
+     Oscurecida por lo mismo que el resto: la inicial es texto y tiene que leerse. */
+  color: color-mix(in srgb, var(--marca) 58%, #000);
   background: color-mix(in srgb, var(--marca) 14%, transparent);
 }
 

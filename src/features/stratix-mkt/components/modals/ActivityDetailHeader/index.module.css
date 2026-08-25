@@ -17,20 +17,39 @@
   gap: 6px;
   flex-wrap: wrap;
 }
+/* IDENTIDAD: el código de la empresa. Chip con fondo, porque es una etiqueta fija que se
+   reconoce por su forma tanto como por su texto.
+   El texto va OSCURECIDO, no en el color puro: `--marca` sobre su propio fondo al 15% daba
+   entre 1.7:1 y 2.6:1 según la marca, muy por debajo del 4.5:1 de WCAG AA. Mezclado con negro
+   al 55% queda entre 5.1:1 y 8:1 y el chip se sigue leyendo del color que le toca. */
 .chipMarca {
-  font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 8px;
+  font-size: .6875rem;
+  padding: .1875rem .625rem;
+  border-radius: .5rem;
   font-weight: 600;
-  color: var(--marca);
+  letter-spacing: .02em;
+  color: color-mix(in srgb, var(--marca) 55%, #000);
   background: color-mix(in srgb, var(--marca) 15%, transparent);
 }
+/* ESTADO: no es otro chip. Un estado CAMBIA —la marca no— y dos etiquetas de la misma forma
+   se leen como dos etiquetas del mismo tipo. Punto de color más texto es el patrón universal
+   de estado, y además resuelve el contraste sin trucos: el color vive en el punto, que no
+   tiene que ser legible, y el texto va en la tinta normal. */
 .chipEstado {
-  font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 8px;
-  color: var(--estado);
-  background: color-mix(in srgb, var(--estado) 13%, transparent);
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+  font-size: .6875rem;
+  color: var(--c-t2);
+}
+
+.chipEstado::before {
+  content: "";
+  width: .4375rem;
+  height: .4375rem;
+  border-radius: 50%;
+  background: var(--estado);
+  flex-shrink: 0;
 }
 .titulo {
   font-family: 'Syne', sans-serif;
