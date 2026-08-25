@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { rangoGantt, MAX_DIAS } from './index'
+import { rangoGantt, fechaEnRango, rangoAnios, limitesFecha, MAX_DIAS } from './index'
 
 const hoy = new Date('2026-08-24T12:00:00Z')
 
@@ -45,3 +45,44 @@ describe('rangoGantt', () => {
 })
 
 const MIN_DIAS_ESPERADO = 7
+
+describe('fechaEnRango', () => {
+  const hoy = new Date('2026-08-24T12:00:00Z')
+
+  it('acepta una fecha del año en curso', () => {
+    expect(fechaEnRango('2026-03-23', hoy)).toBe(true)
+  })
+  it('rechaza el año 206 (el typo que colgaba el Gantt)', () => {
+    expect(fechaEnRango('0206-03-23', hoy)).toBe(false)
+  })
+  it('rechaza null, vacío y texto no parseable', () => {
+    expect(fechaEnRango(null, hoy)).toBe(false)
+    expect(fechaEnRango('', hoy)).toBe(false)
+    expect(fechaEnRango('mañana', hoy)).toBe(false)
+  })
+  it('acepta los bordes de la ventana y rechaza lo de afuera', () => {
+    expect(fechaEnRango('2021-01-01', hoy)).toBe(true)
+    expect(fechaEnRango('2031-12-31', hoy)).toBe(true)
+    expect(fechaEnRango('2020-12-31', hoy)).toBe(false)
+    expect(fechaEnRango('2032-01-01', hoy)).toBe(false)
+  })
+})
+
+describe('rangoAnios', () => {
+  it('devuelve la ventana que la UI le muestra al usuario', () => {
+    expect(rangoAnios(new Date('2026-08-24T12:00:00Z'))).toEqual({ min: 2021, max: 2031 })
+  })
+})
+
+describe('limitesFecha', () => {
+  it('da min/max en el formato de <input type="date">', () => {
+    expect(limitesFecha(new Date('2026-08-24T12:00:00Z'))).toEqual({ min: '2021-01-01', max: '2031-12-31' })
+  })
+  // Lo que esto protege: que el form no acepte una fecha que el Gantt luego esconde.
+  it('los bordes que el input acepta son fechas que el Gantt muestra', () => {
+    const hoy = new Date('2026-08-24T12:00:00Z')
+    const { min, max } = limitesFecha(hoy)
+    expect(fechaEnRango(min, hoy)).toBe(true)
+    expect(fechaEnRango(max, hoy)).toBe(true)
+  })
+})

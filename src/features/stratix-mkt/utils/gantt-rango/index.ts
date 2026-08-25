@@ -26,18 +26,44 @@ export type RangoGantt = {
   descartadas: number
 }
 
-export function rangoGantt(fechas: (string | null | undefined)[], hoy: Date): RangoGantt {
-  const minValido = hoy.getFullYear() - ANIOS_ATRAS
-  const maxValido = hoy.getFullYear() + ANIOS_ADELANTE
+/** La ventana de años que el eje acepta. La UI la MUESTRA: "fuera de rango" a secas
+ *  no le dice a nadie qué corregir. */
+export function rangoAnios(hoy: Date): { min: number; max: number } {
+  return { min: hoy.getFullYear() - ANIOS_ATRAS, max: hoy.getFullYear() + ANIOS_ADELANTE }
+}
 
+/** Los mismos años, en el formato que pide `<input type="date">`. Los formularios los usan
+ *  como min/max para que no se pueda cargar una fecha que después el Gantt va a esconder:
+ *  antes el input tenía '2020-01-01'/'2035-12-31' escritos a mano y la ventana del eje era
+ *  otra, así que había fechas aceptadas al guardar e invisibles al mirar. */
+export function limitesFecha(hoy: Date): { min: string; max: string } {
+  const { min, max } = rangoAnios(hoy)
+  return { min: `${min}-01-01`, max: `${max}-12-31` }
+}
+
+/** Predicado único de "esta fecha entra en el eje". Lo usan el cálculo del rango Y el
+ *  componente para decidir qué filas dibujar, así que no pueden discrepar: si el aviso
+ *  dice que seis tareas no se muestran, son exactamente esas seis las que se dejan fuera.
+ *  Antes el componente mapeaba `actsGantt` entero, así que las descartadas seguían
+ *  dibujando una fila vacía — el aviso decía una cosa y la pantalla otra. */
+export function fechaEnRango(f: string | null | undefined, hoy: Date): boolean {
+  const t = f ? new Date(f).getTime() : NaN
+  if (Number.isNaN(t)) return false
+  const { min, max } = rangoAnios(hoy)
+  // getUTC*, no getFullYear: un `YYYY-MM-DD` de Postgres se parsea como medianoche UTC,
+  // y leerlo en hora local lo corre al día anterior en cualquier huso al oeste de
+  // Greenwich — el 1 de enero cae al año anterior y una fecha válida se descarta. Es la
+  // misma trampa que codigo.md marca para toISOString(), en el sentido inverso.
+  const anio = new Date(t).getUTCFullYear()
+  return anio >= min && anio <= max
+}
+
+export function rangoGantt(fechas: (string | null | undefined)[], hoy: Date): RangoGantt {
   const validas: number[] = []
   let descartadas = 0
   for (const f of fechas) {
-    const t = f ? new Date(f).getTime() : NaN
-    if (Number.isNaN(t)) { descartadas++; continue }
-    const anio = new Date(t).getFullYear()
-    if (anio < minValido || anio > maxValido) { descartadas++; continue }
-    validas.push(t)
+    if (!fechaEnRango(f, hoy)) { descartadas++; continue }
+    validas.push(new Date(f as string).getTime())
   }
 
   if (validas.length === 0) {
