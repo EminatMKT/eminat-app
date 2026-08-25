@@ -1,0 +1,48 @@
+/* Ámbar de advertencia. NO usa --s2/--t2: esos son los tokens del tema OSCURO de la app
+   (globals.css) y este aviso aparece dentro del TABLERO, que es claro — pintaban una banda
+   negra sobre fondo blanco. El #F59E0B es el mismo criterio que DASHBOARD_THEME.warn.
+   Cuando los tokens del tablero se muden de JS a variables CSS (ver componentes.md), estos
+   literales salen de acá. */
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid #FCD34D;
+  border-left: 3px solid #F59E0B;
+  border-radius: 8px;
+  background: #FFFBEB;
+  color: #92400E;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.aviso::before {
+  content: '⚠';
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* El marcador propio de <summary> se reemplaza: el nativo se pinta distinto en cada navegador
+   y acá tiene que leerse como "esto se abre". */
+.aviso::marker, .aviso::-webkit-details-marker { content: ''; display: none; }
+
+.caja > .aviso {
+  cursor: pointer;
+  list-style: none;
+}
+
+.caja > .aviso::after {
+  content: '▸';
+  margin-left: auto;
+  transition: transform 0.15s ease;
+}
+
+.caja[open] > .aviso::after { transform: rotate(90deg); }
+
+.caja[open] > .aviso {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.detalle { margin-top: -1px; }

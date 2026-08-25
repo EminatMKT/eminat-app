@@ -684,7 +684,7 @@
   "stratix.new.days": "📆 Prod. days",
   "stratix.new.status": "⚡ Initial status",
   "stratix.new.due": "🗓 Due date",
-  "stratix.new.drivePh": "https://drive.google.com/drive/folders/\u2026",
+  "stratix.new.drivePh": "https://drive.google.com/drive/folders/…",
   "stratix.new.drive": "🔗 Google Drive link (optional)",
   "stratix.new.select": "— Select —",
   "stratix.new.creating": "⏳ Creating…",
@@ -761,6 +761,7 @@
   "stratix.gantt.taskAssignee": "Task / Assignee",
   "stratix.gantt.empty": "No tasks with a due date for this view",
   "stratix.gantt.weekend": "Weekend",
+  "stratix.gantt.fueraDeRango": "{n} task(s) hidden from the Gantt: their due date falls outside {min}–{max}. Fix the date to bring them back.",
   "stratix.estado.pendiente": "Pending",
   "stratix.estado.enProceso": "In progress",
   "stratix.estado.porAprobar": "To approve",
@@ -827,5 +828,8 @@
   "stratix.team.noAccountYet": "no account yet",
   "stratix.team.activeNow": "Active now",
   "stratix.team.offline": "Offline",
-  "stratix.team.inProgress": "{n} in progress"
+  "stratix.team.inProgress": "{n} in progress",
+  "stratix.detail.changeDue": "Fix due date",
+  "stratix.detail.dueChanged": "Due date updated",
+  "stratix.detail.dueError": "Couldn't update the due date"
 }
