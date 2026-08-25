@@ -35,6 +35,13 @@ html, body, * {
   /* El rojo de lo destructivo. Estaba escrito a mano en cada botón de borrar del repo, que es
      como se llega a tres rojos distintos para la misma señal. */
   --c-danger: #F87171;
+
+  /* Las versiones SÓLIDAS: para relleno con texto blanco encima. No son un capricho de tono —
+     el accent y el danger de arriba dan 3.84:1 y 2.77:1 contra blanco, y WCAG AA pide 4.5:1
+     para texto chico. Estos dan 5.26:1 y 4.83:1. Los claros siguen siendo los correctos para
+     texto e íconos sobre fondo claro; estos, sólo para el relleno. */
+  --c-accent-solid: #6355E8;
+  --c-danger-solid: #DC2626;
 }
 
 * {

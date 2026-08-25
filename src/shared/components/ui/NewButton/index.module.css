@@ -1,11 +1,9 @@
-/* Acción primaria de una ficha: relleno sólido para que se encuentre sin buscarlo.
-   El relleno usa --c-accent-solid y no --c-accent: el claro no llega al contraste que pide
-   el texto blanco (3.84:1 contra 4.5:1 de WCAG AA). */
+/* La acción primaria de una vista: relleno sólido para que se encuentre sin buscarla.
+   Usa --c-accent-solid y no --c-accent: con el claro, el texto blanco daba 3.84:1 y WCAG AA
+   pide 4.5:1 para texto chico. Es el mismo relleno que EditButton, a propósito — las dos son
+   la acción principal de su pantalla y tienen que leerse igual. */
 .boton {
-  display: inline-flex;
-  align-items: center;
-  gap: .375rem;
-  padding: .4375rem .875rem;
+  padding: .4375rem 1rem;
   border-radius: .625rem;
   border: none;
   font-size: .75rem;
@@ -24,7 +22,6 @@
   transform: translateY(-1px);
 }
 
-/* Vuelve a su sitio al presionar: sin esto el botón se siente flotando, no apretado. */
 .boton:active {
   transform: translateY(0);
   box-shadow: 0 1px 2px rgba(16, 24, 40, .12);
