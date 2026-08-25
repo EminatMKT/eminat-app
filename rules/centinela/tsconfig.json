@@ -1,0 +1,15 @@
+{
+  "//": "El centinela corre con Bun, no con el bundler de Next: importa con extensión .ts y usa import.meta.dir. Por eso tiene su propio tsconfig y `rules` está excluido del de la app — mezclados, los 17 errores de entorno enterraban cualquier error real (el 25/08/2026 un borrado accidental de dos funciones pasó desapercibido justamente así).",
+  "compilerOptions": {
+    "lib": ["esnext"],
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "types": ["bun"]
+  },
+  "include": ["**/*.ts"]
+}

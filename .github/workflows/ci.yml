@@ -13,7 +13,9 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }  # 22+ trae WebSocket nativo (lo exige @supabase/realtime-js)
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec tsc --noEmit
+      # `pnpm typecheck`, no `tsc` pelado: son DOS proyectos. El centinela corre con Bun y tiene
+      # su propio tsconfig (rules/centinela); con `tsc --noEmit` a secas quedaba fuera del gate.
+      - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
         env:
