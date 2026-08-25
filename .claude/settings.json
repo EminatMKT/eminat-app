@@ -9,7 +9,7 @@
     "claude-plugins-official@context7": true,
     "claude-plugins-official@frontend-design": true,
     "claude-plugins-official@security-guidance": true,
-    "nextjs-praxis-guard@nextjs-praxis-guard": true
+    "nextjs-praxis-guard@nextjs-praxis-guard": false
   },
   "hooks": {
     "PreToolUse": [
