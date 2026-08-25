@@ -12,7 +12,7 @@ import s from './index.module.css'
 export default function NewActivityModal() {
   const { miembrosAsignables, marcas, usuarios } = useApp()
   const { t } = useT()
-  const { modalNuevaAct, setModalNuevaAct, nuevaAct, setNuevaAct, creandoAct, crearActividad } = useStratix()
+  const { modalNuevaAct, nuevaAct, setNuevaAct, creandoAct, crearActividad, actEditando, cerrarFormAct } = useStratix()
 
   // El form arranca con valores por defecto fijos, pero las dos listas son dinámicas: si el
   // default ya no está entre las opciones —el admin desmarcó esa empresa, esa persona dejó el
@@ -35,13 +35,13 @@ export default function NewActivityModal() {
   const sinTitulo = !nuevaAct.titulo.trim()
 
   return (
-    <Modal width={520} onClose={() => setModalNuevaAct(false)}>
+    <Modal width={520} onClose={cerrarFormAct}>
       <div className={s.head}>
         <div>
-          <div className={s.titulo}>{t('stratix.new.title')}</div>
-          <div className={s.sub}>{t('stratix.new.sub')}</div>
+          <div className={s.titulo}>{actEditando ? t('stratix.edit.title') : t('stratix.new.title')}</div>
+          <div className={s.sub}>{actEditando ? t('stratix.edit.sub') : t('stratix.new.sub')}</div>
         </div>
-        <button type="button" className={s.cerrar} onClick={() => setModalNuevaAct(false)}>✕</button>
+        <button type="button" className={s.cerrar} onClick={cerrarFormAct}>✕</button>
       </div>
 
       <Field grande required label={t('stratix.new.taskTitle')}>
@@ -74,6 +74,9 @@ export default function NewActivityModal() {
       <Field label={t('stratix.new.requestedBy')}>
         <select value={nuevaAct.solicitante_id} onChange={e => setNuevaAct(p => ({ ...p, solicitante_id: e.target.value }))}>
           <option value="">—</option>
+          {usuarios.filter(u => !u.activo && u.id === nuevaAct.solicitante_id).map(u => (
+            <option key={u.id} value={u.id as string} disabled>{`${u.nombre || ''} ${u.apellido || ''}`.trim()} ({t('stratix.new.inactive')})</option>
+          ))}
           {usuarios.filter(u => u.activo && u.id).map(u => (
             <option key={u.id} value={u.id as string}>{`${u.nombre || ''} ${u.apellido || ''}`.trim()}</option>
           ))}
@@ -116,9 +119,11 @@ export default function NewActivityModal() {
       </Field>
 
       <div className={s.acciones}>
-        <button type="button" className={s.cancelar} onClick={() => setModalNuevaAct(false)}>{t('common.cancel2')}</button>
+        <button type="button" className={s.cancelar} onClick={() => cerrarFormAct()}>{t('common.cancel2')}</button>
         <button type="button" className={s.crear} disabled={creandoAct || sinTitulo} onClick={crearActividad}>
-          {creandoAct ? t('stratix.new.creating') : t('stratix.new.create')}
+          {creandoAct
+            ? (actEditando ? t('common.processing') : t('stratix.new.creating'))
+            : actEditando ? t('common.saveChanges') : t('stratix.new.create')}
         </button>
       </div>
     </Modal>
