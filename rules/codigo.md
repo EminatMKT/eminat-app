@@ -194,15 +194,37 @@ hoy, y una actividad cargada de noche nacía fechada mañana. Un bug que solo ap
 las 20:00 es de los que nadie reproduce en una demo.
 
 ## Ningún texto que ve un usuario se escribe inline
-<!-- sin check: requiere leer el significado del string, no su sintaxis -->
+
+<!-- check: block
+     detector: texto_sin_traducir
+     files: .ts,.tsx
+     test: pasa :: mostrarMensaje('ok', t('stratix.edit.saved'))
+     test: pasa :: <div>{t('stratix.new.title')}</div>
+     test: pasa :: <span className={s.x}>{nombre}</span>
+     test: pasa :: <button onClick={cerrar}>✕</button>
+     test: falla :: mostrarMensaje('ok', 'Role updated')
+     test: falla :: <button className={s.b}>Guardar cambios</button>
+     test: falla existente :: mostrarMensaje('ok', 'Role updated')
+-->
 
 Vale para los mensajes de error y de éxito, no solo para los componentes: `mostrarMensaje` y
 compañía reciben `t('clave')`, con la clave en `es.json` **y** `en.json`.
 
-**Motivo:** hay 45 llamadas con el texto hardcodeado, y el idioma cambia dentro del mismo archivo
+**Qué mira el check:** dos formas, las dos inequívocas — un aviso al usuario cuyo segundo
+argumento es un literal en vez de `t(...)`, y texto suelto entre etiquetas JSX
+(`<button>Guardar</button>`). Pide cuatro letras seguidas, así que no marca `>x<`, `>-<` ni
+`>3h<`; y salta el contenido de los template literals, porque el HTML de una plantilla
+—`report-html`— no es algo que React renderice.
+
+**Un dato interpolado no salva el string:** un template literal `Error: ${e.message}` es texto
+duro con un hueco. La clave lleva el parámetro: `t('common.errorWithDetail', { detail: e.message })`.
+
+**Motivo:** hay 44 archivos con texto hardcodeado, y el idioma cambia dentro del mismo archivo
 — `useUserActions.ts` dice *"No se pudo cambiar el rol."* y tres líneas más abajo *"Role
 updated"*. El usuario ve la mezcla justo cuando algo salió mal, que es el peor momento para
-parecer improvisado.
+parecer improvisado. La regla existía desde antes marcada `sin check: requiere leer el
+significado del string` — y era falso: las dos formas de arriba se detectan por sintaxis. Al
+ponerle el check, lo primero que frenó fue código escrito ese mismo día.
 
 ## Los valores de dominio salen de constantes
 <!-- sin check: requiere saber qué constante corresponde a cada valor de dominio -->
@@ -320,3 +342,213 @@ módulos hasta que el bundler los sacude. Con `export { x } from './y'` (nombrad
      test: falla :: import { parseDelimited } from '@/shared/utils/delimited'
      test: pasa :: import { parseDelimited, localDate } from '@/shared/utils'
 -->
+
+## Tres tipos o más: van a su propio archivo
+
+<!-- check: contact
+     detector: tres_tipos_o_mas
+     files: .ts,.tsx
+     except: types.ts,/types/,.d.ts,/constants/
+     test: falla :: type A = { x: string }; type B = { y: string }; interface C { z: string }
+     test: falla :: type A = { x: 1 }; enum B { UNO }; const C = { x: 1 } as const
+     test: falla :: const A = { x: 1 } as const; const B = ['a'] as const; const C = { y: 2 } as const
+     test: pasa :: type A = { x: string }; type B = { y: string }
+     test: pasa :: export type { Actividad } from '@/shared/context/loadAppData'
+     test: pasa @src/features/medical/types.ts :: type A = { x: 1 }; type B = { y: 1 }; type C = { z: 1 }
+     test: pasa @src/shared/constants/domain.ts :: type A = { x: 1 }; type B = { y: 1 }; type C = { z: 1 }
+     test: pasa existente :: type A = { x: 1 }; type B = { y: 1 }; type C = { z: 1 }
+-->
+
+Un archivo que declara **tres o más** formas ya no es un módulo con sus tipos: es un módulo de
+tipos con código adentro. Se mudan a `types.ts` —del módulo o del directorio— y el archivo los
+importa.
+
+**`type`, `interface` y enumeración cuentan igual.** No hay jerarquía entre ellas: las tres
+describen un dominio en vez de ejecutarlo, y da lo mismo si la tercera forma es un `interface`
+o el `as const` con el que este repo enumera (`ESTADO`, `VERIFICADO`). Un archivo de
+enumeraciones ES un archivo de tipos, y su lugar es `src/shared/constants/` o el `types.ts`
+del módulo — por eso `/constants/` está exceptuado: ahí el catálogo ya vive solo.
+
+El archivo de tipos **no lleva carpeta** (`componentes.md`: una carpeta es para lo que puede
+testearse, y un tipo no se ejecuta). El módulo ya tiene dónde: `src/features/<modulo>/types.ts`
+existe en admin, medical, research, cobranzas y accounting.
+
+**Qué no cuenta:** una re-exportación (`export type { X } from …`) no declara nada, y un
+`types.ts` puede tener los que necesite — es su trabajo.
+
+**Motivo:** los tipos son el contrato y el código es la implementación; mezclados, hay que
+scrollear la definición de cinco formas antes de llegar a la primera función, y la forma que se
+quiere leer nunca está donde se la busca. Y hay un motivo mecánico: un tipo que vive dentro del
+archivo que lo usa **no se puede importar sin arrastrar el módulo entero** —con su import de
+Supabase, sus constantes y sus efectos—, así que el que necesita solo la forma termina
+declarándola de nuevo. Así aparecieron las tres formas de fila que hoy conviven en el importador.
+
+**Se migra por contacto**, como los `../../` y el `style` inline: hoy hay 17 archivos así, y
+varios son de los más tocados del repo (`AppContext.tsx`, `permissions.ts`, `loadAppData.ts`).
+Mudar tipos es un cambio estructural: obligarlo en medio de otra tarea convierte un arreglo de
+dos líneas en un refactor que nadie pidió.
+
+## El "sin filtro" no se escribe a mano
+
+<!-- check: block
+     detector: centinela_sin_filtro
+     files: .ts,.tsx
+     except: /constants/
+     test: falla :: const [f, setF] = useState('All')
+     test: falla :: if (filtro !== 'Todos') return false
+     test: falla :: const [t, setT] = useState<'all' | 'DATA'>('all')
+     test: pasa :: const [f, setF] = useState(SIN_FILTRO)
+     test: pasa :: if (filtro !== SIN_FILTRO) return false
+     test: pasa :: // antes era un useState('General') con las pills
+     test: falla existente :: const [f, setF] = useState('All')
+-->
+
+`'All'`, `'Todos'`, `'all'`, `'General'`, `'Ninguno'`: la ausencia de filtro es un valor de
+dominio como cualquier otro y sale de `SIN_FILTRO` (o `TRIMESTRE_GENERAL`) de
+`@/shared/constants/domain`. Lo que se MUESTRA sale de i18n (`common.all`), nunca el valor.
+
+**Motivo:** es la regla de los valores de dominio, en el caso donde más se olvida — porque
+`'All'` no parece un dato, parece una palabra. El repo tenía **tres literales para la misma
+idea**: `'All'` en Stratix, `'Todos'` en Directorio, `'all'` en Accounting, cada uno comparado
+por su cuenta en dos o tres archivos. Y el caso que lo delata: `SolicitudesListView` ya había
+declarado `const TODOS = 'All'`, mientras `useStratixData` escribía `'All'` a mano dos veces
+para el MISMO filtro — la constante existía y el hook no la usaba, que es exactamente lo que
+pasa cuando el valor se puede teclear. En Directorio era peor: `'Todos'` era a la vez el valor
+comparado **y** el texto que se pintaba en el chip, así que en inglés el chip decía "Todos".
+
+## Lo que se devuelve se arma en una variable con nombre
+
+<!-- check: block
+     detector: objeto_literal_en_return
+     files: .ts,.tsx
+     test: pasa :: return { ok: true }
+     test: pasa :: return { data, error, cargando }
+     test: pasa :: const resultado = { a, b, c, d, e }; return resultado
+     test: falla :: return { busqueda, filtro, setBusqueda, setFiltro }
+     test: falla existente :: return { busqueda, filtro, setBusqueda, setFiltro }
+-->
+
+Un `return` con un objeto literal de **cuatro campos o más** se parte en dos: el objeto se arma
+en una variable con nombre y el `return` devuelve esa variable.
+
+```ts
+// ❌ el contrato del hook está escrito adentro de la sentencia que lo devuelve
+return {
+  busqueda, filtro, setBusqueda, setFiltro, limpiar, filtrados, total: members.length,
+}
+
+// ✅ el contrato tiene nombre; el return es una línea
+const resultado = { busqueda, filtro, setBusqueda, setFiltro, limpiar, filtrados, total: members.length }
+return resultado
+```
+
+Se cuenta por CAMPOS, no por líneas: da igual si el objeto se escribió en un renglón o en diez.
+Un `return { data, error, cargando }` se queda como está — la regla persigue el contrato largo,
+no el literal de tres campos.
+
+**Motivo:** ese objeto es **el contrato** —lo que el hook o la función le ofrece a quien la usa—
+y merece leerse como una declaración, no como el final de una sentencia. Con nombre se puede
+tipar (`const resultado: UseDirectorioFilter = …`) y el editor lo muestra al pasar el mouse; y en
+el diff, agregar un campo toca la línea de la variable en vez de la del `return`, así que deja de
+confundirse con un cambio en el flujo de salida. `useStratixData` devuelve treinta y pico de
+campos en un literal: hoy no hay forma de ver ese contrato sin leer el final del archivo.
+
+## Un archivo se lee de una sentada: 50 líneas, y 150 es el techo
+
+<!-- check: block
+     detector: archivo_extenso
+     blando: 50
+     exime: archivo-extenso
+     version: 1
+     files: .ts,.tsx
+     test: pasa :: const x = 1
+-->
+
+<!-- check: block
+     detector: archivo_indivisible
+     duro: 150
+     files: .ts,.tsx
+     test: pasa :: const x = 1
+-->
+
+Dos escalones, y la diferencia entre ellos es si se admite una excusa:
+
+| líneas | qué pasa |
+|---|---|
+| **0–50** | pasa. Es la medida normal de este repo: la mediana son 29 líneas. |
+| **51–150** | pasa **sólo con marca versionada y razón escrita** (abajo). |
+| **más de 150** | no pasa. No hay marca que valga: se parte. |
+
+Partir quiere decir **una responsabilidad por archivo**, cada una en su carpeta con su
+`index.ts`, y el directorio que las agrupa con un barrel que sólo re-exporta:
+
+```
+hooks/
+  index.ts              ← barrel: sólo re-exporta
+  useTablero/index.ts   ← una responsabilidad, un archivo
+  useKanban/index.ts
+```
+
+**Quién compone las piezas es el que las necesita juntas**, no un archivo orquestador puesto en
+el medio: `useStratixData` era un hook de 339 líneas que devolvía cuarenta campos; hoy son cinco
+hooks y quien los llama es `StratixProvider`, el componente que ve el módulo entero.
+
+**La marca de exención lleva versión.**
+
+```ts
+// centinela-exime: archivo-extenso@1 — es una plantilla HTML: partirla en tres archivos
+// dejaría el <head> en uno y el <body> en otro, que se lee peor, no mejor.
+```
+
+Tres partes, las tres obligatorias: **clave**, **@versión** y **razón**. Sin razón no exime nada
+— lo que la marca protege no es el número, es que la decisión quede escrita para quien venga
+después.
+
+**El `@1` es la versión de ESTA regla**, la que declara su bloque `check:`. El día que la regla
+cambie —otro umbral, otro criterio de qué cuenta como partido— se sube su `version:` y todas las
+marcas viejas dejan de valer automáticamente: el archivo vuelve a frenar y alguien tiene que
+mirar si la excusa sigue siendo cierta con las reglas nuevas.
+
+**Motivo:** un archivo gordo es un imán de conflictos —el merge del 19/08 dio seis conflictos y
+dos fueron los dos hooks gordos, porque todo pasa por ahí y dos ramas siempre tocan el mismo
+archivo— y además esconde su propio tamaño: nadie abre 339 líneas y decide partirlas, se agregan
+diez más.
+
+El límite blando en 50 y el duro en 150 salen de medir el repo, no de una opinión: mediana 29,
+p75 55, p95 159. Con 50 a secas, el 28% de los archivos necesitaría marca — y una excepción que
+aplica a uno de cada cuatro archivos deja de ser excepción y se firma sin leer. Con el techo
+duro arriba, la franja del medio es lo que de verdad admite discusión, y lo que la pasa hay que
+partirlo aunque se tenga una buena historia.
+
+**Y por eso la marca lleva versión:** sin ella, una excusa escrita hoy sigue silenciando el
+check para siempre, incluso cuando la regla que la justificaba ya cambió. La deuda invisible es
+peor que la deuda anotada.
+
+## Un `index` de carpeta que agrupa sólo re-exporta
+
+<!-- check: block
+     detector: index_que_define
+     agrupadores: hooks,utils,components,constants,context,data,modals,ui
+     files: .ts,.tsx
+     test: pasa @src/features/x/hooks/index.ts :: export { useTablero } from './useTablero'
+     test: falla @src/features/x/hooks/index.ts :: export const TABS = ['a']; const helper = () => 1
+     test: pasa @src/features/x/hooks/useTablero/index.ts :: export function useTablero() { const x = 1; return x }
+     test: pasa @src/shared/components/ui/Modal/index.tsx :: export default function Modal() { const x = 1; return x }
+     test: falla existente @src/features/x/utils/index.ts :: const helper = () => 1
+-->
+
+Hay dos clases de `index` y no hacen lo mismo:
+
+| | qué es | qué hace |
+|---|---|---|
+| `hooks/index.ts`, `utils/index.ts` | la carpeta **agrupa** módulos | **sólo re-exporta** |
+| `useTablero/index.ts`, `Modal/index.tsx` | la carpeta **ES** el módulo | lo implementa |
+
+El primero no define, no compone y no orquesta: `export { x } from './x'` y nada más. Si hace
+falta juntar varias piezas, eso lo hace **quien las usa**, no el barrel.
+
+**Motivo:** un barrel con lógica adentro se vuelve un módulo más que encima se llama como el
+directorio, y todo lo que lo importa —que es todo el módulo— pasa a depender de esa lógica. El
+`useStratixData/index.ts` que compuso los cinco hooks duró exactamente una revisión: parecía
+inofensivo (`...tablero, ...kanban`) pero convertía a cada consumidor en cliente del módulo
+completo, cuando el Kanban sólo necesita el Kanban.

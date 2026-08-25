@@ -1,7 +1,12 @@
 # Componentes
 
 ## Un componente es una carpeta, no un archivo
-<!-- sin check: convención estructural de archivos -->
+
+<!-- El check vive en proceso.md · "El que toca un archivo lo deja en la convención vigente":
+     el detector componente_fuera_de_carpeta mira el PATH, así que es el mismo chequeo para la
+     forma y para la migración. Esta sección estuvo marcada `sin check: convención estructural`
+     hasta el 25/08/2026 — la exención era falsa, y mientras duró se editó DepartmentChip.tsx
+     dejándolo suelto. -->
 
 De ahora en adelante, un componente nuevo se crea así:
 
@@ -161,6 +166,188 @@ del padre, cada retoque de una celda obliga a releer el bucle entero y el diff t
 todos los demás cambios también tocan. Además es la única forma de que la fila tenga su propio
 `.module.css`: inline, sus estilos se mezclan con los del contenedor.
 
+## Una función con cuerpo no se escribe dentro de una prop
+
+<!-- check: block
+     pattern: =\{\s*(async\s+)?(\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>\s*\{
+     files: .tsx
+     test: falla :: onConfirm={async () => { await crear(); setAbierto(false) }}
+     test: falla :: onChange={e => { setFecha(e.target.value); guardar() }}
+     test: falla existente :: onClick={async () => { const r = await borrar(); if (r) cerrar() }}
+     test: pasa :: onClick={() => setAbierto(true)}
+     test: pasa :: onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))}
+     test: pasa :: onConfirm={guardarEdicion}
+-->
+
+Una prop recibe **el nombre** de una función, o a lo sumo una flecha de **una sola expresión**.
+En cuanto el cuerpo abre llaves —dos sentencias, un `await` y algo más, un `if`— esa función se
+declara arriba, con nombre, y a la prop se le pasa el nombre:
+
+```tsx
+// ❌ el handler entero embutido en el JSX
+<ConfirmModal onConfirm={async () => { await crearActividad(); setConfirmarGuardado(false) }} />
+
+// ✅ la función arriba, con nombre; el JSX dice QUÉ pasa, no cómo
+async function guardarEdicion() {
+  await crearActividad()
+  setConfirmarGuardado(false)
+}
+<ConfirmModal onConfirm={guardarEdicion} />
+```
+
+**Qué sigue permitido:** `onClick={() => setAbierto(true)}` y `onChange={e => setForm(...)}` —
+una expresión, se lee de un vistazo y no tiene dónde esconder lógica.
+
+**Motivo:** es la misma razón por la que el atributo `style` está prohibido y por la que un
+bloque dentro de un `.map()` se extrae — el detalle tapa la estructura. Un `onClick` de seis
+líneas empuja el resto del JSX fuera de la pantalla y obliga a leer la lógica entera para
+encontrar qué componente sigue. Y hay dos motivos mecánicos que la flecha inline no da: una
+función con nombre **se puede testear** y se puede pasar a dos props distintas, mientras que la
+inline se copia; y en el diff, un cambio de lógica toca la línea de la función y no la del JSX,
+así que deja de mezclarse con los cambios de markup en el mismo renglón.
+
+## Un `.tsx` declara UN componente
+
+<!-- check: block
+     detector: dos_componentes_en_archivo
+     files: .tsx
+     test: falla :: function Uno() { return <p /> } function Dos() { return <p /> }
+     test: falla :: export default function Uno() { return <p /> } const Dos = () => <p />
+     test: pasa :: export default function Uno() { return <p /> }
+     test: pasa :: function ayuda(x) { return x } export default function Uno() { return <p /> }
+     test: falla existente :: function Uno() { return <p /> } function Dos() { return <p /> }
+-->
+
+Un archivo, un componente — el que le da nombre a la carpeta. Un segundo componente en el mismo
+`.tsx`, aunque sea de tres líneas y aunque sólo lo use el primero, va a su propia carpeta.
+
+**Motivo:** el componente de al lado es invisible. No aparece al buscar por nombre de archivo,
+no puede tener su `index.module.css` ni su test, y cuando alguien lo necesita en otra pantalla
+no sabe que existe: lo escribe de nuevo. Es la misma raíz que los tres `StatCard` del repo. Y
+mientras vive ahí, cada cambio suyo toca el archivo del componente principal, así que dos
+trabajos distintos chocan en el mismo diff.
+
+## Una tabla de datos no se declara adentro de un componente
+
+<!-- check: block
+     detector: tabla_en_componente
+     files: .tsx
+     test: falla :: const filas = [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 4 }, { a: 5 }, { a: 6 }]
+     test: pasa :: const filas = [{ a: 1 }, { a: 2 }, { a: 3 }]
+     test: pasa :: const filas = camposDeActividad(act, { t, locale })
+     test: falla existente :: const filas = [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 4 }, { a: 5 }, { a: 6 }]
+-->
+
+Un array de **seis o más** objetos declarado dentro de un `.tsx` es una tabla de datos, y su
+lugar no es el cuerpo del componente:
+
+- **Si es estática** (una lista de opciones, un catálogo): va a `src/shared/constants/` o al
+  `constants/` del módulo.
+- **Si se deriva de datos** —etiquetas traducidas, valores formateados—: va a `utils/` como
+  **función pura, con su test**. No es una constante: es un cálculo que devuelve filas.
+
+```tsx
+// ❌ quince filas de etiqueta+valor antes de llegar al primer <div>
+const fields = [
+  { label: t('stratix.col.assignee'), value: miembrosPorId[act.responsable_id] ?? '—' },
+  // …catorce más
+]
+
+// ✅ el componente pide las filas; cómo se arman se prueba sin montar nada
+const fields = camposDeActividad(act, { t, locale, miembrosPorId })
+```
+
+**Motivo:** esas filas son **reglas de negocio disfrazadas de markup** — qué se muestra cuando el
+campo está vacío, de dónde sale el trimestre si la fila no lo trae, que `verificado` no es un
+booleano. Adentro del `.tsx` no se pueden testear (hoy vitest corre sin DOM) y hay que scrollear
+quince líneas antes del primer elemento. Afuera, cada una de esas decisiones tiene su test: así
+se encontró que la ficha decía "Verificada: Sí" para toda tarea.
+
+## El JSX que se pasa por una prop es un componente
+
+<!-- check: block
+     detector: jsx_en_prop
+     files: .tsx
+     test: pasa :: header={<ActivityDetailHeader act={a} onCerrar={cerrar} />}
+     test: pasa :: icon={<Check />}
+     test: pasa :: label={<><b>{n}</b> pendientes</>}
+     test: falla :: header={<div className={s.h}><span>{a.empresa}</span><b>{a.titulo}</b></div>}
+     test: falla existente :: title={<div><p>uno</p><p>dos</p></div>}
+-->
+
+Cuando el valor de una prop es markup de **tres elementos o más**, eso ya es un componente: se le pone nombre, se le hace su carpeta y se pasa `<Header … />`.
+
+```tsx
+// ❌ quince líneas de estructura adentro de la llamada a otro componente
+<Modal header={
+  <div className={css.head}>
+    <div className={css.chips}>…</div>
+    <div className={css.acciones}>…</div>
+  </div>
+}>
+
+// ✅ la prop dice QUÉ encabezado, no cómo se dibuja
+<Modal header={<ActivityDetailHeader act={act} onCerrar={cerrar} />}>
+```
+
+**Se cuenta por elementos, no por líneas.** Una llamada a componente repartida en varios
+renglones por sus props —`header={<Header a={1} b={2} c={3} />}`— es un solo elemento y está
+bien; un `<><b>{n}</b> pendientes</>` son dos y tampoco molesta.
+
+**Motivo:** es la misma raíz que la regla del `.map()` y la del handler inline — el bloque que
+más cambia queda escondido adentro del que menos cambia. Y acá tiene un costo extra: mientras el
+markup vive en la prop **no puede tener su `.module.css`**, así que sus estilos se mezclan con
+los del componente que lo hospeda; separarlo después obliga a desenredar dos hojas de estilo,
+no sólo a mover JSX.
+
+## Dos bloques de markup parecidos se unifican, y el resultado va a `src/shared/`
+
+<!-- check: contact
+     detector: markup_sustancial
+     exime: bloques-similares
+     version: 1
+     files: .tsx
+     test: pasa :: export default function X() { return <Otro /> }
+     test: pasa :: // centinela-exime: bloques-similares@1 — busqué StatCard y MetricBox, ninguna sirve\nreturn <div><span>a</span><b>c</b></div>
+     test: falla :: return <div><span>a</span><b>c</b></div>
+     test: pasa existente :: return <div><span>a</span><b>c</b></div>
+-->
+
+Al escribir un bloque de markup, la pregunta es si ya existe otro casi igual en el repo. Si lo
+hay, no se copia: se unifica en **un** componente y, si el nombre natural no menciona ningún
+módulo (una tarjeta de indicador, una fila de tabla, un panel recogible), su lugar es
+`src/shared/components/` — con el prop que haga falta para cubrir las dos variantes, y **sólo**
+ese (ver `arquitectura.md`).
+
+**Cómo se verifica, si la similitud no se puede detectar:** por FIRMA, no por contenido (ver
+`proceso.md` · "La marca"). Un componente **nuevo** con markup de tres elementos o más frena
+hasta que lleve su marca:
+
+```ts
+// centinela-exime: bloques-similares@1 — busqué StatCard, MetricBox y las tarjetas del tablero
+// de Research: ninguna admite una fila de detalle, así que este nace aparte.
+```
+
+El hook no puede juzgar si la decisión es correcta —la similitud vive ENTRE archivos y el
+centinela ve uno solo—, pero sí puede exigir que la búsqueda **ocurra** y quede escrita. Buscar
+es por el nombre que le pondrías (`StatCard`, `FilterBar`, `ConfirmModal`) y por el gesto que
+necesitás (`grep -rn 'role="dialog"' src`).
+
+**Sólo frena en archivos nuevos** (`contact`): la pregunta "¿esto ya existe?" tiene sentido al
+crear, no cada vez que se toca un componente que ya vive hace meses.
+
+⚠️ Esto lo cubría `/nextjs-praxis-guard:praxis-similar-components` hasta el 25/08/2026, cuando el
+plugin se desactivó en este repo. Lo que encuentre la revisión se anota en `.todo/TODO.md` (ya
+hay una tanda del 20/08/2026 ahí).
+
+**Qué NO es esto:** dos bloques que se parecen *hoy* pero responden a cosas distintas no se
+unifican — unificar por parecido y no por significado produce el componente con quince props
+que nadie entiende. La prueba es si un cambio de requisito los movería a los dos juntos.
+
+**Motivo:** el repo tiene **tres `StatCard`** (accounting, admin, research) que hacen casi lo
+mismo, y por eso un bug se arregla una vez y sobrevive dos. Se llegó ahí sin que nadie lo
+decidiera: cada uno era "un bloquecito parecido a aquel" en el momento de escribirlo.
+
 ## El tipo de las props va arriba, no dentro de la firma
 <!-- sin check: convención de orden dentro del archivo, no contenido prohibido -->
 
@@ -191,7 +378,40 @@ se estira quince renglones y el cuerpo empieza donde ya nadie lo ve. Aparte, un 
 se puede exportar y reusar; uno inline hay que copiarlo.
 
 ## Los `useState` se cuentan de a poco: los campos que van juntos viven en un objeto
-<!-- sin check: umbral heurístico que depende de qué estados cambian juntos -->
+
+<!-- check: block
+     detector: demasiados_use_state
+     exime: useState
+     version: 1
+     files: .ts,.tsx
+     test: falla :: const [a, sa] = useState(''); const [b, sb] = useState('')
+     test: pasa :: const [form, setForm] = useState(vacio)
+     test: pasa :: // centinela-exime: useState@1 — la ficha y el formulario son dos cosas distintas\nconst [a, sa] = useState(''); const [b, sb] = useState('')
+     test: pasa :: // el hook tenía useState() por campo: useState(a) useState(b)
+     test: falla existente :: const [a, sa] = useState(''); const [b, sb] = useState('')
+-->
+
+**El umbral es UNO.** Se midió antes de fijarlo: de todos los archivos del repo con dos o tres
+`useState`, **ninguno** era el caso que justifica tenerlos sueltos (un `loading` junto a un
+`error`) — todos eran campos que viajan juntos. Con esa evidencia, dos ya es la excepción y le
+toca justificarse, no ser el default.
+
+**Cuando de verdad son independientes, se marca el archivo:**
+
+```ts
+// centinela-exime: useState@1 — la ficha abierta y el formulario son dos cosas distintas:
+// se abren por caminos distintos y ninguna operación toca las dos.
+const [form, setForm] = useState(formVacio)
+const [modalVerAct, setModalVerAct] = useState<Actividad | null>(null)
+```
+
+La marca lleva **clave, versión y razón**, las tres obligatorias: sin razón no exime nada, y el
+`@1` es la versión de esta regla — el día que cambie, su `version:` sube y las marcas viejas
+dejan de valer solas, así que alguien tiene que releer si la excusa sigue siendo cierta. El
+mecanismo completo está en `codigo.md` · "Un archivo se lee de una sentada".
+
+⚠️ Estuvo marcada `sin check: umbral heurístico` hasta el 25/08/2026, y mientras tanto
+`useStratixData` llegó a catorce `useState` y `useAppData` a veinte.
 
 Vale igual para un componente y para un **hook personalizado** — el hook que declara diez
 `useState` tiene el mismo problema que el componente. Un formulario no es un `useState` por campo.
@@ -218,10 +438,52 @@ modal abierto — porque nunca viajan al mismo tiempo. En un hook la barra es m�
 objeto de estado crece, es señal de que parte del hook merece ser otro hook (una responsabilidad,
 un archivo).
 
+**Si los cuatro son genuinamente independientes, la salida NO es inventar un objeto.** Es que el
+archivo tiene cuatro responsabilidades y le toca partirse: un hook por responsabilidad, que es lo
+que dice el párrafo de arriba. Agrupar en un objeto campos que no viajan juntos es peor que
+tenerlos sueltos — esconde el problema en vez de arreglarlo.
+
 **Motivo:** cada `useState` suelto es una oportunidad más de que dos campos queden desincronizados
 — el clásico es guardar a medias o resetear cinco setters donde uno bastaba. Con el objeto, resetear
 es `setForm(emptyForm)` y precargar es asignar el objeto entero: una línea en vez de diez, y ninguna
 posibilidad de olvidar un campo.
+
+## El objeto de estado se desestructura una vez, no se lee por camino
+
+<!-- check: block
+     detector: estado_accedido_por_camino
+     files: .ts,.tsx
+     test: falla :: const [form, setForm] = useState(v); if (form.titulo) return form.empresa
+     test: pasa :: const [form, setForm] = useState(v); const { titulo, empresa } = form; if (titulo) return empresa
+     test: pasa :: const [actividades, setActividades] = useState([]); return actividades.length
+     test: pasa :: const [acts, setActs] = useState([]); acts.map(a => a); acts.filter(Boolean)
+     test: falla existente :: const [form, setForm] = useState(v); if (form.titulo) return form.empresa
+-->
+
+Juntar los campos en un objeto (la regla de arriba) no se paga escribiendo `form.` cincuenta
+veces. Se desestructura **una sola vez**, junto al `useState`, y el resto del archivo usa los
+nombres sueltos:
+
+```ts
+// ❌ el prefijo se repite y cada lectura vuelve a decir de dónde sale
+const [criterios, setCriterios] = useState(SIN_CRITERIOS)
+if (criterios.departamento !== SIN_FILTRO && m.departamento !== criterios.departamento) return false
+
+// ✅ una línea dice de dónde salen; después se leen como lo que son
+const [criterios, setCriterios] = useState(SIN_CRITERIOS)
+const { busqueda, departamento } = criterios
+if (departamento !== SIN_FILTRO && m.departamento !== departamento) return false
+```
+
+**Escribir sigue siendo por el setter** (`setCriterios(p => ({ ...p, busqueda }))`): lo que se
+desestructura es la LECTURA. Y un estado que es un array no entra acá — `acts.map(...)`,
+`acts.length` son el array mismo, no campos de un objeto.
+
+**Motivo:** el prefijo repetido es ruido que además tapa el cambio real en el diff: una línea que
+dice `criterios.departamento !== SIN_FILTRO && m.departamento !== criterios.departamento` obliga a
+leerla dos veces para ver que compara dos cosas distintas. Con los nombres sueltos, la condición
+se lee de una. Es la misma razón que la de los `style` inline y los handlers de bloque: el detalle
+mecánico tapando lo que importa.
 
 ## El componente renderiza; todo lo demás vive afuera
 <!-- sin check: convención estructural de distribución entre archivos -->

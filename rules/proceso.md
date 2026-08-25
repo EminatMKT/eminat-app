@@ -23,6 +23,54 @@ se olvida. El centinela ya corre antes de cada Write/Edit: un check cuesta cinco
 pasa a obedecerse sola. La exención explícita deja rastro de qué quedó fuera y por qué, en vez de
 un silencio que nadie distingue de un olvido.
 
+## La marca: cuando no se puede verificar el contenido, se verifica la firma
+
+<!-- check: block
+     detector: marca_mal_formada
+     files: .ts,.tsx,.md
+     except: rules/centinela/
+     test: pasa :: // centinela-exime: useState@1 — la ficha y el formulario son dos cosas
+     test: pasa :: // centinela-exime: archivo-extenso@2 - es una plantilla HTML
+     test: pasa :: const x = 1
+     test: falla :: // centinela-exime: useState — sin versión no vale
+     test: falla :: // centinela-exime: archivo-extenso@1
+     test: falla existente :: // centinela-exime: useState — sin versión no vale
+-->
+
+Hay reglas que un detector no puede juzgar mirando un archivo: si este markup se parece a otro
+del repo, si estas dos responsabilidades son de verdad una sola. Antes esas reglas salían con
+`<!-- sin check: … -->` y quedaban libradas a la memoria. **Ahora tienen una tercera salida: se
+verifica que alguien las haya revisado y firmado.**
+
+```ts
+// centinela-exime: bloques-similares@1 — busqué StatCard, MetricBox y las tarjetas del
+// tablero de Research: ninguna admite una fila de detalle, así que este nace aparte.
+```
+
+**Formato, y las tres partes son obligatorias:**
+
+| parte | qué es | si falta |
+|---|---|---|
+| `clave` | qué regla se está firmando (la que declara `exime:`) | no exime |
+| `@versión` | la versión de esa regla, la que declara `version:` | no exime |
+| `— razón` | qué se revisó y por qué se decidió así | no exime |
+
+**Una regla la habilita declarando `exime: <clave>` y `version: N` en su bloque `check:`.** El
+motor mira la marca ANTES que al detector: si coincide clave y la versión es la vigente, el
+archivo pasa. Si la regla cambia, se sube su `version:` y **todas sus marcas caducan solas** — el
+archivo vuelve a frenar y alguien tiene que releer si la excusa sigue siendo cierta.
+
+**Se firma una decisión, no se pide permiso.** Una marca sin razón no es una marca: por eso el
+check de arriba frena una marca mal escrita. Es el fallo más traicionero del mecanismo — una
+marca a medias no exime de nada y el archivo frena por la regla original, sin que nadie relacione
+una cosa con la otra.
+
+**Motivo:** entre "la regla se cumple" y "la regla no se puede verificar" faltaba un escalón, y
+sin él la mitad de las reglas del repo vivía en el segundo. La firma no prueba que la decisión
+sea correcta —eso ningún hook puede—, prueba que **se tomó**: que alguien miró, decidió y dejó
+escrito qué miró. Con el versionado, además, esa firma tiene fecha de vencimiento: la deuda
+anotada envejece a la vista, en vez de volverse permanente el día que se escribió.
+
 ## No se dice "funciona" sin haber corrido algo
 <!-- sin check: regla de comportamiento del agente, no de contenido de código -->
 
@@ -35,6 +83,34 @@ Vale igual para lo que reportan otros agentes o herramientas: se confirma antes 
 **Motivo:** "compila" y "funciona" son dos afirmaciones distintas, y la segunda es la que se cree
 el que la lee. Un `tsc` limpio no dice nada de un dropdown que se ve elegido mientras el estado
 está vacío — ese bug pasó todos los tipos y todos los tests durante meses.
+
+## Una herramienta se prueba corriéndola, y se prueba que FALLA cuando debe
+
+<!-- sin check: es la obligación de ejecutar algo, y lo que la verifica es justamente la corrida
+     del self-check (`bun rules/centinela/main.ts --self-check`), que el hook ya exige -->
+
+Vale para todo lo que no es la app: el centinela, un script de migración, un chequeo de CI. Dejar
+de darlo por hecho tiene dos pasos, y el segundo es el que se saltea:
+
+1. **Correrlo.** Un script que nadie ejecutó no está terminado, está escrito.
+2. **Romper a propósito lo que debería detectar y ver que lo detecta.** Una herramienta de
+   control que nunca se vio fallar puede estar devolviendo "todo bien" porque no mira nada.
+
+**Al tocar `rules/centinela/`, el paso 1 es `bun rules/centinela/main.ts --self-check`**, antes de
+seguir con cualquier otra cosa.
+
+**Y una herramienta de control nunca se traga sus propios errores.** Si un detector explota, el
+centinela reporta `(CHECK ROTO)` y frena; no lo saltea. Un `catch { continue }` ahí convierte un
+detector con un bug en un detector que "no dispara nunca", que es la peor forma de fallar que
+puede tener un guardia: silenciosa y del lado que parece bueno.
+
+**Motivo:** el 25/08/2026 se editó `detectores.ts` con un reemplazo por índices que borró dos
+funciones y una constante. El `tsc` del proyecto no lo vio —el centinela corre con Bun, fuera del
+`tsconfig` de la app— y el self-check **tampoco**, porque `revisar()` envolvía cada check en un
+`try { … } catch { continue }`: el detector roto se comportaba exactamente igual que uno que no
+encuentra nada. Dos reglas quedaron mudas y sólo se descubrió al correr un script de medición a
+mano. Se arregló el `catch` para que grite, y se verificó rompiendo un detector a propósito y
+comprobando que el self-check falla.
 
 ## Un commit es una unidad revisable, y el mensaje dice el porqué
 <!-- sin check: práctica de git que ocurre fuera de los archivos -->
@@ -108,6 +184,37 @@ conversación.
 
 **Motivo:** `.todo/` es lo único que sobrevive a que se cierre la sesión. Todo lo demás hay que
 reconstruirlo leyendo commits.
+
+## El que toca un archivo lo deja en la convención vigente
+
+<!-- check: block
+     detector: componente_fuera_de_carpeta
+     files: .tsx
+     test: falla @src/features/directorio/components/DepartmentChip.tsx :: export default function DepartmentChip() { return <p /> }
+     test: pasa @src/features/directorio/components/DepartmentChip/index.tsx :: export default function DepartmentChip() { return <p /> }
+     test: pasa @src/app/(app)/page.tsx :: export default function Page() { return <p /> }
+     test: falla existente @src/features/directorio/components/DepartmentChip.tsx :: export default function DepartmentChip() { return <p /> }
+-->
+
+Las convenciones de este directorio no se aplican sólo a lo que nace: **abrir un archivo para
+cambiarlo es el momento de ponerlo al día**. Un componente suelto pasa a su carpeta con su
+`index.module.css`; los `style` inline y los `../../` de ESE archivo se arreglan; los imports
+sueltos de `src/shared/` pasan por el barrel.
+
+**El alcance es el archivo que ya estabas tocando, nada más.** No se aprovecha para migrar los
+vecinos ni el módulo entero: eso produce el diff de cuarenta archivos que nadie revisa, que es
+justo lo que estas reglas tratan de evitar.
+
+**Lo mecánico lo frena el centinela** (hoy: 150 componentes sueltos contra 102 ya en carpeta).
+Lo demás —los estilos, los imports— depende de que se mire el archivo al abrirlo.
+
+**Motivo:** una convención que sólo rige para el código nuevo nunca llega al viejo, y el repo
+queda partido en dos mitades con dos estilos; a los seis meses ya no se sabe cuál es la vigente.
+Migrar por contacto reparte el costo entre quienes ya tienen el archivo abierto y el contexto en
+la cabeza, en vez de juntarlo en una migración masiva que nadie va a hacer nunca. Pasó el mismo
+25/08/2026: se editó `DepartmentChip.tsx` para sacarle un literal y se lo dejó suelto y con
+`style` inline — el archivo estaba abierto, el cambio costaba dos minutos, y aun así se pasó por
+alto. Por eso ahora lo pregunta el hook y no la memoria.
 
 <!-- check: contact
      pattern: (//|\{/\*|/\*)\s*(TODO|FIXME)
