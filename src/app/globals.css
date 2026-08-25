@@ -32,6 +32,9 @@ html, body, * {
   --c-t2: #6B7280;
   --c-t3: #9CA3AF;
   --c-accent: #7C6FF7;
+  /* El rojo de lo destructivo. Estaba escrito a mano en cada botón de borrar del repo, que es
+     como se llega a tres rojos distintos para la misma señal. */
+  --c-danger: #F87171;
 }
 
 * {
