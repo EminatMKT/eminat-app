@@ -1,6 +1,6 @@
 import { MESES } from '@/shared/context/AppContext'
 import { ESTADO } from '@/shared/constants/domain'
-import type { Actividad, NuevaActForm } from '../../types'
+import type { Actividad, NuevaActForm } from '../types'
 
 // Mapea una actividad existente al formulario "New task" para reusar ese modal
 // en modo edición. Los campos numéricos llegan de la DB como number|string y el
