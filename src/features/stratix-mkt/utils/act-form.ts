@@ -22,3 +22,15 @@ export const actividadAForm = (a: Actividad): NuevaActForm => ({
   solicitante_id: str(a.solicitante_id),
   drive_url: str(a.drive_url),
 })
+
+// Guardar una edición pide confirmación, pero solo si hay algo que pisar: sin esto, abrir el
+// editor y cerrarlo con el botón de guardar preguntaba igual, y una confirmación que aparece
+// cuando no pasa nada es la que después se aprieta sin leer.
+// Se compara el FORM contra el mapeo del original —no la Actividad cruda— porque el form es lo
+// que el usuario ve y lo que se va a escribir. El título va trimeado en los dos lados: el
+// payload lo trimea al guardar, así que un espacio al final no es un cambio, no se guardaría.
+export const hayCambios = (form: NuevaActForm, original: Actividad): boolean => {
+  const base = actividadAForm(original)
+  const campos = Object.keys(base) as (keyof NuevaActForm)[]
+  return campos.some(k => (k === 'titulo' ? form[k].trim() !== base[k].trim() : form[k] !== base[k]))
+}

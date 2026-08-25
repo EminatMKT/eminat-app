@@ -1,0 +1,24 @@
+/* Sin margen propio: va en la zona fija del Modal, que ya pone su padding. */
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.titulo {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--c-t1);
+}
+.sub {
+  font-size: 11px;
+  color: var(--c-t3);
+  margin-top: 2px;
+}
+.cerrar {
+  background: none;
+  border: none;
+  color: var(--c-t3);
+  font-size: 22px;
+  cursor: pointer;
+}
