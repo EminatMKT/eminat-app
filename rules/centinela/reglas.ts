@@ -1,56 +1,24 @@
-// Lectura de las reglas: tipos, parser de secciones y carga de checks con sus tests.
+// centinela-exime: archivo-extenso@1 — 63 líneas y ya salieron los tipos (tipos.ts) y el
+// parseo de markdown (parser-md.ts). Lo que queda es UNA función, `cargar()`: partirla más
+// dejaría mitades que sólo se usan entre sí.
+// Lectura de las reglas: carga de los checks con sus tests desde rules/*.md.
 // La sintaxis completa (bloques <!-- check: --> y líneas test:) vive en rules/README.md.
 
 import { readFileSync, readdirSync } from "node:fs"
 import { join } from "node:path"
+import type { Check, TestDeRegla } from "./tipos.ts"
+
+export type { Check, TestDeRegla }
+import { secciones, motivo } from "./parser-md.ts"
+
+export { secciones }
 
 export const RULES = join(import.meta.dir, "..")
 export const RUTA_TEST = "src/features/x/components/Y/index.tsx" // ruta default para los test:
 
 const CHECK_RE = /<!--\s*check:\s*([\s\S]*?)\s*-->/g
-const FENCE_RE = /```[\s\S]*?```/g
 
-export type TestDeRegla = {
-  esperaFalla: boolean
-  esNuevo: boolean
-  path: string
-  contenido: string
-}
-
-export type Check = {
-  soloNuevos: boolean
-  regla: string
-  motivo: string
-  pattern?: string
-  detector?: string
-  requires?: string
-  absent?: string
-  files: string[]
-  except: string[]
-  paths?: string[]
-  tests: TestDeRegla[]
-}
-
-export function secciones(md: string): [string, string][] {
-  // (título, cuerpo) por cada ## o ###; sin los ``` para no leer ejemplos.
-  const out: [string, string][] = []
-  let titulo: string | null = null
-  let cuerpo: string[] = []
-  for (const linea of md.replace(FENCE_RE, "").split("\n")) {
-    if (/^#{2,3}\s/.test(linea)) {
-      if (titulo) out.push([titulo, cuerpo.join("\n")])
-      titulo = linea.replace(/^#+\s*/, "").trim()
-      cuerpo = []
-    } else if (titulo) cuerpo.push(linea)
-  }
-  if (titulo) out.push([titulo, cuerpo.join("\n")])
-  return out
-}
-
-function motivo(cuerpo: string): string {
-  const m = cuerpo.match(/\*\*Motivo:?\*\*:?\s*([\s\S]+?)(?:\n\n|$)/)
-  return m ? m[1].split(/\s+/).join(" ").trim() : ""
-}
+const CAMPOS_DEL_MOTOR = new Set(["pattern", "detector", "requires", "absent", "exime", "version", "files", "except", "paths"])
 
 export function cargar(): Check[] {
   const checks: Check[] = []
@@ -83,9 +51,12 @@ export function cargar(): Check[] {
           detector: campos.detector,
           requires: campos.requires,
           absent: campos.absent,
+          exime: campos.exime,
+          version: campos.version ? Number(campos.version) : undefined,
           files: (campos.files ?? "").split(",").map((s) => s.trim()).filter(Boolean),
           except: (campos.except ?? "").split(",").map((s) => s.trim()).filter(Boolean),
           paths: campos.paths ? campos.paths.split(",").map((s) => s.trim()).filter(Boolean) : undefined,
+          params: Object.fromEntries(Object.entries(campos).filter(([k]) => !CAMPOS_DEL_MOTOR.has(k))),
           tests,
         })
       }

@@ -2,8 +2,9 @@
 /**
  * Centinela de las reglas del repo — motor compartido por todos los CLIs.
  * No contiene ninguna regla: las lee de rules/*.md (sintaxis en rules/README.md).
- * Piezas: reglas.ts (parser) · detectores.ts · evaluar.ts · contexto.ts ·
- * mensajes.ts · self-check.ts · main.ts (protocolos de cada CLI).
+ * Piezas: reglas.ts (parser) · detectores/ (uno por archivo) · detectores.ts (el registro) ·
+ * evaluar.ts · contexto.ts · mensajes.ts · self-check.ts · modos.ts (protocolos) ·
+ * main.ts (despacho).
  *
  * Modos:
  *   (sin args)     hook PreToolUse de Claude Code: JSON por stdin, exit 2 bloquea
@@ -11,39 +12,9 @@
  *   contexto CMD…  títulos de reglas aplicables antes de ese comando Bash
  *   --self-check   corre los tests declarados en las reglas; falla EN VOZ ALTA
  */
-import { revisar } from "./evaluar.ts"
 import { contexto } from "./contexto.ts"
-import { checklist } from "./mensajes.ts"
 import { selfCheck } from "./self-check.ts"
-
-async function modoHook(): Promise<number> {
-  let payload: any
-  try { payload = JSON.parse(await Bun.stdin.text()) } catch { return 0 }
-  const tool: string = payload.tool_name ?? ""
-  const ti = payload.tool_input ?? {}
-  const path = String(ti.file_path ?? "").replace(/\\/g, "/")
-
-  if (tool === "Bash") {
-    const ctx = contexto(String(ti.command ?? ""))
-    if (ctx)
-      console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: "PreToolUse", additionalContext: ctx } }))
-    return 0
-  }
-
-  if (!["Write", "Edit", "MultiEdit"].includes(tool) || !path) return 0
-  let texto = ti.content || ti.new_string || ""
-  for (const e of ti.edits ?? []) texto += "\n" + (e.new_string || "")
-  const fallan = revisar(path, texto)
-  if (!fallan.length) return 0
-  console.error(checklist(path, fallan))
-  return 2
-}
-
-async function modoCheck(path: string): Promise<number> {
-  const fallan = revisar(path, await Bun.stdin.text())
-  console.log(JSON.stringify({ fallan }))
-  return 0
-}
+import { modoHook, modoCheck } from "./modos.ts"
 
 const argv = process.argv.slice(2)
 let code: number
@@ -62,8 +33,11 @@ if (argv.includes("--self-check")) {
       process.stdout.write(contexto(argv.slice(1).join(" ")))
       code = 0
     } else code = await modoHook()
-  } catch {
-    code = 0 // un centinela roto NUNCA frena el trabajo
+  } catch (e) {
+    // Un centinela roto NUNCA frena el trabajo — pero SÍ avisa. Callarse dejaba al guardia
+    // ciego y a nadie enterado, que es la peor de las dos fallas posibles.
+    console.error(`⚠️  centinela caído (no bloquea): ${(e as Error).message}`)
+    code = 0
   }
 }
 process.exit(code)
