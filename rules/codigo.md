@@ -14,6 +14,13 @@ no descripciones del proyecto, así que su lugar es este directorio.
      test: falla existente :: const x: any = 1
 -->
 
+<!-- check: contact
+     pattern: as\s+unknown\s+as
+     files: .ts,.tsx
+     test: falla :: const x = dato as unknown as Company
+     test: pasa :: const x = dato as Company
+-->
+
 `any` está prohibido por ESLint (`no-explicit-any: error`). Cuando un tipo no cierra, la salida es
 `Pick`/`Omit`/`Partial` sobre los tipos que ya existen, o `unknown` con un narrowing explícito —
 nunca `any`, y nunca un `as` que solo silencia al compilador.
@@ -77,6 +84,24 @@ falla al escribirlo: falla al rato, en otra pantalla, y no se parece a su causa.
 
 Vale para el cliente del **browser**. Las rutas API instancian el suyo con `service_role` a
 propósito (`src/shared/db/supabaseAdmin.ts`), que es otra cosa y por eso está exceptuado.
+
+## La llave `service_role` sólo se usa dentro de una ruta API
+
+<!-- check: block
+     pattern: supabaseAdmin|SUPABASE_SERVICE_ROLE_KEY
+     files: .ts,.tsx
+     except: /api/,/shared/db/,instrumentation.ts
+     test: falla @src/features/x/hooks/useExport.ts :: import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
+     test: pasa @src/app/api/admin/x/route.ts :: import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
+-->
+
+`supabaseAdmin` saltea toda la RLS: es root de la base, no "otro cliente". Sólo tiene sentido
+donde hay un guard que valida quién pide qué — una ruta API abierta con `requireAdmin()` /
+`requireModule()`. En un componente del browser, además de no tener guard, **la llave viaja
+dentro del bundle y queda pública**.
+
+**Motivo:** `/api/mail/campaigns` fue un CRUD con service_role sin autenticar sobre datos reales.
+Y el guard faltante no falla: funciona de más, y lo nota primero alguien de afuera.
 
 ## i18n: integrar, no ignorar
 
@@ -280,3 +305,10 @@ en el módulo, y así es como aparecen los tres `StatCard`.
 **El costo, dicho:** un barrel de re-exportación nombrada arrastra a sus vecinos al grafo de
 módulos hasta que el bundler los sacude. Con `export { x } from './y'` (nombrado, no
 `export * from`) Next 14 lo resuelve bien, y por eso la forma nombrada es la default acá.
+
+<!-- check: contact
+     pattern: from\s+['"]@/shared/(utils|hooks|data|db)/[a-z]
+     files: .ts,.tsx
+     test: falla :: import { parseDelimited } from '@/shared/utils/delimited'
+     test: pasa :: import { parseDelimited, localDate } from '@/shared/utils'
+-->

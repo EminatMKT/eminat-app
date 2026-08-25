@@ -107,6 +107,19 @@ Los tokens **claros del tablero** todavía viven en JS (`src/shared/components/d
 El primer componente de tablero que se migre los pasa a variables CSS y deja el objeto JS leyendo
 de ahí, no al revés: la fuente de verdad de un color tiene que ser el CSS.
 
+**Motivo:** un hex hardcodeado en el `.tsx` es una segunda copia del color que vive fuera de la
+paleta: el día que se cambie el tema o la paleta, ese componente no se entera, y nadie encuentra
+todas las copias porque nunca hubo una lista de dónde están.
+
+<!-- check: contact
+     pattern: #[0-9a-fA-F]{6}\b
+     files: .tsx
+     except: /shared/constants/
+     test: falla :: <Bar dataKey="h" fill="#7C6FF7" />
+     test: falla :: const estilo = { background: '#1a2b3c' }
+     test: pasa :: <Bar dataKey="h" fill={meta.color} />
+-->
+
 ## El test acompaña, pero no se inventa
 
 El `index.test.tsx` cubre la **lógica** del componente: la que decide qué se muestra, cómo se

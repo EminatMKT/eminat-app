@@ -82,6 +82,14 @@ conversación.
 **Motivo:** `.todo/` es lo único que sobrevive a que se cierre la sesión. Todo lo demás hay que
 reconstruirlo leyendo commits.
 
+<!-- check: contact
+     pattern: (//|\{/\*|/\*)\s*(TODO|FIXME)
+     files: .ts,.tsx
+     test: falla :: // TODO: mover esto a shared cuando madure
+     test: falla :: { /* FIXME revisar el caso del borde */ }
+     test: pasa :: const todoList = [] // la palabra suelta no es un comentario pendiente
+-->
+
 ## El build de verificación no se corre contra el `.next` del dev server
 
 Para verificar se usa `pnpm build:check`, que escribe en `.next-verify/`. **Nunca `next build` a

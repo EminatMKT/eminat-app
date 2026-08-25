@@ -66,3 +66,24 @@ dominio se queda en el módulo: `FilterBar` es compartido y `FiltersPanel` —qu
 **Motivo:** mover un componente después cuesta mucho más que nacerlo en el lugar correcto. El
 tablero de Research tardó tres meses en llegar a `src/shared/`, y para entonces ya había tres
 `StatCard` en el repo. Cuando se dudó, el costo lo pagó el que vino después.
+
+## Las consultas a tablas viven en `src/shared/data/`
+
+<!-- check: contact
+     pattern: (?<!Array)\.from\(
+     files: .ts,.tsx
+     except: /shared/data/,/api/,test
+     test: falla :: const { data } = await supabase.from('leads').select('*')
+     test: pasa existente :: const { data } = await supabase.from('leads').select('*')
+     test: pasa @src/shared/data/research.ts :: await supabase.from('leads').select('*')
+     test: pasa @src/app/api/x/route.ts :: await supabase.from('leads')
+     test: pasa :: const urls = Array.from(nombres)
+-->
+
+Un `.from('tabla')` es una consulta directa a la base: su lugar es un repo de `src/shared/data/`
+(bajo RLS) o una ruta API con su guard — nunca un componente ni un hook. Si el frontend necesita
+un dato que la capa de datos no expone, se agrega ahí, no al lado del botón que lo usa.
+
+**Motivo:** consultas dispersas = filtros duplicados y números que nadie puede explicar (ver
+`ui.md`). Y cada `.from()` nuevo por su cuenta es una oportunidad más de saltarse la regla del
+seed: filas que ningún formulario produce, agujeros de UI que nadie vio.
