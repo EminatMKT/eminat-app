@@ -1,6 +1,18 @@
 # Stratix: editar y eliminar tarea (+ errores silenciados) — Plan de implementación
 
-> **ESTADO (25/08/2026):** Tasks 1–7 ejecutadas y verificadas (commits `200c256`..`02b290f` en `development`; vitest 395/395; migración aplicada vía psql en local). Revisión final whole-branch: ready to merge, 5 minors en diferido. Task 8 omitida por decisión de Wagner (sin PROD_DB_URL). QA manual del Task 7 pendiente. Rollout a dev/prod tras aprobar QA.
+> **ESTADO (25/08/2026, tarde):** Tasks 1–7 ejecutadas **y el QA manual del Task 7 corrido en el navegador** — los 7 pasos pasaron, más el borrado de una tarea **con notificación vinculada** (la notificación sobrevivió con `actividad_id` NULL: la migración de FKs quedó probada end-to-end, no solo por catálogo). vitest 399/399, `tsc --noEmit` 0 errores en `src/`.
+>
+> **Task 8 sigue pendiente** (falta la `PROD_DB_URL`), anotado en `.todo/TODO.md`. ⚠️ Su Step 8 dice `supabase db reset`, **prohibido en este repo**: al ejecutarlo, reemplazar por `migration up`.
+>
+> **El QA disparó una segunda tanda de cambios pedidos por Wagner sobre la marcha**, fuera del plan original y sin commitear todavía:
+> - Ficha: Editar/Borrar movidos a la cabecera, a la derecha de los chips.
+> - `Modal` compartido: encabezado FIJO y cuerpo scrolleable (prop `header` nueva).
+> - `confirm()` nativo reemplazado por el `ConfirmModal` que ya usaba Admin; confirmación también al **guardar** una edición, y **solo si hubo cambios** (`hayCambios()` en `act-form.ts`, con sus 4 tests).
+> - `EditButton` y `DeleteButton` nuevos en `src/shared/components/ui/`, más el token `--c-danger`.
+> - Cerrar el editor vuelve a la ficha (`cerrarFormAct` vs `resetFormAct`).
+> - Editores rápidos de estado y fecha **comentados** en la ficha (no borrados), y en su lugar se muestran los campos que faltaban.
+> - **Bug encontrado y arreglado:** `verificado` es texto de cuatro valores, no booleano — la ficha decía "✓ Sí" para cualquier tarea. Nuevo catálogo `VERIFICADO` en `domain.ts`.
+> - **Dos reglas nuevas** en `rules/`, con check y tests: funciones con cuerpo dentro de una prop (`block`) y tres tipos/enumeraciones o más por archivo (`contact`).
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -441,15 +453,16 @@ SELECT conrelid::regclass, conname, confdeltype FROM pg_constraint WHERE conname
 - [x] `npx vitest run` → todos en verde (incluye los 3 de `act-form.test.ts`)
 - [x] Chequeo SQL de la migración contra Supabase local (vincular dependencias y borrar una tarea por SQL, verificar `actividad_id = null` en las tres tablas — mismo ensayo del Task 8 Step 6, sin UI)
 
-**Manual (la hace WAGNER con la extensión de Claude en el navegador — sin Playwright, sin scripts).** Login local: `freddy@eminat.net` / `eminat123`. Checklist en orden, ~5 min:
+**Manual — CORRIDA el 25/08/2026 en el navegador (sesión ya abierta como Admin Local, no freddy). Resultado: los 7 pasos pasaron.** Login local si hace falta: `freddy@eminat.net` / `eminat123`. Checklist:
 
-1. Crear tarea → aparece en Kanban.
-2. Ficha → **Editar** → cambiar título/responsable/horas → Guardar → se ve el cambio y sobrevive F5.
-3. Editar → limpiar descripción/drive_url → Guardar → quedan vacíos tras F5.
-4. Ficha → **Eliminar** → confirmar → desaparece y sobrevive F5.
-5. Editar → Cancelar con la ✕ del encabezado → "New task" → abre LIMPIO en modo creación (no precargado).
-6. Español: validaciones y mensajes sin inglés duro.
-7. Opcional: borrar desde el Gantt y desde Solicitudes (misma ficha, mismos botones).
+1. ✅ Crear tarea → apareció en Kanban (270 → 271, con marca, responsable, horas y el ícono de Drive).
+2. ✅ Ficha → **Editar** → título/responsable/horas → Guardar → toast "✓ Tarea actualizada", cambio visible, sobrevivió F5. No duplicó (siguió en 271).
+3. ✅ Editar → limpiar descripción y drive_url → Guardar → los dos quedaron vacíos tras F5 (el bloque de descripción y el link de Drive desaparecieron de la ficha).
+4. ✅ Ficha → **Borrar** → confirmar → 271 → 270, desapareció del Kanban.
+5. ✅ Editar → cerrar con la ✕ → "Nueva tarea" abrió LIMPIA en modo creación (responsable en "— Elegir —"), sin arrastrar `actEditando`.
+6. ✅ Español: modal, validaciones, toasts y confirmación, todo en español, sin inglés duro.
+7. ✅ **Extra, más fuerte que el punto 7 original:** se creó una tarea con responsable ≠ usuario actual (la app le insertó su notificación), y se la borró desde la UI. El DELETE **no reventó por FK** y la notificación sobrevivió con `actividad_id = NULL` — la migración del Task 6 probada con datos, no solo por catálogo.
+   ⚠️ `slots_calendario` y `solicitudes` están vacías en local y la convención prohíbe poblarlas por SQL: sus FKs quedaron verificadas solo por `confdeltype = 'n'`. Anotado en `.todo/TODO.md`.
 
 Si algo falla acá, volver al plan y corregir antes de tocar dev/prod.
 
