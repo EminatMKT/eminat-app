@@ -25,6 +25,13 @@ filtros existen— se resuelve en `src/features/<modulo>/` y se pasa hacia adent
 dominio de Research. Un componente compartido que importa de `src/features/` deja de ser compartido:
 encadena los dos módulos y el próximo que lo reuse hereda leads que no le importan.
 
+<!-- check: block
+     paths: src/shared/components/dashboard/
+     pattern: from\s+['"](@/features|\.\./\.\./)
+     test: falla @src/shared/components/dashboard/StatCard/index.tsx :: import { STAGE } from '@/features/research'
+     test: pasa @src/shared/components/dashboard/StatCard/index.tsx :: import { fmtMonto } from '@/shared/utils'
+-->
+
 **Regla práctica:** si al mover un componente a `src/shared/` hay que llevarse un import de
 `src/features/`, ese import es la prueba de que falta un prop.
 

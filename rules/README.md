@@ -59,7 +59,8 @@ Una clave por línea: el separador no puede ser `|` porque los regex lo usan par
 Campos: `pattern` (regex que dispara), `detector` (nombre de una función del centinela, para lo que
 un regex no expresa —la excepción de las variables CSS, por ejemplo—), `requires` (sólo evalúa
 si esto está), `absent` (dispara si esto NO está), `files` y `except` (sufijos y subcadenas de
-ruta).
+ruta) y `paths` (subcadenas de ruta que amplían el alcance más allá de `src/`, ej. las migraciones
+en `supabase/migrations/`).
 
 **Todo check lleva sus `test:`**, una línea por caso, dentro del mismo bloque:
 

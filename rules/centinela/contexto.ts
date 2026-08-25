@@ -6,7 +6,9 @@ import { RULES, secciones } from "./reglas.ts"
 
 const ROUTES: [RegExp, string][] = [
   [/\bgit\s+commit\b/, "proceso.md"],
-  [/supabase|db\s+push|psql|pg_dump/, "base-de-datos.md"],
+  [/git\s+add\s+-A/, "proceso.md"],
+  [/next\s+build(?!\w)/, "proceso.md"],
+  [/supabase|db\s+push|psql|pg_dump|db\s+reset/, "base-de-datos.md"],
 ]
 
 function staged(): string {

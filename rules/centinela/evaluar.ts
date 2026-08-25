@@ -5,7 +5,12 @@ import { cargar, type Check } from "./reglas.ts"
 import { DETECTORES } from "./detectores.ts"
 
 export function dispara(chk: Check, path: string, texto: string): boolean {
-  if (!path.includes("/src/") && !path.startsWith("src/")) return false
+  // `paths:` amplía el alcance más allá de src/ (ej. migraciones SQL).
+  if (chk.paths?.length) {
+    if (!chk.paths.some((p) => path.includes(p))) return false
+  } else if (!path.includes("/src/") && !path.startsWith("src/")) {
+    return false
+  }
   if (chk.files.length && !chk.files.some((f) => path.endsWith(f))) return false
   if (chk.except.some((x) => path.includes(x))) return false
   if (chk.requires && !new RegExp(chk.requires).test(texto)) return false

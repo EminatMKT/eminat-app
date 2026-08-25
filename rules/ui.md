@@ -5,6 +5,15 @@
 Un desplegable cuyo valor es obligatorio lleva `<option value="">— Select —</option>` como primera
 opción, y la validación rechaza el vacío.
 
+<!-- check: contact
+     requires: <select
+     absent: value=""
+     files: .tsx
+     test: falla :: <select>{opciones.map(o => <option>{o}</option>)}</select>
+     test: pasa existente :: <select>{opciones.map(o => <option>{o}</option>)}</select>
+     test: pasa :: <select><option value="">— Select —</option>{opciones.map(o => <option>{o}</option>)}</select>
+-->
+
 **Motivo:** sin placeholder el navegador pinta la primera opción de la lista, pero el estado sigue
 en `''`. Las dos formas de terminar mal ya pasaron en este repo: "New task" asignaba tareas a
 Angie porque era la primera de la lista y nadie la había elegido (QA 12/08, hallazgo #3), y el

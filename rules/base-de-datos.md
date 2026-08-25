@@ -78,6 +78,15 @@ más caracteres a la lista que al tipo — con seis valores no entra en el ancho
 la definición de la tabla deja de poder leerse de un vistazo. Es la misma razón por la que el
 atributo `style` está prohibido en el JSX: el detalle tapa la estructura.
 
+<!-- check: block
+     detector: check_inline_enum
+     paths: supabase/
+     files: .sql
+     test: falla @supabase/migrations/20260825000000_x.sql :: genero  text CHECK (genero IN ('M','F','NB','ND')),
+     test: pasa @supabase/migrations/20260825000000_x.sql :: CREATE DOMAIN public.genero AS text CHECK (VALUE IN ('M','F','NB','ND'));
+     test: pasa @supabase/migrations/20260825000000_x.sql :: ALTER TABLE pacientes ADD CONSTRAINT ok CHECK (edad >= 0)
+-->
+
 Y hay dos motivos mecánicos que el inline no da:
 
 - **Un `CHECK` inline es anónimo.** Postgres le inventa un nombre (`pacientes_genero_check`,
@@ -127,6 +136,15 @@ diferencia de que acá funciona de más para una sola persona, y esa persona es 
 
 El `RAISE EXCEPTION` cuesta tres líneas y hace que la migración aborte **al aplicarse**, en vez
 de dejar tablas silenciosas que alguien va a descubrir cuando un médico diga que no ve nada.
+
+<!-- check: block
+     requires: has_module
+     absent: RAISE EXCEPTION
+     paths: supabase/migrations/
+     files: .sql
+     test: falla @supabase/migrations/20260825000000_x.sql :: EXECUTE format('CREATE POLICY "mod_access" ON public.%I USING (public.has_module(%L))', tbl, slug);
+     test: pasa @supabase/migrations/20260825000000_x.sql :: IF NOT EXISTS (SELECT 1 FROM public.role_modules WHERE module_slug = slug) THEN RAISE EXCEPTION 'slug desconocido'; END IF;
+-->
 
 El arreglo de fondo es un catálogo `modules` con FK desde `role_modules.module_slug`. Mientras
 no exista, esta regla es lo que hay: está anotado en `.todo/TODO.md`.

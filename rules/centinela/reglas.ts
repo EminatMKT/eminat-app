@@ -27,6 +27,7 @@ export type Check = {
   absent?: string
   files: string[]
   except: string[]
+  paths?: string[]
   tests: TestDeRegla[]
 }
 
@@ -84,6 +85,7 @@ export function cargar(): Check[] {
           absent: campos.absent,
           files: (campos.files ?? "").split(",").map((s) => s.trim()).filter(Boolean),
           except: (campos.except ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+          paths: campos.paths ? campos.paths.split(",").map((s) => s.trim()).filter(Boolean) : undefined,
           tests,
         })
       }
