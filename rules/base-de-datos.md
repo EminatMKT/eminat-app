@@ -1,6 +1,7 @@
 # Base de datos
 
 ## `supabase db reset` está prohibido en este repo
+<!-- sin check: prohibición de un comando operativo, no patrón de contenido SQL -->
 
 Para aplicar migraciones en local se usa `pnpm supabase migration up`. Nunca `db reset`.
 
@@ -14,6 +15,7 @@ una rama sin mergear: **tampoco**. Reescriben el historial de esa rama. El worka
 el `.sql` por psql, que es idempotente.
 
 ## Antes de un `db push` a dev o a prod: backup y precheck, en ese orden
+<!-- sin check: secuencia operativa de despliegue, ocurre fuera del diff -->
 
 1. **Backup** de **todas** las tablas que la migración toca, no solo la obvia.
 2. **Precheck**: correr la consulta que demuestra que la migración no va a abortar a mitad de
@@ -34,6 +36,7 @@ migración también dropeaba `usuarios.responsable_ref`: sin esa tabla no había
 reconstruir el mapeo ref → persona, que era exactamente lo que permitía rehacer el backfill.
 
 ## Los datos de prueba se cargan por el frontend, no por seed
+<!-- sin check: política de flujo de carga de datos, invisible en la migración misma -->
 
 Para poblar la base —usuarios, actividades, catálogos— se usa la UI de la app. El seed SQL es la
 **última** opción, no la primera.

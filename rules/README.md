@@ -17,6 +17,9 @@ protege, no se sabe cuándo aplica ni cuándo dejó de tener sentido.
 
 ## Una regla se puede hacer verificable desde acá mismo
 
+**Toda regla nueva intenta nacer con su check** — y si no puede llevarlo, sale con su marcador
+de exención. La regla completa (con el hook que la obliga) vive en `proceso.md`.
+
 El centinela (`rules/centinela/`, motor en Bun compartido por todos los CLIs) corre antes de cada
 Write/Edit y **no contiene ninguna regla**: las lee de estos archivos. Para que una regla se
 verifique sola, se le agrega un bloque dentro de su propia sección:

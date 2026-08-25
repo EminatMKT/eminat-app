@@ -21,6 +21,7 @@ select de marca mostraba una marca elegida mientras guardar respondía *"Brand /
 (19/08). Lo que se ve y lo que se guarda tienen que ser lo mismo.
 
 ## Lo que se ve tiene que poder explicarse solo
+<!-- sin check: criterio de presentación que requiere leer el significado del dato -->
 
 Un número en pantalla que necesita que alguien lo explique al lado es un número mal presentado.
 Si una cifra sale de un cálculo con reglas (filtros activos, exclusiones, totales que no suman lo
@@ -32,6 +33,7 @@ error de cálculo. Lo mismo con los filtros del tablero: sin el chip "filtrado �
 filtrado se presenta como si fuera el total.
 
 ## Lo que solo se puede hacer con el mouse necesita otro camino
+<!-- sin check: criterio de accesibilidad que depende de la pantalla completa -->
 
 Si una acción existe únicamente como clic sobre un elemento gráfico —una barra, una porción de
 un pie, un área del canvas— tiene que existir la misma acción por otra vía (un desplegable, un
@@ -44,6 +46,7 @@ con teclado. Hoy no bloquea a nadie porque los mismos filtros están en los desp
 no tenerla.
 
 ## Hay plugins de diseño instalados: usarlos antes de improvisar
+<!-- sin check: flujo de trabajo previo a escribir UI, no contenido -->
 
 Antes de escribir UI nueva o rediseñar una existente, invocar la skill que corresponda. Están
 disponibles en este entorno y no hay que pedir permiso para usarlas:
@@ -64,6 +67,7 @@ cuesta el gráfico entero. El pie del tablero de Research se rehizo tres veces �
 porciones, leyenda abajo— por decidir eso sobre la marcha.
 
 ## La acción primaria vive en la barra de su vista, no en el topbar
+<!-- sin check: criterio de diseño de layout, no forma textual -->
 
 El botón que crea, importa o exporta va **dentro del contenido**, en la barra de la vista que lo
 usa y al lado de lo que opera — junto a los filtros de esa tabla o de ese tablero.

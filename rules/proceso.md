@@ -1,6 +1,30 @@
 # Proceso
 
+## Toda regla nueva nace con su check
+<!-- sin check: es la meta-regla que exige los checks; exigirse a sí misma no verifica nada -->
+
+Escribir la regla y el check es un solo gesto: si la regla se puede verificar, el check va en el
+mismo commit que la regla, no "después". Si no da para frenar (`contact`/`block` no la expresan,
+o haría falta un detector nuevo del centinela), la sección sale con su marcador
+`<!-- sin check: <razón> -->` y queda anotada para cuando el motor pueda con ella.
+
+<!-- check: block
+     detector: regla_sin_check
+     paths: rules/
+     files: .md
+     except: README.md
+     test: falla @rules/x.md :: ## Regla sin check
+     test: pasa @rules/x.md :: texto suelto antes del primer encabezado
+     test: pasa @rules/x.md :: ## Regla exenta <!-- sin check: criterio humano -->
+-->
+
+**Motivo:** una regla sin verificación depende de que quien edita se acuerde de ella — y de ley
+se olvida. El centinela ya corre antes de cada Write/Edit: un check cuesta cinco líneas y la regla
+pasa a obedecerse sola. La exención explícita deja rastro de qué quedó fuera y por qué, en vez de
+un silencio que nadie distingue de un olvido.
+
 ## No se dice "funciona" sin haber corrido algo
+<!-- sin check: regla de comportamiento del agente, no de contenido de código -->
 
 Antes de dar algo por terminado: `npx tsc --noEmit` y `npx vitest run`. Si el cambio es visual,
 se abre en el navegador. **Y si no se abrió, se dice que no se abrió** — nunca se presenta como
@@ -13,6 +37,7 @@ el que la lee. Un `tsc` limpio no dice nada de un dropdown que se ve elegido mie
 está vacío — ese bug pasó todos los tipos y todos los tests durante meses.
 
 ## Un commit es una unidad revisable, y el mensaje dice el porqué
+<!-- sin check: práctica de git que ocurre fuera de los archivos -->
 
 Un commit resuelve **una** cosa. Si el mensaje necesita un "y además", son dos commits.
 
@@ -53,6 +78,7 @@ veces hubo que deshacer y rearmar los commits, que cuesta más que stagear bien 
 y si alguno se hubiera pusheado, ya no había forma barata de separarlos.
 
 ## Un cambio que altera lo que alguien ya vio se avisa
+<!-- sin check: obligación de comunicación junto al commit, no de código -->
 
 Si un cambio mueve cifras, cambia un comportamiento o rompe una costumbre de alguien que ya usa
 el sistema, el aviso se escribe **junto al commit**, en `.todo/TODO.md`, con qué cambió y qué va
@@ -65,6 +91,7 @@ tablero, ve otros números y concluye que se rompió. El aviso escrito después 
 tarde.
 
 ## La UI que ocultó dirección se comenta, no se borra
+<!-- sin check: la regla manda comentar código a propósito; un check lo confundiría con deuda -->
 
 Cuando se quita un bloque de UI por pedido de alguien —no por estar mal— se comenta el componente
 y su invocación, con **el motivo y la fecha**. No se borra.
@@ -91,6 +118,7 @@ reconstruirlo leyendo commits.
 -->
 
 ## El build de verificación no se corre contra el `.next` del dev server
+<!-- sin check: regla de comando y entorno, no de contenido -->
 
 Para verificar se usa `pnpm build:check`, que escribe en `.next-verify/`. **Nunca `next build` a
 secas con `pnpm dev` levantado.**

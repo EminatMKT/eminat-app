@@ -31,10 +31,12 @@ regla se sostiene en cada rama o no se sostiene: reconciliar dos ramas donde una
 no es el conflicto más caro que tuvo este repo.
 
 ## Las páginas de `src/app/` son thin routes
+<!-- sin check: convención estructural sobre dónde vive la lógica, requiere mirar el proyecto -->
 
 Una página monta el componente de `src/features/<modulo>/` y nada más. La lógica vive en el feature.
 
 ## Un `route.ts` solo exporta handlers HTTP
+<!-- sin check: restricción sobre el conjunto de exports del archivo, no una línea concreta -->
 
 `export async function GET/POST/PUT/DELETE`. Los helpers van en otro archivo del mismo directorio.
 
@@ -56,6 +58,7 @@ Nunca Framer Motion directo en un componente.
 alguna vez hace falta respetar `prefers-reduced-motion`.
 
 ## Los permisos se preguntan, no se deducen
+<!-- sin check: requiere leer el significado de la condición, no su forma -->
 
 En componentes: `useApp().modules.includes('<slug>')`. En lógica pura:
 `getModulesForRole(map, role).includes('<slug>')` de `src/shared/auth/permissions.ts`.
@@ -120,6 +123,7 @@ solo idioma y nadie vuelve. Agregar la clave en los dos archivos cuesta dos lín
 en que se escribe el componente, y cuesta una búsqueda por todo el repo seis meses después.
 
 ## Nombres de columnas FK
+<!-- sin check: requiere saber si la clave apuntada es natural o surrogate -->
 
 `<entidad>_id` cuando la FK apunta a una **clave surrogate** (uuid), ej. `departamento_id`.
 **Nombre natural** (sin `_id`) cuando apunta a una **clave natural sana**, ej. `usuarios.rol` →
@@ -162,6 +166,7 @@ Las dos venían de antes de que existiera `requireAdmin`, y nadie las volvió a 
 sin guard no falla, funciona de más**, y por eso no se nota.
 
 ## Una ruta que nadie llama se borra, no se protege
+<!-- sin check: juicio sobre los llamadores en todo el repo, no sobre el archivo -->
 
 Al encontrar código muerto con permisos —una ruta sin llamadores, un handler service_role sin uso—
 la respuesta es borrarlo. Protegerlo es conservar la superficie de ataque y además el trabajo de
@@ -189,6 +194,7 @@ hoy, y una actividad cargada de noche nacía fechada mañana. Un bug que solo ap
 las 20:00 es de los que nadie reproduce en una demo.
 
 ## Ningún texto que ve un usuario se escribe inline
+<!-- sin check: requiere leer el significado del string, no su sintaxis -->
 
 Vale para los mensajes de error y de éxito, no solo para los componentes: `mostrarMensaje` y
 compañía reciben `t('clave')`, con la clave en `es.json` **y** `en.json`.
@@ -199,6 +205,7 @@ updated"*. El usuario ve la mezcla justo cuando algo salió mal, que es el peor 
 parecer improvisado.
 
 ## Los valores de dominio salen de constantes
+<!-- sin check: requiere saber qué constante corresponde a cada valor de dominio -->
 
 Un estado, una etapa, un tipo: se compara contra la constante del catálogo, nunca contra el
 literal escrito a mano. Research lo hace con `STAGE` y Stratix con `ESTADO`, los dos en el mismo
@@ -225,6 +232,7 @@ compilador reclama lo que falte.
 las dos mitades del problema viven juntas.
 
 ## Lo que cuenta plata, horas o tareas lleva test
+<!-- sin check: depende del propósito de la función, no de su forma -->
 
 Toda función que suma, cuenta o decide qué entra en un total va acompañada de su `.test.ts`.
 

@@ -1,6 +1,7 @@
 # Arquitectura
 
 ## El tablero y la operación son cosas distintas
+<!-- sin check: criterio de diseño de navegación, no forma de código -->
 
 Un **tablero** (dashboard) responde "cómo venimos": indicadores, gráficas, rankings. Se mira de
 lejos, muchas veces proyectado. Una **vista operativa** (Kanban, Gantt, tabla, formulario) es
@@ -36,6 +37,7 @@ encadena los dos módulos y el próximo que lo reuse hereda leads que no le impo
 `src/features/`, ese import es la prueba de que falta un prop.
 
 ## Antes de crear, buscar el que ya existe
+<!-- sin check: regla de flujo de trabajo previa a escribir código -->
 
 Antes de escribir un componente nuevo, revisar si otro módulo ya resolvió lo mismo. Si existe y
 sirve, promoverlo a `src/shared/` y reusarlo. Si existe y no sirve tal cual, promoverlo con el prop
@@ -45,6 +47,7 @@ que falte.
 lo mismo. Cada copia se arregla por separado, así que el bug se arregla una vez y sobrevive dos.
 
 ## Un componente nuevo nace en `src/shared/` si otro módulo podría pedirlo
+<!-- sin check: decisión de ubicación que depende de la intención del autor, no de la forma -->
 
 La otra mitad de la regla de arriba. Al crear un componente, la pregunta es siempre: **¿otro
 módulo pediría este mismo componente?** Si la respuesta es sí —aunque hoy no lo use nadie más—

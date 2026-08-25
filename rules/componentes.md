@@ -1,6 +1,7 @@
 # Componentes
 
 ## Un componente es una carpeta, no un archivo
+<!-- sin check: convención estructural de archivos -->
 
 De ahora en adelante, un componente nuevo se crea así:
 
@@ -121,6 +122,7 @@ todas las copias porque nunca hubo una lista de dónde están.
 -->
 
 ## El test acompaña, pero no se inventa
+<!-- sin check: criterio humano sobre qué lógica merece test -->
 
 El `index.test.tsx` cubre la **lógica** del componente: la que decide qué se muestra, cómo se
 formatea un valor, cuándo se deshabilita algo. Un componente que solo acomoda markup no necesita
@@ -132,6 +134,7 @@ Mientras eso no esté, el test cubre las funciones puras que el componente use. 
 dependencias y cuatro líneas de `vitest.config.ts`: pedirlo cuando haga falta el primero.
 
 ## Lo que se repite en un `.map()` es un componente
+<!-- sin check: requiere leer la estructura del JSX y decidir si es un bloque -->
 
 Un bloque de markup dentro de un `.map()` o de un bucle no se escribe inline: se extrae a su
 componente, con su carpeta.
@@ -159,6 +162,7 @@ todos los demás cambios también tocan. Además es la única forma de que la fi
 `.module.css`: inline, sus estilos se mezclan con los del contenedor.
 
 ## El tipo de las props va arriba, no dentro de la firma
+<!-- sin check: convención de orden dentro del archivo, no contenido prohibido -->
 
 ```tsx
 // ❌ la firma se lee dos veces: los nombres y, entremedio, sus tipos
@@ -186,7 +190,41 @@ firma queda partido entre la desestructuración y el tipo. Con seis props, la l�
 se estira quince renglones y el cuerpo empieza donde ya nadie lo ve. Aparte, un tipo con nombre
 se puede exportar y reusar; uno inline hay que copiarlo.
 
+## Los `useState` se cuentan de a poco: los campos que van juntos viven en un objeto
+<!-- sin check: umbral heurístico que depende de qué estados cambian juntos -->
+
+Vale igual para un componente y para un **hook personalizado** — el hook que declara diez
+`useState` tiene el mismo problema que el componente. Un formulario no es un `useState` por campo.
+Lo que se llena y se envía junto es **un** estado:
+
+```tsx
+// ❌ diez estados para lo que es un solo objeto
+const [titulo, setTitulo] = useState('')
+const [empresa, setEmpresa] = useState('')
+const [responsableId, setResponsableId] = useState('')
+// …y siete más
+
+// ✅ un objeto con su tipo arriba, un solo setter
+type Form = { titulo: string; empresa: string; responsableId: string }
+
+const [form, setForm] = useState<Form>(emptyForm)
+const set = (k: keyof Form) => (e) => setForm(p => ({ ...p, [k]: e.target.value }))
+```
+
+La cuenta que dispara la regla: **más de tres `useState` en el mismo componente u hook es sospechoso**.
+Antes de sumar el cuarto, preguntarse cuáles cambian juntos y juntarlos en un objeto. Quedan como
+`useState` separados solo los estados genuinamente independientes — un `loading`, un `error`, un
+modal abierto — porque nunca viajan al mismo tiempo. En un hook la barra es más alta todavía: si el
+objeto de estado crece, es señal de que parte del hook merece ser otro hook (una responsabilidad,
+un archivo).
+
+**Motivo:** cada `useState` suelto es una oportunidad más de que dos campos queden desincronizados
+— el clásico es guardar a medias o resetear cinco setters donde uno bastaba. Con el objeto, resetear
+es `setForm(emptyForm)` y precargar es asignar el objeto entero: una línea en vez de diez, y ninguna
+posibilidad de olvidar un campo.
+
 ## El componente renderiza; todo lo demás vive afuera
+<!-- sin check: convención estructural de distribución entre archivos -->
 
 Un componente es lo más chico posible: recibe props y devuelve markup. **El estado, los hooks, el
 contexto y los helpers no viven adentro del `.tsx`** — van a su propio archivo, y si el módulo ya
@@ -214,6 +252,7 @@ lógica adentro de un `.tsx` necesita jsdom, testing-library y un render — que
 están instalados.
 
 ## Los hooks, contextos y utils pasan por el mismo juicio que los componentes
+<!-- sin check: ubicación que depende de quién pide el módulo, no de la forma -->
 
 La pregunta de `arquitectura.md` —¿esto lo pediría otro módulo?— **no es solo para componentes**.
 Vale igual para un hook, un contexto o una función de utilidad.
@@ -233,6 +272,7 @@ preferencias de UI no eran de Research, eran de la app. Al revés también cuent
 sabe de empresas, departamentos y cargos, y no tiene nada que hacer fuera de Admin.
 
 ## La misma forma para cualquier módulo que pueda testearse
+<!-- sin check: estructura condicionada a la testeabilidad del módulo -->
 
 No es solo para componentes: **si un `.ts` puede tener un test automatizado, es una carpeta.**
 
@@ -254,6 +294,7 @@ carpeta, abrirla ya responde la pregunta, y el que borra el módulo se lleva el 
 de dejarlo huérfano.
 
 ## Un componente que solo devuelve otro no es un componente
+<!-- sin check: hay que leer el cuerpo completo para ver que es un pasamanos -->
 
 Si el cuerpo entero es `return <Otro />`, el envoltorio sobra: se monta `<Otro />` directamente
 donde estaba el envoltorio.
