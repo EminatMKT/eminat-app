@@ -5,6 +5,11 @@ no descripciones del proyecto, así que su lugar es este directorio.
 
 ## Los tipos no se aflojan para que compile
 
+<!-- check: block
+     pattern: :\s*any\b|\bas\s+any\b|<any>
+     files: .ts,.tsx
+-->
+
 `any` está prohibido por ESLint (`no-explicit-any: error`). Cuando un tipo no cierra, la salida es
 `Pick`/`Omit`/`Partial` sobre los tipos que ya existen, o `unknown` con un narrowing explícito —
 nunca `any`, y nunca un `as` que solo silencia al compilador.
@@ -26,6 +31,12 @@ Una página monta el componente de `src/features/<modulo>/` y nada más. La lóg
 
 ## Las animaciones salen de `src/shared/motion`
 
+<!-- check: block
+     pattern: from\s+['"]framer-motion['"]
+     files: .ts,.tsx
+     except: /shared/motion
+-->
+
 Nunca Framer Motion directo en un componente.
 
 **Motivo:** un solo lugar donde ajustar duraciones y curvas, y un solo lugar donde apagarlas si
@@ -42,6 +53,12 @@ volver falsa sin tocar código.
 
 ## Supabase en el cliente: el singleton
 
+<!-- check: block
+     pattern: createClient\s*\(
+     files: .ts,.tsx
+     except: /shared/db/,/api/,instrumentation.ts
+-->
+
 Se importa el cliente de `src/shared/db/supabase.ts`. No se instancia uno nuevo.
 
 **Motivo:** `createClient()` no devuelve una vista de la misma conexión, arma un cliente
@@ -54,6 +71,11 @@ Vale para el cliente del **browser**. Las rutas API instancian el suyo con `serv
 propósito (`src/shared/db/supabaseAdmin.ts`), que es otra cosa y por eso está exceptuado.
 
 ## i18n: integrar, no ignorar
+
+<!-- check: block
+     pattern: i18n-ignore
+     files: .ts,.tsx
+-->
 
 Todo componente nuevo usa `useT()`/`t()` con sus claves en `es.json` **y** `en.json`. No se marca
 con `i18n-ignore`.
@@ -77,6 +99,12 @@ clave natural, pero metía adentro el cargo y el nombre: se desincronizaba cuand
 renombraba, y encima no era única ni obligatoria. Sacarla costó una fase entera de migración.
 
 ## Cada ruta API se gatea sola
+
+<!-- check: block
+     requires: export\s+(async\s+)?function\s+(GET|POST|PUT|PATCH|DELETE)
+     absent: requireAdmin|requireModule|requireAccess
+     files: route.ts
+-->
 
 El matcher de `middleware.ts` excluye `/api` **a propósito**: una ruta API tiene que responder 401
 en JSON, no redirigir a `/login`. Consecuencia directa: **el middleware no protege ninguna ruta
@@ -105,6 +133,12 @@ mantenerla.
 `src/shared/data/research.ts`, bajo RLS. Guardarla "por si acaso" era pagar riesgo por cero uso.
 
 ## Las fechas del calendario se calculan en hora local
+
+<!-- check: block
+     pattern: toISOString\(\)\s*\.\s*split\(
+     files: .ts,.tsx
+     except: /shared/utils/dates
+-->
 
 Para una fecha `YYYY-MM-DD` se usa `localDate()` / `localMonth()` de `src/shared/utils/dates`.
 **Nunca `toISOString().split('T')[0]`.**
@@ -161,6 +195,11 @@ deshace. Research ya tiene sus tests de cálculo; Stratix, que es donde está el
 no.
 
 ## Nada de `../../`: fuera del vecindario se importa con `@/`
+
+<!-- check: contact
+     pattern: from\s+['"]\.\./\.\./
+     files: .ts,.tsx
+-->
 
 - `./loQueSea` — mismo directorio. Bien.
 - `../loQueSea` — un nivel arriba, dentro del mismo módulo. Aceptable.

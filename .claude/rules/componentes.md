@@ -54,6 +54,11 @@ nadie puede revisar.
 
 ## El atributo `style` está prohibido
 
+<!-- check: contact
+     detector: style_inline
+     files: .tsx
+-->
+
 Ninguna regla de diseño se escribe en el JSX. Ni colores, ni tamaños, ni espaciados, ni bordes,
 ni layout. Todo eso vive en el `index.module.css` del componente:
 
