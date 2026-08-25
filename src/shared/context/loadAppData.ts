@@ -75,6 +75,20 @@ export type Actividad = {
   fecha_entrega?: string
   solicitante_id?: string
   drive_url?: string
+  // El resto de las columnas de `actividades`. Estaban cubiertas por el index signature de
+  // abajo, o sea llegaban como `unknown` y nadie podía mostrarlas sin castear: por eso la ficha
+  // no las tenía. `verificado` es TEXTO con cuatro valores (ver VERIFICADO en domain.ts), no un
+  // booleano — renderizarlo como tal daba "Sí" para una tarea recién creada, que nace en
+  // 'Pendiente'.
+  semana?: string
+  fecha_requerida?: string
+  verificado?: string
+  aprobado_por_id?: string
+  fecha_aprobacion?: string
+  notas_jefe?: string
+  bloqueada?: boolean
+  created_at?: string
+  updated_at?: string
   [k: string]: unknown
 }
 export type Equipo = Record<string, unknown>

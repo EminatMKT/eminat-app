@@ -7,7 +7,15 @@ export const MESES = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
 ]
 
-export const TRIMESTRES = ['General', 'Q1', 'Q2', 'Q3', 'Q4']
+// La ausencia de filtro. Es un valor de dominio como cualquier otro y por eso vive acá: estaba
+// escrito a mano como 'All' en Stratix, 'Todos' en Directorio y 'all' en Accounting — tres
+// literales para la misma idea, cada uno comparado por su cuenta. Lo que se MUESTRA sale de
+// i18n (`common.all`), nunca este valor.
+export const SIN_FILTRO = 'All'
+
+// 'General' es el "sin filtro" del selector de trimestre y por eso encabeza la lista.
+export const TRIMESTRE_GENERAL = 'General'
+export const TRIMESTRES = [TRIMESTRE_GENERAL, 'Q1', 'Q2', 'Q3', 'Q4']
 
 // Dominios corporativos autorizados para login.
 export const DOMINIOS_VALIDOS = ['@eminat.net', '@emc.health', '@vivinegretefoundation.org', '@stratix360.com']
@@ -66,6 +74,31 @@ export const ESTADO_COLORS = Object.fromEntries(ESTADO_ENTRIES.map(([e, m]) => [
 export function estadoLabel(estado: string | undefined, t: (k: I18nKey) => string): string {
   const meta = (ESTADO_META as Record<string, { labelKey: I18nKey }>)[estado ?? '']
   return meta ? t(meta.labelKey) : (estado || '—')
+}
+
+// `actividades.verificado` es TEXTO con cuatro valores (CHECK en la tabla), no un booleano.
+// La ficha lo pintaba como `verificado ? 'Sí' : 'No'`, así que cualquier valor —incluido el
+// default 'Pendiente'— se leía como "Sí": la pantalla decía que una tarea recién creada ya
+// estaba verificada. Mismo formato que ESTADO: el valor es el dato, la etiqueta sale de i18n.
+export const VERIFICADO = {
+  PENDIENTE: 'Pendiente',
+  POR_APROBAR: 'Por aprobar',
+  APROBADO: 'Aprobado',
+  RECHAZADO: 'Rechazado',
+} as const
+
+export type Verificado = (typeof VERIFICADO)[keyof typeof VERIFICADO]
+
+const VERIFICADO_META = {
+  [VERIFICADO.PENDIENTE]:   { labelKey: 'stratix.verificado.pendiente' },
+  [VERIFICADO.POR_APROBAR]: { labelKey: 'stratix.verificado.porAprobar' },
+  [VERIFICADO.APROBADO]:    { labelKey: 'stratix.verificado.aprobado' },
+  [VERIFICADO.RECHAZADO]:   { labelKey: 'stratix.verificado.rechazado' },
+} satisfies Record<Verificado, { labelKey: I18nKey }>
+
+export function verificadoLabel(v: string | undefined, t: (k: I18nKey) => string): string {
+  const meta = (VERIFICADO_META as Record<string, { labelKey: I18nKey }>)[v ?? '']
+  return meta ? t(meta.labelKey) : (v || '—')
 }
 
 export const COLORES_AVATAR = ['#7C6FF7', '#34D399', '#F472B6', '#60A5FA', '#FB923C', '#FBB040', '#A78BFA', '#F87171']

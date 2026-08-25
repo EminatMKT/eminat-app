@@ -1,0 +1,55 @@
+/* --marca y --estado salen del catálogo: la marca de la actividad y su estado.
+   Los chips y las acciones comparten la primera fila —acciones a la derecha— y el título va
+   solo en la segunda: es lo más largo y lo que más se lee, así que no comparte el ancho. */
+.head {
+  display: grid;
+  gap: 10px;
+}
+.headTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.chipMarca {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-weight: 600;
+  color: var(--marca);
+  background: color-mix(in srgb, var(--marca) 15%, transparent);
+}
+.chipEstado {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 8px;
+  color: var(--estado);
+  background: color-mix(in srgb, var(--estado) 13%, transparent);
+}
+.titulo {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--c-t1);
+  line-height: 1.3;
+}
+.cerrar {
+  background: none;
+  border: none;
+  color: var(--c-t3);
+  font-size: 22px;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+.acciones {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
