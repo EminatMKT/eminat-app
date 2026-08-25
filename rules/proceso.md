@@ -26,6 +26,16 @@ un silencio que nadie distingue de un olvido.
 ## La marca: cuando no se puede verificar el contenido, se verifica la firma
 
 <!-- check: block
+     detector: marca_sin_inventario
+     files: .ts,.tsx
+     except: rules/centinela/detectores/,rules/EXENCIONES.md
+     test: pasa :: const x = 1
+     test: falla :: // centinela-exime: archivo-extenso@1 — razón buena pero el archivo no está en la tabla
+     test: pasa @src/features/stratix-mkt/utils/report-html/index.ts :: // centinela-exime: archivo-extenso@1 — es UNA plantilla HTML
+     test: falla existente :: // centinela-exime: useState@1 — razón buena pero sin fila en el inventario
+-->
+
+<!-- check: block
      detector: marca_mal_formada
      files: .ts,.tsx,.md
      except: rules/centinela/
@@ -59,6 +69,12 @@ verifica que alguien las haya revisado y firmado.**
 motor mira la marca ANTES que al detector: si coincide clave y la versión es la vigente, el
 archivo pasa. Si la regla cambia, se sube su `version:` y **todas sus marcas caducan solas** — el
 archivo vuelve a frenar y alguien tiene que releer si la excusa sigue siendo cierta.
+
+**Y la marca se paga en visibilidad: además del comentario, el archivo va listado en
+`rules/EXENCIONES.md`.** Sin la fila, la marca no vale. Es la única contra que tiene el
+mecanismo: escribir un comentario no cuesta nada, y un escape gratis convierte cualquier regla
+en una sugerencia. Agregar una fila a una tabla versionada, en cambio, entra en el diff, se
+revisa como código y se ve crecer.
 
 **Se firma una decisión, no se pide permiso.** Una marca sin razón no es una marca: por eso el
 check de arriba frena una marca mal escrita. Es el fallo más traicionero del mecanismo — una

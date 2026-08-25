@@ -468,6 +468,8 @@ campos en un literal: hoy no hay forma de ver ese contrato sin leer el final del
      detector: archivo_indivisible
      duro: 150
      files: .ts,.tsx
+     except: .test.
+     test: pasa @src/features/x/utils/y/index.test.ts :: describe('x', () => {})
      test: pasa :: const x = 1
 -->
 
@@ -478,6 +480,17 @@ Dos escalones, y la diferencia entre ellos es si se admite una excusa:
 | **0–50** | pasa. Es la medida normal de este repo: la mediana son 29 líneas. |
 | **51–150** | pasa **sólo con marca versionada y razón escrita** (abajo). |
 | **más de 150** | no pasa. No hay marca que valga: se parte. |
+
+**Un archivo de test también se firma, no se exceptúa.** Una suite crece con la cantidad de
+casos y ésa es su virtud, así que pasar de 50 líneas ahí suele estar bien — pero se dice, con la
+marca y su razón. Exceptuar la categoría entera habría abierto un agujero permanente e invisible
+justo donde más código hay.
+
+    // centinela-exime: archivo-extenso@1 — son casos de prueba, no lógica: partirlos
+    // esconde qué está cubierto y qué no.
+
+Lo único que el techo de 150 sí excluye son los tests, porque no admite marca y sin salida un
+`escribirImport/index.test.ts` de 472 líneas de casos quedaría intocable para siempre.
 
 Partir quiere decir **una responsabilidad por archivo**, cada una en su carpeta con su
 `index.ts`, y el directorio que las agrupa con un barrel que sólo re-exporta:

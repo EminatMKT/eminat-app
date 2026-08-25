@@ -32,8 +32,10 @@ export function dispara(chk: Check, path: string, texto: string): boolean {
   // que se endurece sube su `version:` y con eso invalida las marcas viejas, que pasan a pedir
   // revalidación en vez de seguir silenciando para siempre.
   if (chk.exime) {
-    const marcada = versionDeExencion(texto, chk.exime)
-    if (marcada !== null && marcada >= (chk.version ?? 1)) return false
+    // IGUALDAD exacta, no `>=`: con mayor-o-igual, firmar `@99` sobrevivía a toda versión
+    // futura y la marca dejaba de caducar nunca — un escape permanente disfrazado de firma.
+    // La marca vale para LA versión de la regla que se revisó, y sólo para esa.
+    if (versionDeExencion(texto, chk.exime) === (chk.version ?? 1)) return false
   }
   if (chk.detector) return Boolean(DETECTORES[chk.detector]?.(texto, path, chk.params))
   if (chk.absent) return !new RegExp(chk.absent).test(texto)
