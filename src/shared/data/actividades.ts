@@ -22,3 +22,10 @@ export const create = (payload: Record<string, unknown>) =>
 // Actualiza el estado de una actividad.
 export const updateEstado = (id: string, estado: string) =>
   supabase.from(TABLES.actividades).update({ estado }).eq('id', id)
+
+// Corrige la fecha de entrega. Existe porque una fecha mal cargada no tenía arreglo desde
+// la app: seis filas con el año 0206 colgaron el Gantt durante meses y nadie podía tocarlas.
+// NO toca `mes` ni `trimestre`: son el período de imputación del reporte de pago, una
+// decisión aparte de cuándo se entrega (ver el pendiente de `mes` en .todo/TODO.md).
+export const updateFecha = (id: string, fecha_entrega: string) =>
+  supabase.from(TABLES.actividades).update({ fecha_entrega }).eq('id', id)

@@ -4,26 +4,28 @@ import { ESTADO_COLORS, estadoLabel } from '@/shared/constants/domain'
 import { useT } from '@/shared/i18n'
 import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
 import { DIA_W } from '@/features/stratix-mkt/utils/gantt-layout'
+import { rangoGantt, fechaEnRango, rangoAnios } from '@/features/stratix-mkt/utils/gantt-rango'
 import DayHeader from '../DayHeader'
 import EstadoLeyendaItem from '../EstadoLeyendaItem'
 import GanttBar from '../GanttBar'
+import WarningCallout from '@/shared/components/ui/WarningCallout'
+import TaskTable from '@/features/stratix-mkt/components/TaskTable'
 import s from './index.module.css'
 
 const DIA_MS = 86400000
-const MIN_DIAS = 7
 const MAX_BARRAS = 40
 
 export default function GanttChart() {
   const { t } = useT()
   const { ganttActs: actsGantt, hoy } = useStratix()
   const scroller = useRef<HTMLDivElement>(null)
-  const fechas = actsGantt.map(a => new Date(a.fecha_entrega)).sort((a, b) => a.getTime() - b.getTime())
-  const fechaMin = fechas[0] || hoy
-  const fechaMax = fechas[fechas.length - 1] || new Date(hoy.getTime() + 30 * DIA_MS)
-  // El rango sale de los datos filtrados: con el trimestre en "General" son todos los meses con
-  // entrega, y el Gantt scrollea. Antes se cortaba a 31 días desde el primero y las tareas de
-  // más adelante quedaban sin barra — invisible, porque la fila igual se dibujaba.
-  const totalDias = Math.max(Math.ceil((fechaMax.getTime() - fechaMin.getTime()) / DIA_MS) + 1, MIN_DIAS)
+  // Una sola partición: lo que entra al eje es lo que dibuja fila. Antes el aviso contaba
+  // las descartadas pero el `.map()` de abajo recorría `actsGantt` entero, así que esas
+  // tareas seguían ocupando fila —vacía— y encima gastaban lugares de MAX_BARRAS.
+  const dentro = actsGantt.filter(a => fechaEnRango(a.fecha_entrega, hoy))
+  const fuera = actsGantt.filter(a => !fechaEnRango(a.fecha_entrega, hoy))
+  const { fechaMin, totalDias } = rangoGantt(dentro.map(a => a.fecha_entrega), hoy)
+  const anios = rangoAnios(hoy)
   const dias = Array.from({ length: totalDias }, (_, i) => new Date(fechaMin.getTime() + i * DIA_MS))
 
   // Abre mostrando HOY y no el principio del rango: con el filtro en "General" el rango es todo
@@ -36,6 +38,16 @@ export default function GanttChart() {
 
   return (
     <div className={s.chart}>
+      {/* El aviso es compartido; lo del dominio —qué se cuenta y qué tabla se lista— se le
+          pasa por props. Cada fila de TaskTable ya abre el modal de detalle, que es donde se
+          corrige la fecha. */}
+      {fuera.length > 0 && (
+        <div className={s.aviso}>
+          <WarningCallout message={t('stratix.gantt.fueraDeRango', { n: fuera.length, min: anios.min, max: anios.max })}>
+            <TaskTable acts={fuera} />
+          </WarningCallout>
+        </div>
+      )}
       <div className={s.scroller} ref={scroller}>
         <div className={s.head}>
           <div className={s.headLabel}>{t('stratix.gantt.taskAssignee')}</div>
@@ -44,7 +56,7 @@ export default function GanttChart() {
           </div>
         </div>
         <div className={s.filas}>
-          {actsGantt.slice(0, MAX_BARRAS).map(a => (
+          {dentro.slice(0, MAX_BARRAS).map(a => (
             <GanttBar key={a.id} a={a} fechaMin={fechaMin} dias={totalDias} />
           ))}
         </div>

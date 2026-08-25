@@ -8,6 +8,7 @@ import { useT } from '@/shared/i18n'
 import Modal from '@/shared/components/ui/Modal'
 import PillToggle from '@/shared/components/ui/PillToggle'
 import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
+import { limitesFecha } from '@/features/stratix-mkt/utils/gantt-rango'
 import DetailField from '../DetailField'
 import css from './index.module.css'
 
@@ -32,6 +33,8 @@ export default function ActivityDetailModal() {
     },
     { label: t('stratix.detail.verified'), value: modalVerAct.verificado ? `✓ ${t('common.yes')}` : `✕ ${t('common.no')}` },
   ]
+
+  const limites = limitesFecha(new Date())
 
   const vars = {
     '--marca': colorMarca[modalVerAct.empresa] ?? COLOR_MARCA_FALLBACK,
@@ -73,6 +76,30 @@ export default function ActivityDetailModal() {
               }} />
           ))}
         </div>
+      </div>
+
+      {/* Lo único editable acá además del estado. Es deliberadamente angosto: no es un
+          editor de actividades, es el arreglo del dato que rompía el Gantt. Los min/max
+          salen de la MISMA ventana que usa el eje, así que lo que se puede guardar es
+          exactamente lo que se va a ver. */}
+      <div className={css.bloque}>
+        <div className={css.rotulo}>{t('stratix.detail.changeDue')}</div>
+        <input
+          type="date"
+          className={css.fecha}
+          value={modalVerAct.fecha_entrega || ''}
+          min={limites.min}
+          max={limites.max}
+          onChange={async e => {
+            const fecha = e.target.value
+            if (!fecha) return
+            const { error } = await actividadesRepo.updateFecha(modalVerAct.id, fecha)
+            if (error) { mostrarMensaje('error', t('stratix.detail.dueError')); return }
+            setActividades(prev => prev.map(a => (a.id === modalVerAct.id ? { ...a, fecha_entrega: fecha } : a)))
+            setModalVerAct(p => ({ ...p, fecha_entrega: fecha }))
+            mostrarMensaje('ok', t('stratix.detail.dueChanged'))
+          }}
+        />
       </div>
 
       {modalVerAct.drive_url && (

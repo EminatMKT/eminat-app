@@ -1,6 +1,6 @@
 # Eminat App — Contexto del proyecto
 
-Sistema operativo interno de Eminat Group. Plataforma de gestión empresarial desarrollada con Next.js 14 + Supabase. Desplegada en Vercel en `eminat.app`.
+Sistema operativo interno de Eminat Group. Plataforma de gestión empresarial desarrollada con Next.js 14 + Supabase. Desplegada en Vercel en `app.stratixsolutions.us`.
 
 ## Stack
 
