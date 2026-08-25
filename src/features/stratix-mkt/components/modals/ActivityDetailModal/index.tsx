@@ -15,7 +15,7 @@ import css from './index.module.css'
 export default function ActivityDetailModal() {
   const { t, locale } = useT()
   const { setActividades, mostrarMensaje, miembrosPorId, colorMarca } = useApp()
-  const { modalVerAct, setModalVerAct } = useStratix()
+  const { modalVerAct, setModalVerAct, abrirEdicion, eliminarAct } = useStratix()
   if (!modalVerAct) return null
 
   const fields = [
@@ -69,7 +69,9 @@ export default function ActivityDetailModal() {
             <PillToggle key={col} size="sm" color={ESTADO_COLORS[col]} label={estadoLabel(col, t)}
               active={modalVerAct.estado === col}
               onClick={async () => {
-                await actividadesRepo.updateEstado(modalVerAct.id, col)
+                if (!modalVerAct.id) return
+                const { error } = await actividadesRepo.updateEstado(modalVerAct.id, col)
+                if (error) { mostrarMensaje('error', t('stratix.detail.statusError')); return }
                 setActividades(prev => prev.map(a => (a.id === modalVerAct.id ? { ...a, estado: col } : a)))
                 setModalVerAct(p => ({ ...p, estado: col }))
                 mostrarMensaje('ok', t('stratix.detail.statusChanged', { estado: estadoLabel(col, t) }))
@@ -100,6 +102,16 @@ export default function ActivityDetailModal() {
             mostrarMensaje('ok', t('stratix.detail.dueChanged'))
           }}
         />
+      </div>
+
+      <div className={css.acciones}>
+        <button type="button" className={css.editar} onClick={() => abrirEdicion(modalVerAct)}>
+          ✏️ {t('common.edit')}
+        </button>
+        <button type="button" className={css.eliminar}
+          onClick={() => { if (confirm(t('stratix.detail.deleteConfirm'))) void eliminarAct(modalVerAct) }}>
+          🗑 {t('common.delete')}
+        </button>
       </div>
 
       {modalVerAct.drive_url && (

@@ -112,3 +112,24 @@
   border-color: var(--c-accent, #7C6FF7);
   box-shadow: 0 0 0 3px rgba(124, 111, 247, 0.18);
 }
+
+.acciones {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.editar,
+.eliminar {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.editar { background: color-mix(in srgb, var(--c-accent) 13%, transparent); color: var(--c-accent); }
+
+.eliminar { background: #F8717120; color: #F87171; }
