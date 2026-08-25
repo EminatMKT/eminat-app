@@ -15,7 +15,7 @@ import HoursSummaryCard from '@/features/stratix-mkt/components/horas/HoursSumma
 import s from './index.module.css'
 
 // El tablero de Stratix, armado con los MISMOS componentes que el de Research: una cosa es el
-// tablero y otra la producción (ver .claude/rules/arquitectura.md). Por eso vive en su propia
+// tablero y otra la producción (ver rules/arquitectura.md). Por eso vive en su propia
 // sección del sidebar y no como primera pestaña de Production.
 //
 // Lo que este archivo aporta es el dominio —qué métrica va en cada card, con qué color, y que
@@ -45,7 +45,7 @@ export default function OverviewTab() {
   // Clic en una barra = filtrar el tablero por ese valor; clic en la que ya está activa = sacarlo.
   // Sin el toggle habría que ir a buscar el desplegable para volver atrás, y el gesto natural
   // después de clickear algo es volver a clickearlo. El mismo filtro está en el panel de arriba,
-  // así que la gráfica no es el único camino (ver .claude/rules/ui.md).
+  // así que la gráfica no es el único camino (ver rules/ui.md).
   const toggle = (key: string) => (v: string) => setFilterValue(key, filterValues[key] === v ? '' : v)
   // El color sale del catálogo de empresas, no de la paleta genérica: una marca desactivada
   // tiene que seguir pintándose como siempre (ver CLAUDE.md, "Marcas del grupo Eminat").

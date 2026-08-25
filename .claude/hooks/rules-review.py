@@ -3,7 +3,7 @@
 que se está por guardar pase la checklist.
 
 NO CONTIENE NINGUNA REGLA. El título, el motivo y hasta cómo detectarla viven en
-`.claude/rules/*.md`; esto es sólo el motor que las lee y las aplica. Cambiar el motivo en el
+`rules/*.md`; esto es sólo el motor que las lee y las aplica. Cambiar el motivo en el
 .md cambia lo que dice el centinela: no hay un segundo lugar donde mantener el texto.
 
 Una regla se vuelve verificable agregándole un bloque dentro de su propia sección:
@@ -31,7 +31,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-RULES = Path(__file__).resolve().parent.parent / 'rules'
+RULES = Path(__file__).resolve().parents[2] / 'rules'
 CHECK_RE = re.compile(r'<!--\s*check:\s*(.*?)\s*-->', re.DOTALL)
 FENCE_RE = re.compile(r'```.*?```', re.DOTALL)
 
@@ -159,7 +159,7 @@ def main():
                 titulos = '\n'.join(f"  · {t}" for t, _ in
                                     secciones((RULES / archivo).read_text()))
                 ctx = (f"Repaso de reglas antes de esta acción (el texto completo está en "
-                       f".claude/rules/):\n\n— {archivo}\n{titulos}")
+                       f"rules/):\n\n— {archivo}\n{titulos}")
                 if archivo == 'proceso.md' and (extra := staged()):
                     ctx += '\n\n' + extra
                 print(json.dumps({"hookSpecificOutput": {
@@ -185,7 +185,7 @@ def main():
         if mot:
             partes.append(f"    {mot}\n")
     partes.append("Corregí el contenido y volvé a guardar. El texto completo de cada regla "
-                  "está en .claude/rules/; si de verdad corresponde una excepción, decila en "
+                  "está en rules/; si de verdad corresponde una excepción, decila en "
                   "voz alta antes de esquivar esto.")
     print('\n'.join(partes), file=sys.stderr)
     return 2
@@ -193,7 +193,7 @@ def main():
 
 def self_check():
     checks = cargar()
-    assert checks, "no se encontró ningún <!-- check: --> en .claude/rules/*.md"
+    assert checks, "no se encontró ningún <!-- check: --> en rules/*.md"
     for c in checks:
         assert c['motivo'], f"«{c['regla']}» declara un check pero no tiene **Motivo:**"
     assert not any('README' in c['regla'] for c in checks), \
@@ -227,7 +227,7 @@ def self_check():
 
     assert not F('scripts/x.ts', "const x: any = 1"), "fuera de src/ no se juzga"
 
-    print(f"self-check OK — {len(checks)} checks leídos de .claude/rules/")
+    print(f"self-check OK — {len(checks)} checks leídos de rules/")
     return 0
 
 

@@ -33,7 +33,7 @@ export const mesATrimestre: Record<string, string> = {
 
 // ÚNICO lugar con los literales del estado de una actividad. Nadie escribe 'Pendiente' a mano:
 // el día que el catálogo cambie un valor, un literal suelto no da error de compilación —
-// la pantalla simplemente deja de contar esas filas (ver .claude/rules/codigo.md).
+// la pantalla simplemente deja de contar esas filas (ver rules/codigo.md).
 //
 // ⚠️ El valor es el DATO: es lo que está guardado en `actividades.estado` y lo que se compara.
 // NO es la etiqueta. Lo que se muestra sale de `estadoLabel()`, que pasa por i18n — si no, con

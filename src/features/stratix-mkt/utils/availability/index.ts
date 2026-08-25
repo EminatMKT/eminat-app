@@ -2,7 +2,7 @@
 //
 // Vivía dentro de MemberAvailabilityCard, mezclada con el markup. Acá se puede testear sin
 // montar nada, que es la mitad del motivo; la otra es que son horas — y lo que cuenta horas
-// lleva test (ver .claude/rules/codigo.md).
+// lleva test (ver rules/codigo.md).
 
 export const HORAS_SEMANALES = 40
 

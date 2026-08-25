@@ -14,7 +14,7 @@ export default function KanbanTab() {
     <div>
       {/* La barra de la sección: el conteo a la izquierda, y a la derecha lo que opera sobre
           estas tarjetas — el filtro de mes y el alta. El alta vivía en el topbar, que es del
-          shell y no de esta vista (ver .claude/rules/ui.md). Mismo NewButton que usa Admin. */}
+          shell y no de esta vista (ver rules/ui.md). Mismo NewButton que usa Admin. */}
       <div className={s.bar}>
         <div className={s.hint}>{t('stratix.kanbanHint', { n: actsKanban.length })}</div>
         <div className={s.tools}>
