@@ -13,6 +13,7 @@ import TeamRankRow from '../TeamRankRow'
 import GanttChart from '@/features/stratix-mkt/components/gantt/GanttChart'
 import HoursSummaryCard from '@/features/stratix-mkt/components/horas/HoursSummaryCard'
 import s from './index.module.css'
+import { STRATIX_TAB } from '@/features/stratix-mkt/constants/tabs'
 
 // El tablero de Stratix, armado con los MISMOS componentes que el de Research: una cosa es el
 // tablero y otra la producción (ver rules/arquitectura.md). Por eso vive en su propia
@@ -80,7 +81,7 @@ export default function OverviewTab() {
 
       <div className={`${s.activity} ${s.fila}`}>
         <Panel collapsible persistKey="stratix-actividad" title={t('stratix.dash.recent')} flush
-          right={<button className={s.viewAll} onClick={() => setMktTab('solicitudes')}>{t('stratix.dash.viewAll')}</button>}>
+          right={<button className={s.viewAll} onClick={() => setMktTab(STRATIX_TAB.SOLICITUDES)}>{t('stratix.dash.viewAll')}</button>}>
           {recientes.map(a => <RecentActivityRow key={a.id} a={a} />)}
         </Panel>
         <div className={s.gente}>
