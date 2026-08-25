@@ -98,6 +98,7 @@
   /* Tres líneas y corta: una tarjeta que crece sin límite rompe el ritmo de la columna. */
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

@@ -1,0 +1,8 @@
+{
+  "//": "El preset `recommended`, no `standard`: `standard` trae opiniones de notación (rgba vs rgb, 0.19 vs 19%) que dieron 173 avisos sin un solo bug adentro. Lo que se busca acá es lo que tsc NO puede ver — sintaxis rota, propiedades inventadas, prefijos sin su estándar — porque el 25/08 una comilla suelta en un .module.css pasó typecheck y sólo apareció con la pantalla en negro.",
+  "extends": "stylelint-config-recommended",
+  "rules": {
+    "no-descending-specificity": null,
+    "at-rule-no-unknown": [true, { "ignoreAtRules": ["tailwind"] }]
+  }
+}

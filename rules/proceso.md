@@ -134,21 +134,21 @@ centinela reporta `(CHECK ROTO)` y frena; no lo saltea. Un `catch { continue }` 
 detector con un bug en un detector que "no dispara nunca", que es la peor forma de fallar que
 puede tener un guardia: silenciosa y del lado que parece bueno.
 
-**Y un verificador que no corre en el gate es un verificador apagado.** Vale para los tres:
-las reglas (`pnpm rules:check`), los tipos (`pnpm typecheck`) y los tests (`pnpm test`) van en
-`.githooks/pre-push` **y** en `.github/workflows/ci.yml`. El hook local se saltea con
+**Y un verificador que no corre en el gate es un verificador apagado.** Vale para los cuatro:
+las reglas (`pnpm rules:check`), los tipos (`pnpm typecheck`), el CSS (`pnpm lint:css`) y los
+tests (`pnpm test`) van en `.githooks/pre-push` **y** en `.github/workflows/ci.yml`. El hook local se saltea con
 `--no-verify`; el gate duro es CI.
 
 <!-- check: block
      detector: gate_incompleto
-     verificadores: rules:check,typecheck,test
+     verificadores: rules:check,typecheck,lint:css,test
      paths: .github/,.githooks/
      files: .yml,pre-push
-     version: 1
-     test: falla @.githooks/pre-push :: echo 'reglas + typecheck + tests'; pnpm typecheck && pnpm test
-     test: pasa @.githooks/pre-push :: pnpm rules:check && pnpm typecheck && pnpm test
-     test: falla @.github/workflows/ci.yml :: - run: pnpm typecheck
-     test: pasa @.github/workflows/ci.yml :: run pnpm rules:check; run pnpm typecheck; run pnpm test
+     version: 2
+     test: falla @.githooks/pre-push :: echo 'reglas + typecheck + tests'; pnpm typecheck && pnpm test && pnpm rules:check
+     test: pasa @.githooks/pre-push :: pnpm rules:check && pnpm typecheck && pnpm lint:css && pnpm test
+     test: falla @.github/workflows/ci.yml :: run pnpm typecheck; run pnpm test
+     test: pasa @.github/workflows/ci.yml :: run pnpm rules:check; run pnpm typecheck; run pnpm lint:css; run pnpm test
      test: pasa @src/features/x/y.ts :: pnpm typecheck
 -->
 
