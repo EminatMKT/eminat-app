@@ -9,7 +9,8 @@ import { esActividadDeMiembro, totalesProduccion } from '../report-filter'
 import type { Actividad, NuevaActForm } from '../types'
 import { useUserPreference } from '@/shared/hooks/useUserPreference'
 import { oneOf } from '@/shared/hooks/usePersistedState'
-import { ESTADO, ESTADO_COLORS } from '@/shared/constants/domain'
+import { ESTADO, ESTADO_COLORS, estadoLabel } from '@/shared/constants/domain'
+import { actividadAForm } from '../utils/act-form'
 import { applyFilters, type FilterValues } from '@/shared/utils/filters'
 import { actividadFilters } from '@/features/stratix-mkt/utils/act-filters'
 
@@ -20,7 +21,7 @@ const emptyNuevaAct = (solicitanteId = ''): NuevaActForm => ({
 })
 
 export function useStratixData() {
-  const { usuario, actividades, equipo, esAdmin, mostrarMensaje, setActividades, miembrosPorId, miembrosAsignables, colorMarca } = useApp()
+  const { usuario, usuarios, actividades, equipo, esAdmin, mostrarMensaje, setActividades, miembrosPorId, miembrosAsignables, colorMarca } = useApp()
   const { t } = useT()
 
   const [mktTab, setMktTab] = useUserPreference('tab-stratix', 'kanban', oneOf('overview', 'kanban', 'solicitudes', 'social', 'competencia', 'equipo', 'reporte'))
@@ -38,6 +39,7 @@ export function useStratixData() {
   const [modalVerAct, setModalVerAct] = useState<Actividad | null>(null)
   const [creandoAct, setCreandoAct] = useState(false)
   const [nuevaAct, setNuevaAct] = useState<NuevaActForm>(emptyNuevaAct(usuario?.id || ''))
+  const [actEditando, setActEditando] = useState<Actividad | null>(null)
   const [busquedaSol, setBusquedaSol] = useState('')
   const [filtroEstadoSol, setFiltroEstadoSol] = useState('All')
   const [solTab, setSolTab] = useState('lista')
@@ -138,10 +140,43 @@ export function useStratixData() {
     const { error } = await actividadesRepo.updateEstado(dragId, col)
     if (!error) {
       setActividades(prev => prev.map(a => a.id === dragId ? { ...a, estado: col } : a))
-      mostrarMensaje('ok', `Moved to "${col}"`)
+      mostrarMensaje('ok', t('stratix.kanban.movedTo', { col: estadoLabel(col, t) }))
+    } else {
+      mostrarMensaje('error', t('stratix.kanban.moveError'))
     }
     setDragId(null)
     setDragOver(null)
+  }
+
+  function abrirEdicion(a: Actividad) {
+    setActEditando(a)
+    const f = actividadAForm(a)
+    // Mismo hueco que el efecto de empresa del modal, acá para el responsable: si la
+    // persona salió del equipo (o está excluida), el <select> se vería vacío mientras
+    // el estado conserva el id viejo — lo que se ve ≠ lo que se guarda. Se resetea.
+    if (!miembrosAsignables.some(m => m.id === f.responsable_id)) f.responsable_id = ''
+    // Ídem para el solicitante, PERO solo si el id está huérfano (el usuario ya no
+    // existe): un inactivo EXISTE y el sistema lo sabe mostrar (miembrosPorId incluye
+    // inactivos a propósito; borrarle la atribución perdería quién pidió la tarea).
+    if (!usuarios.some(u => u.id === f.solicitante_id)) f.solicitante_id = ''
+    setNuevaAct(f)
+    setModalVerAct(null)
+    setModalNuevaAct(true)
+  }
+
+  function cerrarFormAct() {
+    setModalNuevaAct(false)
+    setActEditando(null)
+    setNuevaAct(emptyNuevaAct(usuario?.id || ''))
+  }
+
+  async function eliminarAct(a: Actividad) {
+    if (!a.id) return
+    const { error } = await actividadesRepo.remove(a.id)
+    if (error) { mostrarMensaje('error', t('stratix.detail.deleteError')); return }
+    setActividades(prev => prev.filter(x => x.id !== a.id))
+    setModalVerAct(null)
+    mostrarMensaje('ok', t('stratix.detail.deleted'))
   }
 
   async function crearActividad() {
@@ -150,11 +185,13 @@ export function useStratixData() {
     // responsable renderiza vacío porque `miembrosAsignables` lo está— manda
     // `responsable_id: ''` y recibe un `invalid input syntax for type uuid` crudo
     // de Postgres. La columna de texto vieja se lo tragaba en silencio.
-    if (!nuevaAct.titulo.trim()) { mostrarMensaje('error', 'Title is required'); return }
-    if (!nuevaAct.responsable_id) { mostrarMensaje('error', 'Assignee is required'); return }
-    if (!nuevaAct.empresa) { mostrarMensaje('error', 'Brand / Area is required'); return }
+    if (!nuevaAct.titulo.trim()) { mostrarMensaje('error', t('stratix.new.titleRequired')); return }
+    if (!nuevaAct.responsable_id) { mostrarMensaje('error', t('stratix.new.assigneeRequired')); return }
+    if (!nuevaAct.empresa) { mostrarMensaje('error', t('stratix.new.brandRequired')); return }
     setCreandoAct(true)
     try {
+      // Payload completo con nulls (no campos omitidos): así el mismo objeto sirve
+      // para crear y para editar, y editar puede limpiar un campo, no solo cambiarlo.
       const payload: Record<string, unknown> = {
         titulo: nuevaAct.titulo.trim(),
         empresa: nuevaAct.empresa,
@@ -162,28 +199,32 @@ export function useStratixData() {
         mes: nuevaAct.mes,
         trimestre: mesATrimestre[nuevaAct.mes] || 'Q1',
         estado: nuevaAct.estado,
+        descripcion: nuevaAct.descripcion || null,
+        horas: nuevaAct.horas ? Number(nuevaAct.horas) : null,
+        dias_produccion: nuevaAct.dias_produccion ? Number(nuevaAct.dias_produccion) : null,
+        fecha_entrega: nuevaAct.fecha_entrega || null,
         solicitante_id: nuevaAct.solicitante_id || null,
-      }
-      if (nuevaAct.descripcion) payload.descripcion = nuevaAct.descripcion
-      if (nuevaAct.horas) payload.horas = Number(nuevaAct.horas)
-      if (nuevaAct.dias_produccion) payload.dias_produccion = Number(nuevaAct.dias_produccion)
-      if (nuevaAct.fecha_entrega) payload.fecha_entrega = nuevaAct.fecha_entrega
-      if (nuevaAct.drive_url) payload.drive_url = nuevaAct.drive_url
-
-      const { data, error } = await actividadesRepo.create(payload)
-      if (error) { mostrarMensaje('error', `Error: ${error.message}`); setCreandoAct(false); return }
-
-      setActividades(prev => [data, ...prev])
-
-      if (data && nuevaAct.responsable_id && nuevaAct.responsable_id !== usuario?.id) {
-        await notificacionesRepo.insert({ usuario_id: nuevaAct.responsable_id, tipo: 'tarea_asignada', titulo: 'New task assigned', mensaje: `"${nuevaAct.titulo}" — ${nuevaAct.empresa} · ${nuevaAct.mes}`, actividad_id: data.id, leida: false })
+        drive_url: nuevaAct.drive_url || null,
       }
 
-      setModalNuevaAct(false)
-      setNuevaAct(emptyNuevaAct(usuario?.id || ''))
-      mostrarMensaje('ok', 'Task created successfully')
-    } catch (e) {
-      mostrarMensaje('error', 'Unexpected error creating the task')
+      if (actEditando?.id) {
+        const { error } = await actividadesRepo.update(actEditando.id, payload)
+        if (error) { mostrarMensaje('error', `Error: ${error.message}`); setCreandoAct(false); return }
+        setActividades(prev => prev.map(x => (x.id === actEditando.id ? { ...x, ...payload } as Actividad : x)))
+        cerrarFormAct()
+        mostrarMensaje('ok', t('stratix.edit.saved'))
+      } else {
+        const { data, error } = await actividadesRepo.create(payload)
+        if (error) { mostrarMensaje('error', `Error: ${error.message}`); setCreandoAct(false); return }
+        setActividades(prev => [data as Actividad, ...prev])
+        if (data && nuevaAct.responsable_id && nuevaAct.responsable_id !== usuario?.id) {
+          await notificacionesRepo.insert({ usuario_id: nuevaAct.responsable_id, tipo: 'tarea_asignada', titulo: 'New task assigned', mensaje: `"${nuevaAct.titulo}" — ${nuevaAct.empresa} · ${nuevaAct.mes}`, actividad_id: (data as Actividad).id, leida: false })
+        }
+        cerrarFormAct()
+        mostrarMensaje('ok', t('stratix.new.created'))
+      }
+    } catch {
+      mostrarMensaje('error', t(actEditando ? 'stratix.edit.saveError' : 'stratix.new.createError'))
     }
     setCreandoAct(false)
   }
@@ -275,7 +316,7 @@ export function useStratixData() {
     mesReporte, setMesReporte,
     miembroReporte, setMiembroReporte, dragId, dragOver,
     modalNuevaAct, setModalNuevaAct, modalVerAct, setModalVerAct,
-    creandoAct, nuevaAct, setNuevaAct,
+    creandoAct, nuevaAct, setNuevaAct, actEditando,
     busquedaSol, setBusquedaSol, filtroEstadoSol, setFiltroEstadoSol, actsFiltradasSol, solTab, setSolTab,
     // computed
     actsFiltradas, totalQ, completadasQ, enProcesoQ, pendientesQ, pctCompletado, totalHoras, totalDias,
@@ -283,6 +324,6 @@ export function useStratixData() {
     idsTeam, datosPorMiembro, maxMiembro, mesesDisponibles, actsKanban, porColumna,
     resumenHoras, idRep, actsRep, totalHorasRep, totalDiasRep, completadasRep, nombreRep,
     // handlers
-    onDragStart, onDragOverCol, onDragEnd, onDrop, crearActividad, ganttActs, handlePrintReport,
+    onDragStart, onDragOverCol, onDragEnd, onDrop, crearActividad, abrirEdicion, cerrarFormAct, eliminarAct, ganttActs, handlePrintReport,
   }
 }
