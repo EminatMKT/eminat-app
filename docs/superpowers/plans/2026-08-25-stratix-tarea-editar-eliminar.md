@@ -1,5 +1,7 @@
 # Stratix: editar y eliminar tarea (+ errores silenciados) — Plan de implementación
 
+> **ESTADO (25/08/2026):** Tasks 1–7 ejecutadas y verificadas (commits `200c256`..`02b290f` en `development`; vitest 395/395; migración aplicada vía psql en local). Revisión final whole-branch: ready to merge, 5 minors en diferido. Task 8 omitida por decisión de Wagner (sin PROD_DB_URL). QA manual del Task 7 pendiente. Rollout a dev/prod tras aprobar QA.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Que una tarea de Stratix se pueda editar (todos sus campos) y eliminar desde su ficha, y que los dos errores silenciados detectados en la auditoría dejen de mentirle al usuario.
@@ -51,7 +53,7 @@
 
 Nota: son wrappers finos sobre el cliente Supabase como `updateEstado`/`updateFecha`; el repo no tiene tests unitarios para estos (no existe patrón de mock de Supabase en el codebase). La lógica pura ya está cubierta en `act-form.test.ts`.
 
-- [ ] **Step 1: Agregar las dos funciones** al final de `src/shared/data/actividades.ts`:
+- [x] **Step 1: Agregar las dos funciones** al final de `src/shared/data/actividades.ts`:
 
 ```ts
 // Edita cualquier campo de la actividad. El payload completo viaja entero
@@ -67,7 +69,7 @@ export const remove = (id: string) =>
   supabase.from(TABLES.actividades).delete().eq('id', id).select().single()
 ```
 
-- [ ] **Step 2: Mismo fix del fantasma en updateEstado y updateFecha** — hoy un UPDATE de 0 filas devuelve `{ error: null }` y la UI dice ok. Agregarles `.select().single()`:
+- [x] **Step 2: Mismo fix del fantasma en updateEstado y updateFecha** — hoy un UPDATE de 0 filas devuelve `{ error: null }` y la UI dice ok. Agregarles `.select().single()`:
 
 ```ts
 export const updateEstado = (id: string, estado: string) =>
@@ -79,7 +81,7 @@ export const updateFecha = (id: string, fecha_entrega: string) =>
 
 Los call sites existentes (`onDrop`, PillToggle del modal, updateFecha en la ficha) solo leen `error`: con 0 filas ahora caen por su rama de error, que es exactamente lo deseado. Sin cambios extra en ellos.
 
-- [ ] **Step 3: Typecheck**
+- [x] **Step 3: Typecheck**
 
 Run: `npx tsc --noEmit`
 Expected: exit 0
@@ -136,7 +138,7 @@ Run: `node -e "JSON.parse(require('fs').readFileSync('src/shared/i18n/locales/en
   - `eliminarAct(a: Actividad): Promise<void>`
   - `cerrarFormAct(): void`
 
-- [ ] **Step 1: Imports** — agregar a los imports existentes:
+- [x] **Step 1: Imports** — agregar a los imports existentes:
 
 ```ts
 import { actividadAForm } from '../utils/act-form'
@@ -146,13 +148,13 @@ import { ESTADO, ESTADO_COLORS, estadoLabel } from '@/shared/constants/domain'
 
 Además, sumar `usuarios` al destructuring de `useApp()` en la primera línea del hook (lo necesita la normalización de solicitante de `abrirEdicion`).
 
-- [ ] **Step 2: Estado nuevo** — junto a los demás `useState` del form:
+- [x] **Step 2: Estado nuevo** — junto a los demás `useState` del form:
 
 ```ts
 const [actEditando, setActEditando] = useState<Actividad | null>(null)
 ```
 
-- [ ] **Step 3: Funciones nuevas** (junto a `crearActividad`). En `crearActividad`, reemplazar la construcción dispersa del payload por uno completo (con nulls) y branchear create/update:
+- [x] **Step 3: Funciones nuevas** (junto a `crearActividad`). En `crearActividad`, reemplazar la construcción dispersa del payload por uno completo (con nulls) y branchear create/update:
 
 ```ts
 function abrirEdicion(a: Actividad) {
@@ -233,7 +235,7 @@ En `crearActividad`, después de las tres validaciones existentes, reemplazar TO
 
 (El comportamiento de creación queda idéntico: insertar null explícito en columna nullable ≡ omitirlo. Con el `.select().single()` del Task 1, si la tarea fue borrada por otro usuario mientras se editaba, `update` devuelve error y cae por la rama de error existente — sin fantasmas. Limitación conocida, fuera de alcance: last-write-wins con payload completo — dos usuarios editando campos distintos de la misma tarea, el último pisa; la solución real es optimistic concurrency con `updated_at`.)
 
-- [ ] **Step 4: Fix onDrop** — hoy silencia el error y el mensaje ok está hardcodeado en inglés. Reemplazar el `if (!error) {...}` actual por:
+- [x] **Step 4: Fix onDrop** — hoy silencia el error y el mensaje ok está hardcodeado en inglés. Reemplazar el `if (!error) {...}` actual por:
 
 ```ts
     if (!error) {
@@ -244,7 +246,7 @@ En `crearActividad`, después de las tres validaciones existentes, reemplazar TO
     }
 ```
 
-- [ ] **Step 5: i18n de las validaciones de crearActividad** (hoy en inglés duro):
+- [x] **Step 5: i18n de las validaciones de crearActividad** (hoy en inglés duro):
 
 ```ts
 if (!nuevaAct.titulo.trim()) { mostrarMensaje('error', t('stratix.new.titleRequired')); return }
@@ -252,9 +254,9 @@ if (!nuevaAct.responsable_id) { mostrarMensaje('error', t('stratix.new.assigneeR
 if (!nuevaAct.empresa) { mostrarMensaje('error', t('stratix.new.brandRequired')); return }
 ```
 
-- [ ] **Step 6: Exponer en el retorno del hook** los cuatro nombres nuevos (`actEditando`, `abrirEdicion`, `cerrarFormAct`, `eliminarAct`) junto a los que ya expone.
+- [x] **Step 6: Exponer en el retorno del hook** los cuatro nombres nuevos (`actEditando`, `abrirEdicion`, `cerrarFormAct`, `eliminarAct`) junto a los que ya expone.
 
-- [ ] **Step 7: Typecheck**
+- [x] **Step 7: Typecheck**
 
 Run: `npx tsc --noEmit`
 Expected: exit 0
@@ -269,18 +271,18 @@ Expected: exit 0
 **Interfaces:**
 - Consumes: `actEditando`, `cerrarFormAct` del contexto (Task 3).
 
-- [ ] **Step 1:** Agregar `actEditando` y `cerrarFormAct` a la desestructuración de `useStratix()`.
+- [x] **Step 1:** Agregar `actEditando` y `cerrarFormAct` a la desestructuración de `useStratix()`.
 
-- [ ] **Step 2:** TODAS las vías de cierre usan `cerrarFormAct` en vez de `setModalNuevaAct(false)`. Son TRES: el `onClose` del `<Modal>`, el botón cancelar, y el botón ✕ del encabezado (`NewActivityModal/index.tsx:44`). Si alguna queda sin migrar, `actEditando` queda pegado y la próxima "New task" abriría precargada y haría UPDATE sobre la tarea vieja en vez de crear — el peor bug posible de este feature.
+- [x] **Step 2:** TODAS las vías de cierre usan `cerrarFormAct` en vez de `setModalNuevaAct(false)`. Son TRES: el `onClose` del `<Modal>`, el botón cancelar, y el botón ✕ del encabezado (`NewActivityModal/index.tsx:44`). Si alguna queda sin migrar, `actEditando` queda pegado y la próxima "New task" abriría precargada y haría UPDATE sobre la tarea vieja en vez de crear — el peor bug posible de este feature.
 
-- [ ] **Step 3:** Encabezado condicional:
+- [x] **Step 3:** Encabezado condicional:
 
 ```tsx
 <div className={s.titulo}>{actEditando ? t('stratix.edit.title') : t('stratix.new.title')}</div>
 <div className={s.sub}>{actEditando ? t('stratix.edit.sub') : t('stratix.new.sub')}</div>
 ```
 
-- [ ] **Step 4:** Botón principal condicional — OJO: el estado `creandoAct` también cubre el guardado en edición, así que el label "Creating..." saldría mal al editar. El label de guardado va aparte:
+- [x] **Step 4:** Botón principal condicional — OJO: el estado `creandoAct` también cubre el guardado en edición, así que el label "Creating..." saldría mal al editar. El label de guardado va aparte:
 
 ```tsx
 {creandoAct
@@ -288,9 +290,9 @@ Expected: exit 0
   : actEditando ? t('common.saveChanges') : t('stratix.new.create')}
 ```
 
-- [ ] **Step 5:** El efecto de sincronización de `empresa` existente queda igual (también aplica en edición). Nota aceptada: si la tarea editada tiene una empresa desactivada, al abrir el editor el select se mueve a la primera marca activa ANTES de guardar — es visible para el usuario, no silencioso, y coincide con el comportamiento de creación.
+- [x] **Step 5:** El efecto de sincronización de `empresa` existente queda igual (también aplica en edición). Nota aceptada: si la tarea editada tiene una empresa desactivada, al abrir el editor el select se mueve a la primera marca activa ANTES de guardar — es visible para el usuario, no silencioso, y coincide con el comportamiento de creación.
 
-- [ ] **Step 5b: Solicitante inactivo visible en el select** — el select lista solo activos; si la tarea editada tiene un solicitante que existe pero está inactivo, mostrarlo como opción deshabilitada en vez de dejar el id invisible en el estado (la atribución se conserva). Reemplazar el `<Field label={t('stratix.new.requestedBy')}>` por:
+- [x] **Step 5b: Solicitante inactivo visible en el select** — el select lista solo activos; si la tarea editada tiene un solicitante que existe pero está inactivo, mostrarlo como opción deshabilitada en vez de dejar el id invisible en el estado (la atribución se conserva). Reemplazar el `<Field label={t('stratix.new.requestedBy')}>` por:
 
 ```tsx
 <Field label={t('stratix.new.requestedBy')}>
@@ -321,9 +323,9 @@ Run: `npx tsc --noEmit` → exit 0
 
 **Alcance del cambio:** la ficha se abre desde TRES lugares (`KanbanTaskCard`, `GanttBar`, `TaskTableRow`) y todos usan este mismo modal → los botones Editar/Eliminar aparecen en los tres automáticamente. No hay que tocar nada por separado.
 
-- [ ] **Step 1:** Agregar `abrirEdicion` y `eliminarAct` a la desestructuración de `useStratix()`.
+- [x] **Step 1:** Agregar `abrirEdicion` y `eliminarAct` a la desestructuración de `useStratix()`.
 
-- [ ] **Step 2: Fix PillToggle** — el onClick hoy ignora `error`. Reemplazar por:
+- [x] **Step 2: Fix PillToggle** — el onClick hoy ignora `error`. Reemplazar por:
 
 ```tsx
 onClick={async () => {
@@ -336,7 +338,7 @@ onClick={async () => {
 }}
 ```
 
-- [ ] **Step 3: Fila de acciones** antes del link de Drive:
+- [x] **Step 3: Fila de acciones** antes del link de Drive:
 
 ```tsx
 <div className={css.acciones}>
@@ -352,7 +354,7 @@ onClick={async () => {
 
 (`confirm()` nativo, mismo criterio que `LeadDetailModal` en Research.)
 
-- [ ] **Step 4: CSS** — agregar al module.css, siguiendo el estilo existente del archivo:
+- [x] **Step 4: CSS** — agregar al module.css, siguiendo el estilo existente del archivo:
 
 ```css
 .acciones {
@@ -390,7 +392,7 @@ Run: `npx tsc --noEmit` → exit 0
 
 **Por qué:** `notificaciones`, `slots_calendario` y `solicitudes` tienen `actividad_id uuid` (nullable) con FK hacia `actividades(id)` **sin ON DELETE** → NO ACTION. Eliminar una tarea que tenga notificación, slot o solicitud vinculada revienta con `FK violation`. Es el mismo bug de departamentos/dominios arreglado en `20260824150000`; se aplica el mismo patrón. Con SET NULL, la referencia muere sola (la notificación/slot/solicitud sigue existiendo, solo pierde el link a una tarea que ya no está).
 
-- [ ] **Step 1: Crear la migración**:
+- [x] **Step 1: Crear la migración**:
 
 ```sql
 -- Borrar una tarea referenciada por notificaciones, slots_calendario o solicitudes
@@ -422,7 +424,7 @@ ALTER TABLE public.solicitudes
   ON DELETE SET NULL;
 ```
 
-- [ ] **Step 2: Aplicarla SOLO al Supabase local con `npx supabase migration up`** (NO `db reset`: borra los datos de QA). Antes, verificar contra `.temp/` a qué proyecto está linkeado el CLI — el link persiste entre sesiones y puede apuntar a PROD (le pasó a una sesión anterior).
+- [x] **Step 2: Aplicarla SOLO al Supabase local** (NO `db reset`: borra los datos de QA). ⚠️ AJUSTADO en ejecución: el CLI estaba linkeado al proyecto REMOTO dev (`ydcadspinryybextlvyi`), así que `migration up` habría aplicado en dev antes del QA. Se aplicó vía `psql` contra el postgres local dentro de la verificación del Task 7 — verificado `confdeltype = 'n'` en las tres FKs.
 
 Run: verificar en local que las 3 FKs quedaron con `ON DELETE SET NULL`:
 ```sql
@@ -435,9 +437,9 @@ SELECT conrelid::regclass, conname, confdeltype FROM pg_constraint WHERE conname
 ### Task 7: Verificación
 
 **Automática (la hace el agente que ejecuta el plan):**
-- [ ] `npx tsc --noEmit` → exit 0
-- [ ] `npx vitest run` → todos en verde (incluye los 3 de `act-form.test.ts`)
-- [ ] Chequeo SQL de la migración contra Supabase local (vincular dependencias y borrar una tarea por SQL, verificar `actividad_id = null` en las tres tablas — mismo ensayo del Task 8 Step 6, sin UI)
+- [x] `npx tsc --noEmit` → exit 0
+- [x] `npx vitest run` → todos en verde (incluye los 3 de `act-form.test.ts`)
+- [x] Chequeo SQL de la migración contra Supabase local (vincular dependencias y borrar una tarea por SQL, verificar `actividad_id = null` en las tres tablas — mismo ensayo del Task 8 Step 6, sin UI)
 
 **Manual (la hace WAGNER con la extensión de Claude en el navegador — sin Playwright, sin scripts).** Login local: `freddy@eminat.net` / `eminat123`. Checklist en orden, ~5 min:
 
