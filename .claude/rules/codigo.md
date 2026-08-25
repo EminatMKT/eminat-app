@@ -44,6 +44,15 @@ volver falsa sin tocar código.
 
 Se importa el cliente de `src/shared/db/supabase.ts`. No se instancia uno nuevo.
 
+**Motivo:** `createClient()` no devuelve una vista de la misma conexión, arma un cliente
+entero: su propia sesión, su propio refresco de token y su propio socket de Realtime. Dos
+clientes en la misma pestaña compiten por renovar el token —el que pierde se queda con uno
+vencido— y duplican cada suscripción, así que los handlers corren dos veces por evento. No
+falla al escribirlo: falla al rato, en otra pantalla, y no se parece a su causa.
+
+Vale para el cliente del **browser**. Las rutas API instancian el suyo con `service_role` a
+propósito (`src/shared/db/supabaseAdmin.ts`), que es otra cosa y por eso está exceptuado.
+
 ## i18n: integrar, no ignorar
 
 Todo componente nuevo usa `useT()`/`t()` con sus claves en `es.json` **y** `en.json`. No se marca
