@@ -47,7 +47,10 @@ con teclado. Hoy no bloquea a nadie porque los mismos filtros están en los desp
 no tenerla.
 
 ## Hay plugins de diseño instalados: usarlos antes de improvisar
-<!-- sin check: flujo de trabajo previo a escribir UI, no contenido -->
+<!-- sin check: es un flujo de trabajo previo a escribir, no contenido verificable. Lo que sí
+     hace el centinela es RECORDARLO: al crear un .tsx nuevo con estructura inyecta el aviso
+     (rules/centinela/sugerencias.ts). No bloquea — un aviso en cada edición se vuelve invisible
+     a los dos días, que es como terminó apagado el plugin anterior. -->
 
 Antes de escribir UI nueva o rediseñar una existente, invocar la skill que corresponda. Están
 disponibles en este entorno y no hay que pedir permiso para usarlas:
@@ -59,9 +62,16 @@ disponibles en este entorno y no hay que pedir permiso para usarlas:
 | `accessibility` | Auditar contra WCAG 2.2 — contraste, foco, teclado, lectores de pantalla |
 
 **No aplica** a un ajuste puntual: cambiar un texto, corregir un padding, agregar el placeholder
-de un select. Una skill de diseño para eso es ceremonia, no criterio.
+de un select. Una skill de diseño para eso es ceremonia, no criterio. Por eso el recordatorio
+automático dispara SÓLO al crear un `.tsx` nuevo con tres elementos o más: es el único caso
+donde la regla aplica sin discusión.
 
-**Motivo:** improvisando sale lo genérico — el layout que ya vimos mil veces, la paleta por
+**Motivo (medido el 25/08/2026):** se crearon SEIS componentes visuales ese día y no se invocó
+la skill en ninguno — sólo cuando el usuario lo pidió a mano. El costo no fue teórico: los chips
+de estado quedaron en 1.71:1 de contraste y los botones en 2.77:1, contra el 4.5:1 que pide
+WCAG AA. Eso lo detecta `accessibility` en un minuto y se descubrió dos horas después, mirando.
+
+Improvisando sale lo genérico — el layout que ya vimos mil veces, la paleta por
 defecto, la gráfica que no se lee de lejos. `dataviz` en particular hay que abrirla **antes** y no
 después: el tipo de gráfico y la paleta son decisiones que se toman al empezar, y rehacerlas
 cuesta el gráfico entero. El pie del tablero de Research se rehizo tres veces —dona, huecos entre
