@@ -1,19 +1,14 @@
+/* La descripción es TEXTO PARA LEER, no un dato más: sin caja, con medida de lectura y una
+   barra que la marca como cita del autor de la tarea. */
 .descripcion {
-  margin-bottom: 16px;
-  padding: 12px;
-  background: var(--c-s3);
-  border-radius: 10px;
-  font-size: 13px;
+  margin: 0 0 1.25rem;
+  padding-left: .75rem;
+  border-left: 2px solid var(--c-border);
+  font-size: .8125rem;
   color: var(--c-t2);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
-.campos {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 16px;
-}
 
 .bloque {
   margin-bottom: 16px;
@@ -63,3 +58,13 @@
   box-shadow: 0 0 0 3px rgba(124, 111, 247, 0.18);
 }
 
+
+/* El rastro de la base: lo último de la ficha y lo más callado. */
+.rastro {
+  margin-top: .25rem;
+  padding-top: .75rem;
+  border-top: 1px solid var(--c-border);
+  font-family: 'DM Mono', monospace;
+  font-size: .625rem;
+  color: var(--c-t3);
+}

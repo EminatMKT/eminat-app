@@ -1,46 +1,72 @@
+// centinela-exime: archivo-extenso@1 — son casos de prueba, no lógica: cada `it` es un
+// escenario y partirlos en archivos esconde qué está cubierto y qué no.
 import { describe, it, expect } from 'vitest'
-import { camposDeActividad, fechaLarga } from './index'
+import { camposDeActividad, rastroDeActividad, fechaLarga } from './index'
 import type { I18nKey } from '@/shared/i18n'
 
 // La clave cruda alcanza: lo que se prueba es qué campo sale y con qué valor, no la traducción.
 const t = (k: I18nKey) => k as string
 const deps = { t, locale: 'es-ES', miembrosPorId: { u1: 'Ana Sinequipo', u2: 'Beto Medico' } }
 
-const valorDe = (a: Parameters<typeof camposDeActividad>[0], label: string) =>
-  camposDeActividad(a, deps).find(c => c.label === label)?.value
+type Act = Parameters<typeof camposDeActividad>[0]
+const todos = (a: Act) => camposDeActividad(a, deps).flatMap(g => g.campos)
+const buscar = (a: Act, label: string) => todos(a).find(c => c.label === label)
 
 describe('camposDeActividad', () => {
+  it('agrupa los campos en cinco secciones con nombre', () => {
+    expect(camposDeActividad({}, deps).map(g => g.titulo)).toEqual([
+      'stratix.detail.grupoAsignacion',
+      'stratix.detail.grupoPeriodo',
+      'stratix.detail.grupoEsfuerzo',
+      'stratix.detail.grupoFechas',
+      'stratix.detail.grupoAprobacion',
+    ])
+  })
+
   it('resuelve los ids de persona contra el mapa y cae a — si no está', () => {
     const a = { responsable_id: 'u1', solicitante_id: 'u9' }
-    expect(valorDe(a, 'stratix.col.assignee')).toBe('Ana Sinequipo')
-    expect(valorDe(a, 'stratix.detail.requestedBy')).toBe('—')
+    expect(buscar(a, 'stratix.col.assignee')?.value).toBe('Ana Sinequipo')
+    expect(buscar(a, 'stratix.detail.requestedBy')?.value).toBe('—')
   })
 
-  it('deriva el trimestre del mes cuando la fila no lo trae', () => {
-    expect(valorDe({ mes: 'Agosto' }, 'stratix.detail.quarter')).toBe('Q3')
+  it('marca `vacio` el campo sin dato, para que la ficha lo atenúe en vez de darle peso', () => {
+    const a = { responsable_id: 'u1' }
+    expect(buscar(a, 'stratix.col.assignee')?.vacio).toBe(false)
+    expect(buscar(a, 'stratix.detail.week')?.vacio).toBe(true)
+    expect(buscar(a, 'stratix.detail.approvedBy')?.vacio).toBe(true)
   })
 
-  it('el trimestre guardado gana sobre el derivado del mes', () => {
-    expect(valorDe({ mes: 'Agosto', trimestre: 'Q1' }, 'stratix.detail.quarter')).toBe('Q1')
+  it('deriva el trimestre del mes cuando la fila no lo trae, y el guardado gana', () => {
+    expect(buscar({ mes: 'Agosto' }, 'stratix.detail.quarter')?.value).toBe('Q3')
+    expect(buscar({ mes: 'Agosto', trimestre: 'Q1' }, 'stratix.detail.quarter')?.value).toBe('Q1')
   })
 
   it('verificado NO es booleano: muestra su valor, no "sí"', () => {
-    expect(valorDe({ verificado: 'Pendiente' }, 'stratix.detail.verified')).toBe('stratix.verificado.pendiente')
-    expect(valorDe({ verificado: 'Aprobado' }, 'stratix.detail.verified')).toBe('stratix.verificado.aprobado')
+    expect(buscar({ verificado: 'Pendiente' }, 'stratix.detail.verified')?.value).toBe('stratix.verificado.pendiente')
+    expect(buscar({ verificado: 'Aprobado' }, 'stratix.detail.verified')?.value).toBe('stratix.verificado.aprobado')
   })
 
   it('sin horas ni días muestra 0, no vacío', () => {
-    expect(valorDe({}, 'stratix.detail.estHours')).toBe('0h')
-    expect(valorDe({}, 'stratix.detail.prodDays')).toBe('0')
+    expect(buscar({}, 'stratix.detail.estHours')?.value).toBe('0h')
+    expect(buscar({}, 'stratix.detail.prodDays')?.value).toBe('0')
   })
 
   it('bloqueada usa sí/no porque ahí sí es booleano', () => {
-    expect(valorDe({ bloqueada: true }, 'stratix.detail.blocked')).toBe('common.yes')
-    expect(valorDe({}, 'stratix.detail.blocked')).toBe('common.no')
+    expect(buscar({ bloqueada: true }, 'stratix.detail.blocked')?.value).toBe('common.yes')
+    expect(buscar({}, 'stratix.detail.blocked')?.value).toBe('common.no')
   })
 
-  it('devuelve las quince filas siempre, aunque la actividad esté vacía', () => {
-    expect(camposDeActividad({}, deps)).toHaveLength(15)
+  it('devuelve las trece filas siempre, aunque la actividad esté vacía', () => {
+    expect(todos({})).toHaveLength(13)
+  })
+})
+
+describe('rastroDeActividad', () => {
+  it('junta creación y última edición en una sola línea de pie', () => {
+    const linea = rastroDeActividad({ created_at: '2026-08-24T10:00:00Z' }, deps)
+    expect(linea).toContain('stratix.detail.created')
+    expect(linea).toContain('stratix.detail.updated')
+    expect(linea).toContain('·')
   })
 })
 

@@ -5,9 +5,9 @@ import { useT } from '@/shared/i18n'
 import Modal from '@/shared/components/ui/Modal'
 import ConfirmModal from '@/shared/components/ui/ConfirmModal'
 import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
-import { camposDeActividad } from '@/features/stratix-mkt/utils/act-detail-fields'
+import { camposDeActividad, rastroDeActividad } from '@/features/stratix-mkt/utils/act-detail-fields'
 import ActivityDetailHeader from '../ActivityDetailHeader'
-import DetailField from '../DetailField'
+import DetailGroup from '../DetailGroup'
 // Los dos editores rápidos de la ficha (estado y fecha de entrega) están comentados abajo por
 // pedido de Wagner el 25/08/2026: con el formulario de edición completo ya no hacían falta y
 // dejaban dos caminos para el mismo dato. Estos imports vuelven con ellos.
@@ -24,7 +24,8 @@ export default function ActivityDetailModal() {
   const [confirmarBorrado, setConfirmarBorrado] = useState(false)
   if (!modalVerAct) return null
 
-  const fields = camposDeActividad(modalVerAct, { t, locale, miembrosPorId })
+  const deps = { t, locale, miembrosPorId }
+  const grupos = camposDeActividad(modalVerAct, deps)
 
   // Quitados el 25/08/2026 por pedido de Wagner: el formulario de edición ya cubre estado y
   // fecha, y tener dos caminos para el mismo dato es lo que hace que uno de los dos se olvide.
@@ -65,9 +66,7 @@ export default function ActivityDetailModal() {
     >
       {modalVerAct.descripcion && <div className={css.descripcion}>{modalVerAct.descripcion}</div>}
 
-      <div className={css.campos}>
-        {fields.map(f => <DetailField key={f.label} label={f.label} value={f.value} />)}
-      </div>
+      {grupos.map(g => <DetailGroup key={g.titulo} grupo={g} />)}
 
       {/* Editores rápidos de estado y de fecha de entrega — comentados el 25/08/2026, ver la
           nota de arriba. El de fecha llevaba min/max de la MISMA ventana que usa el eje del
@@ -108,6 +107,8 @@ export default function ActivityDetailModal() {
           🔗 {t('stratix.detail.driveFolder')}
         </a>
       )}
+
+      <div className={css.rastro}>{rastroDeActividad(modalVerAct, deps)}</div>
 
       {confirmarBorrado && (
         <ConfirmModal
