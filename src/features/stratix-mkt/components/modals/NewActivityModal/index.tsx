@@ -6,6 +6,7 @@ import { useT } from '@/shared/i18n'
 import Modal from '@/shared/components/ui/Modal'
 import Field from '@/shared/components/ui/Field'
 import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
+import { limitesFecha } from '@/features/stratix-mkt/utils/gantt-rango'
 import s from './index.module.css'
 
 export default function NewActivityModal() {
@@ -27,6 +28,8 @@ export default function NewActivityModal() {
   // Antes acá se preseleccionaba `miembrosAsignables[0]`. Se quitó a propósito: el responsable
   // de una tarea es una decisión, no un default — quien no bajaba la vista se la asignaba al
   // primero de la lista sin enterarse.
+
+  const limites = limitesFecha(new Date())
 
   if (!modalNuevaAct) return null
   const sinTitulo = !nuevaAct.titulo.trim()
@@ -102,7 +105,7 @@ export default function NewActivityModal() {
         <Field label={t('stratix.new.due')}>
           {/* Sin min/max el navegador acepta un año de 3 dígitos: así entraron las seis
               filas de 0206-03-23 que colgaban el Gantt (24/08/2026). */}
-          <input type="date" min="2020-01-01" max="2035-12-31" value={nuevaAct.fecha_entrega}
+          <input type="date" min={limites.min} max={limites.max} value={nuevaAct.fecha_entrega}
             onChange={e => setNuevaAct(p => ({ ...p, fecha_entrega: e.target.value }))} />
         </Field>
       </div>

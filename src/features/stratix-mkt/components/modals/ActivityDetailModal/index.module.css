@@ -95,3 +95,20 @@
   font-size: 13px;
   font-weight: 500;
 }
+
+/* Mismo alto y radio que las pills de estado de arriba: los dos bloques son lo editable
+   de esta ficha y tienen que leerse como pares. */
+.fecha {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--c-border);
+  background: var(--c-s1);
+  color: var(--c-t1);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+.fecha:focus-visible {
+  border-color: var(--c-accent, #7C6FF7);
+  box-shadow: 0 0 0 3px rgba(124, 111, 247, 0.18);
+}
