@@ -7,7 +7,7 @@
 //
 // Este archivo NO define nada: solo re-exporta. Y ninguno de los módulos de acá importa de
 // `@/shared/utils`, que es lo que evita el ciclo — verificarlo antes de sumar uno nuevo.
-// Ver `.claude/rules/codigo.md`.
+// Ver `rules/codigo.md`.
 
 export { localDate, localMonth } from './dates'
 export { resolveToCanonical } from './canonical'
@@ -16,3 +16,4 @@ export { applyFilters, distinctValues, distinctTokens } from './filters'
 export type { FilterDef, FilterValues } from './filters'
 export { escapeHtml } from './html'
 export { apiSend, apiPost } from './api'
+export { esDelCatalogo, soloDelCatalogo } from './catalogo'

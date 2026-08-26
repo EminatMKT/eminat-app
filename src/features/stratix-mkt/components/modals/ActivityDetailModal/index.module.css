@@ -1,69 +1,14 @@
-/* --marca y --estado salen del catálogo: la marca de la actividad y su estado. */
-.head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 18px;
-}
-
-.chips {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 8px;
-  flex-wrap: wrap;
-}
-
-.chipMarca {
-  font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 8px;
-  font-weight: 600;
-  color: var(--marca);
-  background: color-mix(in srgb, var(--marca) 15%, transparent);
-}
-
-.chipEstado {
-  font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 8px;
-  color: var(--estado);
-  background: color-mix(in srgb, var(--estado) 13%, transparent);
-}
-
-.titulo {
-  font-family: 'Syne', sans-serif;
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--c-t1);
-  line-height: 1.3;
-}
-
-.cerrar {
-  background: none;
-  border: none;
-  color: var(--c-t3);
-  font-size: 22px;
-  cursor: pointer;
-  flex-shrink: 0;
-  margin-left: 12px;
-}
-
+/* La descripción es TEXTO PARA LEER, no un dato más: sin caja, con medida de lectura y una
+   barra que la marca como cita del autor de la tarea. */
 .descripcion {
-  margin-bottom: 16px;
-  padding: 12px;
-  background: var(--c-s3);
-  border-radius: 10px;
-  font-size: 13px;
+  margin: 0 0 1.25rem;
+  padding-left: .75rem;
+  border-left: 2px solid var(--c-border);
+  font-size: .8125rem;
   color: var(--c-t2);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
-.campos {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 16px;
-}
 
 .bloque {
   margin-bottom: 16px;
@@ -111,4 +56,15 @@
 .fecha:focus-visible {
   border-color: var(--c-accent, #7C6FF7);
   box-shadow: 0 0 0 3px rgba(124, 111, 247, 0.18);
+}
+
+
+/* El rastro de la base: lo último de la ficha y lo más callado. */
+.rastro {
+  margin-top: .25rem;
+  padding-top: .75rem;
+  border-top: 1px solid var(--c-border);
+  font-family: 'DM Mono', monospace;
+  font-size: .625rem;
+  color: var(--c-t3);
 }

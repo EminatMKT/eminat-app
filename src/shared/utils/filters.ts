@@ -8,7 +8,7 @@ export interface FilterDef<T> {
   options?: (items: T[]) => string[] // solo para 'select': valores elegibles (de los datos o de un dominio)
   // Cómo se MUESTRA cada opción, cuando el valor guardado no se puede leer: un uuid de
   // responsable, o un estado cuyo canónico está en español y la app puede estar en inglés
-  // (ver .claude/rules/codigo.md, "el valor canónico NO es la etiqueta"). Sin esto, el
+  // (ver rules/codigo.md, "el valor canónico NO es la etiqueta"). Sin esto, el
   // desplegable rotula con el dato crudo. Default: el valor mismo.
   optionLabel?: (value: string) => string
   match: (item: T, value: string) => boolean // ¿el item pasa este filtro para ese valor?

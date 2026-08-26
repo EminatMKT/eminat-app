@@ -1,5 +1,7 @@
 'use client'
 import { useState } from 'react'
+import { SIN_FILTRO } from '@/shared/constants/domain'
+import { useT } from '@/shared/i18n'
 import { depositos, ACCENT } from '../data'
 import { fmt } from '../format'
 import SectionCard from './SectionCard'
@@ -10,15 +12,16 @@ import Td from './Td'
 import DepositRow from './DepositRow'
 
 export default function BankingTab() {
-  const [banco, setBanco] = useState<'all' | 'SOUTH STATE' | 'SPACE COAST'>('all')
-  const filtered = depositos.filter(d => banco === 'all' || d.banco === banco)
+  const { t: tr } = useT()
+  const [banco, setBanco] = useState<typeof SIN_FILTRO | 'SOUTH STATE' | 'SPACE COAST'>(SIN_FILTRO)
+  const filtered = depositos.filter(d => banco === SIN_FILTRO || d.banco === banco)
   const total = filtered.reduce((a, b) => a + b.monto, 0)
   return (
     <SectionCard title="Bank Deposits — March" subtitle={`${filtered.length} deposits · ${fmt(total)}`}>
       <div className="mb-3 flex gap-1.5">
-        {(['all', 'SOUTH STATE', 'SPACE COAST'] as const).map(b => (
+        {([SIN_FILTRO, 'SOUTH STATE', 'SPACE COAST'] as const).map(b => (
           <FilterBtn key={b} active={banco === b} color={ACCENT.teal} onClick={() => setBanco(b)}>
-            {b === 'all' ? 'All Banks' : b}
+            {b === SIN_FILTRO ? tr('common.all') : b}
           </FilterBtn>
         ))}
       </div>

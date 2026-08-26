@@ -30,10 +30,10 @@ se partió el 19/08/2026.
 | `dashboard/` | Los bloques de un tablero: Panel, StatCard, BarChartCard, PieChartCard y sus tokens |
 | `access/` | Los que deciden si se ve algo: AccessDenied, ModuleGate |
 
-Cada componente es una carpeta con su `index.tsx` (ver `.claude/rules/componentes.md`), así que
+Cada componente es una carpeta con su `index.tsx` (ver `rules/componentes.md`), así que
 el import no nombra el archivo: `@/shared/components/ui/Modal`.
 
 **Regla:** si lo usa **una sola** feature → va en `src/features/esa/`, no acá. El criterio completo,
-con sus motivos, está en `.claude/rules/arquitectura.md` y `.claude/rules/componentes.md`.
+con sus motivos, está en `rules/arquitectura.md` y `rules/componentes.md`.
 
 Imports vía `@/shared/...`.

@@ -13,7 +13,16 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }  # 22+ trae WebSocket nativo (lo exige @supabase/realtime-js)
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec tsc --noEmit
+      # `pnpm typecheck`, no `tsc` pelado: son DOS proyectos. El centinela corre con Bun y tiene
+      # su propio tsconfig (rules/centinela); con `tsc --noEmit` a secas quedaba fuera del gate.
+      # El centinela se valida a sí mismo: corre los tests que las reglas declaran y verifica
+      # que ninguna haya cambiado sin subir su version. Estaba fuera del gate y por eso un
+      # detector roto podía pasar sin que nadie se enterara.
+      - uses: oven-sh/setup-bun@v2
+      - run: pnpm rules:check
+      - run: pnpm typecheck
+      # tsc no mira CSS: una comilla suelta en un .module.css pasaba el typecheck entero.
+      - run: pnpm lint:css
       - run: pnpm test
       - run: pnpm build
         env:

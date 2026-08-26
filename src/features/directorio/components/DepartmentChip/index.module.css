@@ -1,0 +1,22 @@
+.chip {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-family: inherit;
+  border: 1px solid var(--c-border);
+  background: transparent;
+  color: var(--c-t2);
+  cursor: pointer;
+}
+
+.activo {
+  /* Sólido, como el resto de lo seleccionado en la app. El accent claro con texto blanco daba
+     3.84:1, por debajo del 4.5:1 de WCAG AA. */
+  border-color: var(--c-accent-solid);
+  background: var(--c-accent-solid);
+  color: #fff;
+}
+
+.cuenta {
+  opacity: .6;
+}

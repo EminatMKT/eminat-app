@@ -10,9 +10,11 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p rules/centinela --noEmit",
     "e2e": "playwright test",
-    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true"
+    "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
+    "rules:check": "bun rules/centinela/main.ts --self-check",
+    "lint:css": "stylelint \"src/**/*.css\""
   },
   "dependencies": {
     "@lottiefiles/react-lottie-player": "^3.5.3",
@@ -36,6 +38,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.61.1",
+    "@types/bun": "^1.4.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
@@ -45,6 +48,8 @@
     "eslint": "^8",
     "eslint-config-next": "14.2.3",
     "postcss": "^8",
+    "stylelint": "^17.14.1",
+    "stylelint-config-recommended": "^18.0.0",
     "supabase": "^2.106.0",
     "tailwindcss": "^3.4.1",
     "typescript": "^5",

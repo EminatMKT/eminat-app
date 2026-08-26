@@ -187,7 +187,7 @@ supabase/
 
 ## Convenciones
 
-Se mudaron a `.claude/rules/` — eran órdenes sobre cómo escribir, no descripción del proyecto.
+Se mudaron a `rules/` — eran órdenes sobre cómo escribir, no descripción del proyecto.
 `codigo.md` tiene las que estaban acá (thin routes, `route.ts` solo handlers, `src/shared/motion`,
 permisos por módulo, el singleton de Supabase, i18n sin `i18n-ignore`, el ban de `any` y el
 naming de FK); `base-de-datos.md` se quedó con la de datos de prueba por el frontend.
@@ -210,8 +210,8 @@ Durante la sesión, llamar `mem_save` después de cada decisión de arquitectura
 
 ## Reglas de código
 
-Las reglas sobre **cómo escribir código acá** viven en `.claude/rules/` y se cargan por el import
+Las reglas sobre **cómo escribir código acá** viven en `rules/` y se cargan por el import
 de abajo. Este archivo describe cómo ES el proyecto; ese directorio dice cómo se trabaja. Ante una
 contradicción, gana la regla y hay que corregir este archivo.
 
-@.claude/rules/README.md
+@rules/README.md
