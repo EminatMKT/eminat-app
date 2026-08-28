@@ -7,7 +7,7 @@ Sistema interno de Eminat Group. Desarrollado con Next.js + Supabase.
 - **Frontend:** Next.js 14 + TypeScript + Tailwind CSS
 - **Base de datos:** Supabase (PostgreSQL + Auth + Realtime)
 - **Deploy:** Vercel
-- **Dominio:** eminat.app (GoDaddy)
+- **Dominio:** app.stratixsolutions.us
 
 ## 📋 Requisitos
 
@@ -138,7 +138,7 @@ vercel
 
 # 3. Agregar variables de entorno en Vercel:
 # NEXT_PUBLIC_SUPABASE_URL
-# NEXT_PUBLIC_SUPABASE_ANON_KEY
+# NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 ```
 
 ## 📞 Soporte

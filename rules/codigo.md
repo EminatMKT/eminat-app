@@ -95,10 +95,10 @@ propósito (`src/shared/db/supabaseAdmin.ts`), que es otra cosa y por eso está 
 ## La llave `service_role` sólo se usa dentro de una ruta API
 
 <!-- check: block
-     pattern: supabaseAdmin|SUPABASE_SERVICE_ROLE_KEY
+     pattern: supabaseAdmin|SUPABASE_SECRET_KEY
      files: .ts,.tsx
      except: /api/,/shared/db/,instrumentation.ts
-     version: 1
+     version: 2
      test: falla @src/features/x/hooks/useExport.ts :: import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
      test: pasa @src/app/api/admin/x/route.ts :: import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 -->
@@ -163,8 +163,9 @@ API**. Cada handler abre con su guard, antes de tocar nada.
 - `requireModule('<slug>')` — el resto. Delega en `has_module()`, la misma función de Postgres que
   usan las policies de RLS, así que la ruta no puede desincronizarse de lo que la base permite.
 
-Y si una ruta usa `SUPABASE_SERVICE_ROLE_KEY`, el guard no es opcional bajo ninguna
-interpretación: service_role saltea la RLS, o sea que ahí no queda ninguna otra red.
+Y si una ruta usa `SUPABASE_SECRET_KEY`, el guard no es opcional bajo ninguna
+interpretación: esa clave eleva al rol `service_role` de Postgres, que saltea la RLS — ahí no
+queda ninguna otra red.
 
 **Motivo:** `/api/mail/send` estuvo abierto a internet aceptando `to`, `subject`, `html` y `from`
 de cualquiera, contra la cuenta de Resend de la empresa y desde un dominio verificado a nombre de

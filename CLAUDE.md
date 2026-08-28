@@ -11,23 +11,25 @@ Sistema operativo interno de Eminat Group. Plataforma de gestión empresarial de
 
 ## Entornos y base de datos
 
-**Tres tiers, una base por tier.** Lo declara el enum de `NEXT_PUBLIC_APP_ENV` en
+**Dos tiers, una base por tier.** Lo declara el enum de `NEXT_PUBLIC_APP_ENV` en
 `src/shared/db/env.client.ts`:
 
 | Tier | Base | Ref / URL | Dónde se configuran las vars |
 |---|---|---|---|
 | **`local`** | Supabase local (Docker, `supabase start`) | `http://127.0.0.1:54321` | `.env.local` (gitignored), `NEXT_PUBLIC_APP_ENV=local` |
-| **`development`** | `eminat-app-dev` (org free) | `ydcadspinryybextlvyi` | Vercel → scope Preview (rama `development`) |
 | **`production`** | `eminat-app` (org Pro) | `ruedelunbtaomhrzgelc` | Vercel → scope Production |
 
-- **En local se corre contra Supabase local, no contra el dev remoto.** El tier
-  `development` es Vercel Preview.
+**No hay tier `development`.** Se eliminó el 28/08/2026, junto con la rama `development` y el
+proyecto Supabase `eminat-app-dev` (`ydcadspinryybextlvyi`). Eran una tercera base que había que
+sincronizar a mano —el repo llegó a tener tres ramas `chore/sync-*` para eso— y su único
+consumidor era Vercel Preview; el CI nunca la tocó, corre contra Supabase local (`supabase
+start`). Toda rama sale de `main` y se prueba en local.
+
 - El prefijo `NEXT_PUBLIC_` no es opcional: la validación corre también en el cliente
   (`isProdDb`/badge) y sin el prefijo Next no inyecta la var al bundle.
 - `src/shared/db/env.client.ts` exporta `isProdDb`/`isDevDb` y un `superRefine` que **rompe el
   build** si un tier que no es `production` apunta al ref de la base de prod.
-- `isDevDb` es true para `local` **y** `development`; con eso `DevBadge` pinta el badge
-  **"DEV"** en el topbar.
+- `isDevDb` es true para `local`; con eso `DevBadge` pinta el badge **"DEV"** en el topbar.
 
 ### Levantar el entorno local
 
@@ -42,25 +44,26 @@ de prueba.
 ### Migraciones de esquema (CLI de Supabase)
 
 El esquema se versiona en `supabase/migrations/` con la CLI (`supabase`, devDependency).
-Local, dev y prod se mantienen sincronizados así:
+Local y prod se mantienen sincronizados así:
 
 ```bash
 # Crear una nueva migración tras un cambio de esquema
 pnpm supabase migration new <nombre>
 
-# Aplicarla en local (no necesita link)
-pnpm supabase db reset          # recrea la base local desde migrations/ + seed/
+# Aplicarla en local (no necesita link). `db reset` está PROHIBIDO acá:
+# ver rules/base-de-datos.md
+pnpm supabase migration up
 
-# Aplicar a un proyecto remoto (cambiar de proyecto con `link`)
-pnpm supabase link --project-ref ydcadspinryybextlvyi   # dev
-pnpm supabase db push
-pnpm supabase link --project-ref ruedelunbtaomhrzgelc    # prod
+# Aplicar a prod — antes, el backup y el precheck de rules/base-de-datos.md
+pnpm supabase link --project-ref ruedelunbtaomhrzgelc
 pnpm supabase db push
 ```
 
 - Auth de la CLI vía Personal Access Token (`supabase login --token`), no por browser.
 - `db pull`/`db push` cubren el schema `public` (tablas, RLS, funciones), **no** usuarios
-  de Auth, Storage buckets ni Edge Functions: esos se replican aparte en dev.
+  de Auth, Storage buckets ni Edge Functions: esos se replican a mano.
+- **No hay ensayo intermedio.** Sin el proyecto dev, una migración va de local directo a prod.
+  El backup + precheck dejó de ser buena práctica y es la única red que queda.
 
 ## Roles de usuario
 

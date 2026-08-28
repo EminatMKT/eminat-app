@@ -22,7 +22,7 @@ import { syncUsuarioCargos } from '@/shared/db/usuarioCargos'
  *   subsequent usuarios update fails, we revert auth.users.email back so
  *   the two never drift apart.
  *
- * Service-role only. Bypasses RLS. SUPABASE_SERVICE_ROLE_KEY is never
+ * Service-role only. Bypasses RLS. SUPABASE_SECRET_KEY is never
  * exposed to the browser.
  */
 

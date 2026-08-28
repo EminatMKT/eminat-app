@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-// Ref del proyecto Supabase de PRODUCCIÓN (eminat.app). Se usa como red de
+// Ref del proyecto Supabase de PRODUCCIÓN (app.stratixsolutions.us). Se usa como red de
 // seguridad para evitar que el entorno de desarrollo apunte por error a la
 // base de prod. El ref no es secreto: ya viaja en NEXT_PUBLIC_SUPABASE_URL.
 const PROD_DB_REF = 'ruedelunbtaomhrzgelc'
@@ -9,22 +9,24 @@ const clientSchema = z.object({
 
   // ── Supabase (cliente + servidor) ─────────────────────────────
   NEXT_PUBLIC_SUPABASE_URL: z.url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1),
 
   // ── Modo de build — gestionado por Next.js, no se toca ────────
   // development = next dev | production = next build | test = jest
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
   // ── Tier del entorno (1 base por tier). local = tu máquina, Supabase local
-  //    (supabase start) | development = Vercel Preview (rama development), Supabase
-  //    dev remoto | production = Vercel main, Supabase prod.
+  //    (supabase start) | production = Vercel main, Supabase prod.
+  //    El tier `development` se eliminó el 28/08/2026 junto con la rama y el proyecto
+  //    Supabase dev: eran una tercera base que había que sincronizar a mano y su único
+  //    consumidor era Vercel Preview. Las ramas salen de main y se prueban en local.
   //    NEXT_PUBLIC_ porque esta validación corre en el cliente (isProdDb/badge):
   //    sin el prefijo, Next no lo inyecta al bundle y en el browser sería undefined.
-  NEXT_PUBLIC_APP_ENV: z.enum(['local', 'development', 'production']).default('local'),
+  NEXT_PUBLIC_APP_ENV: z.enum(['local', 'production']).default('local'),
 
 }).superRefine((env, ctx) => {
-  // Salvaguarda: solo production puede apuntar a la base de PRODUCCIÓN. Si un tier
-  // local/development la tiene, es un error de configuración — corregir antes de seguir.
+  // Salvaguarda: solo production puede apuntar a la base de PRODUCCIÓN. Si el tier
+  // local la tiene, es un error de configuración — corregir antes de seguir.
   if (env.NEXT_PUBLIC_APP_ENV !== 'production' && env.NEXT_PUBLIC_SUPABASE_URL.includes(PROD_DB_REF)) {
     ctx.addIssue({
       code: 'custom',
@@ -41,14 +43,14 @@ const clientSchema = z.object({
 // undefined en el browser y zod tira ZodError al hidratar. Hay que listarlas explícitas.
 export const clientEnv = clientSchema.parse({
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   NODE_ENV: process.env.NODE_ENV,
   NEXT_PUBLIC_APP_ENV: process.env.NEXT_PUBLIC_APP_ENV,
 })
 
 // ── Helpers derivados ─────────────────────────────────────────────
 // `isProdDb` = la app está conectada a la base de producción. Solo el tier
-// production usa la base de prod (lo garantiza el superRefine), así que local y
-// development muestran el badge "DEV".
+// production usa la base de prod (lo garantiza el superRefine), así que local
+// muestra el badge "DEV".
 export const isProdDb = clientEnv.NEXT_PUBLIC_APP_ENV === 'production'
 export const isDevDb = !isProdDb

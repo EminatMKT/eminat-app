@@ -8,7 +8,7 @@ import { requireAdmin } from '@/shared/db/requireAdmin'
  * Returns success only; the password is what the admin already had in
  * hand, so we don't echo it back. The admin shares it with the user.
  *
- * Requires SUPABASE_SERVICE_ROLE_KEY. Never exposed to the browser.
+ * Requires SUPABASE_SECRET_KEY. Never exposed to the browser.
  */
 const TAG = '[admin/reset-password]'
 

@@ -22,7 +22,7 @@ import { isLastAdmin } from '@/shared/auth/roleValidation'
  *     statusOverride?: 'aprobado' | 'finalizado' | 'por_aprobar' | null
  *   }
  *
- * Requires SUPABASE_SERVICE_ROLE_KEY. Never exposed to the browser.
+ * Requires SUPABASE_SECRET_KEY. Never exposed to the browser.
  */
 
 const TAG = '[admin/reassign-and-delete]'

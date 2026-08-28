@@ -14,7 +14,7 @@ export type Access = { ok: boolean; userId?: string; status?: number; error?: st
 // gracia es que la query corra COMO el usuario, para que la RLS y auth.uid() lo reconozcan.
 export function ssrClient() {
   const cookieStore = cookies()
-  return createServerClient(clientEnv.NEXT_PUBLIC_SUPABASE_URL, clientEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+  return createServerClient(clientEnv.NEXT_PUBLIC_SUPABASE_URL, clientEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
     cookies: { get: (n: string) => cookieStore.get(n)?.value },
   })
 }
