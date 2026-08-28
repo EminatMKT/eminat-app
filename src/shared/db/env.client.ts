@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-// Ref del proyecto Supabase de PRODUCCIÓN (eminat.app). Se usa como red de
+// Ref del proyecto Supabase de PRODUCCIÓN (app.stratixsolutions.us). Se usa como red de
 // seguridad para evitar que el entorno de desarrollo apunte por error a la
 // base de prod. El ref no es secreto: ya viaja en NEXT_PUBLIC_SUPABASE_URL.
 const PROD_DB_REF = 'ruedelunbtaomhrzgelc'

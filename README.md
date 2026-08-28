@@ -7,7 +7,7 @@ Sistema interno de Eminat Group. Desarrollado con Next.js + Supabase.
 - **Frontend:** Next.js 14 + TypeScript + Tailwind CSS
 - **Base de datos:** Supabase (PostgreSQL + Auth + Realtime)
 - **Deploy:** Vercel
-- **Dominio:** eminat.app (GoDaddy)
+- **Dominio:** app.stratixsolutions.us
 
 ## 📋 Requisitos
 
