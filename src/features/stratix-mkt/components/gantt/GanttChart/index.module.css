@@ -59,3 +59,8 @@
   gap: 16px;
   flex-wrap: wrap;
 }
+
+/* Un número que no cuadra tiene que poder explicarse solo: sin este aviso el usuario
+   ve menos barras de las que cargó y lo lee como que se perdieron tareas. */
+/* Sólo la separación respecto del eje: el aspecto del aviso vive en WarningCallout. */
+.aviso { margin-bottom: 10px; }

@@ -1,0 +1,36 @@
+/* Destructiva: el rojo sólido es la señal más fuerte de la ficha, y tiene que serlo — pero
+   por eso mismo la acción NO ocurre al primer clic: quien lo use se encuentra un ConfirmModal.
+   El relleno usa --c-danger-solid porque el rojo claro da 2.77:1 contra texto blanco, muy por
+   debajo del 4.5:1 que pide WCAG AA. */
+.boton {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+  padding: .4375rem .875rem;
+  border-radius: .625rem;
+  border: none;
+  font-size: .75rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  color: #fff;
+  background: var(--c-danger-solid);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .12);
+  transition: background .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.boton:hover {
+  background: color-mix(in srgb, var(--c-danger-solid) 88%, #000);
+  box-shadow: 0 3px 8px rgba(220, 38, 38, .3);
+  transform: translateY(-1px);
+}
+
+.boton:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .12);
+}
+
+.boton:focus-visible {
+  outline: 2px solid var(--c-danger-solid);
+  outline-offset: 2px;
+}

@@ -91,7 +91,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const { sessionError, ...app } = useAppData()
 
   const miembrosPorId = deriveMiembrosPorId(app.adminUsuarios)
-  const miembrosAsignables = deriveMiembrosAsignables(app.usuarios)
+  const miembrosAsignables = useMemo(
+    () => deriveMiembrosAsignables(app.usuarios, app.roleModuleMap),
+    [app.usuarios, app.roleModuleMap],
+  )
   const equipoMarketing = deriveEquipoMarketing(app.usuarios)
   const marcas = useMemo(() => deriveMarcas(app.empresas), [app.empresas])
   const colorMarca = useMemo(() => deriveColorMarca(app.empresas), [app.empresas])

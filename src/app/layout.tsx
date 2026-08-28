@@ -11,8 +11,8 @@ const poppins = Poppins({
 })
 
 export const metadata: Metadata = {
-  title: 'Eminat App — Sistema de Gestión',
-  description: 'The operating system of Eminat Group',
+  title: 'Stratix Communications — Operations Hub',
+  description: 'Strategy, paid media, design, web, SEO, AI and more — one dedicated creative team driving your growth',
 }
 
 export default function RootLayout({

@@ -1,6 +1,8 @@
 #!/usr/bin/env sh
 # Gate local rápido antes de push (bypasseable con --no-verify; el gate duro es CI).
-echo "▶ pre-push: typecheck + tests"
-pnpm exec tsc --noEmit || { echo "✖ typecheck falló"; exit 1; }
+echo "▶ pre-push: reglas + typecheck + css + tests"
+pnpm rules:check || { echo "✖ el centinela no se valida a sí mismo"; exit 1; }
+pnpm typecheck || { echo "✖ typecheck falló"; exit 1; }
+pnpm lint:css || { echo "✖ el CSS no compila"; exit 1; }
 pnpm test || { echo "✖ tests fallaron"; exit 1; }
 echo "✓ pre-push OK"

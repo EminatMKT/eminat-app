@@ -32,12 +32,26 @@ html, body, * {
   --c-t2: #6B7280;
   --c-t3: #9CA3AF;
   --c-accent: #7C6FF7;
+  /* El rojo de lo destructivo. Estaba escrito a mano en cada botón de borrar del repo, que es
+     como se llega a tres rojos distintos para la misma señal. */
+  --c-danger: #F87171;
+
+  /* Las versiones SÓLIDAS: para relleno con texto blanco encima. No son un capricho de tono —
+     el accent y el danger de arriba dan 3.84:1 y 2.77:1 contra blanco, y WCAG AA pide 4.5:1
+     para texto chico. Estos dan 5.26:1 y 4.83:1. Los claros siguen siendo los correctos para
+     texto e íconos sobre fondo claro; estos, sólo para el relleno. */
+  --c-accent-solid: #6355E8;
+  --c-danger-solid: #DC2626;
 }
 
+/* El reset y la barra de scroll iban en dos bloques `*` separados; juntos se lee de una qué
+   se le aplica a todo. */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 111, 247, 0.3) transparent;
 }
 
 body {
@@ -45,8 +59,6 @@ body {
   color: var(--t1);
   min-height: 100vh;
 }
-
-* { scrollbar-width: thin; scrollbar-color: rgba(124,111,247,0.3) transparent; }
 *::-webkit-scrollbar { width: 4px; height: 4px; }
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb { background: rgba(124,111,247,0.3); border-radius: 2px; }

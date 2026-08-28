@@ -8,23 +8,42 @@
   z-index: 100;
 }
 
-/* --ancho: el modal lo elige según su contenido; el resto es igual para todos. */
+/* --ancho: el modal lo elige según su contenido; el resto es igual para todos.
+   El padding vive en .head y .cuerpo, no acá: el scroll es del cuerpo solo, así que la caja
+   no puede tener ni padding propio ni overflow. */
 .caja {
   background: var(--c-s1);
   border: 1px solid var(--c-border);
   border-radius: 18px;
-  padding: 28px;
   width: var(--ancho);
   max-width: 95vw;
   max-height: 90vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
+/* Fija: no entra en el área scrolleable. El borde es lo que la separa del contenido que
+   pasa por debajo al scrollear. */
 .head {
+  flex-shrink: 0;
+  padding: 24px 28px 16px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.headFila {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+}
+
+.cuerpo {
+  overflow-y: auto;
+  padding: 28px;
+}
+
+.head + .cuerpo {
+  padding-top: 20px;
 }
 
 .titulo {

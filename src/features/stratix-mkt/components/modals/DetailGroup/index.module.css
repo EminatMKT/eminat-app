@@ -1,0 +1,50 @@
+/* Un grupo se lee de arriba abajo: rótulo, después sus filas. El peso baja del rótulo al
+   valor vacío, que es lo último que tiene que llamar la atención. */
+.grupo {
+  margin-bottom: 1.125rem;
+}
+
+.titulo {
+  font-family: 'DM Mono', monospace;
+  font-size: .625rem;
+  font-weight: 400;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--c-t3);
+  margin-bottom: .375rem;
+  padding-bottom: .3125rem;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.lista {
+  margin: 0;
+}
+
+/* Etiqueta a la izquierda en ancho fijo, valor a la derecha: la columna de valores queda
+   alineada y se puede barrer con la vista sin leer las etiquetas. */
+.fila {
+  display: grid;
+  grid-template-columns: 8.75rem 1fr;
+  gap: .75rem;
+  align-items: baseline;
+  padding: .3125rem 0;
+}
+
+.label {
+  font-size: .75rem;
+  color: var(--c-t3);
+}
+
+.valor {
+  margin: 0;
+  font-size: .8125rem;
+  font-weight: 500;
+  color: var(--c-t1);
+}
+
+/* Sin dato. Existe —que un campo esté vacío es información— pero no compite con los que sí
+   tienen valor: por eso baja de peso en vez de desaparecer. */
+.vacio {
+  font-weight: 400;
+  color: var(--c-t3);
+}

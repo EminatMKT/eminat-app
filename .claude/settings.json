@@ -9,7 +9,7 @@
     "claude-plugins-official@context7": true,
     "claude-plugins-official@frontend-design": true,
     "claude-plugins-official@security-guidance": true,
-    "nextjs-praxis-guard@nextjs-praxis-guard": true
+    "nextjs-praxis-guard@nextjs-praxis-guard": false
   },
   "hooks": {
     "PreToolUse": [
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/rules-review.py\""
+            "command": "bun \"$CLAUDE_PROJECT_DIR/rules/centinela/main.ts\""
           }
         ]
       }

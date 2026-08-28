@@ -12,6 +12,8 @@ import SocialTab from '../social/SocialTab'
 import CompetenciaTab from '../competencia/CompetenciaTab'
 import ActivityDetailModal from '../modals/ActivityDetailModal'
 import NewActivityModal from '../modals/NewActivityModal'
+import { soloDelCatalogo } from '@/shared/utils'
+import { STRATIX_TABS, type StratixTab } from '@/features/stratix-mkt/constants/tabs'
 
 const tabViews: Record<string, JSX.Element> = {
   overview: <OverviewTab />,
@@ -36,8 +38,12 @@ const sectionTitle = (tab: string) => {
 export default function StratixContent() {
   const { mktTab, setMktTab } = useStratix()
 
+  // AppShell es compartido y emite un string cualquiera; el catálogo del módulo decide qué
+  // entra. Sin esta frontera haría falta un `as StratixTab`, que no valida nada.
+  const cambiarTab = soloDelCatalogo<StratixTab>(STRATIX_TABS, setMktTab)
+
   return (
-    <AppShell title={sectionTitle(mktTab)} activeTab={mktTab} onTabChange={setMktTab}>
+    <AppShell title={sectionTitle(mktTab)} activeTab={mktTab} onTabChange={cambiarTab}>
       <PageTransition>
         <div>
           {tabViews[mktTab]}

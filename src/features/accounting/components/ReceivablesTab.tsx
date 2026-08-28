@@ -1,5 +1,7 @@
 'use client'
 import { useState } from 'react'
+import { SIN_FILTRO } from '@/shared/constants/domain'
+import { useT } from '@/shared/i18n'
 import { porCobrar, ACCENT } from '../data'
 import { fmt } from '../format'
 import SectionCard from './SectionCard'
@@ -10,17 +12,18 @@ import Td from './Td'
 import ReceivableRow from './ReceivableRow'
 
 export default function ReceivablesTab() {
-  const [tipo, setTipo] = useState<'all' | 'DATA' | 'INVOICE'>('all')
-  const filtered = porCobrar.filter(p => tipo === 'all' || p.tipo === tipo)
+  const { t: tr } = useT()
+  const [tipo, setTipo] = useState<typeof SIN_FILTRO | 'DATA' | 'INVOICE'>(SIN_FILTRO)
+  const filtered = porCobrar.filter(p => tipo === SIN_FILTRO || p.tipo === tipo)
   const totV = filtered.reduce((a, b) => a + b.vencido, 0)
   const totPV = filtered.reduce((a, b) => a + b.porVencer, 0)
   const totT = filtered.reduce((a, b) => a + b.total, 0)
   return (
     <SectionCard title="Receivables" subtitle={`${filtered.length} records · ${fmt(totT)} outstanding`}>
       <div className="mb-3 flex gap-1.5">
-        {(['all', 'DATA', 'INVOICE'] as const).map(t => (
+        {([SIN_FILTRO, 'DATA', 'INVOICE'] as const).map(t => (
           <FilterBtn key={t} active={tipo === t} color={ACCENT.teal} onClick={() => setTipo(t)}>
-            {t === 'all' ? 'All' : t}
+            {t === SIN_FILTRO ? tr('common.all') : t}
           </FilterBtn>
         ))}
       </div>

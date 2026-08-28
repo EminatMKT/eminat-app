@@ -21,7 +21,7 @@ export const SUB_ITEMS: Record<PanelKey, SubItem[]> = {
   mkt: [
     // El tablero es su propia sección: se mira de lejos y no se toca. Production es UNA vista, la
     // única donde se trabaja —el Kanban—, así que tampoco tiene sub-vistas: el Gantt y las horas
-    // se leen, no se tocan, y por eso viven en el tablero (ver .claude/rules/arquitectura.md).
+    // se leen, no se tocan, y por eso viven en el tablero (ver rules/arquitectura.md).
     { id: 'mkt-dash', icon: '📊', label: 'Dashboard', tab: 'overview' },
     { id: 'sub-prod', icon: '⚡', label: 'Production', tab: 'kanban' },
     { id: 'sub-sol', icon: '📋', label: 'Requests', tab: 'solicitudes' },

@@ -49,7 +49,7 @@
   color: var(--c-t2);
   flex: 1 1 110px;
   min-width: 110px;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .arrow {
@@ -62,7 +62,7 @@
   color: var(--c-t1);
   flex: 1 1 110px;
   min-width: 110px;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .input {

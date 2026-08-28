@@ -1,84 +1,124 @@
 'use client'
-import type { CSSProperties } from 'react'
-import { useApp, COLUMNAS_KANBAN, mesATrimestre } from '@/shared/context/AppContext'
-import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
-import { ESTADO_COLORS, estadoLabel } from '@/shared/constants/domain'
-import { actividadesRepo } from '@/shared/data'
+import { useState } from 'react'
+import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import Modal from '@/shared/components/ui/Modal'
-import PillToggle from '@/shared/components/ui/PillToggle'
+import ConfirmModal from '@/shared/components/ui/ConfirmModal'
 import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
-import DetailField from '../DetailField'
+import { camposDeActividad, rastroDeActividad } from '@/features/stratix-mkt/utils/act-detail-fields'
+import ActivityDetailHeader from '../ActivityDetailHeader'
+import DetailGroup from '../DetailGroup'
+// Los dos editores rápidos de la ficha (estado y fecha de entrega) están comentados abajo por
+// pedido de Wagner el 25/08/2026: con el formulario de edición completo ya no hacían falta y
+// dejaban dos caminos para el mismo dato. Estos imports vuelven con ellos.
+// import { COLUMNAS_KANBAN } from '@/shared/context/AppContext'
+// import { actividadesRepo } from '@/shared/data'
+// import PillToggle from '@/shared/components/ui/PillToggle'
+// import { limitesFecha } from '@/features/stratix-mkt/utils/gantt-rango'
 import css from './index.module.css'
 
 export default function ActivityDetailModal() {
   const { t, locale } = useT()
-  const { setActividades, mostrarMensaje, miembrosPorId, colorMarca } = useApp()
-  const { modalVerAct, setModalVerAct } = useStratix()
+  const { miembrosPorId } = useApp()
+  const { modalVerAct, setModalVerAct, abrirEdicion, eliminarAct } = useStratix()
+  const [confirmarBorrado, setConfirmarBorrado] = useState(false)
   if (!modalVerAct) return null
 
-  const fields = [
-    { label: t('stratix.col.assignee'), value: miembrosPorId[modalVerAct.responsable_id] ?? '—' },
-    { label: t('stratix.detail.requestedBy'), value: miembrosPorId[modalVerAct.solicitante_id] ?? '—' },
-    { label: t('stratix.col.month'), value: modalVerAct.mes },
-    { label: t('stratix.detail.quarter'), value: modalVerAct.trimestre || mesATrimestre[modalVerAct.mes || 'Enero'] || 'Q1' },
-    { label: t('stratix.detail.estHours'), value: `${modalVerAct.horas || 0}h` },
-    { label: t('stratix.detail.prodDays'), value: modalVerAct.dias_produccion || '0' },
-    {
-      label: t('stratix.col.due'),
-      value: modalVerAct.fecha_entrega
-        ? new Date(modalVerAct.fecha_entrega + 'T00:00:00').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'long' })
-        : t('stratix.detail.noDate'),
-    },
-    { label: t('stratix.detail.verified'), value: modalVerAct.verificado ? `✓ ${t('common.yes')}` : `✕ ${t('common.no')}` },
-  ]
+  const deps = { t, locale, miembrosPorId }
+  const grupos = camposDeActividad(modalVerAct, deps)
 
-  const vars = {
-    '--marca': colorMarca[modalVerAct.empresa] ?? COLOR_MARCA_FALLBACK,
-    '--estado': ESTADO_COLORS[modalVerAct.estado] || 'var(--c-t3)',
-  } as CSSProperties
+  // Quitados el 25/08/2026 por pedido de Wagner: el formulario de edición ya cubre estado y
+  // fecha, y tener dos caminos para el mismo dato es lo que hace que uno de los dos se olvide.
+  // Se comentan, no se borran (rules/proceso.md): restaurarlos es descomentar.
+  // const limites = limitesFecha(new Date())
+  //
+  // async function cambiarEstado(col: string) {
+  //   if (!modalVerAct.id) return
+  //   const { error } = await actividadesRepo.updateEstado(modalVerAct.id, col)
+  //   if (error) { mostrarMensaje('error', t('stratix.detail.statusError')); return }
+  //   setActividades(prev => prev.map(a => (a.id === modalVerAct.id ? { ...a, estado: col } : a)))
+  //   setModalVerAct(p => ({ ...p, estado: col }))
+  //   mostrarMensaje('ok', t('stratix.detail.statusChanged', { estado: estadoLabel(col, t) }))
+  // }
+  //
+  // async function cambiarFecha(fecha: string) {
+  //   if (!fecha) return
+  //   const { error } = await actividadesRepo.updateFecha(modalVerAct.id, fecha)
+  //   if (error) { mostrarMensaje('error', t('stratix.detail.dueError')); return }
+  //   setActividades(prev => prev.map(a => (a.id === modalVerAct.id ? { ...a, fecha_entrega: fecha } : a)))
+  //   setModalVerAct(p => ({ ...p, fecha_entrega: fecha }))
+  //   mostrarMensaje('ok', t('stratix.detail.dueChanged'))
+  // }
+
 
   return (
-    <Modal width={500} onClose={() => setModalVerAct(null)}>
-      {/* Encabezado propio y no el de Modal: acá el título va DEBAJO de los chips de marca y
-          estado, que es lo primero que se mira al abrir una ficha. */}
-      <div className={css.head} style={vars}>
-        <div>
-          <div className={css.chips}>
-            <span className={css.chipMarca}>{modalVerAct.empresa}</span>
-            <span className={css.chipEstado}>{estadoLabel(modalVerAct.estado, t)}</span>
-          </div>
-          <div className={css.titulo}>{modalVerAct.titulo}</div>
-        </div>
-        <button type="button" className={css.cerrar} onClick={() => setModalVerAct(null)}>✕</button>
-      </div>
-
+    <Modal
+      width={500}
+      onClose={() => setModalVerAct(null)}
+      header={
+        <ActivityDetailHeader
+          act={modalVerAct}
+          onEditar={() => abrirEdicion(modalVerAct)}
+          onBorrar={() => setConfirmarBorrado(true)}
+          onCerrar={() => setModalVerAct(null)}
+        />
+      }
+    >
       {modalVerAct.descripcion && <div className={css.descripcion}>{modalVerAct.descripcion}</div>}
 
-      <div className={css.campos}>
-        {fields.map(f => <DetailField key={f.label} label={f.label} value={f.value} />)}
-      </div>
+      {grupos.map(g => <DetailGroup key={g.titulo} grupo={g} />)}
 
+      {/* Editores rápidos de estado y de fecha de entrega — comentados el 25/08/2026, ver la
+          nota de arriba. El de fecha llevaba min/max de la MISMA ventana que usa el eje del
+          Gantt, que es lo que impedía volver a cargar un año de tres dígitos.
       <div className={css.bloque}>
         <div className={css.rotulo}>{t('stratix.detail.changeStatus')}</div>
         <div className={css.estados}>
           {COLUMNAS_KANBAN.map(col => (
             <PillToggle key={col} size="sm" color={ESTADO_COLORS[col]} label={estadoLabel(col, t)}
               active={modalVerAct.estado === col}
-              onClick={async () => {
-                await actividadesRepo.updateEstado(modalVerAct.id, col)
-                setActividades(prev => prev.map(a => (a.id === modalVerAct.id ? { ...a, estado: col } : a)))
-                setModalVerAct(p => ({ ...p, estado: col }))
-                mostrarMensaje('ok', t('stratix.detail.statusChanged', { estado: estadoLabel(col, t) }))
-              }} />
+              onClick={() => cambiarEstado(col)} />
           ))}
         </div>
       </div>
+
+      <div className={css.bloque}>
+        <div className={css.rotulo}>{t('stratix.detail.changeDue')}</div>
+        <input
+          type="date"
+          className={css.fecha}
+          value={modalVerAct.fecha_entrega || ''}
+          min={limites.min}
+          max={limites.max}
+          onChange={e => cambiarFecha(e.target.value)}
+        />
+      </div>
+      */}
+
+      {modalVerAct.notas_jefe && (
+        <div className={css.bloque}>
+          <div className={css.rotulo}>{t('stratix.detail.bossNotes')}</div>
+          <div className={css.descripcion}>{modalVerAct.notas_jefe}</div>
+        </div>
+      )}
 
       {modalVerAct.drive_url && (
         <a className={css.drive} href={modalVerAct.drive_url} target="_blank" rel="noreferrer">
           🔗 {t('stratix.detail.driveFolder')}
         </a>
+      )}
+
+      <div className={css.rastro}>{rastroDeActividad(modalVerAct, deps)}</div>
+
+      {confirmarBorrado && (
+        <ConfirmModal
+          destructive
+          title={t('stratix.detail.deleteTitle')}
+          message={t('stratix.detail.deleteConfirm')}
+          confirmLabel={t('common.delete')}
+          onClose={() => setConfirmarBorrado(false)}
+          onConfirm={() => eliminarAct(modalVerAct)}
+        />
       )}
     </Modal>
   )
