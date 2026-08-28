@@ -4,7 +4,9 @@ import { revisar, CANAL_BASH } from "./evaluar.ts"
 import { contexto } from "./contexto.ts"
 import { checklist } from "./mensajes.ts"
 import { sugerencia } from "./sugerencias.ts"
-import { existsSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
+import { join } from "node:path"
+import { RULES } from "./reglas.ts"
 import type { PayloadHook } from "./tipos.ts"
 
 // Hook PreToolUse de Claude Code: JSON por stdin, exit 2 bloquea la operación.
@@ -52,4 +54,26 @@ export async function modoCheck(path: string): Promise<number> {
   const fallan = revisar(path, await Bun.stdin.text())
   console.log(JSON.stringify({ fallan }))
   return 0
+}
+
+// Los archivos que describen el proyecto. El hook sólo los revisa cuando alguien los EDITA, y
+// una referencia se pudre justamente cuando nadie los toca: se mueve un directorio y el `.md`
+// sigue diciendo lo de antes. Este barrido los mira sin esperar la edición; corre en pre-push.
+const CONTEXTO = ["CLAUDE.md", "README.md", "AGENTS.md"]
+
+/** Barrido de los archivos de contexto. Devuelve 1 si alguno quedó desactualizado. */
+export function modoContexto(): number {
+  const raiz = join(RULES, "..")
+  let malas = 0
+  for (const doc of CONTEXTO) {
+    const abs = join(raiz, doc)
+    if (!existsSync(abs)) continue
+    // esNuevo=false: los archivos existen, así que sólo aplican las reglas `block`.
+    for (const f of revisar(abs, readFileSync(abs, "utf8"), false)) {
+      console.error(`✖ ${doc} — ${f.regla}\n   ${f.motivo}`)
+      malas++
+    }
+  }
+  if (malas === 0) console.log(`contexto OK — ${CONTEXTO.length} archivos al día`)
+  return malas ? 1 : 0
 }
