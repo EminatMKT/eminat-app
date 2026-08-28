@@ -16,15 +16,17 @@ const clientSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
   // ── Tier del entorno (1 base por tier). local = tu máquina, Supabase local
-  //    (supabase start) | development = Vercel Preview (rama development), Supabase
-  //    dev remoto | production = Vercel main, Supabase prod.
+  //    (supabase start) | production = Vercel main, Supabase prod.
+  //    El tier `development` se eliminó el 28/08/2026 junto con la rama y el proyecto
+  //    Supabase dev: eran una tercera base que había que sincronizar a mano y su único
+  //    consumidor era Vercel Preview. Las ramas salen de main y se prueban en local.
   //    NEXT_PUBLIC_ porque esta validación corre en el cliente (isProdDb/badge):
   //    sin el prefijo, Next no lo inyecta al bundle y en el browser sería undefined.
-  NEXT_PUBLIC_APP_ENV: z.enum(['local', 'development', 'production']).default('local'),
+  NEXT_PUBLIC_APP_ENV: z.enum(['local', 'production']).default('local'),
 
 }).superRefine((env, ctx) => {
-  // Salvaguarda: solo production puede apuntar a la base de PRODUCCIÓN. Si un tier
-  // local/development la tiene, es un error de configuración — corregir antes de seguir.
+  // Salvaguarda: solo production puede apuntar a la base de PRODUCCIÓN. Si el tier
+  // local la tiene, es un error de configuración — corregir antes de seguir.
   if (env.NEXT_PUBLIC_APP_ENV !== 'production' && env.NEXT_PUBLIC_SUPABASE_URL.includes(PROD_DB_REF)) {
     ctx.addIssue({
       code: 'custom',
@@ -48,7 +50,7 @@ export const clientEnv = clientSchema.parse({
 
 // ── Helpers derivados ─────────────────────────────────────────────
 // `isProdDb` = la app está conectada a la base de producción. Solo el tier
-// production usa la base de prod (lo garantiza el superRefine), así que local y
-// development muestran el badge "DEV".
+// production usa la base de prod (lo garantiza el superRefine), así que local
+// muestra el badge "DEV".
 export const isProdDb = clientEnv.NEXT_PUBLIC_APP_ENV === 'production'
 export const isDevDb = !isProdDb

@@ -13,7 +13,12 @@ Si la CLI sugiere `migration repair` o `db pull` porque el historial local está
 una rama sin mergear: **tampoco**. Reescriben el historial de esa rama. El workaround es aplicar
 el `.sql` por psql, que es idempotente.
 
-## Antes de un `db push` a dev o a prod: backup y precheck, en ese orden
+## Antes de un `db push` a prod: backup y precheck, en ese orden
+
+Desde el 28/08/2026 esto es **la única red**: se eliminó el proyecto Supabase dev, así que una
+migración va de local directo a producción sin ensayo intermedio. Antes, un `push` a dev
+descubría gratis el `SET NOT NULL` que abortaba; ahora ese descubrimiento pasa en prod si el
+precheck no lo agarra. No es un paso ceremonial, es el paso.
 
 1. **Backup** de **todas** las tablas que la migración toca, no solo la obvia.
 2. **Precheck**: correr la consulta que demuestra que la migración no va a abortar a mitad de
@@ -32,6 +37,45 @@ así que un dump directo aborta con `server version mismatch` — y eso se descu
 momento, justo antes de un push. Y el backup de la fase 2 cubrió solo `actividades` cuando la
 migración también dropeaba `usuarios.responsable_ref`: sin esa tabla no había forma de
 reconstruir el mapeo ref → persona, que era exactamente lo que permitía rehacer el backfill.
+
+## Cómo se ensaya una migración, en tres escalones
+
+Sin el proyecto dev hay que elegir el ensayo a mano. Se sube por la escalera solo hasta donde
+haga falta:
+
+**1. El precheck contra prod — siempre, y casi siempre alcanza.** La consulta que demuestra que
+la migración no aborta: contar los huérfanos antes del `SET NOT NULL`, los duplicados antes del
+`UNIQUE`, las filas que el `DROP` se lleva puestas. Es una `SELECT` de solo lectura contra la
+base real. Responde la pregunta exacta, gratis y en segundos.
+
+**2. Migración riesgosa —backfill, varios pasos, algo destructivo—: los datos de prod al local.**
+Se dumpea prod, se carga en el Supabase local y ahí se corre la migración con datos reales:
+volumen real, huérfanos reales, constraints reales. Es el único ensayo que reproduce las fallas
+que importan, cuesta $0, corre offline y se descarta borrando el volumen.
+
+Esto **no contradice** la regla de abajo. Aquella prohíbe el seed como fuente de *datos de
+prueba* —porque tapa agujeros de la UI—; esto es una copia efímera de producción para ensayar un
+`push`, y se tira apenas termina. Mientras esa copia esté en la máquina, vale lo mismo que prod:
+si `pacientes` tiene filas, son historias clínicas.
+
+**3. Una rama efímera de Supabase: solo para lo que NO es esquema.** Config de Auth, buckets de
+Storage, Edge Functions, el comportamiento contra la API hospedada. `supabase branches create`,
+se prueba, `supabase branches delete`. Sale centavos la hora.
+
+**Para el esquema no sirve, y hay que saber por qué.** Una rama nace *data-less* y, como este
+repo ya corrió migraciones en main, Supabase la construye **desde `supabase/migrations/`, no
+desde un dump del esquema de prod**. O sea: mismas migraciones, mismo Postgres 17, misma base
+vacía — es el local con factura. Y al no tener datos, pasa limpio exactamente el `SET NOT NULL`
+que se quería ensayar.
+
+**Motivo:** el riesgo de un ensayo que no ensaya no es el costo, son los dos centavos que
+compran la sensación de haber probado. Un `push` que salió verde contra una base vacía se lee
+como luz verde y desplaza al precheck, que es lo único que mira los datos. La fase 2 abortó por
+huérfanos en `actividades`, no por SQL mal escrito: ninguna base vacía lo habría visto.
+
+Traer los datos de prod con "Include data" al crear la rama **sí** resolvería esto, pero exige
+el add-on de PITR y convierte la rama en una copia de producción con el compute de producción.
+Contra eso, el dump al local hace lo mismo por cero.
 
 ## Los datos de prueba se cargan por el frontend, no por seed
 

@@ -52,6 +52,21 @@ un refactor se llevó las reglas nuevas; y un fix de build se llevó un fix de n
 veces hubo que deshacer y rearmar los commits, que cuesta más que stagear bien la primera vez —
 y si alguno se hubiera pusheado, ya no había forma barata de separarlos.
 
+## Toda rama sale de `main`, y `main` es el único tronco
+
+No hay rama `development`. Una rama de trabajo nace de `main` actualizado, vive corta y vuelve a
+`main` por PR. Nada de ramas largas paralelas, y nada de ramas de sincronización entre troncos.
+
+**Motivo:** el segundo tronco costaba más de lo que protegía. El repo acumuló tres ramas cuyo
+único trabajo era reconciliar los dos (`chore/sync-main-development`, `chore/sync-migraciones-dev`,
+`chore/untrack-todo`), el merge del 19/08/2026 dio seis conflictos —dos de ellos en los hooks
+gordos, que dos ramas siempre tocan— y arrastraba una tercera base de datos que había que
+sincronizar a mano. Se eliminó el 28/08/2026 junto con el proyecto Supabase dev; el CI nunca lo
+usó, corre contra Supabase local.
+
+**Lo que se pierde, dicho:** ya no hay un entorno desplegado donde alguien pruebe antes de prod.
+Eso lo cubren el local y el precheck de `base-de-datos.md`, que pasó a ser la única red.
+
 ## Un cambio que altera lo que alguien ya vio se avisa
 
 Si un cambio mueve cifras, cambia un comportamiento o rompe una costumbre de alguien que ya usa
