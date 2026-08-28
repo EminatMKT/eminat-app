@@ -14,6 +14,7 @@
     "e2e": "playwright test",
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
     "rules:check": "bun rules/centinela/main.ts --self-check",
+    "rules:contexto": "bun rules/centinela/main.ts --contexto-al-dia",
     "lint:css": "stylelint \"src/**/*.css\""
   },
   "dependencies": {

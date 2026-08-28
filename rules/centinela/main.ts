@@ -11,14 +11,17 @@
  *   check <path>   contenido por stdin → JSON {"fallan": [...]} (no corta)
  *   contexto CMD…  títulos de reglas aplicables antes de ese comando Bash
  *   --self-check   corre los tests declarados en las reglas; falla EN VOZ ALTA
+ *   --contexto-al-dia  barre CLAUDE/README/AGENTS sin esperar una edición (pre-push)
  */
 import { contexto } from "./contexto.ts"
 import { selfCheck } from "./self-check.ts"
-import { modoHook, modoCheck } from "./modos.ts"
+import { modoHook, modoCheck, modoContexto } from "./modos.ts"
 
 const argv = process.argv.slice(2)
 let code: number
-if (argv.includes("--self-check")) {
+if (argv.includes("--contexto-al-dia")) {
+  code = modoContexto()
+} else if (argv.includes("--self-check")) {
   try {
     code = selfCheck()
   } catch (e) {

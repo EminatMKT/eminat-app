@@ -217,6 +217,55 @@ usó, corre contra Supabase local.
 **Lo que se pierde, dicho:** ya no hay un entorno desplegado donde alguien pruebe antes de prod.
 Eso lo cubren el local y el precheck de `base-de-datos.md`, que pasó a ser la única red.
 
+## Los archivos de contexto se corrigen en el mismo commit que los desmiente
+
+`CLAUDE.md`, `README.md` y `AGENTS.md` describen **cómo es** el proyecto. Un cambio que los
+vuelve falsos —mover un directorio, retirar un entorno, cambiar el dominio, agregar o sacar un
+módulo— los corrige **en ese mismo commit**, no "después".
+
+<!-- check: block
+     detector: ruta_inexistente
+     paths: CLAUDE.md,README.md,AGENTS.md
+     except: src/
+     version: 1
+     test: falla @CLAUDE.md :: las reglas viven en `.claude/rules/`
+     test: pasa @CLAUDE.md :: las reglas viven en `rules/`
+     test: pasa @CLAUDE.md :: el cliente sale de `src/shared/db/supabase.ts`
+     test: pasa @CLAUDE.md :: se importa con `@/shared/db/supabase.ts`
+     test: pasa @CLAUDE.md :: el paquete `@supabase/ssr` no es una ruta del repo
+     test: pasa @CLAUDE.md :: un ejemplo como `@/features/otra/...` no se verifica
+     test: pasa @CLAUDE.md :: correr `pnpm dev` en la rama `main`
+-->
+
+El check verifica lo único que se puede verificar de "estar al día": **que cada ruta nombrada
+entre backticks exista**. No alcanza a lo demás —una tabla de entornos con un tier de más, un
+dominio muerto— y no pretende hacerlo; ahí la regla se obedece leyendo.
+
+**Se verifica en dos momentos, y el segundo es el que importa.** El hook `PreToolUse` sólo mira
+un archivo cuando alguien lo **edita**, y una referencia se pudre justamente cuando nadie lo
+toca: se mueve un directorio, el `.md` se queda como estaba y el hook no llega a correr nunca.
+Por eso existe el barrido — `pnpm rules:contexto`, en `pre-push` — que revisa los tres archivos
+sin esperar una edición. Es el que habría frenado lo de hoy.
+
+El barrido va acotado a esos tres a propósito. Medido antes de escribirlo: pasarlo por los 668
+archivos trackeados marca **328** por reglas `block` preexistentes. El centinela está hecho para
+frenar en la edición, no para auditar el pasado, y un gate que falla siempre se desactiva en una
+semana. Tampoco va al CI, por lo mismo que `rules:check`: son gates locales y el CI no tiene bun.
+
+Se excluye `src/`: los `README.md` de `src/features/` y `src/shared/` usan rutas de ejemplo
+(`Foo/index.tsx`, `src/features/esa/`) que no existen ni deben existir. Medido antes de fijar el
+alcance: con `src/` adentro daba 5 falsos positivos, y un check que frena por un ejemplo enseña a
+ignorar al centinela.
+
+**Motivo:** el 28/08/2026 `CLAUDE.md` mentía en tres cosas a la vez, y las tres se descubrieron
+por accidente mientras se hacía otra cosa. Decía que la app vivía en `eminat.app` —un dominio que
+ni siquiera resuelve; la real es `app.stratixsolutions.us`—, describía tres tiers de entorno
+cuando hacía semanas que había dos, y apuntaba a `.claude/rules/` después de que el directorio se
+mudara a `rules/`. Ninguna de las tres rompió nada: un archivo de contexto desactualizado no
+falla, **desinforma**, y encima a quien más depende de él, que es el que recién llega —persona o
+agente— y no tiene con qué contrastarlo. Verificar el despliegue contra un dominio muerto y
+concluir que producción está caída es el costo típico.
+
 ## Un cambio que altera lo que alguien ya vio se avisa
 <!-- sin check: obligación de comunicación junto al commit, no de código -->
 

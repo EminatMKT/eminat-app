@@ -92,4 +92,5 @@ check tenga su **Motivo**. Falla en voz alta: es la herramienta con la que se ed
 @codigo.md
 @componentes.md
 @proceso.md
+@seguridad.md
 @ui.md

@@ -145,8 +145,8 @@ Reemplazar el contenido actual con (los valores de Supabase se preservan, solo s
 ```bash
 # Supabase — Settings > API en tu proyecto Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://ruedelunbtaomhrzgelc.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1ZWRlbHVuYnRhb21ocnpnZWxjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNTk0MDIsImV4cCI6MjA5MDkzNTQwMn0.Hj9pq9RRM1hCWGIvETVq6n3AyjIaVHqDBcZnWwBi4YQ
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1ZWRlbHVuYnRhb21ocnpnZWxjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTM1OTQwMiwiZXhwIjoyMDkwOTM1NDAyfQ.Kpvu6TriJJs8H57X-BP1WnRygrG86hubdlfN6yF526c
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ…  # ELIDIDA: clave rotada el 28/08/2026, ver rules/seguridad.md
+SUPABASE_SERVICE_ROLE_KEY=eyJ…  # ELIDIDA: clave rotada el 28/08/2026, ver rules/seguridad.md
 
 # Resend — resend.com > API Keys
 # ⚠️ Zod valida que empiece con 're_'. Si no tenés la key aún, el dev server
