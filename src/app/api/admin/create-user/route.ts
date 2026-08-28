@@ -21,7 +21,7 @@ import { MAIL_FROM, MARKETING_COORDINATOR_EMAIL, MARKETING_INBOX_EMAIL } from '@
  *   `emailWarning` so the UI can warn the admin and prompt them to
  *   share the password manually.
  *
- * Reads SUPABASE_SERVICE_ROLE_KEY and RESEND_API_KEY from server env.
+ * Reads SUPABASE_SECRET_KEY and RESEND_API_KEY from server env.
  * Neither secret is ever sent to the browser.
  */
 

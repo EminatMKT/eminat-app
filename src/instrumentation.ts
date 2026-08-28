@@ -5,10 +5,10 @@ export async function register() {
     const { serverEnv } = await import('@/shared/db/env.server')
 
     const { NEXT_PUBLIC_SUPABASE_URL } = clientEnv
-    const { SUPABASE_SERVICE_ROLE_KEY } = serverEnv
+    const { SUPABASE_SECRET_KEY } = serverEnv
 
     try {
-      const supabase = createClient(NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      const supabase = createClient(NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SECRET_KEY, {
         auth: { autoRefreshToken: false, persistSession: false },
       })
 

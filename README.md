@@ -138,7 +138,7 @@ vercel
 
 # 3. Agregar variables de entorno en Vercel:
 # NEXT_PUBLIC_SUPABASE_URL
-# NEXT_PUBLIC_SUPABASE_ANON_KEY
+# NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 ```
 
 ## 📞 Soporte

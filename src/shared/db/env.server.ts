@@ -3,7 +3,7 @@ import { z } from 'zod'
 const serverSchema = z.object({
 
   // ── Supabase service role (bypass RLS) — NUNCA al cliente ─────
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  SUPABASE_SECRET_KEY: z.string().min(1),
 
   // ── Resend API key — NUNCA al cliente ─────────────────────────
   // OPCIONAL a propósito. Este parse corre al importar, y `supabaseAdmin.ts`

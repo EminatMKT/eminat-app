@@ -15,7 +15,7 @@ export default defineConfig({
     exclude: [...configDefaults.exclude, 'e2e/**'],
     env: {
       NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co',
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: 'dummy-anon-key',
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'dummy-anon-key',
     },
   },
 })

@@ -14,7 +14,7 @@ import { ADMIN_ROLE, normalizeRole } from '@/shared/auth/permissions'
 export type AdminAuth = { ok: boolean; userId?: string; status?: number; error?: string }
 export async function requireAdmin(): Promise<AdminAuth> {
   const cookieStore = cookies()
-  const ssr = createServerClient(clientEnv.NEXT_PUBLIC_SUPABASE_URL, clientEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+  const ssr = createServerClient(clientEnv.NEXT_PUBLIC_SUPABASE_URL, clientEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
     cookies: { get: (n) => cookieStore.get(n)?.value },
   })
   const { data: { user } } = await ssr.auth.getUser()

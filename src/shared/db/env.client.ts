@@ -9,7 +9,7 @@ const clientSchema = z.object({
 
   // ── Supabase (cliente + servidor) ─────────────────────────────
   NEXT_PUBLIC_SUPABASE_URL: z.url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1),
 
   // ── Modo de build — gestionado por Next.js, no se toca ────────
   // development = next dev | production = next build | test = jest
@@ -43,7 +43,7 @@ const clientSchema = z.object({
 // undefined en el browser y zod tira ZodError al hidratar. Hay que listarlas explícitas.
 export const clientEnv = clientSchema.parse({
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   NODE_ENV: process.env.NODE_ENV,
   NEXT_PUBLIC_APP_ENV: process.env.NEXT_PUBLIC_APP_ENV,
 })

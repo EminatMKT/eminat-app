@@ -31,7 +31,7 @@ import { isLastAdmin } from '@/shared/auth/roleValidation'
  *   both; if neither matches an actual auth.users row, that's fine —
  *   auth.admin.deleteUser is best-effort and a "not found" is ignored.
  *
- * Requires SUPABASE_SERVICE_ROLE_KEY. Never exposed to the browser.
+ * Requires SUPABASE_SECRET_KEY. Never exposed to the browser.
  */
 const TAG = '[admin/delete-user]'
 
