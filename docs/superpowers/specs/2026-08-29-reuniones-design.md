@@ -58,8 +58,9 @@ La versión anterior decía *"no toca nada"*. Era falso y la revisión lo marcó
 | `src/shared/i18n/locales/es.json` · `en.json` | Todas las claves del módulo | 1–3 |
 | `CLAUDE.md` | Tabla "Módulos de negocio" y el árbol de `src/features/` (`rules/proceso.md` lo exige en el mismo commit) | 1 |
 | `role_modules` | Una fila con el slug (§4.1) | 1 |
-| `admin_reassign_and_delete` (función de Postgres) | Limpia una lista **hardcodeada** de tablas antes de borrar un usuario. Sin agregar las del módulo, **un usuario que presidió una reunión queda imborrable** | 1 |
+| `admin_reassign_and_delete` (función de Postgres) | Dos cosas: limpia una lista **hardcodeada** de tablas —sin agregar las del módulo, **un usuario que presidió una reunión queda imborrable**— y **borra el historial del usuario**, que con §3.12 pasa a ser destruir la auditoría | 1 |
 | `src/features/admin/org-catalogs.ts` | `blockedBy` de `empresas` es otra lista a mano. Sin actualizarla, el panel diría que una empresa con 40 reuniones "no está en uso" y el `DELETE` explotaría | 1 |
+| `historial` | Se reusa como log de auditoría (§3.12). Cambia una FK a `ON DELETE SET NULL` | 1 |
 | `features/stratix-mkt/utils/report-html/` | Se le extrae el armazón a `src/shared/utils/hoja-imprimible/` (§2.9) | 3 |
 
 **Lo que sigue siendo cierto:** no toca `actividades`, ni su RLS, ni el dominio de Stratix. La
@@ -393,8 +394,8 @@ Cuando se haga, esa columna es el precio y hay que aceptarlo entonces, no descub
 
 ## 3. Modelo de datos
 
-Cuatro tablas nuevas. **Cero columnas agregadas a tablas existentes** — con la excepción declarada
-de §2.12 el día que haya notificaciones.
+Cuatro tablas nuevas y **ninguna columna agregada a tablas existentes**. Sí se toca `historial`
+—una FK y la función que la limpia, §3.12— y `notificaciones` el día que haya avisos (§2.12).
 
 ### 3.1 `reuniones`
 
@@ -675,7 +676,9 @@ del spec elige la inmutabilidad a propósito— pero sería un bug si alguien lo
 ### 3.11 Lo que NO se crea
 
 `companies`, `app_users`, `user_companies`, `access_denylist`, `topic_reviews`, `task_updates`,
-`attachments`, `audit_logs`, `document_sequences`, `meeting_types`.
+`attachments`, `document_sequences`, `meeting_types`.
+
+`audit_logs` **sí se hace** — pero reusando `historial`, que ya es exactamente eso. Ver §3.12.
 
 **Cada una con su razón, porque la versión anterior las despachaba en bloque citando tres secciones
 que sólo cubrían cuatro:**
@@ -686,10 +689,68 @@ que sólo cubrían cuatro:**
 | `user_companies` | Pertenencia multi-empresa. Sin transversalidad (§2.11a) no tiene a qué servir. `usuarios.empresa_id` alcanza para el alcance de §4.2 |
 | `access_denylist` | Sin lista de pertenencia, no hay de qué restar (§2.7) |
 | `topic_reviews` | El arrastre con historial queda fuera (§2.3) |
-| `task_updates` · `audit_logs` | Historial y auditoría. No hay pedido concreto y `historial` ya audita `actividades` con otro mecanismo. **Consecuencia aceptada: borrar una reunión no deja rastro** |
+| `task_updates` | Comentarios y bitácora por pendiente. Un pendiente tiene estado y fecha, no hilo de conversación. Sin pedido concreto |
 | `attachments` | Evidencias. Exige Storage y su política de acceso; ninguna fase lo pide |
 | `document_sequences` | Su único uso era el `{NNN}`, resuelto con advisory lock (§3.10) |
 | `meeting_types` | Resuelto con el DOMAIN `tipo_reunion` (§3.9) |
+
+### 3.12 La auditoría: se reusa `historial`, no se crea `audit_logs`
+
+El spec propone `audit_logs`. **No se crea: `historial` ya es exactamente eso**, y es polimórfica
+por diseño — `tabla` + `registro_id`, más `accion`, `campo`, `valor_anterior`, `valor_nuevo`,
+`usuario_id`, `notas` y `created_at`, con índice en `(tabla, registro_id)`. Hoy la usa `actividades`
+por trigger.
+
+Crear una segunda tabla de auditoría al lado de una que hace lo mismo es el camino por el que
+aparecieron los tres `StatCard` del repo. Y una traza partida en dos tablas es peor que una sola:
+la pregunta "¿quién tocó esto?" tendría dos lugares donde buscarse.
+
+**Qué se audita.** Un trigger `AFTER INSERT OR UPDATE OR DELETE` sobre `reuniones`,
+`reunion_temas` y `reunion_pendientes`, `SECURITY DEFINER` con `SET search_path` — igual que
+`log_cambio_actividad` desde el 29/08, y por el mismo motivo: **un trigger de auditoría tiene que
+poder escribir aunque el usuario no tenga permiso sobre la tabla de traza.** Si el usuario pudiera
+evitar que su acción quede registrada, la traza no sirve.
+
+Lo mínimo que registra, que es lo que el diseño perdía sin esto:
+
+| Acción | Por qué importa |
+|---|---|
+| `DELETE` de una reunión | Se lleva por `CASCADE` sus temas, sus pendientes y su acta. **Era invisible** |
+| Cierre y **reapertura** de un acta | §3.4 acepta que reabrir y volver a cerrar pisa el snapshot sin traza. Con esto, al menos queda registrado que pasó |
+| Cambio de `estado` de un pendiente | Es el dato del que vive el arrastre |
+| Cambio de `fecha_comprometida` | Con `fecha_original` se ve el salto total; con esto, cada movida |
+
+Ese último renglón es una recuperación parcial de lo que daba `topic_reviews` (§2.3): no el
+**porqué** —para eso hace falta que alguien lo escriba— pero sí el **cuándo** y el **quién** de cada
+prórroga. No reemplaza la tabla descartada; la deja menos necesaria.
+
+**Y hay dos cosas rotas en `historial` que hay que arreglar para que esto valga algo.** Las dos
+verificadas contra la base:
+
+**1. `usuario_id` no se llena nunca.** Hoy hay **0 de 277 filas** con ese campo: `log_cambio_actividad`
+no lo escribe. O sea que `historial` es un registro de *qué cambió*, no de *quién lo cambió* — que
+es justamente lo que se le pide a una auditoría. El trigger nuevo lo llena desde
+`auth.uid() → usuarios.auth_id`, y de paso conviene arreglarlo también en el de `actividades`, que
+es una línea.
+
+**2. Borrar un usuario borra su rastro.** `admin_reassign_and_delete` hace
+`DELETE FROM public.historial WHERE usuario_id = p_old_id` — porque la FK no declara `ON DELETE` y
+sin eso el borrado fallaría. Resultado: **la traza de quien se va desaparece**, que es exactamente
+la que más se querría mirar. Se arregla cambiando la FK a `ON DELETE SET NULL` y sacando esa línea
+de la función: la fila sobrevive sin dueño, que es infinitamente mejor que no sobrevivir.
+
+```sql
+ALTER TABLE public.historial DROP CONSTRAINT historial_usuario_id_fkey;
+ALTER TABLE public.historial ADD CONSTRAINT historial_usuario_id_fkey
+  FOREIGN KEY (usuario_id) REFERENCES public.usuarios(id) ON DELETE SET NULL;
+```
+
+**Lectura: sólo admin**, por la policy `historial_admin_read` que ya existe desde el 29/08. No hay
+policy de `INSERT` a propósito: el único que escribe es el trigger, que saltea la RLS por ser
+`SECURITY DEFINER`.
+
+**Lo que esto NO da, dicho:** una pantalla. La traza queda consultable por SQL y por `/admin` el día
+que alguien la construya. Registrar es lo que no se puede hacer retroactivamente; mostrar, sí.
 
 ---
 
@@ -873,7 +934,7 @@ frena el archivo.
 | Fase | Alcance | Cómo se verifica |
 |---|---|---|
 | **0** | **Partir `src/shared/auth/permissions.ts`** y registrar el slug en `MODULE_META` | `tsc` + `vitest` verdes y la app funciona **igual**. Sin esto no hay fase 1 |
-| **1** | Migración (6 DOMAIN + 4 tablas + índices + RLS + triggers) · expediente · participantes · las dos listas hardcodeadas de §4.3 · `CLAUDE.md` | Un rol NO admin con el módulo crea una reunión, se ve en `/reuniones`, y un rol sin el módulo no la ve. Y se puede dar de baja a un usuario que presidió una reunión |
+| **1** | Migración (6 DOMAIN + 4 tablas + índices + RLS + triggers) · auditoría sobre `historial` (§3.12) · expediente · participantes · las dos listas hardcodeadas de §4.3 · `CLAUDE.md` | Un rol NO admin con el módulo crea una reunión, se ve en `/reuniones`, y un rol sin el módulo no la ve. Se puede dar de baja a un usuario que presidió una reunión. Y **borrar una reunión deja fila en `historial` con su `usuario_id`** |
 | **2** | Temas y pendientes, con `fecha_original` | Se levanta un acta completa de principio a fin sin salir de la pantalla |
 | **3** | Heredados · acta imprimible con firmas · `acta_snapshot` + RPC de cierre · `hoja-imprimible` | Cerrar un acta no cierra sus pendientes; los abiertos reaparecen en la siguiente; el acta cerrada no cambia si después se renombra un cargo |
 | **—** | *(no se hace, §2.11)* Transversalidad · pipeline · panel ejecutivo | — |
