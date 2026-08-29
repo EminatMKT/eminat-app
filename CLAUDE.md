@@ -75,7 +75,7 @@ Los roles son **dinámicos**: viven en la tabla `roles` (+ `role_modules`) y el 
 | `sin_asignar` | sistema (`is_system`) | Default de altas nuevas. Cero módulos (solo Home) |
 | *(dinámicos)* | creados por el admin | Los módulos que el admin les asigne (`role_modules`) |
 
-La lógica de permisos vive en `src/shared/auth/permissions.ts` — helpers puros **map-driven** (`getModulesForRole(map, role)`, `normalizeRole`, `moduleForPath`), ya no una matriz. El mapa `roleModuleMap` se carga en `AppContext` desde la DB. La RLS de Postgres gatea los datos por módulo vía `has_module(slug)`; `usuarios.rol` solo se cambia por la API admin (service_role), protegido por el trigger `prevent_rol_self_change`. El middleware `middleware.ts` solo gatea la sesión (redirect login).
+La lógica de permisos vive en `src/shared/auth/permissions/` — helpers puros **map-driven** (`getModulesForRole(map, role)`, `normalizeRole`, `moduleForPath`), ya no una matriz. Se importa por la carpeta (`@/shared/auth/permissions`), que sólo re-exporta: adentro están `modulos/` (el catálogo), `rutas/` y `roles/`. **Agregar un módulo toca cinco lugares**, listados en el encabezado de su `index.ts`. El mapa `roleModuleMap` se carga en `AppContext` desde la DB. La RLS de Postgres gatea los datos por módulo vía `has_module(slug)`; `usuarios.rol` solo se cambia por la API admin (service_role), protegido por el trigger `prevent_rol_self_change`. El middleware `middleware.ts` solo gatea la sesión (redirect login).
 
 ## Dominios corporativos autorizados
 
@@ -149,7 +149,7 @@ Las páginas de `src/app/` son thin routes que montan el feature.
 src/
   middleware.ts        ← gate de sesión en el Edge (redirect a /login)
   shared/
-    auth/permissions.ts← helpers de permisos map-driven (roles dinámicos desde la DB)
+    auth/permissions/  ← catálogo de módulos, rutas y roles (map-driven, roles dinámicos)
     context/           ← AppContext: usuario autenticado, actividades, catálogos
     db/
       env.client.ts    ← schema zod de las vars públicas + isProdDb/isDevDb
