@@ -171,6 +171,45 @@ Y hay dos motivos mecánicos que el inline no da:
   escribe dos veces y a partir de ahí se desincronizan en silencio: agregar un valor en una y
   no en la otra no falla, simplemente rechaza filas en un lado y no en el otro.
 
+## Una tabla nace con RLS encendida, en la misma migración
+
+<!-- check: block
+     requires: CREATE TABLE (IF NOT EXISTS )?(public\.|"public"\.)
+     absent: ENABLE ROW LEVEL SECURITY
+     paths: supabase/migrations/
+     files: .sql
+     version: 1
+     test: falla @supabase/migrations/20260830000000_x.sql :: CREATE TABLE public.reuniones (id uuid PRIMARY KEY);
+     test: falla @supabase/migrations/20260830000000_x.sql :: CREATE TABLE IF NOT EXISTS "public"."reunion_temas" (id uuid);
+     test: pasa @supabase/migrations/20260830000000_x.sql :: CREATE TABLE public.reuniones (id uuid PRIMARY KEY); ALTER TABLE public.reuniones ENABLE ROW LEVEL SECURITY;
+     test: pasa @supabase/migrations/20260830000000_x.sql :: ALTER TABLE public.pacientes ADD COLUMN nota text;
+-->
+
+`CREATE TABLE` en `public` y `ENABLE ROW LEVEL SECURITY` van juntos, en el mismo archivo. Y la
+policy también: una tabla con RLS y sin policy es muda para todo el mundo menos `service_role`.
+
+El check mira el archivo al escribirlo. La otra mitad mira la base de verdad —`pnpm db:rls`,
+en `pre-push` y en el job e2e del CI— porque el archivo puede estar bien y la base no: una
+migración vieja, una tabla creada a mano en el panel, un `ALTER` que alguien corrió por Studio.
+
+Las tablas que hoy están apagadas viven listadas en `supabase/checks/rls-encendida.sql` como
+**deuda visible**. Se arregla borrando un nombre de esa lista, nunca agregando uno.
+
+**Motivo:** el 29/08/2026 se descubrió que `actividades`, `usuarios`, `historial` y
+`notificaciones` corrían **en producción** con `relrowsecurity = false`, y que `anon` —la llave
+que viaja en el bundle del browser— tenía `SELECT, INSERT, UPDATE, DELETE, TRUNCATE` sobre las
+cuatro. O sea: cualquiera que cargara la app podía leer el personal entero y vaciar las tablas,
+`historial` incluida, que es el rastro.
+
+Lo peor no es que faltara la línea: es que **las policies estaban escritas**. Seis, revisadas y
+mergeadas, que Postgres nunca evaluó — con RLS apagada ni las mira. Todo el mundo que miró ese
+código vio policies y concluyó que había control de acceso. No hubo error, ni test en rojo, ni
+build roto: es la misma forma de falla que la credencial del 11/06, y la misma lección — sólo la
+verificación automática la agarra.
+
+Se descubrió de casualidad, verificando para otra cosa: un agente fue a comprobar una afirmación
+del diseño del módulo Reuniones y resultó falsa. Nadie estaba buscando esto.
+
 ## El slug del módulo va en una variable, y la migración aborta si no existe
 
 Una policy de RLS no lleva el slug escrito adentro, y menos repetido por tabla. Se declara una
