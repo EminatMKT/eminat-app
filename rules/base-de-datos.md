@@ -156,10 +156,11 @@ atributo `style` está prohibido en el JSX: el detalle tapa la estructura.
      detector: check_inline_enum
      paths: supabase/
      files: .sql
-     version: 1
+     version: 2
      test: falla @supabase/migrations/20260825000000_x.sql :: genero  text CHECK (genero IN ('M','F','NB','ND')),
      test: pasa @supabase/migrations/20260825000000_x.sql :: CREATE DOMAIN public.genero AS text CHECK (VALUE IN ('M','F','NB','ND'));
      test: pasa @supabase/migrations/20260825000000_x.sql :: ALTER TABLE pacientes ADD CONSTRAINT ok CHECK (edad >= 0)
+     test: pasa @supabase/migrations/20260825000000_x.sql :: WITH CHECK (responsable_id IN (SELECT u.id FROM public.usuarios u))
 -->
 
 Y hay dos motivos mecánicos que el inline no da:
