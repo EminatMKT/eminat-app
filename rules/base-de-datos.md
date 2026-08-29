@@ -211,6 +211,27 @@ verificación automática la agarra.
 Se descubrió de casualidad, verificando para otra cosa: un agente fue a comprobar una afirmación
 del diseño del módulo Reuniones y resultó falsa. Nadie estaba buscando esto.
 
+## `reunion_pendientes` no crece
+
+<!-- check: block
+     pattern: ALTER TABLE\s+(public\.)?reunion_pendientes\s+ADD COLUMN
+     paths: supabase/migrations/
+     files: .sql
+     version: 1
+     test: falla @supabase/migrations/20260901000000_x.sql :: ALTER TABLE public.reunion_pendientes ADD COLUMN prioridad text;
+     test: pasa @supabase/migrations/20260901000000_x.sql :: ALTER TABLE public.reuniones ADD COLUMN sala text;
+-->
+
+Sus columnas son las de §3.6 del diseño y no se le agregan más.
+
+**Motivo:** `reunion_pendientes` es `actividades` con menos columnas, y eso está aceptado a
+sabiendas — la superposición son seis campos que son la forma irreducible de cualquier pendiente.
+Lo que hace sostenible esa duplicación es que esté CONGELADA. Si algún día pide `prioridad`,
+colaboradores, adjuntos, comentarios o un Kanban propio, eso no es una columna nueva: es la señal
+de que dejó de ser una lista dentro de un acta y se volvió un gestor de tareas — y dos gestores de
+tareas no se sostienen. Un duplicado congelado se banca años sin molestar; uno que crece produce
+los tres `StatCard` del repo.
+
 ## El slug del módulo va en una variable, y la migración aborta si no existe
 
 Una policy de RLS no lleva el slug escrito adentro, y menos repetido por tabla. Se declara una
