@@ -10,8 +10,14 @@ Operaciones*) sacaba la gestión de tareas de Stratix 360 y hacía que los temas
 FUERAN filas de `actividades`. El 28/08 Freddy lo vetó explícitamente: *"reuniones es aparte, que
 no se conecten con actividades por el momento"* y *"un módulo de reuniones que no tiene que
 conectarse por el momento con nada es un módulo que lo use cualquiera"*. Eso voltea la decisión
-central de aquel documento, así que se reescribe entero en vez de parchearse. El diseño viejo
-está en el historial de git de este mismo archivo.
+central de aquel documento, así que se reescribe entero en vez de parchearse.
+
+**El diseño viejo se recupera así** —`git log --follow` NO lo encuentra, porque el cambio fue tan
+grande que git lo registró como borrado + creación en vez de rename:
+
+```bash
+git show 688cd97:docs/superpowers/specs/2026-08-28-operaciones-design.md
+```
 
 ---
 
