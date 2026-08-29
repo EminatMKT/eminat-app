@@ -157,9 +157,19 @@ La versión anterior aplicó el argumento de §2.1 —*"no cuesta nada esperar"*
 inercia. Es falso: acá esperar cuesta el dato. Decidido el 29/08: **`reunion_pendientes` nace con
 `fecha_original`** (§3.6).
 
-Con eso, sin ninguna tabla extra, se puede decir *"prometido para el 5, hoy va por el 19"*. Lo que
-sigue faltando —y es lo que `topic_reviews` daría— es el **porqué** de cada movida y cuántas veces
-se movió.
+Con eso, sin ninguna tabla extra, se puede decir *"prometido para el 5, hoy va por el 19"*. Y con la
+auditoría de §3.12 se sabe además **cuántas veces se movió, cuándo y quién** — contando los cambios
+de `fecha_comprometida` en `historial`.
+
+**Lo único que queda sin respuesta es el porqué**, y con él la mitad que importa: que postergar sea
+un **acto deliberado en la reunión** y no un `UPDATE` suelto en un formulario. En el spec de Freddy
+se retoma el punto, se dice por qué, y eso queda escrito.
+
+**La salida barata, si Freddy insiste — y conviene tenerla lista para esa conversación:** un botón
+*"Postergar con motivo"* que escriba en `historial` con `accion = 'postergado'` y el motivo en
+`notas`, columna que **ya existe y está vacía**. Da el grueso de `topic_reviews` sin ninguna tabla
+nueva, sin tocar `reunion_pendientes` y sin violar la regla de §2.10 — porque no agrega una columna:
+usa la traza que el módulo ya escribe. Queda ofrecida, no construida: se hace si la pide.
 
 Lo que **sí** se conserva de la idea del spec: **cerrar un acta no cierra sus pendientes**. Un
 pendiente abierto reaparece en la reunión siguiente de su empresa (§3.7).
@@ -690,9 +700,34 @@ que sólo cubrían cuatro:**
 | `access_denylist` | Sin lista de pertenencia, no hay de qué restar (§2.7) |
 | `topic_reviews` | El arrastre con historial queda fuera (§2.3) |
 | `task_updates` | Comentarios y bitácora por pendiente. Un pendiente tiene estado y fecha, no hilo de conversación. Sin pedido concreto |
-| `attachments` | Evidencias. Exige Storage y su política de acceso; ninguna fase lo pide |
+| `attachments` | Ver abajo — es la única que se descarta por costo y no por diseño |
 | `document_sequences` | Su único uso era el `{NNN}`, resuelto con advisory lock (§3.10) |
 | `meeting_types` | Resuelto con el DOMAIN `tipo_reunion` (§3.9) |
+
+**`attachments` merece su párrafo, porque es la única que se descarta por costo.** No es una tabla
+más: es un subsistema. Bucket de Storage, políticas sobre `storage.objects` —que es otro sistema de
+RLS, distinto del de las tablas— y un detalle que `CLAUDE.md` documenta: **`db push` no cubre los
+buckets**, se replican a mano. Arrastra un paso de deploy manual que ninguna otra parte de este
+diseño tiene.
+
+Y hay que decir la verdad de lo que se pierde, porque *"no construimos `attachments`"* suena mucho
+mejor que **no se puede adjuntar nada**: ni el mockup, ni el PDF, ni la captura.
+
+**Hay una salida obvia, y se decide NO tomarla todavía.** `actividades.drive_url` ya existe: el repo
+resolvió "el entregable" con un enlace de Drive, que es donde la empresa vive igual — y el propio
+prototipo de Freddy lo insinúa, su campo *evidencia* dice *"Enlace, nombre de archivo o número de
+documento"*. Una columna `evidencia_url` en `reunion_pendientes` cubriría el caso real por casi
+nada.
+
+**No se agrega porque viola §2.10**, que dice con todas las letras que si la tabla pide *adjuntos*
+eso no es una columna nueva sino la señal de unificar con `actividades`. Un campo de enlace es un
+adjunto de los pobres, y una regla que se afina la primera vez que molesta no es una regla.
+
+**Y si Freddy la pide, ése es el momento de decidir — no ahora.** Con su caso concreto adelante hay
+dos caminos honestos: sostener la regla y tratar el pedido como el disparador que dice ser, o
+afinarla para que distinga un subsistema (Storage, bucket, políticas) de una columna de texto —
+defendible, porque `drive_url` no convirtió a `actividades` en un gestor de archivos. Redactar esa
+distinción con un caso real adelante es mejor que inventarla ahora en abstracto.
 
 ### 3.12 La auditoría: se reusa `historial`, no se crea `audit_logs`
 
