@@ -12,14 +12,13 @@
 
 DO $$
 DECLARE
-  -- Las que se sabe que están apagadas y todavía no se arreglaron. Esta lista es DEUDA VISIBLE:
-  -- cada nombre acá es una tabla desprotegida, y el arreglo es borrar el nombre, no agregarlo.
-  -- Vaciarla es la etapa 2 del incidente del 29/08 (ver .todo/TODO.md).
+  -- DEUDA VISIBLE: cada nombre acá es una tabla desprotegida. Se arregla borrando el nombre,
+  -- nunca agregándolo.
   --
-  -- Se dejan exentas a propósito para que el check pase HOY: un gate que falla siempre se
-  -- desactiva en una semana, y entonces no protege del caso que importa — la tabla NUEVA que
-  -- nace sin RLS.
-  conocidas text[] := ARRAY['actividades', 'usuarios', 'historial', 'notificaciones'];
+  -- Está VACÍA desde el 29/08/2026: las cuatro que la estrenaron —actividades, usuarios,
+  -- historial, notificaciones— se arreglaron en la migración
+  -- `20260829210325_rls_encendida_cuatro_tablas.sql`. Que quede vacía es el estado correcto.
+  conocidas text[] := ARRAY[]::text[];
   culpables text;
 BEGIN
   SELECT string_agg(c.relname, ', ' ORDER BY c.relname) INTO culpables
