@@ -12,7 +12,7 @@ describe('catálogo de módulos', () => {
   // un oráculo independiente de MODULE_META, así que el test no se arregla solo.
   it('ALL_MODULES = set canónico', () => {
     expect([...ALL_MODULES].sort()).toEqual(
-      ['accounting','admin','cobranzas','directorio','medical','research','stratix-mkt','th-hr'].sort()
+      ['accounting','admin','cobranzas','directorio','medical','research','reuniones','stratix-mkt','th-hr'].sort()
     )
   })
 

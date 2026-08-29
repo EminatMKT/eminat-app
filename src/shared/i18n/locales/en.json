@@ -869,5 +869,7 @@
   "stratix.team.inProgress": "{n} in progress",
   "stratix.detail.changeDue": "Fix due date",
   "stratix.detail.dueChanged": "Due date updated",
-  "stratix.detail.dueError": "Couldn't update the due date"
+  "stratix.detail.dueError": "Couldn't update the due date",
+
+  "reuniones.title": "Meetings"
 }

@@ -13,6 +13,7 @@ export const MODULE = {
   ACCOUNTING: 'accounting',
   TH_HR: 'th-hr',
   DIRECTORIO: 'directorio',
+  REUNIONES: 'reuniones',
   ADMIN: 'admin',
 } as const
 

@@ -57,6 +57,12 @@ export const MODULE_META: Record<ModuleSlug, ModuleMeta> = {
     description: 'Todo el equipo de Eminat Group en un lugar.',
     leader: null,
   },
+  [MODULE.REUNIONES]: {
+    slug: MODULE.REUNIONES,
+    name: 'Reuniones',
+    description: 'Actas, participantes y pendientes de las reuniones del grupo.',
+    leader: null,
+  },
   [MODULE.ADMIN]: {
     slug: MODULE.ADMIN,
     name: 'Administración',

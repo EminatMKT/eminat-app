@@ -15,8 +15,12 @@ describe('getModulesForRole', () => {
     expect(getModulesForRole({}, ADMIN_ROLE).sort()).toEqual([...ALL_MODULES].sort())
   })
   it('devuelve una copia: mutarla no toca el catálogo', () => {
+    // El largo se toma antes: cuántos módulos hay es el candado de `modulos/index.test.ts`,
+    // acá lo único que se prueba es que el array no se pise. Escribir el número a mano
+    // obligaba a tocar dos tests por cada módulo nuevo.
+    const antes = ALL_MODULES.length
     getModulesForRole({}, ADMIN_ROLE).pop()
-    expect(ALL_MODULES).toHaveLength(8)
+    expect(ALL_MODULES).toHaveLength(antes)
   })
 })
 

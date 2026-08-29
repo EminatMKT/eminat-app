@@ -100,6 +100,7 @@ La validación ocurre en `src/app/login/page.tsx` antes de llamar a Supabase Aut
 | Cobranzas | `/cobranzas` | Ventas mensuales, cuentas por cobrar, depósitos. Import/export CSV |
 | Accounting | `/accounting` | KPIs financieros con gráficas por área (Resumen, Ventas, Por Cobrar, Bancario) |
 | Directorio | `/directorio` | Listado de miembros con búsqueda y filtros por departamento |
+| Reuniones | `/reuniones` | Actas de reunión: participantes, temas tratados, pendientes y acta imprimible |
 | Admin | `/admin` | CRUD completo de usuarios: crear, editar, activar/desactivar, eliminar con reasignación |
 | Finanzas | `/finanzas` | En construcción |
 | TH/HR | `/th-hr` | En construcción |
@@ -166,7 +167,7 @@ src/
     i18n/              ← claves es.json / en.json + useT()
   features/            ← un directorio por módulo de negocio
     accounting/  admin/  cobranzas/  directorio/
-    medical/     overview/  research/  stratix-mkt/
+    medical/     overview/  research/  reuniones/  stratix-mkt/
   app/
     layout.tsx         ← layout raíz (fuentes Syne + DM Mono)
     (app)/             ← grupo de rutas protegidas

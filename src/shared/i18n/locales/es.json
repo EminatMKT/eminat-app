@@ -869,5 +869,7 @@
   "stratix.team.inProgress": "{n} en progreso",
   "stratix.detail.changeDue": "Corregir fecha de entrega",
   "stratix.detail.dueChanged": "Fecha de entrega actualizada",
-  "stratix.detail.dueError": "No se pudo actualizar la fecha"
+  "stratix.detail.dueError": "No se pudo actualizar la fecha",
+
+  "reuniones.title": "Reuniones"
 }
