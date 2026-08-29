@@ -53,6 +53,9 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # `supabase start` levanta Postgres+Auth+REST locales y aplica supabase/migrations.
       - run: supabase start
+      # La RLS se verifica contra la base real, no contra el archivo de migración:
+      # el 29/08/2026 las policies estaban escritas y RLS apagada. Ver rules/base-de-datos.md.
+      - run: pnpm db:rls
       # Navegador cacheado y SIN `--with-deps`. Ese flag instalaba librerías del sistema con
       # apt en cada corrida, metiendo un mirror de Ubuntu en el camino crítico: el 18/08 el
       # mirror de Azure de los runners dejó de responder y el job estuvo 20+ min agotando
