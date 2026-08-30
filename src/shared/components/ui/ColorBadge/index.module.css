@@ -1,11 +1,24 @@
-/* --badge: el color que ya significa algo — la marca, la plataforma, el nivel de engagement.
-   Se usa a dos intensidades: el texto pleno y el fondo teñido. */
+/* --badge: el color que ya significa algo — la marca, la plataforma, el estado de un acta.
+   Se usa a dos intensidades: el fondo teñido y el texto.
+
+   El TEXTO no es `var(--badge)` a secas, y no es un detalle de gusto: medido el 29/08, los seis
+   colores del repo daban entre 1.84:1 y 3.84:1 sobre este fondo, contra el 4.5:1 que pide WCAG
+   AA para texto chico. Es el mismo fallo del 25/08 con los chips de estado (1.71:1), y la misma
+   razón por la que globals.css tiene `--c-accent-solid` aparte de `--c-accent`.
+
+   Se mezcla al 50% con `--c-t1` —el casi-negro del texto de la app— y no con `#000`: conserva el
+   matiz, así que el chip sigue leyéndose como "el color de esa cosa", y sube el peor caso real
+   de 1.84:1 a 5.12:1. Los seis quedan entre 5.12 y 7.60.
+
+   Lo que esto NO garantiza: un color de marca casi blanco (el admin los elige desde /admin)
+   sigue quedando por debajo — 3.38:1 con blanco puro. Anotado en .todo; el arreglo de fondo es
+   que el selector de color no deje elegir uno sin contraste. */
 .badge {
-  font-size: 10px;
+  font-size: .625rem;
   font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: .125rem .5rem;
+  border-radius: .375rem;
   white-space: nowrap;
-  color: var(--badge);
+  color: color-mix(in srgb, var(--badge) 50%, var(--c-t1));
   background: color-mix(in srgb, var(--badge) 9%, transparent);
 }
