@@ -16,12 +16,19 @@ const en = enJson satisfies Record<I18nKey, string>
 const DICTS: Record<Locale, Record<I18nKey, string>> = { es, en }
 const DEFAULT: Locale = 'es'
 
+// El BCP-47 de cada idioma, para `Intl` (fechas, números). Vive acá porque es lo que sabe de
+// idiomas, y agregar uno nuevo tiene que ser agregar UNA fila — no un
+// `locale === 'en' ? 'en-US' : 'es-EC'` repetido en cada componente que muestre una fecha.
+const INTL: Record<Locale, string> = { es: 'es-EC', en: 'en-US' }
+
 function interpolate(s: string, vars?: Record<string, string | number>) {
   return vars ? s.replace(/\{(\w+)\}/g, (_, k) => (vars[k] != null ? String(vars[k]) : `{${k}}`)) : s
 }
 
 type Ctx = {
   locale: Locale
+  /** El BCP-47 del idioma activo, para pasarle a `Intl` / `toLocaleDateString`. */
+  intlLocale: string
   setLocale: (l: Locale) => void
   t: (key: I18nKey, vars?: Record<string, string | number>) => string
 }
@@ -42,7 +49,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
       interpolate(DICTS[locale][key] ?? DICTS[DEFAULT][key] ?? key, vars),
     [locale],
   )
-  return <LocaleCtx.Provider value={{ locale, setLocale, t }}>{children}</LocaleCtx.Provider>
+  return <LocaleCtx.Provider value={{ locale, intlLocale: INTL[locale], setLocale, t }}>{children}</LocaleCtx.Provider>
 }
 
 export function useT() {
