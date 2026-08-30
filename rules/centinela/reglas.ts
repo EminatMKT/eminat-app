@@ -36,7 +36,13 @@ export function cargar(): Check[] {
               esperaFalla: partes[0] !== "pasa",
               esNuevo: !partes.includes("existente"),
               path: partes.find((p) => p.startsWith("@"))?.slice(1) || RUTA_TEST,
-              contenido: contenido.trim(),
+              // El `\n` de un `test:` es un SALTO DE LÍNEA, no las dos letras. Un `test:` vive
+              // en una línea del .md, así que sin esto no había forma de escribir un caso de
+              // dos líneas — y el único test del mecanismo de exención era justamente ése:
+              // «una marca arriba y markup abajo». Sin traducir, quedaba todo dentro del `//`
+              // y pasaba por ser un comentario, no por eximir. Un test que pasa por la razón
+              // equivocada es peor que no tenerlo: dice que el mecanismo anda sin mirarlo.
+              contenido: contenido.trim().replace(/\\n/g, "\n"),
             })
           } else {
             const i = l.indexOf(":")
