@@ -870,6 +870,23 @@
   "stratix.detail.changeDue": "Fix due date",
   "stratix.detail.dueChanged": "Due date updated",
   "stratix.detail.dueError": "Couldn't update the due date",
-
-  "reuniones.title": "Meetings"
+  "reuniones.title": "Meetings",
+  "reuniones.modalidad.presencial": "In person",
+  "reuniones.modalidad.virtual": "Virtual",
+  "reuniones.modalidad.hibrida": "Hybrid",
+  "reuniones.estado.borrador": "Draft",
+  "reuniones.estado.enCurso": "In progress",
+  "reuniones.estado.cerrada": "Closed",
+  "reuniones.tipo.seguimiento": "Follow-up",
+  "reuniones.tipo.planificacion": "Planning",
+  "reuniones.tipo.revisionDireccion": "Management review",
+  "reuniones.tipo.comite": "Committee",
+  "reuniones.tipo.extraordinaria": "Extraordinary",
+  "reuniones.rol.preside": "Chair",
+  "reuniones.rol.secretario": "Secretary",
+  "reuniones.rol.participante": "Participant",
+  "reuniones.rol.invitado": "Guest",
+  "reuniones.asistencia.presente": "Present",
+  "reuniones.asistencia.ausente": "Absent",
+  "reuniones.asistencia.invitado": "Invited"
 }

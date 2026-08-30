@@ -870,6 +870,23 @@
   "stratix.detail.changeDue": "Corregir fecha de entrega",
   "stratix.detail.dueChanged": "Fecha de entrega actualizada",
   "stratix.detail.dueError": "No se pudo actualizar la fecha",
-
-  "reuniones.title": "Reuniones"
+  "reuniones.title": "Reuniones",
+  "reuniones.modalidad.presencial": "Presencial",
+  "reuniones.modalidad.virtual": "Virtual",
+  "reuniones.modalidad.hibrida": "Híbrida",
+  "reuniones.estado.borrador": "Borrador",
+  "reuniones.estado.enCurso": "En curso",
+  "reuniones.estado.cerrada": "Cerrada",
+  "reuniones.tipo.seguimiento": "Seguimiento",
+  "reuniones.tipo.planificacion": "Planificación",
+  "reuniones.tipo.revisionDireccion": "Revisión por la dirección",
+  "reuniones.tipo.comite": "Comité",
+  "reuniones.tipo.extraordinaria": "Extraordinaria",
+  "reuniones.rol.preside": "Preside",
+  "reuniones.rol.secretario": "Secretario/a",
+  "reuniones.rol.participante": "Participante",
+  "reuniones.rol.invitado": "Invitado/a",
+  "reuniones.asistencia.presente": "Presente",
+  "reuniones.asistencia.ausente": "Ausente",
+  "reuniones.asistencia.invitado": "Invitado/a"
 }
