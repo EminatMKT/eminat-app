@@ -395,11 +395,12 @@ las 20:00 es de los que nadie reproduce en una demo.
 <!-- check: block
      detector: texto_sin_traducir
      files: .ts,.tsx
-     version: 1
+     version: 2
      test: pasa :: mostrarMensaje('ok', t('stratix.edit.saved'))
      test: pasa :: <div>{t('stratix.new.title')}</div>
      test: pasa :: <span className={s.x}>{nombre}</span>
      test: pasa :: <button onClick={cerrar}>✕</button>
+     test: pasa :: export default function Sel<V extends string>(props: Props<V>) { return null }
      test: falla :: mostrarMensaje('ok', 'Role updated')
      test: falla :: <button className={s.b}>Guardar cambios</button>
      test: falla existente :: mostrarMensaje('ok', 'Role updated')
@@ -410,7 +411,10 @@ compañía reciben `t('clave')`, con la clave en `es.json` **y** `en.json`.
 
 **Qué mira el check:** dos formas, las dos inequívocas — un aviso al usuario cuyo segundo
 argumento es un literal en vez de `t(...)`, y texto suelto entre etiquetas JSX
-(`<button>Guardar</button>`). Pide cuatro letras seguidas, así que no marca `>x<`, `>-<` ni
+(`<button>Guardar</button>`). Lo que cierra tiene que ser una etiqueta (`</`) y no cualquier `<`:
+la firma de un componente genérico —`function Sel<V extends string>(props: Props<V>)`— deja un
+`>(props: Props<` que se leía como texto sin traducir, y un falso positivo que frena el trabajo
+enseña a ignorar al centinela. Pide cuatro letras seguidas, así que no marca `>x<`, `>-<` ni
 `>3h<`; y salta el contenido de los template literals, porque el HTML de una plantilla
 —`report-html`— no es algo que React renderice.
 
