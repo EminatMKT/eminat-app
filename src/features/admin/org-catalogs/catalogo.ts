@@ -30,6 +30,8 @@ export const ORG_CATALOGS: Record<OrgCat, CatalogDef> = {
       // borrado. solicitudes y slots_calendario siguen con empresa_id a
       // propósito: están vacías y su migración quedó fuera de scope.
       { table: 'actividades', column: 'empresa', matchOn: 'codigo' },
+      // reuniones.empresa también apunta a la clave natural, igual que actividades.
+      { table: 'reuniones', column: 'empresa', matchOn: 'codigo' },
       { table: 'solicitudes', column: 'empresa_id' },
       { table: 'slots_calendario', column: 'empresa_id' },
     ],
