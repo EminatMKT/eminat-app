@@ -5,7 +5,7 @@ import { useT } from '@/shared/i18n'
 import { apiSend } from '@/shared/utils/api'
 import type { OrgRow } from '@/shared/context/loadAppData'
 import TabButton from '@/shared/components/ui/TabButton'
-import NewButton from '@/shared/components/ui/NewButton'
+import Button from '@/shared/components/ui/Button'
 import ListToolbar from '@/shared/components/ui/ListToolbar'
 import { ORG_CATALOGS, ORG_CATS, type OrgCat } from '../org-catalogs'
 import { useOrgCatalog } from '../hooks/useOrgCatalog'
@@ -54,7 +54,7 @@ export default function OrgManager({ cat, onCatChange }: { cat: OrgCat; onCatCha
       </div>
 
       <ListToolbar busqueda={busqueda} setBusqueda={setBusqueda}
-        action={<NewButton label={t(ORG_CATALOGS[cat].newKey)} onClick={() => setModal({})} />}>
+        action={<Button kind="new" label={t(ORG_CATALOGS[cat].newKey)} onClick={() => setModal({})} />}>
         {sinUso > 0 && (
           <span title={t('admin.org.sinUsoTip')} style={{ fontSize: 11, color: t3, whiteSpace: 'nowrap' }}>
             {t('admin.org.sinUso', { n: sinUso })}

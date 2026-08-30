@@ -1,48 +1,44 @@
 'use client'
-import type { CSSProperties } from 'react'
+import { ColorBadge } from '@/shared/components/ui'
+import { fechaCorta, horaCorta } from '@/shared/utils'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
-import ColorBadge from '@/shared/components/ui/ColorBadge'
-import { ESTADO_REUNION, MODALIDAD } from '@/features/reuniones/constants'
 import type { Reunion } from '@/features/reuniones/types'
+import { ESTADO_REUNION, MODALIDAD } from '@/features/reuniones/constants'
 import s from './index.module.css'
 
-// centinela-exime: bloques-similares@1 — busqué en src/shared/components/ui una fila de lista
-// genérica (hay ListToolbar, StatBox, ColorBadge, RowMenu, pero ninguna fila) y las filas de
-// features/directorio (MemberCard) y features/admin (UserRow): las dos traen su dominio adentro
-// —departamento, cargos, rol— y ninguna admite código + fecha + estado. El chip de estado SÍ se
-// reusa: es ColorBadge, que ya existe. Si aparece una segunda fila con esta forma, sube a shared.
+// centinela-exime: bloques-similares@2 — leí `ls src/shared/components/ui` entero (20) más
+// dashboard/ y shell/. Lo más cerca: MemberCard (Directorio) y UserRow (Admin), y las dos traen
+// su dominio adentro —departamento, cargos, rol—, así que no es "agregarles un prop": habría que
+// sacarles el dominio primero, que es otro trabajo. De ColorBadge SÍ salió la salida 2: no se
+// escribió un chip nuevo, se reusa el que hay. Si aparece una segunda fila así, sube a shared.
 
 type Props = {
   reunion: Reunion
-  onAbrir: (id: string) => void
 }
 
-export default function ReunionRow({ reunion, onAbrir }: Props) {
+// La fila NO es un <button>, y es a propósito: en la fase 1 no hay ficha que abrir —editar una
+// reunión existente es la fase 2—, y un botón que no lleva a ningún lado es peor que una fila
+// que no lo es: entra en el tab order y no hace nada. Cuando exista la ficha, esto pasa a
+// <button> con su `onAbrir` y recupera el teclado de una (rules/ui.md).
+export default function ReunionRow({ reunion }: Props) {
   const { colorMarca } = useApp()
-  const { t, locale } = useT()
-  const { id, codigo, empresa, titulo, fecha, hora_inicio, modalidad, estado } = reunion
-
-  // La fecha se formatea desde las partes de 'YYYY-MM-DD', sin pasar por Date: `new Date(f)` la
-  // interpreta como UTC y en UTC-4 muestra el día anterior (rules/codigo.md).
-  const [anio, mes, dia] = fecha.split('-')
-  const fechaLegible = new Date(Number(anio), Number(mes) - 1, Number(dia))
-    .toLocaleDateString(locale === 'en' ? 'en-US' : 'es-EC', { day: '2-digit', month: 'short', year: 'numeric' })
+  const { t, intlLocale } = useT()
+  const { codigo, empresa, titulo, fecha, hora_inicio, modalidad, estado } = reunion
 
   return (
-    <button type="button" className={s.fila} onClick={() => onAbrir(id)}
-      style={{ '--marca': colorMarca[empresa] ?? 'var(--c-t3)' } as CSSProperties}>
+    <li className={s.fila} style={{ '--marca': colorMarca[empresa] ?? 'var(--c-t3)' }}>
       <span className={s.marca} aria-hidden="true" />
       <span className={s.centro}>
         <span className={s.titulo}>{titulo}</span>
         <span className={s.meta}>
           {codigo && <code className={s.codigo}>{codigo}</code>}
-          <span>{fechaLegible}</span>
-          {hora_inicio && <span>{hora_inicio.slice(0, 5)}</span>}
+          <span>{fechaCorta(fecha, intlLocale)}</span>
+          {hora_inicio && <span>{horaCorta(hora_inicio, intlLocale)}</span>}
           <span>{MODALIDAD.label(modalidad, t)}</span>
         </span>
       </span>
       <ColorBadge color={ESTADO_REUNION.colores[estado]}>{ESTADO_REUNION.label(estado, t)}</ColorBadge>
-    </button>
+    </li>
   )
 }

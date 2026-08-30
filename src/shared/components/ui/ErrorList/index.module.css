@@ -1,0 +1,18 @@
+/* Los errores van juntos en una caja teñida y no uno debajo de cada campo: son cuatro como
+   mucho, y repartidos obligan a recorrer el formulario entero para saber cuántos faltan. */
+.lista {
+  margin: 0 0 .75rem;
+  padding: .625rem .75rem .625rem 1.75rem;
+  list-style: disc;
+  border: 1px solid var(--c-danger);
+  border-radius: .625rem;
+  background: color-mix(in srgb, var(--c-danger) 7%, transparent);
+  font-size: .8125rem;
+  /* --c-danger-solid, no --c-danger: el claro da 2.77:1 sobre blanco y WCAG AA pide 4.5:1
+     para texto chico. El borde sí lleva el claro — no porta texto. */
+  color: var(--c-danger-solid);
+}
+
+.lista li + li {
+  margin-top: .25rem;
+}

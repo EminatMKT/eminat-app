@@ -4,7 +4,7 @@ import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { type RoleRow } from '@/shared/auth/permissions'
 import { apiSend } from '@/shared/utils/api'
-import NewButton from '@/shared/components/ui/NewButton'
+import Button from '@/shared/components/ui/Button'
 import ListToolbar from '@/shared/components/ui/ListToolbar'
 import RoleModal from './RoleModal'
 import RoleCard from './RoleCard'
@@ -38,7 +38,7 @@ export default function RolesManager() {
       {/* Mismo encabezado que Usuarios y los catálogos: buscador + alta. El título
           lo da la sub-pestaña, así que repetirlo acá era ruido. */}
       <ListToolbar busqueda={busqueda} setBusqueda={setBusqueda}
-        action={<NewButton label={t('admin.newRole')} onClick={() => setModalNew(true)} />} />
+        action={<Button kind="new" label={t('admin.newRole')} onClick={() => setModalNew(true)} />} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {filtrados.map(r => (
           <RoleCard key={r.key} role={r} onEdit={setModalRole} onDelete={borrar} deleting={borrando === r.key} />

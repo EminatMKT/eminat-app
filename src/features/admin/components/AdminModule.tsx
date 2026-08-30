@@ -6,7 +6,7 @@ import { DEFAULT_ROLE } from '@/shared/auth/permissions'
 import AppShell from '@/shared/components/shell/AppShell'
 import AccessDenied from '@/shared/components/access/AccessDenied'
 import TabButton from '@/shared/components/ui/TabButton'
-import NewButton from '@/shared/components/ui/NewButton'
+import Button from '@/shared/components/ui/Button'
 import { PageTransition } from '@/shared/motion'
 import StatsBar from './StatsBar'
 import RoleFilterBar from './RoleFilterBar'
@@ -55,7 +55,7 @@ export default function AdminModule() {
     cargoIds: cargoIdsOf(u),
   })
 
-  const crearBtn = <NewButton label={t('admin.newUser')} onClick={() => setModalCrear(true)} />
+  const crearBtn = <Button kind="new" label={t('admin.newUser')} onClick={() => setModalCrear(true)} />
 
   return (
     <AppShell activeTab={vista} onTabChange={v => setVista(v as Vista)}>
