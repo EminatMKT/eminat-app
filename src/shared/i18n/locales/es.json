@@ -914,6 +914,7 @@
   "reuniones.ph.lugar": "Sala de juntas, o el enlace de la videollamada",
   "reuniones.ph.objetivo": "Para qué se convoca…",
   "reuniones.abrir": "Abrir la reunión {titulo}",
+  "reuniones.crear": "Crear reunión",
   "reuniones.editar": "Editar reunión",
   "reuniones.editarSub": "Los datos generales y quiénes participan.",
   "reuniones.pisar.title": "Guardar los cambios",
