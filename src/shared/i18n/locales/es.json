@@ -888,5 +888,9 @@
   "reuniones.rol.invitado": "Invitado/a",
   "reuniones.asistencia.presente": "Presente",
   "reuniones.asistencia.ausente": "Ausente",
-  "reuniones.asistencia.invitado": "Invitado/a"
+  "reuniones.asistencia.invitado": "Invitado/a",
+  "common.loading": "Cargando…",
+  "reuniones.nueva": "Nueva reunión",
+  "reuniones.vacio": "Todavía no hay reuniones. Creá la primera con «Nueva reunión».",
+  "reuniones.sinResultados": "Ninguna reunión coincide con la búsqueda."
 }
