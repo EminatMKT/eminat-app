@@ -1,0 +1,42 @@
+/* La caja, la barra de color y el foco viven en `FilaLista` (src/shared/components/ui): acá
+   queda sólo lo propio de la mesa. */
+
+/* Quién faltó es lo que se busca al releer un acta. Atenuar la fila lo dice de lejos, sin
+   agregar un chip más a una fila que ya tiene cuatro cosas. El texto sigue en su color: lo que
+   baja es el fondo, no el contraste de lo que hay que leer. */
+.ausente > * { background: var(--c-s3); }
+.ausente .nombre { text-decoration: line-through; }
+
+.quien {
+  display: flex;
+  flex-direction: column;
+  gap: .0625rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.nombre {
+  font-size: .8125rem;
+  font-weight: 600;
+  color: var(--c-t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* De dónde viene un invitado externo. Sólo la tienen ellos, así que su ausencia distingue de un
+   vistazo quién es de casa y quién no. */
+.org {
+  font-size: .6875rem;
+  color: var(--c-t2);
+}
+
+.control {
+  flex-shrink: 0;
+  font-size: .75rem;
+  padding: .25rem .375rem;
+  border: 1px solid var(--c-border);
+  border-radius: .375rem;
+  background: var(--c-s1);
+  color: var(--c-t1);
+}

@@ -1,0 +1,21 @@
+/* El alta de un externo es secundaria frente a la lista: va sobre un fondo hundido y con borde
+   punteado, que es el idioma de "acá se agrega" sin competir con las filas que ya existen. */
+.caja {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: .5rem;
+  padding: .75rem;
+  border: 1px dashed var(--c-border);
+  border-radius: .625rem;
+  background: var(--c-s3);
+}
+
+/* Los tres campos en un renglón: son cortos y juntos se leen como una sola pregunta —quién es
+   y de dónde viene—. En una columna, el formulario del invitado ocuparía más que la lista. */
+.tres {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0 .75rem;
+  width: 100%;
+}

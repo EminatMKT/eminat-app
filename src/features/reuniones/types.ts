@@ -1,3 +1,9 @@
+import type { I18nKey } from '@/shared/i18n'
+
+// centinela-exime: archivo-extenso@2 — es el archivo de tipos del módulo: no tiene lógica que
+// partir, crece de a una forma y su valor está en que las formas se lean juntas. Partirlo por
+// tamaño daría dos archivos de tipos que habría que abrir los dos.
+
 // Las seis uniones espejan los DOMAIN de Postgres (20260829221511_reuniones_esquema.sql) y
 // tienen que listar lo mismo. El canónico NO se renderiza: la etiqueta sale del META de
 // `constants/`, que le pone su clave de i18n y su color.
@@ -40,6 +46,15 @@ export type Participante = {
 }
 
 export type ParticipanteNuevo = Omit<Participante, 'id'>
+
+// Lo que se teclea para dar de alta a alguien que no está en el directorio. Los tres son
+// `string` porque salen de un <input>; quien lo guarda los convierte en NULL donde vayan vacíos.
+export type Externo = { nombre: string; empresa: string; email: string }
+
+// Un error listo para mostrar: la clave de i18n y sus variables. Que la clave sea `I18nKey` y no
+// `string` es lo que evita el casteo en el componente — el origen se tipa acá y el tipo viaja
+// solo hasta quien lo pinta (rules/codigo.md).
+export type Fallo = { key: I18nKey; vars?: Record<string, string> }
 
 // Lo que llena el formulario, derivado de `Reunion` para no olvidar una columna. Los de texto
 // son `string` —un <input> vacío da '', no null— y `tipo` y `modalidad` admiten '' porque sus
