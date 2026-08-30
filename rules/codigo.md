@@ -70,6 +70,43 @@ Nunca comparar contra el nombre de un rol. Los roles son dinámicos —los crea 
 `/admin`— así que un `rol === 'colaborador'` hardcodeado es una condición que el admin puede
 volver falsa sin tocar código.
 
+## El slug de un módulo se escribe una sola vez: sale de `MODULE`
+
+<!-- check: contact
+     pattern: ['"](stratix-mkt|cobranzas|research|medical|accounting|th-hr|directorio|reuniones|admin)['"]
+     files: .ts,.tsx
+     except: /auth/permissions/,/data/tables,.test.
+     version: 1
+     test: falla :: export const access = { module: 'reuniones' } as const
+     test: falla :: if (modules.includes('medical')) abrir()
+     test: pasa :: export const access = { module: MODULE.REUNIONES } as const
+     test: pasa :: if (modules.includes(MODULE.MEDICAL)) abrir()
+     test: pasa :: const k = 'admin.org.empresas'
+     test: pasa @src/shared/auth/permissions/modulos/slugs.ts :: REUNIONES: 'reuniones',
+     test: pasa @src/shared/data/tables.ts :: reuniones: 'reuniones',
+     test: pasa existente :: export const access = { module: 'reuniones' } as const
+-->
+
+`src/shared/auth/permissions/modulos/slugs.ts` declara los slugs y **es el único lugar donde se
+escriben como texto**. En cualquier otro archivo se pregunta por `MODULE.REUNIONES`.
+
+**Motivo:** un slug mal escrito **no rompe el build, sólo deja de coincidir** — y en silencio.
+`modules.includes('medial')` compila, devuelve `false` y el módulo simplemente no aparece: nadie
+ve un error, sólo alguien que dice que no le sale la pantalla. Es la misma forma de falla que el
+slug mal escrito en una policy de RLS (`base-de-datos.md`), y por la misma razón: un `text` sin
+catálogo detrás no lo valida nadie.
+
+Donde el campo ya está tipado como `ModuleSlug` —`NAV`, `PANEL_META`— TypeScript sí agarra el
+typo, y por eso esta regla es **`contact`** y no `block`: hay 31 archivos con el literal y
+congelarlos costaría más de lo que protege. Frena en lo que nace, y los viejos se migran por
+contacto. El caso que la motivó no estaba tipado: `features/<modulo>/index.ts` declara
+`access = { module: '<slug>' } as const`, un objeto suelto donde el compilador no mira nada.
+
+Quedan afuera del check tres lugares donde el texto ES el dato y no una referencia al módulo:
+`auth/permissions/` (que los declara), `data/tables.ts` —donde `'reuniones'` es el nombre de una
+tabla que casualmente se llama igual— y los tests: el candado de `modulos/index.test.ts` usa
+literales **a propósito**, para ser un oráculo independiente del catálogo que verifica.
+
 ## Supabase en el cliente: el singleton
 
 <!-- check: block
