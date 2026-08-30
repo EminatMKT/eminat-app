@@ -6,12 +6,10 @@ import { localDate } from '@/shared/utils'
 import { validarReunion } from '@/features/reuniones/utils/validarReunion'
 import type { ReunionForm } from '@/features/reuniones/types'
 
-// La fecha por defecto sale de `localDate()`, que resuelve en la zona de quien mira. Sacarla de
-// la fecha en UTC —la trampa que documenta `@/shared/utils/dates`— haría que en UTC-4, después
-// de las 20:00, una reunión cargada hoy naciera fechada mañana.
-// Ningún campo arranca con un valor de dominio escrito a mano —`modalidad` decía `'presencial'`
-// y era el bug de "New task": un valor que nadie eligió y queda guardado igual—. Todos parten
-// del placeholder vacío, y `validarReunion` rechaza lo que sea obligatorio.
+// La fecha sale de `localDate()` —en UTC, después de las 20:00 una reunión de hoy nacería
+// fechada mañana— y ningún otro campo arranca con un valor de dominio escrito a mano:
+// `modalidad` decía `'presencial'`, que es el bug de "New task" (un valor que nadie eligió y
+// queda guardado igual). Todos parten del placeholder y `validarReunion` rechaza lo vacío.
 export const FORM_VACIO: ReunionForm = {
   empresa: '', titulo: '', tipo: '', lugar: '',
   modalidad: '', fecha: localDate(), hora_inicio: '', hora_fin: '', objetivo: '',

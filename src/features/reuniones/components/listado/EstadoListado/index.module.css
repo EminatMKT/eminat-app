@@ -1,0 +1,24 @@
+/* El vacío y el error comparten la caja pero NO el color: un listado sin reuniones es un
+   estado normal y va en gris; un error es una falla y va en rojo. Pintar los dos igual haría
+   que la primera visita al módulo pareciera rota. */
+.vacio,
+.error {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  font-size: .8125rem;
+  border: 1px dashed var(--c-border);
+  border-radius: .75rem;
+  background: var(--c-s1);
+}
+
+.vacio {
+  color: var(--c-t2);
+}
+
+/* --c-danger-solid y no --c-danger: el claro da 2.77:1 sobre blanco y WCAG AA pide 4.5:1
+   para texto chico (ver globals.css). El borde sí puede llevar el claro: no porta texto. */
+.error {
+  color: var(--c-danger-solid);
+  border-color: var(--c-danger);
+  border-style: solid;
+}

@@ -7,10 +7,9 @@ import DatosGenerales from '@/features/reuniones/components/expediente/DatosGene
 import { useReunion } from '@/features/reuniones/hooks'
 import s from './index.module.css'
 
-// centinela-exime: bloques-similares@2 — leí `ls src/shared/components/ui` entero: esto es
-// `Modal` + los campos + `Button`, sin markup propio salvo la grilla y el pie. A `Modal` no le
-// faltó ningún prop, y los botones SÍ salieron a `shared` (`Button`), que es la salida 2 de la
-// regla. El pie quedó como una clase acá: seis declaraciones con un solo uso no son un componente.
+// centinela-exime: bloques-similares@2 — no hay markup propio salvo la grilla: es `Modal` con
+// su `footer` fijo, los campos, y `Button`. El pie vivió un rato como clase local y se fue al
+// `.pie` del Modal cuando apareció el tercer consumidor, que es cuando se gana el lugar.
 
 type Props = {
   onCerrar: () => void
@@ -27,20 +26,21 @@ export default function ExpedienteView({ onCerrar, onGuardada }: Props) {
     if (await guardar()) onGuardada()
   }
 
+  const acciones = (
+    <>
+      <Button kind="cancel" onClick={onCerrar} />
+      <Button kind="confirm" onClick={guardarYCerrar} ocupado={guardando} />
+    </>
+  )
+
   return (
-    <Modal title={t('reuniones.nueva')} width={620} onClose={onCerrar}>
-      <div className={s.grilla}>
-        <DatosGenerales form={form} set={set} />
-        <CuandoYDonde form={form} set={set} />
-      </div>
+    <Modal title={t('reuniones.nueva')} subtitle={t('reuniones.nuevaSub')}
+      anchoRem={46} onClose={onCerrar} footer={acciones}>
+      <DatosGenerales form={form} set={set} />
+      <CuandoYDonde form={form} set={set} />
 
       <ErrorList errores={errores} />
       {fallo && <p className={s.fallo}>{t('common.errorWithDetail', { detail: fallo })}</p>}
-
-      <div className={s.pie}>
-        <Button kind="cancel" onClick={onCerrar} />
-        <Button kind="confirm" onClick={guardarYCerrar} ocupado={guardando} />
-      </div>
     </Modal>
   )
 }

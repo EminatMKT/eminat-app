@@ -4,46 +4,46 @@ import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import type { CamposProps } from '@/features/reuniones/components/expediente/types'
 import { TIPO_REUNION } from '@/features/reuniones/constants'
+import s from './index.module.css'
 
-// Sin `index.module.css`: `Field` ya estiliza el input, el select y el textarea de su campo
-// (ver su .module.css). Un archivo de estilos vacío sería ruido, no convención.
-
-// centinela-exime: bloques-similares@2 — leí `ls src/shared/components/ui` entero (20): `Field`
-// SÍ se reusa (salida 1) y pone el rótulo y el asterisco. El otro formulario del repo, OrgModal,
-// está guiado por `ORG_CATALOGS`: reusarlo pedía inventarle tipos de campo nuevos al catálogo de
-// Admin para un único consumidor, y acá los campos no son data-driven. Nace aparte.
-
-// QUÉ reunión es. La otra mitad —cuándo y dónde— vive en `CuandoYDonde`.
+// centinela-exime: bloques-similares@2 — `Field` se reusa: pone rótulo, ícono y asterisco.
+// QUÉ reunión es; la otra mitad vive en `CuandoYDonde`. Título y objetivo van al ancho completo:
+// son los dos donde se escribe una frase, y a media columna se cortan.
 export default function DatosGenerales({ form, set }: CamposProps) {
   const { empresas } = useApp()
   const { t } = useT()
 
-  // TODAS las empresas activas, no `useApp().marcas`: ese filtro mira `recibe_actividades`, que
-  // gobierna a qué marca se imputa una ACTIVIDAD. Una reunión no es una actividad.
+  // El título usa un área de texto de una fila con `crece`. En una entrada de línea simple el
+  // principio se esconde: scrollea y deja ver el final, así que un título largo no se lee.
+  // Las empresas son TODAS las activas, no `useApp().marcas`: ese filtro mira
+  // `recibe_actividades` —a qué marca se imputa una ACTIVIDAD— y una reunión no lo es.
   const ofrecibles = empresas.filter(e => e.activo)
-
   return (
     <>
-      <Field label={t('reuniones.campo.empresa')} required>
+      <div className={s.dos}>
+      <Field icon="🏢" label={t('reuniones.campo.empresa')} required>
         <select value={form.empresa} onChange={set('empresa')}>
           <option value="">{t('common.select')}</option>
           {ofrecibles.map(e => <option key={e.id} value={e.codigo ?? ''}>{e.nombre}</option>)}
         </select>
       </Field>
 
-      <Field label={t('reuniones.campo.tipo')}>
+      <Field icon="🗂" label={t('reuniones.campo.tipo')}>
         <select value={form.tipo} onChange={set('tipo')}>
           <option value="">{t('common.select')}</option>
           {TIPO_REUNION.valores.map(v => <option key={v} value={v}>{TIPO_REUNION.label(v, t)}</option>)}
         </select>
       </Field>
+      </div>
 
-      <Field label={t('reuniones.campo.titulo')} required grande>
-        <input type="text" value={form.titulo} onChange={set('titulo')} />
+      <Field label={t('reuniones.campo.titulo')} required grande crece>
+        <textarea rows={1} autoFocus value={form.titulo}
+          placeholder={t('reuniones.ph.titulo')} onChange={set('titulo')} />
       </Field>
 
-      <Field label={t('reuniones.campo.objetivo')} grande>
-        <textarea rows={3} value={form.objetivo} onChange={set('objetivo')} />
+      <Field icon="🎯" label={t('reuniones.campo.objetivo')} grande>
+        <textarea rows={3} value={form.objetivo}
+          placeholder={t('reuniones.ph.objetivo')} onChange={set('objetivo')} />
       </Field>
     </>
   )

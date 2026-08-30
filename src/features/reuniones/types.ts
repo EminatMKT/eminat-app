@@ -1,6 +1,6 @@
-// Las seis uniones espejan los DOMAIN de Postgres (20260829221511_reuniones_esquema.sql):
-// las dos mitades tienen que listar lo mismo. El objeto META de `constants/` le pone
-// etiqueta y color a cada valor — el canónico NO se renderiza nunca, la etiqueta sale de i18n.
+// Las seis uniones espejan los DOMAIN de Postgres (20260829221511_reuniones_esquema.sql) y
+// tienen que listar lo mismo. El canónico NO se renderiza: la etiqueta sale del META de
+// `constants/`, que le pone su clave de i18n y su color.
 export type ModalidadReunion = 'presencial' | 'virtual' | 'hibrida'
 export type EstadoReunion = 'borrador' | 'en_curso' | 'cerrada'
 export type TipoReunion = 'seguimiento' | 'planificacion' | 'revision_direccion' | 'comite' | 'extraordinaria'
@@ -41,11 +41,9 @@ export type Participante = {
 
 export type ParticipanteNuevo = Omit<Participante, 'id'>
 
-// Lo que llena el formulario: un solo objeto, porque se llena y se envía junto. Derivado de
-// `Reunion` para que agregar una columna no se olvide acá. Los campos de texto son `string`
-// —un <input> vacío da '', no null—. `tipo` y `modalidad` admiten '' porque sus <select>
-// arrancan en el placeholder vacío: `modalidad` tiene DEFAULT en la base, pero un valor que
-// nadie eligió y queda igual es el bug de "New task" del 12/08 (rules/ui.md).
+// Lo que llena el formulario, derivado de `Reunion` para no olvidar una columna. Los de texto
+// son `string` —un <input> vacío da '', no null— y `tipo` y `modalidad` admiten '' porque sus
+// <select> arrancan en el placeholder: un valor que nadie eligió es el bug de "New task".
 export type ReunionForm =
   Pick<Reunion, 'empresa' | 'titulo' | 'fecha'> &
   { tipo: TipoReunion | ''; modalidad: ModalidadReunion | '' } &
