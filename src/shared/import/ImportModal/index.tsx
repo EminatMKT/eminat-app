@@ -335,7 +335,7 @@ export default function ImportModal<P extends ImportPlan = ImportPlan>({
 
 
   return (
-    <Modal width={720} onClose={close}>
+    <Modal anchoRem={45} onClose={close}>
       {/* Encabezado propio y no el de Modal: acá lleva un segundo botón (Importar) además
           de la X, y Modal solo tiene slot para el título. */}
       <div className={s.head}>

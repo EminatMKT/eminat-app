@@ -48,7 +48,7 @@ export default function EditUserModal({ user, onClose }: { user: EditUserDraft; 
   }
 
   return (
-    <Modal title={t('admin.edit.title')} width={480} onClose={onClose}>
+    <Modal title={t('admin.edit.title')} anchoRem={30} onClose={onClose}>
         <ErrorBlock msg={editError} />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
           <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t('common.firstName')}</label><input type="text" value={form.nombre} onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))} style={inputStyle} /></div>

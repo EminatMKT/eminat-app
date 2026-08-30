@@ -40,7 +40,7 @@ export default function RoleModal({ role, onClose }: { role?: RoleRow; onClose: 
   }
 
   return (
-    <Modal title={role ? t('admin.editRole') : t('admin.newRoleTitle')} width={480} onClose={onClose}>
+    <Modal title={role ? t('admin.editRole') : t('admin.newRoleTitle')} anchoRem={30} onClose={onClose}>
       <ErrorBlock msg={error} />
       <div style={{ marginBottom: 18 }}>
         <label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t('admin.roleName')}</label>

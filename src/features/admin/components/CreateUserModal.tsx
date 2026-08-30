@@ -56,7 +56,7 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Modal title={createSuccess ? t('admin.create.successTitle') : t('admin.create.title')} width={520} onClose={onClose}>
+    <Modal title={createSuccess ? t('admin.create.successTitle') : t('admin.create.title')} anchoRem={32.5} onClose={onClose}>
         {createSuccess ? (
           <CredentialsPanel label={t('admin.create.createdOk', { name: createSuccess.nombre })} name={createSuccess.nombre} email={createSuccess.email} pwd={createSuccess.pwd} onClose={onClose} extra={{ cargo: createSuccess.cargo, emailWarning: createSuccess.emailWarning }} />
         ) : (

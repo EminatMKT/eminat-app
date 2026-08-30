@@ -53,7 +53,7 @@ export default function ActivityDetailModal() {
 
   return (
     <Modal
-      width={500}
+      anchoRem={31.25}
       onClose={() => setModalVerAct(null)}
       header={
         <ActivityDetailHeader
