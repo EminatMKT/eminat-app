@@ -33,5 +33,9 @@ nueva. Es a propósito — una excusa sin fecha de vencimiento es deuda invisibl
 | `rules/centinela/evaluar.ts` | `archivo-extenso@2` | 2026-08-25 | dos funciones que son una sola idea |
 | `src/shared/auth/permissions/modulos/index.ts` | `archivo-extenso@2` | 2026-08-29 | es el catálogo de módulos: crece de a una entrada |
 | `src/features/admin/org-catalogs/catalogo.ts` | `archivo-extenso@2` | 2026-08-29 | es el catálogo organizacional: crece de a una entrada |
-| `src/features/reuniones/components/listado/ReunionRow/index.tsx` | `bloques-similares@1` | 2026-08-29 | ninguna fila compartida admite código + fecha + estado |
-| `src/features/reuniones/components/listado/ReunionesListado/index.tsx` | `bloques-similares@1` | 2026-08-29 | la parte reusable YA se reusa: ListToolbar + NewButton |
+| `src/features/reuniones/components/listado/ReunionRow/index.tsx` | `bloques-similares@2` | 2026-08-29 | ninguna fila compartida admite código + fecha + estado |
+| `src/features/reuniones/components/listado/ReunionesListado/index.tsx` | `bloques-similares@2` | 2026-08-29 | la parte reusable YA se reusa: ListToolbar + NewButton |
+| `src/features/reuniones/components/expediente/DatosGenerales/index.tsx` | `bloques-similares@2` | 2026-08-29 | `Field` se reusa; OrgModal es data-driven y este no |
+| `src/features/reuniones/components/expediente/CuandoYDonde/index.tsx` | `bloques-similares@2` | 2026-08-29 | la otra mitad del mismo formulario |
+| `src/features/reuniones/components/expediente/ExpedienteView/index.tsx` | `bloques-similares@2` | 2026-08-29 | es `Modal` + los campos; no agrega markup propio |
+| `src/shared/components/ui/ErrorList/index.tsx` | `bloques-similares@2` | 2026-08-29 | no hay lista de errores compartida; WarningCallout es otra cosa |
