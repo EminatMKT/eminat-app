@@ -11,7 +11,13 @@ const ALLOW = ['Eminat', 'Stratix', 'EMC', 'SVN', 'ERG', 'VNF', 'Launchpad', 'DE
 // Una línea agregada es sospechosa si introduce: (a) un nodo de texto JSX con letras
 // (>Texto<) que no es una interpolación, o (b) un atributo de UI con literal.
 const ATTR = /\b(placeholder|title|aria-label|alt)\s*=\s*"([^"{}]*[A-Za-zÀ-ÿ][^"{}]*)"/
-const JSX_TEXT = />\s*([A-Za-zÀ-ÿ][^<>{}]*?)\s*</
+// Lo que cierra tiene que ser una ETIQUETA (`</`) y no cualquier `<`. Sin eso, un genérico de
+// TypeScript se leía como copy: `onQuitar: (id: string) => Promise<void>` deja un `>Promise<`,
+// y `function Sel<V extends string>(props: Props<V>)` deja un `>(props: Props<`. Un texto de JSX
+// de verdad siempre lo cierra una etiqueta, así que `<button>Guardar</button>` sigue cayendo.
+// (Mismo falso positivo y mismo arreglo que en rules/centinela/detectores/texto-sin-traducir.ts,
+// 29/08/2026: un guard que frena código correcto enseña a usar --no-verify.)
+const JSX_TEXT = />\s*([A-Za-zÀ-ÿ][^<>{}]*?)\s*<\//
 
 function isAllowed(text) {
   const trimmed = text.trim()
