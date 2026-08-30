@@ -6,6 +6,10 @@ import s from './index.module.css'
 // adentro, y absorbe a `ActivityFormHeader` (Stratix), que reimplementaba lo mismo con el título
 // en 20px contra los 18px del Modal. O sea que ya había dos copias divergiendo. Se extrae para
 // que `Modal` entre en su límite y para que el subtítulo exista una sola vez.
+// centinela-exime: boton-a-mano@1 — la ✕ no es una acción de la paleta: es chrome del modal, sin
+// rótulo y sin tono, colocada por el contenedor. No entra en una fila de `BUTTON_META` porque
+// `Button` siempre pinta ícono + rótulo, y acá el rótulo es el `aria-label`. El techo dicho: si
+// aparece una segunda ✕ así, se le agrega a `Button` un tono `icono` y ésta se migra.
 
 // El encabezado por defecto de un modal: su título, su bajada opcional y la ✕.
 type Props = {
