@@ -1,5 +1,14 @@
-import { catalogoMeta } from '@/shared/utils'
-import type { EstadoReunion, ModalidadReunion, TipoReunion } from '../types'
+import { catalogoMeta, localDate } from '@/shared/utils'
+import type { EstadoReunion, ModalidadReunion, ReunionForm, TipoReunion } from '../types'
+
+// El formulario en blanco. Ningún campo arranca con un valor de dominio escrito a mano:
+// `modalidad` decía `'presencial'`, que es el bug de "New task" —un valor que nadie eligió y
+// queda guardado igual—. Es una función y no una constante para que la fecha se calcule al
+// montar y no al importar: en UTC, después de las 20:00 una reunión de hoy nacería mañana.
+export const formVacio = (): ReunionForm => ({
+  empresa: '', titulo: '', tipo: '', lugar: '',
+  modalidad: '', fecha: localDate(), hora_inicio: '', hora_fin: '', objetivo: '',
+})
 
 // Los catálogos de la reunión en sí. Cada uno lista los MISMOS valores que su DOMAIN de
 // Postgres (20260829221511_reuniones_esquema.sql) — son las dos mitades del mismo catálogo.

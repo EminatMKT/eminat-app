@@ -1,34 +1,32 @@
 'use client'
-import { useCallback, useState, type ChangeEvent } from 'react'
+import { useCallback, useEffect, useState, type ChangeEvent } from 'react'
 import type { I18nKey } from '@/shared/i18n'
 import { reunionesRepo } from '@/shared/data'
-import { localDate } from '@/shared/utils'
+import { formVacio } from '@/features/reuniones/constants'
+import { reunionAForm } from '@/features/reuniones/utils/reunionAForm'
 import { validarReunion } from '@/features/reuniones/utils/validarReunion'
 import type { ReunionForm } from '@/features/reuniones/types'
 
-// La fecha sale de `localDate()` —en UTC, después de las 20:00 una reunión de hoy nacería
-// fechada mañana— y ningún otro campo arranca con un valor de dominio escrito a mano:
-// `modalidad` decía `'presencial'`, que es el bug de "New task" (un valor que nadie eligió y
-// queda guardado igual). Todos parten del placeholder y `validarReunion` rechaza lo vacío.
-export const FORM_VACIO: ReunionForm = {
-  empresa: '', titulo: '', tipo: '', lugar: '',
-  modalidad: '', fecha: localDate(), hora_inicio: '', hora_fin: '', objetivo: '',
-}
-
 type Estado = { form: ReunionForm; errores: I18nKey[]; guardando: boolean; fallo: string | null }
-const INICIAL: Estado = { form: FORM_VACIO, errores: [], guardando: false, fallo: null }
+const inicial = (): Estado => ({ form: formVacio(), errores: [], guardando: false, fallo: null })
 
-export function useReunion(creadoPor: string | null) {
-  const [estado, setEstado] = useState<Estado>(INICIAL)
+// Con `reunionId` edita la que ya existe; sin él, crea. Es el MISMO hook porque son los mismos
+// campos y la misma validación: partirlo en dos obligaba a mantenerla dos veces.
+export function useReunion(creadoPor: string | null, reunionId?: string) {
+  const [estado, setEstado] = useState<Estado>(inicial)
   const { form, errores, guardando, fallo } = estado
+
+  useEffect(() => {
+    if (!reunionId) return
+    void reunionesRepo.byId(reunionId).then(({ data, error }) =>
+      setEstado(p => (data ? { ...p, form: reunionAForm(data) } : { ...p, fallo: error?.message ?? null })))
+  }, [reunionId])
 
   const set = useCallback(
     (k: keyof ReunionForm) => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       setEstado(p => ({ ...p, form: { ...p.form, [k]: e.target.value } })),
     [],
   )
-
-  const reiniciar = useCallback(() => setEstado({ ...INICIAL, form: { ...FORM_VACIO, fecha: localDate() } }), [])
 
   // Devuelve si guardó, para que quien llama cierre el modal SÓLO cuando de verdad se guardó.
   const guardar = useCallback(async (): Promise<boolean> => {
@@ -38,11 +36,13 @@ export function useReunion(creadoPor: string | null) {
       return false
     }
     setEstado(p => ({ ...p, errores: [], guardando: true, fallo: null }))
-    const { error } = await reunionesRepo.insert(estado.form, creadoPor)
+    const { error } = reunionId
+      ? await reunionesRepo.updateForm(reunionId, estado.form)
+      : await reunionesRepo.insert(estado.form, creadoPor)
     setEstado(p => ({ ...p, guardando: false, fallo: error?.message ?? null }))
     return !error
-  }, [estado.form, creadoPor])
+  }, [estado.form, creadoPor, reunionId])
 
-  const resultado = { form, errores, guardando, fallo, set, guardar, reiniciar }
+  const resultado = { form, errores, guardando, fallo, set, guardar }
   return resultado
 }
