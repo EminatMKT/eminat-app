@@ -6,8 +6,8 @@
    AA para texto chico. Es el mismo fallo del 25/08 con los chips de estado (1.71:1), y la misma
    razón por la que globals.css tiene `--c-accent-solid` aparte de `--c-accent`.
 
-   Se mezcla al 50% con `--c-t1` —el casi-negro del texto de la app— y no con `#000`: conserva el
-   matiz, así que el chip sigue leyéndose como "el color de esa cosa", y sube el peor caso real
+   Se mezcla al 50% con `--c-t1` —el casi-negro del texto de la app— y no con negro puro:
+   conserva el matiz, así que el chip sigue leyéndose como "el color de esa cosa", y sube el peor caso real
    de 1.84:1 a 5.12:1. Los seis quedan entre 5.12 y 7.60.
 
    Lo que esto NO garantiza: un color de marca casi blanco (el admin los elige desde /admin)

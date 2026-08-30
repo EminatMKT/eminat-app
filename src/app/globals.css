@@ -42,6 +42,19 @@ html, body, * {
      texto e íconos sobre fondo claro; estos, sólo para el relleno. */
   --c-accent-solid: #6355E8;
   --c-danger-solid: #DC2626;
+
+  /* Estos dos PARECEN primitivos y no lo son: son decisiones de tema disfrazadas de blanco y
+     negro, y por eso están acá y no escritos en cada componente.
+
+     --c-sobre-solido: lo que va ENCIMA de un relleno sólido (el texto de un botón primario).
+     Hoy blanco; con un tema oscuro puede no serlo.
+
+     --c-oscurecer: el segundo término de los `color-mix(…, X)` de hover, que hoy significan
+     "oscurecer un 12%". En un tema oscuro eso se invierte —hay que ACLARAR—, así que el día que
+     exista el bloque oscuro este token pasa a #FFFFFF y todos los hovers se dan vuelta solos.
+     Con `#000` escrito a mano habría que buscarlo en 38 archivos. */
+  --c-sobre-solido: #FFFFFF;
+  --c-oscurecer: #000000;
 }
 
 /* El reset y la barra de scroll iban en dos bloques `*` separados; juntos se lee de una qué

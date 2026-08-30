@@ -1,0 +1,40 @@
+.fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.titulo {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--c-t1);
+}
+
+/* La bajada dice QUÉ se hace con este formulario. Chica y en --c-t3 a propósito: acompaña al
+   título, no compite con él. */
+.sub {
+  font-size: .6875rem;
+  color: var(--c-t3);
+  margin-top: .125rem;
+}
+
+.cerrar {
+  background: none;
+  border: none;
+  color: var(--c-t3);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: .75rem;
+}
+
+.cerrar:hover {
+  color: var(--c-t1);
+}
+
+.cerrar:focus-visible {
+  outline: 2px solid var(--c-accent-solid);
+  outline-offset: 2px;
+}

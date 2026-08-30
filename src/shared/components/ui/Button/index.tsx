@@ -23,15 +23,19 @@ type Props = {
    *  —separarlos dejaba habilitar un botón que dice "Guardando…", que es como se guarda dos veces. */
   ocupado?: boolean
   ocupadoLabel?: string
+  /** Deshabilitado por una CONDICIÓN, no por estar trabajando: falta escribir la frase de
+   *  confirmación, falta un campo. Es distinto de `ocupado` — el rótulo no cambia y el cursor no
+   *  dice "esperá", dice "todavía no". */
+  deshabilitado?: boolean
 }
 
-export default function Button({ kind, onClick, label, ocupado = false, ocupadoLabel }: Props) {
+export default function Button({ kind, onClick, label, ocupado = false, ocupadoLabel, deshabilitado = false }: Props) {
   const { t } = useT()
   const { icono, labelKey, tono } = BUTTON_META[kind]
   const rotulo = ocupado ? (ocupadoLabel ?? t('common.loading')) : (label ?? t(labelKey))
 
   return (
-    <button type="button" className={`${s.base} ${s[tono]}`} onClick={onClick} disabled={ocupado}>
+    <button type="button" className={`${s.base} ${s[tono]}`} onClick={onClick} disabled={ocupado || deshabilitado} aria-busy={ocupado}>
       {icono && <span aria-hidden="true">{icono}</span>}
       {rotulo}
     </button>

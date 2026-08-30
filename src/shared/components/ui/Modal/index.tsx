@@ -1,36 +1,47 @@
 'use client'
-import type { CSSProperties, ReactNode } from 'react'
-import s from '@/shared/components/ui/Modal/index.module.css'
+import type { ReactNode } from 'react'
+import ModalHead from '@/shared/components/ui/ModalHead'
+import s from './index.module.css'
 
-// Shell de cualquier modal: el fondo, la caja y —si se le pasa título— su encabezado con la X.
-// El encabezado queda FIJO y solo scrollea el cuerpo: en un modal alto (la ficha de actividad,
-// el formulario de tarea) el título y sus acciones tienen que seguir a la vista.
-// `header` es para el contenido que arma su propio encabezado y necesita esa misma zona fija
-// (la ficha lleva chips arriba del título y los botones de editar/borrar al lado); recibe
-// `onClose` igual, que es el mismo que cierra desde el fondo.
+// centinela-exime: bloques-similares@2 — no hay markup nuevo: el encabezado SALIÓ de acá a
+// `ModalHead` y lo único que se agregó es el pie, que es un <div> con el `footer` adentro.
+// Shell de cualquier modal: el fondo, la caja, su encabezado fijo y —si se le pasa— su pie fijo.
+//
+// El pie es la razón por la que este componente creció: en "Nueva tarea" los botones vivían
+// dentro del cuerpo y quedaban abajo del scroll. Lo que decide si se guarda o se descarta tiene
+// que estar siempre a la vista.
+//
+// `header` queda para el que arma el suyo y necesita esta misma zona fija — la ficha de
+// actividad lleva chips arriba del título y sus acciones al lado.
 type Props = {
   title?: string
+  subtitle?: string
   header?: ReactNode
-  width?: number
+  /** Va en una zona FIJA bajo el cuerpo. Para las acciones del diálogo. */
+  footer?: ReactNode
+  /** Ancho en REM, no en píxeles: un modal fijo en px no crece cuando el usuario agranda la
+   *  letra del navegador, así que el texto se apretuja contra los bordes. El nombre lleva la
+   *  unidad para que nadie le pase 480 pensando en píxeles (rules/componentes.md). */
+  anchoRem?: number
   onClose: () => void
   children: ReactNode
 }
 
-export default function Modal({ title, header, width = 480, onClose, children }: Props) {
+export default function Modal(props: Props) {
+  // Siete props no entran en la firma sin volverla un párrafo: se desestructuran en la primera
+  // línea del cuerpo (rules/codigo.md · "Un parámetro objeto se desestructura").
+  const { title, subtitle, header, footer, anchoRem = 30, onClose, children } = props
+
   return (
     <div className={s.fondo} onClick={onClose}>
-      <div className={s.caja} style={{ '--ancho': `${width}px` } as CSSProperties} onClick={e => e.stopPropagation()}>
+      <div className={s.caja} style={{ '--ancho': `${anchoRem}rem` }} onClick={e => e.stopPropagation()}>
         {(title || header) && (
           <div className={s.head}>
-            {header ?? (
-              <div className={s.headFila}>
-                <div className={s.titulo}>{title}</div>
-                <button type="button" className={s.cerrar} onClick={onClose}>✕</button>
-              </div>
-            )}
+            {header ?? <ModalHead title={title} subtitle={subtitle} onClose={onClose} />}
           </div>
         )}
         <div className={s.cuerpo}>{children}</div>
+        {footer && <div className={s.pie}>{footer}</div>}
       </div>
     </div>
   )
