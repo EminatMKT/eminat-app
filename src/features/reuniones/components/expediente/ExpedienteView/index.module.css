@@ -1,0 +1,28 @@
+/* Dos columnas: los campos de una reunión son cortos —una fecha, una hora, una modalidad— y
+   apilados en una sola obligan a scrollear un formulario que entra en una pantalla. `auto-fit`
+   con un mínimo hace que en un modal angosto o en un teléfono caiga solo a una columna. */
+.grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0 1rem;
+}
+
+.fallo {
+  margin: 0 0 .75rem;
+  font-size: .8125rem;
+  /* --c-danger-solid y no --c-danger: el claro da 2.77:1 sobre blanco (ver globals.css). */
+  color: var(--c-danger-solid);
+}
+
+/* El pie de acciones. Vivió un rato como componente compartido `ModalActions` y se borró: tenía
+   UN consumidor —éste— y seis declaraciones adentro. El candidato a segundo, `ConfirmModal`,
+   estira sus botones (`flex: 1`) en vez de alinearlos a la derecha, o sea que es otro pie.
+   Cuando aparezca un segundo modal con ESTE pie, ahí sube a shared. */
+.pie {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: .5rem;
+  padding-top: .75rem;
+  border-top: 1px solid var(--c-border);
+}

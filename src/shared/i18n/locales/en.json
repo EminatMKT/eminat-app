@@ -892,5 +892,20 @@
   "common.loading": "Loading…",
   "reuniones.nueva": "New meeting",
   "reuniones.vacio": "No meetings yet. Create the first one with “New meeting”.",
-  "reuniones.sinResultados": "No meeting matches your search."
+  "reuniones.sinResultados": "No meeting matches your search.",
+  "reuniones.campo.empresa": "Company",
+  "reuniones.campo.tipo": "Meeting type",
+  "reuniones.campo.titulo": "Title",
+  "reuniones.campo.objetivo": "Purpose",
+  "reuniones.campo.fecha": "Date",
+  "reuniones.campo.modalidad": "Format",
+  "reuniones.campo.horaInicio": "Start time",
+  "reuniones.campo.horaFin": "End time",
+  "reuniones.campo.lugar": "Place or link",
+  "reuniones.error.empresa": "Choose the meeting's company.",
+  "reuniones.error.titulo": "The title is required.",
+  "reuniones.error.fecha": "The date is required.",
+  "reuniones.error.modalidad": "Choose the format.",
+  "reuniones.error.horas": "The end time can't be earlier than the start time.",
+  "common.new": "New"
 }

@@ -43,7 +43,10 @@ export type ParticipanteNuevo = Omit<Participante, 'id'>
 
 // Lo que llena el formulario: un solo objeto, porque se llena y se envía junto. Derivado de
 // `Reunion` para que agregar una columna no se olvide acá. Los campos de texto son `string`
-// —un <input> vacío da '', no null— y `tipo` admite '' por el placeholder del select.
+// —un <input> vacío da '', no null—. `tipo` y `modalidad` admiten '' porque sus <select>
+// arrancan en el placeholder vacío: `modalidad` tiene DEFAULT en la base, pero un valor que
+// nadie eligió y queda igual es el bug de "New task" del 12/08 (rules/ui.md).
 export type ReunionForm =
-  Pick<Reunion, 'empresa' | 'titulo' | 'modalidad' | 'fecha'> & { tipo: TipoReunion | '' } &
+  Pick<Reunion, 'empresa' | 'titulo' | 'fecha'> &
+  { tipo: TipoReunion | ''; modalidad: ModalidadReunion | '' } &
   Record<'lugar' | 'hora_inicio' | 'hora_fin' | 'objetivo', string>

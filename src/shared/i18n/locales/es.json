@@ -892,5 +892,20 @@
   "common.loading": "Cargando…",
   "reuniones.nueva": "Nueva reunión",
   "reuniones.vacio": "Todavía no hay reuniones. Creá la primera con «Nueva reunión».",
-  "reuniones.sinResultados": "Ninguna reunión coincide con la búsqueda."
+  "reuniones.sinResultados": "Ninguna reunión coincide con la búsqueda.",
+  "reuniones.campo.empresa": "Empresa",
+  "reuniones.campo.tipo": "Tipo de reunión",
+  "reuniones.campo.titulo": "Título",
+  "reuniones.campo.objetivo": "Objetivo",
+  "reuniones.campo.fecha": "Fecha",
+  "reuniones.campo.modalidad": "Modalidad",
+  "reuniones.campo.horaInicio": "Hora de inicio",
+  "reuniones.campo.horaFin": "Hora de fin",
+  "reuniones.campo.lugar": "Lugar o enlace",
+  "reuniones.error.empresa": "Elegí la empresa de la reunión.",
+  "reuniones.error.titulo": "El título es obligatorio.",
+  "reuniones.error.fecha": "La fecha es obligatoria.",
+  "reuniones.error.modalidad": "Elegí la modalidad.",
+  "reuniones.error.horas": "La hora de fin no puede ser anterior a la de inicio.",
+  "common.new": "Nuevo"
 }
