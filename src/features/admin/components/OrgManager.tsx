@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { ConfirmModal } from '@/shared/components/ui'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { apiSend } from '@/shared/utils/api'
@@ -22,6 +23,9 @@ export default function OrgManager({ cat, onCatChange }: { cat: OrgCat; onCatCha
   const [busqueda, setBusqueda] = useState('')
   const [modal, setModal] = useState<{ row?: OrgRow } | null>(null)
   const [borrando, setBorrando] = useState<string | null>(null)
+  // Borrar un catálogo no tiene vuelta y hasta hoy ocurría al primer clic: la API sólo frenaba
+  // si la fila estaba EN USO, así que una sin usar se iba sin preguntar (rules/ui.md).
+  const [porBorrar, setPorBorrar] = useState<OrgRow | null>(null)
   const { rows, dependents, describe } = useOrgCatalog(cat)
 
   const q = busqueda.trim().toLowerCase()
@@ -41,6 +45,12 @@ export default function OrgManager({ cat, onCatChange }: { cat: OrgCat; onCatCha
       mostrarMensaje('error', (err instanceof Error ? err.message : '') || t('admin.org.saveNetErr'))
     }
     setBorrando(null)
+  }
+
+  async function confirmarBorrado() {
+    const row = porBorrar
+    setPorBorrar(null)
+    if (row) await borrar(row)
   }
 
   return (
@@ -66,11 +76,21 @@ export default function OrgManager({ cat, onCatChange }: { cat: OrgCat; onCatCha
         {filtradas.length === 0 && <div style={{ fontSize: 12, color: t1, opacity: 0.6 }}>{t('admin.org.empty')}</div>}
         {filtradas.map(row => (
           <OrgCard key={row.id} row={row} detail={describe(row)} deps={dependents(row)}
-            deleting={borrando === row.id} onEdit={() => setModal({ row })} onDelete={() => borrar(row)} />
+            deleting={borrando === row.id} onEdit={() => setModal({ row })} onDelete={() => setPorBorrar(row)} />
         ))}
       </div>
 
       {modal && <OrgModal cat={cat} row={modal.row} onClose={() => setModal(null)} />}
+      {porBorrar && (
+        <ConfirmModal
+          destructive
+          title={t('admin.org.deleteConfirmTitle', { nombre: porBorrar.nombre })}
+          message={t('admin.org.deleteConfirmMsg')}
+          confirmLabel={t('common.delete')}
+          onClose={() => setPorBorrar(null)}
+          onConfirm={confirmarBorrado}
+        />
+      )}
     </div>
   )
 }
