@@ -1,39 +1,13 @@
-import type { I18nKey } from '@/shared/i18n'
-import type { OrgRow, Usuario } from '@/shared/context/loadAppData'
+// centinela-exime: archivo-extenso@2 — es el catálogo organizacional: una entrada por catálogo
+// y nada más. Partirlo dejaría tres catálogos en un archivo y tres en otro, que es exactamente
+// lo que hace ilegible una tabla. Crece de a una entrada, no de a una función — los tipos y los
+// helpers ya salieron a `types.ts` y `utils.ts`.
 
-// Única definición de los tres catálogos organizacionales. La consume tanto la UI
+import type { CatalogDef, OrgCat } from './types'
+
+// Única definición de los seis catálogos organizacionales. La consume tanto la UI
 // (qué campos pinta el form) como la API (whitelist de columnas + qué bloquea el
 // borrado), para que agregar un campo sea un solo cambio.
-
-export type OrgCat = 'empresas' | 'departamentos' | 'equipos' | 'cargos' | 'jornadas' | 'vinculaciones'
-
-export type OrgField = {
-  /** Columna de la fila canónica OrgRow — el form no puede inventar campos. */
-  name: keyof OrgRow
-  type: 'text' | 'number' | 'color' | 'icon' | 'select' | 'checkbox'
-  labelKey: I18nKey
-  /** Aclaración al lado del label, para campos cuyo efecto no es obvio por el
-   *  nombre. Se declara acá y no en el form: el renderer sirve a los 6 catálogos
-   *  y no debe conocer el nombre de ningún campo en particular. */
-  hintKey?: I18nKey
-  required?: boolean
-  /** Fuente de opciones del select (catálogo del contexto). */
-  options?: 'departamentos' | 'usuarios'
-}
-
-export type CatalogDef = {
-  labelKey: I18nKey
-  /** Etiqueta del botón de alta, en singular ("Nueva empresa"). Va por catálogo
-   *  y no compuesta, porque el género cambia con el sustantivo. */
-  newKey: I18nKey
-  fields: OrgField[]
-  /** Dependientes que bloquean el borrado (patrón Roles: bloquear + avisar).
-   *  `matchOn` dice contra qué valor de la fila compara la columna dependiente:
-   *  'id' para las FK por uuid, 'codigo' para las que apuntan a la clave natural
-   *  (actividades.empresa -> empresas.codigo). Default 'id'. */
-  blockedBy: { table: string; column: string; matchOn?: 'id' | 'codigo' }[]
-}
-
 export const ORG_CATALOGS: Record<OrgCat, CatalogDef> = {
   // Empresa es el nivel más macro del organigrama (empresa › departamento ›
   // equipo › cargo). `codigo` es editable acá — a diferencia de los otros
@@ -112,39 +86,3 @@ export const ORG_CATALOGS: Record<OrgCat, CatalogDef> = {
 
 export const ORG_CATS = Object.keys(ORG_CATALOGS) as OrgCat[]
 export const isOrgCat = (s: string): s is OrgCat => s in ORG_CATALOGS
-
-// Todas las tablas tienen `codigo` UNIQUE NOT NULL pero no es dato de negocio:
-// se deriva del nombre (mismo criterio que validateNewRole con los roles) y queda
-// fijo aunque después renombren — la unicidad la garantiza el UNIQUE de la DB.
-export function codigoFrom(nombre: string): string {
-  const base = nombre
-    .normalize('NFD').replace(/[̀-ͯ]/g, '') // diacríticos
-    .toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)
-  return base || 'ITEM'
-}
-
-// Toma del body solo las columnas declaradas por el catálogo (whitelist); '' en un
-// select (opción "sin asignar") se guarda como NULL, no como string vacío.
-// Vive acá y no en el route porque Next solo admite handlers HTTP como exports.
-export function pickFields(cat: OrgCat, body: Partial<OrgRow>): Partial<OrgRow> {
-  const row: Partial<OrgRow> = {}
-  for (const f of ORG_CATALOGS[cat].fields) {
-    const v = body[f.name]
-    if (v === undefined) continue
-    Object.assign(row, { [f.name]: v === '' ? null : v })
-  }
-  return row
-}
-
-export const dupError = (err: { code?: string; message: string }) =>
-  err.code === '23505' ? 'Ya existe una entrada con ese nombre.' : err.message
-
-// Lectores del embed N:N `usuario_cargos`. Toman solo esa parte de la fila
-// canónica (Pick) para servir a cualquier vista que traiga el embed.
-type ConCargos = Pick<Usuario, 'usuario_cargos'>
-
-export const cargoIdsOf = (u: ConCargos): string[] =>
-  (u.usuario_cargos || []).flatMap(uc => (uc.cargo_id ? [uc.cargo_id] : []))
-
-export const cargoNamesOf = (u: ConCargos): string[] =>
-  (u.usuario_cargos || []).flatMap(uc => (uc.cargos?.nombre ? [uc.cargos.nombre] : []))
