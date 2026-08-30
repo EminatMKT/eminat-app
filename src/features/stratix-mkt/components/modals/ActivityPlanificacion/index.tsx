@@ -9,6 +9,9 @@ import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
 import s from './index.module.css'
 
 // centinela-exime: bloques-similares@2 — sale de `NewActivityModal`, que pasaba el techo de 150.
+// centinela-exime: select-con-default@2 — toda tarea del Kanban empieza en "Pendiente", y sería
+// el mismo default aunque las columnas estuvieran en otro orden. Pedir que lo elijan es fricción
+// sin nada a cambio.
 // CUÁNDO y CUÁNTO. La otra mitad —qué tarea es— vive en `ActivityCampos`.
 export default function ActivityPlanificacion() {
   const { t } = useT()

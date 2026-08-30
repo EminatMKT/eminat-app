@@ -8,12 +8,25 @@ opción, y la validación rechaza el vacío.
 <!-- check: contact
      requires: <select
      absent: value=""
+     exime: select-con-default
      files: .tsx
-     version: 1
+     version: 2
      test: falla :: <select>{opciones.map(o => <option>{o}</option>)}</select>
      test: pasa existente :: <select>{opciones.map(o => <option>{o}</option>)}</select>
      test: pasa :: <select><option value="">— Select —</option>{opciones.map(o => <option>{o}</option>)}</select>
+     test: pasa :: // centinela-exime: select-con-default@2 — "Pendiente" es donde empieza toda tarea\n<select>{opciones.map(o => <option>{o}</option>)}</select>
 -->
+
+**La excepción, y hay que saber distinguirla: un default SIGNIFICATIVO.** No es lo mismo la
+primera opción de una lista que un valor que significa algo por sí solo. "Pendiente" es donde
+empieza toda tarea del Kanban y el mes en curso es el mes en curso: quien no toca ese campo
+igual guarda lo correcto, y obligarlo a elegir es fricción sin nada a cambio. Angie, en cambio,
+era la primera de un dropdown de personas — ahí el valor no significaba nada, sólo estaba
+primero.
+
+La prueba: **¿el default sería el mismo si la lista estuviera en otro orden?** Si sí, es un
+default; si cambia con el orden, es un accidente y necesita el placeholder. Se firma con
+`select-con-default@2` y su fila en `rules/EXENCIONES.md`.
 
 **Motivo:** sin placeholder el navegador pinta la primera opción de la lista, pero el estado sigue
 en `''`. Las dos formas de terminar mal ya pasaron en este repo: "New task" asignaba tareas a

@@ -49,6 +49,8 @@ nueva. Es a propósito — una excusa sin fecha de vencimiento es deuda invisibl
 | `src/features/stratix-mkt/components/modals/ActivityPlanificacion/index.tsx` | `bloques-similares@2` | 2026-08-29 | la otra mitad del mismo formulario |
 | `src/features/stratix-mkt/components/modals/SolicitantePicker/index.tsx` | `bloques-similares@2` | 2026-08-29 | el único select que muestra inactivos deshabilitados |
 | `src/features/stratix-mkt/components/modals/ActivityNumeros/index.tsx` | `bloques-similares@2` | 2026-08-29 | los tres campos de esfuerzo, sacados del mismo formulario |
+| `src/features/stratix-mkt/components/modals/ActivityNumeros/index.tsx` | `select-con-default@2` | 2026-08-29 | el mes en curso significa algo; no depende del orden de la lista |
+| `src/features/stratix-mkt/components/modals/ActivityPlanificacion/index.tsx` | `select-con-default@2` | 2026-08-29 | toda tarea del Kanban empieza en Pendiente |
 | `src/features/stratix-mkt/components/modals/ActivityAcciones/index.tsx` | `bloques-similares@2` | 2026-08-29 | son dos `Button`; lo propio es qué rótulo lleva cada estado |
 | `src/features/stratix-mkt/components/modals/ActivityAsignacion/index.tsx` | `bloques-similares@2` | 2026-08-29 | los dos selects obligatorios, con la invariante de la marca vigente |
 | `src/features/stratix-mkt/components/modals/NewActivityModal/index.tsx` | `bloques-similares@2` | 2026-08-29 | quedó como armador: Modal + los campos + el pie, sin markup propio |

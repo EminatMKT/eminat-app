@@ -6,6 +6,9 @@ import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
 import s from './index.module.css'
 
 // centinela-exime: bloques-similares@2 — sale de `NewActivityModal`, que pasaba el techo de 150.
+// centinela-exime: select-con-default@2 — el mes ARRANCA en el que corre, y eso significa algo:
+// sería el mismo aunque la lista estuviera en otro orden. No es la primera opción de un
+// dropdown, que es lo que la regla persigue.
 // Cuánto esfuerzo lleva la tarea y en qué mes cae. Van juntos porque son los tres que alimentan
 // el reporte de pago: el mes agrupa, las horas suman y los días dibujan la barra del Gantt.
 export default function ActivityNumeros() {
