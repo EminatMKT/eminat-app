@@ -2,11 +2,14 @@
 
 ## Un componente es una carpeta, no un archivo
 
-<!-- El check vive en proceso.md · "El que toca un archivo lo deja en la convención vigente":
-     el detector componente_fuera_de_carpeta mira el PATH, así que es el mismo chequeo para la
-     forma y para la migración. Esta sección estuvo marcada `sin check: convención estructural`
-     hasta el 25/08/2026 — la exención era falsa, y mientras duró se editó DepartmentChip.tsx
-     dejándolo suelto. -->
+<!-- sin check: el check de esta regla vive en proceso.md · "El que toca un archivo lo deja en la
+     convención vigente" — el detector componente_fuera_de_carpeta mira el PATH, así que es el
+     mismo chequeo para la forma y para la migración, y duplicarlo acá lo haría fallar dos veces
+     por lo mismo. Esta sección estuvo marcada `sin check: convención estructural` hasta el
+     25/08/2026 — esa exención era falsa, y mientras duró se editó DepartmentChip.tsx dejándolo
+     suelto. El marcador quedó escrito como comentario común hasta el 29/08/2026, así que el
+     motor lo leía como una regla SIN marcador: se descubrió al agregar la regla del `<button>`,
+     porque el archivo entero dejó de poder editarse. -->
 
 De ahora en adelante, un componente nuevo se crea así:
 
@@ -796,6 +799,47 @@ servía para algo, y no servía.
 
 Las dos mitades juntas: **si el contenedor fija su contenido, no compone; si no tiene dos
 consumidores, no hace falta.** Un componente tiene que pasar las dos.
+
+## Un `<button>` escrito a mano es `Button` al que le falta un prop
+
+<!-- check: contact
+     pattern: <button[\s>]
+     files: .tsx
+     except: /shared/components/ui/Button/
+     exime: boton-a-mano
+     version: 1
+     test: falla :: return <button type="button" className={s.b} onClick={guardar}>{rotulo}</button>
+     test: pasa :: return <Button kind="confirm" onClick={guardar} />
+     test: pasa existente :: return <button onClick={guardar}>{rotulo}</button>
+-->
+
+Antes de escribir `<button>` en un `.tsx`, la pregunta es la de `arquitectura.md`: **¿el mío es
+`Button` con un prop más?** Casi siempre sí — `Button` ya trae el ícono, el rótulo por defecto,
+el `ocupado`, el `deshabilitado`, el tono y el anillo de foco, y agregarle una variante es
+agregar **una fila** a `BUTTON_META`, no un componente.
+
+**Cuándo un `<button>` a mano es lo correcto, y hay que decirlo con la marca:** cuando el botón
+no es una ACCIÓN sino una **superficie** — la fila entera de una lista, una pestaña, un ítem del
+rail, un chip que alterna. Ahí es un botón por accesibilidad (entra en el tab order, responde a
+Enter) y no por ser un botón de la paleta: darle el padding, el ícono y el tono de `Button` lo
+rompería. `TabButton`, `RailButton`, `PillToggle` y `FilaLista` son eso.
+
+```ts
+// centinela-exime: boton-a-mano@1 — no es una acción, es la SUPERFICIE: la fila entera es el
+// botón para que abrirla funcione con el teclado. Con el estilo de `Button` sería un botón de
+// barra, no una fila.
+```
+
+Es `contact` y no `block`: hay **82** `.tsx` con `<button>` a mano, y congelarlos costaría más de
+lo que protege. Frena en lo que nace; lo viejo se migra por contacto.
+
+**Motivo:** es la misma historia de los tres `StatCard` y de los cinco botones que se fusionaron
+el 29/08 — cada `<button>` suelto nace como "un botoncito parecido a aquel" y se lleva su propio
+padding, su propio radio y su propio `:focus-visible`, casi iguales pero no iguales. El costo no
+se ve al escribirlo: se ve el día que cambia la paleta o el anillo de foco y hay que encontrar 82
+lugares sabiendo cuáles son acciones y cuáles superficies. Y hay un costo que sólo tiene el
+suelto: `Button` pone `type="button"` él mismo, y un `<button>` sin `type` dentro de un `<form>`
+**envía el formulario** — un bug que no aparece hasta que alguien mete el botón en un formulario.
 
 ## Una familia de variantes es UN componente con unión discriminada, no N componentes
 
