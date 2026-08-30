@@ -54,3 +54,16 @@ nueva. Es a propósito — una excusa sin fecha de vencimiento es deuda invisibl
 | `src/features/stratix-mkt/components/modals/ActivityAcciones/index.tsx` | `bloques-similares@2` | 2026-08-29 | son dos `Button`; lo propio es qué rótulo lleva cada estado |
 | `src/features/stratix-mkt/components/modals/ActivityAsignacion/index.tsx` | `bloques-similares@2` | 2026-08-29 | los dos selects obligatorios, con la invariante de la marca vigente |
 | `src/features/stratix-mkt/components/modals/NewActivityModal/index.tsx` | `bloques-similares@2` | 2026-08-29 | quedó como armador: Modal + los campos + el pie, sin markup propio |
+| `rules/centinela/modos.ts` | `archivo-extenso@2` | 2026-08-29 | un protocolo de CLI por función; partirlos deja main.ts importando cuatro módulos de una función |
+| `src/shared/components/ui/FilaLista/index.tsx` | `bloques-similares@2` | 2026-08-29 | ES la unificación: sale de ReunionRow y ParticipanteRow, que repetían caja y barra |
+| `src/shared/components/ui/FilaLista/index.tsx` | `boton-a-mano@1` | 2026-08-29 | la fila entera ES el botón: superficie, no acción |
+| `src/shared/components/ui/ModalHead/index.tsx` | `boton-a-mano@1` | 2026-08-29 | la ✕ es chrome del modal, sin rótulo ni tono: no entra en una fila de BUTTON_META |
+| `src/features/reuniones/types.ts` | `archivo-extenso@2` | 2026-08-29 | es el archivo de tipos del módulo: crece de a una forma y se lee junto |
+| `src/shared/components/ui/CatalogoSelect/index.tsx` | `bloques-similares@2` | 2026-08-29 | el único select compartido es SelectFilter, que deriva sus opciones de los datos |
+| `src/shared/components/ui/CatalogoSelect/index.tsx` | `select-con-default@2` | 2026-08-29 | edita un valor NOT NULL con DEFAULT: nunca llega vacío |
+| `src/features/reuniones/components/expediente/ExpedienteAcciones/index.tsx` | `bloques-similares@2` | 2026-08-29 | dos `Button` en el pie del Modal; ActivityAcciones trae el dominio de Stratix adentro |
+| `src/features/reuniones/components/participantes/ParticipanteRow/index.tsx` | `bloques-similares@2` | 2026-08-29 | ReunionRow es un botón que abre; ésta es una fila que ESCRIBE |
+| `src/features/reuniones/components/participantes/InternoPicker/index.tsx` | `bloques-similares@2` | 2026-08-29 | es un `<select>` + `Button`; lo propio es a quién ofrece |
+| `src/features/reuniones/components/participantes/InvitadoExternoForm/index.tsx` | `bloques-similares@2` | 2026-08-29 | tres `Field` en línea; el alta de quien no está en el directorio |
+| `src/features/reuniones/components/participantes/ParticipantesLista/index.tsx` | `bloques-similares@2` | 2026-08-29 | son `ParticipanteRow` + `ConfirmModal`; el markup propio es el `<ul>` |
+| `src/features/reuniones/components/participantes/ParticipantesPanel/index.tsx` | `bloques-similares@2` | 2026-08-29 | arma la lista y los dos altas; sin markup propio salvo el encabezado de sección |
