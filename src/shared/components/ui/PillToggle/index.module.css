@@ -13,7 +13,7 @@
 .pill.on {
   border-color: var(--c-accent);
   background: var(--c-accent);
-  color: #fff;
+  color: var(--c-sobre-solido);
 }
 
 /* Con `color` propio —el del estado que filtra— la píldora se tiñe en vez de llenarse:

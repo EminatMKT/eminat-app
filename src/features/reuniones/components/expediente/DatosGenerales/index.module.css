@@ -1,0 +1,7 @@
+/* Los dos campos cortos, de a pares. El título y el objetivo quedan afuera a propósito: al
+   ancho completo, porque son los dos donde se escribe una frase. */
+.dos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 1rem;
+}

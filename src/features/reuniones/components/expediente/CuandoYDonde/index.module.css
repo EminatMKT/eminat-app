@@ -1,0 +1,7 @@
+/* Los campos cortos van de a pares; el lugar queda al ancho completo, que es donde entra una
+   URL de videollamada sin cortarse. */
+.dos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 1rem;
+}

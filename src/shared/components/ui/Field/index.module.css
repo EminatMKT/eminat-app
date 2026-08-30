@@ -4,7 +4,7 @@
 
 .label {
   display: block;
-  font-size: 12px;
+  font-size: .75rem;
   font-weight: 500;
   color: var(--c-t2);
   margin-bottom: 6px;
@@ -21,19 +21,19 @@
 .campo select,
 .campo textarea {
   width: 100%;
-  padding: 9px 12px;
-  border-radius: 10px;
+  padding: .5625rem .75rem;
+  border-radius: .625rem;
   border: 1px solid #d1d5db;
   background: var(--c-s1);
   color: var(--c-t1);
-  font-size: 13px;
+  font-size: .8125rem;
   font-family: inherit;
   outline: none;
 }
 
 .campo textarea {
   resize: vertical;
-  min-height: 80px;
+  min-height: 5rem;
 }
 
 .campo input:focus,
@@ -44,6 +44,20 @@
 
 /* Variante destacada: el título de la tarea, que es el campo que se escribe primero. */
 .campo.grande input {
-  font-size: 14px;
-  padding: 11px 14px;
+  font-size: .875rem;
+  padding: .6875rem .875rem;
+}
+
+/* Variante que CRECE con lo que se escribe. Un <input> largo esconde el principio —scrollea y
+   deja ver el final—, y un título o una URL de videollamada son justo eso: texto que hay que
+   poder leer entero mientras se escribe. Se usa con un <textarea rows={1}>, que envuelve.
+
+   `field-sizing: content` hace crecer la caja sola, sin una línea de JS. Donde el navegador no
+   lo soporte, el textarea se queda en su alto mínimo y se comporta como hoy: se degrada a lo
+   que ya había, no a algo roto. */
+.campo.crece textarea {
+  min-height: 2.5rem;
+  field-sizing: content;
+  resize: none;
+  overflow: hidden;
 }

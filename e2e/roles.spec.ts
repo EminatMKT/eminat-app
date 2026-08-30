@@ -91,7 +91,11 @@ test('A2 · crear rol "Soporte" con solo Directorio (modal)', async ({ page }) =
   await loginAs(page, FREDDY)
   await openAdmin(page)
   await page.locator('main').getByRole('button', { name: 'Roles', exact: true }).click()
-  await page.getByRole('button', { name: '+ Nuevo rol' }).click()
+  // Sin el "+": el ícono lo pone `Button` en un <span aria-hidden>, así que NO forma parte del
+  // nombre accesible. Buscarlo por "+ Nuevo rol" era buscar lo que se VE, y este locator busca
+  // por rol y nombre, que es lo que anuncia un lector de pantalla. Antes coincidían porque el
+  // símbolo vivía dentro de la clave de i18n — que es justamente lo que se corrigió.
+  await page.getByRole('button', { name: 'Nuevo rol', exact: true }).click()
   await page.getByPlaceholder('Ej. Soporte').fill('Soporte')
   await page.getByRole('button', { name: 'Directorio', exact: true }).click()
   await page.getByRole('button', { name: 'Crear rol' }).click()

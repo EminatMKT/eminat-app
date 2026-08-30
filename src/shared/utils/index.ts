@@ -9,7 +9,7 @@
 // `@/shared/utils`, que es lo que evita el ciclo — verificarlo antes de sumar uno nuevo.
 // Ver `rules/codigo.md`.
 
-export { localDate, localMonth } from './dates'
+export { localDate, localMonth, fechaCorta, horaCorta } from './dates'
 export { resolveToCanonical } from './canonical'
 export { detectSeparator, parseDelimited } from './delimited'
 export { applyFilters, distinctValues, distinctTokens } from './filters'
@@ -17,3 +17,5 @@ export type { FilterDef, FilterValues } from './filters'
 export { escapeHtml } from './html'
 export { apiSend, apiPost } from './api'
 export { esDelCatalogo, soloDelCatalogo } from './catalogo'
+export { catalogoMeta } from './catalogo-meta'
+export type { MetaValor } from './catalogo-meta'

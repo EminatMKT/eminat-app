@@ -7,7 +7,10 @@ export function checkInlineEnum(texto: string): boolean {
   for (const linea of texto.split("\n")) {
     const l = linea.trim()
     const esDeUnDomain = l.includes("CREATE DOMAIN") || prev.includes("CREATE DOMAIN")
-    if (!esDeUnDomain && /CHECK\s*\(/.test(l) && /\bIN\s*\(/.test(l)) return true
+    // `IN ('…` con comilla: lo que la regla persigue es una LISTA DE VALORES. Sin la comilla
+    // frenaba el `WITH CHECK (responsable_id IN (SELECT …))` de una policy de RLS, que es un
+    // idioma corriente y no tiene nada que ver con un enum de columna.
+    if (!esDeUnDomain && /CHECK\s*\(/.test(l) && /\bIN\s*\(\s*'/.test(l)) return true
     prev = l
   }
   return false

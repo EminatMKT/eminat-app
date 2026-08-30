@@ -1,58 +1,49 @@
 'use client'
-import { useState, type ReactNode } from 'react'
-import { useApp } from '@/shared/context/AppContext'
+import { useState } from 'react'
 import { useT } from '@/shared/i18n'
 import Modal from '@/shared/components/ui/Modal'
+import Button from '@/shared/components/ui/Button'
+import Field from '@/shared/components/ui/Field'
+import type { Props } from './types'
+import s from './index.module.css'
 
-// Confirmación reutilizable: título + mensaje + acción, con variante destructiva y un
-// modo opcional type-to-confirm (escribir un valor exacto para habilitar el botón).
-// Cada acción solo CONFIGURA este modal; no se crean modales por acción.
-type Props = {
-  title: string
-  message: ReactNode
-  confirmLabel: string
-  onConfirm: () => Promise<void> | void
-  onClose: () => void
-  destructive?: boolean
-  confirmPhrase?: string       // si se pasa, el botón se habilita solo al tipearlo exacto
-  confirmPhraseLabel?: string  // etiqueta del input de type-to-confirm
-}
-
-export default function ConfirmModal({ title, message, confirmLabel, onConfirm, onClose, destructive, confirmPhrase, confirmPhraseLabel }: Props) {
-  const { border, t2, t3, accent, inputStyle } = useApp()
+// centinela-exime: bloques-similares@2 — no hay markup nuevo: los botones son `Button` y el pie
+// es el `footer` de `Modal`. Antes se dibujaban acá con `style` inline y la paleta a mano.
+// centinela-exime: useState@1 — lo que se tipea y lo que "está corriendo" no viajan juntos: uno
+// cambia con el teclado y el otro con la red.
+export default function ConfirmModal(props: Props) {
+  // Ocho props no entran en la firma sin volverla un párrafo (rules/codigo.md).
+  const { title, message, confirmLabel, onConfirm, onClose, destructive, confirmPhrase, confirmPhraseLabel } = props
   const { t } = useT()
   const [typed, setTyped] = useState('')
   const [busy, setBusy] = useState(false)
-  const phraseOk = !confirmPhrase || typed.trim().toLowerCase() === confirmPhrase.trim().toLowerCase()
-  const ready = phraseOk && !busy
-  const color = destructive ? '#F87171' : accent
+  const listo = !confirmPhrase || typed.trim().toLowerCase() === confirmPhrase.trim().toLowerCase()
 
-  async function run() {
-    if (!ready) return
+  async function ejecutar() {
+    if (!listo || busy) return
     setBusy(true)
     try { await onConfirm() } finally { setBusy(false) }
   }
 
+  // `deshabilitado`, no `ocupado`, sin la frase: el rótulo sigue diciendo qué va a pasar.
+  const acciones = (
+    <>
+      <Button kind="cancel" onClick={onClose} />
+      <Button kind={destructive ? 'delete' : 'confirm'} label={confirmLabel}
+        onClick={ejecutar} ocupado={busy} deshabilitado={!listo} />
+    </>
+  )
+
   return (
-    <Modal title={title} width={440} onClose={onClose}>
-      <div style={{ fontSize: 13, color: t2, marginBottom: confirmPhrase ? 14 : 20, lineHeight: 1.5 }}>{message}</div>
+    <Modal title={title} anchoRem={27.5} onClose={onClose} footer={acciones}>
+      <div className={s.mensaje}>{message}</div>
       {confirmPhrase && (
-        <div style={{ marginBottom: 18 }}>
-          {confirmPhraseLabel && <label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{confirmPhraseLabel}</label>}
-          <input
-            value={typed}
+        <Field label={confirmPhraseLabel ?? t('common.confirmPhrase', { frase: confirmPhrase })}>
+          <input value={typed} autoFocus placeholder={confirmPhrase} className={s.frase}
             onChange={e => setTyped(e.target.value)}
-            autoFocus
-            placeholder={confirmPhrase}
-            style={{ ...inputStyle, fontFamily: 'DM Mono, monospace' }}
-            onKeyDown={e => { if (e.key === 'Enter') run() }}
-          />
-        </div>
+            onKeyDown={e => e.key === 'Enter' && void ejecutar()} />
+        </Field>
       )}
-      <div style={{ display: 'flex', gap: 10 }}>
-        <button onClick={onClose} disabled={busy} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>{t('common.cancel')}</button>
-        <button onClick={run} disabled={!ready} style={{ flex: 1.4, padding: '10px', borderRadius: 10, border: 'none', background: ready ? color : '#9CA3AF', color: 'white', fontSize: 13, fontWeight: 600, cursor: ready ? 'pointer' : 'not-allowed' }}>{busy ? '...' : confirmLabel}</button>
-      </div>
     </Modal>
   )
 }

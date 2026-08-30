@@ -1,0 +1,88 @@
+/* La FORMA, una sola vez. Antes vivía copiada en cinco `.module.css` —uno por botón— con el
+   mismo padding, radio, tipografía y anillo de foco en cada uno. */
+.base {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+  padding: .4375rem 1rem;
+  border-radius: .625rem;
+  border: none;
+  font-size: .75rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .12);
+  transition: background .15s ease, box-shadow .15s ease, transform .15s ease, color .15s ease;
+}
+
+.base:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .12);
+}
+
+/* Deshabilitado a secas: la condición todavía no se cumple. */
+.base:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Trabajando: `progress` y no `not-allowed`, porque el botón no está prohibido — está ocupado.
+   Se distingue por el atributo, así el CSS no necesita una clase más. */
+.base[aria-busy='true']:disabled {
+  cursor: progress;
+}
+
+/* Los tres tonos usan las variantes SÓLIDAS de los tokens: el accent y el danger claros dan
+   3.84:1 y 2.77:1 con texto blanco encima, contra el 4.5:1 que pide WCAG AA (ver globals.css). */
+.primario {
+  background: var(--c-accent-solid);
+  color: var(--c-sobre-solido);
+}
+
+.primario:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--c-accent-solid) 88%, var(--c-oscurecer));
+  box-shadow: 0 3px 8px rgba(99, 85, 232, .28);
+  transform: translateY(-1px);
+}
+
+.primario:focus-visible {
+  outline: 2px solid var(--c-accent-solid);
+  outline-offset: 2px;
+}
+
+/* Contorno y no relleno: la jerarquía entre cancelar y confirmar tiene que verse sin leer. Si
+   las dos van rellenas, el usuario elige por posición y no por peso. */
+.secundario {
+  border: 1px solid var(--c-border);
+  background: var(--c-s1);
+  color: var(--c-t2);
+  box-shadow: none;
+}
+
+.secundario:hover:not(:disabled) {
+  background: var(--c-s3);
+  color: var(--c-t1);
+}
+
+.secundario:focus-visible {
+  outline: 2px solid var(--c-accent-solid);
+  outline-offset: 2px;
+}
+
+/* El rojo NO es decorativo: es la única señal previa de que la acción es destructiva. */
+.peligro {
+  background: var(--c-danger-solid);
+  color: var(--c-sobre-solido);
+}
+
+.peligro:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--c-danger-solid) 88%, var(--c-oscurecer));
+  box-shadow: 0 3px 8px rgba(220, 38, 38, .3);
+  transform: translateY(-1px);
+}
+
+.peligro:focus-visible {
+  outline: 2px solid var(--c-danger-solid);
+  outline-offset: 2px;
+}

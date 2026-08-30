@@ -31,3 +31,39 @@ nueva. Es a propósito — una excusa sin fecha de vencimiento es deuda invisibl
 | `src/features/stratix-mkt/utils/act-detail-fields/index.test.ts` | `archivo-extenso@2` | 2026-08-25 | son casos de prueba, no lógica |
 | `rules/centinela/reglas.ts` | `archivo-extenso@2` | 2026-08-25 | ya salieron los tipos y el parser |
 | `rules/centinela/evaluar.ts` | `archivo-extenso@2` | 2026-08-25 | dos funciones que son una sola idea |
+| `src/shared/auth/permissions/modulos/index.ts` | `archivo-extenso@2` | 2026-08-29 | es el catálogo de módulos: crece de a una entrada |
+| `src/features/admin/org-catalogs/catalogo.ts` | `archivo-extenso@2` | 2026-08-29 | es el catálogo organizacional: crece de a una entrada |
+| `src/features/reuniones/components/listado/ReunionRow/index.tsx` | `bloques-similares@2` | 2026-08-29 | ninguna fila compartida admite código + fecha + estado |
+| `src/features/reuniones/components/listado/EstadoListado/index.tsx` | `bloques-similares@2` | 2026-08-29 | no hay un estado-de-lista compartido; ErrorList es de formularios |
+| `src/features/reuniones/components/listado/ReunionesListado/index.tsx` | `bloques-similares@2` | 2026-08-29 | la parte reusable YA se reusa: ListToolbar + NewButton |
+| `src/features/reuniones/components/listado/ReunionesListado/index.tsx` | `useState@1` | 2026-08-29 | buscar y abrir el expediente no viajan juntos |
+| `src/shared/components/ui/ConfirmModal/index.tsx` | `useState@1` | 2026-08-29 | lo que se tipea y el "está corriendo" no viajan juntos |
+| `src/features/reuniones/components/expediente/DatosGenerales/index.tsx` | `bloques-similares@2` | 2026-08-29 | `Field` se reusa; OrgModal es data-driven y este no |
+| `src/features/reuniones/components/expediente/CuandoYDonde/index.tsx` | `bloques-similares@2` | 2026-08-29 | la otra mitad del mismo formulario |
+| `src/features/reuniones/components/expediente/ExpedienteView/index.tsx` | `bloques-similares@2` | 2026-08-29 | es `Modal` + los campos; no agrega markup propio |
+| `src/shared/components/ui/ErrorList/index.tsx` | `bloques-similares@2` | 2026-08-29 | no hay lista de errores compartida; WarningCallout es otra cosa |
+| `src/shared/components/ui/ModalHead/index.tsx` | `bloques-similares@2` | 2026-08-29 | ES la unificación: sale de Modal y absorbe a ActivityFormHeader |
+| `src/shared/components/ui/Modal/index.tsx` | `bloques-similares@2` | 2026-08-29 | el encabezado salió a ModalHead; sólo se agregó el pie |
+| `src/shared/components/ui/ConfirmModal/index.tsx` | `bloques-similares@2` | 2026-08-29 | dejó de dibujar sus botones: usa Button y el footer de Modal |
+| `src/features/stratix-mkt/components/modals/ActivityCampos/index.tsx` | `bloques-similares@2` | 2026-08-29 | es la mitad de NewActivityModal, que pasaba el techo de 150 |
+| `src/features/stratix-mkt/components/modals/ActivityPlanificacion/index.tsx` | `bloques-similares@2` | 2026-08-29 | la otra mitad del mismo formulario |
+| `src/features/stratix-mkt/components/modals/SolicitantePicker/index.tsx` | `bloques-similares@2` | 2026-08-29 | el único select que muestra inactivos deshabilitados |
+| `src/features/stratix-mkt/components/modals/ActivityNumeros/index.tsx` | `bloques-similares@2` | 2026-08-29 | los tres campos de esfuerzo, sacados del mismo formulario |
+| `src/features/stratix-mkt/components/modals/ActivityNumeros/index.tsx` | `select-con-default@2` | 2026-08-29 | el mes en curso significa algo; no depende del orden de la lista |
+| `src/features/stratix-mkt/components/modals/ActivityPlanificacion/index.tsx` | `select-con-default@2` | 2026-08-29 | toda tarea del Kanban empieza en Pendiente |
+| `src/features/stratix-mkt/components/modals/ActivityAcciones/index.tsx` | `bloques-similares@2` | 2026-08-29 | son dos `Button`; lo propio es qué rótulo lleva cada estado |
+| `src/features/stratix-mkt/components/modals/ActivityAsignacion/index.tsx` | `bloques-similares@2` | 2026-08-29 | los dos selects obligatorios, con la invariante de la marca vigente |
+| `src/features/stratix-mkt/components/modals/NewActivityModal/index.tsx` | `bloques-similares@2` | 2026-08-29 | quedó como armador: Modal + los campos + el pie, sin markup propio |
+| `rules/centinela/modos.ts` | `archivo-extenso@2` | 2026-08-29 | un protocolo de CLI por función; partirlos deja main.ts importando cuatro módulos de una función |
+| `src/shared/components/ui/FilaLista/index.tsx` | `bloques-similares@2` | 2026-08-29 | ES la unificación: sale de ReunionRow y ParticipanteRow, que repetían caja y barra |
+| `src/shared/components/ui/FilaLista/index.tsx` | `boton-a-mano@1` | 2026-08-29 | la fila entera ES el botón: superficie, no acción |
+| `src/shared/components/ui/ModalHead/index.tsx` | `boton-a-mano@1` | 2026-08-29 | la ✕ es chrome del modal, sin rótulo ni tono: no entra en una fila de BUTTON_META |
+| `src/features/reuniones/types.ts` | `archivo-extenso@2` | 2026-08-29 | es el archivo de tipos del módulo: crece de a una forma y se lee junto |
+| `src/shared/components/ui/CatalogoSelect/index.tsx` | `bloques-similares@2` | 2026-08-29 | el único select compartido es SelectFilter, que deriva sus opciones de los datos |
+| `src/shared/components/ui/CatalogoSelect/index.tsx` | `select-con-default@2` | 2026-08-29 | edita un valor NOT NULL con DEFAULT: nunca llega vacío |
+| `src/features/reuniones/components/expediente/ExpedienteAcciones/index.tsx` | `bloques-similares@2` | 2026-08-29 | dos `Button` en el pie del Modal; ActivityAcciones trae el dominio de Stratix adentro |
+| `src/features/reuniones/components/participantes/ParticipanteRow/index.tsx` | `bloques-similares@2` | 2026-08-29 | ReunionRow es un botón que abre; ésta es una fila que ESCRIBE |
+| `src/features/reuniones/components/participantes/InternoPicker/index.tsx` | `bloques-similares@2` | 2026-08-29 | es un `<select>` + `Button`; lo propio es a quién ofrece |
+| `src/features/reuniones/components/participantes/InvitadoExternoForm/index.tsx` | `bloques-similares@2` | 2026-08-29 | tres `Field` en línea; el alta de quien no está en el directorio |
+| `src/features/reuniones/components/participantes/ParticipantesLista/index.tsx` | `bloques-similares@2` | 2026-08-29 | son `ParticipanteRow` + `ConfirmModal`; el markup propio es el `<ul>` |
+| `src/features/reuniones/components/participantes/ParticipantesPanel/index.tsx` | `bloques-similares@2` | 2026-08-29 | arma la lista y los dos altas; sin markup propio salvo el encabezado de sección |

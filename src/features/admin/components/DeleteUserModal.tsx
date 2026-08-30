@@ -121,7 +121,7 @@ export default function DeleteUserModal({ userId, onClose }: { userId: string; o
     // tiene sentido pedir heredero — limpiar y borrar directo.
     if (reassignState.taskCount === 0) {
       return (
-        <Modal title={t('admin.del.hardDelete')} width={460} onClose={onClose}>
+        <Modal title={t('admin.del.hardDelete')} anchoRem={28.75} onClose={onClose}>
           <div style={{ marginBottom: 16, padding: '12px 14px', borderRadius: 10, background: 'rgba(248,113,113,.08)', border: '1px solid rgba(248,113,113,.30)' }}>
             <div style={{ fontSize: 13, color: t1, fontWeight: 600 }}>{target.nombre} {target.apellido}</div>
             <div style={{ fontSize: 12, color: t2, marginTop: 6, lineHeight: 1.5 }}>{t('admin.del.zeroTasksCleanup')}</div>
@@ -140,7 +140,7 @@ export default function DeleteUserModal({ userId, onClose }: { userId: string; o
     const heirReady = !!selectedHeir
     const n = reassignState.taskCount
     return (
-      <Modal title={t('admin.del.reassignTitle')} width={520} onClose={onClose}>
+      <Modal title={t('admin.del.reassignTitle')} anchoRem={32.5} onClose={onClose}>
           <div style={{ marginBottom: 14, padding: '12px 14px', borderRadius: 10, background: 'rgba(251,176,64,.08)', border: '1px solid rgba(251,176,64,.35)' }}>
             <div style={{ fontSize: 13, color: t1, fontWeight: 600 }}>{target.nombre} {target.apellido}</div>
             <div style={{ fontSize: 11, color: t2, marginTop: 4 }}>
@@ -187,7 +187,7 @@ export default function DeleteUserModal({ userId, onClose }: { userId: string; o
   // ── FASE 1: Cancel / Deactivate (más seguro) / Hard delete
   return (
     <>
-    <Modal width={440} onClose={onClose}>
+    <Modal anchoRem={27.5} onClose={onClose}>
         <div style={{ fontSize: 36, marginBottom: 12, textAlign: 'center' }}>⚠️</div>
         <div style={{ fontFamily: 'Syne', fontSize: 18, fontWeight: 700, color: t1, marginBottom: 8, textAlign: 'center' }}>{t('admin.del.title')}</div>
         <div style={{ fontSize: 13, color: t2, marginBottom: 14, lineHeight: 1.5, textAlign: 'center' }}>

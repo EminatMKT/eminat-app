@@ -1,0 +1,7 @@
+/* La lista no lleva viñetas ni sangría: las filas son tarjetas, el <ul> está por semántica —un
+   listado de reuniones ES una lista, y así un lector de pantalla anuncia cuántas hay. */
+.lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}

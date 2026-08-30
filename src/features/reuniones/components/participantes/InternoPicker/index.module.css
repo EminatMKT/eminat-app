@@ -1,0 +1,18 @@
+/* Un renglón: el desplegable ocupa lo que sobra y el botón queda pegado a él, así el gesto
+   —elegir y agregar— no cruza la pantalla. */
+.linea {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.select {
+  flex: 1;
+  min-width: 0;
+  font-size: .8125rem;
+  padding: .375rem .5rem;
+  border: 1px solid var(--c-border);
+  border-radius: .5rem;
+  background: var(--c-s1);
+  color: var(--c-t1);
+}

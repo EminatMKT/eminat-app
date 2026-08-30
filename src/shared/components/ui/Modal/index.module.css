@@ -1,7 +1,7 @@
 .fondo {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, .75);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -9,12 +9,12 @@
 }
 
 /* --ancho: el modal lo elige según su contenido; el resto es igual para todos.
-   El padding vive en .head y .cuerpo, no acá: el scroll es del cuerpo solo, así que la caja
-   no puede tener ni padding propio ni overflow. */
+   El padding vive en .head, .cuerpo y .pie, no acá: el scroll es del cuerpo solo, así que la
+   caja no puede tener ni padding propio ni overflow. */
 .caja {
   background: var(--c-s1);
   border: 1px solid var(--c-border);
-  border-radius: 18px;
+  border-radius: 1.125rem;
   width: var(--ancho);
   max-width: 95vw;
   max-height: 90vh;
@@ -23,42 +23,35 @@
   overflow: hidden;
 }
 
-/* Fija: no entra en el área scrolleable. El borde es lo que la separa del contenido que
-   pasa por debajo al scrollear. */
+/* Fija: no entra en el área scrolleable. El borde es lo que la separa del contenido que pasa
+   por debajo al scrollear. */
 .head {
   flex-shrink: 0;
-  padding: 24px 28px 16px;
+  padding: 1.5rem 1.75rem 1rem;
   border-bottom: 1px solid var(--c-border);
-}
-
-.headFila {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
 .cuerpo {
   overflow-y: auto;
-  padding: 28px;
+  padding: 1.75rem;
 }
 
 .head + .cuerpo {
-  padding-top: 20px;
+  padding-top: 1.25rem;
 }
 
-.titulo {
-  font-family: 'Syne', sans-serif;
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--c-t1);
-}
+/* Fijo, como el encabezado: los botones de un formulario largo no pueden quedar abajo del
+   scroll. El borde lo separa del contenido que pasa por debajo.
 
-.cerrar {
-  background: none;
-  border: none;
-  color: var(--c-t3);
-  font-size: 20px;
-  cursor: pointer;
+   La ALINEACIÓN vive acá y no en cada consumidor: los tres que lo usan —el expediente de
+   Reuniones, ConfirmModal y el formulario de tarea— repetían las mismas tres declaraciones en
+   su propio `.pie`. Así el consumidor pasa los botones y nada más. */
+.pie {
   flex-shrink: 0;
-  margin-left: 12px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: .5rem;
+  padding: 1rem 1.75rem 1.25rem;
+  border-top: 1px solid var(--c-border);
 }

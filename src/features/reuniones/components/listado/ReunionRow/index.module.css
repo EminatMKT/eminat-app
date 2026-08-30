@@ -1,0 +1,39 @@
+/* La caja, la barra de color y el foco viven en `FilaLista` (src/shared/components/ui): acá
+   queda sólo el contenido, que es lo propio de una reunión. */
+.centro {
+  display: flex;
+  flex-direction: column;
+  gap: .1875rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.titulo {
+  font-size: .875rem;
+  font-weight: 600;
+  color: var(--c-t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .5rem;
+  font-size: .75rem;
+  color: var(--c-t2);
+}
+
+/* El código es un identificador, no prosa: en monoespaciada se compara de un vistazo entre
+   filas, que es para lo que sirve. */
+.codigo {
+  font-family: var(--font-dm-mono), 'DM Mono', ui-monospace, monospace;
+  font-size: .6875rem;
+  letter-spacing: .01em;
+  padding: .0625rem .375rem;
+  border-radius: .25rem;
+  background: var(--c-s3);
+  color: var(--c-t2);
+}

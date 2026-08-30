@@ -1,0 +1,6 @@
+.fallo {
+  margin: 0 0 .75rem;
+  font-size: .8125rem;
+  /* --c-danger-solid y no --c-danger: el claro da 2.77:1 sobre blanco (ver globals.css). */
+  color: var(--c-danger-solid);
+}

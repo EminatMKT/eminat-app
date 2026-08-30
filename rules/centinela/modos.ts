@@ -1,6 +1,10 @@
+// centinela-exime: archivo-extenso@2 — son los protocolos de CADA CLI, uno por función y de
+// quince líneas: partirlos deja el despacho de main.ts importando cuatro módulos de una función
+// cada uno, que se lee peor. Lo que sí salió a su archivo es el parseo del heredoc.
 // Los protocolos de cada CLI: cómo entra el trabajo y cómo se responde. El despacho entre
 // modos vive en main.ts; acá está qué hace cada uno.
 import { revisar, CANAL_BASH } from "./evaluar.ts"
+import { archivosEscritos } from "./heredoc.ts"
 import { contexto } from "./contexto.ts"
 import { checklist } from "./mensajes.ts"
 import { sugerencia } from "./sugerencias.ts"
@@ -25,6 +29,16 @@ export async function modoHook(): Promise<number> {
     if (prohibidos.length) {
       console.error(checklist("el comando", prohibidos))
       return 2
+    }
+    // Un heredoc escribe un archivo del repo sin pasar por Write/Edit, así que hasta hoy se
+    // saltaba TODAS las reglas de archivo: así entró un `return` con nueve campos que el check
+    // ya tenía escrito. Se le corren las mismas reglas, con su ruta y su contenido.
+    for (const { path: destino, texto } of archivosEscritos(cmd)) {
+      const fallan = revisar(destino, texto)
+      if (fallan.length) {
+        console.error(checklist(destino, fallan))
+        return 2
+      }
     }
     const ctx = contexto(cmd)
     if (ctx)

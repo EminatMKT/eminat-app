@@ -1,0 +1,18 @@
+.mensaje {
+  font-size: .8125rem;
+  color: var(--c-t2);
+  line-height: 1.5;
+}
+
+/* El mensaje respira menos cuando abajo viene el campo de la frase: ahí el espacio lo pone el
+   propio Field. */
+.mensaje:only-child {
+  margin-bottom: .25rem;
+}
+
+
+/* Monoespaciada: lo que se escribe se compara carácter a carácter con la frase de al lado, y en
+   proporcional una `l` y un `1` se confunden justo cuando importa. */
+.frase {
+  font-family: var(--font-dm-mono), 'DM Mono', ui-monospace, monospace;
+}

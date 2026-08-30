@@ -1,11 +1,12 @@
 'use client'
 import { useState } from 'react'
+import { ConfirmModal } from '@/shared/components/ui'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { apiSend } from '@/shared/utils/api'
 import type { OrgRow } from '@/shared/context/loadAppData'
 import TabButton from '@/shared/components/ui/TabButton'
-import NewButton from '@/shared/components/ui/NewButton'
+import Button from '@/shared/components/ui/Button'
 import ListToolbar from '@/shared/components/ui/ListToolbar'
 import { ORG_CATALOGS, ORG_CATS, type OrgCat } from '../org-catalogs'
 import { useOrgCatalog } from '../hooks/useOrgCatalog'
@@ -22,6 +23,9 @@ export default function OrgManager({ cat, onCatChange }: { cat: OrgCat; onCatCha
   const [busqueda, setBusqueda] = useState('')
   const [modal, setModal] = useState<{ row?: OrgRow } | null>(null)
   const [borrando, setBorrando] = useState<string | null>(null)
+  // Borrar un catálogo no tiene vuelta y hasta hoy ocurría al primer clic: la API sólo frenaba
+  // si la fila estaba EN USO, así que una sin usar se iba sin preguntar (rules/ui.md).
+  const [porBorrar, setPorBorrar] = useState<OrgRow | null>(null)
   const { rows, dependents, describe } = useOrgCatalog(cat)
 
   const q = busqueda.trim().toLowerCase()
@@ -43,6 +47,12 @@ export default function OrgManager({ cat, onCatChange }: { cat: OrgCat; onCatCha
     setBorrando(null)
   }
 
+  async function confirmarBorrado() {
+    const row = porBorrar
+    setPorBorrar(null)
+    if (row) await borrar(row)
+  }
+
   return (
     <div>
       {/* Única barra horizontal de la sección — mismo formato que StratixTabNav. */}
@@ -54,7 +64,7 @@ export default function OrgManager({ cat, onCatChange }: { cat: OrgCat; onCatCha
       </div>
 
       <ListToolbar busqueda={busqueda} setBusqueda={setBusqueda}
-        action={<NewButton label={t(ORG_CATALOGS[cat].newKey)} onClick={() => setModal({})} />}>
+        action={<Button kind="new" label={t(ORG_CATALOGS[cat].newKey)} onClick={() => setModal({})} />}>
         {sinUso > 0 && (
           <span title={t('admin.org.sinUsoTip')} style={{ fontSize: 11, color: t3, whiteSpace: 'nowrap' }}>
             {t('admin.org.sinUso', { n: sinUso })}
@@ -66,11 +76,21 @@ export default function OrgManager({ cat, onCatChange }: { cat: OrgCat; onCatCha
         {filtradas.length === 0 && <div style={{ fontSize: 12, color: t1, opacity: 0.6 }}>{t('admin.org.empty')}</div>}
         {filtradas.map(row => (
           <OrgCard key={row.id} row={row} detail={describe(row)} deps={dependents(row)}
-            deleting={borrando === row.id} onEdit={() => setModal({ row })} onDelete={() => borrar(row)} />
+            deleting={borrando === row.id} onEdit={() => setModal({ row })} onDelete={() => setPorBorrar(row)} />
         ))}
       </div>
 
       {modal && <OrgModal cat={cat} row={modal.row} onClose={() => setModal(null)} />}
+      {porBorrar && (
+        <ConfirmModal
+          destructive
+          title={t('admin.org.deleteConfirmTitle', { nombre: porBorrar.nombre })}
+          message={t('admin.org.deleteConfirmMsg')}
+          confirmLabel={t('common.delete')}
+          onClose={() => setPorBorrar(null)}
+          onConfirm={confirmarBorrado}
+        />
+      )}
     </div>
   )
 }

@@ -1,0 +1,52 @@
+/* El <li> sólo posiciona: la lista sigue siendo una lista y el color viaja por su variable.
+   La caja es lo que se ve, y es la misma sea un botón o un div — así una fila que abre y una
+   fila con controles adentro no se ven distintas por accidente. */
+.fila {
+  list-style: none;
+}
+
+.caja {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  width: 100%;
+  padding: .625rem .875rem;
+  border: 1px solid var(--c-border);
+  border-radius: .75rem;
+  background: var(--c-s1);
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+/* Sólo la que abre reacciona al mouse: una fila con controles adentro que se levanta al pasar
+   por encima promete una acción que no existe. */
+.abrible {
+  cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.abrible:hover {
+  border-color: var(--fila-color);
+  box-shadow: 0 2px 10px rgba(16, 24, 40, .07);
+  transform: translateY(-1px);
+}
+
+/* El anillo va en la caja y no en el <li>: es el elemento que recibe el foco. 2px sólidos y
+   con separación, que es lo que se ve sobre cualquier color de barra. */
+.caja:focus-visible {
+  outline: 2px solid var(--c-accent-solid);
+  outline-offset: 2px;
+}
+
+/* La barra de color se estira con la fila: mide lo que mide el contenido, así que no hay que
+   adivinarle una altura cuando la fila crece. */
+.barra {
+  flex-shrink: 0;
+  width: .25rem;
+  align-self: stretch;
+  min-height: 1.75rem;
+  border-radius: .125rem;
+  background: var(--fila-color);
+}

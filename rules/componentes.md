@@ -2,11 +2,14 @@
 
 ## Un componente es una carpeta, no un archivo
 
-<!-- El check vive en proceso.md · "El que toca un archivo lo deja en la convención vigente":
-     el detector componente_fuera_de_carpeta mira el PATH, así que es el mismo chequeo para la
-     forma y para la migración. Esta sección estuvo marcada `sin check: convención estructural`
-     hasta el 25/08/2026 — la exención era falsa, y mientras duró se editó DepartmentChip.tsx
-     dejándolo suelto. -->
+<!-- sin check: el check de esta regla vive en proceso.md · "El que toca un archivo lo deja en la
+     convención vigente" — el detector componente_fuera_de_carpeta mira el PATH, así que es el
+     mismo chequeo para la forma y para la migración, y duplicarlo acá lo haría fallar dos veces
+     por lo mismo. Esta sección estuvo marcada `sin check: convención estructural` hasta el
+     25/08/2026 — esa exención era falsa, y mientras duró se editó DepartmentChip.tsx dejándolo
+     suelto. El marcador quedó escrito como comentario común hasta el 29/08/2026, así que el
+     motor lo leía como una regla SIN marcador: se descubrió al agregar la regla del `<button>`,
+     porque el archivo entero dejó de poder editarse. -->
 
 De ahora en adelante, un componente nuevo se crea así:
 
@@ -63,7 +66,7 @@ nadie puede revisar.
 <!-- check: contact
      detector: style_inline
      files: .tsx
-     version: 1
+     version: 3
      test: pasa :: <div style={{ '--fill': pct }} />
      test: falla :: <div style={{ padding: 8 }} />
      test: falla :: <div style={{ '--fill': p, padding: 8 }} />
@@ -107,6 +110,32 @@ cuando el valor sale de la base — o manipular el DOM por `ref`, que es peor qu
 
 ### Los colores salen de variables CSS, no de objetos JS
 
+<!-- check: contact
+     pattern: ['"]#[0-9a-fA-F]{3,8}['"]
+     files: .tsx
+     except: /constants/
+     version: 1
+     test: falla :: const color = destructive ? '#F87171' : accent
+     test: falla :: <div style={{ background: '#9CA3AF' }} />
+     test: pasa :: const color = destructive ? 'var(--c-danger)' : accent
+     test: pasa :: <div className={s.caja} />
+     test: pasa existente :: const color = destructive ? '#F87171' : accent
+-->
+
+<!-- check: contact
+     pattern: (?i)#[0-9a-f]{3,8}\b
+     files: .css
+     except: globals.css
+     version: 1
+     test: falla @src/features/x/components/Y/index.module.css :: .x { color: #34d399; }
+     test: falla @src/features/x/components/Y/index.module.css :: .x { border-color: #D1D5DB; }
+     test: pasa @src/features/x/components/Y/index.module.css :: .x { color: var(--c-t1); }
+     test: falla @src/features/x/components/Y/index.module.css :: .x { color: #fff; }
+     test: pasa @src/features/x/components/Y/index.module.css :: .x { color: var(--c-sobre-solido); background: color-mix(in srgb, var(--c-accent) 88%, var(--c-oscurecer)); }
+     test: pasa @src/features/x/components/Y/index.module.css :: .x { box-shadow: 0 1px 2px rgba(16,24,40,.12); }
+     test: pasa existente @src/features/x/components/Y/index.module.css :: .x { color: #34d399; }
+-->
+
 `src/app/globals.css` ya define los tokens oscuros de la app en `:root` (`--bg`, `--s1`, `--s2`,
 `--s3`, `--accent`, `--t1`, `--t2`, `--t3`). Un `.module.css` los usa directo: `color: var(--t1)`.
 
@@ -118,17 +147,50 @@ de ahí, no al revés: la fuente de verdad de un color tiene que ser el CSS.
 paleta: el día que se cambie el tema o la paleta, ese componente no se entera, y nadie encuentra
 todas las copias porque nunca hubo una lista de dónde están.
 
+**Un hex en un `style` inline se escribe `var(--token)`, no el número.** Es CSS: una variable
+funciona igual ahí que en un `.module.css`, así que no hace falta migrar el componente entero
+para dejar de duplicar el color. `ConfirmModal` tenía `'#F87171'` —que es `--c-danger`— y
+`'#9CA3AF'` —que es `--c-t3`—, o sea la paleta escrita dos veces con otro nombre.
+
+**Dónde SÍ va un hex, y por eso el check exceptúa `/constants/`:** un catálogo de dominio. El
+color de una modalidad de reunión o de una etapa de Research ES el dato —viaja a la base, se
+elige desde un panel— y de ahí sale como variable CSS con la excepción de arriba. La diferencia
+es quién lo decide: la paleta la decide el tema, el color de una marca lo decide el admin.
+
+**Y en un `.module.css` vale exactamente igual**, que es donde más se acumuló: hay 38 archivos
+con hex, y los que más se repiten son la paleta escrita de nuevo — `#34d399` dieciocho veces es
+`--c-ok`, `#f87171` doce veces es `--c-danger`, `#D1D5DB` ocho es el borde. Cada copia es un
+color que no se entera el día que cambie el tema.
+
+**`#fff` y `#000` tampoco pasan, y ahí me equivoqué primero.** Los había exceptuado por
+"primitivos": blanco es blanco. Lo preguntó Wagner —*"¿y si después integro el modo oscuro?"*— y
+tiene razón: con un segundo tema son decisiones de tema disfrazadas. El texto de un botón
+primario puede no ser blanco en oscuro, y peor, `color-mix(…, #000)` significa **"oscurecer 12%"**
+— en un tema oscuro hay que ACLARAR, así que ese `#000` está codificando la dirección del hover.
+
+Por eso `globals.css` define `--c-sobre-solido` y `--c-oscurecer`. El día que exista el bloque
+oscuro, esos dos tokens cambian de valor y todos los hovers se dan vuelta solos; con el hex
+escrito a mano habría que encontrarlo en 38 archivos, sabiendo cuáles son tema y cuáles no.
+
+`globals.css` también queda afuera, obviamente: es donde la paleta se DEFINE.
+
+Hay 77 `.tsx` con hex, así que es `contact`: frena lo que nace y lo viejo se migra por contacto.
+
 ## Las medidas van en `rem`, no en píxeles
 
 <!-- check: block
-     pattern: (font-size|padding|margin|gap|border-radius|width|height|top|right|bottom|left|inset)[a-z-]*:\s*[^;]*\b\d+px
+     pattern: (?:^|[;{\s])(?:min-|max-)?(font-size|padding|margin|gap|border-radius|width|height|top|right|bottom|left|inset)[a-z-]*:\s*[^;]*\b\d+px
      files: .css
-     version: 1
+     version: 3
      test: falla @src/features/x/components/Y/index.module.css :: .x { font-size: 12px; }
      test: falla @src/features/x/components/Y/index.module.css :: .x { gap: 10px; }
      test: falla @src/features/x/components/Y/index.module.css :: .x { border-radius: 10px; }
+     test: falla @src/features/x/components/Y/index.module.css :: .x { min-height: 32px; }
+     test: falla @src/features/x/components/Y/index.module.css :: .x { max-width: 320px; }
      test: pasa @src/features/x/components/Y/index.module.css :: .x { font-size: .75rem; gap: .5rem; }
      test: pasa @src/features/x/components/Y/index.module.css :: .x { border: 1px solid var(--c-border); }
+     test: pasa @src/features/x/components/Y/index.module.css :: .x { border-top: 1px solid var(--c-border); }
+     test: pasa @src/features/x/components/Y/index.module.css :: .x { border-left: 3px solid red; }
      test: pasa @src/features/x/components/Y/index.module.css :: .x { box-shadow: 0 1px 2px rgba(16,24,40,.04); }
      test: pasa @src/features/x/components/Y/index.module.css :: .x { outline: 2px solid var(--c-accent); outline-offset: 2px; }
      test: falla existente @src/features/x/components/Y/index.module.css :: .x { font-size: 12px; }
@@ -149,6 +211,39 @@ a la pantalla; un `rem` la ata al tamaño de letra que el usuario eligió en su 
 píxel. Son líneas de contorno, no medidas de contenido: un borde de 1px tiene que seguir siendo
 de 1px aunque el usuario agrande la letra — si escala, se convierte en un marco grueso. El check
 mira sólo las propiedades de tamaño y espaciado, así que esas pasan solas.
+
+**Y vale igual para una medida que viaja como PROP**, que es donde el check de arriba no llega
+porque sólo mira `.css`:
+
+<!-- check: contact
+     pattern: \b(?:width|height|maxWidth|minWidth)=\{[0-9]+\}
+     files: .tsx
+     version: 1
+     test: falla :: <Modal width={480} onClose={x} />
+     test: falla :: <Grafico height={220} />
+     test: pasa :: <Modal anchoRem={30} onClose={x} />
+     test: pasa :: <Icono size={18} />
+     test: pasa :: <Grafico height={alto} />
+     test: pasa existente :: <Modal width={480} onClose={x} />
+-->
+
+```tsx
+// ❌ el modal no crece cuando el usuario agranda la letra: el texto se apretuja contra el borde
+<Modal width={480} … />
+
+// ✅ y el nombre dice la unidad, así nadie le pasa 480 pensando en píxeles
+<Modal anchoRem={30} … />
+```
+
+**El nombre del prop lleva la unidad**, no sólo el valor: `width={30}` se lee como treinta
+píxeles y se rompe en silencio. `size` queda afuera del check a propósito — el tamaño de un
+ícono es un gráfico, como un borde, y la regla ya exceptúa esos.
+
+**Motivo:** lo encontró Wagner mirando `Modal`, que llevaba `width = 480` desde siempre. El
+check de `rem` no lo veía porque vive en el `.tsx`, y es exactamente la misma falla: la caja
+queda clavada al monitor mientras el texto de adentro escala. Un modal es la peor versión del
+problema, porque además tiene `max-height` — el texto crece, la caja no, y el formulario entero
+se va al scroll.
 
 **La conversión es mecánica** (`bun rules/px-a-rem.ts <archivo>` la hace y muestra el diff), pero
 **revisala**: la base es 16px = 1rem, y algún valor pensado para una pantalla concreta puede
@@ -353,11 +448,12 @@ no sólo a mover JSX.
 <!-- check: contact
      detector: markup_sustancial
      exime: bloques-similares
-     version: 1
+     version: 2
      files: .tsx
      test: pasa :: export default function X() { return <Otro /> }
-     test: pasa :: // centinela-exime: bloques-similares@1 — busqué StatCard y MetricBox, ninguna sirve\nreturn <div><span>a</span><b>c</b></div>
+     test: pasa :: // centinela-exime: bloques-similares@2 — leí ui/, ninguna admite una fila de detalle\nreturn <div><span>a</span><b>c</b></div>
      test: falla :: return <div><span>a</span><b>c</b></div>
+     test: falla :: // centinela-exime: bloques-similares@1 — marca vieja, la regla ya cambió\nreturn <div><span>a</span><b>c</b></div>
      test: pasa existente :: return <div><span>a</span><b>c</b></div>
 -->
 
@@ -367,19 +463,46 @@ módulo (una tarjeta de indicador, una fila de tabla, un panel recogible), su lu
 `src/shared/components/` — con el prop que haga falta para cubrir las dos variantes, y **sólo**
 ese (ver `arquitectura.md`).
 
+**Antes de crear, se LEE el inventario entero — y la salida más probable es un prop.**
+
+No alcanza con pensar un nombre y buscarlo: el componente que ya resuelve tu caso puede
+llamarse distinto de como vos lo llamarías. Se lista lo que hay y se lee la lista:
+
+```bash
+ls src/shared/components/ui src/shared/components/dashboard src/shared/components/shell
+```
+
+Hoy son ~20 en `ui/` y entran en una pantalla. Leerlos cuesta menos que el primer bug que se
+arregla dos veces.
+
+**Y la pregunta no es "¿existe uno igual?" sino "¿el mío es este mismo, con un prop más?"** Ésa
+es la salida más frecuente y la que se pasa por alto: `ColorBadge` no aceptaba un ícono,
+`StatBox` no aceptaba un tamaño — a los dos les faltaba UN prop, y las dos veces la reacción
+natural habría sido escribir uno nuevo al lado. Un componente al que le falta un prop **no es un
+componente distinto**: es el mismo sin terminar. Tres salidas posibles, en este orden:
+
+1. **Existe y sirve** → se usa. No se escribe nada.
+2. **Existe y le falta algo** → se le agrega ESE prop y se usa. Es lo más común, y es lo que
+   evita el tercer `StatCard`. Si el componente vive en un módulo, sube a `src/shared/` al
+   hacerlo.
+3. **No existe, o existe algo que responde a otra cosa** → recién ahí nace uno nuevo, y la marca
+   dice qué se leyó y **por qué agregarle un prop al que existe habría sido peor**.
+
+Eso último es lo que la marca tiene que contestar. "No encontré nada" no es una razón: es el
+resultado de no haber mirado.
+
 **Cómo se verifica, si la similitud no se puede detectar:** por FIRMA, no por contenido (ver
 `proceso.md` · "La marca"). Un componente **nuevo** con markup de tres elementos o más frena
 hasta que lleve su marca:
 
 ```ts
-// centinela-exime: bloques-similares@1 — busqué StatCard, MetricBox y las tarjetas del tablero
-// de Research: ninguna admite una fila de detalle, así que este nace aparte.
+// centinela-exime: bloques-similares@2 — leí ui/ entero (20 componentes): StatBox y ColorBadge
+// son los más cerca. A ColorBadge le bastaría un prop para el ícono, pero acá el bloque tiene
+// dos filas y agregarle un layout entero lo convertiría en otra cosa. Nace aparte.
 ```
 
 El hook no puede juzgar si la decisión es correcta —la similitud vive ENTRE archivos y el
-centinela ve uno solo—, pero sí puede exigir que la búsqueda **ocurra** y quede escrita. Buscar
-es por el nombre que le pondrías (`StatCard`, `FilterBar`, `ConfirmModal`) y por el gesto que
-necesitás (`grep -rn 'role="dialog"' src`).
+centinela ve uno solo—, pero sí puede exigir que la búsqueda **ocurra** y quede escrita.
 
 **Sólo frena en archivos nuevos** (`contact`): la pregunta "¿esto ya existe?" tiene sentido al
 crear, no cada vez que se toca un componente que ya vive hace meses.
@@ -630,3 +753,129 @@ tiene que existir como archivo y su trabajo es montar el feature (ver la regla d
 **Motivo:** un pasamanos hay que abrirlo para descubrir que no hace nada, y además miente sobre la
 estructura — parece que Team tiene lógica propia cuando no tiene ninguna. Suelen ser restos: este
 quedó cuando a `EquipoTab` se le sacó la barra de sub-vistas que duplicaba el sidebar.
+
+## Un contenedor compartido lleva `children`, no la lista de lo que va adentro
+
+<!-- check: contact
+     pattern: \w+(?:Label|Text|Title|Placeholder)\??:\s*string[\s\S]{0,400}?\w+(?:Label|Text|Title|Placeholder)\??:\s*string
+     files: .tsx
+     except: /features/
+     version: 1
+     test: falla @src/shared/components/ui/X/index.tsx :: type Props = {\n  cancelarLabel: string\n  confirmarLabel: string\n}
+     test: pasa @src/shared/components/ui/X/index.tsx :: type Props = { children: ReactNode }
+     test: pasa @src/shared/components/ui/X/index.tsx :: type Props = { label: string; onClick: () => void }
+     test: pasa @src/features/x/components/Y/index.tsx :: type Props = {\n  cancelarLabel: string\n  confirmarLabel: string\n}
+     test: pasa existente @src/shared/components/ui/X/index.tsx :: type Props = {\n  cancelarLabel: string\n  confirmarLabel: string\n}
+-->
+
+Cuando un componente de `src/shared/` empieza a recibir **dos o más rótulos** dejó de ser un
+contenedor: está decidiendo QUÉ va adentro. Se parte en dos — el contenedor con `children`, y
+las piezas como componentes sueltos.
+
+El caso vivo es `ConfirmModal`: ocho props, dos de ellas rótulos (`confirmLabel`,
+`confirmPhraseLabel`). Cada modal de confirmación del repo lo CONFIGURA en vez de componerlo, y
+por eso el que necesita un tercer botón —o un pie con los botones alineados distinto— no puede
+usarlo y escribe el suyo. `FilterBar` tiene el mismo problema con `clearLabel` y `resultsLabel`.
+
+**Un rótulo solo no dispara la regla**, a propósito: `WarningCallout` recibe su `message` y está
+bien — es un componente de UNA cosa, no un contenedor. Lo que delata al contenedor disfrazado es
+el segundo rótulo: significa que adentro hay dos elementos distintos y el componente está
+eligiendo por vos cuáles son y en qué orden van.
+
+**Es `contact` y sólo rige en `src/shared/`:** los dos casos de arriba se migran cuando se los
+toque. En `src/features/` no aplica — un componente de módulo puede fijar su contenido porque
+tiene un solo consumidor conocido.
+
+**Motivo:** el 29/08 se escribió un `ModalActions` con seis props —`cancelarLabel`,
+`confirmarLabel`, `ocupado`, `ocupadoLabel`…— y no aguantó una revisión: con los botones fijos,
+un diálogo de tres botones no entraba, así que el siguiente que lo necesitara iba a escribir el
+pie a mano otra vez. Se rehízo con `children`.
+
+**Y después se borró, que es la otra mitad de la lección.** Con `children` quedó siendo un `<div>`
+con seis declaraciones de CSS y **un solo consumidor**: los 20+ pies de modal que supuestamente
+unificaba nunca se migraron. Un contenedor compartido se gana el lugar cuando de verdad lo usan
+dos; hasta entonces es una clase CSS en el archivo que la usa. Lo señaló Wagner preguntando si
+servía para algo, y no servía.
+
+Las dos mitades juntas: **si el contenedor fija su contenido, no compone; si no tiene dos
+consumidores, no hace falta.** Un componente tiene que pasar las dos.
+
+## Un `<button>` escrito a mano es `Button` al que le falta un prop
+
+<!-- check: contact
+     pattern: <button[\s>]
+     files: .tsx
+     except: /shared/components/ui/Button/
+     exime: boton-a-mano
+     version: 1
+     test: falla :: return <button type="button" className={s.b} onClick={guardar}>{rotulo}</button>
+     test: pasa :: return <Button kind="confirm" onClick={guardar} />
+     test: pasa existente :: return <button onClick={guardar}>{rotulo}</button>
+-->
+
+Antes de escribir `<button>` en un `.tsx`, la pregunta es la de `arquitectura.md`: **¿el mío es
+`Button` con un prop más?** Casi siempre sí — `Button` ya trae el ícono, el rótulo por defecto,
+el `ocupado`, el `deshabilitado`, el tono y el anillo de foco, y agregarle una variante es
+agregar **una fila** a `BUTTON_META`, no un componente.
+
+**Cuándo un `<button>` a mano es lo correcto, y hay que decirlo con la marca:** cuando el botón
+no es una ACCIÓN sino una **superficie** — la fila entera de una lista, una pestaña, un ítem del
+rail, un chip que alterna. Ahí es un botón por accesibilidad (entra en el tab order, responde a
+Enter) y no por ser un botón de la paleta: darle el padding, el ícono y el tono de `Button` lo
+rompería. `TabButton`, `RailButton`, `PillToggle` y `FilaLista` son eso.
+
+```ts
+// centinela-exime: boton-a-mano@1 — no es una acción, es la SUPERFICIE: la fila entera es el
+// botón para que abrirla funcione con el teclado. Con el estilo de `Button` sería un botón de
+// barra, no una fila.
+```
+
+Es `contact` y no `block`: hay **82** `.tsx` con `<button>` a mano, y congelarlos costaría más de
+lo que protege. Frena en lo que nace; lo viejo se migra por contacto.
+
+**Motivo:** es la misma historia de los tres `StatCard` y de los cinco botones que se fusionaron
+el 29/08 — cada `<button>` suelto nace como "un botoncito parecido a aquel" y se lleva su propio
+padding, su propio radio y su propio `:focus-visible`, casi iguales pero no iguales. El costo no
+se ve al escribirlo: se ve el día que cambia la paleta o el anillo de foco y hay que encontrar 82
+lugares sabiendo cuáles son acciones y cuáles superficies. Y hay un costo que sólo tiene el
+suelto: `Button` pone `type="button"` él mismo, y un `<button>` sin `type` dentro de un `<form>`
+**envía el formulario** — un bug que no aparece hasta que alguien mete el botón en un formulario.
+
+## Una familia de variantes es UN componente con unión discriminada, no N componentes
+
+<!-- sin check: decidir si dos componentes son variantes de lo mismo pide leer qué hacen, no cómo se escriben -->
+
+Los cinco botones de acción del repo —nuevo, editar, borrar, cancelar, confirmar— son **un solo**
+`Button` con `kind`. No cinco componentes, y tampoco un `variant: string`.
+
+Las dos piezas que lo hacen viable, y ninguna es opcional:
+
+1. **La unión discriminada.** `kind: 'new' | 'edit' | 'delete' | 'cancel' | 'confirm'`, no
+   `string`. Con `string`, `kind="nwe"` compila y devuelve un botón sin estilo — un fallo
+   silencioso, que es exactamente lo que estas reglas persiguen. Con la unión, no compila.
+2. **Un objeto META, no una cadena de `if`.** Lo propio de cada variante —ícono, rótulo por
+   defecto, tono— vive en `BUTTON_META`, el mismo patrón con el que este repo enumera todo lo
+   demás (`ESTADO`, `MODALIDAD`, `ROL_EN_REUNION`). Agregar una variante es agregar **una fila**,
+   y `satisfies Record<ButtonKind, …>` hace que el compilador reclame la que falte.
+
+**Y el tono se DERIVA del `kind`, no se pasa por prop.** Si `tono` fuera un prop, existiría
+`<Button kind="delete" tono="primario" />`: un botón de borrar que no parece destructivo. Lo que
+la variante significa no puede ser configurable desde afuera.
+
+**Cuándo NO unificar:** cuando las variantes no comparten la forma —un botón y un chip no son
+variantes de nada— o cuando cada una necesitaría props que las demás ignoran. La prueba sigue
+siendo la de arriba: **¿un cambio de requisito las movería a todas juntas?** "Los botones son más
+redondos" mueve a las cinco; "el primario lleva degradado" mueve a una fila del META, no a un
+componente.
+
+**Motivo, y esto incluye haberse equivocado primero.** El 29/08 se escribieron `CancelButton` y
+`ConfirmButton` como componentes separados, argumentando que cada botón trae lo suyo (el `+` de
+`NewButton`, el `✏️` de `EditButton`) y que fusionar produciría el componente con quince props.
+Era falso en las dos mitades: "lo suyo" son tres campos que entran en una fila de un META, y la
+unión discriminada da MÁS seguridad que cinco componentes, no menos. El costo real de la
+separación estaba a la vista y no se miró: **cinco `.module.css` repitiendo el mismo padding, el
+mismo radio, la misma tipografía y el mismo anillo de foco**, que es una duplicación que se
+arregla una vez y sobrevive cuatro. Lo señaló Wagner, dos veces.
+
+Queda dicho para la próxima: la pregunta no es "¿estos componentes son distintos?" sino "¿lo que
+los distingue entra en una fila de un catálogo?". Si entra, son variantes.

@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eminat Group · Operations Management Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy-950:#0E1326; --navy-900:#1B2340; --navy-800:#232C52; --navy-700:#2E3862; --navy-400:#6C7590;
+  --orange:#E07A33; --orange-600:#C4661F; --orange-tint:#FCEFE3;
+  --canvas:#EDEFF4; --paper:#FFFFFF; --line:#DBE0EB; --line-soft:#EAEDF4;
+  --ink:#131A2E; --muted:#69728C; --faint:#98A0B6;
+  --ok:#1E8E6A; --ok-tint:#E2F3ED; --warn:#B8830F; --warn-tint:#FBF2DB;
+  --danger:#C0392B; --danger-tint:#FBE8E6; --info:#3730A3; --info-tint:#E9E8FA;
+  --violet:#6D28D9; --violet-tint:#F0E9FC;
+  --r-sm:6px; --r:10px; --r-lg:16px;
+  --shadow:0 1px 2px rgba(14,19,38,.05), 0 8px 24px rgba(14,19,38,.06);
+  --shadow-lg:0 26px 64px rgba(14,19,38,.2);
+  --display:'Sora',system-ui,sans-serif; --body:'Inter',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--canvas);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--display);margin:0;letter-spacing:-.02em;font-weight:600}
+button,input,select,textarea{font:inherit;color:inherit}
+::selection{background:var(--orange-tint)}
+
+.app{display:grid;grid-template-columns:252px 1fr;min-height:100vh}
+.rail{background:var(--navy-950);color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.rail-brand{display:flex;align-items:center;gap:12px;padding:20px 20px 8px}
+.rail-brand svg{width:32px;height:32px;flex:none}
+.rail-brand .bt{font-family:var(--display);font-weight:700;font-size:14.5px;line-height:1.1;letter-spacing:-.02em}
+.rail-brand .bs{font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:#7C86A6;margin-top:3px}
+.vendor{margin:0 20px 14px;padding-top:10px;border-top:1px solid rgba(255,255,255,.07);font-family:var(--mono);font-size:8.5px;letter-spacing:.13em;text-transform:uppercase;color:#5C6584}
+.vendor b{color:#8E97B4;font-weight:500}
+.rail-scope{margin:0 14px 12px;padding:9px 12px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);border-radius:var(--r)}
+.rail-scope label{font-family:var(--mono);font-size:8.5px;letter-spacing:.15em;text-transform:uppercase;color:#7C86A6;display:block;margin-bottom:5px}
+.rail-scope select{width:100%;background:transparent;border:0;color:#fff;font-weight:500;font-size:13px;outline:none;cursor:pointer}
+.rail-scope select option{color:#131A2E}
+.nav{padding:4px 12px;flex:1;overflow:auto}
+.nav-group{font-family:var(--mono);font-size:8.5px;letter-spacing:.17em;text-transform:uppercase;color:#5C6584;padding:14px 10px 6px}
+.nav a{display:flex;align-items:center;gap:11px;padding:8.5px 11px;border-radius:var(--r-sm);color:#C1C7DA;font-weight:500;font-size:13.5px;cursor:pointer;position:relative;transition:background .14s,color .14s}
+.nav a:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav a.on{background:var(--navy-800);color:#fff}
+.nav a.on::before{content:"";position:absolute;left:-12px;top:8px;bottom:8px;width:3px;background:var(--orange);border-radius:0 3px 3px 0}
+.nav a .ic{width:15px;text-align:center;opacity:.85;flex:none}
+.nav .cnt{margin-left:auto;font-family:var(--mono);font-size:10px;background:rgba(255,255,255,.1);padding:1px 6px;border-radius:20px}
+.nav .cnt.hot{background:var(--danger);color:#fff}
+.nav a.on .cnt{background:var(--orange);color:#fff}
+.rail-foot{padding:13px 20px;border-top:1px solid rgba(255,255,255,.08);font-size:11.5px;color:#7C86A6}
+.rail-foot .who{color:#fff;font-weight:500;font-size:12.5px}
+.dbpill{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;margin-top:7px;cursor:pointer}
+.dbdot{width:6px;height:6px;border-radius:50%;background:var(--warn)}
+.dbpill.live .dbdot{background:#3ED598}
+
+.main{min-width:0;display:flex;flex-direction:column}
+.topbar{background:var(--paper);border-bottom:1px solid var(--line);padding:15px 30px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:20}
+.topbar h1{font-size:18.5px}
+.topbar p{margin:2px 0 0;color:var(--muted);font-size:12.5px}
+.view{padding:24px 30px 64px;max-width:1420px;width:100%}
+
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8.5px 15px;border:1px solid var(--line);background:var(--paper);border-radius:var(--r-sm);font-weight:500;font-size:13px;cursor:pointer;transition:.14s;white-space:nowrap}
+.btn:hover{border-color:var(--navy-400);background:#FAFBFD}
+.btn-primary{background:var(--navy-900);border-color:var(--navy-900);color:#fff}
+.btn-primary:hover{background:var(--navy-800);border-color:var(--navy-800)}
+.btn-accent{background:var(--orange);border-color:var(--orange);color:#fff}
+.btn-accent:hover{background:var(--orange-600);border-color:var(--orange-600)}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn-ghost:hover{background:var(--line-soft);color:var(--ink)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow)}
+.card-h{padding:15px 20px;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.card-h h3{font-size:14.5px}
+.card-b{padding:18px 20px}
+.sp{flex:1}
+.eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:.17em;text-transform:uppercase;color:var(--faint)}
+
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field label{font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted)}
+.field input,.field select,.field textarea{width:100%;padding:8.5px 11px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--paper);outline:none;transition:border-color .14s,box-shadow .14s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--navy-700);box-shadow:0 0 0 3px rgba(46,56,98,.1)}
+.field textarea{resize:vertical;min-height:74px;line-height:1.6}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:13px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}
+.split{display:grid;grid-template-columns:1.55fr 1fr;gap:18px;align-items:start}
+
+table{width:100%;border-collapse:collapse}
+th{font-family:var(--mono);font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);font-weight:500;background:#FAFBFD}
+td{padding:11px 12px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr.click{cursor:pointer}
+tbody tr.click:hover{background:#FAFBFD}
+td input,td select{border:1px solid transparent;background:transparent;padding:6px 8px;border-radius:var(--r-sm);width:100%;outline:none}
+td input:hover,td select:hover{border-color:var(--line)}
+td input:focus,td select:focus{border-color:var(--navy-700);background:var(--paper)}
+
+.code{font-family:var(--mono);font-size:11px;color:var(--navy-700);letter-spacing:-.01em;white-space:nowrap}
+.tag{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap}
+.tag-navy{background:var(--navy-900);color:#fff}
+.tag-soft{background:var(--line-soft);color:var(--navy-700)}
+.tag-ok{background:var(--ok-tint);color:var(--ok)}
+.tag-warn{background:var(--warn-tint);color:var(--warn)}
+.tag-danger{background:var(--danger-tint);color:var(--danger)}
+.tag-info{background:var(--info-tint);color:var(--info)}
+.tag-violet{background:var(--violet-tint);color:var(--violet)}
+.tag-orange{background:var(--orange-tint);color:var(--orange-600)}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border:1px solid var(--line);border-radius:20px;font-size:11.5px;font-weight:500;background:var(--paper);white-space:nowrap}
+.chip .dot{width:7px;height:7px;border-radius:2px;flex:none}
+.chip button{border:0;background:none;cursor:pointer;color:var(--faint);padding:0 0 0 2px;font-size:14px;line-height:1}
+.chip button:hover{color:var(--danger)}
+.avatar{width:22px;height:22px;border-radius:50%;background:var(--navy-800);color:#fff;font-size:9.5px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;flex:none;font-family:var(--mono)}
+.stack{display:inline-flex}
+.stack .avatar{margin-left:-6px;border:2px solid var(--paper)}
+.stack .avatar:first-child{margin-left:0}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:13px;margin-bottom:20px}
+.kpi{background:var(--paper);border:1px solid var(--line);border-radius:var(--r-lg);padding:15px 17px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+.kpi::after{content:"";position:absolute;right:-24px;top:-24px;width:64px;height:64px;background:var(--line-soft);transform:rotate(45deg)}
+.kpi.alert::after{background:var(--danger-tint)} .kpi.good::after{background:var(--ok-tint)} .kpi.watch::after{background:var(--orange-tint)}
+.kpi .k{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);position:relative;z-index:1}
+.kpi .v{font-family:var(--display);font-size:29px;font-weight:600;letter-spacing:-.04em;margin-top:6px;line-height:1;position:relative;z-index:1}
+.kpi.alert .v{color:var(--danger)} .kpi.good .v{color:var(--ok)} .kpi.watch .v{color:var(--orange-600)}
+.kpi .s{font-size:11px;color:var(--muted);margin-top:4px;position:relative;z-index:1}
+
+/* Pipeline en chevron */
+.pipe{display:flex;gap:3px;width:100%}
+.pipe button{flex:1;background:var(--line-soft);color:var(--faint);padding:7px 6px 7px 15px;font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;text-align:center;border:0;cursor:pointer;transition:background .2s,color .2s;
+  clip-path:polygon(0 0,calc(100% - 11px) 0,100% 50%,calc(100% - 11px) 100%,0 100%,11px 50%)}
+.pipe button:first-child{clip-path:polygon(0 0,calc(100% - 11px) 0,100% 50%,calc(100% - 11px) 100%,0 100%);padding-left:9px}
+.pipe button:last-child{clip-path:polygon(0 0,100% 0,100% 100%,0 100%,11px 50%)}
+.pipe button.done{background:var(--navy-800);color:#fff}
+.pipe button.now{background:var(--orange);color:#fff}
+.pipe-mini{height:5px;display:flex;gap:2px}
+.pipe-mini i{flex:1;background:var(--line);border-radius:1px}
+.pipe-mini i.done{background:var(--navy-700)} .pipe-mini i.now{background:var(--orange)}
+
+/* FIRMA VISUAL: línea de vida del pendiente */
+.lifeline{position:relative;padding:20px 4px 6px;overflow-x:auto}
+.lifeline .track{position:absolute;left:14px;right:14px;top:37px;height:2px;background:var(--line)}
+.lifeline .stops{display:flex;gap:0;justify-content:space-between;position:relative;min-width:100%}
+.stop{flex:1;min-width:118px;text-align:center;position:relative;padding-top:0}
+.stop .node{width:13px;height:13px;background:var(--paper);border:2px solid var(--navy-700);transform:rotate(45deg);margin:11px auto 9px;position:relative;z-index:1}
+.stop.ext .node{border-color:var(--orange);background:var(--orange)}
+.stop.final .node{border-color:var(--danger);background:var(--danger)}
+.stop.close .node{border-color:var(--ok);background:var(--ok)}
+.stop .mt{font-family:var(--mono);font-size:9px;color:var(--faint);letter-spacing:.05em}
+.stop .md{font-size:11.5px;font-weight:500;margin-top:3px}
+.stop .mv{font-family:var(--mono);font-size:10px;margin-top:3px;color:var(--muted)}
+.stop .mv b{color:var(--orange-600)}
+.lifeline .cap{position:absolute;top:0;left:4px;font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--faint)}
+
+/* Kanban */
+.board{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;align-items:start}
+.col{background:#E4E8F1;border-radius:var(--r-lg);padding:11px;min-height:170px;transition:background .15s}
+.col.over{background:var(--orange-tint);outline:2px dashed var(--orange)}
+.col-h{display:flex;align-items:center;gap:8px;padding:2px 4px 11px}
+.col-h .t{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--navy-700);font-weight:600}
+.col-h .n{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.tcard{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:11px;margin-bottom:8px;cursor:grab;transition:.14s;box-shadow:0 1px 2px rgba(14,19,38,.04)}
+.tcard:hover{transform:translateY(-1px);box-shadow:var(--shadow);border-color:var(--navy-400)}
+.tcard.dragging{opacity:.4}
+.tcard.overdue{border-left:3px solid var(--danger)}
+.tcard.carried{border-left:3px solid var(--orange)}
+.tcard .th{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.tcard .tt{font-weight:500;font-size:12.5px;line-height:1.35;margin-bottom:8px}
+.tcard .tm{display:flex;align-items:center;gap:7px;font-size:10.5px;color:var(--muted);margin-top:8px}
+
+/* Tema (expediente) */
+.topic{border:1px solid var(--line);border-radius:var(--r-lg);margin-bottom:13px;background:var(--paper);overflow:hidden}
+.topic.carried{border-left:4px solid var(--orange)}
+.topic-h{padding:13px 16px;display:flex;align-items:center;gap:10px;background:#FAFBFD;border-bottom:1px solid var(--line-soft);cursor:pointer;flex-wrap:wrap}
+.topic-h .n{font-family:var(--mono);font-size:11px;color:var(--faint)}
+.topic-h h4{font-size:13.5px;flex:1;min-width:140px}
+.topic-b{padding:16px}
+.chk{list-style:none;margin:0;padding:0}
+.chk li{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--line-soft)}
+.chk li:last-child{border-bottom:0}
+.chk input[type=checkbox]{width:16px;height:16px;margin-top:2px;accent-color:var(--navy-800);cursor:pointer;flex:none}
+.chk .txt{flex:1;font-size:13px}
+.chk .txt.done{text-decoration:line-through;color:var(--faint)}
+.chk .meta{font-family:var(--mono);font-size:9.5px;color:var(--faint);margin-top:2px}
+.progress{height:6px;background:var(--line-soft);border-radius:20px;overflow:hidden;margin-top:6px}
+.progress i{display:block;height:100%;background:var(--navy-800);border-radius:20px;transition:width .4s}
+.progress i.full{background:var(--ok)}
+
+.bars{display:flex;flex-direction:column;gap:12px}
+.bar-row{display:grid;grid-template-columns:158px 1fr 58px;align-items:center;gap:12px}
+.bar-row .nm{font-size:12.5px;font-weight:500;display:flex;align-items:center;gap:7px;min-width:0}
+.bar-row .nm .dot{width:8px;height:8px;border-radius:2px;flex:none}
+.bar-row .nm span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.track2{height:9px;background:var(--line-soft);border-radius:20px;overflow:hidden}
+.fill{height:100%;background:var(--navy-800);border-radius:20px;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.fill.ok{background:var(--ok)} .fill.warn{background:var(--orange)} .fill.bad{background:var(--danger)}
+.bar-row .pc{font-family:var(--mono);font-size:12px;text-align:right;font-weight:500}
+
+.scrim{position:fixed;inset:0;background:rgba(14,19,38,.44);opacity:0;pointer-events:none;transition:opacity .22s;z-index:40}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(660px,95vw);background:var(--canvas);transform:translateX(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1);z-index:50;display:flex;flex-direction:column;box-shadow:var(--shadow-lg)}
+.drawer.on{transform:none}
+.drawer-h{background:var(--paper);border-bottom:1px solid var(--line);padding:17px 22px;display:flex;align-items:flex-start;gap:12px}
+.drawer-b{overflow:auto;padding:20px 22px 40px;flex:1}
+.drawer-f{background:var(--paper);border-top:1px solid var(--line);padding:13px 22px;display:flex;gap:9px;flex-wrap:wrap}
+
+.tl{position:relative;padding-left:21px}
+.tl::before{content:"";position:absolute;left:5px;top:5px;bottom:5px;width:1px;background:var(--line)}
+.tl-i{position:relative;padding-bottom:15px}
+.tl-i::before{content:"";position:absolute;left:-19px;top:5px;width:9px;height:9px;background:var(--navy-700);transform:rotate(45deg)}
+.tl-i.accent::before{background:var(--orange)}
+.tl-i.good::before{background:var(--ok)}
+.tl-i .m{font-family:var(--mono);font-size:9.5px;color:var(--faint);letter-spacing:.04em}
+.tl-i .b{font-size:12.5px;margin-top:3px}
+
+.empty{text-align:center;padding:44px 20px;color:var(--muted)}
+.empty .g{font-size:24px;opacity:.35;margin-bottom:8px}
+.empty p{margin:6px 0 14px;font-size:13px}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(140%);background:var(--navy-950);color:#fff;padding:12px 20px;border-radius:var(--r);z-index:80;transition:transform .26s cubic-bezier(.2,.8,.2,1);font-size:13px;box-shadow:var(--shadow-lg);display:flex;gap:9px;align-items:center}
+.toast.on{transform:translateX(-50%)}
+.toast .dot{width:7px;height:7px;background:var(--orange);transform:rotate(45deg)}
+.list-clean{list-style:none;margin:0;padding:0}
+.list-clean li{padding:10px 0;border-bottom:1px solid var(--line-soft);display:flex;align-items:center;gap:11px}
+.list-clean li:last-child{border-bottom:0}
+.hr{height:1px;background:var(--line-soft);margin:16px 0}
+.muted{color:var(--muted)} .tiny{font-size:11.5px} .right{text-align:right}
+.flex{display:flex;align-items:center;gap:9px} .wrap{flex-wrap:wrap}
+.alert-box{background:var(--orange-tint);border:1px solid #F0CFAE;border-radius:var(--r);padding:12px 14px;font-size:12.5px;margin-bottom:14px}
+.alert-box.red{background:var(--danger-tint);border-color:#F0C4BE}
+.alert-box b{font-weight:600}
+
+@media (max-width:1200px){
+  .kpis{grid-template-columns:repeat(3,1fr)} .board{grid-template-columns:repeat(2,1fr)}
+}
+@media (max-width:1024px){
+  .app{grid-template-columns:1fr}
+  .rail{position:relative;height:auto;flex-direction:row;align-items:center;overflow-x:auto}
+  .rail-scope,.rail-foot,.vendor{display:none}
+  .nav{display:flex;padding:8px} .nav-group{display:none}
+  .nav a{white-space:nowrap} .nav a.on::before{display:none}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .board,.grid4,.grid3,.grid2,.split{grid-template-columns:1fr}
+  .view{padding:18px 15px 50px} .topbar{padding:14px 15px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{.rail,.topbar,.drawer,.scrim,.no-print{display:none!important}body{background:#fff}.app{grid-template-columns:1fr}.card{box-shadow:none;break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="rail">
+    <div class="rail-brand">
+      <svg viewBox="0 0 200 200" aria-hidden="true"><g transform="rotate(-45 100 100)">
+        <rect x="42" y="42" width="30" height="116" fill="#fff"/><rect x="72" y="42" width="80" height="30" fill="#fff"/>
+        <rect x="72" y="128" width="80" height="30" fill="#fff"/><rect x="108" y="86" width="28" height="28" fill="#E07A33"/>
+      </g></svg>
+      <div><div class="bt" id="brandName">Eminat Group</div><div class="bs" id="brandProduct">Operations Management Hub</div></div>
+    </div>
+    <div class="vendor">Módulo de <b id="vendorName">Stratix Solutions</b></div>
+    <div class="rail-scope"><label for="scope">Ámbito de trabajo</label><select id="scope"></select></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="rail-foot">
+      <div class="who" id="whoName">—</div><div class="tiny" id="whoRole">—</div>
+      <div class="dbpill" id="dbPill" onclick="App.go('ajustes')"><span class="dbdot"></span><span id="dbLabel">Local</span></div>
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <div><h1 id="pageTitle">Panel ejecutivo</h1><p id="pageSub">—</p></div>
+      <div class="sp"></div><div id="topActions" class="flex wrap"></div>
+    </header>
+    <main class="view" id="view"></main>
+  </div>
+</div>
+<div class="scrim" id="scrim" onclick="App.closeDrawer()"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true">
+  <div class="drawer-h" id="drawerH"></div><div class="drawer-b" id="drawerB"></div><div class="drawer-f" id="drawerF"></div>
+</aside>
+<div class="toast" id="toast"><span class="dot"></span><span id="toastMsg"></span></div>
+<script>
+/* =====================================================================
+   EMINAT GROUP — OPERATIONS MANAGEMENT HUB
+   Submódulo: Meeting & Action Tracker
+   Capa de datos · persistencia local + Supabase opcional
+   ===================================================================== */
+const LS_DATA='emg_omh_v2', LS_CONN='emg_omh_conn_v2';
+
+const uid=()=>crypto.randomUUID?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&3|8)).toString(16);});
+const today=()=>new Date().toISOString().slice(0,10);
+const nowISO=()=>new Date().toISOString();
+const dOff=n=>new Date(Date.now()+n*864e5).toISOString().slice(0,10);
+const daysBetween=(a,b)=>Math.round((new Date(b)-new Date(a))/864e5);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const initials=n=>String(n||'?').trim().split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+const fmtD=d=>d?new Date(d+'T00:00:00').toLocaleDateString('es-EC',{day:'2-digit',month:'short',year:'numeric'}):'—';
+const fmtDs=d=>d?new Date(d+'T00:00:00').toLocaleDateString('es-EC',{day:'2-digit',month:'short'}):'—';
+const fmtDT=d=>d?new Date(d).toLocaleString('es-EC',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
+
+const STAGES=[
+  {k:'nuevo',      n:'Nuevo',      tag:'tag-soft'},
+  {k:'asignado',   n:'Asignado',   tag:'tag-info'},
+  {k:'en_proceso', n:'En proceso', tag:'tag-orange'},
+  {k:'validacion', n:'Validación', tag:'tag-violet'},
+  {k:'finalizado', n:'Finalizado', tag:'tag-ok'}
+];
+const stage=k=>STAGES.find(s=>s.k===k)||STAGES[0];
+const stageIdx=k=>STAGES.findIndex(s=>s.k===k);
+const PRIORITY={baja:{label:'Baja',tag:'tag-soft'},media:{label:'Media',tag:'tag-soft'},
+                alta:{label:'Alta',tag:'tag-orange'},critica:{label:'Crítica',tag:'tag-danger'}};
+const MSTATUS={borrador:{label:'Borrador',tag:'tag-soft'},en_curso:{label:'En curso',tag:'tag-warn'},
+               cerrada:{label:'Cerrada',tag:'tag-navy'}};
+const DECISION={
+  sin_cambio:  {n:'Se mantiene el plazo', tag:'tag-soft',   cls:''},
+  prorroga:    {n:'Prórroga',             tag:'tag-orange', cls:'ext'},
+  ultimo_plazo:{n:'Último plazo',         tag:'tag-danger', cls:'final'},
+  escalado:    {n:'Escalado a dirección', tag:'tag-violet', cls:'ext'},
+  cerrado:     {n:'Cerrado en reunión',   tag:'tag-ok',     cls:'close'}
+};
+const ROLES={admin:'Administrador',director:'Director',meeting_owner:'Responsable de reunión',
+             participant:'Participante',viewer:'Consulta'};
+const CAN={
+  admin:        {meet:1,close:1,topic:1,any:1,extend:1,final_override:1,export:1,audit:1,admin:1},
+  director:     {meet:1,close:1,topic:1,any:1,extend:1,final_override:1,export:1,audit:1,admin:0},
+  meeting_owner:{meet:1,close:1,topic:1,any:0,extend:1,final_override:0,export:1,audit:0,admin:0},
+  participant:  {meet:0,close:0,topic:0,any:0,extend:0,final_override:0,export:1,audit:0,admin:0},
+  viewer:       {meet:0,close:0,topic:0,any:0,extend:0,final_override:0,export:0,audit:0,admin:0}
+};
+
+let S=null, sb=null;
+let conn=JSON.parse(localStorage.getItem(LS_CONN)||'null')||{mode:'local',url:'',key:''};
+
+/* ---------------------- Semilla ---------------------- */
+function seed(){
+  const C=(code,name,color,country='US')=>({id:uid(),code,name,brand_color:color,country,is_active:true});
+  const companies=[C('EMG','Eminat Group','#1B2340'),C('EMC','Eminat Medical Center','#5DC7CE'),
+    C('ERG','Eminat Research Group','#4A5568'),C('PSC','Premier Specialty Center','#2C5282'),
+    C('STX','Stratix Communications','#3730A3'),C('ODM','Ondara Media','#7C3AED','EC'),
+    C('DCI','DaCoach IS','#2563EB','EC'),C('VNF','Vivi Negrete Foundation','#E07A33'),
+    C('CZS','Corazón Salud','#C0392B')];
+  const cid=c=>companies.find(x=>x.code===c).id;
+  const U=(full_name,email,position,dept,code,role)=>({id:uid(),full_name,email,position,department:dept,
+    company_id:cid(code),role,is_active:true,companies:[cid(code)]});
+  const users=[
+    U('Freddy Crespín','freddy@eminat.net','Director de Marketing','Marketing','STX','director'),
+    U('Joselyne Guerrero','joselyne@stratix360.com','Líder de Diseño','Diseño','STX','meeting_owner'),
+    U('David Falconi','david@stratix360.com','Líder de Edición','Edición','STX','meeting_owner'),
+    U('Wagner Dueñas','wagner@stratix360.com','Full Stack Developer','Data & Insights','STX','participant'),
+    U('Naomi Panchana','naomi@stratix360.com','Ejecutiva de Cuentas & CM','Cuentas','STX','participant'),
+    U('Livinsgthone Andrade','livinsgthone@eminat.net','Gestión de Talento Humano','RR.HH.','EMG','director'),
+    U('Ronny Andrade','ronny@eminat.net','Presupuesto y Compras','Finanzas','EMG','director'),
+    U('Coordinación EMC','coordinacion@emc.health','Coordinación Médica','Operaciones','EMC','meeting_owner')
+  ];
+  users[0].companies=[cid('STX'),cid('EMG'),cid('EMC'),cid('ODM'),cid('VNF'),cid('PSC')];
+  users[5].companies=companies.map(c=>c.id); users[6].companies=companies.map(c=>c.id);
+  const uref=i=>users[i].id;
+
+  const meeting_types=[{id:uid(),code:'DIR',name:'Comité de dirección'},{id:uid(),code:'OPS',name:'Reunión operativa semanal'},
+    {id:uid(),code:'PRJ',name:'Seguimiento de proyecto'},{id:uid(),code:'CLI',name:'Reunión con cliente'},
+    {id:uid(),code:'REV',name:'Revisión por la dirección (EFQM)'},{id:uid(),code:'EXT',name:'Reunión extraordinaria'}];
+  const mt=c=>meeting_types.find(t=>t.code===c).id;
+
+  const S0={companies,users,meeting_types,meetings:[],participants:[],topics:[],checklist:[],
+    reviews:[],updates:[],attachments:[],audit:[],denylist:[],seq:{},
+    org:{name:'Eminat Group',short:'EMG',product:'Operations Management Hub',vendor:'Stratix Solutions'},
+    session:{user_id:uref(0)},scope:'ALL',v:2};
+
+  const mkMeeting=(o)=>{const m={id:uid(),status:'cerrada',modality:'presencial',objective:'',conclusions:'',
+    next_meeting_date:'',next_meeting_notes:'',created_by:uref(0),created_at:nowISO(),...o};
+    m.code=m.code||mkCode(S0,m.company_id,m.meeting_date); S0.meetings.push(m); return m;};
+
+  /* --- Reunión 1: hace 26 días --- */
+  const m1=mkMeeting({company_id:cid('STX'),area:'Marketing',meeting_type_id:mt('OPS'),
+    title:'Comité operativo — Cuentas EMC y PSC',location:'Sala Miramar / Google Meet',
+    meeting_date:dOff(-26),start_time:'09:00',end_time:'10:30',secretary_id:uref(4),chair_id:uref(0),
+    objective:'Definir el arranque de la campaña Weight Loss y el manual de marca de PSC.',
+    conclusions:'Se aprueba el arranque de campaña sujeto a validación médica de EMC.',
+    next_meeting_date:dOff(-13),next_meeting_notes:'Revisión de avances y presupuesto'});
+  [[0,'presente'],[1,'presente'],[4,'presente'],[7,'presente'],[3,'ausente']].forEach(([i,a])=>
+    S0.participants.push({id:uid(),meeting_id:m1.id,user_id:uref(i),position:users[i].position,
+      role_in_meeting:i===0?'Preside':(i===4?'Responsable del acta':'Participante'),attendance:a,is_guest:false}));
+
+  /* --- Reunión 2: hace 13 días --- */
+  const m2=mkMeeting({company_id:cid('STX'),area:'Marketing',meeting_type_id:mt('OPS'),
+    title:'Comité operativo — Seguimiento de acciones',location:'Google Meet',modality:'virtual',
+    meeting_date:dOff(-13),start_time:'09:00',end_time:'10:00',secretary_id:uref(4),chair_id:uref(0),
+    objective:'Revisar el estado de las acciones abiertas del comité anterior.',
+    conclusions:'Campaña Weight Loss se retrasa por validación médica pendiente.',
+    next_meeting_date:today(),next_meeting_notes:'Cierre de pendientes arrastrados'});
+  [[0,'presente'],[1,'presente'],[4,'presente'],[7,'ausente'],[3,'presente']].forEach(([i,a])=>
+    S0.participants.push({id:uid(),meeting_id:m2.id,user_id:uref(i),position:users[i].position,
+      role_in_meeting:i===0?'Preside':'Participante',attendance:a,is_guest:false}));
+
+  const mkTopic=(o)=>{const t={id:uid(),description:'',collaborators:[],related_companies:[],
+    priority:'media',stage:'nuevo',extensions:0,is_final:false,closed_at:null,created_at:nowISO(),...o};
+    t.code=t.code||mkTCode(S0,t.company_id); t.original_due=t.original_due||t.due_date;
+    t.current_meeting_id=t.current_meeting_id||t.meeting_id; S0.topics.push(t); return t;};
+  const mkChk=(tid,items)=>items.forEach(([text,done,by,at])=>S0.checklist.push({id:uid(),topic_id:tid,text,
+    done:!!done,done_by:done?uref(by):null,done_at:done?at:null,evidence:done?'acta-adjunto.pdf':''}));
+
+  /* T1 — el caso de arrastre: nace hace 26 días, prorrogado hace 13, hoy sigue abierto y vencido */
+  const t1=mkTopic({meeting_id:m1.id,company_id:cid('EMC'),related_companies:[cid('STX'),cid('ODM')],
+    title:'Campaña Weight Loss — EMC',
+    description:'Estrategia, piezas y pauta para el lanzamiento de la campaña de control de peso.',
+    owner_id:uref(1),collaborators:[uref(4),uref(2)],approver_id:uref(0),priority:'alta',
+    stage:'en_proceso',due_date:dOff(-2),original_due:dOff(-11),extensions:1});
+  mkChk(t1.id,[['Revisar estrategia',1,0,dOff(-24)],['Aprobar diseños',1,1,dOff(-16)],
+    ['Validar presupuesto',0],['Lanzar campaña',0],['Generar reporte de resultados',0]]);
+  S0.reviews.push({id:uid(),topic_id:t1.id,meeting_id:m2.id,meeting_date:dOff(-13),user_id:uref(0),
+    previous_due:dOff(-11),new_due:dOff(-2),decision:'prorroga',
+    comment:'Validación médica de EMC aún pendiente. Se extiende nueve días.',created_at:nowISO()});
+  S0.updates.push({id:uid(),topic_id:t1.id,user_id:uref(0),kind:'cambio_estado',from:'asignado',to:'en_proceso',
+    body:'Cambió estado: Asignado → En proceso. Comentario: esperando aprobación médica.',
+    evidence:'',created_at:new Date(Date.now()-13*864e5).toISOString()});
+
+  /* T2 — abierto, en plazo */
+  const t2=mkTopic({meeting_id:m1.id,company_id:cid('PSC'),related_companies:[cid('STX')],
+    title:'Manual de marca — Premier Specialty Center',
+    description:'Sistema visual, tipografías y aplicaciones para PSC.',
+    owner_id:uref(1),collaborators:[uref(2)],approver_id:uref(0),priority:'media',
+    stage:'validacion',due_date:dOff(6)});
+  mkChk(t2.id,[['Definir paleta y tipografías',1,1,dOff(-20)],['Aplicaciones en papelería',1,1,dOff(-8)],
+    ['Revisión con dirección',0],['Entrega de archivos finales',0]]);
+
+  /* T3 — cerrado, alimenta el tiempo promedio de cierre */
+  const t3=mkTopic({meeting_id:m1.id,company_id:cid('STX'),title:'Perfiles de contratación — evento Food & Beverage',
+    description:'Publicar y filtrar cinco perfiles part-time para el evento de septiembre.',
+    owner_id:uref(5),collaborators:[uref(0)],approver_id:uref(6),priority:'alta',
+    stage:'finalizado',due_date:dOff(-15),closed_at:new Date(Date.now()-17*864e5).toISOString()});
+  mkChk(t3.id,[['Redactar descripciones de cargo',1,5,dOff(-23)],['Publicar convocatoria',1,5,dOff(-20)],
+    ['Filtrar candidatos',1,5,dOff(-17)]]);
+  S0.reviews.push({id:uid(),topic_id:t3.id,meeting_id:m2.id,meeting_date:dOff(-13),user_id:uref(0),
+    previous_due:dOff(-15),new_due:dOff(-15),decision:'cerrado',
+    comment:'Cinco perfiles cubiertos. Se cierra la acción.',created_at:nowISO()});
+
+  /* T4 — nacido en la reunión 2, vencido sin prórroga */
+  const t4=mkTopic({meeting_id:m2.id,company_id:cid('EMC'),related_companies:[cid('EMG')],
+    title:'Sección Corazón Salud en emc.health',
+    description:'Reconstrucción de la sección con el tarifario definitivo.',
+    owner_id:uref(3),collaborators:[uref(1)],approver_id:uref(0),priority:'critica',
+    stage:'asignado',due_date:dOff(-4)});
+  mkChk(t4.id,[['Confirmar precios con Erick',0],['Maquetar la sección',0],['Publicar y validar en móvil',0]]);
+  return S0;
+}
+function mkCode(st,company_id,date){
+  const c=st.companies.find(x=>x.id===company_id), d=date.replace(/-/g,'');
+  const k=`MTG|${company_id}|${d}`; st.seq[k]=(st.seq[k]||0)+1;
+  return `MTG-${c.code}-${d.slice(0,4)}-${d.slice(4)}-${String(st.seq[k]).padStart(3,'0')}`;
+}
+function mkTCode(st,company_id){
+  const c=st.companies.find(x=>x.id===company_id), y=new Date().getFullYear();
+  const k=`ACC|${company_id}|${y}`; st.seq[k]=(st.seq[k]||0)+1;
+  return `ACC-${c.code}-${y}-${String(st.seq[k]).padStart(4,'0')}`;
+}
+function load(){const raw=localStorage.getItem(LS_DATA); S=raw?JSON.parse(raw):seed(); if(!raw)save();}
+function save(){localStorage.setItem(LS_DATA,JSON.stringify(S));}
+
+/* ---------------------- Accesores ---------------------- */
+const co=id=>S.companies.find(c=>c.id===id)||{code:'—',name:'—',brand_color:'#98A0B6'};
+const usr=id=>S.users.find(u=>u.id===id)||null;
+const uname=id=>usr(id)?.full_name||'Sin asignar';
+const me=()=>usr(S.session.user_id)||S.users[0];
+const can=k=>!!(CAN[me().role]||{})[k];
+const mtg=id=>S.meetings.find(m=>m.id===id)||null;
+const mtype=id=>S.meeting_types.find(t=>t.id===id)?.name||'—';
+
+function visibleCompanies(u=me()){
+  const den=S.denylist.filter(d=>d.user_id===u.id).map(d=>d.company_id);
+  const own=(u.companies&&u.companies.length)?u.companies:S.companies.map(c=>c.id);
+  return S.companies.filter(c=>own.includes(c.id)&&!den.includes(c.id));
+}
+const scopeIds=()=>{const v=visibleCompanies().map(c=>c.id);
+  return S.scope==='ALL'?v:v.filter(i=>i===S.scope);};
+const topicCompanies=t=>[t.company_id,...(t.related_companies||[])];
+const scopedMeetings=()=>{const ids=scopeIds();
+  return S.meetings.filter(m=>ids.includes(m.company_id)).sort((a,b)=>b.meeting_date.localeCompare(a.meeting_date));};
+const scopedTopics=()=>{const ids=scopeIds();
+  return S.topics.filter(t=>topicCompanies(t).some(c=>ids.includes(c))||t.owner_id===me().id);};
+const isOpen=t=>t.stage!=='finalizado';
+const isOverdue=t=>isOpen(t)&&t.due_date&&t.due_date<today();
+const topicReviews=id=>S.reviews.filter(r=>r.topic_id===id).sort((a,b)=>a.meeting_date.localeCompare(b.meeting_date));
+const isCarried=t=>topicReviews(t.id).length>0;
+const chkOf=id=>S.checklist.filter(c=>c.topic_id===id);
+const chkPct=id=>{const l=chkOf(id); return l.length?Math.round(l.filter(c=>c.done).length*100/l.length):0;};
+const ageDays=t=>daysBetween(mtg(t.meeting_id)?.meeting_date||t.created_at.slice(0,10),today());
+
+/* Pendientes que puede heredar una reunión: abiertos, nacidos antes, no revisados aún aquí */
+function inherited(m){
+  const revd=S.reviews.filter(r=>r.meeting_id===m.id).map(r=>r.topic_id);
+  const scope=[m.company_id];
+  return S.topics.filter(t=>isOpen(t)&&t.meeting_id!==m.id&&!revd.includes(t.id)
+    &&(mtg(t.meeting_id)?.meeting_date||'')<=m.meeting_date
+    &&(topicCompanies(t).some(c=>scope.includes(c))||mtg(t.meeting_id)?.company_id===m.company_id))
+    .sort((a,b)=>(a.due_date||'').localeCompare(b.due_date||''));
+}
+const reviewedIn=m=>S.reviews.filter(r=>r.meeting_id===m.id)
+  .map(r=>({r,t:S.topics.find(t=>t.id===r.topic_id)})).filter(x=>x.t);
+const bornIn=m=>S.topics.filter(t=>t.meeting_id===m.id);
+
+/* ---------------------- Indicadores ---------------------- */
+function kpis(){
+  const ms=scopedMeetings(), ts=scopedTopics(), mo=today().slice(0,7);
+  const closed=ts.filter(t=>t.stage==='finalizado'&&t.closed_at);
+  const avg=closed.length?Math.round(closed.reduce((a,t)=>
+    a+daysBetween(mtg(t.meeting_id)?.meeting_date||t.created_at.slice(0,10),t.closed_at.slice(0,10)),0)/closed.length):0;
+  return {meetings:ms.filter(m=>m.meeting_date.slice(0,7)===mo).length,
+    open:ts.filter(isOpen).length, overdue:ts.filter(isOverdue).length,
+    closed:ts.filter(t=>t.stage==='finalizado').length,
+    carried:ts.filter(t=>isOpen(t)&&isCarried(t)).length, avg};
+}
+const pctBar=p=>p>=75?'ok':p>=40?'warn':'bad';
+function byCompany(){
+  return scopeIds().map(id=>{const l=S.topics.filter(t=>topicCompanies(t).includes(id));
+    const d=l.filter(t=>t.stage==='finalizado').length;
+    return {c:co(id),total:l.length,done:d,over:l.filter(isOverdue).length,
+            pct:l.length?Math.round(d*100/l.length):0};}).filter(r=>r.total).sort((a,b)=>b.total-a.total);
+}
+function byOwner(){
+  const ids=scopeIds();
+  return S.users.map(u=>{const l=S.topics.filter(t=>t.owner_id===u.id&&topicCompanies(t).some(c=>ids.includes(c)));
+    const d=l.filter(t=>t.stage==='finalizado').length;
+    return {u,total:l.length,done:d,open:l.filter(isOpen).length,over:l.filter(isOverdue).length,
+            pct:l.length?Math.round(d*100/l.length):0};}).filter(r=>r.total).sort((a,b)=>b.open-a.open);
+}
+function logAudit(action,entity,entity_id,company_id,detail){
+  S.audit.unshift({id:uid(),actor_id:me().id,action,entity_type:entity,entity_id,company_id,detail,created_at:nowISO()});
+  if(S.audit.length>400)S.audit.length=400;
+}
+
+/* ---------------------- Supabase (opcional) ---------------------- */
+const TB={companies:'companies',users:'app_users',meetings:'meetings',participants:'meeting_participants',
+          topics:'meeting_topics',checklist:'checklists',reviews:'topic_reviews',updates:'task_updates'};
+async function connectDB(url,key){
+  const mod=await import('https://esm.sh/@supabase/supabase-js@2');
+  sb=mod.createClient(url,key,{db:{schema:'ops'}});
+  const {error}=await sb.from('companies').select('id').limit(1);
+  if(error) throw new Error(error.message);
+  conn={mode:'supabase',url,key}; localStorage.setItem(LS_CONN,JSON.stringify(conn)); return true;
+}
+async function pullDB(){ if(!sb)return;
+  for(const [k,t] of Object.entries(TB)){const {data,error}=await sb.from(t).select('*'); if(!error&&data)S[k]=data;} save(); }
+async function pushRow(t,row){ if(conn.mode!=='supabase'||!sb)return;
+  const c={...row}; delete c.companies; const {error}=await sb.from(t).upsert(c); if(error)toast('Supabase: '+error.message); }
+async function delRow(t,id){ if(conn.mode!=='supabase'||!sb)return; await sb.from(t).delete().eq('id',id); }
+async function bootDB(){ if(conn.mode==='supabase'&&conn.url&&conn.key){
+  try{await connectDB(conn.url,conn.key); await pullDB();}catch(e){conn.mode='local';} } }
+</script>
+<script>
+/* =====================================================================
+   Controlador · Panel ejecutivo · Reuniones · Expediente de reunión
+   ===================================================================== */
+const $=s=>document.querySelector(s);
+let toastT=null;
+function toast(m){$('#toastMsg').textContent=m;$('#toast').classList.add('on');
+  clearTimeout(toastT);toastT=setTimeout(()=>$('#toast').classList.remove('on'),2800);}
+
+const NAV=[
+  {g:'Gestión operativa'},
+  {k:'panel',      n:'Panel ejecutivo', ic:'◧',t:'Panel ejecutivo',        s:'Indicadores del ámbito seleccionado'},
+  {k:'reuniones',  n:'Reuniones',       ic:'▤',t:'Reuniones',              s:'Cada reunión es un expediente operativo'},
+  {k:'pipeline',   n:'Pipeline',        ic:'⊞',t:'Pipeline de acciones',   s:'Arrastre las tarjetas para mover de etapa'},
+  {k:'seguimiento',n:'Arrastres',       ic:'↻',t:'Pendientes arrastrados', s:'Acciones que sobreviven a más de una reunión'},
+  {g:'Gobierno'},
+  {k:'directorio', n:'Directorio',      ic:'◎',t:'Empresas y personas',    s:'Cargos, roles y participación histórica'},
+  {k:'auditoria',  n:'Auditoría',       ic:'≡',t:'Registro de auditoría',  s:'Trazabilidad de cada movimiento'},
+  {k:'ajustes',    n:'Configuración',   ic:'⌗',t:'Configuración',          s:'Marca, base de datos y respaldo'}
+];
+
+const App={
+  route:'panel', editing:null, filter:{q:'',owner:'',priority:'',company:''},
+
+  init(){ load(); bootDB().then(()=>this.render()); this.render(); },
+  go(k){ this.route=k; this.editing=null; this.closeDrawer(); this.render(); try{window.scrollTo(0,0)}catch(e){} },
+  renderKeep(id){ this.render(); const el=document.getElementById(id);
+    if(el){el.focus(); const v=el.value; try{el.setSelectionRange(v.length,v.length)}catch(e){}} },
+
+  render(){
+    const vis=visibleCompanies();
+    if(S.scope!=='ALL'&&!vis.some(c=>c.id===S.scope)) S.scope='ALL';
+    $('#brandName').textContent=S.org.name; $('#brandProduct').textContent=S.org.product;
+    $('#vendorName').textContent=S.org.vendor;
+
+    $('#scope').innerHTML=`<option value="ALL">Todo el grupo (${vis.length} marcas)</option>`+
+      vis.map(c=>`<option value="${c.id}">${esc(c.code)} · ${esc(c.name)}</option>`).join('');
+    $('#scope').value=S.scope;
+    $('#scope').onchange=e=>{S.scope=e.target.value;save();this.render();};
+
+    const ts=scopedTopics();
+    const counts={reuniones:scopedMeetings().length, pipeline:ts.filter(isOpen).length,
+                  seguimiento:ts.filter(t=>isOpen(t)&&isCarried(t)).length};
+    $('#nav').innerHTML=NAV.map(i=>i.g?`<div class="nav-group">${esc(i.g)}</div>`
+      :`<a class="${this.route===i.k?'on':''}" tabindex="0" onclick="App.go('${i.k}')"
+          onkeydown="if(event.key==='Enter')App.go('${i.k}')"><span class="ic">${i.ic}</span>${esc(i.n)}
+          ${counts[i.k]?`<span class="cnt ${i.k==='seguimiento'&&counts[i.k]?'hot':''}">${counts[i.k]}</span>`:''}</a>`).join('');
+
+    const cur=NAV.find(i=>i.k===this.route);
+    $('#pageTitle').textContent=this.editing?'Expediente de reunión':cur.t;
+    $('#pageSub').textContent=this.editing?'Meeting & Action Tracker — temas, acciones y cierre':cur.s;
+    $('#whoName').textContent=me().full_name;
+    $('#whoRole').textContent=ROLES[me().role]+' · '+co(me().company_id).code;
+    $('#dbPill').className='dbpill'+(conn.mode==='supabase'?' live':'');
+    $('#dbLabel').textContent=conn.mode==='supabase'?'Supabase conectado':'Almacenamiento local';
+    $('#topActions').innerHTML=this.actions();
+    $('#view').innerHTML=this.editing?this.viewExp()
+      :{panel:this.viewPanel,reuniones:this.viewMeetings,pipeline:this.viewPipeline,
+        seguimiento:this.viewCarried,directorio:this.viewDir,auditoria:this.viewAudit,
+        ajustes:this.viewSettings}[this.route].call(this);
+    if(this.route==='pipeline') this.bindDnD();
+  },
+  actions(){
+    if(this.editing) return `<button class="btn" onclick="App.exportPDF()">PDF</button>
+      <button class="btn" onclick="App.exportWord()">Word editable</button>
+      <button class="btn btn-primary" onclick="App.saveExp()">Guardar</button>`;
+    if(['panel','reuniones'].includes(this.route)&&can('meet'))
+      return `<button class="btn btn-accent" onclick="App.newMeeting()">Nueva reunión</button>`;
+    return '';
+  },
+
+  /* ================= PANEL ================= */
+  viewPanel(){
+    const k=kpis(), comp=byCompany(), own=byOwner();
+    const ts=scopedTopics();
+    const over=ts.filter(isOverdue).sort((a,b)=>a.due_date.localeCompare(b.due_date)).slice(0,7);
+    const carr=ts.filter(t=>isOpen(t)&&isCarried(t)).sort((a,b)=>topicReviews(b.id).length-topicReviews(a.id).length).slice(0,5);
+    const next=scopedMeetings().filter(m=>m.next_meeting_date&&m.next_meeting_date>=today()).slice(0,3);
+
+    return `
+    <div class="kpis">
+      ${kpi('Reuniones del mes',k.meetings,'Expedientes registrados','')}
+      ${kpi('Pendientes abiertos',k.open,'Acciones sin cerrar','')}
+      ${kpi('Pendientes vencidos',k.overdue,'Fuera de plazo',k.overdue?'alert':'good')}
+      ${kpi('Arrastrados',k.carried,'Revisados en 2+ reuniones',k.carried?'watch':'good')}
+      ${kpi('Finalizados',k.closed,'Con evidencia de cierre','good')}
+      ${kpi('Cierre promedio',k.avg?k.avg+' d':'—','Días desde su origen','')}
+    </div>
+
+    ${k.carried?`<div class="alert-box"><b>${k.carried} ${k.carried===1?'acción sigue abierta':'acciones siguen abiertas'} después de más de una reunión.</b>
+      Revíselas en el expediente de hoy: cada retoma debe cerrar con una decisión explícita — mantener plazo, prórroga o último plazo.
+      <button class="btn btn-sm" style="margin-left:8px" onclick="App.go('seguimiento')">Ver arrastres</button></div>`:''}
+
+    <div class="split">
+      <div class="card">
+        <div class="card-h"><h3>Cumplimiento por empresa</h3><div class="sp"></div><span class="eyebrow">Acciones cerradas / total</span></div>
+        <div class="card-b">${comp.length?`<div class="bars">${comp.map(r=>`
+          <div class="bar-row"><div class="nm"><span class="dot" style="background:${r.c.brand_color}"></span><span>${esc(r.c.name)}</span></div>
+            <div class="track2"><div class="fill ${pctBar(r.pct)}" style="width:${r.pct}%"></div></div>
+            <div class="pc">${r.pct}%</div></div>`).join('')}</div>
+          <div class="hr"></div><div class="tiny muted">Incluye las acciones en las que la empresa participa como relacionada, no solo las propias.</div>`
+        :emptyBox('Sin acciones registradas','Cree una reunión y registre temas para alimentar el indicador.')}</div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h3>Cumplimiento por responsable</h3></div>
+        <div class="card-b">${own.length?`<ul class="list-clean">${own.slice(0,6).map(r=>`
+          <li><span class="avatar">${initials(r.u.full_name)}</span>
+            <div style="flex:1;min-width:0"><div style="font-weight:500;font-size:12.5px">${esc(r.u.full_name)}</div>
+              <div class="progress" style="margin-top:5px"><i class="${r.pct===100?'full':''}" style="width:${r.pct}%"></i></div></div>
+            <div class="right" style="width:74px"><div class="code">${r.open} abiertas</div>
+              ${r.over?`<div class="tiny" style="color:var(--danger)">${r.over} vencidas</div>`:`<div class="tiny muted">${r.pct}% cierre</div>`}</div></li>`).join('')}</ul>`
+        :`<div class="tiny muted">Aún no hay acciones asignadas.</div>`}</div>
+      </div>
+    </div>
+
+    <div class="split" style="margin-top:18px">
+      <div class="card">
+        <div class="card-h"><h3>Vencidos</h3><div class="sp"></div>
+          <button class="btn btn-sm btn-ghost" onclick="App.go('pipeline')">Ver pipeline</button></div>
+        ${over.length?`<table><thead><tr><th>Código</th><th>Acción</th><th>Responsable</th><th>Plazo</th><th>Origen</th></tr></thead>
+        <tbody>${over.map(t=>`<tr class="click" onclick="App.openTopic('${t.id}')">
+          <td><span class="code">${esc(t.code)}</span></td>
+          <td>${esc(t.title)}${t.is_final?' <span class="tag tag-danger">Último plazo</span>':''}</td>
+          <td class="tiny">${esc(uname(t.owner_id))}</td>
+          <td><span class="tag tag-danger">${fmtDs(t.due_date)}</span></td>
+          <td class="tiny muted">${ageDays(t)} d · ${topicReviews(t.id).length} revisión(es)</td></tr>`).join('')}</tbody></table>`
+        :`<div class="card-b tiny muted">Ninguna acción fuera de plazo.</div>`}
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h3>Arrastres con más historia</h3></div>
+        <div class="card-b">${carr.length?`<ul class="list-clean">${carr.map(t=>`
+          <li style="cursor:pointer" onclick="App.openTopic('${t.id}')">
+            <div style="flex:1;min-width:0"><div class="tiny" style="font-weight:500">${esc(t.title)}</div>
+              <div class="tiny muted">${topicReviews(t.id).length+1} reuniones · ${t.extensions} prórroga(s)</div></div>
+            <span class="tag ${t.is_final?'tag-danger':'tag-orange'}">${fmtDs(t.due_date)}</span></li>`).join('')}</ul>`
+        :`<div class="tiny muted">Ninguna acción arrastrada. Es la mejor señal posible.</div>`}
+          <div class="hr"></div><div class="eyebrow" style="margin-bottom:8px">Próximas reuniones</div>
+          ${next.length?`<ul class="list-clean">${next.map(m=>`<li>
+            <div style="flex:1"><div class="tiny" style="font-weight:500">${esc(m.next_meeting_notes||'Seguimiento')}</div>
+              <div class="tiny muted">${esc(co(m.company_id).code)} · convocada en ${esc(m.code)}</div></div>
+            <span class="tag tag-soft">${fmtDs(m.next_meeting_date)}</span></li>`).join('')}</ul>`
+          :`<div class="tiny muted">Sin fechas previstas.</div>`}
+        </div>
+      </div>
+    </div>`;
+  },
+
+  /* ================= REUNIONES ================= */
+  viewMeetings(){
+    const list=scopedMeetings();
+    if(!list.length) return `<div class="card"><div class="card-b">${emptyBox('Sin reuniones en este ámbito',
+      'Cada reunión abre un expediente: temas, acciones, checklist y cierre.',
+      can('meet')?`<button class="btn btn-accent" onclick="App.newMeeting()">Nueva reunión</button>`:'')}</div></div>`;
+    return `<div class="card"><table>
+      <thead><tr><th>Código</th><th>Reunión</th><th>Empresa</th><th>Fecha</th><th>Asistencia</th>
+        <th>Temas</th><th>Arrastres</th><th>Estado</th></tr></thead>
+      <tbody>${list.map(m=>{
+        const ps=S.participants.filter(p=>p.meeting_id===m.id);
+        const born=bornIn(m), rev=reviewedIn(m);
+        return `<tr class="click" onclick="App.openMeeting('${m.id}')">
+          <td><span class="code">${esc(m.code)}</span></td>
+          <td><div style="font-weight:500">${esc(m.title||'Sin título')}</div>
+            <div class="tiny muted">${esc(mtype(m.meeting_type_id))} · ${esc(m.location||'—')}</div></td>
+          <td><span class="chip"><span class="dot" style="background:${co(m.company_id).brand_color}"></span>${esc(co(m.company_id).code)}</span></td>
+          <td class="tiny">${fmtDs(m.meeting_date)}</td>
+          <td class="tiny">${ps.filter(p=>p.attendance==='presente').length}/${ps.length}</td>
+          <td class="tiny">${born.length}</td>
+          <td class="tiny">${rev.length?`<span class="tag tag-orange">${rev.length}</span>`:'—'}</td>
+          <td><span class="tag ${MSTATUS[m.status].tag}">${MSTATUS[m.status].label}</span></td></tr>`;}).join('')}
+      </tbody></table></div>`;
+  },
+  newMeeting(){
+    if(!can('meet')) return toast('Su rol no permite abrir reuniones');
+    const cid=S.scope!=='ALL'?S.scope:visibleCompanies()[0].id;
+    const m={id:uid(),code:mkCode(S,cid,today()),company_id:cid,area:'',meeting_type_id:S.meeting_types[1].id,
+      title:'',location:'',modality:'presencial',meeting_date:today(),start_time:'09:00',end_time:'10:00',
+      secretary_id:me().id,chair_id:me().id,objective:'',conclusions:'',next_meeting_date:'',
+      next_meeting_notes:'',status:'borrador',created_by:me().id,created_at:nowISO()};
+    S.meetings.unshift(m); logAudit('INSERT','meetings',m.id,cid,'Reunión abierta');
+    save(); pushRow('meetings',m); this.editing=m.id; this.route='reuniones'; this.render();
+    toast('Expediente abierto · '+m.code);
+  },
+  openMeeting(id){ this.editing=id; this.route='reuniones'; this.render(); try{window.scrollTo(0,0)}catch(e){} },
+  M(){ return mtg(this.editing); },
+  setM(f,v){ const m=this.M(); m[f]=v; save(); pushRow('meetings',m); if(['company_id','status'].includes(f))this.render(); },
+  saveExp(){ save(); pushRow('meetings',this.M()); toast('Expediente guardado'); },
+  closeMeeting(){
+    const m=this.M(); const openBorn=bornIn(m).filter(isOpen).length;
+    if(!confirm(`Cerrar el acta ${m.code}. Las ${openBorn} acciones abiertas seguirán vivas y podrán retomarse en la próxima reunión. ¿Continuar?`)) return;
+    m.status='cerrada'; logAudit('CLOSE','meetings',m.id,m.company_id,'Acta cerrada');
+    save(); pushRow('meetings',m); this.render(); toast('Acta cerrada');
+  },
+
+  /* ================= EXPEDIENTE ================= */
+  viewExp(){
+    const m=this.M(); if(!m){this.editing=null;return this.viewMeetings();}
+    const lock=m.status==='cerrada'||!can('meet');
+    const ps=S.participants.filter(p=>p.meeting_id===m.id);
+    const born=bornIn(m), rev=reviewedIn(m), inh=inherited(m);
+    const vis=visibleCompanies();
+
+    return `
+    <div class="flex wrap no-print" style="margin-bottom:15px">
+      <button class="btn btn-ghost btn-sm" onclick="App.go('reuniones')">← Reuniones</button>
+      <span class="code">${esc(m.code)}</span>
+      <span class="tag ${MSTATUS[m.status].tag}">${MSTATUS[m.status].label}</span>
+      <div class="sp"></div>
+      ${lock?'<span class="tiny muted">Acta cerrada · solo lectura</span>':`
+        ${m.status==='borrador'?`<button class="btn btn-sm" onclick="App.setM('status','en_curso')">Marcar en curso</button>`:''}
+        ${can('close')?`<button class="btn btn-sm btn-primary" onclick="App.closeMeeting()">Cerrar acta</button>`:''}`}
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-h"><h3>Datos de la reunión</h3><div class="sp"></div><span class="eyebrow">Sección 1</span></div>
+      <div class="card-b">
+        <div class="field" style="margin-bottom:13px"><label>Título</label>
+          <input ${lock?'disabled':''} value="${esc(m.title)}" placeholder="Ej. Comité operativo — Cuentas EMC"
+            onchange="App.setM('title',this.value)"></div>
+        <div class="grid3" style="margin-bottom:13px">
+          <div class="field"><label>Empresa o marca</label>
+            <select ${lock?'disabled':''} onchange="App.setM('company_id',this.value)">
+              ${vis.map(c=>`<option value="${c.id}" ${m.company_id===c.id?'selected':''}>${esc(c.code)} · ${esc(c.name)}</option>`).join('')}
+            </select></div>
+          <div class="field"><label>Área</label>
+            <input ${lock?'disabled':''} value="${esc(m.area||'')}" placeholder="Marketing, Operaciones…" onchange="App.setM('area',this.value)"></div>
+          <div class="field"><label>Tipo de reunión</label>
+            <select ${lock?'disabled':''} onchange="App.setM('meeting_type_id',this.value)">
+              ${S.meeting_types.map(t=>`<option value="${t.id}" ${m.meeting_type_id===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}
+            </select></div>
+        </div>
+        <div class="grid4" style="margin-bottom:13px">
+          <div class="field"><label>Fecha</label><input type="date" ${lock?'disabled':''} value="${esc(m.meeting_date)}" onchange="App.setM('meeting_date',this.value)"></div>
+          <div class="field"><label>Hora inicio</label><input type="time" ${lock?'disabled':''} value="${esc(m.start_time||'')}" onchange="App.setM('start_time',this.value)"></div>
+          <div class="field"><label>Hora fin</label><input type="time" ${lock?'disabled':''} value="${esc(m.end_time||'')}" onchange="App.setM('end_time',this.value)"></div>
+          <div class="field"><label>Modalidad</label>
+            <select ${lock?'disabled':''} onchange="App.setM('modality',this.value)">
+              ${['presencial','virtual','híbrida'].map(x=>`<option ${m.modality===x?'selected':''}>${x}</option>`).join('')}</select></div>
+        </div>
+        <div class="grid3">
+          <div class="field"><label>Lugar o plataforma</label>
+            <input ${lock?'disabled':''} value="${esc(m.location||'')}" placeholder="Sala / enlace" onchange="App.setM('location',this.value)"></div>
+          <div class="field"><label>Responsable del acta</label>
+            <select ${lock?'disabled':''} onchange="App.setM('secretary_id',this.value)">
+              ${S.users.map(u=>`<option value="${u.id}" ${m.secretary_id===u.id?'selected':''}>${esc(u.full_name)}</option>`).join('')}</select></div>
+          <div class="field"><label>Preside</label>
+            <select ${lock?'disabled':''} onchange="App.setM('chair_id',this.value)">
+              ${S.users.map(u=>`<option value="${u.id}" ${m.chair_id===u.id?'selected':''}>${esc(u.full_name)}</option>`).join('')}</select></div>
+        </div>
+        <div class="field" style="margin-top:13px"><label>Objetivo</label>
+          <textarea ${lock?'disabled':''} placeholder="¿Qué debe quedar resuelto al terminar la sesión?"
+            onchange="App.setM('objective',this.value)">${esc(m.objective||'')}</textarea></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-h"><h3>Participantes</h3><div class="sp"></div>
+        <span class="tiny muted">${ps.filter(p=>p.attendance==='presente').length} presentes de ${ps.length}</span>
+        ${lock?'':`<button class="btn btn-sm no-print" onclick="App.addPart(false)">Añadir del equipo</button>
+        <button class="btn btn-sm no-print" onclick="App.addPart(true)">Invitado externo</button>`}</div>
+      ${ps.length?`<table><thead><tr><th style="width:28%">Nombre</th><th>Cargo</th><th>Departamento</th>
+        <th>Empresa</th><th>Rol en reunión</th><th style="width:130px">Estado</th>${lock?'':'<th style="width:40px"></th>'}</tr></thead>
+      <tbody>${ps.map((p,i)=>`<tr>
+        <td>${p.is_guest?`<input ${lock?'disabled':''} value="${esc(p.guest_name||'')}" placeholder="Nombre" onchange="App.setP(${i},'guest_name',this.value)">`
+          :`<select ${lock?'disabled':''} onchange="App.setP(${i},'user_id',this.value)">
+              ${S.users.map(u=>`<option value="${u.id}" ${p.user_id===u.id?'selected':''}>${esc(u.full_name)}</option>`).join('')}</select>`}</td>
+        <td><input ${lock?'disabled':''} value="${esc(p.position||'')}" onchange="App.setP(${i},'position',this.value)"></td>
+        <td><input ${lock?'disabled':''} value="${esc(p.department||usr(p.user_id)?.department||'')}" onchange="App.setP(${i},'department',this.value)"></td>
+        <td>${p.is_guest?`<input ${lock?'disabled':''} value="${esc(p.guest_company||'')}" placeholder="Organización" onchange="App.setP(${i},'guest_company',this.value)">`
+          :`<span class="chip"><span class="dot" style="background:${co(usr(p.user_id)?.company_id).brand_color}"></span>${esc(co(usr(p.user_id)?.company_id).code)}</span>`}</td>
+        <td><input ${lock?'disabled':''} value="${esc(p.role_in_meeting||'Participante')}" onchange="App.setP(${i},'role_in_meeting',this.value)"></td>
+        <td><select ${lock?'disabled':''} onchange="App.setP(${i},'attendance',this.value)">
+          ${['presente','ausente','invitado'].map(a=>`<option value="${a}" ${p.attendance===a?'selected':''}>${a[0].toUpperCase()+a.slice(1)}</option>`).join('')}</select></td>
+        ${lock?'':`<td class="no-print"><button class="btn btn-sm btn-ghost" onclick="App.delPart('${p.id}')">✕</button></td>`}</tr>`).join('')}
+      </tbody></table>`:`<div class="card-b tiny muted">Sin participantes. La asistencia alimenta el historial de cada persona.</div>`}
+    </div>
+
+    ${(inh.length&&!lock)?`
+    <div class="card" style="margin-bottom:16px;border-color:#F0CFAE">
+      <div class="card-h" style="background:var(--orange-tint);border-bottom-color:#F0CFAE">
+        <h3>Pendientes de reuniones anteriores</h3><div class="sp"></div>
+        <span class="tag tag-orange">${inh.length} por revisar</span></div>
+      <div class="card-b">
+        <p class="tiny muted" style="margin-top:0">Estas acciones nacieron en actas anteriores y siguen abiertas. Retomarlas aquí no las duplica: registra la revisión de hoy y permite ajustar el plazo o declarar el último.</p>
+        <table><thead><tr><th>Código</th><th>Acción</th><th>Origen</th><th>Responsable</th><th>Plazo vigente</th><th>Etapa</th><th></th></tr></thead>
+        <tbody>${inh.map(t=>`<tr>
+          <td><span class="code">${esc(t.code)}</span></td>
+          <td><div style="font-weight:500;font-size:12.5px">${esc(t.title)}</div>
+            <div class="tiny muted">${chkPct(t.id)}% del checklist${t.extensions?` · ${t.extensions} prórroga(s)`:''}${t.is_final?' · <b style="color:var(--danger)">último plazo</b>':''}</div></td>
+          <td class="tiny muted">${esc(mtg(t.meeting_id)?.code||'—')}<br>${fmtDs(mtg(t.meeting_id)?.meeting_date)} · ${ageDays(t)} d</td>
+          <td class="tiny">${esc(uname(t.owner_id))}</td>
+          <td>${isOverdue(t)?`<span class="tag tag-danger">${fmtDs(t.due_date)}</span>`:`<span class="tiny">${fmtDs(t.due_date)}</span>`}</td>
+          <td><span class="tag ${stage(t.stage).tag}">${stage(t.stage).n}</span></td>
+          <td class="right"><button class="btn btn-sm btn-accent" onclick="App.openReview('${t.id}','${m.id}')">Retomar</button></td></tr>`).join('')}
+        </tbody></table>
+      </div>
+    </div>`:''}
+
+    ${rev.length?`
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-h"><h3>Pendientes retomados en esta reunión</h3><div class="sp"></div>
+        <span class="eyebrow">${rev.length} revisión(es)</span></div>
+      <table><thead><tr><th>Código</th><th>Acción</th><th>Decisión</th><th>Plazo anterior</th><th>Nuevo plazo</th><th>Comentario</th></tr></thead>
+      <tbody>${rev.map(({r,t})=>`<tr class="click" onclick="App.openTopic('${t.id}')">
+        <td><span class="code">${esc(t.code)}</span></td>
+        <td style="font-weight:500;font-size:12.5px">${esc(t.title)}</td>
+        <td><span class="tag ${DECISION[r.decision].tag}">${DECISION[r.decision].n}</span></td>
+        <td class="tiny muted">${fmtDs(r.previous_due)}</td>
+        <td class="tiny" style="font-weight:500">${fmtDs(r.new_due)}</td>
+        <td class="tiny muted">${esc(r.comment||'—')}</td></tr>`).join('')}</tbody></table>
+    </div>`:''}
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-h"><h3>Temas tratados</h3><div class="sp"></div>
+        <span class="tiny muted">Cada tema genera una acción con responsable, checklist y pipeline propio</span>
+        ${lock?'':`<button class="btn btn-sm btn-accent no-print" onclick="App.addTopic()">+ Agregar nuevo tema</button>`}</div>
+      <div class="card-b">
+        ${born.length?born.map((t,i)=>this.topicBlock(t,i,lock)).join('')
+        :`<div class="tiny muted">Sin temas nuevos. Use “Agregar nuevo tema” o retome un pendiente anterior.</div>`}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><h3>Conclusiones y próxima reunión</h3></div>
+      <div class="card-b">
+        <div class="field" style="margin-bottom:13px"><label>Conclusiones</label>
+          <textarea ${lock?'disabled':''} placeholder="Cierre de la sesión, riesgos y decisiones globales"
+            onchange="App.setM('conclusions',this.value)">${esc(m.conclusions||'')}</textarea></div>
+        <div class="grid2">
+          <div class="field"><label>Fecha de la próxima reunión</label>
+            <input type="date" ${lock?'disabled':''} value="${esc(m.next_meeting_date||'')}" onchange="App.setM('next_meeting_date',this.value)"></div>
+          <div class="field"><label>Enfoque previsto</label>
+            <input ${lock?'disabled':''} value="${esc(m.next_meeting_notes||'')}" placeholder="Ej. Cierre de pendientes arrastrados" onchange="App.setM('next_meeting_notes',this.value)"></div>
+        </div>
+      </div>
+    </div>`;
+  },
+
+  addPart(guest){
+    const m=this.M();
+    const used=S.participants.filter(p=>p.meeting_id===m.id&&p.user_id).map(p=>p.user_id);
+    const free=S.users.find(u=>!used.includes(u.id))||S.users[0];
+    S.participants.push({id:uid(),meeting_id:m.id,user_id:guest?null:free.id,guest_name:guest?'':null,
+      guest_company:guest?'':null,is_guest:!!guest,position:guest?'':free.position,
+      department:guest?'':free.department,role_in_meeting:guest?'Invitado':'Participante',
+      attendance:guest?'invitado':'presente'});
+    save(); this.render();
+  },
+  setP(i,f,v){ const m=this.M(); const p=S.participants.filter(x=>x.meeting_id===m.id)[i];
+    p[f]=v; if(f==='user_id'){p.position=usr(v)?.position||'';p.department=usr(v)?.department||'';}
+    save(); pushRow('meeting_participants',p); this.render(); },
+  delPart(id){ S.participants=S.participants.filter(p=>p.id!==id); save(); delRow('meeting_participants',id); this.render(); }
+};
+
+function kpi(k,v,s,cls){return `<div class="kpi ${cls}"><div class="k">${k}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;}
+function emptyBox(t,x,a=''){return `<div class="empty"><div class="g">◇</div><h3>${esc(t)}</h3><p>${esc(x)}</p>${a}</div>`;}
+</script>
+<script>
+/* =====================================================================
+   Temas · Checklist · Pipeline · Retoma de pendientes · Vistas de gobierno
+   ===================================================================== */
+const LOGO_B64='iVBORw0KGgoAAAANSUhEUgAAAHgAAAB4CAYAAAA5ZDbSAAAABmJLR0QA/wD/AP+gvaeTAAAFwUlEQVR4nO3dzWseRRzA8e9E8+RJikZMY6WC2hKhuCi0qXfrRXoQW+WpZ0VE6tWLPXkpevDiQREVerYtahVi7aH1D/BRFCMUg0aoxpooES2JeRsP6cRHSdJ9mZmdmf19j+FJdp58sptnZ5dZkCRJkiRJkiRJkiRJkiRJkiRJkrYuyzqt3WOHjgN9dY+ljpJ+01nWaf2xOPue0vqNu8YOvUvi73ezbqp7AK4yuBqOXP/S/ltH9tz95+/THwO6zrH5LEngTXBNjUNODngbXFOjkJMCzoFragxyMsAFcE2NQE4CuASuKXnk6IEr4JqSRo4a2AKuKVnkaIEt4pqSRI4S2AGuKTnk6IAd4pqSQo5qbjbLOq35xV/POMRdT6/tyrLOzU634SlV9wDy5mHPBUDD+dYqR6enP1t0uR1fRQEsuOULHlhwqxU0sOBWL1hgwbVTkMCCa6/ggAXXbkEBC679ggEWXDcFASy47qodWHDdVutcdKi4v7z44A6X4/FZbcCh4k6fOPjMYqv/ux9f2n+/y3H5qpZDdMi4oN9h/Q//qtJrj9zzypffuhyj67wDR4Jrih7ZK3BkuKaokb0BR4prihbZC3DkuKYokZ0DJ4Jrig7ZKXBiuKaokJ2dB6/fIDf7uobDrraxnp4YUoNHPOEC7NKq72Is58lOgM2eCzyv4BvAyfSghvP9q+rJqalP/s7zegu4pmiQrQP//7CsYVzBJJaRPR+WN6s0cpZ1WhbHsW1W/wdv9z9XQVdDBrSrbqco7g8nDjyqUBO4+aVeaS8t77vzta+v5XlxlnVa8wuzZ+lTcz9NXXoWWHMwpo2sveEbfaCytSeXuSr025y6CHxUZbtbDUcrThbGVTyG1k/7WBjGyh5c5NNylT25yiW/z58b79+5k9PY+0SvteL4npPdt/K8+D+4vSl1yuWeXBm4zKlQGWQb13MtItvBNTlErgRc5Ty3CLLNi/UWkO3imhwhlwa2MYmRB9nFnRgVkN3gmhwglwK2OUO1HbLL22xKILvFNVlGLgzsYvpxM2Qf91AVQPaDa7KIXAjY5dxyL7LPG+RyIPvFNVlCzg3s48KBRn0BXBlS7WN5px9ttA1yPbgmC8i5T7Lb7e+dL2eg0AdAD6ysLHi90+Tg293luTmOAR/2fLle3PURVJ4MKfSLHB8f7786f8tpD5f/Pm2tkvsKka169uTHa8ftrcKeXHhPSR158uWsNbjYfnjvq90LeV4/NnZ4YEEvfIDjy6JaqRd+nrr0ZtHvK3UoTB05b8733I30xKAaeqLM55JSyyjNzMys3bd35P1riwMPAPvK/Iw8KRhb7eOhkeF7z87PT6+42k6ZYsCFCutkNRk5FlyouBBaE5FjwgULK901CTk2XLC0lGETkGPEBYtrVaaMHCsuWF6MNEXkmHHBwWqzKSHHjguOlhNOATkFXHC4XnTMyKngguMFwWNETgkXPKz4HhNyarjgaUn/GJBTxAWPz2wIGTlVXPD8UI4QkVPGhRqeuhIScuq4UNNjdUJAbgIu1PjcpDqRm4ILASxG6vv2nx07RteaggsBAINfZKVZco2r4Nxwe/TY5OSZJZfbyVMQj7bzebhWir+A2wFHTzbTE4NqqHP58rnacSEQYPCHDOxW8BVOkMM4LPcWDDDEjhweLgQGDLEih4kLAQJDbMjh4kKgwBALcti4EDAwhI4cPi4EDgyhIseBCxEAQ2jI8eBCJMAQCnJcuBARMNSNHB8uRAYMdSHrCzHiQs1PPitbt9tdHm6PPgXaxQKjG2kYR6tTt7XvOBojLgRyNals7q9CxXlY7i26Q3Rvbg/X8eNC5MDgCjkNXEgAGGwjp4MLiQCDLeS0cCEhYKiKnB4uJAYMZZHTxIUEgaEocrq4kCgw5EVOGxcSBoYbIaePC4kDw1bIzcCFyKcqi/TvtKZuNQW3cWVZp3X9uYGSJEmSJEmSJEmSJEmSJAXVP29rhHtrcv2zAAAAAElFTkSuQmCC';
+
+Object.assign(App,{
+  expanded:[],
+
+  /* ---------------- Bloque de tema dentro del expediente ---------------- */
+  topicBlock(t,i,lock){
+    const open=this.expanded.includes(t.id);
+    const si=stageIdx(t.stage), pct=chkPct(t.id), revs=topicReviews(t.id);
+    const vis=visibleCompanies();
+    return `
+    <div class="topic ${isCarried(t)?'carried':''}">
+      <div class="topic-h" onclick="App.toggleTopic('${t.id}')">
+        <span class="n">TEMA ${String(i+1).padStart(2,'0')}</span>
+        <span class="code">${esc(t.code)}</span>
+        <h4>${esc(t.title||'Tema sin título')}</h4>
+        <span class="tag ${PRIORITY[t.priority].tag}">${PRIORITY[t.priority].label}</span>
+        <span class="tag ${stage(t.stage).tag}">${stage(t.stage).n}</span>
+        ${isOverdue(t)?`<span class="tag tag-danger">Vencido ${fmtDs(t.due_date)}</span>`
+          :`<span class="tiny muted">${fmtDs(t.due_date)}</span>`}
+        <span class="tiny muted">${pct}%</span>
+        <span class="tiny muted">${open?'▲':'▼'}</span>
+      </div>
+      ${open?`<div class="topic-b">
+        <div class="pipe" style="margin-bottom:16px">${STAGES.map((s,k)=>
+          `<button class="${k<si?'done':''} ${k===si?'now':''}" ${lock?'disabled':''}
+            onclick="App.setStage('${t.id}','${s.k}')">${s.n}</button>`).join('')}</div>
+
+        <div class="field" style="margin-bottom:13px"><label>Nombre del tema</label>
+          <input ${lock?'disabled':''} value="${esc(t.title)}" onchange="App.setT('${t.id}','title',this.value)"></div>
+        <div class="field" style="margin-bottom:13px"><label>Descripción</label>
+          <textarea style="min-height:62px" ${lock?'disabled':''} onchange="App.setT('${t.id}','description',this.value)">${esc(t.description||'')}</textarea></div>
+
+        <div class="grid4" style="margin-bottom:13px">
+          <div class="field"><label>Responsable principal</label>
+            <select ${lock?'disabled':''} onchange="App.setT('${t.id}','owner_id',this.value)">
+              ${S.users.map(u=>`<option value="${u.id}" ${t.owner_id===u.id?'selected':''}>${esc(u.full_name)} — ${esc(u.position)}</option>`).join('')}</select></div>
+          <div class="field"><label>Aprobador</label>
+            <select ${lock?'disabled':''} onchange="App.setT('${t.id}','approver_id',this.value)">
+              <option value="">Sin aprobador</option>
+              ${S.users.map(u=>`<option value="${u.id}" ${t.approver_id===u.id?'selected':''}>${esc(u.full_name)} — ${esc(u.position)}</option>`).join('')}</select></div>
+          <div class="field"><label>Prioridad</label>
+            <select ${lock?'disabled':''} onchange="App.setT('${t.id}','priority',this.value)">
+              ${Object.entries(PRIORITY).map(([k,v])=>`<option value="${k}" ${t.priority===k?'selected':''}>${v.label}</option>`).join('')}</select></div>
+          <div class="field"><label>Fecha compromiso</label>
+            <input type="date" ${lock?'disabled':''} value="${esc(t.due_date||'')}" onchange="App.setT('${t.id}','due_date',this.value)"></div>
+        </div>
+
+        <div class="grid2" style="margin-bottom:14px">
+          <div><div class="eyebrow" style="margin-bottom:7px">Colaboradores</div>
+            <div class="flex wrap" style="margin-bottom:7px">
+              ${(t.collaborators||[]).map(id=>`<span class="chip"><span class="avatar" style="width:16px;height:16px;font-size:8px">${initials(uname(id))}</span>${esc(uname(id))}
+                ${lock?'':`<button onclick="App.unlinkUser('${t.id}','${id}')">✕</button>`}</span>`).join('')||'<span class="tiny muted">Ninguno</span>'}
+            </div>
+            ${lock?'':`<select onchange="App.linkUser('${t.id}',this.value);this.value=''">
+              <option value="">Añadir colaborador…</option>
+              ${S.users.filter(u=>u.id!==t.owner_id&&!(t.collaborators||[]).includes(u.id)).map(u=>`<option value="${u.id}">${esc(u.full_name)} — ${esc(u.position)}</option>`).join('')}</select>`}
+          </div>
+          <div><div class="eyebrow" style="margin-bottom:7px">Empresas involucradas</div>
+            <div class="flex wrap" style="margin-bottom:7px">
+              <span class="chip"><span class="dot" style="background:${co(t.company_id).brand_color}"></span>${esc(co(t.company_id).code)} · principal</span>
+              ${(t.related_companies||[]).map(id=>`<span class="chip"><span class="dot" style="background:${co(id).brand_color}"></span>${esc(co(id).code)}
+                ${lock?'':`<button onclick="App.unlinkCo('${t.id}','${id}')">✕</button>`}</span>`).join('')}
+            </div>
+            ${lock?'':`<div class="grid2">
+              <select onchange="App.setT('${t.id}','company_id',this.value)">
+                ${vis.map(c=>`<option value="${c.id}" ${t.company_id===c.id?'selected':''}>Principal: ${esc(c.code)}</option>`).join('')}</select>
+              <select onchange="App.linkCo('${t.id}',this.value);this.value=''">
+                <option value="">Añadir relacionada…</option>
+                ${vis.filter(c=>c.id!==t.company_id&&!(t.related_companies||[]).includes(c.id)).map(c=>`<option value="${c.id}">${esc(c.code)} · ${esc(c.name)}</option>`).join('')}</select>
+            </div>`}
+          </div>
+        </div>
+
+        <div class="eyebrow" style="margin-bottom:6px">Checklist · ${pct}% completado</div>
+        <div class="progress" style="margin-bottom:10px"><i class="${pct===100?'full':''}" style="width:${pct}%"></i></div>
+        <ul class="chk">${chkOf(t.id).map(c=>`<li>
+          <input type="checkbox" ${c.done?'checked':''} ${lock?'disabled':''} onchange="App.toggleChk('${c.id}')">
+          <div class="txt"><div class="${c.done?'done':''}">${esc(c.text)}</div>
+            ${c.done?`<div class="meta">${esc(uname(c.done_by))} · ${fmtDs(c.done_at)}${c.evidence?' · evidencia: '+esc(c.evidence):''}</div>`
+              :`<div class="meta">Pendiente</div>`}</div>
+          ${lock?'':`<button class="btn btn-sm btn-ghost" onclick="App.delChk('${c.id}')">✕</button>`}</li>`).join('')
+          ||'<li class="tiny muted">Sin ítems. Un tema sin checklist no se puede medir.</li>'}</ul>
+        ${lock?'':`<div class="flex" style="margin-top:11px">
+          <input id="chk-${t.id}" placeholder="Nuevo ítem del checklist…" style="flex:1;padding:8px 11px;border:1px solid var(--line);border-radius:var(--r-sm)"
+            onkeydown="if(event.key==='Enter')App.addChk('${t.id}')">
+          <button class="btn btn-sm" onclick="App.addChk('${t.id}')">Añadir</button></div>`}
+
+        <div class="hr"></div>
+        <div class="flex wrap">
+          <span class="tiny muted">${revs.length?`Revisado en ${revs.length} reunión(es) posterior(es) · ${t.extensions} prórroga(s)`:'Sin revisiones posteriores'}</span>
+          <div class="sp"></div>
+          <button class="btn btn-sm" onclick="App.openTopic('${t.id}')">Ver historial completo</button>
+          ${lock?'':`<button class="btn btn-sm btn-ghost" onclick="App.delTopic('${t.id}')">Eliminar tema</button>`}
+        </div>
+      </div>`:''}
+    </div>`;
+  },
+  toggleTopic(id){ this.expanded=this.expanded.includes(id)?this.expanded.filter(x=>x!==id):[...this.expanded,id]; this.render(); },
+
+  addTopic(){
+    const m=this.M();
+    const t={id:uid(),code:mkTCode(S,m.company_id),meeting_id:m.id,current_meeting_id:m.id,
+      company_id:m.company_id,related_companies:[],title:'',description:'',owner_id:me().id,
+      collaborators:[],approver_id:m.chair_id,priority:'media',stage:'nuevo',
+      due_date:dOff(7),original_due:dOff(7),extensions:0,is_final:false,closed_at:null,created_at:nowISO()};
+    S.topics.push(t); this.expanded.push(t.id);
+    logAudit('INSERT','meeting_topics',t.id,m.company_id,'Tema creado');
+    save(); pushRow('meeting_topics',t); this.render();
+  },
+  setT(id,f,v){ const t=S.topics.find(x=>x.id===id); const old=t[f]; t[f]=v;
+    if(f==='due_date'&&!t.original_due) t.original_due=v;
+    if(f==='due_date'&&old!==v) S.updates.push({id:uid(),topic_id:id,user_id:me().id,kind:'plazo',
+      body:`Fecha compromiso ${fmtDs(old)} → ${fmtDs(v)}`,created_at:nowISO()});
+    logAudit('UPDATE','meeting_topics',id,t.company_id,`${f} → ${v}`);
+    save(); pushRow('meeting_topics',t); if(f!=='description'&&f!=='title')this.render(); },
+  delTopic(id){ if(!confirm('Eliminar el tema y su checklist. ¿Continuar?'))return;
+    S.topics=S.topics.filter(t=>t.id!==id); S.checklist=S.checklist.filter(c=>c.topic_id!==id);
+    S.reviews=S.reviews.filter(r=>r.topic_id!==id); save(); delRow('meeting_topics',id); this.render(); },
+  setStage(id,k){
+    const t=S.topics.find(x=>x.id===id), old=t.stage; if(old===k)return;
+    t.stage=k; t.closed_at=k==='finalizado'?nowISO():null;
+    S.updates.push({id:uid(),topic_id:id,user_id:me().id,kind:'cambio_estado',from:old,to:k,
+      body:`Cambió estado: ${stage(old).n} → ${stage(k).n}`,created_at:nowISO()});
+    logAudit('UPDATE','meeting_topics',id,t.company_id,`Etapa ${old} → ${k}`);
+    save(); pushRow('meeting_topics',t); this.render();
+    if($('#drawer').classList.contains('on')) this.openTopic(id);
+  },
+  linkUser(id,u){ if(!u)return; const t=S.topics.find(x=>x.id===id);
+    t.collaborators=[...(t.collaborators||[]),u]; save(); this.render(); },
+  unlinkUser(id,u){ const t=S.topics.find(x=>x.id===id);
+    t.collaborators=(t.collaborators||[]).filter(x=>x!==u); save(); this.render(); },
+  linkCo(id,c){ if(!c)return; const t=S.topics.find(x=>x.id===id);
+    t.related_companies=[...(t.related_companies||[]),c]; save(); this.render(); },
+  unlinkCo(id,c){ const t=S.topics.find(x=>x.id===id);
+    t.related_companies=(t.related_companies||[]).filter(x=>x!==c); save(); this.render(); },
+
+  addChk(tid){ const el=document.getElementById('chk-'+tid); const v=(el?.value||'').trim(); if(!v)return;
+    S.checklist.push({id:uid(),topic_id:tid,text:v,done:false,done_by:null,done_at:null,evidence:''});
+    save(); this.render(); },
+  toggleChk(id){ const c=S.checklist.find(x=>x.id===id);
+    c.done=!c.done; c.done_by=c.done?me().id:null; c.done_at=c.done?today():null;
+    const t=S.topics.find(x=>x.id===c.topic_id);
+    S.updates.push({id:uid(),topic_id:c.topic_id,user_id:me().id,kind:'checklist',
+      body:`${c.done?'Completó':'Reabrió'} el ítem “${c.text}”`,created_at:nowISO()});
+    logAudit('UPDATE','checklists',id,t.company_id,c.text);
+    save(); this.render(); if($('#drawer').classList.contains('on'))this.openTopic(c.topic_id); },
+  delChk(id){ S.checklist=S.checklist.filter(c=>c.id!==id); save(); this.render(); },
+
+  /* ---------------- Retoma de un pendiente en la reunión de hoy ---------------- */
+  openReview(tid,mid){
+    const t=S.topics.find(x=>x.id===tid), m=mtg(mid);
+    const blocked=t.is_final&&!can('final_override');
+    $('#drawerH').innerHTML=`<div style="flex:1"><div class="flex" style="margin-bottom:5px">
+        <span class="code">${esc(t.code)}</span><span class="tag tag-orange">Retomar en ${esc(m.code)}</span></div>
+      <h3 style="font-size:16px">${esc(t.title)}</h3></div>
+      <button class="btn btn-ghost btn-sm" onclick="App.closeDrawer()">✕</button>`;
+    $('#drawerB').innerHTML=`
+      ${this.lifeline(t)}
+      <div class="card" style="margin-bottom:14px"><div class="card-b">
+        <div class="grid2" style="margin-bottom:12px">
+          <div><div class="eyebrow">Nació en</div><div class="tiny" style="margin-top:4px">${esc(mtg(t.meeting_id)?.code||'—')} · ${fmtD(mtg(t.meeting_id)?.meeting_date)}</div></div>
+          <div><div class="eyebrow">Antigüedad</div><div class="tiny" style="margin-top:4px">${ageDays(t)} días · ${t.extensions} prórroga(s)</div></div>
+        </div>
+        <div class="grid2">
+          <div><div class="eyebrow">Plazo original</div><div class="tiny" style="margin-top:4px">${fmtD(t.original_due)}</div></div>
+          <div><div class="eyebrow">Plazo vigente</div><div class="tiny" style="margin-top:4px;${isOverdue(t)?'color:var(--danger);font-weight:600':''}">${fmtD(t.due_date)}${isOverdue(t)?` · vencido hace ${daysBetween(t.due_date,today())} d`:''}</div></div>
+        </div>
+        <div class="progress" style="margin-top:12px"><i style="width:${chkPct(t.id)}%"></i></div>
+        <div class="tiny muted" style="margin-top:5px">${chkPct(t.id)}% del checklist · ${chkOf(t.id).filter(c=>!c.done).length} ítems pendientes</div>
+      </div></div>
+
+      ${t.is_final?`<div class="alert-box red"><b>Esta acción ya tiene declarado su último plazo.</b>
+        ${blocked?'Solo un director o administrador puede volver a extenderla.':'Extenderla de nuevo quedará registrada como excepción de dirección.'}</div>`:''}
+      ${t.extensions>=2&&!t.is_final?`<div class="alert-box"><b>Va por su ${t.extensions}.ª prórroga.</b>
+        Considere declarar el último plazo para cerrar el ciclo en lugar de seguir extendiendo.</div>`:''}
+
+      <div class="card"><div class="card-h"><h3>Decisión de esta reunión</h3></div><div class="card-b">
+        <div class="field" style="margin-bottom:12px"><label>¿Qué se decide hoy?</label>
+          <select id="rvDec" onchange="App.onDecision()">
+            ${Object.entries(DECISION).filter(([k])=>!(k==='prorroga'&&blocked))
+              .map(([k,v])=>`<option value="${k}" ${k==='prorroga'?'selected':''}>${v.n}</option>`).join('')}
+          </select></div>
+        <div class="grid2" style="margin-bottom:12px">
+          <div class="field"><label>Nuevo plazo de entrega</label>
+            <input type="date" id="rvDue" value="${esc(t.due_date>=today()?t.due_date:dOff(7))}"></div>
+          <div class="field"><label>Etapa del pipeline</label>
+            <select id="rvStage">${STAGES.map(s=>`<option value="${s.k}" ${t.stage===s.k?'selected':''}>${s.n}</option>`).join('')}</select></div>
+        </div>
+        <div class="field" style="margin-bottom:12px"><label>Comentario del acta</label>
+          <textarea id="rvCmt" style="min-height:64px" placeholder="Ej. Validación médica aún pendiente; se fija el último plazo al 5 de septiembre."></textarea></div>
+        <div class="field"><label>Evidencia o referencia</label>
+          <input id="rvEvi" placeholder="Enlace, nombre de archivo o número de documento"></div>
+      </div></div>`;
+    $('#drawerF').innerHTML=`<button class="btn" onclick="App.closeDrawer()">Cancelar</button><div class="sp"></div>
+      <button class="btn btn-accent" onclick="App.saveReview('${tid}','${mid}')">Registrar revisión</button>`;
+    $('#drawer').classList.add('on'); $('#scrim').classList.add('on');
+    this.onDecision();
+  },
+  onDecision(){
+    const d=$('#rvDec')?.value; if(!d)return;
+    const due=$('#rvDue');
+    if(d==='cerrado'){ due.disabled=true; $('#rvStage').value='finalizado'; }
+    else { due.disabled=false; }
+  },
+  saveReview(tid,mid){
+    const t=S.topics.find(x=>x.id===tid), m=mtg(mid);
+    const dec=$('#rvDec').value, cmt=$('#rvCmt').value.trim(), evi=$('#rvEvi').value.trim();
+    const prev=t.due_date;
+    let nd=dec==='cerrado'?prev:$('#rvDue').value;
+    if(!cmt) return toast('El comentario es obligatorio: es lo que queda en el acta');
+    if(dec!=='cerrado'&&!nd) return toast('Indique el nuevo plazo');
+    if(dec==='prorroga'&&t.is_final&&!can('final_override')) return toast('Solo dirección puede extender un último plazo');
+
+    if(dec==='prorroga'){ t.extensions=(t.extensions||0)+1; t.due_date=nd; }
+    if(dec==='ultimo_plazo'){ t.is_final=true; if(nd!==prev)t.extensions=(t.extensions||0)+1; t.due_date=nd; }
+    if(dec==='sin_cambio'||dec==='escalado'){ t.due_date=nd; }
+    if(dec==='cerrado'){ t.stage='finalizado'; t.closed_at=nowISO(); }
+    else { t.stage=$('#rvStage').value; t.closed_at=t.stage==='finalizado'?nowISO():null; }
+    t.current_meeting_id=m.id;
+
+    S.reviews.push({id:uid(),topic_id:t.id,meeting_id:m.id,meeting_date:m.meeting_date,user_id:me().id,
+      previous_due:prev,new_due:t.due_date,decision:dec,comment:cmt,evidence:evi,created_at:nowISO()});
+    S.updates.push({id:uid(),topic_id:t.id,user_id:me().id,kind:'revision',
+      body:`${DECISION[dec].n} en ${m.code}. ${prev!==t.due_date?`Plazo ${fmtDs(prev)} → ${fmtDs(t.due_date)}. `:''}${cmt}`,
+      evidence:evi,created_at:nowISO()});
+    logAudit('REVIEW','meeting_topics',t.id,t.company_id,`${DECISION[dec].n} · ${fmtDs(prev)} → ${fmtDs(t.due_date)}`);
+    save(); pushRow('meeting_topics',t);
+    this.closeDrawer(); this.render();
+    toast(dec==='cerrado'?'Pendiente cerrado en acta':'Revisión registrada · nuevo plazo '+fmtDs(t.due_date));
+  },
+
+  /* ---------------- Línea de vida (elemento distintivo) ---------------- */
+  lifeline(t){
+    const origin=mtg(t.meeting_id);
+    const stops=[{cls:'',mt:origin?.code||'ORIGEN',md:fmtDs(origin?.meeting_date),mv:`Plazo ${fmtDs(t.original_due)}`}];
+    topicReviews(t.id).forEach(r=>{
+      const chg=r.previous_due!==r.new_due;
+      stops.push({cls:DECISION[r.decision].cls,mt:mtg(r.meeting_id)?.code||'REVISIÓN',md:fmtDs(r.meeting_date),
+        mv:chg?`${fmtDs(r.previous_due)} → <b>${fmtDs(r.new_due)}</b>`:DECISION[r.decision].n});
+    });
+    if(t.stage==='finalizado'&&t.closed_at)
+      stops.push({cls:'close',mt:'CIERRE',md:fmtDs(t.closed_at.slice(0,10)),mv:'Finalizado'});
+    else
+      stops.push({cls:isOverdue(t)?'final':'',mt:'HOY',md:fmtDs(today()),
+        mv:isOverdue(t)?`<b>Vencido ${fmtDs(t.due_date)}</b>`:`Vence ${fmtDs(t.due_date)}`});
+    return `<div class="card" style="margin-bottom:14px"><div class="lifeline">
+      <span class="cap">Línea de vida del pendiente</span><div class="track"></div>
+      <div class="stops">${stops.map(s=>`<div class="stop ${s.cls}">
+        <div class="node"></div><div class="mt">${esc(s.mt)}</div><div class="md">${s.md}</div><div class="mv">${s.mv}</div></div>`).join('')}</div>
+    </div></div>`;
+  },
+
+  /* ---------------- Ficha completa de la acción ---------------- */
+  openTopic(id){
+    const t=S.topics.find(x=>x.id===id); if(!t)return;
+    const editable=can('any')||t.owner_id===me().id||can('topic');
+    const ups=S.updates.filter(u=>u.topic_id===id).sort((a,b)=>b.created_at.localeCompare(a.created_at));
+    const si=stageIdx(t.stage);
+    $('#drawerH').innerHTML=`<div style="flex:1;min-width:0">
+      <div class="flex wrap" style="margin-bottom:5px"><span class="code">${esc(t.code)}</span>
+        <span class="tag ${stage(t.stage).tag}">${stage(t.stage).n}</span>
+        <span class="tag ${PRIORITY[t.priority].tag}">${PRIORITY[t.priority].label}</span>
+        ${isOverdue(t)?`<span class="tag tag-danger">Vencido</span>`:''}
+        ${t.is_final?`<span class="tag tag-danger">Último plazo</span>`:''}
+        ${isCarried(t)?`<span class="tag tag-orange">Arrastrado</span>`:''}</div>
+      <h3 style="font-size:16px;line-height:1.3">${esc(t.title)}</h3></div>
+      <button class="btn btn-ghost btn-sm" onclick="App.closeDrawer()">✕</button>`;
+    $('#drawerB').innerHTML=`
+      ${this.lifeline(t)}
+      <div class="pipe" style="margin-bottom:16px">${STAGES.map((s,k)=>
+        `<button class="${k<si?'done':''} ${k===si?'now':''}" ${editable?'':'disabled'}
+          onclick="App.setStage('${t.id}','${s.k}')">${s.n}</button>`).join('')}</div>
+
+      <div class="card" style="margin-bottom:14px"><div class="card-b">
+        <p class="tiny" style="margin-top:0">${esc(t.description||'Sin descripción.')}</p>
+        <div class="hr"></div>
+        <div class="grid2">
+          <div><div class="eyebrow">Responsable</div><div class="flex" style="margin-top:5px"><span class="avatar">${initials(uname(t.owner_id))}</span>
+            <span class="tiny">${esc(uname(t.owner_id))}</span></div></div>
+          <div><div class="eyebrow">Aprobador</div><div class="tiny" style="margin-top:8px">${esc(t.approver_id?uname(t.approver_id):'—')}</div></div>
+        </div>
+        <div class="hr"></div>
+        <div class="grid2">
+          <div><div class="eyebrow">Colaboradores</div><div class="stack" style="margin-top:6px">
+            ${(t.collaborators||[]).map(c=>`<span class="avatar" title="${esc(uname(c))}">${initials(uname(c))}</span>`).join('')||'<span class="tiny muted">—</span>'}</div></div>
+          <div><div class="eyebrow">Empresas</div><div class="flex wrap" style="margin-top:6px">
+            ${topicCompanies(t).map(c=>`<span class="chip"><span class="dot" style="background:${co(c).brand_color}"></span>${esc(co(c).code)}</span>`).join('')}</div></div>
+        </div>
+        <div class="hr"></div>
+        <div class="grid3">
+          <div><div class="eyebrow">Plazo original</div><div class="tiny" style="margin-top:5px">${fmtDs(t.original_due)}</div></div>
+          <div><div class="eyebrow">Plazo vigente</div><div class="tiny" style="margin-top:5px;${isOverdue(t)?'color:var(--danger);font-weight:600':''}">${fmtDs(t.due_date)}</div></div>
+          <div><div class="eyebrow">Prórrogas</div><div class="tiny" style="margin-top:5px">${t.extensions}</div></div>
+        </div>
+      </div></div>
+
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-h"><h3>Checklist</h3><div class="sp"></div><span class="eyebrow">${chkPct(t.id)}%</span></div>
+        <div class="card-b"><ul class="chk">${chkOf(t.id).map(c=>`<li>
+          <input type="checkbox" ${c.done?'checked':''} ${editable?'':'disabled'} onchange="App.toggleChk('${c.id}')">
+          <div class="txt"><div class="${c.done?'done':''}">${esc(c.text)}</div>
+            <div class="meta">${c.done?`${esc(uname(c.done_by))} · ${fmtDs(c.done_at)}`:'Pendiente'}</div></div></li>`).join('')
+          ||'<li class="tiny muted">Sin ítems.</li>'}</ul></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h3>Historial</h3><div class="sp"></div><span class="eyebrow">No se sobrescribe</span></div>
+        <div class="card-b">
+          ${editable?`<div class="flex" style="margin-bottom:15px">
+            <input id="cmt" placeholder="Comentario o evidencia…" style="flex:1;padding:8px 11px;border:1px solid var(--line);border-radius:var(--r-sm)"
+              onkeydown="if(event.key==='Enter')App.addUpdate('${t.id}')">
+            <button class="btn btn-sm btn-primary" onclick="App.addUpdate('${t.id}')">Publicar</button></div>`:''}
+          ${ups.length?`<div class="tl">${ups.map(u=>`<div class="tl-i ${u.kind==='revision'?'accent':u.kind==='checklist'?'good':''}">
+            <div class="m">${esc(uname(u.user_id))} · ${fmtDT(u.created_at)} · ${esc(u.kind)}</div>
+            <div class="b">${esc(u.body)}${u.evidence?` <span class="tiny muted">· ${esc(u.evidence)}</span>`:''}</div></div>`).join('')}</div>`
+          :`<div class="tiny muted">Sin movimientos.</div>`}
+        </div>
+      </div>`;
+    $('#drawerF').innerHTML=`<button class="btn" onclick="App.closeDrawer()">Cerrar</button>
+      ${t.meeting_id?`<button class="btn" onclick="App.openMeeting('${t.meeting_id}')">Acta de origen</button>`:''}
+      <div class="sp"></div>
+      ${editable&&isOpen(t)?`<button class="btn btn-accent" onclick="App.setStage('${t.id}','finalizado')">Marcar finalizado</button>`:''}`;
+    $('#drawer').classList.add('on'); $('#scrim').classList.add('on');
+  },
+  closeDrawer(){ $('#drawer').classList.remove('on'); $('#scrim').classList.remove('on'); },
+  addUpdate(id){ const v=$('#cmt').value.trim(); if(!v)return;
+    S.updates.push({id:uid(),topic_id:id,user_id:me().id,kind:'comentario',body:v,created_at:nowISO()});
+    save(); this.openTopic(id); toast('Registro añadido'); }
+});
+</script>
+<script>
+/* =====================================================================
+   Pipeline Kanban · Arrastres · Directorio · Auditoría · Configuración · Exportación
+   ===================================================================== */
+Object.assign(App,{
+
+  /* ---------------- Pipeline ---------------- */
+  viewPipeline(){
+    const f=this.filter;
+    const all=scopedTopics();
+    const list=all.filter(t=>
+      (!f.q||(t.title+' '+t.code).toLowerCase().includes(f.q.toLowerCase()))&&
+      (!f.owner||t.owner_id===f.owner)&&(!f.priority||t.priority===f.priority));
+    const owners=[...new Set(all.map(t=>t.owner_id))].map(usr).filter(Boolean);
+    return `
+    <div class="card no-print" style="margin-bottom:15px"><div class="card-b flex wrap">
+      <div class="field" style="flex:1;min-width:200px"><label>Buscar</label>
+        <input id="pq" value="${esc(f.q)}" placeholder="Código o nombre de la acción"
+          oninput="App.filter.q=this.value;App.renderKeep('pq')"></div>
+      <div class="field" style="width:210px"><label>Responsable</label>
+        <select onchange="App.filter.owner=this.value;App.render()"><option value="">Todos</option>
+          ${owners.map(u=>`<option value="${u.id}" ${f.owner===u.id?'selected':''}>${esc(u.full_name)}</option>`).join('')}</select></div>
+      <div class="field" style="width:160px"><label>Prioridad</label>
+        <select onchange="App.filter.priority=this.value;App.render()"><option value="">Todas</option>
+          ${Object.entries(PRIORITY).map(([k,v])=>`<option value="${k}" ${f.priority===k?'selected':''}>${v.label}</option>`).join('')}</select></div>
+      <div class="field" style="width:auto;justify-content:flex-end"><label>&nbsp;</label>
+        <span class="tiny muted">${list.length} acciones · arrastre para mover de etapa</span></div>
+    </div></div>
+    ${list.length?`<div class="board">${STAGES.map(s=>{
+      const items=list.filter(t=>t.stage===s.k);
+      return `<div class="col" data-stage="${s.k}" ondragover="event.preventDefault();this.classList.add('over')"
+        ondragleave="this.classList.remove('over')" ondrop="App.drop(event,'${s.k}')">
+        <div class="col-h"><span class="t">${s.n}</span><span class="n">${items.length}</span></div>
+        ${items.map(t=>this.card(t)).join('')||'<div class="tiny muted" style="padding:6px 4px">Vacío</div>'}</div>`;}).join('')}</div>`
+    :`<div class="card"><div class="card-b">${emptyBox('Sin acciones que mostrar','Los temas de las reuniones alimentan este pipeline.')}</div></div>`}`;
+  },
+  card(t){
+    const si=stageIdx(t.stage);
+    return `<div class="tcard ${isOverdue(t)?'overdue':isCarried(t)?'carried':''}" draggable="true"
+      data-id="${t.id}" ondragstart="App.dragStart(event,'${t.id}')" ondragend="App.dragEnd(event)"
+      onclick="App.openTopic('${t.id}')">
+      <div class="th"><span class="code">${esc(t.code)}</span>
+        <span class="tag ${PRIORITY[t.priority].tag}" style="margin-left:auto">${PRIORITY[t.priority].label}</span></div>
+      <div class="tt">${esc(t.title)}</div>
+      <div class="pipe-mini">${STAGES.map((s,k)=>`<i class="${k<si?'done':''} ${k===si?'now':''}"></i>`).join('')}</div>
+      <div class="progress" style="margin-top:7px"><i style="width:${chkPct(t.id)}%"></i></div>
+      <div class="tm"><span class="avatar" title="${esc(uname(t.owner_id))}">${initials(uname(t.owner_id))}</span>
+        <span>${topicCompanies(t).map(c=>co(c).code).join(' · ')}</span>
+        <span style="margin-left:auto;${isOverdue(t)?'color:var(--danger);font-weight:600':''}">${fmtDs(t.due_date)}</span></div>
+      ${isCarried(t)?`<div class="tiny" style="margin-top:6px;color:var(--orange-600)">↻ ${topicReviews(t.id).length} revisión(es) · ${t.extensions} prórroga(s)</div>`:''}
+    </div>`;
+  },
+  dragStart(e,id){ this.dragId=id; e.target.classList.add('dragging');
+    try{e.dataTransfer.setData('text/plain',id);e.dataTransfer.effectAllowed='move';}catch(x){} },
+  dragEnd(e){ e.target.classList.remove('dragging'); document.querySelectorAll('.col.over').forEach(c=>c.classList.remove('over')); },
+  drop(e,st){ e.preventDefault(); document.querySelectorAll('.col').forEach(c=>c.classList.remove('over'));
+    let id=this.dragId; try{id=e.dataTransfer.getData('text/plain')||id;}catch(x){}
+    if(!id)return; if(!can('topic')&&S.topics.find(t=>t.id===id)?.owner_id!==me().id) return toast('Su rol no permite mover esta acción');
+    this.setStage(id,st); },
+  bindDnD(){},
+
+  /* ---------------- Arrastres ---------------- */
+  viewCarried(){
+    const list=scopedTopics().filter(t=>isOpen(t)&&isCarried(t))
+      .sort((a,b)=>(b.extensions-a.extensions)||(a.due_date||'').localeCompare(b.due_date||''));
+    const all=scopedTopics().filter(isOpen);
+    return `
+    <div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+      ${kpi('Acciones arrastradas',list.length,'Abiertas tras 2+ reuniones',list.length?'watch':'good')}
+      ${kpi('Prórrogas acumuladas',list.reduce((a,t)=>a+t.extensions,0),'Total de extensiones','')}
+      ${kpi('En último plazo',list.filter(t=>t.is_final).length,'Sin margen adicional',list.filter(t=>t.is_final).length?'alert':'')}
+      ${kpi('Antigüedad máxima',list.length?Math.max(...list.map(ageDays))+' d':'—','Desde su reunión de origen','')}
+    </div>
+    ${list.length?`<div class="card"><div class="card-h"><h3>Pendientes que sobreviven a más de una reunión</h3>
+      <div class="sp"></div><span class="tiny muted">${list.length} de ${all.length} acciones abiertas</span></div>
+      <table><thead><tr><th>Código</th><th>Acción</th><th>Origen</th><th>Revisiones</th>
+        <th>Plazo original</th><th>Plazo vigente</th><th>Responsable</th><th>Etapa</th></tr></thead>
+      <tbody>${list.map(t=>`<tr class="click" onclick="App.openTopic('${t.id}')">
+        <td><span class="code">${esc(t.code)}</span></td>
+        <td><div style="font-weight:500;font-size:12.5px">${esc(t.title)}</div>
+          <div class="tiny muted">${chkPct(t.id)}% checklist${t.is_final?' · <b style="color:var(--danger)">último plazo</b>':''}</div></td>
+        <td class="tiny muted">${esc(mtg(t.meeting_id)?.code||'—')}<br>${ageDays(t)} días</td>
+        <td class="tiny">${topicReviews(t.id).length} <span class="muted">· ${t.extensions} prórroga(s)</span></td>
+        <td class="tiny muted">${fmtDs(t.original_due)}</td>
+        <td>${isOverdue(t)?`<span class="tag tag-danger">${fmtDs(t.due_date)}</span>`:`<span class="tiny">${fmtDs(t.due_date)}</span>`}</td>
+        <td class="tiny">${esc(uname(t.owner_id))}</td>
+        <td><span class="tag ${stage(t.stage).tag}">${stage(t.stage).n}</span></td></tr>`).join('')}</tbody></table></div>`
+    :`<div class="card"><div class="card-b">${emptyBox('Ninguna acción arrastrada',
+       'Todas las acciones abiertas nacieron en su reunión vigente y aún no han necesitado revisión.')}</div></div>`}`;
+  },
+
+  /* ---------------- Directorio ---------------- */
+  viewDir(){
+    const vis=visibleCompanies();
+    return `<div class="split">
+      <div class="card"><div class="card-h"><h3>Personas</h3><div class="sp"></div><span class="eyebrow">${S.users.length} registros</span></div>
+      <table><thead><tr><th>Nombre</th><th>Cargo</th><th>Departamento</th><th>Empresa</th><th>Rol</th><th>Asistencia</th></tr></thead>
+      <tbody>${S.users.map(u=>{
+        const inv=S.participants.filter(p=>p.user_id===u.id);
+        const pres=inv.filter(p=>p.attendance==='presente').length;
+        const pct=inv.length?Math.round(pres*100/inv.length):null;
+        return `<tr><td class="flex"><span class="avatar">${initials(u.full_name)}</span>
+          <div><div style="font-weight:500;font-size:12.5px">${esc(u.full_name)}</div><div class="tiny muted">${esc(u.email)}</div></div></td>
+          <td class="tiny">${esc(u.position||'')}</td><td class="tiny">${esc(u.department||'')}</td>
+          <td><span class="chip"><span class="dot" style="background:${co(u.company_id).brand_color}"></span>${esc(co(u.company_id).code)}</span></td>
+          <td><select ${can('admin')?'':'disabled'} onchange="App.setRole('${u.id}',this.value)">
+            ${Object.entries(ROLES).map(([k,v])=>`<option value="${k}" ${u.role===k?'selected':''}>${v}</option>`).join('')}</select></td>
+          <td class="tiny">${pct===null?'—':`${pct}% <span class="muted">(${pres}/${inv.length})</span>`}</td></tr>`;}).join('')}
+      </tbody></table></div>
+
+      <div class="card"><div class="card-h"><h3>Empresas</h3></div><div class="card-b">
+        <ul class="list-clean">${vis.map(c=>{
+          const n=S.topics.filter(t=>topicCompanies(t).includes(c.id)).length;
+          return `<li><span class="chip"><span class="dot" style="background:${c.brand_color}"></span>${esc(c.code)}</span>
+            <div style="flex:1;min-width:0"><div class="tiny" style="font-weight:500">${esc(c.name)}</div></div>
+            <span class="tiny muted">${n} acciones</span></li>`;}).join('')}</ul>
+        <div class="hr"></div><div class="eyebrow" style="margin-bottom:8px">Exclusiones de acceso</div>
+        ${S.denylist.length?`<ul class="list-clean">${S.denylist.map(d=>`<li><span class="tag tag-danger">Bloqueado</span>
+          <div style="flex:1" class="tiny">${esc(uname(d.user_id))} → ${esc(co(d.company_id).code)}</div>
+          ${can('admin')?`<button class="btn btn-sm btn-ghost" onclick="App.unblock('${d.user_id}','${d.company_id}')">Quitar</button>`:''}</li>`).join('')}</ul>`
+        :`<div class="tiny muted">Ninguna exclusión activa. Una exclusión prevalece sobre cualquier permiso concedido.</div>`}
+        ${can('admin')?`<div class="flex" style="margin-top:11px">
+          <select id="blkU" style="flex:1;padding:7px 9px;border:1px solid var(--line);border-radius:var(--r-sm)">
+            ${S.users.map(u=>`<option value="${u.id}">${esc(u.full_name)}</option>`).join('')}</select>
+          <select id="blkC" style="flex:1;padding:7px 9px;border:1px solid var(--line);border-radius:var(--r-sm)">
+            ${S.companies.map(c=>`<option value="${c.id}">${esc(c.code)}</option>`).join('')}</select>
+          <button class="btn btn-sm" onclick="App.block()">Excluir</button></div>`:''}
+      </div></div>
+    </div>`;
+  },
+  setRole(id,r){ usr(id).role=r; logAudit('UPDATE','app_users',id,null,'Rol → '+r); save(); this.render(); toast('Rol actualizado'); },
+  block(){ const u=$('#blkU').value,c=$('#blkC').value;
+    if(S.denylist.some(d=>d.user_id===u&&d.company_id===c))return;
+    S.denylist.push({user_id:u,company_id:c,created_at:nowISO()}); save(); this.render(); toast('Exclusión aplicada'); },
+  unblock(u,c){ S.denylist=S.denylist.filter(d=>!(d.user_id===u&&d.company_id===c)); save(); this.render(); },
+
+  /* ---------------- Auditoría ---------------- */
+  viewAudit(){
+    if(!can('audit')) return `<div class="card"><div class="card-b">${emptyBox('Acceso restringido',
+      'El registro de auditoría está disponible para Administrador y Director.')}</div></div>`;
+    if(!S.audit.length) return `<div class="card"><div class="card-b">${emptyBox('Sin movimientos',
+      'Cada creación, cambio de etapa, prórroga y cierre quedará aquí con autor y fecha.')}</div></div>`;
+    return `<div class="card"><table><thead><tr><th>Fecha</th><th>Autor</th><th>Acción</th><th>Entidad</th><th>Empresa</th><th>Detalle</th></tr></thead>
+      <tbody>${S.audit.slice(0,150).map(a=>`<tr>
+        <td class="code">${fmtDT(a.created_at)}</td><td class="tiny">${esc(uname(a.actor_id))}</td>
+        <td><span class="tag ${a.action==='REVIEW'?'tag-orange':'tag-soft'}">${esc(a.action)}</span></td>
+        <td class="tiny">${esc(a.entity_type)}</td><td class="tiny">${a.company_id?esc(co(a.company_id).code):'—'}</td>
+        <td class="tiny muted">${esc(a.detail||'')}</td></tr>`).join('')}</tbody></table></div>`;
+  },
+
+  /* ---------------- Configuración ---------------- */
+  viewSettings(){
+    return `<div class="split">
+      <div class="card"><div class="card-h"><h3>Base de datos</h3><div class="sp"></div>
+        <span class="tag ${conn.mode==='supabase'?'tag-ok':'tag-warn'}">${conn.mode==='supabase'?'Conectado':'Local'}</span></div>
+      <div class="card-b">
+        <p class="tiny muted" style="margin-top:0">Sin conexión, el módulo guarda en este navegador. Al conectar, escribe en el esquema <span class="code">ops</span> del proyecto y queda disponible para el resto del CRM.</p>
+        <div class="field" style="margin-bottom:11px"><label>URL del proyecto</label>
+          <input id="sbUrl" value="${esc(conn.url||'')}" placeholder="https://xxxx.supabase.co"></div>
+        <div class="field" style="margin-bottom:13px"><label>Clave anónima</label>
+          <input id="sbKey" type="password" value="${esc(conn.key||'')}" placeholder="eyJhbGciOi…"></div>
+        <div class="flex wrap"><button class="btn btn-primary" onclick="App.doConnect()">Conectar y sincronizar</button>
+          <button class="btn" onclick="App.doPull()" ${conn.mode==='supabase'?'':'disabled'}>Recargar</button>
+          <button class="btn btn-ghost" onclick="App.disconnect()">Trabajar en local</button></div>
+        <div class="hr"></div>
+        <ul class="list-clean">
+          <li><div style="flex:1">Reuniones</div><span class="code">${S.meetings.length}</span></li>
+          <li><div style="flex:1">Temas / acciones</div><span class="code">${S.topics.length}</span></li>
+          <li><div style="flex:1">Ítems de checklist</div><span class="code">${S.checklist.length}</span></li>
+          <li><div style="flex:1">Revisiones entre reuniones</div><span class="code">${S.reviews.length}</span></li>
+          <li><div style="flex:1">Movimientos de historial</div><span class="code">${S.updates.length}</span></li>
+        </ul>
+        <div class="flex wrap" style="margin-top:12px">
+          <button class="btn" onclick="App.exportJSON()">Respaldo JSON</button>
+          <button class="btn btn-ghost" onclick="App.reset()">Restablecer datos locales</button></div>
+      </div></div>
+
+      <div class="card"><div class="card-h"><h3>Marca del despliegue</h3><div class="sp"></div>
+        <span class="eyebrow">Multiempresa</span></div>
+      <div class="card-b">
+        <p class="tiny muted" style="margin-top:0">El módulo se entrega bajo Stratix Solutions y se personaliza para cada organización cliente sin tocar el código.</p>
+        <div class="field" style="margin-bottom:11px"><label>Organización</label>
+          <input value="${esc(S.org.name)}" onchange="App.setOrg('name',this.value)"></div>
+        <div class="field" style="margin-bottom:11px"><label>Nombre del módulo</label>
+          <input value="${esc(S.org.product)}" onchange="App.setOrg('product',this.value)"></div>
+        <div class="field" style="margin-bottom:13px"><label>Proveedor</label>
+          <input value="${esc(S.org.vendor)}" onchange="App.setOrg('vendor',this.value)"></div>
+        <div class="hr"></div>
+        <div class="eyebrow" style="margin-bottom:8px">Sesión de prueba</div>
+        <div class="field"><label>Ver el módulo como</label>
+          <select onchange="App.switchUser(this.value)">
+            ${S.users.map(u=>`<option value="${u.id}" ${S.session.user_id===u.id?'selected':''}>${esc(u.full_name)} — ${ROLES[u.role]}</option>`).join('')}</select></div>
+        <p class="tiny muted" style="margin-bottom:0">Permite verificar la matriz de permisos: quién puede cerrar actas, extender plazos o saltarse un último plazo.</p>
+      </div></div>
+    </div>`;
+  },
+  setOrg(f,v){ S.org[f]=v; save(); this.render(); },
+  async doConnect(){ const url=$('#sbUrl').value.trim(),key=$('#sbKey').value.trim();
+    if(!url||!key)return toast('Indique URL y clave');
+    toast('Conectando…');
+    try{await connectDB(url,key); await pullDB(); this.render(); toast('Conectado a Supabase');}
+    catch(e){toast('No se pudo conectar: '+e.message);} },
+  async doPull(){ await pullDB(); this.render(); toast('Datos recargados'); },
+  disconnect(){ conn={mode:'local',url:conn.url,key:conn.key}; localStorage.setItem(LS_CONN,JSON.stringify(conn)); sb=null; this.render(); },
+  switchUser(id){ S.session.user_id=id; save(); this.render(); toast('Sesión: '+usr(id).full_name); },
+  exportJSON(){ dl('operations-hub-'+today()+'.json',JSON.stringify(S,null,2),'application/json'); },
+  reset(){ if(confirm('Se borrarán reuniones y acciones guardadas en este navegador. ¿Continuar?')){
+    localStorage.removeItem(LS_DATA); load(); this.go('panel'); toast('Datos restablecidos'); } },
+
+  /* ---------------- Exportación documental ---------------- */
+  actaHTML(){
+    const m=this.M(), c=co(m.company_id);
+    const ps=S.participants.filter(p=>p.meeting_id===m.id);
+    const born=bornIn(m), rev=reviewedIn(m);
+    const acts=[...born,...rev.map(x=>x.t)];
+    const row=(l,v)=>`<tr><td class="lbl">${l}</td><td>${esc(v||'—')}</td></tr>`;
+    return `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+<head><meta charset="utf-8"><title>${esc(m.code)}</title><style>
+@page{size:A4;margin:1.9cm}
+body{font-family:Calibri,Arial,sans-serif;font-size:10.5pt;color:#131A2E}
+.hd{border-bottom:2.5pt solid #1B2340;padding-bottom:9pt;margin-bottom:13pt}
+.hd td{vertical-align:middle;border:0;padding:0}
+.org{font-size:16pt;font-weight:bold;color:#1B2340;letter-spacing:-.4pt}
+.sub{font-size:8.5pt;color:#69728C;letter-spacing:1.5pt;text-transform:uppercase}
+.doc{font-size:8.5pt;color:#69728C;text-align:right;line-height:1.5}
+.doc b{color:#E07A33;font-size:10.5pt}
+h1{font-size:13pt;color:#1B2340;margin:0 0 3pt}
+h2{font-size:9pt;color:#1B2340;text-transform:uppercase;letter-spacing:1.1pt;border-bottom:.75pt solid #DBE0EB;padding-bottom:3pt;margin:15pt 0 7pt}
+table{width:100%;border-collapse:collapse;margin-bottom:6pt}
+td,th{border:.5pt solid #DBE0EB;padding:5pt 7pt;font-size:9.5pt;vertical-align:top}
+th{background:#1B2340;color:#fff;text-align:left;font-size:8.5pt;text-transform:uppercase;letter-spacing:.7pt}
+td.lbl{background:#F4F6FA;font-weight:bold;width:25%;color:#2E3862}
+.note{font-size:8.5pt;color:#69728C}
+.ext{color:#C4661F;font-weight:bold}
+.late{color:#C0392B;font-weight:bold}
+.sig td{border:0;border-top:.75pt solid #131A2E;padding-top:5pt;text-align:center;font-size:8.5pt;width:33%}
+.sig tr.gap td{border:0;height:42pt}
+</style></head><body>
+<table class="hd"><tr>
+ <td style="width:54pt"><img src="data:image/png;base64,${LOGO_B64}" width="44" height="44"></td>
+ <td><div class="org">${esc(S.org.name)}</div><div class="sub">${esc(c.name)}</div></td>
+ <td class="doc">ACTA DE REUNIÓN<br><b>${esc(m.code)}</b><br>${fmtD(m.meeting_date)}</td></tr></table>
+
+<h1>${esc(m.title||'Acta de reunión')}</h1>
+<div class="note">${esc(mtype(m.meeting_type_id))} · ${esc(m.modality)} · Área: ${esc(m.area||'—')} · Estado: ${MSTATUS[m.status].label}</div>
+
+<h2>1. Datos generales</h2>
+<table>${row('Empresa',c.name)}${row('Área',m.area)}${row('Lugar o plataforma',m.location)}
+${row('Fecha',fmtD(m.meeting_date))}${row('Hora inicio / fin',(m.start_time||'—')+' — '+(m.end_time||'—'))}
+${row('Responsable del acta',uname(m.secretary_id))}${row('Preside',uname(m.chair_id))}</table>
+
+<h2>2. Participantes</h2>
+<table><tr><th>Nombre</th><th>Cargo</th><th>Departamento</th><th>Empresa</th><th>Rol</th><th>Estado</th></tr>
+${ps.length?ps.map(p=>`<tr><td>${esc(p.is_guest?p.guest_name:uname(p.user_id))}</td><td>${esc(p.position||'—')}</td>
+<td>${esc(p.department||'—')}</td><td>${esc(p.is_guest?(p.guest_company||'Invitado externo'):co(usr(p.user_id)?.company_id).name)}</td>
+<td>${esc(p.role_in_meeting||'Participante')}</td><td>${esc(p.attendance)}</td></tr>`).join('')
+:'<tr><td colspan="6">Sin registro</td></tr>'}</table>
+
+<h2>3. Objetivo</h2><table><tr><td>${esc(m.objective||'—')}</td></tr></table>
+
+${rev.length?`<h2>4. Pendientes de reuniones anteriores</h2>
+<table><tr><th>Código</th><th>Acción</th><th>Origen</th><th>Decisión</th><th>Plazo anterior</th><th>Nuevo plazo</th><th>Comentario</th></tr>
+${rev.map(({r,t})=>`<tr><td>${esc(t.code)}</td><td>${esc(t.title)}</td>
+<td>${esc(mtg(t.meeting_id)?.code||'—')}<br>${fmtDs(mtg(t.meeting_id)?.meeting_date)}</td>
+<td>${DECISION[r.decision].n}</td><td>${fmtDs(r.previous_due)}</td>
+<td class="${r.decision==='prorroga'||r.decision==='ultimo_plazo'?'ext':''}">${fmtDs(r.new_due)}</td>
+<td>${esc(r.comment||'—')}</td></tr>`).join('')}</table>`:''}
+
+<h2>${rev.length?'5':'4'}. Temas tratados</h2>
+${born.length?born.map((t,i)=>`<table>
+<tr><td class="lbl">Tema ${String(i+1).padStart(2,'0')}</td><td><b>${esc(t.title)}</b> — ${esc(t.code)}</td></tr>
+<tr><td class="lbl">Descripción</td><td>${esc(t.description||'—')}</td></tr>
+<tr><td class="lbl">Responsable</td><td>${esc(uname(t.owner_id))}${(t.collaborators||[]).length?' · Colaboran: '+t.collaborators.map(uname).join(', '):''}${t.approver_id?' · Aprueba: '+uname(t.approver_id):''}</td></tr>
+<tr><td class="lbl">Empresas</td><td>${topicCompanies(t).map(x=>co(x).name).join(', ')}</td></tr>
+<tr><td class="lbl">Checklist</td><td>${chkOf(t.id).map(c=>`${c.done?'☑':'☐'} ${esc(c.text)}${c.done?` <span class="note">(${esc(uname(c.done_by))}, ${fmtDs(c.done_at)})</span>`:''}`).join('<br>')||'—'}</td></tr>
+</table>`).join(''):'<table><tr><td>Sin temas nuevos</td></tr></table>'}
+
+<h2>${rev.length?'6':'5'}. Tabla de acciones</h2>
+<table><tr><th>Código</th><th>Acción</th><th>Responsable</th><th>Aprobador</th><th>Empresas</th><th>Plazo original</th><th>Plazo vigente</th><th>Prórrogas</th><th>Etapa</th></tr>
+${acts.length?acts.map(t=>`<tr><td>${esc(t.code)}</td><td>${esc(t.title)}</td><td>${esc(uname(t.owner_id))}</td>
+<td>${esc(t.approver_id?uname(t.approver_id):'—')}</td><td>${topicCompanies(t).map(x=>co(x).code).join(', ')}</td>
+<td>${fmtDs(t.original_due)}</td><td class="${isOverdue(t)?'late':''}">${fmtDs(t.due_date)}${t.is_final?' (último)':''}</td>
+<td>${t.extensions}</td><td>${stage(t.stage).n}</td></tr>`).join(''):'<tr><td colspan="9">Sin acciones</td></tr>'}</table>
+
+<h2>${rev.length?'7':'6'}. Conclusiones</h2><table><tr><td>${esc(m.conclusions||'—')}</td></tr></table>
+
+<h2>${rev.length?'8':'7'}. Próxima reunión</h2>
+<table>${row('Fecha prevista',m.next_meeting_date?fmtD(m.next_meeting_date):'Por definir')}${row('Enfoque',m.next_meeting_notes)}</table>
+
+<table class="sig"><tr class="gap"><td></td><td></td><td></td></tr>
+<tr><td>${esc(uname(m.chair_id))}<br>Preside</td><td>${esc(uname(m.secretary_id))}<br>Responsable del acta</td>
+<td>Aprobación<br>Dirección</td></tr></table>
+<p class="note" style="margin-top:12pt">${esc(S.org.name)} · ${esc(S.org.product)} — módulo de ${esc(S.org.vendor)} · ${esc(m.code)} · generado ${fmtDT(nowISO())}</p>
+</body></html>`;
+  },
+  exportWord(){ const m=this.M(); dl(m.code+'.doc',this.actaHTML(),'application/msword');
+    logAudit('EXPORT','meetings',m.id,m.company_id,'Word'); save(); toast('Acta descargada en Word editable'); },
+  exportPDF(){ const m=this.M(); const w=window.open('','_blank'); if(!w)return toast('Permita las ventanas emergentes');
+    w.document.write(this.actaHTML()); w.document.close();
+    const go=()=>{try{w.focus();w.print();}catch(e){}}; w.onload=go; setTimeout(go,600);
+    logAudit('EXPORT','meetings',m.id,m.company_id,'PDF'); save(); }
+});
+
+function dl(name,content,mime){
+  const b=new Blob(['\ufeff',content],{type:mime+';charset=utf-8'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+}
+window.App=App; window.hubState=()=>S;
+document.addEventListener('keydown',e=>{if(e.key==='Escape')App.closeDrawer();});
+App.init();
+</script>
+</body>
+</html>

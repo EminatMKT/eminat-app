@@ -52,7 +52,7 @@ export default function OrgModal({ cat, row, onClose }: { cat: OrgCat; row?: Org
   }
 
   return (
-    <Modal title={t(row ? 'admin.org.editTitle' : 'admin.org.newTitle', { tipo: t(def.labelKey) })} width={460} onClose={onClose}>
+    <Modal title={t(row ? 'admin.org.editTitle' : 'admin.org.newTitle', { tipo: t(def.labelKey) })} anchoRem={28.75} onClose={onClose}>
       <ErrorBlock msg={error} />
       {def.fields.map(f => {
         // `recibe_actividades` solo tiene sentido sobre una empresa activa: si el

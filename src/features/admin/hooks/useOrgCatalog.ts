@@ -23,10 +23,19 @@ export function useOrgCatalog(cat: OrgCat) {
     // "0 en uso" con el botón de borrar habilitado en una empresa con
     // actividades, y el rechazo recién aparecía al clickear.
     //
-    // La API suma dos tablas más —`solicitudes` y `slots_calendario`— que acá no
-    // se cuentan porque están vacías y su migración quedó fuera de scope. Si
-    // dejan de estarlo, este conteo hay que ampliarlo junto con el de la API o
-    // vuelve la misma discrepancia.
+    // La API suma tres tablas más —`solicitudes`, `slots_calendario` y
+    // `reuniones`— que acá no se cuentan. Las dos primeras porque están vacías y
+    // su migración quedó fuera de scope; `reuniones` porque NO vive en el
+    // contexto y no puede vivir: su RLS filtra por usuario, así que un conteo
+    // hecho desde el cliente saldría bajo y mentiría en el sentido peligroso
+    // (diría "0 en uso" sobre una empresa que sí lo está).
+    //
+    // Consecuencia, y está anotada en .todo: una empresa con reuniones y sin
+    // personas ni actividades muestra "0 en uso" con el botón habilitado, y el
+    // rechazo aparece recién al clickear —con su mensaje traducido, no con el
+    // error crudo de Postgres, porque la API sí la cuenta—. El arreglo de fondo
+    // no es sumar una tabla más acá: es que este conteo y el `blockedBy` de la
+    // API dejen de ser dos implementaciones de la misma regla.
     empresas: row =>
       adminUsuarios.filter(u => u.empresa_id === row.id).length +
       actividades.filter(a => a.empresa === row.codigo).length,

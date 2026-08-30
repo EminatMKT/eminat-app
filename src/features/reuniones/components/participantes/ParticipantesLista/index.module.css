@@ -1,0 +1,20 @@
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: .375rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* El vacío dice qué hacer, no que no hay nada: es el primer estado de toda reunión nueva, así
+   que es donde más gente va a estar parada. */
+.vacio {
+  margin: 0;
+  padding: .75rem;
+  border: 1px dashed var(--c-border);
+  border-radius: .625rem;
+  font-size: .8125rem;
+  color: var(--c-t2);
+  text-align: center;
+}

@@ -22,9 +22,12 @@ export function textoSinTraducir(texto: string, path: string): boolean {
     if (backticks % 2 === 1) { enTemplate = true; continue }
 
     if (!esTsx) continue
-    // Texto suelto entre etiquetas: `>Guardar<`. Pide cuatro letras seguidas para no marcar
-    // símbolos (`>✕<`, `>—<`), unidades (`>h<`) ni fragmentos de un tipo de TS.
-    for (const m of linea.matchAll(/>([^<>{}]+)</g)) {
+    // Texto suelto entre etiquetas: `>Guardar</`. Pide cuatro letras seguidas para no marcar
+    // símbolos (`>✕<`, `>—<`) ni unidades (`>h<`), y exige que lo que cierre sea una etiqueta
+    // (`</`) y no cualquier `<`: sin eso, la firma de un componente genérico
+    // —`function X<V extends string>(props: Props<V>)`— daba `>(props: Props<` y se leía como
+    // texto sin traducir. Un falso positivo que frena el trabajo enseña a ignorar al centinela.
+    for (const m of linea.matchAll(/>([^<>{}]+)<\//g)) {
       const contenido = m[1].trim()
       if (/[A-Za-zÁÉÍÓÚÑáéíóúñ]{4,}/.test(contenido)) return true
     }

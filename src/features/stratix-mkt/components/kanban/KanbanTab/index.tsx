@@ -1,7 +1,7 @@
 'use client'
 import { COLUMNAS_KANBAN } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
-import NewButton from '@/shared/components/ui/NewButton'
+import Button from '@/shared/components/ui/Button'
 import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
 import KanbanColumn from '../KanbanColumn'
 import s from './index.module.css'
@@ -22,7 +22,7 @@ export default function KanbanTab() {
             <option value="">{t('stratix.allMonths')}</option>
             {mesesDisponibles.map(m => <option key={m} value={m}>{m}</option>)}
           </select>
-          <NewButton label={t('stratix.newTask')} onClick={() => { setNuevaAct(p => ({ ...p, estado: ESTADO.PENDIENTE })); setModalNuevaAct(true) }} />
+          <Button kind="new" label={t('stratix.newTask')} onClick={() => { setNuevaAct(p => ({ ...p, estado: ESTADO.PENDIENTE })); setModalNuevaAct(true) }} />
         </div>
       </div>
       <div className={s.board}>

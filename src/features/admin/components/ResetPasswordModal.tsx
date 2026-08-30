@@ -34,7 +34,7 @@ export default function ResetPasswordModal({ target, onClose }: { target: ResetT
   }
 
   return (
-    <Modal title={resetSuccess ? t('admin.reset.successTitle') : t('admin.reset.title')} width={460} onClose={onClose}>
+    <Modal title={resetSuccess ? t('admin.reset.successTitle') : t('admin.reset.title')} anchoRem={28.75} onClose={onClose}>
         {resetSuccess ? (
           <CredentialsPanel label={t('admin.reset.newPwdFor', { name: resetSuccess.nombre })} name={resetSuccess.nombre} email={null} pwd={resetSuccess.pwd} onClose={onClose} />
         ) : (

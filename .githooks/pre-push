@@ -1,8 +1,9 @@
 #!/usr/bin/env sh
 # Gate local rápido antes de push (bypasseable con --no-verify; el gate duro es CI).
-echo "▶ pre-push: reglas + contexto + RLS + typecheck + css + tests"
+echo "▶ pre-push: reglas + contexto + barrido + RLS + typecheck + css + tests"
 pnpm rules:check || { echo "✖ el centinela no se valida a sí mismo"; exit 1; }
 pnpm rules:contexto || { echo "✖ un archivo de contexto quedó desactualizado"; exit 1; }
+pnpm rules:barrido || { echo "✖ algo se escribió esquivando el hook (un sed, un script) y no cumple"; exit 1; }
 pnpm db:rls   || { echo "✖ hay una tabla de public sin RLS"; exit 1; }
 pnpm typecheck || { echo "✖ typecheck falló"; exit 1; }
 pnpm lint:css || { echo "✖ el CSS no compila"; exit 1; }

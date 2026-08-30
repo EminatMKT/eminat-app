@@ -1,0 +1,28 @@
+/* La sección se separa del formulario con una línea y aire, no con una tarjeta: el modal ya es
+   una caja, y meter otra adentro agrega un borde que no dice nada. Lo que tiene que leerse es
+   que ahí empieza otra pregunta —quiénes— después de cuándo y dónde. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: .625rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--c-border);
+}
+
+/* Rótulo de sección, no título de página: chico, en versalitas y con espaciado. Compite lo
+   mínimo con los rótulos de los campos de arriba, que son del mismo tamaño. */
+.titulo {
+  margin: 0;
+  font-size: .6875rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--c-t2);
+}
+
+.fallo {
+  margin: 0;
+  font-size: .8125rem;
+  color: var(--c-danger-solid);
+}

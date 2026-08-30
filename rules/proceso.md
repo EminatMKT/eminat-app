@@ -160,6 +160,61 @@ encuentra nada. Dos reglas quedaron mudas y sólo se descubrió al correr un scr
 mano. Se arregló el `catch` para que grite, y se verificó rompiendo un detector a propósito y
 comprobando que el self-check falla.
 
+## Los tests corren en el huso de la operación, no en el de la máquina
+
+<!-- check: block
+     pattern: "test(:watch)?"\s*:\s*"vitest
+     files: package.json
+     paths: package.json
+     version: 1
+     test: falla @package.json :: "test": "vitest run",
+     test: falla @package.json :: "test:watch": "vitest",
+     test: pasa @package.json :: "test": "TZ=America/Guayaquil vitest run",
+     test: pasa :: const x = 1
+-->
+
+`pnpm test` fija `TZ=America/Guayaquil`. No es cosmético: esta app se opera en Ecuador y su lógica
+de fechas **depende del huso local** —es la regla de `codigo.md` · "Las fechas del calendario se
+calculan en hora local"—, así que el huso es parte del dominio y un test que lo prueba tiene que
+correr en él.
+
+**Lo que compra no es que el test pase: es que local y CI midan LO MISMO.** El runner de GitHub
+corre en UTC y la máquina de trabajo en UTC-5, así que sin fijarlo los dos ejecutaban el mismo
+archivo con entradas distintas — y la diferencia sólo aparece en los tests que tocan fechas, que
+son justo los que este repo tiene por haberse quemado dos veces con `toISOString()`.
+
+**Motivo:** pasó el 30/08/2026 en el PR #58. `fecha-corta.test.ts` afirma que
+`new Date('2026-08-29')` imprime *28/8* — que es el bug contra el que existe `fechaCorta`, y es
+cierto **sólo en un huso negativo**. En local pasaba y en CI daba 29/8. Un test verde en la
+máquina y rojo en el servidor es de los peores: el primer reflejo es desconfiar del CI, y la
+segunda opción —relajar el assert— habría borrado justamente la línea que documenta el bug.
+
+## No se commitea sin que Wagner haya aprobado el cambio
+<!-- sin check: la aprobación ocurre en la conversación, no en el diff — el hook no tiene de dónde leerla -->
+
+Un agente **no ejecuta `git commit` por su cuenta**. Escribe el código, corre el gate
+(`npx tsc --noEmit`, `pnpm test`, `pnpm lint:css`, `pnpm rules:check`), deja el árbol de trabajo
+listo y **muestra qué va a entrar** — `git status -s` y el mensaje propuesto. Recién commitea
+cuando Wagner dice que sí.
+
+Vale también para lo que "obviamente está bien": el commit es el punto donde el cambio deja de
+ser una propuesta y pasa a ser historia del repo, y esa transición es del humano.
+
+**Lo que NO cambia:** el commit se sigue armando por rutas (abajo), sigue resolviendo una sola
+cosa y sigue explicando el porqué. La aprobación no reemplaza a ninguna de esas tres — un lote
+grande y mezclado no se vuelve revisable porque alguien haya dicho "dale".
+
+**Motivo:** un agente que commitea solo convierte cada decisión intermedia en historia. Acá pasó
+en esta misma sesión: se hicieron catorce commits mientras Wagner miraba el código y encontraba
+cosas —un slug pelado, un valor de dominio hardcodeado, dos componentes que eran uno—, y cada
+hallazgo llegó DESPUÉS de que el commit ya estuviera hecho. El arreglo termina siendo un commit
+extra que dice "arreglar lo del commit anterior", cuando podría no haber existido ninguno de los
+dos. Revisar antes de commitear cuesta una pausa; revisar después cuesta un commit de más y un
+historial que miente sobre cómo se llegó al resultado.
+
+Y hay un motivo más simple: el que revisa es el que responde por el código. Si el commit ya está
+hecho, la revisión es sobre algo que ya pasó, y eso cambia lo que se dice.
+
 ## Un commit es una unidad revisable, y el mensaje dice el porqué
 <!-- sin check: práctica de git que ocurre fuera de los archivos -->
 

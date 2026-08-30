@@ -32,6 +32,58 @@ nunca `any`, y nunca un `as` que solo silencia al compilador.
 regla se sostiene en cada rama o no se sostiene: reconciliar dos ramas donde una tipó y la otra
 no es el conflicto más caro que tuvo este repo.
 
+
+## `as I18nKey` es siempre un tipo flojo aguas arriba
+
+<!-- check: contact
+     pattern: \bas\s+I18nKey\b
+     files: .ts,.tsx
+     except: .test.
+     version: 2
+     test: falla :: <div>{t(clave as I18nKey)}</div>
+     test: falla :: labelFor={d => t(d.labelKey as I18nKey)}
+     test: pasa :: <div>{t(clave)}</div>
+     test: pasa :: const k: I18nKey = 'common.all'
+     test: pasa existente :: <div>{t(clave as I18nKey)}</div>
+     test: pasa @src/shared/utils/x/index.test.ts :: const CAT = { a: { labelKey: 'common.all' as I18nKey } }
+-->
+
+**`as I18nKey` es el caso concreto que más aparece, y siempre es el mismo error.** Una clave de
+i18n sale de NUESTRO código —una constante, un catálogo, un validador—, nunca del DOM ni de la
+red. Si alguien tiene un `string` donde debería tener una clave, el que está mal tipado es el
+ORIGEN, y castear en el punto de uso lo que hace es tapar eso justo donde no se puede arreglar:
+
+```ts
+// ❌ el cast está acá, pero el problema está en validarReunion, que devuelve string[]
+{errores.map(e => <li key={e}>{t(e as I18nKey)}</li>)}
+
+// ✅ se tipa el origen, y el tipo viaja solo hasta el consumidor
+export function validarReunion(form: ReunionForm): I18nKey[] { … }
+{errores.map(e => <li key={e}>{t(e)}</li>)}
+```
+
+Lo que se gana no es estética: `I18nKey` es la unión de las claves REALES de `es.json`, así que
+tipar el origen convierte una clave mal escrita en un error de compilación. Con el `as`, esa
+misma clave llega al usuario como texto crudo —`reuniones.error.empresa` en pantalla— y nadie se
+entera hasta que alguien lo ve.
+
+**Los tests quedan afuera** (`except: .test.`): un fixture arma un objeto a mano con una clave
+cualquiera —`'common.all' as I18nKey`— y ahí el cast no tapa nada, porque no hay origen que
+tipar: el origen es el literal del propio test.
+
+El check es `contact` y no `block` porque quedan 8 sitios de antes: `FilterDef.labelKey` está
+declarado como `string` y los dos paneles de filtros castean al usarlo. El arreglo es tipar ese
+campo, no seguir casteando. **Se detecta `as I18nKey` y no `as` en general** porque `as` tiene
+usos legítimos que un regex no distingue —`as CSSProperties` lo pide la propia regla del `style`,
+`e.target as Node` es narrowing del DOM que TypeScript no puede inferir, `Object.keys(x) as K[]`
+deriva de un literal—. De los 122 `as` del repo, éste es el subconjunto donde el cast SIEMPRE
+está tapando un tipo flojo aguas arriba.
+
+**Motivo:** el cast está en el punto de uso pero el problema está en el origen, y tapar el
+síntoma donde se ve impide arreglarlo donde está. Salió el 29/08: `validarReunion` devolvía
+`string[]` y el componente que mostraba los errores hacía `t(e as I18nKey)`. Al tipar el origen
+como `I18nKey[]`, el cast desapareció solo — y de paso una clave inexistente pasó a no compilar.
+
 ## Las páginas de `src/app/` son thin routes
 <!-- sin check: convención estructural sobre dónde vive la lógica, requiere mirar el proyecto -->
 
@@ -69,6 +121,142 @@ En componentes: `useApp().modules.includes('<slug>')`. En lógica pura:
 Nunca comparar contra el nombre de un rol. Los roles son dinámicos —los crea el admin desde
 `/admin`— así que un `rol === 'colaborador'` hardcodeado es una condición que el admin puede
 volver falsa sin tocar código.
+
+## El slug de un módulo se escribe una sola vez: sale de `MODULE`
+
+<!-- check: contact
+     pattern: ['"](stratix-mkt|cobranzas|research|medical|accounting|th-hr|directorio|reuniones|admin)['"]
+     files: .ts,.tsx
+     except: /auth/permissions/,/data/tables,.test.,/appShellConfig/,/org-catalogs/
+     version: 2
+     test: falla :: export const access = { module: 'reuniones' } as const
+     test: falla :: if (modules.includes('medical')) abrir()
+     test: pasa :: export const access = { module: MODULE.REUNIONES } as const
+     test: pasa :: if (modules.includes(MODULE.MEDICAL)) abrir()
+     test: pasa :: const k = 'admin.org.empresas'
+     test: pasa @src/shared/auth/permissions/modulos/slugs.ts :: REUNIONES: 'reuniones',
+     test: pasa @src/shared/data/tables.ts :: reuniones: 'reuniones',
+     test: pasa existente :: export const access = { module: 'reuniones' } as const
+-->
+
+`src/shared/auth/permissions/modulos/slugs.ts` declara los slugs y **es el único lugar donde se
+escriben como texto**. En cualquier otro archivo se pregunta por `MODULE.REUNIONES`.
+
+**Motivo:** un slug mal escrito **no rompe el build, sólo deja de coincidir** — y en silencio.
+`modules.includes('medial')` compila, devuelve `false` y el módulo simplemente no aparece: nadie
+ve un error, sólo alguien que dice que no le sale la pantalla. Es la misma forma de falla que el
+slug mal escrito en una policy de RLS (`base-de-datos.md`), y por la misma razón: un `text` sin
+catálogo detrás no lo valida nadie.
+
+Donde el campo ya está tipado como `ModuleSlug` —`NAV`, `PANEL_META`— TypeScript sí agarra el
+typo, y por eso esta regla es **`contact`** y no `block`: hay 31 archivos con el literal y
+congelarlos costaría más de lo que protege. Frena en lo que nace, y los viejos se migran por
+contacto. El caso que la motivó no estaba tipado: `features/<modulo>/index.ts` declara
+`access = { module: '<slug>' } as const`, un objeto suelto donde el compilador no mira nada.
+
+Quedan afuera del check cuatro lugares donde el texto ES el dato y no una referencia al módulo:
+`auth/permissions/` (que los declara), `data/tables.ts` y `org-catalogs/` —donde `'reuniones'` es el nombre de una
+tabla que casualmente se llama igual que el módulo—, los tests —el candado de `modulos/index.test.ts` usa
+literales **a propósito**, para ser un oráculo independiente del catálogo que verifica— y
+`appShellConfig/`, que tiene su PROPIO vocabulario: `NAV[].key` es el id del ítem del rail
+(`'mkt'` para stratix-mkt, o sea que ni siquiera coinciden) y `PanelKey` es el catálogo de
+paneles. Tres de sus valores se llaman igual que un módulo y no lo son. Lo que sí importaba en
+ese archivo —`NAV[].slug` y `PANEL_META[].slug`— ya sale de `MODULE`.
+
+## Un parámetro objeto se desestructura en la firma
+
+<!-- check: contact
+     pattern: \(\s*(\w+)\s*:\s*[A-Z][\w<>\[\]| ]*\s*[,)][\s\S]{0,500}?\1\.\w+[\s\S]{0,200}?\1\.\w+[\s\S]{0,200}?\1\.\w+
+     files: .ts,.tsx
+     version: 3
+     test: falla :: export function f(form: ReunionForm) { return form.a + form.b + form.c }
+     test: falla :: export const g = (row: OrgRow, x: number) => row.id + row.nombre + row.codigo
+     test: pasa :: export function f({ a, b, c }: ReunionForm) { return a + b + c }
+     test: pasa :: export function f(id: string) { return id }
+     test: pasa :: export function f(form: ReunionForm) { return form.a + form.b }
+     test: pasa existente :: export function f(form: ReunionForm) { return form.a + form.b + form.c }
+-->
+
+Es la misma regla que `componentes.md` ya aplica al objeto de estado —"se desestructura una vez,
+no se lee por camino"— pero para el otro lugar donde aparece: un objeto que entra como
+**parámetro**. Si la función lee **tres campos o más**, se desestructura en la firma.
+
+```ts
+// ❌ el prefijo se repite nueve veces y la firma no dice qué usa
+export const insert = (form: ReunionForm, createdBy: string | null) =>
+  db.insert({ empresa: form.empresa, titulo: form.titulo.trim(), fecha: form.fecha,
+              tipo: oNull(form.tipo), lugar: oNull(form.lugar), … })
+
+// ✅ la firma ES la lista de lo que esta función necesita
+export const insert = ({ empresa, titulo, fecha, tipo, lugar }: ReunionForm, createdBy: string | null) =>
+  db.insert({ empresa, titulo: titulo.trim(), fecha, tipo: oNull(tipo), lugar: oNull(lugar) })
+```
+
+**Se cuenta por campos leídos, no por líneas**, y con dos no dispara: `form.a + form.b` se lee
+igual de bien de las dos formas, y desestructurar dos campos no compra nada.
+
+**Cuándo NO desestructurar, a propósito:** cuando la función pasa el objeto ENTERO a otro lado
+(`repo.update(id, patch)`), o cuando lo que recibe es un array —`acts.map`, `acts.length` son el
+array mismo, no campos—. Ahí el objeto es el dato, no una bolsa de campos.
+
+**Motivo:** el prefijo repetido es ruido que además tapa el cambio real en el diff — una línea
+que dice `tipo: oNull(form.tipo), lugar: oNull(form.lugar)` obliga a leerla dos veces para ver
+que son dos campos distintos. Y hay un motivo que sólo aparece en la firma: desestructurada, la
+firma **es la lista de lo que la función usa**, así que se ve de un vistazo si un campo nuevo del
+formulario llega o no llega a la base. Con `form.` disperso hay que leer el cuerpo entero para
+saberlo — que es exactamente cómo se olvidan campos al agregar una columna.
+
+Es `contact` y no `block`: hay 26 archivos con la forma vieja, y se migran cuando se los toque.
+
+**Pero la firma tiene un techo: cinco campos o más se desestructuran ADENTRO.** Desestructurar
+en la firma deja de ayudar en cuanto la lista no entra en un renglón — la firma pasa a ser un
+párrafo y hay que leerla entera para encontrar el segundo parámetro.
+
+<!-- check: contact
+     pattern: \(\s*\{\s*\w+\s*,\s*\w+\s*,\s*\w+\s*,\s*\w+\s*,\s*\w+
+     files: .ts,.tsx
+     version: 1
+     test: falla :: export const f = ({ a, b, c, d, e }: T) => a
+     test: falla :: export const f = ({ empresa, titulo, fecha, modalidad, tipo }: ReunionForm, x: string) => 1
+     test: pasa :: export const f = ({ a, b, c, d }: T) => a
+     test: pasa :: export const f = (form: T) => { const { a, b, c, d, e, g } = form; return a }
+     test: pasa existente :: export const f = ({ a, b, c, d, e }: T) => a
+-->
+
+```ts
+// ❌ nueve campos en la firma: el segundo parámetro queda escondido al final del renglón
+export const insert = (
+  { empresa, titulo, fecha, modalidad, tipo, lugar, objetivo, hora_inicio, hora_fin }: ReunionForm,
+  createdBy: string | null,
+) => …
+
+// ✅ la firma dice QUÉ recibe; la primera línea del cuerpo dice qué usa de adentro
+export const insert = (form: ReunionForm, createdBy: string | null) => {
+  const { empresa, titulo, fecha, modalidad, tipo, lugar, objetivo, hora_inicio, hora_fin } = form
+  …
+}
+```
+
+Las dos mitades de la regla dicen lo mismo: el objeto se desestructura **una vez**. Lo único que
+cambia con el tamaño es DÓNDE conviene hacerlo — hasta cuatro campos, en la firma; de cinco en
+adelante, en la primera línea del cuerpo. Lo que nunca se hace es leerlo por camino.
+
+**Las props de un componente cuentan igual, y ahí el techo se cruza enseguida.** `Props` es un
+objeto y la firma de un componente es una firma:
+
+```tsx
+// ❌ siete props: hay que leer el renglón entero para saber si el componente recibe `onClose`
+export default function Modal({ title, subtitle, header, footer, anchoRem = 30, onClose, children }: Props) {
+
+// ✅
+export default function Modal(props: Props) {
+  const { title, subtitle, header, footer, anchoRem = 30, onClose, children } = props
+```
+
+**Motivo del agregado:** `Modal` tenía siete en la firma y el check no lo frenó — es `contact` y
+el archivo ya existía. Lo agarró Wagner leyendo. Que un check sea `contact` no exime al que abre
+el archivo: ahí manda `proceso.md` · "el que toca un archivo lo deja en la convención vigente".
+El modo `contact` decide cuándo el hook FRENA, no cuándo la regla APLICA.
 
 ## Supabase en el cliente: el singleton
 
@@ -207,11 +395,12 @@ las 20:00 es de los que nadie reproduce en una demo.
 <!-- check: block
      detector: texto_sin_traducir
      files: .ts,.tsx
-     version: 1
+     version: 2
      test: pasa :: mostrarMensaje('ok', t('stratix.edit.saved'))
      test: pasa :: <div>{t('stratix.new.title')}</div>
      test: pasa :: <span className={s.x}>{nombre}</span>
      test: pasa :: <button onClick={cerrar}>✕</button>
+     test: pasa :: export default function Sel<V extends string>(props: Props<V>) { return null }
      test: falla :: mostrarMensaje('ok', 'Role updated')
      test: falla :: <button className={s.b}>Guardar cambios</button>
      test: falla existente :: mostrarMensaje('ok', 'Role updated')
@@ -222,7 +411,10 @@ compañía reciben `t('clave')`, con la clave en `es.json` **y** `en.json`.
 
 **Qué mira el check:** dos formas, las dos inequívocas — un aviso al usuario cuyo segundo
 argumento es un literal en vez de `t(...)`, y texto suelto entre etiquetas JSX
-(`<button>Guardar</button>`). Pide cuatro letras seguidas, así que no marca `>x<`, `>-<` ni
+(`<button>Guardar</button>`). Lo que cierra tiene que ser una etiqueta (`</`) y no cualquier `<`:
+la firma de un componente genérico —`function Sel<V extends string>(props: Props<V>)`— deja un
+`>(props: Props<` que se leía como texto sin traducir, y un falso positivo que frena el trabajo
+enseña a ignorar al centinela. Pide cuatro letras seguidas, así que no marca `>x<`, `>-<` ni
 `>3h<`; y salta el contenido de los template literals, porque el HTML de una plantilla
 —`report-html`— no es algo que React renderice.
 
@@ -348,12 +540,59 @@ módulos hasta que el bundler los sacude. Con `export { x } from './y'` (nombrad
 `export * from`) Next 14 lo resuelve bien, y por eso la forma nombrada es la default acá.
 
 <!-- check: contact
-     pattern: from\s+['"]@/shared/(utils|hooks|data|db)/[a-z]
+     pattern: from\s+['"]@/shared/(?:(?:utils|hooks|data|db)/[a-z]|components/[a-z]+/[A-Z])
      files: .ts,.tsx
-     version: 1
+     except: /shared/components/
+     version: 2
      test: falla :: import { parseDelimited } from '@/shared/utils/delimited'
+     test: falla :: import Modal from '@/shared/components/ui/Modal'
+     test: falla :: import AppShell from '@/shared/components/shell/AppShell'
      test: pasa :: import { parseDelimited, localDate } from '@/shared/utils'
+     test: pasa :: import { Modal, Field } from '@/shared/components/ui'
+     test: pasa :: import { NAV } from '@/shared/components/shell/appShellConfig'
+     test: pasa @src/shared/components/shell/AppShell/index.tsx :: import Sidebar from '@/shared/components/shell/Sidebar'
+     test: pasa existente :: import Modal from '@/shared/components/ui/Modal'
 -->
+
+## Un archivo exporta UNA cosa por default; el barrel le pone el nombre
+
+<!-- sin check: distinguir "un archivo que es una cosa" de "un módulo de funciones relacionadas" pide leer qué exporta, no cuántas veces -->
+
+Un archivo que **es** una cosa —un componente, un hook— la exporta con `export default`. El
+nombre público se escribe **una sola vez**, en el barrel, y el consumidor importa desestructurando:
+
+```ts
+// Modal/index.tsx
+export default function Modal({ … }: Props) { … }
+
+// ui/index.ts — el barrel, y el único lugar donde se escribe el nombre
+export { default as Modal } from './Modal'
+
+// el consumidor
+import { Modal, Field, Button } from '@/shared/components/ui'
+```
+
+**Qué compra el default adentro:** obliga a que el archivo declare UNA cosa, porque no hay dónde
+colgar la segunda. Es la misma regla de "un `.tsx` declara UN componente", pero verificada por el
+lenguaje en vez de por un detector.
+
+**Qué compra el nombre en el barrel:** renombrar un componente pasa a ser cambiar **una línea**.
+Con imports directos, el nombre está escrito en cada consumidor —43 archivos importan de
+`components/ui`— y renombrar es un `sed` por todo el repo con lo que eso arrastra.
+
+**Dónde NO aplica, y no es una excepción tibia:** un archivo con **dos o más exports de runtime**
+—`utils/dates` tiene `localDate`, `localMonth`, `fechaCorta`, `horaCorta`— es un módulo de
+funciones relacionadas, no una cosa. Ahí van exports nombrados. Meterlos en un
+`export default { … }` rompería el tree shaking: el bundler ya no puede descartar las tres que
+nadie usa, porque son propiedades de un objeto y no módulos.
+
+La regla corta, entonces: **un export de runtime → default; dos o más → nombrados.** Los tipos no
+cuentan (no son valores) y viajan nombrados en los dos casos.
+
+**Motivo:** lo pidió Wagner el 29/08 al ver que los 16 componentes de `ui/` ya exportaban
+`default` —o sea que media convención existía— pero no había barrel, así que cada consumidor
+escribía la ruta completa y el nombre a mano. La convención a medias es lo peor de las dos: se
+paga la restricción del default y no se cobra el beneficio de tener el nombre en un solo lugar.
 
 ## Tres tipos o más: van a su propio archivo
 

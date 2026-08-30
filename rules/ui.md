@@ -8,12 +8,25 @@ opción, y la validación rechaza el vacío.
 <!-- check: contact
      requires: <select
      absent: value=""
+     exime: select-con-default
      files: .tsx
-     version: 1
+     version: 2
      test: falla :: <select>{opciones.map(o => <option>{o}</option>)}</select>
      test: pasa existente :: <select>{opciones.map(o => <option>{o}</option>)}</select>
      test: pasa :: <select><option value="">— Select —</option>{opciones.map(o => <option>{o}</option>)}</select>
+     test: pasa :: // centinela-exime: select-con-default@2 — "Pendiente" es donde empieza toda tarea\n<select>{opciones.map(o => <option>{o}</option>)}</select>
 -->
+
+**La excepción, y hay que saber distinguirla: un default SIGNIFICATIVO.** No es lo mismo la
+primera opción de una lista que un valor que significa algo por sí solo. "Pendiente" es donde
+empieza toda tarea del Kanban y el mes en curso es el mes en curso: quien no toca ese campo
+igual guarda lo correcto, y obligarlo a elegir es fricción sin nada a cambio. Angie, en cambio,
+era la primera de un dropdown de personas — ahí el valor no significaba nada, sólo estaba
+primero.
+
+La prueba: **¿el default sería el mismo si la lista estuviera en otro orden?** Si sí, es un
+default; si cambia con el orden, es un accidente y necesita el placeholder. Se firma con
+`select-con-default@2` y su fila en `rules/EXENCIONES.md`.
 
 **Motivo:** sin placeholder el navegador pinta la primera opción de la lista, pero el estado sigue
 en `''`. Las dos formas de terminar mal ya pasaron en este repo: "New task" asignaba tareas a
@@ -95,3 +108,43 @@ shell parpadea al moverse entre Kanban y Gantt— y queda lejos de las tarjetas 
 otra punta de la pantalla. Además compite con los controles del shell, que son de otra jerarquía:
 el usuario los lee juntos y no lo son. "New task" estuvo ahí arriba en Stratix hasta el
 20/08/2026, y era la misma corrección que ya se había pedido para Admin.
+
+## Todo proceso destructivo lleva confirmación
+
+<!-- check: block
+     requires: Repo\.(remove|delete)|['"]DELETE['"]
+     absent: ConfirmModal
+     files: .tsx
+     except: /shared/data/,/api/
+     version: 1
+     test: falla :: const r = await apiSend('DELETE', `/api/x/${id}`)
+     test: falla :: await usuariosRepo.remove(id)
+     test: pasa :: const r = await apiSend('DELETE', url); return <ConfirmModal onConfirm={x} />
+     test: pasa :: const filas = rows.filter(Boolean)
+     test: falla existente :: await usuariosRepo.remove(id)
+-->
+
+Borrar una fila, o pisar una que ya existe, **no ocurre al primer clic**. Va con `ConfirmModal`,
+que además tiene su variante `destructive` y su modo de escribir-para-confirmar.
+
+**Qué cuenta como destructivo:** un `DELETE`, un `remove`, y también un guardado que **pisa** algo
+que ya existía — el guardado es last-write-wins, así que sobreescribir no tiene vuelta. Crear no
+cuenta: una fila de más se borra. Por eso el formulario de tarea pregunta al EDITAR y no al crear.
+
+**Qué NO cuenta, y por eso el check exceptúa dos rutas:** `src/shared/data/` y las rutas API. Ahí
+vive la operación, no la decisión — la confirmación es de la pantalla que la dispara. Un `.ts` de
+hook tampoco la lleva: el modal es del componente.
+
+**El check mira el archivo que lo dispara.** Si un componente manda un `DELETE` y no menciona
+`ConfirmModal`, frena. No puede saber si la confirmación vive dos componentes más arriba, y por
+eso pide que esté a la vista de quien lee el borrado — que es exactamente donde uno la busca.
+
+**Motivo:** el 29/08 se encontró que `/admin` borraba sin preguntar en dos lugares. En Roles, un
+clic se llevaba el rol y sus módulos asignados. En Organización era peor de leer: el borrado SÍ
+se frenaba… pero sólo si la fila estaba en uso, así que una empresa sin dependientes se iba en
+silencio y quien tocó el botón por error se enteraba después. Que exista una validación de
+integridad no es lo mismo que preguntarle a la persona: la primera protege a la base, la segunda
+protege a quien la usa.
+
+Y hay un motivo que ya está escrito en este mismo archivo: **lo que se ve tiene que poder
+explicarse solo.** Un botón rojo que borra al tocarlo no da margen para entender qué se va.

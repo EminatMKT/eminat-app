@@ -4,8 +4,7 @@ import { useApp } from '@/shared/context/AppContext'
 import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 import { ESTADO_COLORS, estadoLabel } from '@/shared/constants/domain'
 import { useT } from '@/shared/i18n'
-import EditButton from '@/shared/components/ui/EditButton'
-import DeleteButton from '@/shared/components/ui/DeleteButton'
+import Button from '@/shared/components/ui/Button'
 import type { Actividad } from '@/features/stratix-mkt/types'
 import s from './index.module.css'
 
@@ -37,8 +36,8 @@ export default function ActivityDetailHeader({ act, onEditar, onBorrar, onCerrar
           <span className={s.chipEstado}>{estadoLabel(act.estado, t)}</span>
         </div>
         <div className={s.acciones}>
-          <EditButton onClick={onEditar} />
-          <DeleteButton onClick={onBorrar} />
+          <Button kind="edit" onClick={onEditar} />
+          <Button kind="delete" onClick={onBorrar} />
           <button type="button" className={s.cerrar} onClick={onCerrar}>✕</button>
         </div>
       </div>
