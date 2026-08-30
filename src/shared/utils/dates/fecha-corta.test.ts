@@ -10,7 +10,12 @@ describe('fechaCorta', () => {
   })
 
   // ÉSTE es el motivo de partir el string a mano. `new Date('2026-08-29')` lo interpreta como
-  // medianoche UTC, así que en UTC-4 se imprime 28/8. Comprobado en node antes de escribirlo.
+  // medianoche UTC, así que en un huso negativo se imprime 28/8. Comprobado en node.
+  //
+  // El segundo `expect` sólo es cierto en un huso NEGATIVO —es la mitad del test que describe el
+  // bug, no la que describe el arreglo—, y por eso `pnpm test` fija `TZ=America/Guayaquil`: el
+  // runner de CI corre en UTC, ahí `new Date` no retrocede y este assert daba 29/8. Falló en el
+  // CI del PR #58 después de pasar en verde en local, que es la peor forma de descubrirlo.
   it('NO se corre un día hacia atrás, que es lo que hace new Date(string)', () => {
     expect(fechaCorta('2026-08-29', 'es-EC')).toContain('29')
     expect(new Date('2026-08-29').toLocaleDateString('es-EC')).toBe('28/8/2026')

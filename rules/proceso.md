@@ -160,6 +160,35 @@ encuentra nada. Dos reglas quedaron mudas y sólo se descubrió al correr un scr
 mano. Se arregló el `catch` para que grite, y se verificó rompiendo un detector a propósito y
 comprobando que el self-check falla.
 
+## Los tests corren en el huso de la operación, no en el de la máquina
+
+<!-- check: block
+     pattern: "test(:watch)?"\s*:\s*"vitest
+     files: package.json
+     paths: package.json
+     version: 1
+     test: falla @package.json :: "test": "vitest run",
+     test: falla @package.json :: "test:watch": "vitest",
+     test: pasa @package.json :: "test": "TZ=America/Guayaquil vitest run",
+     test: pasa :: const x = 1
+-->
+
+`pnpm test` fija `TZ=America/Guayaquil`. No es cosmético: esta app se opera en Ecuador y su lógica
+de fechas **depende del huso local** —es la regla de `codigo.md` · "Las fechas del calendario se
+calculan en hora local"—, así que el huso es parte del dominio y un test que lo prueba tiene que
+correr en él.
+
+**Lo que compra no es que el test pase: es que local y CI midan LO MISMO.** El runner de GitHub
+corre en UTC y la máquina de trabajo en UTC-5, así que sin fijarlo los dos ejecutaban el mismo
+archivo con entradas distintas — y la diferencia sólo aparece en los tests que tocan fechas, que
+son justo los que este repo tiene por haberse quemado dos veces con `toISOString()`.
+
+**Motivo:** pasó el 30/08/2026 en el PR #58. `fecha-corta.test.ts` afirma que
+`new Date('2026-08-29')` imprime *28/8* — que es el bug contra el que existe `fechaCorta`, y es
+cierto **sólo en un huso negativo**. En local pasaba y en CI daba 29/8. Un test verde en la
+máquina y rojo en el servidor es de los peores: el primer reflejo es desconfiar del CI, y la
+segunda opción —relajar el assert— habría borrado justamente la línea que documenta el bug.
+
 ## No se commitea sin que Wagner haya aprobado el cambio
 <!-- sin check: la aprobación ocurre en la conversación, no en el diff — el hook no tiene de dónde leerla -->
 
