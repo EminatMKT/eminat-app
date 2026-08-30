@@ -23,8 +23,12 @@ export default function ExpedienteAcciones({ editando, guardando, onCancelar, on
   return (
     <>
       <Button kind="cancel" onClick={onCancelar} />
+      {/* El rótulo se pasa SIEMPRE. Con `undefined` al crear, `Button` caía al labelKey de
+          `confirm` en BUTTON_META —que es `common.saveChanges`— y los dos casos decían lo mismo:
+          "Guardar cambios" para dar de alta algo que todavía no existe. Lo delató la prueba con
+          un rol no-admin, no el typecheck: el prop `editando` estaba y no cambiaba nada. */}
       <Button kind="confirm" onClick={onGuardar} ocupado={guardando}
-        label={editando ? t('common.saveChanges') : undefined} />
+        label={t(editando ? 'common.saveChanges' : 'reuniones.crear')} />
     </>
   )
 }

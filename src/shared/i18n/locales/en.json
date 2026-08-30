@@ -914,6 +914,7 @@
   "reuniones.ph.lugar": "Meeting room, or the video call link",
   "reuniones.ph.objetivo": "Why this meeting is being called…",
   "reuniones.abrir": "Open the meeting {titulo}",
+  "reuniones.crear": "Create meeting",
   "reuniones.editar": "Edit meeting",
   "reuniones.editarSub": "General details and who takes part.",
   "reuniones.pisar.title": "Save the changes",
