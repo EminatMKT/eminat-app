@@ -1,154 +1,47 @@
 'use client'
-import { useEffect, useState } from 'react'
-import { useApp, MESES, COLUMNAS_KANBAN } from '@/shared/context/AppContext'
-import { estadoLabel } from '@/shared/constants/domain'
+import { useState } from 'react'
+import { ConfirmModal, Modal } from '@/shared/components/ui'
 import { useT } from '@/shared/i18n'
-import Modal from '@/shared/components/ui/Modal'
-import ConfirmModal from '@/shared/components/ui/ConfirmModal'
-import Field from '@/shared/components/ui/Field'
-import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
-import ActivityFormHeader from '../ActivityFormHeader'
-import { limitesFecha } from '@/features/stratix-mkt/utils/gantt-rango'
+import ActivityAcciones from '@/features/stratix-mkt/components/modals/ActivityAcciones'
+import ActivityCampos from '@/features/stratix-mkt/components/modals/ActivityCampos'
+import ActivityPlanificacion from '@/features/stratix-mkt/components/modals/ActivityPlanificacion'
 import { hayCambios } from '@/features/stratix-mkt/utils/act-form'
-import s from './index.module.css'
+import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
 
+// centinela-exime: bloques-similares@2 — no hay markup nuevo: los campos salieron a
+// `ActivityCampos` y `ActivityPlanificacion`, los botones son `Button` y el pie es el `footer`
+// de `Modal`. `ActivityFormHeader` desapareció: era el encabezado del Modal reimplementado.
 export default function NewActivityModal() {
-  const { miembrosAsignables, marcas, usuarios } = useApp()
   const { t } = useT()
-  const { modalNuevaAct, nuevaAct, setNuevaAct, creandoAct, crearActividad, actEditando, cerrarFormAct } = useStratix()
-  // Solo al EDITAR: crear una tarea de más se borra, pero pisar los datos de una que ya existe
-  // no tiene vuelta (el guardado es last-write-wins), así que ahí sí se pregunta antes.
+  const { modalNuevaAct, nuevaAct, crearActividad, actEditando, cerrarFormAct } = useStratix()
+  // Sólo al EDITAR: crear una tarea de más se borra, pero pisar una que ya existe no tiene
+  // vuelta —el guardado es last-write-wins—, así que ahí sí se pregunta antes.
   const [confirmarGuardado, setConfirmarGuardado] = useState(false)
-
-  // El form arranca con valores por defecto fijos, pero las dos listas son dinámicas: si el
-  // default ya no está entre las opciones —el admin desmarcó esa empresa, esa persona dejó el
-  // equipo— el navegador muestra la primera opción mientras el estado conserva el valor viejo,
-  // y se guardaría el que no se ve. Sincronizar el estado con lo que el select realmente
-  // muestra cierra ese hueco.
-  useEffect(() => {
-    if (marcas.length && !marcas.some(m => m.codigo === nuevaAct.empresa)) {
-      setNuevaAct(p => ({ ...p, empresa: marcas[0].codigo }))
-    }
-  }, [marcas, nuevaAct.empresa, setNuevaAct])
-
-  // Antes acá se preseleccionaba `miembrosAsignables[0]`. Se quitó a propósito: el responsable
-  // de una tarea es una decisión, no un default — quien no bajaba la vista se la asignaba al
-  // primero de la lista sin enterarse.
-
-  const limites = limitesFecha(new Date())
 
   async function guardarEdicion() {
     await crearActividad()
     setConfirmarGuardado(false)
   }
 
-  // Crear no pregunta; editar pregunta solo si el form difiere del original.
+  // Crear no pregunta; editar sólo si el form difiere del original.
   function alGuardar() {
     if (actEditando && hayCambios(nuevaAct, actEditando)) { setConfirmarGuardado(true); return }
     void crearActividad()
   }
 
   if (!modalNuevaAct) return null
-  const sinTitulo = !nuevaAct.titulo.trim()
 
   return (
-    <Modal
-      width={520}
-      onClose={cerrarFormAct}
-      header={<ActivityFormHeader editando={!!actEditando} onCerrar={cerrarFormAct} />}
-    >
-      <Field grande required label={t('stratix.new.taskTitle')}>
-        <input type="text" autoFocus value={nuevaAct.titulo} placeholder={t('stratix.new.titlePh')}
-          onChange={e => setNuevaAct(p => ({ ...p, titulo: e.target.value }))} />
-      </Field>
-
-      <Field label={t('stratix.new.desc')}>
-        <textarea rows={3} value={nuevaAct.descripcion} placeholder={t('stratix.new.descPh')}
-          onChange={e => setNuevaAct(p => ({ ...p, descripcion: e.target.value }))} />
-      </Field>
-
-      <div className={s.dos}>
-        {/* Los dos placeholders son obligatorios: sin ellos el navegador pinta la primera
-            opción mientras el estado sigue vacío, y se guarda lo que no se ve (ver ui.md). */}
-        <Field required label={t('stratix.new.brand')}>
-          <select value={nuevaAct.empresa} onChange={e => setNuevaAct(p => ({ ...p, empresa: e.target.value }))}>
-            <option value="">{t('stratix.new.select')}</option>
-            {marcas.map(m => <option key={m.codigo} value={m.codigo}>{m.codigo} — {m.nombre}</option>)}
-          </select>
-        </Field>
-        <Field required label={t('stratix.new.assignee')}>
-          <select value={nuevaAct.responsable_id} onChange={e => setNuevaAct(p => ({ ...p, responsable_id: e.target.value }))}>
-            <option value="">{t('stratix.new.select')}</option>
-            {miembrosAsignables.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-          </select>
-        </Field>
-      </div>
-
-      <Field label={t('stratix.new.requestedBy')}>
-        <select value={nuevaAct.solicitante_id} onChange={e => setNuevaAct(p => ({ ...p, solicitante_id: e.target.value }))}>
-          <option value="">—</option>
-          {usuarios.filter(u => !u.activo && u.id === nuevaAct.solicitante_id).map(u => (
-            <option key={u.id} value={u.id as string} disabled>{`${u.nombre || ''} ${u.apellido || ''}`.trim()} ({t('stratix.new.inactive')})</option>
-          ))}
-          {usuarios.filter(u => u.activo && u.id).map(u => (
-            <option key={u.id} value={u.id as string}>{`${u.nombre || ''} ${u.apellido || ''}`.trim()}</option>
-          ))}
-        </select>
-      </Field>
-
-      <div className={s.tres}>
-        <Field label={t('stratix.new.month')}>
-          <select value={nuevaAct.mes} onChange={e => setNuevaAct(p => ({ ...p, mes: e.target.value }))}>
-            {MESES.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
-        </Field>
-        <Field label={t('stratix.new.hours')}>
-          <input type="number" min="0" placeholder="0" value={nuevaAct.horas}
-            onChange={e => setNuevaAct(p => ({ ...p, horas: e.target.value }))} />
-        </Field>
-        <Field label={t('stratix.new.days')}>
-          <input type="number" min="0" placeholder="0" value={nuevaAct.dias_produccion}
-            onChange={e => setNuevaAct(p => ({ ...p, dias_produccion: e.target.value }))} />
-        </Field>
-      </div>
-
-      <div className={s.dos}>
-        <Field label={t('stratix.new.status')}>
-          <select value={nuevaAct.estado} onChange={e => setNuevaAct(p => ({ ...p, estado: e.target.value }))}>
-            {COLUMNAS_KANBAN.map(c => <option key={c} value={c}>{estadoLabel(c, t)}</option>)}
-          </select>
-        </Field>
-        <Field label={t('stratix.new.due')}>
-          {/* Sin min/max el navegador acepta un año de 3 dígitos: así entraron las seis
-              filas de 0206-03-23 que colgaban el Gantt (24/08/2026). */}
-          <input type="date" min={limites.min} max={limites.max} value={nuevaAct.fecha_entrega}
-            onChange={e => setNuevaAct(p => ({ ...p, fecha_entrega: e.target.value }))} />
-        </Field>
-      </div>
-
-      <Field label={t('stratix.new.drive')}>
-        <input type="url" value={nuevaAct.drive_url} placeholder={t('stratix.new.drivePh')}
-          onChange={e => setNuevaAct(p => ({ ...p, drive_url: e.target.value }))} />
-      </Field>
-
-      <div className={s.acciones}>
-        <button type="button" className={s.cancelar} onClick={() => cerrarFormAct()}>{t('common.cancel2')}</button>
-        <button type="button" className={s.crear} disabled={creandoAct || sinTitulo}
-          onClick={alGuardar}>
-          {creandoAct
-            ? (actEditando ? t('common.processing') : t('stratix.new.creating'))
-            : actEditando ? t('common.saveChanges') : t('stratix.new.create')}
-        </button>
-      </div>
+    <Modal anchoRem={32.5} onClose={cerrarFormAct} footer={<ActivityAcciones onGuardar={alGuardar} />}
+      title={actEditando ? t('stratix.edit.title') : t('stratix.new.title')}
+      subtitle={actEditando ? t('stratix.edit.sub') : t('stratix.new.sub')}>
+      <ActivityCampos />
+      <ActivityPlanificacion />
 
       {confirmarGuardado && (
-        <ConfirmModal
-          title={t('stratix.edit.confirmTitle')}
-          message={t('stratix.edit.confirmMsg')}
-          confirmLabel={t('common.saveChanges')}
-          onClose={() => setConfirmarGuardado(false)}
-          onConfirm={guardarEdicion}
-        />
+        <ConfirmModal title={t('stratix.edit.confirmTitle')} message={t('stratix.edit.confirmMsg')}
+          confirmLabel={t('common.saveChanges')} onConfirm={guardarEdicion}
+          onClose={() => setConfirmarGuardado(false)} />
       )}
     </Modal>
   )
