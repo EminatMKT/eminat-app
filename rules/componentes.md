@@ -63,7 +63,7 @@ nadie puede revisar.
 <!-- check: contact
      detector: style_inline
      files: .tsx
-     version: 1
+     version: 3
      test: pasa :: <div style={{ '--fill': pct }} />
      test: falla :: <div style={{ padding: 8 }} />
      test: falla :: <div style={{ '--fill': p, padding: 8 }} />
@@ -107,6 +107,32 @@ cuando el valor sale de la base — o manipular el DOM por `ref`, que es peor qu
 
 ### Los colores salen de variables CSS, no de objetos JS
 
+<!-- check: contact
+     pattern: ['"]#[0-9a-fA-F]{3,8}['"]
+     files: .tsx
+     except: /constants/
+     version: 1
+     test: falla :: const color = destructive ? '#F87171' : accent
+     test: falla :: <div style={{ background: '#9CA3AF' }} />
+     test: pasa :: const color = destructive ? 'var(--c-danger)' : accent
+     test: pasa :: <div className={s.caja} />
+     test: pasa existente :: const color = destructive ? '#F87171' : accent
+-->
+
+<!-- check: contact
+     pattern: (?i)#[0-9a-f]{3,8}\b
+     files: .css
+     except: globals.css
+     version: 1
+     test: falla @src/features/x/components/Y/index.module.css :: .x { color: #34d399; }
+     test: falla @src/features/x/components/Y/index.module.css :: .x { border-color: #D1D5DB; }
+     test: pasa @src/features/x/components/Y/index.module.css :: .x { color: var(--c-t1); }
+     test: falla @src/features/x/components/Y/index.module.css :: .x { color: #fff; }
+     test: pasa @src/features/x/components/Y/index.module.css :: .x { color: var(--c-sobre-solido); background: color-mix(in srgb, var(--c-accent) 88%, var(--c-oscurecer)); }
+     test: pasa @src/features/x/components/Y/index.module.css :: .x { box-shadow: 0 1px 2px rgba(16,24,40,.12); }
+     test: pasa existente @src/features/x/components/Y/index.module.css :: .x { color: #34d399; }
+-->
+
 `src/app/globals.css` ya define los tokens oscuros de la app en `:root` (`--bg`, `--s1`, `--s2`,
 `--s3`, `--accent`, `--t1`, `--t2`, `--t3`). Un `.module.css` los usa directo: `color: var(--t1)`.
 
@@ -118,12 +144,41 @@ de ahí, no al revés: la fuente de verdad de un color tiene que ser el CSS.
 paleta: el día que se cambie el tema o la paleta, ese componente no se entera, y nadie encuentra
 todas las copias porque nunca hubo una lista de dónde están.
 
+**Un hex en un `style` inline se escribe `var(--token)`, no el número.** Es CSS: una variable
+funciona igual ahí que en un `.module.css`, así que no hace falta migrar el componente entero
+para dejar de duplicar el color. `ConfirmModal` tenía `'#F87171'` —que es `--c-danger`— y
+`'#9CA3AF'` —que es `--c-t3`—, o sea la paleta escrita dos veces con otro nombre.
+
+**Dónde SÍ va un hex, y por eso el check exceptúa `/constants/`:** un catálogo de dominio. El
+color de una modalidad de reunión o de una etapa de Research ES el dato —viaja a la base, se
+elige desde un panel— y de ahí sale como variable CSS con la excepción de arriba. La diferencia
+es quién lo decide: la paleta la decide el tema, el color de una marca lo decide el admin.
+
+**Y en un `.module.css` vale exactamente igual**, que es donde más se acumuló: hay 38 archivos
+con hex, y los que más se repiten son la paleta escrita de nuevo — `#34d399` dieciocho veces es
+`--c-ok`, `#f87171` doce veces es `--c-danger`, `#D1D5DB` ocho es el borde. Cada copia es un
+color que no se entera el día que cambie el tema.
+
+**`#fff` y `#000` tampoco pasan, y ahí me equivoqué primero.** Los había exceptuado por
+"primitivos": blanco es blanco. Lo preguntó Wagner —*"¿y si después integro el modo oscuro?"*— y
+tiene razón: con un segundo tema son decisiones de tema disfrazadas. El texto de un botón
+primario puede no ser blanco en oscuro, y peor, `color-mix(…, #000)` significa **"oscurecer 12%"**
+— en un tema oscuro hay que ACLARAR, así que ese `#000` está codificando la dirección del hover.
+
+Por eso `globals.css` define `--c-sobre-solido` y `--c-oscurecer`. El día que exista el bloque
+oscuro, esos dos tokens cambian de valor y todos los hovers se dan vuelta solos; con el hex
+escrito a mano habría que encontrarlo en 38 archivos, sabiendo cuáles son tema y cuáles no.
+
+`globals.css` también queda afuera, obviamente: es donde la paleta se DEFINE.
+
+Hay 77 `.tsx` con hex, así que es `contact`: frena lo que nace y lo viejo se migra por contacto.
+
 ## Las medidas van en `rem`, no en píxeles
 
 <!-- check: block
      pattern: (?:^|[;{\s])(?:min-|max-)?(font-size|padding|margin|gap|border-radius|width|height|top|right|bottom|left|inset)[a-z-]*:\s*[^;]*\b\d+px
      files: .css
-     version: 2
+     version: 3
      test: falla @src/features/x/components/Y/index.module.css :: .x { font-size: 12px; }
      test: falla @src/features/x/components/Y/index.module.css :: .x { gap: 10px; }
      test: falla @src/features/x/components/Y/index.module.css :: .x { border-radius: 10px; }
@@ -153,6 +208,39 @@ a la pantalla; un `rem` la ata al tamaño de letra que el usuario eligió en su 
 píxel. Son líneas de contorno, no medidas de contenido: un borde de 1px tiene que seguir siendo
 de 1px aunque el usuario agrande la letra — si escala, se convierte en un marco grueso. El check
 mira sólo las propiedades de tamaño y espaciado, así que esas pasan solas.
+
+**Y vale igual para una medida que viaja como PROP**, que es donde el check de arriba no llega
+porque sólo mira `.css`:
+
+<!-- check: contact
+     pattern: \b(?:width|height|maxWidth|minWidth)=\{[0-9]+\}
+     files: .tsx
+     version: 1
+     test: falla :: <Modal width={480} onClose={x} />
+     test: falla :: <Grafico height={220} />
+     test: pasa :: <Modal anchoRem={30} onClose={x} />
+     test: pasa :: <Icono size={18} />
+     test: pasa :: <Grafico height={alto} />
+     test: pasa existente :: <Modal width={480} onClose={x} />
+-->
+
+```tsx
+// ❌ el modal no crece cuando el usuario agranda la letra: el texto se apretuja contra el borde
+<Modal width={480} … />
+
+// ✅ y el nombre dice la unidad, así nadie le pasa 480 pensando en píxeles
+<Modal anchoRem={30} … />
+```
+
+**El nombre del prop lleva la unidad**, no sólo el valor: `width={30}` se lee como treinta
+píxeles y se rompe en silencio. `size` queda afuera del check a propósito — el tamaño de un
+ícono es un gráfico, como un borde, y la regla ya exceptúa esos.
+
+**Motivo:** lo encontró Wagner mirando `Modal`, que llevaba `width = 480` desde siempre. El
+check de `rem` no lo veía porque vive en el `.tsx`, y es exactamente la misma falla: la caja
+queda clavada al monitor mientras el texto de adentro escala. Un modal es la peor versión del
+problema, porque además tiene `max-height` — el texto crece, la caja no, y el formulario entero
+se va al scroll.
 
 **La conversión es mecánica** (`bun rules/px-a-rem.ts <archivo>` la hace y muestra el diff), pero
 **revisala**: la base es 16px = 1rem, y algún valor pensado para una pantalla concreta puede

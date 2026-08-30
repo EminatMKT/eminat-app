@@ -38,12 +38,14 @@ no es el conflicto más caro que tuvo este repo.
 <!-- check: contact
      pattern: \bas\s+I18nKey\b
      files: .ts,.tsx
-     version: 1
+     except: .test.
+     version: 2
      test: falla :: <div>{t(clave as I18nKey)}</div>
      test: falla :: labelFor={d => t(d.labelKey as I18nKey)}
      test: pasa :: <div>{t(clave)}</div>
      test: pasa :: const k: I18nKey = 'common.all'
      test: pasa existente :: <div>{t(clave as I18nKey)}</div>
+     test: pasa @src/shared/utils/x/index.test.ts :: const CAT = { a: { labelKey: 'common.all' as I18nKey } }
 -->
 
 **`as I18nKey` es el caso concreto que más aparece, y siempre es el mismo error.** Una clave de
@@ -64,6 +66,10 @@ Lo que se gana no es estética: `I18nKey` es la unión de las claves REALES de `
 tipar el origen convierte una clave mal escrita en un error de compilación. Con el `as`, esa
 misma clave llega al usuario como texto crudo —`reuniones.error.empresa` en pantalla— y nadie se
 entera hasta que alguien lo ve.
+
+**Los tests quedan afuera** (`except: .test.`): un fixture arma un objeto a mano con una clave
+cualquiera —`'common.all' as I18nKey`— y ahí el cast no tapa nada, porque no hay origen que
+tipar: el origen es el literal del propio test.
 
 El check es `contact` y no `block` porque quedan 8 sitios de antes: `FilterDef.labelKey` está
 declarado como `string` y los dos paneles de filtros castean al usarlo. El arreglo es tipar ese
@@ -121,8 +127,8 @@ volver falsa sin tocar código.
 <!-- check: contact
      pattern: ['"](stratix-mkt|cobranzas|research|medical|accounting|th-hr|directorio|reuniones|admin)['"]
      files: .ts,.tsx
-     except: /auth/permissions/,/data/tables,.test.
-     version: 1
+     except: /auth/permissions/,/data/tables,.test.,/appShellConfig/,/org-catalogs/
+     version: 2
      test: falla :: export const access = { module: 'reuniones' } as const
      test: falla :: if (modules.includes('medical')) abrir()
      test: pasa :: export const access = { module: MODULE.REUNIONES } as const
@@ -148,17 +154,21 @@ congelarlos costaría más de lo que protege. Frena en lo que nace, y los viejos
 contacto. El caso que la motivó no estaba tipado: `features/<modulo>/index.ts` declara
 `access = { module: '<slug>' } as const`, un objeto suelto donde el compilador no mira nada.
 
-Quedan afuera del check tres lugares donde el texto ES el dato y no una referencia al módulo:
-`auth/permissions/` (que los declara), `data/tables.ts` —donde `'reuniones'` es el nombre de una
-tabla que casualmente se llama igual— y los tests: el candado de `modulos/index.test.ts` usa
-literales **a propósito**, para ser un oráculo independiente del catálogo que verifica.
+Quedan afuera del check cuatro lugares donde el texto ES el dato y no una referencia al módulo:
+`auth/permissions/` (que los declara), `data/tables.ts` y `org-catalogs/` —donde `'reuniones'` es el nombre de una
+tabla que casualmente se llama igual que el módulo—, los tests —el candado de `modulos/index.test.ts` usa
+literales **a propósito**, para ser un oráculo independiente del catálogo que verifica— y
+`appShellConfig/`, que tiene su PROPIO vocabulario: `NAV[].key` es el id del ítem del rail
+(`'mkt'` para stratix-mkt, o sea que ni siquiera coinciden) y `PanelKey` es el catálogo de
+paneles. Tres de sus valores se llaman igual que un módulo y no lo son. Lo que sí importaba en
+ese archivo —`NAV[].slug` y `PANEL_META[].slug`— ya sale de `MODULE`.
 
 ## Un parámetro objeto se desestructura en la firma
 
 <!-- check: contact
      pattern: \(\s*(\w+)\s*:\s*[A-Z][\w<>\[\]| ]*\s*[,)][\s\S]{0,500}?\1\.\w+[\s\S]{0,200}?\1\.\w+[\s\S]{0,200}?\1\.\w+
      files: .ts,.tsx
-     version: 2
+     version: 3
      test: falla :: export function f(form: ReunionForm) { return form.a + form.b + form.c }
      test: falla :: export const g = (row: OrgRow, x: number) => row.id + row.nombre + row.codigo
      test: pasa :: export function f({ a, b, c }: ReunionForm) { return a + b + c }
@@ -230,6 +240,23 @@ export const insert = (form: ReunionForm, createdBy: string | null) => {
 Las dos mitades de la regla dicen lo mismo: el objeto se desestructura **una vez**. Lo único que
 cambia con el tamaño es DÓNDE conviene hacerlo — hasta cuatro campos, en la firma; de cinco en
 adelante, en la primera línea del cuerpo. Lo que nunca se hace es leerlo por camino.
+
+**Las props de un componente cuentan igual, y ahí el techo se cruza enseguida.** `Props` es un
+objeto y la firma de un componente es una firma:
+
+```tsx
+// ❌ siete props: hay que leer el renglón entero para saber si el componente recibe `onClose`
+export default function Modal({ title, subtitle, header, footer, anchoRem = 30, onClose, children }: Props) {
+
+// ✅
+export default function Modal(props: Props) {
+  const { title, subtitle, header, footer, anchoRem = 30, onClose, children } = props
+```
+
+**Motivo del agregado:** `Modal` tenía siete en la firma y el check no lo frenó — es `contact` y
+el archivo ya existía. Lo agarró Wagner leyendo. Que un check sea `contact` no exime al que abre
+el archivo: ahí manda `proceso.md` · "el que toca un archivo lo deja en la convención vigente".
+El modo `contact` decide cuándo el hook FRENA, no cuándo la regla APLICA.
 
 ## Supabase en el cliente: el singleton
 

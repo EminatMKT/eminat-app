@@ -34,8 +34,21 @@ nueva. Es a propósito — una excusa sin fecha de vencimiento es deuda invisibl
 | `src/shared/auth/permissions/modulos/index.ts` | `archivo-extenso@2` | 2026-08-29 | es el catálogo de módulos: crece de a una entrada |
 | `src/features/admin/org-catalogs/catalogo.ts` | `archivo-extenso@2` | 2026-08-29 | es el catálogo organizacional: crece de a una entrada |
 | `src/features/reuniones/components/listado/ReunionRow/index.tsx` | `bloques-similares@2` | 2026-08-29 | ninguna fila compartida admite código + fecha + estado |
+| `src/features/reuniones/components/listado/EstadoListado/index.tsx` | `bloques-similares@2` | 2026-08-29 | no hay un estado-de-lista compartido; ErrorList es de formularios |
 | `src/features/reuniones/components/listado/ReunionesListado/index.tsx` | `bloques-similares@2` | 2026-08-29 | la parte reusable YA se reusa: ListToolbar + NewButton |
+| `src/features/reuniones/components/listado/ReunionesListado/index.tsx` | `useState@1` | 2026-08-29 | buscar y abrir el expediente no viajan juntos |
+| `src/shared/components/ui/ConfirmModal/index.tsx` | `useState@1` | 2026-08-29 | lo que se tipea y el "está corriendo" no viajan juntos |
 | `src/features/reuniones/components/expediente/DatosGenerales/index.tsx` | `bloques-similares@2` | 2026-08-29 | `Field` se reusa; OrgModal es data-driven y este no |
 | `src/features/reuniones/components/expediente/CuandoYDonde/index.tsx` | `bloques-similares@2` | 2026-08-29 | la otra mitad del mismo formulario |
 | `src/features/reuniones/components/expediente/ExpedienteView/index.tsx` | `bloques-similares@2` | 2026-08-29 | es `Modal` + los campos; no agrega markup propio |
 | `src/shared/components/ui/ErrorList/index.tsx` | `bloques-similares@2` | 2026-08-29 | no hay lista de errores compartida; WarningCallout es otra cosa |
+| `src/shared/components/ui/ModalHead/index.tsx` | `bloques-similares@2` | 2026-08-29 | ES la unificación: sale de Modal y absorbe a ActivityFormHeader |
+| `src/shared/components/ui/Modal/index.tsx` | `bloques-similares@2` | 2026-08-29 | el encabezado salió a ModalHead; sólo se agregó el pie |
+| `src/shared/components/ui/ConfirmModal/index.tsx` | `bloques-similares@2` | 2026-08-29 | dejó de dibujar sus botones: usa Button y el footer de Modal |
+| `src/features/stratix-mkt/components/modals/ActivityCampos/index.tsx` | `bloques-similares@2` | 2026-08-29 | es la mitad de NewActivityModal, que pasaba el techo de 150 |
+| `src/features/stratix-mkt/components/modals/ActivityPlanificacion/index.tsx` | `bloques-similares@2` | 2026-08-29 | la otra mitad del mismo formulario |
+| `src/features/stratix-mkt/components/modals/SolicitantePicker/index.tsx` | `bloques-similares@2` | 2026-08-29 | el único select que muestra inactivos deshabilitados |
+| `src/features/stratix-mkt/components/modals/ActivityNumeros/index.tsx` | `bloques-similares@2` | 2026-08-29 | los tres campos de esfuerzo, sacados del mismo formulario |
+| `src/features/stratix-mkt/components/modals/ActivityAcciones/index.tsx` | `bloques-similares@2` | 2026-08-29 | son dos `Button`; lo propio es qué rótulo lleva cada estado |
+| `src/features/stratix-mkt/components/modals/ActivityAsignacion/index.tsx` | `bloques-similares@2` | 2026-08-29 | los dos selects obligatorios, con la invariante de la marca vigente |
+| `src/features/stratix-mkt/components/modals/NewActivityModal/index.tsx` | `bloques-similares@2` | 2026-08-29 | quedó como armador: Modal + los campos + el pie, sin markup propio |

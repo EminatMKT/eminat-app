@@ -95,3 +95,43 @@ shell parpadea al moverse entre Kanban y Gantt— y queda lejos de las tarjetas 
 otra punta de la pantalla. Además compite con los controles del shell, que son de otra jerarquía:
 el usuario los lee juntos y no lo son. "New task" estuvo ahí arriba en Stratix hasta el
 20/08/2026, y era la misma corrección que ya se había pedido para Admin.
+
+## Todo proceso destructivo lleva confirmación
+
+<!-- check: block
+     requires: Repo\.(remove|delete)|['"]DELETE['"]
+     absent: ConfirmModal
+     files: .tsx
+     except: /shared/data/,/api/
+     version: 1
+     test: falla :: const r = await apiSend('DELETE', `/api/x/${id}`)
+     test: falla :: await usuariosRepo.remove(id)
+     test: pasa :: const r = await apiSend('DELETE', url); return <ConfirmModal onConfirm={x} />
+     test: pasa :: const filas = rows.filter(Boolean)
+     test: falla existente :: await usuariosRepo.remove(id)
+-->
+
+Borrar una fila, o pisar una que ya existe, **no ocurre al primer clic**. Va con `ConfirmModal`,
+que además tiene su variante `destructive` y su modo de escribir-para-confirmar.
+
+**Qué cuenta como destructivo:** un `DELETE`, un `remove`, y también un guardado que **pisa** algo
+que ya existía — el guardado es last-write-wins, así que sobreescribir no tiene vuelta. Crear no
+cuenta: una fila de más se borra. Por eso el formulario de tarea pregunta al EDITAR y no al crear.
+
+**Qué NO cuenta, y por eso el check exceptúa dos rutas:** `src/shared/data/` y las rutas API. Ahí
+vive la operación, no la decisión — la confirmación es de la pantalla que la dispara. Un `.ts` de
+hook tampoco la lleva: el modal es del componente.
+
+**El check mira el archivo que lo dispara.** Si un componente manda un `DELETE` y no menciona
+`ConfirmModal`, frena. No puede saber si la confirmación vive dos componentes más arriba, y por
+eso pide que esté a la vista de quien lee el borrado — que es exactamente donde uno la busca.
+
+**Motivo:** el 29/08 se encontró que `/admin` borraba sin preguntar en dos lugares. En Roles, un
+clic se llevaba el rol y sus módulos asignados. En Organización era peor de leer: el borrado SÍ
+se frenaba… pero sólo si la fila estaba en uso, así que una empresa sin dependientes se iba en
+silencio y quien tocó el botón por error se enteraba después. Que exista una validación de
+integridad no es lo mismo que preguntarle a la persona: la primera protege a la base, la segunda
+protege a quien la usa.
+
+Y hay un motivo que ya está escrito en este mismo archivo: **lo que se ve tiene que poder
+explicarse solo.** Un botón rojo que borra al tocarlo no da margen para entender qué se va.
