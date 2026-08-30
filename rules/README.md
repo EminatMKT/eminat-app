@@ -24,6 +24,12 @@ El centinela (`rules/centinela/`, motor en Bun compartido por todos los CLIs) co
 Write/Edit y **no contiene ninguna regla**: las lee de estos archivos. Para que una regla se
 verifique sola, se le agrega un bloque dentro de su propia sección:
 
+**Un heredoc de Bash cuenta como un Write.** `cat > src/x.ts <<'EOF' … EOF` y `tee src/x.ts <<EOF`
+se desarman (`rules/centinela/heredoc.ts`) y se les corren las mismas reglas de archivo, con su
+ruta y su contenido. Antes se escapaban enteros: así entró un `return` de nueve campos que el
+check ya tenía escrito desde antes. Lo que todavía se escapa —`sed -i`, un `open(p,'w')` dentro
+de un heredoc de Python— lo agarra `pnpm rules:barrido` en `pre-push`, un gate más tarde.
+
 ```markdown
 ## Los tipos no se aflojan para que compile
 
