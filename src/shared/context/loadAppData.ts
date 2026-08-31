@@ -206,8 +206,6 @@ export function startAppData(s: Setters): () => void {
       // se hidrata de fondo y un cuelgue suyo no debe dejar el spinner infinito.
       s.setLoading(false)
 
-      const isAdmin = normalizeRole(usr.rol) === 'admin'
-
       // 3. Heartbeat - update online_at every 30s
       const doHeartbeat = () => {
         usuariosRepo.touchOnline(usr.id)
@@ -268,10 +266,9 @@ export function startAppData(s: Setters): () => void {
       //    después, todo Stratix se pintaría un instante con el color de fallback
       //    y repintaría al resolverse — chips del topbar incluidos.
       const [{ data: acts }, org] = await Promise.all([
-        // Un no-admin ve solo lo suyo: lo que ejecuta y lo que pidió (el repo
-        // filtra por las dos FK). Antes el filtro era el ref y quien no tenía
-        // caía en `undefined` — o sea, sin filtro: veía todas las actividades.
-        actividadesRepo.list(!isAdmin ? usr.id : undefined),
+        // Sin filtro por persona: Stratix es un tablero de equipo y quien tiene el
+        // módulo ve todo. Quién puede ver qué lo decide la RLS, no este archivo.
+        actividadesRepo.list(),
         fetchOrg(),
       ])
       s.setActividades(acts || [])

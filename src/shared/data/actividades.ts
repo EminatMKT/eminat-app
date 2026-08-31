@@ -3,17 +3,14 @@ import { TABLES, COLUMNS } from './tables'
 
 // Capa de acceso a datos para la tabla `actividades`.
 
-// Lista actividades por created_at desc. Si se pasa `usuarioId`, deja solo las
-// que le pertenecen: las que ejecuta (`responsable_id`) **o** las que pidió
-// (`solicitante_id`). Las dos mitades son necesarias — el reporte de miembro
-// cuenta "lo que ejecuto más lo que pedí", así que filtrar solo por responsable
-// dejaba a los no-admin sin poder ver nunca lo que delegaron: la tarea aparecía
-// por el update optimista y desaparecía al recargar.
-export const list = (usuarioId?: string) => {
-  let q = supabase.from(TABLES.actividades).select('*').order(COLUMNS.createdAt, { ascending: false })
-  if (usuarioId) q = q.or(`responsable_id.eq.${usuarioId},solicitante_id.eq.${usuarioId}`)
-  return q
-}
+// Lista actividades por created_at desc. Sin filtro por persona: quien tiene el
+// módulo Stratix ve el tablero entero, y quien no lo tiene no recibe ninguna fila
+// —lo decide la policy `colaborador_read`, que es `has_module('stratix-mkt')`—.
+// Lo de "cada uno ve solo lo suyo" era un filtro de ESTE archivo, no de la RLS:
+// convertía un tablero de equipo en una lista personal. Lo que sí es personal
+// —el reporte de pago, "mis tareas"— se resuelve filtrando en la vista.
+export const list = () =>
+  supabase.from(TABLES.actividades).select('*').order(COLUMNS.createdAt, { ascending: false })
 
 // Crea una actividad (insert + select + single).
 export const create = (payload: Record<string, unknown>) =>
