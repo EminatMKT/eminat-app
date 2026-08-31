@@ -6,34 +6,33 @@
 // muestran: el estado tiene su canónico en español (`ESTADO.PENDIENTE === 'Pendiente'`) y el
 // responsable es un uuid. Las dependencias entran por parámetro y no por contexto para que el
 // módulo siga siendo puro y testeable sin montar nada.
-import { MESES, TRIMESTRES, TRIMESTRE_GENERAL, COLUMNAS_KANBAN, mesATrimestre, estadoLabel } from '@/shared/constants/domain'
+import { TRIMESTRES, TRIMESTRE_GENERAL, COLUMNAS_KANBAN, estadoLabel } from '@/shared/constants/domain'
 import { distinctValues, type FilterDef } from '@/shared/utils/filters'
+import { trimestreDe, claveMes, periodoLargo, periodosDisponibles } from '@/features/stratix-mkt/utils/periodo'
 import type { I18nKey } from '@/shared/i18n'
 import type { Actividad } from '@/features/stratix-mkt/types'
 
 type Deps = {
   t: (k: I18nKey) => string
   nombrePorId: Record<string, string> // uuid de responsable → nombre a mostrar
+  intlLocale: string // BCP-47 de quien mira: el período se nombra en su idioma
 }
-
-// `actividades.trimestre` se escribe al crear la tarea, pero el mes es el dato que la gente
-// edita; si los dos discrepan gana el que está guardado y el mes es el respaldo. Mismo criterio
-// que ActivityDetailModal, para que la ficha y el filtro no digan cosas distintas.
-export const trimestreDe = (a: Actividad): string => a.trimestre || mesATrimestre[a.mes ?? ''] || ''
 
 // 'General' es la ausencia de filtro, y eso ya lo representa el placeholder vacío del select.
 const QUARTERS = TRIMESTRES.filter(q => q !== TRIMESTRE_GENERAL)
 
-export function actividadFilters({ t, nombrePorId }: Deps): FilterDef<Actividad>[] {
+export function actividadFilters({ t, nombrePorId, intlLocale }: Deps): FilterDef<Actividad>[] {
   return [
     { key: 'trimestre', labelKey: 'stratix.filter.allQuarters',
       options: () => QUARTERS,
-      match: (a, v) => trimestreDe(a) === v },
-    // Los 12 meses siempre, no los presentes en los datos: el tablero se usa para ver que un
-    // mes está vacío, y una opción que desaparece cuando no hay tareas no permite preguntarlo.
-    { key: 'mes', labelKey: 'stratix.filter.allMonths',
-      options: () => MESES,
-      match: (a, v) => a.mes === v },
+      match: (a, v) => trimestreDe(a.fecha_inicio) === v },
+    // Los 12 meses de cada año presente, no los que tienen tareas: el tablero se usa para ver
+    // que un mes está vacío, y una opción que desaparece cuando no hay tareas no permite
+    // preguntarlo. Antes eran 12 fijos porque el mes no tenía año.
+    { key: 'periodo', labelKey: 'stratix.filter.allMonths',
+      options: items => periodosDisponibles(items.map(a => a.fecha_inicio)),
+      optionLabel: p => periodoLargo(`${p}-01`, intlLocale),
+      match: (a, v) => claveMes(a.fecha_inicio) === v },
     { key: 'estado', labelKey: 'stratix.filter.allStatuses',
       options: () => [...COLUMNAS_KANBAN],
       optionLabel: e => estadoLabel(e, t),

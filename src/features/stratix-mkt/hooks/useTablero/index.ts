@@ -14,7 +14,7 @@ import { isExcludedFromStratix360 } from '@/features/stratix-mkt/team'
 // `actsFiltradas` del que comen el Gantt y el resumen de horas.
 export function useTablero() {
   const { usuario, actividades, equipo, miembrosPorId, miembrosAsignables, colorMarca } = useApp()
-  const { t } = useT()
+  const { t, intlLocale } = useT()
 
   // El tablero se filtra con el motor declarativo de `shared/utils/filters`, el mismo que
   // Research: antes era un `useState` con las pills de trimestre y nada más. Se recuerda entre
@@ -22,7 +22,7 @@ export function useTablero() {
   // tablero con un filtro puesto de la semana pasada y las cifras no se explican.
   const [filterValues, setFilterValues] = useUserPreference<FilterValues>('stratix-act-filters', {})
 
-  const actFilters = actividadFilters({ t, nombrePorId: miembrosPorId })
+  const actFilters = actividadFilters({ t, nombrePorId: miembrosPorId, intlLocale })
   const setFilterValue = (key: string, value: string) => setFilterValues(p => ({ ...p, [key]: value }))
   const clearFilters = () => setFilterValues({})
   const filtrosActivos = actFilters.filter(d => filterValues[d.key]).length
