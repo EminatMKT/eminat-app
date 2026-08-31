@@ -3,6 +3,7 @@ import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { periodoLargo, periodosDisponibles } from '@/features/stratix-mkt/utils/periodo'
 import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
+import Button from '@/shared/components/ui/Button'
 import StatBox from '@/shared/components/ui/StatBox'
 import ReportTableRow from '../ReportTableRow'
 import s from './index.module.css'
@@ -55,7 +56,7 @@ export default function ReporteTab() {
               <option key={p} value={p}>{periodoLargo(`${p}-01`, intlLocale)}</option>
             ))}
           </select>
-          <button type="button" className={s.imprimir} onClick={handlePrintReport}>{t('stratix.report.print')}</button>
+          <Button kind="print" onClick={handlePrintReport} />
         </div>
       </div>
       <div className={s.hoja}>
