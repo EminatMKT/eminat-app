@@ -3,17 +3,22 @@
 // La regla es "lo que ejecuto más lo que pedí". Antes había una excepción escrita
 // con el ref literal de Freddy (`refRep === 'Coord_MFreddy'`), porque era el único
 // que solicitaba: eso era un dato, no una regla. Con la FK deja de necesitar código.
+import { claveMes } from '@/features/stratix-mkt/utils/periodo'
+
 export type ActividadRef = {
   responsable_id?: string | null
   solicitante_id?: string | null
-  mes?: string | null
+  fecha_inicio?: string | null
 }
 
+// `mes` es la clave 'YYYY-MM', no la etiqueta. Antes era `act.mes === 'Agosto'` sobre una columna
+// de texto sin año, así que el reporte de un mes sumaba ese mes de TODOS los años: en enero de
+// 2027 el reporte de Enero habría incluido enero de 2026. El año va en la clave.
 export function esActividadDeMiembro(act: ActividadRef, idMiembro: string, mes?: string): boolean {
   if (!idMiembro) return false
   const suya = act.responsable_id === idMiembro || act.solicitante_id === idMiembro
   if (!suya) return false
-  return mes ? act.mes === mes : true
+  return mes ? claveMes(act.fecha_inicio) === mes : true
 }
 
 export type ActividadProduccion = ActividadRef & {

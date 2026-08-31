@@ -2,11 +2,13 @@ import { describe, it, expect } from 'vitest'
 import { esActividadDeMiembro, totalesProduccion } from './report-filter'
 
 const acts = {
-  suya:      { responsable_id: 'u1', solicitante_id: 'u9', mes: 'Enero' },
-  pedida:    { responsable_id: 'u9', solicitante_id: 'u1', mes: 'Enero' },
-  ajena:     { responsable_id: 'u9', solicitante_id: 'u8', mes: 'Enero' },
-  otroMes:   { responsable_id: 'u1', solicitante_id: null, mes: 'Marzo' },
-  sinMes:    { responsable_id: 'u1', solicitante_id: null, mes: null },
+  suya:      { responsable_id: 'u1', solicitante_id: 'u9', fecha_inicio: '2026-01-15' },
+  pedida:    { responsable_id: 'u9', solicitante_id: 'u1', fecha_inicio: '2026-01-15' },
+  ajena:     { responsable_id: 'u9', solicitante_id: 'u8', fecha_inicio: '2026-01-15' },
+  otroMes:   { responsable_id: 'u1', solicitante_id: null, fecha_inicio: '2026-03-02' },
+  sinMes:    { responsable_id: 'u1', solicitante_id: null, fecha_inicio: null },
+  // El bug que motivó todo esto: el MISMO mes, un año después.
+  otroAnio:  { responsable_id: 'u1', solicitante_id: null, fecha_inicio: '2027-01-15' },
 }
 
 describe('esActividadDeMiembro', () => {
@@ -24,15 +26,24 @@ describe('esActividadDeMiembro', () => {
     expect(esActividadDeMiembro(acts.sinMes, 'u1')).toBe(true)
   })
   it('con mes exige que coincida, aunque la actividad sea suya', () => {
-    expect(esActividadDeMiembro(acts.suya, 'u1', 'Enero')).toBe(true)
-    expect(esActividadDeMiembro(acts.otroMes, 'u1', 'Enero')).toBe(false)
+    expect(esActividadDeMiembro(acts.suya, 'u1', '2026-01')).toBe(true)
+    expect(esActividadDeMiembro(acts.otroMes, 'u1', '2026-01')).toBe(false)
   })
   it('con mes también aplica a las solicitadas', () => {
-    expect(esActividadDeMiembro(acts.pedida, 'u1', 'Enero')).toBe(true)
-    expect(esActividadDeMiembro(acts.pedida, 'u1', 'Marzo')).toBe(false)
+    expect(esActividadDeMiembro(acts.pedida, 'u1', '2026-01')).toBe(true)
+    expect(esActividadDeMiembro(acts.pedida, 'u1', '2026-03')).toBe(false)
   })
   it('un id vacío no matchea nada, ni siquiera FK nulas', () => {
     expect(esActividadDeMiembro({ responsable_id: null, solicitante_id: null }, '')).toBe(false)
+  })
+  it('el reporte de un mes NO incluye ese mes de otro año', () => {
+    // Éste es el bug: con `mes = 'Enero'` guardado como texto, esta actividad de 2027 entraba
+    // en el reporte de enero de 2026 y las horas se pagaban dos veces.
+    expect(esActividadDeMiembro(acts.otroAnio, 'u1', '2026-01')).toBe(false)
+    expect(esActividadDeMiembro(acts.otroAnio, 'u1', '2027-01')).toBe(true)
+  })
+  it('el día no importa: el período es el mes', () => {
+    expect(esActividadDeMiembro({ responsable_id: 'u1', fecha_inicio: '2026-01-31' }, 'u1', '2026-01')).toBe(true)
   })
 })
 
@@ -41,12 +52,12 @@ describe('totalesProduccion', () => {
   // ejecuta u9. El listado son las dos (`esActividadDeMiembro`); las cifras
   // remuneradas, solo la primera.
   const reporte = [
-    { responsable_id: 'u1', solicitante_id: 'u9', mes: 'Enero', horas: 5, dias_produccion: 1 },
-    { responsable_id: 'u9', solicitante_id: 'u1', mes: 'Enero', horas: 8, dias_produccion: 2 },
+    { responsable_id: 'u1', solicitante_id: 'u9', fecha_inicio: '2026-01-15', horas: 5, dias_produccion: 1 },
+    { responsable_id: 'u9', solicitante_id: 'u1', fecha_inicio: '2026-01-15', horas: 8, dias_produccion: 2 },
   ]
 
   it('suma solo lo que el miembro ejecuta, no lo que solicitó', () => {
-    expect(reporte.filter(a => esActividadDeMiembro(a, 'u1', 'Enero'))).toHaveLength(2)
+    expect(reporte.filter(a => esActividadDeMiembro(a, 'u1', '2026-01'))).toHaveLength(2)
     expect(totalesProduccion(reporte, 'u1')).toEqual({ horas: 5, dias: 1 })
   })
 
