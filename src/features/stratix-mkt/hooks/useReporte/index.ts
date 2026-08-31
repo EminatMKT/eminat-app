@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useApp, MESES } from '@/shared/context/AppContext'
+import { useApp } from '@/shared/context/AppContext'
 import { ESTADO } from '@/shared/constants/domain'
 import { useT } from '@/shared/i18n'
+import { localMonth } from '@/shared/utils/dates'
 import { esActividadDeMiembro, totalesProduccion } from '@/features/stratix-mkt/report-filter'
 import { reportHtml } from '@/features/stratix-mkt/utils/report-html'
 import type { ReporteCriterios } from '@/features/stratix-mkt/types'
@@ -16,7 +17,9 @@ export function useReporte(idsTeam: string[]) {
   const { usuario, actividades, miembrosPorId } = useApp()
   const { t } = useT()
 
-  const [criterios, setCriterios] = useState<ReporteCriterios>({ mes: MESES[new Date().getMonth()], miembroId: '' })
+  // `localMonth()` y no `toISOString().slice(0,7)`: en UTC-5, el 31 a las 20:00 ya es el mes
+  // siguiente en UTC, y el reporte abriría en un mes en el que nadie trabajó todavía.
+  const [criterios, setCriterios] = useState<ReporteCriterios>({ mes: localMonth(), miembroId: '' })
   const { mes: mesReporte, miembroId: miembroReporte } = criterios
 
   const setMesReporte = (v: string) => setCriterios(p => ({ ...p, mes: v }))
