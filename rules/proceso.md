@@ -29,8 +29,7 @@ un silencio que nadie distingue de un olvido.
 <!-- check: block
      detector: marca_sin_inventario
      files: .ts,.tsx
-     except: rules/centinela/detectores/,rules/EXENCIONES.md
-     version: 1
+     version: 2
      test: pasa :: const x = 1
      test: falla :: // centinela-exime: archivo-extenso@1 — razón buena pero el archivo no está en la tabla
      test: pasa @src/features/stratix-mkt/utils/report-html/index.ts :: // centinela-exime: archivo-extenso@1 — es UNA plantilla HTML
@@ -40,8 +39,7 @@ un silencio que nadie distingue de un olvido.
 <!-- check: block
      detector: marca_mal_formada
      files: .ts,.tsx,.md
-     except: rules/centinela/
-     version: 1
+     version: 2
      test: pasa :: // centinela-exime: useState@1 — la ficha y el formulario son dos cosas
      test: pasa :: // centinela-exime: archivo-extenso@2 - es una plantilla HTML
      test: pasa :: const x = 1
@@ -117,7 +115,7 @@ está vacío — ese bug pasó todos los tipos y todos los tests durante meses.
 ## Una herramienta se prueba corriéndola, y se prueba que FALLA cuando debe
 
 <!-- sin check: es la obligación de ejecutar algo, y lo que la verifica es justamente la corrida
-     del self-check (`bun rules/centinela/main.ts --self-check`), que el hook ya exige -->
+     del self-check (`centinela --self-check`), que el hook ya exige -->
 
 Vale para todo lo que no es la app: el centinela, un script de migración, un chequeo de CI. Dejar
 de darlo por hecho tiene dos pasos, y el segundo es el que se saltea:
@@ -126,8 +124,8 @@ de darlo por hecho tiene dos pasos, y el segundo es el que se saltea:
 2. **Romper a propósito lo que debería detectar y ver que lo detecta.** Una herramienta de
    control que nunca se vio fallar puede estar devolviendo "todo bien" porque no mira nada.
 
-**Al tocar `rules/centinela/`, el paso 1 es `bun rules/centinela/main.ts --self-check`**, antes de
-seguir con cualquier otra cosa.
+**Al tocar una regla de `rules/`, el paso 1 es `centinela --self-check`**, antes de seguir con
+cualquier otra cosa.
 
 **Y una herramienta de control nunca se traga sus propios errores.** Si un detector explota, el
 centinela reporta `(CHECK ROTO)` y frena; no lo saltea. Un `catch { continue }` ahí convierte un
@@ -144,7 +142,7 @@ tests (`pnpm test`) van en `.githooks/pre-push` **y** en `.github/workflows/ci.y
      verificadores: rules:check,typecheck,lint:css,test
      paths: .github/,.githooks/
      files: .yml,pre-push
-     version: 2
+     version: 3
      test: falla @.githooks/pre-push :: echo 'reglas + typecheck + tests'; pnpm typecheck && pnpm test && pnpm rules:check
      test: pasa @.githooks/pre-push :: pnpm rules:check && pnpm typecheck && pnpm lint:css && pnpm test
      test: falla @.github/workflows/ci.yml :: run pnpm typecheck; run pnpm test
@@ -247,7 +245,7 @@ archivo o falta un commit.
 —un `git mv` o un `git rm` de un paso anterior— se sube sola y en silencio, aunque el `git add`
 inmediatamente anterior haya nombrado solo dos archivos.
 
-**No hay que acordarse de mirarlo:** `rules/centinela/main.ts` imprime el índice —y los
+**No hay que acordarse de mirarlo:** el centinela imprime el índice —y los
 títulos de este archivo— justo antes de cada `git commit`.
 
 **Motivo:** el 20/08/2026 pasó **cuatro veces en el mismo día**. Un `fix(lint)` de cuatro archivos

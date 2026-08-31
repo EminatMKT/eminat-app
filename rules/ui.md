@@ -62,7 +62,7 @@ no tenerla.
 ## Hay plugins de diseño instalados: usarlos antes de improvisar
 <!-- sin check: es un flujo de trabajo previo a escribir, no contenido verificable. Lo que sí
      hace el centinela es RECORDARLO: al crear un .tsx nuevo con estructura inyecta el aviso
-     (rules/centinela/sugerencias.ts). No bloquea — un aviso en cada edición se vuelve invisible
+     (lo emite el motor). No bloquea — un aviso en cada edición se vuelve invisible
      a los dos días, que es como terminó apagado el plugin anterior. -->
 
 Antes de escribir UI nueva o rediseñar una existente, invocar la skill que corresponda. Están

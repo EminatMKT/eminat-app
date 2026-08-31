@@ -9,19 +9,7 @@
     "claude-plugins-official@context7": true,
     "claude-plugins-official@frontend-design": true,
     "claude-plugins-official@security-guidance": true,
-    "nextjs-praxis-guard@nextjs-praxis-guard": false
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash|Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun \"$CLAUDE_PROJECT_DIR/rules/centinela/main.ts\""
-          }
-        ]
-      }
-    ]
+    "nextjs-praxis-guard@nextjs-praxis-guard": false,
+    "centinela@wsmithdr": true
   }
 }

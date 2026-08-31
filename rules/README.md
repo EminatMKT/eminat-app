@@ -20,12 +20,12 @@ protege, no se sabe cuándo aplica ni cuándo dejó de tener sentido.
 **Toda regla nueva intenta nacer con su check** — y si no puede llevarlo, sale con su marcador
 de exención. La regla completa (con el hook que la obliga) vive en `proceso.md`.
 
-El centinela (`rules/centinela/`, motor en Bun compartido por todos los CLIs) corre antes de cada
-Write/Edit y **no contiene ninguna regla**: las lee de estos archivos. Para que una regla se
+El centinela —el plugin `centinela`, instalado por desarrollador y compartido por todos los
+CLIs— corre antes de cada Write/Edit y **no contiene ninguna regla**: las lee de estos archivos. Para que una regla se
 verifique sola, se le agrega un bloque dentro de su propia sección:
 
 **Un heredoc de Bash cuenta como un Write.** `cat > src/x.ts <<'EOF' … EOF` y `tee src/x.ts <<EOF`
-se desarman (`rules/centinela/heredoc.ts`) y se les corren las mismas reglas de archivo, con su
+se desarman en el motor y se les corren las mismas reglas de archivo, con su
 ruta y su contenido. Antes se escapaban enteros: así entró un `return` de nueve campos que el
 check ya tenía escrito desde antes. Lo que todavía se escapa —`sed -i`, un `open(p,'w')` dentro
 de un heredoc de Python— lo agarra `pnpm rules:barrido` en `pre-push`, un gate más tarde.
@@ -90,7 +90,7 @@ mismo contenido en un archivo que ya existe), opcionalmente `@ruta/de/archivo.ts
 filtra por ruta —; después de `::`, el contenido a evaluar. La ruta default es un `.tsx` genérico
 de features.
 
-`bun rules/centinela/main.ts --self-check` corre todos esos tests y verifica que toda regla con
+`centinela --self-check` corre todos esos tests y verifica que toda regla con
 check tenga su **Motivo**. Falla en voz alta: es la herramienta con la que se editan las reglas.
 
 @arquitectura.md

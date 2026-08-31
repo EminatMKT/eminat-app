@@ -10,12 +10,9 @@
     "lint": "next lint",
     "test": "TZ=America/Guayaquil vitest run",
     "test:watch": "TZ=America/Guayaquil vitest",
-    "typecheck": "tsc --noEmit && tsc -p rules/centinela --noEmit",
+    "typecheck": "tsc --noEmit",
     "e2e": "playwright test",
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
-    "rules:check": "bun rules/centinela/main.ts --self-check",
-    "rules:contexto": "bun rules/centinela/main.ts --contexto-al-dia",
-    "rules:barrido": "bun rules/centinela/main.ts --barrido",
     "db:rls": "sh supabase/checks/rls.sh",
     "lint:css": "stylelint \"src/**/*.css\""
   },

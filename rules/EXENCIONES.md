@@ -29,8 +29,6 @@ nueva. Es a propósito — una excusa sin fecha de vencimiento es deuda invisibl
 | `src/features/stratix-mkt/hooks/useSolicitudes/index.ts` | `useState@1` | 2026-08-25 | la pestaña elige vista, los criterios filtran |
 | `src/features/stratix-mkt/utils/report-html/index.ts` | `archivo-extenso@2` | 2026-08-25 | es UNA plantilla HTML |
 | `src/features/stratix-mkt/utils/act-detail-fields/index.test.ts` | `archivo-extenso@2` | 2026-08-25 | son casos de prueba, no lógica |
-| `rules/centinela/reglas.ts` | `archivo-extenso@2` | 2026-08-25 | ya salieron los tipos y el parser |
-| `rules/centinela/evaluar.ts` | `archivo-extenso@2` | 2026-08-25 | dos funciones que son una sola idea |
 | `src/shared/auth/permissions/modulos/index.ts` | `archivo-extenso@2` | 2026-08-29 | es el catálogo de módulos: crece de a una entrada |
 | `src/features/admin/org-catalogs/catalogo.ts` | `archivo-extenso@2` | 2026-08-29 | es el catálogo organizacional: crece de a una entrada |
 | `src/features/reuniones/components/listado/ReunionRow/index.tsx` | `bloques-similares@2` | 2026-08-29 | ninguna fila compartida admite código + fecha + estado |
@@ -54,7 +52,6 @@ nueva. Es a propósito — una excusa sin fecha de vencimiento es deuda invisibl
 | `src/features/stratix-mkt/components/modals/ActivityAcciones/index.tsx` | `bloques-similares@2` | 2026-08-29 | son dos `Button`; lo propio es qué rótulo lleva cada estado |
 | `src/features/stratix-mkt/components/modals/ActivityAsignacion/index.tsx` | `bloques-similares@2` | 2026-08-29 | los dos selects obligatorios, con la invariante de la marca vigente |
 | `src/features/stratix-mkt/components/modals/NewActivityModal/index.tsx` | `bloques-similares@2` | 2026-08-29 | quedó como armador: Modal + los campos + el pie, sin markup propio |
-| `rules/centinela/modos.ts` | `archivo-extenso@2` | 2026-08-29 | un protocolo de CLI por función; partirlos deja main.ts importando cuatro módulos de una función |
 | `src/shared/components/ui/FilaLista/index.tsx` | `bloques-similares@2` | 2026-08-29 | ES la unificación: sale de ReunionRow y ParticipanteRow, que repetían caja y barra |
 | `src/shared/components/ui/FilaLista/index.tsx` | `boton-a-mano@1` | 2026-08-29 | la fila entera ES el botón: superficie, no acción |
 | `src/shared/components/ui/ModalHead/index.tsx` | `boton-a-mano@1` | 2026-08-29 | la ✕ es chrome del modal, sin rótulo ni tono: no entra en una fila de BUTTON_META |
