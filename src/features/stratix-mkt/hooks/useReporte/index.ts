@@ -15,7 +15,7 @@ import type { ReporteCriterios } from '@/features/stratix-mkt/types'
 // duplicarla acá era la forma de que las dos se desincronizaran.
 export function useReporte(idsTeam: string[]) {
   const { usuario, actividades, miembrosPorId } = useApp()
-  const { t } = useT()
+  const { t, intlLocale } = useT()
 
   // `localMonth()` y no `toISOString().slice(0,7)`: en UTC-5, el 31 a las 20:00 ya es el mes
   // siguiente en UTC, y el reporte abriría en un mes en el que nadie trabajó todavía.
@@ -43,6 +43,7 @@ export function useReporte(idsTeam: string[]) {
       acts: actsRep,
       nombre: nombreRep,
       mes: mesReporte,
+      intlLocale,
       completadas: completadasRep,
       horas: totalHorasRep,
       dias: totalDiasRep,

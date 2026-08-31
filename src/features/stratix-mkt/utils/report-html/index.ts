@@ -1,12 +1,16 @@
 import { ESTADO_COLORS } from '@/shared/constants/domain'
 import { escapeHtml } from '@/shared/utils'
+import { periodoLargo } from '@/features/stratix-mkt/utils/periodo'
 import type { I18nKey } from '@/shared/i18n'
 import type { Actividad } from '@/features/stratix-mkt/types'
 
 type Datos = {
   acts: Actividad[]
   nombre: string
+  // El período del reporte en clave 'YYYY-MM' — el mismo con el que se filtraron las
+  // actividades. Se nombra acá, al imprimirlo; no llega escrito.
   mes: string
+  intlLocale: string // para nombrar el período en el idioma de quien imprime
   completadas: number
   horas: number
   dias: number
@@ -22,7 +26,7 @@ type Datos = {
 // acá y no en el hook porque ahí eran setenta líneas de string entre los handlers, y porque así
 // se puede verificar que escapa lo que viene de la base (un título con `<` rompía el HTML).
 // El `style` inline es obligado: se abre en otra ventana, sin acceso a las hojas de la app.
-export function reportHtml({ acts, nombre, mes, completadas, horas, dias, nombrePorId, t, hoy }: Datos): string {
+export function reportHtml({ acts, nombre, mes, intlLocale, completadas, horas, dias, nombrePorId, t, hoy }: Datos): string {
   const estadoColor = (e: string | undefined) => ESTADO_COLORS[e ?? ''] || '#999'
   const celda = 'padding:8px 10px;border-bottom:1px solid #e5e7eb'
 
@@ -33,7 +37,7 @@ export function reportHtml({ acts, nombre, mes, completadas, horas, dias, nombre
       <td style="${celda};color:#555">${escapeHtml(nombrePorId[a.responsable_id ?? ''] ?? '—')}</td>
       <td style="${celda};color:#555;font-family:monospace;text-align:center">${a.horas || 0}h</td>
       <td style="${celda};color:#555;font-family:monospace;text-align:center">${a.dias_produccion || 0}</td>
-      <td style="${celda};color:#555;text-align:center">${escapeHtml(a.mes || '')}</td>
+      <td style="${celda};color:#555;text-align:center">${escapeHtml(periodoLargo(a.fecha_inicio, intlLocale, 'short'))}</td>
       <td style="${celda};text-align:center"><span style="font-size:11px;padding:2px 10px;border-radius:20px;background:${estadoColor(a.estado)}20;color:${estadoColor(a.estado)};font-weight:600">${escapeHtml(a.estado || '')}</span></td>
     </tr>`).join('')
 
@@ -70,7 +74,7 @@ export function reportHtml({ acts, nombre, mes, completadas, horas, dias, nombre
       </div>
       <div style="text-align:right">
         <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">${escapeHtml(t('stratix.report.period'))}</div>
-        <div style="font-size:16px;font-weight:700">${escapeHtml(mes)} ${hoy.getFullYear()}</div>
+        <div style="font-size:16px;font-weight:700">${escapeHtml(periodoLargo(`${mes}-01`, intlLocale))}</div>
       </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">${kpis}</div>
