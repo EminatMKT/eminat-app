@@ -14,7 +14,7 @@ type Props = {
 
 export default function TaskTableRow({ a }: Props) {
   const { t } = useT()
-  const { esAdmin, miembrosPorId, colorMarca } = useApp()
+  const { miembrosPorId, colorMarca } = useApp()
   const { setModalVerAct } = useStratix()
   const vencida = !!a.fecha_entrega && new Date(a.fecha_entrega) < new Date() && a.estado !== ESTADO.COMPLETADO
   const vars = {
@@ -29,7 +29,7 @@ export default function TaskTableRow({ a }: Props) {
         {a.descripcion && <div className={s.desc}>{a.descripcion}</div>}
       </td>
       <td className={s.tdTitulo}><span className={s.chipMarca}>{a.empresa}</span></td>
-      {esAdmin && <td className={s.td}>{miembrosPorId[a.responsable_id] ?? '—'}</td>}
+      <td className={s.td}>{miembrosPorId[a.responsable_id] ?? '—'}</td>
       <td className={s.td}>{a.mes}</td>
       <td className={`${s.td} ${s.mono}`}>{a.horas || 0}h</td>
       <td className={s.tdTitulo}><span className={s.chipEstado}>{estadoLabel(a.estado, t)}</span></td>

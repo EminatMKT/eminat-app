@@ -13,7 +13,7 @@ import { isExcludedFromStratix360 } from '@/features/stratix-mkt/team'
 // Los filtros del tablero y todo lo que se deriva de ellos: KPIs, gráficas y el conjunto
 // `actsFiltradas` del que comen el Gantt y el resumen de horas.
 export function useTablero() {
-  const { usuario, actividades, equipo, esAdmin, miembrosPorId, miembrosAsignables, colorMarca } = useApp()
+  const { usuario, actividades, equipo, miembrosPorId, miembrosAsignables, colorMarca } = useApp()
   const { t } = useT()
 
   // El tablero se filtra con el motor declarativo de `shared/utils/filters`, el mismo que
@@ -76,7 +76,11 @@ export function useTablero() {
     .sort((a, b) => b.total - a.total)
   const maxMarca = Math.max(...datosPorMarca.map(d => d.total), 1)
 
-  const idsTeam = esAdmin ? miembrosAsignables.map(m => m.id) : [usuario?.id].filter(Boolean) as string[]
+  // El ranking y el resumen de horas son del EQUIPO, para cualquiera que tenga el módulo.
+  // Antes un no-admin veía una sola fila —la suya—, así que el tablero decía "cómo vengo yo"
+  // en vez de "cómo venimos". Quién entra en `miembrosAsignables` lo decide el catálogo de
+  // roles, no el rol de quien mira.
+  const idsTeam = miembrosAsignables.map(m => m.id)
   const datosPorMiembro = idsTeam.map(id => ({
     id,
     nombre: miembrosPorId[id] ?? '—',
