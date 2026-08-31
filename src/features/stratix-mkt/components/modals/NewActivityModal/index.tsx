@@ -29,10 +29,11 @@ export default function NewActivityModal() {
     void crearActividad()
   }
 
+  // 40rem: la fila de planificación son tres columnas desde que entró la fecha de inicio.
   if (!modalNuevaAct) return null
 
   return (
-    <Modal anchoRem={32.5} onClose={cerrarFormAct} footer={<ActivityAcciones onGuardar={alGuardar} />}
+    <Modal anchoRem={40} onClose={cerrarFormAct} footer={<ActivityAcciones onGuardar={alGuardar} />}
       title={actEditando ? t('stratix.edit.title') : t('stratix.new.title')}
       subtitle={actEditando ? t('stratix.edit.sub') : t('stratix.new.sub')}>
       <ActivityCampos />
