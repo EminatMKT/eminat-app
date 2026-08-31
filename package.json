@@ -13,6 +13,9 @@
     "typecheck": "tsc --noEmit",
     "e2e": "playwright test",
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
+    "rules:check": "sh .githooks/centinela.sh --self-check --semilla",
+    "rules:contexto": "sh .githooks/centinela.sh --contexto-al-dia",
+    "rules:barrido": "sh .githooks/centinela.sh --barrido",
     "db:rls": "sh supabase/checks/rls.sh",
     "lint:css": "stylelint \"src/**/*.css\""
   },

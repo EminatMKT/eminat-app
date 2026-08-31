@@ -1,5 +1,9 @@
 #!/usr/bin/env sh
 # Gate local rápido antes de push (bypasseable con --no-verify; el gate duro es CI).
+#
+# Los tres `rules:*` llaman al centinela, que ya no vive acá: es un plugin instalado por
+# desarrollador. `.githooks/centinela.sh` lo resuelve, y avisa sin abortar si no está — porque en
+# CI no está a propósito (es privado; ver ci.yml) y un gate que frena por eso se saltea entero.
 echo "▶ pre-push: reglas + contexto + barrido + RLS + typecheck + css + tests"
 pnpm rules:check || { echo "✖ el centinela no se valida a sí mismo"; exit 1; }
 pnpm rules:contexto || { echo "✖ un archivo de contexto quedó desactualizado"; exit 1; }
