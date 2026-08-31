@@ -25,9 +25,12 @@ export function useReporte(idsTeam: string[]) {
   const setMesReporte = (v: string) => setCriterios(p => ({ ...p, mes: v }))
   const setMiembroReporte = (v: string) => setCriterios(p => ({ ...p, miembroId: v }))
 
-  // Sin elegir a nadie, el reporte es el del primero que se pueda ver: para un no-admin es él
-  // mismo, y para el admin el primero del equipo.
-  const idRep = miembroReporte || idsTeam[0] || ''
+  // Sin elegir a nadie, el reporte es EL PROPIO. Antes caía en `idsTeam[0]`, con el comentario
+  // "para un no-admin es él mismo" — cierto mientras un no-admin sólo se veía a sí mismo. Desde
+  // que Stratix es un tablero de equipo (31/08), `miembrosAsignables` es el equipo entero para
+  // cualquiera, así que TODOS abrían el reporte de la primera persona de la lista. En un
+  // documento que se firma para pagar, abrir el de otro es peor que no abrir ninguno.
+  const idRep = miembroReporte || (idsTeam.includes(usuario?.id ?? '') ? usuario?.id : idsTeam[0]) || ''
   // El listado incluye lo solicitado; las horas y los días de producción, no (ver
   // `totalesProduccion`: se pagan una vez, a quien las ejecutó). La divergencia entre
   // `actsRep.length` y estas dos cifras es deliberada.
@@ -55,7 +58,10 @@ export function useReporte(idsTeam: string[]) {
   }
 
   const reporte = {
-    mesReporte, setMesReporte, miembroReporte, setMiembroReporte,
+    // `idRep` y no `miembroReporte`: el <select> tiene que mostrar a QUIEN se está reportando.
+    // Con el estado crudo decía "Seleccionar" mientras la hoja traía el nombre y las cifras de
+    // otra persona — lo que se ve distinto de lo que se muestra, en la pantalla del pago.
+    mesReporte, setMesReporte, miembroReporte: idRep, setMiembroReporte,
     idRep, actsRep, totalHorasRep, totalDiasRep, completadasRep, nombreRep, handlePrintReport,
   }
 
