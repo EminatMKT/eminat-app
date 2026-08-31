@@ -666,6 +666,7 @@
   "stratix.sol.view": "Ver",
   "stratix.detail.requestedBy": "Solicitada por",
   "stratix.detail.quarter": "Trimestre",
+  "stratix.detail.start": "Inicio",
   "stratix.detail.estHours": "Horas estimadas",
   "stratix.detail.prodDays": "Días de producción",
   "stratix.detail.noDate": "Sin fecha",

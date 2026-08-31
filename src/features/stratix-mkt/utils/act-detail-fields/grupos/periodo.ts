@@ -1,15 +1,25 @@
-import { MESES, mesATrimestre } from '@/shared/context/AppContext'
+import { fechaCorta } from '@/shared/utils'
+import { trimestreDe } from '@/features/stratix-mkt/utils/periodo'
 import { campo, type Deps, type GrupoCampos } from '../tipos'
 import type { Actividad } from '@/features/stratix-mkt/types'
 
-// A qué período se imputa. El trimestre se deriva del mes cuando la fila no lo trae.
-export function grupoPeriodo(a: Actividad, { t }: Deps): GrupoCampos {
-  return {
+// Cuándo empieza el trabajo, y el trimestre que sale de ahí. Eran tres campos —Mes, Trimestre y
+// Semana— y son dos: la fecha ya trae mes y año, y el trimestre se calcula. `semana` se fue con
+// su columna: no la leía ningún filtro ni el reporte.
+//
+// El fallback `|| 'Q1'` que había acá INVENTABA un trimestre para una fila sin mes, y ese dato
+// después se sumaba. Sin fecha, los dos campos se marcan vacíos y la ficha los atenúa.
+//
+// Ojo con lo migrado del Google Sheet: esas 251 filas llevan el día 1 como marcador, porque el
+// Sheet declaraba el mes y no el día.
+export function grupoPeriodo({ fecha_inicio }: Actividad, { t, locale }: Deps): GrupoCampos {
+  const trimestre = trimestreDe(fecha_inicio)
+  const grupo = {
     titulo: t('stratix.detail.grupoPeriodo'),
     campos: [
-      campo(t('stratix.col.month'), a.mes ?? '—', !a.mes),
-      campo(t('stratix.detail.quarter'), a.trimestre || mesATrimestre[a.mes || MESES[0]] || 'Q1'),
-      campo(t('stratix.detail.week'), a.semana || '—', !a.semana),
+      campo(t('stratix.detail.start'), fecha_inicio ? fechaCorta(fecha_inicio, locale) : '—', !fecha_inicio),
+      campo(t('stratix.detail.quarter'), trimestre || '—', !trimestre),
     ],
   }
+  return grupo
 }

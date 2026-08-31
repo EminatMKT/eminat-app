@@ -1,6 +1,7 @@
 'use client'
 import type { CSSProperties } from 'react'
 import { useApp, ESTADO_COLORS } from '@/shared/context/AppContext'
+import { periodoLargo } from '@/features/stratix-mkt/utils/periodo'
 import type { Actividad } from '@/features/stratix-mkt/types'
 import s from './index.module.css'
 import { estadoLabel } from '@/shared/constants/domain'
@@ -13,7 +14,7 @@ type Props = {
 }
 
 export default function RecentActivityRow({ a }: Props) {
-  const { t } = useT()
+  const { t, intlLocale } = useT()
   const { miembrosPorId } = useApp()
   const estadoColor = ESTADO_COLORS[a.estado] || 'var(--c-t3)'
   return (
@@ -21,7 +22,7 @@ export default function RecentActivityRow({ a }: Props) {
       <div className={s.dot} />
       <div className={s.body}>
         <div className={s.title}>{a.titulo}</div>
-        <div className={s.meta}>{a.empresa} · {miembrosPorId[a.responsable_id] ?? '—'} · {a.mes}</div>
+        <div className={s.meta}>{a.empresa} · {miembrosPorId[a.responsable_id] ?? '—'} · {periodoLargo(a.fecha_inicio, intlLocale, 'short')}</div>
       </div>
       <span className={s.badge}>{estadoLabel(a.estado, t)}</span>
     </div>

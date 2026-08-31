@@ -5,6 +5,7 @@ import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 import { ESTADO, ESTADO_COLORS, estadoLabel } from '@/shared/constants/domain'
 import { useT } from '@/shared/i18n'
 import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
+import { periodoLargo } from '@/features/stratix-mkt/utils/periodo'
 import type { Actividad } from '@/features/stratix-mkt/types'
 import s from './index.module.css'
 
@@ -13,7 +14,7 @@ type Props = {
 }
 
 export default function TaskTableRow({ a }: Props) {
-  const { t } = useT()
+  const { t, intlLocale } = useT()
   const { miembrosPorId, colorMarca } = useApp()
   const { setModalVerAct } = useStratix()
   const vencida = !!a.fecha_entrega && new Date(a.fecha_entrega) < new Date() && a.estado !== ESTADO.COMPLETADO
@@ -30,7 +31,7 @@ export default function TaskTableRow({ a }: Props) {
       </td>
       <td className={s.tdTitulo}><span className={s.chipMarca}>{a.empresa}</span></td>
       <td className={s.td}>{miembrosPorId[a.responsable_id] ?? '—'}</td>
-      <td className={s.td}>{a.mes}</td>
+      <td className={s.td}>{periodoLargo(a.fecha_inicio, intlLocale, 'short')}</td>
       <td className={`${s.td} ${s.mono}`}>{a.horas || 0}h</td>
       <td className={s.tdTitulo}><span className={s.chipEstado}>{estadoLabel(a.estado, t)}</span></td>
       <td className={`${s.td} ${vencida ? s.vencida : ''}`}>

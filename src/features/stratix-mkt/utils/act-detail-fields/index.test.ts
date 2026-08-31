@@ -2,6 +2,7 @@
 // escenario y partirlos en archivos esconde qué está cubierto y qué no.
 import { describe, it, expect } from 'vitest'
 import { camposDeActividad, rastroDeActividad, fechaLarga } from './index'
+import { grupoPeriodo } from './grupos/periodo'
 import type { I18nKey } from '@/shared/i18n'
 
 // La clave cruda alcanza: lo que se prueba es qué campo sale y con qué valor, no la traducción.
@@ -32,13 +33,15 @@ describe('camposDeActividad', () => {
   it('marca `vacio` el campo sin dato, para que la ficha lo atenúe en vez de darle peso', () => {
     const a = { responsable_id: 'u1' }
     expect(buscar(a, 'stratix.col.assignee')?.vacio).toBe(false)
-    expect(buscar(a, 'stratix.detail.week')?.vacio).toBe(true)
+    expect(buscar(a, 'stratix.detail.start')?.vacio).toBe(true)
     expect(buscar(a, 'stratix.detail.approvedBy')?.vacio).toBe(true)
   })
 
-  it('deriva el trimestre del mes cuando la fila no lo trae, y el guardado gana', () => {
-    expect(buscar({ mes: 'Agosto' }, 'stratix.detail.quarter')?.value).toBe('Q3')
-    expect(buscar({ mes: 'Agosto', trimestre: 'Q1' }, 'stratix.detail.quarter')?.value).toBe('Q1')
+  // El trimestre se DERIVA de la fecha; ya no hay columna que pueda contradecirla. Antes ganaba
+  // la guardada, y por eso 45 filas de marzo se mostraban Q2.
+  it('el trimestre sale de la fecha, no de la columna', () => {
+    expect(buscar({ fecha_inicio: '2026-08-17' }, 'stratix.detail.quarter')?.value).toBe('Q3')
+    expect(buscar({ fecha_inicio: '2026-03-17', trimestre: 'Q2' }, 'stratix.detail.quarter')?.value).toBe('Q1')
   })
 
   it('verificado NO es booleano: muestra su valor, no "sí"', () => {
@@ -56,8 +59,10 @@ describe('camposDeActividad', () => {
     expect(buscar({}, 'stratix.detail.blocked')?.value).toBe('common.no')
   })
 
-  it('devuelve las trece filas siempre, aunque la actividad esté vacía', () => {
-    expect(todos({})).toHaveLength(13)
+  // Doce y no trece: el grupo de período pasó de tres campos (Mes, Trimestre, Semana) a dos
+  // (Inicio, Trimestre). `semana` se fue con su columna.
+  it('devuelve las doce filas siempre, aunque la actividad esté vacía', () => {
+    expect(todos({})).toHaveLength(12)
   })
 })
 
@@ -80,5 +85,22 @@ describe('fechaLarga', () => {
   it('sin fecha devuelve la clave de "sin fecha", no una fecha inválida', () => {
     expect(fechaLarga(undefined, 'es-ES', t)).toBe('stratix.detail.noDate')
     expect(fechaLarga('', 'es-ES', t)).toBe('stratix.detail.noDate')
+  })
+})
+
+describe('grupoPeriodo', () => {
+  it('muestra la fecha de inicio y el trimestre derivado', () => {
+    const g = grupoPeriodo({ fecha_inicio: '2026-03-17' }, deps)
+    expect(g.campos).toHaveLength(2)
+    expect(g.campos[0].value).toMatch(/2026/)
+    // Marzo es Q1. La columna decía Q2 en 45 filas.
+    expect(g.campos[1].value).toBe('Q1')
+  })
+
+  // El fallback `|| 'Q1'` que había acá INVENTABA un trimestre para una fila sin mes, y ese dato
+  // después se sumaba.
+  it('sin fecha, los dos campos se marcan vacíos en vez de inventar un Q1', () => {
+    const g = grupoPeriodo({ fecha_inicio: null }, deps)
+    expect(g.campos.every(c => c.vacio)).toBe(true)
   })
 })
