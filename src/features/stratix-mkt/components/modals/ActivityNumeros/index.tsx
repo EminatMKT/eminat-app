@@ -1,27 +1,23 @@
 'use client'
-import { MESES } from '@/shared/context/AppContext'
 import { Field } from '@/shared/components/ui'
 import { useT } from '@/shared/i18n'
 import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
 import s from './index.module.css'
 
-// centinela-exime: bloques-similares@2 — sale de `NewActivityModal`, que pasaba el techo de 150.
-// centinela-exime: select-con-default@2 — el mes ARRANCA en el que corre, y eso significa algo:
-// sería el mismo aunque la lista estuviera en otro orden. No es la primera opción de un
-// dropdown, que es lo que la regla persigue.
-// Cuánto esfuerzo lleva la tarea y en qué mes cae. Van juntos porque son los tres que alimentan
-// el reporte de pago: el mes agrupa, las horas suman y los días dibujan la barra del Gantt.
+// centinela-exime: bloques-similares@1 — sale de `NewActivityModal`, que pasaba el techo de 150.
+// Cuánto esfuerzo lleva la tarea: las horas suman en el reporte de pago y los días dibujan la
+// barra del Gantt.
+//
+// El selector de mes se fue el 31/08. Era un dato que ya sabía el calendario: en 78 de 78 tareas
+// creadas por la app, el mes imputado era el mes en que se creó la tarea — nadie eligió nunca
+// otro. Ahora lo pone el DEFAULT de `actividades.fecha_inicio`, y sigue siendo editable en la
+// ficha para el día que alguien cargue una tarea tarde.
 export default function ActivityNumeros() {
   const { t } = useT()
   const { nuevaAct, setNuevaAct } = useStratix()
 
   return (
-    <div className={s.tres}>
-      <Field icon="📅" label={t('stratix.new.month')}>
-        <select value={nuevaAct.mes} onChange={e => setNuevaAct(p => ({ ...p, mes: e.target.value }))}>
-          {MESES.map(m => <option key={m} value={m}>{m}</option>)}
-        </select>
-      </Field>
+    <div className={s.dos}>
       <Field icon="⏱" label={t('stratix.new.hours')}>
         <input type="number" min="0" placeholder="0" value={nuevaAct.horas}
           onChange={e => setNuevaAct(p => ({ ...p, horas: e.target.value }))} />
