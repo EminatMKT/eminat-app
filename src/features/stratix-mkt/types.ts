@@ -1,6 +1,6 @@
-// Actividad de marketing (tabla `actividades`). Tipo canónico definido en el
-// contexto compartido (una sola fuente de forma); se re-exporta acá para que las
-// vistas de Stratix lo importen desde '../types' como siempre.
+// Actividad de marketing (tabla `actividades`). Tipo canónico definido en el contexto compartido.
+// DEUDA: la línea de abajo re-exporta y esto no es un `index`; la regla lo frena. Pagarla es
+// cambiar el import en los 21 archivos que traen `Actividad` desde acá, y va en su propia rama.
 export type { Actividad } from '@/shared/context/loadAppData'
 import type { Actividad } from '@/shared/context/loadAppData'
 
@@ -27,6 +27,7 @@ export type FormActividad = {
 // A quién y a qué mes se le hace el reporte. Van juntos: son los dos criterios del mismo
 // período y se eligen en la misma barra.
 export type ReporteCriterios = {
+  // 'YYYY-MM' — la clave de agrupación, no una etiqueta de mes. `claveMes()` la produce.
   mes: string
   miembroId: string
 }
@@ -37,7 +38,7 @@ export type NuevaActForm = {
   descripcion: string
   empresa: string
   responsable_id: string
-  mes: string
+  fecha_inicio: string
   horas: string
   dias_produccion: string
   estado: string
