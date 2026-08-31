@@ -74,7 +74,7 @@ export default function OverviewTab() {
 
       <div className={s.charts}>
         <BarChartCard persistKey="stratix-months" title={t('stratix.dash.byMonth')} data={mesesData}
-          onSelect={toggle('mes')} selected={filterValues.mes} />
+          onSelect={toggle('periodo')} selected={filterValues.periodo} />
         <BarChartCard persistKey="stratix-brands" title={t('stratix.dash.byBrand')} data={marcasData} colors={marcasColors} vertical
           onSelect={toggle('empresa')} selected={filterValues.empresa} />
       </div>

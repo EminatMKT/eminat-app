@@ -1,10 +1,11 @@
-import { useApp, MESES } from '@/shared/context/AppContext'
+import { useApp } from '@/shared/context/AppContext'
 import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 import { ESTADO } from '@/shared/constants/domain'
 import { useT } from '@/shared/i18n'
 import { useUserPreference } from '@/shared/hooks'
 import { applyFilters, type FilterValues } from '@/shared/utils'
 import { actividadFilters } from '@/features/stratix-mkt/utils/act-filters'
+import { claveMes, periodoLargo } from '@/features/stratix-mkt/utils/periodo'
 import { isExcludedFromStratix360 } from '@/features/stratix-mkt/team'
 
 // centinela-exime: archivo-extenso@2 — son 20 derivaciones del MISMO conjunto filtrado
@@ -47,16 +48,23 @@ export function useTablero() {
   const horasDisponibles = diasRestantes * 8
   const equipoSinMi = equipo.filter(u => u.nombre !== usuario?.nombre && !isExcludedFromStratix360(u))
 
-  // Los 12 meses siempre: la gráfica se lee de un vistazo justamente porque el eje no cambia
-  // de largo según el filtro, y un mes vacío se ve vacío en vez de desaparecer. `mes` es la
-  // etiqueta corta que se dibuja y `key` el valor canónico con el que filtra el clic.
-  const actsPorMes = exceptOwn('mes')
-  const datosPorMes = MESES.map(mes => ({
-    mes: mes.slice(0, 3),
-    key: mes,
-    total: actsPorMes.filter(a => a.mes === mes).length,
-    completadas: actsPorMes.filter(a => a.mes === mes && a.estado === ESTADO.COMPLETADO).length,
-  }))
+  // Los 12 meses de UN año: el eje no cambia de largo según el filtro, así que un mes vacío se
+  // ve vacío en vez de desaparecer. El año es el del filtro de período si hay uno puesto, y el
+  // corriente si no — elegir otro año es elegir un período de ese año en el panel de filtros.
+  // ponytail: un selector de año propio se agrega el día que alguien quiera comparar dos años
+  // lado a lado; hoy no hay dos años de datos.
+  const actsPorMes = exceptOwn('periodo')
+  const anioGrafica = (filterValues.periodo ?? '').slice(0, 4) || String(hoy.getFullYear())
+  const datosPorMes = Array.from({ length: 12 }, (_, i) => {
+    const key = `${anioGrafica}-${String(i + 1).padStart(2, '0')}`
+    const delMes = actsPorMes.filter(a => claveMes(a.fecha_inicio) === key)
+    return {
+      mes: periodoLargo(`${key}-01`, intlLocale, 'short').split(' ')[0],
+      key,
+      total: delMes.length,
+      completadas: delMes.filter(a => a.estado === ESTADO.COMPLETADO).length,
+    }
+  })
   const maxTotal = Math.max(...datosPorMes.map(d => d.total), 1)
 
   // Las barras salen de las marcas que las actividades REALMENTE usan, no del catálogo de las
@@ -115,7 +123,7 @@ export function useTablero() {
     actFilters, filterValues, setFilterValue, clearFilters, filtrosActivos, actsFiltradas,
     totalQ, completadasQ, enProcesoQ, pendientesQ, pctCompletado, totalHoras, totalDias,
     hoy, diasRestantes, horasDisponibles, equipoSinMi,
-    datosPorMes, maxTotal, datosPorMarca, maxMarca, idsTeam, datosPorMiembro, maxMiembro,
+    datosPorMes, anioGrafica, maxTotal, datosPorMarca, maxMarca, idsTeam, datosPorMiembro, maxMiembro,
     resumenHoras, ganttActs,
   }
 
