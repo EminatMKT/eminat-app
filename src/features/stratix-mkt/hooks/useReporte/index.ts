@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { ESTADO } from '@/shared/constants/domain'
 import { useT } from '@/shared/i18n'
-import { localMonth } from '@/shared/utils/dates'
+import { localMonth } from '@/shared/utils'
 import { esActividadDeMiembro, totalesProduccion } from '@/features/stratix-mkt/report-filter'
 import { reportHtml } from '@/features/stratix-mkt/utils/report-html'
+import { nombreDelReporte } from './nombre'
 import type { ReporteCriterios } from '@/features/stratix-mkt/types'
 
 // centinela-exime: archivo-extenso@2 — son 56 líneas y la mitad son el armado de los datos
@@ -14,7 +15,7 @@ import type { ReporteCriterios } from '@/features/stratix-mkt/types'
 // quién entra en el reporte es la misma decisión de permisos que la de las gráficas, y
 // duplicarla acá era la forma de que las dos se desincronizaran.
 export function useReporte(idsTeam: string[]) {
-  const { usuario, actividades, miembrosPorId } = useApp()
+  const { usuario, actividades, miembrosPorId, miembrosAsignables } = useApp()
   const { t, intlLocale } = useT()
 
   // `localMonth()` y no `toISOString().slice(0,7)`: en UTC-5, el 31 a las 20:00 ya es el mes
@@ -37,7 +38,7 @@ export function useReporte(idsTeam: string[]) {
   const actsRep = actividades.filter(a => esActividadDeMiembro(a, idRep, mesReporte || undefined))
   const { horas: totalHorasRep, dias: totalDiasRep } = totalesProduccion(actsRep, idRep)
   const completadasRep = actsRep.filter(a => a.estado === ESTADO.COMPLETADO).length
-  const nombreRep = miembrosPorId[idRep] ?? usuario?.nombre ?? '—'
+  const nombreRep = nombreDelReporte(idRep, miembrosAsignables, miembrosPorId, usuario)
 
   function handlePrintReport() {
     const w = window.open('', '_blank', 'width=900,height=700')
