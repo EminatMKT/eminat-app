@@ -2086,6 +2086,22 @@ La tarea 15 no depende de nada de este plan: es un archivo, arregla las 12 rutas
 
 ### Task 15: `loading.tsx` — que la navegación deje de parecer un cuelgue
 
+> **HECHA el 03/09/2026, adelantada.** Se ejecutó fuera de orden porque la regla del centinela
+> («Un grupo de rutas lleva su `loading.tsx`») bloquea editar los dos layouts hasta que existan.
+> Salieron **dos** archivos y no uno: `src/app/loading.tsx` (cubre `/login` y `/reset-password`)
+> y `src/app/(app)/loading.tsx` (las 12 rutas protegidas).
+>
+> **Los dos usan `LoadingScreen`, de viewport completo, y no el `LoadingView` que este plan
+> proponía.** El motivo se descubrió al implementarlo: `AppShell` lo monta **cada página**, no
+> `(app)/layout.tsx` —que sólo pone `AppProvider` y `ModuleGate`—, así que durante el fallback el
+> sidebar y el topbar no están. Un spinner del tamaño del área de contenido quedaría flotando en
+> una página vacía y se leería como una pantalla rota.
+>
+> Eso deja al descubierto que **subir `AppShell` al layout** es lo que haría del fallback un
+> spinner discreto en el área de contenido — es la hipótesis original de Wagner y está anotada en
+> el `.todo` junto con las subrutas: son la misma idea. `LoadingView` sigue en uso, como fallback
+> de las sub-vistas `dynamic`, donde sí está dentro del shell.
+
 Hoy no hay **ni un** `loading.tsx`, `error.tsx` ni `<Suspense>` en toda la app. Sin un boundary, el App Router deja pintada la pantalla anterior mientras baja y evalúa el chunk de la ruta nueva: no aparece un spinner, no aparece un skeleton, no aparece nada. Lo que se ve es el módulo viejo, quieto — y eso no se lee como «está cargando», se lee como «se colgó».
 
 **Files:**
