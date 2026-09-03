@@ -91,9 +91,23 @@ No es código. Va primero porque sin esto la fase 4 se ve rota aunque esté bien
 
 **Files:** ninguno — se carga por la UI. Los datos de prueba se cargan por el frontend, no por seed (regla del centinela: cada fila insertada por SQL esconde un agujero del formulario).
 
+**Quién la ejecuta: Claude, manejando el navegador.** Decidido el 03/09/2026. En local esto se hace con la extensión de Chrome (`claude-in-chrome`) contra `localhost:3000`, llenando los mismos formularios que llenaría una persona. **No es un atajo alrededor de la regla, es la forma más fiel de cumplirla:** el punto de «por el frontend y no por seed» es que cada fila pase por el formulario y delate sus agujeros, y manejar la UI hace exactamente eso — con la ventaja de que quien la maneja va anotando cada fricción en el momento.
+
+⚠️ **Lo que Claude NO puede hacer es inventar el organigrama.** Los nombres de los departamentos reales, qué equipos tiene cada uno y a cuál va cada persona son datos que sólo tiene Wagner. Sin esa lista la tarea no arranca: automatizar los clics no reemplaza saber qué hay que tipear. Ver el paso 0.
+
 **Interfaces:**
-- Consumes: `/admin` → Organización, tabs `departamentos` y `equipos`; `/admin` → Usuarios para el campo Equipo de cada ficha.
+- Consumes: `/admin` → Organización, tabs `departamentos` y `equipos`; `/admin` → Usuarios para el campo Equipo de cada ficha. Más las herramientas `mcp__claude-in-chrome__*` y una sesión de admin abierta en Chrome.
 - Produces: `departamentos` con una fila por área real, `equipos` con `departamento_id` poblado, y `usuarios.equipo_id` no nulo para las 7 personas activas. Las tareas 12–14 dependen de esto.
+
+- [ ] **Step 0: Pedirle a Wagner el organigrama**
+
+Lo único que no se puede automatizar. Hacen falta tres listas, y alcanza con que las dicte en el chat:
+
+1. **Los departamentos reales**, con su código corto (hoy existe sólo `MKT · Marketing`).
+2. **Los equipos de cada uno** — o «ninguno», si un departamento no se subdivide todavía. `usuarios.equipo_id` apunta a un equipo, no a un departamento, así que un departamento sin equipos no puede recibir gente: si un área no se subdivide, igual necesita un equipo (aunque se llame como el departamento).
+3. **Quién va en cuál**, para las 7 personas activas.
+
+Si alguna de las tres no está clara, se pregunta antes de tocar el formulario. Cargar un organigrama inventado es peor que no cargar nada: el filtro de área se vería «funcionando» con datos falsos y nadie lo notaría hasta que alguien busque sus propias tareas.
 
 - [ ] **Step 1: Levantar el entorno local**
 
@@ -101,6 +115,8 @@ No es código. Va primero porque sin esto la fase 4 se ve rota aunque esté bien
 pnpm supabase start
 pnpm dev
 ```
+
+Y dejar Chrome con una sesión de **admin** abierta en `localhost:3000` — sin eso `/admin` no carga y la automatización se queda en el login. Claude no crea la sesión: entrar con una contraseña es de la persona, no del agente.
 
 - [ ] **Step 2: Medir el punto de partida**
 
@@ -114,15 +130,21 @@ pnpm supabase db psql -c "
 
 Anotar los cuatro números. Son el «antes» contra el que se verifica el paso 5.
 
-- [ ] **Step 3: Cargar los departamentos por la UI**
+- [ ] **Step 3: Cargar los departamentos, manejando el navegador**
 
-Entrar a `/admin` → Organización → tab **Departamentos** y crear una fila por área real de la empresa (Marketing ya existe como `MKT`). Como mínimo, las que van a cargar tareas en `/tasks`: Marketing, Medical, Research, Cobranzas, TH/HR.
+`/admin` → Organización → tab **Departamentos**, una fila por área de la lista del paso 0. `MKT · Marketing` ya existe: se deja como está, no se duplica.
 
-Anotar cualquier fricción del formulario (un campo que no valida, un select vacío, un error de Postgres crudo): eso es un hallazgo de QA y va al `.todo`, no se esquiva insertando por SQL.
+Con la extensión: `tabs_context_mcp` primero (obligatorio antes de cualquier otra herramienta del navegador), después navegar y llenar. Conviene una captura después de cada alta y no sólo al final — si el formulario rechaza algo, la captura dice exactamente qué campo, y reintentar a ciegas es cómo se terminan cargando tres filas iguales.
+
+**Cada fricción se anota en el momento**: un campo que no valida, un select que abre vacío, un error de Postgres crudo en pantalla. Eso es el rendimiento de esta tarea tanto como las filas — es un hallazgo de QA y va al `.todo`. Lo que no vale es esquivarlo insertando por SQL: ahí el agujero queda tapado y la próxima persona lo encuentra sola.
+
+Ojo con los diálogos del navegador: un `confirm()` bloquea la extensión entera y hay que destrabarlo a mano. Si un botón puede abrir uno, avisar antes de tocarlo.
 
 - [ ] **Step 4: Cargar los equipos y asignar cada persona**
 
-En el tab **Equipos**, crear los equipos de cada departamento y elegirle el departamento a cada uno. Después, en `/admin` → Usuarios, abrir la ficha de cada persona activa y elegirle su equipo.
+En el tab **Equipos**, un equipo por cada uno de la lista del paso 0, eligiéndole su departamento. Después, en `/admin` → Usuarios, abrir la ficha de cada persona activa y elegirle su equipo.
+
+Son ~7 fichas, cada una con su modal: es la parte lenta y la que más probablemente destape algo. Verificar en la captura que el select de equipo quedó **con el valor elegido** antes de guardar — un select que se ve vacío mientras el estado guarda otra cosa es un bug que este módulo ya tuvo (ver `abrirEdicion` en `useActividadForm`).
 
 - [ ] **Step 5: Verificar que no quedó nadie suelto**
 
@@ -134,9 +156,17 @@ pnpm supabase db psql -c "
 
 Esperado: **0 y 0**. Si no da cero, la fase 4 mostrará «—» para esas personas y el filtro de área las dejará fuera de todo.
 
-- [ ] **Step 6: Repetir en producción**
+- [ ] **Step 6: Producción — decisión aparte, no la misma corrida**
 
-Esto pasa por la UI de producción, con el usuario admin. No hay migración que llevar: son datos, no esquema. Verificar con el mismo `SELECT` del paso 5 contra prod (Wagner lo corre con `!`, ver la memoria «Consultar prod lo corre Wagner»).
+En local la automatización es barata: si algo sale mal se corrige y listo. En producción son **datos reales de la empresa** escritos en `app.stratixsolutions.us`, y borrar un departamento mal cargado no es simétrico con crearlo — hay FKs colgando.
+
+Así que **no se encadena a la corrida local**. Cuando lo local esté verde:
+
+1. Se muestra qué se va a cargar en prod, fila por fila.
+2. Wagner aprueba **esa** lista, en el chat.
+3. Recién ahí se ejecuta, y con la misma verificación del paso 5 contra prod — que la corre él con `!` (ver la memoria «Consultar prod lo corre Wagner»).
+
+Una aprobación de la corrida local no sirve para la de prod: son dos decisiones.
 
 - [ ] **Step 7: Anotar el resultado**
 

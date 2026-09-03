@@ -314,6 +314,12 @@ asignar el módulo, no la pantalla del reporte.
 usuarios sin equipo se ve roto aunque el código esté bien. Si la fase 0 no está hecha, la 4 no
 sirve de nada.
 
+Se mitiga en parte: la carga la ejecuta Claude manejando el navegador contra el local, así que
+dejó de depender de que alguien se siente a llenar 7 fichas a mano. **Lo que no se mitiga es el
+dato**: los departamentos reales, sus equipos y quién va en cuál sólo los sabe Wagner, y sin esa
+lista la automatización no tiene qué tipear. Cargar un organigrama inventado sería peor que no
+cargar nada — el filtro se vería «funcionando» con datos falsos.
+
 **La preferencia de pestaña guardada.** `tab-stratix` puede apuntar a `kanban`. Sin degradación,
 la primera pantalla después del deploy es blanca.
 
