@@ -51,17 +51,6 @@
   outline: none;
 }
 
-.imprimir {
-  padding: 7px 14px;
-  border-radius: 8px;
-  background: var(--c-accent);
-  color: #fff;
-  border: none;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
 .hoja {
   background: var(--c-s1);
   border: 1px solid var(--c-border);

@@ -1,5 +1,4 @@
 import { grupoAsignacion } from './grupos/asignacion'
-import { grupoPeriodo } from './grupos/periodo'
 import { grupoEsfuerzo } from './grupos/esfuerzo'
 import { grupoFechas } from './grupos/fechas'
 import { grupoAprobacion } from './grupos/aprobacion'
@@ -16,7 +15,6 @@ export { rastroDeActividad } from './rastro'
 export function camposDeActividad(a: Actividad, deps: Deps): GrupoCampos[] {
   const grupos = [
     grupoAsignacion(a, deps),
-    grupoPeriodo(a, deps),
     grupoEsfuerzo(a, deps),
     grupoFechas(a, deps),
     grupoAprobacion(a, deps),

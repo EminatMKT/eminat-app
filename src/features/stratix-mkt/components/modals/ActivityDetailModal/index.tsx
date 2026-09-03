@@ -51,9 +51,11 @@ export default function ActivityDetailModal() {
   // }
 
 
+  // El mismo ancho que `NewActivityModal`: es la misma tarea, leída y editada. Con 31.25 acá y 40
+  // allá, darle a "Editar" ensanchaba el modal de golpe.
   return (
     <Modal
-      anchoRem={31.25}
+      anchoRem={40}
       onClose={() => setModalVerAct(null)}
       header={
         <ActivityDetailHeader

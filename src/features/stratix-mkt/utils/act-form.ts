@@ -1,27 +1,34 @@
-import { MESES } from '@/shared/context/AppContext'
 import { ESTADO } from '@/shared/constants/domain'
+import { localDate } from '@/shared/utils'
 import type { Actividad, NuevaActForm } from '../types'
 
 // Mapea una actividad existente al formulario "New task" para reusar ese modal
 // en modo edición. Los campos numéricos llegan de la DB como number|string y el
-// form trabaja con strings; los nulos caen a ''. Un `mes` fuera del catálogo
-// (dato legacy) cae al mes actual: dejarlo pasar haría que el select muestre
-// otra cosa distinta a lo que se guardaría (el hueco documentado en el modal).
+// form trabaja con strings; los nulos caen a ''. Una actividad sin `fecha_inicio`
+// (no debería existir: la columna es NOT NULL) cae a hoy, que es el mismo
+// default que pone la base.
 const str = (v: unknown) => (v === null || v === undefined ? '' : String(v))
 
-export const actividadAForm = (a: Actividad): NuevaActForm => ({
-  titulo: str(a.titulo),
-  descripcion: str(a.descripcion),
-  empresa: str(a.empresa),
-  responsable_id: str(a.responsable_id),
-  mes: a.mes && MESES.includes(a.mes) ? a.mes : MESES[new Date().getMonth()],
-  horas: str(a.horas),
-  dias_produccion: str(a.dias_produccion),
-  estado: a.estado || ESTADO.PENDIENTE,
-  fecha_entrega: str(a.fecha_entrega),
-  solicitante_id: str(a.solicitante_id),
-  drive_url: str(a.drive_url),
-})
+export const actividadAForm = (a: Actividad): NuevaActForm => {
+  // Desestructurado adentro y no en la firma: son once campos, y una firma de once nombres deja
+  // de leerse de un renglón. Así la lista dice de un vistazo qué llega al form y qué no.
+  const { titulo, descripcion, empresa, responsable_id, fecha_inicio, horas,
+    dias_produccion, estado, fecha_entrega, solicitante_id, drive_url } = a
+  const form: NuevaActForm = {
+    titulo: str(titulo),
+    descripcion: str(descripcion),
+    empresa: str(empresa),
+    responsable_id: str(responsable_id),
+    fecha_inicio: fecha_inicio || localDate(),
+    horas: str(horas),
+    dias_produccion: str(dias_produccion),
+    estado: estado || ESTADO.PENDIENTE,
+    fecha_entrega: str(fecha_entrega),
+    solicitante_id: str(solicitante_id),
+    drive_url: str(drive_url),
+  }
+  return form
+}
 
 // Guardar una edición pide confirmación, pero solo si hay algo que pisar: sin esto, abrir el
 // editor y cerrarlo con el botón de guardar preguntaba igual, y una confirmación que aparece

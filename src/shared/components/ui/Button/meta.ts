@@ -14,4 +14,9 @@ export const BUTTON_META = {
   delete:  { icono: '🗑', labelKey: 'common.delete',       tono: 'peligro' },
   cancel:  { icono: '',   labelKey: 'common.cancel',       tono: 'secundario' },
   confirm: { icono: '',   labelKey: 'common.saveChanges',  tono: 'primario' },
+  // Imprimir no es confirmar. Entró como fila el 31/08/2026 porque el botón del reporte de pago
+  // se había puesto `kind="confirm"` con un `label` que tapaba el rótulo de "Guardar cambios":
+  // funcionaba, y decía una mentira sobre lo que hace — que es justo lo que el tono derivado
+  // del `kind` existe para impedir.
+  print:   { icono: '🖨', labelKey: 'common.print',        tono: 'primario' },
 } satisfies Record<ButtonKind, ButtonMeta>

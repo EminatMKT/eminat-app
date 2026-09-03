@@ -31,4 +31,16 @@ describe('datosTarjeta', () => {
     expect(datosTarjeta({}, undefined, 'es-ES', hoy).inicial).toBe('?')
     expect(datosTarjeta({}, 'Beto', 'es-ES', hoy).inicial).toBe('B')
   })
+
+  // El período es el mes al que se IMPUTA la tarea, y sale de `fecha_inicio`, no de la entrega:
+  // una tarea de agosto que se entrega en septiembre se paga en agosto.
+  it('el período sale de fecha_inicio, con su año y en el idioma de quien mira', () => {
+    const a = { fecha_inicio: '2026-08-17', fecha_entrega: '2026-09-02' }
+    expect(datosTarjeta(a, 'Ana', 'en-US', hoy).periodo).toBe('Aug 2026')
+    expect(datosTarjeta(a, 'Ana', 'es-EC', hoy).periodo).toContain('2026')
+  })
+
+  it('sin fecha_inicio el período es vacío: el separador del JSX desaparece con él', () => {
+    expect(datosTarjeta({ fecha_entrega: '2026-09-02' }, 'Ana', 'es-EC', hoy).periodo).toBe('')
+  })
 })

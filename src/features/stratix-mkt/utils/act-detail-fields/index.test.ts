@@ -13,10 +13,9 @@ const todos = (a: Act) => camposDeActividad(a, deps).flatMap(g => g.campos)
 const buscar = (a: Act, label: string) => todos(a).find(c => c.label === label)
 
 describe('camposDeActividad', () => {
-  it('agrupa los campos en cinco secciones con nombre', () => {
+  it('agrupa los campos en cuatro secciones con nombre', () => {
     expect(camposDeActividad({}, deps).map(g => g.titulo)).toEqual([
       'stratix.detail.grupoAsignacion',
-      'stratix.detail.grupoPeriodo',
       'stratix.detail.grupoEsfuerzo',
       'stratix.detail.grupoFechas',
       'stratix.detail.grupoAprobacion',
@@ -32,13 +31,23 @@ describe('camposDeActividad', () => {
   it('marca `vacio` el campo sin dato, para que la ficha lo atenúe en vez de darle peso', () => {
     const a = { responsable_id: 'u1' }
     expect(buscar(a, 'stratix.col.assignee')?.vacio).toBe(false)
-    expect(buscar(a, 'stratix.detail.week')?.vacio).toBe(true)
+    expect(buscar(a, 'stratix.detail.start')?.vacio).toBe(true)
     expect(buscar(a, 'stratix.detail.approvedBy')?.vacio).toBe(true)
   })
 
-  it('deriva el trimestre del mes cuando la fila no lo trae, y el guardado gana', () => {
-    expect(buscar({ mes: 'Agosto' }, 'stratix.detail.quarter')?.value).toBe('Q3')
-    expect(buscar({ mes: 'Agosto', trimestre: 'Q1' }, 'stratix.detail.quarter')?.value).toBe('Q1')
+  // Las tres fechas van juntas y en el mismo formato. `Inicio` tenía su propio apartado con un
+  // Trimestre calculado al lado; los dos se fueron.
+  it('el inicio se lee con las otras dos fechas, no en un grupo aparte', () => {
+    const fechas = camposDeActividad({ fecha_inicio: '2026-03-17' }, deps)
+      .find(g => g.titulo === 'stratix.detail.grupoFechas')!
+    expect(fechas.campos.map(c => c.label)).toEqual([
+      'stratix.detail.start', 'stratix.detail.requiredDate', 'stratix.col.due',
+    ])
+    expect(fechas.campos[0].value).toMatch(/2026/)
+  })
+
+  it('sin fecha de inicio el campo se marca vacío, no inventa un valor', () => {
+    expect(buscar({}, 'stratix.detail.start')?.vacio).toBe(true)
   })
 
   it('verificado NO es booleano: muestra su valor, no "sí"', () => {
@@ -56,8 +65,11 @@ describe('camposDeActividad', () => {
     expect(buscar({}, 'stratix.detail.blocked')?.value).toBe('common.no')
   })
 
-  it('devuelve las trece filas siempre, aunque la actividad esté vacía', () => {
-    expect(todos({})).toHaveLength(13)
+  // Eran trece: el grupo PERÍODO tenía Mes, Trimestre y Semana. `semana` se fue con su columna,
+  // `mes` lo reemplazó `fecha_inicio` —que ahora vive con las otras fechas— y el trimestre se
+  // fue porque repetía, en otro formato, lo que la fecha de al lado ya decía.
+  it('devuelve las once filas siempre, aunque la actividad esté vacía', () => {
+    expect(todos({})).toHaveLength(11)
   })
 })
 
@@ -82,3 +94,4 @@ describe('fechaLarga', () => {
     expect(fechaLarga('', 'es-ES', t)).toBe('stratix.detail.noDate')
   })
 })
+

@@ -1,14 +1,17 @@
 import { useState } from 'react'
-import { useApp, MESES, mesATrimestre } from '@/shared/context/AppContext'
+import { useApp } from '@/shared/context/AppContext'
 import { ESTADO } from '@/shared/constants/domain'
 import { actividadesRepo, notificacionesRepo } from '@/shared/data'
 import { useT } from '@/shared/i18n'
+import { localDate } from '@/shared/utils/dates'
 import { actividadAForm } from '@/features/stratix-mkt/utils/act-form'
+import { periodoLargo } from '@/features/stratix-mkt/utils/periodo'
+import { payloadDeActividad } from './payload'
 import type { Actividad, NuevaActForm, FormActividad } from '@/features/stratix-mkt/types'
 
 const emptyNuevaAct = (solicitanteId = ''): NuevaActForm => ({
   titulo: '', descripcion: '', empresa: '', responsable_id: '',
-  mes: MESES[new Date().getMonth()], horas: '', dias_produccion: '',
+  fecha_inicio: localDate(), horas: '', dias_produccion: '',
   estado: ESTADO.PENDIENTE, fecha_entrega: '', solicitante_id: solicitanteId, drive_url: '',
 })
 
@@ -25,7 +28,7 @@ const formVacio = (solicitanteId: string): FormActividad => ({
 // posible acá (la próxima "Nueva tarea" habría hecho UPDATE sobre la tarea vieja).
 export function useActividadForm() {
   const { usuario, usuarios, mostrarMensaje, setActividades, miembrosAsignables } = useApp()
-  const { t } = useT()
+  const { t, intlLocale } = useT()
 
   // centinela-exime: useState@1 — la ficha abierta y el formulario son dos cosas distintas: se
   // abren por caminos distintos (la ficha desde una tarjeta, el form desde "Nueva tarea" o
@@ -87,22 +90,7 @@ export function useActividadForm() {
 
     setForm(p => ({ ...p, guardando: true }))
     try {
-      // Payload completo con nulls (no campos omitidos): así el mismo objeto sirve para crear y
-      // para editar, y editar puede LIMPIAR un campo, no solo cambiarlo.
-      const payload: Record<string, unknown> = {
-        titulo: valores.titulo.trim(),
-        empresa: valores.empresa,
-        responsable_id: valores.responsable_id,
-        mes: valores.mes,
-        trimestre: mesATrimestre[valores.mes] || 'Q1',
-        estado: valores.estado,
-        descripcion: valores.descripcion || null,
-        horas: valores.horas ? Number(valores.horas) : null,
-        dias_produccion: valores.dias_produccion ? Number(valores.dias_produccion) : null,
-        fecha_entrega: valores.fecha_entrega || null,
-        solicitante_id: valores.solicitante_id || null,
-        drive_url: valores.drive_url || null,
-      }
+      const payload = payloadDeActividad(valores)
 
       if (editando?.id) {
         const { error } = await actividadesRepo.update(editando.id, payload)
@@ -115,7 +103,7 @@ export function useActividadForm() {
         if (error) { mostrarMensaje('error', t('common.errorWithDetail', { detail: error.message })); setForm(p => ({ ...p, guardando: false })); return }
         setActividades(prev => [data as Actividad, ...prev])
         if (data && valores.responsable_id && valores.responsable_id !== usuario?.id) {
-          await notificacionesRepo.insert({ usuario_id: valores.responsable_id, tipo: 'tarea_asignada', titulo: t('stratix.notif.assignedTitle'), mensaje: `"${valores.titulo}" — ${valores.empresa} · ${valores.mes}`, actividad_id: (data as Actividad).id, leida: false })
+          await notificacionesRepo.insert({ usuario_id: valores.responsable_id, tipo: 'tarea_asignada', titulo: t('stratix.notif.assignedTitle'), mensaje: `"${valores.titulo}" — ${valores.empresa} · ${periodoLargo(valores.fecha_inicio, intlLocale)}`, actividad_id: (data as Actividad).id, leida: false })
         }
         resetFormAct()
         mostrarMensaje('ok', t('stratix.new.created'))

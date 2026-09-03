@@ -67,6 +67,10 @@ export type Actividad = {
   descripcion?: string
   empresa?: string
   responsable_id?: string
+  // Cuándo empieza el trabajo. Su MES es el período de imputación del reporte de pago.
+  // `mes`/`trimestre`/`semana` siguen en la tabla durante la fase 1 pero NADIE los lee: son el
+  // testigo para verificar el backfill en producción. Se borran en la fase 2.
+  fecha_inicio?: string
   mes?: string
   trimestre?: string
   estado?: string

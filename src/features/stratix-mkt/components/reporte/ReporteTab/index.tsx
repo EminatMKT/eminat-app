@@ -1,7 +1,9 @@
 'use client'
-import { useApp, MESES } from '@/shared/context/AppContext'
+import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
+import { periodoLargo, periodosDisponibles } from '@/features/stratix-mkt/utils/periodo'
 import { useStratix } from '@/features/stratix-mkt/components/StratixContext'
+import Button from '@/shared/components/ui/Button'
 import StatBox from '@/shared/components/ui/StatBox'
 import ReportTableRow from '../ReportTableRow'
 import s from './index.module.css'
@@ -20,8 +22,8 @@ const REPORT_HEADERS = [
 ] as const
 
 export default function ReporteTab() {
-  const { accent, esAdmin, miembrosAsignables, miembrosPorId } = useApp()
-  const { t } = useT()
+  const { accent, esAdmin, miembrosAsignables, miembrosPorId, actividades } = useApp()
+  const { t, intlLocale } = useT()
   const {
     mesReporte, setMesReporte, miembroReporte, setMiembroReporte,
     actsRep, totalHorasRep, totalDiasRep, completadasRep, nombreRep, handlePrintReport,
@@ -50,9 +52,11 @@ export default function ReporteTab() {
             </select>
           )}
           <select className={s.select} value={mesReporte} onChange={e => setMesReporte(e.target.value)}>
-            {MESES.map(m => <option key={m} value={m}>{m}</option>)}
+            {periodosDisponibles(actividades.map(a => a.fecha_inicio)).map(p => (
+              <option key={p} value={p}>{periodoLargo(`${p}-01`, intlLocale)}</option>
+            ))}
           </select>
-          <button type="button" className={s.imprimir} onClick={handlePrintReport}>{t('stratix.report.print')}</button>
+          <Button kind="print" onClick={handlePrintReport} />
         </div>
       </div>
       <div className={s.hoja}>
@@ -63,7 +67,9 @@ export default function ReporteTab() {
           </div>
           <div className={s.periodo}>
             <div className={s.dato}>{t('stratix.report.period')}</div>
-            <div className={s.valor}>{mesReporte} 2026</div>
+            {/* El año salía escrito a mano: esta hoja decía "Enero 2026" en 2027. Ahora sale
+                del período, que es el mismo dato con el que se filtró el reporte. */}
+            <div className={s.valor}>{periodoLargo(`${mesReporte}-01`, intlLocale)}</div>
           </div>
         </div>
         <div className={s.persona}>

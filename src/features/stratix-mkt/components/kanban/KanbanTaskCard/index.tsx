@@ -14,11 +14,11 @@ type Props = {
 
 export default function KanbanTaskCard({ a }: Props) {
   const { miembrosPorId, colorMarca } = useApp()
-  const { t, locale } = useT()
+  const { t, intlLocale } = useT()
   const { dragId, onDragStart, onDragEnd, setModalVerAct } = useStratix()
 
   const nombre = miembrosPorId[a.responsable_id ?? '']
-  const { inicial, entrega, vencida } = datosTarjeta(a, nombre, locale)
+  const { inicial, entrega, vencida, periodo } = datosTarjeta(a, nombre, intlLocale)
   const vars = { '--marca': colorMarca[a.empresa ?? ''] ?? COLOR_MARCA_FALLBACK } as CSSProperties
 
   return (
@@ -26,8 +26,8 @@ export default function KanbanTaskCard({ a }: Props) {
       draggable onDragStart={() => onDragStart(a.id ?? '')} onDragEnd={onDragEnd} onClick={() => setModalVerAct(a)}>
       <div className={s.contexto}>
         <span className={s.marca}>{a.empresa}</span>
-        {a.mes && <span className={s.separador}>/</span>}
-        {a.mes && <span className={s.periodo}>{a.mes}</span>}
+        {periodo && <span className={s.separador}>/</span>}
+        {periodo && <span className={s.periodo}>{periodo}</span>}
         <span className={s.espacio} />
         {a.drive_url && <span className={s.drive} title={t('stratix.detail.driveFolder')} />}
       </div>

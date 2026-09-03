@@ -3,20 +3,22 @@ import { useApp } from '@/shared/context/AppContext'
 import { estadoLabel } from '@/shared/constants/domain'
 import { actividadesRepo } from '@/shared/data'
 import { useT } from '@/shared/i18n'
+import { claveMes } from '@/features/stratix-mkt/utils/periodo'
 
-// El tablero Kanban: su filtro de mes y el arrastrar-soltar que cambia el estado.
+// El tablero Kanban: su filtro de período y el arrastrar-soltar que cambia el estado.
 export function useKanban() {
   const { actividades, setActividades, mostrarMensaje } = useApp()
   const { t } = useT()
 
-  // centinela-exime: useState@1 — el filtro de mes y el gesto de arrastre no se tocan: el
-  // arrastre nace y muere en un drop, el mes sobrevive a toda la sesión.
-  const [mesKanban, setMesKanban] = useState('')
+  // centinela-exime: useState@1 — el filtro de período y el gesto de arrastre no se tocan: el
+  // arrastre nace y muere en un drop, el período sobrevive a toda la sesión.
+  const [periodoKanban, setPeriodoKanban] = useState('')
   const [dragId, setDragId] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState<string | null>(null)
 
-  const mesesDisponibles = actividades.map(a => a.mes).filter(Boolean).filter((m, i, arr) => arr.indexOf(m) === i)
-  const actsKanban = mesKanban ? actividades.filter(a => a.mes === mesKanban) : actividades
+  // Sólo los que TIENEN tareas, al revés que `periodosDisponibles()`: acá se salta a un mes cargado.
+  const periodosConTareas = Array.from(new Set(actividades.map(a => claveMes(a.fecha_inicio)).filter(Boolean))).sort().reverse()
+  const actsKanban = periodoKanban ? actividades.filter(a => claveMes(a.fecha_inicio) === periodoKanban) : actividades
   const porColumna = (col: string) => actsKanban.filter(a => a.estado === col)
 
   const onDragStart = (id: string) => setDragId(id)
@@ -39,7 +41,7 @@ export function useKanban() {
   }
 
   const kanban = {
-    mesKanban, setMesKanban, mesesDisponibles, actsKanban, porColumna,
+    periodoKanban, setPeriodoKanban, periodosConTareas, actsKanban, porColumna,
     dragId, dragOver, onDragStart, onDragOverCol, onDragEnd, onDrop,
   }
 
