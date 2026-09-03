@@ -4,7 +4,7 @@
 
 **Goal:** Sacar las tareas de Stratix 360 y ponerlas en un módulo propio, `/tasks`, que sirva a toda la empresa — con una columna nueva (`actividades.created_by_id`), un filtro de área que deriva el departamento del responsable, y Stratix 360 reducido a sus tres secciones que no son de tareas.
 
-**Architecture:** Cinco fases, cada una un PR que deja la app funcionando. La fase 0 no es código: puebla `departamentos`/`equipos` desde `/admin`. La 1 agrega la columna y la escribe al crear. La 2 registra el módulo en los cinco lugares y monta `/tasks` **reusando los componentes donde están** — durante esta fase las mismas vistas se ven desde dos rutas, a propósito. La 3 muda las carpetas a `src/features/tasks/`, mueve el gate de asignables/liquidables a `MODULE.TASKS`, deja a Stratix con Social/Competitors/Team y abre la policy de `actividades` a los dos módulos. La 4 le agrega valores por defecto al motor de filtros que ya existe y estrena el filtro de área.
+**Architecture:** Cinco fases, cada una un PR que deja la app funcionando. La fase 0 no es código: puebla `departamentos`/`equipos` desde `/admin`. La 1 agrega la columna y la escribe al crear. La 2 registra el módulo en los cinco lugares y monta `/tasks` **reusando los componentes donde están** — durante esta fase las mismas vistas se ven desde dos rutas, a propósito. La 3 muda las carpetas a `src/features/tasks/`, mueve el gate de asignables/liquidables a `MODULE.TASKS`, deja a Stratix con Social/Competitors/Team y abre la policy de `actividades` a los dos módulos. La 4 le agrega valores por defecto al motor de filtros que ya existe y estrena el filtro de área. La 5 no sale del spec sino del diagnóstico de rendimiento del 03/09 y **no depende de ninguna de las anteriores**: el `loading.tsx` de la tarea 15 es un archivo que arregla las 12 rutas de hoy y se puede adelantar y desplegar solo en cualquier momento.
 
 **Tech Stack:** Next.js 14 (App Router) · TypeScript · Supabase (PostgreSQL + RLS, migraciones por CLI) · Vitest · Playwright (e2e)
 
@@ -2019,21 +2019,26 @@ Sumar `usuarios`, `equipos` y `departamentos` a lo que se saca de `useApp()`, y 
     () => Object.fromEntries(departamentos.map(d => [d.id, d.nombre])), [departamentos])
   const departamentoPropio = usuario?.id ? departamentoPorResponsable[usuario.id] : undefined
 
-  const actFilters = actividadFilters({
+  // `actFilters` va memoizado y NO es opcional: sin esto se recrea en cada render, y como es la
+  // entrada de `resolveFilterValues` y de los seis `applyFilters` de abajo, arrastra a todos.
+  const actFilters = useMemo(() => actividadFilters({
     t, nombrePorId: miembrosPorId, intlLocale,
     departamentoPorResponsable, nombreDepartamento, departamentoPropio,
-  })
+  }), [t, miembrosPorId, intlLocale, departamentoPorResponsable, nombreDepartamento, departamentoPropio])
 
   // Lo guardado gana; lo que nunca se tocó toma su default. Un filtro puesto en «Todas» guarda
   // la cadena vacía y ESO se respeta: si no, quitar el área y recargar la volvería a poner.
-  const filterValues = resolveFilterValues(actFilters, guardados)
+  const filterValues = useMemo(() => resolveFilterValues(actFilters, guardados), [actFilters, guardados])
   const setFilterValue = (key: string, value: string) => setFilterValues(p => ({ ...p, [key]: value }))
   // El clear vuelve a los DEFAULTS, no a vacío: si volviera a `{}`, "limpiar" y "recargar"
   // dejarían el tablero en dos estados distintos.
   const clearFilters = () => setFilterValues(defaultFilterValues(actFilters))
   const filtrosActivos = actFilters.filter(d => filterValues[d.key]).length
-  const actsFiltradas = applyFilters(actividades, actFilters, filterValues)
+  const actsFiltradas = useMemo(
+    () => applyFilters(actividades, actFilters, filterValues), [actividades, actFilters, filterValues])
 ```
+
+**Por qué la memoización entra acá y no en su propio PR.** `useTablero` no tiene hoy un solo `useMemo`, y esta tarea le **agrega** tres derivaciones (`departamentoPorResponsable`, `nombreDepartamento`, un filtro más que atraviesa las ~370 actividades). Sin memo, cada una se recalcula en cada render junto con las 26 barridas que el hook ya hace — o sea que esta tarea empeoraría un problema medido el 03/09 (ver el `.todo`, «Cambiar de módulo y elegir una pestaña tarda en reaccionar»). Memoizar lo que se toca no es scope creep: es no dejar el archivo peor de como se encontró. Lo que **no** entra acá es memoizar los otros tres hooks del provider ni el `value` del contexto — eso es su propio trabajo y está anotado en el `.todo`.
 
 Si el archivo pasa el techo de 150 líneas con esto, la derivación de los tres mapas sale a `src/features/tasks/hooks/useTablero/filtros.ts` — no se agrega una marca de exención sin aprobación de Wagner.
 
@@ -2066,6 +2071,196 @@ git commit -m "feat(tasks): filtro de área precargado en el departamento de qui
 
 Deriva del responsable, no de una columna. Es comodidad, no control de acceso:
 se puede quitar y quien tiene el módulo lee todas las tareas de la empresa.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01AGp5V5GJcRch44NzwN211G"
+```
+
+---
+
+# Fase 5 — el peso
+
+Sale del diagnóstico del 03/09/2026 (`.todo` → «Cambiar de módulo y elegir una pestaña tarda en reaccionar»), no del spec de `/tasks`. Entra en este plan porque `/tasks` hereda las cuatro secciones más pesadas de la app y sería la ruta que peor abre; pero **ninguna de las dos tareas depende de las fases anteriores.**
+
+La tarea 15 no depende de nada de este plan: es un archivo, arregla las 12 rutas de hoy y se puede adelantar y desplegar sola en cualquier momento. Si la sensación de trabado molesta ahora, esa es la que se hace primero y no hay razón para esperar a la fase 0.
+
+### Task 15: `loading.tsx` — que la navegación deje de parecer un cuelgue
+
+Hoy no hay **ni un** `loading.tsx`, `error.tsx` ni `<Suspense>` en toda la app. Sin un boundary, el App Router deja pintada la pantalla anterior mientras baja y evalúa el chunk de la ruta nueva: no aparece un spinner, no aparece un skeleton, no aparece nada. Lo que se ve es el módulo viejo, quieto — y eso no se lee como «está cargando», se lee como «se colgó».
+
+**Files:**
+- Create: `src/app/(app)/loading.tsx`
+- Modify: `src/shared/i18n/locales/{es,en}.json`
+
+**Interfaces:**
+- Consumes: nada del repo — es un componente de servidor sin estado ni props.
+- Produces: el Suspense boundary del grupo `(app)`. No lo consume ningún módulo: lo usa el router.
+
+- [ ] **Step 1: Medir el antes, para poder decir que mejoró**
+
+Con `pnpm dev`, DevTools → Network → throttling **Slow 4G**. Navegar desde `/directorio` a `/stratix-mkt` y cronometrar cuánto tiempo pasa entre el click y el primer píxel nuevo. Anotar el número: sin esto, «se siente mejor» no es un resultado.
+
+- [ ] **Step 2: Las claves de i18n**
+
+En `src/shared/i18n/locales/es.json`:
+
+```json
+  "common.loading": "Cargando…",
+```
+
+En `en.json`:
+
+```json
+  "common.loading": "Loading…",
+```
+
+Si `common.loading` ya existe, se reusa y este paso no toca nada.
+
+- [ ] **Step 3: El archivo**
+
+`src/app/(app)/loading.tsx`:
+
+```tsx
+import Spinner from '@/shared/components/ui/Spinner'
+
+// El boundary de Suspense del grupo `(app)`, y por lo tanto de las 12 rutas protegidas.
+//
+// Sin este archivo el App Router no tiene qué mostrar mientras baja el chunk de la ruta nueva,
+// así que deja pintada la pantalla ANTERIOR. Medido el 03/09/2026: entrar a `/stratix-mkt` baja
+// ~135 kB de JavaScript nuevo y a `/research` ~145 kB, todo eso con el módulo viejo en pantalla
+// y sin una sola señal de que algo está pasando. No es lentitud percibida — es ausencia de
+// feedback, y se lee como que la app se colgó.
+//
+// Va en el grupo y no por módulo a propósito: uno solo cubre las 12 rutas. Un `loading.tsx` por
+// módulo tiene sentido recién cuando alguno quiera un skeleton con la forma de SU contenido.
+export default function AppLoading() {
+  return <Spinner />
+}
+```
+
+Antes de escribirlo, buscar el componente que ya existe en vez de improvisar uno:
+
+```bash
+ls src/shared/components/ui/ | grep -i "spinner\|loader\|skeleton"
+grep -rn "Cargando\|common.loading" src/shared/components src/shared/i18n/locales/es.json | head
+```
+
+Si no hay ninguno, el componente nuevo nace en `src/shared/components/ui/Spinner/` —es transversal por definición— con su texto por `t('common.loading')`, sin `style` inline y con las medidas en `rem`.
+
+- [ ] **Step 4: Verificar que aparece**
+
+```bash
+pnpm dev
+```
+
+Con el mismo throttling del paso 1, repetir la navegación `/directorio` → `/stratix-mkt`. Ahora el spinner tiene que aparecer **inmediatamente** al click, y la pantalla vieja desaparecer. Comparar contra el número anotado: el tiempo total puede no bajar —el chunk pesa lo mismo—, pero la espera pasa a ser visible, que es todo el punto.
+
+- [ ] **Step 5: Verificar que no se rompió el shell**
+
+Recorrer las 12 rutas del rail. El spinner aparece y se va; ninguna queda trabada en él. Ojo con `/` (el Launchpad) y con una ruta sin permiso: `AccessDenied` tiene que seguir apareciendo, no un spinner infinito.
+
+- [ ] **Step 6: Gate y commit**
+
+```bash
+pnpm typecheck && pnpm lint && pnpm test && pnpm rules:barrido
+```
+
+```bash
+git add "src/app/(app)/loading.tsx" src/shared/components/ui/ src/shared/i18n/locales/
+git commit -m "fix(shell): un loading.tsx para el grupo (app)
+
+No había ninguno en toda la app, así que el router dejaba pintada la pantalla
+anterior mientras bajaba el chunk de la ruta nueva — ~135 kB al entrar a Stratix,
+sin una sola señal. Eso no se lee como 'cargando', se lee como 'se colgó'.
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01AGp5V5GJcRch44NzwN211G"
+```
+
+---
+
+### Task 16: Las sub-vistas pesadas entran por `next/dynamic`
+
+`TasksContent` importa sus cuatro sub-vistas de forma estática, así que abrir Requests baja también recharts, el Gantt y el reporte imprimible. Medido el 03/09: `/stratix-mkt` son 385 kB de First Load JS y `/research` 395, contra 251 de `/directorio`.
+
+**Files:**
+- Modify: `src/features/tasks/components/TasksContent/index.tsx`
+- Modify: `src/features/stratix-mkt/components/StratixContent/index.tsx`
+
+**Interfaces:**
+- Consumes: `OverviewTab`, `KanbanTab`, `SolicitudesTab`, `ReporteTab` de `@/features/tasks/components/…` (tarea 8); `next/dynamic`.
+- Produces: las mismas vistas, en chunks aparte. Nadie las consume distinto — el cambio es invisible salvo en el build.
+
+- [ ] **Step 1: Medir cuál pesa, antes de tocar**
+
+```bash
+pnpm build:check 2>&1 | grep -A 20 "Route (app)"
+```
+
+Anotar el First Load JS de `/tasks` y `/stratix-mkt`. Y ver quién arrastra recharts:
+
+```bash
+grep -rln "recharts" src/features/tasks src/shared/components/dashboard
+```
+
+Sólo se convierten las vistas que **realmente** arrastran algo pesado. Envolver en `dynamic` una vista liviana agrega un chunk y un round-trip a cambio de nada.
+
+- [ ] **Step 2: Convertir el mapa de vistas**
+
+En `src/features/tasks/components/TasksContent/index.tsx`, las pesadas pasan a `dynamic` y las livianas se quedan como están:
+
+```tsx
+import dynamic from 'next/dynamic'
+import Spinner from '@/shared/components/ui/Spinner'
+
+// Las vistas pesadas se bajan cuando se abren, no cuando se entra al módulo. Medido el
+// 03/09/2026: con las cuatro estáticas, entrar a Requests bajaba también recharts (Dashboard),
+// el Gantt (Production) y la hoja imprimible (Report) — ~135 kB de los que se usaba una parte.
+//
+// `ssr: false` porque las tres leen del contexto del cliente y no hay nada que prerenderizar;
+// el `loading` es el mismo spinner del boundary del grupo, para que la espera se vea igual
+// venga de una navegación o de un cambio de pestaña.
+const OverviewTab = dynamic(() => import('@/features/tasks/components/overview/OverviewTab'), {
+  ssr: false, loading: () => <Spinner />,
+})
+const KanbanTab = dynamic(() => import('@/features/tasks/components/kanban/KanbanTab'), {
+  ssr: false, loading: () => <Spinner />,
+})
+const ReporteTab = dynamic(() => import('@/features/tasks/components/reporte/ReporteTab'), {
+  ssr: false, loading: () => <Spinner />,
+})
+```
+
+`SolicitudesTab` y los dos modales se dejan estáticos salvo que el paso 1 diga otra cosa: la tabla es la vista más liviana y los modales tienen que poder abrirse sin esperar un chunk.
+
+- [ ] **Step 3: Lo mismo en Stratix, si el paso 1 lo justifica**
+
+`CompetenciaTab` y `SocialTab` leen de `data.ts` (datos estáticos) y el roster es una grilla de tarjetas. Si el build dice que ninguna arrastra nada pesado, **este paso no se hace** — y decirlo es el resultado, no una omisión.
+
+- [ ] **Step 4: Medir el después**
+
+```bash
+pnpm build:check 2>&1 | grep -A 20 "Route (app)"
+```
+
+Esperado: el First Load JS de `/tasks` baja, y aparecen chunks nuevos que se piden al abrir cada pestaña. Comparar contra los números del paso 1 y anotarlos en el commit: sin el antes y el después, «lo hicimos más liviano» no se puede verificar.
+
+- [ ] **Step 5: Verificar en el navegador que no se rompió nada**
+
+Con throttling Slow 4G, recorrer las cuatro secciones de `/tasks`. Cada una muestra su spinner un instante la primera vez y abre instantáneo la segunda (el chunk queda cacheado). Los dos modales abren sin demora desde cualquier sección.
+
+- [ ] **Step 6: Gate y commit**
+
+```bash
+pnpm typecheck && pnpm lint && pnpm test && pnpm rules:barrido && pnpm build:check
+```
+
+```bash
+git add src/features/tasks/components/TasksContent/ src/features/stratix-mkt/components/StratixContent/
+git commit -m "perf(tasks): las sub-vistas pesadas se bajan al abrirlas
+
+Abrir Requests bajaba también recharts, el Gantt y la hoja imprimible. First Load
+JS de /tasks: <antes> kB → <después> kB.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01AGp5V5GJcRch44NzwN211G"
@@ -2111,3 +2306,6 @@ Sale del spec y se anota acá para que no se cuele por contacto:
 - **La historia de a qué área perteneció cada persona.** Es una tabla de rangos, hermana de `historial`, no una columna. Se discute aparte.
 - **Disolver Stratix 360.** La única decisión que queda abierta. Se queda con sus tres secciones.
 - **Un gate separado para la nómina.** Se evaluó y se descartó: asignable y liquidable son la misma pregunta y se contestan con `MODULE.TASKS`. Dos gates distintos habrían sido dos cosas que se desincronizan.
+- **Las sub-vistas como subrutas.** Es la forma correcta y es lo que haría el splitting automático, pero no es lo que quita la sensación de trabado (eso es la tarea 15) y rompe el mecanismo de `tab-tasks` / `tab-stratix`, que hoy guarda la pestaña como preferencia. Está anotado en el `.todo` con lo que hay que decidir antes.
+- **Memoizar el resto del provider.** La tarea 14 memoiza lo que ella misma toca en `useTablero` para no dejarlo peor; los otros tres hooks (`useKanban`, `useSolicitudes`, `useReporte`) y el `value` del contexto —que se recrea en cada render y hace re-renderizar a todo consumidor— son su propio trabajo, en el `.todo`.
+- **Partir los diccionarios de i18n.** 94 kB de JSON en el chunk del layout, un tercio del baseline. Se baja una sola vez y no causa nada de lo medido; es el próximo techo, no éste.

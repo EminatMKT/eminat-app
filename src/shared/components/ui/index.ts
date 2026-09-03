@@ -11,6 +11,7 @@
 // el repo. Ver rules/codigo.md · "Un archivo exporta una cosa por default".
 export { default as BrandChip } from './BrandChip'
 export { default as Button } from './Button'
+export { default as CargandoVista } from './CargandoVista'
 export { default as CatalogoSelect } from './CatalogoSelect'
 export { default as ColorBadge } from './ColorBadge'
 export { default as ConfirmModal } from './ConfirmModal'
