@@ -1,19 +1,30 @@
 'use client'
-import AppShell from '@/shared/components/shell/AppShell'
+import dynamic from 'next/dynamic'
+import { AppShell } from '@/shared/components/shell'
 import { SUB_ITEMS } from '@/shared/components/shell/appShellConfig'
 import { PageTransition } from '@/shared/motion'
+import { LoadingView } from '@/shared/components/ui'
 import { useStratix } from '../StratixContext'
-import OverviewTab from '../overview/OverviewTab'
 import KanbanTab from '../kanban/KanbanTab'
 import SolicitudesTab from '../solicitudes/SolicitudesTab'
 import Stratix360Roster from '../roster/Stratix360Roster'
 import ReporteTab from '../reporte/ReporteTab'
-import SocialTab from '../social/SocialTab'
-import CompetenciaTab from '../competencia/CompetenciaTab'
 import ActivityDetailModal from '../modals/ActivityDetailModal'
 import NewActivityModal from '../modals/NewActivityModal'
 import { soloDelCatalogo } from '@/shared/utils'
 import { STRATIX_TABS, type StratixTab } from '@/features/stratix-mkt/constants/tabs'
+
+// Las TRES que arrastran recharts se bajan al abrirse; el resto se queda estático.
+//
+// Cuáles son no se eligió a ojo: `overview`, `social` y `competencia` llegan a `recharts` por
+// los cards de `shared/components/dashboard`, y `overview` además monta el Gantt. Las otras
+// cuatro son tablas y tarjetas — envolverlas agregaría un chunk y un viaje de red a cambio de
+// nada, que es justo lo que la regla del centinela advierte que no hay que hacer.
+//
+// `ssr: false` porque las tres leen del contexto del cliente: no hay nada que prerenderizar.
+const OverviewTab = dynamic(() => import('../overview/OverviewTab'), { ssr: false, loading: LoadingView })
+const SocialTab = dynamic(() => import('../social/SocialTab'), { ssr: false, loading: LoadingView })
+const CompetenciaTab = dynamic(() => import('../competencia/CompetenciaTab'), { ssr: false, loading: LoadingView })
 
 const tabViews: Record<string, JSX.Element> = {
   overview: <OverviewTab />,

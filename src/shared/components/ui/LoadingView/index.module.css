@@ -1,0 +1,11 @@
+/* Alto fijo y no `min-height: 100vh`: esto aparece dentro del área de contenido, con el shell
+   ya pintado. Reservar una franja del alto de una tarjeta evita que el resto de la página
+   salte cuando la vista real llega y ocupa su lugar. */
+.caja {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 12rem;
+  font-size: .8125rem;
+  color: var(--c-t2);
+}
