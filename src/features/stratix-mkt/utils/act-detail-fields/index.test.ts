@@ -35,15 +35,24 @@ describe('camposDeActividad', () => {
     expect(buscar(a, 'stratix.detail.approvedBy')?.vacio).toBe(true)
   })
 
-  // Las tres fechas van juntas y en el mismo formato. `Inicio` tenía su propio apartado con un
+  // Las dos fechas van juntas y en el mismo formato. `Inicio` tenía su propio apartado con un
   // Trimestre calculado al lado; los dos se fueron.
-  it('el inicio se lee con las otras dos fechas, no en un grupo aparte', () => {
+  it('el inicio se lee con la fecha de entrega, no en un grupo aparte', () => {
     const fechas = camposDeActividad({ fecha_inicio: '2026-03-17' }, deps)
       .find(g => g.titulo === 'stratix.detail.grupoFechas')!
     expect(fechas.campos.map(c => c.label)).toEqual([
-      'stratix.detail.start', 'stratix.detail.requiredDate', 'stratix.col.due',
+      'stratix.detail.start', 'stratix.col.due',
     ])
     expect(fechas.campos[0].value).toMatch(/2026/)
+  })
+
+  // El grupo muestra lo que el formulario escribe, ni un campo más. `Pedida para` leía
+  // `fecha_requerida`, que sólo tienen las filas importadas del Sheet: en toda tarjeta creada
+  // desde la app decía "Sin fecha".
+  it('no muestra `Pedida para`: ningún formulario escribe esa columna', () => {
+    const fechas = camposDeActividad({ fecha_requerida: '2026-03-10' }, deps)
+      .find(g => g.titulo === 'stratix.detail.grupoFechas')!
+    expect(fechas.campos.map(c => c.label)).not.toContain('stratix.detail.requiredDate')
   })
 
   it('sin fecha de inicio el campo se marca vacío, no inventa un valor', () => {
@@ -66,10 +75,11 @@ describe('camposDeActividad', () => {
   })
 
   // Eran trece: el grupo PERÍODO tenía Mes, Trimestre y Semana. `semana` se fue con su columna,
-  // `mes` lo reemplazó `fecha_inicio` —que ahora vive con las otras fechas— y el trimestre se
-  // fue porque repetía, en otro formato, lo que la fecha de al lado ya decía.
-  it('devuelve las once filas siempre, aunque la actividad esté vacía', () => {
-    expect(todos({})).toHaveLength(11)
+  // `mes` lo reemplazó `fecha_inicio` —que ahora vive con la otra fecha— y el trimestre se fue
+  // porque repetía, en otro formato, lo que la fecha de al lado ya decía. La décima en irse fue
+  // `Pedida para`, que ningún formulario escribía.
+  it('devuelve las diez filas siempre, aunque la actividad esté vacía', () => {
+    expect(todos({})).toHaveLength(10)
   })
 })
 
