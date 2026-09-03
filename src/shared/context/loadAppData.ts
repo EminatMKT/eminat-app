@@ -78,6 +78,9 @@ export type Actividad = {
   dias_produccion?: number | string
   fecha_entrega?: string
   solicitante_id?: string
+  // Quién CARGÓ la fila — no quién la pidió (`solicitante_id`) ni quién la ejecuta
+  // (`responsable_id`). Vacío en todo lo anterior a 2026-09: no hay de dónde backfillearlo.
+  created_by_id?: string
   drive_url?: string
   // El resto de las columnas de `actividades`. Estaban cubiertas por el index signature de
   // abajo, o sea llegaban como `unknown` y nadie podía mostrarlas sin castear: por eso la ficha

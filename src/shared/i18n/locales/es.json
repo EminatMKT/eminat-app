@@ -665,6 +665,7 @@
   "stratix.sol.all": "Todas",
   "stratix.sol.view": "Ver",
   "stratix.detail.requestedBy": "Solicitada por",
+  "stratix.detail.createdBy": "Creada por",
   "stratix.detail.start": "Inicio",
   "stratix.detail.estHours": "Horas estimadas",
   "stratix.detail.prodDays": "Días de producción",

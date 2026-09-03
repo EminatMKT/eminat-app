@@ -35,3 +35,13 @@ export function payloadDeActividad(form: NuevaActForm): Record<string, unknown> 
   }
   return fila
 }
+
+// El payload del ALTA: el compartido más el creador. Es la única excepción a "un solo payload",
+// y por eso está afuera y no adentro: `created_by_id` se escribe UNA vez y no se toca nunca más.
+// Si viajara en `payloadDeActividad`, cada edición lo pisaría con quien esté editando.
+//
+// Sin usuario (el perfil todavía cargando) va `null` explícito: una tarea sin creador es válida
+// —las filas anteriores a esta columna lo son— y es mejor que un uuid vacío que revienta.
+export function payloadDeAlta(form: NuevaActForm, creadorId: string | undefined): Record<string, unknown> {
+  return { ...payloadDeActividad(form), created_by_id: creadorId || null }
+}

@@ -6,7 +6,7 @@ import { useT } from '@/shared/i18n'
 import { localDate } from '@/shared/utils/dates'
 import { actividadAForm } from '@/features/stratix-mkt/utils/act-form'
 import { periodoLargo } from '@/features/stratix-mkt/utils/periodo'
-import { payloadDeActividad } from './payload'
+import { payloadDeActividad, payloadDeAlta } from './payload'
 import type { Actividad, NuevaActForm, FormActividad } from '@/features/stratix-mkt/types'
 
 const emptyNuevaAct = (solicitanteId = ''): NuevaActForm => ({
@@ -99,7 +99,7 @@ export function useActividadForm() {
         resetFormAct()
         mostrarMensaje('ok', t('stratix.edit.saved'))
       } else {
-        const { data, error } = await actividadesRepo.create(payload)
+        const { data, error } = await actividadesRepo.create(payloadDeAlta(valores, usuario?.id))
         if (error) { mostrarMensaje('error', t('common.errorWithDetail', { detail: error.message })); setForm(p => ({ ...p, guardando: false })); return }
         setActividades(prev => [data as Actividad, ...prev])
         if (data && valores.responsable_id && valores.responsable_id !== usuario?.id) {
