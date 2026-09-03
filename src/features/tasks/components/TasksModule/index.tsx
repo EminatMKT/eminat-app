@@ -1,12 +1,13 @@
 'use client'
-import { StratixProvider } from '@/features/stratix-mkt/components/StratixContext'
-import { TASKS_TAB, TASKS_TABS, TASKS_TAB_PREF } from '@/features/tasks/constants/tabs'
+import { TasksProvider } from '../TasksContext'
 import TasksContent from '../TasksContent'
 
+// Sin props: los defaults del provider ya son los de este módulo. Quien los pasa es Stratix,
+// que lo monta prestado.
 export default function TasksModule() {
   return (
-    <StratixProvider prefKey={TASKS_TAB_PREF} tabs={TASKS_TABS} tabInicial={TASKS_TAB.KANBAN}>
+    <TasksProvider>
       <TasksContent />
-    </StratixProvider>
+    </TasksProvider>
   )
 }

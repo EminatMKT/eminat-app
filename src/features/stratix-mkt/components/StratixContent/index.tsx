@@ -2,7 +2,7 @@
 import dynamic from 'next/dynamic'
 import { ModuloTabs } from '@/shared/components/shell'
 import { LoadingView } from '@/shared/components/ui'
-import { useStratix } from '../StratixContext'
+import { useTasks } from '@/features/tasks/components/TasksContext'
 import Stratix360Roster from '../roster/Stratix360Roster'
 import { STRATIX_TABS, type StratixTab } from '@/features/stratix-mkt/constants/tabs'
 
@@ -23,9 +23,9 @@ const tabViews: Record<string, JSX.Element> = {
 }
 
 export default function StratixContent() {
-  const { mktTab, setMktTab } = useStratix()
+  const { tabActiva, setTabActiva } = useTasks()
 
   return (
-    <ModuloTabs<StratixTab> panel="mkt" titulo="Stratix 360" tabs={STRATIX_TABS} activa={mktTab} onTab={setMktTab} vistas={tabViews} />
+    <ModuloTabs<StratixTab> panel="mkt" titulo="Stratix 360" tabs={STRATIX_TABS} activa={tabActiva} onTab={setTabActiva} vistas={tabViews} />
   )
 }
