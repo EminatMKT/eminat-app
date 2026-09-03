@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic'
 import { AppShell } from '@/shared/components/shell'
 import { SUB_ITEMS } from '@/shared/components/shell/appShellConfig'
 import { PageTransition } from '@/shared/motion'
-import { CargandoVista } from '@/shared/components/ui'
+import { LoadingView } from '@/shared/components/ui'
 import { useStratix } from '../StratixContext'
 import KanbanTab from '../kanban/KanbanTab'
 import SolicitudesTab from '../solicitudes/SolicitudesTab'
@@ -22,9 +22,9 @@ import { STRATIX_TABS, type StratixTab } from '@/features/stratix-mkt/constants/
 // nada, que es justo lo que la regla del centinela advierte que no hay que hacer.
 //
 // `ssr: false` porque las tres leen del contexto del cliente: no hay nada que prerenderizar.
-const OverviewTab = dynamic(() => import('../overview/OverviewTab'), { ssr: false, loading: CargandoVista })
-const SocialTab = dynamic(() => import('../social/SocialTab'), { ssr: false, loading: CargandoVista })
-const CompetenciaTab = dynamic(() => import('../competencia/CompetenciaTab'), { ssr: false, loading: CargandoVista })
+const OverviewTab = dynamic(() => import('../overview/OverviewTab'), { ssr: false, loading: LoadingView })
+const SocialTab = dynamic(() => import('../social/SocialTab'), { ssr: false, loading: LoadingView })
+const CompetenciaTab = dynamic(() => import('../competencia/CompetenciaTab'), { ssr: false, loading: LoadingView })
 
 const tabViews: Record<string, JSX.Element> = {
   overview: <OverviewTab />,
