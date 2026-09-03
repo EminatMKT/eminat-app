@@ -1,19 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { deriveMiembrosPorId, deriveMiembrosAsignables, deriveEquipoMarketing } from './team-derivations'
-import { MODULE } from '@/shared/auth/permissions'
-
-const mkt = { departamentos: { codigo: 'MKT' } }
-const otro = { departamentos: { codigo: 'FIN' } }
-const usuarios = [
-  { id: 'u1', nombre: 'Freddy', apellido: 'Crespín', activo: true, rol: 'admin', equipos: mkt },
-  { id: 'u2', nombre: 'Angie', apellido: 'Núñez', activo: true, rol: 'disenador', equipos: mkt },
-  { id: 'u3', nombre: 'Jonathan', apellido: 'Bula', activo: false, rol: 'disenador', equipos: null }, // inactivo
-  { id: 'u4', nombre: 'Ana', apellido: 'Pérez', activo: true, rol: 'medico', equipos: otro },         // sin el módulo
-  { id: 'u5', nombre: 'Sinapellido', apellido: null, activo: true, rol: 'disenador', equipos: null }, // SIN equipo
-]
-
-// Rol -> módulos, como lo carga AppContext desde la DB.
-const map = { disenador: [MODULE.STRATIX_MKT], medico: [MODULE.MEDICAL] }
+import { deriveMiembrosPorId, deriveMiembrosAsignables, deriveEquipoMarketing } from './index'
+import { usuarios, map } from './fixtures'
 
 describe('team-derivations', () => {
   it('miembrosPorId incluye a los inactivos (para tareas históricas)', () => {
@@ -28,7 +15,7 @@ describe('team-derivations', () => {
       { id: null, nombre: 'Fantasma', activo: true },
     ])).toEqual({})
   })
-  it('asignables = activos con el módulo stratix-mkt (el admin entra por short-circuit)', () => {
+  it('asignables = activos con el módulo tasks (el admin entra por short-circuit)', () => {
     expect(deriveMiembrosAsignables(usuarios, map)).toEqual([
       { id: 'u1', nombre: 'Freddy Crespín' },
       { id: 'u2', nombre: 'Angie Núñez' },
