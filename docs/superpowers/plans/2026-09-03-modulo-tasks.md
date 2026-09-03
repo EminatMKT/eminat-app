@@ -93,21 +93,28 @@ No es código. Va primero porque sin esto la fase 4 se ve rota aunque esté bien
 
 **Quién la ejecuta: Claude, manejando el navegador.** Decidido el 03/09/2026. En local esto se hace con la extensión de Chrome (`claude-in-chrome`) contra `localhost:3000`, llenando los mismos formularios que llenaría una persona. **No es un atajo alrededor de la regla, es la forma más fiel de cumplirla:** el punto de «por el frontend y no por seed» es que cada fila pase por el formulario y delate sus agujeros, y manejar la UI hace exactamente eso — con la ventaja de que quien la maneja va anotando cada fricción en el momento.
 
-⚠️ **Lo que Claude NO puede hacer es inventar el organigrama.** Los nombres de los departamentos reales, qué equipos tiene cada uno y a cuál va cada persona son datos que sólo tiene Wagner. Sin esa lista la tarea no arranca: automatizar los clics no reemplaza saber qué hay que tipear. Ver el paso 0.
+**En local el organigrama se inventa, y está bien.** Decidido el 03/09/2026: no existe uno de prueba y no hay por qué esperarlo. Son *datos de prueba* —lo dice el nombre de la regla— y lo que hay que ejercitar es el formulario y el filtro de área, no el organigrama de la empresa. Alcanza con que sea verosímil: departamentos que se parezcan a los módulos que ya existen, y las personas repartidas siendo las **reales del local**, para que el filtro se pruebe contra uuids que de verdad están.
+
+⚠️ **En producción, no.** Ahí los departamentos, los equipos y quién va en cuál son datos de la empresa y sólo los tiene Wagner. Inventar ahí sería escribir un organigrama falso en `app.stratixsolutions.us`, y encima uno que después hay que desarmar con FKs colgando. Ver el paso 6, que es una decisión aparte.
 
 **Interfaces:**
 - Consumes: `/admin` → Organización, tabs `departamentos` y `equipos`; `/admin` → Usuarios para el campo Equipo de cada ficha. Más las herramientas `mcp__claude-in-chrome__*` y una sesión de admin abierta en Chrome.
 - Produces: `departamentos` con una fila por área real, `equipos` con `departamento_id` poblado, y `usuarios.equipo_id` no nulo para las 7 personas activas. Las tareas 12–14 dependen de esto.
 
-- [ ] **Step 0: Pedirle a Wagner el organigrama**
+- [ ] **Step 0: Armar el organigrama de prueba**
 
-Lo único que no se puede automatizar. Hacen falta tres listas, y alcanza con que las dicte en el chat:
+Se inventa, sobre dos restricciones que lo hacen útil en vez de decorativo:
 
-1. **Los departamentos reales**, con su código corto (hoy existe sólo `MKT · Marketing`).
-2. **Los equipos de cada uno** — o «ninguno», si un departamento no se subdivide todavía. `usuarios.equipo_id` apunta a un equipo, no a un departamento, así que un departamento sin equipos no puede recibir gente: si un área no se subdivide, igual necesita un equipo (aunque se llame como el departamento).
-3. **Quién va en cuál**, para las 7 personas activas.
+1. **Los departamentos se parecen a los módulos que ya existen** — Marketing (`MKT`, ya está), Medical, Research, Cobranzas, TH/HR, Accounting. Así el filtro de área se prueba contra las mismas áreas que después van a cargar tareas de verdad.
+2. **Cada departamento lleva al menos un equipo.** `usuarios.equipo_id` apunta a un **equipo**, no a un departamento: un departamento sin equipos no puede recibir gente, y la derivación `responsable → equipo → departamento` lo dejaría fuera del filtro. Si un área no se subdivide, igual necesita un equipo — puede llamarse igual que el departamento.
+3. **Las personas son las reales del local**, repartidas a criterio. Sacar la lista primero:
 
-Si alguna de las tres no está clara, se pregunta antes de tocar el formulario. Cargar un organigrama inventado es peor que no cargar nada: el filtro de área se vería «funcionando» con datos falsos y nadie lo notaría hasta que alguien busque sus propias tareas.
+```bash
+pnpm supabase db psql -c "
+  select id, nombre, apellido, rol, equipo_id from usuarios where activo order by nombre;"
+```
+
+Repartirlas inventando es el punto: hace falta que **más de un departamento tenga tareas** para que el filtro se pueda probar de verdad. Con todos en Marketing, el filtro «funciona» sin filtrar nada y no prueba nada — que es el mismo agujero que tiene el estado actual.
 
 - [ ] **Step 1: Levantar el entorno local**
 
