@@ -78,8 +78,22 @@ describe('camposDeActividad', () => {
   // `mes` lo reemplazó `fecha_inicio` —que ahora vive con la otra fecha— y el trimestre se fue
   // porque repetía, en otro formato, lo que la fecha de al lado ya decía. La décima en irse fue
   // `Pedida para`, que ningún formulario escribía.
-  it('devuelve las diez filas siempre, aunque la actividad esté vacía', () => {
-    expect(todos({})).toHaveLength(10)
+  it('devuelve las once filas siempre, aunque la actividad esté vacía', () => {
+    expect(todos({})).toHaveLength(11)
+  })
+
+  it('muestra el nombre de quien cargó la tarea', () => {
+    const creada = buscar({ responsable_id: 'u1', created_by_id: 'u2' }, 'stratix.detail.createdBy')
+    expect(creada?.value).toBe('Beto Medico')
+    expect(creada?.vacio).toBe(false)
+  })
+
+  // Las filas anteriores a la columna no tienen creador y nunca lo van a tener. El campo existe
+  // igual —que no se sepa ES información— pero atenuado, como el resto de los vacíos.
+  it('muestra «—» atenuado cuando no hay creador', () => {
+    const creada = buscar({ responsable_id: 'u1' }, 'stratix.detail.createdBy')
+    expect(creada?.value).toBe('—')
+    expect(creada?.vacio).toBe(true)
   })
 })
 
