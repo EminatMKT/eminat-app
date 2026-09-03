@@ -1,17 +1,15 @@
-// Las vistas del módulo. Único lugar con estos slugs: estaban escritos a mano en el provider
-// (dentro de un `oneOf(...)`), en `OverviewTab` y en la config del shell — tres listas que nada
-// obligaba a mantener iguales. Un slug mal escrito no falla: la pestaña simplemente no abre.
+// Las vistas que le quedan al módulo después de que las tareas se fueron a `/tasks`. Único
+// lugar con estos slugs: estaban escritos a mano en el provider (dentro de un `oneOf(...)`) y
+// en la config del shell. Un slug mal escrito no falla: la pestaña simplemente no abre.
 //
 // ⚠️ El valor es el DATO —lo que se guarda en la preferencia `tab-stratix`—, no la etiqueta.
-// Lo que se muestra sale de i18n, como con ESTADO.
+// Cuatro valores dejaron de existir ('overview', 'kanban', 'solicitudes', 'reporte') y mucha
+// gente los tiene guardados: el `oneOf(...STRATIX_TABS)` del provider los rechaza y gana el
+// default. Por eso el default es SOCIAL y no puede seguir siendo KANBAN, que ya no existe.
 export const STRATIX_TAB = {
-  OVERVIEW: 'overview',
-  KANBAN: 'kanban',
-  SOLICITUDES: 'solicitudes',
   SOCIAL: 'social',
   COMPETENCIA: 'competencia',
   EQUIPO: 'equipo',
-  REPORTE: 'reporte',
 } as const
 
 export type StratixTab = (typeof STRATIX_TAB)[keyof typeof STRATIX_TAB]
