@@ -1,7 +1,8 @@
 # El módulo `/tasks` — las tareas dejan de ser de marketing
 
-Estado: diseño aprobado en lo esencial, con dos decisiones abiertas anotadas al final.
-Fecha: 2026-09-03.
+Estado: diseño aprobado, con una decisión abierta anotada al final.
+Fecha: 2026-09-03. Actualizado el mismo día: cerrada la decisión sobre el alcance del reporte
+de pago (ver «Quién es asignable y quién es liquidable»).
 
 ## El problema
 
@@ -66,15 +67,45 @@ lo hizo.
 como módulo** con las tres restantes.
 
 ```
-/tasks         Dashboard · Production · Requests · Report*
+/tasks         Dashboard · Production · Requests · Report
 /stratix-mkt   Social Media · Competitors · Team
-
-* Report se muda último y sólo si se resuelve la decisión abierta nº 1: mudarlo
-  cambia a quién se puede liquidar. Si sigue abierta, se queda en Stratix.
 ```
 
 Disolver Stratix —Team al Directorio, Social y Competitors a otro lado— es una opción viva pero
 explícitamente fuera de esta tanda.
+
+### Quién es asignable y quién es liquidable: el módulo `tasks`, las dos
+
+Se le puede asignar una tarea a quien tenga el módulo **`tasks`**, y el reporte de pago puede
+liquidar a esa misma gente. Un solo gate para las dos preguntas.
+
+Hoy ese gate existe pero apunta al módulo viejo, y está en una línea que no está en el reporte:
+
+```ts
+// src/shared/context/team-derivations.ts:38 — deriveMiembrosAsignables
+.filter((u) => getModulesForRole(roleModuleMap, normalizeRole(u.rol)).includes(MODULE.STRATIX_MKT))
+```
+
+De ahí sale `miembrosAsignables`, y de ahí salen las dos listas:
+
+| | camino |
+|---|---|
+| a quién se le asigna | `miembrosAsignables` → el `<select>` de responsable |
+| a quién se le liquida | `miembrosAsignables` → `useTablero.idsTeam` → `useReporte` → el `<select>` del reporte |
+
+Cambiar `MODULE.STRATIX_MKT` por `MODULE.TASKS` es todo lo que hace falta, y es lo que hace que
+el Report se pueda mudar sin ninguna condición: **dónde vive la pestaña nunca fue lo que
+controlaba a quién se paga.** El provider es uno solo y lo montan los dos módulos, así que dejar
+el Report en Stratix no lo habría protegido de nada — habría seguido comiendo del mismo array.
+
+La consecuencia hay que decirla en voz alta porque es la política, no un efecto lateral: **darle
+el módulo `tasks` a un rol lo vuelve asignable y liquidable a la vez.** Quien no deba aparecer en
+una hoja de pago no lleva el módulo. Es un gate explícito y de un solo lugar, en vez de dos que
+se desincronizan.
+
+Los seis consumidores de `miembrosAsignables` son todos de tareas y todos se mudan a `/tasks`; la
+sección Team que se queda en Stratix usa `equipoMarketing` —filtrado por el departamento MKT— y
+no se entera del cambio.
 
 ### Una sola columna nueva: `actividades.created_by_id`
 
@@ -216,10 +247,9 @@ nada se mueve de carpeta todavía. Report no se monta acá. Al final de esta fas
 Stratix muestran lo mismo, y eso es a propósito: dos puertas a la misma vista es un estado seguro
 para verificar.
 
-**Fase 3 — la mudanza.** Los componentes de tareas pasan a `src/features/tasks/`, Stratix pierde
-sus secciones, y la policy de `actividades` queda con las dos condiciones. Report se muda **acá y
-sólo si la decisión nº 1 está tomada**; si sigue abierta, se queda en Stratix y la fase cierra
-igual.
+**Fase 3 — la mudanza.** Los componentes de tareas pasan a `src/features/tasks/` —el Report
+entre ellos—, el gate de `deriveMiembrosAsignables` pasa a `MODULE.TASKS`, Stratix pierde sus
+cuatro secciones de tareas y la policy de `actividades` queda con las dos condiciones.
 
 **Fase 4 — el filtro.** Defaults, clear-al-default y persistencia en el motor; el filtro de área
 precargado en `/tasks`, derivando el departamento del responsable.
@@ -252,6 +282,10 @@ Cada fase es un PR y deja la app funcionando.
 - En `/tasks`, un filtro de área que arranca en la suya.
 - Nadie pierde acceso: quien tenía `stratix-mkt` necesita también `tasks` para seguir viendo el
   tablero, y esa fila en `role_modules` va con la fase 2.
+- El reporte de pago, que hoy vive en Stratix, aparece bajo `/tasks`. Quién sale en su
+  desplegable no cambia el día de la mudanza —la fila de `role_modules` copia los mismos roles—
+  y cambia el día que alguien le dé `tasks` a un departamento nuevo. Eso es lo que hay que
+  mirar al asignar el módulo.
 
 ## Prueba
 
@@ -269,10 +303,12 @@ Cada fase es un PR y deja la app funcionando.
 
 ## Riesgos
 
-**El reporte de pago cambia de alcance sin que se note.** Hoy liquida a partir de `actividades`,
-que eran sólo de marketing. Si las tareas pasan a ser de toda la empresa y el reporte se muda con
-ellas, empieza a poder liquidar a cualquier departamento. Es la decisión abierta nº 1 y bloquea la
-mudanza del Report, no el resto.
+**Dar el módulo `tasks` es dar dos cosas.** Quien lo tenga es asignable **y** liquidable: aparece
+en el `<select>` de responsable y en el del reporte de pago. Es deliberado y es el diseño, pero
+se dice acá porque el día que alguien le dé `tasks` a un departamento nuevo para que cargue sus
+pendientes, esa gente va a aparecer en la pantalla del pago sin que nadie lo haya pedido. El
+gate está en una sola línea (`team-derivations.ts:38`) y eso es lo que hay que mirar antes de
+asignar el módulo, no la pantalla del reporte.
 
 **La fase 0 no es código y por eso se saltea.** Un filtro de área con un solo departamento y seis
 usuarios sin equipo se ve roto aunque el código esté bien. Si la fase 0 no está hecha, la 4 no
@@ -289,10 +325,14 @@ devuelve listas vacías sin error. Ya pasó.
 
 ## Decisiones abiertas
 
-1. **¿A quién liquida el reporte de nómina una vez mudado?** Sólo a marketing (y entonces filtra
-   por área internamente), o a cualquier área. Bloquea la mudanza del Report.
-2. **¿Stratix 360 sobrevive a largo plazo?** Se queda por ahora. Si más adelante se disuelve, Team
+1. **¿Stratix 360 sobrevive a largo plazo?** Se queda por ahora. Si más adelante se disuelve, Team
    va al Directorio y con eso desaparece la dependencia que obliga a la policy de dos condiciones.
+
+**Cerrada el 03/09/2026 — a quién liquida el reporte de nómina.** A quien tenga el módulo
+`tasks`, el mismo gate que decide a quién se le puede asignar una tarea. La pregunta estaba mal
+planteada: era «¿el Report se muda?», y mudarlo o no nunca cambió el alcance —el provider es uno
+solo y las dos rutas lo montan—. Lo que decide es `team-derivations.ts:38`. Con eso resuelto el
+Report se muda con el resto, sin condición.
 
 ## Fuera de alcance
 
