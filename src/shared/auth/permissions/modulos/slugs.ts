@@ -6,6 +6,7 @@
 // vacía.
 
 export const MODULE = {
+  TASKS: 'tasks',
   STRATIX_MKT: 'stratix-mkt',
   COBRANZAS: 'cobranzas',
   RESEARCH: 'research',

@@ -2,17 +2,20 @@ import type { PanelKey, SubItem } from './tipos'
 
 // Sub-tabs de los módulos con panel secundario.
 export const SUB_ITEMS: Record<PanelKey, SubItem[]> = {
+  // Las cuatro secciones de tareas, con los MISMOS ids de tab que en Stratix: durante la fase 2
+  // las dos rutas montan las mismas vistas y una tab que no coincidiera abriría en blanco.
+  tasks: [
+    { id: 'tasks-dash', icon: '📊', label: 'Dashboard', tab: 'overview' },
+    { id: 'tasks-prod', icon: '⚡', label: 'Production', tab: 'kanban' },
+    { id: 'tasks-sol', icon: '📋', label: 'Requests', tab: 'solicitudes' },
+    { id: 'tasks-rep', icon: '💰', label: 'Report', tab: 'reporte' },
+  ],
+  // Lo que le queda a Stratix con las tareas afuera: marketing propiamente dicho. Las cuatro
+  // secciones que faltan —Dashboard, Production, Requests, Report— viven en `tasks`.
   mkt: [
-    // El tablero es su propia sección: se mira de lejos y no se toca. Production es UNA vista, la
-    // única donde se trabaja —el Kanban—, así que tampoco tiene sub-vistas: el Gantt y las horas
-    // se leen, no se tocan, y por eso viven en el tablero (ver rules/arquitectura.md).
-    { id: 'mkt-dash', icon: '📊', label: 'Dashboard', tab: 'overview' },
-    { id: 'sub-prod', icon: '⚡', label: 'Production', tab: 'kanban' },
-    { id: 'sub-sol', icon: '📋', label: 'Requests', tab: 'solicitudes' },
     { id: 'sub-social', icon: '📱', label: 'Social Media', tab: 'social' },
     { id: 'sub-competencia', icon: '🎯', label: 'Competitors', tab: 'competencia' },
     { id: 'sub-equipo', icon: '👥', label: 'Team', tab: 'equipo' },
-    { id: 'sub-reporte', icon: '💰', label: 'Report', tab: 'reporte' },
   ],
   medical: [
     { id: 'med-dash', icon: '📊', label: 'Dashboard', tab: 'dashboard' },

@@ -25,6 +25,11 @@ describe('moduleForPath', () => {
     expect(moduleForPath('/stratix-mkt/kanban')).toBe('stratix-mkt')
   })
 
+  it('/tasks es su propio módulo', () => {
+    expect(moduleForPath('/tasks')).toBe('tasks')
+    expect(moduleForPath('/tasks/kanban')).toBe('tasks')
+  })
+
   // Un slug que sólo COMPARTE prefijo no cuenta: /admins no es /admin.
   it('no matchea un prefijo a medias', () => {
     expect(moduleForPath('/admins')).toBeNull()

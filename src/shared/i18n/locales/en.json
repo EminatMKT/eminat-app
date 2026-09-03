@@ -870,6 +870,8 @@
   "stratix.detail.changeDue": "Fix due date",
   "stratix.detail.dueChanged": "Due date updated",
   "stratix.detail.dueError": "Couldn't update the due date",
+  "tasks.title": "Tasks",
+  "tasks.filter.allAreas": "All areas",
   "reuniones.title": "Meetings",
   "reuniones.modalidad.presencial": "In person",
   "reuniones.modalidad.virtual": "Virtual",
