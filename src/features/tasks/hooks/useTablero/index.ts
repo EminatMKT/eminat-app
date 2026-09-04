@@ -1,33 +1,26 @@
+import { useMemo } from 'react'
 import { useApp } from '@/shared/context/AppContext'
+import { useFiltrosTablero } from './filtros'
 import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 import { ESTADO } from '@/shared/constants/domain'
 import { useT } from '@/shared/i18n'
-import { useUserPreference } from '@/shared/hooks'
-import { applyFilters, type FilterValues } from '@/shared/utils'
-import { actividadFilters } from '@/features/tasks/utils/act-filters'
+import { applyFilters } from '@/shared/utils'
 import { claveMes, periodoLargo } from '@/features/tasks/utils/periodo'
 import { isExcludedFromStratix360 } from '@/features/tasks/team'
 
 // centinela-exime: archivo-extenso@2 — son 20 derivaciones del MISMO conjunto filtrado
 // (`actsFiltradas`): partirlas obligaría a recalcular el filtro en cada pedazo o a pasarlo
 // de mano en mano, que es más frágil que tenerlas juntas. La responsabilidad es una sola.
-// Los filtros del tablero y todo lo que se deriva de ellos: KPIs, gráficas y el conjunto
-// `actsFiltradas` del que comen el Gantt y el resumen de horas.
+// Todo lo que se deriva de los filtros del tablero: KPIs, gráficas y el conjunto
+// `actsFiltradas` del que comen el Gantt y el resumen de horas. Los filtros en sí —los defs,
+// sus valores y el clear— viven en `./filtros`.
 export function useTablero() {
   const { usuario, actividades, equipo, miembrosPorId, miembrosAsignables, colorMarca } = useApp()
-  const { t, intlLocale } = useT()
+  const { intlLocale } = useT()
 
-  // El tablero se filtra con el motor declarativo de `shared/utils/filters`, el mismo que
-  // Research: antes era un `useState` con las pills de trimestre y nada más. Se recuerda entre
-  // sesiones por usuario, así que el panel muestra cuántos hay activos — si no, se abre el
-  // tablero con un filtro puesto de la semana pasada y las cifras no se explican.
-  const [filterValues, setFilterValues] = useUserPreference<FilterValues>('stratix-act-filters', {})
-
-  const actFilters = actividadFilters({ t, nombrePorId: miembrosPorId, intlLocale })
-  const setFilterValue = (key: string, value: string) => setFilterValues(p => ({ ...p, [key]: value }))
-  const clearFilters = () => setFilterValues({})
-  const filtrosActivos = actFilters.filter(d => filterValues[d.key]).length
-  const actsFiltradas = applyFilters(actividades, actFilters, filterValues)
+  const { actFilters, filterValues, setFilterValue, clearFilters, filtrosActivos } = useFiltrosTablero()
+  const actsFiltradas = useMemo(
+    () => applyFilters(actividades, actFilters, filterValues), [actividades, actFilters, filterValues])
 
   // Cross-filter: cada gráfica se calcula con todos los filtros MENOS el suyo. Si no, al
   // clickear la barra de Julio esa misma gráfica queda con una sola barra y no hay forma de

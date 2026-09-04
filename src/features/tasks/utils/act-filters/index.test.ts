@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { actividadFilters } from './index'
-import { applyFilters } from '@/shared/utils/filters'
+import { applyFilters } from '@/shared/utils'
 import { ESTADO } from '@/shared/constants/domain'
 import type { Actividad } from '@/features/tasks/types'
 import type { I18nKey } from '@/shared/i18n'
@@ -8,7 +8,10 @@ import type { I18nKey } from '@/shared/i18n'
 const t = (k: I18nKey) => String(k)
 const nombrePorId = { u1: 'Ariana', u2: 'Bruno' }
 const intlLocale = 'es-EC'
-const DEFS = actividadFilters({ t, nombrePorId, intlLocale })
+// Los mapas del área van vacíos: los filtros de acá no los usan y el de área tiene su propio
+// bloque más abajo.
+const base = { t, nombrePorId, intlLocale, departamentoPorResponsable: {}, nombreDepartamento: {} }
+const DEFS = actividadFilters(base)
 
 const acts: Actividad[] = [
   { id: '1', fecha_inicio: '2026-01-15', estado: ESTADO.PENDIENTE, empresa: 'EMC', responsable_id: 'u1' },
@@ -64,7 +67,7 @@ describe('opciones y etiquetas', () => {
   })
   it('el período se rotula en el idioma de quien mira, con su año', () => {
     expect(byKey('periodo').optionLabel?.('2026-03')).toBe('marzo de 2026')
-    expect(actividadFilters({ t, nombrePorId, intlLocale: 'en-US' })
+    expect(actividadFilters({ ...base, intlLocale: 'en-US' })
       .find(d => d.key === 'periodo')!.optionLabel?.('2026-03')).toBe('March 2026')
   })
   it('el responsable se rotula con el nombre, no con el uuid', () => {
@@ -75,5 +78,43 @@ describe('opciones y etiquetas', () => {
   })
   it('la marca sale de los datos presentes', () => {
     expect(byKey('empresa').options?.(acts)).toEqual(['EMC', 'SVN'])
+  })
+})
+
+describe('filtro de área', () => {
+  const deps = {
+    ...base,
+    departamentoPorResponsable: { u1: 'd-mkt', u2: 'd-med' },
+    nombreDepartamento: { 'd-mkt': 'Marketing', 'd-med': 'Medical' },
+    departamentoPropio: 'd-mkt',
+  }
+  const def = () => actividadFilters(deps).find(d => d.key === 'departamento')!
+
+  it('arranca en el área de quien mira', () => {
+    expect(def().defaultValue).toBe('d-mkt')
+  })
+
+  it('el match navega responsable → departamento', () => {
+    expect(def().match({ responsable_id: 'u1' }, 'd-mkt')).toBe(true)
+    expect(def().match({ responsable_id: 'u2' }, 'd-mkt')).toBe(false)
+  })
+
+  // Con la fase 0 a medias hay gente sin equipo. El filtro las deja fuera; lo que no puede
+  // hacer es tirar una excepción y llevarse el tablero.
+  it('un responsable sin departamento no matchea y no revienta', () => {
+    expect(def().match({ responsable_id: 'u9' }, 'd-mkt')).toBe(false)
+    expect(def().match({}, 'd-mkt')).toBe(false)
+  })
+
+  it('rotula con el nombre del departamento, no con su uuid', () => {
+    expect(def().optionLabel?.('d-med')).toBe('Medical')
+    expect(def().optionLabel?.('d-x')).toBe('—')
+  })
+
+  // Sin departamento propio (una persona sin equipo, o la fase 0 sin hacer) el filtro existe
+  // igual pero abre en «Todas las áreas»: es mejor ver todo que ver nada.
+  it('sin área propia no hay default', () => {
+    const sinPropia = actividadFilters({ ...deps, departamentoPropio: undefined })
+    expect(sinPropia.find(d => d.key === 'departamento')!.defaultValue).toBeUndefined()
   })
 })

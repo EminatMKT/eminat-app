@@ -7,7 +7,7 @@
 // responsable es un uuid. Las dependencias entran por parámetro y no por contexto para que el
 // módulo siga siendo puro y testeable sin montar nada.
 import { TRIMESTRES, TRIMESTRE_GENERAL, COLUMNAS_KANBAN, estadoLabel } from '@/shared/constants/domain'
-import { distinctValues, type FilterDef } from '@/shared/utils/filters'
+import { distinctValues, type FilterDef } from '@/shared/utils'
 import { trimestreDe, claveMes, periodoLargo, periodosDisponibles } from '@/features/tasks/utils/periodo'
 import type { I18nKey } from '@/shared/i18n'
 import type { Actividad } from '@/features/tasks/types'
@@ -16,12 +16,18 @@ type Deps = {
   t: (k: I18nKey) => string
   nombrePorId: Record<string, string> // uuid de responsable → nombre a mostrar
   intlLocale: string // BCP-47 de quien mira: el período se nombra en su idioma
+  departamentoPorResponsable: Record<string, string> // uuid de usuario → uuid de departamento
+  nombreDepartamento: Record<string, string> // uuid de departamento → nombre a mostrar
+  departamentoPropio?: string // el de quien mira: con eso arranca el filtro
 }
 
 // 'General' es la ausencia de filtro, y eso ya lo representa el placeholder vacío del select.
 const QUARTERS = TRIMESTRES.filter(q => q !== TRIMESTRE_GENERAL)
 
-export function actividadFilters({ t, nombrePorId, intlLocale }: Deps): FilterDef<Actividad>[] {
+export function actividadFilters({
+  t, nombrePorId, intlLocale,
+  departamentoPorResponsable, nombreDepartamento, departamentoPropio,
+}: Deps): FilterDef<Actividad>[] {
   return [
     { key: 'trimestre', labelKey: 'stratix.filter.allQuarters',
       options: () => QUARTERS,
@@ -48,5 +54,13 @@ export function actividadFilters({ t, nombrePorId, intlLocale }: Deps): FilterDe
         .sort((x, y) => (nombrePorId[x] ?? '').localeCompare(nombrePorId[y] ?? '')),
       optionLabel: id => nombrePorId[id] ?? '—',
       match: (a, v) => a.responsable_id === v },
+    // El área NO sale de una columna: se DERIVA del responsable, que es obligatorio. Arranca en
+    // la de quien mira y se puede quitar — es comodidad, no control de acceso: quien tiene el
+    // módulo lee todas las tareas de la empresa y la RLS no corta por departamento.
+    { key: 'departamento', labelKey: 'tasks.filter.allAreas',
+      defaultValue: departamentoPropio,
+      options: items => distinctValues(items, a => departamentoPorResponsable[a.responsable_id ?? '']),
+      optionLabel: id => nombreDepartamento[id] ?? '—',
+      match: (a, v) => departamentoPorResponsable[a.responsable_id ?? ''] === v },
   ]
 }
