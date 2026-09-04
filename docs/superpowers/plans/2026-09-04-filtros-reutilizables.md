@@ -4,11 +4,34 @@
 
 **Goal:** Convertir el motor de filtros en una pieza que cualquier módulo pueda montar, y que cada persona pueda guardar combinaciones con nombre y saltar entre ellas.
 
-**Architecture:** Cuatro fases. La 1 despega `FilterBar` del tema de los tableros —tres props de estilo que los dos consumidores pasan idénticos— y con eso la barra se puede montar en cualquier módulo. La 2 crea `vistas_filtro`: las combinaciones con nombre van a tabla porque son un artefacto que la persona creó, mientras que «qué filtro tengo puesto ahora» se queda en localStorage, donde ya está. La 3 arma la pieza: un hook que junta las dos mitades, un selector de vistas, un menú para esconder filtros, y un `FiltrosPanel` que reemplaza los dos paneles de filtros duplicados que hay hoy. La 4 sale del análisis de aplicabilidad y **no bloquea a las anteriores**: le agrega al motor el `kind: 'chips'` que le falta, separa las etiquetas de los filtros, y despega `ListToolbar` de su tema — las tres cosas que hacen falta para que el motor entre en los seis módulos restantes.
+**Architecture:** Cuatro fases. La 1 despega `FilterBar` del tema de los tableros —tres props de estilo que los dos consumidores pasan idénticos— y con eso la barra se puede montar en cualquier módulo. La 2 crea `vistas_filtro`: las combinaciones con nombre van a tabla porque son un artefacto que la persona creó, mientras que «qué filtro tengo puesto ahora» se queda en localStorage, donde ya está. La 3 arma la pieza: un hook que junta las dos mitades, un selector de vistas, un menú para esconder filtros, y un `FiltersPanel` que reemplaza los dos paneles de filtros duplicados que hay hoy. La 4 sale del análisis de aplicabilidad y **no bloquea a las anteriores**: le agrega al motor el `kind: 'chips'` que le falta, separa las etiquetas de los filtros, y despega `ListToolbar` de su tema — las tres cosas que hacen falta para que el motor entre en los seis módulos restantes.
 
 **Tech Stack:** Next.js 14 (App Router) · TypeScript · Supabase (PostgreSQL + RLS, migraciones por CLI) · Vitest · Playwright (e2e)
 
 **Spec:** `docs/superpowers/specs/2026-09-04-filtros-reutilizables-design.md`
+
+## Estado (04/09/2026)
+
+**Hechas: la 1, la 2 y la 10** — commits `0bc5503`, `701cb33`, `63ddb89`. **Lo próximo es la 3.**
+
+Tres cosas del plan original cambiaron al ejecutarlo, y este documento ya está corregido:
+
+1. **La carpeta es `src/shared/components/filters/`, no `ui/`.** Los seis componentes del motor son
+   una pieza y sueltos entre veinte de `ui/` no se veía. Su barrel exporta **UNA** cosa: hoy
+   `FilterBar`, y cuando exista `FiltersPanel` pasa a ser ése — `SelectFilter`, `InputFilter` y
+   `ChipFilter` son el adentro de la barra y se toman entre hermanos.
+2. **Los nombres van en inglés**, como el resto del motor (`applyFilters`, `resolveFilterValues`):
+   `useFilters`, `FiltersPanel`, `visibleDefs`, `sameFilters`.
+3. **Salió un componente que el plan no tenía: `InputFilter`.** Es el `<input>` que `FilterBar`
+   dibujaba a mano adentro de su `.map()`, al lado de un `<SelectFilter />` que sí era componente.
+   Lo destapó una regla del centinela que ese día estrenó detector.
+
+Y dos archivos nuevos en `src/shared/utils/filters/` que la tarea 2 necesitó: `types.ts` (las tres
+formas, que no entraban en `defs/`) y `compare/` (`sameFilters`, que no es un valor por defecto).
+
+La **tarea 10 se adelantó** a la fase 1: el barrido señaló que `ListToolbar` y `FilterBar`
+comparten su fila, y resultó más chica de lo escrito — `inputStyle` no era un prop, salía de
+`useApp()` adentro, así que ningún consumidor cambió.
 
 ## Global Constraints
 
@@ -52,29 +75,33 @@ Valores exactos que se repiten en varias tareas:
 | Archivo | Responsabilidad |
 |---|---|
 | **Modificar** `src/app/globals.css` | La variable `--c-border-strong` |
-| **Crear** `src/shared/components/ui/FilterBar/index.module.css` | El look de la barra, hoy en objetos `CSSProperties` |
-| **Modificar** `src/shared/components/ui/FilterBar/index.tsx` | Sin los tres props de estilo; suma el picker |
-| **Modificar** `src/shared/components/ui/SelectFilter/index.tsx` | `className` en vez de `style` |
+| **Crear** `src/shared/components/filters/FilterBar/index.module.css` | El look de la barra, hoy en objetos `CSSProperties` |
+| **Modificar** `src/shared/components/filters/FilterBar/index.tsx` | Sin los tres props de estilo; suma el picker |
+| **Modificar** `src/shared/components/filters/SelectFilter/index.tsx` | `className` en vez de `style` |
 | **Modificar** `src/shared/components/dashboard/theme.ts` | Se borran `filterSelectStyle` y `filterClearStyle` |
-| **Modificar** `src/shared/utils/filters/defs/index.ts` | `defsVisibles` |
+| **Crear** `src/shared/components/filters/InputFilter/` | El `<input>` que la barra dibujaba a mano en su `.map()` |
+| **Crear** `src/shared/components/filters/index.ts` | El barrel del motor: exporta UNA cosa |
+| **Modificar** `src/shared/utils/filters/defs/index.ts` | `visibleDefs` |
+| **Crear** `src/shared/utils/filters/types.ts` | Las tres formas, que no entraban en `defs/` |
+| **Crear** `src/shared/utils/filters/compare/index.ts` | `sameFilters` — comparar no es calcular un default |
 | **Modificar** `src/shared/utils/filters/defaults/index.ts` | Tercera capa en `resolveFilterValues` |
 | **Crear** `supabase/migrations/<ts>_vistas_filtro.sql` | La tabla, su RLS y sus índices |
 | **Crear** `supabase/rollback/vistas-filtro-rollback.sql` | Cómo se deshace |
 | **Modificar** `src/shared/data/tables.ts` | `vistasFiltro` |
 | **Crear** `src/shared/data/vistas-filtro.ts` | El repo de la tabla |
 | **Modificar** `src/shared/data/index.ts` | El namespace `vistasFiltroRepo` y el tipo |
-| **Crear** `src/shared/hooks/useFiltros/vistas.ts` | El CRUD de vistas contra el repo |
-| **Crear** `src/shared/hooks/useFiltros/index.ts` | Estado local + vistas: el contrato que consumen los módulos |
-| **Modificar** `src/shared/hooks/index.ts` | Re-export de `useFiltros` |
-| **Crear** `src/shared/components/ui/FilterPicker/` | El «+ Filtro»: un `<details>` con checkboxes |
-| **Crear** `src/shared/components/ui/FilterPresets/` | El desplegable de vistas + guardar, borrar, marcar |
-| **Crear** `src/shared/components/ui/FiltrosPanel/` | El armador que montan los módulos |
-| **Modificar** `src/features/tasks/hooks/useTablero/filtros.ts` | Pasa a `useFiltros('tasks', …)` |
-| **Borrar** `src/features/tasks/components/overview/StratixFiltersPanel/` | Lo reemplaza `FiltrosPanel` |
-| **Modificar** `src/features/research/hooks/useResearchData.ts` | Pasa a `useFiltros('research', …)` |
+| **Crear** `src/shared/hooks/useFilters/vistas.ts` | El CRUD de vistas contra el repo |
+| **Crear** `src/shared/hooks/useFilters/index.ts` | Estado local + vistas: el contrato que consumen los módulos |
+| **Modificar** `src/shared/hooks/index.ts` | Re-export de `useFilters` |
+| **Crear** `src/shared/components/filters/FilterPicker/` | El «+ Filtro»: un `<details>` con checkboxes |
+| **Crear** `src/shared/components/filters/FilterPresets/` | El desplegable de vistas + guardar, borrar, marcar |
+| **Crear** `src/shared/components/filters/FiltersPanel/` | El armador que montan los módulos |
+| **Modificar** `src/features/tasks/hooks/useTablero/filtros.ts` | Pasa a `useFilters('tasks', …)` |
+| **Borrar** `src/features/tasks/components/overview/StratixFiltersPanel/` | Lo reemplaza `FiltersPanel` |
+| **Modificar** `src/features/research/hooks/useResearchData.ts` | Pasa a `useFilters('research', …)` |
 | **Borrar** `src/features/research/components/FiltersPanel.tsx` | Ídem |
 | **Modificar** `src/shared/i18n/locales/{es,en}.json` | Claves `common.filter.*` |
-| **Crear** `src/shared/components/ui/ChipFilter/` | Fase 4: el cuarto control del motor, hermano de `SelectFilter` |
+| **Crear** `src/shared/components/filters/ChipFilter/` | Fase 4: el cuarto control del motor, hermano de `SelectFilter` |
 | **Crear** `src/shared/components/ui/Tag/` | Fase 4: lo que se lee, separado de lo que se elige |
 | **Modificar** `src/shared/components/ui/ListToolbar/` | Fase 4: sin `inputStyle` por props |
 
@@ -82,7 +109,7 @@ Valores exactos que se repiten en varias tareas:
 
 # Fase 1 — la barra se despega del tema
 
-### Task 1: `FilterBar` y `SelectFilter` sin estilos por props
+### Task 1: ✅ HECHA (0bc5503) — `FilterBar` y `SelectFilter` sin estilos por props
 
 Los dos consumidores (`StratixFiltersPanel` y el `FiltersPanel` de Research) le pasan **los mismos valores**: `filterSelectStyle` y `filterClearStyle` salen del mismo módulo, y `mutedColor` es `DASHBOARD_THEME.t3` en uno y `RESEARCH_THEME.t3` en el otro — que es el mismo objeto re-exportado. Los props no configuran nada.
 
@@ -90,9 +117,9 @@ Los dos consumidores (`StratixFiltersPanel` y el `FiltersPanel` de Research) le 
 
 **Files:**
 - Modify: `src/app/globals.css`
-- Create: `src/shared/components/ui/FilterBar/index.module.css`
-- Modify: `src/shared/components/ui/FilterBar/index.tsx`
-- Modify: `src/shared/components/ui/SelectFilter/index.tsx`
+- Create: `src/shared/components/filters/FilterBar/index.module.css`
+- Modify: `src/shared/components/filters/FilterBar/index.tsx`
+- Modify: `src/shared/components/filters/SelectFilter/index.tsx`
 - Modify: `src/shared/components/dashboard/theme.ts`
 - Modify: `src/features/tasks/components/overview/StratixFiltersPanel/index.tsx`
 - Modify: `src/features/research/components/FiltersPanel.tsx`
@@ -114,7 +141,7 @@ Un solo color de la barra no tiene variable: el `#D1D5DB` del borde de los `<sel
 
 - [ ] **Step 2: El CSS module de la barra**
 
-`src/shared/components/ui/FilterBar/index.module.css`:
+`src/shared/components/filters/FilterBar/index.module.css`:
 
 ```css
 /* El look de la barra de filtros. Vivía como objetos CSSProperties en
@@ -169,7 +196,7 @@ Un solo color de la barra no tiene variable: el `#D1D5DB` del borde de los `<sel
 
 - [ ] **Step 3: `SelectFilter` recibe una clase**
 
-En `src/shared/components/ui/SelectFilter/index.tsx`, cambiar sólo la forma del prop de estilo — el comentario de cabecera y la lógica de la opción huérfana no se tocan:
+En `src/shared/components/filters/SelectFilter/index.tsx`, cambiar sólo la forma del prop de estilo — el comentario de cabecera y la lógica de la opción huérfana no se tocan:
 
 ```tsx
 'use client'
@@ -200,12 +227,12 @@ Nótese el import: pasa de `@/shared/utils/filters` a `@/shared/utils` — es la
 
 - [ ] **Step 4: `FilterBar` sin los tres props**
 
-`src/shared/components/ui/FilterBar/index.tsx`:
+`src/shared/components/filters/FilterBar/index.tsx`:
 
 ```tsx
 'use client'
 import type { FilterDef, FilterValues } from '@/shared/utils'
-import SelectFilter from '@/shared/components/ui/SelectFilter'
+import SelectFilter from '@/shared/components/filters/SelectFilter'
 import s from './index.module.css'
 
 // Barra de filtros genérica, guiada por los defs: un control por def + Clear + contador.
@@ -296,7 +323,7 @@ pnpm typecheck && pnpm lint && pnpm test && pnpm rules:barrido && pnpm build:che
 ```
 
 ```bash
-git add src/app/globals.css src/shared/components/ui/FilterBar/ src/shared/components/ui/SelectFilter/ src/shared/components/dashboard/theme.ts src/features/tasks/components/overview/StratixFiltersPanel/ src/features/research/components/FiltersPanel.tsx
+git add src/app/globals.css src/shared/components/filters/FilterBar/ src/shared/components/filters/SelectFilter/ src/shared/components/dashboard/theme.ts src/features/tasks/components/overview/StratixFiltersPanel/ src/features/research/components/FiltersPanel.tsx
 git commit -m "refactor(filtros): la barra deja de recibir su look por props
 
 Los dos consumidores le pasaban exactamente los mismos objetos de estilo, así que
@@ -312,7 +339,7 @@ Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
 
 # Fase 2 — las vistas guardadas
 
-### Task 2: La lógica pura — tercera capa y filtros ocultos
+### Task 2: ✅ HECHA (63ddb89) — La lógica pura — tercera capa y filtros ocultos
 
 Antes de la tabla, las dos funciones puras que la van a usar. Van primero porque son lo único de esta fase que se puede probar sin base.
 
@@ -329,8 +356,8 @@ Antes de la tabla, las dos funciones puras que la van a usar. Van primero porque
 
 ```ts
 function resolveFilterValues<T>(defs: FilterDef<T>[], guardados: FilterValues, vista?: FilterValues): FilterValues
-function defsVisibles<T>(defs: FilterDef<T>[], ocultos: string[]): FilterDef<T>[]
-function mismosFiltros(a: FilterValues, b: FilterValues): boolean
+function visibleDefs<T>(defs: FilterDef<T>[], ocultos: string[]): FilterDef<T>[]
+function sameFilters(a: FilterValues, b: FilterValues): boolean
 ```
 
 Los consume la tarea 5.
@@ -361,46 +388,46 @@ En `src/shared/utils/filters/defaults/index.test.ts`, agregar dentro del `descri
 y, al final del mismo archivo, el bloque de la comparación:
 
 ```ts
-describe('mismosFiltros', () => {
+describe('sameFilters', () => {
   it('el orden de las claves no cuenta', () => {
-    expect(mismosFiltros({ area: 'mkt', estado: 'x' }, { estado: 'x', area: 'mkt' })).toBe(true)
+    expect(sameFilters({ area: 'mkt', estado: 'x' }, { estado: 'x', area: 'mkt' })).toBe(true)
   })
 
   // «Sin tocar» y «puesto en Todos» filtran igual, así que para saber si la pantalla todavía es
   // la vista guardada tienen que contar como lo mismo. Si no, aplicar una vista y no tocar nada
   // la marcaría como modificada apenas el motor rellene una clave con cadena vacía.
   it('la clave ausente y la cadena vacía son lo mismo', () => {
-    expect(mismosFiltros({ area: 'mkt' }, { area: 'mkt', estado: '' })).toBe(true)
-    expect(mismosFiltros({}, { area: '' })).toBe(true)
+    expect(sameFilters({ area: 'mkt' }, { area: 'mkt', estado: '' })).toBe(true)
+    expect(sameFilters({}, { area: '' })).toBe(true)
   })
 
   it('un valor distinto sí cuenta', () => {
-    expect(mismosFiltros({ area: 'mkt' }, { area: 'med' })).toBe(false)
-    expect(mismosFiltros({ area: 'mkt' }, {})).toBe(false)
+    expect(sameFilters({ area: 'mkt' }, { area: 'med' })).toBe(false)
+    expect(sameFilters({ area: 'mkt' }, {})).toBe(false)
   })
 })
 ```
 
-y sumar `mismosFiltros` al import de la primera línea del archivo.
+y sumar `sameFilters` al import de la primera línea del archivo.
 
 En `src/shared/utils/filters/defs/index.test.ts`, agregar al final:
 
 ```ts
-describe('defsVisibles', () => {
+describe('visibleDefs', () => {
   it('saca los defs escondidos y respeta el orden de los que quedan', () => {
-    expect(defsVisibles(DEFS, ['phase']).map(d => d.key)).toEqual(['country'])
-    expect(defsVisibles(DEFS, []).map(d => d.key)).toEqual(['phase', 'country'])
+    expect(visibleDefs(DEFS, ['phase']).map(d => d.key)).toEqual(['country'])
+    expect(visibleDefs(DEFS, []).map(d => d.key)).toEqual(['phase', 'country'])
   })
 
   // Se guarda lo OCULTO y no lo visible: así un filtro que el código agrega mañana aparece solo
   // en vez de nacer invisible para todo el que tenga una vista guardada de antes.
   it('una clave oculta que ya no existe no molesta', () => {
-    expect(defsVisibles(DEFS, ['columna-que-se-borro']).map(d => d.key)).toEqual(['phase', 'country'])
+    expect(visibleDefs(DEFS, ['columna-que-se-borro']).map(d => d.key)).toEqual(['phase', 'country'])
   })
 })
 ```
 
-y sumar `defsVisibles` al import de la primera línea del archivo.
+y sumar `visibleDefs` al import de la primera línea del archivo.
 
 - [ ] **Step 2: Correr los tests y verificar que fallan**
 
@@ -408,7 +435,7 @@ y sumar `defsVisibles` al import de la primera línea del archivo.
 pnpm test src/shared/utils/filters/
 ```
 
-Esperado: FAIL — `defsVisibles is not a function`, y las tres capas dan el valor de la capa equivocada.
+Esperado: FAIL — `visibleDefs is not a function`, y las tres capas dan el valor de la capa equivocada.
 
 - [ ] **Step 3: La tercera capa**
 
@@ -442,7 +469,7 @@ También en `src/shared/utils/filters/defaults/index.ts`, al final:
 // Una clave ausente y una clave en '' cuentan como IGUALES: las dos significan «este filtro no
 // filtra». Sin esa equivalencia, aplicar una vista y no tocar nada la marcaría como modificada
 // apenas el motor rellene una clave con cadena vacía.
-export function mismosFiltros(a: FilterValues, b: FilterValues): boolean {
+export function sameFilters(a: FilterValues, b: FilterValues): boolean {
   const claves = new Set([...Object.keys(a), ...Object.keys(b)])
   for (const k of claves) if ((a[k] ?? '') !== (b[k] ?? '')) return false
   return true
@@ -458,7 +485,7 @@ Al final de `src/shared/utils/filters/defs/index.ts`:
 // no la regla es lo que hace que la lista pueda crecer. Con una lista de «visibles», un filtro
 // agregado por el código mañana nacería invisible para todo el que tenga una vista guardada de
 // antes, y nadie entendería por qué le falta.
-export function defsVisibles<T>(defs: FilterDef<T>[], ocultos: string[]): FilterDef<T>[] {
+export function visibleDefs<T>(defs: FilterDef<T>[], ocultos: string[]): FilterDef<T>[] {
   return defs.filter(d => !ocultos.includes(d.key))
 }
 ```
@@ -478,14 +505,14 @@ Esconder es reversible.
 En `src/shared/utils/filters/index.ts`, las dos líneas de re-export:
 
 ```ts
-export { applyFilters, distinctValues, distinctTokens, defsVisibles } from './defs'
-export { defaultFilterValues, resolveFilterValues, mismosFiltros } from './defaults'
+export { applyFilters, distinctValues, distinctTokens, visibleDefs } from './defs'
+export { defaultFilterValues, resolveFilterValues, sameFilters } from './defaults'
 ```
 
 En `src/shared/utils/index.ts`, línea 15:
 
 ```ts
-export { applyFilters, distinctValues, distinctTokens, defsVisibles, defaultFilterValues, resolveFilterValues, mismosFiltros } from './filters'
+export { applyFilters, distinctValues, distinctTokens, visibleDefs, defaultFilterValues, resolveFilterValues, sameFilters } from './filters'
 ```
 
 - [ ] **Step 7: Correr los tests y verificar que pasan**
@@ -769,32 +796,32 @@ Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
 
 # Fase 3 — la pieza
 
-### Task 5: `useFiltros` — el estado, las vistas y el contrato
+### Task 5: `useFilters` — el estado, las vistas y el contrato
 
 Es la bisagra: junta la mitad efímera (localStorage) con la mitad guardada (la tabla) y expone un solo contrato que cualquier módulo puede consumir.
 
 Va en **dos archivos** porque uno solo pasa el techo de 50 líneas: el CRUD contra el repo tiene su propia responsabilidad y su propio manejo de error.
 
 **Files:**
-- Create: `src/shared/hooks/useFiltros/tipos.ts`
-- Create: `src/shared/hooks/useFiltros/vistas.ts`
-- Create: `src/shared/hooks/useFiltros/index.ts`
+- Create: `src/shared/hooks/useFilters/tipos.ts`
+- Create: `src/shared/hooks/useFilters/vistas.ts`
+- Create: `src/shared/hooks/useFilters/index.ts`
 - Modify: `src/shared/hooks/index.ts`
 
 **Interfaces:**
-- Consumes: `useApp().usuario`, `useUserPreference`, `resolveFilterValues`, `defaultFilterValues`, `defsVisibles`, `vistasFiltroRepo`, `VistaFiltro`.
-- Produces: el tipo `Filtros<T>` y las funciones `useVistas(ambito)` / `useFiltros(ambito, defs)`. Los consume la tarea 7.
+- Consumes: `useApp().usuario`, `useUserPreference`, `resolveFilterValues`, `defaultFilterValues`, `visibleDefs`, `vistasFiltroRepo`, `VistaFiltro`.
+- Produces: el tipo `Filtros<T>` y las funciones `useVistas(ambito)` / `useFilters(ambito, defs)`. Los consume la tarea 7.
 
 - [ ] **Step 1: El contrato, escrito a mano**
 
-`src/shared/hooks/useFiltros/tipos.ts`:
+`src/shared/hooks/useFilters/tipos.ts`:
 
 ```ts
 import type { FilterDef, FilterValues } from '@/shared/utils'
 import type { VistaFiltro } from '@/shared/data'
 
-// El contrato de `useFiltros`, escrito y no inferido. Se escribe por dos razones: es lo que
-// `FiltrosPanel` recibe por props —y `ReturnType<typeof useFiltros<T>>` no es sintaxis válida
+// El contrato de `useFilters`, escrito y no inferido. Se escribe por dos razones: es lo que
+// `FiltersPanel` recibe por props —y `ReturnType<typeof useFilters<T>>` no es sintaxis válida
 // para una función genérica—, y porque un contrato de trece campos merece leerse de un vistazo
 // en vez de reconstruirse siguiendo el `return` de un hook.
 export type Filtros<T> = {
@@ -824,7 +851,7 @@ export type Filtros<T> = {
 
 - [ ] **Step 2: El CRUD de vistas**
 
-`src/shared/hooks/useFiltros/vistas.ts`:
+`src/shared/hooks/useFilters/vistas.ts`:
 
 ```ts
 'use client'
@@ -870,7 +897,7 @@ export function useVistas(ambito: string) {
 
 - [ ] **Step 3: El hook principal**
 
-`src/shared/hooks/useFiltros/index.ts`:
+`src/shared/hooks/useFilters/index.ts`:
 
 ```ts
 'use client'
@@ -878,7 +905,7 @@ import { useMemo } from 'react'
 // `../useUserPreference` y NO `@/shared/hooks`: este archivo lo re-exporta el barrel de hooks, y
 // entrar por el barrel cerraría un ciclo. Mismo criterio que documenta `shared/utils/index.ts`.
 import { useUserPreference } from '../useUserPreference'
-import { resolveFilterValues, defaultFilterValues, defsVisibles, mismosFiltros, type FilterDef, type FilterValues } from '@/shared/utils'
+import { resolveFilterValues, defaultFilterValues, visibleDefs, sameFilters, type FilterDef, type FilterValues } from '@/shared/utils'
 import type { Filtros } from './tipos'
 import { useVistas } from './vistas'
 
@@ -894,7 +921,7 @@ const VACIO: EstadoLocal = { valores: {}, ocultos: [], vistaId: '' }
 // Los filtros de una tabla: el motor, el estado vivo y las vistas guardadas, en un contrato.
 // `ambito` identifica qué tabla se filtra ('tasks', 'research', …) y separa tanto la clave de
 // localStorage como las filas de `vistas_filtro`.
-export function useFiltros<T>(ambito: string, defs: FilterDef<T>[]): Filtros<T> {
+export function useFilters<T>(ambito: string, defs: FilterDef<T>[]): Filtros<T> {
   const [local, setLocal] = useUserPreference<EstadoLocal>(`filtros:${ambito}`, VACIO)
   const { vistas, guardar, actualizar, borrar, marcarPorDefecto } = useVistas(ambito)
 
@@ -904,7 +931,7 @@ export function useFiltros<T>(ambito: string, defs: FilterDef<T>[]): Filtros<T> 
   const valores = useMemo(
     () => resolveFilterValues(defs, local.valores, apertura?.valores), [defs, local.valores, apertura])
   const ocultos = local.ocultos.length ? local.ocultos : apertura?.ocultos ?? []
-  const visibles = useMemo(() => defsVisibles(defs, ocultos), [defs, ocultos])
+  const visibles = useMemo(() => visibleDefs(defs, ocultos), [defs, ocultos])
 
   const setValor = (key: string, value: string) =>
     setLocal(p => ({ ...p, valores: { ...p.valores, [key]: value } }))
@@ -927,7 +954,7 @@ export function useFiltros<T>(ambito: string, defs: FilterDef<T>[]): Filtros<T> 
   // `ocultos` se comparan como conjuntos: el orden en que escondiste dos filtros no es un cambio.
   const activa = vistas.find(v => v.id === local.vistaId)
   const modificada = !!activa && !(
-    mismosFiltros(valores, activa.valores) &&
+    sameFilters(valores, activa.valores) &&
     ocultos.length === activa.ocultos.length && ocultos.every(k => activa.ocultos.includes(k))
   )
 
@@ -955,8 +982,8 @@ valor que no existe entre sus opciones — que en HTML se dibuja en blanco, sin 
 En `src/shared/hooks/index.ts`, al final:
 
 ```ts
-export { useFiltros } from './useFiltros'
-export type { Filtros } from './useFiltros/tipos'
+export { useFilters } from './useFilters'
+export type { Filtros } from './useFilters/tipos'
 ```
 
 `useVistas` **no** se exporta: es interno del hook, y sacarlo al barrel invitaría a montar el CRUD sin el estado.
@@ -967,13 +994,13 @@ export type { Filtros } from './useFiltros/tipos'
 pnpm typecheck && pnpm lint && pnpm test
 ```
 
-Esperado: PASS. No hay test de este archivo: es un hook de React y el repo no tiene entorno DOM en Vitest. Lo testeable ya está probado en la tarea 2 (`resolveFilterValues`, `defsVisibles`); lo de acá es cableado, y se verifica en la tarea 7.
+Esperado: PASS. No hay test de este archivo: es un hook de React y el repo no tiene entorno DOM en Vitest. Lo testeable ya está probado en la tarea 2 (`resolveFilterValues`, `visibleDefs`); lo de acá es cableado, y se verifica en la tarea 7.
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add src/shared/hooks/
-git commit -m "feat(filtros): useFiltros junta el estado vivo con las vistas guardadas
+git commit -m "feat(filtros): useFilters junta el estado vivo con las vistas guardadas
 
 Lo efímero (qué tenés puesto) sigue en localStorage; lo guardado (una vista con
 nombre) sale de la tabla. Elegir una vista escribe sus valores en el estado
@@ -990,10 +1017,10 @@ Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
 Dos componentes chicos y tontos: reciben todo por props y no saben de dónde salen. Los dos usan `<details>` nativo en vez de un menú con estado — es teclado-accesible de fábrica, cierra solo con Escape y no necesita una librería ni un `useState` más.
 
 **Files:**
-- Create: `src/shared/components/ui/FilterPicker/index.tsx`
-- Create: `src/shared/components/ui/FilterPicker/index.module.css`
-- Create: `src/shared/components/ui/FilterPresets/index.tsx`
-- Create: `src/shared/components/ui/FilterPresets/index.module.css`
+- Create: `src/shared/components/filters/FilterPicker/index.tsx`
+- Create: `src/shared/components/filters/FilterPicker/index.module.css`
+- Create: `src/shared/components/filters/FilterPresets/index.tsx`
+- Create: `src/shared/components/filters/FilterPresets/index.module.css`
 - Modify: `src/shared/i18n/locales/es.json`
 - Modify: `src/shared/i18n/locales/en.json`
 
@@ -1041,7 +1068,7 @@ En `en.json`, las mismas claves:
 
 - [ ] **Step 2: El picker**
 
-`src/shared/components/ui/FilterPicker/index.tsx`:
+`src/shared/components/filters/FilterPicker/index.tsx`:
 
 ```tsx
 'use client'
@@ -1053,7 +1080,7 @@ import s from './index.module.css'
 // funciona con teclado sin ARIA a mano y no agrega una dependencia ni un useState.
 //
 // Los checkboxes están marcados cuando el filtro SE VE. Lo que se guarda es lo contrario —la
-// lista de ocultos— y esa asimetría es deliberada: ver `defsVisibles`.
+// lista de ocultos— y esa asimetría es deliberada: ver `visibleDefs`.
 export default function FilterPicker<T>({ defs, ocultos, onAlternar, labelFor }: {
   defs: FilterDef<T>[]
   ocultos: string[]
@@ -1077,7 +1104,7 @@ export default function FilterPicker<T>({ defs, ocultos, onAlternar, labelFor }:
 }
 ```
 
-`src/shared/components/ui/FilterPicker/index.module.css`:
+`src/shared/components/filters/FilterPicker/index.module.css`:
 
 ```css
 .picker { position: relative; }
@@ -1118,7 +1145,7 @@ export default function FilterPicker<T>({ defs, ocultos, onAlternar, labelFor }:
 
 - [ ] **Step 3: El selector de vistas**
 
-`src/shared/components/ui/FilterPresets/index.tsx`:
+`src/shared/components/filters/FilterPresets/index.tsx`:
 
 ```tsx
 'use client'
@@ -1143,7 +1170,7 @@ export default function FilterPresets({ vistas, activaId, modificada, onAplicar,
   const { t } = useT()
   const [nombre, setNombre] = useState('')
 
-  // Cuál está elegida NO es estado de este componente: viene de `useFiltros`, que lo persiste.
+  // Cuál está elegida NO es estado de este componente: viene de `useFilters`, que lo persiste.
   // Con un useState local, recargar la página dejaba el desplegable en «Sin vista» mientras en
   // pantalla seguían los filtros de una.
   const guardar = async () => {
@@ -1187,7 +1214,7 @@ export default function FilterPresets({ vistas, activaId, modificada, onAplicar,
 }
 ```
 
-`src/shared/components/ui/FilterPresets/index.module.css`:
+`src/shared/components/filters/FilterPresets/index.module.css`:
 
 ```css
 .presets {
@@ -1272,7 +1299,7 @@ Esperado: PASS. Los componentes todavía no los monta nadie — eso es la tarea 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/shared/components/ui/FilterPicker/ src/shared/components/ui/FilterPresets/ src/shared/i18n/locales/
+git add src/shared/components/filters/FilterPicker/ src/shared/components/filters/FilterPresets/ src/shared/i18n/locales/
 git commit -m "feat(filtros): el menú de filtros visibles y el selector de vistas
 
 Los dos con <details> nativo: teclado y Escape gratis, sin librería ni estado de
@@ -1285,15 +1312,15 @@ Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
 
 ---
 
-### Task 7: `FiltrosPanel` y la mudanza de los dos módulos
+### Task 7: `FiltersPanel` y la mudanza de los dos módulos
 
 El armador, y la prueba de que la pieza viaja: los dos paneles de filtros que hoy están duplicados —uno en Stratix y otro en Research, con el mismo `Panel collapsible`, el mismo chip de «activos» y la misma llamada a `FilterBar`— se borran y quedan reemplazados por uno.
 
-**El estado NO vive en `FiltrosPanel`.** Vive en el hook del módulo, porque el tablero de `/tasks` necesita leer `actsFiltradas` para sus KPIs y sus gráficas. `FiltrosPanel` es un presentador: recibe el retorno de `useFiltros` y lo dibuja.
+**El estado NO vive en `FiltersPanel`.** Vive en el hook del módulo, porque el tablero de `/tasks` necesita leer `actsFiltradas` para sus KPIs y sus gráficas. `FiltersPanel` es un presentador: recibe el retorno de `useFilters` y lo dibuja.
 
 **Files:**
-- Create: `src/shared/components/ui/FiltrosPanel/index.tsx`
-- Create: `src/shared/components/ui/FiltrosPanel/index.module.css`
+- Create: `src/shared/components/filters/FiltersPanel/index.tsx`
+- Create: `src/shared/components/filters/FiltersPanel/index.module.css`
 - Modify: `src/features/tasks/hooks/useTablero/filtros.ts`
 - Modify: `src/features/tasks/components/overview/OverviewTab/index.tsx`
 - Delete: `src/features/tasks/components/overview/StratixFiltersPanel/`
@@ -1303,20 +1330,20 @@ El armador, y la prueba de que la pieza viaja: los dos paneles de filtros que ho
 - Delete: `src/features/research/components/FiltersPanel.tsx`
 
 **Interfaces:**
-- Consumes: `Filtros<T>` y `useFiltros` (tarea 5), `FilterBar` (tarea 1), `FilterPicker` y `FilterPresets` (tarea 6), `Panel` de `@/shared/components/dashboard/Panel`.
-- Produces: `FiltrosPanel`, montado por los dos módulos. Nadie más lo consume todavía.
+- Consumes: `Filtros<T>` y `useFilters` (tarea 5), `FilterBar` (tarea 1), `FilterPicker` y `FilterPresets` (tarea 6), `Panel` de `@/shared/components/dashboard/Panel`.
+- Produces: `FiltersPanel`, montado por los dos módulos. Nadie más lo consume todavía.
 
 - [ ] **Step 1: El armador**
 
-`src/shared/components/ui/FiltrosPanel/index.tsx`:
+`src/shared/components/filters/FiltersPanel/index.tsx`:
 
 ```tsx
 'use client'
 import { useT, type I18nKey } from '@/shared/i18n'
 import Panel from '@/shared/components/dashboard/Panel'
-import FilterBar from '@/shared/components/ui/FilterBar'
-import FilterPicker from '@/shared/components/ui/FilterPicker'
-import FilterPresets from '@/shared/components/ui/FilterPresets'
+import FilterBar from '@/shared/components/filters/FilterBar'
+import FilterPicker from '@/shared/components/filters/FilterPicker'
+import FilterPresets from '@/shared/components/filters/FilterPresets'
 import type { Filtros } from '@/shared/hooks'
 import s from './index.module.css'
 
@@ -1324,14 +1351,14 @@ import s from './index.module.css'
 // dos veces —`StratixFiltersPanel` y el `FiltersPanel` de Research— con el mismo Panel, el mismo
 // chip y la misma llamada a FilterBar; las dos copias se borraron por esta.
 //
-// El estado NO vive acá: llega entero desde `useFiltros`, que el módulo llama en su propio hook.
+// El estado NO vive acá: llega entero desde `useFilters`, que el módulo llama en su propio hook.
 // Tiene que ser así porque el tablero de /tasks lee el conjunto filtrado para sus KPIs y sus
 // gráficas — si el estado viviera en este componente, el tablero no podría verlo.
 //
 // El conteo de activos va en la CABECERA del panel a propósito: los filtros se recuerdan entre
 // sesiones y el panel se puede dejar recogido, así que ese chip es lo ÚNICO que explica por qué
 // las cifras de abajo no son las de todo el año.
-export default function FiltrosPanel<T>({ filtros, items, persistKey }: {
+export default function FiltersPanel<T>({ filtros, items, persistKey }: {
   filtros: Filtros<T>
   items: T[]
   persistKey: string
@@ -1361,7 +1388,7 @@ export default function FiltrosPanel<T>({ filtros, items, persistKey }: {
 }
 ```
 
-`src/shared/components/ui/FiltrosPanel/index.module.css`:
+`src/shared/components/filters/FiltersPanel/index.module.css`:
 
 ```css
 /* El chip de "activos: N" de la cabecera: acento sobre su propio fondo al 8%, para que se lea
@@ -1385,7 +1412,7 @@ export default function FiltrosPanel<T>({ filtros, items, persistKey }: {
 }
 ```
 
-- [ ] **Step 2: `/tasks` pasa a `useFiltros`**
+- [ ] **Step 2: `/tasks` pasa a `useFilters`**
 
 En `src/features/tasks/hooks/useTablero/filtros.ts`, el cuerpo del hook se reduce: la parte de
 `useUserPreference` + `resolveFilterValues` + `defaultFilterValues` se va entera y la reemplaza
@@ -1397,7 +1424,7 @@ módulo:
 import { useMemo } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
-import { useFiltros } from '@/shared/hooks'
+import { useFilters } from '@/shared/hooks'
 import { actividadFilters } from '@/features/tasks/utils/act-filters'
 import { departamentoPorUsuario } from '@/features/tasks/utils/departamento'
 
@@ -1414,13 +1441,13 @@ export function useFiltrosTablero() {
   const departamentoPropio = usuario?.id ? departamentoPorResponsable[usuario.id] : undefined
 
   // `actFilters` va memoizado y NO es opcional: sin esto se recrea en cada render, y como es la
-  // entrada de `useFiltros` y de los seis `applyFilters` del tablero, arrastra a todos.
+  // entrada de `useFilters` y de los seis `applyFilters` del tablero, arrastra a todos.
   const actFilters = useMemo(() => actividadFilters({
     t, nombrePorId: miembrosPorId, intlLocale,
     departamentoPorResponsable, nombreDepartamento, departamentoPropio,
   }), [t, miembrosPorId, intlLocale, departamentoPorResponsable, nombreDepartamento, departamentoPropio])
 
-  return useFiltros('tasks', actFilters)
+  return useFilters('tasks', actFilters)
 }
 ```
 
@@ -1448,7 +1475,7 @@ En el objeto `tablero` del final, los cinco campos sueltos de filtro (`actFilter
 En `src/features/tasks/components/overview/OverviewTab/index.tsx`, reemplazar el `<StratixFiltersPanel />` por:
 
 ```tsx
-<FiltrosPanel filtros={filtros} items={actividades} persistKey="stratix-filtros" />
+<FiltersPanel filtros={filtros} items={actividades} persistKey="stratix-filtros" />
 ```
 
 `persistKey` se mantiene en `"stratix-filtros"` y **no** se renombra: es la clave con la que cada
@@ -1469,7 +1496,7 @@ En `src/features/research/hooks/useResearchData.ts`, los imports de las líneas 
 
 ```ts
 import { applyFilters } from '@/shared/utils'
-import { useFiltros } from '@/shared/hooks'
+import { useFilters } from '@/shared/hooks'
 ```
 
 (el `type FilterValues` deja de hacer falta acá, y el import de `useUserPreference` por su ruta
@@ -1478,7 +1505,7 @@ import { useFiltros } from '@/shared/hooks'
 La línea 32 y las líneas 59-61 se reemplazan por:
 
 ```ts
-  const filtros = useFiltros('research', LEAD_FILTERS)
+  const filtros = useFilters('research', LEAD_FILTERS)
 ```
 ```ts
   const filteredLeads = applyFilters(leads, filtros.visibles, filtros.valores)
@@ -1496,7 +1523,7 @@ Y en el objeto que se devuelve (línea 250), los tres campos sueltos
 
 **Ojo con la clave de localStorage.** La de Research es `'research-lead-filters'`, no
 `'research-filters'` (esa es la `persistKey` del Panel, otra cosa). Al pasar a
-`useFiltros('research', …)` la clave nueva es `filtros:research`, así que **cada persona pierde
+`useFilters('research', …)` la clave nueva es `filtros:research`, así que **cada persona pierde
 los filtros que tenía puestos** y el panel abre limpio. Es aceptable —son valores de una sesión,
 no datos— y no se migra: escribir un migrador de localStorage para un valor efímero cuesta más
 que el valor. Anotarlo en el aviso del despliegue.
@@ -1504,14 +1531,14 @@ que el valor. Anotarlo en el aviso del despliegue.
 `<FiltersPanel />` se monta en DOS lugares y los dos cambian:
 
 En `src/features/research/components/DashboardTab.tsx`, el import de la línea 10 pasa a
-`FiltrosPanel` y la línea 36 queda:
+`FiltersPanel` y la línea 36 queda:
 
 ```tsx
-      <FiltrosPanel filtros={filtros} items={leads} persistKey="research-filters" />
+      <FiltersPanel filtros={filtros} items={leads} persistKey="research-filters" />
 ```
 
 El `<div style={{ marginBottom: 14 }}>` que lo envolvía **se borra**: es un `style` inline de los
-que la regla prohíbe, y `FiltrosPanel` ya trae su propio margen inferior.
+que la regla prohíbe, y `FiltersPanel` ya trae su propio margen inferior.
 
 En `src/features/research/components/leads/LeadsTab.tsx`, el import de la línea 7 y el montaje de
 la línea 31, igual. Los dos leen `filtros` y `leads` de `useResearch()`.
@@ -1568,7 +1595,7 @@ pnpm typecheck && pnpm lint && pnpm test && pnpm rules:barrido && pnpm build:che
 ```
 
 ```bash
-git add src/shared/components/ui/FiltrosPanel/ src/features/tasks/ src/features/research/ src/shared/i18n/locales/
+git add src/shared/components/filters/FiltersPanel/ src/features/tasks/ src/features/research/ src/shared/i18n/locales/
 git commit -m "feat(filtros): un solo panel de filtros para todo el proyecto
 
 Los dos paneles duplicados —Stratix y Research, con el mismo Panel, el mismo chip
@@ -1605,8 +1632,8 @@ un campo del motor —`FilterDef.kind`— al que le falta un valor.
 
 **Files:**
 - Modify: `src/shared/utils/filters/defs/index.ts` y su test
-- Create: `src/shared/components/ui/ChipFilter/index.tsx` + `index.module.css`
-- Modify: `src/shared/components/ui/FilterBar/index.tsx`
+- Create: `src/shared/components/filters/ChipFilter/index.tsx` + `index.module.css`
+- Modify: `src/shared/components/filters/FilterBar/index.tsx`
 - Delete: `src/features/admin/components/RoleChip.tsx`, `src/features/medical/components/DateFilterChip.tsx`, `src/features/directorio/components/DepartmentChip/`
 
 **Interfaces:**
@@ -1677,7 +1704,7 @@ pnpm test src/shared/utils/filters/
 
 - [ ] **Step 5: El componente**
 
-`src/shared/components/ui/ChipFilter/index.tsx`:
+`src/shared/components/filters/ChipFilter/index.tsx`:
 
 ```tsx
 'use client'
@@ -1717,7 +1744,7 @@ export default function ChipFilter<T>({ def, items, value, onChange, label, labe
 }
 ```
 
-`src/shared/components/ui/ChipFilter/index.module.css`:
+`src/shared/components/filters/ChipFilter/index.module.css`:
 
 ```css
 .fila {
@@ -1758,7 +1785,7 @@ export default function ChipFilter<T>({ def, items, value, onChange, label, labe
 
 - [ ] **Step 6: `FilterBar` ramifica sobre el kind nuevo**
 
-En `src/shared/components/ui/FilterBar/index.tsx`, antes de la rama de `'select'`:
+En `src/shared/components/filters/FilterBar/index.tsx`, antes de la rama de `'select'`:
 
 ```tsx
       {defs.map(d => d.kind === 'chips' ? (
@@ -1840,7 +1867,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
 ```
 
-### Task 10: `ListToolbar` sin estilos por props
+### Task 10: ✅ HECHA (701cb33) — `ListToolbar` sin estilos por props
 
 Es la tarea 1 otra vez, sobre el otro encabezado. `ListToolbar` recibe `inputStyle` desde
 `useApp()` y dibuja con `style` inline; es el encabezado de Admin, Directorio y los catálogos de
@@ -1995,7 +2022,7 @@ Sale del spec y se anota acá para que no se cuele por contacto:
 - **Grupos AND/OR anidados.**
 - **Agrupar.** Es otro eje: cambia cómo se dibuja la tabla, no qué filas entran.
 - **Adoptar el motor en Cobranzas, Reuniones y Accounting.** (Admin, Medical y Directorio entran con la tarea 8.) Es un `FilterDef[]` por tabla y un PR chico por módulo. Este plan lo desbloquea pero no lo ejecuta: son subsistemas independientes, y cada uno produce software funcionando por su cuenta. La aplicabilidad módulo por módulo está medida en la sección «Aplicabilidad» del spec, con dos cosas que hay que resolver **antes** de esa tanda y no durante:
-  1. **Cobranzas comparte UN estado de filtros entre tres tablas** (Ventas, Cuentas, Depósitos, cada una con un subconjunto de las seis claves) y eso es deliberado. `useFiltros` asume un ámbito por tabla; hace falta que una pestaña pueda declarar con qué subconjunto de defs filtra, o el contador de activos y el «+ Filtro» mienten en las tres.
+  1. **Cobranzas comparte UN estado de filtros entre tres tablas** (Ventas, Cuentas, Depósitos, cada una con un subconjunto de las seis claves) y eso es deliberado. `useFilters` asume un ámbito por tabla; hace falta que una pestaña pueda declarar con qué subconjunto de defs filtra, o el contador de activos y el «+ Filtro» mienten en las tres.
   2. **`ListToolbar` recibe `inputStyle` por props y dibuja con `style` inline** — la misma deuda que la tarea 1 le saca a `FilterBar`. Es el encabezado de Admin, Directorio y los catálogos, así que es el bloqueante de los cuatro módulos administrativos.
 - **Encender las vistas guardadas en Directorio y Accounting.** Leen datos hardcodeados (`DIRECTORIO_DATA`, `accounting/data.ts`): el motor y la barra les sirven, las vistas no resuelven nada hasta que esos módulos tengan datos de la base.
 - **Compartir una vista con el equipo.** Una columna `compartida boolean` y un `OR` en la policy, los dos aditivos. Se agrega el día que alguien lo pida.
