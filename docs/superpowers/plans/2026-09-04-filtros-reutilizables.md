@@ -459,6 +459,16 @@ export function defsVisibles<T>(defs: FilterDef<T>[], ocultos: string[]): Filter
 }
 ```
 
+**Un filtro escondido DEJA DE FILTRAR, y eso no es un detalle de implementación.** Lo que sale de
+acá es lo que se le pasa a `applyFilters`, no sólo lo que se dibuja: si un filtro escondido
+siguiera aplicándose, el tablero mostraría 40 de 267 tareas sin un solo control en pantalla que lo
+explique — que es exactamente lo que el chip de «N activos» existe para evitar. Por eso todo
+consumidor filtra con `filtros.visibles` y **nunca** con `filtros.defs`; `defs` es sólo para
+dibujar el menú del picker.
+
+El valor **no** se borra al esconder: queda en `valores` y vuelve intacto al mostrarlo de nuevo.
+Esconder es reversible.
+
 - [ ] **Step 6: Exportarlas por los dos barrels**
 
 En `src/shared/utils/filters/index.ts`, las dos líneas de re-export:
@@ -1532,18 +1542,20 @@ Esperado: PASS, 531 tests o más.
 Con `pnpm dev`, en `/tasks` → Dashboard:
 
 1. La barra se ve como siempre, y al final tiene un **«+ Filtro»**. Abrirlo: seis checkboxes, todos marcados.
-2. Desmarcar «Todas las marcas»: el desplegable desaparece de la barra. **Recargar:** sigue desaparecido.
-3. Volver a marcarlo: vuelve, en su posición de siempre.
-4. Poner dos filtros, abrir «Guardar vista», escribir `Mi trimestre` y guardar. El desplegable de vistas ahora la ofrece.
-5. Limpiar los filtros, elegir `Mi trimestre` del desplegable: vuelven los dos valores **y** los filtros escondidos que tenía guardados.
-6. **Recargar la página con `Mi trimestre` elegida:** el desplegable sigue diciendo `Mi trimestre`, no «Sin vista». Si vuelve a «Sin vista», `vistaId` no está viajando en el estado persistido.
-7. Con `Mi trimestre` puesta, cambiar un filtro: aparece **«• modificada»** y un botón **«Actualizar»**. Tocar «Actualizar»: la marca desaparece. Recargar: sigue sin marca, y los valores son los nuevos.
-8. Volver a cambiar un filtro y después **volver a elegir `Mi trimestre`** del desplegable: los valores vuelven a los guardados y la marca desaparece sin haber tocado «Actualizar».
-9. Con `Mi trimestre` elegida, tocar «Abrir con esta». **Cerrar sesión, volver a entrar:** el tablero abre con esa vista puesta y la vista aparece con un ★.
-10. Guardar una segunda vista y marcarla como la de apertura: la ★ se mueve. Ese es el índice único parcial funcionando — si diera error de duplicado, las dos sentencias de `marcarPorDefecto` están en el orden equivocado.
-11. Borrar la vista que estaba elegida: desaparece del desplegable, que vuelve a «Sin vista» **sin quedar en blanco**. Los filtros que había en pantalla se quedan puestos — borrar la vista no es limpiar la pantalla.
-12. **Con otro usuario:** su desplegable de vistas está vacío. Si ve las de Wagner, la policy no está cortando por `usuario_id`.
-13. Repetir 1, 4, 5 y 7 en `/research`.
+2. Elegir una marca (por ejemplo EMC): el tablero baja de 267 tareas a las de esa marca, y el chip de la cabecera dice 1 activo.
+3. **Sin quitar la marca, esconder ese filtro** desde «+ Filtro»: el desplegable desaparece **y el tablero vuelve a 267**. Un filtro escondido no filtra. Si las tareas siguen filtradas, el consumidor está pasando `filtros.defs` en vez de `filtros.visibles` a `applyFilters` — que es el bug invisible que este paso existe para atrapar.
+4. **Recargar:** sigue escondido y sigue sin filtrar.
+5. Volver a mostrarlo desde «+ Filtro»: reaparece **con EMC puesto** y el tablero vuelve a filtrar. Esconder es reversible y no borra el valor.
+6. Poner dos filtros, abrir «Guardar vista», escribir `Mi trimestre` y guardar. El desplegable de vistas ahora la ofrece.
+7. Limpiar los filtros, elegir `Mi trimestre` del desplegable: vuelven los dos valores **y** los filtros escondidos que tenía guardados.
+8. **Recargar la página con `Mi trimestre` elegida:** el desplegable sigue diciendo `Mi trimestre`, no «Sin vista». Si vuelve a «Sin vista», `vistaId` no está viajando en el estado persistido.
+9. Con `Mi trimestre` puesta, cambiar un filtro: aparece **«• modificada»** y un botón **«Actualizar»**. Tocar «Actualizar»: la marca desaparece. Recargar: sigue sin marca, y los valores son los nuevos.
+10. Volver a cambiar un filtro y después **volver a elegir `Mi trimestre`** del desplegable: los valores vuelven a los guardados y la marca desaparece sin haber tocado «Actualizar».
+11. Con `Mi trimestre` elegida, tocar «Abrir con esta». **Cerrar sesión, volver a entrar:** el tablero abre con esa vista puesta y la vista aparece con un ★.
+12. Guardar una segunda vista y marcarla como la de apertura: la ★ se mueve. Ese es el índice único parcial funcionando — si diera error de duplicado, las dos sentencias de `marcarPorDefecto` están en el orden equivocado.
+13. Borrar la vista que estaba elegida: desaparece del desplegable, que vuelve a «Sin vista» **sin quedar en blanco**. Los filtros que había en pantalla se quedan puestos — borrar la vista no es limpiar la pantalla.
+14. **Con otro usuario:** su desplegable de vistas está vacío. Si ve las de Wagner, la policy no está cortando por `usuario_id`.
+15. Repetir 1, 3, 6, 7 y 9 en `/research`.
 
 - [ ] **Step 10: Gate y commit**
 
