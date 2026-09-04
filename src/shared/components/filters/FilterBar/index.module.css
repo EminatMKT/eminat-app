@@ -1,0 +1,24 @@
+/* El look de la barra de filtros. Vivía como objetos CSSProperties en
+   `shared/components/dashboard/theme.ts` que cada consumidor tenía que pasarle por props — y los
+   dos pasaban lo mismo. Acá deja de ser configurable, que es lo que la vuelve montable en
+   cualquier módulo sin importar el tema de los tableros. */
+
+.bar {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.875rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Una sola definición para los DOS controles: la reciben por `className` tanto `SelectFilter`
+   como `InputFilter`. Separadas eran dos bloques casi iguales que se iban a desincronizar. */
+.control {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--c-border-strong);
+  background: var(--c-s1);
+  color: var(--c-t1);
+  font-size: 0.75rem;
+  outline: none;
+}

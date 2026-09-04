@@ -28,6 +28,9 @@ html, body, * {
   --c-s2: #FFFFFF;
   --c-s3: #F3F4F6;
   --c-border: #E5E7EB;
+  /* Un gris más fuerte que --c-border, para el borde de los controles de formulario: sobre
+     --c-s1 (blanco) el borde suave se pierde y el <select> deja de leerse como clickeable. */
+  --c-border-strong: #D1D5DB;
   --c-t1: #111827;
   --c-t2: #6B7280;
   --c-t3: #9CA3AF;

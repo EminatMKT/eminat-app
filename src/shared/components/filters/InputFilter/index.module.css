@@ -1,0 +1,11 @@
+/* Sólo la fila que envuelve al rótulo y su input. El look del control en sí llega por
+   `className` desde quien lo monta, igual que en `SelectFilter`: así los dos controles de la
+   barra comparten una definición y no dos casi iguales. */
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.6875rem;
+  color: var(--c-t3);
+}

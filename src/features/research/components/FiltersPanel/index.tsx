@@ -1,11 +1,9 @@
 'use client'
-import { RESEARCH_THEME } from '../theme'
-// Los estilos de la barra de filtros salen de shared: eran este objeto copiado en Stratix.
-import { filterSelectStyle, filterClearStyle } from '@/shared/components/dashboard/theme'
+import { RESEARCH_THEME } from '@/features/research/theme'
 import { useT, type I18nKey } from '@/shared/i18n'
-import FilterBar from '@/shared/components/ui/FilterBar'
-import { LEAD_FILTERS } from '../utils/filters'
-import { useResearch } from './ResearchContext'
+import { FilterBar } from '@/shared/components/filters'
+import { LEAD_FILTERS } from '@/features/research/utils/filters'
+import { useResearch } from '../ResearchContext'
 import Panel from '@/shared/components/dashboard/Panel'
 
 // Panel de filtros del módulo, compartido por la tabla de leads Y el dashboard: los dos leen el
@@ -17,7 +15,7 @@ import Panel from '@/shared/components/dashboard/Panel'
 // sesiones, así que si el panel quedó recogido, este chip es lo ÚNICO que explica por qué las
 // cifras del tablero no son las del pipeline completo.
 export default function FiltersPanel() {
-  const { t3, accent } = RESEARCH_THEME
+  const { accent } = RESEARCH_THEME
   const { t } = useT()
   const { leads, filterValues, setFilterValue, clearFilters } = useResearch()
   const activos = LEAD_FILTERS.filter(d => filterValues[d.key]).length
@@ -31,10 +29,7 @@ export default function FiltersPanel() {
       {/* `items={leads}` y no los filtrados: las opciones de cada desplegable salen del total,
           si no, al elegir un sponsor desaparecerían los demás y no se podría cambiar. */}
       <FilterBar defs={LEAD_FILTERS} items={leads} values={filterValues} onChange={setFilterValue} onClear={clearFilters}
-        labelFor={d => t(d.labelKey as I18nKey)}
-        clearLabel={t('research.filter.clear')}
-        resultsLabel="" /* el conteo vive en la cabecera de la tabla, no repetido acá */
-        selectStyle={filterSelectStyle} clearStyle={filterClearStyle} mutedColor={t3} />
+        labelFor={d => t(d.labelKey as I18nKey)} />
     </Panel>
   )
 }

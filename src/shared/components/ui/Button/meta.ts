@@ -19,4 +19,9 @@ export const BUTTON_META = {
   // funcionaba, y decía una mentira sobre lo que hace — que es justo lo que el tono derivado
   // del `kind` existe para impedir.
   print:   { icono: '🖨', labelKey: 'common.print',        tono: 'primario' },
+  // Limpiar filtros. Entró como fila el 04/09/2026 cuando `FilterBar` dejó de dibujar su propio
+  // `<button>`: era la misma acción con su propio padding, su propio radio y dos claves i18n
+  // distintas —`stratix.filter.clear` y `research.filter.clear`— que decían "Limpiar" las dos.
+  // Secundario porque no es la acción principal de la barra: la principal es filtrar.
+  clear:   { icono: '✕',  labelKey: 'common.clear',        tono: 'secundario' },
 } satisfies Record<ButtonKind, ButtonMeta>

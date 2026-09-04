@@ -1,9 +1,8 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
 import { useT, type I18nKey } from '@/shared/i18n'
-import FilterBar from '@/shared/components/ui/FilterBar'
+import { FilterBar } from '@/shared/components/filters'
 import Panel from '@/shared/components/dashboard/Panel'
-import { filterSelectStyle, filterClearStyle, DASHBOARD_THEME } from '@/shared/components/dashboard/theme'
 import { useTasks } from '@/features/tasks/components/TasksContext'
 import s from './index.module.css'
 
@@ -28,10 +27,7 @@ export default function StratixFiltersPanel() {
           cambiar sin limpiar primero. */}
       <FilterBar defs={actFilters} items={actividades} values={filterValues}
         onChange={setFilterValue} onClear={clearFilters}
-        labelFor={d => t(d.labelKey as I18nKey)}
-        clearLabel={t('stratix.filter.clear')}
-        resultsLabel="" /* el conteo filtrado ya ES la card "Total tareas" de abajo */
-        selectStyle={filterSelectStyle} clearStyle={filterClearStyle} mutedColor={DASHBOARD_THEME.t3} />
+        labelFor={d => t(d.labelKey as I18nKey)} />
     </Panel>
   )
 }

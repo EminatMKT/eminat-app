@@ -1,10 +1,16 @@
 // Motor de filtros declarativo y reutilizable. Cada filtro se define una vez (key, opciones,
 // match) y de ahí salen la UI (FilterBar), el predicado y el clear. Agregar un filtro = un def.
 
+// El vocabulario de controles del motor. Tiene nombre propio porque cada uno ES un componente
+// —`SelectFilter`, `InputFilter`— y esos componentes necesitan tipar qué variante dibujan sin
+// copiar la lista: copiada, agregar un control acá dejaría al componente aceptando uno que no
+// sabe dibujar.
+export type FilterKind = 'select' | 'text' | 'date'
+
 export interface FilterDef<T> {
   key: string
   labelKey: string // clave i18n del placeholder "Todos …" (la traduce el caller)
-  kind?: 'select' | 'text' | 'date' // control a renderizar; default 'select'
+  kind?: FilterKind // control a renderizar; default 'select'
   options?: (items: T[]) => string[] // solo para 'select': valores elegibles (de los datos o de un dominio)
   // Cómo se MUESTRA cada opción, cuando el valor guardado no se puede leer: un uuid de
   // responsable, o un estado cuyo canónico está en español y la app puede estar en inglés
