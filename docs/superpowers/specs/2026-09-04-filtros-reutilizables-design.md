@@ -146,6 +146,68 @@ La comparación trata **la clave ausente y la cadena vacía como iguales**: las 
 filtro no filtra». Sin esa equivalencia, aplicar una vista y no tocar nada la marcaría como
 modificada apenas el motor rellene una clave con cadena vacía.
 
+## Aplicabilidad: qué módulo acepta qué
+
+Medido el 04/09/2026 sobre los ocho módulos, y no supuesto: los dos consumidores actuales del
+motor —`/tasks` y Research— son casi gemelos (los dos son tableros, los dos usan `Panel`, los dos
+sacan su look del mismo tema), así que dar por hecho que la pieza generaliza a partir de ellos
+habría sido diseñar contra una muestra de uno.
+
+La distinción que importa es que **la pieza son tres cosas separables**: el motor (`FilterDef` +
+`applyFilters`), la barra (`FilterBar`), y el estado con vistas (`useFiltros`). Un módulo puede
+tomar el motor sin tomar la barra.
+
+| Módulo | Qué filtra hoy | Motor | Barra | Vistas |
+|---|---|---|---|---|
+| `/tasks` | 6 defs, ya declarativo | ✅ ya | ✅ ya | ✅ |
+| Research | `LEAD_FILTERS`, incluye `kind: 'text'` y dos `'date'` | ✅ ya | ✅ ya | ✅ |
+| Cobranzas | Un objeto `Filtros` de 6 claves, a mano, en `useCobranzasData` | ✅ | ✅ | ⚠️ ver abajo |
+| Medical | `searchPaciente`, `searchAudit`, `filterEstadoPaciente`, `filterCitaFecha` | ✅ | ✅ | ✅ (4 ámbitos) |
+| Reuniones | `busqueda` en el listado | ✅ | ✅ | ✅ |
+| Directorio | `useDirectorioFilter`: búsqueda sobre 3 columnas + departamento | ✅ | ⚠️ usa `ListToolbar` | ✅ |
+| Admin | `busqueda` + chips de rol, en 3 vistas | ✅ | ❌ chips, no selects | ⚠️ |
+| Accounting | Un `useState` de banco en `BankingTab` | ✅ | ⚠️ | ❌ |
+
+**La búsqueda de texto NO es un obstáculo.** `FilterDef` ya soporta `kind: 'text'` y Research ya lo
+usa en producción (el filtro `nct`). Un buscador es un def con un `match` que mira varias columnas
+— que es exactamente lo que `useDirectorioFilter` ya hace a mano sobre `nombre`, `cargo` y `email`.
+Lo que cambia entre un módulo y otro no es el motor: es **dónde se dibuja el control**.
+
+### Los dos hallazgos que el diseño tiene que absorber
+
+**1. Cobranzas rompe «un ámbito = una tabla».** Su `Filtros` es UN estado de seis claves
+compartido por TRES tablas, cada una usando un subconjunto:
+
+| Tab | Claves que usa |
+|---|---|
+| Ventas | `periodo`, `laboratorio`, `estudio` |
+| Cuentas | `laboratorio`, `estudio` |
+| Depósitos | `periodo`, `banco`, `contratante` |
+
+Y es **deliberado**: filtrar por laboratorio en Ventas se arrastra a Cuentas. `useFiltros(ambito,
+defs)` asume un array de defs y una lista de items; acá hay un ámbito con la unión de los defs y
+tres subconjuntos. El consumidor ya puede filtrar `visibles` por su cuenta, pero entonces el
+contador de «N activos» cuenta filtros que no aplican a la pestaña abierta, y el «+ Filtro»
+ofrece los seis en las tres. **Es un ajuste chico y hay que hacerlo antes de adoptar Cobranzas,
+no durante.**
+
+**2. `ListToolbar` tiene la misma deuda que `FilterBar` acaba de pagar.** Recibe `inputStyle`
+desde `useApp()` y dibuja con `style` inline. Es el encabezado de Admin, Directorio y los
+catálogos de organización — o sea que **es el bloqueante de los cuatro módulos administrativos**,
+igual que los tres props de estilo lo eran de los dos tableros. Despegarlo es la fase 1 de esa
+segunda tanda, y es el mismo trabajo.
+
+### Dónde las vistas guardadas no valen la pena
+
+**Directorio y Accounting leen datos hardcodeados** (`DIRECTORIO_DATA` en el contexto y
+`accounting/data.ts`, filas literales en el repo). Guardar una vista contra datos que no vienen de
+la base no rompe nada, pero tampoco resuelve nada: se adopta el motor y la barra, y las vistas se
+dejan apagadas hasta que esos módulos tengan datos de verdad.
+
+**Admin es el caso a discutir, no a asumir.** Sus filtros son de administración —buscar un usuario
+para editarlo— y una «vista guardada» de eso se parece más a un marcador que a un modo de
+trabajo. El motor y la barra sí le sirven; las vistas hay que preguntarlas antes de construirlas.
+
 ## Lo que este diseño NO hace
 
 - **Operadores por columna** (*contiene / antes de / está vacío*). Hoy el operador vive dentro del
