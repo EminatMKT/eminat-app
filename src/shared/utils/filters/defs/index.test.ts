@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { applyFilters, distinctValues, distinctTokens, type FilterDef } from './index'
+import { applyFilters, distinctValues, distinctTokens, visibleDefs } from './index'
+import type { FilterDef } from '../types'
 
 type Row = { phase: string; country: string }
 const rows: Row[] = [
@@ -31,5 +32,18 @@ describe('distinctValues / distinctTokens', () => {
   })
   it('distinctTokens: separa columnas multivalor por coma', () => {
     expect(distinctTokens(rows, r => r.country)).toEqual(['France', 'Spain', 'USA'])
+  })
+})
+
+describe('visibleDefs', () => {
+  it('saca los defs escondidos y respeta el orden de los que quedan', () => {
+    expect(visibleDefs(DEFS, ['phase']).map(d => d.key)).toEqual(['country'])
+    expect(visibleDefs(DEFS, []).map(d => d.key)).toEqual(['phase', 'country'])
+  })
+
+  // Se guarda lo OCULTO y no lo visible: así un filtro que el código agrega mañana aparece solo
+  // en vez de nacer invisible para todo el que tenga una vista guardada de antes.
+  it('una clave oculta que ya no existe no molesta', () => {
+    expect(visibleDefs(DEFS, ['columna-que-se-borro']).map(d => d.key)).toEqual(['phase', 'country'])
   })
 })
