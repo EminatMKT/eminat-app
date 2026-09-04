@@ -2000,5 +2000,6 @@ Sale del spec y se anota acá para que no se cuele por contacto:
 - **Encender las vistas guardadas en Directorio y Accounting.** Leen datos hardcodeados (`DIRECTORIO_DATA`, `accounting/data.ts`): el motor y la barra les sirven, las vistas no resuelven nada hasta que esos módulos tengan datos de la base.
 - **Compartir una vista con el equipo.** Una columna `compartida boolean` y un `OR` en la policy, los dos aditivos. Se agrega el día que alguien lo pida.
 - **Un registro de columnas por tabla** —lo que haría que filtro, orden, encabezados, export CSV y ficha salgan de una sola descripción. Es el techo siguiente y el que de verdad vale, pero no se escribe bien sin haber adoptado el motor en dos o tres módulos primero.
+- **Que el usuario elija la forma de cada filtro** (chips o desplegable). Lo decide el `kind` del def. Fuera de alcance: cuando entre, entra completo. Ver el spec.
 - **Estrenar `@testing-library` y un entorno DOM en Vitest.** El repo no los tiene y esta tanda no es la excusa para agregarlos: la lógica pura lleva test, la pantalla se verifica en la pantalla.
 - **Renombrar `persistKey`.** `"stratix-filtros"` y `"research-filters"` se quedan como están aunque el módulo ya no se llame Stratix: es la clave con la que cada persona tiene guardado si dejó el panel abierto, y cambiarla se lo reabre a todos.

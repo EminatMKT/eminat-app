@@ -224,6 +224,13 @@ trabajo. El motor y la barra sí le sirven; las vistas hay que preguntarlas ante
 - **Un registro de columnas por tabla.** Es lo que haría que filtro, orden, encabezados, export
   CSV y ficha de detalle salgan de una sola descripción. Es el techo siguiente y el que de verdad
   vale, pero no se puede escribir bien sin haber adoptado el motor en dos o tres módulos primero.
+- **Dejar que el usuario elija la forma de cada filtro** (chips o desplegable). Hoy lo decide el
+  `kind` del def, que es donde está la información: la forma correcta la manda la cardinalidad
+  —cuatro estados se leen mejor como chips, veinticuatro períodos no—, y eso el motor lo sabe y
+  quien filtra no. Queda **fuera de alcance**; el día que entre, entra completo. Lo único que
+  quedaría decidido de antemano es dónde NO va: en una preferencia por persona. Eso haría que dos
+  compañeros vean pantallas distintas sin enterarse, y «el filtro de área está arriba a la
+  izquierda» dejaría de ser cierto para los dos.
 - **Tests de componente.** El repo no tiene `@testing-library` ni entorno DOM en Vitest (corre en
   node). No se estrena una infraestructura de testing acá: la lógica pura lleva test de Vitest, y
   lo que sólo se ve en pantalla se verifica con Playwright, que ya está.
