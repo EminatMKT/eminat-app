@@ -4,7 +4,7 @@
 
 **Goal:** Convertir el motor de filtros en una pieza que cualquier módulo pueda montar, y que cada persona pueda guardar combinaciones con nombre y saltar entre ellas.
 
-**Architecture:** Tres fases. La 1 despega `FilterBar` del tema de los tableros —tres props de estilo que los dos consumidores pasan idénticos— y con eso la barra se puede montar en cualquier módulo. La 2 crea `vistas_filtro`: las combinaciones con nombre van a tabla porque son un artefacto que la persona creó, mientras que «qué filtro tengo puesto ahora» se queda en localStorage, donde ya está. La 3 arma la pieza: un hook que junta las dos mitades, un selector de vistas, un menú para esconder filtros, y un `FiltrosPanel` que reemplaza los dos paneles de filtros duplicados que hay hoy.
+**Architecture:** Cuatro fases. La 1 despega `FilterBar` del tema de los tableros —tres props de estilo que los dos consumidores pasan idénticos— y con eso la barra se puede montar en cualquier módulo. La 2 crea `vistas_filtro`: las combinaciones con nombre van a tabla porque son un artefacto que la persona creó, mientras que «qué filtro tengo puesto ahora» se queda en localStorage, donde ya está. La 3 arma la pieza: un hook que junta las dos mitades, un selector de vistas, un menú para esconder filtros, y un `FiltrosPanel` que reemplaza los dos paneles de filtros duplicados que hay hoy. La 4 sale del análisis de aplicabilidad y **no bloquea a las anteriores**: le agrega al motor el `kind: 'chips'` que le falta, separa las etiquetas de los filtros, y despega `ListToolbar` de su tema — las tres cosas que hacen falta para que el motor entre en los seis módulos restantes.
 
 **Tech Stack:** Next.js 14 (App Router) · TypeScript · Supabase (PostgreSQL + RLS, migraciones por CLI) · Vitest · Playwright (e2e)
 
@@ -15,6 +15,7 @@
 Reglas del centinela que aplican a cada tarea. Se verifican antes de cada edición; el mensaje de bloqueo trae el *Motivo* y eso se arregla, no se esquiva.
 
 - **El atributo `style` está prohibido.** Las medidas van en `rem` y los colores salen de variables CSS. Es la deuda que la fase 1 viene a pagar: no se puede introducir más.
+- **Una preferencia nueva se justifica** (regla escrita el 04/09/2026 junto con este plan; la administra el centinela): la línea de arriba de cada `useUserPreference` dice por qué va local. El criterio es el costo de reconstruirlo — lo que se rehace con un click va a localStorage, lo que la persona **nombró** va a tabla. Es la decisión que separa el estado vivo de los filtros de las vistas guardadas, y está escrita para que no se re-litigue por costumbre.
 - **Un archivo se lee de una sentada: 50 líneas, y 150 es el techo.** Si una edición pasa el techo, el archivo se parte — no se agrega una marca de exención sin aprobación de Wagner.
 - **Un componente es una carpeta, no un archivo**, y exporta UNA cosa por default.
 - **Un archivo que viene acompañado vive en una carpeta**: si nace con test, es `carpeta/index.ts` + `carpeta/index.test.ts`, no dos archivos sueltos.
@@ -73,6 +74,9 @@ Valores exactos que se repiten en varias tareas:
 | **Modificar** `src/features/research/hooks/useResearchData.ts` | Pasa a `useFiltros('research', …)` |
 | **Borrar** `src/features/research/components/FiltersPanel.tsx` | Ídem |
 | **Modificar** `src/shared/i18n/locales/{es,en}.json` | Claves `common.filter.*` |
+| **Crear** `src/shared/components/ui/ChipFilter/` | Fase 4: el cuarto control del motor, hermano de `SelectFilter` |
+| **Crear** `src/shared/components/ui/Tag/` | Fase 4: lo que se lee, separado de lo que se elige |
+| **Modificar** `src/shared/components/ui/ListToolbar/` | Fase 4: sin `inputStyle` por props |
 
 ---
 
@@ -1581,6 +1585,384 @@ Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
 
 ---
 
+# Fase 4 — el vocabulario de controles
+
+Sale del análisis de aplicabilidad del 04/09 y **no bloquea nada de las fases 1-3**: son las tres
+piezas que faltan para que el motor entre en los seis módulos restantes. Se puede desplegar la
+tanda anterior sin esto.
+
+El hallazgo que la ordena: **hay seis componentes que se llaman `Chip` y son dos cosas distintas.**
+`RoleChip`, `DepartmentChip` y `DateFilterChip` son filtros —un botón que representa un valor de
+una columna—; `BrandChip`, `DroppedHeaderChip` y `CountryChip` son etiquetas que se leen y no se
+eligen. Que se vean iguales es un defecto: la app le dice «esto es clickeable» a algo que no lo es.
+
+### Task 8: `kind: 'chips'` — un chip de filtro es un `<select>` con otra piel
+
+Los tres chips de filtro contestan la misma pregunta que `SelectFilter` («¿qué valor de esta
+columna?») y admiten la misma respuesta (una sola). Lo único distinto es la forma de dibujarla:
+chips cuando las opciones son pocas y vale verlas todas, `<select>` cuando son muchas. Eso ya es
+un campo del motor —`FilterDef.kind`— al que le falta un valor.
+
+**Files:**
+- Modify: `src/shared/utils/filters/defs/index.ts` y su test
+- Create: `src/shared/components/ui/ChipFilter/index.tsx` + `index.module.css`
+- Modify: `src/shared/components/ui/FilterBar/index.tsx`
+- Delete: `src/features/admin/components/RoleChip.tsx`, `src/features/medical/components/DateFilterChip.tsx`, `src/features/directorio/components/DepartmentChip/`
+
+**Interfaces:**
+- Consumes: `FilterDef<T>`, `distinctValues`.
+- Produces: `kind: 'chips'` en `FilterDef`, `conteoPorOpcion`, y el componente `ChipFilter`.
+
+- [ ] **Step 1: El test que falla**
+
+`DepartmentChip` muestra cuántos miembros tiene cada departamento. Esa cuenta es generalizable y
+es lo único de esta tarea que es lógica. Al final de `src/shared/utils/filters/defs/index.test.ts`:
+
+```ts
+describe('conteoPorOpcion', () => {
+  const filas = [{ area: 'mkt' }, { area: 'med' }, { area: 'mkt' }]
+  const def: FilterDef<{ area: string }> = {
+    key: 'area', labelKey: 'x', kind: 'chips',
+    options: items => distinctValues(items, r => r.area),
+    match: (r, v) => r.area === v,
+  }
+
+  it('cuenta cuántos items caen en cada opción', () => {
+    expect(conteoPorOpcion(filas, def)).toEqual({ mkt: 2, med: 1 })
+  })
+
+  // Una opción del dominio que hoy no tiene filas se muestra en cero, no se esconde: el chip
+  // sirve para preguntar «¿no hay ninguna de Medical?» y una opción que desaparece no deja.
+  it('una opción sin items cuenta cero, no desaparece', () => {
+    const conDominio = { ...def, options: () => ['mkt', 'med', 'ops'] }
+    expect(conteoPorOpcion(filas, conDominio)).toEqual({ mkt: 2, med: 1, ops: 0 })
+  })
+})
+```
+
+- [ ] **Step 2: Correr y verificar que falla**
+
+```bash
+pnpm test src/shared/utils/filters/
+```
+
+Esperado: FAIL — `conteoPorOpcion is not a function`.
+
+- [ ] **Step 3: El kind y la cuenta**
+
+En `src/shared/utils/filters/defs/index.ts`, ampliar el campo que ya existe:
+
+```ts
+  kind?: 'select' | 'text' | 'date' | 'chips' // control a renderizar; default 'select'
+```
+
+y al final del archivo:
+
+```ts
+// Cuántos items caen en cada opción de un def. Es lo que le da al chip su número, y sale del
+// motor y no del módulo: `DepartmentChip` lo calculaba contra `DIRECTORIO_DATA` importado a mano,
+// que ata un componente de UI a un dataset concreto.
+export function conteoPorOpcion<T>(items: T[], def: FilterDef<T>): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const o of def.options?.(items) ?? []) out[o] = items.filter(i => def.match(i, o)).length
+  return out
+}
+```
+
+- [ ] **Step 4: Correr y verificar que pasa**
+
+```bash
+pnpm test src/shared/utils/filters/
+```
+
+- [ ] **Step 5: El componente**
+
+`src/shared/components/ui/ChipFilter/index.tsx`:
+
+```tsx
+'use client'
+import type { FilterDef } from '@/shared/utils'
+import { conteoPorOpcion } from '@/shared/utils'
+import s from './index.module.css'
+
+// Una fila de chips para un filtro de selección única. Reemplaza a `RoleChip`, `DateFilterChip` y
+// `DepartmentChip`, que eran el mismo botón con tres radios y tres opacidades de acento distintas.
+//
+// El chip vacío («Todos») va primero y su valor es la cadena vacía: es el mismo «sin filtro» que
+// el placeholder de un `<select>`, así que el motor no distingue entre las dos formas.
+export default function ChipFilter<T>({ def, items, value, onChange, label, labelTodos, conCuenta = false }: {
+  def: FilterDef<T>
+  items: T[]
+  value: string
+  onChange: (value: string) => void
+  label: (value: string) => string
+  labelTodos: string
+  conCuenta?: boolean
+}) {
+  const cuentas = conCuenta ? conteoPorOpcion(items, def) : null
+  const opciones = def.options?.(items) ?? []
+  const chip = (v: string, texto: string, n: number | null) => (
+    <button key={v || '__todos'} type="button" onClick={() => onChange(v)}
+      className={value === v ? `${s.chip} ${s.activo}` : s.chip}>
+      {texto}{n !== null && <span className={s.cuenta}>{n}</span>}
+    </button>
+  )
+  return (
+    <div className={s.fila}>
+      {/* El de «Todos» no lleva cuenta: contaría el total, que ya está en el título. */}
+      {chip('', labelTodos, null)}
+      {opciones.map(o => chip(o, label(o), cuentas ? cuentas[o] ?? 0 : null))}
+    </div>
+  )
+}
+```
+
+`src/shared/components/ui/ChipFilter/index.module.css`:
+
+```css
+.fila {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Un solo radio y una sola opacidad de acento para los tres casos que había: RoleChip usaba
+   20px y 26% de acento, DateFilterChip 8px y 18%, DepartmentChip su propio módulo. */
+.chip {
+  padding: 0.375rem 0.75rem;
+  border-radius: 1.25rem;
+  border: 1px solid var(--c-border);
+  background: transparent;
+  color: var(--c-t2);
+  font-size: 0.6875rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* El filtro activo se marca con el acento y NO con el rojo: ese color queda reservado para lo
+   destructivo y los errores. */
+.activo {
+  border-color: var(--c-accent);
+  background: color-mix(in srgb, var(--c-accent) 15%, transparent);
+  color: var(--c-accent);
+}
+
+.cuenta {
+  margin-left: 0.375rem;
+  font-family: 'DM Mono', monospace;
+  opacity: 0.7;
+}
+```
+
+- [ ] **Step 6: `FilterBar` ramifica sobre el kind nuevo**
+
+En `src/shared/components/ui/FilterBar/index.tsx`, antes de la rama de `'select'`:
+
+```tsx
+      {defs.map(d => d.kind === 'chips' ? (
+        <ChipFilter key={d.key} def={d} items={items} value={values[d.key] ?? ''}
+          onChange={v => onChange(d.key, v)} label={v => d.optionLabel?.(v) ?? v}
+          labelTodos={labelFor(d)} conCuenta={d.conCuenta} />
+      ) : d.kind && d.kind !== 'select' ? (
+```
+
+y agregar `conCuenta?: boolean` a `FilterDef`, con su comentario: es una decisión del def —el
+número sirve en Directorio y estorba en un filtro de fechas— y no del componente.
+
+- [ ] **Step 7: Borrar los tres chips y cablear sus módulos**
+
+Admin, Medical y Directorio pasan a declarar su filtro como un def con `kind: 'chips'` y a montar
+`FilterBar`. Es la adopción del motor en tres módulos, y va con la verificación de que cada uno
+sigue filtrando igual que antes: mismo conteo de filas para el mismo valor elegido.
+
+```bash
+git rm src/features/admin/components/RoleChip.tsx src/features/medical/components/DateFilterChip.tsx
+git rm -r src/features/directorio/components/DepartmentChip/
+```
+
+- [ ] **Step 8: Gate y commit**
+
+```bash
+pnpm typecheck && pnpm lint && pnpm test && pnpm rules:barrido && pnpm build:check
+```
+
+```bash
+git add src/shared/utils/filters/ src/shared/components/ui/ src/features/admin/ src/features/medical/ src/features/directorio/
+git commit -m "feat(filtros): kind 'chips' — un chip de filtro es un select con otra piel
+
+Tres componentes con el mismo botón y tres radios distintos se vuelven uno, y de
+paso Admin, Medical y Directorio adoptan el motor sin perder su look. La cuenta
+por opción sale del motor: DepartmentChip la calculaba importando DIRECTORIO_DATA,
+que ata un componente de UI a un dataset concreto.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
+```
+
+### Task 9: `Tag` — lo que se lee deja de parecerse a lo que se elige
+
+`BrandChip`, `DroppedHeaderChip` y `CountryChip` no son filtros: son etiquetas. Comparten forma
+con los chips que sí se eligen, así que la app promete interacción donde no la hay.
+
+**Files:**
+- Create: `src/shared/components/ui/Tag/index.tsx` + `index.module.css`
+- Modify: los tres consumidores
+- Delete: `src/shared/components/ui/BrandChip/`, `src/shared/import/DroppedHeaderChip/`, `src/features/research/components/CountryChip.tsx`
+
+- [ ] **Step 1: El componente**
+
+`Tag` recibe `texto`, `color?` y `cuenta?`. Sin `cursor: pointer`, sin borde de foco y **sin el
+borde de acento del estado activo**, que es lo que hoy los hace parecer clickeables. `BrandChip`
+pasa su color de marca por el prop; los otros dos usan el neutro.
+
+- [ ] **Step 2: Reemplazar en los tres consumidores y borrar los viejos**
+
+`CountryChip` está comentado desde la reunión del 2026-07-20 (ver `DashboardTab.tsx:8`): se migra
+igual y se deja comentado, no se descomenta. Restaurarlo es una decisión de dirección, no de
+refactor.
+
+- [ ] **Step 3: Gate y commit**
+
+```bash
+pnpm typecheck && pnpm lint && pnpm test && pnpm rules:barrido
+```
+
+```bash
+git add src/shared/components/ui/Tag/ src/shared/components/shell/ src/shared/import/ src/features/research/
+git commit -m "refactor(ui): Tag para lo que se lee, ChipFilter para lo que se elige
+
+Seis componentes se llamaban Chip y eran dos cosas: tres se eligen y tres se leen.
+Que se vieran iguales le prometía interacción al usuario donde no la hay.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
+```
+
+### Task 10: `ListToolbar` sin estilos por props
+
+Es la tarea 1 otra vez, sobre el otro encabezado. `ListToolbar` recibe `inputStyle` desde
+`useApp()` y dibuja con `style` inline; es el encabezado de Admin, Directorio y los catálogos de
+organización, así que **es el bloqueante de los cuatro módulos administrativos**, igual que los
+tres props de estilo lo eran de los dos tableros.
+
+**Files:**
+- Create: `src/shared/components/ui/ListToolbar/index.module.css`
+- Modify: `src/shared/components/ui/ListToolbar/index.tsx` y sus consumidores
+
+- [ ] **Step 1: El CSS module**
+
+El `<input>` de búsqueda usa las mismas variables que `.control` de `FilterBar` —es el mismo
+control— más su ancho fijo de `13.75rem` (los 220px de hoy). La fila reproduce el `gap: 1rem` y el
+`margin-bottom: 0.875rem` actuales.
+
+- [ ] **Step 2: Sacar el prop y `useApp()`**
+
+`inputStyle` sale de la firma y con él el `useApp()`, que en este componente sólo estaba para eso.
+
+- [ ] **Step 3: Verificar**
+
+```bash
+pnpm typecheck && pnpm lint && pnpm test && pnpm rules:barrido
+```
+
+El typecheck es la prueba: falla si algún consumidor sigue pasando el prop. Y en el navegador, el
+buscador de `/admin`, `/directorio` y los catálogos tiene que verse idéntico.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/shared/components/ui/ListToolbar/ src/features/admin/ src/features/directorio/
+git commit -m "refactor(ui): ListToolbar deja de recibir su look por props
+
+Misma deuda que la tarea 1 le sacó a FilterBar, sobre el otro encabezado: era el
+bloqueante de los cuatro módulos administrativos.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
+```
+
+### Task 11: Las importaciones que este plan dejó a la vista
+
+La regla de persistencia obligó a mirar los diez lugares que llaman a `useUserPreference`, y ahí
+apareció otra cosa: **entran por la ruta del módulo y no por el barrel**
+(`@/shared/hooks/useUserPreference` en vez de `@/shared/hooks`), que es una regla del repo que ya
+existe. Va acá y no en su propio PR porque son los mismos archivos que las tareas anteriores
+tocan, y porque migrar por contacto reparte el costo entre quien ya tiene el archivo abierto.
+
+**Alcance: los diez de `useUserPreference`, no los 81 del repo.** Medido el 04/09/2026, 81
+archivos entran por ruta a algún directorio de `src/shared/`. Arreglarlos todos es una tanda
+aparte y no la disfraza este plan.
+
+**Files:**
+- Modify: `src/features/cobranzas/hooks/useCobranzasData.ts`
+- Modify: `src/features/research/hooks/useResearchData.ts`
+- Modify: `src/shared/components/dashboard/Panel/index.tsx`
+- Modify: `src/shared/components/dashboard/StatCard/index.tsx`
+- Modify: `src/shared/components/access/ModuleGate/index.tsx`
+- Modify: `src/app/(app)/page.tsx`
+
+- [ ] **Step 1: Cambiar la ruta por el barrel**
+
+En los seis, la línea
+
+```ts
+import { useUserPreference } from '@/shared/hooks/useUserPreference'
+```
+
+pasa a
+
+```ts
+import { useUserPreference } from '@/shared/hooks'
+```
+
+Si el archivo ya importaba algo más de `@/shared/hooks` (por ejemplo `oneOf`), las dos líneas se
+funden en una.
+
+**La excepción son los archivos de adentro de `src/shared/hooks/`**, que tienen que seguir
+entrando por `../useUserPreference`: pasar por el barrel desde ahí cierra un ciclo. Es lo mismo que
+documenta el encabezado de `src/shared/utils/index.ts`.
+
+- [ ] **Step 2: Los cuatro que NO entran acá, y por qué**
+
+`AdminModule.tsx`, `MedicalModule.tsx`, `AccountingModule.tsx` y `ResearchModule.tsx` tienen la
+misma importación mal, pero **son componentes sueltos**: cualquier edición sobre ellos la frena la
+regla «el que toca un archivo lo deja en la convención vigente», que exige moverlos a carpeta
+primero. Cambiar un import costaría cuatro migraciones de componente con sus importadores.
+
+No entran en esta tarea. Van cuando alguien abra esos archivos por trabajo real — que es
+exactamente lo que la regla de contacto promete — o en una tarea propia que se llame lo que es:
+mover cuatro componentes a carpeta.
+
+- [ ] **Step 3: Verificar que no quedó ninguno de los seis**
+
+```bash
+grep -rn "@/shared/hooks/useUserPreference" src/ | grep -v "src/shared/hooks/"
+```
+
+Esperado: sólo los cuatro del paso 2.
+
+- [ ] **Step 4: Gate y commit**
+
+```bash
+pnpm typecheck && pnpm lint && pnpm test && pnpm rules:barrido
+```
+
+```bash
+git add src/features/cobranzas/ src/features/research/ src/shared/components/ "src/app/(app)/page.tsx"
+git commit -m "refactor(imports): useUserPreference entra por el barrel de hooks
+
+Seis de los diez. Los otros cuatro son componentes sueltos y tocarlos exige
+moverlos a carpeta primero: eso es una migración, no un cambio de import, y va
+con su nombre propio.
+
+Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
+```
+
+---
+
 ## Despliegue a producción
 
 La migración de `vistas_filtro` va con el procedimiento que exige el centinela, en este orden y sin saltear ninguno:
@@ -1612,7 +1994,7 @@ Sale del spec y se anota acá para que no se cuele por contacto:
 - **Operadores por columna** (*contiene / antes de / está vacío*). Exige matar `FilterDef.match` y reescribir los ~15 defs que ya existen. No se paga mientras «poder filtrar» alcance.
 - **Grupos AND/OR anidados.**
 - **Agrupar.** Es otro eje: cambia cómo se dibuja la tabla, no qué filas entran.
-- **Adoptar el motor en Cobranzas, Medical, Reuniones, Directorio y Accounting.** Es un `FilterDef[]` por tabla y un PR chico por módulo. Este plan lo desbloquea pero no lo ejecuta: son subsistemas independientes, y cada uno produce software funcionando por su cuenta. La aplicabilidad módulo por módulo está medida en la sección «Aplicabilidad» del spec, con dos cosas que hay que resolver **antes** de esa tanda y no durante:
+- **Adoptar el motor en Cobranzas, Reuniones y Accounting.** (Admin, Medical y Directorio entran con la tarea 8.) Es un `FilterDef[]` por tabla y un PR chico por módulo. Este plan lo desbloquea pero no lo ejecuta: son subsistemas independientes, y cada uno produce software funcionando por su cuenta. La aplicabilidad módulo por módulo está medida en la sección «Aplicabilidad» del spec, con dos cosas que hay que resolver **antes** de esa tanda y no durante:
   1. **Cobranzas comparte UN estado de filtros entre tres tablas** (Ventas, Cuentas, Depósitos, cada una con un subconjunto de las seis claves) y eso es deliberado. `useFiltros` asume un ámbito por tabla; hace falta que una pestaña pueda declarar con qué subconjunto de defs filtra, o el contador de activos y el «+ Filtro» mienten en las tres.
   2. **`ListToolbar` recibe `inputStyle` por props y dibuja con `style` inline** — la misma deuda que la tarea 1 le saca a `FilterBar`. Es el encabezado de Admin, Directorio y los catálogos, así que es el bloqueante de los cuatro módulos administrativos.
 - **Encender las vistas guardadas en Directorio y Accounting.** Leen datos hardcodeados (`DIRECTORIO_DATA`, `accounting/data.ts`): el motor y la barra les sirven, las vistas no resuelven nada hasta que esos módulos tengan datos de la base.

@@ -25,6 +25,8 @@ type PanelProps = PanelBase & (
 
 export default function Panel({ title, right, children, flush = false, collapsible = false, persistKey }: PanelProps) {
   const { s1, border, t1, t3 } = DASHBOARD_THEME
+  // Si el panel quedó recogido. Un click lo reabre: va local, no a tabla. Y va SÍNCRONO a
+  // propósito: desde la base se pintaría abierto y se cerraría solo al llegar la respuesta.
   const [collapsed, setCollapsed] = useUserPreference(persistKey ? `panel-${persistKey}` : null, false)
   const canToggle = collapsible && !!title
   return (

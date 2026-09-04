@@ -32,6 +32,7 @@ export default function StatCard({ label, value, color, size = 'md', badge, badg
   const sm = size === 'sm'
   const eyebrow = { fontSize: 9, color: t3, textTransform: 'uppercase', letterSpacing: '.12em', fontFamily: 'DM Mono' } as const
   const hasDetail = !!(footnote || breakdown)
+  // Si el detalle quedó desplegado. Un click lo reabre: va local, no a tabla.
   const [open, setOpen] = useUserPreference(detailKey ? `stat-${detailKey}` : null, true)
   const showDetail = hasDetail && (!detailKey || open)
   const detailId = detailKey ? `stat-detail-${detailKey}` : undefined

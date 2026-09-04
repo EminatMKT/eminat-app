@@ -15,6 +15,7 @@ export function useCobranzasData() {
   const { modules, mostrarMensaje } = useApp()
   const canCobranzas = modules.includes('cobranzas')
 
+  // Qué pestaña dejó abierta. Un click la reconstruye: va local, no a tabla.
   const [cobTab, setCobTab] = useUserPreference<CobTab>('tab-cobranzas', 'ventas', oneOf('ventas', 'cuentas', 'depositos'))
   const [cobMes, setCobMes] = useState(MESES[new Date().getMonth()])
   const [cobVentas, setCobVentas] = useState<Venta[]>([])

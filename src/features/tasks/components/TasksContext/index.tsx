@@ -14,6 +14,7 @@ const Ctx = createContext<TasksData | null>(null)
 // suyos porque su sección Team cuenta tareas. Si compartieran la clave de preferencia, abrir
 // un módulo cambiaría la sección con la que abre el otro.
 export function TasksProvider({ children, prefKey = TASKS_TAB_PREF, tabs = TASKS_TABS, tabInicial = TASKS_TAB.KANBAN }: TasksProviderProps) {
+  // Qué sección dejó abierta. Un click la reconstruye: va local, no a tabla.
   const [tabActiva, setTabActiva] = useUserPreference<string>(prefKey, tabInicial, oneOf(...tabs))
 
   // Acá se componen los cinco hooks porque este es el componente que los necesita juntos: el
