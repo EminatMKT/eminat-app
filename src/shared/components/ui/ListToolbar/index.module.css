@@ -1,0 +1,28 @@
+/* El look del encabezado de lista. Vivía en `style` inline, y su input salía de `inputStyle`
+   —un objeto `CSSProperties` que este componente pedía por `useApp()` sólo para eso—. Los
+   valores son los mismos, en rem y con las variables `--c-*`. */
+
+.fila {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 0.875rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* El ancho fijo son los 220px de siempre: el buscador no se estira, para que la acción de la
+   derecha quede donde la lista la deja de costumbre. */
+.busqueda {
+  width: 13.75rem;
+  padding: 0.5625rem 0.75rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--c-border-strong);
+  background: var(--c-s1);
+  color: var(--c-t1);
+  font-size: 0.8125rem;
+  outline: none;
+}
+
+.accion {
+  margin-left: auto;
+}
