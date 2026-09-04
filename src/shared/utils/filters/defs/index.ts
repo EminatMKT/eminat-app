@@ -11,6 +11,10 @@ export interface FilterDef<T> {
   // (ver rules/codigo.md, "el valor canónico NO es la etiqueta"). Sin esto, el
   // desplegable rotula con el dato crudo. Default: el valor mismo.
   optionLabel?: (value: string) => string
+  // Con qué valor arranca el filtro cuando el usuario todavía no lo tocó. Es lo que hace usable
+  // un tablero donde conviven cinco áreas: se abre en la propia y desde ahí se abre a las demás.
+  // NO es control de acceso — quitarlo muestra todo, y eso es a propósito.
+  defaultValue?: string
   match: (item: T, value: string) => boolean // ¿el item pasa este filtro para ese valor?
 }
 

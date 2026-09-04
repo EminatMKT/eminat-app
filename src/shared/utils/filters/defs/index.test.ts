@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { applyFilters, distinctValues, distinctTokens, type FilterDef } from './filters'
+import { applyFilters, distinctValues, distinctTokens, type FilterDef } from './index'
 
 type Row = { phase: string; country: string }
 const rows: Row[] = [

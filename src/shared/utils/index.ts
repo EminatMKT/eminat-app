@@ -12,7 +12,7 @@
 export { localDate, localMonth, fechaCorta, horaCorta } from './dates'
 export { resolveToCanonical } from './canonical'
 export { detectSeparator, parseDelimited } from './delimited'
-export { applyFilters, distinctValues, distinctTokens } from './filters'
+export { applyFilters, distinctValues, distinctTokens, defaultFilterValues, resolveFilterValues } from './filters'
 export type { FilterDef, FilterValues } from './filters'
 export { escapeHtml } from './html'
 export { apiSend, apiPost } from './api'
