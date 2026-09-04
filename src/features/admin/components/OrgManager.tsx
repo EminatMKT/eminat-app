@@ -16,7 +16,7 @@ import OrgModal from './OrgModal'
 // Sección "Organización" del panel admin: un solo CRUD para los tres catálogos
 // (departamentos / equipos / cargos). Qué campos pinta el form y qué bloquea el
 // borrado sale de ORG_CATALOGS — agregar un campo no toca este componente.
-// `cat` vive en AdminModule (es la tab activa del shell), igual que mktTab en Stratix.
+// `cat` vive en AdminModule (es la tab activa del shell), igual que tabActiva en Stratix.
 export default function OrgManager({ cat, onCatChange }: { cat: OrgCat; onCatChange: (c: OrgCat) => void }) {
   const { t1, t3, border, reloadOrg, mostrarMensaje } = useApp()
   const { t } = useT()

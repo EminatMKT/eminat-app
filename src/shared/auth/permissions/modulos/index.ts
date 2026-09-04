@@ -9,6 +9,12 @@ export { MODULE, type ModuleSlug } from './slugs'
 export type { AreaLeader, SubArea, ModuleMeta } from './types'
 
 export const MODULE_META: Record<ModuleSlug, ModuleMeta> = {
+  [MODULE.TASKS]: {
+    slug: MODULE.TASKS,
+    name: 'Tasks',
+    description: 'Las tareas de toda la empresa: tablero, solicitudes y producción.',
+    leader: null,
+  },
   [MODULE.STRATIX_MKT]: {
     slug: MODULE.STRATIX_MKT,
     name: 'Stratix 360',

@@ -9,6 +9,7 @@
 export { default as AppShell } from './AppShell'
 export { default as DevBadge } from './DevBadge'
 export { default as LoadingScreen } from './LoadingScreen'
+export { default as ModuloTabs } from './ModuloTabs'
 export { default as NotificationItem } from './NotificationItem'
 export { default as NotificationsBell } from './NotificationsBell'
 export { default as Onboarding } from './Onboarding'

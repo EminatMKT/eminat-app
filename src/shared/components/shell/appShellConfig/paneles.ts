@@ -3,6 +3,7 @@ import type { PanelKey } from './tipos'
 
 // Meta del panel secundario (título + subtítulo) y el módulo que lo gobierna.
 export const PANEL_META: Record<PanelKey, { title: string; sub: string; slug: ModuleSlug }> = {
+  tasks: { title: 'Tasks', sub: 'Tareas de todo el grupo', slug: MODULE.TASKS },
   mkt: { title: 'Stratix 360', sub: 'Marketing & Production', slug: MODULE.STRATIX_MKT },
   research: { title: 'Research', sub: 'Clinical Research Ops', slug: MODULE.RESEARCH },
   medical: { title: 'Medical', sub: 'HIPAA Compliance', slug: MODULE.MEDICAL },

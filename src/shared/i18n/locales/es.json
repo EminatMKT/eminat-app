@@ -870,6 +870,8 @@
   "stratix.detail.changeDue": "Corregir fecha de entrega",
   "stratix.detail.dueChanged": "Fecha de entrega actualizada",
   "stratix.detail.dueError": "No se pudo actualizar la fecha",
+  "tasks.title": "Tareas",
+  "tasks.filter.allAreas": "Todas las áreas",
   "reuniones.title": "Reuniones",
   "reuniones.modalidad.presencial": "Presencial",
   "reuniones.modalidad.virtual": "Virtual",
