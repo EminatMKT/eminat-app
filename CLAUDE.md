@@ -94,7 +94,8 @@ La validación ocurre en `src/app/login/page.tsx` antes de llamar a Supabase Aut
 | Módulo | Ruta | Descripción |
 |---|---|---|
 | Launchpad | `/` | Pantalla de inicio — muestra módulos disponibles según rol |
-| Stratix 360 | `/stratix-mkt` | Tablero de marketing: actividades, KPIs, Kanban, nómina. El módulo más grande (1723 líneas) |
+| Tasks | `/tasks` | Las tareas de **todo el grupo**: tablero (Dashboard), Kanban (Production), solicitudes (Requests) y el reporte de pago (Report). Salió de Stratix 360 el 03/09/2026 |
+| Stratix 360 | `/stratix-mkt` | Marketing propiamente dicho: Social Media, Competitors y Team. Las cuatro secciones de tareas se fueron a `/tasks` |
 | Medical | `/medical` | Gestión de pacientes, citas, incidentes, capacitaciones, auditoría |
 | Research | `/research` | Leads, campañas de email/SMS, pipeline, analíticas (ResearchModule.tsx, 1068 líneas) |
 | Cobranzas | `/cobranzas` | Ventas mensuales, cuentas por cobrar, depósitos. Import/export CSV |
@@ -104,6 +105,17 @@ La validación ocurre en `src/app/login/page.tsx` antes de llamar a Supabase Aut
 | Admin | `/admin` | CRUD completo de usuarios: crear, editar, activar/desactivar, eliminar con reasignación |
 | Finanzas | `/finanzas` | En construcción |
 | TH/HR | `/th-hr` | En construcción |
+
+**Dar el módulo `tasks` a un rol lo vuelve asignable Y liquidable a la vez.** Una sola línea
+—`deriveMiembrosAsignables`, en `src/shared/context/team-derivations/`— produce las dos listas:
+el `<select>` de responsable al cargar una tarea, y (vía `useTablero.idsTeam` → `useReporte`) el
+`<select>` de a quién se le imprime la hoja de pago. Es deliberado —son la misma pregunta, y dos
+gates distintos eran la forma de que se desincronizaran—, pero significa que el permiso tiene
+consecuencia de nómina. Quien no deba aparecer en una hoja de pago no lleva el módulo.
+
+El admin es la excepción y no se ve en `role_modules`: `getModulesForRole` corta por
+short-circuit y le devuelve todos los módulos, tenga filas o no. Por eso probar permisos con una
+cuenta de admin no prueba nada.
 
 ## Marcas del grupo Eminat
 
@@ -167,13 +179,13 @@ src/
     i18n/              ← claves es.json / en.json + useT()
   features/            ← un directorio por módulo de negocio
     accounting/  admin/  cobranzas/  directorio/
-    medical/     overview/  research/  reuniones/  stratix-mkt/
+    medical/     overview/  research/  reuniones/  stratix-mkt/  tasks/
   app/
     layout.tsx         ← layout raíz (fuentes Syne + DM Mono)
     (app)/             ← grupo de rutas protegidas
       layout.tsx       ← envuelve con AppProvider
       page.tsx         ← Launchpad
-      admin/ stratix-mkt/ medical/ research/ cobranzas/ accounting/
+      admin/ tasks/ stratix-mkt/ medical/ research/ cobranzas/ accounting/
     api/
       admin/           ← CRUD de usuarios (create, delete, reassign-and-delete, reset-password, update)
       mail/            ← envío de correo (send via Resend, con guard de módulo)
