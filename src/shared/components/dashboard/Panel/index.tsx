@@ -1,7 +1,7 @@
 'use client'
 import type { ReactNode } from 'react'
 import { DASHBOARD_THEME } from '@/shared/components/dashboard/theme'
-import { useUserPreference } from '@/shared/hooks/useUserPreference'
+import { useUserPreference } from '@/shared/hooks'
 
 // Contenedor único de los bloques del módulo (gráficas, tabla de leads, barra de filtros).
 // Antes cada bloque repetía su propio borde/radio/sombra y su título con otro tamaño: un panel
