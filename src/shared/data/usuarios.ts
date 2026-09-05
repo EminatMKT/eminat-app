@@ -2,6 +2,9 @@ import { supabase } from '@/shared/db/supabase'
 import { subscribeToTable } from './realtime'
 import { TABLES, COLUMNS } from './tables'
 
+// centinela-exime: renombrar-lo-nombrado@1 — el nombre se edita en el formulario de usuario de
+// `/admin`, que manda un update completo de la fila por la API de admin.
+
 // Capa de acceso a datos para la tabla `usuarios` (+ vista `v_equipo_hoy`).
 // Cada función envuelve la query exacta del call site y devuelve el mismo
 // PostgrestResponse ({ data, error } / count) que devolvía supabase.
