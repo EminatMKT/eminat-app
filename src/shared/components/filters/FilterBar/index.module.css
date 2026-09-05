@@ -11,14 +11,9 @@
   align-items: center;
 }
 
-/* Una sola definición para los DOS controles: la reciben por `className` tanto `SelectFilter`
-   como `InputFilter`. Separadas eran dos bloques casi iguales que se iban a desincronizar. */
+/* La forma del control sale de `../control.module.css`: la comparten los dos controles que la
+   barra dibuja (`SelectFilter` e `InputFilter`, por `className`) y el campo del nombre de una
+   vista. Escritas por separado eran tres bloques casi iguales. */
 .control {
-  padding: 0.375rem 0.75rem;
-  border-radius: 0.625rem;
-  border: 1px solid var(--c-border-strong);
-  background: var(--c-s1);
-  color: var(--c-t1);
-  font-size: 0.75rem;
-  outline: none;
+  composes: control from '../control.module.css';
 }

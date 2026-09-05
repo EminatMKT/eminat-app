@@ -1,0 +1,13 @@
+.presets {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+/* El mismo control que los de la barra: elegir una vista es elegir de una lista, igual que
+   elegir un valor de filtro. */
+.select {
+  composes: control from '../control.module.css';
+}

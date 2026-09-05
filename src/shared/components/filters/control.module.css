@@ -1,0 +1,24 @@
+/* La forma de un control del motor de filtros: el `<select>` de un def, el `<input>` de una fecha
+   o un texto, y el del nombre de una vista. Una sola definición porque son el mismo control —
+   escritas por separado eran tres bloques casi iguales, que es como empiezan a derivar.
+
+   Se consume con `composes:` desde el módulo de cada componente. No es un componente: es la
+   forma, y quien la usa decide si va en un `<select>` o en un `<input>`. */
+
+.control {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--c-border-strong);
+  background: var(--c-s1);
+  color: var(--c-t1);
+  font-size: 0.75rem;
+  outline: none;
+}
+
+/* El anillo de foco va acá y no en cada consumidor: el teclado tiene que ver dónde está parado, y
+   `outline: none` a secas se lo quita. Sólido, que da 5.26:1 sobre blanco — el accent claro da
+   3.84:1, por debajo del 4.5:1 que pide WCAG AA. */
+.control:focus-visible {
+  outline: 2px solid var(--c-accent-solid);
+  outline-offset: 1px;
+}

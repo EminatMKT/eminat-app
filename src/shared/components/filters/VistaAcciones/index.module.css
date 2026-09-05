@@ -1,0 +1,10 @@
+/* La marca de «esto ya no es la vista». Va en el acento y no en rojo: no es un error, es un
+   estado — le estás agregando algo a una vista guardada, que es lo normal.
+
+   `--c-accent-solid` y no `--c-accent`: a 0.625rem esto es texto chico, y el accent claro da
+   3.84:1 sobre blanco contra el 4.5:1 que pide WCAG AA. El sólido da 5.26:1. */
+.modificada {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.625rem;
+  color: var(--c-accent-solid);
+}

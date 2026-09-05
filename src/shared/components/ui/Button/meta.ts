@@ -24,4 +24,9 @@ export const BUTTON_META = {
   // distintas —`stratix.filter.clear` y `research.filter.clear`— que decían "Limpiar" las dos.
   // Secundario porque no es la acción principal de la barra: la principal es filtrar.
   clear:   { icono: '✕',  labelKey: 'common.clear',        tono: 'secundario' },
+  // Marcar algo como lo que abre por defecto. Entró el 04/09/2026 con las vistas de filtro. No es
+  // `confirm` con otro rótulo: no guarda cambios, elige cuál de varias cosas es la de entrada — y
+  // el tono derivado del `kind` existe justo para que un botón no mienta sobre lo que hace. El ★
+  // es el mismo símbolo con el que la vista marcada aparece en su desplegable.
+  star:    { icono: '★',  labelKey: 'common.setDefault',   tono: 'secundario' },
 } satisfies Record<ButtonKind, ButtonMeta>
