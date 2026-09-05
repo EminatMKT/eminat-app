@@ -9,8 +9,8 @@ const rows: Row[] = [
   { phase: 'Phase 3', country: 'France' },
 ]
 const DEFS: FilterDef<Row>[] = [
-  { key: 'phase', labelKey: 'x', options: r => distinctValues(r, x => x.phase), match: (x, v) => x.phase.includes(v) },
-  { key: 'country', labelKey: 'x', options: r => distinctTokens(r, x => x.country), match: (x, v) => x.country.includes(v) },
+  { key: 'phase', labelKey: 'common.all', options: r => distinctValues(r, x => x.phase), match: (x, v) => x.phase.includes(v) },
+  { key: 'country', labelKey: 'common.all', options: r => distinctTokens(r, x => x.country), match: (x, v) => x.country.includes(v) },
 ]
 
 describe('applyFilters', () => {

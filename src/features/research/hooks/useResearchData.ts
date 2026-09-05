@@ -6,8 +6,9 @@ import { STAGE, COUNT_COLUMN } from '../constants'
 import { EXPORT_HEADERS, validateLead, buildLeadPayload } from '../utils/fields'
 import { LEAD_FILTERS } from '../utils/filters'
 import { localMonth } from '@/shared/utils/dates'
-import { applyFilters, type FilterValues } from '@/shared/utils/filters'
-import { useUserPreference } from '@/shared/hooks/useUserPreference'
+import { applyFilters } from '@/shared/utils'
+import { useFilters } from '@/shared/hooks'
+import { MODULE } from '@/shared/auth/permissions'
 import type { ImportPlan } from '../utils/importPlan'
 import { totalEmails, cadenceBreakdown } from '../utils/counters'
 import { pendingSpecialty, type Specialty } from '../utils/specialty'
@@ -29,7 +30,8 @@ export function useResearchData() {
   // Los filtros se recuerdan: Royner trabaja su tanda por rango de fechas y no tiene por qué
   // rearmarla cada vez que entra. El riesgo de "me faltan leads" lo cubre la barra, que muestra
   // los filtros activos, su conteo en la cabecera (visible aun con el panel recogido) y Limpiar.
-  const [filterValues, setFilterValues] = useUserPreference<FilterValues>('research-lead-filters', {})
+  // Desde el 04/09/2026 la mecánica es la compartida, con vistas guardadas y filtros escondibles.
+  const filtros = useFilters(MODULE.RESEARCH, LEAD_FILTERS)
 
   useEffect(() => { loadData() }, [])
 
@@ -56,15 +58,16 @@ export function useResearchData() {
     setLoading(false)
   }
 
-  const filteredLeads = applyFilters(leads, LEAD_FILTERS, filterValues)
-  const setFilterValue = (key: string, value: string) => setFilterValues(p => ({ ...p, [key]: value }))
-  const clearFilters = () => setFilterValues({})
+  // `filtros.visibles` y NO `LEAD_FILTERS`: un filtro escondido desde el «+ Filtro» deja de
+  // filtrar. Con la lista entera seguiría filtrando con un valor que ya no se ve en pantalla.
+  const filteredLeads = applyFilters(leads, filtros.visibles, filtros.valores)
 
   // Cross-filter: cada gráfica se calcula con todos los filtros MENOS el suyo. Si no, al
   // clickear "Oncología" la propia gráfica de especialidad se queda con una sola barra: se
   // pierde el contexto y no hay forma de clickear otra para cambiar de selección. Las tarjetas
   // de KPI sí usan `filteredLeads` (todos los filtros): ahí el número filtrado ES el que se pide.
-  const exceptOwn = (key: string) => applyFilters(leads, LEAD_FILTERS.filter(d => d.key !== key), filterValues)
+  const exceptOwn = (key: string) =>
+    applyFilters(leads, filtros.visibles.filter(d => d.key !== key), filtros.valores)
 
   // — KPIs y agregados de las gráficas —
   // TODO lo de acá abajo se calcula sobre `filteredLeads`, no sobre `leads`: el dashboard
@@ -247,7 +250,7 @@ export function useResearchData() {
 
   return {
     leads, activities, campaigns, loading, setCampaigns,
-    filterValues, setFilterValue, clearFilters,
+    filtros,
     filteredLeads,
     totalLeads, activeLeads, nuevos, contactados, contactadosConCorreo, ganados, sinRespuesta, totalCorreos, cadencia, cargadosEsteMes,
     stageData, phaseData, specialtyData, sponsorData, countryData, countrySorted,

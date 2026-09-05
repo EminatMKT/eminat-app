@@ -1,14 +1,33 @@
+/* Una fila del menú de «+ Filtro»: un checkbox y el nombre del filtro. */
 .item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.25rem 0.375rem;
+  padding: 0.3125rem 0.5rem;
   border-radius: 0.375rem;
   font-size: 0.75rem;
   color: var(--c-t1);
   cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
 }
 
 .item:hover {
   background: var(--c-s3);
+}
+
+/* `accent-color` es una línea y le da al checkbox nativo el color de la app, con su tilde y su
+   foco propios. La alternativa es esconderlo y dibujar una caja a mano, que son treinta líneas y
+   se lleva puesta la accesibilidad que el nativo ya trae. */
+.item input {
+  accent-color: var(--c-accent-solid);
+  width: 0.875rem;
+  height: 0.875rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Un filtro escondido DEJA DE FILTRAR, así que la fila apagada no es sólo «no lo veo»: es «éste
+   no está participando». Bajarle el tono lo dice sin agregar una palabra. */
+.item:has(input:not(:checked)) {
+  color: var(--c-t3);
 }

@@ -6,14 +6,27 @@
   position: relative;
 }
 
+/* Mismo alto que un control de filtro (1.875rem): el disparador vive EN la fila de controles, no
+   al lado, y dos alturas distintas rompen la línea óptica de toda la barra. `inline-flex` porque
+   un `<summary>` no centra su texto solo. */
 .disparador {
   list-style: none;
   cursor: pointer;
-  padding: 0.375rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  height: 1.875rem;
+  padding: 0 0.75rem;
   border-radius: 0.5rem;
   border: 1px solid var(--c-border);
   color: var(--c-t2);
   font-size: 0.6875rem;
+  user-select: none;
+  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+.disparador:hover {
+  color: var(--c-t1);
+  border-color: var(--c-border-strong);
 }
 
 /* Punteado para el que AGREGA algo, sólido para el que actúa sobre lo que ya está. No es
@@ -25,9 +38,16 @@
 
 .disparador::-webkit-details-marker { display: none; }
 
+.disparador:focus-visible {
+  outline: 2px solid var(--c-accent-solid);
+  outline-offset: 1px;
+}
+
 .raiz[open] .disparador {
   color: var(--c-t1);
   background: var(--c-s3);
+  border-style: solid;
+  border-color: var(--c-border-strong);
 }
 
 .panel {
@@ -35,9 +55,23 @@
   z-index: 10;
   margin-top: 0.25rem;
   min-width: 12rem;
-  padding: 0.5rem;
+  padding: 0.375rem;
   border-radius: 0.625rem;
   border: 1px solid var(--c-border);
   background: var(--c-s1);
   box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 12%);
+  animation: caer 0.12s ease-out;
+}
+
+/* Un salto de 0.25rem y una opacidad: alcanza para que el panel se lea como algo que SALIÓ del
+   disparador y no como algo que apareció encima. Más que eso, en un control que se abre veinte
+   veces por sesión, se vuelve una espera. */
+@keyframes caer {
+  from { opacity: 0; transform: translateY(-0.25rem); }
+}
+
+/* Quien pidió menos movimiento no lo pidió sólo para las animaciones largas. */
+@media (prefers-reduced-motion: reduce) {
+  .panel { animation: none; }
+  .disparador { transition: none; }
 }

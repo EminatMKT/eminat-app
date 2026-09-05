@@ -2,6 +2,15 @@
 import type { FilterKind } from '@/shared/utils'
 import s from './index.module.css'
 
+// centinela-exime: bloques-similares@2 — el candidato es `Field` de `ui/`, y no sirve: es un
+// campo de formulario, con el rótulo ENCIMA, su asterisco de obligatorio y sus variantes de modal
+// (`grande`, `crece`). Esto es una etiqueta AL LADO, en versalita, dentro de una barra de
+// herramientas. Un cambio al diseño de los formularios no movería a ésta, que es la prueba.
+
+// centinela-exime: familia-dispersa@2 — vive junto a `SelectFilter` en el directorio del motor;
+// los otros `*Filter` pertenecen a su módulo. La excepción es `DepartmentFilter`, que sí es de
+// esta familia y lo unifica la tarea 8 del plan de filtros, como `ChipFilter`.
+
 type Props = {
   kind: Exclude<FilterKind, 'select'>
   value: string
@@ -21,7 +30,7 @@ export default function InputFilter(props: Props) {
   const { kind, value, onChange, label, className } = props
   return (
     <label className={s.label}>
-      {kind === 'date' && label}
+      {kind === 'date' && <span className={s.rotulo}>{label}</span>}
       <input type={kind} value={value} placeholder={label} className={className}
         onChange={e => onChange(e.target.value)} />
     </label>

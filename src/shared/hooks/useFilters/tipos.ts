@@ -25,6 +25,9 @@ export type Filtros<T> = {
   // Pisa una vista existente con lo que hay en pantalla. Sin esto, conservar un retoque obliga a
   // borrar la vista y volver a guardarla con el mismo nombre.
   actualizarVista: (id: string) => Promise<void>
+  // Corregir el nombre sin perder la vista. Sin esto, un nombre mal puesto sólo se arregla
+  // borrando y volviendo a guardar — y con eso se pierde la marca de «abre por defecto».
+  renombrarVista: (id: string, nombre: string) => Promise<void>
   borrarVista: (id: string) => Promise<void>
   marcarPorDefecto: (id: string) => Promise<void>
 }

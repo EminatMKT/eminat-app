@@ -1,6 +1,9 @@
 'use client'
 import type { FilterDef } from '@/shared/utils'
 
+// centinela-exime: familia-dispersa@2 — ídem `InputFilter`: los dos controles del motor ya están
+// juntos acá. El `DepartmentFilter` de directorio es el que falta, y lo trae la tarea 8.
+
 type Props<T> = {
   def: FilterDef<T>
   items: T[]

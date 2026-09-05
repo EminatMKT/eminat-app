@@ -1,6 +1,10 @@
 'use client'
 import s from './index.module.css'
 
+// centinela-exime: familia-dispersa@2 — `*Item` son diez en ocho directorios: es la palabra para
+// «una fila de esta lista», no el nombre de un grupo. Y éste ya vive adentro de su `FilterPicker`,
+// que ES su directorio.
+
 type Props = {
   label: string
   /** Marcado cuando el filtro SE VE. Lo que se guarda es lo contrario —la lista de ocultos— y

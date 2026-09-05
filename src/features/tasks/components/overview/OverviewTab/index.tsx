@@ -1,12 +1,12 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
+import { FiltersPanel } from '@/shared/components/filters'
 import { useT } from '@/shared/i18n'
 import { StaggerGrid } from '@/shared/motion'
 import StatCard from '@/shared/components/dashboard/StatCard'
 import Panel from '@/shared/components/dashboard/Panel'
 import BarChartCard from '@/shared/components/dashboard/BarChartCard'
 import { useTasks } from '@/features/tasks/components/TasksContext'
-import StratixFiltersPanel from '../StratixFiltersPanel'
 import TeamOnlineRow from '../TeamOnlineRow'
 import RecentActivityRow from '../RecentActivityRow'
 import TeamRankRow from '../TeamRankRow'
@@ -24,13 +24,12 @@ import { TASKS_TAB } from '@/features/tasks/constants/tabs'
 // Lo que este archivo aporta es el dominio —qué métrica va en cada card, con qué color, y que
 // las marcas conserven el suyo— más la grilla. El aspecto de cada bloque es de shared/.
 export default function OverviewTab() {
-  const { accent, onlineCount } = useApp()
+  const { accent, onlineCount, actividades } = useApp()
   const { t } = useT()
   const {
     totalQ, completadasQ, enProcesoQ, pendientesQ, pctCompletado, totalHoras, totalDias,
     diasRestantes, horasDisponibles, datosPorMes, datosPorMarca,
-    equipoSinMi, actsFiltradas, datosPorMiembro, maxMiembro, setTabActiva, resumenHoras,
-    filterValues, setFilterValue,
+    equipoSinMi, actsFiltradas, datosPorMiembro, maxMiembro, setTabActiva, resumenHoras, filtros,
   } = useTasks()
 
   const kpis = [
@@ -49,7 +48,7 @@ export default function OverviewTab() {
   // Sin el toggle habría que ir a buscar el desplegable para volver atrás, y el gesto natural
   // después de clickear algo es volver a clickearlo. El mismo filtro está en el panel de arriba,
   // así que la gráfica no es el único camino (ver rules/ui.md).
-  const toggle = (key: string) => (v: string) => setFilterValue(key, filterValues[key] === v ? '' : v)
+  const toggle = (key: string) => (v: string) => filtros.setValor(key, filtros.valores[key] === v ? '' : v)
   // El color sale del catálogo de empresas, no de la paleta genérica: una marca desactivada
   // tiene que seguir pintándose como siempre (ver CLAUDE.md, "Marcas del grupo Eminat").
   const marcasColors = Object.fromEntries(datosPorMarca.map(m => [m.codigo, m.color]))
@@ -60,7 +59,12 @@ export default function OverviewTab() {
       {/* Los filtros mandan sobre TODO el tablero —indicadores, gráficas, Gantt y horas—, no
           sobre un bloque suelto. Reemplazaron a las pills de trimestre, que solo sabían filtrar
           por eso: el trimestre es hoy uno de los cinco desplegables. */}
-      <div className={s.fila}><StratixFiltersPanel /></div>
+      {/* `persistKey` sigue siendo "stratix-filtros" y NO se renombra: es la clave con la que
+          cada persona tiene guardado si dejó el panel abierto o recogido. Cambiarla se lo reabre
+          a todos. */}
+      <div className={s.fila}>
+        <FiltersPanel filtros={filtros} items={actividades} persistKey="stratix-filtros" />
+      </div>
 
       {/* Dentro de un Panel, como en Research: sueltas, las cards flotan sobre el fondo y la
           fila queda sin rótulo, mientras todo lo demás del tablero sí lo tiene. */}
@@ -76,9 +80,9 @@ export default function OverviewTab() {
 
       <div className={s.charts}>
         <BarChartCard persistKey="stratix-months" title={t('stratix.dash.byMonth')} data={mesesData}
-          onSelect={toggle('periodo')} selected={filterValues.periodo} />
+          onSelect={toggle('periodo')} selected={filtros.valores.periodo} />
         <BarChartCard persistKey="stratix-brands" title={t('stratix.dash.byBrand')} data={marcasData} colors={marcasColors} vertical
-          onSelect={toggle('empresa')} selected={filterValues.empresa} />
+          onSelect={toggle('empresa')} selected={filtros.valores.empresa} />
       </div>
 
       <div className={`${s.activity} ${s.fila}`}>

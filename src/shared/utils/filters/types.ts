@@ -4,6 +4,8 @@
 // líneas — y de paso paga el aviso de «tres tipos o más van a su propio archivo», que ese archivo
 // arrastraba desde antes.
 
+import type { I18nKey } from '@/shared/i18n'
+
 // El vocabulario de controles del motor. Tiene nombre propio porque cada uno ES un componente
 // —`SelectFilter`, `InputFilter`— y esos componentes necesitan tipar qué variante dibujan sin
 // copiar la lista: copiada, agregar un control acá dejaría al componente aceptando uno que no
@@ -12,7 +14,11 @@ export type FilterKind = 'select' | 'text' | 'date'
 
 export interface FilterDef<T> {
   key: string
-  labelKey: string // clave i18n del placeholder "Todos …" (la traduce el caller)
+  // Clave i18n del placeholder "Todos …" — la traduce el caller. Va tipada como `I18nKey` y no
+  // como `string` porque `string` obligaba a cada consumidor a escribir `t(d.labelKey as
+  // I18nKey)`: el cast estaba en el punto de uso y el problema acá. Tipada en el origen, una
+  // clave que no existe deja de compilar donde se escribe el def.
+  labelKey: I18nKey
   kind?: FilterKind // control a renderizar; default 'select'
   options?: (items: T[]) => string[] // solo para 'select': valores elegibles (de los datos o de un dominio)
   // Cómo se MUESTRA cada opción, cuando el valor guardado no se puede leer: un uuid de

@@ -1,39 +1,39 @@
 'use client'
 import { RESEARCH_THEME } from '../theme'
-import { LEAD_FILTERS } from '../utils/filters'
 import { stageColors, stageLabel } from '../constants'
 import { useResearch } from './ResearchContext'
 import StatCard from '@/shared/components/dashboard/StatCard'
 import Panel from '@/shared/components/dashboard/Panel'
 // import CountryChip from './CountryChip' // ponytail: oculto por pedido de dirección (reunión 2026-07-20) — restaurar descomentando esto + el bloque "Leads by Country"
 // import RecentLeadItem from './RecentLeadItem' // ponytail: oculto por pedido de dirección — restaurar con el bloque "Recently added leads"
-import FiltersPanel from './FiltersPanel'
+import { FiltersPanel } from '@/shared/components/filters'
 import PieChartCard from '@/shared/components/dashboard/PieChartCard'
 import BarChartCard from '@/shared/components/dashboard/BarChartCard'
 import { useT } from '@/shared/i18n'
 
 export default function DashboardTab() {
   const { t, locale } = useT()
-  const { totalLeads, totalCorreos, cadencia, contactadosConCorreo, nuevos, ganados, sinRespuesta, cargadosEsteMes, stageData, phaseData, specialtyData, filterValues, setFilterValue, clearFilters } = useResearch()
+  const { totalLeads, totalCorreos, cadencia, contactadosConCorreo, nuevos, ganados, sinRespuesta, cargadosEsteMes, stageData, phaseData, specialtyData, filtros, leads } = useResearch()
   // El absoluto y el % juntos en la misma card (pedido de Federico, 12/08/2026). El % es el que
   // sostiene la narrativa: "de todo lo que enviamos, no nos han respondido la mitad".
   const pct = (n: number) => `${totalLeads > 0 ? Math.round((n / totalLeads) * 100) : 0}%`
   // Cada parte de la card hace UN trabajo: el rótulo dice qué se cuenta, el badge la proporción,
   // y el pie la base de esa proporción. Se lee de corrido: "2 · 25% · de 8 leads cargados".
   const ofLoaded = t('research.kpi.ofLoadedLeads', { n: totalLeads })
-  const activos = LEAD_FILTERS.filter(d => filterValues[d.key]).length
   const { accent } = RESEARCH_THEME
   const mesEnCurso = new Date().toLocaleDateString(locale === 'en' ? 'en-US' : 'es-ES', { month: 'long', year: 'numeric' })
   // Clic en una barra/porción = filtrar el tablero por ese valor; clic en la que ya está activa
   // = sacarlo. Sin el toggle, para volver atrás habría que ir a buscar el desplegable — y el
   // gesto natural después de clickear algo es volver a clickearlo.
-  const toggle = (key: string) => (v: string) => setFilterValue(key, filterValues[key] === v ? '' : v)
+  const toggle = (key: string) => (v: string) => filtros.setValor(key, filtros.valores[key] === v ? '' : v)
 
   return (
     <div>
       {/* Los filtros mandan sobre TODO el tablero, no solo sobre la tabla: es el mismo estado
           del contexto, así que lo que se filtre acá sigue puesto al pasar a Leads. */}
-      <div style={{ marginBottom: 14 }}><FiltersPanel /></div>
+      <div style={{ marginBottom: 14 }}>
+        <FiltersPanel filtros={filtros} items={leads} persistKey="research-filters" />
+      </div>
       {/* Orden pedido por Federico (12/08/2026), de izquierda a derecha por prioridad de lectura:
           esfuerzo → sin respuesta → contactado → el resto del pipeline → registros únicos al final
           ("ese sería uno de los del final a la derecha"). Los 81 únicos abrían la fila y tapaban
@@ -53,10 +53,10 @@ export default function DashboardTab() {
           un camino real a proyectar 34 leads creyendo que son 81. Es clickeable: limpia todo. */}
       <Panel collapsible persistKey="research-indicators" title={t('research.section.indicators')}
         right={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          {activos > 0 && (
-            <button onClick={clearFilters} title={t('research.filter.clear')}
+          {filtros.activos > 0 && (
+            <button onClick={filtros.limpiar} title={t('common.clear')}
               style={{ fontFamily: 'DM Mono', fontSize: 10, color: accent, background: `${accent}14`, border: `1px solid ${accent}55`, borderRadius: 999, padding: '4px 10px', cursor: 'pointer' }}>
-              {t('research.kpi.filtered', { n: activos })} ✕
+              {t('research.kpi.filtered', { n: filtros.activos })} ✕
             </button>
           )}
           <span style={{ fontSize: 10, color: RESEARCH_THEME.t3, fontFamily: 'DM Mono' }}>{ofLoaded}</span>
@@ -106,8 +106,8 @@ export default function DashboardTab() {
             canónico. El componente compartido no puede saber ninguna de las dos cosas. */}
         <PieChartCard persistKey="research-pipeline" title={t('research.chart.pipelineByStage')}
           data={stageData} colors={stageColors(stageData.map(d => d.name))} labelOf={n => stageLabel(n, t)}
-          onSelect={toggle('stage')} selected={filterValues.stage} />
-        <BarChartCard persistKey="research-phases" title={t('research.chart.leadsByPhase')} data={phaseData} onSelect={toggle('phase')} selected={filterValues.phase} />
+          onSelect={toggle('stage')} selected={filtros.valores.stage} />
+        <BarChartCard persistKey="research-phases" title={t('research.chart.leadsByPhase')} data={phaseData} onSelect={toggle('phase')} selected={filtros.valores.phase} />
       </div>
 
       {/* Por especialidad va en barras HORIZONTALES y no verticales como fase: "Gastroenterología"
@@ -115,7 +115,7 @@ export default function DashboardTab() {
           Sponsors usa vertical. Ocupa el ancho completo porque la lista es larga (15 + los sin
           clasificar) y es el gráfico que se lleva a la conversación con la farmacéutica. */}
       <div style={{ marginBottom: 14 }}>
-        <BarChartCard persistKey="research-specialties" title={t('research.chart.leadsBySpecialty')} data={specialtyData} vertical height={320} onSelect={toggle('specialty')} selected={filterValues.specialty} />
+        <BarChartCard persistKey="research-specialties" title={t('research.chart.leadsBySpecialty')} data={specialtyData} vertical height={320} onSelect={toggle('specialty')} selected={filtros.valores.specialty} />
       </div>
 
       {/* Oculto por dirección (reunión 2026-07-20) — Top Sponsors + Recently added. Restaurar descomentando + reactivar imports/destructure (sponsorData, leads, RecentLeadItem):

@@ -5,7 +5,10 @@
 .label {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  font-size: 0.6875rem;
-  color: var(--c-t3);
+  gap: 0.4375rem;
+}
+
+/* La misma voz que el rótulo del riel de vistas: los dos nombran un control. */
+.rotulo {
+  composes: rotulo from '../control.module.css';
 }

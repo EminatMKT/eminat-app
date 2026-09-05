@@ -18,13 +18,22 @@ export function useVistas(ambito: string) {
 
   useEffect(() => { void recargar() }, [recargar])
 
+  // Devuelve la vista creada: quien guarda queda PARADO en ella. Sin esto, «guardar como nueva»
+  // dejaba el desplegable apuntando a la vista vieja y marcada como modificada — o sea, decía que
+  // los cambios seguían sin guardar justo después de guardarlos.
   const guardar = async (nombre: string, valores: FilterValues, ocultos: string[]) => {
-    if (!usuario?.id) return
-    await vistasFiltroRepo.create({ usuario_id: usuario.id, ambito, nombre, valores, ocultos, abre_por_defecto: false })
+    if (!usuario?.id) return undefined
+    const { data } = await vistasFiltroRepo.create({
+      usuario_id: usuario.id, ambito, nombre, valores, ocultos, abre_por_defecto: false })
     await recargar()
+    return data ?? undefined
   }
   const actualizar = async (id: string, valores: FilterValues, ocultos: string[]) => {
     await vistasFiltroRepo.update(id, { valores, ocultos })
+    await recargar()
+  }
+  const renombrar = async (id: string, nombre: string) => {
+    await vistasFiltroRepo.rename(id, nombre)
     await recargar()
   }
   const borrar = async (id: string) => { await vistasFiltroRepo.remove(id); await recargar() }
@@ -34,6 +43,6 @@ export function useVistas(ambito: string) {
     await recargar()
   }
 
-  const api = { vistas, guardar, actualizar, borrar, marcarPorDefecto }
+  const api = { vistas, guardar, actualizar, renombrar, borrar, marcarPorDefecto }
   return api
 }

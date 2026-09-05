@@ -14,7 +14,7 @@ import { useVistas } from './vistas'
 // `vistas_filtro`. Sale del catálogo de módulos, no de un literal escrito a mano.
 export function useFilters<T>(ambito: string, defs: FilterDef<T>[]): Filtros<T> {
   const { local, setValor, limpiarA, alternarVisible, aplicar } = useEstadoLocal(ambito)
-  const { vistas, guardar, actualizar, borrar, marcarPorDefecto } = useVistas(ambito)
+  const { vistas, guardar, actualizar, renombrar, borrar, marcarPorDefecto } = useVistas(ambito)
 
   // La vista de apertura es la TERCERA capa, debajo de lo que tocaste: pesa en la primera carga
   // y deja de pesar en cuanto tocás algo, porque `local.valores` la pisa clave por clave.
@@ -38,8 +38,9 @@ export function useFilters<T>(ambito: string, defs: FilterDef<T>[]): Filtros<T> 
     limpiar: () => limpiarA(apertura?.valores ?? defaultFilterValues(defs)),
     alternarVisible,
     aplicarVista: (id: string) => aplicar(vistas.find(v => v.id === id)),
-    guardarVista: (nombre: string) => guardar(nombre, valores, ocultos),
+    guardarVista: async (nombre: string) => { aplicar(await guardar(nombre, valores, ocultos)) },
     actualizarVista: (id: string) => actualizar(id, valores, ocultos),
+    renombrarVista: renombrar,
     borrarVista: borrar,
     marcarPorDefecto,
   }

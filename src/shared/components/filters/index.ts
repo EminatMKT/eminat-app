@@ -7,8 +7,7 @@
 // repartidas por orden alfabético.
 //
 // `ui/` sigue siendo la UI sin dominio; esto es el motor de filtros, que tiene uno.
-// Se exporta UNA cosa: la que los módulos montan. `SelectFilter` e `InputFilter` son el adentro
-// de la barra —los toma como hermanos, no por acá—, y ponerlos en el barrel los volvía API
-// pública para cero consumidores. Cuando exista `FiltersPanel` (el armador con vistas guardadas
-// y el «+ Filtro»), la línea de abajo pasa a ser ésa.
-export { default as FilterBar } from './FilterBar'
+// Se exporta UNA cosa: la que los módulos montan, hoy el armador. `FilterBar`, `FilterPicker`,
+// `FilterPresets`, `SelectFilter` e `InputFilter` son su adentro —se toman entre hermanos, no
+// por acá—, y ponerlos en el barrel los volvía API pública para cero consumidores.
+export { default as FiltersPanel } from './FiltersPanel'

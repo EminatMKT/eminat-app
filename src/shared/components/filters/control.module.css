@@ -1,18 +1,64 @@
 /* La forma de un control del motor de filtros: el `<select>` de un def, el `<input>` de una fecha
-   o un texto, y el del nombre de una vista. Una sola definición porque son el mismo control —
-   escritas por separado eran tres bloques casi iguales, que es como empiezan a derivar.
+   o un texto, el del nombre de una vista y el disparador del desplegable. Una sola definición
+   porque son el mismo control — escritas por separado eran cuatro bloques casi iguales, que es
+   como empiezan a derivar.
 
    Se consume con `composes:` desde el módulo de cada componente. No es un componente: es la
    forma, y quien la usa decide si va en un `<select>` o en un `<input>`. */
 
 .control {
-  padding: 0.375rem 0.75rem;
-  border-radius: 0.625rem;
+  /* Alto FIJO, no derivado del padding. Un `<select>`, un `<input type="date">` y un `<summary>`
+     con el mismo padding salen con tres alturas distintas —cada uno mide su contenido a su
+     manera— y la fila queda desprolija sin que se vea por qué. Clavado, los cuatro controles
+     caen sobre la misma línea óptica y la barra se lee como una sola pieza. */
+  height: 1.875rem;
+  padding: 0 0.625rem;
+  border-radius: 0.5rem;
   border: 1px solid var(--c-border-strong);
   background: var(--c-s1);
   color: var(--c-t1);
   font-size: 0.75rem;
   outline: none;
+  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+.control:hover {
+  border-color: var(--c-t3);
+}
+
+/* El `<select>` nativo lo pinta el sistema operativo, así que la misma pantalla se ve distinta
+   en Windows, en macOS y en Linux — y ninguna se parece al resto de la app. `appearance: none`
+   lo apaga y la flecha la dibujamos nosotros, para que un select y un input sean el mismo
+   control, que es lo que son acá. El SVG va embebido: es media docena de bytes y un archivo
+   suelto sería una petición para dibujar una flecha. */
+select.control {
+  appearance: none;
+  padding-right: 1.625rem;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%239CA3AF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.625rem center;
+  background-size: 0.5rem;
+}
+
+/* UN FILTRO PUESTO TIENE QUE VERSE PUESTO, y hasta hoy no se veía: un `<select>` con valor y uno
+   vacío eran el mismo rectángulo gris. La única señal de que la tabla estaba filtrada era el
+   contador de la cabecera, que se va de pantalla en cuanto alguien scrollea hasta las cifras —
+   que es exactamente donde importa saberlo. Ahora el control que filtra se tiñe, así que la
+   respuesta a «¿por qué veo 34 y no 267?» está en el mismo sitio donde se cambia. */
+.activo {
+  border-color: var(--c-accent);
+  background: color-mix(in srgb, var(--c-accent) 7%, var(--c-s1));
+  color: var(--c-accent-solid);
+  font-weight: 500;
+}
+
+.activo:hover {
+  border-color: var(--c-accent-solid);
+}
+
+/* La flecha también: gris sobre un control apagado se pierde contra el fondo teñido. */
+select.activo {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236355E8' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 /* El anillo de foco va acá y no en cada consumidor: el teclado tiene que ver dónde está parado, y
@@ -21,4 +67,19 @@
 .control:focus-visible {
   outline: 2px solid var(--c-accent-solid);
   outline-offset: 1px;
+}
+
+/* La etiqueta de un control: «VISTA», «DESDE», «HASTA». Versalita y con tracking porque nombra
+   al instrumento, no es una palabra de la frase; a este tamaño se lee mejor que la minúscula.
+   La jerarquía sale del tamaño, el espaciado y el tono — NO de otra tipografía: la app habla con
+   una sola, y por qué está en `globals.css`. Vive acá junto a `.control` y no en cada
+   componente: la escribí dos veces (el riel y el rótulo del input) y el barrido las encontró
+   idénticas antes que yo. */
+.rotulo {
+  font-size: 0.5625rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--c-t3);
+  white-space: nowrap;
+  user-select: none;
 }

@@ -4,6 +4,10 @@ import type { FilterDef } from '@/shared/utils'
 import { Dropdown } from '@/shared/components/ui'
 import FilterPickerItem from './FilterPickerItem'
 
+// centinela-exime: familia-dispersa@2 — los otros `*Picker` del repo eligen una FILA de un
+// catálogo (un cargo, una hoja, un solicitante); éste elige qué filtros se ven. Misma palabra,
+// otra pregunta: unificarlos daría el componente de quince props que la regla vecina prohíbe.
+
 type Props<T> = {
   defs: FilterDef<T>[]
   ocultos: string[]

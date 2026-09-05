@@ -29,5 +29,12 @@ export const update = (id: string, payload: Partial<Omit<VistaFiltro, 'id'>>) =>
     .update({ ...payload, updated_at: new Date().toISOString() })
     .eq('id', id).select().single()
 
+// Renombrar es un `update` del nombre y nada más: no toca `valores` ni `ocultos`. Separado del
+// `update` general para que el llamador no pueda pisar sin querer lo que la vista guarda.
+export const rename = (id: string, nombre: string) =>
+  supabase.from(TABLES.vistasFiltro)
+    .update({ nombre, updated_at: new Date().toISOString() })
+    .eq('id', id).select().single()
+
 export const remove = (id: string) =>
   supabase.from(TABLES.vistasFiltro).delete().eq('id', id)

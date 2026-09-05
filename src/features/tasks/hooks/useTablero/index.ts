@@ -18,15 +18,20 @@ export function useTablero() {
   const { usuario, actividades, equipo, miembrosPorId, miembrosAsignables, colorMarca } = useApp()
   const { intlLocale } = useT()
 
-  const { actFilters, filterValues, setFilterValue, clearFilters, filtrosActivos } = useFiltrosTablero()
+  // `filtros.visibles` y NO `filtros.defs`: un filtro escondido desde el «+ Filtro» deja de
+  // filtrar. Con `defs` seguiría filtrando con un valor que ya no se ve en pantalla — el bug
+  // invisible que este motor existe para no tener.
+  const filtros = useFiltrosTablero()
   const actsFiltradas = useMemo(
-    () => applyFilters(actividades, actFilters, filterValues), [actividades, actFilters, filterValues])
+    () => applyFilters(actividades, filtros.visibles, filtros.valores),
+    [actividades, filtros.visibles, filtros.valores])
 
   // Cross-filter: cada gráfica se calcula con todos los filtros MENOS el suyo. Si no, al
   // clickear la barra de Julio esa misma gráfica queda con una sola barra y no hay forma de
   // clickear otro mes para cambiar de selección. Los KPIs sí usan `actsFiltradas` (todos los
   // filtros): ahí el número filtrado ES el que se pide. Mismo criterio que Research.
-  const exceptOwn = (key: string) => applyFilters(actividades, actFilters.filter(d => d.key !== key), filterValues)
+  const exceptOwn = (key: string) =>
+    applyFilters(actividades, filtros.visibles.filter(d => d.key !== key), filtros.valores)
 
   const totalQ = actsFiltradas.length
   const completadasQ = actsFiltradas.filter(a => a.estado === ESTADO.COMPLETADO).length
@@ -47,7 +52,7 @@ export function useTablero() {
   // ponytail: un selector de año propio se agrega el día que alguien quiera comparar dos años
   // lado a lado; hoy no hay dos años de datos.
   const actsPorMes = exceptOwn('periodo')
-  const anioGrafica = (filterValues.periodo ?? '').slice(0, 4) || String(hoy.getFullYear())
+  const anioGrafica = (filtros.valores.periodo ?? '').slice(0, 4) || String(hoy.getFullYear())
   const datosPorMes = Array.from({ length: 12 }, (_, i) => {
     const key = `${anioGrafica}-${String(i + 1).padStart(2, '0')}`
     const delMes = actsPorMes.filter(a => claveMes(a.fecha_inicio) === key)
@@ -113,7 +118,7 @@ export function useTablero() {
     .sort((a, b) => new Date(a.fecha_entrega ?? '').getTime() - new Date(b.fecha_entrega ?? '').getTime())
 
   const tablero = {
-    actFilters, filterValues, setFilterValue, clearFilters, filtrosActivos, actsFiltradas,
+    filtros, actsFiltradas,
     totalQ, completadasQ, enProcesoQ, pendientesQ, pctCompletado, totalHoras, totalDias,
     hoy, diasRestantes, horasDisponibles, equipoSinMi,
     datosPorMes, anioGrafica, maxTotal, datosPorMarca, maxMarca, idsTeam, datosPorMiembro, maxMiembro,
