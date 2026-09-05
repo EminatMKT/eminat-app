@@ -8,6 +8,8 @@ import FilterBar from '../FilterBar'
 import FilterPicker from '../FilterPicker'
 import FilterPresets from '../FilterPresets'
 
+// centinela-exime: familia-dispersa@2 — los otros `*Panel` son el contenedor de SU módulo
+// (`SidebarPanel`, `ParticipantesPanel`); éste es el armador del motor y vive con sus piezas.
 type Props<T> = {
   filtros: Filtros<T>
   items: T[]
@@ -15,16 +17,13 @@ type Props<T> = {
 }
 
 // El panel de filtros completo: vistas guardadas, la barra y el menú de qué filtros ver. Existía
-// dos veces —`StratixFiltersPanel` y el de Research, con el mismo Panel, el mismo chip y la misma
-// llamada a FilterBar—; las dos copias se borraron por ésta. No dibuja markup propio: compone — el
-// «+ Filtro» es children de la barra y el chip es `ColorBadge`, la etiqueta teñida compartida.
-//
+// dos veces —Stratix y Research, con el mismo Panel, el mismo chip y la misma llamada a
+// FilterBar—; las dos se borraron por ésta. No dibuja markup propio: compone.
 // El estado NO vive acá: llega entero desde `useFilters`, que el módulo llama en su propio hook.
-// Tiene que ser así porque el tablero de /tasks lee el conjunto filtrado para sus KPIs — si el
-// estado viviera en este componente, el tablero no podría verlo.
+// El tablero de /tasks lee el conjunto filtrado para sus KPIs; encerrado acá no podría verlo.
 //
-// El conteo va en la CABECERA a propósito: los filtros se recuerdan entre sesiones y el panel se
-// deja recogido, así que es lo ÚNICO que explica por qué las cifras de abajo no son las del año.
+// El conteo va en la CABECERA: los filtros se recuerdan y el panel se deja recogido, así que es
+// lo ÚNICO que explica por qué las cifras de abajo no son las del año.
 export default function FiltersPanel<T>({ filtros, items, persistKey }: Props<T>) {
   const { t } = useT()
   const labelFor = (d: FilterDef<T>) => t(d.labelKey)
