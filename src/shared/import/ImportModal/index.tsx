@@ -3,12 +3,11 @@ import { useEffect, useMemo, useState, type ChangeEvent, type ReactNode } from '
 import { useApp } from '@/shared/context/AppContext'
 import { useT, type I18nKey } from '@/shared/i18n'
 import { detectSeparator, parseDelimited } from '@/shared/utils'
-import Modal from '@/shared/components/ui/Modal'
+import { ColorBadge, Modal } from '@/shared/components/ui'
 import type { ImportPlan, SanitizeIssue, SourceWarning } from '../identity'
 import { parseWorkbook, readSheet } from '../parseWorkbook'
 import MappingRow from '../MappingRow'
 import DomainValueRow from '../DomainValueRow'
-import DroppedHeaderChip from '../DroppedHeaderChip'
 import PreviewRow from '../PreviewRow'
 import SheetPicker from '../SheetPicker'
 import SanitizeRow from '../SanitizeRow'
@@ -438,7 +437,9 @@ export default function ImportModal<P extends ImportPlan = ImportPlan>({
               <div className={s.sectionTitle}>{t('import.ignoredSection')}</div>
               <div className={s.warnText}>{t('import.ignoredNote', { n: dropped.length })}</div>
               <div className={s.chips}>
-                {dropped.map(h => <DroppedHeaderChip key={h} header={h} />)}
+                {/* Ámbar de aviso: son columnas que se van a descartar. Antes era `DroppedHeaderChip`,
+                    un chip propio de nueve líneas que dibujaba la misma etiqueta teñida. */}
+                {dropped.map(h => <ColorBadge key={h} color="#FBBF24">{h}</ColorBadge>)}
               </div>
             </>
           )}

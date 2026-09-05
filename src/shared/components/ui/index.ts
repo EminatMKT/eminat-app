@@ -9,7 +9,6 @@
 // cosa —no hay dónde colgar la segunda—, y el barrel es el único lugar donde ese nombre se
 // escribe, así que renombrar un componente es cambiar una línea y no buscar el string por todo
 // el repo. Ver rules/codigo.md · "Un archivo exporta una cosa por default".
-export { default as BrandChip } from './BrandChip'
 export { default as Button } from './Button'
 export { default as CatalogoSelect } from './CatalogoSelect'
 export { default as ColorBadge } from './ColorBadge'

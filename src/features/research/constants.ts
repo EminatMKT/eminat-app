@@ -78,7 +78,7 @@ function legacyColor(i: number): string {
 }
 
 // ponytail: sin uso tras comentar "Leads by Country" (dirección, reunión 2026-07-20). Su único
-// consumidor era CountryChip.tsx, hoy comentado. No borrar — restaurar junto con ese bloque.
+// consumidor era `components/CountryChip/`, hoy comentado. No borrar — restaurar junto con ese bloque.
 /*
 export const COUNTRY_FLAGS: Record<string, string> = {
   'United States': '🇺🇸', 'USA': '🇺🇸', 'US': '🇺🇸', 'Spain': '🇪🇸', 'Germany': '🇩🇪', 'France': '🇫🇷', 'UK': '🇬🇧', 'United Kingdom': '🇬🇧',
