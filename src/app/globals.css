@@ -2,7 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Force Poppins across the entire app, overriding any inline font-family */
+/* Poppins en TODA la app, por encima de cualquier `font-family` que declare un componente.
+   El `!important` es deliberado y le gana incluso a los `style` inline.
+
+   Hay 106 archivos que piden `font-family: 'Syne'` o `'DM Mono'` y ninguno lo consigue: son de
+   un diseño anterior. Se probó encenderlas el 04/09/2026 —cargándolas por su nombre real y
+   levantando esta regla— y se revirtió el mismo día mirando el resultado: Syne le da a la app
+   cara de demo tecnológica, y con DM Mono los KPIs (`$0.00`, `208h`) quedan como una terminal
+   retro. No es el tono de un sistema interno de gestión.
+
+   Así que la decisión está tomada, y esta línea es dónde vive: la app habla con UNA tipografía.
+   Las 106 declaraciones quedan inertes; limpiarlas es una tanda aparte, y hasta que se haga,
+   este bloque es lo que hace que no importen. */
 html, body, * {
   font-family: var(--font-poppins), 'Poppins', system-ui, sans-serif !important;
 }

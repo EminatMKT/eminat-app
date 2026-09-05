@@ -12,9 +12,14 @@
 
 ## Estado (04/09/2026)
 
-**Hechas: la 1, la 2 y la 10** — commits `0bc5503`, `701cb33`, `63ddb89`. **Lo próximo es la 3.**
+**Hechas: 1 a 7, la 9, la 10 y la 11.** Las fases 1, 2 y 3 están completas y la 4 quedó a medias
+a propósito. **Lo único que falta es la tarea 8** (`ChipFilter`).
 
-Tres cosas del plan original cambiaron al ejecutarlo, y este documento ya está corregido:
+Las tareas 1, 2 y 10 salieron en `0bc5503`, `63ddb89` y `701cb33`; la 3, la 4, la 5 y la 6 en
+`5beb0b0`, `4fefd49`, `75c697b` y `2c8de5d`. La 7, la 9 y la 11 están **en el árbol, verdes y sin
+commitear**.
+
+Seis cosas cambiaron al ejecutar y este documento las recoge:
 
 1. **La carpeta es `src/shared/components/filters/`, no `ui/`.** Los seis componentes del motor son
    una pieza y sueltos entre veinte de `ui/` no se veía. Su barrel exporta **UNA** cosa: hoy
@@ -32,6 +37,29 @@ formas, que no entraban en `defs/`) y `compare/` (`sameFilters`, que no es un va
 La **tarea 10 se adelantó** a la fase 1: el barrido señaló que `ListToolbar` y `FilterBar`
 comparten su fila, y resultó más chica de lo escrito — `inputStyle` no era un prop, salía de
 `useApp()` adentro, así que ningún consumidor cambió.
+
+4. **`FiltersPanel` no dibuja markup propio y no tiene `.module.css`.** El `<div className={s.fila}>`
+   que el plan preveía desapareció: `FilterPicker` entra como `children` de `FilterBar`, que es lo
+   que el propio plan dice de él —«un control más de la barra»—. Un componente que sólo compone no
+   tiene estilos que enredar.
+5. **La tarea 9 no escribió `Tag`: ese componente ya existía y se llama `ColorBadge`.** Etiqueta que
+   se lee, color por prop vía custom property, sin cursor ni foco, y con el contraste WCAG ya
+   resuelto (5.12:1 el peor caso). Se migraron y borraron `BrandChip` y `DroppedHeaderChip`;
+   `CountryChip` se movió a su carpeta y se migró **comentado**, como pedía el plan. Lo único que le
+   falta a la 9 es su mitad de chips, que es la tarea 8.
+6. **`FilterDef.labelKey` pasó de `string` a `I18nKey`.** Con eso el `t(d.labelKey as I18nKey)` que
+   repetían los dos paneles desapareció solo: el cast estaba en el punto de uso y el tipo flojo en
+   el origen.
+
+Y dos cosas que la tarea 7 destapó y no estaban previstas:
+
+- **Borrar una vista no preguntaba.** El check de «todo proceso destructivo lleva confirmación»
+  mira quién EJECUTA el borrado (`Repo.remove`, `'DELETE'`, en `.tsx`), y acá el botón llamaba a un
+  prop que subía dos componentes hasta un `.ts`: en toda la cadena no había un archivo donde
+  disparar. Salió `BorrarVista/` —botón y diálogo juntos— y un segundo check `contact` que mira
+  quién lo OFRECE (`kind="delete"`).
+- **Hay dos `FilterBar` en el repo**, uno en `shared/components/filters/` y otro en
+  `features/cobranzas/components/`. Sin unificar; lo encontró la regla `familia_dispersa`.
 
 ## Global Constraints
 
@@ -539,7 +567,7 @@ Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
 
 ---
 
-### Task 3: La tabla `vistas_filtro`
+### Task 3: ✅ HECHA — La tabla `vistas_filtro`
 
 **Files:**
 - Create: `supabase/migrations/<timestamp>_vistas_filtro.sql`
@@ -693,7 +721,7 @@ Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
 
 ---
 
-### Task 4: La capa de datos
+### Task 4: ✅ HECHA — La capa de datos
 
 **Files:**
 - Modify: `src/shared/data/tables.ts`
@@ -796,7 +824,7 @@ Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
 
 # Fase 3 — la pieza
 
-### Task 5: `useFilters` — el estado, las vistas y el contrato
+### Task 5: ✅ HECHA — `useFilters` — el estado, las vistas y el contrato
 
 Es la bisagra: junta la mitad efímera (localStorage) con la mitad guardada (la tabla) y expone un solo contrato que cualquier módulo puede consumir.
 
@@ -1012,7 +1040,7 @@ Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
 
 ---
 
-### Task 6: El «+ Filtro» y el desplegable de vistas
+### Task 6: ✅ HECHA — El «+ Filtro» y el desplegable de vistas
 
 Dos componentes chicos y tontos: reciben todo por props y no saben de dónde salen. Los dos usan `<details>` nativo en vez de un menú con estado — es teclado-accesible de fábrica, cierra solo con Escape y no necesita una librería ni un `useState` más.
 
@@ -1312,7 +1340,7 @@ Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
 
 ---
 
-### Task 7: `FiltersPanel` y la mudanza de los dos módulos
+### Task 7: ✅ HECHA — `FiltersPanel` y la mudanza de los dos módulos
 
 El armador, y la prueba de que la pieza viaja: los dos paneles de filtros que hoy están duplicados —uno en Stratix y otro en Research, con el mismo `Panel collapsible`, el mismo chip de «activos» y la misma llamada a `FilterBar`— se borran y quedan reemplazados por uno.
 
@@ -1828,7 +1856,13 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
 ```
 
-### Task 9: `Tag` — lo que se lee deja de parecerse a lo que se elige
+### Task 9: ✅ HECHA (sin escribir `Tag`) — lo que se lee deja de parecerse a lo que se elige
+
+> **Cómo se resolvió:** `Tag` **no se escribió porque ya existía**, con otro nombre: `ColorBadge`,
+> en `src/shared/components/ui/`. Hace exactamente lo que esta tarea pedía —etiqueta que se lee,
+> color por prop, sin `cursor: pointer` ni borde de foco— y encima trae el contraste ya medido.
+> `BrandChip` y `DroppedHeaderChip` se migraron a él y se borraron; `CountryChip` se movió a su
+> carpeta y se migró **comentado**. Lo que queda de esta tarea es su otra mitad, que es la 8.
 
 `BrandChip`, `DroppedHeaderChip` y `CountryChip` no son filtros: son etiquetas. Comparten forma
 con los chips que sí se eligen, así que la app promete interacción donde no la hay.
@@ -1910,7 +1944,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
 ```
 
-### Task 11: Las importaciones que este plan dejó a la vista
+### Task 11: ✅ HECHA — Las importaciones que este plan dejó a la vista
 
 La regla de persistencia obligó a mirar los diez lugares que llaman a `useUserPreference`, y ahí
 apareció otra cosa: **entran por la ruta del módulo y no por el barrel**
