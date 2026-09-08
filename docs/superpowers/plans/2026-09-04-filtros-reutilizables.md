@@ -12,8 +12,13 @@
 
 ## Estado (04/09/2026)
 
-**Hechas: 1 a 7, la 9, la 10 y la 11.** Las fases 1, 2 y 3 están completas y la 4 quedó a medias
-a propósito. **Faltan la tarea 8** (`ChipFilter`) **y la 12** (`dateRange`), las dos de la fase 4.
+**Hechas: 1 a 11.** Las fases 1, 2 y 3 están completas y la 4 quedó a medias a propósito.
+**Falta la tarea 12** (`dateRange`), y quedaron anotadas la **13** (el predicado del generador de
+reportes al motor) y la **14** (la búsqueda libre como control del motor).
+
+La **tarea 8 se cerró el 08/09/2026** y salió distinta de como estaba escrita — el detalle, en su
+sección. En una línea: `ChipFilter` **no dibuja el botón** (`PillToggle` ya era ese chip) **ni la
+fila** que los alinea, y cablearla obligó a modernizar los tres módulos que la consumen.
 
 El 08/09/2026 la fase 4 creció y el «+ Filtro» cambió de sentido:
 
@@ -1667,7 +1672,47 @@ El hallazgo que la ordena: **hay seis componentes que se llaman `Chip` y son dos
 una columna—; `BrandChip`, `DroppedHeaderChip` y `CountryChip` son etiquetas que se leen y no se
 eligen. Que se vean iguales es un defecto: la app le dice «esto es clickeable» a algo que no lo es.
 
-### Task 8: `kind: 'chips'` — un chip de filtro es un `<select>` con otra piel
+### Task 8: ✅ HECHA (08/09/2026) — `kind: 'chips'`, y `PillToggle` ya era el chip
+
+> **Cómo se resolvió, y en qué se apartó de lo escrito abajo:**
+>
+> 1. **El componente no dibuja el botón.** `ui/PillToggle` ya era exactamente esta píldora —mismo
+>    radio, tono elegido sólido y ya medido contra WCAG, `aria-pressed`— y sólo le faltaba el
+>    número. Ganó un prop, `count`. Es la segunda vez en este plan que la pieza «nueva» ya existía
+>    con otro nombre: la primera fue `Tag`, que era `ColorBadge` (tarea 9).
+> 2. **Tampoco dibuja la fila.** Los tres lugares que lo montan la quieren distinta: Admin la
+>    scrollea con su desvanecido, el Directorio la envuelve, Medical la deja corrida. `ChipFilter`
+>    devuelve un fragmento y el contenedor lo pone quien lo monta — y para las dos listas con
+>    buscador ese contenedor terminó siendo `ListToolbar`, que ganó un prop `scroll`.
+> 3. **`countByOption`, no `conteoPorOpcion`.** La regla de identificadores en inglés frena el
+>    nombre que este plan había escrito, y la regla gana sobre el plan.
+> 4. **`FilterBar` NO ramifica sobre `chips`.** Un def `chips` cae en la rama del `<select>` a
+>    propósito: adentro del panel compite con controles de alto fijo y ahí la piel que sirve es la
+>    angosta. Lo que sí cambió es el tipo de `InputFilter` —`Exclude<FilterKind, 'select' |
+>    'chips'>`—, que destapó que un `chips` en la barra se habría dibujado como `type="chips"`.
+> 5. **`ChipFilter` repone la opción huérfana**, igual que `SelectFilter`: era el `+ el activo` que
+>    `RoleFilterBar` hacía a mano, y sin él filtrar por un rol que se queda sin gente deja la lista
+>    vacía y ningún control que lo explique.
+> 6. **El paso 7 fue el caro.** Cablear los tres módulos arrastró su migración por contacto:
+>    `DirectorioModule` y `CitasTab` pasaron a carpeta con `index` + `.module.css` sin un solo
+>    `style` inline, `RoleFilterBar` se renombró a **`UsuariosToolbar`** (ya no filtra roles: monta
+>    el encabezado entero, y de paso cierra la familia `*Bar`), y `useDirectorioFilter` se borró —
+>    su predicado a mano es ahora `applyFilters`. Admin cambió su centinela `'todos'` por la cadena
+>    vacía del motor y su barra de pestañas por `TabBar`.
+>
+> **Lo que se borró:** `RoleChip`, `DateFilterChip`, `DepartmentChip/`, `DepartmentFilter`,
+> `RoleFilterBar` y `useDirectorioFilter`. **Lo que nació:** `ChipFilter/`, `filters/types.ts`
+> (`ControlProps`, que estaba copiado en dos controles) y un `utils/filters.ts` por módulo.
+>
+> **Atestiguaciones firmadas** (libro de atestiguaciones, no de exenciones): `familia-dispersa@2` y
+> `bloques-similares@3` en `DirectorioModule` y en `CitasTab` —las familias `*Module` y `*Tab` son
+> una por feature, que es la arquitectura— y `familia-dispersa@2` en `ChipFilter`, cuyo único
+> hermano fuera del directorio del motor es `tasks/report-filter.ts`: la tarea 13.
+
+<details>
+<summary>El plan como estaba escrito</summary>
+
+#### `kind: 'chips'` — un chip de filtro es un `<select>` con otra piel
 
 Los tres chips de filtro contestan la misma pregunta que `SelectFilter` («¿qué valor de esta
 columna?») y admiten la misma respuesta (una sola). Lo único distinto es la forma de dibujarla:
@@ -1872,6 +1917,8 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
 ```
 
+</details>
+
 ### Task 9: ✅ HECHA (sin escribir `Tag`) — lo que se lee deja de parecerse a lo que se elige
 
 > **Cómo se resolvió:** `Tag` **no se escribió porque ya existía**, con otro nombre: `ColorBadge`,
@@ -2002,6 +2049,30 @@ hoy se consigue dejando un `date` sin llenar.
 3. **Un `<input type="date">` por extremo o un calendario propio.** Nativo primero: es lo que ya
    usa `InputFilter`, entra en el tab order y no agrega dependencia. El calendario propio sólo si
    el nativo no alcanza para el rango.
+
+### Task 13: el predicado del generador de reportes sale al motor
+
+`src/features/tasks/report-filter.ts` decide qué actividades entran en el reporte de una persona
+—«lo que ejecuto más lo que pedí»— y de paso las totaliza. Es un predicado escrito a mano sobre
+la misma pregunta que contesta un `FilterDef`, y hoy es el único `*Filter` del repo fuera del
+directorio del motor: la familia se cierra sola cuando esto se convierte en defs.
+
+Sale de una decisión de Wagner del 08/09/2026 al ver la atestiguación de `ChipFilter`. No se
+ejecuta antes de la 12: el reporte mira el mes, y el `dateRange` cambia justamente eso.
+
+### Task 14: la búsqueda libre es un control del motor, no del toolbar
+
+Lo levantó Wagner el 08/09/2026: **el motor no tiene barra de búsqueda.** Tiene `kind: 'text'`
+—el NCT# de Research—, pero la búsqueda libre de una lista, la que mira tres o cuatro columnas a
+la vez, la dibuja a mano el `ListToolbar` de cada módulo.
+
+El costo no es el input duplicado: es que al no ser un def, **la búsqueda no se guarda con la
+vista ni cuenta como filtro activo**. Alguien guarda «Leads de oncología en España» con el texto
+puesto y la vista vuelve sin él.
+
+`kind: 'search'` es un def que matchea sobre varias columnas y se dibuja ancho. Directorio y Admin
+ya declaran el suyo (`busqueda`) y sólo les falta que el toolbar lo consuma en vez de dibujar el
+input; `/tasks` y `/research` lo tienen afuera del panel.
 
 ### Task 11: ✅ HECHA — Las importaciones que este plan dejó a la vista
 
