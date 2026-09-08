@@ -6,7 +6,7 @@ import { useT } from '@/shared/i18n'
 import { useTasks } from '@/features/tasks/components/TasksContext'
 import s from './index.module.css'
 
-// centinela-exime: bloques-similares@2 — dos `Field` con su `select`, sacados de
+// centinela-exime: bloques-similares@3 — dos `Field` con su `select`, sacados de
 // `NewActivityModal` al partirlo. Van juntos y aparte porque cargan una invariante propia.
 
 // A QUIÉN y a QUÉ marca. Los dos son obligatorios y los dos arrancan en el placeholder vacío:

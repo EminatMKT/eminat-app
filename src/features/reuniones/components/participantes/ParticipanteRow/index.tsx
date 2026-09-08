@@ -5,7 +5,7 @@ import { ASISTENCIA, ROL_EN_REUNION } from '@/features/reuniones/constants'
 import type { Participante } from '@/features/reuniones/types'
 import s from './index.module.css'
 
-// centinela-exime: bloques-similares@2 — no dibuja ni la caja ni la barra: las dos salieron a
+// centinela-exime: bloques-similares@3 — no dibuja ni la caja ni la barra: las dos salieron a
 // `FilaLista`, compartido, porque `ReunionRow` las tenía iguales. Los dos selects salieron a
 // `CatalogoSelect`, también compartido — eran el mismo markup dos veces en este archivo. Lo que
 // queda es de la mesa: quién es, con qué rol y si vino.

@@ -2,7 +2,7 @@
 import { useT, type I18nKey } from '@/shared/i18n'
 import s from './index.module.css'
 
-// centinela-exime: bloques-similares@2 — leí `ls src/shared/components/ui` entero. El más cerca
+// centinela-exime: bloques-similares@3 — leí `ls src/shared/components/ui` entero. El más cerca
 // es `WarningCallout` y NO es esto: avisa UNA cosa con un detalle desplegable tras un <details>,
 // y acá hay N errores que tienen que verse todos juntos y sin abrir nada. Tampoco es "agregarle
 // un prop": habría que cambiarle la forma —de un mensaje a una lista— y sacarle el <details>,

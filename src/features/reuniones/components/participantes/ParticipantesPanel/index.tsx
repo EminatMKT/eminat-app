@@ -9,7 +9,7 @@ import { filaExterna, filaInterna } from '@/features/reuniones/utils/filasDePart
 import { internosDisponibles } from '@/features/reuniones/utils/internosDisponibles'
 import type { Externo } from '@/features/reuniones/types'
 import s from './index.module.css'
-// centinela-exime: bloques-similares@2 — leí `ls src/shared/components/ui` (21) más dashboard/ y
+// centinela-exime: bloques-similares@3 — leí `ls src/shared/components/ui` (21) más dashboard/ y
 // shell/. No hay markup propio salvo el rótulo de la sección: la lista, el alta del equipo y la
 // del invitado son sus componentes. Nada que unificar.
 type Props = {

@@ -8,7 +8,7 @@ import ActivityPlanificacion from '@/features/tasks/components/modals/ActivityPl
 import { hayCambios } from '@/features/tasks/utils/act-form'
 import { useTasks } from '@/features/tasks/components/TasksContext'
 
-// centinela-exime: bloques-similares@2 — no hay markup nuevo: los campos salieron a
+// centinela-exime: bloques-similares@3 — no hay markup nuevo: los campos salieron a
 // `ActivityCampos` y `ActivityPlanificacion`, los botones son `Button` y el pie es el `footer`
 // de `Modal`. `ActivityFormHeader` desapareció: era el encabezado del Modal reimplementado.
 export default function NewActivityModal() {

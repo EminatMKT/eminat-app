@@ -2,7 +2,7 @@
 import { useT } from '@/shared/i18n'
 import s from './index.module.css'
 
-// centinela-exime: bloques-similares@2 — leí `ls src/shared/components/ui` entero. `ErrorList`
+// centinela-exime: bloques-similares@3 — leí `ls src/shared/components/ui` entero. `ErrorList`
 // es lo más cerca y no sirve: muestra N errores de VALIDACIÓN de un formulario, y acá hay UNO
 // solo de tres clases distintas. Y no es "agregarle un prop": habría que darle un modo neutro,
 // o sea otra forma. Vive en el módulo; el día que una segunda lista lo pida, sube a shared.

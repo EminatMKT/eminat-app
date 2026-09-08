@@ -4,7 +4,7 @@ import { useT } from '@/shared/i18n'
 import { useTasks } from '@/features/tasks/components/TasksContext'
 import s from './index.module.css'
 
-// centinela-exime: bloques-similares@1 — sale de `NewActivityModal`, que pasaba el techo de 150.
+// centinela-exime: bloques-similares@3 — sale de `NewActivityModal`, que pasaba el techo de 150.
 // Cuánto esfuerzo lleva la tarea: las horas suman en el reporte de pago y los días dibujan la
 // barra del Gantt.
 //

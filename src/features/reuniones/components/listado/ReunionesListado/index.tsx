@@ -10,7 +10,7 @@ import ReunionRow from '@/features/reuniones/components/listado/ReunionRow'
 import { filtrarReuniones } from '@/features/reuniones/utils/filtrarReuniones'
 import { useReuniones } from '@/features/reuniones/hooks'
 import s from './index.module.css'
-// centinela-exime: bloques-similares@2 — leí `ls src/shared/components/ui`: lo reusable YA se
+// centinela-exime: bloques-similares@3 — leí `ls src/shared/components/ui`: lo reusable YA se
 // reusa (`ListToolbar` + `Button`, el patrón de Admin) y ninguno necesitó un prop nuevo.
 // centinela-exime: useState@1 — `busqueda` y `abierta` no viajan juntos: filtrar no abre nada
 // y abrir no filtra.

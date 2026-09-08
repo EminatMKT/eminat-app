@@ -11,7 +11,7 @@ type Props = {
   children?: ReactNode
 }
 
-// centinela-exime: bloques-similares@2 — la otra fila de encabezado del repo es `FilterBar`, y
+// centinela-exime: bloques-similares@3 — la otra fila de encabezado del repo es `FilterBar`, y
 // comparten cuatro declaraciones de flex y nada más: acá hay buscador y acción, allá un control
 // por def, y hasta el gap difiere. La unificación que valía la pena era sacar las dos del `style`
 // inline, y eso está hecho — la fila en sí no da para un módulo compartido.
