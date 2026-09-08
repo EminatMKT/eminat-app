@@ -13,7 +13,23 @@
 ## Estado (04/09/2026)
 
 **Hechas: 1 a 7, la 9, la 10 y la 11.** Las fases 1, 2 y 3 están completas y la 4 quedó a medias
-a propósito. **Lo único que falta es la tarea 8** (`ChipFilter`).
+a propósito. **Faltan la tarea 8** (`ChipFilter`) **y la 12** (`dateRange`), las dos de la fase 4.
+
+El 08/09/2026 la fase 4 creció y el «+ Filtro» cambió de sentido:
+
+- **La barra abre con los filtros PRINCIPALES**, que declara cada módulo en su punto de uso
+  (`useFilters(ambito, defs, ['estado', 'empresa'])`); el resto los ofrece el «+ Filtro», que con
+  eso hace lo que su rótulo dice. Trajo un bug que no estaba: `ocultosVigentes` medía «¿tocaste
+  algo?» por `length`, y ese array ahora arranca lleno — la vista de apertura habría dejado de
+  esconder en silencio.
+- **Las vistas viven en un desplegable**, cada una con su ✏️ ★ 🗑 en la fila (`VistaFila`), y
+  «+ Nueva vista» al pie. `VistaAcciones` se borró: sus tres acciones bajaron a la fila.
+- **La cabecera del panel lleva el RESUMEN** —qué vista, si está modificada, cuántos filtros
+  puestos— porque es lo único que sobrevive al plegado. Sin botones: una acción ahí opera sobre
+  algo que quien la aprieta no está viendo.
+- **`Button` ganó `iconOnly` y `pressed`**, que era el techo que `ModalHead` había dejado anotado.
+- Salió **`ui/Disclosure/`**: el chevron y su `aria-expanded` estaban copiados en `Panel` y en
+  `StatCard`. `StatCard` sigue con su copia — se migra cuando se lo toque.
 
 Las tareas 1, 2 y 10 salieron en `0bc5503`, `63ddb89` y `701cb33`; la 3, la 4, la 5 y la 6 en
 `5beb0b0`, `4fefd49`, `75c697b` y `2c8de5d`. La 7, la 9 y la 11 están **en el árbol, verdes y sin
@@ -1943,6 +1959,49 @@ bloqueante de los cuatro módulos administrativos.
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
 ```
+
+### Task 12: `kind: 'dateRange'` — una columna de fecha se filtra por rango, no por desplegable
+
+**Norma, dicha el 08/09/2026:** *los datos de tipo fecha llevan date picker de rango.* Un
+desplegable de meses o de trimestres sobre una columna `date` no es una simplificación, es una
+pérdida de precisión: no hay forma de pedir «del 15 de marzo al 10 de abril».
+
+Los dos módulos lo incumplen, cada uno a su manera:
+
+- **`/tasks` filtra tiempo con DOS selects** —`trimestre` y `periodo`— sobre el mismo eje. Desde
+  que `actividades.mes` pasó a `fecha_inicio date` (fase 1 de ese plan) el dato admite el rango y
+  el control no lo aprovecha. Los dos defs se reemplazan por uno.
+- **Research tiene el rango partido en dos defs** —`addedFrom` y `addedTo`, dos `kind: 'date'`
+  sueltos—. Filtran bien, pero son dos controles que el usuario tiene que entender como uno, y
+  nada impide poner un «desde» posterior al «hasta».
+
+**El valor va en UNA clave, como `desde..hasta`.** `FilterValues` sigue siendo
+`Record<string, string>`, así que ni `vistas_filtro.valores` (jsonb) ni `sameFilters` ni las vistas
+guardadas cambian de forma. Un extremo vacío es un rango abierto (`..2026-04-10`), que es lo que
+hoy se consigue dejando un `date` sin llenar.
+
+**Files:**
+- Modify: `src/shared/utils/filters/types.ts` — `'dateRange'` en `FilterKind`
+- Create: `src/shared/components/filters/DateRangeFilter/index.tsx` + `index.module.css`
+- Modify: `src/shared/components/filters/FilterBar/index.tsx` — ramifica sobre el kind nuevo
+- Modify: `src/features/tasks/utils/act-filters/index.ts` — `trimestre` + `periodo` → un `fecha`
+- Modify: `src/features/research/utils/filters.ts` — `addedFrom` + `addedTo` → un `added`
+- Modify: `src/features/tasks/hooks/useTablero/filtros.ts` — `PRINCIPALES` deja de nombrar los viejos
+
+**Interfaces:**
+- Consumes: `FilterDef<T>`, `FilterValues`.
+- Produces: `kind: 'dateRange'`, el componente, y un helper puro `enRango(valor, fecha)` con test.
+
+**Lo que hay que decidir al ejecutarla, no antes:**
+1. **Qué pasa con las vistas guardadas que tienen `trimestre` o `periodo` adentro.** Son claves que
+   dejan de existir: `resolveFilterValues` las ignora, así que la vista no rompe — pero filtra
+   menos que antes sin decirlo. Hoy hay pocas vistas y ninguna en producción; si eso cambia antes
+   de ejecutar, hace falta una migración de `valores`.
+2. **Si el tablero pierde algo al no tener «trimestre».** Las gráficas por trimestre no dependen
+   del filtro, pero el reporte de pago sí mira el mes. Verificar antes de borrar el def.
+3. **Un `<input type="date">` por extremo o un calendario propio.** Nativo primero: es lo que ya
+   usa `InputFilter`, entra en el tab order y no agrega dependencia. El calendario propio sólo si
+   el nativo no alcanza para el rango.
 
 ### Task 11: ✅ HECHA — Las importaciones que este plan dejó a la vista
 
