@@ -10,7 +10,7 @@ import type { I18nKey } from '@/shared/i18n'
 // —`SelectFilter`, `InputFilter`— y esos componentes necesitan tipar qué variante dibujan sin
 // copiar la lista: copiada, agregar un control acá dejaría al componente aceptando uno que no
 // sabe dibujar.
-export type FilterKind = 'select' | 'text' | 'date'
+export type FilterKind = 'select' | 'text' | 'date' | 'chips'
 
 export interface FilterDef<T> {
   key: string

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { applyFilters, distinctValues, distinctTokens, visibleDefs } from './index'
+import { applyFilters, countByOption, distinctValues, distinctTokens, visibleDefs } from './index'
 import type { FilterDef } from '../types'
 
 type Row = { phase: string; country: string }
@@ -45,5 +45,25 @@ describe('visibleDefs', () => {
   // en vez de nacer invisible para todo el que tenga una vista guardada de antes.
   it('una clave oculta que ya no existe no molesta', () => {
     expect(visibleDefs(DEFS, ['columna-que-se-borro']).map(d => d.key)).toEqual(['phase', 'country'])
+  })
+})
+
+describe('countByOption', () => {
+  const filas = [{ area: 'mkt' }, { area: 'med' }, { area: 'mkt' }]
+  const def: FilterDef<{ area: string }> = {
+    key: 'area', labelKey: 'common.all', nameKey: 'common.all', kind: 'chips',
+    options: items => distinctValues(items, r => r.area),
+    match: (r, v) => r.area === v,
+  }
+
+  it('cuenta cuántos items caen en cada opción', () => {
+    expect(countByOption(filas, def)).toEqual({ mkt: 2, med: 1 })
+  })
+
+  // Una opción del dominio que hoy no tiene filas se muestra en cero, no se esconde: el chip
+  // sirve para preguntar «¿no hay ninguna de Medical?» y una opción que desaparece no deja.
+  it('una opción sin items cuenta cero, no desaparece', () => {
+    const conDominio = { ...def, options: () => ['mkt', 'med', 'ops'] }
+    expect(countByOption(filas, conDominio)).toEqual({ mkt: 2, med: 1, ops: 0 })
   })
 })

@@ -28,3 +28,9 @@ export const distinctValues = <T,>(items: T[], get: (i: T) => unknown): string[]
 // Igual que distinctValues pero para columnas multivalor separadas por coma (ej. países).
 export const distinctTokens = <T,>(items: T[], get: (i: T) => unknown): string[] =>
   Array.from(new Set(items.flatMap(i => String(get(i) ?? '').split(',').map(s => s.trim()).filter(Boolean)))).sort()
+
+// Cuántos items caen en cada opción de un def — el número que lleva cada chip. Sale del motor y
+// no del módulo: `DepartmentChip` lo calculaba contra `DIRECTORIO_DATA` importado a mano, que ata
+// un componente de UI a un dataset concreto.
+export const countByOption = <T,>(items: T[], def: FilterDef<T>): Record<string, number> =>
+  Object.fromEntries((def.options?.(items) ?? []).map(o => [o, items.filter(i => def.match(i, o)).length]))

@@ -12,7 +12,9 @@ import s from './index.module.css'
 // esta familia y lo unifica la tarea 8 del plan de filtros, como `ChipFilter`.
 
 type Props = {
-  kind: Exclude<FilterKind, 'select'>
+  // Los kinds que SON un `<input>`. Excluidos por resta y no enumerados: así un control nuevo
+  // del vocabulario —`chips` fue el primero— no entra acá de contrabando como `type="chips"`.
+  kind: Exclude<FilterKind, 'select' | 'chips'>
   value: string
   onChange: (value: string) => void
   label: string

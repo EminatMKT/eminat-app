@@ -42,7 +42,9 @@ export default function FilterBar<T>(props: Props<T>) {
   return (
     <div className={s.bar}>
       {before && <>{before}<span className={s.separador} /></>}
-      {defs.map(d => d.kind && d.kind !== 'select' ? (
+      {/* `chips` cae en la rama del `<select>`: son el mismo filtro con otra piel, y en la barra
+          la que sirve es la angosta. Las píldoras se montan sueltas, fuera del panel. */}
+      {defs.map(d => d.kind === 'text' || d.kind === 'date' ? (
         // `InputFilter` pone su propio rótulo: una fecha lo necesita distinto en cada extremo
         // («Cargado desde», «Cargado hasta») y el nombre de la columna sería el mismo dos veces.
         <InputFilter key={d.key} kind={d.kind} value={values[d.key] ?? ''} label={labelFor(d)}
