@@ -22,7 +22,7 @@ type Props<T> = {
 export default function FilterPicker<T>({ defs, ocultos, onAlternar, labelFor }: Props<T>) {
   const { t } = useT()
   return (
-    <Dropdown rotulo={t('common.filter.pick')} punteado>
+    <Dropdown rotulo={t('common.filter.pick')} punteado alignEnd>
       {defs.map(d => (
         <FilterPickerItem key={d.key} label={labelFor(d)} visible={!ocultos.includes(d.key)}
           onAlternar={() => onAlternar(d.key)} />
