@@ -8,6 +8,9 @@ type Props = {
   /** El nombre se muestra en la pregunta: «¿Borrar Mi trimestre?» dice qué se va; «¿Borrar la
    *  vista?» obliga a mirar el desplegable para saberlo, justo antes de perderla. */
   nombre: string
+  /** Dentro de una fila del desplegable el rótulo no entra: va sólo el 🗑, con el rótulo como
+   *  nombre accesible. */
+  iconOnly?: boolean
   onBorrar: (id: string) => Promise<void>
 }
 
@@ -21,12 +24,13 @@ type Props = {
 //
 // Sin `confirmPhrase`: una vista se rehace en un minuto poniendo los filtros de nuevo y
 // guardándola. La frase se reserva para lo que no se puede deshacer Y afecta a otros.
-export default function BorrarVista({ vistaId, nombre, onBorrar }: Props) {
+export default function BorrarVista({ vistaId, nombre, iconOnly, onBorrar }: Props) {
   const { t } = useT()
   const [preguntando, setPreguntando] = useState(false)
   return (
     <>
-      <Button kind="delete" label={t('common.filter.delete')} onClick={() => setPreguntando(true)} />
+      <Button kind="delete" label={t('common.filter.delete')} iconOnly={iconOnly}
+        onClick={() => setPreguntando(true)} />
       {preguntando && (
         <ConfirmModal destructive title={t('common.filter.deleteTitle')}
           message={t('common.filter.deleteMsg', { nombre })}

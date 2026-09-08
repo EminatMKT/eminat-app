@@ -1,0 +1,38 @@
+.fila {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.375rem;
+}
+
+.fila:hover {
+  background: var(--c-s3);
+}
+
+/* El nombre se lleva el espacio libre: es el blanco grande para aplicar la vista, y las acciones
+   quedan pegadas al borde derecho en todas las filas por igual. */
+.nombre {
+  flex: 1;
+  min-width: 0;
+  padding: 0.375rem 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--c-t2);
+  font-family: inherit;
+  font-size: 0.6875rem;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.puesta {
+  color: var(--c-t1);
+  font-weight: 600;
+}
+
+.nombre:focus-visible {
+  outline: 2px solid var(--c-accent-solid);
+  outline-offset: -2px;
+}

@@ -1,45 +1,45 @@
 'use client'
-// centinela-exime: bloques-similares@2 — busqué un `<select>` compartido antes de dibujar éste:
-// `SelectFilter` está atado a un `FilterDef` (deriva opciones de los datos y arrastra la opción
-// huérfana) y `CatalogoSelect` a un catálogo META con su `label(v, t)`. Acá las opciones son
-// filas de una tabla del usuario. Lo demás sí se reusa: `VistaAcciones` y `NombreVista`.
 import { useT } from '@/shared/i18n'
-import type { VistaFiltro } from '@/shared/data'
+import { Button, Dropdown } from '@/shared/components/ui'
 import NombreVista from '../NombreVista'
-import VistaAcciones from '../VistaAcciones'
+import VistaFila from '../VistaFila'
+import type { PresetsProps } from './types'
 import s from './index.module.css'
 
-type Props = {
-  vistas: VistaFiltro[]
-  activaId: string
-  modificada: boolean
-  onAplicar: (id: string) => void
-  onGuardar: (nombre: string) => Promise<void>
-  onActualizar: (id: string) => Promise<void>
-  onRenombrar: (id: string, nombre: string) => Promise<void>
-  onBorrar: (id: string) => Promise<void>
-  onMarcar: (id: string) => Promise<void>
-}
+// centinela-exime: bloques-similares@3 — lo sustancial ya se compone (`Dropdown`, `VistaFila`,
+// `NombreVista`). Lo propio son el «sin vistas» y los dos separadores. Busqué en `ui/`: no hay
+// menú con secciones ni estado-vacío compartido.
 
-// Las vistas guardadas: elegir una, y las acciones sobre la elegida. Cuál está elegida NO es
-// estado de acá: viene de `useFilters`, que lo persiste — con un `useState` local, recargar
-// dejaba el desplegable en «Sin vista» mientras en pantalla seguían los filtros de una.
-export default function FilterPresets(props: Props) {
-  const { vistas, activaId, modificada, onAplicar, onGuardar, ...acciones } = props
+/** Las vistas guardadas, enteras adentro de un desplegable: qué hacer con la puesta si te
+ *  apartaste de ella, la lista, y crear una nueva. */
+export default function FilterPresets(props: PresetsProps) {
+  const { vistas, activaId, modificada, onAplicar, onGuardar, onActualizar } = props
+  const { onRenombrar, onBorrar, onMarcar } = props
   const { t } = useT()
-  const nombreActiva = vistas.find(v => v.id === activaId)?.nombre ?? ''
   return (
-    <div className={`${s.presets}${activaId ? ` ${s.conVista}` : ''}`}>
-      <span className={s.rotulo}>{t('common.filter.viewLabel')}</span>
-      <select className={s.select} value={activaId} onChange={e => onAplicar(e.target.value)}>
-        <option value="">{t('common.filter.viewsNone')}</option>
-        {vistas.map(v => <option key={v.id} value={v.id}>{v.abre_por_defecto ? `★ ${v.nombre}` : v.nombre}</option>)}
-      </select>
-      {activaId ? (
-        <VistaAcciones vistaId={activaId} nombre={nombreActiva} modificada={modificada} {...acciones}>
-          <NombreVista rotulo={t(modificada ? 'common.filter.saveAsNew' : 'common.filter.save')} onConfirmar={onGuardar} />
-        </VistaAcciones>
-      ) : <NombreVista rotulo={t('common.filter.save')} onConfirmar={onGuardar} />}
-    </div>
+    <Dropdown rotulo={t('common.filter.views')}>
+      {activaId && modificada && (
+        <div className={s.seccion}>
+          <Button kind="confirm" label={t('common.filter.update')} onClick={() => void onActualizar(activaId)} />
+          <NombreVista rotulo={t('common.filter.saveAsNew')} onConfirmar={onGuardar} />
+        </div>
+      )}
+      {vistas.length === 0 && <p className={s.vacio}>{t('common.filter.viewsNone')}</p>}
+      {vistas.map(v => (
+        <VistaFila key={v.id} vista={v} puesta={v.id === activaId} onAplicar={onAplicar}
+          onRenombrar={onRenombrar} onBorrar={onBorrar} onMarcar={onMarcar} />
+      ))}
+      <div className={s.seccion}>
+        <NombreVista rotulo={t('common.filter.newView')} onConfirmar={onGuardar} />
+      </div>
+    </Dropdown>
   )
 }
+
+// Las vistas entraron enteras acá, y el disparador es lo único que ocupa lugar en la barra. Antes
+// la fila cambiaba de forma según el estado —al modificarse una vista aparecían dos botones y un
+// aviso—, y el filtro, que es el punto del panel, quedaba perdido entre controles de vistas.
+//
+// «Actualizar» y «Guardar como nueva» son de la VISTA PUESTA, no de la barra: van arriba de todo
+// porque son la respuesta a lo que la cabecera ya dijo —que te apartaste de la vista—, y son lo
+// primero que se busca al abrir el menú por ese motivo.

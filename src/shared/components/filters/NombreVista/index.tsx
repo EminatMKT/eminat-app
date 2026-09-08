@@ -1,26 +1,29 @@
 'use client'
-// centinela-exime: bloques-similares@2 — ES la unificación: guardar una vista y renombrarla son
-// el mismo bloque (un `<input>` y un `Button` adentro del `Dropdown` compartido) y estaban por
-// duplicarse. Busqué en `ui/`: `Field` es de formularios con rótulo y validación, y `ListToolbar`
-// es un encabezado de lista con buscador. Nada cubre «un nombre y confirmar» en un desplegable.
+// centinela-exime: bloques-similares@3 — ES la unificación: guardar una vista y renombrarla son
+// el mismo bloque (un `<input>` y un `Button` adentro del `Dropdown` compartido). Busqué en `ui/`:
+// `Field` es de formularios con rótulo y validación, `ListToolbar` un encabezado con buscador.
+
+// centinela-exime: identificador-en-espanol@2 — `rotulo` e `inicial` son los nombres que ya usa
+// `Dropdown`, de donde bajan. Traducirlos sólo acá deja dos idiomas en la misma línea; el motor
+// de filtros se renombra entero o no se renombra.
 import { useState } from 'react'
 import { useT } from '@/shared/i18n'
 import { Button, Dropdown } from '@/shared/components/ui'
 import s from './index.module.css'
 
 type Props = {
-  /** Lo que se lee en el disparador: «Guardar vista», «Guardar como nueva», «Renombrar». */
+  /** Lo que se lee en el disparador: «Guardar vista», «Guardar como nueva», o el ✏️ de una fila. */
   rotulo: string
+  /** Cómo se llama el disparador cuando el rótulo es un ícono y no se puede leer. Con él, el
+   *  disparador pierde su caja: en una fila de menú es un hermano del ★ y el 🗑, no un control. */
+  ariaLabel?: string
   /** Con qué texto abre el campo. Vacío al crear; el nombre actual al renombrar — renombrar es
-   *  CORREGIR un nombre, y arrancar en blanco obliga a reescribirlo entero para cambiar una letra. */
+   *  CORREGIR un nombre, y arrancar en blanco obliga a reescribirlo entero por una letra. */
   inicial?: string
   onConfirmar: (nombre: string) => Promise<void>
 }
 
-// Ponerle nombre a una vista: al crearla o al corregirlo después. El formulario va adentro de un
-// desplegable y NO en un `prompt()`: el modal del navegador bloquea el hilo, no se puede traducir
-// y no hay forma de probarlo.
-export default function NombreVista({ rotulo, inicial = '', onConfirmar }: Props) {
+export default function NombreVista({ rotulo, ariaLabel, inicial = '', onConfirmar }: Props) {
   const { t } = useT()
   const [nombre, setNombre] = useState(inicial)
 
@@ -34,7 +37,7 @@ export default function NombreVista({ rotulo, inicial = '', onConfirmar }: Props
   }
 
   return (
-    <Dropdown rotulo={rotulo}>
+    <Dropdown rotulo={rotulo} ariaLabel={ariaLabel} iconOnly={!!ariaLabel}>
       <div className={s.form}>
         <input className={s.input} value={nombre} placeholder={t('common.filter.saveName')}
           onChange={e => setNombre(e.target.value)} />
@@ -46,3 +49,7 @@ export default function NombreVista({ rotulo, inicial = '', onConfirmar }: Props
     </Dropdown>
   )
 }
+
+// Ponerle nombre a una vista: al crearla o al corregirlo después. El formulario va adentro de un
+// desplegable y NO en un `prompt()`: el modal del navegador bloquea el hilo, no se puede traducir
+// y no hay forma de probarlo.

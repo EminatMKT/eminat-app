@@ -15,6 +15,20 @@
   transition: background .15s ease, box-shadow .15s ease, transform .15s ease, color .15s ease;
 }
 
+/* Sólo el ícono: cuadrado, sin el padding lateral del rótulo. El alto se mantiene para que no
+   rompa la línea óptica de la fila donde vive. */
+.icono {
+  width: 1.75rem;
+  padding: 0;
+  justify-content: center;
+}
+
+/* Prendido: el interruptor se lee sin pasar el mouse ni abrir nada. Va sobre el tono, no en vez
+   de él, para que un `star` prendido siga siendo un `star`. */
+.prendido {
+  color: var(--c-accent-solid);
+}
+
 .base:active {
   transform: translateY(0);
   box-shadow: 0 1px 2px rgba(16, 24, 40, .12);
@@ -85,4 +99,37 @@
 .peligro:focus-visible {
   outline: 2px solid var(--c-danger-solid);
   outline-offset: 2px;
+}
+
+/* EL RELLENO SE VA EN MODO ÍCONO, y va después de los tonos a propósito, para ganarles. Un botón
+   de la paleta se pinta entero porque compite por la atención en un pie de modal; el mismo botón
+   en una fila de menú es chrome —un 🗑 rojo lleno al lado de un ✏️ gritaba, y los tres hermanos
+   tenían tres pesos distintos—. El tono no se pierde: pasa del fondo al glifo. */
+.icono.primario,
+.icono.secundario,
+.icono.peligro {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: var(--c-t3);
+}
+
+.icono.peligro:hover:not(:disabled) {
+  background: transparent;
+  color: var(--c-danger-solid);
+  box-shadow: none;
+  transform: none;
+}
+
+.icono.primario:hover:not(:disabled),
+.icono.secundario:hover:not(:disabled) {
+  background: var(--c-s3);
+  color: var(--c-t1);
+  box-shadow: none;
+  transform: none;
+}
+
+/* Prendido gana sobre el gris del modo ícono: es el estado, no el reposo. */
+.icono.prendido {
+  color: var(--c-accent-solid);
 }

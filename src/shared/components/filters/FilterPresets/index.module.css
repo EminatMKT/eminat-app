@@ -1,40 +1,26 @@
-/* El riel de vistas. No es una fila más de controles: es el CONTEXTO en el que se está mirando
-   todo lo de abajo —«estoy viendo Mi trimestre»—, y hasta hoy se veía igual que un filtro
-   cualquiera. Un `<select>` idéntico a los otros cinco, en su propia línea, sin nada que dijera
-   que gobierna a los que siguen.
-
-   Se separa por SUPERFICIE y no por otro borde: un recuadro hundido dice «esto es de otro
-   orden» sin sumar otra caja a una pantalla que ya tiene muchas. */
-.presets {
+/* Una sección del menú: «qué hacer con la puesta» arriba, la lista en el medio, «crear una» al
+   pie. La línea las separa — sin ella, crear parece una vista más de la lista. */
+.seccion {
   display: flex;
-  gap: 0.5rem;
   align-items: center;
-  flex-wrap: wrap;
-  margin-bottom: 0.625rem;
-  padding: 0.375rem 0.5rem 0.375rem 0.625rem;
-  border-radius: 0.625rem;
-  background: var(--c-s3);
-  /* La barra de la izquierda es el indicador de estado del riel: apagada sin vista, encendida
-     con una puesta. Se lee de reojo, sin ir a leer qué dice el desplegable. */
-  border-left: 0.125rem solid var(--c-border-strong);
-  transition: border-color 0.15s ease;
+  gap: 0.375rem;
+  margin-top: 0.375rem;
+  padding-top: 0.375rem;
+  border-top: 1px solid var(--c-border);
 }
 
-.conVista {
-  border-left-color: var(--c-accent);
+/* La de arriba abre el menú: su línea va abajo, contra la lista, y no encima del borde del panel.
+   Los selectores hermanos no sirven acá — la lista son `VistaFila`, otro módulo CSS, y sus clases
+   salen con otro hash. */
+.seccion:first-child {
+  margin-top: 0;
+  padding: 0 0 0.375rem;
+  border-top: none;
+  border-bottom: 1px solid var(--c-border);
 }
 
-/* La etiqueta del riel. La forma sale de `control.module.css`, que es donde vive la voz de las
-   etiquetas de este motor: el rótulo del input la comparte. */
-.rotulo {
-  composes: rotulo from '../control.module.css';
-}
-
-/* El mismo control que los de la barra —elegir una vista es elegir de una lista—, pero con más
-   peso y más ancho: es el único de la pantalla que decide qué significan todos los demás, y un
-   nombre puesto por una persona («Mi trimestre») merece leerse entero sin recortarse. */
-.select {
-  composes: control from '../control.module.css';
-  font-weight: 600;
-  min-width: 11rem;
+.vacio {
+  padding: 0.375rem 0.5rem;
+  color: var(--c-t3);
+  font-size: 0.6875rem;
 }

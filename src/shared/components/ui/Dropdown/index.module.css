@@ -50,10 +50,34 @@
   border-color: var(--c-border-strong);
 }
 
+/* Sin caja: el disparador es un ícono dentro de una fila, no un control de la barra. Va con los
+   mismos valores que un `Button` en modo ícono para que los hermanos de una fila se vean iguales. */
+.soloIcono {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  justify-content: center;
+  border: none;
+  background: transparent;
+}
+
+.soloIcono:hover {
+  background: var(--c-s3);
+  border: none;
+}
+
+.raiz[open] .soloIcono {
+  border: none;
+}
+
 .panel {
   position: absolute;
   z-index: 10;
   margin-top: 0.25rem;
+  /* Crece con lo que tiene adentro en vez de partir los rótulos: con el ancho fijo de antes,
+     «Guardar como nueva» caía en tres renglones. El tope evita el panel de media pantalla. */
+  width: max-content;
+  max-width: 20rem;
   min-width: 12rem;
   padding: 0.375rem;
   border-radius: 0.625rem;
@@ -61,6 +85,13 @@
   background: var(--c-s1);
   box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 12%);
   animation: caer 0.12s ease-out;
+}
+
+/* Anclado al borde DERECHO del disparador. Para el que vive contra el borde de la pantalla —el
+   «+ Filtro» cierra su fila—: anclado a la izquierda, su panel se salía y los rótulos quedaban
+   cortados. */
+.aDerecha {
+  right: 0;
 }
 
 /* Un salto de 0.25rem y una opacidad: alcanza para que el panel se lea como algo que SALIÓ del
