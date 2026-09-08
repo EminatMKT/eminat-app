@@ -1,48 +1,44 @@
 'use client'
-import type { ReactNode } from 'react'
-import { DASHBOARD_THEME } from '@/shared/components/dashboard/theme'
 import { useUserPreference } from '@/shared/hooks'
+import { Disclosure } from '@/shared/components/ui'
+import type { PanelProps } from './types'
+import s from './index.module.css'
 
-// Contenedor único de los bloques del módulo (gráficas, tabla de leads, barra de filtros).
-// Antes cada bloque repetía su propio borde/radio/sombra y su título con otro tamaño: un panel
-// solo hace que todo el módulo respire igual y que el ojo encuentre siempre el título en el
-// mismo lugar. `right` es para lo que acompaña al título (contadores, acciones).
-// `collapsible` deja recoger el bloque: en una presentación se muestra una sección a la vez.
-type PanelBase = {
-  title?: string
-  right?: ReactNode
-  children: ReactNode
-  flush?: boolean // el contenido llega hasta el borde (tablas), sin padding propio
-}
-// Plegable ⇒ `persistKey` OBLIGATORIO, por tipos. Un panel que se recoge y se vuelve a abrir solo
-// al recargar es una molestia silenciosa; así el compilador no deja agregar uno sin memoria.
-// La clave es explícita y no derivada del título: el título está traducido y cambiaría de clave
-// (y de estado) al pasar de español a inglés.
-type PanelProps = PanelBase & (
-  | { collapsible: true; persistKey: string }
-  | { collapsible?: false; persistKey?: never }
-)
+// centinela-exime: bloques-similares@3 — busqué los 19 componentes de `ui/` y los de
+// `dashboard/`: ninguno es un contenedor de sección, y el chevron que compartía con `StatCard`
+// acaba de salir a `Disclosure`. Éste ES el contenedor al que los demás llaman.
 
+/** El contenedor de los bloques de un módulo: gráficas, tablas, la barra de filtros. */
 export default function Panel({ title, right, children, flush = false, collapsible = false, persistKey }: PanelProps) {
-  const { s1, border, t1, t3 } = DASHBOARD_THEME
-  // Si el panel quedó recogido. Un click lo reabre: va local, no a tabla. Y va SÍNCRONO a
-  // propósito: desde la base se pintaría abierto y se cerraría solo al llegar la respuesta.
+  // Va SÍNCRONO a propósito: desde la base el panel se pintaría abierto y se cerraría solo al
+  // llegar la respuesta.
   const [collapsed, setCollapsed] = useUserPreference(persistKey ? `panel-${persistKey}` : null, false)
-  const canToggle = collapsible && !!title
+  const rotulo = <span className={s.rotulo}>{title}</span>
   return (
-    <div style={{ background: s1, border: `1px solid ${border}`, borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+    <div className={`${s.raiz}${flush ? ` ${s.recortado}` : ''}`}>
       {title && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '13px 16px', borderBottom: collapsed ? 'none' : `1px solid ${border}` }}>
-          {/* El título entero es el disparador, no solo el chevron: es un blanco más grande. */}
-          <button type="button" onClick={() => canToggle && setCollapsed(c => !c)} aria-expanded={canToggle ? !collapsed : undefined}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 0, border: 'none', background: 'transparent', cursor: canToggle ? 'pointer' : 'default' }}>
-            {canToggle && <span style={{ color: t3, fontSize: 10, width: 10, display: 'inline-block', transform: collapsed ? 'rotate(-90deg)' : 'none', transition: 'transform .15s ease' }}>▼</span>}
-            <span style={{ fontFamily: 'Syne', fontSize: 13, fontWeight: 700, color: t1, letterSpacing: '-.01em' }}>{title}</span>
-          </button>
-          {right}
+        <div className={`${s.cabecera}${collapsed ? ` ${s.cabeceraSola}` : ''}`}>
+          {collapsible
+            ? <Disclosure abierto={!collapsed} onAlternar={() => setCollapsed(c => !c)}>{rotulo}</Disclosure>
+            : rotulo}
+          {/* Envuelto: sin esto, un `right` de varias piezas las reparte el `space-between` de la
+              cabecera y quedan desperdigadas entre el título y el borde. */}
+          {right && <div className={s.derecha}>{right}</div>}
         </div>
       )}
-      {!collapsed && <div style={{ padding: flush ? 0 : 16 }}>{children}</div>}
+      {!collapsed && <div className={flush ? s.cuerpoAlBorde : s.cuerpo}>{children}</div>}
     </div>
   )
 }
+
+// Un solo contenedor para todos los bloques de un módulo: antes cada uno repetía su borde, su
+// radio y su sombra, y su título con otro tamaño. Con uno solo el módulo respira igual y el ojo
+// encuentra el título siempre en el mismo lugar. `right` acompaña al título (contadores,
+// acciones); `collapsible` deja recoger el bloque para mostrar una sección a la vez.
+//
+// Sin `collapsible` el título NO es un botón: antes se dibujaba uno igual con el `onClick`
+// desactivado por dentro, y eso lo dejaba en el tab order prometiendo algo que no hacía.
+//
+// El recorte de `flush` es lo único condicional: ahí el contenido llega al borde y sin
+// `overflow: hidden` las esquinas de una tabla se salen del radio. Con padding no recorta nada
+// propio y sí lo ajeno — un desplegable que cae de la fila de filtros quedaba tapado por el borde.

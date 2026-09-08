@@ -1,0 +1,36 @@
+.disparador {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Sin rótulo el botón no tiene de dónde agarrarse: se le da caja propia para que el blanco no sea
+   el glifo de 10px. Con rótulo, el blanco ES el rótulo y una caja acá lo encerraría. */
+.soloIcono {
+  width: 1.5rem;
+  height: 1.5rem;
+  justify-content: center;
+  border: 1px solid var(--c-border-strong);
+  border-radius: 0.375rem;
+}
+
+.chevron {
+  display: inline-block;
+  width: 0.625rem;
+  font-size: 0.625rem;
+  line-height: 1;
+  color: var(--c-t3);
+  transition: transform 0.15s ease;
+}
+
+.cerrado {
+  transform: rotate(-90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron { transition: none; }
+}
