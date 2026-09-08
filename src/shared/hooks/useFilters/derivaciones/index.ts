@@ -1,23 +1,27 @@
-import { sameFilters, type FilterValues } from '@/shared/utils'
+import { sameFilters, type FilterValues, type FilterDef } from '@/shared/utils'
 import type { VistaFiltro } from '@/shared/data'
 
-// Las dos cuentas del hook que no dependen de React. Salieron de `index.ts` cuando no entró en
-// las 50 líneas, y de paso ganaron lo que adentro del hook no podían tener: un test — el repo no
-// corre Vitest con DOM, así que lo que vive dentro de un hook no se prueba.
+// Mismos escondidos, sin importar el orden: esconder A y después B no es un estado distinto de
+// esconder B y después A.
+const mismasClaves = (a: string[], b: string[]): boolean =>
+  a.length === b.length && a.every(k => b.includes(k))
 
-// Los `ocultos` que rigen. Los tuyos ganan; si no escondiste nada, valen los de la vista que abre
-// por defecto. Se mira `length` y no la identidad del array porque «no escondí nada» y «la vista
-// no esconde nada» son el mismo estado en pantalla.
-export const ocultosVigentes = (locales: string[], apertura?: VistaFiltro): string[] =>
-  locales.length ? locales : apertura?.ocultos ?? []
+/** Con qué escondidos abre la barra: todo lo que el módulo no puso entre sus `principales`. Sin
+ *  lista no esconde nada, que es como se comportaba antes de que la lista existiera. */
+export const ocultosPorDefecto = <T,>(defs: FilterDef<T>[], principales?: string[]): string[] =>
+  principales ? defs.filter(d => !principales.includes(d.key)).map(d => d.key) : []
 
-// ¿La vista aplicada dejó de coincidir con lo que hay en pantalla? Es lo que evita que el
-// desplegable diga «Mi trimestre» mientras se ve otra cosa.
-//
-// Los `ocultos` se comparan como CONJUNTOS: el orden en que escondiste dos filtros no es un
-// cambio, y compararlos como listas marcaría la vista modificada por haberlos tocado al revés.
+/** Los `ocultos` que rigen. Los tuyos ganan; mientras no toques nada valen los de la vista que
+ *  abre por defecto. «No tocaste nada» es coincidir con el default, no estar vacío: desde que el
+ *  módulo declara `principales`, la barra ya abre con filtros escondidos. */
+export const ocultosVigentes = (locales: string[], iniciales: string[], apertura?: VistaFiltro): string[] =>
+  mismasClaves(locales, iniciales) ? apertura?.ocultos ?? locales : locales
+
+/** ¿La vista aplicada dejó de coincidir con lo que hay en pantalla? Es lo que evita que el
+ *  desplegable diga «Mi trimestre» mientras se ve otra cosa. */
 export const vistaModificada = (valores: FilterValues, ocultos: string[], activa?: VistaFiltro): boolean =>
-  !!activa && !(
-    sameFilters(valores, activa.valores) &&
-    ocultos.length === activa.ocultos.length && ocultos.every(k => activa.ocultos.includes(k))
-  )
+  !!activa && !(sameFilters(valores, activa.valores) && mismasClaves(ocultos, activa.ocultos))
+
+// Las cuentas del hook que no dependen de React. Salieron de `index.ts` cuando no entró en las 50
+// líneas, y de paso ganaron lo que adentro del hook no podían tener: un test — el repo no corre
+// Vitest con DOM, así que lo que vive dentro de un hook no se prueba.

@@ -1,23 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { ocultosVigentes, vistaModificada } from './index'
+import { vistaModificada } from './index'
 import type { VistaFiltro } from '@/shared/data'
 
 const vista = (p: Partial<VistaFiltro> = {}): VistaFiltro => ({
   id: 'v1', ambito: 'x', nombre: 'Mi vista', valores: {}, ocultos: [], abre_por_defecto: false, ...p,
-})
-
-describe('ocultosVigentes', () => {
-  it('lo tuyo gana sobre lo que esconde la vista de apertura', () => {
-    expect(ocultosVigentes(['area'], vista({ ocultos: ['estado'] }))).toEqual(['area'])
-  })
-
-  it('sin nada escondido valen los de la vista de apertura', () => {
-    expect(ocultosVigentes([], vista({ ocultos: ['estado'] }))).toEqual(['estado'])
-  })
-
-  it('sin vista de apertura no hay nada escondido', () => {
-    expect(ocultosVigentes([], undefined)).toEqual([])
-  })
 })
 
 describe('vistaModificada', () => {

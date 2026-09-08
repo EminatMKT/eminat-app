@@ -5,11 +5,16 @@ import { useUserPreference } from '../useUserPreference'
 import type { FilterValues } from '@/shared/utils'
 
 type EstadoLocal = { valores: FilterValues; ocultos: string[]; vistaId: string }
-const VACIO: EstadoLocal = { valores: {}, ocultos: [], vistaId: '' }
 
-// La mitad EFÍMERA de los filtros: qué tenés puesto ahora, qué escondiste ahora, y sobre qué
-// vista estás parado. Es la contraparte de `vistas.ts`, que es la mitad guardada.
-export function useEstadoLocal(ambito: string) {
+// El punto de partida, no el vacío: los filtros que el módulo NO puso entre sus principales
+// arrancan escondidos y el «+ Filtro» los ofrece. Es función y no constante porque cada módulo
+// decide con cuáles abre.
+const inicial = (ocultos: string[]): EstadoLocal => ({ valores: {}, ocultos, vistaId: '' })
+
+/** La mitad EFÍMERA de los filtros: qué tenés puesto, qué escondiste y sobre qué vista estás
+ *  parado. Es la contraparte de `vistas.ts`, que es la mitad guardada. */
+export function useEstadoLocal(ambito: string, ocultosIniciales: string[]) {
+  const VACIO = inicial(ocultosIniciales)
   // Local porque cambia con cada tecla y se reconstruye con un click: escribirlo a la base sería
   // un round-trip por interacción. Lo que la persona NOMBRÓ —una vista— sí va a tabla, y de eso
   // se ocupa `vistas.ts`. Y `vistaId` viaja acá y no en un useState del componente para que
