@@ -29,27 +29,27 @@ export function actividadFilters({
   departamentoPorResponsable, nombreDepartamento, departamentoPropio,
 }: Deps): FilterDef<Actividad>[] {
   return [
-    { key: 'trimestre', labelKey: 'stratix.filter.allQuarters',
+    { key: 'trimestre', labelKey: 'stratix.filter.allQuarters', nameKey: 'stratix.filter.quarter',
       options: () => QUARTERS,
       match: (a, v) => trimestreDe(a.fecha_inicio) === v },
     // Los 12 meses de cada año presente, no los que tienen tareas: el tablero se usa para ver
     // que un mes está vacío, y una opción que desaparece cuando no hay tareas no permite
     // preguntarlo. Antes eran 12 fijos porque el mes no tenía año.
-    { key: 'periodo', labelKey: 'stratix.filter.allMonths',
+    { key: 'periodo', labelKey: 'stratix.filter.allMonths', nameKey: 'stratix.filter.month',
       options: items => periodosDisponibles(items.map(a => a.fecha_inicio)),
       optionLabel: p => periodoLargo(`${p}-01`, intlLocale),
       match: (a, v) => claveMes(a.fecha_inicio) === v },
-    { key: 'estado', labelKey: 'stratix.filter.allStatuses',
+    { key: 'estado', labelKey: 'stratix.filter.allStatuses', nameKey: 'stratix.filter.status',
       options: () => [...COLUMNAS_KANBAN],
       optionLabel: e => estadoLabel(e, t),
       match: (a, v) => a.estado === v },
     // Marca y responsable salen de los datos presentes: el catálogo de empresas tiene 11 filas
     // de las que solo algunas reciben actividades, y el de usuarios incluye a quien nunca tuvo
     // una tarea. Un desplegable con opciones que no filtran nada es ruido.
-    { key: 'empresa', labelKey: 'stratix.filter.allBrands',
+    { key: 'empresa', labelKey: 'stratix.filter.allBrands', nameKey: 'stratix.filter.brand',
       options: items => distinctValues(items, a => a.empresa),
       match: (a, v) => a.empresa === v },
-    { key: 'responsable_id', labelKey: 'stratix.filter.allAssignees',
+    { key: 'responsable_id', labelKey: 'stratix.filter.allAssignees', nameKey: 'stratix.filter.assignee',
       options: items => distinctValues(items, a => a.responsable_id)
         .sort((x, y) => (nombrePorId[x] ?? '').localeCompare(nombrePorId[y] ?? '')),
       optionLabel: id => nombrePorId[id] ?? '—',
@@ -57,7 +57,7 @@ export function actividadFilters({
     // El área NO sale de una columna: se DERIVA del responsable, que es obligatorio. Arranca en
     // la de quien mira y se puede quitar — es comodidad, no control de acceso: quien tiene el
     // módulo lee todas las tareas de la empresa y la RLS no corta por departamento.
-    { key: 'departamento', labelKey: 'tasks.filter.allAreas',
+    { key: 'departamento', labelKey: 'tasks.filter.allAreas', nameKey: 'tasks.filter.area',
       defaultValue: departamentoPropio,
       options: items => distinctValues(items, a => departamentoPorResponsable[a.responsable_id ?? '']),
       optionLabel: id => nombreDepartamento[id] ?? '—',

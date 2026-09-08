@@ -11,10 +11,10 @@ import type { FilterDef } from '../types'
 type Tarea = { area: string }
 const tareas: Tarea[] = [{ area: 'mkt' }, { area: 'med' }, { area: 'mkt' }]
 const DEFS: FilterDef<Tarea>[] = [
-  { key: 'area', labelKey: 'common.all', defaultValue: 'mkt', match: (a, v) => a.area === v },
-  { key: 'estado', labelKey: 'common.all', match: () => true },
+  { key: 'area', labelKey: 'common.all', nameKey: 'common.all', defaultValue: 'mkt', match: (a, v) => a.area === v },
+  { key: 'estado', labelKey: 'common.all', nameKey: 'common.all', match: () => true },
 ]
-const SIN_DEFAULT: FilterDef<Tarea>[] = [{ key: 'area', labelKey: 'common.all', match: (a, v) => a.area === v }]
+const SIN_DEFAULT: FilterDef<Tarea>[] = [{ key: 'area', labelKey: 'common.all', nameKey: 'common.all', match: (a, v) => a.area === v }]
 
 describe('defaultFilterValues', () => {
   it('sólo trae los defs que declaran uno', () => {

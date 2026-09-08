@@ -15,18 +15,18 @@ const domain = (column: string) => () => domainOptions(column) ?? []
 export const LEAD_FILTERS: FilterDef<Lead>[] = [
   // Royner llega con su lista de NCT# ya trabajada y los pega acá. Case-insensitive y por
   // inclusión: pegar "NCT0123" o "0123" encuentra igual.
-  { key: 'nct', labelKey: 'research.filter.nct', kind: 'text', match: (l, v) => (l.nct_number ?? '').toLowerCase().includes(v.trim().toLowerCase()) },
+  { key: 'nct', labelKey: 'research.filter.nct', nameKey: 'research.filter.nctName', kind: 'text', match: (l, v) => (l.nct_number ?? '').toLowerCase().includes(v.trim().toLowerCase()) },
   // Rango de carga: dos filtros sueltos en vez de un valor compuesto — applyFilters ya los
   // combina en AND y el estado sigue siendo Record<string,string>. date_added es DATE
   // (YYYY-MM-DD) → comparación lexicográfica. Sin fecha = fuera del rango.
-  { key: 'addedFrom', labelKey: 'research.filter.addedFrom', kind: 'date', match: (l, v) => !!l.date_added && l.date_added >= v },
-  { key: 'addedTo', labelKey: 'research.filter.addedTo', kind: 'date', match: (l, v) => !!l.date_added && l.date_added <= v },
+  { key: 'addedFrom', labelKey: 'research.filter.addedFrom', nameKey: 'research.filter.added', kind: 'date', match: (l, v) => !!l.date_added && l.date_added >= v },
+  { key: 'addedTo', labelKey: 'research.filter.addedTo', nameKey: 'research.filter.added', kind: 'date', match: (l, v) => !!l.date_added && l.date_added <= v },
   // Los centinelas de "sin valor" (acá y en fase/especialidad) existen porque cada barra del
   // dashboard es clickeable: la barra "Sin etapa" tiene que poder filtrar sus leads, y un valor
   // vacío no sirve para eso — significa "filtro apagado". Van también a `options` para que se
   // puedan elegir a mano. El centinela y el bucket de la gráfica salen del MISMO módulo
   // (./charts) y charts.test.ts verifica que digan lo mismo.
-  { key: 'stage', labelKey: 'research.filter.allStages',
+  { key: 'stage', labelKey: 'research.filter.allStages', nameKey: 'research.filter.stage',
     options: () => [...(domainOptions('stage') ?? []), NO_STAGE],
     match: (l, v) => (v === NO_STAGE ? !(l.stage ?? '').toString().trim() : String(l.stage ?? '') === v) },
   // phase es multivalor ("Phase 1/Phase 2") → match por inclusión sobre las opciones del dominio.
@@ -34,17 +34,17 @@ export const LEAD_FILTERS: FilterDef<Lead>[] = [
   // charts.test.ts verifica que devuelvan lo mismo. Las opciones son las fases ATÓMICAS (más el
   // centinela): ofrecer 'Phase 1/Phase 2' en el desplegable no tendría sentido cuando un estudio
   // combinado ya aparece al elegir cualquiera de sus dos fases.
-  { key: 'phase', labelKey: 'research.filter.allPhases',
+  { key: 'phase', labelKey: 'research.filter.allPhases', nameKey: 'research.filter.phase',
     options: () => [...PHASE_TOKENS, NO_PHASE],
     match: (l, v) => phasesOf(l).includes(v) },
-  { key: 'status', labelKey: 'research.filter.allStatuses', options: domain('recruitment_status'), match: eq(l => l.recruitment_status) },
-  { key: 'country', labelKey: 'research.filter.allCountries', options: items => distinctTokens(items, l => l.countries), match: includes(l => l.countries) },
-  { key: 'sponsor', labelKey: 'research.filter.allSponsors', options: items => distinctValues(items, l => l.lead_sponsor), match: eq(l => l.lead_sponsor) },
+  { key: 'status', labelKey: 'research.filter.allStatuses', nameKey: 'research.filter.status', options: domain('recruitment_status'), match: eq(l => l.recruitment_status) },
+  { key: 'country', labelKey: 'research.filter.allCountries', nameKey: 'research.filter.country', options: items => distinctTokens(items, l => l.countries), match: includes(l => l.countries) },
+  { key: 'sponsor', labelKey: 'research.filter.allSponsors', nameKey: 'research.filter.sponsor', options: items => distinctValues(items, l => l.lead_sponsor), match: eq(l => l.lead_sponsor) },
   // Es el filtro que responde "¿cuántos estudios de oncología tenemos?" sin exportar nada —
   // el motivo por el que existe la columna. Dominio cerrado ⇒ opciones del def, no de la data.
   // El centinela NO_SPECIALTY se suma al dominio para poder pedir "los que faltan clasificar"
   // (1 de cada 4). Sin él no se puede: un valor vacío significa "filtro apagado".
-  { key: 'specialty', labelKey: 'research.filter.allSpecialties',
+  { key: 'specialty', labelKey: 'research.filter.allSpecialties', nameKey: 'research.filter.specialty',
     options: () => [...(domainOptions('especialidad') ?? []), NO_SPECIALTY],
     match: (l, v) => (v === NO_SPECIALTY ? !(l.especialidad || '').trim() : String(l.especialidad ?? '') === v) },
 ]

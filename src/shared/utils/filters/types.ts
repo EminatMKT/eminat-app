@@ -19,6 +19,12 @@ export interface FilterDef<T> {
   // I18nKey)`: el cast estaba en el punto de uso y el problema acá. Tipada en el origen, una
   // clave que no existe deja de compilar donde se escribe el def.
   labelKey: I18nKey
+  // Cómo se llama la COLUMNA, en una palabra: «Trimestre», «Responsable». Es distinto de
+  // `labelKey`, que es el placeholder («Todos los trimestres») y sólo se lee mientras el filtro
+  // está vacío. Con un valor puesto, un `<select>` nativo muestra el valor y nada más — «Q2» y
+  // «Ana Sinequipo» uno al lado del otro no dicen de qué columna son. Va requerido a propósito:
+  // un filtro que no sabe nombrar su columna es el bug que esto arregla.
+  nameKey: I18nKey
   kind?: FilterKind // control a renderizar; default 'select'
   options?: (items: T[]) => string[] // solo para 'select': valores elegibles (de los datos o de un dominio)
   // Cómo se MUESTRA cada opción, cuando el valor guardado no se puede leer: un uuid de
