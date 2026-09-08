@@ -5,20 +5,21 @@ import { useT } from '@/shared/i18n'
 import { DEFAULT_ROLE } from '@/shared/auth/permissions'
 import AppShell from '@/shared/components/shell/AppShell'
 import AccessDenied from '@/shared/components/access/AccessDenied'
-import TabButton from '@/shared/components/ui/TabButton'
-import Button from '@/shared/components/ui/Button'
+import { Button, TabBar, TabButton } from '@/shared/components/ui'
 import { PageTransition } from '@/shared/motion'
-import StatsBar from './StatsBar'
-import RoleFilterBar from './RoleFilterBar'
-import UserTable from './UserTable'
-import RolesManager from './RolesManager'
-import OrgManager from './OrgManager'
-import CreateUserModal from './CreateUserModal'
-import EditUserModal, { type EditUserDraft } from './EditUserModal'
-import ResetPasswordModal from './ResetPasswordModal'
-import DeleteUserModal from './DeleteUserModal'
-import { cargoIdsOf, isOrgCat, ORG_CATS, type OrgCat } from '../org-catalogs'
-import type { AdminUser, ResetTarget } from '../types'
+import { applyFilters, type FilterValues } from '@/shared/utils'
+import userFilters from '@/features/admin/utils/filters'
+import StatsBar from '../StatsBar'
+import UsuariosToolbar from '../UsuariosToolbar'
+import UserTable from '../UserTable'
+import RolesManager from '../RolesManager'
+import OrgManager from '../OrgManager'
+import CreateUserModal from '../CreateUserModal'
+import EditUserModal, { type EditUserDraft } from '../EditUserModal'
+import ResetPasswordModal from '../ResetPasswordModal'
+import DeleteUserModal from '../DeleteUserModal'
+import { cargoIdsOf, isOrgCat, ORG_CATS, type OrgCat } from '@/features/admin/org-catalogs'
+import type { AdminUser, ResetTarget } from '@/features/admin/types'
 import { useUserPreference } from '@/shared/hooks/useUserPreference'
 import { oneOf } from '@/shared/hooks/usePersistedState'
 
@@ -29,11 +30,10 @@ import { oneOf } from '@/shared/hooks/usePersistedState'
 type Vista = 'usuarios' | 'roles' | OrgCat
 
 export default function AdminModule() {
-  const { esAdmin, adminUsuarios, border } = useApp()
+  const { esAdmin, adminUsuarios, roles } = useApp()
   const { t } = useT()
   const [vista, setVista] = useUserPreference<Vista>('tab-admin', 'usuarios', oneOf('usuarios', 'roles', ...ORG_CATS))
-  const [busqueda, setBusqueda] = useState('')
-  const [filtroRol, setFiltroRol] = useState('todos')
+  const [filters, setFilters] = useState<FilterValues>({})
   const [modalCrear, setModalCrear] = useState(false)
   const [modalEditar, setModalEditar] = useState<EditUserDraft | null>(null)
   const [modalReset, setModalReset] = useState<ResetTarget | null>(null)
@@ -41,11 +41,8 @@ export default function AdminModule() {
 
   if (!esAdmin) return <AccessDenied />
 
-  const adminFiltrado = adminUsuarios.filter(u => {
-    if (filtroRol !== 'todos' && u.rol !== filtroRol) return false
-    if (busqueda) { const q = busqueda.toLowerCase(); return (u.nombre || '').toLowerCase().includes(q) || (u.apellido || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q) }
-    return true
-  })
+  const defs = userFilters(rol => roles.find(r => r.key === rol)?.label ?? rol)
+  const adminFiltrado = applyFilters(adminUsuarios, defs, filters)
 
   const openEdit = (u: AdminUser) => setModalEditar({
     id: u.id, nombre: u.nombre || '', apellido: u.apellido || '', email: u.email || '', currentEmail: u.email || '',
@@ -62,15 +59,16 @@ export default function AdminModule() {
       <PageTransition>
         {/* Barra de la sección Usuarios — mismo formato que StratixTabNav. */}
         {!isOrgCat(vista) && (
-          <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: `1px solid ${border}` }}>
+          <TabBar>
             <TabButton label={t('admin.tabUsers')} active={vista === 'usuarios'} onClick={() => setVista('usuarios')} />
             <TabButton label={t('admin.tabRoles')} active={vista === 'roles'} onClick={() => setVista('roles')} />
-          </div>
+          </TabBar>
         )}
         {vista === 'usuarios' && (
           <>
             <StatsBar />
-            <RoleFilterBar busqueda={busqueda} setBusqueda={setBusqueda} filtroRol={filtroRol} setFiltroRol={setFiltroRol} action={crearBtn} />
+            <UsuariosToolbar defs={defs} items={adminUsuarios} values={filters} action={crearBtn}
+              onChange={(k, v) => setFilters(prev => ({ ...prev, [k]: v }))} />
             <UserTable users={adminFiltrado} onEdit={openEdit} onReset={setModalReset} onDelete={setModalEliminar} />
           </>
         )}
