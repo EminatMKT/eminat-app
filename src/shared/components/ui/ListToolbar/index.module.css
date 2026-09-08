@@ -26,3 +26,24 @@
 .accion {
   margin-left: auto;
 }
+
+/* Los filtros en su propia caja: sueltos en la fila heredaban el gap de 1rem del encabezado y
+   dos chips se leían como dos controles sin relación. */
+.filtros {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Riel: no envuelven, se scrollean. El desvanecido va SOLO en el borde derecho — pegado al
+   buscador, el izquierdo se comía el primer chip. */
+.riel {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 0.125rem 0;
+  scrollbar-width: thin;
+  mask-image: linear-gradient(to right, black calc(100% - 1rem), transparent 100%);
+}
