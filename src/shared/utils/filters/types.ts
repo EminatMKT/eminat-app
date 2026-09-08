@@ -10,7 +10,10 @@ import type { I18nKey } from '@/shared/i18n'
 // —`SelectFilter`, `InputFilter`— y esos componentes necesitan tipar qué variante dibujan sin
 // copiar la lista: copiada, agregar un control acá dejaría al componente aceptando uno que no
 // sabe dibujar.
-export type FilterKind = 'select' | 'text' | 'date' | 'chips'
+// `'date'` a secas NO está: una columna de fecha se pide por rango entero, y tener el control
+// de un extremo suelto en el vocabulario es lo que dejaba armar un rango con dos defs que el
+// motor cuenta como dos filtros.
+export type FilterKind = 'select' | 'text' | 'dateRange' | 'chips'
 
 export interface FilterDef<T> {
   key: string
@@ -32,6 +35,10 @@ export interface FilterDef<T> {
   // (ver rules/codigo.md, "el valor canónico NO es la etiqueta"). Sin esto, el
   // desplegable rotula con el dato crudo. Default: el valor mismo.
   optionLabel?: (value: string) => string
+  // ¿Abre la barra, o lo ofrece el «+ Filtro»? Va acá y no en una lista de claves en el punto de
+  // uso: esa lista no la mira el compilador, así que renombrar una clave dejaba la barra abriendo
+  // vacía sin un solo error. Marcado en el def, el renombre mueve las dos cosas en una línea.
+  principal?: boolean
   // Con qué valor arranca el filtro cuando el usuario todavía no lo tocó. Es lo que hace usable
   // un tablero donde conviven cinco áreas: se abre en la propia y desde ahí se abre a las demás.
   // NO es control de acceso — quitarlo muestra todo, y eso es a propósito.

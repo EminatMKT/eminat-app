@@ -44,9 +44,9 @@ export default function FilterBar<T>(props: Props<T>) {
       {before && <>{before}<span className={s.separador} /></>}
       {/* `chips` cae en la rama del `<select>`: son el mismo filtro con otra piel, y en la barra
           la que sirve es la angosta. Las píldoras se montan sueltas, fuera del panel. */}
-      {defs.map(d => d.kind === 'text' || d.kind === 'date' ? (
-        // `InputFilter` pone su propio rótulo: una fecha lo necesita distinto en cada extremo
-        // («Cargado desde», «Cargado hasta») y el nombre de la columna sería el mismo dos veces.
+      {defs.map(d => d.kind === 'text' || d.kind === 'dateRange' ? (
+        // `InputFilter` pone su propio rótulo: el rango son dos inputs y el nombre de la columna
+        // va una sola vez delante de los dos, no repetido en cada extremo.
         <InputFilter key={d.key} kind={d.kind} value={values[d.key] ?? ''} label={labelFor(d)}
           onChange={v => onChange(d.key, v)} className={claseDe(values[d.key])} />
       ) : (

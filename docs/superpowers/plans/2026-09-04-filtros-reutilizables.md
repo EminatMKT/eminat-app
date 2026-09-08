@@ -12,9 +12,13 @@
 
 ## Estado (04/09/2026)
 
-**Hechas: 1 a 11.** Las fases 1, 2 y 3 están completas y la 4 quedó a medias a propósito.
-**Falta la tarea 12** (`dateRange`), y quedaron anotadas la **13** (el predicado del generador de
-reportes al motor) y la **14** (la búsqueda libre como control del motor).
+**Hechas: 1 a 12.** Las cuatro fases están completas. Quedan anotadas la **13** (el predicado del
+generador de reportes al motor) y la **14** (la búsqueda libre como control del motor), y la
+**pasada por navegador**, que ninguna tarea reemplaza.
+
+La **tarea 12 se cerró el 08/09/2026** y salió más grande de lo escrito: `/tasks` quedó con DOS
+rangos —`fecha_inicio` y `fecha_entrega`— porque un solo control rotulado «Fecha» no dice de qué
+fecha habla. El detalle, en su sección.
 
 La **tarea 8 se cerró el 08/09/2026** y salió distinta de como estaba escrita — el detalle, en su
 sección. En una línea: `ChipFilter` **no dibuja el botón** (`PillToggle` ya era ese chip) **ni la
@@ -2007,7 +2011,45 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
 Claude-Session: https://claude.ai/code/session_01AQXcHNJBHYAprdaMdEQUrW"
 ```
 
-### Task 12: `kind: 'dateRange'` — una columna de fecha se filtra por rango, no por desplegable
+### Task 12: ✅ HECHA (08/09/2026) — `kind: 'dateRange'`, y son DOS fechas, no una
+
+Salió con tres cosas que el plan no tenía:
+
+1. **`/tasks` quedó con DOS rangos, no uno.** El plan decía «los dos defs se reemplazan por uno»,
+   y uno rotulado «Fecha» no dice de qué fecha habla: una actividad tiene `fecha_inicio` y
+   `fecha_entrega`, y la que importa depende de lo que se pregunte. Son dos defs, con clave igual
+   a la columna y rotulados con los nombres que ya usan el detalle y la tabla —«Inicio» y
+   «Entrega»—. Lo levantó Wagner al ver la etiqueta.
+2. **No hay componente nuevo.** `InputFilter` ya tipaba su `kind` por resta
+   (`Exclude<FilterKind, 'select' | 'chips'>`), o sea que estaba escrito esperando esto; un
+   `DateRangeFilter` aparte habría costado dos exenciones firmadas (`familia-dispersa`,
+   `bloques-similares`) por nada. Sí salió `InputFilter/RangeEnd/`: los dos extremos eran el mismo
+   `<input>` dos veces.
+3. **`kind: 'date'` se borró del vocabulario.** Sin los dos defs de Research no le quedaba ningún
+   consumidor, y dejarlo era dejar la puerta abierta a lo que la regla nueva prohíbe.
+
+Y una cuarta, que salió de otra pregunta de Wagner en la misma sesión: **`principales` dejó de ser
+una lista de strings en el punto de uso y pasó a ser `FilterDef.principal`.** La lista no la miraba
+el compilador, así que renombrar una clave dejaba la barra abriendo vacía sin un solo error — el
+mismo bug silencioso que una vista guardada con claves muertas. El argumento escrito para
+mantenerla afuera («el mismo filtro puede abrir en un tablero y esconderse en otro») no se cumple:
+cada módulo declara su propio array de defs y ninguno se comparte. `useFilters` perdió su tercer
+parámetro.
+
+Las tres decisiones que el plan dejaba abiertas se cerraron así: **(1)** `vistas_filtro` todavía no
+está en producción, así que no hay `valores` que migrar; **(2)** el reporte de pago NO mira el
+filtro — `useReporte` tiene su propio `criterios.mes` (`localMonth()`), independiente; **(3)**
+nativo, `<input type="date">` por extremo, y el acotado también nativo (`max` del primero = valor
+del segundo y al revés), así que el calendario abre con los días imposibles apagados.
+
+Lo que el plan no había visto: **la gráfica «por mes» del tablero filtraba con `periodo`.** Sigue
+funcionando y ahora rellena el rango del mes entero con un clic — el atajo de calendario que la
+regla pide tener encima del rango, en vez de en lugar del rango. Salió `monthRange` en
+`shared/utils/filters/range/month/`, el contramolde de `enRango`.
+
+Quedó sin hacer: **la pasada por navegador.**
+
+**El texto original de la tarea, para leer contra lo que salió:**
 
 **Norma, dicha el 08/09/2026:** *los datos de tipo fecha llevan date picker de rango.* Un
 desplegable de meses o de trimestres sobre una columna `date` no es una simplificación, es una

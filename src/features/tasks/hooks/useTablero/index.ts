@@ -4,7 +4,7 @@ import { useFiltrosTablero } from './filtros'
 import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 import { ESTADO } from '@/shared/constants/domain'
 import { useT } from '@/shared/i18n'
-import { applyFilters } from '@/shared/utils'
+import { applyFilters, monthRange, RANGE_SEP } from '@/shared/utils'
 import { claveMes, periodoLargo } from '@/features/tasks/utils/periodo'
 import { isExcludedFromStratix360 } from '@/features/tasks/team'
 
@@ -51,14 +51,21 @@ export function useTablero() {
   // corriente si no — elegir otro año es elegir un período de ese año en el panel de filtros.
   // ponytail: un selector de año propio se agrega el día que alguien quiera comparar dos años
   // lado a lado; hoy no hay dos años de datos.
-  const actsPorMes = exceptOwn('periodo')
-  const anioGrafica = (filtros.valores.periodo ?? '').slice(0, 4) || String(hoy.getFullYear())
+  // La gráfica es de INICIOS: la barra de Julio son las que arrancaron en julio. La de entrega
+  // es otra pregunta y tiene su propio filtro, que esta gráfica respeta como cualquier otro.
+  const actsPorMes = exceptOwn('fecha_inicio')
+  // El primer extremo con dato: en un rango abierto por izquierda el año lo pone el «hasta».
+  const chartYear = ((filtros.valores.fecha_inicio ?? '').split(RANGE_SEP).find(Boolean) ?? '').slice(0, 4)
+    || String(hoy.getFullYear())
   const datosPorMes = Array.from({ length: 12 }, (_, i) => {
-    const key = `${anioGrafica}-${String(i + 1).padStart(2, '0')}`
-    const delMes = actsPorMes.filter(a => claveMes(a.fecha_inicio) === key)
+    const month = `${chartYear}-${String(i + 1).padStart(2, '0')}`
+    const delMes = actsPorMes.filter(a => claveMes(a.fecha_inicio) === month)
     return {
-      mes: periodoLargo(`${key}-01`, intlLocale, 'short').split(' ')[0],
-      key,
+      mes: periodoLargo(`${month}-01`, intlLocale, 'short').split(' ')[0],
+      // La barra filtra con el MES ENTERO: el filtro pide rangos, así que un clic en Julio pide
+      // del 1 al 31. Es el atajo de calendario que hacía el desplegable de meses, sin ser ya el
+      // único modo de elegir — a mano se pide cualquier tramo.
+      key: monthRange(month),
       total: delMes.length,
       completadas: delMes.filter(a => a.estado === ESTADO.COMPLETADO).length,
     }
@@ -121,7 +128,7 @@ export function useTablero() {
     filtros, actsFiltradas,
     totalQ, completadasQ, enProcesoQ, pendientesQ, pctCompletado, totalHoras, totalDias,
     hoy, diasRestantes, horasDisponibles, equipoSinMi,
-    datosPorMes, anioGrafica, maxTotal, datosPorMarca, maxMarca, idsTeam, datosPorMiembro, maxMiembro,
+    datosPorMes, maxTotal, datosPorMarca, maxMarca, idsTeam, datosPorMiembro, maxMiembro,
     resumenHoras, ganttActs,
   }
 

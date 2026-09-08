@@ -58,7 +58,7 @@ export default function OverviewTab() {
     <div>
       {/* Los filtros mandan sobre TODO el tablero —indicadores, gráficas, Gantt y horas—, no
           sobre un bloque suelto. Reemplazaron a las pills de trimestre, que solo sabían filtrar
-          por eso: el trimestre es hoy uno de los cinco desplegables. */}
+          por eso: el tiempo es hoy un rango de fechas, y el trimestre un tramo más. */}
       {/* `persistKey` sigue siendo "stratix-filtros" y NO se renombra: es la clave con la que
           cada persona tiene guardado si dejó el panel abierto o recogido. Cambiarla se lo reabre
           a todos. */}
@@ -80,7 +80,7 @@ export default function OverviewTab() {
 
       <div className={s.charts}>
         <BarChartCard persistKey="stratix-months" title={t('stratix.dash.byMonth')} data={mesesData}
-          onSelect={toggle('periodo')} selected={filtros.valores.periodo} />
+          onSelect={toggle('fecha_inicio')} selected={filtros.valores.fecha_inicio} />
         <BarChartCard persistKey="stratix-brands" title={t('stratix.dash.byBrand')} data={marcasData} colors={marcasColors} vertical
           onSelect={toggle('empresa')} selected={filtros.valores.empresa} />
       </div>

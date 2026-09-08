@@ -7,21 +7,20 @@ const vista = (ocultos: string[]): VistaFiltro => ({
   id: 'v1', ambito: 'x', nombre: 'Mi vista', valores: {}, ocultos, abre_por_defecto: false,
 })
 
-const defs = ['estado', 'empresa', 'area', 'periodo']
-  .map(key => ({ key, labelKey: 'common.filter.pick', nameKey: 'common.filter.pick', match: () => true })) as FilterDef<unknown>[]
+const armar = (principales: string[]) => ['estado', 'empresa', 'area', 'fecha_inicio']
+  .map(key => ({ key, labelKey: 'common.filter.pick', nameKey: 'common.filter.pick',
+    principal: principales.includes(key), match: () => true })) as FilterDef<unknown>[]
 
 describe('ocultosPorDefecto', () => {
-  it('esconde todo lo que no está entre los principales', () => {
-    expect(ocultosPorDefecto(defs, ['estado', 'empresa'])).toEqual(['area', 'periodo'])
+  it('esconde todo lo que no se declaró principal', () => {
+    expect(ocultosPorDefecto(armar(['estado', 'empresa']))).toEqual(['area', 'fecha_inicio'])
   })
 
-  it('sin lista de principales no esconde nada', () => {
-    expect(ocultosPorDefecto(defs)).toEqual([])
+  it('sin ningún principal no esconde nada', () => {
+    expect(ocultosPorDefecto(armar([]))).toEqual([])
   })
 
-  it('un principal que no existe entre los defs no esconde de más', () => {
-    expect(ocultosPorDefecto(defs, ['estado', 'nadie'])).toEqual(['empresa', 'area', 'periodo'])
-  })
+  // No hay tercer caso: un principal que nombra una clave inexistente ya no se puede escribir.
 })
 
 describe('ocultosVigentes', () => {
@@ -37,8 +36,8 @@ describe('ocultosVigentes', () => {
     expect(ocultosVigentes([], [], undefined)).toEqual([])
   })
 
-  // Con `principales` el estado local ARRANCA lleno: si «no tocaste nada» se midiera por `length`,
-  // la vista de apertura no volvería a esconder nada nunca.
+  // Con defs `principal` el estado local ARRANCA lleno: si «no tocaste nada» se midiera por
+  // `length`, la vista de apertura no volvería a esconder nada nunca.
   it('estar en el default cuenta como no haber tocado nada, aunque el default esconda', () => {
     expect(ocultosVigentes(['area', 'periodo'], ['area', 'periodo'], vista(['estado']))).toEqual(['estado'])
   })

@@ -7,9 +7,9 @@ import type { Filtros } from './tipos'
 import { useVistas } from './vistas'
 
 /** Los filtros de una tabla: el motor, el estado vivo y las vistas guardadas, en un contrato.
- *  `principales` son las claves con las que abre la barra; el resto las ofrece el «+ Filtro». */
-export function useFilters<T>(ambito: string, defs: FilterDef<T>[], principales?: string[]): Filtros<T> {
-  const iniciales = useMemo(() => ocultosPorDefecto(defs, principales), [defs, principales])
+ *  Con cuáles abre la barra lo dice cada def con su `principal`; el resto los ofrece el «+ Filtro». */
+export function useFilters<T>(ambito: string, defs: FilterDef<T>[]): Filtros<T> {
+  const iniciales = useMemo(() => ocultosPorDefecto(defs), [defs])
   const { local, setValor, limpiarA, alternarVisible, aplicar } = useEstadoLocal(ambito, iniciales)
   const { vistas, guardar, actualizar, renombrar, borrar, marcarPorDefecto } = useVistas(ambito)
 
@@ -50,6 +50,9 @@ export function useFilters<T>(ambito: string, defs: FilterDef<T>[], principales?
 // `ambito` identifica qué se filtra y separa tanto la clave de localStorage como las filas de
 // `vistas_filtro`. Sale del catálogo de módulos, no de un literal escrito a mano.
 //
-// `principales` es del MÓDULO y no del def: el mismo filtro puede abrir la barra en un tablero y
-// vivir detrás del «+ Filtro» en otro. Por eso viaja en el punto de uso y no como un campo de
-// `FilterDef`, que es compartido.
+// Con cuáles abre la barra lo dice `FilterDef.principal`, y NO una lista de claves en el punto de
+// uso. Esa lista viajaba suelta con el argumento de que el mismo filtro podría abrir en un tablero
+// y esconderse en otro — cosa que no pasa: cada módulo declara su propio array de defs y ninguno
+// se comparte entre dos tableros. Lo que sí pasaba era que renombrar una clave dejaba la lista
+// nombrando algo que ya no existe, y con eso la barra abría vacía sin un solo error: el mismo bug
+// silencioso que una vista guardada con claves muertas. Marcado en el def, no hay dos lugares.

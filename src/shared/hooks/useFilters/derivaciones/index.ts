@@ -6,10 +6,10 @@ import type { VistaFiltro } from '@/shared/data'
 const mismasClaves = (a: string[], b: string[]): boolean =>
   a.length === b.length && a.every(k => b.includes(k))
 
-/** Con qué escondidos abre la barra: todo lo que el módulo no puso entre sus `principales`. Sin
- *  lista no esconde nada, que es como se comportaba antes de que la lista existiera. */
-export const ocultosPorDefecto = <T,>(defs: FilterDef<T>[], principales?: string[]): string[] =>
-  principales ? defs.filter(d => !principales.includes(d.key)).map(d => d.key) : []
+/** Con qué escondidos abre la barra: todo lo que no se declaró `principal`. Si ninguno lo es no
+ *  esconde nada, que es como se comportaba antes de que la marca existiera. */
+export const ocultosPorDefecto = <T,>(defs: FilterDef<T>[]): string[] =>
+  defs.some(d => d.principal) ? defs.filter(d => !d.principal).map(d => d.key) : []
 
 /** Los `ocultos` que rigen. Los tuyos ganan; mientras no toques nada valen los de la vista que
  *  abre por defecto. «No tocaste nada» es coincidir con el default, no estar vacío: desde que el

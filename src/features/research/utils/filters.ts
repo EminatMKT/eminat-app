@@ -5,7 +5,7 @@
 import { domainOptions } from './fields'
 import { NO_SPECIALTY } from './specialty'
 import { NO_STAGE, NO_PHASE, PHASE_TOKENS, phasesOf } from './charts'
-import { distinctValues, distinctTokens, type FilterDef } from '@/shared/utils/filters'
+import { distinctValues, distinctTokens, enRango, type FilterDef } from '@/shared/utils'
 import type { Lead } from '../types'
 
 const eq = (get: (l: Lead) => unknown) => (l: Lead, v: string) => String(get(l) ?? '') === v
@@ -16,11 +16,9 @@ export const LEAD_FILTERS: FilterDef<Lead>[] = [
   // Royner llega con su lista de NCT# ya trabajada y los pega acá. Case-insensitive y por
   // inclusión: pegar "NCT0123" o "0123" encuentra igual.
   { key: 'nct', labelKey: 'research.filter.nct', nameKey: 'research.filter.nctName', kind: 'text', match: (l, v) => (l.nct_number ?? '').toLowerCase().includes(v.trim().toLowerCase()) },
-  // Rango de carga: dos filtros sueltos en vez de un valor compuesto — applyFilters ya los
-  // combina en AND y el estado sigue siendo Record<string,string>. date_added es DATE
-  // (YYYY-MM-DD) → comparación lexicográfica. Sin fecha = fuera del rango.
-  { key: 'addedFrom', labelKey: 'research.filter.addedFrom', nameKey: 'research.filter.added', kind: 'date', match: (l, v) => !!l.date_added && l.date_added >= v },
-  { key: 'addedTo', labelKey: 'research.filter.addedTo', nameKey: 'research.filter.added', kind: 'date', match: (l, v) => !!l.date_added && l.date_added <= v },
+  // Rango de carga en UNA clave. Eran dos defs, y el motor los contaba como dos filtros activos
+  // sobre la misma pregunta; el control tampoco impedía poner el «desde» después del «hasta».
+  { key: 'added', labelKey: 'research.filter.added', nameKey: 'research.filter.added', kind: 'dateRange', match: (l, v) => enRango(v, l.date_added) },
   // Los centinelas de "sin valor" (acá y en fase/especialidad) existen porque cada barra del
   // dashboard es clickeable: la barra "Sin etapa" tiene que poder filtrar sus leads, y un valor
   // vacío no sirve para eso — significa "filtro apagado". Van también a `options` para que se

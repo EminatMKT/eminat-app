@@ -34,9 +34,9 @@ export function periodoLargo(
   return new Date(anio, num - 1, 1).toLocaleDateString(intlLocale, { month: mes, year: 'numeric' })
 }
 
-// Lo que ofrecen los desplegables de período: los 12 meses de cada año presente en los datos.
-// Los 12 y no los que tienen tareas, por lo mismo de siempre — el tablero se usa para ver que un
-// mes está VACÍO, y una opción que desaparece cuando no hay tareas no permite preguntarlo.
+// Los meses que ofrece la hoja de pago: los 12 de cada año presente en los datos. NO es un
+// filtro sobre una columna —para eso está el rango—: el reporte ES de un mes, y ahí los 12 y no
+// los que tienen tareas, porque un mes vacío también se imprime.
 export function periodosDisponibles(fechas: (string | null | undefined)[]): string[] {
   const anios = new Set(fechas.map(f => claveMes(f).slice(0, 4)).filter(Boolean))
   if (!anios.size) anios.add(String(new Date().getFullYear()))
@@ -44,3 +44,4 @@ export function periodosDisponibles(fechas: (string | null | undefined)[]): stri
   return Array.from(anios).sort().flatMap(a =>
     Array.from({ length: 12 }, (_, i) => `${a}-${String(i + 1).padStart(2, '0')}`))
 }
+
