@@ -1,8 +1,9 @@
 {
-  "//": "El preset `recommended`, no `standard`: `standard` trae opiniones de notación (rgba vs rgb, 0.19 vs 19%) que dieron 173 avisos sin un solo bug adentro. Lo que se busca acá es lo que tsc NO puede ver — sintaxis rota, propiedades inventadas, prefijos sin su estándar — porque el 25/08 una comilla suelta en un .module.css pasó typecheck y sólo apareció con la pantalla en negro.",
+  "//": "El preset `recommended`, no `standard`: `standard` trae opiniones de notación (rgba vs rgb, 0.19 vs 19%) que dieron 173 avisos sin un solo bug adentro. Lo que se busca acá es lo que tsc NO puede ver — sintaxis rota, propiedades inventadas, prefijos sin su estándar — porque el 25/08 una comilla suelta en un .module.css pasó typecheck y sólo apareció con la pantalla en negro. `composes` se exime de `property-no-unknown` porque es de CSS Modules, no de CSS: lo lee el bundler y nunca llega al navegador. Es la forma con la que este repo comparte la definición de un control entre módulos (ver `filters/control.module.css`), así que sin la exención el gate se cae por una decisión deliberada.",
   "extends": "stylelint-config-recommended",
   "rules": {
     "no-descending-specificity": null,
-    "at-rule-no-unknown": [true, { "ignoreAtRules": ["tailwind"] }]
+    "at-rule-no-unknown": [true, { "ignoreAtRules": ["tailwind"] }],
+    "property-no-unknown": [true, { "ignoreProperties": ["composes"] }]
   }
 }
