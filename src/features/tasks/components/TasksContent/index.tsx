@@ -25,7 +25,7 @@ export default function TasksContent() {
   const { tabActiva, setTabActiva } = useTasks()
 
   return (
-    <ModuloTabs<TasksTab> panel="tasks" titulo="Tasks" tabs={TASKS_TABS} activa={tabActiva} onTab={setTabActiva} vistas={tabViews}>
+    <ModuloTabs<TasksTab> panel="operations" titulo="Operations" tabs={TASKS_TABS} activa={tabActiva} onTab={setTabActiva} vistas={tabViews}>
       <ActivityDetailModal />
       <NewActivityModal />
     </ModuloTabs>

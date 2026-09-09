@@ -7,7 +7,7 @@ describe('catálogo de tabs de /tasks', () => {
   // El sidebar y el catálogo son dos listas que nada obliga a mantener iguales, y no fallan
   // igual: un id que está en el sidebar pero no en el catálogo abre la sección en blanco.
   it('el sidebar ofrece exactamente las tabs del catálogo', () => {
-    expect(SUB_ITEMS.tasks.map(i => i.tab)).toEqual([...TASKS_TABS])
+    expect(SUB_ITEMS.operations.map(i => i.tab)).toEqual([...TASKS_TABS])
   })
 
   // Los dos módulos ya no comparten ninguna sección: las cuatro de tareas se fueron de Stratix.

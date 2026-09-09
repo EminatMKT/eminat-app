@@ -24,9 +24,9 @@ describe('getModulesForRole', () => {
   })
   it('ignora un slug desconocido de `role_modules` y conserva los conocidos', () => {
     // La columna es `text` sin FK: la base puede tener un slug que el catálogo no conoce
-    // (ej. 'operations') y eso no puede tirar abajo el Launchpad.
+    // (ej. uno retirado o mal escrito) y eso no puede tirar abajo el Launchpad.
     const mapConSlugInvalido = {
-      stratix360: ['stratix-mkt', 'operations', 'directorio'],
+      stratix360: ['stratix-mkt', 'no-existe', 'directorio'],
     } as RoleModuleMap
     expect(getModulesForRole(mapConSlugInvalido, 'stratix360')).toEqual(['stratix-mkt', 'directorio'])
   })

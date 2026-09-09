@@ -3,7 +3,7 @@ import type { PanelKey } from './tipos'
 
 // Rail principal: NAV (tipado) filtrado por los `modules` del usuario en runtime.
 export const NAV: { slug: ModuleSlug; key: string; icon: string; label: string; panel?: PanelKey }[] = [
-  { slug: MODULE.TASKS, key: 'tasks', icon: '✅', label: 'Tasks', panel: 'tasks' },
+  { slug: MODULE.OPERATIONS, key: 'operations', icon: '✅', label: 'Operations', panel: 'operations' },
   { slug: MODULE.STRATIX_MKT, key: 'mkt', icon: '🚀', label: 'Stratix 360', panel: 'mkt' },
   { slug: MODULE.ACCOUNTING, key: 'accounting', icon: '🧾', label: 'Accounting' },
   { slug: MODULE.COBRANZAS, key: 'cobranzas', icon: '💳', label: 'Billing' },
@@ -17,7 +17,7 @@ export const NAV: { slug: ModuleSlug; key: string; icon: string; label: string; 
 
 // Título del topbar por módulo (el resto cae al fallback). ponytail: pendiente i18n (ver .todo).
 export const AUTO_TITLE: Partial<Record<ModuleSlug, string>> = {
-  [MODULE.TASKS]: 'Tasks — Tareas del grupo',
+  [MODULE.OPERATIONS]: 'Operations — Tareas del grupo',
   [MODULE.STRATIX_MKT]: 'Stratix 360 — Marketing',
   [MODULE.ACCOUNTING]: 'Accounting — Eminat Research',
   [MODULE.COBRANZAS]: 'EMINAT LLC — Billing Dashboard',

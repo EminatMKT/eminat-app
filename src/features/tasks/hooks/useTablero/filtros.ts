@@ -29,5 +29,5 @@ export function useFiltrosTablero() {
   // El ámbito sale del catálogo de módulos y no de un literal: separa tanto la clave de
   // localStorage como las filas de `vistas_filtro`, y escrito a mano un typo no rompe el build
   // — sólo deja de coincidir, y las vistas guardadas dejan de aparecer sin decir por qué.
-  return useFilters(MODULE.TASKS, actFilters)
+  return useFilters(MODULE.OPERATIONS, actFilters)
 }

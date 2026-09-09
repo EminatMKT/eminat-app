@@ -5,4 +5,4 @@ export { default as TasksModule } from './components/TasksModule'
 
 // Convención access-aware. El slug sale de `MODULE` y no escrito a mano: un literal mal
 // tipeado no rompe el build, sólo deja de coincidir en silencio.
-export const access = { module: MODULE.TASKS } as const
+export const access = { module: MODULE.OPERATIONS } as const

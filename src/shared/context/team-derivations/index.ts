@@ -37,7 +37,7 @@ export function deriveMiembrosAsignables(
 ): { id: string; nombre: string }[] {
   return usuarios
     .filter((u) => u.activo && u.id)
-    .filter((u) => getModulesForRole(roleModuleMap, normalizeRole(u.rol)).includes(MODULE.TASKS))
+    .filter((u) => getModulesForRole(roleModuleMap, normalizeRole(u.rol)).includes(MODULE.OPERATIONS))
     .map((u) => ({ id: u.id as string, nombre: nombreCompleto(u) }))
 }
 

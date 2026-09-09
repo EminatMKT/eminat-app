@@ -25,9 +25,12 @@ describe('moduleForPath', () => {
     expect(moduleForPath('/stratix-mkt/kanban')).toBe('stratix-mkt')
   })
 
-  it('/tasks es su propio módulo', () => {
-    expect(moduleForPath('/tasks')).toBe('tasks')
-    expect(moduleForPath('/tasks/kanban')).toBe('tasks')
+  it('/operations es su propio módulo; /tasks ya no', () => {
+    expect(moduleForPath('/operations/kanban')).toBe('operations')
+    // La ruta vieja deja de pertenecer a un módulo. Importa que quede dicho: `moduleForPath`
+    // devuelve null y ModuleGate DEJA PASAR con null, así que ninguna pantalla puede quedarse
+    // colgando de /tasks.
+    expect(moduleForPath('/tasks')).toBeNull()
   })
 
   // Un slug que sólo COMPARTE prefijo no cuenta: /admins no es /admin.

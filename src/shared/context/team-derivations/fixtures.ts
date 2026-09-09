@@ -16,9 +16,9 @@ export const usuarios = [
 ]
 
 // Rol -> módulos, como lo carga AppContext desde la DB. `enfermera` es el caso nuevo: otro
-// departamento, con el módulo de tareas — exactamente para lo que se creó /tasks.
+// departamento, con el módulo de tareas — exactamente para lo que se creó /operations.
 export const map = {
-  disenador: [MODULE.TASKS, MODULE.STRATIX_MKT],
+  disenador: [MODULE.OPERATIONS, MODULE.STRATIX_MKT],
   medico: [MODULE.MEDICAL],
-  enfermera: [MODULE.TASKS],
+  enfermera: [MODULE.OPERATIONS],
 }
