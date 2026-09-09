@@ -11,14 +11,18 @@ type Props = {
   onClick: () => void
   size?: 'sm' | 'md'
   color?: string // si la opción tiene un color con significado (el estado que filtra)
+  // Cuántos items caen en esta opción. Va apagado al lado del rótulo y no dentro de él: el
+  // número contesta otra pregunta que el nombre, y pegados se leen como un nombre raro.
+  count?: number
 }
 
-export default function PillToggle({ label, active, onClick, size = 'md', color }: Props) {
+export default function PillToggle(props: Props) {
+  const { label, active, onClick, size = 'md', color, count } = props
   return (
     <button type="button" aria-pressed={active} onClick={onClick}
       className={`${s.pill} ${active ? s.on : ''} ${size === 'sm' ? s.sm : ''} ${color ? s.tinted : ''}`}
       style={color ? ({ '--pill-color': color } as CSSProperties) : undefined}>
-      {label}
+      {label}{count !== undefined && <span className={s.cuenta}>{count}</span>}
     </button>
   )
 }

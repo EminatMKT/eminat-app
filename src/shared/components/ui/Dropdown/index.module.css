@@ -1,0 +1,132 @@
+/* El desplegable de la app: un disparador y un panel que cae debajo. Salió de que `FilterPicker`
+   y `FilterPresets` lo escribían igual — la misma caja absoluta con el mismo borde, el mismo
+   radio y la misma sombra, en dos hojas distintas. */
+
+.raiz {
+  position: relative;
+}
+
+/* Mismo alto que un control de filtro (1.875rem): el disparador vive EN la fila de controles, no
+   al lado, y dos alturas distintas rompen la línea óptica de toda la barra. `inline-flex` porque
+   un `<summary>` no centra su texto solo. */
+.disparador {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  height: 1.875rem;
+  padding: 0 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--c-border);
+  color: var(--c-t2);
+  font-size: 0.6875rem;
+  user-select: none;
+  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+.disparador:hover {
+  color: var(--c-t1);
+  border-color: var(--c-border-strong);
+}
+
+/* Punteado para el que AGREGA algo, sólido para el que actúa sobre lo que ya está. No es
+   decoración: es la única señal de que «+ Filtro» no filtra por sí mismo, sino que ofrece. */
+.punteado {
+  border-style: dashed;
+  border-color: var(--c-border-strong);
+}
+
+.disparador::-webkit-details-marker { display: none; }
+
+/* El disparador tiene que decir que ES un desplegable. Sin el chevron, «Vistas» se lee como un
+   botón que hace algo —y al lado de «Actualizar vista» y «Nueva vista», que sí hacen algo, no hay
+   nada que lo distinga—. Es el mismo ▼ girado de `Disclosure`: un solo gesto para «esto se abre».
+   Va por `content` y no como markup: el chevron no es contenido, es la forma del control. */
+.disparador::after {
+  content: '▼';
+  margin-left: 0.4375rem;
+  font-size: 0.5625rem;
+  line-height: 1;
+  color: var(--c-t3);
+  transform: rotate(-90deg);
+  transition: transform 0.15s ease;
+}
+
+.raiz[open] .disparador::after {
+  transform: none;
+}
+
+/* En modo ícono el rótulo YA es un glifo: dos símbolos no entran en 1.75rem. */
+.soloIcono::after {
+  content: none;
+}
+
+.disparador:focus-visible {
+  outline: 2px solid var(--c-accent-solid);
+  outline-offset: 1px;
+}
+
+.raiz[open] .disparador {
+  color: var(--c-t1);
+  background: var(--c-s3);
+  border-style: solid;
+  border-color: var(--c-border-strong);
+}
+
+/* Sin caja: el disparador es un ícono dentro de una fila, no un control de la barra. Va con los
+   mismos valores que un `Button` en modo ícono para que los hermanos de una fila se vean iguales. */
+.soloIcono {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  justify-content: center;
+  border: none;
+  background: transparent;
+}
+
+.soloIcono:hover {
+  background: var(--c-s3);
+  border: none;
+}
+
+.raiz[open] .soloIcono {
+  border: none;
+}
+
+.panel {
+  position: absolute;
+  z-index: 10;
+  margin-top: 0.25rem;
+  /* Crece con lo que tiene adentro en vez de partir los rótulos: con el ancho fijo de antes,
+     «Guardar como nueva» caía en tres renglones. El tope evita el panel de media pantalla. */
+  width: max-content;
+  max-width: 20rem;
+  min-width: 12rem;
+  padding: 0.375rem;
+  border-radius: 0.625rem;
+  border: 1px solid var(--c-border);
+  background: var(--c-s1);
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 12%);
+  animation: caer 0.12s ease-out;
+}
+
+/* Anclado al borde DERECHO del disparador. Para el que vive contra el borde de la pantalla —el
+   «+ Filtro» cierra su fila—: anclado a la izquierda, su panel se salía y los rótulos quedaban
+   cortados. */
+.aDerecha {
+  right: 0;
+}
+
+/* Un salto de 0.25rem y una opacidad: alcanza para que el panel se lea como algo que SALIÓ del
+   disparador y no como algo que apareció encima. Más que eso, en un control que se abre veinte
+   veces por sesión, se vuelve una espera. */
+@keyframes caer {
+  from { opacity: 0; transform: translateY(-0.25rem); }
+}
+
+/* Quien pidió menos movimiento no lo pidió sólo para las animaciones largas. */
+@media (prefers-reduced-motion: reduce) {
+  .panel { animation: none; }
+  .disparador { transition: none; }
+  .disparador::after { transition: none; }
+}

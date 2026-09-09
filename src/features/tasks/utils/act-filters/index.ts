@@ -1,52 +1,36 @@
-// Filtros del tablero de Stratix, declarados una sola vez: de este array salen la UI
-// (FilterBar), el predicado (applyFilters) y el clear — igual que LEAD_FILTERS en Research.
-// Agregar un filtro es agregar un def.
-//
-// Es una FUNCIÓN y no una constante porque dos de los filtros necesitan traducir lo que
-// muestran: el estado tiene su canónico en español (`ESTADO.PENDIENTE === 'Pendiente'`) y el
-// responsable es un uuid. Las dependencias entran por parámetro y no por contexto para que el
-// módulo siga siendo puro y testeable sin montar nada.
-import { TRIMESTRES, TRIMESTRE_GENERAL, COLUMNAS_KANBAN, estadoLabel } from '@/shared/constants/domain'
-import { distinctValues, type FilterDef } from '@/shared/utils/filters'
-import { trimestreDe, claveMes, periodoLargo, periodosDisponibles } from '@/features/tasks/utils/periodo'
-import type { I18nKey } from '@/shared/i18n'
+import filtrosFechas from './grupos/fechas'
+import filtrosTrabajo from './grupos/trabajo'
+import filtrosGente from './grupos/gente'
+import type { FilterDef } from '@/shared/utils'
 import type { Actividad } from '@/features/tasks/types'
+import type { Deps } from './tipos'
 
-type Deps = {
-  t: (k: I18nKey) => string
-  nombrePorId: Record<string, string> // uuid de responsable → nombre a mostrar
-  intlLocale: string // BCP-47 de quien mira: el período se nombra en su idioma
-}
+export type { Deps } from './tipos'
 
-// 'General' es la ausencia de filtro, y eso ya lo representa el placeholder vacío del select.
-const QUARTERS = TRIMESTRES.filter(q => q !== TRIMESTRE_GENERAL)
-
-export function actividadFilters({ t, nombrePorId, intlLocale }: Deps): FilterDef<Actividad>[] {
-  return [
-    { key: 'trimestre', labelKey: 'stratix.filter.allQuarters',
-      options: () => QUARTERS,
-      match: (a, v) => trimestreDe(a.fecha_inicio) === v },
-    // Los 12 meses de cada año presente, no los que tienen tareas: el tablero se usa para ver
-    // que un mes está vacío, y una opción que desaparece cuando no hay tareas no permite
-    // preguntarlo. Antes eran 12 fijos porque el mes no tenía año.
-    { key: 'periodo', labelKey: 'stratix.filter.allMonths',
-      options: items => periodosDisponibles(items.map(a => a.fecha_inicio)),
-      optionLabel: p => periodoLargo(`${p}-01`, intlLocale),
-      match: (a, v) => claveMes(a.fecha_inicio) === v },
-    { key: 'estado', labelKey: 'stratix.filter.allStatuses',
-      options: () => [...COLUMNAS_KANBAN],
-      optionLabel: e => estadoLabel(e, t),
-      match: (a, v) => a.estado === v },
-    // Marca y responsable salen de los datos presentes: el catálogo de empresas tiene 11 filas
-    // de las que solo algunas reciben actividades, y el de usuarios incluye a quien nunca tuvo
-    // una tarea. Un desplegable con opciones que no filtran nada es ruido.
-    { key: 'empresa', labelKey: 'stratix.filter.allBrands',
-      options: items => distinctValues(items, a => a.empresa),
-      match: (a, v) => a.empresa === v },
-    { key: 'responsable_id', labelKey: 'stratix.filter.allAssignees',
-      options: items => distinctValues(items, a => a.responsable_id)
-        .sort((x, y) => (nombrePorId[x] ?? '').localeCompare(nombrePorId[y] ?? '')),
-      optionLabel: id => nombrePorId[id] ?? '—',
-      match: (a, v) => a.responsable_id === v },
+export function activityFilters(deps: Deps): FilterDef<Actividad>[] {
+  const defs = [
+    ...filtrosFechas(),
+    ...filtrosTrabajo(deps),
+    ...filtrosGente(deps),
   ]
+  return defs
 }
+
+// Los filtros del tablero, declarados una sola vez: de este array salen la UI (FilterBar), el
+// predicado (applyFilters) y el clear — igual que LEAD_FILTERS en Research. Agregar un filtro es
+// agregar un def, y no hay una segunda lista que actualizar.
+//
+// Van AGRUPADOS por lo que preguntan, como los campos de la ficha en `act-detail-fields/grupos/`:
+// cuándo (las dos fechas), en qué anda (estado, marca, verificación, bloqueo) y de quién es
+// (responsable, solicitante, área). Nueve defs seguidos en un archivo se leen como una tabla de
+// propiedades —hay que recorrerla entera para encontrar uno—; y el orden de este array es el
+// orden en que se ofrecen en el «+ Filtro».
+//
+// Es una FUNCIÓN y no una constante porque varios filtros necesitan traducir lo que muestran: el
+// estado y la verificación tienen su canónico en español, y el responsable, el solicitante y el
+// área son uuids. Las dependencias entran por parámetro y no por contexto para que los defs
+// sigan siendo puros y testeables sin montar nada.
+//
+// Con cuáles ABRE la barra lo dice cada def con su `principal` —hoy estado y responsable, que son
+// las dos preguntas que alguien que entra por primera vez sabe hacer— y no una lista de claves
+// aparte, que el compilador no miraba.

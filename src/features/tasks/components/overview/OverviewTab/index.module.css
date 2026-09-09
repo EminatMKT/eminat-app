@@ -71,8 +71,10 @@
 
 /* Cada bloque de ancho completo lleva su propia separación: así el orden de lectura del tablero
    se cambia moviendo el JSX, sin tocar márgenes de nadie. */
+/* El mismo aire que separa los bloques de Production: pegados, dos paneles se leen como uno solo
+   partido al medio. */
 .fila {
-  margin-bottom: 14px;
+  margin-bottom: 1rem;
 }
 
 /* Las horas por persona en grilla y no apiladas: son una tarjeta por miembro del equipo, y en

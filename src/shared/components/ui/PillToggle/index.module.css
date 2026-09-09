@@ -30,3 +30,10 @@
   font-size: 11px;
   font-weight: 400;
 }
+
+/* El número que lleva la píldora cuando cuenta algo: apagado, para que el rótulo siga siendo lo
+   que se lee primero. */
+.cuenta {
+  margin-left: .375rem;
+  opacity: .6;
+}

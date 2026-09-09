@@ -5,7 +5,7 @@ import { useT } from '@/shared/i18n'
 import type { Externo } from '@/features/reuniones/types'
 import s from './index.module.css'
 
-// centinela-exime: bloques-similares@2 — leí `ls src/shared/components/ui` (21). `Field` y
+// centinela-exime: bloques-similares@3 — leí `ls src/shared/components/ui` (21). `Field` y
 // `Button` se reusan tal cual; lo propio son los tres campos y que el alta se habilite con el
 // nombre. No hay un formulario compartido al que agregarle un prop: cada uno es su pantalla.
 

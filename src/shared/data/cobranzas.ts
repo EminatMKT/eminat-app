@@ -1,6 +1,9 @@
 import { supabase } from '@/shared/db/supabase'
 import { COLUMNS, type TableName } from './tables'
 
+// centinela-exime: renombrar-lo-nombrado@1 — las filas vienen de un CSV y se corrigen
+// reimportando; el `nombre` es de un laboratorio o un estudio, no algo que alguien nombró acá.
+
 // Capa de acceso a datos del dominio Cobranzas.
 // Las tablas (cobranzas_ventas / cobranzas_cuentas / cobranzas_depositos) se
 // seleccionan dinámicamente por nombre desde el caller (mapa TABLE[cobTab]),

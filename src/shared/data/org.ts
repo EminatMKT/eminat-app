@@ -1,6 +1,9 @@
 import { supabase } from '@/shared/db/supabase'
 import { TABLES } from './tables'
 
+// centinela-exime: renombrar-lo-nombrado@1 — los catálogos se editan por `OrgModal`, que es
+// data-driven y hace un update de TODOS los campos, el nombre incluido.
+
 // Catálogos organizacionales (departamentos / equipos / cargos). Lectura para
 // autenticados vía RLS; las mutaciones van por /api/admin/org (service_role).
 export const listDepartamentos = () =>

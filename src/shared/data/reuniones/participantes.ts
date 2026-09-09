@@ -2,6 +2,9 @@ import { supabase } from '@/shared/db'
 import type { Participante, ParticipanteNuevo } from '@/features/reuniones/types'
 import { TABLES } from '../tables'
 
+// centinela-exime: renombrar-lo-nombrado@1 — acá no se guarda ningún nombre propio: el `nombre`
+// que matchea es el del usuario embebido, y ése se renombra desde `/admin`.
+
 // El orden de la lista NO es el de inserción: `rol_en_reunion` primero, para que quien preside y
 // quien levanta el acta encabecen. Postgres ordena el texto alfabéticamente, así que sale
 // invitado · participante · preside · secretario — que no es la jerarquía. Se ordena en el

@@ -2,7 +2,7 @@
 import { Button } from '@/shared/components/ui'
 import { useT } from '@/shared/i18n'
 
-// centinela-exime: bloques-similares@2 — leí `ls src/shared/components/ui` (21). Son dos
+// centinela-exime: bloques-similares@3 — leí `ls src/shared/components/ui` (21). Son dos
 // `Button` compartidos dentro del `footer` del `Modal`, que ya los alinea: no hay markup nuevo.
 // Lo más cerca es `ActivityAcciones` de Stratix, que hace lo mismo para su formulario y trae su
 // dominio adentro (lee `useTasks()`). Unificarlas pediría pasarle los cuatro rótulos por prop,

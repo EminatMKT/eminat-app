@@ -7,7 +7,7 @@ import type { Reunion } from '@/features/reuniones/types'
 import { ESTADO_REUNION, MODALIDAD } from '@/features/reuniones/constants'
 import s from './index.module.css'
 
-// centinela-exime: bloques-similares@2 — la caja y la barra de color SALIERON de acá a
+// centinela-exime: bloques-similares@3 — la caja y la barra de color SALIERON de acá a
 // `FilaLista`, compartido, al aparecer la segunda fila igual (`ParticipanteRow`): esto ya no
 // dibuja ninguna de las dos. Lo que queda es el contenido, que es dominio de reuniones —código,
 // fecha, hora y modalidad—; y el chip es `ColorBadge`, que también se reusa.

@@ -1,7 +1,7 @@
 'use client'
 import { useT, type I18nKey } from '@/shared/i18n'
 
-// centinela-exime: bloques-similares@2 — leí `ls src/shared/components/ui` entero. El único
+// centinela-exime: bloques-similares@3 — leí `ls src/shared/components/ui` entero. El único
 // `<select>` compartido es `SelectFilter`, y responde a otra cosa: deriva sus opciones de los
 // DATOS presentes y arrastra la opción huérfana de un filtro recordado. Acá las opciones son un
 // catálogo fijo. No es "agregarle un prop": habría que sacarle el `FilterDef` primero.

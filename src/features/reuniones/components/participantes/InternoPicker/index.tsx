@@ -4,7 +4,7 @@ import { Button } from '@/shared/components/ui'
 import { useT } from '@/shared/i18n'
 import s from './index.module.css'
 
-// centinela-exime: bloques-similares@2 — leí `ls src/shared/components/ui` (21). El más cerca es
+// centinela-exime: bloques-similares@3 — leí `ls src/shared/components/ui` (21). El más cerca es
 // `SolicitantePicker` de Stratix, y trae su dominio adentro: ofrece inactivos deshabilitados y
 // sabe de `solicitante_id`. Acá el `<select>` es de una línea y lo que importa es a QUIÉN ofrece,
 // que lo decide el panel. `Button` sí se reusa.

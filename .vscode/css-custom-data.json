@@ -1,0 +1,15 @@
+{
+  "version": 1.1,
+  "properties": [
+    {
+      "name": "composes",
+      "description": "CSS Modules: hereda las declaraciones de otra clase, en este archivo o en otro (`composes: control from '../control.module.css'`). El bundler la resuelve al compilar y la clase resultante lleva las dos; en la salida no queda ningún `composes`.\n\nNo es CSS estándar, y por eso el validador del editor la marcaba como propiedad desconocida. Se declara acá para que el subrayado desaparezca SIN apagar la validación de propiedades, que es lo que atrapa los typos de verdad.",
+      "references": [
+        {
+          "name": "CSS Modules — composition",
+          "url": "https://github.com/css-modules/css-modules#composition"
+        }
+      ]
+    }
+  ]
+}

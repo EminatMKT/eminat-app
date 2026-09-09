@@ -8,7 +8,7 @@ import ParticipanteRow from '@/features/reuniones/components/participantes/Parti
 import { nombreDeParticipante } from '@/features/reuniones/utils/filasDeParticipante'
 import type { Participante } from '@/features/reuniones/types'
 import s from './index.module.css'
-// centinela-exime: bloques-similares@2 — leí `ls src/shared/components/ui` (21). Las filas son
+// centinela-exime: bloques-similares@3 — leí `ls src/shared/components/ui` (21). Las filas son
 // `ParticipanteRow` y el diálogo es `ConfirmModal`; lo único propio es el `<ul>` y el vacío.
 type Props = {
   participantes: Participante[]
