@@ -13,4 +13,6 @@ export default async function globalTeardown() {
   await deleteUser('creado@eminat.net') // lo crea A6
   await deleteUser('admin2@eminat.net') // lo crea C9
   await deleteUser('bootstrap@eminat.net') // C11 lo borra; por si la suite cortó antes
+  await deleteUser('ops.stratix@eminat.net') // operations-slug.spec.ts
+  await deleteUser('ops.medico@eminat.net') // operations-slug.spec.ts
 }
