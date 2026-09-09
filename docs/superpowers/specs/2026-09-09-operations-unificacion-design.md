@@ -2,10 +2,12 @@
 
 **Fecha:** 2026-09-09
 **Invierte:** §2.1 y §2.10 del diseño del 29/08 (`2026-08-29-reuniones-design.md`)
-**Restituye:** el diseño del 28/08, vivo en la rama `feat/modulo-operaciones`
-**Revisado adversarialmente el 09/09** por dos pasadas independientes —modelo de datos y
-correspondencia esquema↔UI—. Dieciséis objeciones; las que sobrevivieron están incorporadas y
-señaladas con ⚠️ donde cambian una decisión anterior.
+**Restituye parcialmente:** el diseño del 28/08, vivo en la rama `feat/modulo-operaciones` — su
+módulo único vuelve, su tratamiento de los temas no (§2.2).
+
+**Dos rondas de revisión adversarial** (09/09): la primera con dos pasadas, la segunda con cuatro
+—modelo de datos, esquema↔UI, contradicciones internas y arte previo—, ninguna informada de lo que
+había encontrado la anterior. ⚠️ marca dónde una objeción cambió una decisión.
 
 ---
 
@@ -21,10 +23,10 @@ de toda la empresa. **El argumento principal de §2.10 para no unificar era la R
 estaba gateada por `has_module('stratix-mkt')` y meter reuniones ahí adentro las encerraba en
 marketing. Ese argumento ya no existe.
 
-⚠️ **Pero no todos los argumentos de §2.10 murieron con ése.** El de fondo —*"`actividades` es tres
-cosas a la vez: una tarea, un renglón de nómina y una unidad de producción, y nunca se partió"*—
+⚠️ **Pero no todos los argumentos de §2.10 murieron con ése.** El de fondo —`actividades` es
+*"una tarea, una planilla de producción y un circuito de aprobación"* a la vez, y nunca se partió—
 sigue vivo, y este diseño **no lo resuelve**: le agrega un cuarto rol, el de compromiso de acta.
-Es una deuda aceptada a sabiendas, no un descuido; partir `actividades` es un refactor propio.
+Es una deuda aceptada a sabiendas; partir `actividades` es un refactor propio.
 
 Queda un tercer hecho, y es el que abarata la fase entera:
 
@@ -45,19 +47,23 @@ su quinta pestaña.
 mató al diseño anterior — *"¿qué ve del acta alguien que participó de la reunión pero no tiene
 tareas?"*. Con un módulo la pregunta no existe para el acceso al módulo.
 
-⚠️ **Lo que esto NO resuelve, y el documento anterior daba por resuelto.** Escribí *"si ves el acta
-es porque tenés el módulo, así que ves las actividades"*. La implicación real corre al revés:
+⚠️ **Lo que esto NO resuelve.** Escribí *"si ves el acta es porque tenés el módulo, así que ves las
+actividades"*. La implicación real corre al revés:
 
 | Tabla | Quién ve una fila |
 |---|---|
-| `reuniones` | `has_module` **Y** (admin **o** creador **o** participa **o** misma empresa) — `20260830204042:63-71` |
+| `reuniones` | `has_module` **Y** (admin **o** creador **o** participa **o** misma empresa) — `20260830204042:61-69` |
 | `actividades` | `has_module`, y nada más — `20260903235201:32` |
 
 Al volver los pendientes filas de `actividades`, **el contenido de un acta reservada queda visible
 para todo el que tenga `operations`**. Es la regresión que §2.7 del diseño del 29/08 se escribió
 entera para evitar. **Diferido a pedido de Wagner el 09/09** y anotado en el `.todo`: la fase sale
-sin esa cláusula de RLS. Mientras tanto, la regla vive en la cabeza de la gente — una reunión
-reservada no carga sus compromisos en el sistema.
+sin esa cláusula de RLS, y la regla vive mientras tanto en la cabeza de la gente.
+
+⚠️ **Lo que sí se resuelve acá, porque lo abre esta fase:** `temas` es una tabla nueva, y una policy
+`USING has_module('operations')` dejaría **los títulos de todo asunto tratado** —incluidos los de un
+acta reservada— visibles para todo el módulo. Eso no es deuda heredada, es un agujero que abriría
+esta migración, y por eso `temas` se lee por reunión, no por módulo (§3.1).
 
 El nombre no es cosmética. El slug vive en `role_modules` (`text NOT NULL`, sin FK, nadie lo
 valida), en el catálogo de permisos, en la ruta, en las claves i18n, en las policies de
@@ -76,13 +82,18 @@ no tiene responsable ni estado ni horas. Convertirlo en actividad (como proponí
 Kanban. Sí cambian de forma, pero por otro motivo: §2.3.
 
 **Motivo:** es la salida que la propia regla del centinela dejó escrita. El Motivo de
-*«`reunion_pendientes` no crece»* decía que si la tabla pedía prioridad, colaboradores o un Kanban
-propio, *"eso no es una columna nueva: es la señal de que dejó de ser una lista dentro de un acta"*.
-La señal llegó antes de la primera columna.
+*«`reunion_pendientes` no crece»* dice que si la tabla pedía prioridad, colaboradores o un Kanban
+propio, *"eso no es una columna nueva: es la señal de unificar con `actividades`"*. La señal llegó
+antes de la primera columna.
 
-**Lo que se cobra sin trabajo extra:** cuatro de los cinco costos que §2.1 aceptaba.
+**Y coincide con el arte previo.** En OpenProject el compromiso de una reunión **es** un work
+package, no una entidad paralela; Fellow, que sí los tiene aparte, paga el precio de sincronizar
+dos registros contra Jira con 2-way sync. Notion documenta lo contrario —bases separadas unidas por
+relación—, que es la postura que esta fase descarta.
 
-| Costo declarado en §2.1 del 29/08 | Después de unificar |
+**Lo que se cobra sin trabajo extra:** cuatro de los cinco costos que §2.1 del 29/08 aceptaba.
+
+| Costo declarado el 29/08 | Después de unificar |
 |---|---|
 | 1. Las tareas de reunión viven en otra pantalla | Misma tabla, mismo Kanban |
 | 2. No hay pantalla de "mis pendientes" | Es el Dashboard de `/operations` filtrado por responsable |
@@ -90,11 +101,14 @@ La señal llegó antes de la primera columna.
 | 4. Las notificaciones quedarían muertas | ⚠️ **No se cobra solo** — ver abajo |
 | 5. El checklist no sirve al resto del sistema | Es el checklist de `actividades` |
 
-⚠️ **La fila 4 estaba mal.** `notificaciones.actividad_id` existe, pero `notif_insert_modulo` está
-gateada por `has_module('stratix-mkt')` a secas (`20260829210325:139-142`) y el `await` de
-`useActividadForm/index.ts:106` no mira su error. `medico_investigacion` —el rol que §2.5
-incorpora— no tiene Stratix: **la notificación falla en silencio justo para el público nuevo**.
-Deja de ser "un bug ajeno" y entra en la fase: el slug correcto en la policy, y el error chequeado.
+⚠️ **La fila 4 estaba mal, y arreglarla son tres piezas, no una.**
+`notif_insert_modulo` está gateada por `has_module('stratix-mkt')` a secas
+(`20260829210325:139-142`), el `await` de `useActividadForm/index.ts:105-106` no mira su error, y
+`NotificationsBell/index.tsx:40` hace `router.push(modulePath('stratix-mkt'))` **con el literal
+hardcodeado** — así que el aviso que sí llegue lleva a `AccessDenied`. `medico_investigacion` —el
+rol que §2.5 incorpora— no tiene Stratix. Las tres entran en la fase, y la policy queda en
+`operations OR stratix-mkt`, no en `operations` a secas: si no, se reintroduce el mismo bug girado
+para quien tenga sólo Stratix.
 
 ### 2.3 Un tema atraviesa reuniones: `temas` N:N `reuniones`
 
@@ -113,58 +127,78 @@ reuniones      "Reunión del 8/09"
 ```
 
 **Motivo:** el título describe el asunto y la descripción describe *qué se dijo ese día*. Tenerlos
-en la misma fila obligaba a elegir cuál de las cinco versiones del texto imprime cada acta.
+en la misma fila obligaba a elegir cuál de las cinco versiones del texto imprime cada acta. Es la
+misma partición que usan los modelos de agenda publicados, donde el ítem sólo exige `description`.
 
 Se evaluó una tercera entidad `asuntos` por encima de `reunion_temas`, y Wagner la rechazó con
-razón: era el mismo dato dos veces. La relación `N:N` da lo mismo **sin la tabla de más**.
+razón: era el mismo dato dos veces.
 
-⚠️ **`temas` es un catálogo administrado, no texto libre.** La revisión encontró dos agujeros que
-sólo se cierran juntos: sin normalizar el título, *"Presupuesto Q4"* y *"presupuesto q4"* son dos
-asuntos y la historia que esta sección quiere unir se rompe con la primera tipeada; y con
-`ON DELETE RESTRICT` y sin pantalla de gestión, un tema mal escrito queda para siempre e
-inborrable. Entonces:
+⚠️ **`temas` es un catálogo administrado, scopeado por empresa.** Tres objeciones convergen acá:
 
-- `UNIQUE (lower(titulo))` — el duplicado por mayúsculas no entra;
-- columna `activo`, para retirar un tema sin borrar el acta que lo cita;
-- se administra desde **`/admin` → Organización**, con el mismo CRUD config-driven que ya sirve a
-  empresas, departamentos y cargos. No hay que escribir un CRUD nuevo;
-- y en el acta, un **buscar-o-crear**: se escribe el título, y si no existe se ofrece crearlo.
-  Ese componente **no existe** — `CatalogoSelect` es un `<select>` sobre catálogo fijo, y su propio
-  comentario declara ese techo. Es una pieza nueva de la fase (§5).
+- sin normalizar el título, *"Presupuesto Q4"*, *"presupuesto q4"* y *"Presupuesto Q4 "* son tres
+  asuntos, y la historia que esta sección quiere unir se rompe con el primero tipeado →
+  `UNIQUE (empresa, lower(btrim(titulo)))`;
+- ⚠️ **un catálogo global fuerza a fusionar homónimos**: el "Presupuesto Q4" de EMC y el de
+  Servi-Net serían **el mismo asunto** y la historia unificada mezclaría dos historias. El arte
+  previo scopea el asunto recurrente a la serie de reuniones; acá el equivalente disponible es la
+  empresa, que es lo que `reuniones` ya lleva. De ahí la `empresa` en el `UNIQUE`;
+- con `ON DELETE RESTRICT` y sin pantalla de gestión, un tema mal escrito quedaría para siempre e
+  inborrable → columna `activo`, y quien lo creó puede corregirlo mientras el acta esté abierta
+  (§3.1), no sólo el admin.
+
+⚠️ **Administrarlo NO es gratis, y decir "no hay que escribir un CRUD nuevo" era falso.**
+`OrgManager` busca con `r.nombre.toLowerCase() || r.codigo.toLowerCase()` y `OrgCard` pinta
+`row.nombre`, los dos **no opcionales** en `OrgRow` (`loadAppData.ts:106-117`). `temas` tiene
+`titulo` y no tiene `codigo`: la búsqueda revienta y la tarjeta sale sin nombre. Adaptarlo toca
+`OrgCat`, `ORG_CATALOGS`, `OrgCatalogs`+`fetchOrg`, `orgRepo`, `api/admin/org/[cat]` y el array
+`tabs` de `SUB_ITEMS.admin` — **un sexto lugar** que la lista de "cinco lugares" no cubre.
+
+Y en el acta, un **buscar-o-crear**: se escribe el título, y si no existe se ofrece crearlo. Ese
+componente **no existe** — `CatalogoSelect` es un `<select>` sobre catálogo fijo, y su propio
+comentario declara ese techo.
 
 **Cuesta cero en datos:** `reunion_temas` tiene 0 filas en prod. Es partir una tabla vacía.
 
-### 2.4 La tarea cuelga de la reunión Y del tratamiento
+### 2.4 El vínculo tarea↔acta es una tabla asociativa, no dos columnas
 
-`actividades` gana **dos** columnas: `reunion_id` (de qué reunión salió) y `reunion_tema_id` (de
-qué punto, opcional). Las dos nullables — el caso normal sigue siendo una tarea sin reunión.
+⚠️ **Reemplaza entero al §2.4 anterior, que ponía `reunion_id` y `reunion_tema_id` en
+`actividades`.** La revisión de arte previo encontró que esa forma estaba sobre la cardinalidad
+equivocada, y las otras tres pasadas —sin saberlo— encontraron **cinco fallas graves, todas en esas
+dos columnas**:
 
-**Por qué las dos y no sólo el tratamiento, ahora con el motivo correcto.** El documento anterior
-descartaba `reunion_id` *"por derivable con un join"* y en el mismo párrafo la agregaba: una
-contradicción literal que la revisión encontró. Se resuelve así: `reunion_id` **no es derivable**
-en el caso que justifica tenerla — *una tarea que salió en la reunión pero no de ningún punto del
-orden del día*. Ahí `reunion_tema_id` es `NULL` y no hay join que devuelva la reunión.
+1. `UPDATE actividades SET reunion_id = NULL` desvinculaba **sin control alguno**, con el acta
+   cerrada y sin ser nadie.
+2. El `DELETE` de una tarea no lo cubría ningún trigger.
+3. Al mover una tarea del acta A a la B se validaba **sólo B**: quien preside B podía sacar la
+   tarea del acta cerrada A.
+4. `payloadDeActividad` manda el payload **completo con nulls por diseño** (`payload.ts:6-8`), así
+   que **editar el título de una tarea desde el Kanban mandaba `reunion_id: null`** y el trigger le
+   tiraba `RAISE EXCEPTION` a cualquiera que no presidiera con el acta abierta.
+5. Las dos FK sobre `reunion_id` más el `CHECK` podían **abortar el borrado de una reunión**, según
+   el orden de disparo de los triggers de integridad referencial, que Postgres no garantiza.
 
-⚠️ **La FK compuesta sola no alcanza, y decir "imposible por estructura" era falso.** Con
-`MATCH SIMPLE` —el default— la FK **no se evalúa si cualquiera** de sus columnas es `NULL`, así que
-`(reunion_tema_id = tratamiento de la reunión B, reunion_id = NULL)` entraba sin error. Hacen falta
-las dos piezas:
+```
+temas  ↔ reuniones          vía reunion_temas             el TEMA atraviesa reuniones (§2.3)
+actividades ↔ reunion_temas vía reunion_tema_actividades   la TAREA atraviesa tratamientos
+```
 
-- `UNIQUE (id, reunion_id)` en `reunion_temas` + **FK compuesta** desde `actividades` — impide el
-  par cruzado cuando las dos columnas tienen valor;
-- **`CHECK (reunion_tema_id IS NULL OR reunion_id IS NOT NULL)`** — impide el tratamiento huérfano
-  de reunión, que es lo que la FK dejaba pasar.
+Una tarea acordada en el tratamiento del 1/09 y **revisada** en el del 8/09 son dos filas del
+puente, con `rol` `'origen'` y `'revisada'`. Eso es literalmente la frase con la que abre §1 —*"se
+acuerda en una reunión, se ejecuta, se revisa en la siguiente"*— que el modelo anterior no podía
+representar: o se pisaba `reunion_id` y se perdía el origen, o el acta de seguimiento no listaba la
+tarea. Es además lo que hace OpenProject, donde la pestaña "Meetings" de un work package lista
+**todas** las reuniones donde fue tratado.
 
-Con las dos, los tres estados posibles son los tres que tienen sentido: sin reunión, con reunión y
-sin punto, con reunión y punto coherente.
+**El beneficio que no se ve venir: el trigger desaparece entero.** Con el vínculo como fila propia,
+*"el acta escribe el vínculo"* es una **policy de RLS** con la misma forma que `reunion_temas_write`
+— sin `SECURITY DEFINER`, sin `TG_OP`, sin leer `OLD`. El `DELETE` queda cubierto porque es el
+borrado de una fila, y el caso A→B se valida solo, porque cada fila se valida por su cuenta. Con
+ella se van también el `CHECK`, el `UNIQUE (id, reunion_id)`, la FK compuesta y todo el análisis de
+`MATCH SIMPLE`: ese problema no existía.
 
-⚠️ **`ON UPDATE` queda en `NO ACTION`**, que es el default: mover una fila de `reunion_temas` a otra
-reunión falla con un error crudo de Postgres. Es aceptable —un tratamiento no cambia de reunión,
-sería reescribir dos actas— pero la UI no debe ofrecerlo.
-
-El segundo regalo de PG 17 (verificado: `config.toml:42`, y prod reporta 17.6) es
-`ON DELETE SET NULL (reunion_tema_id)`, que nombra **qué columna** se anula: borrar un punto del
-acta deja la tarea sin tema pero **conserva la reunión**.
+**El precio, dicho de frente:** el puente cuelga del **tratamiento**, así que una tarea nacida en
+una reunión necesita un punto del orden del día — el *"Varios"* de cualquier acta. Y una consulta
+lleva un join más.
 
 ### 2.5 Dar `operations` a `medico_investigacion` lo vuelve liquidable, y se acepta
 
@@ -175,23 +209,49 @@ acta deja la tarea sin tema pero **conserva la reunión**.
 | `reuniones` | `admin`, `medico_investigacion` |
 | `tasks` | `admin`, `stratix360` |
 
-`operations` recibe **la unión**: `admin`, `stratix360`, `medico_investigacion`.
+`operations` recibe **la unión de los no-admin**: `stratix360` y `medico_investigacion`.
 
-Eso significa que `medico_investigacion` —que hoy sólo veía reuniones— entra al `<select>` de
-responsables al cargar una tarea **y** al `<select>` de la hoja de pago, porque
-`deriveMiembrosAsignables` produce las dos listas de una sola condición.
+⚠️ **`admin` no lleva fila, y las de hoy se borran.** `getModulesForRole` corta por short-circuit y
+le devuelve todos los módulos tenga filas o no; la migración de roles dinámicos lo dice textual
+—*"'admin' NO lleva filas, sembrarlas sería data muerta"*— y `20260829221511` lo respeta borrando
+la suya. Además, como la PK de `role_modules` es `(role_key, module_slug)` y `admin` tiene **hoy**
+fila de `reuniones` *y* de `tasks`, un `UPDATE ... SET module_slug='operations'` **colisiona con la
+PK**. Va `INSERT` de los dos roles reales + `DELETE` de las filas viejas, no un `UPDATE`.
 
-**Decidido por Wagner el 09/09: que entre.** Es coherente con el ciclo — si se le asignan
-pendientes en una reunión es asignable, y si es asignable es liquidable. Se descartó romper el
-acople asignable/liquidable: es una tarea propia y agrandaba esta fase.
+Que `medico_investigacion` gane el módulo significa que entra al `<select>` de responsables **y** al
+de la hoja de pago, porque `deriveMiembrosAsignables` produce las dos listas de una sola condición.
+**Decidido por Wagner el 09/09: que entre.** Se descartó romper el acople asignable/liquidable: es
+una tarea propia.
 
-### 2.6 `fecha_entrega_original` entra como columna; el historial no la reconstruye
+### 2.6 Un compromiso puede nacer sin responsable
+
+⚠️ **`actividades.responsable_id` pasa a nullable.** Hoy es `NOT NULL`, y el `<select>` sale de
+`deriveMiembrosAsignables`, que filtra por tener el módulo (`team-derivations/index.ts:38-41`).
+Pero los participantes de un acta son **cualquier usuario, y también externos**
+(`features/reuniones/types.ts:37-46`). Un acta de EMC con alguien de cobranzas, o con un invitado,
+no podría registrar su compromiso: `crearActividad` corta con `assigneeRequired`.
+
+**Decidido por Wagner el 09/09.** Es además lo que `reunion_pendientes` permitía, y devuelve el
+filtro derivado *"sin responsable todavía"* que §2.2 del 29/08 modelaba y que se iba a perder.
+
+Toca: el `NOT NULL` (las 429 filas lo tienen cargado, así que el `DROP NOT NULL` no mueve datos),
+el guard de `useActividadForm`, y tolerar el `null` en `datosPorMiembro`, `resumenHoras` e
+`idsTeam`. Una tarea sin responsable **no aparece en ninguna hoja de pago**, que es lo correcto.
+
+La otra consecuencia del mismo tipo: el modal debe pedir **`fecha_inicio`**, que es `NOT NULL` con
+default `CURRENT_DATE`. Si queda al default, una tarea acordada el 30/09 para empezar en octubre
+**se imputa a septiembre en la hoja de pago**. Y `empresa` es obligatoria y debe caer en una de las
+siete con `recibe_actividades`.
+
+### 2.7 `fecha_entrega_original` entra como columna; el historial no la reconstruye
 
 `actividades` gana `fecha_entrega_original date`, y `fecha_entrega` pasa a llamarse
-`fecha_entrega_final`. **El par se nombra junto porque se lee junto**: `fecha_original` sola no
-dice original de qué.
+`fecha_entrega_final`. **El par se nombra junto porque se lee junto.**
 
-**Qué es.** La primera fecha de entrega, congelada. Nadie la escribe a mano:
+Es el patrón *baseline vs actual* de la gestión de proyectos: MS Project copia la fecha programada
+al guardar la línea base y deriva la varianza; PMI define el baseline como *"la versión aprobada que
+sólo puede cambiarse por control de cambios formal"*. Jira no lo tiene y en Asana la práctica es un
+campo custom "original Due Date".
 
 | Cuándo | Qué pasa | `fecha_entrega_final` | `fecha_entrega_original` |
 |---|---|---|---|
@@ -199,118 +259,96 @@ dice original de qué.
 | 14/09 | no llegó, se corre | `22/09` | `15/09` |
 | 21/09 | tampoco | `30/09` | `15/09` |
 
-Sin ella, el 21/09 la tarea dice "vence el 30" **y parece que siempre venció el 30**. Con ella:
-*prometido para el 15, entregado el 30 — quince días, dos postergaciones*.
+⚠️ **La versión anterior de este trigger inventaba datos, y lo dijeron las tres pasadas.** La rama
+`ELSIF OLD.fecha_entrega_original IS NULL` disparaba en el **primer `UPDATE` de cualquier fila
+vieja** —y como el payload va completo, alcanzaba con cambiar el título— congelando como "original"
+el plazo **vigente**. Si ese primer `UPDATE` *era* la postergación, guardaba la fecha ya corrida y
+§2.10 daba **false justo en la fila que sí se postergó**. La guarda correcta mira
+`OLD.fecha_entrega_final IS NULL`: sólo se congela cuando se pone la **primera** fecha, que es lo
+que hacía falta porque `fecha_entrega` es nullable y una tarea puede nacer sin plazo.
 
-⚠️ **`proteger_fecha_original` NO se muda tal cual.** El del repo
-(`20260829222113_reuniones_triggers.sql`) sólo copia en el `INSERT`, y ahí funcionaba porque el
-flujo del pendiente siempre traía fecha. **`actividades.fecha_entrega` es nullable**: una tarea
-creada sin fecha y fechada después quedaría con el original en `NULL` para siempre, y la detección
-de postergado (§2.9) daría `NULL`. La versión de acá copia también **en el `UPDATE` que le pone la
-primera fecha**, y recién ahí congela. Y una precisión de redacción: el trigger no *"rechaza"* el
-cambio — lo **revierte en silencio**, que es lo que dice el comentario de esa migración.
+**Las 429 filas existentes quedan en `NULL` y no se backfillean:** no hay de dónde sacar el dato. La
+consecuencia hay que decirla: *"se postergó"* sólo se puede afirmar de las tareas nacidas después de
+esta fase.
 
-**Las 429 filas existentes quedan en `NULL` y no se backfillean:** no hay de dónde sacar el dato.
-La consecuencia hay que decirla: *"se postergó"* sólo se puede afirmar de las tareas nacidas
-después de esta fase.
+⚠️ **Y el baseline se puede volver a congelar, pero sólo desde el acta.** Congelarlo para siempre
+—como estaba— hace que una **replanificación acordada** se lea como postergación y ensucia la
+métrica; los estándares asumen re-baseline por control de cambios (MS Project ofrece once líneas
+base). Acá el control de cambios es la reunión: quien preside o la secretaria puede re-congelar con
+el acta abierta, y queda en `historial`. Desde el Kanban, no.
 
 **Ninguna de las fechas que ya existen sirve** (inventario verificado el 09/09):
 
 | Columna | Qué es |
 |---|---|
-| `fecha_inicio` | `date NOT NULL`, default `CURRENT_DATE`. El **período de imputación del reporte de pago** — decide en qué mes se liquida. No es un vencimiento |
-| `fecha_entrega` → `fecha_entrega_final` | El plazo vigente. Dibuja el Gantt, "próximas entregas" y el badge *vencida*. **Se pisa entera en cada `UPDATE`** |
+| `fecha_inicio` | `date NOT NULL`, default `CURRENT_DATE`. El **período de imputación del reporte de pago**. No es un vencimiento |
+| `fecha_entrega` → `fecha_entrega_final` | El plazo vigente. Dibuja el Gantt, "próximas entregas" y el badge *vencida*. Se pisa entera en cada `UPDATE` |
 | `fecha_requerida` | Muerta: ningún formulario la escribe desde el 03/09. No se toca en esta fase |
 | `fecha_aprobacion` | Un renglón de la ficha |
 | `created_at` | Cuándo entró la fila. En las 251 migradas dice *abril de 2026*, no cuándo se acordó el trabajo |
 
 **Motivo de que sea una columna y no una consulta:** `log_cambio_actividad` registra **sólo**
-`estado` y `verificado` (`20260612193730:179`). No registra la fecha de entrega. El plazo original
-**no es derivable del historial**. La alternativa —extender ese trigger, como `log_reunion()` ya
-hace con `fecha_comprometida`— daría todas las postergaciones, pero **`historial` es admin-only**
-(`historial_admin_read USING is_admin()`): un dato que sólo el admin lee no se muestra en una
-tarjeta. No compiten; el trigger de auditoría queda para otra fase.
+`estado` y `verificado` (`20260612193730:179`). No registra la fecha de entrega, así que el plazo
+original **no es derivable del historial**. La alternativa —extender ese trigger, como
+`log_reunion()` ya hace con `fecha_comprometida`— daría todas las postergaciones, pero **`historial`
+es admin-only**: un dato que sólo el admin lee no se muestra en una tarjeta. No compiten; el trigger
+de auditoría queda para otra fase.
 
-### 2.7 El acta escribe la tarea; la tarea no escribe el acta
+### 2.8 El acta escribe el vínculo; la tarea no escribe el acta
 
-Las tareas se crean y se editan **desde el modal del tratamiento**, con la reunión abierta. Desde
-el formulario de tarea, `reunion_id`/`reunion_tema_id` no se ven ni se tocan: despegar una tarea de
-su punto se hace desde el acta y sólo mientras está abierta.
+Las tareas se crean y se editan **desde el modal del tratamiento**, con la reunión abierta. Vincular
+una tarea a un punto, moverla o despegarla se hace desde el acta y sólo mientras está abierta.
 
-**Y eso no se sostiene con la UI.** La RLS de Postgres no gatea por columna: si `actividades` es
-actualizable, esas columnas lo son desde la consola, la API o cualquier cliente.
-
-Lo hace cumplir un trigger `prevent_reunion_tema_change`. **El patrón ya está en el repo dos
-veces** (`prevent_rol_self_change`, y `proteger_acta_cerrada` para *"un acta cerrada es de sólo
-lectura"*), pero la revisión encontró tres defectos en mi primera versión, y los tres importan:
-
-⚠️ **(a) Tiene que correr también en `INSERT`.** Mi versión leía `old.` y en un `INSERT` `OLD` no
-está asignado: plpgsql revienta — el mismo bug que `20260829222113:52-55` documenta. Y si corriera
-sólo en `UPDATE`, **un `INSERT` podría apuntar a cualquier tratamiento**, de un acta cerrada o
-ajena, y "el acta manda" no existiría. Va `BEFORE INSERT OR UPDATE`, ramificando por `TG_OP`.
-
-⚠️ **(b) Le faltaba `SET search_path = public`.** Todas las `SECURITY DEFINER` del repo lo llevan y
-el porqué está escrito en `20260829221511:99-101`.
-
-⚠️ **(c) Le faltaba `creo_la_reunion()`.** `reunion_temas_write` la incluye
-(`20260830204042:93-98`): sin ella, quien creó el acta puede crear el punto pero no colgarle una
-tarea.
+Con §2.4 eso **es una policy**, no un trigger: `reunion_tema_actividades` se escribe si presidís, sos
+secretaria o creaste el acta, y la reunión está abierta — la misma condición que
+`reunion_temas_write` (`20260830204042:91-96`). El `SELECT` va por la reunión, igual que
+`reunion_temas_select`.
 
 **Un efecto secundario a favor:** `reunion_pendientes` necesitaba una tercera policy sólo para que
 el responsable pudiera actualizar su pendiente con el acta cerrada. Unificados eso es gratis —
 **cerrar el acta congela el acta, no las tareas**: la tarea vive en `actividades` y sigue su ciclo
 normal en el Kanban.
 
-### 2.8 Cerrar un acta no existe hoy, y por eso se implementa en esta fase
+### 2.9 Cerrar un acta no existe hoy, y la policy actual lo hace imposible
 
 **Hallazgo del 09/09, verificado:** la transición `borrador → en_curso → cerrada` **no está
 implementada en ninguna parte**. La capa de datos no manda `estado` nunca
-(`src/shared/data/reuniones/reuniones.ts:16` lo dice textual), y las únicas dos escrituras
-—`insert` y `updateForm`— no lo incluyen. **Toda acta nace `'borrador'` y muere `'borrador'`.**
+(`src/shared/data/reuniones/reuniones.ts:16` lo dice textual): **toda acta nace `'borrador'` y muere
+`'borrador'`**. El `CHECK acta_cerrada_tiene_snapshot` es un candado sin llave — `acta_snapshot` no
+la escribe nadie y la RPC `cerrar_reunion(id)` que el diseño del 29/08 mandaba escribir nunca se
+escribió.
 
-El `CHECK acta_cerrada_tiene_snapshot` es **un candado sin llave**: `acta_snapshot` no la escribe
-nadie (`grep` en `src/` da cero), ningún trigger la arma, y la RPC `cerrar_reunion(id)` que el
-diseño del 29/08 mandaba escribir nunca se escribió.
+**Por qué obliga a implementarlo acá:** toda §2.8 se apoya en `reunion_abierta()`, que hoy devuelve
+**siempre true**. Cualquier guard que se apoye en ella no muerde nunca — la misma forma del
+incidente del 29/08, donde las policies estaban escritas y la RLS apagada.
 
-**Por qué obliga a implementarlo acá:** toda §2.7 se apoya en `reunion_abierta()`, que hoy devuelve
-**siempre true**. El trigger se escribiría y no mordería nunca — la misma forma del incidente del
-29/08, donde las policies estaban escritas y la RLS apagada.
+⚠️ **Y no alcanza con escribir la RPC: la policy actual impide cerrar.** `reuniones_update` se
+recreó **sin `WITH CHECK`** (`20260830204042:73-78`), y en Postgres una policy de `UPDATE` sin
+`WITH CHECK` usa el `USING` **también para validar la fila nueva**. El `USING` exige
+`estado <> 'cerrada'`, así que para todo el que no sea admin **`SET estado='cerrada'` es imposible**:
+la fila nueva no pasa su propio check. Cerrar les fallaría exactamente a presidente y secretaria,
+que son quienes el diseño dice que cierran. La RPC va `SECURITY DEFINER` con la verificación de
+permisos adentro, que además es lo que ya hace `admin_reassign_and_delete`.
 
 Entran tres piezas:
 
-1. **La RPC `cerrar_reunion(id)`**, que arma el `acta_snapshot` y pasa el estado a `'cerrada'` en
-   la misma transacción. Es lo único que satisface el `CHECK`.
-2. **El botón de cerrar** en el expediente, para quien preside o la secretaria. Hoy el expediente
-   **ni siquiera muestra el `estado`** — sólo lo pinta el badge del listado.
+1. **La RPC `cerrar_reunion(id)`**, `SECURITY DEFINER` con `SET search_path`, que verifica
+   `preside_o_secretaria() OR creo_la_reunion()`, arma el `acta_snapshot` y pasa el estado, todo en
+   la misma transacción.
+2. **El botón de cerrar** en el expediente, que hoy **ni siquiera muestra el `estado`** — sólo lo
+   pinta el badge del listado.
 3. **La reapertura, sólo por admin y con `ConfirmModal`** (`destructive` + `confirmPhrase`, que ya
-   existe tal cual). **Va en el expediente, no en `/admin`**: `/admin` no tiene listado de
-   reuniones, agregarlo sería un tab nuevo del CRUD, y la decisión es contextual al acta abierta.
+   existe tal cual). **Va en el expediente, no en `/admin`**: `/admin` no tiene listado de reuniones
+   y la decisión es contextual al acta abierta.
 
-La base ya lo permite y no hay que tocar RLS: la policy de UPDATE abre con `is_admin() OR …`
-(`20260830204042:74`) y `proteger_acta_cerrada` devuelve temprano para el admin
-(`20260829222113:59`). Falta la pantalla, no el permiso.
-
-### 2.9 El estado "postergado" no entra
+### 2.10 El estado "postergado" no entra
 
 §2.2 del diseño anterior lo dejó *"para decidir al empezar la fase 2"*. Se decide: **no**.
 
 **Motivo:** agregarlo significa tocar el `CHECK` de `actividades`, que ya declara seis valores
 contra los cuatro de `ESTADO` en TypeScript — deuda anotada y no de este módulo. Y un pendiente
-postergado se distingue por dato, no por estado:
-`fecha_entrega_final > fecha_entrega_original` (con la salvedad de §2.6 sobre las filas viejas).
-
-### 2.10 Un compromiso de acta lleva responsable, y eso se pierde
-
-⚠️ **`actividades.responsable_id` es `NOT NULL`**; el de `reunion_pendientes` era nullable. §2.2 del
-diseño del 29/08 modelaba *"sin responsable todavía"* como un filtro derivado
-(`responsable_id IS NULL`), y **eso desaparece**.
-
-Se acepta, y con una razón, no por inercia: un compromiso sin dueño no es un compromiso — es una
-nota, y su lugar es la `descripcion` del tratamiento. Cargar la tarea obliga a decir quién.
-
-La otra consecuencia del mismo tipo: el modal debe pedir **`fecha_inicio`**, que es `NOT NULL` con
-default `CURRENT_DATE`. Si se deja al default, una tarea acordada el 30/09 para empezar en octubre
-**se imputa a septiembre en la hoja de pago**.
+postergado se distingue por dato: `fecha_entrega_final > fecha_entrega_original`, con las dos
+salvedades de §2.7 (las filas viejas en `NULL`, y el re-baseline acordado en reunión).
 
 ---
 
@@ -321,123 +359,220 @@ default `CURRENT_DATE`. Si se deja al default, una tarea acordada el 30/09 para 
 ```sql
 CREATE TABLE public.temas (
   id         uuid PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  empresa    text NOT NULL REFERENCES public.empresas(codigo) ON UPDATE CASCADE,
   titulo     text NOT NULL,
   activo     boolean NOT NULL DEFAULT true,
+  creado_por_id uuid REFERENCES public.usuarios(id) ON DELETE SET NULL,
   created_at timestamptz DEFAULT now()
 );
-CREATE UNIQUE INDEX temas_titulo_unico ON public.temas (lower(titulo));
+-- `btrim` además de `lower`: sin él "Presupuesto Q4 " entra como un asunto distinto.
+CREATE UNIQUE INDEX temas_unicos_por_empresa
+  ON public.temas (empresa, lower(btrim(titulo)));
 
 ALTER TABLE public.reunion_temas
   ADD COLUMN tema_id uuid NOT NULL REFERENCES public.temas(id) ON DELETE RESTRICT,
   DROP COLUMN titulo,
-  ADD CONSTRAINT reunion_temas_unicos     UNIQUE (reunion_id, tema_id),
-  -- Destino de la FK compuesta de `actividades`. Redundante con la PK, y es su función:
-  -- sin este UNIQUE, Postgres no acepta el par como referencia.
-  ADD CONSTRAINT reunion_temas_id_reunion UNIQUE (id, reunion_id);
+  ADD CONSTRAINT reunion_temas_unicos UNIQUE (reunion_id, tema_id);
 ```
 
-`ON DELETE RESTRICT` en `tema_id` a propósito: borrar un asunto ya tratado reescribiría un acta
-pasada. Para eso está `activo` (§2.3).
+`ON UPDATE CASCADE` en `empresa` por el mismo motivo que `actividades_empresa_fkey`: el `codigo` de
+una empresa es editable desde `/admin`. `ON DELETE RESTRICT` en `tema_id` a propósito: borrar un
+asunto ya tratado reescribiría un acta pasada — para eso está `activo`.
 
-⚠️ **`temas` nace con RLS encendida.** La revisión encontró que §4 decía *"no hay RLS nueva"* y una
-tabla nueva de `public` recibe `GRANT ALL` a `anon` por defecto en Supabase — está el precedente
-literal en el dump (`GRANT ALL ON TABLE public.reunion_pendientes TO anon`). Sin esto sería
-**lectura y escritura anónima**, la forma exacta del incidente del 29/08:
+⚠️ **`temas` nace con RLS, y su `SELECT` no es por módulo.** Una tabla nueva de `public` recibe
+`GRANT ALL` a `anon` por defecto en Supabase —está el precedente literal en el dump
+(`GRANT ALL ON TABLE public.reunion_pendientes TO anon`)—, así que sin esto sería lectura y
+escritura anónima. Y un `USING has_module(...)` filtraría los títulos de las actas reservadas
+(§2.1), así que se lee **por la reunión**, igual que `reunion_temas`:
+
+⚠️ **La visibilidad se escribe, no se hereda por accidente.** La versión anterior decía *"se ve un
+tema si existe algún tratamiento suyo"* y confiaba en que la subconsulta pasara por la RLS de
+`reunion_temas`. Es cierto que pasa —una policy se evalúa con los permisos de quien invoca—, pero
+dejarlo implícito hace que la confidencialidad de un acta reservada dependa de un detalle que nadie
+ve al leer la policy. Se escribe una función con el mismo predicado que `reuniones_select`, de la
+familia de `creo_la_reunion()`: `SECURITY DEFINER` con `search_path` fijo, que lee `reuniones`
+salteando su propia policy —si no, se llamaría a sí misma— y **sirve para las tablas hijas, no para
+`reuniones`**, por la advertencia de `20260830204042:33-37`.
 
 ```sql
-ALTER TABLE public.temas ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.temas FROM anon;
--- Lectura para quien tiene el módulo; escritura sólo desde el flujo del acta o el admin.
-CREATE POLICY temas_select ON public.temas FOR SELECT USING (public.has_module('operations'));
-CREATE POLICY temas_write  ON public.temas FOR ALL
-  USING (public.is_admin()) WITH CHECK (public.is_admin() OR public.has_module('operations'));
+DO $$
+DECLARE slug text := 'operations';
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.role_modules WHERE module_slug = slug) THEN
+    RAISE EXCEPTION 'slug de módulo desconocido: %', slug;
+  END IF;
+
+  -- El predicado de `reuniones_select`, en un solo lugar, para que las hijas no lo copien.
+  EXECUTE format($f$
+    CREATE OR REPLACE FUNCTION public.puedo_ver_reunion(p_reunion uuid)
+    RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $q$
+      SELECT public.has_module(%L) AND EXISTS (
+        SELECT 1 FROM public.reuniones r
+         WHERE r.id = p_reunion AND (
+           public.is_admin()
+           OR r.created_by = public.usuario_actual_id()
+           OR public.participa_en_reunion(r.id)
+           OR public.misma_empresa_reunion(r.id)))
+    $q$$f$, slug);
+
+  EXECUTE 'ALTER TABLE public.temas ENABLE ROW LEVEL SECURITY';
+  EXECUTE 'REVOKE ALL ON public.temas FROM anon';
+
+  -- Un tema se ve si se puede ver ALGUNA de las reuniones donde se trató — dicho entero, no
+  -- delegado a la RLS de `reunion_temas`. O si nadie lo trató todavía y lo creaste vos, que es
+  -- el hueco entre escribir el título y guardar el punto. Nunca "todos los temas del módulo".
+  EXECUTE $f$
+    CREATE POLICY temas_select ON public.temas FOR SELECT USING (
+      EXISTS (
+        SELECT 1 FROM public.reunion_temas rt
+         WHERE rt.tema_id = temas.id AND public.puedo_ver_reunion(rt.reunion_id))
+      OR creado_por_id = public.usuario_actual_id())$f$;
+
+  -- Lo crea quien tiene el módulo; lo corrige quien lo creó, y el admin siempre.
+  EXECUTE format($f$
+    CREATE POLICY temas_insert ON public.temas FOR INSERT
+      WITH CHECK (public.is_admin() OR public.has_module(%L))$f$, slug);
+  EXECUTE $f$
+    CREATE POLICY temas_update ON public.temas FOR UPDATE
+      USING      (public.is_admin() OR creado_por_id = public.usuario_actual_id())
+      WITH CHECK (public.is_admin() OR creado_por_id = public.usuario_actual_id())$f$;
+END $$;
 ```
 
-### 3.2 `actividades` gana las columnas del vínculo
+El slug va **en una variable** y la migración aborta si no existe — `rules/base-de-datos.md`. La
+versión anterior lo tenía hardcodeado dos veces, y el check no lo agarraba porque es de archivo.
+
+### 3.2 El puente tarea↔tratamiento
+
+```sql
+CREATE TABLE public.reunion_tema_actividades (
+  reunion_tema_id uuid NOT NULL REFERENCES public.reunion_temas(id) ON DELETE CASCADE,
+  actividad_id    uuid NOT NULL REFERENCES public.actividades(id)   ON DELETE CASCADE,
+  -- 'origen': nació ahí. 'revisada': se retomó en esa reunión. Es el arrastre de la fase 3,
+  -- que con esto no necesita esquema nuevo.
+  rol             text NOT NULL DEFAULT 'origen' CHECK (rol IN ('origen','revisada')),
+  created_at      timestamptz DEFAULT now(),
+  PRIMARY KEY (reunion_tema_id, actividad_id)
+);
+CREATE INDEX ON public.reunion_tema_actividades (actividad_id);
+-- Una tarea nace UNA sola vez; puede revisarse muchas.
+CREATE UNIQUE INDEX una_sola_origen
+  ON public.reunion_tema_actividades (actividad_id) WHERE rol = 'origen';
+```
+
+`ON DELETE CASCADE` en las dos FK, y es lo correcto para un puente: borrar el punto del acta borra
+**el vínculo**, no la tarea; borrar la tarea borra el vínculo, no el acta. No hay `SET NULL` que
+ordenar, ni `CHECK` que pueda abortar un `DELETE`.
+
+Su RLS, con la forma de `reunion_temas` (§2.8):
+
+```sql
+ALTER TABLE public.reunion_tema_actividades ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.reunion_tema_actividades FROM anon;
+
+-- Explícito por el mismo motivo que `temas_select`: el vínculo dice qué tarea salió de qué acta,
+-- así que su visibilidad es la del acta, dicha entera y no heredada de la RLS de `reunion_temas`.
+CREATE POLICY rta_select ON public.reunion_tema_actividades FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.reunion_temas t
+           WHERE t.id = reunion_tema_id AND public.puedo_ver_reunion(t.reunion_id)));
+
+CREATE POLICY rta_write ON public.reunion_tema_actividades FOR ALL
+  USING (public.is_admin() OR EXISTS (
+    SELECT 1 FROM public.reunion_temas t
+     WHERE t.id = reunion_tema_id
+       AND (public.preside_o_secretaria(t.reunion_id) OR public.creo_la_reunion(t.reunion_id))
+       AND public.reunion_abierta(t.reunion_id)))
+  WITH CHECK (public.is_admin() OR EXISTS (
+    SELECT 1 FROM public.reunion_temas t
+     WHERE t.id = reunion_tema_id
+       AND (public.preside_o_secretaria(t.reunion_id) OR public.creo_la_reunion(t.reunion_id))
+       AND public.reunion_abierta(t.reunion_id)));
+```
+
+El `WITH CHECK` va **explícito** aunque repita el `USING`: es la lección de §2.9 — una policy de
+escritura sin `WITH CHECK` valida la fila nueva con el `USING`, y eso se vuelve una trampa.
+
+### 3.3 `actividades`: el renombre, la fecha y el `NOT NULL`
 
 ```sql
 ALTER TABLE public.actividades
-  RENAME COLUMN fecha_entrega TO fecha_entrega_final;
-ALTER INDEX public.idx_actividades_fecha_ent RENAME TO idx_actividades_fecha_entrega_final;
-
-ALTER TABLE public.actividades
-  ADD COLUMN reunion_id             uuid REFERENCES public.reuniones(id) ON DELETE SET NULL,
-  ADD COLUMN reunion_tema_id        uuid,
   ADD COLUMN fecha_entrega_original date,
-  -- Las dos piezas de §2.4. La FK impide el par cruzado; el CHECK impide el tratamiento
-  -- huérfano de reunión, que la FK deja pasar porque MATCH SIMPLE no evalúa con un NULL.
-  ADD CONSTRAINT actividades_tratamiento_fkey
-    FOREIGN KEY (reunion_tema_id, reunion_id)
-    REFERENCES public.reunion_temas (id, reunion_id)
-    ON DELETE SET NULL (reunion_tema_id),
-  ADD CONSTRAINT actividades_tema_exige_reunion
-    CHECK (reunion_tema_id IS NULL OR reunion_id IS NOT NULL);
-
-CREATE INDEX ON public.actividades (reunion_id) WHERE reunion_id IS NOT NULL;
-
-DROP TABLE public.reunion_pendientes;
-DROP DOMAIN public.estado_pendiente;   -- queda huérfano con la tabla
+  ALTER COLUMN responsable_id DROP NOT NULL;         -- §2.6
 ```
 
-- **Ningún `CASCADE`.** Borrar un punto no puede borrar una tarea que alguien está haciendo.
-- El índice es parcial: la enorme mayoría de las 429 actividades no sale de una reunión.
-- El resto ya existe en `actividades`: `titulo`, `responsable_id`, `estado`, `horas`, `empresa`.
-
-### 3.3 Los dos triggers
+⚠️ **El renombre va en su propia migración y DESPUÉS del deploy del código.** Migración y deploy son
+pasos separados acá (`db push` a mano, Vercel por merge). Si la columna se renombra antes de que el
+bundle nuevo esté sirviendo, **toda lectura de `actividades` devuelve 42703 en producción** durante
+la ventana. El orden es: (1) el código lee y escribe `fecha_entrega_final` a través de una vista o
+alias, (2) deploy, (3) el renombre. La alternativa —aceptar la ventana— sólo sirve si se hace fuera
+de horario y se dice.
 
 ```sql
--- §2.6 — la primera fecha de entrega, congelada. A diferencia del de `reunion_pendientes`,
--- éste también la captura en el UPDATE que pone la PRIMERA fecha: `fecha_entrega_final` es
--- nullable y una tarea puede nacer sin plazo.
+-- Migración aparte, paso 3.
+ALTER TABLE public.actividades RENAME COLUMN fecha_entrega TO fecha_entrega_final;
+ALTER INDEX public.idx_actividades_fecha_ent RENAME TO idx_actividades_fecha_entrega_final;
+```
+
+Verificado que el renombre **no arrastra vistas**: ninguna de las tres (`v_equipo_hoy`,
+`v_kpis_globales`, `v_produccion_responsable`) toca `fecha_entrega`.
+
+El trigger del baseline (§2.7):
+
+```sql
 CREATE OR REPLACE FUNCTION public.congelar_fecha_entrega_original()
 RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     NEW.fecha_entrega_original := NEW.fecha_entrega_final;
-  ELSIF OLD.fecha_entrega_original IS NULL THEN
+    RETURN NEW;
+  END IF;
+  -- Se congela cuando se pone la PRIMERA fecha, no la primera vez que se toca la fila: si
+  -- mirara `fecha_entrega_original IS NULL`, el primer UPDATE de una fila vieja estamparía como
+  -- "original" el plazo ya corrido. Y como el payload va completo, alcanzaba con editar el título.
+  IF OLD.fecha_entrega_final IS NULL THEN
     NEW.fecha_entrega_original := NEW.fecha_entrega_final;
-  ELSE
-    NEW.fecha_entrega_original := OLD.fecha_entrega_original;   -- revierte, no rechaza
+  ELSIF NEW.fecha_entrega_original IS DISTINCT FROM OLD.fecha_entrega_original THEN
+    -- Re-baseline: sólo desde un acta abierta (§2.7). Fuera de eso, revierte en silencio.
+    IF NOT EXISTS (
+      SELECT 1 FROM public.reunion_tema_actividades rta
+        JOIN public.reunion_temas t ON t.id = rta.reunion_tema_id
+       WHERE rta.actividad_id = NEW.id
+         AND public.reunion_abierta(t.reunion_id)
+         AND (public.preside_o_secretaria(t.reunion_id) OR public.creo_la_reunion(t.reunion_id))
+    ) THEN
+      NEW.fecha_entrega_original := OLD.fecha_entrega_original;
+    END IF;
   END IF;
   RETURN NEW;
 END $$;
 
--- §2.7 — el vínculo con el acta se escribe desde el acta, y con el acta abierta.
-CREATE OR REPLACE FUNCTION public.proteger_vinculo_con_el_acta()
-RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE r uuid;
-BEGIN
-  -- En INSERT no se puede leer OLD (plpgsql revienta), así que las dos ramas van separadas
-  -- y ninguna menciona OLD fuera de la suya. Mismo motivo que `proteger_acta_cerrada`.
-  IF TG_OP = 'UPDATE' AND NEW.reunion_tema_id IS NOT DISTINCT FROM OLD.reunion_tema_id
-                      AND NEW.reunion_id      IS NOT DISTINCT FROM OLD.reunion_id THEN
-    RETURN NEW;                                   -- el UPDATE normal de una tarea no paga nada
-  END IF;
-  r := NEW.reunion_id;
-  IF r IS NULL THEN RETURN NEW; END IF;           -- tarea sin reunión: no es asunto del acta
-  IF public.is_admin()
-     OR ((public.preside_o_secretaria(r) OR public.creo_la_reunion(r))
-         AND public.reunion_abierta(r)) THEN
-    RETURN NEW;
-  END IF;
-  RAISE EXCEPTION 'el vínculo con el acta se edita desde la reunión, y sólo con el acta abierta';
-END $$;
-
 CREATE TRIGGER trg_fecha_entrega_original BEFORE INSERT OR UPDATE ON public.actividades
   FOR EACH ROW EXECUTE FUNCTION public.congelar_fecha_entrega_original();
-CREATE TRIGGER trg_vinculo_acta          BEFORE INSERT OR UPDATE ON public.actividades
-  FOR EACH ROW EXECUTE FUNCTION public.proteger_vinculo_con_el_acta();
 ```
 
-### 3.4 Limpieza que el `DROP` arrastra
+Es el **único** trigger nuevo sobre `actividades`: el del vínculo se fue con §2.4.
 
-`log_reunion()` tiene una rama entera para `reunion_pendientes` (`20260830011448:45-54`). Al borrar
-la tabla queda muerta, y en Postgres **una función no se parchea, se vuelve a declarar completa**.
-Verificado que `admin_reassign_and_delete` **no** se rompe: la menciona sólo en un comentario.
+### 3.4 El `DROP` y lo que arrastra
+
+```sql
+DROP TABLE public.reunion_pendientes;
+DROP DOMAIN public.estado_pendiente;      -- queda huérfano con la tabla
+```
+
+- `log_reunion()` tiene una rama entera para `reunion_pendientes` (`20260830011448:45-54`). Al
+  borrar la tabla queda muerta, y en Postgres **una función no se parchea, se vuelve a declarar
+  completa**. ⚠️ Y de paso hay que arreglar lo que ya estaba mal: **`log_reunion()` nunca tuvo
+  trigger sobre `reunion_temas`**, así que el tratamiento —que a partir de ahora carga la
+  descripción del acta— queda **sin auditoría**. Se le agrega.
+- Quedan filas de `historial` con `tabla='reunion_pendientes'` sin destino. No se borran (es el
+  rastro), pero hay que saberlo.
+- En TypeScript queda muerto `EstadoPendiente` (`features/reuniones/types.ts:15`).
+- Verificado que `admin_reassign_and_delete` **no** se rompe: menciona la tabla sólo en un
+  comentario.
 
 **Rollback:** `supabase/rollback/operations-unificacion-rollback.sql`, escrito **antes** del push,
-con el `CREATE TABLE` de `reunion_pendientes`, su dominio, sus tres policies, y el `titulo` de
-`reunion_temas`. Que hoy haya 0 filas hace el rollback trivial y es la razón de hacerlo ahora.
+con el `CREATE TABLE` de `reunion_pendientes`, su dominio, sus tres policies y el `titulo` de
+`reunion_temas`. Que hoy haya 0 filas hace el rollback trivial.
 
 ---
 
@@ -457,107 +592,112 @@ De los diez de `modulos/slugs.ts` quedan nueve:
 Que `stratix-mkt` sobreviva no es falta de limpieza: el 03/09 se sacaron **las tareas** de Stratix,
 no Stratix. Y sigue en el `OR` de la policy de `actividades` por el contador de `RosterCard`.
 
-Tabla por tabla:
+⚠️ **Qué policies nombran un slug, de verdad:**
 
 | Tabla | Hoy | Después |
 |---|---|---|
 | `actividades` | `tasks OR stratix-mkt` | `operations OR stratix-mkt` |
-| `reuniones`, `reunion_temas` | `reuniones` | `operations` |
-| `reunion_pendientes` | `reuniones` | *(la tabla se borra)* |
-| `temas` | — | `operations` (RLS nueva, §3.1) |
-| `notificaciones` | `stratix-mkt` | `operations` — es el bug de §2.2 |
+| `reuniones` (`_select`, `_insert`) | `reuniones` | `operations` |
+| `notificaciones` | `stratix-mkt` | `operations OR stratix-mkt` (§2.2) |
+| `temas`, `reunion_tema_actividades` | — | nuevas (§3.1, §3.2) |
+
+**`reunion_temas` no aparece en esa lista, y la versión anterior decía que sí.** Ninguna de sus
+policies nombra un slug: `reunion_temas_select` es un `EXISTS` sobre `reuniones`
+(`20260829221511:170-172`) y `reunion_temas_write` tampoco lo menciona (`20260830204042:91-96`).
+Tampoco `reuniones_update` ni `reuniones_delete`. Heredan el gate por la reunión.
 
 ### 4.2 La migración
 
-⚠️ **El orden adentro de la migración no es libre.** `rules/base-de-datos.md` exige que una
-migración con `has_module` aborte si el slug no existe en `role_modules`. Para un slug **nuevo** esa
-guarda se invierte: si las policies corren primero, el `RAISE EXCEPTION` dispara **contra su propio
-slug** y la migración se aborta a sí misma. El orden obligado es **primero las filas de
-`role_modules`, después las policies**, en la misma transacción.
+⚠️ **El orden adentro de la migración no es libre.** La regla exige que una migración con
+`has_module` aborte si el slug no existe en `role_modules`. Para un slug **nuevo** esa guarda se
+invierte: si las policies corren primero, el `RAISE EXCEPTION` dispara **contra su propio slug** y la
+migración se aborta a sí misma. Primero las filas, después las policies, en la misma transacción.
 
-Una sola migración, con el `DO` block y el `RAISE EXCEPTION` que exige la regla:
+1. `role_modules`: **`INSERT`** de `('stratix360','operations')` y
+   `('medico_investigacion','operations')` — enumerados, no copiados con un `SELECT` — y **`DELETE`**
+   de las filas de `tasks` y `reuniones`, incluidas las de `admin` (§2.5). No un `UPDATE`: choca con
+   la PK.
+2. Las policies de `reuniones` pasan a `operations`; la de `actividades` cambia `tasks` por
+   `operations` y **conserva `stratix-mkt`**; la de `notificaciones` pasa a
+   `operations OR stratix-mkt`.
+3. Las tablas nuevas con su RLS (§3.1, §3.2).
 
-1. `role_modules`: las filas de `tasks` y `reuniones` pasan a `operations`, **enumerando los roles**
-   (`admin`, `stratix360`, `medico_investigacion`), no copiándolos con un `SELECT`.
-2. Las policies de `reuniones` y `reunion_temas` cambian `has_module('reuniones')` por
-   `has_module('operations')`.
-3. La policy de `actividades` evalúa dos slugs en OR por variable: `tasks` pasa a `operations` y
-   **`stratix-mkt` se queda** — la sección Team de Stratix cuenta las tareas en proceso de cada
-   persona (`RosterCard`), y sacarlo dejaría ese contador en cero sin ningún error.
-4. **El bug de `notif_insert_modulo`** (§2.2): la policy pasa a `operations` y
-   `useActividadForm/index.ts:106` chequea el error.
-
-⚠️ **5. El slug es también el ámbito de los filtros, y eso rompe lo que se mergeó ayer.**
-`useFilters(MODULE.TASKS, actFilters)` usa el slug como `ambito`, y ese ámbito separa **las filas de
-`vistas_filtro`** (`ambito='tasks'`) y **la clave de localStorage** `filtros:${ambito}`. Sin
+⚠️ **4. El slug es también el ámbito de los filtros.** `useFilters(MODULE.TASKS, actFilters)` usa el
+slug como `ambito`, y ese ámbito separa las filas de `vistas_filtro` (`ambito='tasks'`). Sin
 migrarlo, cada vista guardada del PR #68 desaparece del desplegable **sin un error**:
 
 ```sql
 UPDATE public.vistas_filtro SET ambito = 'operations' WHERE ambito = 'tasks';
 ```
 
-⚠️ **6. Y el renombre de la columna lo rompe otra vez, por otra puerta.**
-`act-filters/grupos/fechas.ts:11` declara `key: 'fecha_entrega'`, y esa clave **se persiste** dentro
-de `vistas_filtro.valores` (jsonb) y `ocultos` (text[]). La misma migración reescribe esas claves.
+**Sobre las claves de columna que guarda adentro:** `act-filters/grupos/fechas.ts:11` declara
+`key: 'fecha_entrega'`, y esa clave se persiste en `valores` (jsonb) y `ocultos` (text[]). ⚠️ Pero
+**es un identificador de UI, no un nombre de columna** — el filtro aplica un predicado en JS. O sea
+que renombrar la `key` es **una elección**: si se deja como está, no hay nada que migrar y no se
+rompe nada. Se deja.
 
-**El localStorage no se puede migrar desde la base.** Va un shim de una lectura: si no hay
-`filtros:operations` y sí `filtros:tasks`, se copia y se borra el viejo. Lo mismo con
-`TASKS_TAB_PREF`.
-
-⚠️ **No hay RLS nueva sobre `actividades`** — la cláusula de confidencialidad de §2.1 quedó
-diferida—, **pero sí sobre `temas`** (§3.1). La frase "no hay RLS nueva" del documento anterior era
-falsa.
+⚠️ **El localStorage no se migra, y el shim que proponía la versión anterior no funcionaba.** La
+clave real no es `filtros:tasks` sino **`eminat:<userId>:filtros:tasks`** (`useUserPreference.ts:19`)
+y el `userId` llega recién cuando `AppContext` resuelve el perfil. Y `TASKS_TAB_PREF` es
+`'tab-tasks'` (`constants/tabs/index.ts:21`), una constante **que no deriva del slug**: no hay nada
+que migrarle. Se acepta la pérdida de la preferencia local de filtros —vuelve al default en el
+primer ingreso— y se dice en la nota del PR.
 
 **El precheck del 29/08 aplica entero.** La RLS se verifica consultando como `anon` y con un rol sin
-privilegios, no leyendo el esquema: ver una policy no es ver control de acceso. Y `db push` aplica
-**todas** las migraciones pendientes — `migration list --linked` antes.
+privilegios, no leyendo el esquema. Y `db push` aplica **todas** las migraciones pendientes —
+`migration list --linked` antes.
 
 ---
 
 ## 5. UI
 
 Reuniones entra como **quinta pestaña** de `/operations`. `/reuniones` deja de existir como ruta
-—con **redirect** a `/operations?tab=reuniones`, que el documento anterior no mencionaba— y el
-sidebar muestra un solo ítem.
+—con **redirect** a `/operations?tab=reuniones`— y el sidebar muestra un solo ítem.
 
-Los cinco lugares del catálogo de permisos cambian juntos (los lista el encabezado de
-`src/shared/auth/permissions/index.ts`), más las claves i18n: **no son "los dos `.json`" y ya**, son
-~20 claves nuevas entre temas, cierre y reapertura.
+Los cinco lugares del catálogo de permisos cambian juntos, **más un sexto** para el catálogo de
+`temas` en `/admin` (§2.3), más ~20 claves i18n nuevas entre temas, cierre y reapertura.
 
-⚠️ **El tamaño real del trabajo, que el documento anterior despachaba en un párrafo.** Hoy no existe
-**ni un archivo** de temas: `grep -rn "reunion_temas"` en `src/` da **cero**. No hay repo, ni hook,
-ni tipo, ni componente. El único precedente comparable es la mesa de participantes de la fase 1 —
-**5 componentes + `useParticipantes` + 2 utils + 62 claves i18n**, y eso para *una* tabla. Acá son
-tres y una FK compuesta.
+⚠️ **El tamaño real del trabajo.** Hoy no existe **ni un archivo** de temas: `grep -rn
+"reunion_temas"` en `src/` da **cero**. No hay repo, ni hook, ni tipo, ni componente. El único
+precedente comparable es la mesa de participantes de la fase 1 — **5 componentes + `useParticipantes`
++ 2 utils + 62 claves i18n**, y eso para *una* tabla. Acá son tres.
 
 **El modal del tratamiento es donde nacen las tareas, y es el paso central.** Al crear o editar un
-punto se cargan sus tareas en la misma pantalla: título, responsable, **`fecha_inicio`** (§2.10),
-fecha comprometida y horas. Cada línea es un `INSERT` en `actividades` con `reunion_id` +
-`reunion_tema_id`.
+punto se cargan sus tareas en la misma pantalla: título, responsable (que ahora puede ir vacío,
+§2.6), `fecha_inicio`, fecha comprometida y horas. Cada línea es un `INSERT` en `actividades` **más**
+uno en `reunion_tema_actividades`.
 
-Tres piezas que la revisión encontró faltando:
+Seis piezas que la revisión encontró faltando:
 
 1. **El buscar-o-crear de `temas`** (§2.3). Pieza nueva; `CatalogoSelect` no sirve.
-2. ⚠️ **El formulario de tarea no se reusa tal cual.** `useActividadForm` es **un estado singleton
-   por provider** —un modal a la vez—, y adentro del acta quedarían tres `Modal` anidados con el
-   mismo `z-index`. Además `payloadDeAlta` no acepta las columnas nuevas. Reusarlo exige refactorar
-   el hook para admitir más de una instancia.
-3. ⚠️ **Montar reuniones en `TasksProvider` se lo cobra Stratix.** `StratixModule` monta el mismo
+2. ⚠️ **El formulario de tarea no se reusa tal cual, y no alcanza con el hook.** `useActividadForm`
+   es **un estado singleton por provider** —un modal a la vez—, y además `ActivityCampos` /
+   `ActivityPlanificacion` **leen `nuevaAct` del contexto**, no de props. "Cada línea es un `INSERT`"
+   necesita N estados: son el hook **y** los tres componentes de campos.
+3. ⚠️ **`ReunionesListado` monta su propio `AppShell` + `PageTransition`**, que `ModuloTabs` ya
+   monta. Como pestaña hay que sacárselos.
+4. ⚠️ **Montar reuniones en `TasksProvider` se lo cobra Stratix.** `StratixModule` monta el mismo
    provider y los hooks se componen **incondicionalmente**: un `useReuniones()` ahí dispararía
-   fetches en `/stratix-mkt`, donde la pestaña no existe. El hook va detrás de una condición.
+   fetches en `/stratix-mkt`. El hook va detrás de una condición.
+5. ⚠️ **`PanelKey` es una unión literal** usada como `panel="tasks"`: el renombre toca `NAV`,
+   `PANEL_META`, `SUB_ITEMS` y el tipo.
+6. **El routing mínimo.** `useSearchParams` tiene **cero ocurrencias en todo `src/`**: el expediente
+   es un `Modal` abierto por `useState` y una reunión nunca tuvo URL. Entra `?tab=reuniones&reunion=<id>`,
+   que además es lo que hace posible el redirect y los enlaces del punto 7.
+7. ⚠️ **La ficha de una tarea no muestra "su" reunión: muestra la lista.** Con el puente de §2.4 una
+   tarea puede haberse tratado en varias —una con `rol='origen'` y las demás `'revisada'`—, así que
+   el renglón es una **lista de reuniones con su fecha y su punto**, no un enlace. Es la pestaña
+   "Meetings" de OpenProject, y es lo que hace visible el ciclo desde el lado de la tarea.
 
-⚠️ **El "enlace de sólo lectura" a la reunión de origen no puede ser un enlace hoy.**
-`useSearchParams` tiene **cero ocurrencias en todo `src/`**: el expediente es un `Modal` abierto por
-`useState`, y una reunión concreta nunca tuvo URL. La pestaña activa vive en
-`useUserPreference('tab-tasks')`, no en el pathname. Entra en la fase el routing mínimo por query
-param —`?tab=reuniones&reunion=<id>`— que además es lo que hace posible el redirect de `/reuniones`.
-
-**El cierre del acta** (§2.8) suma el botón en el expediente —que primero tiene que mostrar el
+**El cierre del acta** (§2.9) suma el botón en el expediente —que primero tiene que mostrar el
 `estado`— y la reapertura por admin con `ConfirmModal`.
 
+Verificado que degrada bien: `LAST_MODULE_KEY` valida con `isModuleSlug`, así que ante el slug
+muerto el atajo del Launchpad **desaparece en vez de romperse**.
+
 **La unificación de carpetas entra, como paso final de la fase.** `src/features/tasks/` pasa a
-`src/features/operations/` y `src/features/reuniones/` se muda adentro. Va último a propósito: es
-un diff de renombres que taparía el trabajo de esquema y de UI si fuera primero.
+`src/features/operations/` y `src/features/reuniones/` se muda adentro. Va último a propósito: es un
+diff de renombres que taparía el trabajo de esquema y de UI si fuera primero.
 
 ---
 
@@ -565,13 +705,14 @@ un diff de renombres que taparía el trabajo de esquema y de UI si fuera primero
 
 - **La cláusula de confidencialidad en la RLS de `actividades`** (§2.1). Diferida por Wagner el
   09/09, anotada en el `.todo`. Es la deuda más grande que la fase deja abierta.
-- **El acta imprimible y los heredados** — seguían siendo fase 3 y lo siguen siendo.
+- **El acta imprimible** — sigue siendo fase 3. El **arrastre**, en cambio, ya no necesita esquema
+  nuevo: es una fila más en el puente con `rol='revisada'` (§2.4).
 - **Romper el acople asignable/liquidable** (§2.5). Tarea propia.
-- **Partir `actividades`** en sus tres (ahora cuatro) roles. El argumento de fondo de §2.10 sigue
-  vivo (§1).
+- **Partir `actividades`** en sus tres (ahora cuatro) roles. El argumento de fondo de §2.10 del
+  29/08 sigue vivo (§1).
 - **El motor de filtros aplicado a reuniones.** Quedó hecho para `/tasks` en el PR #68 y debería
   reutilizarse acá; se decide cuando la pestaña esté en pantalla.
-- **Extender `log_cambio_actividad` a las fechas** (§2.6). Mejora de auditoría independiente.
+- **Extender `log_cambio_actividad` a las fechas** (§2.7). Mejora de auditoría independiente.
 - **El botón "promover a tarea"** que dibujaba §2.1 del 29/08: no hace falta. Un pendiente nace ya
   siendo tarea.
 
@@ -584,7 +725,8 @@ un diff de renombres que taparía el trabajo de esquema y de UI si fuera primero
   hay que borrar la sección a mano.
 - **El CLAUDE.md miente en tres lugares** apenas esto se mergee: la tabla de módulos, el párrafo de
   `deriveMiembrosAsignables` y el árbol de `src/`. Se corrige en la misma rama.
-- **Cero tests del cierre.** Los ocho tests del módulo son de utils puros; ninguno toca RLS ni
-  triggers. Las tres piezas de §2.8 nacen con la cobertura que se les escriba acá.
+- **Cero tests del cierre.** Los **siete** archivos de test del módulo son de utils puros; ninguno
+  toca RLS ni triggers. Las tres piezas de §2.9 nacen con la cobertura que se les escriba acá.
 - **`src/features/tasks/types.ts` tiene una DEUDA anotada** (re-exporta `Actividad` sin ser un
-  index) que la mudanza de carpeta toca por contacto. No se paga acá: son 21 imports.
+  index) que la mudanza de carpeta toca por contacto. No se paga acá: son **29** imports (25 sin
+  contar tests).
