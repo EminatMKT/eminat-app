@@ -1,24 +1,5 @@
-/* Una sección del menú: «qué hacer con la puesta» arriba, la lista en el medio, «crear una» al
-   pie. La línea las separa — sin ella, crear parece una vista más de la lista. */
-.seccion {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  margin-top: 0.375rem;
-  padding-top: 0.375rem;
-  border-top: 1px solid var(--c-border);
-}
-
-/* La de arriba abre el menú: su línea va abajo, contra la lista, y no encima del borde del panel.
-   Los selectores hermanos no sirven acá — la lista son `VistaFila`, otro módulo CSS, y sus clases
-   salen con otro hash. */
-.seccion:first-child {
-  margin-top: 0;
-  padding: 0 0 0.375rem;
-  border-top: none;
-  border-bottom: 1px solid var(--c-border);
-}
-
+/* Lo único propio del menú de vistas: qué se lee cuando no hay ninguna. La lista son `VistaFila`
+   y el resto —guardar, actualizar— salió a la barra, donde se ve sin abrir nada. */
 .vacio {
   padding: 0.375rem 0.5rem;
   color: var(--c-t3);
