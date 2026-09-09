@@ -9,7 +9,7 @@ import ExpedienteAcciones from '@/features/reuniones/components/expediente/Exped
 import ParticipantesPanel from '@/features/reuniones/components/participantes/ParticipantesPanel'
 import { useReunion } from '@/features/reuniones/hooks'
 import s from './index.module.css'
-// centinela-exime: bloques-similares@2 — no hay markup propio salvo la grilla: es `Modal` con su
+// centinela-exime: bloques-similares@3 — no hay markup propio salvo la grilla: es `Modal` con su
 // `footer` fijo, los campos, el panel de participantes y `ConfirmModal`.
 type Props = {
   /** Con id edita esa reunión y muestra su mesa; sin él, crea una. */

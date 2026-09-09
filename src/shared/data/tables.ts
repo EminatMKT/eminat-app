@@ -27,6 +27,7 @@ export const TABLES = {
   pacienteContactos: 'paciente_contactos',
   reuniones: 'reuniones',
   reunionParticipantes: 'reunion_participantes',
+  vistasFiltro: 'vistas_filtro',
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]

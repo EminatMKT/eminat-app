@@ -5,7 +5,7 @@ import { useT } from '@/shared/i18n'
 import AppShell from '@/shared/components/shell/AppShell'
 import { PageTransition } from '@/shared/motion'
 import { MODULE_META, ROUTES, modulePath, isModuleSlug, type ModuleSlug } from '@/shared/auth/permissions'
-import { useUserPreference, LAST_MODULE_KEY } from '@/shared/hooks/useUserPreference'
+import { useUserPreference, LAST_MODULE_KEY } from '@/shared/hooks'
 
 // ── Dark theme (matches AppShell's sidebar palette) ───────────────────
 const D = {

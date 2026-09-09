@@ -6,8 +6,7 @@ import { detectSeparator, parseDelimited } from '@/shared/utils/delimited'
 import { fmt } from '../format'
 import { TABLE, ADD_FIELDS, NUMERIC_FIELDS, EXPORT_HEADERS, TAB_TITLE } from './../constants'
 import type { CobTab, Filtros, Venta, Cuenta, Deposito } from '../types'
-import { useUserPreference } from '@/shared/hooks/useUserPreference'
-import { oneOf } from '@/shared/hooks/usePersistedState'
+import { useUserPreference, oneOf } from '@/shared/hooks'
 
 const num = (v: unknown) => Number(v) || 0
 
@@ -15,6 +14,7 @@ export function useCobranzasData() {
   const { modules, mostrarMensaje } = useApp()
   const canCobranzas = modules.includes('cobranzas')
 
+  // Qué pestaña dejó abierta. Un click la reconstruye: va local, no a tabla.
   const [cobTab, setCobTab] = useUserPreference<CobTab>('tab-cobranzas', 'ventas', oneOf('ventas', 'cuentas', 'depositos'))
   const [cobMes, setCobMes] = useState(MESES[new Date().getMonth()])
   const [cobVentas, setCobVentas] = useState<Venta[]>([])

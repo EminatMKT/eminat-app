@@ -6,7 +6,7 @@ import type { CamposProps } from '@/features/reuniones/components/expediente/typ
 import { TIPO_REUNION } from '@/features/reuniones/constants'
 import s from './index.module.css'
 
-// centinela-exime: bloques-similares@2 — `Field` se reusa: pone rótulo, ícono y asterisco.
+// centinela-exime: bloques-similares@3 — `Field` se reusa: pone rótulo, ícono y asterisco.
 // QUÉ reunión es; la otra mitad vive en `CuandoYDonde`. Título y objetivo van al ancho completo:
 // son los dos donde se escribe una frase, y a media columna se cortan.
 export default function DatosGenerales({ form, set }: CamposProps) {

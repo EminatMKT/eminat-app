@@ -1,0 +1,55 @@
+/* Los valores salían de `DASHBOARD_THEME` por `style={}`, que es la copia en JS de estas mismas
+   variables. Acá se leen de donde nacen. El disparador y su chevron no están: son de `Disclosure`. */
+
+.raiz {
+  background: var(--c-s1);
+  border: 1px solid var(--c-border);
+  border-radius: 0.875rem;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 6%);
+}
+
+/* El recorte es SÓLO para `flush`: ahí el contenido llega al borde y sin él las esquinas de una
+   tabla se salen del radio. Con padding no recorta nada propio y sí lo ajeno — un desplegable que
+   cae de la fila de filtros quedaba tapado por el borde. */
+.recortado {
+  overflow: hidden;
+}
+
+.cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.8125rem 1rem;
+  border-bottom: 1px solid var(--c-border);
+}
+
+/* Recogido, esa línea sería el borde del panel dibujado dos veces. */
+.cabeceraSola {
+  border-bottom: none;
+}
+
+/* Lo que acompaña al título. Es lo ÚNICO que se ve con el panel recogido, así que acá va estado
+   —qué hay aplicado— y no acciones: un botón sobre algo que no se está viendo. */
+.derecha {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.rotulo {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--c-t1);
+  letter-spacing: -0.01em;
+}
+
+.cuerpo {
+  padding: 1rem;
+}
+
+/* `flush`: el contenido llega hasta el borde, sin padding propio (tablas). */
+.cuerpoAlBorde {
+  padding: 0;
+}

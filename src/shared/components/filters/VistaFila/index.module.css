@@ -1,0 +1,54 @@
+.fila {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.375rem;
+}
+
+.fila:hover {
+  background: var(--c-s3);
+}
+
+/* El nombre se lleva el espacio libre: es el blanco grande para aplicar la vista, y las acciones
+   quedan pegadas al borde derecho en todas las filas por igual. */
+.nombre {
+  flex: 1;
+  min-width: 0;
+  padding: 0.375rem 0.5rem;
+  border: none;
+  background: transparent;
+  color: var(--c-t2);
+  font-family: inherit;
+  font-size: 0.6875rem;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* El espacio del ✓ se reserva en TODAS las filas, transparente: si sólo lo tuviera la puesta, los
+   nombres se correrían al aplicar otra vista y la lista entera se movería debajo del cursor. */
+.nombre::before {
+  content: '✓';
+  display: inline-block;
+  width: 0.875rem;
+  color: transparent;
+}
+
+/* Cuál está puesta tiene que verse de un vistazo, y el negrita solo no alcanzaba — en una lista
+   de nombres cortos, una que pesa un poco más no se lee como «ésta es». El ✓ lo dice; el acento
+   lo confirma. NO se usa la ★, que es otra cosa: con cuál ABRE, no cuál está puesta ahora. */
+.puesta {
+  color: var(--c-accent-solid);
+  font-weight: 600;
+}
+
+.puesta::before {
+  color: var(--c-accent-solid);
+}
+
+.nombre:focus-visible {
+  outline: 2px solid var(--c-accent-solid);
+  outline-offset: -2px;
+}

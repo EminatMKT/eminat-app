@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { useApp } from '@/shared/context/AppContext'
 import { moduleForPath } from '@/shared/auth/permissions'
-import { writeUserPreference, LAST_MODULE_KEY } from '@/shared/hooks/useUserPreference'
+import { writeUserPreference, LAST_MODULE_KEY } from '@/shared/hooks'
 import AccessDenied from '@/shared/components/access/AccessDenied'
 
 // Gate central por módulo: una sola fuente de verdad (antes cada módulo lo hacía suelto y se

@@ -4,7 +4,7 @@ import { Field } from '@/shared/components/ui'
 import { useT } from '@/shared/i18n'
 import { useTasks } from '@/features/tasks/components/TasksContext'
 
-// centinela-exime: bloques-similares@2 — sale de `NewActivityModal`, que pasaba el techo de 150.
+// centinela-exime: bloques-similares@3 — sale de `NewActivityModal`, que pasaba el techo de 150.
 // Es el ÚNICO select del repo que lista inactivos, así que no hay con qué unificarlo: los demás
 // filtran por `activo` y listo.
 

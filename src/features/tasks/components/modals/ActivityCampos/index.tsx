@@ -5,7 +5,7 @@ import ActivityAsignacion from '@/features/tasks/components/modals/ActivityAsign
 import SolicitantePicker from '@/features/tasks/components/modals/SolicitantePicker'
 import { useTasks } from '@/features/tasks/components/TasksContext'
 
-// centinela-exime: bloques-similares@2 — sale de `NewActivityModal`, que pasaba el techo de 150.
+// centinela-exime: bloques-similares@3 — sale de `NewActivityModal`, que pasaba el techo de 150.
 // Los campos ya usaban `Field`; lo único nuevo es que el emoji entra por su prop `icon` en vez
 // de vivir dentro de la clave de i18n.
 

@@ -3,32 +3,29 @@ import { useApp } from '@/shared/context/AppContext'
 import { estadoLabel } from '@/shared/constants/domain'
 import { actividadesRepo } from '@/shared/data'
 import { useT } from '@/shared/i18n'
-import { claveMes } from '@/features/tasks/utils/periodo'
+import type { Actividad } from '@/features/tasks/types'
 
-// El tablero Kanban: su filtro de período y el arrastrar-soltar que cambia el estado.
-export function useKanban() {
+const SIN_ARRASTRE = { id: null, over: null }
+
+export default function useKanban(actsKanban: Actividad[]) {
   const { actividades, setActividades, mostrarMensaje } = useApp()
   const { t } = useT()
 
-  // centinela-exime: useState@1 — el filtro de período y el gesto de arrastre no se tocan: el
-  // arrastre nace y muere en un drop, el período sobrevive a toda la sesión.
-  const [periodoKanban, setPeriodoKanban] = useState('')
-  const [dragId, setDragId] = useState<string | null>(null)
-  const [dragOver, setDragOver] = useState<string | null>(null)
+  // Qué se arrastra y sobre qué columna: los dos nacen y mueren en el mismo gesto, así que
+  // soltarlo es `setDrag(SIN_ARRASTRE)` y no dos setters que hay que acordarse de llamar.
+  const [drag, setDrag] = useState<{ id: string | null; over: string | null }>(SIN_ARRASTRE)
+  const { id: dragId, over: dragOver } = drag
 
-  // Sólo los que TIENEN tareas, al revés que `periodosDisponibles()`: acá se salta a un mes cargado.
-  const periodosConTareas = Array.from(new Set(actividades.map(a => claveMes(a.fecha_inicio)).filter(Boolean))).sort().reverse()
-  const actsKanban = periodoKanban ? actividades.filter(a => claveMes(a.fecha_inicio) === periodoKanban) : actividades
   const porColumna = (col: string) => actsKanban.filter(a => a.estado === col)
 
-  const onDragStart = (id: string) => setDragId(id)
-  const onDragOverCol = (col: string) => setDragOver(col)
-  const onDragEnd = () => { setDragId(null); setDragOver(null) }
+  const onDragStart = (id: string) => setDrag({ id, over: null })
+  const onDragOverCol = (over: string) => setDrag(p => ({ ...p, over }))
+  const onDragEnd = () => setDrag(SIN_ARRASTRE)
 
   async function onDrop(col: string) {
     if (!dragId) return
     const act = actividades.find(a => a.id === dragId)
-    if (!act || act.estado === col) { setDragId(null); setDragOver(null); return }
+    if (!act || act.estado === col) { setDrag(SIN_ARRASTRE); return }
     const { error } = await actividadesRepo.updateEstado(dragId, col)
     if (!error) {
       setActividades(prev => prev.map(a => a.id === dragId ? { ...a, estado: col } : a))
@@ -36,14 +33,23 @@ export function useKanban() {
     } else {
       mostrarMensaje('error', t('stratix.kanban.moveError'))
     }
-    setDragId(null)
-    setDragOver(null)
+    setDrag(SIN_ARRASTRE)
   }
 
   const kanban = {
-    periodoKanban, setPeriodoKanban, periodosConTareas, actsKanban, porColumna,
+    actsKanban, porColumna,
     dragId, dragOver, onDragStart, onDragOverCol, onDragEnd, onDrop,
   }
 
   return kanban
 }
+
+// El tablero Kanban: el arrastrar-soltar que cambia el estado, y nada más.
+//
+// Tenía su PROPIO filtro de mes —un `<select>` de los meses con tareas, dibujado a mano en la
+// barra de la sección— mientras el Dashboard filtraba por otro lado. Dos pestañas del mismo
+// módulo podían estar mirando períodos distintos sin que nada lo dijera, y la de Production era
+// la única sin los otros cinco filtros: no se podía ver el Kanban de una marca ni de una persona.
+//
+// Ahora el conjunto entra por parámetro, ya filtrado por el motor compartido, igual que
+// `useReporte` recibe su `idsTeam` — quién filtra es UNA decisión y se toma en un solo lugar.

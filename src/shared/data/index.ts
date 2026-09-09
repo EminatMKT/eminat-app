@@ -10,3 +10,7 @@ export * as cobranzasRepo from './cobranzas'
 export * as rolesRepo from './roles'
 export * as orgRepo from './org'
 export * as reunionesRepo from './reuniones'
+// El tipo se re-exporta acá y no se importa por su ruta desde afuera: la regla del barrel vale
+// también para los tipos.
+export * as vistasFiltroRepo from './vistas-filtro'
+export type { VistaFiltro } from './vistas-filtro'

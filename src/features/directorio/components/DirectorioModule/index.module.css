@@ -1,0 +1,12 @@
+.titulo {
+  margin-bottom: 0.875rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--c-t1);
+}
+
+.grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13.125rem, 1fr));
+  gap: 0.625rem;
+}

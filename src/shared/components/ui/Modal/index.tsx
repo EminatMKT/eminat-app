@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import ModalHead from '@/shared/components/ui/ModalHead'
 import s from './index.module.css'
 
-// centinela-exime: bloques-similares@2 — no hay markup nuevo: el encabezado SALIÓ de acá a
+// centinela-exime: bloques-similares@3 — no hay markup nuevo: el encabezado SALIÓ de acá a
 // `ModalHead` y lo único que se agregó es el pie, que es un <div> con el `footer` adentro.
 // Shell de cualquier modal: el fondo, la caja, su encabezado fijo y —si se le pasa— su pie fijo.
 //

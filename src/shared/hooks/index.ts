@@ -5,3 +5,7 @@
 export { useClock } from './useClock'
 export { usePersistedState, readPref, writePref, oneOf } from './usePersistedState'
 export { useUserPreference, writeUserPreference, userPrefKey, LAST_MODULE_KEY } from './useUserPreference'
+// `useVistas` NO se exporta: es interno del hook, y sacarlo al barrel invitaría a montar el CRUD
+// de vistas sin el estado que las aplica.
+export { useFilters } from './useFilters'
+export type { Filtros } from './useFilters/tipos'

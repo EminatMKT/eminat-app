@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
+import { applyFilters, defaultFilterValues } from '@/shared/utils'
 import { generateDemoData } from '../demo-data'
 import { formatDate, addDays } from '../dates'
+import appointmentFilters from '@/features/medical/utils/filters'
 import { DOCTORES, SALAS } from '../constants'
 import { usePacientes } from './usePacientes'
 import type { Paciente, Cita, HipaaLog, HipaaIncidente, HipaaTraining } from '../types'
@@ -20,7 +22,10 @@ export function useMedicalData() {
 
   const [searchPaciente, setSearchPaciente] = useState('')
   const [filterEstadoPaciente, setFilterEstadoPaciente] = useState('todos')
-  const [filterCitaFecha, setFilterCitaFecha] = useState('hoy')
+  // La agenda abre en «hoy», y eso lo dice el def (`defaultValue`), no este `useState`: el
+  // arranque de un filtro es del filtro.
+  const citaFilters = useMemo(() => appointmentFilters(t), [t])
+  const [filterCitaFecha, setFilterCitaFecha] = useState(() => defaultFilterValues(citaFilters).fecha)
   const [searchAudit, setSearchAudit] = useState('')
   const [filterAuditNivel, setFilterAuditNivel] = useState('todos')
 
@@ -45,15 +50,8 @@ export function useMedicalData() {
     return matchSearch && matchEstado
   }), [pacientes, searchPaciente, filterEstadoPaciente])
 
-  const filteredCitas = useMemo(() => {
-    if (filterCitaFecha === 'hoy') return citas.filter(c => c.fecha === hoy)
-    if (filterCitaFecha === 'manana') return citas.filter(c => c.fecha === formatDate(addDays(new Date(), 1)))
-    if (filterCitaFecha === 'semana') {
-      const fin = formatDate(addDays(new Date(), 7))
-      return citas.filter(c => c.fecha >= hoy && c.fecha <= fin)
-    }
-    return citas
-  }, [citas, filterCitaFecha, hoy])
+  const filteredCitas = useMemo(
+    () => applyFilters(citas, citaFilters, { fecha: filterCitaFecha }), [citas, citaFilters, filterCitaFecha])
 
   const filteredAudit = useMemo(() => auditLogs.filter(l => {
     const matchSearch = !searchAudit || `${l.usuario_nombre} ${l.accion} ${l.paciente_nombre} ${l.detalles}`.toLowerCase().includes(searchAudit.toLowerCase())
@@ -123,7 +121,7 @@ export function useMedicalData() {
   return {
     pacientes, pacienteFuentes, pacienteContactos, editPaciente, importarPacientes, citas, auditLogs, incidentes, trainings,
     searchPaciente, setSearchPaciente, filterEstadoPaciente, setFilterEstadoPaciente,
-    filterCitaFecha, setFilterCitaFecha, searchAudit, setSearchAudit, filterAuditNivel, setFilterAuditNivel,
+    citaFilters, filterCitaFecha, setFilterCitaFecha, searchAudit, setSearchAudit, filterAuditNivel, setFilterAuditNivel,
     hoy, citasHoy, citasManana, pacientesActivos, incidentesAbiertos, trainingsPendientes, complianceScore,
     filteredPacientes, filteredCitas, filteredAudit,
     logAction, addPaciente, addCita, addIncidente, updateCitaEstado,

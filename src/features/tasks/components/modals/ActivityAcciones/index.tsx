@@ -3,7 +3,7 @@ import { Button } from '@/shared/components/ui'
 import { useT } from '@/shared/i18n'
 import { useTasks } from '@/features/tasks/components/TasksContext'
 
-// centinela-exime: bloques-similares@2 — no hay markup nuevo: son dos `Button` compartidos. Lo
+// centinela-exime: bloques-similares@3 — no hay markup nuevo: son dos `Button` compartidos. Lo
 // propio de acá son los cuatro rótulos que cambian entre crear y editar, y eso es dominio de
 // Stratix — un pie compartido tendría que recibirlos por prop, que es justo lo que la regla del
 // contenedor prohíbe.

@@ -5,7 +5,7 @@ import type { CamposProps } from '@/features/reuniones/components/expediente/typ
 import { MODALIDAD } from '@/features/reuniones/constants'
 import s from './index.module.css'
 
-// centinela-exime: bloques-similares@2 — es la otra mitad del formulario de `DatosGenerales` y
+// centinela-exime: bloques-similares@3 — es la otra mitad del formulario de `DatosGenerales` y
 // reusa lo mismo: `Field`. Se separó por largo y porque son dos preguntas distintas —qué reunión
 // es, y cuándo y dónde—, no porque el markup sea otro.
 

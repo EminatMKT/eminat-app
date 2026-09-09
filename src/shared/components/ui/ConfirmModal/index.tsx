@@ -7,7 +7,7 @@ import Field from '@/shared/components/ui/Field'
 import type { Props } from './types'
 import s from './index.module.css'
 
-// centinela-exime: bloques-similares@2 — no hay markup nuevo: los botones son `Button` y el pie
+// centinela-exime: bloques-similares@3 — no hay markup nuevo: los botones son `Button` y el pie
 // es el `footer` de `Modal`. Antes se dibujaban acá con `style` inline y la paleta a mano.
 // centinela-exime: useState@1 — lo que se tipea y lo que "está corriendo" no viajan juntos: uno
 // cambia con el teclado y el otro con la red.

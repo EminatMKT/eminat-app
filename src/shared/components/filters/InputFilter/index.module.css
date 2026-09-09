@@ -1,0 +1,20 @@
+/* Sólo la fila que envuelve al rótulo y sus inputs. El look del control en sí llega por
+   `className` desde quien lo monta, igual que en `SelectFilter`: así los dos controles de la
+   barra comparten una definición y no dos casi iguales. */
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 0.4375rem;
+}
+
+/* La misma voz que el rótulo del riel de vistas: los dos nombran un control. */
+.rotulo {
+  composes: rotulo from '../control.module.css';
+}
+
+/* Decorativo: quien no lo ve tiene el `aria-label` de cada input. */
+.guion {
+  color: var(--c-t3);
+  font-size: 0.75rem;
+}

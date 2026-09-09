@@ -4,7 +4,7 @@ import { useT, type I18nKey } from '@/shared/i18n'
 import { FROZEN_COLS } from '../../constants'
 import { useResearch } from '../ResearchContext'
 import Panel from '@/shared/components/dashboard/Panel'
-import FiltersPanel from '../FiltersPanel'
+import { FiltersPanel } from '@/shared/components/filters'
 import ToolbarButton from '../ToolbarButton'
 import LeadRow from './LeadRow'
 
@@ -25,10 +25,10 @@ const COLUMNS: I18nKey[] = [
 export default function LeadsTab() {
   const { s2, border, t2, t3, accent } = RESEARCH_THEME
   const { t } = useT()
-  const { filteredLeads, openNewLead, setModalImport, setModalSpecialty, handleExport, handlePrint } = useResearch()
+  const { filteredLeads, leads, filtros, openNewLead, setModalImport, setModalSpecialty, handleExport, handlePrint } = useResearch()
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <FiltersPanel />
+      <FiltersPanel filtros={filtros} items={leads} persistKey="research-filters" />
 
       {/* Las acciones viven acá y no en el encabezado del módulo: operan sobre ESTA tabla
           (export y PDF salen de `filteredLeads`, o sea de lo que el usuario está viendo). */}
