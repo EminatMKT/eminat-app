@@ -44,40 +44,72 @@ valida), en el catálogo de permisos, en la ruta, en las claves i18n y en las po
 un slug mal escrito **no falla, se vuelve invisible**, y es invisible justo para el admin que lo
 prueba.
 
-### 2.2 Los pendientes SON actividades; los temas siguen siendo temas
+### 2.2 Los pendientes SON actividades; los temas no
 
 `reunion_pendientes` se borra. Lo que alguien se compromete a hacer en una reunión es una fila de
 `actividades` con `reunion_tema_id`.
 
-`reunion_temas` **se queda como tabla propia**. Un tema es *lo que se trató* — no algo que alguien
-deba hacer, no tiene responsable ni estado ni horas. Convertirlo en actividad (como proponía el
-diseño del 28/08) obligaría a inventar el estado "tratado" y a que un tema informativo apareciera
-en un Kanban.
+**Los temas no se van con ellos.** Un tema es *lo que se trató* — no algo que alguien deba hacer,
+no tiene responsable ni estado ni horas. Convertirlo en actividad (como proponía el diseño del
+28/08) obligaría a inventar el estado "tratado" y a que un punto informativo apareciera en un
+Kanban. Sí cambian de forma, pero por otro motivo: §2.3.
 
 **Motivo:** es la salida que la propia regla del centinela dejó escrita. El Motivo de
 *«`reunion_pendientes` no crece»* decía que si la tabla pedía prioridad, colaboradores o un Kanban
 propio, *"eso no es una columna nueva: es la señal de que dejó de ser una lista dentro de un acta"*.
 La señal llegó antes de la primera columna.
 
-**La cardinalidad es `reuniones 1:N reunion_temas 1:N actividades`.** Una reunión pare muchas
-tareas; una tarea tiene a lo sumo **una** reunión de origen, o ninguna.
-
-Se evaluó `N:N` con tabla puente y se descartó. El único caso que la pediría son los *heredados*:
-una tarea acordada el 1/09 que no se terminó y **se revisa** el 8/09. Eso es fase 3, y ahí se
-resuelve con una consulta —"tareas sin completar de reuniones anteriores de este equipo"—, que es
-dato derivable. Un puente que hoy tendría exactamente una fila por tarea es la misma trampa que la
-columna nullable que nadie escribe, y reintroduce el patrón de "dos filas para lo mismo" que §3.7
-del diseño anterior rechazó. Si algún día "qué se revisó en esta reunión" resulta ser una decisión
-editorial y no una consulta, ahí el puente se gana el lugar.
-
-**El costo de colgar del tema y no de la reunión:** si se borra un punto del orden del día, el
-`ON DELETE SET NULL` deja la tarea sin tema **y sin reunión** — se pierde el rastro de dónde
-nació. Se tapa sin una segunda columna: el acta no deja borrar un punto que tiene tareas colgando,
-hay que despegarlas primero.
-
 **`reunion_tema_id` es nullable, y el `NULL` es el caso normal.** Una tarea que surge fuera de una
 reunión —las 429 que hay hoy en prod— no tiene tema y no cambia en nada. La columna sólo se llena
 cuando la tarea nace dentro de un acta.
+
+### 2.3 Un tema atraviesa reuniones: `temas` N:N `reuniones`
+
+**Corrige el modelo de la fase 1, por planteo de Wagner el 09/09.** Hoy `reunion_temas.reunion_id`
+es `NOT NULL`: un punto pertenece a un acta y a ninguna otra. Con eso, "Presupuesto Q4" tratado en
+cinco reuniones son **cinco títulos repetidos sin nada que los una**, y no hay forma de ver la
+historia del asunto.
+
+Se parte en dos, y cada mitad del texto va donde le corresponde:
+
+```
+temas          "Presupuesto Q4"                     el asunto — el título, que es el mismo siempre
+  ↕ N:N
+reunion_temas  reunion_id + tema_id + posicion       EL TRATAMIENTO — la descripción, que es
+               + descripcion                          distinta en cada reunión
+reuniones      "Reunión del 8/09"
+```
+
+**Motivo:** el título describe el asunto y la descripción describe *qué se dijo ese día*. Tenerlos
+en la misma fila obligaba a elegir cuál de las cinco versiones del texto imprime cada acta.
+
+Se evaluó antes una tercera entidad `asuntos` por encima de `reunion_temas`, y Wagner la rechazó
+con razón: era el mismo dato dos veces. La relación `N:N` da lo mismo **sin la tabla de más** —
+`reunion_temas` deja de ser una entidad y pasa a ser lo que siempre debió ser, la fila del
+tratamiento.
+
+**Cuesta cero:** `reunion_temas` tiene 0 filas en prod. Es partir una tabla vacía.
+
+### 2.4 La tarea cuelga de la reunión Y del tratamiento, y la FK compuesta impide que se contradigan
+
+`actividades` gana **dos** columnas: `reunion_id` (de qué reunión salió) y `reunion_tema_id` (de
+qué punto, opcional). Las dos nullables — el caso normal sigue siendo una tarea sin reunión.
+
+Antes se había descartado tener las dos por miedo a que se contradijeran: una tarea de la reunión A
+apuntando a un tratamiento de la B. **Ese miedo era de un Postgres que este repo no usa.** Con
+PG 17 la contradicción se vuelve **imposible por estructura**, sin trigger y sin código:
+
+- `UNIQUE (id, reunion_id)` en `reunion_temas`, para que sirva de destino;
+- **FK compuesta** `(reunion_tema_id, reunion_id) REFERENCES reunion_temas (id, reunion_id)`.
+
+Postgres rechaza el par incoherente. Y como una FK compuesta **no se evalúa si una de sus columnas
+es `NULL`** (`MATCH SIMPLE`, el default), el caso *"tarea que salió en la reunión pero no de ningún
+punto"* pasa solo, sin inventar un punto "Varios".
+
+El segundo regalo de PG 17 es `ON DELETE SET NULL (reunion_tema_id)`, que nombra **qué columna** se
+anula: borrar un punto del acta deja la tarea sin tema pero **conserva la reunión**. Con el
+`SET NULL` clásico se anulaban las dos y se perdía el rastro de dónde nació — que era el costo que
+esta sección tenía anotado antes y que ahora no existe.
 
 **Se descartó agregar además `actividades.reunion_id`.** Sería derivable del tema con un `join`, y
 lo único que agrega es la posibilidad de que las dos columnas se contradigan —una tarea apuntando
@@ -94,7 +126,7 @@ para guardar un dato que ya se puede leer.
 | 4. Las notificaciones quedarían muertas | `notificaciones.actividad_id` ya existe y sirve |
 | 5. El checklist no sirve al resto del sistema | Es el checklist de `actividades` |
 
-### 2.3 Dar `operations` a `medico_investigacion` lo vuelve liquidable, y se acepta
+### 2.5 Dar `operations` a `medico_investigacion` lo vuelve liquidable, y se acepta
 
 `role_modules` hoy reparte así:
 
@@ -114,23 +146,41 @@ vez"*, porque `deriveMiembrosAsignables` produce las dos listas.
 pendientes en una reunión es asignable, y si es asignable es liquidable. Se descartó romper el
 acople asignable/liquidable: es una tarea propia y agrandaba esta fase sin necesidad.
 
-### 2.4 `fecha_original` entra como columna; el historial no la reconstruye
+### 2.6 `fecha_entrega_original` entra como columna; el historial no la reconstruye
 
-`actividades` gana `fecha_original date`. Se llena siempre al crear; las 429 filas preexistentes
-quedan en `NULL`.
+`actividades` gana `fecha_entrega_original date`, y `fecha_entrega` pasa a llamarse
+`fecha_entrega_final`. **El par se nombra junto porque se lee junto**: `fecha_original` sola no
+dice original de qué. El renombre cuesta un `RENAME COLUMN`, su índice y 48 ocurrencias en 21
+archivos de `src/`; es mecánico y va en su propio commit.
 
-**Motivo, verificado el 09/09:** `log_cambio_actividad` registra **sólo** `estado` y `verificado`
-(`20260612193730_remote_schema.sql:179`). No registra `fecha_entrega`. Entonces el plazo original
-**no es derivable del historial**: cada edición de la fecha de entrega destruye un dato que
-ninguna migración posterior puede reconstruir. Es la misma asimetría que §2.3 del diseño anterior
-ya había identificado, y sigue siendo cierta.
+**Qué es.** La primera fecha de entrega, congelada. Nadie la escribe a mano:
+
+| Cuándo | Qué pasa | `fecha_entrega_final` | `fecha_entrega_original` |
+|---|---|---|---|
+| 1/09, en la reunión | "los banners para el 15" | `15/09` | `15/09` ← se copia sola |
+| 14/09 | no llegó, se corre | `22/09` | `15/09` |
+| 21/09 | tampoco | `30/09` | `15/09` |
+
+Sin ella, el 21/09 la tarea dice "vence el 30" **y parece que siempre venció el 30**. Con ella:
+*prometido para el 15, entregado el 30 — quince días, dos postergaciones*. En una reunión eso es lo
+único que se pregunta.
+
+**No es un segundo campo del formulario.** El trigger ya está escrito en el repo:
+`proteger_fecha_original` (`20260829222113_reuniones_triggers.sql`) copia el valor en el `INSERT` y
+después **rechaza cualquier cambio**. Sólo hay que mudarlo de `reunion_pendientes` a `actividades`
+y renombrar sus columnas.
+
+**Motivo de que sea una columna y no una consulta, verificado el 09/09:** `log_cambio_actividad`
+registra **sólo** `estado` y `verificado` (`20260612193730_remote_schema.sql:179`). No registra la
+fecha de entrega. Entonces el plazo original **no es derivable del historial**: cada edición
+destruye un dato que ninguna migración posterior puede reconstruir.
 
 **Ninguna de las fechas que ya existen sirve** (inventario verificado el 09/09):
 
 | Columna | Qué es |
 |---|---|
 | `fecha_inicio` | `date NOT NULL`. El **período de imputación del reporte de pago** — decide en qué mes se liquida. No es un vencimiento |
-| `fecha_entrega` | El plazo. Dibuja el Gantt, "próximas entregas" y el badge *vencida*. **Se pisa entera en cada `UPDATE`** |
+| `fecha_entrega` → `fecha_entrega_final` | El plazo vigente. Dibuja el Gantt, "próximas entregas" y el badge *vencida*. **Se pisa entera en cada `UPDATE`** |
 | `fecha_requerida` | Muerta: ningún formulario la escribe desde el 03/09. No se toca en esta fase |
 | `fecha_aprobacion` | Un renglón de la ficha |
 | `created_at` | Cuándo entró la fila. En las 251 migradas dice *abril de 2026*, no cuándo se acordó el trabajo |
@@ -144,7 +194,7 @@ Es el mismo argumento que justificó `created_by_id`. Las dos cosas no compiten 
 que se ve, el trigger es la auditoría—, pero **el trigger no entra en esta fase**: es una mejora de
 auditoría independiente, y `historial.usuario_id` arrastra el bug de las 277 filas vacías.
 
-### 2.5 El acta escribe la tarea; la tarea no escribe el acta
+### 2.7 El acta escribe la tarea; la tarea no escribe el acta
 
 Las tareas se crean y se editan **desde el modal del tema**, con la reunión abierta. Desde el
 formulario de tarea, `reunion_tema_id` no se ve ni se toca: despegar una tarea de su punto, o
@@ -172,7 +222,7 @@ el responsable pudiera actualizar su pendiente con el acta cerrada. Unificados e
 cerrar el acta congela el acta, no las tareas: la tarea vive en `actividades` y sigue su ciclo
 normal en el Kanban. Se borra una policy en vez de portarla.
 
-### 2.6 Cerrar un acta no existe hoy, y por eso se implementa en esta fase
+### 2.8 Cerrar un acta no existe hoy, y por eso se implementa en esta fase
 
 **Hallazgo del 09/09, verificado contra el código:** la transición `borrador → en_curso → cerrada`
 **no está implementada en ninguna parte**. La capa de datos no manda `estado` nunca
@@ -185,7 +235,7 @@ nadie (`grep` en todo `src/` da cero), ningún trigger la arma, y la RPC `cerrar
 diseño del 29/08 mandaba escribir nunca se escribió. Cerrar un acta hoy es imposible incluso por
 SQL sin construir el `jsonb` a mano.
 
-**Por qué eso obliga a implementarlo acá y no en la fase 3:** toda §2.5 se apoya en
+**Por qué eso obliga a implementarlo acá y no en la fase 3:** toda §2.7 se apoya en
 `reunion_abierta()`, que hoy devuelve **siempre true**. El trigger se escribiría y no mordería
 nunca — la misma forma del incidente del 29/08, donde las policies estaban escritas y la RLS
 apagada. Un guard que no puede fallar tampoco puede probarse.
@@ -203,37 +253,72 @@ La reapertura ya está permitida por la base y no hay que tocar RLS: la policy d
 `reuniones` (`20260830204042:74`) abre con `is_admin() OR …`, y `proteger_acta_cerrada` devuelve
 temprano para el admin (`20260829222113:59`). Lo que falta es la pantalla, no el permiso.
 
-### 2.7 El estado "postergado" no entra
+### 2.9 El estado "postergado" no entra
 
 §2.2 del diseño anterior lo dejó *"para decidir al empezar la fase 2"*. Se decide: **no**.
 
 **Motivo:** unificados, agregarlo significa tocar el `CHECK` de `actividades`, que ya declara seis
 valores contra los cuatro de `ESTADO` en TypeScript — deuda anotada y no de este módulo. Y un
-pendiente postergado se distingue por dato, no por estado: `fecha_entrega > fecha_original`.
+pendiente postergado se distingue por dato, no por estado:
+`fecha_entrega_final > fecha_entrega_original`.
 
 ---
 
 ## 3. Esquema
 
+**El tema sube a su propia tabla** (§2.3). `reunion_temas` conserva el nombre y pasa a ser la fila
+del tratamiento; el título se muda a `temas`:
+
+```sql
+CREATE TABLE public.temas (
+  id         uuid PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  titulo     text NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.reunion_temas
+  ADD COLUMN tema_id uuid NOT NULL REFERENCES public.temas(id) ON DELETE RESTRICT,
+  DROP COLUMN titulo,
+  ADD CONSTRAINT reunion_temas_unicos UNIQUE (reunion_id, tema_id),
+  -- Destino de la FK compuesta de `actividades`. Redundante con la PK, y es su función:
+  -- sin este UNIQUE, Postgres no acepta el par como referencia.
+  ADD CONSTRAINT reunion_temas_id_reunion UNIQUE (id, reunion_id);
+```
+
+`ON DELETE RESTRICT` en `tema_id` a propósito: borrar un asunto que se trató en una reunión
+reescribiría un acta pasada. Se desactiva, no se borra.
+
+Y `actividades` gana las dos columnas de §2.4 y la fecha de §2.6:
+
 ```sql
 ALTER TABLE public.actividades
-  ADD COLUMN reunion_tema_id uuid REFERENCES public.reunion_temas(id) ON DELETE SET NULL,
-  ADD COLUMN fecha_original  date;
+  RENAME COLUMN fecha_entrega TO fecha_entrega_final;
 
-CREATE INDEX ON public.actividades (reunion_tema_id) WHERE reunion_tema_id IS NOT NULL;
+ALTER TABLE public.actividades
+  ADD COLUMN reunion_id              uuid REFERENCES public.reuniones(id) ON DELETE SET NULL,
+  ADD COLUMN reunion_tema_id         uuid,
+  ADD COLUMN fecha_entrega_original  date,
+  -- La coherencia, sin trigger: PG rechaza una tarea de la reunión A que apunte a un
+  -- tratamiento de la B. Con `reunion_tema_id` en NULL la FK no se evalúa (MATCH SIMPLE),
+  -- así que una tarea de la reunión sin punto del orden del día pasa sola.
+  ADD CONSTRAINT actividades_tratamiento_fkey
+    FOREIGN KEY (reunion_tema_id, reunion_id)
+    REFERENCES public.reunion_temas (id, reunion_id)
+    ON DELETE SET NULL (reunion_tema_id);
+
+CREATE INDEX ON public.actividades (reunion_id) WHERE reunion_id IS NOT NULL;
 
 DROP TABLE public.reunion_pendientes;
 ```
 
-- **`reunion_tema_id` cuelga del tema, no de la reunión.** Es donde colgaba `reunion_pendientes`, y
-  así el acta agrupa por tema sin una consulta extra.
-- **`ON DELETE SET NULL`, no `CASCADE`.** Borrar un tema del acta no puede borrar una tarea que
-  alguien ya está haciendo en el Kanban. La tarea sobrevive, huérfana de reunión.
+- **`ON DELETE SET NULL (reunion_tema_id)` nombra la columna** — es PG 15+, y el proyecto corre
+  PG 17 (verificado). Con el `SET NULL` clásico se anulaban las dos columnas de la FK y borrar un
+  punto del acta se llevaba puesto también el rastro de la reunión.
+- **Ningún `CASCADE`.** Borrar un punto no puede borrar una tarea que alguien está haciendo.
 - El índice es parcial: la enorme mayoría de las 429 actividades no sale de una reunión.
-- El resto ya existe en `actividades`: `titulo`, `responsable_id`, `estado`, `fecha_entrega`
-  (que es la `fecha_comprometida` del pendiente), `horas`, `empresa`.
+- El resto ya existe en `actividades`: `titulo`, `responsable_id`, `estado`, `horas`, `empresa`.
 
-Y el trigger de §2.5, que es lo que hace cumplir la dirección de escritura:
+Y el trigger de §2.7, que es lo que hace cumplir la dirección de escritura:
 
 ```sql
 CREATE OR REPLACE FUNCTION public.prevent_reunion_tema_change() RETURNS trigger
@@ -305,12 +390,12 @@ un punto del orden del día se cargan sus tareas en la misma pantalla —título
 comprometida, horas—, y cada línea es un `INSERT` en `actividades` con `reunion_tema_id`. Eso es lo
 que hace que el ciclo exista: la tarea nace en el acta y aparece sola en el Kanban, sin que nadie
 la vuelva a cargar. El `<select>` de responsable es el mismo de `/operations`
-(`deriveMiembrosAsignables`), con la consecuencia de nómina que documenta §2.3.
+(`deriveMiembrosAsignables`), con la consecuencia de nómina que documenta §2.5.
 
 Desde el Kanban y el Dashboard, una tarea que salió de un acta muestra de qué reunión y de qué
-punto vino, como enlace de **sólo lectura** (§2.5).
+punto vino, como enlace de **sólo lectura** (§2.7).
 
-**El cierre del acta** (§2.6) suma dos pantallas: el botón de cerrar en el expediente —para quien
+**El cierre del acta** (§2.8) suma dos pantallas: el botón de cerrar en el expediente —para quien
 preside o la secretaria— y la **reapertura por admin detrás de un `ConfirmModal`**, del tipo de los
 delete, diciendo qué acta se va a reabrir y por qué se necesita. `ConfirmModal` ya existe en
 `src/shared/components/ui/`; no hay que escribirlo.
@@ -328,7 +413,7 @@ un diff de renombres que taparía el trabajo de esquema y de UI si fuera primero
 ## 6. Lo que NO entra en esta fase
 
 - **El acta imprimible y los heredados** — seguían siendo fase 3 y lo siguen siendo.
-- **Romper el acople asignable/liquidable** (§2.3). Tarea propia.
+- **Romper el acople asignable/liquidable** (§2.5). Tarea propia.
 - **El motor de filtros y vistas guardadas aplicado a reuniones.** Quedó hecho para `/tasks` en el
   PR #68, con imperfecciones conocidas, y debería poder reutilizarse acá. Se decide cuando la
   pestaña esté en pantalla, no antes.
@@ -346,7 +431,7 @@ un diff de renombres que taparía el trabajo de esquema y de UI si fuera primero
 - **El CLAUDE.md miente en tres lugares** apenas esto se mergee: la tabla de módulos, el párrafo
   de `deriveMiembrosAsignables` y el árbol de `src/`. Se corrige en la misma rama.
 - **Cero tests del cierre.** Los ocho tests del módulo son de utils puros; ninguno toca RLS ni
-  triggers. Las tres piezas de §2.6 nacen con la cobertura que se les escriba en esta fase.
+  triggers. Las tres piezas de §2.8 nacen con la cobertura que se les escriba en esta fase.
 - **Un bug ajeno que apareció al investigar, y es real hoy en producción:** `notif_insert_modulo`
   está gateada por `has_module('stratix-mkt')` a secas
   (`20260829210325_rls_encendida_cuatro_tablas.sql:139-142`) y `useActividadForm/index.ts:106` no
