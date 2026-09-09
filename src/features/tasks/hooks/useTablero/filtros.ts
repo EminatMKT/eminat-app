@@ -4,7 +4,7 @@ import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { useFilters } from '@/shared/hooks'
 import { MODULE } from '@/shared/auth/permissions'
-import { actividadFilters } from '@/features/tasks/utils/act-filters'
+import { activityFilters } from '@/features/tasks/utils/act-filters'
 import { departamentoPorUsuario } from '@/features/tasks/utils/departamento'
 
 /** Los filtros del tablero. La mecánica —valores, vistas, qué se ve— es la compartida; lo propio
@@ -21,7 +21,7 @@ export function useFiltrosTablero() {
 
   // `actFilters` va memoizado y NO es opcional: sin esto se recrea en cada render, y como es la
   // entrada de `useFilters` y de los seis `applyFilters` del tablero, arrastra a todos.
-  const actFilters = useMemo(() => actividadFilters({
+  const actFilters = useMemo(() => activityFilters({
     t, nombrePorId: miembrosPorId,
     departamentoPorResponsable, nombreDepartamento, departamentoPropio,
   }), [t, miembrosPorId, departamentoPorResponsable, nombreDepartamento, departamentoPropio])

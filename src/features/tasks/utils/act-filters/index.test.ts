@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { actividadFilters } from './index'
+import { activityFilters } from './index'
 import { applyFilters } from '@/shared/utils'
 import { ESTADO } from '@/shared/constants/domain'
 import type { Actividad } from '@/features/tasks/types'
@@ -10,7 +10,7 @@ const nombrePorId = { u1: 'Ariana', u2: 'Bruno' }
 // Los mapas del área van vacíos: los filtros de acá no los usan y el de área tiene su propio
 // bloque más abajo.
 const base = { t, nombrePorId, departamentoPorResponsable: {}, nombreDepartamento: {} }
-const DEFS = actividadFilters(base)
+const DEFS = activityFilters(base)
 
 const acts: Actividad[] = [
   { id: '1', fecha_inicio: '2026-01-15', estado: ESTADO.PENDIENTE, empresa: 'EMC', responsable_id: 'u1' },
@@ -48,7 +48,7 @@ describe('filtros de fecha', () => {
   })
 })
 
-describe('actividadFilters', () => {
+describe('activityFilters', () => {
   it('sin valores no filtra nada', () => {
     expect(applyFilters(acts, DEFS, {})).toHaveLength(3)
   })
@@ -83,7 +83,7 @@ describe('filtro de área', () => {
     nombreDepartamento: { 'd-mkt': 'Marketing', 'd-med': 'Medical' },
     departamentoPropio: 'd-mkt',
   }
-  const def = () => actividadFilters(deps).find(d => d.key === 'departamento')!
+  const def = () => activityFilters(deps).find(d => d.key === 'departamento')!
 
   it('arranca en el área de quien mira', () => {
     expect(def().defaultValue).toBe('d-mkt')
@@ -109,7 +109,7 @@ describe('filtro de área', () => {
   // Sin departamento propio (una persona sin equipo, o la fase 0 sin hacer) el filtro existe
   // igual pero abre en «Todas las áreas»: es mejor ver todo que ver nada.
   it('sin área propia no hay default', () => {
-    const sinPropia = actividadFilters({ ...deps, departamentoPropio: undefined })
+    const sinPropia = activityFilters({ ...deps, departamentoPropio: undefined })
     expect(sinPropia.find(d => d.key === 'departamento')!.defaultValue).toBeUndefined()
   })
 })
