@@ -1,6 +1,6 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
-import { FiltersPanel } from '@/shared/components/filters'
+import FilterSection from '@/features/tasks/components/FilterSection'
 import { useT } from '@/shared/i18n'
 import { StaggerGrid } from '@/shared/motion'
 import StatCard from '@/shared/components/dashboard/StatCard'
@@ -24,7 +24,7 @@ import { TASKS_TAB } from '@/features/tasks/constants/tabs'
 // Lo que este archivo aporta es el dominio —qué métrica va en cada card, con qué color, y que
 // las marcas conserven el suyo— más la grilla. El aspecto de cada bloque es de shared/.
 export default function OverviewTab() {
-  const { accent, onlineCount, actividades } = useApp()
+  const { accent, onlineCount } = useApp()
   const { t } = useT()
   const {
     totalQ, completadasQ, enProcesoQ, pendientesQ, pctCompletado, totalHoras, totalDias,
@@ -63,7 +63,7 @@ export default function OverviewTab() {
           cada persona tiene guardado si dejó el panel abierto o recogido. Cambiarla se lo reabre
           a todos. */}
       <div className={s.fila}>
-        <FiltersPanel filtros={filtros} items={actividades} persistKey="stratix-filtros" />
+        <FilterSection persistKey="stratix-filtros" />
       </div>
 
       {/* Dentro de un Panel, como en Research: sueltas, las cards flotan sobre el fondo y la

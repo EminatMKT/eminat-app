@@ -2,7 +2,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  /* Arriba también: el panel de filtros quedó encima y pegados se leen como una sola barra. */
+  margin: 1rem 0;
 }
 
 .hint {
@@ -14,17 +15,6 @@
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.select {
-  width: auto;
-  padding: 6px 12px;
-  border-radius: 10px;
-  border: 1px solid #d1d5db;
-  background: var(--c-s1);
-  color: var(--c-t1);
-  font-size: 13px;
-  outline: none;
 }
 
 .board {

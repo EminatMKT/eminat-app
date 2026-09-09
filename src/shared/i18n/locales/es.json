@@ -838,7 +838,6 @@
   "stratix.estado.completado": "Completado",
   "stratix.addTask": "Agregar tarea",
   "stratix.dropHere": "Soltá acá",
-  "stratix.allMonths": "Todos los meses",
   "stratix.kanbanHint": "{n} tareas · Arrastrá las tarjetas para cambiar su estado",
   "stratix.newTask": "Nueva tarea",
   "stratix.dash.activeNow": "● Activo ahora",

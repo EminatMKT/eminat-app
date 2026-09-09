@@ -5,7 +5,7 @@
 // Re-exportación NOMBRADA, no `export *`: es la forma que Next 14 resuelve sin arrastrar los
 // vecinos al grafo de módulos.
 export { useTablero } from './useTablero'
-export { useKanban } from './useKanban'
+export { default as useKanban } from './useKanban'
 export { useSolicitudes } from './useSolicitudes'
 export { useActividadForm } from './useActividadForm'
 export { useReporte } from './useReporte'

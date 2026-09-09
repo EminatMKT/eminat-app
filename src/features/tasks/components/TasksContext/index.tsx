@@ -23,7 +23,7 @@ export function TasksProvider({ children, prefKey = TASKS_TAB_PREF, tabs = TASKS
   // decisión de permisos que la de las gráficas, y calcularla dos veces era la forma de que
   // las dos se desincronizaran.
   const tablero = useTablero()
-  const kanban = useKanban()
+  const kanban = useKanban(tablero.actsFiltradas)
   const solicitudes = useSolicitudes()
   const formulario = useActividadForm()
   const reporte = useReporte(tablero.idsTeam)
