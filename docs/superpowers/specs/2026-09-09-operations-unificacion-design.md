@@ -82,9 +82,10 @@ no tiene responsable ni estado ni horas. Convertirlo en actividad (como proponí
 Kanban. Sí cambian de forma, pero por otro motivo: §2.3.
 
 **Motivo:** es la salida que la propia regla del centinela dejó escrita. El Motivo de
-*«`reunion_pendientes` no crece»* dice que si la tabla pedía prioridad, colaboradores o un Kanban
-propio, *"eso no es una columna nueva: es la señal de unificar con `actividades`"*. La señal llegó
-antes de la primera columna.
+*«`reunion_pendientes` no crece»* dice que si la tabla pedía prioridad, colaboradores, adjuntos,
+comentarios o un Kanban propio, *"eso no es una columna nueva: es la señal de que dejó de ser una
+lista dentro de un acta y se volvió un gestor de tareas — y dos gestores de tareas no se
+sostienen"*. La señal llegó antes de la primera columna.
 
 **Y coincide con el arte previo.** En OpenProject el compromiso de una reunión **es** un work
 package, no una entidad paralela; Fellow, que sí los tiene aparte, paga el precio de sincronizar
@@ -271,11 +272,18 @@ que hacía falta porque `fecha_entrega` es nullable y una tarea puede nacer sin 
 consecuencia hay que decirla: *"se postergó"* sólo se puede afirmar de las tareas nacidas después de
 esta fase.
 
-⚠️ **Y el baseline se puede volver a congelar, pero sólo desde el acta.** Congelarlo para siempre
-—como estaba— hace que una **replanificación acordada** se lea como postergación y ensucia la
-métrica; los estándares asumen re-baseline por control de cambios (MS Project ofrece once líneas
-base). Acá el control de cambios es la reunión: quien preside o la secretaria puede re-congelar con
-el acta abierta, y queda en `historial`. Desde el Kanban, no.
+⚠️ **El re-baseline queda AFUERA, y es una corrección contra mí mismo.** El arte previo tiene razón
+en que congelar para siempre hace que una **replanificación acordada** se lea como postergación
+(MS Project ofrece once líneas base, PMI asume control de cambios). Pero la versión que escribí
+—"se re-congela sólo desde un acta abierta"— obligaba al trigger de la fecha a **consultar
+`reunion_tema_actividades`** para autorizarlo, y con eso contradecía a §2.4: la lógica del vínculo
+volvía a un trigger por la puerta de atrás. Y encima se escapaba igual, porque
+`fecha_entrega_final` es nullable: borrarla desde el Kanban y volver a ponerla entra por la rama
+del primer plazo y re-estampa el original.
+
+Entonces: la fecha original se congela y punto. La consecuencia queda dicha — `final > original`
+mide *"cambió el plazo"*, no *"alguien incumplió"*, y en una reunión esa diferencia la pone la
+gente, no la columna. El re-baseline con control de cambios es una fase propia (§6).
 
 **Ninguna de las fechas que ya existen sirve** (inventario verificado el 09/09):
 
@@ -394,8 +402,14 @@ familia de `creo_la_reunion()`: `SECURITY DEFINER` con `search_path` fijo, que l
 salteando su propia policy —si no, se llamaría a sí misma— y **sirve para las tablas hijas, no para
 `reuniones`**, por la advertencia de `20260830204042:33-37`.
 
+⚠️ **El `DO $$` va etiquetado, y los dos dólares anidados separados.** La versión anterior de este
+bloque **no compilaba**, y se reprodujo contra el Postgres local: `syntax error at or near "f$"`.
+El lexer hace *longest match* del delimitador — al llegar a `$q$$f$` consume `$q`, retrocede un `$`
+y encuentra `$$`, que **es la apertura del `DO`**: el bloque termina ahí y el resto es basura. Por
+eso el `DO` lleva etiqueta (`$do$`) y los cierres anidados no se tocan.
+
 ```sql
-DO $$
+DO $do$
 DECLARE slug text := 'operations';
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.role_modules WHERE module_slug = slug) THEN
@@ -403,20 +417,26 @@ BEGIN
   END IF;
 
   -- El predicado de `reuniones_select`, en un solo lugar, para que las hijas no lo copien.
+  -- `has_module` envuelto en (SELECT …) para que sea InitPlan una sola vez, como en
+  -- `20260821212925:82`: si no, corre por fila.
   EXECUTE format($f$
     CREATE OR REPLACE FUNCTION public.puedo_ver_reunion(p_reunion uuid)
     RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $q$
-      SELECT public.has_module(%L) AND EXISTS (
+      SELECT (SELECT public.has_module(%L)) AND EXISTS (
         SELECT 1 FROM public.reuniones r
          WHERE r.id = p_reunion AND (
            public.is_admin()
            OR r.created_by = public.usuario_actual_id()
            OR public.participa_en_reunion(r.id)
            OR public.misma_empresa_reunion(r.id)))
-    $q$$f$, slug);
+    $q$ $f$, slug);
 
   EXECUTE 'ALTER TABLE public.temas ENABLE ROW LEVEL SECURITY';
   EXECUTE 'REVOKE ALL ON public.temas FROM anon';
+  -- Los GRANT NO son opcionales: `20260821212925:62` lo dice textual. Sin ellos la tabla queda
+  -- inaccesible con 42501 y la pestaña sale vacía, sin que nada explique por qué.
+  EXECUTE 'GRANT SELECT, INSERT, UPDATE ON public.temas TO authenticated';
+  EXECUTE 'GRANT ALL    ON public.temas TO service_role';
 
   -- Un tema se ve si se puede ver ALGUNA de las reuniones donde se trató — dicho entero, no
   -- delegado a la RLS de `reunion_temas`. O si nadie lo trató todavía y lo creaste vos, que es
@@ -428,19 +448,47 @@ BEGIN
          WHERE rt.tema_id = temas.id AND public.puedo_ver_reunion(rt.reunion_id))
       OR creado_por_id = public.usuario_actual_id())$f$;
 
-  -- Lo crea quien tiene el módulo; lo corrige quien lo creó, y el admin siempre.
+  -- El alta NO entra por acá: entra por la función de §3.1.1. Esta policy existe para que esa
+  -- función no sea la única defensa, y ata `creado_por_id` a quien escribe — si no, un NULL deja
+  -- la fila inmodificable salvo admin, y cualquiera puede sembrarla con el id de otro.
   EXECUTE format($f$
     CREATE POLICY temas_insert ON public.temas FOR INSERT
-      WITH CHECK (public.is_admin() OR public.has_module(%L))$f$, slug);
+      WITH CHECK ((SELECT public.has_module(%L))
+                  AND creado_por_id = public.usuario_actual_id())$f$, slug);
+
+  -- Corregir un tema mientras el acta donde se trató siga abierta. Sin el EXISTS, el creador
+  -- podía reescribir el título de un asunto tratado en actas CERRADAS — y como el título es
+  -- N:N, eso reescribe las cinco a la vez.
   EXECUTE $f$
     CREATE POLICY temas_update ON public.temas FOR UPDATE
-      USING      (public.is_admin() OR creado_por_id = public.usuario_actual_id())
+      USING (public.is_admin() OR (creado_por_id = public.usuario_actual_id() AND (
+        NOT EXISTS (SELECT 1 FROM public.reunion_temas rt WHERE rt.tema_id = temas.id)
+        OR EXISTS (SELECT 1 FROM public.reunion_temas rt
+                    WHERE rt.tema_id = temas.id AND public.reunion_abierta(rt.reunion_id)))))
       WITH CHECK (public.is_admin() OR creado_por_id = public.usuario_actual_id())$f$;
-END $$;
+END $do$;
 ```
 
 El slug va **en una variable** y la migración aborta si no existe — `rules/base-de-datos.md`. La
 versión anterior lo tenía hardcodeado dos veces, y el check no lo agarraba porque es de archivo.
+
+#### 3.1.1 El alta de un tema es una función, no un `INSERT`
+
+⚠️ **El `UNIQUE` es un oráculo, y el `INSERT` desde el cliente no puede funcionar.** `temas_select`
+esconde el tema de un acta reservada; el índice único **no**. Al tipear ese título el usuario recibe
+`duplicate key value violates unique constraint` — que le **confirma la existencia** del asunto que
+la policy le oculta, y lo deja en punto muerto: no lo ve para reusarlo ni lo puede crear. Es la
+misma clase de fuga que §2.1 dice cerrar. Y sin `RETURNING` legible, el
+`.insert().select().single()` aborta con *"new row violates row-level security policy"* — el bug
+literal que documenta `20260830204042:9-14`.
+
+Por eso el alta va por `tema_para_acta(p_reunion uuid, p_titulo text) RETURNS uuid`,
+`SECURITY DEFINER` con `search_path` fijo, que: verifica que quien llama pueda escribir esa acta,
+toma la `empresa` **de la reunión** —lo que de paso resuelve que nada obligaba a que
+`temas.empresa` fuera la del acta—, busca por `(empresa, lower(btrim(titulo)))`, y devuelve el `id`
+existente o crea. Un solo camino, sin oráculo y sin carrera: el `ON CONFLICT … DO UPDATE SET
+titulo = EXCLUDED.titulo RETURNING id` resuelve los dos usuarios simultáneos que hoy chocarían con
+un 23505 crudo.
 
 ### 3.2 El puente tarea↔tratamiento
 
@@ -529,19 +577,12 @@ BEGIN
   -- Se congela cuando se pone la PRIMERA fecha, no la primera vez que se toca la fila: si
   -- mirara `fecha_entrega_original IS NULL`, el primer UPDATE de una fila vieja estamparía como
   -- "original" el plazo ya corrido. Y como el payload va completo, alcanzaba con editar el título.
-  IF OLD.fecha_entrega_final IS NULL THEN
+  -- Sólo se congela la PRIMERA vez que hay plazo. Después es de piedra: no consulta el vínculo
+  -- con el acta ni a nadie — ese trigger no existe (§2.4) y el re-baseline quedó afuera (§2.7).
+  IF OLD.fecha_entrega_original IS NULL AND OLD.fecha_entrega_final IS NULL THEN
     NEW.fecha_entrega_original := NEW.fecha_entrega_final;
-  ELSIF NEW.fecha_entrega_original IS DISTINCT FROM OLD.fecha_entrega_original THEN
-    -- Re-baseline: sólo desde un acta abierta (§2.7). Fuera de eso, revierte en silencio.
-    IF NOT EXISTS (
-      SELECT 1 FROM public.reunion_tema_actividades rta
-        JOIN public.reunion_temas t ON t.id = rta.reunion_tema_id
-       WHERE rta.actividad_id = NEW.id
-         AND public.reunion_abierta(t.reunion_id)
-         AND (public.preside_o_secretaria(t.reunion_id) OR public.creo_la_reunion(t.reunion_id))
-    ) THEN
-      NEW.fecha_entrega_original := OLD.fecha_entrega_original;
-    END IF;
+  ELSE
+    NEW.fecha_entrega_original := OLD.fecha_entrega_original;   -- revierte, no rechaza
   END IF;
   RETURN NEW;
 END $$;
@@ -701,7 +742,11 @@ diff de renombres que taparía el trabajo de esquema y de UI si fuera primero.
 
 ---
 
-## 6. Lo que NO entra en esta fase
+## 6. Lo que NO entra en ninguna de las seis fases
+
+- **El re-baseline con control de cambios** (§2.7). Sale porque su única implementación posible
+  hacía que el trigger de la fecha consultara el vínculo con el acta, contradiciendo a §2.4. Es una
+  fase propia el día que la métrica de postergación moleste de verdad.
 
 - **La cláusula de confidencialidad en la RLS de `actividades`** (§2.1). Diferida por Wagner el
   09/09, anotada en el `.todo`. Es la deuda más grande que la fase deja abierta.
@@ -728,5 +773,80 @@ diff de renombres que taparía el trabajo de esquema y de UI si fuera primero.
 - **Cero tests del cierre.** Los **siete** archivos de test del módulo son de utils puros; ninguno
   toca RLS ni triggers. Las tres piezas de §2.9 nacen con la cobertura que se les escriba acá.
 - **`src/features/tasks/types.ts` tiene una DEUDA anotada** (re-exporta `Actividad` sin ser un
-  index) que la mudanza de carpeta toca por contacto. No se paga acá: son **29** imports (25 sin
-  contar tests).
+  index) que la mudanza de carpeta toca por contacto. No se paga acá: **21 archivos** traen
+  `Actividad` desde ahí — lo dice el propio comentario del archivo; 29 importan algún tipo de ese
+  módulo.
+
+---
+
+## 8. Esto no es una fase: son seis, y van sueltas
+
+**Decisión de Wagner del 09/09, después de tres rondas de revisión.** Cada ronda encontró fallas
+graves **nuevas**, y ninguna repetida. Eso dejó de ser un dato sobre los revisores: el documento
+describe seis cambios con riesgos independientes, y acoplarlos en un solo despliegue multiplica
+las formas de romper producción sin que nada avise.
+
+Cada fase lleva **su migración, su rollback, su PR y su verificación**, y se despliega sola.
+
+| # | Fase | Qué desbloquea | Su riesgo propio |
+|---|---|---|---|
+| **1** | **La fusión de los módulos**, con convivencia | Todo lo demás | El apagón: no hay orden seguro migración↔deploy (§8.1) |
+| **2** | `temas` N:N + `tema_para_acta()` + el catálogo en `/admin` | El orden del día | El oráculo del `UNIQUE`, la RLS, el CRUD que no se adapta solo |
+| **3** | El puente tarea↔acta + el modal del tratamiento | El ciclo completo | Dos `INSERT` no transaccionales con policies distintas |
+| **4** | El cierre del acta (RPC, botón, reapertura) | Que `reunion_abierta()` signifique algo | La policy sin `WITH CHECK`; la RPC saltea toda la RLS |
+| **5** | `fecha_entrega_original` + el renombre | La métrica de postergación | Expand/contract sobre 48 ocurrencias en 21 archivos |
+| **6** | `responsable_id` nullable + la mudanza de carpetas | Cerrar la deuda | Tareas invisibles en el tablero; 162 archivos |
+
+**Por qué ese orden.** La 1 es la única que las demás necesitan: hasta que exista `operations`, todo
+lo que se escriba apunta a un slug que va a morir. La 4 tiene que ir antes que la 3 esté en manos de
+la gente —si no, el gate de "acta abierta" de las policies del puente no restringe nada, que es la
+forma del incidente del 29/08—, pero después de la 2, porque no hay acta que cerrar sin temas. La 5
+y la 6 son independientes de todo y van últimas por ser las más caras y las menos urgentes.
+
+### 8.1 La fase 1 necesita convivencia, y esto no estaba en ninguna versión anterior
+
+⚠️ **No hay un orden seguro entre la migración y el deploy, y los dos apagan la app sin un error.**
+
+- **Migración primero:** el `DELETE` de las filas `tasks`/`reuniones` deja al bundle viejo pidiendo
+  `MODULE.TASKS`; `getModulesForRole` devuelve `'operations'`, que el `isModuleSlug` viejo rechaza
+  → el módulo desaparece del Launchpad y `/tasks` cae en `AccessDenied`.
+- **Deploy primero:** `has_module('operations')` da `false` porque las filas todavía no existen.
+
+Entonces la fase 1 son **tres migraciones**, no una:
+
+1. **1A — abrir.** `INSERT` de `operations` **sin borrar nada**, y las policies pasan a
+   `operations OR tasks` / `operations OR reuniones`. La app vieja sigue andando.
+2. **1B — deploy.** El bundle nuevo pide `operations`, que ya existe.
+3. **1C — cerrar.** `DELETE` de las filas viejas y las policies quedan en `operations` solo.
+
+Y tres cosas más que la fase 1 tiene que llevar sí o sí:
+
+- ⚠️ **`db push` aplica cada archivo en su propia transacción**, así que cada migración va envuelta
+  en su `BEGIN/COMMIT` y `migration list --linked` se mira antes.
+- ⚠️ **Editar roles en `/admin` durante la convivencia revienta**: `roleValidation` rechaza
+  `'operations'` como slug desconocido, y la ruta **borra todas las filas antes de insertar**. El
+  catálogo de TypeScript tiene que conocer los dos slugs mientras dure 1A→1C.
+- ⚠️ **La enumeración de roles es una foto y se resuelve contra la base viva al momento del push**,
+  no contra la tabla de §2.5. Local está desactualizado y las migraciones no cuentan la historia
+  completa: en prod, `admin` tiene fila de `reuniones` **y** de `tasks` aunque una migración la
+  haya borrado — alguien la repuso desde `/admin`.
+
+### 8.2 Lo que no se puede probar antes, y con qué se reemplaza
+
+No hay tier `development`: cada migración va de local a prod sin ensayo. Queda sin poder probarse
+(a) las policies contra los roles reales, porque local no tiene los usuarios de Auth; (b) el apagón
+de §8.1, que sólo existe con bundle viejo contra base nueva; (c) el trigger del baseline contra las
+429 filas históricas; y (d) el `DROP TABLE` con datos reales.
+
+Los sustitutos, que entran como trabajo de la fase 1:
+
+- una cuenta sembrada **por rol real** en `e2e/seed.ts` (`stratix360`, `medico_investigacion`,
+  `sin_asignar`) y su `e2e/roles.spec.ts` — probar con el admin no prueba nada, porque
+  `has_module()` abre con `is_admin() OR …`;
+- `pnpm db:rls` consultando **como `anon`**, no leyendo el esquema — la lección del 29/08 y del
+  punto ciego de las vistas del 31/08;
+- y para el apagón: **correr el bundle de `main` contra la base local ya migrada.** Es la única
+  forma de ver esa falla antes de causarla.
+- Un `SELECT count(*)` sobre `reunion_pendientes` y `reunion_temas` en el precheck, **que aborte si
+  no da cero**: "0 filas" es un corte del 09/09, no una garantía — reuniones está en producción y
+  alguien puede cargar un pendiente antes del push.
