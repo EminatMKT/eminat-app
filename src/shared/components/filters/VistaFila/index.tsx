@@ -35,8 +35,9 @@ export default function VistaFila(props: Props) {
         onClick={() => onAplicar(id)} title={t('common.filter.applyView', { nombre })}>
         {nombre}
       </button>
-      {/* `key` con el nombre: al renombrar, el campo se remonta con el nombre nuevo adentro. */}
-      <NombreVista key={nombre} rotulo="✏️" ariaLabel={t('common.filter.rename')} inicial={nombre}
+      {/* Sin `key`: el diálogo se monta recién al abrirlo, así que el campo ya arranca con el
+          nombre vigente sin remontar nada desde afuera. */}
+      <NombreVista kind="edit" iconOnly rotulo={t('common.filter.rename')} inicial={nombre}
         onConfirmar={n => onRenombrar(id, n)} />
       <Button kind="star" iconOnly pressed={abre} onClick={() => void onMarcar(id)}
         label={t(abre ? 'common.filter.unsetDefault' : 'common.setDefault')} />

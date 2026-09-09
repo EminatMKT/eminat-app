@@ -28,8 +28,8 @@ export default function FilterPresets(props: PresetsProps) {
       </Dropdown>
       <Button kind="confirm" label={t('common.filter.update')} deshabilitado={!puestaModificada}
         onClick={() => void onActualizar(activaId)} />
-      <NombreVista rotulo={t(puestaModificada ? 'common.filter.saveAsNew' : 'common.filter.newView')}
-        onConfirmar={onGuardar} />
+      <NombreVista kind="new" onConfirmar={onGuardar}
+        rotulo={t(puestaModificada ? 'common.filter.saveAsNew' : 'common.filter.newView')} />
     </>
   )
 }
