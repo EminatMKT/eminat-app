@@ -826,10 +826,25 @@ Y tres cosas más que la fase 1 tiene que llevar sí o sí:
 - ⚠️ **Editar roles en `/admin` durante la convivencia revienta**: `roleValidation` rechaza
   `'operations'` como slug desconocido, y la ruta **borra todas las filas antes de insertar**. El
   catálogo de TypeScript tiene que conocer los dos slugs mientras dure 1A→1C.
-- ⚠️ **La enumeración de roles es una foto y se resuelve contra la base viva al momento del push**,
-  no contra la tabla de §2.5. Local está desactualizado y las migraciones no cuentan la historia
-  completa: en prod, `admin` tiene fila de `reuniones` **y** de `tasks` aunque una migración la
-  haya borrado — alguien la repuso desde `/admin`.
+- ⚠️ **La enumeración de roles es una foto y se resuelve contra la base viva al momento del push.**
+  Ni las migraciones ni local cuentan la historia. Verificado el 09/09 contra las dos bases:
+
+  | `module_slug` | local | **prod** |
+  |---|---|---|
+  | `reuniones` | admin, **stratix360** | admin, **medico_investigacion** |
+  | `tasks` | admin, stratix360 | admin, stratix360 |
+
+  En prod `admin` tiene fila de `reuniones` **y** de `tasks` aunque `20260829221511:205` borre la
+  suya — alguien la repuso desde `/admin`. Por eso el `UPDATE ... SET module_slug` choca con la PK.
+  El catálogo `roles` sí coincide en las dos bases (los mismos 8), así que el `INSERT` no viola la
+  FK en local y la migración **se puede ensayar** — pero el ensayo **no prueba el resultado en
+  prod**, porque el estado de partida es otro: en local `medico_investigacion` gana el módulo desde
+  cero, en prod lo hereda de `reuniones`.
+
+- ⚠️ **El `DELETE` va por `module_slug`, no enumerando roles.** Ahí es justo donde el drift muerde:
+  una fila que existe en prod y no en local se escapa de una lista escrita a mano. La regla del
+  repo pide enumerar **a quién se le da** el módulo —el `INSERT`—; el borrado por slug es
+  determinista y da lo mismo en las dos bases.
 
 ### 8.2 Lo que no se puede probar antes, y con qué se reemplaza
 
