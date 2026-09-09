@@ -1,37 +1,25 @@
-.bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  /* Arriba también: el panel de filtros quedó encima y pegados se leen como una sola barra. */
-  margin: 1rem 0;
-}
-
-.hint {
-  font-size: 12px;
-  color: var(--c-t3);
-}
-
-.tools {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+/* El aire entre los bloques de la vista —los filtros y el tablero— sale de acá y no de un margen
+   propio de cada uno: así el que agregue un tercer bloque no tiene que acordarse de nada, y
+   pegados los dos paneles se leen como uno solo partido al medio. */
+.vista > * + * {
+  margin-top: 1rem;
 }
 
 .board {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  gap: 0.75rem;
   align-items: start; /* las columnas no se estiran a la más larga */
 }
 
 /* Cuatro columnas de Kanban abajo de ~1100px dejan las tarjetas ilegibles. */
-@media (max-width: 1100px) {
+@media (max-width: 68.75rem) {
   .board {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 43.75rem) {
   .board {
     grid-template-columns: 1fr;
   }

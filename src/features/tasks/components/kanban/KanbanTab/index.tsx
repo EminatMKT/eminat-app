@@ -2,6 +2,7 @@
 import { COLUMNAS_KANBAN } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { Button } from '@/shared/components/ui'
+import { Panel } from '@/shared/components/dashboard'
 import { useTasks } from '@/features/tasks/components/TasksContext'
 import FilterSection from '@/features/tasks/components/FilterSection'
 import KanbanColumn from '../KanbanColumn'
@@ -19,23 +20,22 @@ export default function KanbanTab() {
   }
 
   return (
-    <div>
+    <div className={s.vista}>
       {/* Los mismos filtros que el Dashboard y con el mismo estado: filtrar acá filtra allá, que
           es lo que evita que dos pestañas del módulo miren períodos distintos. */}
       <FilterSection persistKey="tasks-kanban-filtros" />
-      {/* La barra de la sección: el conteo a la izquierda y el alta a la derecha. El alta vivía
-          en el topbar, que es del shell y no de esta vista (ver rules/ui.md). */}
-      <div className={s.bar}>
-        <div className={s.hint}>{t('stratix.kanbanHint', { n: actsKanban.length })}</div>
-        <div className={s.tools}>
-          <Button kind="new" label={t('stratix.newTask')} onClick={nuevaPendiente} />
-        </div>
-      </div>
+      {/* El conteo es el título y el alta va en la cabecera: esa fila la da `Panel` y acá estaba
+          escrita a mano. El alta vivía antes en el topbar, que es del shell y no de esta vista
+          (ver rules/ui.md). */}
+      <Panel collapsible persistKey="tasks-kanban-tablero"
+        title={t('stratix.kanbanHint', { n: actsKanban.length })}
+        right={<Button kind="new" label={t('stratix.newTask')} onClick={nuevaPendiente} />}>
       <div className={s.board}>
         {COLUMNAS_KANBAN.map(col => (
           <KanbanColumn key={col} col={col} />
         ))}
       </div>
+      </Panel>
     </div>
   )
 }
