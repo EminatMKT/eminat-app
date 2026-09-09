@@ -107,8 +107,29 @@ borre. Durante esa ventana, `/admin` tiene que poder guardar un rol sin arrancar
 
 En `src/shared/auth/roleValidation.test.ts`, agregar al final:
 
+⚠️ **La prueba portante es la de `esSlugConocido`, no la de `validateModuleSlugs`.** En este momento
+`MODULE.TASKS` todavía vale `'tasks'`, así que `isModuleSlug('tasks')` devuelve `true` y
+`validateModuleSlugs(['tasks'])` **ya pasa sin la implementación**: ese test no puede fallar por el
+motivo correcto hasta la Tarea 3. Se conserva igual, como guarda de regresión, pero el ciclo TDD lo
+cierra el primero.
+
 ```ts
 import { validateModuleSlugs } from './roleValidation'
+import { esSlugConocido } from '@/shared/auth/permissions/modulos/legacy'
+
+describe('esSlugConocido', () => {
+  it('reconoce un slug retirado', () => {
+    expect(esSlugConocido('tasks')).toBe(true)
+  })
+  it('no reconoce uno que nunca existió', () => {
+    expect(esSlugConocido('medial')).toBe(false)
+  })
+  // Un slug vigente NO es asunto de esta lista: lo resuelve `isModuleSlug`. Si algún día devuelve
+  // true acá, es que alguien puso un slug vivo entre los retirados.
+  it('no reconoce un slug vigente', () => {
+    expect(esSlugConocido('medical')).toBe(false)
+  })
+})
 
 describe('validateModuleSlugs con slugs retirados', () => {
   it('acepta un slug vigente', () => {
@@ -118,6 +139,9 @@ describe('validateModuleSlugs con slugs retirados', () => {
   // Durante la convivencia, `role_modules` tiene filas del slug viejo Y del nuevo. Guardar un rol
   // en /admin manda las dos, y la ruta borra todas las filas antes de insertar: si el validador
   // rechaza una, el rol pierde el módulo.
+  //
+  // OJO: hoy este test pasa por `isModuleSlug`, no por la lista de retirados — `MODULE.TASKS`
+  // todavía vale 'tasks'. Recién es portante después de la Tarea 3, que lo re-corre.
   it('acepta un slug retirado que todavía tiene filas en la base', () => {
     expect(validateModuleSlugs(['tasks'])).toEqual({ ok: true })
   })
@@ -133,7 +157,9 @@ describe('validateModuleSlugs con slugs retirados', () => {
 - [ ] **Paso 2: Correrlo y ver que falla**
 
 Run: `pnpm test src/shared/auth/roleValidation.test.ts`
-Expected: FAIL en "acepta un slug retirado" — `{ ok: false, error: 'Módulos inválidos: tasks' }`.
+Expected: FAIL en los tres de `esSlugConocido` — el módulo `.../modulos/legacy` no existe todavía,
+así que el archivo ni siquiera resuelve el import. Los de `validateModuleSlugs` pasan ya: es lo
+esperado y está explicado arriba.
 
 - [ ] **Paso 3: Escribir el mínimo que lo hace pasar**
 
@@ -464,6 +490,17 @@ La carpeta del feature se muda en la fase 6.
 
 Run: `pnpm test && pnpm lint && pnpm typecheck`
 Expected: PASS. `tsc` es la red acá: si quedó un `MODULE.TASKS` sin cambiar, no compila.
+
+- [ ] **Paso 6b: Confirmar que la tolerancia recién ahora está haciendo algo**
+
+El test `validateModuleSlugs(['tasks'])` de la Tarea 1 pasaba por `isModuleSlug`, porque
+`MODULE.TASKS` todavía valía `'tasks'`. Con el catálogo cambiado, la única forma de que siga
+pasando es por la lista de retirados — o sea que recién ahora prueba lo que dice probar.
+
+Run: `pnpm test src/shared/auth/roleValidation.test.ts`
+Expected: PASS, los seis. Para verlo con los ojos: comentar temporalmente `&& !esSlugConocido(s)`
+en `roleValidation.ts` y confirmar que **ahora sí falla**; después descomentar. Sin ese paso, la
+única defensa de la ventana de convivencia queda sin verificar en ningún momento.
 
 - [ ] **Paso 7: Probar a mano contra la base ya migrada por 1A**
 
