@@ -1,4 +1,5 @@
 import { ALL_MODULES, isModuleSlug, type RoleRow } from './permissions'
+import esSlugConocido from '@/shared/auth/permissions/modulos/legacy'
 
 export const RESERVED_ROLE_KEYS = new Set(['admin', 'todos'])
 
@@ -24,7 +25,7 @@ export function validateNewRole(label: string, existing: RoleRow[]): RoleResult 
 }
 
 export function validateModuleSlugs(slugs: string[]): { ok: true } | { ok: false; error: string } {
-  const bad = slugs.filter((s) => !isModuleSlug(s))
+  const bad = slugs.filter((s) => !isModuleSlug(s) && !esSlugConocido(s))
   return bad.length ? { ok: false, error: `Módulos inválidos: ${bad.join(', ')}` } : { ok: true }
 }
 
