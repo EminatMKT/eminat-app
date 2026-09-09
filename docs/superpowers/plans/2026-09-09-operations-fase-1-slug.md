@@ -409,7 +409,9 @@ git commit -m "feat(db): abre el slug operations sin cerrar tasks"
   `src/shared/auth/permissions/rutas/index.test.ts:30`
 
 **Interfaces:**
-- Consume: `SLUGS_RETIRADOS` de la Tarea 1
+- Consume: nada de la Tarea 1 **en código**. La tolerancia de `legacy/` sigue funcionando sola
+  porque nombra el literal `'tasks'`, no la constante. (La versión anterior de esta línea decía
+  "Consume `SLUGS_RETIRADOS`" y era falso: ningún paso de esta tarea la usa.)
 - Produce: `MODULE.OPERATIONS === 'operations'`. Los nueve usos de `MODULE.TASKS` pasan a
   `MODULE.OPERATIONS`; **ningún consumidor usa el literal**, así que ninguno cambia de forma.
 
@@ -497,10 +499,15 @@ El test `validateModuleSlugs(['tasks'])` de la Tarea 1 pasaba por `isModuleSlug`
 `MODULE.TASKS` todavía valía `'tasks'`. Con el catálogo cambiado, la única forma de que siga
 pasando es por la lista de retirados — o sea que recién ahora prueba lo que dice probar.
 
-Run: `pnpm test src/shared/auth/roleValidation.test.ts`
-Expected: PASS, los seis. Para verlo con los ojos: comentar temporalmente `&& !esSlugConocido(s)`
-en `roleValidation.ts` y confirmar que **ahora sí falla**; después descomentar. Sin ese paso, la
-única defensa de la ventana de convivencia queda sin verificar en ningún momento.
+Run: `pnpm test src/shared/auth/permissions/modulos/legacy`
+Expected: PASS, los cuatro. Para verlo con los ojos: comentar temporalmente
+`&& !esSlugConocido(s)` en `roleValidation.ts` y confirmar que el caso
+`validateModuleSlugs(['tasks'])` **ahora sí falla**; después descomentar. Sin ese paso, la única
+defensa de la ventana de convivencia queda sin verificar en ningún momento.
+
+*(La Tarea 1 movió estos tests a `legacy/index.test.ts` por la regla `familia_suelta` del
+centinela, y son cuatro y no seis: los dos que faltan —un slug vigente y uno inexistente— ya están
+cubiertos por `roleValidation.test.ts`.)*
 
 - [ ] **Paso 7: Probar a mano contra la base ya migrada por 1A**
 
