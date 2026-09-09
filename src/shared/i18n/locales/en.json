@@ -248,6 +248,8 @@
   "common.filter.saveDo": "Save",
   "common.filter.modified": "modified",
   "common.filter.update": "Update",
+  "common.filter.updateTitle": "Update this view?",
+  "common.filter.updateMsg": "“{nombre}” will now store the filters currently on screen. The combination it had saved is lost, and anyone opening with this view gets the new one.",
   "common.filter.deleteTitle": "Delete this view?",
   "common.filter.deleteMsg": "“{nombre}” will be deleted. The filters currently applied stay on screen; what you lose is the saved combination.",
   "common.filter.delete": "Delete",

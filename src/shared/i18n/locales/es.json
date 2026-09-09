@@ -248,6 +248,8 @@
   "common.filter.saveDo": "Guardar",
   "common.filter.modified": "modificada",
   "common.filter.update": "Actualizar",
+  "common.filter.updateTitle": "¿Actualizar la vista?",
+  "common.filter.updateMsg": "«{nombre}» pasa a guardar los filtros que hay ahora en pantalla. La combinación que tenía guardada se pierde, y quien abra con esta vista verá la nueva.",
   "common.filter.deleteTitle": "¿Borrar la vista?",
   "common.filter.deleteMsg": "Se borra «{nombre}». Los filtros que tenés puestos se quedan en pantalla; lo que se pierde es la combinación guardada.",
   "common.filter.delete": "Borrar",

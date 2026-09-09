@@ -1,14 +1,15 @@
 'use client'
 import { useT } from '@/shared/i18n'
-import { Button, Dropdown } from '@/shared/components/ui'
+import { Dropdown } from '@/shared/components/ui'
+import ActualizarVista from '../ActualizarVista'
 import NombreVista from '../NombreVista'
 import VistaFila from '../VistaFila'
 import type { PresetsProps } from './types'
 import s from './index.module.css'
 
 // centinela-exime: bloques-similares@3 — lo sustancial ya se compone (`Dropdown`, `VistaFila`,
-// `NombreVista`, `Button`). Lo propio es el «sin vistas». Busqué en `ui/`: no hay estado-vacío
-// compartido.
+// `NombreVista`, `ActualizarVista`). Lo propio es el «sin vistas». Busqué en `ui/`: no hay
+// estado-vacío compartido.
 
 /** Las vistas guardadas: la lista adentro de un desplegable, y guardar y actualizar a la vista,
  *  en la barra. */
@@ -16,7 +17,8 @@ export default function FilterPresets(props: PresetsProps) {
   const { vistas, activaId, modificada, onAplicar, onGuardar, onActualizar } = props
   const { onRenombrar, onBorrar, onMarcar } = props
   const { t } = useT()
-  const puestaModificada = !!activaId && modificada
+  const puesta = vistas.find(v => v.id === activaId)
+  const puestaModificada = !!puesta && modificada
   return (
     <>
       <Dropdown rotulo={t('common.filter.views')}>
@@ -26,8 +28,8 @@ export default function FilterPresets(props: PresetsProps) {
             onRenombrar={onRenombrar} onBorrar={onBorrar} onMarcar={onMarcar} />
         ))}
       </Dropdown>
-      <Button kind="confirm" label={t('common.filter.update')} deshabilitado={!puestaModificada}
-        onClick={() => void onActualizar(activaId)} />
+      <ActualizarVista vistaId={activaId} nombre={puesta?.nombre ?? ''}
+        deshabilitado={!puestaModificada} onActualizar={onActualizar} />
       <NombreVista kind="new" onConfirmar={onGuardar}
         rotulo={t(puestaModificada ? 'common.filter.saveAsNew' : 'common.filter.newView')} />
     </>
