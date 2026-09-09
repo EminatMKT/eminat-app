@@ -1,4 +1,4 @@
-import { ALL_MODULES, type ModuleSlug } from '../modulos'
+import { ALL_MODULES, isModuleSlug, type ModuleSlug } from '../modulos'
 import type { Role, RoleModuleMap } from './types'
 
 export type { Role, RoleModuleMap, RoleRow } from './types'
@@ -20,6 +20,8 @@ export function normalizeRole(raw: unknown): Role | null {
 export function getModulesForRole(map: RoleModuleMap, role: Role | null): ModuleSlug[] {
   if (!role) return []
   if (role === ADMIN_ROLE) return [...ALL_MODULES]  // short-circuit: admin ve todo
-  return map[role] ?? []
+  // `role_modules.slug` es `text` sin FK: filtrar por `isModuleSlug` evita que un slug que la
+  // base tiene y el catálogo no (ej. 'operations') tire abajo el Launchpad.
+  return (map[role] ?? []).filter(isModuleSlug)
 }
 // (sin canAccess: los consumidores usan `getModulesForRole(map, role).includes(slug)`)

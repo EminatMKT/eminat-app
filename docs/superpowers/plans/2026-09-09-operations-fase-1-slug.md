@@ -217,6 +217,66 @@ hasta que esté en producción.
 
 ---
 
+## Tarea 1b: el bundle ignora un slug que no conoce
+
+⚠️ **Esta tarea no estaba en el plan original. La encontró el ensayo del apagón** (paso 5 de la
+Tarea 2), corriendo la app contra la base ya migrada: la home no perdía una tarjeta, **se caía
+entera** con `TypeError: Cannot read properties of undefined (reading 'name')`.
+
+`getModulesForRole` devolvía `map[role] ?? []` — los slugs crudos de `role_modules`, tipados
+`ModuleSlug[]` pero nunca validados. Esa columna es `text` **sin FK**, así que el tipo miente: con un
+slug que el catálogo no conoce, `MODULE_META[slug]` da `undefined` y `page.tsx:393` revienta.
+
+Va en la **misma PR que la Tarea 1** — es la misma ventana y el mismo problema — y **sin esto la
+migración 1A no se puede pushear**.
+
+**Files:**
+- Modify: `src/shared/auth/permissions/roles/index.ts` (la línea de retorno de `getModulesForRole`)
+- Test: `src/shared/auth/permissions/roles/index.test.ts`
+
+**Interfaces:**
+- Produce: `getModulesForRole` devuelve **sólo** slugs del catálogo. El tipo de retorno pasa a ser
+  cierto, y todos sus consumidores —Launchpad, rail, `ModuleGate`, el atajo del último módulo—
+  quedan protegidos de una sola vez.
+
+- [ ] **Paso 1: Escribir el test que falla**
+
+```ts
+  it('ignora un slug desconocido de `role_modules` y conserva los conocidos', () => {
+    // La columna es `text` sin FK: la base puede tener un slug que el catálogo no conoce
+    // (ej. 'operations') y eso no puede tirar abajo el Launchpad.
+    const mapConSlugInvalido = {
+      stratix360: ['stratix-mkt', 'operations', 'directorio'],
+    } as RoleModuleMap
+    expect(getModulesForRole(mapConSlugInvalido, 'stratix360')).toEqual(['stratix-mkt', 'directorio'])
+  })
+```
+
+- [ ] **Paso 2: Correrlo y ver que falla**
+
+Run: `pnpm test src/shared/auth/permissions/roles`
+Expected: FAIL — devuelve los tres, con `'operations'` adentro.
+
+- [ ] **Paso 3: El filtro**
+
+```ts
+  // `role_modules.slug` es `text` sin FK: filtrar por `isModuleSlug` evita que un slug que la
+  // base tiene y el catálogo no (ej. 'operations') tire abajo el Launchpad.
+  return (map[role] ?? []).filter(isModuleSlug)
+```
+
+`isModuleSlug` sale de `../modulos`, de donde ese archivo ya importa `ALL_MODULES`.
+
+- [ ] **Paso 4: El gate**
+
+Run: `pnpm lint && pnpm typecheck && pnpm test`
+
+- [ ] **Paso 5: La comprobación que vale — recargar la app**
+
+Con la base local ya en 1A, la home tiene que cargar. Es el mismo escenario que la tiró abajo.
+
+---
+
 ## Tarea 2: Migración 1A — abrir el slug nuevo
 
 **Files:**

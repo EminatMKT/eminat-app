@@ -22,6 +22,14 @@ describe('getModulesForRole', () => {
     getModulesForRole({}, ADMIN_ROLE).pop()
     expect(ALL_MODULES).toHaveLength(antes)
   })
+  it('ignora un slug desconocido de `role_modules` y conserva los conocidos', () => {
+    // La columna es `text` sin FK: la base puede tener un slug que el catálogo no conoce
+    // (ej. 'operations') y eso no puede tirar abajo el Launchpad.
+    const mapConSlugInvalido = {
+      stratix360: ['stratix-mkt', 'operations', 'directorio'],
+    } as RoleModuleMap
+    expect(getModulesForRole(mapConSlugInvalido, 'stratix360')).toEqual(['stratix-mkt', 'directorio'])
+  })
 })
 
 // (no hay canAccess: la pertenencia se chequea con `getModulesForRole(...).includes(slug)`,
