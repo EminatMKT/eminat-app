@@ -59,8 +59,22 @@ base acepta los dos slugs, después el bundle cambia, y sólo entonces se retira
 **La tolerancia va primero y sola.** Entre 1A y el deploy del PR 2 la base tiene filas `operations`
 que el bundle viejo no conoce: `validateModuleSlugs` las rechazaría y
 `api/admin/roles/[key]/route.ts` **borra todas las filas del rol antes de insertar**, así que editar
-un rol en `/admin` en esa ventana le arrancaría el módulo. Con la tolerancia deployada antes, la
-ventana es segura.
+un rol en `/admin` en esa ventana le arrancaría el módulo.
+
+⚠️ **La tolerancia tolera hacia atrás, no hacia adelante — y eso deja media ventana sin cubrir.**
+`SLUGS_RETIRADOS` hace que el bundle acepte un slug que **ya salió** del catálogo. Pero en la
+ventana 1A→PR 2 el problema es el inverso: la base tiene un slug que el catálogo **todavía no
+conoce**, y `RoleModal` siembra su estado con el mapa crudo de la base, así que guardar ese rol
+postea `'operations'` y el bundle del PR 1 responde **400 «Módulos inválidos: operations»**.
+
+Falla **fuerte y sin pérdida de datos** —el `DELETE`+`INSERT` de la ruta nunca llega a correr—,
+pero significa que **en esa ventana no se puede editar en `/admin` un rol que tenga el módulo**.
+La versión anterior de este párrafo decía que la tolerancia dejaba la ventana «segura»: era falso,
+y lo encontró la revisión de rama.
+
+Consecuencia práctica: la ventana 1A→PR 2 se mantiene corta y **nadie edita roles mientras dure**.
+Si hiciera falta editarlos, el arreglo es que `SLUGS_RETIRADOS` tenga también los slugs que
+**vienen**, no sólo los que se van — pero eso es código nuevo para una ventana de minutos.
 
 ---
 

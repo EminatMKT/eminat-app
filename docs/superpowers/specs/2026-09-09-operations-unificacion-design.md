@@ -797,6 +797,23 @@ Cada fase lleva **su migración, su rollback, su PR y su verificación**, y se d
 | **5** | `fecha_entrega_original` + el renombre | La métrica de postergación | Expand/contract sobre 48 ocurrencias en 21 archivos |
 | **6** | `responsable_id` nullable + la mudanza de carpetas | Cerrar la deuda | Tareas invisibles en el tablero; 162 archivos |
 
+⚠️ **Las seis fases se despliegan JUNTAS, al final** — decisión de Wagner del 09/09. Se sigue
+partiendo el trabajo (cada fase con su migración, su revisión y sus commits), pero producción se
+toca una sola vez, cuando reuniones ya esté adentro y `operations` signifique de verdad
+operaciones. Mientras tanto todo se prueba en local.
+
+**Lo que eso NO elimina, y conviene que quede escrito:** la maquinaria de convivencia de la fase 1
+sigue haciendo falta. No era por tener varios deploys — era porque **migración y deploy son dos
+pasos separados en este proyecto** (`db push` a mano, Vercel por merge), y ese hueco existe aunque
+se mergee todo junto. Los dos órdenes siguen rompiendo: migraciones primero deja al bundle viejo
+sin `tasks` y encima viéndolo a `operations`, que no conoce; deploy primero deja al código pidiendo
+un slug que la base no tiene. La secuencia final sigue siendo **pushear la apertura → mergear y
+desplegar → pushear el cierre**, una sola vez.
+
+⚠️ **Y de ahí sale una restricción para las fases 2 a 6:** las que toquen `role_modules` o las
+policies —absorber `reuniones` es exactamente eso— tienen que quedar **ordenadas entre la apertura
+y el cierre de la fase 1**, no después. Es el tipo de cosa que dentro de tres fases nadie recuerda.
+
 **Por qué ese orden.** La 1 es la única que las demás necesitan: hasta que exista `operations`, todo
 lo que se escriba apunta a un slug que va a morir. La 4 tiene que ir antes que la 3 esté en manos de
 la gente —si no, el gate de "acta abierta" de las policies del puente no restringe nada, que es la
