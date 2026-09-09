@@ -32,7 +32,8 @@ export default function VistaFila(props: Props) {
   return (
     <div className={s.fila}>
       <button type="button" className={`${s.nombre}${puesta ? ` ${s.puesta}` : ''}`}
-        onClick={() => onAplicar(id)} title={t('common.filter.applyView', { nombre })}>
+        onClick={() => onAplicar(id)} title={t('common.filter.applyView', { nombre })}
+        aria-current={puesta || undefined}>
         {nombre}
       </button>
       {/* Sin `key`: el diálogo se monta recién al abrirlo, así que el campo ya arranca con el

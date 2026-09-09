@@ -18,6 +18,13 @@ type Props = {
 export default function ActualizarVista({ vistaId, nombre, deshabilitado, onActualizar }: Props) {
   const { t } = useT()
   const [preguntando, setPreguntando] = useState(false)
+  // Cierra el que confirma, no el diálogo: `ConfirmModal` no se cierra solo, y quien lo monta es
+  // el único que sabe si la acción dejó algo abierto. Sin esto el modal se quedaba en pantalla
+  // después de actualizar, como si no hubiera pasado nada.
+  const confirmAndClose = async () => {
+    await onActualizar(vistaId)
+    setPreguntando(false)
+  }
   return (
     <>
       <Button kind="confirm" label={t('common.filter.update')} deshabilitado={deshabilitado}
@@ -26,7 +33,7 @@ export default function ActualizarVista({ vistaId, nombre, deshabilitado, onActu
         <ConfirmModal title={t('common.filter.updateTitle')}
           message={t('common.filter.updateMsg', { nombre })}
           confirmLabel={t('common.filter.update')}
-          onConfirm={() => onActualizar(vistaId)} onClose={() => setPreguntando(false)} />
+          onConfirm={confirmAndClose} onClose={() => setPreguntando(false)} />
       )}
     </>
   )

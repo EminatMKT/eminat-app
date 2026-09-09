@@ -43,12 +43,15 @@ export default function Button(props: Props) {
   const rotulo = ocupado ? (ocupadoLabel ?? t('common.loading')) : (label ?? t(labelKey))
   // Sin ícono no hay modo ícono: quedaría un botón vacío. Los `kind` sin símbolo —`cancel`,
   // `confirm`— se dibujan con su rótulo aunque se lo pidan al revés.
+  // En modo ícono el rótulo va también como `title`: el `aria-label` sólo lo oye un lector de
+  // pantalla, y quien VE un 🗑 y una ✏️ en una fila también necesita que le digan cuál es cuál.
   const soloIcono = iconOnly && !!icono
 
   return (
     <button type="button" onClick={onClick} disabled={ocupado || deshabilitado} aria-busy={ocupado}
       className={`${s.base} ${s[tono]}${soloIcono ? ` ${s.icono}` : ''}${pressed ? ` ${s.prendido}` : ''}`}
-      aria-label={soloIcono ? rotulo : undefined} aria-pressed={pressed}>
+      aria-label={soloIcono ? rotulo : undefined} aria-pressed={pressed}
+      title={soloIcono ? rotulo : undefined}>
       {icono && <span aria-hidden="true">{icono}</span>}
       {!soloIcono && rotulo}
     </button>

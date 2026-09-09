@@ -27,6 +27,13 @@ type Props = {
 export default function BorrarVista({ vistaId, nombre, iconOnly, onBorrar }: Props) {
   const { t } = useT()
   const [preguntando, setPreguntando] = useState(false)
+  // `ConfirmModal` no se cierra solo. Acá casi no se notaba —al borrar, la fila se desmonta y se
+  // lleva el diálogo puesto—, pero eso es suerte: si un día el borrado falla o la fila sobrevive,
+  // el modal se queda en pantalla.
+  const confirmAndClose = async () => {
+    await onBorrar(vistaId)
+    setPreguntando(false)
+  }
   return (
     <>
       <Button kind="delete" label={t('common.filter.delete')} iconOnly={iconOnly}
@@ -35,7 +42,7 @@ export default function BorrarVista({ vistaId, nombre, iconOnly, onBorrar }: Pro
         <ConfirmModal destructive title={t('common.filter.deleteTitle')}
           message={t('common.filter.deleteMsg', { nombre })}
           confirmLabel={t('common.filter.delete')}
-          onConfirm={() => onBorrar(vistaId)} onClose={() => setPreguntando(false)} />
+          onConfirm={confirmAndClose} onClose={() => setPreguntando(false)} />
       )}
     </>
   )

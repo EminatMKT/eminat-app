@@ -38,6 +38,29 @@
 
 .disparador::-webkit-details-marker { display: none; }
 
+/* El disparador tiene que decir que ES un desplegable. Sin el chevron, «Vistas» se lee como un
+   botón que hace algo —y al lado de «Actualizar vista» y «Nueva vista», que sí hacen algo, no hay
+   nada que lo distinga—. Es el mismo ▼ girado de `Disclosure`: un solo gesto para «esto se abre».
+   Va por `content` y no como markup: el chevron no es contenido, es la forma del control. */
+.disparador::after {
+  content: '▼';
+  margin-left: 0.4375rem;
+  font-size: 0.5625rem;
+  line-height: 1;
+  color: var(--c-t3);
+  transform: rotate(-90deg);
+  transition: transform 0.15s ease;
+}
+
+.raiz[open] .disparador::after {
+  transform: none;
+}
+
+/* En modo ícono el rótulo YA es un glifo: dos símbolos no entran en 1.75rem. */
+.soloIcono::after {
+  content: none;
+}
+
 .disparador:focus-visible {
   outline: 2px solid var(--c-accent-solid);
   outline-offset: 1px;
@@ -105,4 +128,5 @@
 @media (prefers-reduced-motion: reduce) {
   .panel { animation: none; }
   .disparador { transition: none; }
+  .disparador::after { transition: none; }
 }

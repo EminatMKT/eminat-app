@@ -27,9 +27,25 @@
   white-space: nowrap;
 }
 
+/* El espacio del ✓ se reserva en TODAS las filas, transparente: si sólo lo tuviera la puesta, los
+   nombres se correrían al aplicar otra vista y la lista entera se movería debajo del cursor. */
+.nombre::before {
+  content: '✓';
+  display: inline-block;
+  width: 0.875rem;
+  color: transparent;
+}
+
+/* Cuál está puesta tiene que verse de un vistazo, y el negrita solo no alcanzaba — en una lista
+   de nombres cortos, una que pesa un poco más no se lee como «ésta es». El ✓ lo dice; el acento
+   lo confirma. NO se usa la ★, que es otra cosa: con cuál ABRE, no cuál está puesta ahora. */
 .puesta {
-  color: var(--c-t1);
+  color: var(--c-accent-solid);
   font-weight: 600;
+}
+
+.puesta::before {
+  color: var(--c-accent-solid);
 }
 
 .nombre:focus-visible {
