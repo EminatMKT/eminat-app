@@ -1871,7 +1871,9 @@ Esta fase no se pushea sola, pero deja instrucciones que dentro de tres fases na
   hecho)
 - Modify: `.todo/TODO.md` del pool central (`~/.local/share/todo/eminat-app/.todo/`)
 
-- [ ] **Paso 1: Anotar las deudas que esta fase produce**
+- [x] **Paso 1: Anotar las deudas que esta fase produce** — hecho el 10/09, en el `.todo` central
+  (`~/.local/share/todo/eminat-app/.todo/TODO.md`, sección *"`operations` fase 2 (`temas`) — deuda
+  de la Tarea 8"*).
 
 ⚠️ Decía "las tres" y la lista tenía cinco. Ahora son siete: la 6 y la 7 las agregó la segunda
 pasada.
@@ -1901,7 +1903,33 @@ En el `.todo`:
    test), `useTemas`, `TemaFila`, `TemasManager` y `TemaModal`. El conteo de 119 del preflight
    se hizo antes de esta fase.
 
-- [ ] **Paso 2: Dejar escrito el paso del runbook de despliegue**
+⚠️ **10/09: tres más, que salieron mientras las Tareas 4, 6 y 7 corrían en paralelo.** No estaban
+en la lista de siete porque ninguna de las tareas que las produjo había cerrado todavía:
+
+8. **`temas_update` no lleva el gate de módulo en su `USING`/`WITH CHECK`.** Un usuario que pierde
+   `operations`/`reuniones` —al que le sacan el rol o se lo cambian— conserva la edición de su
+   propio tema aunque ya no tenga ningún módulo que lo habilite a verlo por otra vía. Superficie
+   acotada (edita lo suyo, no lo ajeno) pero es el mismo defecto de forma que D9: una condición
+   que el diseño da por hecha y el `USING` no escribe. Se revisa junto con D9 en la fase 3, cuando
+   la función que hoy la esquiva (`tema_para_acta`) se vuelva a mirar de todos modos.
+9. **Ninguna prueba ejercita el camino admin + reunión inexistente de `tema_para_acta()`** — la
+   rama `IF v_empresa IS NULL`. Se podría borrar esa rama entera y las seis pruebas de
+   `prueba-tema-para-acta.sql` seguirían en verde. No es un bug: es un hueco de cobertura que
+   conviene cerrar antes de que la fase 3 construya el buscar-o-crear encima de esa rama.
+10. **Tres reglas del centinela se ajustaron durante esta ejecución (decisiones de Wagner del
+    10/09) y siguen sin commitear en su propio repo** (`~/.local/share/centinela/reglas`, remoto
+    aparte): `tipos_hermanos` (parámetro `convencion:`, para que los nombres de columna de
+    convención no cuenten para el umbral), `archivo_extenso` (`blando_pruebas: 80` para
+    `*.spec.ts`/`*.test.ts`) y `familia_dispersa` (`arboles:` para no cruzar features y
+    `extensiones:` para no contar `.md`/`.sql` como miembros de la familia). Mientras no se
+    commiteen allá, el gate de versionado del centinela va a seguir avisando que tres reglas
+    cambiaron sin subir `version:` — a propósito, porque subirla caduca todas las marcas firmadas.
+    Commitearlas es tarea de Wagner, no de esta rama.
+
+- [x] **Paso 2: Dejar escrito el paso del runbook de despliegue** — el guion de abajo ya estaba
+  completo desde el diseño; se confirma vigente el 10/09, con la decisión de Wagner **todavía
+  pendiente** (no ejecutada: es un guion para el día del push conjunto, no algo que esta corrida
+  dispare).
 
 Cuando llegue el push conjunto de las seis fases, en el orden que manda §8.1:
 
@@ -1949,7 +1977,10 @@ pnpm supabase db query --linked \
 
 Expected: `true` y `0`.
 
-- [ ] **Paso 3: El barrido y el gate completo**
+- [ ] **Paso 3: El barrido y el gate completo** — **NO corrido en esta pasada (10/09).** Las
+  Tareas 4, 6 y 7 seguían en curso mientras se escribía esta sección: un barrido ahora mediría un
+  árbol a medio terminar y el resultado quedaría obsoleto apenas esas tareas cierren. Queda para
+  el controlador, una vez que las ocho tareas de la fase estén completas:
 
 ```bash
 pnpm rules:barrido
@@ -1959,7 +1990,9 @@ pnpm db:rls && pnpm lint && pnpm typecheck && pnpm test && pnpm e2e
 El barrido cobra la rama entera, no sólo lo que esta fase tocó: si aparecen hallazgos en archivos
 que la rama tocó por primera vez, es deuda vieja y la decisión de qué hacer es de Wagner.
 
-- [ ] **Paso 4: Commitear**
+- [ ] **Paso 4: Commitear** — **NO corrido.** Regla de ejecución de esta corrida (Wagner, 10/09,
+  ver `constraints.md`): las ocho tareas van sin commits propios; el controlador stagea por ruta y
+  commitea por tramos al cerrar. El árbol queda listo y sin stagear.
 
 ```bash
 git add docs/superpowers/plans/2026-09-09-operations-fase-2-temas.md
