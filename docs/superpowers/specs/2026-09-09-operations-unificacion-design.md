@@ -792,7 +792,7 @@ Cada fase lleva **su migración, su rollback, su PR y su verificación**, y se d
 |---|---|---|---|
 | **1** | **La fusión de los módulos**, con convivencia | Todo lo demás | El apagón: no hay orden seguro migración↔deploy (§8.1) |
 | **2** | `temas` N:N + `tema_para_acta()` + el catálogo en `/admin` | El orden del día | El oráculo del `UNIQUE`, la RLS, el CRUD que no se adapta solo |
-| **3** | El puente tarea↔acta + el modal del tratamiento | El ciclo completo | Dos `INSERT` no transaccionales con policies distintas |
+| **3** | El puente tarea↔acta + el modal del tratamiento + **la absorción de `reuniones`** | El ciclo completo | Dos `INSERT` no transaccionales con policies distintas |
 | **4** | El cierre del acta (RPC, botón, reapertura) | Que `reunion_abierta()` signifique algo | La policy sin `WITH CHECK`; la RPC saltea toda la RLS |
 | **5** | `fecha_entrega_original` + el renombre | La métrica de postergación | Expand/contract sobre 48 ocurrencias en 21 archivos |
 | **6** | `responsable_id` nullable + la mudanza de carpetas | Cerrar la deuda | Tareas invisibles en el tablero; 162 archivos |
@@ -813,6 +813,17 @@ desplegar → pushear el cierre**, una sola vez.
 ⚠️ **Y de ahí sale una restricción para las fases 2 a 6:** las que toquen `role_modules` o las
 policies —absorber `reuniones` es exactamente eso— tienen que quedar **ordenadas entre la apertura
 y el cierre de la fase 1**, no después. Es el tipo de cosa que dentro de tres fases nadie recuerda.
+
+⚠️ **La absorción de `reuniones` es de la fase 3, y hasta el 09/09 no era de nadie.** La fase 1 la
+difirió "a la fase 3" al descubrir que borrar el slug con `src/app/(app)/reuniones/` viva deja
+`moduleForPath` en `null` y `ModuleGate` **pasa con `null` por diseño** — la pantalla habría quedado
+sin gate. Pero esta tabla nunca se lo asignó a nadie: quedó huérfana entre las dos. Lo encontró la
+planificación de la fase 2, al preguntarse por qué su gate necesitaba nombrar dos slugs.
+
+**Consecuencia mientras tanto:** hasta que la 3 la absorba, `reuniones_select` sigue gateada por el
+slug `reuniones` —que en producción es de `medico_investigacion`, un rol que **no** tiene
+`operations`—, así que **toda policy nueva que sirva a las actas tiene que nombrar los dos slugs**
+(`operations OR reuniones`). Con uno solo, quien usa las actas no ve nada y sin ningún error.
 
 **Por qué ese orden.** La 1 es la única que las demás necesitan: hasta que exista `operations`, todo
 lo que se escriba apunta a un slug que va a morir. La 4 tiene que ir antes que la 3 esté en manos de
