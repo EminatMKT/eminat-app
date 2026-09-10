@@ -4,7 +4,7 @@ const URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'
 const SERVICE = process.env.SUPABASE_SECRET_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
 export const PASSWORD = 'eminat123'
 
-const H = { 'Content-Type': 'application/json', apikey: SERVICE, Authorization: `Bearer ${SERVICE}` }
+export const H = { 'Content-Type': 'application/json', apikey: SERVICE, Authorization: `Bearer ${SERVICE}` }
 
 export async function authIdByEmail(email: string): Promise<string | null> {
   const r = await fetch(`${URL}/auth/v1/admin/users?per_page=200`, { headers: H })
@@ -78,4 +78,50 @@ export async function getUsuario(email: string): Promise<any | null> {
 export async function deleteRole(key: string) {
   await fetch(`${URL}/rest/v1/role_modules?role_key=eq.${key}`, { method: 'DELETE', headers: H })
   await fetch(`${URL}/rest/v1/roles?key=eq.${key}`, { method: 'DELETE', headers: H })
+}
+
+// Da un módulo a un rol sólo si no lo tenía ya, y devuelve si ya lo tenía. Un spec que necesita
+// un reparto que local no tiene (por el drift con prod) lo pide acá y lo revierte con
+// `restoreRoleModule`, en vez de dejarlo puesto para la próxima corrida.
+export async function ensureRoleModule(role_key: string, module_slug: string): Promise<boolean> {
+  const q = `role_key=eq.${role_key}&module_slug=eq.${module_slug}`
+  const already = ((await (await fetch(`${URL}/rest/v1/role_modules?${q}`, { headers: H })).json()) as unknown[]).length > 0
+  if (!already) {
+    await fetch(`${URL}/rest/v1/role_modules`, {
+      method: 'POST', headers: { ...H, Prefer: 'return=minimal' },
+      body: JSON.stringify({ role_key, module_slug }),
+    })
+  }
+  return already
+}
+
+// El otro lado de `ensureRoleModule`: sólo saca la fila si `hadIt` es false, es decir, si la
+// dimos nosotros. Si el rol ya la tenía antes de la corrida, no le tocamos nada.
+export async function restoreRoleModule(role_key: string, module_slug: string, hadIt: boolean) {
+  if (!hadIt) {
+    await fetch(`${URL}/rest/v1/role_modules?role_key=eq.${role_key}&module_slug=eq.${module_slug}`, { method: 'DELETE', headers: H })
+  }
+}
+
+// Una reunión mínima con `created_by` en el creador dado, para que `creo_la_reunion()` la
+// reconozca sin tener que armar la mesa de participantes (`reunion_participantes` es otro andamiaje
+// que el gate real —`tema_para_acta()`— no necesita para el creador). `estado` por defecto
+// ('borrador') ya hace que `reunion_abierta()` dé true.
+export async function ensureReunion(creadaPorEmail: string, empresa = 'EMC'): Promise<string> {
+  const creador = await getUsuario(creadaPorEmail)
+  if (!creador) throw new Error(`ensureReunion: no existe el usuario ${creadaPorEmail}`)
+  const r = await fetch(`${URL}/rest/v1/reuniones`, {
+    method: 'POST', headers: { ...H, Prefer: 'return=representation' },
+    body: JSON.stringify({
+      empresa, titulo: `Reunión de prueba RLS — ${creadaPorEmail}`,
+      fecha: new Date().toISOString().slice(0, 10), created_by: creador.id,
+    }),
+  })
+  if (!r.ok) throw new Error(`ensureReunion ${creadaPorEmail}: ${r.status} ${await r.text()}`)
+  const [row] = (await r.json()) as { id: string }[]
+  return row.id
+}
+
+export async function deleteReunion(id: string) {
+  await fetch(`${URL}/rest/v1/reuniones?id=eq.${id}`, { method: 'DELETE', headers: H })
 }

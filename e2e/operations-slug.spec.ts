@@ -1,5 +1,6 @@
 import { test, expect, Page } from '@playwright/test'
 import { PASSWORD, ensureUser } from './seed'
+import { MODULE, modulePath } from '../src/shared/auth/permissions'
 
 // Con una cuenta que NO es admin: `has_module()` abre con `is_admin() OR …`, así que probar el
 // gate con un admin le da true a cualquier slug, incluso a uno mal escrito. stratix360 tiene el
@@ -37,7 +38,7 @@ async function loginAs(page: Page, email: string) {
 
 test('un rol con el módulo ve el tablero en /operations', async ({ page }) => {
   await loginAs(page, CON_MODULO)
-  await page.goto('/operations')
+  await page.goto(modulePath(MODULE.OPERATIONS))
   await expect(page.getByText('Acceso denegado')).toBeHidden()
   // Título que sólo pone `ModuloTabs` si `TasksModule` monta de verdad (tab inicial: 'kanban' →
   // 'Production'). `AccessDenied` cae al autoTitle de la ruta ('Operations — Tareas del grupo'),
@@ -47,6 +48,6 @@ test('un rol con el módulo ve el tablero en /operations', async ({ page }) => {
 
 test('un rol sin el módulo recibe AccessDenied, no una pantalla vacía', async ({ page }) => {
   await loginAs(page, SIN_MODULO)
-  await page.goto('/operations')
+  await page.goto(modulePath(MODULE.OPERATIONS))
   await expect(page.getByText('Acceso denegado')).toBeVisible({ timeout: 20000 })
 })
