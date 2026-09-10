@@ -795,7 +795,19 @@ Cada fase lleva **su migración, su rollback, su PR y su verificación**, y se d
 | **3** | El puente tarea↔acta + el modal del tratamiento + **la absorción de `reuniones`** | El ciclo completo | Dos `INSERT` no transaccionales con policies distintas |
 | **4** | El cierre del acta (RPC, botón, reapertura) | Que `reunion_abierta()` signifique algo | La policy sin `WITH CHECK`; la RPC saltea toda la RLS |
 | **5** | `fecha_entrega_original` + el renombre | La métrica de postergación | Expand/contract sobre 48 ocurrencias en 21 archivos |
-| **6** | `responsable_id` nullable + la mudanza de carpetas | Cerrar la deuda | Tareas invisibles en el tablero; 162 archivos |
+| **6** | La mudanza de carpetas | Cerrar la deuda | 119 archivos, 54 imports absolutos internos |
+
+⚠️ **`responsable_id` nullable se mudó de la 6 a la 3** (preflight del 09/09). El modal del
+tratamiento tiene que poder registrar un compromiso de alguien que no es asignable —es la razón por
+la que §2.6 existe—, así que la fase 3 lo necesita y la 6 lo tenía último. Un conflicto de orden
+del propio diseño. Cuesta un `DROP NOT NULL` más en la 3.
+
+⚠️ **Y `pnpm db:rls` NO verifica lo que este documento decía que verifica.** Lee
+`pg_class.relrowsecurity` y nada más: **cero `SET ROLE`, cero comprobación de `GRANT`**. O sea que
+da verde exactamente en el punto ciego del incidente del 31/08 —vistas sin `security_invoker`
+puenteando la RLS— y no reemplaza a consultar como `anon`. Donde este diseño decía "se verifica
+con `pnpm db:rls` como `anon`", hay que leer: **hace falta una prueba que de verdad asuma otro rol**
+(`SET ROLE anon` en psql, o un JWT real contra PostgREST).
 
 ⚠️ **Las seis fases se despliegan JUNTAS, al final** — decisión de Wagner del 09/09. Se sigue
 partiendo el trabajo (cada fase con su migración, su revisión y sus commits), pero producción se
