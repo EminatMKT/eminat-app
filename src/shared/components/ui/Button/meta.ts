@@ -29,4 +29,13 @@ export const BUTTON_META = {
   // el tono derivado del `kind` existe justo para que un botón no mienta sobre lo que hace. El ★
   // es el mismo símbolo con el que la vista marcada aparece en su desplegable.
   star:    { icono: '★',  labelKey: 'common.setDefault',   tono: 'secundario' },
+  // Activar/desactivar una fila del catálogo. Entró el 09/09/2026 con los asuntos de reunión:
+  // el plan pedía un `<button>` a mano, pero `boton_a_mano` lo prohíbe. Secundario porque no es
+  // la acción principal de la fila — la principal es editar. Quien lo usa SIEMPRE pasa `label`
+  // porque el texto cambia según el estado ("Activar"/"Desactivar"), así que este `labelKey`
+  // nunca se ve en pantalla: es sólo el valor que `Record<ButtonKind, ButtonMeta>` exige. Apunta
+  // a `admin.temas.desactivar` —el único par que sobrevivió a la limpieza de `common.activate`/
+  // `common.deactivate`, que no tenían más consumidor que este `labelKey`— para que el próximo
+  // consumidor que no pase `label` vea un rótulo razonable en vez de una clave muerta.
+  toggle:  { icono: '',   labelKey: 'admin.temas.desactivar', tono: 'secundario' },
 } satisfies Record<ButtonKind, ButtonMeta>

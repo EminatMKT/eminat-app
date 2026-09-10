@@ -1,0 +1,37 @@
+/* El contenido de una fila del catálogo de temas. La caja, la barra de color y el foco viven en
+   `FilaLista` (src/shared/components/ui): acá queda sólo lo propio — título, chip de empresa,
+   rótulo de baja y las dos acciones. */
+.datos {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  min-width: 0;
+  flex: 1;
+}
+
+/* Sin truncar a una línea a propósito: a diferencia de una fila de reunión (que compite por
+   espacio con fecha, hora y modalidad), acá el título es lo único a la izquierda y ver el
+   título completo importa más que alinear una sola línea. */
+.titulo {
+  font-size: .875rem;
+  font-weight: 600;
+  color: var(--c-t1);
+}
+
+.tituloInactivo {
+  color: var(--c-t3);
+  text-decoration: line-through;
+}
+
+.inactivo {
+  font-size: .75rem;
+  color: var(--c-t3);
+  flex-shrink: 0;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-shrink: 0;
+}

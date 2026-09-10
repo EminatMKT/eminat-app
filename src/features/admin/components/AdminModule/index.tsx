@@ -14,6 +14,7 @@ import UsuariosToolbar from '../UsuariosToolbar'
 import UserTable from '../UserTable'
 import RolesManager from '../RolesManager'
 import OrgManager from '../OrgManager'
+import TemasManager from '../TemasManager'
 import CreateUserModal from '../CreateUserModal'
 import EditUserModal, { type EditUserDraft } from '../EditUserModal'
 import ResetPasswordModal from '../ResetPasswordModal'
@@ -27,12 +28,12 @@ import { oneOf } from '@/shared/hooks/usePersistedState'
 // SECCIONES (Usuarios · Organización) y la barra horizontal solo las sub-vistas
 // de la sección activa — nada se duplica entre ejes. Por eso `vista` es plana:
 // cada sub-vista es un valor de primer nivel, igual que en Stratix.
-type Vista = 'usuarios' | 'roles' | OrgCat
+type Vista = 'usuarios' | 'roles' | 'temas' | OrgCat
 
 export default function AdminModule() {
   const { esAdmin, adminUsuarios, roles } = useApp()
   const { t } = useT()
-  const [vista, setVista] = useUserPreference<Vista>('tab-admin', 'usuarios', oneOf('usuarios', 'roles', ...ORG_CATS))
+  const [vista, setVista] = useUserPreference<Vista>('tab-admin', 'usuarios', oneOf('usuarios', 'roles', 'temas', ...ORG_CATS))
   const [filters, setFilters] = useState<FilterValues>({})
   const [modalCrear, setModalCrear] = useState(false)
   const [modalEditar, setModalEditar] = useState<EditUserDraft | null>(null)
@@ -58,7 +59,7 @@ export default function AdminModule() {
     <AppShell activeTab={vista} onTabChange={v => setVista(v as Vista)}>
       <PageTransition>
         {/* Barra de la sección Usuarios — mismo formato que StratixTabNav. */}
-        {!isOrgCat(vista) && (
+        {(vista === 'usuarios' || vista === 'roles') && (
           <TabBar>
             <TabButton label={t('admin.tabUsers')} active={vista === 'usuarios'} onClick={() => setVista('usuarios')} />
             <TabButton label={t('admin.tabRoles')} active={vista === 'roles'} onClick={() => setVista('roles')} />
@@ -73,6 +74,7 @@ export default function AdminModule() {
           </>
         )}
         {vista === 'roles' && <RolesManager />}
+        {vista === 'temas' && <TemasManager />}
         {isOrgCat(vista) && <OrgManager cat={vista} onCatChange={setVista} />}
 
         {modalCrear && <CreateUserModal onClose={() => setModalCrear(false)} />}

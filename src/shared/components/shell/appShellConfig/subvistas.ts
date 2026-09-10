@@ -39,5 +39,6 @@ export const SUB_ITEMS: Record<PanelKey, SubItem[]> = {
   admin: [
     { id: 'adm-usuarios', icon: '👥', label: 'Usuarios', tab: 'usuarios', tabs: ['usuarios', 'roles'] },
     { id: 'adm-org', icon: '🏛️', label: 'Organización', tab: 'empresas', tabs: ['empresas', 'departamentos', 'equipos', 'cargos', 'jornadas', 'vinculaciones'] },
+    { id: 'adm-temas', icon: '🗂️', label: 'Temas', tab: 'temas' },
   ],
 }

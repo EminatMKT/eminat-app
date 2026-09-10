@@ -1,0 +1,29 @@
+/* La pantalla del catálogo de temas: subtítulo, estados de error/vacío y la lista. El buscador
+   y el botón de alta vienen de `ListToolbar`; el contenido de cada fila, de `TemaFila`. */
+.sub {
+  font-size: .8125rem;
+  color: var(--c-t2);
+  margin: 0 0 .75rem;
+}
+
+.error {
+  font-size: .8125rem;
+  color: var(--c-danger);
+  margin: .5rem 0;
+}
+
+.vacio {
+  font-size: .8125rem;
+  color: var(--c-t3);
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  list-style: none;
+  padding: 0;
+  margin: .75rem 0 0;
+}
