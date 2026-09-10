@@ -102,6 +102,19 @@ y eso impone dos cosas concretas:
    el bundle viejo no conoce, o sea inerte para lo que está corriendo — que es justo lo que la
    regla *«el esquema se despliega antes que el código»* pide.
 
+⚠️ **El timestamp intermedio no alcanza: `db push` no sabe parar en la apertura.** (Segunda
+pasada, 09/09.) `db push` aplica **todas** las pendientes, y `20260909233746` (1C) ya está en la
+carpeta: "pushear la apertura" aplica 1A + ésta + 1C **de un solo viaje**, y la convivencia que
+§8.1 describe no ocurre. El plan de la fase 1 tampoco dice cómo pushear 1A sola (sus pasos 7 de
+las Tareas 2 y 5 son el mismo `db push`). Y el mismo razonamiento del punto 3 vale para las
+fases 3, 4 y 5: su esquema también lo pide el bundle del paso del medio, y sus archivos van a
+tener timestamp **posterior** a 1C. Conclusión: **1C tiene que ser la última migración que se
+aplica, no la que tiene el timestamp más viejo después de ésta.** La forma que no toca
+`schema_migrations` de local es sacar `20260909233746_operations_slug_cierra.sql` de la carpeta
+durante el push de apertura y devolverla para el push de cierre — renombrarla con un timestamp
+nuevo la haría "pendiente" otra vez en local. Va como decisión pendiente de Wagner al runbook de
+la Tarea 8; sin ella, el orden de este archivo es cosmético.
+
 ---
 
 ## Estructura de archivos
@@ -132,11 +145,17 @@ y eso impone dos cosas concretas:
 
 **Se modifican:**
 - `src/shared/data/tables.ts:30` — `temas: 'temas'` en `TABLES`
+- `src/shared/data/index.ts` — el barrel (`temasRepo`). ⚠️ Faltaba en esta lista aunque la
+  Tarea 4 lo toca.
 - `src/features/reuniones/types.ts` — el tipo `Tema` y el `ReunionTema` con `tema_id`
 - `src/features/admin/components/AdminModule/index.tsx:30,35,61,76` — la vista nueva, el guard
   `oneOf` de la preferencia y la condición de la `TabBar`
 - `src/shared/components/shell/appShellConfig/subvistas.ts:41-44` — el ítem de sidebar
-- `src/shared/i18n/locales/es.json` y `en.json` — 18 claves
+- `src/shared/i18n/locales/es.json` y `en.json` — **13** claves. ⚠️ Decía 18: cinco de ellas
+  (`titulo`, `campoActivo`, `activoHint`, `tratamientos`, `guardado`) no las leía ningún
+  componente del plan, y `buscar` estaba escrita y sin enchufar (Tarea 6).
+- `e2e/seed.ts` — exportar `H` (los headers de service_role) para que el spec de la Tarea 5
+  pueda limpiar lo que crea. ⚠️ Faltaba.
 
 **Se borra:** nada.
 
@@ -167,8 +186,8 @@ permanentemente más flojo:
 
 | | Adaptar `OrgRow`/`OrgManager` | Pantalla propia |
 |---|---|---|
-| Archivos tocados | **16** | **9** (6 nuevos, 3 modificados) |
-| De ellos, compartidos | 6 (`loadAppData`, `useAppData`, `AppContext`, `data/org.ts`, `tables.ts`, `subvistas.ts`) | 2 (`tables.ts`, `subvistas.ts`) |
+| Archivos tocados | **16** | **16** (9 nuevos en `src/`, 7 modificados) ⚠️ decía "9 (6 nuevos, 3 modificados)": contaba carpetas como archivos y omitía `data/index.ts`, `types.ts` y los dos `.json` |
+| De ellos, compartidos | 6 (`loadAppData`, `useAppData`, `AppContext`, `data/org.ts`, `tables.ts`, `subvistas.ts`) | 6 (`tables.ts`, `data/index.ts`, `data/temas.ts`, `subvistas.ts`, `es.json`, `en.json`) — pero ninguno cambia un tipo que otro módulo consuma |
 | Sitios que leen `.nombre`/`.codigo` sin guarda y habría que blindar | 5 (`OrgManager:32`, `OrgCard:25,31,38`, `CatalogSelect:29`, `useOrgCatalog:41`) | 0 |
 | Ruta de API nueva | reusa `/api/admin/org/[cat]` (service_role) | **ninguna** — `temas_update` ya admite `is_admin()` por RLS |
 | Efecto sobre lo existente | `OrgRow` deja de garantizar nombre y código para los seis catálogos que sí los tienen | ninguno |
@@ -202,9 +221,10 @@ contra el Postgres local: insertar `'Presupuesto Q4'` y después `'  presupuesto
 eso deja el módulo mudo para quien lo usa:
 
 - `reuniones_select` sigue siendo `has_module('reuniones') AND (…)` — verificado en `pg_policies`.
-- En **producción** `reuniones` es de `admin, medico_investigacion` y `operations` es de
-  `stratix360` (§8.1 del spec). O sea que `medico_investigacion` puede abrir un acta y **no vería
-  ni un tema**, sin ningún error.
+- En **producción** `reuniones` es de `admin, medico_investigacion`, y `operations` —que hoy no
+  existe ahí: la fase 1 no se pushó— va a ser de `stratix360` (§8.1 del spec). ⚠️ Decía "es de",
+  como si prod ya tuviera la fase 1. O sea que `medico_investigacion` puede abrir un acta y **no
+  vería ni un tema**, sin ningún error.
 
 Es exactamente la falla que la fase 1 resolvió con la convivencia `operations OR tasks`, girada.
 El gate se declara una vez en una variable del `DO`, con `RAISE EXCEPTION` para **cada** slug, y
@@ -257,6 +277,31 @@ El precio, dicho: no queda rastro del cambio de título ni del `activo`. Se paga
 ya tiene que volver a declarar `log_reunion()` de todos modos para sacarle `reunion_pendientes`;
 ahí el arreglo correcto es **anidar** los `IF` por tabla en vez de combinarlos con `AND`.
 
+### D9 · `tema_para_acta()` ignora `activo` — decisión pendiente de Wagner
+
+⚠️ (Segunda pasada, reproducido contra el Postgres local.) El plan vende `activo` como la baja:
+la clave `admin.temas.activoHint` decía *"un tema inactivo deja de ofrecerse"* y el comentario de
+`TemaFila` dice *"la baja es `activo`"*. Pero `tema_para_acta()` hace `ON CONFLICT … DO UPDATE
+… RETURNING id` sin mirar la columna: desactivar "Presupuesto Q4" y tipearlo desde un acta
+**devuelve el mismo `id` y la fila sigue en `activo = false`** —probado—, así que el acta queda
+colgada de un asunto que el catálogo dice que no se ofrece. Y ése es el **único** camino de alta
+que la fase 3 va a usar. Hoy `activo` sólo existe para el admin que mira la lista.
+
+Las salidas, y por qué ninguna se toma sola acá:
+
+- **Reactivar al conflicto** (`DO UPDATE SET titulo = public.temas.titulo, activo = true`): sin
+  oráculo, y coherente con "es el mismo asunto, se volvió a tratar". Pero deja que cualquiera que
+  escriba un acta deshaga la baja del admin, y `temas_update` —que la función saltea— no lo
+  permitiría.
+- **Rechazar con error propio**: le dice al usuario "ese tema existe y está inactivo", que es
+  exactamente el oráculo que §3.1.1 cierra.
+- **Dejarlo como está**: `activo` es un rótulo del catálogo y nada más. Es lo que la función hace
+  hoy, y es lo que la prueba 6 de la Tarea 3 deja **escrito** para que no se descubra en la fase 3.
+
+Se decide antes de la fase 3, que es donde el buscar-o-crear le da consumidor. Mientras tanto
+el texto de la UI no puede prometer lo que la función no cumple: por eso `activoHint` sale de las
+claves (Tarea 6).
+
 ### D7 · Cómo se prueba esto sin admin, y qué se puede probar de verdad en local
 
 Tres escalones, y el tercero dice qué **no** se puede:
@@ -267,8 +312,17 @@ Tres escalones, y el tercero dice qué **no** se puede:
 2. **Autenticado y no admin** — sin browser: se pide un JWT real a GoTrue
    (`/auth/v1/token?grant_type=password`) y se llama a PostgREST directo con el fixture `request`
    de Playwright. Tres cuentas, con `ensureUser` de `e2e/seed.ts`: `stratix360` (tiene
-   `operations`), `medico_investigacion` (tiene `reuniones` y no `operations`) y `sin_asignar`
-   (no tiene ninguno). Es la prueba que muerde, y es barata: ni login ni pantallas.
+   `operations`), `medico_investigacion` (⚠️ en **local** no tiene ni `reuniones` ni
+   `operations` — verificado en `role_modules` el 09/09; el spec le da `reuniones` a mano) y
+   `sin_asignar` (no tiene ninguno). Es la prueba que muerde, y es barata: ni login ni pantallas.
+
+   ⚠️ **Y muerde sólo si escribe.** (Segunda pasada.) Un `SELECT` filtrado por RLS **no rebota**:
+   PostgREST devuelve `200 []` tanto si el gate abre y no hay filas como si el gate cierra.
+   Reproducido contra el Postgres local con un usuario sin módulo:
+   `has_module → false`, `count(*) → 0`, **sin error**. La única operación que una policy hace
+   fallar de forma visible es el **`INSERT`** (`42501` → 403). Por eso el caso positivo de la
+   Tarea 5 crea un tema por REST y después lo lee; un spec que sólo hace `GET` y espera `[]`
+   pasa con la policy en `USING (false)`.
 3. **Lo que local no puede probar.** El reparto real de `role_modules` (local: `reuniones` →
    `admin, stratix360`; prod: `admin, medico_investigacion`), o sea que **D3 es exactamente lo que
    el ensayo local no demuestra**: en local `stratix360` tiene los dos slugs y el `OR` no se
@@ -347,18 +401,26 @@ Expected: `NOTICE: reunion_temas: 0 filas · reunion_pendientes: 0 filas` y exit
 
 Un precheck que nadie vio en rojo no es un precheck. Se prueba en una transacción que se revierte:
 
+⚠️ **El ensayo crea su propia reunión.** La versión anterior hacía `SELECT id … FROM reuniones
+LIMIT 1`: con una base local sin reuniones inserta **cero** filas, el precheck da verde, y como
+psql corre sin `ON_ERROR_STOP` nadie ve que el rojo nunca apareció. Hoy local tiene 2 reuniones;
+mañana puede tener 0. El ensayo no puede depender de eso.
+
 ```bash
 psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" <<'SQL'
 BEGIN;
+INSERT INTO public.reuniones (empresa, titulo, fecha)
+  VALUES ('EMC', 'ensayo del precheck', CURRENT_DATE);
 INSERT INTO public.reunion_temas (reunion_id, posicion, titulo)
-  SELECT id, 1, 'ensayo del precheck' FROM public.reuniones LIMIT 1;
+  SELECT id, 1, 'ensayo del precheck' FROM public.reuniones WHERE titulo = 'ensayo del precheck';
 \i supabase/checks/precheck-temas.sql
 ROLLBACK;
 SQL
 ```
 
 Expected: `ERROR: reunion_temas tiene 1 filas.` seguido del `ROLLBACK`. Confirmar después que
-`select count(*) from reunion_temas` volvió a dar 0.
+`select count(*) from reunion_temas` volvió a dar 0 **y** que no quedó ninguna reunión con ese
+título.
 
 - [ ] **Paso 4: Escribir el rollback**
 
@@ -643,17 +705,40 @@ pnpm supabase db query --db-url "postgresql://postgres:postgres@127.0.0.1:54322/
 Expected: `relrowsecurity = true`; `grants_anon = 0`; cinco policies —`reunion_temas_select`,
 `reunion_temas_write`, `temas_insert`, `temas_select`, `temas_update`.
 
+⚠️ **Mirar también lo que tiene `authenticated`, y saber qué significa.** (Segunda pasada,
+reproducido en local dentro de una transacción revertida.) Después de la migración
+`authenticated` tiene los **siete** privilegios sobre `temas` —`DELETE` y `TRUNCATE` incluidos—,
+no los tres del `GRANT SELECT, INSERT, UPDATE`: los privilegios por defecto de Supabase ya le dan
+`ALL` a toda tabla nueva de `public`, así que ese `GRANT` es un no-op que documenta una intención
+que la base no cumple. Lo que deja el `DELETE` afuera es que **no hay policy de `DELETE`**, no el
+`GRANT`. Es el mismo estado que `reunion_temas` y `reuniones` hoy, así que no es un agujero
+nuevo — pero que quede escrito, porque alguien que agregue una policy `FOR ALL` a `temas` abre el
+borrado sin tocar un `GRANT`.
+
+```bash
+pnpm supabase db query --db-url "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+  "select string_agg(privilege_type, ',' order by 1) from information_schema.role_table_grants
+    where table_schema='public' and table_name='temas' and grantee='authenticated';"
+```
+
+Expected: los siete. Si algún día da tres, cambió el default de Supabase y hay que revisar el
+resto de las tablas.
+
 - [ ] **Paso 5: Confirmar que la guarda del paso 0 muerde**
 
 ```bash
 psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" <<'SQL'
 BEGIN;
--- La tabla ya tiene `tema_id NOT NULL`, así que una fila de prueba necesita un tema.
-INSERT INTO public.temas (empresa, titulo)
-  SELECT codigo, 'ensayo de la guarda' FROM public.empresas LIMIT 1;
+-- La tabla ya tiene `tema_id NOT NULL`, así que una fila de prueba necesita un tema. Y una
+-- reunión propia: ⚠️ con `FROM reuniones … LIMIT 1` sobre una base sin reuniones el INSERT
+-- mete cero filas y la guarda "no dispara" sin que nada lo diga (mismo defecto que el paso 3
+-- de la Tarea 1).
+INSERT INTO public.reuniones (empresa, titulo, fecha)
+  VALUES ('EMC', 'ensayo de la guarda', CURRENT_DATE);
+INSERT INTO public.temas (empresa, titulo) VALUES ('EMC', 'ensayo de la guarda');
 INSERT INTO public.reunion_temas (reunion_id, posicion, tema_id)
   SELECT r.id, 1, t.id FROM public.reuniones r, public.temas t
-   WHERE t.titulo = 'ensayo de la guarda' LIMIT 1;
+   WHERE r.titulo = 'ensayo de la guarda' AND t.titulo = 'ensayo de la guarda';
 DO $$ DECLARE n bigint; BEGIN
   SELECT count(*) INTO n FROM public.reunion_temas;
   IF n > 0 THEN RAISE EXCEPTION 'la guarda dispara con % filas', n; END IF;
@@ -816,6 +901,26 @@ BEGIN
   END;
 END $$;
 
+-- 6. ⚠️ Un tema INACTIVO se devuelve igual, y sigue inactivo. Esto NO es lo deseable: es lo que
+--    la función hace hoy, escrito para que la fase 3 no lo descubra en pantalla (D9). El día
+--    que Wagner decida, esta prueba cambia con la función.
+DO $$
+DECLARE v_reunion uuid; a uuid; b uuid; act boolean;
+BEGIN
+  SELECT id INTO v_reunion FROM public.reuniones WHERE titulo = 'Reunión de prueba';
+  a := public.tema_para_acta(v_reunion, 'Presupuesto Q4');
+  UPDATE public.temas SET activo = false WHERE id = a;
+  b := public.tema_para_acta(v_reunion, 'presupuesto q4');
+  SELECT activo INTO act FROM public.temas WHERE id = b;
+  IF a IS DISTINCT FROM b THEN
+    RAISE EXCEPTION 'FALLA: un tema inactivo se duplicó (% vs %)', a, b;
+  END IF;
+  IF act THEN
+    RAISE EXCEPTION 'FALLA: la función reactivó el tema — si es a propósito, D9 ya se decidió y hay que actualizar esta prueba';
+  END IF;
+  RAISE NOTICE 'ok 6: un tema inactivo se devuelve tal cual (D9 pendiente: activo hoy no es una baja para el acta)';
+END $$;
+
 ROLLBACK;
 ```
 
@@ -931,7 +1036,9 @@ psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=
   -f supabase/checks/prueba-tema-para-acta.sql
 ```
 
-Expected: los cinco `NOTICE: ok N` y un `ROLLBACK` al final. Ningún `FALLA:`.
+Expected: los **seis** `NOTICE: ok N` y un `ROLLBACK` al final. Ningún `FALLA:`. ⚠️ Decía
+cinco; la sexta es la de D9. (La segunda pasada corrió migración + función + las seis pruebas en
+una sola transacción revertida contra local: pasan todas.)
 
 - [ ] **Paso 5: Comprobar que el rastro quedó**
 
@@ -996,7 +1103,8 @@ git commit -m "feat(db): tema_para_acta() y la auditoría del tratamiento"
 - Produce:
   - `type Tema = { id, empresa, titulo, activo, creado_por_id, created_at }`
   - `temasRepo.list()`, `temasRepo.crear(fila)`, `temasRepo.actualizar(id, patch)`,
-    `temasRepo.paraActa(reunionId, titulo)`
+    `temasRepo.paraActa(reunionId, titulo)` — ⚠️ y nada más: `contarTratamientos` salió
+    porque no tenía consumidor (paso 6)
   - `filtrarTemas(temas: Tema[], q: string): Tema[]`
 
 - [ ] **Paso 1: Escribir el test que falla**
@@ -1043,6 +1151,10 @@ Expected: FAIL — el módulo no existe, el import ni resuelve.
 - [ ] **Paso 3: El tipo**
 
 En `src/features/reuniones/types.ts`, agregar después de `ParticipanteNuevo` (línea 48):
+
+⚠️ El archivo ya lleva `centinela-exime: archivo-extenso@2` y está pasado del techo. Si el
+centinela frena el `Edit` igual, es el gotcha conocido de la marca ya firmada (memoria del
+08/09): se reescribe el archivo con `Write`, **no** se firma otra exención.
 
 ```ts
 // El ASUNTO: el título, que es el mismo en las cinco reuniones donde se trató. Lo que cambia por
@@ -1099,8 +1211,12 @@ En `src/shared/data/tables.ts`, agregar dentro de `TABLES` (después de `vistasF
 
 ```ts
   temas: 'temas',
-  reunionTemas: 'reunion_temas',
 ```
+
+⚠️ Sólo `temas`. La versión anterior agregaba también `reunionTemas` para un
+`contarTratamientos()` que **ningún componente del plan llamaba** — un export sin importador, que
+es lo que la regla `sin_export_default` viene a evitar (ruling 2 de la fase 1). La fase 3, que
+sí lee `reunion_temas`, agrega los dos cuando tenga quién los use.
 
 Crear `src/shared/data/temas.ts`:
 
@@ -1129,11 +1245,6 @@ export const actualizar = (id: string, patch: Partial<Pick<Tema, 'titulo' | 'act
 // Sin consumidor todavía — la llama el buscar-o-crear del tratamiento, que es la fase 3.
 export const paraActa = (reunionId: string, titulo: string) =>
   supabase.rpc('tema_para_acta', { p_reunion: reunionId, p_titulo: titulo })
-
-// Cuántos tratamientos tiene cada tema, para saber cuál se puede depurar. `head: true` con
-// `count: 'exact'` no trae filas: sólo el número.
-export const contarTratamientos = (temaId: string) =>
-  supabase.from(TABLES.reunionTemas).select('id', { count: 'exact', head: true }).eq('tema_id', temaId)
 ```
 
 En `src/shared/data/index.ts`, agregar al barrel, con el mismo estilo que `reunionesRepo`:
@@ -1160,10 +1271,25 @@ también. Y `pnpm db:rls` sólo lee `relrowsecurity`: da verde con la tabla abie
 
 **Files:**
 - Create: `e2e/temas-rls.spec.ts`
+- Modify: `e2e/seed.ts` — `const H` pasa a `export const H`. ⚠️ Faltaba: el spec necesita
+  service_role para borrar el tema que crea y para darle `reuniones` a `medico_investigacion` en
+  local, y `H` es la única forma de no copiar la llave.
 
 **Interfaces:**
-- Consume: `ensureUser(email, rol)`, `deleteUser(email)`, `PASSWORD` de `e2e/seed.ts`
+- Consume: `ensureUser(email, rol)`, `deleteUser(email)`, `getUsuario(email)`, `PASSWORD`, `H`
+  de `e2e/seed.ts`
 - Produce: nada que otra tarea consuma
+
+⚠️ **Lo que la versión anterior de esta tarea probaba, y no probaba.** (Segunda pasada.) Sus
+tests 3 y 4 hacían `GET /rest/v1/temas` y esperaban `200 []`. Un `SELECT` filtrado por RLS
+devuelve `200 []` **con el gate abierto y con el gate cerrado** —reproducido en local: usuario
+sin módulo, `has_module → false`, `0` filas, sin error—, así que los dos pasaban con la policy en
+`USING (false)`, el paso 3 decía "si da 403 es que el gate quedó en `operations` a secas" (un
+`SELECT` **nunca** da 403 por policy) y el "ver el rojo" del paso 4 no podía ponerse rojo. Encima
+el paso 4 le daba `reuniones` a `medico_investigacion` **después** de correr el spec que lo
+necesitaba. La forma que sí discrimina es un **`INSERT`**: es la única operación que una policy
+rechaza de forma visible (`42501` → 403), y verificado en local: sin la fila de `role_modules`
+rebota, con la fila entra y el creador la ve, y un tercero con `operations` no la ve.
 
 - [ ] **Paso 1: Comprobar el agujero de `anon` a mano, antes de escribir nada**
 
@@ -1188,21 +1314,30 @@ pantalla es caro, frágil y no aporta nada a lo que se está probando.
 
 ```ts
 import { test, expect, type APIRequestContext } from '@playwright/test'
-import { PASSWORD, ensureUser, deleteUser } from './seed'
+import { PASSWORD, H, ensureUser, deleteUser, getUsuario } from './seed'
 
 // Tres roles, y cada uno prueba una cosa distinta:
 //   CON_OPS   tiene `operations`  → el gate de módulo lo deja pasar por la rama nueva
 //   CON_REU   tiene `reuniones` y NO `operations` → prueba la rama vieja del OR (D3 del plan).
 //             En PRODUCCIÓN éste es `medico_investigacion`, que es quien realmente usa las actas.
+//             En LOCAL ese rol no tiene ninguno de los dos: `beforeAll` le da `reuniones`.
 //   SIN_NADA  no tiene ninguno   → el gate lo tiene que dejar afuera
 //
 // Ninguno es admin, a propósito: `has_module()` y `puedo_ver_reunion()` abren con `is_admin()`.
+//
+// El caso positivo ESCRIBE. Un GET filtrado por RLS devuelve `200 []` con el gate abierto y con
+// el gate cerrado; el INSERT es lo único que una policy rechaza de forma visible (42501 → 403).
 const CON_OPS = 'temas.ops@eminat.net'
 const CON_REU = 'temas.reu@eminat.net'
 const SIN_NADA = 'temas.nada@eminat.net'
+const TITULO = 'Tema de prueba RLS'
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || ''
+const FILA_REU = `${URL}/rest/v1/role_modules?role_key=eq.medico_investigacion&module_slug=eq.reuniones`
+
+let idReu = ''
+let yaTeniaReuniones = false
 
 test.describe.configure({ mode: 'serial' })
 
@@ -1210,11 +1345,24 @@ test.beforeAll(async () => {
   await ensureUser(CON_OPS, 'stratix360')
   await ensureUser(CON_REU, 'medico_investigacion')
   await ensureUser(SIN_NADA, 'sin_asignar')
+  idReu = (await getUsuario(CON_REU)).id
+  // Local está drifteado respecto de prod (§8.1 del spec): acá `medico_investigacion` no tiene
+  // `reuniones`. Se le da sólo si no la tenía, y se le saca al final sólo si se le dio.
+  yaTeniaReuniones = ((await (await fetch(FILA_REU, { headers: H })).json()) as unknown[]).length > 0
+  if (!yaTeniaReuniones) {
+    await fetch(`${URL}/rest/v1/role_modules`, {
+      method: 'POST', headers: { ...H, Prefer: 'return=minimal' },
+      body: JSON.stringify({ role_key: 'medico_investigacion', module_slug: 'reuniones' }),
+    })
+  }
 })
 
 test.afterAll(async () => {
   // `global-teardown.ts` declara con qué usuarios queda la base. Un spec que deja los suyos rompe
-  // ese contrato en silencio — el hallazgo de la Tarea 4 de la fase 1.
+  // ese contrato en silencio — el hallazgo de la Tarea 4 de la fase 1. El tema va ANTES que los
+  // usuarios: `creado_por_id` es ON DELETE SET NULL y la fila quedaría huérfana.
+  await fetch(`${URL}/rest/v1/temas?titulo=eq.${encodeURIComponent(TITULO)}`, { method: 'DELETE', headers: H })
+  if (!yaTeniaReuniones) await fetch(FILA_REU, { method: 'DELETE', headers: H })
   for (const email of [CON_OPS, CON_REU, SIN_NADA]) await deleteUser(email)
 })
 
@@ -1228,6 +1376,11 @@ async function token(request: APIRequestContext, email: string): Promise<string>
 }
 
 const como = (jwt: string) => ({ apikey: ANON, Authorization: `Bearer ${jwt}` })
+const crear = (request: APIRequestContext, jwt: string, creado_por_id: string) =>
+  request.post(`${URL}/rest/v1/temas`, {
+    headers: { ...como(jwt), 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+    data: { empresa: 'EMC', titulo: TITULO, creado_por_id },
+  })
 
 test('anon no llega a la tabla ni con la llave del bundle', async ({ request }) => {
   const r = await request.get(`${URL}/rest/v1/temas?select=id`, { headers: { apikey: ANON } })
@@ -1236,31 +1389,28 @@ test('anon no llega a la tabla ni con la llave del bundle', async ({ request }) 
   expect(r.status(), 'anon tiene que rebotar, no ver una lista vacía').toBeGreaterThanOrEqual(401)
 })
 
-test('un rol sin ningún módulo no puede crear un tema', async ({ request }) => {
+test('un rol sin ningún módulo no pasa el gate: el INSERT rebota', async ({ request }) => {
   const jwt = await token(request, SIN_NADA)
-  const r = await request.post(`${URL}/rest/v1/rpc/tema_para_acta`, {
-    headers: { ...como(jwt), 'Content-Type': 'application/json' },
-    data: { p_reunion: '00000000-0000-4000-8000-0000000000ff', p_titulo: 'Presupuesto Q4' },
-  })
-  expect(r.ok()).toBe(false)
+  const r = await crear(request, jwt, (await getUsuario(SIN_NADA)).id)
+  expect(r.status(), '42501 → 403: la policy temas_insert lo dejó afuera').toBe(403)
 })
 
-test('un rol con `reuniones` y sin `operations` pasa el gate de módulo', async ({ request }) => {
+test('un rol con `reuniones` y sin `operations` pasa el gate: crea y ve su tema', async ({ request }) => {
   const jwt = await token(request, CON_REU)
-  // No hay acta suya, así que la lista sale vacía: lo que se prueba es que la consulta NO rebota.
-  // Con el gate en `operations` a secas, esta cuenta ni llegaría a evaluar la RLS por fila —y en
-  // producción es la cuenta que usa las actas.
-  const r = await request.get(`${URL}/rest/v1/temas?select=id`, { headers: como(jwt) })
-  expect(r.status(), 'la tabla tiene que responder, aunque la lista salga vacía').toBe(200)
-  expect(await r.json()).toEqual([])
+  // Es el caso que en producción usa las actas. Con el gate en `operations` a secas este POST
+  // da 403 — y eso es lo que el paso 4 tiene que ver en rojo.
+  expect((await crear(request, jwt, idReu)).status(), 'temas_insert por la rama `reuniones`').toBe(201)
+  const r = await request.get(`${URL}/rest/v1/temas?select=titulo`, { headers: como(jwt) })
+  expect(r.status()).toBe(200)
+  expect(await r.json()).toEqual([{ titulo: TITULO }])   // `creado_por_id = usuario_actual_id()`
 })
 
-test('un rol con el módulo no ve los temas de un acta ajena', async ({ request }) => {
+test('un rol con el módulo no ve el tema de otro sin tratamiento común', async ({ request }) => {
   const jwt = await token(request, CON_OPS)
-  const r = await request.get(`${URL}/rest/v1/temas?select=id,titulo`, { headers: como(jwt) })
+  const r = await request.get(`${URL}/rest/v1/temas?select=titulo`, { headers: como(jwt) })
   expect(r.status()).toBe(200)
-  // La base local no tiene actas de esta cuenta ni temas creados por ella: `temas_select` no
-  // tiene ninguna rama que abrir. Si acá aparece algo, la policy está dejando pasar de más.
+  // Ahora hay UN tema en la base, y esta cuenta no lo creó ni comparte acta con él: si aparece,
+  // `temas_select` está dejando pasar de más. (Con la tabla vacía esta aserción no probaba nada.)
   expect(await r.json()).toEqual([])
 })
 ```
@@ -1268,33 +1418,26 @@ test('un rol con el módulo no ve los temas de un acta ajena', async ({ request 
 - [ ] **Paso 3: Correrlo**
 
 Run: `pnpm e2e e2e/temas-rls.spec.ts`
-Expected: los cuatro PASS. Si el tercero da 403 en vez de 200, el gate quedó en `operations` a
-secas y hay que volver a la Tarea 2.
+Expected: los cuatro PASS. ⚠️ Si el **tercero** da 403 en el `POST`, el gate quedó en
+`operations` a secas (o `beforeAll` no pudo dar la fila de `role_modules`) y hay que volver a la
+Tarea 2. Decía "si da 403 en vez de 200" sobre un `GET`: un `SELECT` nunca da 403 por policy.
 
 - [ ] **Paso 4: Ver el rojo — que el gate de dos slugs esté haciendo algo**
 
-En local `stratix360` tiene los DOS slugs, así que el `OR` no se ejercita solo. Se monta el caso a
-mano, y se deshace:
+⚠️ Ya no hay nada que montar a mano: el spec le da `reuniones` a `medico_investigacion` en
+`beforeAll` y se lo saca en `afterAll` (la versión anterior lo hacía en este paso, **después** de
+haber corrido el spec en el 3). Lo que queda es ver que el `OR` es portante:
 
-```bash
-pnpm supabase db query --db-url "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
-  "insert into role_modules (role_key, module_slug) values ('medico_investigacion','reuniones')
-     on conflict do nothing;
-   delete from role_modules where role_key='medico_investigacion' and module_slug='operations';"
-pnpm e2e e2e/temas-rls.spec.ts   # el tercero tiene que seguir en 200
-```
+1. Comentar `OR (SELECT public.has_module(%L))` del `gate` en la migración (y el segundo
+   argumento del `format`).
+2. Re-aplicar: rollback + `delete from supabase_migrations.schema_migrations where version =
+   '20260909230000'` + `pnpm supabase migration up --include-all` (el mismo ciclo del paso 4 de
+   la Tarea 3).
+3. `pnpm e2e e2e/temas-rls.spec.ts` → el **tercero** tiene que fallar con `403` en el `POST`.
+4. Descomentar, re-aplicar, volver a verde.
 
-Después, comentar el `slug_viejo` del `gate` de la migración, re-aplicarla y confirmar que el
-tercer test **falla**. Descomentar, re-aplicar, volver a verde. Sin este paso, la única defensa de
-la convivencia con `reuniones` queda sin comprobar en ningún momento — es la lección del paso 6b
-de la fase 1.
-
-Dejar la base como estaba:
-
-```bash
-pnpm supabase db query --db-url "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
-  "delete from role_modules where role_key='medico_investigacion' and module_slug='reuniones';"
-```
+Sin este paso, la única defensa de la convivencia con `reuniones` queda sin comprobar en ningún
+momento — es la lección del paso 6b de la fase 1.
 
 - [ ] **Paso 5: El gate y el commit**
 
@@ -1323,11 +1466,18 @@ git commit -m "test(e2e): la RLS de temas, probada con tres roles reales y como 
 
 - [ ] **Paso 1: Las claves de i18n**
 
-Agregar a `src/shared/i18n/locales/es.json` **y** a `en.json` (las mismas 18 claves en los dos: si
-falta una, `satisfies` no compila):
+Agregar a `src/shared/i18n/locales/es.json` **y** a `en.json` (las mismas **13** claves en los
+dos: si falta una, `satisfies` no compila):
+
+⚠️ Eran 18. Cinco no las leía ningún componente de las Tareas 6 y 7 —`titulo` (el sidebar usa
+el literal `label: 'Temas'`, como los demás ítems de `SUB_ITEMS`), `campoActivo`, `tratamientos`
+(su `contarTratamientos` salió en la Tarea 4), `guardado`, y `activoHint`, que además prometía
+una baja que `tema_para_acta()` no cumple (D9)—. `satisfies` sólo exige que `en.json` tenga las
+mismas claves; una clave muerta no la frena nada, y por eso no se había visto. Y `buscar` estaba
+escrita sin enchufar: `ListToolbar` recibe `placeholderKey`, y sin él cae en `common.search`
+(paso 4).
 
 ```json
-"admin.temas.titulo": "Temas",
 "admin.temas.sub": "Los asuntos que se tratan en las reuniones. Un asunto es uno solo aunque se trate muchas veces.",
 "admin.temas.nuevo": "Nuevo tema",
 "admin.temas.buscar": "Buscar por título o empresa",
@@ -1335,13 +1485,9 @@ falta una, `satisfies` no compila):
 "admin.temas.sinResultados": "Ningún tema coincide con la búsqueda.",
 "admin.temas.campoTitulo": "Título",
 "admin.temas.campoEmpresa": "Empresa",
-"admin.temas.campoActivo": "Se ofrece para actas nuevas",
-"admin.temas.activoHint": "Un tema inactivo deja de ofrecerse, pero sigue en las actas donde ya se trató.",
 "admin.temas.inactivo": "Inactivo",
-"admin.temas.tratamientos": "{n} tratamiento(s)",
 "admin.temas.desactivar": "Desactivar",
 "admin.temas.activar": "Activar",
-"admin.temas.guardado": "Tema guardado.",
 "admin.temas.errorDuplicado": "Esa empresa ya tiene un tema con ese título.",
 "admin.temas.errorGuardar": "No se pudo guardar el tema.",
 "admin.temas.errorCargar": "No se pudieron cargar los temas."
@@ -1481,7 +1627,8 @@ export default function TemasManager() {
   return (
     <div>
       <p className={s.sub}>{t('admin.temas.sub')}</p>
-      <ListToolbar busqueda={busqueda} setBusqueda={setBusqueda}
+      {/* ⚠️ `placeholderKey`: sin él la barra dice "Buscar…" y `admin.temas.buscar` queda muerta. */}
+      <ListToolbar busqueda={busqueda} setBusqueda={setBusqueda} placeholderKey="admin.temas.buscar"
         action={<Button kind="new" label={t('admin.temas.nuevo')} onClick={() => setEditando({})} />} />
       {mensaje && <p className={s.error}>{mensaje}</p>}
       {!cargando && visibles.length === 0 && <p className={s.vacio}>{t(vacio)}</p>}
@@ -1584,8 +1731,16 @@ esconde un agujero de la pantalla.
 - Modify: `src/features/admin/components/TemasManager/index.tsx` (la línea del modal)
 
 **Interfaces:**
-- Consume: `useTemas().guardar`, `useApp().marcas`, `useApp().usuario`
+- Consume: `useTemas().guardar`, `useApp().empresas`, `useApp().usuario`
 - Produce: nada que otra tarea consuma
+
+⚠️ **`empresas`, no `marcas`.** (Segunda pasada.) `marcas` es `activo && recibe_actividades`:
+siete de las once. Pero una reunión se abre para **cualquier empresa activa**
+—`DatosGenerales/index.tsx:18-20` lo dice textual y a propósito—, y en local ya hay un acta de
+`STRATIX`, que no recibe actividades. `tema_para_acta()` toma la empresa **de la reunión**, así que
+esa acta va a crear temas de `STRATIX` que el catálogo mostraría con su chip y que el admin **no
+podría crear ni corregir de empresa** porque el `<select>` no la ofrece. Sin error: la opción
+simplemente no está. La lista del modal tiene que ser la misma que la del acta.
 
 - [ ] **Paso 1: El modal**
 
@@ -1611,10 +1766,14 @@ export default function TemaModal({ tema, onGuardar, onCerrar }: {
   onGuardar: (id: string | null, fila: { empresa: string; titulo: string; creado_por_id: string }) => Promise<boolean>
   onCerrar: () => void
 }) {
-  const { marcas, usuario, inputStyle } = useApp()
+  const { empresas, usuario, inputStyle } = useApp()
   const { t } = useT()
+  // Las mismas que ofrece el acta (`DatosGenerales`): TODAS las activas, no `marcas`. Un tema
+  // nace con la empresa de su reunión, y una reunión puede ser de una empresa que no recibe
+  // actividades.
+  const ofrecibles = empresas.filter(e => e.activo)
   const [titulo, setTitulo] = useState(tema?.titulo ?? '')
-  const [empresa, setEmpresa] = useState(tema?.empresa ?? marcas[0]?.codigo ?? '')
+  const [empresa, setEmpresa] = useState(tema?.empresa ?? ofrecibles[0]?.codigo ?? '')
   const [guardando, setGuardando] = useState(false)
 
   const listo = titulo.trim() !== '' && empresa !== '' && Boolean(usuario?.id)
@@ -1643,7 +1802,7 @@ export default function TemaModal({ tema, onGuardar, onCerrar }: {
       <Field label={t('admin.temas.campoEmpresa')} required>
         <select value={empresa} disabled={Boolean(tema)} style={inputStyle}
           onChange={e => setEmpresa(e.target.value)}>
-          {marcas.map(m => <option key={m.codigo} value={m.codigo}>{m.nombre}</option>)}
+          {ofrecibles.map(m => <option key={m.codigo} value={m.codigo}>{m.nombre}</option>)}
         </select>
       </Field>
     </Modal>
@@ -1687,9 +1846,12 @@ Como admin, en `/admin` → Temas:
    `temas_update` lo permite: es admin, y además el tema no tiene tratamientos).
 5. Desactivarlo y confirmar que la fila queda con el rótulo *Inactivo* y **sin** botón de borrar.
 6. Buscar `svn` y confirmar que queda sólo el de Servi-Net.
+7. ⚠️ Abrir el `<select>` de empresa y confirmar que ofrece una que **no** recibe actividades
+   (en local, `Stratix` o `Eminat`). Si sólo lista siete, el modal volvió a `marcas` y el
+   catálogo no puede seguir a las actas.
 
-Anotar el resultado en el PR en una línea. Los pasos 2 y 3 son los que prueban que la clave única
-es la correcta, y ningún test los cubre.
+Anotar el resultado en el PR en una línea. Los pasos 2, 3 y 7 son los que prueban que la clave
+única y la lista de empresas son las correctas, y ningún test los cubre.
 
 - [ ] **Paso 5: Mostrar a Wagner y commitear**
 
@@ -1709,7 +1871,10 @@ Esta fase no se pushea sola, pero deja instrucciones que dentro de tres fases na
   hecho)
 - Modify: `.todo/TODO.md` del pool central (`~/.local/share/todo/eminat-app/.todo/`)
 
-- [ ] **Paso 1: Anotar las tres deudas que esta fase produce**
+- [ ] **Paso 1: Anotar las deudas que esta fase produce**
+
+⚠️ Decía "las tres" y la lista tenía cinco. Ahora son siete: la 6 y la 7 las agregó la segunda
+pasada.
 
 En el `.todo`:
 
@@ -1728,27 +1893,41 @@ En el `.todo`:
    `OR UPDATE`.
 5. **`supabase/checks/prueba-tema-para-acta.sql` no corre en ningún gate.** `pnpm db:rls` es el
    único check de SQL enchufado al pre-push. Sumarla es un PR de una línea en `.githooks/`.
+6. ⚠️ **`tema_para_acta()` ignora `activo`** (D9). Decidir antes de la fase 3 si un tema inactivo
+   se reactiva al tratarlo, se rechaza, o `activo` es sólo un rótulo del catálogo. La prueba 6
+   de `prueba-tema-para-acta.sql` pinta el comportamiento de hoy y cambia con la decisión.
+7. ⚠️ **La mudanza de la fase 6 crece siete archivos.** `Tema` vive en
+   `features/reuniones/types.ts` y lo importan `shared/data/temas.ts`, `filtrarTemas` (index y
+   test), `useTemas`, `TemaFila`, `TemasManager` y `TemaModal`. El conteo de 119 del preflight
+   se hizo antes de esta fase.
 
 - [ ] **Paso 2: Dejar escrito el paso del runbook de despliegue**
 
 Cuando llegue el push conjunto de las seis fases, en el orden que manda §8.1:
 
+⚠️ **Decisión pendiente de Wagner, antes de ese día:** `db push` aplica todo lo pendiente y
+`20260909233746` (1C) está en la carpeta, así que "pushear la apertura" hoy aplicaría 1A, esta
+migración **y el cierre** de un solo viaje — y lo mismo les pasa a las fases 3 a 5, cuyos
+archivos van a quedar *después* de 1C. Ver «Orden de despliegue». La opción que no ensucia
+`schema_migrations` de local: sacar el archivo de 1C de `supabase/migrations/` para el push de
+apertura y devolverlo para el de cierre.
+
 ```bash
 # 1. El precheck, contra PROD, antes de todo lo demás. Aborta si alguna de las dos tablas
-#    dejó de estar vacía desde el 09/09.
-pnpm supabase db query --linked \
-  "select (select count(*) from reunion_temas) as temas,
-          (select count(*) from reunion_pendientes) as pendientes;"
-#    Si no da 0 y 0: PARAR. No hay backfill escrito.
+#    dejó de estar vacía desde el 09/09. `db query` acepta `--file`: es el MISMO archivo que
+#    se probó en local, no una consulta parecida escrita a mano.
+pnpm supabase db query --linked --file supabase/checks/precheck-temas.sql
+#    Si aborta: PARAR. No hay backfill escrito.
 
 # 2. El backup, en DOS piezas — un --data-only no cubre policies ni funciones, y esta
 #    migración reemplaza `reunion_temas_select` y crea dos funciones.
-docker exec supabase_db_eminat-app pg_dump -U postgres -d postgres \
-  -t public.reunion_temas -t public.reunion_pendientes --data-only \
-  > supabase/rollback/predump-temas-$(date +%Y%m%d)-data.sql
-pnpm supabase db query --linked \
-  "select policyname, cmd, qual, with_check from pg_policies where tablename = 'reunion_temas';" \
-  > supabase/rollback/predump-temas-$(date +%Y%m%d)-policies.txt
+#    ⚠️ La versión anterior hacía `docker exec supabase_db_eminat-app pg_dump …`: ése es el
+#    contenedor de Supabase LOCAL. Habría "respaldado" la base equivocada con un archivo lleno
+#    y nadie lo habría notado hasta necesitarlo. A prod se entra sólo por `--linked` (memoria
+#    del 09/09); la receta es la de la fase 1, Tarea 5.
+pnpm supabase db dump --linked -f supabase/rollback/predump-temas-$(date +%Y%m%d)-schema.sql
+pnpm supabase db dump --linked --data-only \
+  -f supabase/rollback/predump-temas-$(date +%Y%m%d)-data.sql
 ls -la supabase/rollback/predump-temas-*   # un archivo de 0 bytes es el modo de falla conocido
 
 # 3. Ver TODO lo que se va a aplicar, no sólo esta.
@@ -1814,6 +1993,13 @@ git commit -m "docs(operations): runbook y deuda de la fase 2"
   `log_reunion()`. La fase 3 la dropea.
 - **El gate de dos slugs sigue puesto.** Sale cuando `reuniones` se absorba, y hoy ninguna fase de
   §8 tiene esa tarea asignada.
+- ⚠️ **`activo` no es una baja para el acta** (D9): `tema_para_acta()` devuelve un tema inactivo
+  como si nada. Decisión de Wagner antes de la fase 3.
+- ⚠️ **`temas_insert` no defiende el camino del acta.** La policy gatea por módulo; la función es
+  `SECURITY DEFINER` y no la evalúa. Es lo que el diseño pide —la función copia
+  `reunion_temas_write`, que tampoco nombra un slug—, pero el comentario de la migración dice
+  que la policy existe "para que la función no sea la única defensa", y para ese camino **es** la
+  única. Lo que la policy cubre es el `/admin`.
 - **`historial` no registra ningún `UPDATE` de `temas` ni de `reunion_temas`** — ni el cambio de
   título, ni el `activo`, ni la descripción de un punto. El trigger va `AFTER INSERT OR DELETE`
   porque con `UPDATE` la tabla se rompe entera: `log_reunion()` evalúa `OLD.estado` en una

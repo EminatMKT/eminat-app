@@ -822,9 +822,20 @@ sin `tasks` y encima viéndolo a `operations`, que no conoce; deploy primero dej
 un slug que la base no tiene. La secuencia final sigue siendo **pushear la apertura → mergear y
 desplegar → pushear el cierre**, una sola vez.
 
-⚠️ **Y de ahí sale una restricción para las fases 2 a 6:** las que toquen `role_modules` o las
-policies —absorber `reuniones` es exactamente eso— tienen que quedar **ordenadas entre la apertura
-y el cierre de la fase 1**, no después. Es el tipo de cosa que dentro de tres fases nadie recuerda.
+⚠️ **«Ordenadas entre la apertura y el cierre» NO se logra con el timestamp, y ésa era la
+instrucción anterior.** `db push` aplica **todo lo pendiente de un viaje**, y el archivo del cierre
+ya está en `supabase/migrations/`: pushear la apertura aplicaría apertura + fase 2 + **cierre**,
+junto. Y al revés, las fases 3 a 6 van a nacer con timestamp *posterior* al cierre, que es
+exactamente lo contrario de lo que hace falta.
+
+**Decisión de Wagner del 09/09: el archivo del cierre se re-fecha al final.** Justo antes del
+despliegue, se renombra con el timestamp más alto de todos, para que sea **la última que se
+aplica** — que es lo que su contenido exige: retira el slug viejo cuando ya no queda nada que lo
+use. Hasta entonces, ninguna fase tiene que preocuparse por dónde cae su timestamp.
+
+Consecuencia a manejar una vez: en local va a figurar aplicada con el nombre viejo, así que hay que
+reconciliar `supabase_migrations` a mano el día del renombre. Es un `UPDATE` de una fila y va en el
+runbook del despliegue final.
 
 ⚠️ **La absorción de `reuniones` es de la fase 3, y hasta el 09/09 no era de nadie.** La fase 1 la
 difirió "a la fase 3" al descubrir que borrar el slug con `src/app/(app)/reuniones/` viva deja
