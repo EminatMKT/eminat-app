@@ -28,6 +28,10 @@ export const TABLES = {
   reuniones: 'reuniones',
   reunionParticipantes: 'reunion_participantes',
   vistasFiltro: 'vistas_filtro',
+  // El CATÁLOGO de asuntos: un asunto es una fila, único por empresa, aunque se trate en cinco
+  // reuniones. No confundir con `reunion_temas`, que es el puente N:N con el tratamiento —qué se
+  // dijo de ese asunto ese día— y que todavía no lo lee ningún repo.
+  temas: 'temas',
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]

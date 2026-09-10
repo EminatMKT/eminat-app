@@ -14,3 +14,4 @@ export * as reunionesRepo from './reuniones'
 // también para los tipos.
 export * as vistasFiltroRepo from './vistas-filtro'
 export type { VistaFiltro } from './vistas-filtro'
+export { default as temasRepo } from './temas'

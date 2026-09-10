@@ -47,6 +47,33 @@ export type Participante = {
 
 export type ParticipanteNuevo = Omit<Participante, 'id'>
 
+// El ASUNTO: el título, que es el mismo en las cinco reuniones donde se trató. Lo que cambia por
+// reunión —la descripción de qué se dijo ese día— vive en `reunion_temas`, no acá.
+// `titulo` y no `nombre`: no es un catálogo organizacional (ver el plan de la fase 2, D1).
+export type Tema = {
+  id: string
+  /** El código de la empresa, no su uuid: la FK apunta a `empresas.codigo`. */
+  empresa: string
+  titulo: string
+  /** La baja. No hay borrado: `reunion_temas.tema_id` es ON DELETE RESTRICT, porque borrar un
+   *  asunto ya tratado reescribiría un acta pasada. */
+  activo: boolean
+  creado_por_id: string | null
+  created_at: string | null
+}
+
+/** Lo que se manda a crear o corregir un tema (sin `id` ni las columnas de auditoría). */
+export type DatosTema = { empresa: string; titulo: string; creado_por_id: string }
+
+/** El TRATAMIENTO: qué se dijo de ese asunto en esa reunión. */
+export type ReunionTema = {
+  id: string
+  reunion_id: string
+  tema_id: string
+  posicion: number
+  descripcion: string | null
+}
+
 // Lo que se teclea para dar de alta a alguien que no está en el directorio. Los tres son
 // `string` porque salen de un <input>; quien lo guarda los convierte en NULL donde vayan vacíos.
 export type Externo = { nombre: string; empresa: string; email: string }
