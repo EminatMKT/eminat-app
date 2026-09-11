@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import { PASSWORD, ensureAuthUser, ensureUser, deleteUser } from './seed'
 import { URL, ANON } from './constants'
 import rest from './rest'
+import { ADMIN_ROLE } from '@/shared/auth/permissions'
 
 // Tener sesión no es, por sí solo, una autorización. El 10/09/2026 lo era: `usuarios` y
 // `empresas` abrían con `qual: true` para `authenticated`, y una segunda app sobre este mismo
@@ -54,6 +55,19 @@ test('un forastero con sesión no lee el modelo de permisos', async ({ request }
   const r = await request.get(`${URL}/rest/v1/role_modules?select=role_key`, { headers: rest.como(jwt) })
   expect(r.ok()).toBe(true)
   expect(await r.json(), 'cero filas').toEqual([])
+})
+
+// Una lectura no puede probar que la RLS cerró: filtra, no rechaza, y `200 []` es lo mismo que
+// una tabla vacía. Sólo una escritura da un rechazo visible, y ésta es la que más duele: el
+// forastero fabricándose su fila de personal para volverse `es_personal()` por la puerta de atrás.
+test('un forastero con sesión no se puede fabricar una fila de personal', async ({ request }) => {
+  const jwt = await rest.token(request, OUTSIDER, PASSWORD)
+  const r = await request.post(`${URL}/rest/v1/usuarios`, {
+    headers: rest.como(jwt),
+    data: { email: OUTSIDER, nombre: 'No', apellido: 'Va', rol: ADMIN_ROLE },
+  })
+  expect(r.status(), 'la policy rechaza la escritura, no la filtra en silencio').toBe(403)
+  expect((await r.json()).code, 'violates row-level security policy').toBe('42501')
 })
 
 test('anon no llega a usuarios ni con la llave del bundle', async ({ request }) => {
