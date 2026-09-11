@@ -494,6 +494,44 @@ git commit -m "docs(rules): una policy no autoriza por tener sesión"
 
 *Escrito el 11/09/2026, con las cinco tareas hechas y commiteadas en `fix/rls-sin-supuestos`. Producción **no** tiene nada de esto aplicado.*
 
+## Dónde quedamos — 10/09/2026, 22:00
+
+Las cinco tareas del plan están **hechas y commiteadas**. Lo que sigue es desplegarlas.
+
+- [ ] **Paso 0** · Apagar `Allow new users to sign up` — *pantalla abierta, faltan los dos clics*
+- [ ] **Paso 1** · Reinstalar el CLI de Supabase (`db reset` roto: falta el binario `supabase-go`)
+- [ ] **Paso 2** · `select count(*) from usuarios where auth_id is null and activo` contra producción
+- [ ] **Paso 3** · Merge a `main` + `supabase db push`
+- [ ] **Paso 4** · Verificar en producción, con cuenta **no admin**
+- [ ] **Paso 5** · *(sólo si algo sale mal)* el rollback
+- [ ] **Paso 6** · Merge a `feat/operations` + re-fechar las tres `20260909*`
+
+**El paso 0 es lo único urgente.** Una vez hecho, el agujero está cerrado y los otros seis pueden esperar el tiempo que haga falta: son la defensa durable, no la emergencia.
+
+### Lo que ya está resuelto y no hay que volver a mirar
+
+| | |
+|---|---|
+| Las tres migraciones | escritas, aplicadas a local, probadas |
+| `e2e/forastero-rls.spec.ts` | 5 tests, verdes |
+| El check del pre-push | verde, con 5 canarios — incluido el falso positivo de INSERT que tenía y se corrigió en `a6fb4a1` |
+| El rollback | escrito **y corrido** contra local |
+| La regla del centinela | commiteada en el repo de datos (`435cbfd`), con su hueco del `TO` anotado en el backlog de `centinela` |
+| El informe de comparación | `docs/operaciones/2026-09-10-comparacion-stratix-meet.md` |
+
+### Lo que quedó sin verificar, y hay que saberlo
+
+- **Las tres migraciones nunca se aplicaron sobre una base construida desde el primer archivo.** `supabase db reset` está roto; se aplicaron con `psql` sobre el local. De ahí que el paso 1 vaya antes que el 3.
+- **La UI nunca se probó con una cuenta no-admin.** El e2e lo cubre a nivel API; en el navegador sólo se probó como admin, que puentea `usuarios` por `admin_all`. No se pudo hacer en local porque la base local está adelante del código de esta rama (tiene el slug `operations`, el catálogo de `main` no lo conoce, y eso revienta `RoleCard.tsx:34`).
+
+### Y lo que no es de este plan pero sigue abierto
+
+- `shouldCreateUser: false` en `components/AuthGate.tsx` de `stratix-meet` — otro repo, una línea.
+- Las 5 tablas huérfanas en producción (`meetings`, `topics`, `meeting_participants`, `tasks`, `profiles`) y las 2 policies `*_stratix_meet`, que no están en ningún repositorio. Decisión de producto, plan aparte.
+- La conversación con Freddy: guion y contexto en `~/Documentos/conversacion-freddy-2026-09-10.md`, fuera de todo repo a propósito.
+
+---
+
 ## Estado del que parte
 
 | | |
