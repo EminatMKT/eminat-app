@@ -487,3 +487,131 @@ git commit -m "docs(rules): una policy no autoriza por tener sesión"
 **Consistencia de tipos:** `es_personal()` se define en la Tarea 2 y se consume con el mismo nombre y sin argumentos en las Tareas 3 y 4. `ensureForastero(email)` se define en la Tarea 1 y se consume en el mismo archivo. `rest.token` / `rest.como` se usan con la firma real de `e2e/rest.ts`.
 
 **Lo que este plan NO arregla, y hay que decirlo:** cierra el agujero del lado de la base. No cierra el registro abierto de `meet.stratixsolutions.us`, que es una línea en otro repo (`components/AuthGate.tsx`, agregar `shouldCreateUser: false`). Las dos cosas son independientes y conviene hacer las dos: ésta protege aunque mañana aparezca una tercera app sobre el mismo proyecto.
+
+---
+
+# Runbook de despliegue
+
+*Escrito el 11/09/2026, con las cinco tareas hechas y commiteadas en `fix/rls-sin-supuestos`. Producción **no** tiene nada de esto aplicado.*
+
+## Estado del que parte
+
+| | |
+|---|---|
+| Rama | `fix/rls-sin-supuestos`, 8 commits sobre `main` |
+| Historial de migraciones en producción | al nivel de `main` — **ninguna** `20260909*` de operations fue aplicada |
+| Local | tiene las tres `20260909*` aplicadas (de un reset viejo estando en `feat/operations`) y las tres `20260911*` aplicadas a mano con `psql` |
+| Agujero en producción | **abierto**, salvo que ya se haya apagado el registro en el proyecto |
+
+## Paso 0 — Lo que va antes que todo, y no cuesta nada
+
+Apagar **`Authentication → Sign In / Providers → Allow new users to sign up`** en el proyecto `ruedelunbtaomhrzgelc`.
+
+No rompe eminat-app: los usuarios se crean con `admin.createUser()` (`src/app/api/admin/create-user/route.ts:192`), que usa `service_role` y no pasa por esa perilla. No rompe `stratix-meet` para quien ya la usa: con signups apagados, `signInWithOtp` sobre un correo que ya existe sigue mandando el enlace.
+
+**Esto cierra el agujero.** Todo lo que sigue es la defensa durable, y ya no es urgente una vez hecho el paso 0.
+
+## Paso 1 — Arreglar el CLI
+
+```bash
+supabase --version      # hoy: 2.110.0, binario de julio en ~/.local/bin/supabase
+```
+
+`supabase db reset` falla con `LegacyDbBootstrapError: Could not find the supabase-go binary`. Reinstalar el CLI destraba tres cosas que vas a necesitar: el `db push` del paso 3, el re-fechado del paso 6, y la verificación desde cero que nunca pudimos hacer (las tres migraciones **jamás se aplicaron sobre una base construida desde el primer archivo**).
+
+Verificación: `supabase db reset` termina sin error y `pnpm db:rls` da verde sobre esa base.
+
+## Paso 2 — El chequeo que sí puede lastimar
+
+Contra **producción**:
+
+```sql
+select id, email from public.usuarios where auth_id is null and activo;
+```
+
+- **0 filas** → seguí.
+- **Cualquier fila** → **PARÁ**. `es_personal()` devuelve false para esas personas y van a perder el directorio, las empresas y los catálogos en cuanto apliques. El arreglo es rellenarles el `auth_id` (ver `20260709120000_backfill_usuarios_auth_id.sql`), no revertir el plan.
+
+En local da 0 sobre 7 activos. Producción tiene 17.
+
+## Paso 3 — Merge y push
+
+```bash
+git switch main && git pull --ff-only
+git merge --no-ff fix/rls-sin-supuestos
+supabase db push
+```
+
+`db push` debería aplicar exactamente tres versiones: `20260911013928`, `20260911014138`, `20260911014505`. Si propone alguna más, **cancelá** y averiguá por qué antes de seguir.
+
+Mirá los `RAISE NOTICE`: las ocho líneas `calificada y revocada: <tabla>`. Si una guarda salta, la transacción revierte sola y no quedás a mitad de camino — ese es el diseño.
+
+## Paso 4 — Verificar en producción
+
+```sql
+-- (a) no queda ninguna policy que autorice por tener sesión
+select tablename, policyname, roles, qual
+from pg_policies
+where schemaname = 'public' and permissive = 'PERMISSIVE'
+  and roles && array['anon','authenticated']::name[]
+  and (btrim(coalesce(qual,'true')) = 'true' or btrim(coalesce(with_check,'')) = 'true');
+-- esperado: 0 filas
+
+-- (b) anon quedó afuera y authenticated adentro
+select c.relname,
+       has_table_privilege('anon', c.oid, 'SELECT')          as anon,
+       has_table_privilege('authenticated', c.oid, 'SELECT') as auth
+from pg_class c join pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'public' and c.relkind = 'r'
+  and c.relname in ('usuarios','empresas','cargos','departamentos','equipos',
+                    'jornadas','roles','role_modules','usuario_cargos','vinculaciones')
+order by 1;
+-- esperado: anon = false en las diez, auth = true en las diez
+```
+
+Y después, en el navegador, con una cuenta **no admin** (admin puentea `usuarios` por `admin_all`):
+
+- El directorio del panel de admin lista gente.
+- `Admin → Organización → Empresas` lista las empresas.
+- Ninguna pantalla queda en blanco ni tira `TypeError`.
+
+Esta pasada es la que no se pudo hacer en local, porque la base local está adelante del código de esta rama (tiene el slug `operations` y el catálogo de `main` no lo conoce, y eso revienta `RoleCard.tsx:34`).
+
+## Paso 5 — Si algo salió mal
+
+```bash
+psql "$PROD_DB_URL" -v ON_ERROR_STOP=1 -f supabase/rollback/rls-sin-supuestos-rollback-20260911.sql
+```
+
+Devuelve las diez policies a `using (true)` y la app vuelve a funcionar en el acto. Probado contra local el 11/09.
+
+**No revierte los `REVOKE ... FROM anon` ni la policy `Lectura pública de usuarios`, a propósito** — revertirlos sería reabrir un agujero peor que el que el rollback viene a apagar. El archivo explica por qué.
+
+Ojo: después de revertir, **`pnpm db:rls` falla a propósito**. Estás en un estado que la regla prohíbe. Para poder pushear en ese intervalo, agregá los nombres al array `conocidas` de `supabase/checks/policies-sin-qual-true.sql` en un commit aparte que diga por qué, y borralos cuando el arreglo real entre.
+
+## Paso 6 — Traerlo a `feat/operations`
+
+```bash
+git switch feat/operations
+git merge main
+```
+
+Trae las policies, el check y el rollback. Ninguna de las tres migraciones de operations crea una policy sin calificar, así que **el check nuevo pasa después del merge** (verificado el 11/09 sobre `main..feat/operations`).
+
+**Y acá va el re-fechado.** Las tres de operations son `20260909*`, anteriores a las `20260911*` que ya van a estar aplicadas en producción. Renombralas a timestamps posteriores a `20260911014505`:
+
+```
+20260909222149_operations_slug_abre.sql
+20260909230000_temas_catalogo.sql
+20260909233746_operations_slug_cierra.sql
+```
+
+Es libre: nunca se aplicaron a producción. Ya estaba previsto para la de cierre en el plan de la fase 2 (*"se re-fecha al final para que sea la última aplicada"*); ahora aplica a las tres.
+
+**Esto te va a desincronizar el local**, que sí las tiene en su historial con los nombres viejos. Se arregla con `supabase db reset` — de ahí que el paso 1 vaya primero.
+
+## Lo que este runbook no cubre
+
+- **`shouldCreateUser: false` en `stratix-meet`.** Otro repo, una línea, y es la mitad de Freddy. El paso 0 lo hace innecesario para cerrar el agujero, pero conviene igual.
+- **Las 5 tablas huérfanas en producción** (`meetings`, `topics`, `meeting_participants`, `tasks`, `profiles`) y las 2 policies `*_stratix_meet`, que no están en ningún repositorio. Adoptarlas o retirarlas es una decisión de producto y va en su propio plan.
+- **Los DEFAULT PRIVILEGES de `public`**, que siguen otorgando `arwdDxtm` a `anon` sobre toda relación nueva. Es la causa raíz de que `anon` tuviera SELECT sobre las diez tablas; lo denunció `20260831214348_revocar_anon_vistas.sql` y sigue vivo. Cada tabla nueva nace con ese privilegio hasta que se cierre.
