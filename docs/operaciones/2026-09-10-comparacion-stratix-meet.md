@@ -1,6 +1,25 @@
 # `stratix-meet` frente al modelo de `operations` — comparación relacional y veredicto
 
-*2026-09-10. Compara el esquema desplegado por `stratix-meet` (5 tablas aplicadas a mano en el proyecto de producción, sin migración) contra el diseño de `docs/superpowers/specs/2026-09-09-operations-unificacion-design.md`, cuyas seis fases están en ejecución.*
+*2026-09-10. Compara el esquema que `stratix-meet` tiene desplegado en el proyecto Supabase de producción contra el diseño de `docs/superpowers/specs/2026-09-09-operations-unificacion-design.md`, cuyas seis fases están en ejecución.*
+
+> **Sobre qué está verificado y qué no.** Todo lo que sigue sale de leer el esquema en la base y
+> el código de los dos repos. Lo que **no** se verificó es quién ejecutó los cambios: no hay
+> registro de quién escribió SQL en el editor de Supabase, y este documento no lo afirma. Donde
+> dice "Freddy" en los títulos de §2.1 y §2.2, léase "el modelo de `stratix-meet`" — es una
+> etiqueta para distinguir dos diseños, no una atribución de autoría.
+>
+> Lo que sí está probado, y es más incómodo que cualquier atribución:
+>
+> - `stratix_meet` no aparece en **ninguna** migración de eminat-app, en ninguna rama, en toda la
+>   historia de git. Ninguna migración crea `meetings` ni `topics`.
+> - Las policies `actividades_read_stratix_meet` y `actividades_update_stratix_meet` **tampoco
+>   están en el repo de `stratix-meet`**: fuera de TypeScript, ese repo menciona `actividades`
+>   una sola vez, en un script de prueba.
+> - O sea: **esas dos policies no existen en ningún archivo, de ningún repositorio. Sólo en la
+>   base de producción.** Nadie puede leerlas, revisarlas ni reconstruirlas sin consultar la base
+>   en vivo.
+> - `empresas_read_authenticated` es la excepción: está textual en
+>   `stratix-meet/supabase/schema.sql:224`, dentro de un comentario, como instrucción a ejecutar.
 
 ---
 
@@ -86,7 +105,7 @@ El diseño del 28/08 ya había resuelto esto con `reuniones.acta_snapshot jsonb`
 ## 3. Lo que `stratix-meet` hace bien, y hay que decirlo
 
 - **Escribe en `actividades` en vez de duplicar las tareas.** Es el instinto correcto, y es el mismo que §2.2 del spec formaliza: *"los pendientes SON actividades"*. La tabla `tasks` propia existe en el esquema pero el código no la usa — o sea que la decisión buena le ganó a la mala dentro del propio repo.
-- **Las dos policies sobre `actividades` están bien escritas**: acotadas por `EXISTS (topics t WHERE t.actividad_id = actividades.id AND t.user_id = auth.uid())`, y la de `UPDATE` con `with_check` además del `using`. Eso es lo que la mayoría omite.
+- **Las dos policies sobre `actividades` están bien escritas**: acotadas por `EXISTS (topics t WHERE t.actividad_id = actividades.id AND t.user_id = auth.uid())`, y la de `UPDATE` con `with_check` además del `using`. Eso es lo que la mayoría omite. El problema con ellas no es el contenido: es que están sólo en la base y en ningún archivo, así que ese acierto se pierde en cuanto alguien recree el proyecto.
 - **`meeting_participants`** con PK compuesta `(meeting_id, profile_id)` está bien planteada.
 - **Usa `empresas` y `usuarios`** en vez de las `companies`/`app_users` que proponía el spec de agosto. Corrigió eso.
 
