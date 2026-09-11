@@ -86,8 +86,13 @@ Solo se puede hacer login con estos dominios:
 | `@eminat.net` | Marketing |
 | `@emc.health` | Medical Center |
 | `@vivinegretefoundation.org` | Foundation |
+| `@stratix360.com` | Stratix |
 
-La validación ocurre en `src/app/login/page.tsx` antes de llamar a Supabase Auth.
+La lista vive en `DOMINIOS_VALIDOS` (`src/shared/constants/domain.ts`) y la valida
+`src/app/login/page.tsx` antes de llamar a Supabase Auth — ahí está la fuente, esta tabla es
+sólo un reflejo. **Este gate no decide quién puede registrarse en el proyecto Supabase**, que
+es cosa aparte y se apaga desde el dashboard; ver el informe de stratix-meet en
+`docs/operaciones/`.
 
 ## Módulos de negocio
 
@@ -130,18 +135,26 @@ que seguir pintándose con su color y contando en las gráficas; solo deja de of
 actividades nuevas. Las derivaciones viven en `src/shared/context/empresa-derivations.ts` con
 sus tests.
 
-Las 11 filas del catálogo cubren dos relaciones distintas: **pertenencia** (dónde trabaja
-una persona, `usuarios.empresa_id`) y **atribución** (a qué marca se imputa una actividad,
+El catálogo cubre dos relaciones distintas: **pertenencia** (dónde trabaja una persona,
+`usuarios.empresa_id`) y **atribución** (a qué marca se imputa una actividad,
 `actividades.empresa → empresas.codigo`). `recibe_actividades` distingue cuáles reciben lo
-segundo; hoy son 7:
+segundo.
 
-- **EMC** — Eminat Medical Center (`@emc.health`)
-- **SVN** — Servi-Net
-- **ERG** — Eminat Research Group
-- **VNF** — Viviné Grette Foundation (`@vivinegretefoundation.org`)
-- **PREMIER** — Premier
-- **ORNELLA** — Ornella
-- **Eminat Mentor**
+**Acá no va la lista.** El admin da de alta una marca desde `/admin` → Organización sin tocar
+el repo, así que cualquier lista escrita en este archivo empieza a mentir el día siguiente —
+y mintió: hasta el 11/09/2026 decía «11 filas, hoy son 7» y nombraba a `SVN` como *Servi-Net*,
+cuando producción tenía **21 filas, 18 con `recibe_actividades`**, y `SVN` es *Soy Vivi Negrete*.
+Para verla:
+
+```bash
+supabase db query --linked \
+  "select codigo, nombre, activo, recibe_actividades from public.empresas order by codigo;"
+```
+
+Un detalle que sí conviene saber, porque muerde: **el largo del `codigo` no significa nada**, y
+hay pares que se parecen y son filas distintas. `S` es *Stratix* y recibe actividades; `STRATIX`
+es *Stratix Communications* y no. Escribir uno por el otro no rompe nada — la actividad se guarda
+igual, imputada a la marca equivocada.
 
 Quién pide una actividad sale de `actividades.solicitante_id`, una FK a `usuarios` — el
 dropdown ofrece a todos los usuarios activos. La constante `SOLICITANTES` que vivía
