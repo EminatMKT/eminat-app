@@ -27,7 +27,7 @@ BEGIN
 
   IF n_temas > 0 THEN
     RAISE EXCEPTION E'reunion_temas tiene % filas.\n\n%', n_temas,
-      'La migración 20260909230000_temas_catalogo.sql borra la columna `titulo`. Con filas, '
+      'La migración 20260911130100_temas_catalogo.sql borra la columna `titulo`. Con filas, '
       'esos títulos se pierden y no hay de dónde reconstruirlos. Antes de seguir hay que '
       'escribir el backfill: por cada fila, un `tema` con su (empresa de la reunión, titulo) y '
       'el `tema_id` apuntando ahí. No existe: el diseño se escribió sobre una tabla vacía.';
@@ -40,7 +40,7 @@ BEGIN
       'cadena de fases.';
   END IF;
 
-  -- La migración (20260909230000:81-83) aborta a mitad del `db push` si nadie reparte el slug
+  -- La migración (20260911130100:81-83) aborta a mitad del `db push` si nadie reparte el slug
   -- `reuniones` — dato que un admin edita desde `/admin` y puede haber cambiado desde que se
   -- escribió el diseño. Adelantar el mismo chequeo acá es el punto del precheck.
   --
@@ -50,7 +50,7 @@ BEGIN
   -- que la migración no depende.
   IF n_reu = 0 THEN
     RAISE EXCEPTION E'Ningún rol tiene el módulo `reuniones` en role_modules.\n\n%',
-      'La migración 20260909230000_temas_catalogo.sql aborta con "slug de módulo desconocido" '
+      'La migración 20260911130100_temas_catalogo.sql aborta con "slug de módulo desconocido" '
       'si esto sigue así el día del push. Asignale `reuniones` a algún rol desde /admin antes '
       'de seguir.';
   END IF;

@@ -1,4 +1,4 @@
--- Rollback de 20260909230000_temas_catalogo.sql.
+-- Rollback de 20260911130100_temas_catalogo.sql.
 --
 -- Devuelve `reunion_temas` a su forma de una-fila-un-título y borra todo lo que la migración
 -- creó. Es trivial porque la tabla estaba vacía: si esto se corre con filas cargadas, los

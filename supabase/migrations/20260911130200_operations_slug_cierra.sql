@@ -17,7 +17,7 @@
 -- que existe en prod y no en local se escapa de una lista escrita a mano. La regla del repo pide
 -- enumerar a quién se le DA el módulo, que es el INSERT de 1A.
 --
--- Orden dentro del bloque DO: el patrón del repo (1A, 20260909222149) verifica que cada slug
+-- Orden dentro del bloque DO: el patrón del repo (1A, 20260911130000) verifica que cada slug
 -- exista en `role_modules` ANTES de usarlo. Acá el slug viejo se USA para borrar, así que su
 -- verificación tiene que correr ANTES del DELETE — si corriera después, la propia migración ya
 -- habría borrado las filas que la verificación necesita, y el chequeo quedaría imposible de

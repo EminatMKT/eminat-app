@@ -1,6 +1,6 @@
 -- FASE 2: el tema sube a su propia tabla y `reunion_temas` pasa a ser el TRATAMIENTO.
 --
--- Va ordenada ENTRE la apertura (20260909222149) y el cierre (20260909233746) de la fase 1: sus
+-- Va ordenada ENTRE la apertura (20260911130000) y el cierre (20260911130200) de la fase 1: sus
 -- policies nombran el slug `operations`, que la apertura crea, y la pantalla de /admin que las
 -- consume viaja en el bundle que se despliega antes del cierre.
 --

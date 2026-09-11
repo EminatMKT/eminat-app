@@ -2,7 +2,7 @@
 -- Devuelve el slug `tasks` y deja las policies como estaban. NO borra datos.
 BEGIN;
 
--- 1. Las filas. El cierre (20260909233746) borró `tasks` por `module_slug`, no por una lista de
+-- 1. Las filas. El cierre (20260911130200) borró `tasks` por `module_slug`, no por una lista de
 --    roles — por eso repone por el mismo criterio en espejo: `tasks` recupera exactamente los
 --    roles que a ese momento tengan `operations`, sea cual sea ese conjunto. Una lista fija
 --    escrita hoy (`admin`, `stratix360`) es la reincidencia del mismo bug que esta corrección
@@ -28,7 +28,7 @@ BEGIN;
 --      SELECT role_key FROM public.role_modules WHERE module_slug = 'operations' ORDER BY 1;
 --
 --    `admin` es aparte y va con INSERT propio: nunca tiene fila de `operations` (corta por
---    `is_admin()`, sembrarla sería data muerta — así lo deja 20260909222149) pero en prod SÍ
+--    `is_admin()`, sembrarla sería data muerta — así lo deja 20260911130000) pero en prod SÍ
 --    tenía fila de `tasks` desde antes de esa convención (el precheck de esa misma migración lo
 --    muestra: `admin, stratix360`). El SELECT de abajo no puede reponerla porque no hay de dónde
 --    copiarla — no es una excepción a la regla de arriba, es el caso que ni el SELECT ni una
