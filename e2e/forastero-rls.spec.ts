@@ -46,6 +46,16 @@ test('alguien del personal SÍ lee el directorio y las empresas', async ({ reque
   expect((await e.json()).length, 'el personal ve las empresas').toBeGreaterThan(0)
 })
 
+// Un solo catálogo como muestra de los ocho: `role_modules` es el que más sirve a alguien de
+// afuera, porque dice qué módulos toca cada rol. Los otros siete los cubre el guard de la
+// migración `20260911014505`, que aborta si queda alguna policy sin calificar.
+test('un forastero con sesión no lee el modelo de permisos', async ({ request }) => {
+  const jwt = await rest.token(request, OUTSIDER, PASSWORD)
+  const r = await request.get(`${URL}/rest/v1/role_modules?select=role_key`, { headers: rest.como(jwt) })
+  expect(r.ok()).toBe(true)
+  expect(await r.json(), 'cero filas').toEqual([])
+})
+
 test('anon no llega a usuarios ni con la llave del bundle', async ({ request }) => {
   const r = await request.get(`${URL}/rest/v1/usuarios?select=id`, { headers: { apikey: ANON } })
   // 401/403 y no un 200 con []: el segundo parece "no hay nada" y es "está abierta y vacía".
