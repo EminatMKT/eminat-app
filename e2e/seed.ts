@@ -13,9 +13,8 @@ export async function authIdByEmail(email: string): Promise<string | null> {
   return u?.id ?? null
 }
 
-// Crea (o reutiliza) el auth user y deja la fila usuarios con el rol pedido. service_role
-// bypassa el trigger prevent_rol_self_change, así que el UPDATE de rol pasa.
-export async function ensureUser(email: string, rol: string, nombre = 'Test', apellido = 'User') {
+/** Crea o reconfirma el auth user, SIN fila en `usuarios`. Es la sesión del forastero. */
+export async function ensureAuthUser(email: string): Promise<string> {
   let auth_id = await authIdByEmail(email)
   if (!auth_id) {
     const r = await fetch(`${URL}/auth/v1/admin/users`, {
@@ -32,6 +31,14 @@ export async function ensureUser(email: string, rol: string, nombre = 'Test', ap
       body: JSON.stringify({ password: PASSWORD, email_confirm: true }),
     })
   }
+  if (!auth_id) throw new Error(`ensureAuthUser ${email}: no se pudo crear el auth user`)
+  return auth_id
+}
+
+/** Crea o reutiliza el auth user y deja la fila `usuarios` con el rol pedido. */
+export async function ensureUser(email: string, rol: string, nombre = 'Test', apellido = 'User') {
+  const auth_id = await ensureAuthUser(email)
+  // service_role bypassa prevent_rol_self_change, así que el UPDATE de rol pasa.
   const ri = await fetch(`${URL}/rest/v1/usuarios?on_conflict=email`, {
     method: 'POST', headers: { ...H, Prefer: 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify({ email, nombre, apellido, rol, auth_id, validado: true, activo: true }),
