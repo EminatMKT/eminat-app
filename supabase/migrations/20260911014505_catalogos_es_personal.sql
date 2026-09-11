@@ -65,10 +65,18 @@ BEGIN
     RAISE EXCEPTION 'anon todavía tiene privilegios sobre los catálogos: %', quedan;
   END IF;
 
+  -- Acotado a las ocho tablas de esta migración, y NO a todo `public`, porque el esquema no es
+  -- sólo nuestro: stratix-meet vive en el mismo proyecto de producción y dejó ahí `profiles`,
+  -- con su policy abierta y sin migración en ningún repo. Un guard global hacía que una tabla
+  -- ajena abortara una migración que había hecho su trabajo — pasó el 11/09/2026, en el primer
+  -- `db push`. Quién barre TODO `public` es `supabase/checks/policies-sin-qual-true.sql`, en el
+  -- pre-push y el CI, que corren contra local, donde esas tablas no existen.
   SELECT string_agg(tablename || '.' || policyname, ', ' ORDER BY tablename, policyname)
     INTO abiertas
     FROM pg_policies
    WHERE schemaname = 'public'
+     AND tablename = ANY (ARRAY['cargos', 'departamentos', 'equipos', 'jornadas', 'roles',
+                                'role_modules', 'usuario_cargos', 'vinculaciones'])
      AND permissive = 'PERMISSIVE'
      AND roles && ARRAY['anon', 'authenticated']::name[]
      AND (btrim(coalesce(qual, 'true')) = 'true' OR btrim(coalesce(with_check, '')) = 'true');
