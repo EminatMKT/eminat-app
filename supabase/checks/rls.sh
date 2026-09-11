@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Corre supabase/checks/rls-encendida.sql contra el Supabase LOCAL.
+# Corre los checks de RLS de supabase/checks/ contra el Supabase LOCAL.
 #
 # Si el stack no está levantado, SALTA en vez de fallar: en pre-push, un check que exige
 # `supabase start` para poder pushear se saltea con --no-verify y deja de existir. El gate duro
@@ -19,3 +19,6 @@ fi
 
 psql "$PSQL_URL" -v ON_ERROR_STOP=1 -q -f "$(dirname "$0")/rls-encendida.sql"
 echo "✓ rls: toda tabla de public tiene RLS encendida (salvo la deuda declarada en el .sql)"
+
+psql "$PSQL_URL" -v ON_ERROR_STOP=1 -q -f "$(dirname "$0")/policies-sin-qual-true.sql"
+echo "✓ rls: ninguna policy autoriza por el solo hecho de tener sesión"
