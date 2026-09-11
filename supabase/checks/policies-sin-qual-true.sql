@@ -34,10 +34,18 @@ BEGIN
     FROM pg_policies p
    WHERE p.schemaname = 'public'
      AND p.permissive = 'PERMISSIVE'
-     AND p.roles && ARRAY['anon', 'authenticated']::name[]
-     -- `qual` NULL es una policy de INSERT: no restringe la lectura, y la que decide es
-     -- `with_check`. De ahí las dos mitades.
-     AND (btrim(coalesce(p.qual, 'true')) = 'true' OR btrim(coalesce(p.with_check, '')) = 'true')
+     -- `public` va en la lista porque en Postgres incluye a `anon` y a `authenticated`: una
+     -- policy sin cláusula `TO` queda en `public` y es tan abierta como una dirigida a ellos.
+     AND p.roles && ARRAY['anon', 'authenticated', 'public']::name[]
+     -- Cada mitad se mira SÓLO donde manda. Una policy de INSERT tiene `qual` en NULL SIEMPRE
+     -- —sólo usa `with_check`—, así que tratar ese NULL como `true` rechazaba INSERTs
+     -- perfectamente escritos. Lo verificó un canario el 11/09:
+     -- `FOR INSERT TO authenticated WITH CHECK (is_admin())` daba culpable.
+     AND (
+       (p.cmd IN ('SELECT', 'UPDATE', 'DELETE', 'ALL') AND btrim(coalesce(p.qual, 'true')) = 'true')
+       OR
+       (p.cmd IN ('INSERT', 'UPDATE', 'ALL') AND btrim(p.with_check) = 'true')
+     )
      AND NOT (format('%s.%s', p.tablename, p.policyname) = ANY (conocidas));
 
   IF culpables IS NOT NULL THEN
