@@ -2026,8 +2026,16 @@ git commit -m "docs(operations): runbook y deuda de la fase 2"
   `log_reunion()`. La fase 3 la dropea.
 - **El gate de dos slugs sigue puesto.** Sale cuando `reuniones` se absorba, y hoy ninguna fase de
   §8 tiene esa tarea asignada.
-- ⚠️ **`activo` no es una baja para el acta** (D9): `tema_para_acta()` devuelve un tema inactivo
-  como si nada. Decisión de Wagner antes de la fase 3.
+- ✅ **`activo` no es una baja para el acta** (D9) — **decidido el 11/09/2026 por Wagner: se queda
+  así.** `tema_para_acta()` sigue devolviendo un tema inactivo, y no se toca: `activo` significa
+  «no lo ofrezco en la lista», no «prohibido». Es la misma asimetría que el proyecto ya eligió para
+  `empresas` —`recibe_actividades` decide qué se ofrece para lo nuevo y el color sigue pintando lo
+  viejo—, y las dos alternativas eran peores: reactivar al usarlo borra en silencio la decisión del
+  admin, y rechazar frena a quien escribe el acta con un error que sólo un admin puede resolver.
+
+  **Lo que la fase 3 sí tiene que hacer con esto:** su buscar-o-crear **no ofrece los inactivos en
+  el autocompletar**. Ahí es donde `activo` hace su trabajo. Si alguien igual tipea el título
+  completo, lo usa — y eso es deliberado, no un agujero.
 - ⚠️ **`temas_insert` no defiende el camino del acta.** La policy gatea por módulo; la función es
   `SECURITY DEFINER` y no la evalúa. Es lo que el diseño pide —la función copia
   `reunion_temas_write`, que tampoco nombra un slug—, pero el comentario de la migración dice
