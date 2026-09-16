@@ -39,7 +39,7 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
     try {
       const cargo = cargos.filter(c => nuevoUsr.cargoIds.includes(c.id)).map(c => c.nombre).join(', ')
       const { res, result } = await apiPost<{ error?: string; emailWarning?: string | null }>('/api/admin/create-user', {
-        email: nuevoUsr.email, password: nuevoUsr.password, nombre: nuevoUsr.nombre, apellido: nuevoUsr.apellido,
+        email: nuevoUsr.email.toLowerCase(), password: nuevoUsr.password, nombre: nuevoUsr.nombre, apellido: nuevoUsr.apellido,
         rol: nuevoUsr.rol, color: nuevoUsr.color, empresa_id: nuevoUsr.empresa_id,
         jornada_id: nuevoUsr.jornada_id, vinculacion_id: nuevoUsr.vinculacion_id,
         equipo_id: nuevoUsr.equipo_id,
