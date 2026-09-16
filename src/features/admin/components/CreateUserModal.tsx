@@ -35,11 +35,13 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
       setCreateError(t('admin.create.fillRequired')); return
     }
     if (nuevoUsr.password.length < 8) { setCreateError(t('admin.create.pwdMin')); return }
+    const emailParts = nuevoUsr.email.split("@")
+    if (emailParts.length !== 2) { setCreateError(t('admin.create.invalidDom')); return }
     setGuardando(true)
     try {
       const cargo = cargos.filter(c => nuevoUsr.cargoIds.includes(c.id)).map(c => c.nombre).join(', ')
       const { res, result } = await apiPost<{ error?: string; emailWarning?: string | null }>('/api/admin/create-user', {
-        email: nuevoUsr.email, password: nuevoUsr.password, nombre: nuevoUsr.nombre, apellido: nuevoUsr.apellido,
+        email: nuevoUsr.email.trim().toLowerCase(), password: nuevoUsr.password, nombre: nuevoUsr.nombre, apellido: nuevoUsr.apellido,
         rol: nuevoUsr.rol, color: nuevoUsr.color, empresa_id: nuevoUsr.empresa_id,
         jornada_id: nuevoUsr.jornada_id, vinculacion_id: nuevoUsr.vinculacion_id,
         equipo_id: nuevoUsr.equipo_id,
@@ -61,12 +63,21 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
           <CredentialsPanel label={t('admin.create.createdOk', { name: createSuccess.nombre })} name={createSuccess.nombre} email={createSuccess.email} pwd={createSuccess.pwd} onClose={onClose} extra={{ cargo: createSuccess.cargo, emailWarning: createSuccess.emailWarning }} />
         ) : (
           <>
-            <ErrorBlock msg={createError} />
+            {createError && <ErrorBlock msg={createError} />}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t('common.firstName')} *</label><input type="text" value={nuevoUsr.nombre} onChange={e => setNuevoUsr(p => ({ ...p, nombre: e.target.value }))} style={inputStyle} /></div>
               <div><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t('common.lastName')} *</label><input type="text" value={nuevoUsr.apellido} onChange={e => setNuevoUsr(p => ({ ...p, apellido: e.target.value }))} style={inputStyle} /></div>
             </div>
-            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t('common.email')} *</label><input type="email" value={nuevoUsr.email} onChange={e => setNuevoUsr(p => ({ ...p, email: e.target.value }))} autoComplete="off" placeholder={t('admin.userEmailPlaceholder')} style={inputStyle} /></div>
+            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t('common.email')} *</label><input type="email" value={nuevoUsr.email} onChange={e => {
+              const email = e.target.value
+              setNuevoUsr(p => ({ ...p, email }))
+              const emailParts = email.split("@")
+              if (emailParts.length !== 2) {
+                setCreateError(null)
+              } else {
+                setCreateError(null)
+              }
+            }} autoComplete="off" placeholder={t('admin.userEmailPlaceholder')} style={inputStyle} /></div>
             <div style={{ marginBottom: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
                 <label style={{ fontSize: 11, color: t3 }}>{t('admin.tempPassword')} *</label>

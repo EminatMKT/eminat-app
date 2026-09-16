@@ -398,6 +398,7 @@
   "admin.createUser": "Crear usuario",
   "admin.create.fillRequired": "Por favor completa todos los campos requeridos.",
   "admin.create.pwdMin": "La contraseña debe tener al menos 8 caracteres.",
+  "admin.create.invalidDom": "Dominio de correo no válido.",
   "admin.create.failed": "No se pudo crear el usuario.",
   "admin.create.netErr": "Error de red al crear el usuario.",
   "admin.create.successTitle": "Usuario creado",
