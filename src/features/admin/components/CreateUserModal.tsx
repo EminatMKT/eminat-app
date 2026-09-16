@@ -12,6 +12,7 @@ import CargosPicker from './CargosPicker'
 import CatalogSelect from './CatalogSelect'
 import CredentialsPanel from './CredentialsPanel'
 import ErrorBlock from './ErrorBlock'
+import { DOMINIOS_VALIDOS } from '@/shared/constants/domain'
 
 const DEFAULT_NEW = {
   nombre: '', apellido: '', email: '', password: '', rol: DEFAULT_ROLE, color: '#7C6FF7',
@@ -37,6 +38,8 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
     if (nuevoUsr.password.length < 8) { setCreateError(t('admin.create.pwdMin')); return }
     const emailParts = nuevoUsr.email.split("@")
     if (emailParts.length !== 2) { setCreateError(t('admin.create.invalidDom')); return }
+    const currentDomain = `@${emailParts[1]}`
+    if (!DOMINIOS_VALIDOS.includes(currentDomain)) { setCreateError(t('admin.create.invalidDom')); return }
     setGuardando(true)
     try {
       const cargo = cargos.filter(c => nuevoUsr.cargoIds.includes(c.id)).map(c => c.nombre).join(', ')
@@ -75,7 +78,12 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
               if (emailParts.length !== 2) {
                 setCreateError(null)
               } else {
-                setCreateError(null)
+                const currentDomain = `@${emailParts[1]}`
+                if (!DOMINIOS_VALIDOS.includes(currentDomain)) {
+                  setCreateError(t('admin.create.invalidDom'))
+                } else {
+                  setCreateError(null)
+                }
               }
             }} autoComplete="off" placeholder={t('admin.userEmailPlaceholder')} style={inputStyle} /></div>
             <div style={{ marginBottom: 12 }}>
