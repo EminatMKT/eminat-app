@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { auth, create } = vi.hoisted(() => ({ auth: vi.fn(), create: vi.fn() }))
+const { auth, create, list } = vi.hoisted(() => ({ auth: vi.fn(), create: vi.fn(), list: vi.fn() }))
 vi.mock('../_shared/auth', () => ({ requireMeetTaskActor: auth }))
-vi.mock('../_shared/task-service', () => ({ createTaskForTopic: create }))
+vi.mock('../_shared/task-service', () => ({ createTaskForTopic: create, listCanonicalTasks: list }))
 
-import { POST } from './route'
+import { GET, POST } from './route'
 
 const body = {
   topic_id: '11111111-1111-4111-8111-111111111111', titulo: 'Task', descripcion: null,
@@ -32,5 +32,16 @@ describe('POST Meet Tasks', () => {
   it('devuelve 200 al repetir el mismo topic', async () => {
     create.mockResolvedValue({ ok: true, data: { task: { id: 'a-1' }, idempotent: true } })
     expect((await POST(request(body))).status).toBe(200)
+  })
+})
+
+describe('GET Meet Tasks', () => {
+  beforeEach(() => { vi.clearAllMocks(); auth.mockResolvedValue({ ok: true, actor: { client: {}, authUserId: 'auth-1', profileId: 'profile-1' } }) })
+  it('devuelve exclusivamente el listado autorizado y el alcance del actor', async () => {
+    list.mockResolvedValue({ ok: true, data: { tasks: [{ id: 'a-1' }], viewer: { profile_id: 'profile-1', equipo: null, empresa: null } } })
+    const response = await GET(new Request('https://app.stratixsolutions.us/api/integrations/meet/tasks', { headers: { origin: 'https://meet.stratixsolutions.us' } }))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ tasks: [{ id: 'a-1' }], viewer: { profile_id: 'profile-1', equipo: null, empresa: null } })
+    expect(list).toHaveBeenCalledWith({}, 'auth-1', 'profile-1')
   })
 })

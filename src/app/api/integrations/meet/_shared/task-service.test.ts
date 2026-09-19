@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { getCanonicalTask, getTaskAssignees, getTaskCatalogs, updateTask } from './task-service'
+import { getCanonicalTask, getTaskAssignees, getTaskCatalogs, listCanonicalTasks, updateTask } from './task-service'
 
 type Result = { data: unknown; error: { message: string } | null }
 type Scripts = Record<string, Result[]>
@@ -12,7 +12,7 @@ function fakeClient(initial: Scripts) {
   const take = (table: string): Result => scripts[table]?.shift() ?? { data: null, error: null }
   const from = (table: string) => {
     const query: Record<string, unknown> = {}
-    for (const method of ['select', 'update', 'insert', 'eq', 'limit', 'order']) {
+    for (const method of ['select', 'update', 'insert', 'eq', 'limit', 'order', 'not']) {
       query[method] = (...args: unknown[]) => { calls.push({ table, method, args }); return query }
     }
     query.maybeSingle = async () => take(table)
@@ -145,5 +145,30 @@ describe('Meet task service', () => {
     const after = await getCanonicalTask(client, activityId, owner)
     expect(before.data?.titulo).toBe('Task CRM')
     expect(after.data).toMatchObject({ titulo: 'Editada en CRM', empresa: 'EMC', updated_at: '2026-09-18T15:00:00Z' })
+  })
+
+  it('lista únicamente Tasks propias, del equipo, de la empresa o de reuniones creadas por el actor', async () => {
+    const other = '33333333-3333-4333-8333-333333333333'
+    const owned = activity({ id: '44444444-4444-4444-8444-444444444444', responsable_id: other })
+    const forbidden = activity({ id: '55555555-5555-4555-8555-555555555555', responsable_id: other })
+    const { client } = fakeClient({
+      usuarios: [
+        { data: { id: assigneeId, equipo_id: 'team-1', empresa_id: 'company-1' }, error: null },
+        { data: [
+          { id: assigneeId, equipo_id: 'team-1', empresa_id: 'company-1' },
+          { id: other, equipo_id: 'team-2', empresa_id: 'company-2' },
+        ], error: null },
+      ],
+      actividades: [{ data: [activity(), owned, forbidden], error: null }],
+      topics: [{ data: [{
+        actividad_id: owned.id,
+        meetings: { id: 'meeting-1', title: 'Reunión propia', user_id: owner, empresas: { nombre: 'Stratix' } },
+      }], error: null }],
+    })
+    const result = await listCanonicalTasks(client, owner, assigneeId)
+    expect(result.ok).toBe(true)
+    expect(result.data?.tasks.map((task) => task.id)).toEqual([activityId, owned.id])
+    expect(result.data?.tasks[1].meeting).toEqual({ id: 'meeting-1', title: 'Reunión propia', company: 'Stratix' })
+    expect(result.data?.viewer).toEqual({ profile_id: assigneeId, equipo: null, empresa: null })
   })
 })
