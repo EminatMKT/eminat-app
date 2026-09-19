@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { COLUMNAS_KANBAN } from '@/shared/constants/domain'
-import type { CanonicalMeetTask, CreateMeetTaskInput, UpdateMeetTaskInput } from './contracts'
+import type { CanonicalMeetTask, CanonicalMeetTaskList, CanonicalMeetTaskListItem, CreateMeetTaskInput, UpdateMeetTaskInput } from './contracts'
 
 const taskProjection = 'id, titulo, descripcion, responsable_id, estado, fecha_inicio, fecha_entrega, fecha_requerida, empresa, updated_at, usuarios!actividades_responsable_id_fkey(id, nombre_display, nombre, apellido, equipos!usuarios_equipo_id_fkey(id, codigo, nombre, activo, departamentos(id, codigo, nombre)))'
 type Failure = { ok: false; status: number; code: string; message: string; current?: CanonicalMeetTask; data?: never }
@@ -12,6 +12,8 @@ type TeamRow = { id: string; codigo: string; nombre: string; activo?: boolean; d
 type UserRow = { id: string; nombre_display?: string | null; nombre?: string | null; apellido?: string | null; rol?: string | null; equipos?: TeamRow | TeamRow[] | null }
 type ActivityRow = { id: string; titulo: string; descripcion?: string | null; responsable_id: string; estado: string; fecha_inicio: string; fecha_entrega?: string | null; fecha_requerida?: string | null; empresa: string; updated_at: string; usuarios?: UserRow | UserRow[] | null }
 type TopicRow = { id: string; actividad_id?: string | null; meetings?: { user_id: string } | { user_id: string }[] | null }
+type ListTopicRow = { actividad_id?: string | null; meetings?: { id: string; title: string; user_id: string; empresas?: { nombre: string } | { nombre: string }[] | null } | { id: string; title: string; user_id: string; empresas?: { nombre: string } | { nombre: string }[] | null }[] | null }
+type DirectoryUserRow = { id: string; equipo_id?: string | null; empresa_id?: string | null; equipos?: { id: string; nombre: string } | { id: string; nombre: string }[] | null; empresas?: { id: string; codigo: string; nombre: string } | { id: string; codigo: string; nombre: string }[] | null }
 
 const first = <T>(value: T | T[] | null | undefined): T | null => Array.isArray(value) ? value[0] ?? null : value ?? null
 
@@ -49,6 +51,45 @@ export async function getCanonicalTask(client: SupabaseClient, activityId: strin
   if (error) return { ok: false, status: 403, code: 'TASK_READ_FORBIDDEN', message: error.message }
   if (!data) return { ok: false, status: 404, code: 'TASK_NOT_FOUND', message: 'Task no encontrada.' }
   return { ok: true, data: canonical(data as unknown as ActivityRow) }
+}
+
+export async function listCanonicalTasks(client: SupabaseClient, authUserId: string, profileId: string): Promise<ServiceResult<CanonicalMeetTaskList>> {
+  const [profileResult, directoryResult, activitiesResult, topicsResult] = await Promise.all([
+    client.from('usuarios').select('id, equipo_id, empresa_id, equipos!usuarios_equipo_id_fkey(id, nombre), empresas(id, codigo, nombre)').eq('id', profileId).maybeSingle(),
+    client.from('usuarios').select('id, equipo_id, empresa_id').eq('activo', true),
+    client.from('actividades').select(taskProjection),
+    client.from('topics').select('actividad_id, meetings(id, title, user_id, empresas(nombre))').not('actividad_id', 'is', null),
+  ])
+  const error = profileResult.error || directoryResult.error || activitiesResult.error
+  if (error || !profileResult.data) return { ok: false, status: 403, code: 'TASK_LIST_FORBIDDEN', message: error?.message ?? 'No se pudo determinar el alcance de Tasks.' }
+
+  const profile = profileResult.data as DirectoryUserRow
+  const authorizedAssignees = new Set(
+    ((directoryResult.data ?? []) as DirectoryUserRow[])
+      .filter((user) => user.id === profileId ||
+        Boolean(profile.equipo_id && user.equipo_id === profile.equipo_id) ||
+        Boolean(profile.empresa_id && user.empresa_id === profile.empresa_id))
+      .map((user) => user.id),
+  )
+  const origins = new Map<string, CanonicalMeetTaskListItem['meeting']>()
+  const ownedActivities = new Set<string>()
+  if (!topicsResult.error) {
+    for (const row of (topicsResult.data ?? []) as unknown as ListTopicRow[]) {
+      if (!row.actividad_id) continue
+      const meeting = first(row.meetings)
+      if (!meeting) continue
+      const company = first(meeting.empresas)
+      origins.set(row.actividad_id, { id: meeting.id, title: meeting.title, company: company?.nombre ?? null })
+      if (meeting.user_id === authUserId) ownedActivities.add(row.actividad_id)
+    }
+  }
+  const tasks = ((activitiesResult.data ?? []) as unknown as ActivityRow[])
+    .filter((row) => authorizedAssignees.has(row.responsable_id) || ownedActivities.has(row.id))
+    .map((row) => ({ ...canonical(row), meeting: origins.get(row.id) ?? null }))
+  return { ok: true, data: {
+    tasks,
+    viewer: { profile_id: profileId, equipo: first(profile.equipos), empresa: first(profile.empresas) },
+  } }
 }
 
 async function validateAssignee(client: SupabaseClient, id: string): Promise<Failure | null> {

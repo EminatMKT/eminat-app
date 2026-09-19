@@ -43,3 +43,16 @@ export type CanonicalMeetTask = {
   equipo: { id: string; codigo: string; nombre: string } | null
   departamento: { id: string; codigo: string; nombre: string } | null
 }
+
+export type CanonicalMeetTaskListItem = CanonicalMeetTask & {
+  meeting: { id: string; title: string; company: string | null } | null
+}
+
+export type CanonicalMeetTaskList = {
+  tasks: CanonicalMeetTaskListItem[]
+  viewer: {
+    profile_id: string
+    equipo: { id: string; nombre: string } | null
+    empresa: { id: string; codigo: string; nombre: string } | null
+  }
+}
