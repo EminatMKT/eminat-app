@@ -727,6 +727,7 @@
   "stratix.edit.confirmTitle": "Save changes?",
   "stratix.edit.confirmMsg": "The task will be updated with the values you entered.",
   "stratix.edit.saved": "Task updated",
+  "stratix.edit.conflict": "The task changed in another session. Review the current version before saving again.",
   "stratix.edit.saveError": "Unexpected error saving the task",
   "stratix.new.title": "New task",
   "stratix.new.sub": "Fill in the fields to add it to the Kanban",

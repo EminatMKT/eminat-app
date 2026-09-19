@@ -727,6 +727,7 @@
   "stratix.edit.confirmTitle": "¿Guardar los cambios?",
   "stratix.edit.confirmMsg": "La tarea se actualizará con los valores que cargaste.",
   "stratix.edit.saved": "Tarea actualizada",
+  "stratix.edit.conflict": "La tarea cambió en otra sesión. Revisá la versión actual antes de volver a guardar.",
   "stratix.edit.saveError": "Error inesperado al guardar la tarea",
   "stratix.new.title": "Nueva tarea",
   "stratix.new.sub": "Completá los campos para agregarla al Kanban",

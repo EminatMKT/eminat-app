@@ -26,9 +26,12 @@ export default function useKanban(actsKanban: Actividad[]) {
     if (!dragId) return
     const act = actividades.find(a => a.id === dragId)
     if (!act || act.estado === col) { setDrag(SIN_ARRASTRE); return }
-    const { error } = await actividadesRepo.updateEstado(dragId, col)
-    if (!error) {
-      setActividades(prev => prev.map(a => a.id === dragId ? { ...a, estado: col } : a))
+    const { data, error, conflict, current } = await actividadesRepo.updateEstado(dragId, col, act.updated_at)
+    if (conflict) {
+      if (current) setActividades(prev => prev.map(a => a.id === dragId ? current as Actividad : a))
+      mostrarMensaje('error', t('stratix.edit.conflict'))
+    } else if (!error) {
+      setActividades(prev => prev.map(a => a.id === dragId ? data as Actividad : a))
       mostrarMensaje('ok', t('stratix.kanban.movedTo', { col: estadoLabel(col, t) }))
     } else {
       mostrarMensaje('error', t('stratix.kanban.moveError'))
