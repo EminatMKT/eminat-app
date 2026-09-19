@@ -93,9 +93,15 @@ export function useActividadForm() {
       const payload = payloadDeActividad(valores)
 
       if (editando?.id) {
-        const { error } = await actividadesRepo.update(editando.id, payload)
+        const { data, error, conflict, current } = await actividadesRepo.update(editando.id, payload, editando.updated_at)
+        if (conflict) {
+          if (current) setActividades(prev => prev.map(x => (x.id === editando.id ? current as Actividad : x)))
+          mostrarMensaje('error', t('stratix.edit.conflict'))
+          setForm(p => ({ ...p, guardando: false }))
+          return
+        }
         if (error) { mostrarMensaje('error', t('common.errorWithDetail', { detail: error.message })); setForm(p => ({ ...p, guardando: false })); return }
-        setActividades(prev => prev.map(x => (x.id === editando.id ? { ...x, ...payload } as Actividad : x)))
+        setActividades(prev => prev.map(x => (x.id === editando.id ? data as Actividad : x)))
         resetFormAct()
         mostrarMensaje('ok', t('stratix.edit.saved'))
       } else {
