@@ -13,6 +13,7 @@ export const TABLES = {
   billingV1Ventas: 'cobranzas_ventas',
   billingV1Cuentas: 'cobranzas_cuentas',
   billingV1Depositos: 'cobranzas_depositos',
+  billingV2Records: 'billing_v2_records',
   roles: 'roles',
   roleModules: 'role_modules',
   empresas: 'empresas',
