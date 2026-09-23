@@ -219,3 +219,29 @@ Remaining schema decisions:
 3. Review and approve the complete design before creating the implementation plan.
 
 Route, old-URL 404 behavior, permission key, versioned naming, table name, fixed categories, manual statuses, and notification phases are resolved. Code changes will be performed during implementation after design approval.
+
+## Canva fidelity — confirmed brainstorming decision
+
+Use Canva as a functional reference and correct inconsistencies rather than reproduce its behavior exactly. Preserve the intended experience, but discuss concrete behavior changes individually before treating them as approved requirements. This decision does not approve every prototype feature for the initial release or finalize the candidate SQL schema.
+
+Read-only inspection of the published application code found:
+
+- Records are read and written through `dataSdk`; its loading error refers to a linked Canva Sheet. This exposes an application record contract, not a physical database schema, constraints, or access policies.
+- Monthly notes use `YYYY-MM` in `date`, whereas payments/events use a full date. The candidate SQL date field needs an explicit mapping or revised model.
+- The upcoming-payments list sorts all dated payments and takes six, including past and paid records.
+- Summary totals use all loaded payments rather than the selected calendar month.
+- The reminder flag is saved and exported; no notification scheduler was found in the inspected application code.
+
+Next behavior to discuss: which payments belong in the upcoming/reminder area. A proposed separation of unpaid upcoming and overdue payments is not yet approved; the time window remains undecided.
+
+## Reminder grouping and planning handoff — confirmed
+
+The user approved this correction to Canva's upcoming list:
+
+- Upcoming: unpaid payments whose due date is today or later.
+- Overdue: unpaid payments whose due date is before today.
+- Paid payments remain visible in Calendar/Data but are excluded from both reminder groups.
+
+This supersedes the earlier statement that grouping and paid-record suppression were undecided. The upcoming date window, timezone, and treatment of optional reminder flags remain separate decisions.
+
+The user requested committing the spec and moving to implementation planning. This authorizes a plan, not application implementation, production changes, or silent approval of previously audited assumptions. The plan must include a decision checkpoint before schema-dependent tasks for the final record model, access rules, currency, monthly-note behavior, and prototype feature scope.
