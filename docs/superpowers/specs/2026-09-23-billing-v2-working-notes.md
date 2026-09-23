@@ -1,113 +1,82 @@
-# Billing v2 / Collections — working notes
+# Billing v2 — corrected working design
 
 Date: 2026-09-23
-Status: correction draft, not an approved specification.
+Status: user corrections incorporated; complete design and implementation plan still pending review.
 
-## Purpose
+## Purpose and document location
 
-Keep the current findings in one place before turning the billing/collections replacement into a final design or implementation plan.
+Replace the existing collections experience with the payment calendar inspired by:
+<https://eminatcollections.my.canva.site/calendario-din-mico-de-pagos>.
 
-The requested direction is to replace the current collections module with an experience inspired by the Canva prototype:
+This document is inside the eminat-app project at `docs/superpowers/specs/2026-09-23-billing-v2-working-notes.md`. It is a working design document, not a completed Superpowers specification or implementation plan.
 
-- Reference URL: <https://eminatcollections.my.canva.site/calendario-din-mico-de-pagos>
-- Concept: dynamic payment calendar for accounting, payments, events, and monthly follow-up.
+## Confirmed decisions
+
+| Topic | User-selected direction |
+|---|---|
+| Public route | `/billing`, replacing `/cobranzas` |
+| Old URL | Remove `/cobranzas`; direct visits return 404, with no redirect or compatibility alias |
+| Navigation | Update menu buttons and application links to `/billing` |
+| Internal permission key | Keep `cobranzas` for now, preserving existing grants |
+| New feature | `src/features/billing-v2` |
+| Legacy feature | Rename `src/features/cobranzas` to `src/features/billing-v1`; retain it for now |
+| Shared data modules | New `billing_v2.ts`; rename legacy `cobranzas.ts` to `billing_v1.ts` |
+| New table | `billing_v2_records` |
+| Legacy data | Keep it in place for now; no automatic migration planned |
+| Categories | Fixed values in the billing domain, not administrable initially |
+| Payment workflow | Manual statuses initially; improve the lifecycle later |
+| Initial reminders | Simple in-app reminders visible when opening billing |
+| Email notifications | Desirable enhancement for later/final phases, not a launch requirement |
+
+These decisions supersede earlier naming proposals and the previously proposed redirect. Users normally navigate through menu buttons; backward compatibility for direct visits to the old URL is not required. This document describes intended changes, not completed application or production changes.
 
 ## Canva prototype: observed behavior
 
-The prototype is a calendar app with three main views.
-
 ### Calendar
 
-- Monthly calendar view.
-- Month navigation: previous month, today, next month.
-- Primary action: add record.
-- Filters by category and status.
-- Calendar cells show record chips.
-- Side panel shows upcoming payments and the monthly note.
+- Monthly calendar with previous month, today, and next month navigation.
+- Add-record action and category/status filters.
+- Record chips in calendar cells.
+- Side panel with upcoming payments and the monthly note.
 
 ### Summary
 
-- General metrics.
-- Distribution by status.
-- Paid payments.
-- Pending payments.
+- General metrics and distribution by status.
+- Paid and pending payment summaries.
 
 ### Data
 
-- Records table.
-- Search.
+- Searchable records table.
 - Filters by type, category, and status.
 - CSV copy/export actions.
 
-Observed record types:
+Observed record types: `Pago`, `Evento`, and `Nota del mes`.
 
-- `Pago`
-- `Evento`
-- `Nota del mes`
+Observed statuses: `Pagado`, `Pendiente`, `Programado`, and `Aprobación pendiente`.
 
-Observed statuses:
+Initial fixed domain categories: `Payroll` and `Contractors & Vendors`.
 
-- `Pagado`
-- `Pendiente`
-- `Programado`
-- `Aprobación pendiente`
+Observed fields include record ID, type, date, time, category, status, vendor or contractor, concept or title, amount, note, closing/approval reminder, month note, and update timestamp.
 
-Observed initial categories:
+## Existing implementation baseline
 
-- `Payroll`
-- `Contractors & Vendors`
+The current application, before implementation of this design, uses `/cobranzas`.
 
-Important fields observed in the prototype:
+Relevant existing files:
 
-- ID / record id.
-- Record type.
-- Date.
-- Time.
-- Category.
-- Status.
-- Vendor or contractor.
-- Concept or title.
-- Amount.
-- Note.
-- Closing/approval reminder.
-- Month note.
-- Updated at.
+- `src/app/(app)/cobranzas/page.tsx`
+- `src/features/cobranzas/`
+- `src/features/cobranzas/hooks/useCobranzasData.ts`
+- `src/shared/data/cobranzas.ts`
+- `src/shared/data/tables.ts`
 
-## Current module in eminat-app
+Existing tables: `cobranzas_ventas`, `cobranzas_cuentas`, and `cobranzas_depositos`.
 
-Current route:
+The current UI has `ventas`, `cuentas`, and `depositos` tabs. The existing data hook combines loading, filtering, calculations, imports, exports, printing, and manual creation. The feature is relatively isolated behind its page and feature folder.
 
-- `/cobranzas`
+## Production inspection snapshot
 
-Main current files:
-
-- `/home/wagner/Documentos/dev-projects/eminat/eminat_marketing/eminat-app/src/app/(app)/cobranzas/page.tsx`
-- `/home/wagner/Documentos/dev-projects/eminat/eminat_marketing/eminat-app/src/features/cobranzas/`
-- `/home/wagner/Documentos/dev-projects/eminat/eminat_marketing/eminat-app/src/shared/data/cobranzas.ts`
-- `/home/wagner/Documentos/dev-projects/eminat/eminat_marketing/eminat-app/src/shared/data/tables.ts`
-
-Current data model:
-
-- `cobranzas_ventas`
-- `cobranzas_cuentas`
-- `cobranzas_depositos`
-
-Current UI tabs:
-
-- `ventas`
-- `cuentas`
-- `depositos`
-
-Technical notes:
-
-- `/home/wagner/Documentos/dev-projects/eminat/eminat_marketing/eminat-app/src/features/cobranzas/hooks/useCobranzasData.ts` currently concentrates loading, filtering, calculations, imports, exports, printing, and manual record creation.
-- The current module is relatively isolated behind its route and feature folder, so changing what `page.tsx` renders should be a cheap switch.
-
-## Production state reviewed
-
-Production queries were aggregate-only. No detailed row data was inspected.
-
-Row counts:
+The prior inspection used aggregate-only, read-only queries; detailed row data was not inspected. These are findings from that inspection, not continuously refreshed counts.
 
 | Table | Rows | First timestamp | Last update |
 |---|---:|---|---|
@@ -115,126 +84,99 @@ Row counts:
 | `cobranzas_cuentas` | 0 | — | — |
 | `cobranzas_depositos` | 0 | — | — |
 
-Aggregate data for `cobranzas_ventas`:
+For `cobranzas_ventas`:
 
-- 23 rows.
-- 1 distinct month.
-- `mes_min = FEBRERO`.
-- `mes_max = FEBRERO`.
-- 2 periods.
-- 7 labs.
-- 14 studies.
+- One distinct month: `FEBRERO`.
+- Two periods, seven laboratories, and fourteen studies.
 - Total amount: `110605.48`.
 
-Related public tables found in production:
+The related public tables found were only the three `cobranzas_*` tables above. No related billing, payment, pagos, or deprecated replacement tables were found during that inspection.
 
-- `cobranzas_ventas`
-- `cobranzas_cuentas`
-- `cobranzas_depositos`
+Retain these tables and their data. Working interpretation of keeping the old material in place: do not automatically import these rows into v2 or add a legacy report to the first release. Revisit only if historical data must appear in the new UI.
 
-No existing tables were found for these names or concepts:
+## Routing and permissions — confirmed
 
-- `billing`
-- `billing_v2`
-- `payment`
-- `pagos`
-- `cobranzas_deprecated`
+- `/billing` is the public route and renders billing v2.
+- Remove the old `/cobranzas` route; direct visits return the application's normal 404 response. Do not add a redirect or compatibility alias.
+- Update navigation menu buttons and other application links to `/billing`.
+- Retaining billing v1 source does not expose a public legacy route.
+- Keep existing authentication and authorization for `/billing`.
 
-## Current permissions
+Existing authorization baseline:
 
-The permission system uses module slugs.
+- `MODULE.COBRANZAS = 'cobranzas'`.
+- `role_modules` assigns the `cobranzas` module slug to the `finanzas` role.
+- No grants were found for `billing`, `billing_v2`, or `cobranzas_deprecated`.
 
-Relevant current slug in code:
+The user approved retaining the internal `cobranzas` permission value for now. Preserve existing grants and access behavior; do not migrate production role grants solely to match the URL or source-code names. The permission key and old-URL behavior are resolved decisions, not open questions.
 
-- `MODULE.COBRANZAS = 'cobranzas'`
+## Low-cost replacement approach
 
-Production state:
-
-- `role_modules` has `module_slug = 'cobranzas'` assigned to the `finanzas` role.
-- No rows exist for `billing`, `billing_v2`, or `cobranzas_deprecated`.
-
-Preliminary conclusion: for the cheapest first version, keep using the existing `cobranzas` permission slug for the new experience.
-
-## Cheap-process ideas
-
-### Preliminary recommended direction
-
-Create a new feature for the new experience, but keep the current route and permission slug.
-
-Proposal:
-
-- New folder: `/home/wagner/Documentos/dev-projects/eminat/eminat_marketing/eminat-app/src/features/billing-v2`.
-- New table: `billing_v2_records`.
-- Keep `/cobranzas` as the visible route.
-- Change `page.tsx` to render the new module.
-- Keep access controlled by `has_module('cobranzas')`.
-- Leave old tables intact.
-- Do not automatically migrate the 23 legacy records in the first phase.
+1. Retain legacy code as `src/features/billing-v1`, updating affected imports when moved.
+2. Rename legacy shared data access to `src/shared/data/billing_v1.ts`.
+3. Build the replacement in `src/features/billing-v2`, using `src/shared/data/billing_v2.ts`.
+4. Store new records in `billing_v2_records`; leave legacy tables unchanged.
+5. Serve the new feature from `src/app/(app)/billing/page.tsx`, remove the old route, and update navigation references.
+6. Keep legacy code out of the new page's imports rather than commenting out its source.
+7. Preserve the existing internal permission key and authorization grants.
 
 Benefits:
 
-- Does not break existing permissions.
-- Does not require role reassignment in production.
-- Does not delete or transform historical data.
-- Avoids forcing old report-shaped data into the new calendar-shaped model.
-- Easy rollback: point `page.tsx` back to the old module if needed.
+- Keeps legacy history without forcing report-shaped data into calendar-shaped records.
+- Separates the replacement from the old data hook and UI.
+- Avoids unnecessary data migration, URL compatibility code, and an approval workflow in the initial release.
+- Retains legacy code for a possible page-level rollback; any rollback must also check routing and authorization.
 
 Costs:
 
-- Historical data remains in old tables.
-- Legacy code remains unless clearly archived.
-- If those 23 records must appear in the new UI, we need a specific migration or manual import decision.
+- Retained legacy code still requires valid imports and may remain part of type checking.
+- Historical data remains separate from the new UI.
+- Renaming the feature and route requires more than changing a single page import.
 
-### Alternative A: rename the old feature to deprecated
+Rejected alternatives: commenting out the old feature, reusing its folder for the replacement, keeping `/cobranzas` as a public route, or redirecting it to `/billing`.
 
-Possible folder names:
+## Cross-layer version naming — confirmed
 
-- `/home/wagner/Documentos/dev-projects/eminat/eminat_marketing/eminat-app/src/features/cobranzas-deprecated`
-- `/home/wagner/Documentos/dev-projects/eminat/eminat_marketing/eminat-app/src/features/cobranzas_legacy`
-- keep `/home/wagner/Documentos/dev-projects/eminat/eminat_marketing/eminat-app/src/features/cobranzas` for the new experience
+Use the billing v1/v2 distinction consistently across the affected module. Baseline references above describe existing code, not target names.
 
-Risk: moving folders may touch several imports, although the module appears isolated.
+| Layer | Legacy target | Replacement target |
+|---|---|---|
+| Feature directory | `src/features/billing-v1/` | `src/features/billing-v2/` |
+| Shared data module | `src/shared/data/billing_v1.ts` | `src/shared/data/billing_v2.ts` |
+| Symbol prefix, when version distinction is needed | `BillingV1` / `billingV1` | `BillingV2` / `billingV2` |
+| Persistence | Existing legacy tables retained | `billing_v2_records` |
 
-### Alternative B: leave the old feature where it is
+- Update imports, re-exports, aliases, mocks, and tests affected by renames.
+- Apply versioned billing names to related components, hooks, types, data-access functions, and constants where they identify the implementation. Keep idiomatic casing rather than mechanically inserting underscores into TypeScript identifiers.
+- Follow the distinction in documentation and test descriptions; do not rename unrelated modules.
+- Keep `/billing` unversioned; no public `/billing-v1` route is needed.
+- Do not rename persisted `cobranzas_*` tables or the retained `cobranzas` permission value merely to align source names.
 
-Keep `/home/wagner/Documentos/dev-projects/eminat/eminat_marketing/eminat-app/src/features/cobranzas` unchanged and create `/home/wagner/Documentos/dev-projects/eminat/eminat_marketing/eminat-app/src/features/billing-v2`.
+## Domain and payment lifecycle
 
-Then change only:
+Define categories once in the billing domain and reuse them in forms, filters, and validation. Initially use `Payroll` and `Contractors & Vendors`; no category-management interface.
 
-- `/home/wagner/Documentos/dev-projects/eminat/eminat_marketing/eminat-app/src/app/(app)/cobranzas/page.tsx`
+Use manually selected payment statuses initially. `Aprobación pendiente` is a status label, not an approval engine. No automatic transitions, multi-step approvals, or payment execution are implied. A richer lifecycle can be designed in later phases.
 
-so it points to the new module.
+## Notifications and delivery phases
 
-Benefit: smallest code movement.
+### Initial release — confirmed
 
-Cost: the `cobranzas` folder name remains attached to legacy code, while the new module lives elsewhere even though the route is still `/cobranzas`.
+Use simple in-app reminders visible when opening billing. They do not send email or notify users while the application is closed. No background delivery service is required initially.
 
-### Alternative C: comment out the old feature
+The exact due-date window, timezone handling, record eligibility, and suppression of paid records still need specification. Recommended behavior is to highlight upcoming/overdue unpaid payments without generating duplicate persistent notifications.
 
-Not recommended.
+### Later/final phases — desirable, optional
 
-Reasons:
+Email reminders are a desirable enhancement, not a launch prerequisite. Design recipients, scheduling, delivery configuration, retries, and duplicate prevention when prioritized.
 
-- Commented-out code ages badly.
-- It can confuse future work more than it helps.
-- It does not reduce real debt if the files remain in the repository.
-- Better to leave the legacy module unimported and document its deprecated status.
-
-## New table name options
-
-1. `billing_v2_records`
-   - Explicitly communicates a new version.
-   - Avoids confusing the new model with the old `cobranzas_*` tables.
-
-2. `cobranzas_calendario`
-   - Closer to the current route and permission slug.
-   - Less explicit as a versioned replacement.
-
-Preliminary recommendation: `billing_v2_records`.
+Do not build email delivery or an approval engine merely to prepare for a possible future requirement.
 
 ## Preliminary new table model
 
-Possible fields:
+Confirmed name: `billing_v2_records`.
+
+Candidate fields, not yet finalized database DDL:
 
 - `id uuid primary key`
 - `record_type text not null`
@@ -254,34 +196,26 @@ Possible fields:
 - `created_at timestamptz not null default now()`
 - `updated_at timestamptz not null default now()`
 
-Constraints still to decide:
+Remaining schema decisions:
 
-- Whether `record_type` should be a check constraint, enum, or catalog table.
-- Whether `status` is required only for payments.
-- Whether categories are fixed or editable.
-- Whether month notes should live as records or in a separate monthly table.
+- Representation and validation of record types and statuses.
+- Whether status is required only for payments.
+- Database validation matching fixed domain categories.
+- Monthly-note representation and uniqueness rules.
+- Amount validation and whether `has_amount` is needed or derivable.
+- Ownership, access policies, and timestamp-update behavior.
 
-## Tentative decisions, not approved
+## Verification requirements for routing
 
-These are not final yet:
+- Navigation opens `/billing` for an authorized user.
+- An authenticated, authorized user requesting `/cobranzas` directly receives 404, not a redirect or legacy screen.
+- `/billing` retains existing access restrictions using the `cobranzas` permission key.
+- No application navigation link continues to target the removed route.
 
-1. Keep `/cobranzas` as the visible route.
-2. Keep using the `cobranzas` permission slug.
-3. Create a new feature such as `billing-v2`.
-4. Create one new table such as `billing_v2_records`.
-5. Do not automatically migrate the 23 legacy records.
-6. Archive the old feature without commenting it out.
+## Remaining review items
 
-## Corrections expected from Wagner
+1. Define the simple in-app reminder rules.
+2. Finalize schema constraints, access policies, validation, and test coverage.
+3. Review and approve the complete design before creating the implementation plan.
 
-Wagner said there are several corrections to make. This document exists so those corrections can be applied before we turn this into a specification or plan.
-
-## Open questions
-
-1. Final table name: `billing_v2_records` or `cobranzas_calendario`?
-2. Final feature folder name: `billing-v2`, `cobranzas-v2`, or `cobranzas` for the new module?
-3. Should old data remain as backup only, or must it appear in some report?
-4. Should the URL remain `/cobranzas`, or change to `/billing`?
-5. Should categories be fixed or administrable?
-6. Do payments need a real approval workflow, or just a manual status?
-7. Should reminders trigger real notifications, or remain only visible checkboxes?
+Route, old-URL 404 behavior, permission key, versioned naming, table name, fixed categories, manual statuses, and notification phases are resolved. Code changes will be performed during implementation after design approval.
