@@ -1,7 +1,7 @@
 # Billing v2 — corrected working design
 
 Date: 2026-09-23
-Status: user corrections incorporated; complete design and implementation plan still pending review.
+Status: user corrections and adversarial database review incorporated; final contract and implementation plan still pending approval.
 
 ## Purpose and document location
 
@@ -164,7 +164,7 @@ Use manually selected payment statuses initially. `Aprobación pendiente` is a s
 
 Use simple in-app reminders visible when opening billing. They do not send email or notify users while the application is closed. No background delivery service is required initially.
 
-The exact due-date window, timezone handling, record eligibility, and suppression of paid records still need specification. Recommended behavior is to highlight upcoming/overdue unpaid payments without generating duplicate persistent notifications.
+Upcoming/Overdue unpaid grouping and paid-record suppression are confirmed below. The exact window, timezone and optional follow-up-marker behavior remain open. Derive these lists without duplicate persistent notifications.
 
 ### Later/final phases — desirable, optional
 
@@ -172,38 +172,17 @@ Email reminders are a desirable enhancement, not a launch prerequisite. Design r
 
 Do not build email delivery or an approval engine merely to prepare for a possible future requirement.
 
-## Preliminary new table model
+## Reviewed new-table proposal — not approved DDL
 
-Confirmed name: `billing_v2_records`.
+Confirmed table name: `billing_v2_records`. The original provisional field list is superseded by [the reviewed database proposal](2026-09-23-billing-v2-database-proposal.md); do not implement its old `has_amount`, mixed date/month or ambiguous note fields.
 
-Candidate fields, not yet finalized database DDL:
+The user is not yet sure whether payroll records are individual or aggregated and requested the simplest workable approach until improvements are discussed. Recommendation: a manual recipient label, without a mandatory CRM-person FK, payroll breakdown or supplier master. A CRM person can exist without login, so lack of login is not the reason to defer linkage; unresolved record granularity is.
 
-- `id uuid primary key`
-- `record_type text not null`
-- `date date not null`
-- `time time null`
-- `category text null`
-- `status text null`
-- `person_or_vendor text null`
-- `concept text null`
-- `amount numeric(12,2) null`
-- `has_amount boolean not null default false`
-- `event_type text null`
-- `note text null`
-- `cutoff_reminder boolean not null default false`
-- `month_note text null`
-- `created_by uuid null`
-- `created_at timestamptz not null default now()`
-- `updated_at timestamptz not null default now()`
+The revised candidate uses `payee_label`, `note_text`, `event_type_label` and `closing_approval_follow_up` to describe the actual information. All are manual facts, not derived projections. Creator/timestamps are attribution metadata. Do not persist `has_amount`, totals, reminder groups, formatted amounts or duplicate display names.
 
-Remaining schema decisions:
+Currency was nullable only for nonpayments; the payment shape required USD. Global USD with no currency column is the simpler alternative if confirmed; explicit `currency_code` remains in the review sketch until the choice is made. Do not silently approve either currency scope or exact amount rules.
 
-- Representation and validation of record types and statuses.
-- Whether status is required only for payments.
-- Database validation matching fixed domain categories.
-- Monthly-note representation and uniqueness rules.
-- Amount validation and whether `has_amount` is needed or derivable.
-- Ownership, access policies, and timestamp-update behavior.
+Both independent Astra Ultra reviewers completed a static evidence-based review. The proposal corrects coercion-before-validation and whitespace-only text checks, and records access/deletion gates: module-wide payroll visibility, editing/deleting paid rows, deactivation with a valid JWT, and the effect of creator retention on existing user-deletion guidance. No SQL was executed.
 
 ## Verification requirements for routing
 
@@ -214,9 +193,9 @@ Remaining schema decisions:
 
 ## Remaining review items
 
-1. Define the simple in-app reminder rules.
+1. Finalize the remaining reminder window, timezone and follow-up-marker behavior.
 2. Finalize schema constraints, access policies, validation, and test coverage.
-3. Review and approve the complete design before creating the implementation plan.
+3. Approve the final contract and update the existing implementation plan before executing schema-dependent work.
 
 Route, old-URL 404 behavior, permission key, versioned naming, table name, fixed categories, manual statuses, and notification phases are resolved. Code changes will be performed during implementation after design approval.
 
@@ -232,7 +211,7 @@ Read-only inspection of the published application code found:
 - Summary totals use all loaded payments rather than the selected calendar month.
 - The reminder flag is saved and exported; no notification scheduler was found in the inspected application code.
 
-Next behavior to discuss: which payments belong in the upcoming/reminder area. A proposed separation of unpaid upcoming and overdue payments is not yet approved; the time window remains undecided.
+The initial ambiguity about upcoming/reminder membership was resolved by the confirmed grouping decision below. The time window remains undecided.
 
 ## Reminder grouping and planning handoff — confirmed
 
@@ -259,3 +238,9 @@ Calendar, Kanban and Table are reusable ways to present information, not billing
 Do not move feature data access, authorization, status transitions or record schemas into shared presentation. Existing Tasks Kanban currently mixes its view with TasksContext and task mutations: reuse or promote the neutral rendering, not the entire business hook. Existing table implementations in legacy billing, accounting and Tasks are extraction candidates.
 
 This architecture does not automatically add a Kanban tab to billing. Avoid a single universal view engine with billing/task-specific flags; separate small reusable views with typed adapters are sufficient.
+
+## Concrete database proposal — adversarially reviewed, not approved
+
+See `2026-09-23-billing-v2-database-proposal.md` for the recommended table, field contract, SQL review sketch, indexes, creator/timestamp rules, access matrix, alternatives and test cases. It replaces the earlier preliminary field list as the proposal under discussion; it does not make the proposed schema approved.
+
+The proposal recommends one mixed `billing_v2_records` table, separate typed day/month fields, nullable exact-cent amount instead of has_amount, a manual recipient label for now, and creator attribution to usuarios.id. Its source-data inventory and Canva mapping explain every field. Global versus stored USD, module-wide CRUD, monthly-note uniqueness, inactive-user access, immutable record type and creator-deletion behavior remain explicit approval gates. Existing legacy tables and role grants remain unchanged.
