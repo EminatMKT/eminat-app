@@ -4,7 +4,7 @@ import { COLUMNS, type TableName } from './tables'
 // centinela-exime: renombrar-lo-nombrado@1 — las filas vienen de un CSV y se corrigen
 // reimportando; el `nombre` es de un laboratorio o un estudio, no algo que alguien nombró acá.
 
-// Capa de acceso a datos del dominio Cobranzas.
+// Data access layer for legacy billing (v1), under features/billing-v1. Table names stay cobranzas_*.
 // Las tablas (cobranzas_ventas / cobranzas_cuentas / cobranzas_depositos) se
 // seleccionan dinámicamente por nombre desde el caller (mapa TABLE[cobTab]),
 // por lo que las funciones reciben el nombre de tabla y mantienen el

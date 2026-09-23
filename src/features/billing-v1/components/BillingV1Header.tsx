@@ -1,12 +1,12 @@
 'use client'
 import { useApp, MESES } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
-import { useCobranzas } from './CobranzasContext'
+import { useBillingV1 } from './BillingV1Context'
 
-export default function CobranzasHeader() {
+export default function BillingV1Header() {
   const { s2, border, t1, t2, t3, accent, inputStyle } = useApp()
   const { t } = useT()
-  const { cobMes, setCobMes, setCobModalImport, handleExport, handlePrint, setCobModalAdd, setCobNewRecord } = useCobranzas()
+  const { cobMes, setCobMes, setCobModalImport, handleExport, handlePrint, setCobModalAdd, setCobNewRecord } = useBillingV1()
   const selectStyle = { ...inputStyle, width: 'auto', padding: '6px 12px', fontSize: 12 }
   const ghostBtn = { padding: '6px 14px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, fontSize: 11, cursor: 'pointer', fontWeight: 600 } as const
 

@@ -1,6 +1,6 @@
 'use client'
 import { useT } from '@/shared/i18n'
-import { useCobranzas } from './CobranzasContext'
+import { useBillingV1 } from './BillingV1Context'
 import { fmt } from '../format'
 import { TABLE_HEADERS } from '../constants'
 import FilterBar from './FilterBar'
@@ -15,7 +15,7 @@ import DepositosRow from './DepositosRow'
 
 export default function DepositosTab() {
   const { t } = useT()
-  const { cobFiltros, setCobFiltros, clearFilters, depsFilt, totalDep, dep1Q, dep2Q, depBancos, depContratantes, bancosUniq, contratantesUniq } = useCobranzas()
+  const { cobFiltros, setCobFiltros, clearFilters, depsFilt, totalDep, dep1Q, dep2Q, depBancos, depContratantes, bancosUniq, contratantesUniq } = useBillingV1()
   const kpis = [
     { label: t('cob.kpiTotalDeposited'), value: fmt(totalDep), color: '#34D399' },
     { label: t('cob.kpiDeposits1Q'), value: fmt(dep1Q), color: '#22D3EE' },

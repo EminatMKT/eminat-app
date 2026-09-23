@@ -1,6 +1,6 @@
 'use client'
 import { useT } from '@/shared/i18n'
-import { useCobranzas } from './CobranzasContext'
+import { useBillingV1 } from './BillingV1Context'
 import { fmt } from '../format'
 import { TABLE_HEADERS } from '../constants'
 import FilterBar from './FilterBar'
@@ -15,7 +15,7 @@ import CuentasRow from './CuentasRow'
 
 export default function CuentasTab() {
   const { t } = useT()
-  const { cobFiltros, setCobFiltros, clearFilters, cuentasFilt, totalVencido, totalPorVencer, totalAdeudado, cuentasDonut, cuentasEstudios, labsUniqC, estudiosUniqC } = useCobranzas()
+  const { cobFiltros, setCobFiltros, clearFilters, cuentasFilt, totalVencido, totalPorVencer, totalAdeudado, cuentasDonut, cuentasEstudios, labsUniqC, estudiosUniqC } = useBillingV1()
   const kpis = [
     { label: t('cob.kpiPastDue'), value: fmt(totalVencido), color: '#F87171' },
     { label: t('cob.kpiUpcoming'), value: fmt(totalPorVencer), color: '#FBB040' },

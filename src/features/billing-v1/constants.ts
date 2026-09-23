@@ -11,9 +11,9 @@ export const TABS: { key: CobTab; label: string; soon?: boolean }[] = [
 
 // Tabla de Supabase por tab (nombres desde la única fuente shared/data/tables)
 export const TABLE: Record<CobTab, TableName> = {
-  ventas: TABLES.cobranzasVentas,
-  cuentas: TABLES.cobranzasCuentas,
-  depositos: TABLES.cobranzasDepositos,
+  ventas: TABLES.billingV1Ventas,
+  cuentas: TABLES.billingV1Cuentas,
+  depositos: TABLES.billingV1Depositos,
 }
 
 // Campos del modal "Add record" por tab

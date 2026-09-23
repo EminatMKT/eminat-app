@@ -1,14 +1,14 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
-import { useCobranzas } from './CobranzasContext'
+import { useBillingV1 } from './BillingV1Context'
 import ModalShell from './ModalShell'
 import AddRecordField from './AddRecordField'
 
 export default function AddRecordModal() {
   const { border, t2, accent } = useApp()
   const { t } = useT()
-  const { cobModalAdd, setCobModalAdd, addFields, isNumericField, cobNewRecord, setCobNewRecord, handleAddRecord } = useCobranzas()
+  const { cobModalAdd, setCobModalAdd, addFields, isNumericField, cobNewRecord, setCobNewRecord, handleAddRecord } = useBillingV1()
   if (!cobModalAdd) return null
   return (
     <ModalShell title={t('cob.addRecord')} onClose={() => setCobModalAdd(false)}>

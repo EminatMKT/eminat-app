@@ -1,7 +1,7 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
-import { useCobranzas } from './CobranzasContext'
+import { useBillingV1 } from './BillingV1Context'
 import ModalShell from './ModalShell'
 
 const TARGET_LABEL = { ventas: 'cob.targetSales', cuentas: 'cob.targetAccounts', depositos: 'cob.targetDeposits' } as const
@@ -9,7 +9,7 @@ const TARGET_LABEL = { ventas: 'cob.targetSales', cuentas: 'cob.targetAccounts',
 export default function ImportModal() {
   const { border, t3, accent } = useApp()
   const { t } = useT()
-  const { cobModalImport, setCobModalImport, cobTab, handleImportCSV } = useCobranzas()
+  const { cobModalImport, setCobModalImport, cobTab, handleImportCSV } = useBillingV1()
   if (!cobModalImport) return null
   return (
     <ModalShell title={t('cob.importCsv')} onClose={() => setCobModalImport(false)}>

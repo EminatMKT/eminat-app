@@ -3,10 +3,10 @@ import { useApp } from '@/shared/context/AppContext'
 import AppShell from '@/shared/components/shell/AppShell'
 import AccessDenied from '@/shared/components/access/AccessDenied'
 import { PageTransition } from '@/shared/motion'
-import { CobranzasProvider } from './CobranzasContext'
-import CobranzasContent from './CobranzasContent'
+import { BillingV1Provider } from './BillingV1Context'
+import BillingV1Content from './BillingV1Content'
 
-export default function CobranzasModule() {
+export default function BillingV1Module() {
   const { modules } = useApp()
 
   if (!modules.includes('cobranzas')) return <AccessDenied message="You do not have access to the Billing module. Contact your administrator." />
@@ -14,9 +14,9 @@ export default function CobranzasModule() {
   return (
     <AppShell>
       <PageTransition>
-        <CobranzasProvider>
-          <CobranzasContent />
-        </CobranzasProvider>
+        <BillingV1Provider>
+          <BillingV1Content />
+        </BillingV1Provider>
       </PageTransition>
     </AppShell>
   )

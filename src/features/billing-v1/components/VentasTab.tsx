@@ -1,6 +1,6 @@
 'use client'
 import { useT } from '@/shared/i18n'
-import { useCobranzas } from './CobranzasContext'
+import { useBillingV1 } from './BillingV1Context'
 import { fmt } from '../format'
 import { TABLE_HEADERS } from '../constants'
 import FilterBar from './FilterBar'
@@ -15,7 +15,7 @@ import VentasRow from './VentasRow'
 
 export default function VentasTab() {
   const { t } = useT()
-  const { cobFiltros, setCobFiltros, clearFilters, ventasFilt, totalVentas, ventas1Q, ventas2Q, ventasLabs, ventasEstudios, labsUniq, estudiosUniqV } = useCobranzas()
+  const { cobFiltros, setCobFiltros, clearFilters, ventasFilt, totalVentas, ventas1Q, ventas2Q, ventasLabs, ventasEstudios, labsUniq, estudiosUniqV } = useBillingV1()
   const kpis = [
     { label: t('cob.kpiTotalSales'), value: fmt(totalVentas), color: '#34D399' },
     { label: t('cob.kpiSales1Q'), value: fmt(ventas1Q), color: '#60A5FA' },

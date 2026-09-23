@@ -1,5 +1,5 @@
-import { CobranzasModule } from '@/features/cobranzas'
+import { BillingV1Module } from '@/features/billing-v1'
 
 export default function CobranzasPage() {
-  return <CobranzasModule />
+  return <BillingV1Module />
 }

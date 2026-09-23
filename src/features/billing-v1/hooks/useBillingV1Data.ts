@@ -1,6 +1,6 @@
 import { useState, useEffect, type ChangeEvent } from 'react'
 import { useApp, MESES } from '@/shared/context/AppContext'
-import { cobranzasRepo } from '@/shared/data'
+import { billingV1Repo } from '@/shared/data'
 import { escapeHtml } from '@/shared/utils/html'
 import { detectSeparator, parseDelimited } from '@/shared/utils/delimited'
 import { fmt } from '../format'
@@ -10,7 +10,7 @@ import { useUserPreference, oneOf } from '@/shared/hooks'
 
 const num = (v: unknown) => Number(v) || 0
 
-export function useCobranzasData() {
+export function useBillingV1Data() {
   const { modules, mostrarMensaje } = useApp()
   const canCobranzas = modules.includes('cobranzas')
 
@@ -29,9 +29,9 @@ export function useCobranzasData() {
     if (!canCobranzas) return
     const load = async () => {
       const [v, c, d] = await Promise.all([
-        cobranzasRepo.list('cobranzas_ventas'),
-        cobranzasRepo.list('cobranzas_cuentas'),
-        cobranzasRepo.list('cobranzas_depositos'),
+        billingV1Repo.list('cobranzas_ventas'),
+        billingV1Repo.list('cobranzas_cuentas'),
+        billingV1Repo.list('cobranzas_depositos'),
       ])
       setCobVentas(v.data || [])
       setCobCuentas(c.data || [])
@@ -41,7 +41,7 @@ export function useCobranzasData() {
   }, [canCobranzas])
 
   const refresh = async (tab: CobTab) => {
-    const { data } = await cobranzasRepo.list(TABLE[tab])
+    const { data } = await billingV1Repo.list(TABLE[tab])
     if (tab === 'ventas') setCobVentas(data || [])
     else if (tab === 'cuentas') setCobCuentas(data || [])
     else setCobDepositos(data || [])
@@ -119,7 +119,7 @@ export function useCobranzasData() {
       cols.forEach((h, i) => { obj[h] = (vals[i] ?? '').trim() })
       return obj
     })
-    const { error } = await cobranzasRepo.insert(TABLE[cobTab], records)
+    const { error } = await billingV1Repo.insert(TABLE[cobTab], records)
     if (error) { mostrarMensaje('error', 'Import error: ' + error.message); return }
     mostrarMensaje('ok', `${records.length} records imported`)
     setCobModalImport(false)
@@ -127,7 +127,7 @@ export function useCobranzasData() {
   }
 
   const handleAddRecord = async () => {
-    const { error } = await cobranzasRepo.insert(TABLE[cobTab], [cobNewRecord])
+    const { error } = await billingV1Repo.insert(TABLE[cobTab], [cobNewRecord])
     if (error) { mostrarMensaje('error', 'Error: ' + error.message); return }
     mostrarMensaje('ok', 'Record added')
     setCobModalAdd(false)
@@ -150,7 +150,7 @@ export function useCobranzasData() {
       body = `<tbody>${depsFilt.map(d => `<tr><td>${escapeHtml(d.periodo)}</td><td>${escapeHtml(d.contratante)}</td><td>${escapeHtml(d.banco)}</td><td>${escapeHtml(d.identificacion)}</td><td>${escapeHtml(d.estudio)}</td><td>${fmt(num(d.depositado))}</td></tr>`).join('')}</tbody>`
     }
     const tableHtml = `<table>${head}${body}</table>`
-    w.document.write(`<!DOCTYPE html><html><head><title>Cobranzas — ${escapeHtml(title)}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Segoe UI,Arial,sans-serif;padding:40px 50px;font-size:12px;color:#111}h1{font-size:20px;margin-bottom:4px}h2{font-size:14px;color:#555;margin-bottom:20px}table{width:100%;border-collapse:collapse;margin-top:20px}th{background:#f5f5f5;padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;border-bottom:2px solid #ddd}td{padding:8px 10px;border-bottom:1px solid #eee}@media print{.no-print{display:none!important}}</style></head><body><h1>EMINAT LLC — Billing Dashboard</h1><h2>${escapeHtml(title)} · ${escapeHtml(cobMes)} 2026</h2>${tableHtml}<div class="no-print" style="text-align:center;margin-top:30px"><button onclick="window.print()" style="padding:10px 28px;border-radius:8px;background:#7C6FF7;color:white;border:none;font-size:13px;cursor:pointer">Print</button></div></body></html>`)
+    w.document.write(`<!DOCTYPE html><html><head><title>Billing — ${escapeHtml(title)}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Segoe UI,Arial,sans-serif;padding:40px 50px;font-size:12px;color:#111}h1{font-size:20px;margin-bottom:4px}h2{font-size:14px;color:#555;margin-bottom:20px}table{width:100%;border-collapse:collapse;margin-top:20px}th{background:#f5f5f5;padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;border-bottom:2px solid #ddd}td{padding:8px 10px;border-bottom:1px solid #eee}@media print{.no-print{display:none!important}}</style></head><body><h1>EMINAT LLC — Billing Dashboard</h1><h2>${escapeHtml(title)} · ${escapeHtml(cobMes)} 2026</h2>${tableHtml}<div class="no-print" style="text-align:center;margin-top:30px"><button onclick="window.print()" style="padding:10px 28px;border-radius:8px;background:#7C6FF7;color:white;border:none;font-size:13px;cursor:pointer">Print</button></div></body></html>`)
     w.document.close()
   }
 
