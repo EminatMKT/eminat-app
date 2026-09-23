@@ -115,6 +115,12 @@ export type BillingRecordInput =
 `amount` crosses the wire as a decimal string. A JS number cannot hold every cent value exactly,
 and this is the field that decides what somebody gets paid.
 
+`currency_code` is absent from every DTO on purpose, even though section 2 makes it required on a
+payment. Nobody picks a currency: the repository supplies `'USD'` on write, the same way it never
+lets the browser choose the actor or the timestamps. A currency selector would be a product
+decision, and there is none. The column exists so each row carries its unit; the constant that
+fills it lives in one place in the data layer.
+
 An update carries the record's `id` plus the same subtype shape minus `recordType`, which is
 immutable.
 
