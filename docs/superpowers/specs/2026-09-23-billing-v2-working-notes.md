@@ -245,3 +245,17 @@ The user approved this correction to Canva's upcoming list:
 This supersedes the earlier statement that grouping and paid-record suppression were undecided. The upcoming date window, timezone, and treatment of optional reminder flags remain separate decisions.
 
 The user requested committing the spec and moving to implementation planning. This authorizes a plan, not application implementation, production changes, or silent approval of previously audited assumptions. The plan must include a decision checkpoint before schema-dependent tasks for the final record model, access rules, currency, monthly-note behavior, and prototype feature scope.
+
+## Reuse and shared promotion — confirmed
+
+Before introducing a new component, hook, utility, or data helper, inspect existing shared code and other features. Reuse a compatible shared piece first. If a suitable piece belongs to another feature, consider promoting its domain-neutral part to shared, update its original consumer, and preserve that consumer's behavior with tests. Billing must not depend on another feature's private internals.
+
+Promotion is selective, not a broad cleanup: keep billing-specific business rules in billing, and do not generalize two unrelated pieces merely because they look alike. Existing shared filters, chart cards, dialogs, date helpers, i18n, and data infrastructure are concrete reuse candidates for the implementation plan.
+
+## Reusable information views — confirmed architecture
+
+Calendar, Kanban and Table are reusable ways to present information, not billing-owned business components. Put their domain-neutral presentation in shared and have feature adapters supply records, labels, rendering, permitted actions and callbacks. Calendar/Table built for billing must follow this boundary even if billing is their first consumer.
+
+Do not move feature data access, authorization, status transitions or record schemas into shared presentation. Existing Tasks Kanban currently mixes its view with TasksContext and task mutations: reuse or promote the neutral rendering, not the entire business hook. Existing table implementations in legacy billing, accounting and Tasks are extraction candidates.
+
+This architecture does not automatically add a Kanban tab to billing. Avoid a single universal view engine with billing/task-specific flags; separate small reusable views with typed adapters are sufficient.
