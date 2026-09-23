@@ -1,9 +1,14 @@
 # Billing v2 database proposal
 
 Date: 2026-09-23
-Status: adversarially reviewed proposal — NOT approved DDL, NOT an executable migration.
+Status: **superseded on 2026-09-23 by [the approved contract](2026-09-23-billing-v2-approved-contract.md).**
+This file stays as the review record: it holds the reasoning, the rejected alternatives and the
+adversarial findings. Every open choice it lists has since been decided. Where the two disagree,
+the contract wins.
 
 Related documents:
+
+- [Approved contract](2026-09-23-billing-v2-approved-contract.md): the decided shape Task 5 builds.
 
 - [Working design](2026-09-23-billing-v2-working-notes.md): confirmed route, naming, permission and reminder decisions.
 - [Implementation plan](../plans/2026-09-23-billing-v2.md): decision checkpoint before database/UI implementation.
