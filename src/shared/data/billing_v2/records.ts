@@ -5,13 +5,17 @@ import { TABLES } from '../tables'
 import billingRow from './row'
 import type { BillingV2Record } from './types'
 
+// The key pages are ordered by, and it has to be UNIQUE: on a repeated value a row can land on
+// two pages or on none, and `range()` answers 200 either way, so nothing tells you.
+const PAGE_ORDER = 'id'
+
 // `amount` is asked for as text: PostgREST serialises `numeric` as a JSON number, and the cent
 // value that decides what somebody gets paid must not become a float on the way back.
 const READ = 'id,record_type,scheduled_on,scheduled_time,note_month,title,category,payment_status,payee_label,amount::text,currency_code,event_type_label,note_text,closing_approval_follow_up,created_by_id,created_at,updated_at'
 
 async function list(): Promise<BillingV2Record[]> {
   try {
-    return await listAllRows<BillingV2Record>(TABLES.billingV2Records, 'id', READ)
+    return await listAllRows<BillingV2Record>(TABLES.billingV2Records, PAGE_ORDER, READ)
   } catch (cause) {
     throw new Error('Billing v2 records could not be read', { cause })
   }
