@@ -40,10 +40,9 @@ export default function ReporteTab() {
     <div id="reporte-content">
       <div id="print-header" className={s.printHeader}>
         <div className={s.printMarca}>{t('stratix.report.brand')}</div>
-        <div className={s.printTitulo}>{t('stratix.report.title')}</div>
+        <div className={s.printTitulo}>{t('stratix.report.beneficiary')}</div>
       </div>
       <div id="reporte-controls" className={s.controles}>
-        <span className={s.rotulo}>{t('stratix.report.title')}</span>
         <div className={s.acciones}>
           {esAdmin && (
             <select className={s.select} value={miembroReporte} onChange={e => setMiembroReporte(e.target.value)}>
