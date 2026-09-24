@@ -65,7 +65,7 @@ export function reportHtml({ acts, nombre, mes, intlLocale, completadas, horas, 
     </style></head><body>
     <div style="text-align:center;margin-bottom:28px;padding-bottom:18px;border-bottom:2px solid #222">
       <div style="font-size:24px;font-weight:800;letter-spacing:.5px">${escapeHtml(t('stratix.report.brand'))}</div>
-      <div style="font-size:14px;font-weight:600;margin-top:4px;color:#444">${escapeHtml(t('stratix.report.title'))}</div>
+      <div style="font-size:12px;margin-top:4px;color:#555">${escapeHtml(t('stratix.report.beneficiary'))}</div>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid #e5e7eb">
       <div>
@@ -95,7 +95,7 @@ export function reportHtml({ acts, nombre, mes, intlLocale, completadas, horas, 
     </div>
     <div style="margin-top:40px;padding-top:14px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10px;color:#aaa">
       <span>Generated on ${escapeHtml(fecha)}</span>
-      <span>Stratix Solutions — Stratix 360</span>
+      <span>${escapeHtml(t('stratix.report.brand'))} — Stratix 360</span>
     </div>
     <div class="no-print" style="text-align:center;margin-top:30px">
       <button onclick="window.print()" style="padding:10px 28px;border-radius:8px;background:#7C6FF7;color:white;border:none;font-size:13px;font-weight:600;cursor:pointer">Print</button>
