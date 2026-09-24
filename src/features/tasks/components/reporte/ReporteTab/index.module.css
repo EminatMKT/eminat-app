@@ -24,15 +24,9 @@
 
 .controles {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-bottom: 16px;
-}
-
-.rotulo {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--c-t1);
+  margin-bottom: 1rem;
 }
 
 .acciones {
