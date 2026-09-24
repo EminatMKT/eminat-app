@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { isValidElement, type ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { BUTTON } from '@/shared/constants/dom'
 import type { CalendarItem } from '../types'
 import CalendarView from './index'
 
 type Drawn = ReactElement<Record<string, unknown>>
-const BUTTON = 'button'
 const ARIA = 'aria-label'
 const items: CalendarItem[] = [
   { id: 'a', date: '2026-09-14', accessibleLabel: 'Entry A' },
