@@ -1,10 +1,9 @@
 import type { Locator, Page } from '@playwright/test'
 import es from '@/shared/i18n/locales/es.json'
 import type { I18nKey } from '@/shared/i18n'
+import { BUTTON, HEADING } from '@/shared/constants/dom'
 
 const BOX = 'div'
-const BUTTON = 'button'
-const HEADING = 'heading'
 const CONTROLS = 'input, select, textarea'
 
 const say = (key: I18nKey): string => es[key]

@@ -1,9 +1,8 @@
 import billingRecordInput from '@/features/billing-v2/domain/record-input'
 import values from '@/features/billing-v2/domain/record-values'
 import type { BillingEventInput, BillingMonthNoteInput, BillingPaymentInput, BillingRecordInput } from '@/features/billing-v2/domain/types'
-import type { BillingV2Absent, BillingV2Write } from './types'
+import type { BillingV2Absent, BillingV2Write } from '../types'
 
-const STORED_CURRENCY = 'USD'
 const ABSENT: BillingV2Absent = {
   scheduled_on: null, scheduled_time: null, note_month: null, title: null, category: null,
   payment_status: null, payee_label: null, amount: null, currency_code: null,
@@ -17,7 +16,7 @@ function paymentRow(input: BillingPaymentInput): BillingV2Write {
     ...ABSENT, record_type: recordType, scheduled_on: scheduledOn,
     scheduled_time: scheduledTime, title, category,
     payment_status: paymentStatus, payee_label: payeeLabel,
-    amount, currency_code: STORED_CURRENCY, note_text: noteText,
+    amount, currency_code: values.currency.enum.USD, note_text: noteText,
     closing_approval_follow_up: closingApprovalFollowUp,
   }
   return row
@@ -38,7 +37,7 @@ function noteRow({ recordType, noteMonth, noteText }: BillingMonthNoteInput): Bi
 }
 
 /** Validates a mutation and turns it into the exact columns this layer writes: the one place
- *  the stored currency is decided, and one the server-owned columns never reach. */
+ *  the stored currency is written, and one the server-owned columns never reach. */
 export default function billingRow(input: BillingRecordInput): BillingV2Write {
   // With `strict` off in tsconfig, zod infers every nullable key as optional, so the parsed
   // value no longer matches the DTO it validated. The schema's own suite proves they are one
@@ -48,3 +47,6 @@ export default function billingRow(input: BillingRecordInput): BillingV2Write {
   if (parsed.recordType === values.recordType.enum.event) return eventRow(parsed)
   return noteRow(parsed)
 }
+
+// Each subtype starts from `ABSENT` and fills only the columns it owns, so a record that changes
+// shape on update writes null over the ones it stopped using instead of leaving them behind.

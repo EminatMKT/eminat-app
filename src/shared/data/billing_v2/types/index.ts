@@ -37,3 +37,7 @@ export type BillingV2Write = Omit<
 /** Every writable column except the immutable discriminator, so each subtype can start from
  *  all-absent and fill only what it owns instead of listing the nulls it does not. */
 export type BillingV2Absent = Omit<BillingV2Write, 'record_type'>
+
+// The row shapes of `billing_v2_records` as this layer sees them: what is stored, what may be
+// written and what starts absent. The vocabularies come from the domain, so a member added
+// there reaches these columns without a second declaration here.

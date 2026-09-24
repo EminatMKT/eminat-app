@@ -14,8 +14,13 @@ it('publishes the three closed lists in their approved order', () => {
   ])
 })
 
+// The database CHECK admits one currency; a second one here would validate and then not store.
+it('stores a single currency, the one the table accepts', () => {
+  expect(values.currency.options).toEqual(['USD'])
+})
+
 it('rejects anything outside each list', () => {
-  for (const list of [values.recordType, values.category, values.paymentStatus]) {
+  for (const list of [values.recordType, values.category, values.paymentStatus, values.currency]) {
     expect(list.safeParse(OUTSIDE).success).toBe(false)
   }
 })

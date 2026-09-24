@@ -18,7 +18,7 @@ const headers = () => ({ ...rest.como(jwt), Prefer: 'return=representation' })
 const payment = (title: string, on: string, extra: Row = {}): Row => ({
   record_type: values.recordType.enum.payment, scheduled_on: on, title, payee_label: K.PAYEE,
   category: values.category.enum.payroll, payment_status: values.paymentStatus.enum.pending,
-  amount: 100, currency_code: K.STORED_CURRENCY, ...extra,
+  amount: 100, currency_code: values.currency.enum.USD, ...extra,
 })
 const ids = async (request: APIRequestContext, query: string) => {
   const r = await request.get(`${K.RECORDS_TABLE}?select=id&${query}`, { headers: headers() })

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { BillingEventInput, BillingMonthNoteInput, BillingPaymentInput } from '@/features/billing-v2/domain/types'
-import billingRow from './row'
+import billingRow from './index'
 
 const PAYMENT: BillingPaymentInput = {
   recordType: 'payment', scheduledOn: '2026-09-30', scheduledTime: '09:30',

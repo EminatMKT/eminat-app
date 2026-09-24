@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { BillingMonthNoteInput } from '@/features/billing-v2/domain/types'
-import fakeClient from './fake-client'
-import billingV2Records from './records'
+import fakeClient from '../fake-client'
+import billingV2Records from './index'
 
 const holder = vi.hoisted(() => ({ from: vi.fn() }))
 vi.mock('@/shared/db', () => ({ supabase: { from: holder.from } }))

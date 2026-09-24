@@ -1,9 +1,9 @@
 import type { BillingRecordInput } from '@/features/billing-v2/domain/types'
 import { supabase } from '@/shared/db'
-import { listAllRows } from '../paginated'
-import { TABLES } from '../tables'
-import billingRow from './row'
-import type { BillingV2Record } from './types'
+import { listAllRows } from '@/shared/data/paginated'
+import { TABLES } from '@/shared/data/tables'
+import billingRow from '../row'
+import type { BillingV2Record } from '../types'
 
 // The key pages are ordered by, and it has to be UNIQUE: on a repeated value a row can land on
 // two pages or on none, and `range()` answers 200 either way, so nothing tells you.
@@ -47,3 +47,7 @@ const billingV2Records = { list, create, update, remove }
 /** Every read and write of `billing_v2_records`, through the session-bound client so the RLS
  *  policies stay the access control, and validated before anything reaches the network. */
 export default billingV2Records
+
+// Every write reads the row back through the same column list as `list`, so a created or edited
+// record reaches the screen in the shape the screen already knows, amount as text included.
+// A failure keeps the database error as `cause` and never copies its text into the message.

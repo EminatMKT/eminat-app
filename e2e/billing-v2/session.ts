@@ -1,12 +1,12 @@
 import { test, expect, type Page } from '@playwright/test'
 import { MODULE, modulePath } from '@/shared/auth/permissions'
 import { NAV } from '@/shared/components/shell/appShellConfig/nav'
+import { ENTER, HEADING } from '@/shared/constants/dom'
 import { PASSWORD, ensureUser, deleteUser } from '../seed'
 import records from './records'
 import screen from './screen'
 import * as K from './constants'
 
-const HEADING = 'heading'
 const railKey = NAV.find((item) => item.slug === MODULE.COBRANZAS)?.key
 
 async function loginAs(page: Page, email: string) {
@@ -19,7 +19,7 @@ async function loginAs(page: Page, email: string) {
   await page.getByPlaceholder(K.LOGIN_PLACEHOLDER).fill(email)
   const password = page.locator(K.PASSWORD_BOX)
   await password.fill(PASSWORD)
-  await password.press(K.SUBMIT_KEY)
+  await password.press(ENTER)
   await page.waitForURL(K.APP_HOME, K.LOGIN_WAIT)
   await expect(page.getByText(K.HOME_TEXT, { exact: true })).toBeVisible(K.PROFILE_WAIT)
 }

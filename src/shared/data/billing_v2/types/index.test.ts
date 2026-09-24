@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { BillingV2Record, BillingV2Write } from './types'
+import type { BillingV2Record, BillingV2Write } from './index'
 
 const SERVER_OWNED = ['id', 'created_by_id', 'created_at', 'updated_at']
 

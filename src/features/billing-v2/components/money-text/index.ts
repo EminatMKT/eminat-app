@@ -1,11 +1,10 @@
 import type { BillingV2Record } from '@/shared/data'
-
-const STORED_UNIT = 'USD'
+import values from '@/features/billing-v2/domain/record-values'
 
 /** A payment's amount in its row's currency, or null when the amount is unknown. */
 export default function moneyText({ amount, currency_code }: BillingV2Record, intlLocale: string): string | null {
   if (amount === null) return null
-  const style = { style: 'currency', currency: currency_code ?? STORED_UNIT } as const
+  const style = { style: 'currency', currency: currency_code ?? values.currency.enum.USD } as const
   return Number(amount).toLocaleString(intlLocale, style)
 }
 

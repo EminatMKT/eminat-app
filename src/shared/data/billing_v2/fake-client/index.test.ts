@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import fakeClient from './fake-client'
+import fakeClient from './index'
 
 const FIRST = { data: [{ id: 'a' }], error: null }
 const SECOND = { data: [{ id: 'b' }], error: null }

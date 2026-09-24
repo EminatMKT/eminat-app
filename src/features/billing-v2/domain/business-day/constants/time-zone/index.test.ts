@@ -5,7 +5,7 @@ import { BUSINESS_TIME_ZONE, ISO_DAY, MIDNIGHT } from './index'
 // 22:30 on the 23rd in Guayaquil, already the 24th in UTC.
 const LATE_EVENING = new Date('2026-09-24T03:30:00Z')
 
-describe('business-day constants', () => {
+describe('business-day time zone', () => {
   // Guayaquil runs five hours behind UTC all year: no daylight saving to move the split.
   it('counts days in a zone five hours behind UTC', () => {
     expect(formatInTimeZone(LATE_EVENING, BUSINESS_TIME_ZONE, ISO_DAY)).toBe('2026-09-23')

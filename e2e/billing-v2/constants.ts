@@ -1,23 +1,22 @@
-import { URL } from '../constants'
+import { DEFAULT_ROLE } from '@/shared/auth/permissions'
+import { DEFAULT_URL, URL } from '../constants'
 
 export const APP_HOME = 'http://localhost:3000/'
-export const LOCAL_API = 'http://127.0.0.1:54321'
+export const LOCAL_API = DEFAULT_URL
 export const RECORDS_TABLE = `${URL}/rest/v1/billing_v2_records`
 export const RECORDS_WRITES = '**/rest/v1/billing_v2_records**'
 export const WRITE_METHODS = ['POST', 'PATCH']
 export const BROKEN_WRITE = { status: 500, body: '{}' }
 export const CREATED = 201
-export const STORED_CURRENCY = 'USD'
 export const HOLDER_EMAIL = 'billing.holder.e2e@eminat.net'
 export const HOLDER_ROLE = 'finanzas'
 export const HOLDER_NAME = ['Billing', 'Holder'] as const
 export const OUTSIDER_EMAIL = 'billing.outsider.e2e@eminat.net'
-export const OUTSIDER_ROLE = 'sin_asignar'
+export const OUTSIDER_ROLE = DEFAULT_ROLE
 export const OUTSIDER_NAME = ['Billing', 'Outsider'] as const
 export const LOGIN_PATH = '/login'
 export const LOGIN_PLACEHOLDER = 'tu@eminat.net'
 export const PASSWORD_BOX = 'input[type="password"]'
-export const SUBMIT_KEY = 'Enter'
 export const HOME_TEXT = 'Home'
 export const ONBOARDING_DONE = ['eminat-onboarding-completed', 'true'] as const
 export const LOGIN_WAIT = { timeout: 40000 }
