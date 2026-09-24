@@ -1,10 +1,10 @@
 type Input = { dueDate: string; today: string; isPaid: boolean }
 
 /** Unpaid and already past its due date. */
-export const OVERDUE = 'overdue'
+const OVERDUE = 'overdue'
 
 /** Unpaid and due today or later; there is no horizon cap on how far ahead. */
-export const UPCOMING = 'upcoming'
+const UPCOMING = 'upcoming'
 
 /** Precondition: both dates are validated full ISO date-only strings (`YYYY-MM-DD`),
  * which is what makes this lexicographic comparison a calendar one; Task 5's schema

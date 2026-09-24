@@ -1,0 +1,30 @@
+/* Both skins share the type and the rounding; `pre-line` keeps a note's own line breaks. */
+.line {
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  white-space: pre-line;
+  color: var(--c-t1);
+}
+
+/* A reminder row: a quiet card the whole width of the panel, so the target is the row and not
+   the words on it. */
+.item {
+  composes: line;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--c-border);
+  background: var(--c-s2);
+}
+
+.item:hover {
+  border-color: var(--c-accent);
+}
+
+/* The month's note: a band above the grid, marked on its leading edge so it reads as a note on
+   the whole page and not as one more record. */
+.note {
+  composes: line;
+  padding: 0.5rem 0.75rem;
+  border-left: 0.1875rem solid var(--c-accent);
+  background: color-mix(in srgb, var(--c-accent) 8%, transparent);
+}

@@ -9,8 +9,8 @@ import type { BillingRecordType, DropRecord, EditField, RecordForm, SaveRecord }
 type EditorState = { form: RecordForm; errors: I18nKey[]; busy: boolean }
 
 /** The editor's boxes, what is wrong with them, and the two writes they can ask for. */
-export default function useRecordEditor(record: BillingV2Record | null, onSave: SaveRecord, onDrop: DropRecord) {
-  const [state, setState] = useState<EditorState>(() => ({ form: recordForm(record), errors: [], busy: false }))
+export default function useRecordEditor(record: BillingV2Record | null, onSave: SaveRecord, onDrop: DropRecord, day?: string) {
+  const [state, setState] = useState<EditorState>(() => ({ form: recordForm(record, day), errors: [], busy: false }))
   const { form, errors, busy } = state
   const inFlight = useRef(false)
 

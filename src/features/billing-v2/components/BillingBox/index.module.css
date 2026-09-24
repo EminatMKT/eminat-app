@@ -1,6 +1,5 @@
 /* The layout of the billing screen: one box with a skin per piece. The two arrangements every
-   piece starts from are extracted, so no block is written twice. The dashed seam says the
-   calendar is not mounted yet, not that something is broken. */
+   piece starts from are extracted, so no block is written twice. */
 
 .column {
   display: flex;
@@ -32,11 +31,27 @@
   color: var(--c-t1);
 }
 
-.seam {
+/* Calendar and reminders side by side on a desk, stacked on a phone. `minmax(0, …)` lets the
+   calendar shrink instead of pushing the page sideways. */
+.views {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+@media (max-width: 56.25rem) {
+  .views {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.panel {
   composes: column;
   gap: 0.75rem;
+  min-width: 0;
   padding: 1rem;
-  border: 1px dashed var(--c-border-strong);
+  border: 1px solid var(--c-border);
   border-radius: 0.75rem;
   background: var(--c-s1);
 }

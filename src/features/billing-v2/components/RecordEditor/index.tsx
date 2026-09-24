@@ -12,14 +12,17 @@ import type { DropRecord, SaveRecord } from './types'
 type Props = {
   /** The stored record to edit, or null to create one. */
   record: BillingV2Record | null
+  /** The calendar day a new record was started from; ignored when editing a stored one. */
+  day?: string
   onSave: SaveRecord
   onDrop: DropRecord
   onClose: () => void
 }
 
-export default function RecordEditor({ record, onSave, onDrop, onClose }: Props) {
+export default function RecordEditor(props: Props) {
+  const { record, day, onSave, onDrop, onClose } = props
   const { t } = useT()
-  const { form, errors, busy, edit, pickType, submit, drop } = useRecordEditor(record, onSave, onDrop)
+  const { form, errors, busy, edit, pickType, submit, drop } = useRecordEditor(record, onSave, onDrop, day)
   const save = async () => { if (await submit()) onClose() }
   const remove = async () => { if (await drop()) onClose() }
   const actions = <EditorActions busy={busy} onCancel={onClose} onSave={() => void save()} onDelete={record ? remove : undefined} />

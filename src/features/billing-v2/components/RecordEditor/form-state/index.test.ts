@@ -24,6 +24,12 @@ describe('recordForm', () => {
     expect(form.closingApprovalFollowUp).toBe(false)
   })
 
+  // Pressing a day on the calendar opens a new payment already due on that day.
+  it('opens a new record on the day it was started from', () => {
+    expect(recordForm(null, '2026-09-14').scheduledOn).toBe('2026-09-14')
+    expect(recordForm(STORED, '2026-09-14').scheduledOn).toBe('2026-09-30')
+  })
+
   // An unknown amount must arrive at the text box as nothing typed, not as a zero.
   it('leaves an unknown amount blank instead of turning it into a zero', () => {
     expect(recordForm(null).amount).toBe('')

@@ -13,10 +13,10 @@ const onSave = vi.fn()
 const onDrop = vi.fn()
 let seen: ReturnType<typeof useRecordEditor> | null = null
 
-type ProbeProps = { record: BillingV2Record | null }
+type ProbeProps = { record: BillingV2Record | null; day?: string }
 
-function Probe({ record }: ProbeProps) {
-  seen = useRecordEditor(record, onSave, onDrop)
+function Probe({ record, day }: ProbeProps) {
+  seen = useRecordEditor(record, onSave, onDrop, day)
   return null
 }
 
@@ -32,6 +32,12 @@ describe('useRecordEditor', () => {
     expect(onDrop).toHaveBeenCalledWith('r1')
     onDrop.mockResolvedValue(false)
     expect(await seen?.drop()).toBe(false)
+  })
+
+  // A record started from a calendar day opens already due on that day.
+  it('opens a new record on the day it was started from', () => {
+    renderToStaticMarkup(<Probe record={null} day="2026-09-14" />)
+    expect(seen?.form.scheduledOn).toBe('2026-09-14')
   })
 
   it('has nothing to delete while the record is new', async () => {

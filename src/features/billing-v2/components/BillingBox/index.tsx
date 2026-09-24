@@ -5,7 +5,7 @@ const TITLE = 'title'
 
 type Props = {
   /** Which piece of the billing screen this box is. */
-  part: 'page' | 'head' | 'title' | 'seam' | 'records' | 'form' | 'row' | 'pills' | 'hint'
+  part: 'page' | 'head' | 'title' | 'views' | 'panel' | 'records' | 'form' | 'row' | 'pills' | 'hint'
   children: ReactNode
 }
 
@@ -15,8 +15,8 @@ export default function BillingBox({ part, children }: Props) {
 }
 
 // The layout of the billing screen, as one element with a skin per piece. They are the same box
-// and differ only in how they arrange what is inside, so nine files would have been nine copies
-// of this line plus nine stylesheets to keep in step.
+// and differ only in how they arrange what is inside, so ten files would have been ten copies
+// of this line plus ten stylesheets to keep in step.
 //
 // It exists because a view may draw at most two tags before it has to name what it is drawing
 // (`markup_dibujado`). Pushing the boxes down here leaves every view above composing components

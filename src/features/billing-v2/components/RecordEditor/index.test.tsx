@@ -27,6 +27,14 @@ describe('RecordEditor', () => {
     expect(html).not.toContain('common.delete')
   })
 
+  // Started from a calendar day, the new payment's date box already holds that day.
+  it('opens a new record on the calendar day it was started from', () => {
+    const html = renderToStaticMarkup(
+      <RecordEditor record={null} day="2026-09-14" onSave={landed} onDrop={landed} onClose={ignore} />,
+    )
+    expect(html).toContain('value="2026-09-14"')
+  })
+
   it('opens a stored record with only its own fields, its type fixed and deletable', () => {
     const html = draw(stored)
     expect(html).toContain('billing.editorEdit')

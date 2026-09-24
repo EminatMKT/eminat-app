@@ -8,9 +8,10 @@ const BLANK: Omit<RecordForm, 'recordType'> = {
   eventTypeLabel: '', noteText: '', noteMonth: '', closingApprovalFollowUp: false,
 }
 
-/** The boxes a record opens with: empty for a new one, filled from the row for an existing one. */
-export default function recordForm(record: BillingV2Record | null): RecordForm {
-  if (!record) return { ...BLANK, recordType: values.recordType.enum.payment }
+/** The boxes a record opens with: empty for a new one —due on `day` when it was started from a
+ *  calendar day—, filled from the row for an existing one. */
+export default function recordForm(record: BillingV2Record | null, day = ''): RecordForm {
+  if (!record) return { ...BLANK, scheduledOn: day, recordType: values.recordType.enum.payment }
   const { record_type, scheduled_on, scheduled_time, title, category } = record
   const { payment_status, payee_label, amount, event_type_label } = record
   const { note_text, note_month, closing_approval_follow_up } = record

@@ -1,13 +1,14 @@
 import { describe, it, expect, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import type { BillingV2Record } from '@/shared/data'
+import fixtureRecord from '@/features/billing-v2/fixture-record'
 import BillingV2Content from './index'
 
-vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key }) }))
+vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key, intlLocale: 'en-US' }) }))
 
-const payment = { id: 'r1', record_type: 'payment', title: 'Nómina', scheduled_on: '2026-09-30', note_month: null } as BillingV2Record
+const payment = fixtureRecord({ id: 'r1' })
 const api = { records: [payment], loading: false, error: null, reload: vi.fn(), save: vi.fn(), remove: vi.fn() }
 vi.mock('@/features/billing-v2/hooks/useBillingV2Records', () => ({ default: () => api }))
+vi.mock('@/features/billing-v2/hooks/useBusinessToday', () => ({ default: () => '2026-09-23' }))
 
 describe('BillingV2Content', () => {
   it('names the screen and offers a new record', () => {
@@ -16,8 +17,13 @@ describe('BillingV2Content', () => {
     expect(html).toContain('billing.new')
   })
 
-  it('shows the stored records from the shared hook', () => {
-    expect(renderToStaticMarkup(<BillingV2Content />)).toContain('Nómina')
+  // One copy of the records feeds both views: the unpaid payment is on its day and in Upcoming,
+  // each drawn once on screen and once in its spoken label.
+  it('mounts the calendar and the reminders over the shared records', () => {
+    const html = renderToStaticMarkup(<BillingV2Content />)
+    expect(html).toContain('billing.calendar.emptyDay')
+    expect(html).toContain('billing.reminders.upcoming')
+    expect(html.split(payment.title ?? '').length - 1).toBe(4)
   })
 
   // The editor only mounts when somebody opens a record or asks for a new one.
