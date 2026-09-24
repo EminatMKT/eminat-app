@@ -25,6 +25,7 @@ jobs:
       # Para recuperarlo hace falta que el runner pueda clonar el plugin, que es privado: un
       # deploy key o un token en los secrets del repo.
       - run: pnpm typecheck
+      - run: pnpm lint
       # tsc no mira CSS: una comilla suelta en un .module.css pasaba el typecheck entero.
       - run: pnpm lint:css
       - run: pnpm test
