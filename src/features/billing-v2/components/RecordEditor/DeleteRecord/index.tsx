@@ -20,7 +20,7 @@ export default function DeleteRecord({ disabled, onConfirm }: Props) {
 
   return (
     <>
-      <Button kind="delete" iconOnly onClick={() => setAsking(true)} deshabilitado={disabled} />
+      <Button kind="delete" onClick={() => setAsking(true)} deshabilitado={disabled} />
       {asking && (
         <ConfirmModal destructive title={t('billing.deleteTitle')} message={t('billing.deleteMsg')}
           confirmLabel={t('common.delete')} onConfirm={confirm} onClose={() => setAsking(false)} />

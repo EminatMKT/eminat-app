@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readdirSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ALL_MODULES } from './permissions'
+import { ALL_MODULES, modulePath } from './permissions'
 
 // Garantiza que el registro de módulos (ALL_MODULES, derivado de MODULE_META) NO se
 // desincronice de las carpetas de ruta del App Router. La carpeta ES la ruta; el slug
@@ -18,15 +18,18 @@ const routeFolders = readdirSync(APP_DIR, { withFileTypes: true })
   .filter(d => d.isDirectory() && !d.name.startsWith('(')) // ignora route groups
   .map(d => d.name)
 
+// The folder is the module's path, not its slug: `cobranzas` is served from `billing/`.
+const moduleFolders = ALL_MODULES.map(slug => modulePath(slug).slice(1))
+
 describe('rutas ↔ carpetas (App Router)', () => {
   it('cada ModuleSlug tiene su carpeta de ruta con page.tsx', () => {
-    for (const slug of ALL_MODULES) {
-      expect(existsSync(join(APP_DIR, slug, 'page.tsx')), `falta app/(app)/${slug}/page.tsx`).toBe(true)
+    for (const folder of moduleFolders) {
+      expect(existsSync(join(APP_DIR, folder, 'page.tsx')), `falta app/(app)/${folder}/page.tsx`).toBe(true)
     }
   })
 
   it('cada carpeta de ruta es un ModuleSlug o un stub declarado (sin huérfanas)', () => {
-    const known = new Set<string>([...ALL_MODULES, ...NON_MODULE_ROUTES])
+    const known = new Set<string>([...moduleFolders, ...NON_MODULE_ROUTES])
     const huerfanas = routeFolders.filter(f => !known.has(f))
     expect(huerfanas, `carpetas sin slug ni stub declarado: ${huerfanas.join(', ')}`).toEqual([])
   })
