@@ -10,6 +10,4 @@ export const DASHBOARD_THEME = { ...THEME, warn: '#FBBF24' }
 
 // Paleta por defecto de las series sin color propio. `features/research/constants.ts` la
 // re-exporta como CHART_COLORS y deriva de ella los colores de etapa.
-// ponytail: `features/billing-v1/constants.ts` has its own copy of 8 colors; unify when someone
-// touches that module, not before — today nobody shares charts with Billing.
 export const CHART_COLORS = ['#34D399', '#60A5FA', '#A78BFA', '#F472B6', '#FBB040', '#F87171', '#7C6FF7', '#FB923C', '#22D3EE', '#9494B3']

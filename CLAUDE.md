@@ -178,14 +178,14 @@ src/
     motion/index.tsx   ← componentes de animación reutilizables (Framer Motion)
     i18n/              ← claves es.json / en.json + useT()
   features/            ← un directorio por módulo de negocio
-    accounting/  admin/  cobranzas/  directorio/
+    accounting/  admin/  billing-v2/  directorio/
     medical/     overview/  research/  reuniones/  stratix-mkt/  tasks/
   app/
     layout.tsx         ← layout raíz (fuentes Syne + DM Mono)
     (app)/             ← grupo de rutas protegidas
       layout.tsx       ← envuelve con AppProvider
       page.tsx         ← Launchpad
-      admin/ tasks/ stratix-mkt/ medical/ research/ cobranzas/ accounting/
+      admin/ tasks/ stratix-mkt/ medical/ research/ billing/ accounting/
     api/
       admin/           ← CRUD de usuarios (create, delete, reassign-and-delete, reset-password, update)
       mail/            ← envío de correo (send via Resend, con guard de módulo)
