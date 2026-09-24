@@ -1,27 +1,10 @@
 'use client'
-import { useT, type I18nKey } from '@/shared/i18n'
+import { useT } from '@/shared/i18n'
 import Select from '@/shared/components/ui/Select'
+import type { Props } from './types'
 
-/** Lo que devuelve `catalogoMeta`, visto desde afuera: la lista y cómo se traduce. */
-type Catalogo<V extends string> = {
-  valores: V[]
-  label: (v: string | undefined, t: (k: I18nKey) => string) => string
-}
-
-type Props<V extends string> = {
-  catalogo: Catalogo<V>
-  valor: V
-  /** Cómo se llama el control. Va de `aria-label` porque estos selects viven en filas que se
-   *  leen de corrido y no tienen rótulo visible: sin esto son un desplegable sin nombre. */
-  etiqueta: string
-  onChange: (v: V) => void
-  /** The blank first choice, for a form that creates. Left out when the value already exists. */
-  placeholder?: string
-  className?: string
-}
-
-/** Un `<select>` sobre un catálogo META. El único `as` vive acá adentro y no en cada consumidor:
- *  `e.target.value` es `string` para el DOM, y el genérico lo devuelve a su unión. */
+/** A `<select>` over a META catalog. The only `as` lives in here and not in every consumer:
+ *  `e.target.value` is a `string` to the DOM, and the generic hands it back as its union. */
 export default function CatalogoSelect<V extends string>(props: Props<V>) {
   const { catalogo, valor, etiqueta, onChange, placeholder, className } = props
   const { t } = useT()
