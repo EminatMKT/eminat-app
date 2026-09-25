@@ -4,7 +4,8 @@ import { PASSWORD } from '../seed'
 import { URL } from '../constants'
 import rest from '../rest'
 import * as K from './constants'
-import type { IdRow, Row } from './types'
+import rowIds from './row-ids'
+import type { Row } from './types'
 
 const LOCAL_HOSTS = [K.APP_HOME, K.LOCAL_API].map((address) => new globalThis.URL(address).hostname)
 const created: string[] = []
@@ -20,10 +21,8 @@ const payment = (title: string, on: string, extra: Row = {}): Row => ({
   category: values.category.enum.payroll, payment_status: values.paymentStatus.enum.pending,
   amount: 100, currency_code: values.currency.enum.USD, ...extra,
 })
-const ids = async (request: APIRequestContext, query: string) => {
-  const r = await request.get(`${K.RECORDS_TABLE}?select=id&${query}`, { headers: headers() })
-  return ((await r.json()) as IdRow[]).map(({ id }) => id)
-}
+const ids = async (request: APIRequestContext, query: string) =>
+  rowIds(await request.get(`${K.RECORDS_TABLE}?select=id&${query}`, { headers: headers() }))
 const find = (request: APIRequestContext, title: string) => ids(request, `title=eq.${encodeURIComponent(title)}`)
 const foreignUnpaid = async (request: APIRequestContext) =>
   (await ids(request, 'record_type=eq.payment&payment_status=neq.paid')).filter((id) => !created.includes(id))
@@ -31,7 +30,7 @@ async function signIn(request: APIRequestContext) { jwt = await rest.token(reque
 async function insert(request: APIRequestContext, row: Row) {
   const r = await request.post(K.RECORDS_TABLE, { headers: headers(), data: row })
   expect(r.status(), `insert of a synthetic ${String(row.record_type)}`).toBe(K.CREATED)
-  created.push(...((await r.json()) as IdRow[]).map(({ id }) => id))
+  created.push(...(await rowIds(r)))
 }
 async function adopt(request: APIRequestContext, title: string) { created.push(...(await find(request, title))) }
 async function clear(request: APIRequestContext) {

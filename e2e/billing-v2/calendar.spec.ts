@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import values from '@/features/billing-v2/domain/record-values'
-import { ENTER } from '@/shared/constants/dom'
+import { ENTER, TAB } from '@/shared/constants/dom'
 import session from './session'
 import records from './records'
 import screen from './screen'
@@ -11,7 +11,6 @@ import { RUN } from './constants'
 test.describe.configure({ mode: 'serial' })
 session.install()
 
-const TAB = 'Tab'
 
 test('pressing a day opens a new record on that date', async ({ page }) => {
   await session.openBilling(page)

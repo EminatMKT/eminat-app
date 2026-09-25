@@ -29,7 +29,8 @@ async function openBilling(page: Page) {
   await loginAs(page, K.HOLDER_EMAIL)
   await page.locator(`[data-tour="${railKey}"]`).click()
   await page.waitForURL(`**${modulePath(MODULE.COBRANZAS)}`)
-  await expect(page.getByRole(HEADING, { level: 2, name: screen.say('billing.title'), exact: true })).toBeVisible()
+  const heading = page.getByRole(HEADING, { level: 2, name: screen.title, exact: true })
+  await expect(heading).toBeVisible()
 }
 
 function install() {

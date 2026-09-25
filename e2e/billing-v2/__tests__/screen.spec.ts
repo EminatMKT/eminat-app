@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import LABEL_VARS from '@/features/billing-v2/components/RecordEditor/label-vars'
 import screen from '../screen'
 
 const OVERDUE = screen.say('billing.reminders.overdue')
@@ -33,6 +34,13 @@ test('field finds the control, not a button whose name starts the same way', asy
   const note = screen.say('billing.field.noteText')
   await page.setContent(`<button aria-label="${note} x">b</button><label>${note} *<textarea>kept</textarea></label>`)
   await expect(screen.field(page, 'billing.field.noteText')).toHaveValue('kept')
+})
+
+// A label with variables and parentheses —«Monto (USD)»— is filled and matched literally.
+test('field finds a control whose label carries a variable', async ({ page }) => {
+  const amount = screen.say('billing.field.amount', LABEL_VARS)
+  await page.setContent(`<label>${amount}<input value="12"></label>`)
+  await expect(screen.field(page, 'billing.field.amount')).toHaveValue('12')
 })
 
 test('dayButton matches the whole day number only', async ({ page }) => {

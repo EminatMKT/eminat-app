@@ -30,7 +30,8 @@ test('paying an overdue payment takes it off Overdue and leaves it on its day', 
   await screen.field(page, 'billing.field.paymentStatus').selectOption(paid)
   await screen.press(page, 'billing.save')
   await expect(screen.line(screen.group(page, OVERDUE), title)).toHaveCount(0)
-  await expect(screen.chip(page, title)).toContainText(screen.say('billing.status.paid'))
+  // A chip draws only the time and the concept; the status is in its accessible name.
+  await expect(screen.chip(page, title)).toHaveAccessibleName(new RegExp(screen.say('billing.status.paid')))
   await expect(screen.cellOf(page, screen.chip(page, title)).getByRole('button').first()).toHaveText('10')
 })
 
@@ -55,9 +56,11 @@ test('an empty amount reads unknown on chip and reminder, and only 0 reads as ze
   await records.insert(request, records.payment(zero, screen.day(23), { amount: 0 }))
   await session.openBilling(page)
   const reminder = screen.line(screen.group(page, UPCOMING), unknown)
+  // The chip draws only its concept, so both are read by their accessible names, which carry
+  // the whole record — the amount included.
   for (const drawn of [screen.chip(page, unknown), reminder]) {
-    await expect(drawn).toContainText(screen.say('billing.amount.missing'))
-    await expect(drawn).not.toContainText(ZERO_MONEY)
+    await expect(drawn).toHaveAccessibleName(new RegExp(screen.say('billing.amount.missing')))
+    await expect(drawn).not.toHaveAccessibleName(ZERO_MONEY)
   }
-  await expect(screen.chip(page, zero)).toContainText(ZERO_MONEY)
+  await expect(screen.chip(page, zero)).toHaveAccessibleName(ZERO_MONEY)
 })

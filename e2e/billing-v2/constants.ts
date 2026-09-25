@@ -25,10 +25,18 @@ export const RUN = `e2e-bv2-${Date.now()}`
 export const PAYEE = `${RUN} payee`
 export const TODAY = new Date('2026-09-15T12:00:00-05:00')
 export const ZERO_MONEY = /\$\s?0[.,]00/
+export const TYPED_AMOUNT = '1.250,40'
+export const STORED_AMOUNT = /1[.,]?250[.,]40/
+export const BAD_AMOUNT = 'abc'
+export const BOX = 'div'
+export const CONTROLS = 'input, select, textarea'
+export const PLACEHOLDER = /\{(\w+)\}/g
+export const REGEX_SPECIAL = /[.*+?^${}()|[\]\\]/g
 
 // The fixed inputs of the billing v2 e2e; only the two local hosts above may be written to.
 // The holder is a non-admin whose dynamic grant includes billing, the outsider has none. Every
 // record carries the run tag and is deleted by the id this run stored.
 
 // The clock is frozen near the real date: a token issued now still looks valid at that instant.
-// Zero money matches either decimal separator, so no check hangs on the ICU build.
+// Zero money matches either decimal separator, so no check hangs on the ICU build; so does the
+// amount typed the es-EC way, which is stored as 1250.40 and drawn in either locale's format.
