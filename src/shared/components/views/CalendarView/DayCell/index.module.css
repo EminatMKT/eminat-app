@@ -1,0 +1,25 @@
+/* The number is the handle of the whole day, so it keeps the full width of the cell: a target
+   the size of two digits is one nobody hits. */
+.number {
+  color: var(--c-t2);
+  font-weight: 600;
+}
+
+.number:hover {
+  color: var(--c-accent);
+}
+
+/* A record is a chip that wraps: the calendar cannot know how long the line the feature draws
+   is, and cutting it off would hide the only thing the cell is there to show. */
+.record {
+  padding: .125rem .375rem;
+  border-radius: .25rem;
+  background: color-mix(in srgb, var(--c-accent) 12%, transparent);
+  color: var(--c-t1);
+  font-size: .6875rem;
+  line-height: 1.3;
+}
+
+.record:hover {
+  background: color-mix(in srgb, var(--c-accent) 22%, transparent);
+}

@@ -1,0 +1,43 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  font-size: .875rem;
+  font-weight: 600;
+  color: var(--c-t1);
+}
+
+/* The grid lines are the cell borders, not a gap: a gap of one pixel scales with the letter
+   size and turns into a gutter. */
+.grid {
+  display: grid;
+  /* `minmax(0, 1fr)`, not `1fr`: a bare `1fr` never shrinks below its longest word, so one long
+     line in a cell pushed a phone page sideways. */
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-top: 1px solid var(--c-border);
+  border-left: 1px solid var(--c-border);
+  border-radius: .5rem;
+  overflow: hidden;
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  min-width: 0;
+  min-height: 5rem;
+  padding: .375rem;
+  overflow-wrap: anywhere;
+  border-right: 1px solid var(--c-border);
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-s1);
+  font-size: .75rem;
+  color: var(--c-t3);
+}

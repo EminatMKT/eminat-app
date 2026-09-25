@@ -1,0 +1,84 @@
+/* The layout of the billing screen: one box with a skin per piece. The two arrangements every
+   piece starts from are extracted, so no block is written twice. */
+
+.column {
+  display: flex;
+  flex-direction: column;
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.page {
+  composes: column;
+  gap: 1rem;
+}
+
+.head {
+  composes: bar;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.title {
+  margin: 0;
+  font-family: Syne, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--c-t1);
+}
+
+/* Calendar and reminders side by side on a desk, stacked on a phone. `minmax(0, …)` lets the
+   calendar shrink instead of pushing the page sideways. */
+.views {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
+  align-items: start;
+  gap: 1rem;
+}
+
+@media (max-width: 56.25rem) {
+  .views {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.panel {
+  composes: column;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid var(--c-border);
+  border-radius: 0.75rem;
+  background: var(--c-s1);
+}
+
+.records {
+  composes: column;
+  gap: 0.5rem;
+}
+
+.form {
+  composes: column;
+  gap: 0.25rem;
+}
+
+.row {
+  composes: bar;
+  gap: 0.75rem;
+}
+
+.pills {
+  composes: bar;
+  gap: 0.5rem;
+}
+
+.hint {
+  margin-bottom: 0.875rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--c-t2);
+}

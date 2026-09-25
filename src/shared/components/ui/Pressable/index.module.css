@@ -1,0 +1,20 @@
+/* The reset. A button inherits the browser font and centres its text, and a surface —a cell,
+   a row— has to look like what surrounds it, not like a button. */
+.surface {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* The one thing a surface does not give up: showing where the focus is. */
+.surface:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+  border-radius: .25rem;
+}

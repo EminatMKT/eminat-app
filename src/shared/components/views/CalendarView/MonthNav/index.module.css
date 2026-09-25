@@ -1,0 +1,16 @@
+/* The arrow is a target before it is a glyph: at .75rem it needs the padding to be reachable
+   with a finger, and `width: auto` undoes the full-width reset of the surface. */
+.step {
+  width: auto;
+  padding: .25rem .625rem;
+  border: 1px solid var(--c-border);
+  border-radius: .375rem;
+  color: var(--c-t2);
+  font-size: .875rem;
+  line-height: 1;
+}
+
+.step:hover {
+  background: var(--c-s3);
+  color: var(--c-t1);
+}

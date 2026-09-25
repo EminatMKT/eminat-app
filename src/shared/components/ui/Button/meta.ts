@@ -29,4 +29,7 @@ export const BUTTON_META = {
   // el tono derivado del `kind` existe justo para que un botón no mienta sobre lo que hace. El ★
   // es el mismo símbolo con el que la vista marcada aparece en su desplegable.
   star:    { icono: '★',  labelKey: 'common.setDefault',   tono: 'secundario' },
+  // Asking again for something that failed to load. Added on 24/09/2026 with billing v2, whose
+  // screen answers a failed read with this instead of an empty list that would look like "none".
+  retry:   { icono: '↻',  labelKey: 'common.retry',        tono: 'secundario' },
 } satisfies Record<ButtonKind, ButtonMeta>

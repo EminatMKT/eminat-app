@@ -14,9 +14,19 @@
 #    tests. Se avisa y se sigue: lo que no puede pasar es que falte en silencio.
 #
 # Sale 0 cuando no está instalado, y con el código del motor cuando sí.
-CENTINELA=$(ls -d "$HOME"/.claude/plugins/cache/*/centinela/*/motor/main.ts 2>/dev/null | sort -V | tail -1)
+# Since 2.18.2 the engine lives under `.shared/motor/`; both layouts are globbed, or an old one wins.
+CENTINELA=$(ls -d "$HOME"/.claude/plugins/cache/*/centinela/*/motor/main.ts \
+  "$HOME"/.claude/plugins/cache/*/centinela/*/.shared/motor/main.ts 2>/dev/null | sort -V | tail -1)
 if [ -z "$CENTINELA" ]; then
   echo "⚠ centinela no instalado: '$*' no se verificó. Ver rules/README.md"
   exit 0
 fi
-exec bun "$CENTINELA" "$@"
+# An unknown flag makes the engine exit 0 without printing: that is how `--barrido` kept passing
+# for weeks after the plugin renamed it to `--sweep`. Every real mode prints, so silence fails.
+OUT=$(bun "$CENTINELA" "$@" 2>&1); CODE=$?
+[ -n "$OUT" ] && echo "$OUT"
+if [ -z "$OUT" ]; then
+  echo "✖ centinela printed nothing for '$*' — the flag probably no longer exists in $CENTINELA"
+  exit 1
+fi
+exit $CODE
