@@ -13,28 +13,41 @@ it('pins the whitespace set to the one JS trim uses, which is the one SQL repeat
   expect('᠎'.trim()).not.toBe('')
 })
 
+const MAX = 100
+const required = text.required(MAX)
+const optional = text.optional(MAX)
+
 it('refuses required text that is empty or blank in any of those characters', () => {
-  expect(text.required.safeParse('').success).toBe(false)
+  expect(required.safeParse('').success).toBe(false)
   for (const blank of BLANKS) {
-    expect(text.required.safeParse(blank.repeat(3)).success).toBe(false)
+    expect(required.safeParse(blank.repeat(3)).success).toBe(false)
   }
-  expect(text.required.safeParse(BLANKS.join('')).success).toBe(false)
+  expect(required.safeParse(BLANKS.join('')).success).toBe(false)
 })
 
 it('preserves a genuine multiline note character for character', () => {
-  expect(text.required.parse(NOTE)).toBe(NOTE)
-  expect(text.optional.parse(NOTE)).toBe(NOTE)
+  expect(required.parse(NOTE)).toBe(NOTE)
+  expect(optional.parse(NOTE)).toBe(NOTE)
 })
 
 it('normalizes blank optional input to null and leaves real text alone', () => {
-  expect(text.optional.parse(null)).toBeNull()
-  expect(text.optional.parse('')).toBeNull()
-  for (const blank of BLANKS) expect(text.optional.parse(blank)).toBeNull()
-  expect(text.optional.parse(' kept ')).toBe(' kept ')
+  expect(optional.parse(null)).toBeNull()
+  expect(optional.parse('')).toBeNull()
+  for (const blank of BLANKS) expect(optional.parse(blank)).toBeNull()
+  expect(optional.parse(' kept ')).toBe(' kept ')
 })
 
 it('refuses a missing value on both, so an absent key is never a silent null', () => {
-  expect(text.required.safeParse(undefined).success).toBe(false)
-  expect(text.optional.safeParse(undefined).success).toBe(false)
-  expect(text.required.safeParse(null).success).toBe(false)
+  expect(required.safeParse(undefined).success).toBe(false)
+  expect(optional.safeParse(undefined).success).toBe(false)
+  expect(required.safeParse(null).success).toBe(false)
+})
+
+// The column has a CHECK on the same number: one character more is refused here, not there.
+it('refuses text longer than the limit of the column it is stored in', () => {
+  const full = 'x'.repeat(MAX)
+  expect(required.parse(full)).toBe(full)
+  expect(optional.parse(full)).toBe(full)
+  expect(required.safeParse(`${full}x`).success).toBe(false)
+  expect(optional.safeParse(`${full}x`).success).toBe(false)
 })

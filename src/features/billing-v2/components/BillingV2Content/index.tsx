@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import type { BillingV2Record } from '@/shared/data'
 import { useT } from '@/shared/i18n'
+import { MODULE, MODULE_META } from '@/shared/auth/permissions'
 import { Button } from '@/shared/components/ui'
 import useBillingV2Records from '@/features/billing-v2/hooks/useBillingV2Records'
 import useBusinessToday from '@/features/billing-v2/hooks/useBusinessToday'
@@ -24,7 +25,7 @@ export default function BillingV2Content() {
   return (
     <BillingBox part="page">
       <BillingBox part="head">
-        <BillingBox part="title">{t('billing.title')}</BillingBox>
+        <BillingBox part="title">{MODULE_META[MODULE.COBRANZAS].name}</BillingBox>
         <Button kind="new" label={t('billing.new')} onClick={() => setEditing({ record: null })} />
       </BillingBox>
       <RecordsGate hasRecords={records.length > 0} loading={loading} error={error} onRetry={() => void reload()}>
@@ -45,3 +46,6 @@ export default function BillingV2Content() {
 // The business day is read here once and handed to both views, so the calendar's opening month
 // and the Overdue/Upcoming split can never disagree about what today is. What the editor opens on
 // has the same shape as the editor's own props, which is why it is handed over whole.
+//
+// The heading is the module's name from `MODULE_META`, the same one the topbar reads: the
+// screen has one name, and it is written in one place.

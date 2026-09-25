@@ -1,7 +1,7 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
-import { MODULE } from '@/shared/auth/permissions'
+import { MODULE, MODULE_META } from '@/shared/auth/permissions'
 import { AppShell } from '@/shared/components/shell'
 import { AccessDenied } from '@/shared/components/access'
 import { LoadingView } from '@/shared/components/ui'
@@ -13,7 +13,8 @@ export default function BillingV2Module() {
   const { t } = useT()
 
   if (loading) return <AppShell><LoadingView /></AppShell>
-  if (!modules.includes(MODULE.COBRANZAS)) return <AccessDenied message={t('billing.noAccess')} />
+  const denied = t('billing.noAccess', { module: MODULE_META[MODULE.COBRANZAS].name })
+  if (!modules.includes(MODULE.COBRANZAS)) return <AccessDenied message={denied} />
   return <AppShell><PageTransition><BillingV2Content /></PageTransition></AppShell>
 }
 

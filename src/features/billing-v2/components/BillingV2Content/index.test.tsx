@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { MODULE, MODULE_META } from '@/shared/auth/permissions'
 import fixtureRecord from '@/features/billing-v2/fixture-record'
 import BillingV2Content from './index'
 
@@ -11,9 +12,10 @@ vi.mock('@/features/billing-v2/hooks/useBillingV2Records', () => ({ default: () 
 vi.mock('@/features/billing-v2/hooks/useBusinessToday', () => ({ default: () => '2026-09-23' }))
 
 describe('BillingV2Content', () => {
-  it('names the screen and offers a new record', () => {
+  // One name for one screen: the heading is the module's own name, the one the rail shows.
+  it('names the screen after its module and offers a new record', () => {
     const html = renderToStaticMarkup(<BillingV2Content />)
-    expect(html).toContain('billing.title')
+    expect(html).toContain(`>${MODULE_META[MODULE.COBRANZAS].name}</h2>`)
     expect(html).toContain('billing.new')
   })
 

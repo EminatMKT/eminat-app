@@ -1,0 +1,19 @@
+/* The line beside the editor's actions. It takes the free width of the footer and wraps, so the
+   buttons keep their place at the right edge. */
+.notice {
+  flex: 1 1 12rem;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+
+.reason {
+  color: var(--c-t2);
+}
+
+/* --c-danger-solid and not --c-danger: the light one falls under 4.5:1 on white for small text. */
+.failure {
+  color: var(--c-danger-solid);
+  font-weight: 600;
+}

@@ -1,16 +1,14 @@
 import { describe, it, expect, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type { BillingV2Record } from '@/shared/data'
+import fixtureRecord from '@/features/billing-v2/fixture-record'
 import RecordEditor from './index'
 
 vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key }) }))
 
-const stored = {
-  id: 'r1', record_type: 'event', scheduled_on: '2026-09-30', scheduled_time: null,
-  note_month: null, title: 'Cierre', category: null, payment_status: null, payee_label: null,
-  amount: null, currency_code: null, event_type_label: null, note_text: null,
-  closing_approval_follow_up: false,
-} as BillingV2Record
+const SAVE = 'billing.save'
+const DISABLED_SAVE = new RegExp(`<button[^>]*disabled[^>]*>${SAVE}`)
+const stored = fixtureRecord({ id: 'r1', record_type: 'event', category: null, payment_status: null, currency_code: null })
 const landed = async () => true
 const ignore = () => undefined
 const draw = (record: BillingV2Record | null) => renderToStaticMarkup(
@@ -42,5 +40,17 @@ describe('RecordEditor', () => {
     expect(html).not.toContain('billing.field.payeeLabel')
     expect(html).toContain('billing.typeLocked')
     expect(html).toContain('common.delete')
+  })
+
+  // An empty form says why it cannot be saved yet, beside a disabled Save, and scolds no box.
+  it('holds Save back on an empty form, in view, with no box marked invalid yet', () => {
+    const html = draw(null)
+    expect(html).toContain('billing.saveBlocked.missing')
+    expect(html).toMatch(DISABLED_SAVE)
+    expect(html).not.toContain('aria-invalid')
+  })
+
+  it('says a stored record opened and left alone has nothing to save', () => {
+    expect(draw(stored)).toContain('billing.saveBlocked.unchanged')
   })
 })

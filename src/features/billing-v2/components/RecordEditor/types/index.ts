@@ -1,3 +1,4 @@
+import type { HTMLAttributes } from 'react'
 import type { z } from 'zod'
 import type { I18nKey } from '@/shared/i18n'
 import type values from '@/features/billing-v2/domain/record-values'
@@ -29,13 +30,17 @@ export type FieldSpec = {
   required?: boolean
   options?: readonly string[]
   liveAmount?: boolean
+  /** The limit of the column the text is stored in, from `text-limits`: the box stops there. */
+  maxLength?: number
+  /** The keyboard a phone opens: digits and a separator for the amount. */
+  inputMode?: HTMLAttributes<HTMLInputElement>['inputMode']
 }
 
 /** How a control reports a change: which box, and what it holds now. */
 export type EditField = (name: keyof RecordForm, value: string | boolean) => void
 
-/** What every piece that draws one field is handed: its spec, the whole form, and the way back. */
-export type FieldProps = { spec: FieldSpec; form: RecordForm; onEdit: EditField }
+/** What every piece that draws one field is handed: its spec, the whole form, and the ways back. */
+export type FieldProps = { spec: FieldSpec; form: RecordForm; onEdit: EditField; onLeave?: LeaveField }
 
 /** The write the editor hands its record to: null creates, an id updates. Answers whether it
  *  landed, because a failed save has to keep every value on screen. */
@@ -44,8 +49,14 @@ export type SaveRecord = (id: string | null, input: BillingRecordInput) => Promi
 /** The deletion the editor asks for by id. Answers whether it landed: a failed one keeps the row. */
 export type DropRecord = (id: string) => Promise<boolean>
 
+/** Which box is wrong, and the message that goes under it. A field that is fine is absent. */
+export type FieldErrors = Partial<Record<keyof RecordForm, I18nKey>>
+
 /** What validating the form gives back: the mutation, or the fields that are wrong. */
-export type FormResult = { input: BillingRecordInput | null; errors: I18nKey[] }
+export type FormResult = { input: BillingRecordInput | null; errors: FieldErrors }
+
+/** How a control reports that the person left it: from then on its message is shown. */
+export type LeaveField = (name: keyof RecordForm) => void
 
 // The shapes the editor works in, none of which is the shape that gets stored. `RecordForm`
 // carries every column of all three subtypes at once so that switching a new record from a

@@ -5,7 +5,8 @@ import BillingV2Module from './index'
 /** What the stand-ins below are handed: a shell's children, or the denial's message. */
 type Stand = { children?: string; message?: string }
 
-const app = { modules: [] as string[], loading: false }
+const modules: string[] = []
+const app = { modules, loading: false }
 vi.mock('@/shared/context/AppContext', () => ({ useApp: () => app }))
 vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key }) }))
 vi.mock('@/shared/components/shell', () => ({ AppShell: ({ children }: Stand) => children }))

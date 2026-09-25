@@ -1,81 +1,81 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type { BillingV2Record } from '@/shared/data'
+import fixtureRecord from '@/features/billing-v2/fixture-record'
 import useRecordEditor from './index'
 
-const stored = {
-  id: 'r1', record_type: 'payment', scheduled_on: '2026-09-30', scheduled_time: null,
-  note_month: null, title: 'Nómina', category: 'payroll', payment_status: 'pending',
-  payee_label: 'Equipo EMC', amount: null, currency_code: 'USD', event_type_label: null,
-  note_text: null, closing_approval_follow_up: false,
-} as BillingV2Record
+vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key }) }))
+
+type Step = (editor: ReturnType<typeof useRecordEditor>) => void
+
+// Fixtures, not shipped copy.
+const CHANGED = 'Payroll, second half'
+const stored = fixtureRecord({ id: 'r1', payee_label: 'x' })
 const onSave = vi.fn()
 const onDrop = vi.fn()
+const opened: { record: BillingV2Record | null; day?: string; steps: Step[] } = { record: null, steps: [] }
 let seen: ReturnType<typeof useRecordEditor> | null = null
 
-type ProbeProps = { record: BillingV2Record | null; day?: string }
-
-function Probe({ record, day }: ProbeProps) {
-  seen = useRecordEditor(record, onSave, onDrop, day)
+/** Mounts the hook; each render runs the next step —an edit, a leave—, so the last one sees all. */
+function Probe() {
+  const editor = useRecordEditor(opened.record, onSave, onDrop, opened.day)
+  opened.steps.shift()?.(editor)
+  seen = editor
   return null
 }
+const open = (record: BillingV2Record | null, ...steps: Step[]) => {
+  Object.assign(opened, { record, steps, day: undefined })
+  renderToStaticMarkup(<Probe />)
+}
+const retitle: Step = (editor) => editor.edit('title', CHANGED)
 
 describe('useRecordEditor', () => {
   beforeEach(() => {
     onSave.mockReset().mockResolvedValue(true)
     onDrop.mockReset().mockResolvedValue(true)
   })
-
   it('deletes the record it was opened with, and answers whether it landed', async () => {
-    renderToStaticMarkup(<Probe record={stored} />)
+    open(stored)
     expect(await seen?.drop()).toBe(true)
     expect(onDrop).toHaveBeenCalledWith('r1')
     onDrop.mockResolvedValue(false)
     expect(await seen?.drop()).toBe(false)
   })
-
-  // A record started from a calendar day opens already due on that day.
-  it('opens a new record on the day it was started from', () => {
-    renderToStaticMarkup(<Probe record={null} day="2026-09-14" />)
+  it('opens a new record on the day it was started from, with nothing to delete', async () => {
+    Object.assign(opened, { record: null, steps: [], day: '2026-09-14' })
+    renderToStaticMarkup(<Probe />)
     expect(seen?.form.scheduledOn).toBe('2026-09-14')
-  })
-
-  it('has nothing to delete while the record is new', async () => {
-    renderToStaticMarkup(<Probe record={null} />)
     expect(await seen?.drop()).toBe(false)
     expect(onDrop).not.toHaveBeenCalled()
   })
-
-  it('opens a stored record in the boxes it was typed in', () => {
-    renderToStaticMarkup(<Probe record={stored} />)
-    expect(seen?.form.title).toBe('Nómina')
-    expect(seen?.form.amount).toBe('')
-  })
-
-  // A form the schema refuses produces no mutation at all.
-  it('sends nothing while the form is invalid', async () => {
-    renderToStaticMarkup(<Probe record={null} />)
+  // Nothing required missing and something changed, or Save stays held and says why.
+  it('holds Save back while something required is missing or nothing changed', async () => {
+    open(null)
+    expect(seen?.blocked).toBe('billing.saveBlocked.missing')
+    open(stored)
+    expect(seen?.blocked).toBe('billing.saveBlocked.unchanged')
     expect(await seen?.submit()).toBe(false)
     expect(onSave).not.toHaveBeenCalled()
   })
-
-  it('updates the record it was opened with', async () => {
-    renderToStaticMarkup(<Probe record={stored} />)
-    expect(await seen?.submit()).toBe(true)
-    expect(onSave).toHaveBeenCalledWith('r1', expect.objectContaining({ amount: null }))
+  // Two clicks before the first answer is one save, not two records.
+  it('updates the record once something changed, once per click race', async () => {
+    open(stored, retitle)
+    expect(seen?.blocked).toBeNull()
+    expect(await Promise.all([seen?.submit(), seen?.submit()])).toEqual([true, false])
+    expect(onSave).toHaveBeenCalledTimes(1)
+    expect(onSave).toHaveBeenCalledWith('r1', expect.objectContaining({ title: CHANGED }))
   })
-
   it('answers false when the write fails, so the caller keeps the form open', async () => {
     onSave.mockResolvedValue(false)
-    renderToStaticMarkup(<Probe record={stored} />)
+    open(stored, retitle)
     expect(await seen?.submit()).toBe(false)
   })
-
-  // Two clicks before the first answer is one save, not two records.
-  it('refuses a second submit while the first is in flight', async () => {
-    renderToStaticMarkup(<Probe record={stored} />)
-    const both = await Promise.all([seen?.submit(), seen?.submit()])
-    expect(onSave).toHaveBeenCalledTimes(1)
-    expect(both).toEqual([true, false])
+  // Validation runs on change, but a box's message only shows once the person left it.
+  it('shows the message of a box only after it was left', () => {
+    const typo: Step = (editor) => editor.edit('amount', 'abc')
+    open(stored, typo)
+    expect(seen?.errors).toEqual({})
+    open(stored, typo, (editor) => editor.leave('amount'))
+    expect(seen?.errors).toEqual({ amount: 'billing.error.amount' })
   })
 })

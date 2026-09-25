@@ -18,6 +18,12 @@ describe('formPayload', () => {
     expect(formPayload({ ...payment, amount: '1250.40' })).toMatchObject({ amount: '1250.40' })
   })
 
+  // What was typed is normalized here, so the strict domain schema reads a dot and no grouping.
+  it('sends an amount typed with a decimal comma or thousands separators as plain decimal text', () => {
+    expect(formPayload({ ...payment, amount: '1.250,40' })).toMatchObject({ amount: '1250.40' })
+    expect(formPayload({ ...payment, amount: ' 1,250.40 ' })).toMatchObject({ amount: '1250.40' })
+  })
+
   it('sends the optional clock and note as null when nothing was typed', () => {
     expect(formPayload(payment)).toMatchObject({ scheduledTime: null, noteText: null })
   })

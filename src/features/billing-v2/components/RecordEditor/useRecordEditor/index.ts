@@ -1,48 +1,58 @@
 'use client'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { BillingV2Record } from '@/shared/data'
-import type { I18nKey } from '@/shared/i18n'
+import { useT } from '@/shared/i18n'
 import recordForm from '../form-state'
 import formInput from '../form-input'
-import type { BillingRecordType, DropRecord, EditField, RecordForm, SaveRecord } from '../types'
+import saveBlock from '../save-block'
+import visibleErrors from '../visible-errors'
+import editorState from '../editor-state'
+import type { BillingRecordType, DropRecord, EditField, LeaveField, SaveRecord } from '../types'
 
-type EditorState = { form: RecordForm; errors: I18nKey[]; busy: boolean }
+/** Takes the focus to the first box of the open dialog that is marked invalid. */
+function focusFirstInvalid() {
+  document.querySelector<HTMLElement>('[aria-modal="true"] [aria-invalid="true"]')?.focus()
+}
 
-/** The editor's boxes, what is wrong with them, and the two writes they can ask for. */
+/** The editor's boxes, what is wrong with them, why Save is held, and the two writes. */
 export default function useRecordEditor(record: BillingV2Record | null, onSave: SaveRecord, onDrop: DropRecord, day?: string) {
-  const [state, setState] = useState<EditorState>(() => ({ form: recordForm(record, day), errors: [], busy: false }))
-  const { form, errors, busy } = state
+  const { t } = useT()
+  const [state, setState] = useState(() => editorState.open(recordForm(record, day)))
+  const { initial, form, left, attempts, failure, busy } = state
   const inFlight = useRef(false)
-
-  const edit: EditField = (name, value) => setState((s) => ({ ...s, form: { ...s.form, [name]: value } }))
-  const pickType = (recordType: BillingRecordType) => setState((s) => ({ ...s, form: { ...s.form, recordType } }))
-
+  const { input, errors } = formInput(form)
+  const blocked = saveBlock(form, initial, t)
+  useEffect(() => { if (attempts) focusFirstInvalid() }, [attempts])
+  const edit: EditField = (name, value) => setState(editorState.edit(name, value))
+  const leave: LeaveField = (name) => setState(editorState.leave(name))
+  const pickType = (recordType: BillingRecordType) => setState(editorState.pick(recordType))
   const submit = async () => {
-    if (inFlight.current) return false
-    const { input, errors: found } = formInput(form)
+    if (inFlight.current || blocked) return false
     if (!input) {
-      setState((s) => ({ ...s, errors: found }))
+      setState(editorState.attempted)
       return false
     }
     inFlight.current = true
-    setState((s) => ({ ...s, busy: true, errors: [] }))
+    setState(editorState.sending)
     const landed = await onSave(record?.id ?? null, input)
     inFlight.current = false
-    if (!landed) setState((s) => ({ ...s, busy: false, errors: ['billing.saveFailed'] }))
+    if (!landed) setState(editorState.failed('billing.saveFailed'))
     return landed
   }
-
   const drop = async () => {
     const landed = !!record && await onDrop(record.id)
-    if (!landed) setState((s) => ({ ...s, errors: ['billing.deleteFailed'] }))
+    if (!landed) setState(editorState.failed('billing.deleteFailed'))
     return landed
   }
-
-  const editor = { form, errors, busy, edit, pickType, submit, drop }
+  const shown = visibleErrors(errors, left, attempts > 0)
+  const editor = { form, errors: shown, blocked, failure, busy, edit, leave, pickType, submit, drop }
   return editor
 }
 
-// The form's whole life in one state object: the boxes, the reasons they were refused, and
-// whether a save is travelling. A refused form never reaches the network, and a save the server
-// refused leaves every box as it was — only the error line changes. The ref, and not the `busy`
-// flag, is what stops a double click: two clicks can land before React draws the disabled button.
+// The boxes are validated on every change and the errors are never stored; what is kept is only
+// when to show them —a box that was left, or every box after Save met an invalid form—. That
+// attempt also takes the focus to the first invalid box, because in a scrolling dialog it may be
+// out of view. Save is held —with its reason— while something required is missing or nothing
+// changed, so it is never pressed in vain. A write that fails leaves every box as it was and only
+// the failure line changes. The ref, and not `busy`, is what stops a double click: two clicks can
+// land before React draws the disabled button.

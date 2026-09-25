@@ -2,6 +2,7 @@ import { z } from 'zod'
 import billingAmount from '../amount-schema'
 import values from '../record-values'
 import temporal from '../temporal-schema'
+import TEXT_MAX from '../text-limits'
 import text from '../text-schema'
 
 const DISCRIMINATOR = 'recordType'
@@ -11,12 +12,12 @@ const paymentInput = z.strictObject({
   recordType: z.literal(kind.payment),
   scheduledOn: temporal.isoDate,
   scheduledTime: temporal.minuteTime.nullable(),
-  title: text.required,
+  title: text.required(TEXT_MAX.title),
   category: values.category,
   paymentStatus: values.paymentStatus,
-  payeeLabel: text.required,
+  payeeLabel: text.required(TEXT_MAX.payeeLabel),
   amount: billingAmount,
-  noteText: text.optional,
+  noteText: text.optional(TEXT_MAX.noteText),
   closingApprovalFollowUp: z.boolean(),
 })
 
@@ -24,15 +25,15 @@ const eventInput = z.strictObject({
   recordType: z.literal(kind.event),
   scheduledOn: temporal.isoDate,
   scheduledTime: temporal.minuteTime.nullable(),
-  title: text.required,
-  eventTypeLabel: text.optional,
-  noteText: text.optional,
+  title: text.required(TEXT_MAX.title),
+  eventTypeLabel: text.optional(TEXT_MAX.eventTypeLabel),
+  noteText: text.optional(TEXT_MAX.noteText),
 })
 
 const monthNoteInput = z.strictObject({
   recordType: z.literal(kind.month_note),
   noteMonth: temporal.monthStart,
-  noteText: text.required,
+  noteText: text.required(TEXT_MAX.noteText),
 })
 
 const billingRecordInput = z.discriminatedUnion(DISCRIMINATOR, [

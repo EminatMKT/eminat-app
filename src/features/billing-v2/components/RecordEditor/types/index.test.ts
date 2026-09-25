@@ -20,7 +20,7 @@ it('holds a box for every column any of the three subtypes can carry', () => {
 
 // Every box is text while it is being typed, so nothing is coerced on the way in: an empty
 // amount stays empty instead of becoming a number, which is where zero would be invented.
-it('keeps every editable box as text, and only the marker as a flag', () => {
+it('keeps every editable box a string, and only the marker a flag', () => {
   const typed = Object.entries(form).filter(([name]) => name !== MARKER)
   typed.forEach(([, value]) => expect(typeof value).toBe('string'))
   expect(typeof form.closingApprovalFollowUp).toBe('boolean')

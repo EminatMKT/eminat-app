@@ -1,4 +1,5 @@
 import values from '@/features/billing-v2/domain/record-values'
+import amountText from '../amount-text'
 import type { RecordForm } from '../types'
 
 function blankToNull(value: string): string | null {
@@ -11,7 +12,7 @@ function paymentPayload(form: RecordForm) {
   const row = {
     recordType: values.recordType.enum.payment, scheduledOn,
     scheduledTime: blankToNull(scheduledTime), title, category, paymentStatus, payeeLabel,
-    amount: amount.trim() || null, noteText: blankToNull(noteText), closingApprovalFollowUp,
+    amount: amountText(amount) || null, noteText: blankToNull(noteText), closingApprovalFollowUp,
   }
   return row
 }
@@ -44,3 +45,5 @@ export default function formPayload(form: RecordForm): unknown {
 // difference has to be made here rather than argued about at the far end of a round trip.
 // A blank optional box becomes null and never an empty string, which is the value the column
 // expects; the amount is the one that matters, since blank there means unknown and not zero.
+// The amount is also where what was typed —a decimal comma, thousands separators— is rewritten
+// into the plain decimal text the strict domain schema reads (`amount-text`).
