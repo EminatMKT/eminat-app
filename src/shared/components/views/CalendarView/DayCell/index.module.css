@@ -2,9 +2,13 @@
    empty spot of the day starts a new record — not only the row with the number, which was an
    18px strip. Its containing block is the cell (the list between them is not positioned), so it
    stays in place while an open day's list scrolls. */
+/* A native button centers its content vertically whatever its `display`, which put the number in
+   the middle of the cell, under the chips. Flex with `flex-start` pins it to the corner. */
 .number {
   position: absolute;
   inset: 0;
+  display: flex;
+  align-items: flex-start;
   padding: .25rem .375rem;
   color: var(--c-t2);
   font-weight: 600;
