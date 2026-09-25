@@ -4,12 +4,15 @@ import watchDay from './index'
 const HOUR = 3_600_000
 const BEFORE_MIDNIGHT = new Date('2026-09-24T04:00:00Z')
 
+/** Types the fake's state as the whole union, so a test can hide the page afterwards. */
+const visibility = (state: DocumentVisibilityState) => state
+
 // A page built on a real `EventTarget`, so only the event a browser fires on resume reaches the
 // listener: a watcher subscribed to the wrong event name hears nothing and the tests below fail.
 const fakePage = () => {
   const target = new EventTarget()
   const page = {
-    visibilityState: 'visible' as DocumentVisibilityState,
+    visibilityState: visibility('visible'),
     addEventListener: (type: string, fn: () => void) => target.addEventListener(type, fn),
     removeEventListener: (type: string, fn: () => void) => target.removeEventListener(type, fn),
     resume: () => target.dispatchEvent(new Event('visibilitychange')),

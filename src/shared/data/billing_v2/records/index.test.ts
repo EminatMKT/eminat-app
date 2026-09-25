@@ -44,7 +44,7 @@ describe('billing v2 mutations', () => {
   it('keeps the database cause without repeating its text', async () => {
     connect([DENIED])
     let failure: Error | undefined
-    try { await billingV2Records.create(NOTE) } catch (error) { failure = error as Error }
+    try { await billingV2Records.create(NOTE) } catch (error) { if (error instanceof Error) failure = error }
     expect(failure).toBeDefined()
     expect(failure?.message).not.toContain('permission denied')
     expect(failure?.cause).toBe(DENIED.error)

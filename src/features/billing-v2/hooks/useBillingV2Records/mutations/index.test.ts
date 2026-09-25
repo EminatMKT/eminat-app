@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { billingV2Repo, type BillingV2Record } from '@/shared/data'
+import { billingV2Repo } from '@/shared/data'
+import fixtureRecord from '@/features/billing-v2/fixture-record'
 import type { BillingPaymentInput } from '@/features/billing-v2/domain/types'
 import mutations from './index'
 
@@ -22,8 +23,8 @@ describe('mutations', () => {
   beforeEach(() => vi.mocked(billingV2Repo).create.mockReset())
 
   it('creates when there is no record yet, and updates the one there is', async () => {
-    vi.mocked(billingV2Repo).create.mockResolvedValue({ id: 'new' } as BillingV2Record)
-    vi.mocked(billingV2Repo).update.mockResolvedValue({ id: 'r1' } as BillingV2Record)
+    vi.mocked(billingV2Repo).create.mockResolvedValue(fixtureRecord({ id: 'new' }))
+    vi.mocked(billingV2Repo).update.mockResolvedValue(fixtureRecord({ id: 'r1' }))
     expect(await mutations.save(null, input)).toBe(true)
     expect(vi.mocked(billingV2Repo).create).toHaveBeenCalledWith(input)
     expect(await mutations.save('r1', input)).toBe(true)

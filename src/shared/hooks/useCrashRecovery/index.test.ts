@@ -9,8 +9,9 @@ vi.mock('react', () => ({
   useEffect: (effect: () => void) => effect(),
 }))
 
-const MISSING_CHUNK = 'Loading chunk app/(app)/layout failed.\n(timeout: http://localhost:3000/_next/static/chunks/app/(app)/layout.js)'
-const RENDER_BUG = 'Cannot read properties of undefined'
+// A page chunk that never arrived, and an ordinary bug: the two kinds of crash the hook tells apart.
+const MISSING_CHUNK = 'Loading chunk 42 failed.\n(missing: http://localhost:3000/_next/static/chunks/42.js)'
+const TYPE_BUG = 'undefined is not a function'
 const BLOCKED = 'storage blocked'
 
 const reload = vi.fn()
@@ -50,7 +51,7 @@ describe('useCrashRecovery', () => {
   })
 
   it('shows the screen for any other error without reloading', () => {
-    useCrashRecovery(new Error(RENDER_BUG))
+    useCrashRecovery(new Error(TYPE_BUG))
     expect(reload).not.toHaveBeenCalled()
     expect(stored.size).toBe(0)
     expect(setStep).toHaveBeenCalledWith(SHOW)

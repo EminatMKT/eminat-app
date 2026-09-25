@@ -1,7 +1,5 @@
+import { ESCAPE, TAB } from '@/shared/constants/dom'
 import type { Dialog, Focusable, KeyPress } from './types'
-
-const ESCAPE = 'Escape'
-const TAB = 'Tab'
 
 export default function dialogKeys({ key, shiftKey, cancel, stop }: KeyPress, { items, active, onClose }: Dialog) {
   if (key === ESCAPE) {
@@ -12,7 +10,8 @@ export default function dialogKeys({ key, shiftKey, cancel, stop }: KeyPress, { 
   }
   if (key !== TAB) return
   stop()
-  const next = edgeTarget(items, items.indexOf(active as Focusable), shiftKey)
+  const at = items.findIndex((item) => item === active)
+  const next = edgeTarget(items, at, shiftKey)
   if (next === undefined) return
   cancel()
   next?.focus()

@@ -5,12 +5,24 @@ import CatalogoSelect from './index'
 
 vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key }) }))
 
+type Box = ReactElement<{ onChange: (e: unknown) => void }>
+
 const CATALOG = { valores: ['payroll', 'contractors_vendors'], label: (v?: string) => (v ?? '').toUpperCase() }
 const PLACEHOLDER = 'Select'
+const BUCKET = 'Budget bucket'
 const ignore = () => undefined
 const draw = (placeholder?: string) => renderToStaticMarkup(
-  <CatalogoSelect catalogo={CATALOG} valor="" etiqueta="Category" placeholder={placeholder} onChange={ignore} />,
+  <CatalogoSelect catalogo={CATALOG} valor="" etiqueta={BUCKET} placeholder={placeholder} onChange={ignore} />,
 )
+const hasHandler = (node: ReactElement): node is Box => typeof node.props.onChange === 'function'
+
+/** Picks `value` in the drawn box and answers what the caller was handed, if anything. */
+function pick(value: string, placeholder?: string): string[] {
+  const chosen: string[] = []
+  const box = CatalogoSelect({ catalogo: CATALOG, valor: '', etiqueta: BUCKET, placeholder, onChange: (v) => chosen.push(v) })
+  if (hasHandler(box)) box.props.onChange({ target: { value } })
+  return chosen
+}
 
 describe('CatalogoSelect', () => {
   // The stored value is the catalog one; only what is read on screen is translated.
@@ -31,10 +43,14 @@ describe('CatalogoSelect', () => {
   })
 
   it('reports the chosen value, not the event it arrived in', () => {
-    let chosen = ''
-    const remember = (v: string) => { chosen = v }
-    const box = CatalogoSelect({ catalogo: CATALOG, valor: '', etiqueta: 'Category', onChange: remember }) as ReactElement<{ onChange: (e: unknown) => void }>
-    box.props.onChange({ target: { value: CATALOG.valores[1] } })
-    expect(chosen).toBe(CATALOG.valores[1])
+    expect(pick(CATALOG.valores[1])).toEqual([CATALOG.valores[1]])
+  })
+
+  // The value is checked against the catalog, not cast into it: the blank choice goes through
+  // only where it is drawn, and anything else the DOM could hand back is not passed on.
+  it('passes on only a catalog member, or the blank choice where there is one', () => {
+    expect(pick('', PLACEHOLDER)).toEqual([''])
+    expect(pick('')).toEqual([])
+    expect(pick('rent', PLACEHOLDER)).toEqual([])
   })
 })

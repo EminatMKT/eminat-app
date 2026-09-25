@@ -24,17 +24,17 @@ async function list(): Promise<BillingV2Record[]> {
 async function create(input: BillingRecordInput): Promise<BillingV2Record> {
   const row = billingRow(input)
   const { data, error } = await supabase.from(TABLES.billingV2Records)
-    .insert(row).select(READ).single()
+    .insert(row).select(READ).single<BillingV2Record>()
   if (error) throw new Error('A billing v2 record could not be created', { cause: error })
-  return data as BillingV2Record
+  return data
 }
 
 async function update(id: string, input: BillingRecordInput): Promise<BillingV2Record> {
   const row = billingRow(input)
   const { data, error } = await supabase.from(TABLES.billingV2Records)
-    .update(row).eq('id', id).select(READ).single()
+    .update(row).eq('id', id).select(READ).single<BillingV2Record>()
   if (error) throw new Error('A billing v2 record could not be updated', { cause: error })
-  return data as BillingV2Record
+  return data
 }
 
 async function remove(id: string): Promise<void> {

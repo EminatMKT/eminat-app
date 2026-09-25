@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { billingV2Repo, type BillingV2Record } from '@/shared/data'
+import { billingV2Repo } from '@/shared/data'
+import fixtureRecord from '@/features/billing-v2/fixture-record'
 import type { BillingPaymentInput } from '@/features/billing-v2/domain/types'
 import useBillingV2Records from './index'
 
@@ -23,7 +24,7 @@ function Probe() {
 describe('useBillingV2Records', () => {
   beforeEach(() => {
     vi.mocked(billingV2Repo).list.mockReset().mockResolvedValue([])
-    vi.mocked(billingV2Repo).create.mockReset().mockResolvedValue({ id: 'new' } as BillingV2Record)
+    vi.mocked(billingV2Repo).create.mockReset().mockResolvedValue(fixtureRecord({ id: 'new' }))
     renderToStaticMarkup(<Probe />)
   })
 
