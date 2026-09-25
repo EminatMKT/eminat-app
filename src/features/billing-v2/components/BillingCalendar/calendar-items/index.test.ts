@@ -4,7 +4,9 @@ import fixtureRecord from '@/features/billing-v2/fixture-record'
 import calendarItems from './index'
 
 const DAY = '2026-09-14'
-const place = (rows: BillingV2Record[]) => calendarItems(rows, (key) => key, 'en-US')
+// The translator hands back the key and the values it was given, so a test sees what reached it.
+const t = (key: string, vars?: Record<string, string | number>) => `${key}${JSON.stringify(vars ?? {})}`
+const place = (rows: BillingV2Record[]) => calendarItems(rows, t, 'en-US')
 
 const early = fixtureRecord({ id: 'early', scheduled_on: DAY, scheduled_time: '08:00:00', payment_status: 'paid' })
 const late = fixtureRecord({ id: 'late', scheduled_on: DAY, scheduled_time: '17:00:00' })
@@ -30,10 +32,26 @@ describe('calendarItems', () => {
     expect(place([late, early]).map(({ id }) => id)).toEqual(['early', 'late'])
   })
 
-  it('names each item with its kind, its date and its line', () => {
-    const [item] = place([early])
-    expect(item.accessibleLabel).toContain('billing.type.payment')
-    expect(item.accessibleLabel).toContain('Sep 14, 2026')
-    expect(item.line).toContain(early.title)
+  // The chip is one short line: the time and the concept, nothing else competing for the width.
+  it('draws the time and the concept on the chip, and only those', () => {
+    expect(place([early])[0].label).toBe(`8:00 AM ${early.title}`)
+    expect(place([meeting])[0].label).toBe(meeting.title)
+  })
+
+  // Hover and the screen reader get the whole record, amount and status included; an unknown
+  // amount is said to be unknown, never a zero.
+  it('names a payment in full: kind, date, concept, payee, amount and status', () => {
+    const said = place([late])[0].accessibleLabel
+    expect(said).toContain('billing.calendar.paymentAria')
+    for (const part of ['billing.type.payment', 'Sep 14, 2026', late.title ?? '', 'billing.amount.missing', 'billing.status.pending']) {
+      expect(said).toContain(part)
+    }
+  })
+
+  it('names an event by its kind, its date and its concept', () => {
+    const said = place([meeting])[0].accessibleLabel
+    expect(said).toContain('billing.calendar.eventAria')
+    expect(said).toContain('billing.type.event')
+    expect(said).not.toContain('billing.amount.missing')
   })
 })

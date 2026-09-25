@@ -8,7 +8,9 @@ import BillingCalendar from './index'
 type Drawn = Parameters<typeof CalendarView>[0]
 const view: { props: Drawn | null } = { props: null }
 
-vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key, intlLocale: 'en-US' }) }))
+vi.mock('@/shared/i18n', () => ({
+  useT: () => ({ t: (key: string, vars?: object) => `${key}${vars ? JSON.stringify(vars) : ''}`, intlLocale: 'en-US' }),
+}))
 vi.mock('@/shared/components/views', () => ({
   CalendarView: (props: Drawn) => { view.props = props; return null },
 }))
@@ -28,9 +30,10 @@ const draw = (records: BillingV2Record[]) => renderToStaticMarkup(
 describe('BillingCalendar', () => {
   beforeEach(() => { opened.length = 0; newOn.length = 0; view.props = null })
 
-  it('opens on the month of the business day', () => {
+  it('opens a month page on the month of the business day', () => {
     draw([])
-    expect(view.props?.month).toBe('2026-09-01')
+    expect(view.props?.period).toBe('2026-09-01')
+    expect(view.props?.mode).toBe('month')
   })
 
   // Paid payments leave the reminders, never the calendar.
@@ -49,6 +52,12 @@ describe('BillingCalendar', () => {
     draw([])
     view.props?.onDaySelect('2026-09-14')
     expect(newOn).toEqual(['2026-09-14'])
+  })
+
+  it('says how many records a full day hides, in the words of the screen', () => {
+    draw([])
+    expect(view.props?.moreLabel(3)).toBe('billing.calendar.more{"count":3}')
+    expect(view.props?.lessLabel).toBe('billing.calendar.less')
   })
 
   it('draws the note of the month above the grid instead of on a day', () => {

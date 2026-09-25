@@ -2,25 +2,28 @@ import { describe, it, expect } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import RecordButton from './index'
 
-const SAID = 'Payroll · Sep 30, 2026'
+// Fixtures, not shipped copy: callers hand the surface text their own locale already produced.
+const SAID = 'Payroll, due Sep 30, 2026'
+const CONCEPT = 'Payroll'
+const ignore = () => undefined
+const draw = (look: 'card' | 'note') =>
+  renderToStaticMarkup(<RecordButton accessibleLabel={SAID} look={look} onPress={ignore}>{CONCEPT}</RecordButton>)
 
 describe('RecordButton', () => {
-  // What is on the surface and what a screen reader hears are the same words.
-  it('says the same line on screen and out loud', () => {
-    const html = renderToStaticMarkup(<RecordButton said={SAID} look="item" onPress={() => undefined} />)
+  // The whole record is one target: whatever the caller lays out inside, it opens on a press.
+  it('wraps what it is handed in one control named after the whole record', () => {
+    const html = draw('card')
     expect(html).toContain(`aria-label="${SAID}"`)
-    expect(html).toContain(`>${SAID}<`)
+    expect(html).toContain(`>${CONCEPT}<`)
   })
 
-  it('wears a different skin for a month note than for a list row', () => {
-    const item = renderToStaticMarkup(<RecordButton said={SAID} look="item" onPress={() => undefined} />)
-    const note = renderToStaticMarkup(<RecordButton said={SAID} look="note" onPress={() => undefined} />)
-    expect(item).not.toBe(note)
+  it('wears a different skin for a month note than for a reminder card', () => {
+    expect(draw('card')).not.toBe(draw('note'))
   })
 
   it('answers a press', () => {
     let pressed = 0
-    RecordButton({ said: SAID, look: 'item', onPress: () => { pressed += 1 } }).props.onClick()
+    RecordButton({ accessibleLabel: SAID, look: 'card', onPress: () => { pressed += 1 }, children: CONCEPT }).props.onClick()
     expect(pressed).toBe(1)
   })
 })

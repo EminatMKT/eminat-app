@@ -17,13 +17,14 @@ describe('BillingV2Content', () => {
     expect(html).toContain('billing.new')
   })
 
-  // One copy of the records feeds both views: the unpaid payment is on its day and in Upcoming,
-  // each drawn once on screen and once in its spoken label.
+  // One copy of the records feeds both views: the unpaid payment is drawn once on its day and
+  // once in Upcoming. (Their spoken labels come whole from the dictionary, which this mock
+  // reduces to bare keys.)
   it('mounts the calendar and the reminders over the shared records', () => {
     const html = renderToStaticMarkup(<BillingV2Content />)
-    expect(html).toContain('billing.calendar.emptyDay')
+    expect(html).toContain('September 2026')
     expect(html).toContain('billing.reminders.upcoming')
-    expect(html.split(payment.title ?? '').length - 1).toBe(4)
+    expect(html.split(payment.title ?? '').length - 1).toBe(2)
   })
 
   // The editor only mounts when somebody opens a record or asks for a new one.

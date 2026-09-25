@@ -9,12 +9,15 @@ type Props = {
   onClick: () => void
   /** The look, from the view that owns it. This primitive only brings the reset and the ring. */
   className?: string
+  /** The whole text, shown on hover, for a surface that cuts what it draws with an ellipsis. */
+  hint?: string
   children: ReactNode
 }
 
-export default function Pressable({ accessibleLabel, onClick, className, children }: Props) {
+export default function Pressable(props: Props) {
+  const { accessibleLabel, onClick, className, hint, children } = props
   return (
-    <button type="button" onClick={onClick} aria-label={accessibleLabel}
+    <button type="button" onClick={onClick} aria-label={accessibleLabel} title={hint}
       className={`${s.surface} ${className ?? ''}`}>
       {children}
     </button>

@@ -1,36 +1,36 @@
 'use client'
 import type { CalendarItem, CalendarViewProps } from '../types'
-import buildMonthGrid from './month-grid'
+import periodModes from './period-modes'
 import CalendarBox from './CalendarBox'
 import DayCell from './DayCell'
-import MonthNav from './MonthNav'
+import PeriodNav from './PeriodNav'
 
 export default function CalendarView<T extends CalendarItem>(props: CalendarViewProps<T>) {
-  const { month, items, locale, renderItem } = props
-  const { onMonthChange, onDaySelect, onItemSelect, emptyDayLabel } = props
+  const { period, mode, items, locale, onPeriodChange } = props
+  const { onDaySelect, onItemSelect, moreLabel, lessLabel } = props
   return (
     <CalendarBox part="page">
-      <MonthNav month={month} locale={locale} onMonthChange={onMonthChange} />
+      <PeriodNav period={period} mode={mode} locale={locale} onPeriodChange={onPeriodChange} />
       <CalendarBox part="grid">
-        {buildMonthGrid(month).map((day) => (
-          <DayCell key={day} date={day} locale={locale} renderItem={renderItem}
-            items={items.filter((one) => one.date === day)} emptyDayLabel={emptyDayLabel}
-            onDaySelect={onDaySelect} onItemSelect={onItemSelect} />
+        {periodModes[mode].days(period).map((day) => (
+          <DayCell key={day} date={day} locale={locale} items={items.filter((one) => one.date === day)}
+            onDaySelect={onDaySelect} onItemSelect={onItemSelect} moreLabel={moreLabel} lessLabel={lessLabel} />
         ))}
       </CalendarBox>
     </CalendarBox>
   )
 }
 
-// A month of anything. The view owns the page —which days it shows, where they sit, what is
-// reachable by keyboard— and nothing else: it never groups, filters or authorizes, and it does
-// not know what a record is. The feature hands it items with a date and a name, and gets back
-// the day, the month or the id that was pressed.
+// A page of anything, over a period of time. The view owns the page —which days it shows, where
+// they sit, what is reachable by keyboard— and nothing else: it never groups, filters or
+// authorizes, and it does not know what a record is. The feature hands it items with a date and
+// a label, and gets back the day, the period or the id that was pressed.
 //
-// It is controlled on purpose. The month on screen is a prop, so the screen around it can put
-// that month in a URL, share it with a list beside the calendar or restore it after a reload —
-// none of which is possible once the month is a `useState` hidden in here.
+// It is controlled on purpose. The period on screen is a prop, so the screen around it can put
+// it in a URL, share it with a list beside the calendar or restore it after a reload — none of
+// which is possible once it is a `useState` hidden in here.
 //
-// The days come from `month-grid` in whole weeks, so the page always shows a few days of the
-// neighbouring months: a record on the 31st has to be visible from the page of the month that
-// borrows it, and hiding those cells is how a calendar loses records at its own edges.
+// The mode decides the grid and the step of the arrows, through `period-modes`; only the month
+// exists. A month page is whole weeks, so it shows a few days of the neighbouring months: a
+// record on the 31st has to be visible from the page that borrows it, and hiding those cells is
+// how a calendar loses records at its own edges.

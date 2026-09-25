@@ -1,19 +1,23 @@
 'use client'
+import type { ReactNode } from 'react'
 import { Pressable } from '@/shared/components/ui'
 import s from './index.module.css'
 
 type Props = {
-  /** The whole line, drawn and announced alike. */
-  said: string
-  /** A row of a reminder list, or the month's note above the calendar. */
-  look: 'item' | 'note'
+  /** The whole record, as a screen reader says it. */
+  accessibleLabel: string
+  /** A reminder card, or the month's note above the calendar. */
+  look: 'card' | 'note'
   onPress: () => void
+  /** What the surface draws: the card's fields, or the note's line. */
+  children: ReactNode
 }
 
-export default function RecordButton({ said, look, onPress }: Props) {
-  return <Pressable accessibleLabel={said} className={s[look]} onClick={onPress}>{said}</Pressable>
+export default function RecordButton({ accessibleLabel, look, onPress, children }: Props) {
+  return <Pressable accessibleLabel={accessibleLabel} className={s[look]} onClick={onPress}>{children}</Pressable>
 }
 
-// A billing record drawn as one line of text that opens it. The reminder row and the month note
-// were the same surface with a different skin, so the surface is written once and the skin is a
-// prop. What the line says, and which record opens, is decided by whoever uses it.
+// A billing record drawn as a surface that opens it in the editor. The reminder card and the
+// month note were the same surface with a different skin, so the surface is written once and the
+// skin is a prop: both answer the pointer with a hover and the keyboard with the same visible
+// change, because both open something. What they draw inside is the caller's.

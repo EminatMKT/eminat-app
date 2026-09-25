@@ -1,6 +1,11 @@
 /* The reset. A button inherits the browser font and centres its text, and a surface —a cell,
-   a row— has to look like what surrounds it, not like a button. */
-.surface {
+   a row— has to look like what surrounds it, not like a button.
+
+   Inside `:where()` so it weighs nothing: the caller's class has the same specificity as this
+   one, and which of two equal rules wins depends on which stylesheet loaded last. That is how the
+   calendar's arrow kept this `width: 100%` over its own `width: auto` and drew a grey bar across
+   the whole header. At zero specificity any look the caller writes wins, in any load order. */
+:where(.surface) {
   display: block;
   width: 100%;
   padding: 0;

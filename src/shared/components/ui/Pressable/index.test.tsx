@@ -8,6 +8,8 @@ const ignore = () => undefined
 
 // A fixture, not shipped copy: callers hand Pressable a label their own locale already produced.
 const A_DAY_NAME = 'Sunday, August 30'
+const WHOLE_LINE = 'The whole line'
+const CUT_LINE = 'The wh…'
 
 describe('Pressable', () => {
   // The content can be a glyph, a number or a whole card, so the name cannot come from it: a
@@ -21,6 +23,13 @@ describe('Pressable', () => {
   it('wears the skin of the view it lives in, on top of its own', () => {
     const html = renderToStaticMarkup(<Pressable accessibleLabel="A day" className="cell" onClick={ignore}>30</Pressable>)
     expect(html).toContain('cell')
+  })
+
+  // A surface that cuts its text with an ellipsis still owes the whole of it to the pointer.
+  it('shows the whole text on hover when the caller gives a hint, and nothing when it does not', () => {
+    const cut = renderToStaticMarkup(<Pressable accessibleLabel="A day" hint={WHOLE_LINE} onClick={ignore}>{CUT_LINE}</Pressable>)
+    expect(cut).toContain(`title="${WHOLE_LINE}"`)
+    expect(renderToStaticMarkup(<Pressable accessibleLabel="A day" onClick={ignore}>30</Pressable>)).not.toContain('title=')
   })
 
   it('hands the press back untouched', () => {

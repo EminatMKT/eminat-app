@@ -2,8 +2,9 @@ import type { ReactNode } from 'react'
 import s from './index.module.css'
 
 type Props = {
-  /** Which of the four boxes of a month page this one is. */
-  part: 'page' | 'nav' | 'grid' | 'day'
+  /** Which box of a calendar page this one is: the page, its header and the period's name, the
+   *  grid, a day, and the entries of a day — folded, or `open` and scrolling. */
+  part: 'page' | 'nav' | 'title' | 'grid' | 'day' | 'entries' | 'open'
   children: ReactNode
 }
 
@@ -11,9 +12,9 @@ export default function CalendarBox({ part, children }: Props) {
   return <div className={s[part]}>{children}</div>
 }
 
-// The layout of the month page, as one element with four skins. The four are the same `<div>`
+// The layout of the calendar page, as one element with a skin per part. They are the same `<div>`
 // and differ only in how they arrange what is inside —a column, a bar, seven tracks, a cell—,
-// so four files would have been four copies of this line plus four stylesheets to keep in step.
+// so one file per part would have been copies of this line plus stylesheets to keep in step.
 //
 // It exists at all because a view may draw at most two tags before it has to name what it is
 // drawing (`markup_dibujado`). Pushing the boxes down here leaves the view above composing
