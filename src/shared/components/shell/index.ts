@@ -7,7 +7,9 @@
 // `appShellConfig` NO se re-exporta acá: es config (NAV, AUTO_TITLE, los tokens del shell), no
 // un componente, y tiene su propio barrel en `shell/appShellConfig`.
 export { default as AppShell } from './AppShell'
+export { default as CrashNotice } from './CrashNotice'
 export { default as DevBadge } from './DevBadge'
+export { default as FallbackDocument } from './FallbackDocument'
 export { default as LoadingScreen } from './LoadingScreen'
 export { default as ModuloTabs } from './ModuloTabs'
 export { default as NotificationItem } from './NotificationItem'

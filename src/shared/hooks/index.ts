@@ -9,3 +9,4 @@ export { useUserPreference, writeUserPreference, userPrefKey, LAST_MODULE_KEY } 
 // de vistas sin el estado que las aplica.
 export { useFilters } from './useFilters'
 export type { Filtros } from './useFilters/tipos'
+export { default as useCrashRecovery } from './useCrashRecovery'
