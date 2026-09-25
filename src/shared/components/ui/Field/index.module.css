@@ -10,8 +10,19 @@
   margin-bottom: 6px;
 }
 
-.obligatorio {
+/* The asterisk comes from the stylesheet so the label holds one element less; the control says
+   it is required with `aria-required`, which is what assistive technology reads. */
+.label[data-required]::after {
+  content: " *";
   color: #f87171;
+}
+
+/* Under its own control, in the same red as ErrorList. --c-danger-solid and not --c-danger: the
+   light one gives 2.77:1 on white and WCAG AA asks 4.5:1 for small text. */
+.error {
+  margin-top: .375rem;
+  font-size: .75rem;
+  color: var(--c-danger-solid);
 }
 
 /* El control se estiliza desde acá y no desde cada formulario: así un input, un select y un

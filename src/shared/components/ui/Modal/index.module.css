@@ -23,6 +23,12 @@
   overflow: hidden;
 }
 
+/* The box takes the focus only when it holds nothing focusable, so the keyboard stays inside. It
+   is not a control, and a ring around the whole dialog would read as one. */
+.caja:focus {
+  outline: none;
+}
+
 /* Fija: no entra en el área scrolleable. El borde es lo que la separa del contenido que pasa
    por debajo al scrollear. */
 .head {

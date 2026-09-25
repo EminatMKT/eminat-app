@@ -70,32 +70,6 @@ export function FadeInSection({ children, style, delay = 0 }: { children: ReactN
   )
 }
 
-// ── Modal animation wrapper ─────────────────────────────────────────
-export function ModalOverlay({ children, onClose }: { children: ReactNode; onClose: () => void }) {
-  return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        onClick={onClose}
-        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 8 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 8 }}
-          transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {children}
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
-  )
-}
-
 // ── Animated counter for KPI numbers ────────────────────────────────
 export function AnimatedNumber({ value, suffix = '', prefix = '', duration = 0.8 }: { value: number; suffix?: string; prefix?: string; duration?: number }) {
   const ref = useRef<HTMLSpanElement>(null)

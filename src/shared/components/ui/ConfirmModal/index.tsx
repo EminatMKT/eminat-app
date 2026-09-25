@@ -35,7 +35,7 @@ export default function ConfirmModal(props: Props) {
   )
 
   return (
-    <Modal title={title} anchoRem={27.5} onClose={onClose} footer={acciones}>
+    <Modal title={title} role="alertdialog" anchoRem={27.5} onClose={onClose} footer={acciones}>
       <div className={s.mensaje}>{message}</div>
       {confirmPhrase && (
         <Field label={confirmPhraseLabel ?? t('common.confirmPhrase', { frase: confirmPhrase })}>

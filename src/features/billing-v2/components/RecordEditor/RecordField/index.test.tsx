@@ -17,7 +17,8 @@ describe('RecordField', () => {
   it('names the field and marks it required when it is', () => {
     const html = draw('title')
     expect(html).toContain('billing.field.title')
-    expect(html).toContain('*')
+    // The asterisk is drawn by the Field's stylesheet; the box says it with `aria-required`.
+    expect(html).toContain('aria-required="true"')
   })
 
   // The payment date is the due date, not the settlement date, and the editor has to say so.

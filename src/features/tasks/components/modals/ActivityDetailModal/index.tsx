@@ -56,6 +56,7 @@ export default function ActivityDetailModal() {
   return (
     <Modal
       anchoRem={40}
+      label={modalVerAct.titulo}
       onClose={() => setModalVerAct(null)}
       header={
         <ActivityDetailHeader
