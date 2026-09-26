@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import LABEL_VARS from '@/features/billing-v2/components/RecordEditor/label-vars'
+import { MODULE } from '@/shared/auth/permissions'
 import screen from '../screen'
 
 const OVERDUE = screen.say('billing.reminders.overdue')
@@ -46,4 +47,11 @@ test('field finds a control whose label carries a variable', async ({ page }) =>
 test('dayButton matches the whole day number only', async ({ page }) => {
   await page.setContent(MARKUP)
   await expect(screen.dayButton(page, 18)).toHaveCount(1)
+})
+
+// The rail marks each link with its module's key for the tour; billing's is not its route.
+test('rail finds billing\'s link and no other module\'s', async ({ page }) => {
+  const links = `<a data-tour="${MODULE.ACCOUNTING}">a</a><a data-tour="${MODULE.COBRANZAS}">b</a>`
+  await page.setContent(`<nav>${links}</nav>`)
+  await expect(screen.rail(page)).toHaveText('b')
 })

@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test'
+import { HEADING } from '@/shared/constants/dom'
+import expectOpaque from '../opacity'
+import screen from '../screen'
 import session from '../session'
 import { APP_HOME, HOLDER_EMAIL, TODAY } from '../constants'
 
@@ -9,7 +12,16 @@ test('loginAs leaves the user on the launchpad', async ({ page }) => {
   await expect(page).toHaveURL(APP_HOME)
 })
 
-test('openBilling reaches the billing screen with the clock frozen', async ({ page }) => {
+// openBilling itself fails unless the page has faded in: it checks the heading is opaque.
+test('openBilling reaches a billing screen that reads the pinned day', async ({ page }) => {
   await session.openBilling(page)
-  expect(await page.evaluate(() => Date.now())).toBe(TODAY.getTime())
+  const shown = await page.evaluate(() => new Date().toDateString())
+  expect(shown).toBe(TODAY.toDateString())
+})
+
+// A reload is where a faked animation clock used to leave the page at opacity 0.
+test('billing is still seen after a reload', async ({ page }) => {
+  await session.openBilling(page)
+  await page.reload()
+  await expectOpaque(page.getByRole(HEADING, { level: 2, name: screen.title, exact: true }))
 })

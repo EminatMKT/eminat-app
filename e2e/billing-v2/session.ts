@@ -1,13 +1,12 @@
 import { test, expect, type Page } from '@playwright/test'
 import { MODULE, modulePath } from '@/shared/auth/permissions'
-import { NAV } from '@/shared/components/shell/appShellConfig/nav'
 import { ENTER, HEADING } from '@/shared/constants/dom'
 import { PASSWORD, ensureUser, deleteUser } from '../seed'
+import pinToday from './clock'
+import expectOpaque from './opacity'
 import records from './records'
 import screen from './screen'
 import * as K from './constants'
-
-const railKey = NAV.find((item) => item.slug === MODULE.COBRANZAS)?.key
 
 async function loginAs(page: Page, email: string) {
   await page.context().clearCookies()
@@ -25,12 +24,12 @@ async function loginAs(page: Page, email: string) {
 }
 
 async function openBilling(page: Page) {
-  await page.clock.setFixedTime(K.TODAY)
+  await pinToday(page)
   await loginAs(page, K.HOLDER_EMAIL)
-  await page.locator(`[data-tour="${railKey}"]`).click()
+  await screen.rail(page).click()
   await page.waitForURL(`**${modulePath(MODULE.COBRANZAS)}`)
   const heading = page.getByRole(HEADING, { level: 2, name: screen.title, exact: true })
-  await expect(heading).toBeVisible()
+  await expectOpaque(heading)
 }
 
 function install() {
