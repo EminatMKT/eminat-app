@@ -19,7 +19,7 @@ type Props = {
 
 export default function TextControl(props: Props) {
   const { kind, value, onChange, onBlur, multiline, maxLength, inputMode } = props
-  const named = useFieldControl()
+  const named = useFieldControl({ length: value.length, max: maxLength })
   const shared = { ...named, value, maxLength, onBlur }
   if (multiline) return <textarea {...shared} rows={3} onChange={(e) => onChange(e.target.value)} />
   return <input {...shared} type={kind} inputMode={inputMode} onChange={(e) => onChange(e.target.value)} />
@@ -29,4 +29,6 @@ export default function TextControl(props: Props) {
 // sits inside it, so an input, a select and a textarea of the same form already look alike.
 // What it does own is the shape of the callback — the caller is handed the value, never the
 // browser event, so nothing above this file has to know it is reading a DOM target. Its name
-// comes from the `Field` around it through `useFieldControl`: the label points at this box.
+// comes from the `Field` around it through `useFieldControl`: the label points at this box. It
+// also tells that Field how full the box is, which only it knows: the Field draws the count
+// near the limit and the notice when a paste is cut.

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import values from '@/features/billing-v2/domain/record-values'
+import TEXT_MAX from '@/features/billing-v2/domain/text-limits'
 import { BUTTON } from '@/shared/constants/dom'
 import session from './session'
 import records from './records'
@@ -12,6 +13,25 @@ test.describe.configure({ mode: 'serial' })
 session.install()
 
 const INVALID = ['aria-invalid', 'true'] as const
+// More than the concept holds, so the box has to cut it and say so.
+const PASTED_LENGTH = 200
+const OVERFLOW = PASTED_LENGTH - TEXT_MAX.title
+
+test('a paste longer than the concept is cut to its limit, and the box says how much was lost', async ({ page }) => {
+  await session.openBilling(page)
+  await page.getByRole(BUTTON, { name: new RegExp(screen.say('billing.new')) }).click()
+  const concept = screen.field(page, 'billing.field.title')
+  await concept.focus()
+  await page.keyboard.insertText(RUN.padEnd(PASTED_LENGTH, 'y'))
+
+  const limit = String(TEXT_MAX.title)
+  const field = screen.say('billing.field.title')
+  const notice = screen.say('common.field.cutMany', { n: String(OVERFLOW), field, max: limit })
+  const count = screen.say('common.field.count', { n: limit, max: limit })
+  await expect(concept).toHaveValue(new RegExp(`^.{${TEXT_MAX.title}}$`))
+  await expect(page.getByText(notice)).toBeVisible()
+  await expect(page.getByText(count, { exact: true })).toBeVisible()
+})
 
 test('Save is held with its reason, a bad amount is named under its box, and 1.250,40 is stored', async ({ page, request }) => {
   const title = `${RUN} amount`

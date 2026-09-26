@@ -56,6 +56,9 @@ html, body, * {
      texto e íconos sobre fondo claro; estos, sólo para el relleno. */
   --c-accent-solid: #6355E8;
   --c-danger-solid: #DC2626;
+  /* The amber of "careful, you reached the edge", for small TEXT on light: 5.02:1 on white. Not
+     red, because nothing is wrong yet — the field has only stopped taking characters. */
+  --c-warn-solid: #B45309;
 
   /* Estos dos PARECEN primitivos y no lo son: son decisiones de tema disfrazadas de blanco y
      negro, y por eso están acá y no escritos en cada componente.

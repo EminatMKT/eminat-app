@@ -1,5 +1,5 @@
 .campo {
-  margin-bottom: 14px;
+  margin-bottom: .875rem;
 }
 
 .label {
@@ -7,7 +7,7 @@
   font-size: .75rem;
   font-weight: 500;
   color: var(--c-t2);
-  margin-bottom: 6px;
+  margin-bottom: .375rem;
 }
 
 /* The asterisk comes from the stylesheet so the label holds one element less; the control says
@@ -23,6 +23,30 @@
   margin-top: .375rem;
   font-size: .75rem;
   color: var(--c-danger-solid);
+}
+
+/* The count and the cut notice of a box with a length limit. --c-t2 and not --c-t3 for the quiet
+   tone: the lighter grey gives under 3:1 on white. The warning tone is amber, not red — nothing
+   is wrong yet, the box has only stopped taking characters. */
+.count,
+.cut {
+  margin-top: .25rem;
+  font-size: .75rem;
+  color: var(--c-t2);
+}
+
+.count {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.count[data-tone="full"],
+.cut {
+  color: var(--c-warn-solid);
+}
+
+.cut:empty {
+  display: none;
 }
 
 /* El control se estiliza desde acá y no desde cada formulario: así un input, un select y un

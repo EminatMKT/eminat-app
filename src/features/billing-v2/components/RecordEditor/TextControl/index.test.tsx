@@ -1,8 +1,16 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type { ReactElement } from 'react'
 import { Field } from '@/shared/components/ui'
 import TextControl from './index'
+
+// What the control tells its Field about its length, kept while the real hook still names it.
+const reported: unknown[] = vi.hoisted(() => [])
+vi.mock('@/shared/components/ui', async (original) => {
+  const real = await original<typeof import('@/shared/components/ui')>()
+  const useFieldControl: typeof real.useFieldControl = (limit) => (reported.push(limit), real.useFieldControl(limit))
+  return { ...real, useFieldControl }
+})
 
 type Control = ReactElement<{ onChange: (event: unknown) => void; onBlur?: () => void }>
 
@@ -60,6 +68,13 @@ describe('TextControl', () => {
     let typed = ''
     capture((value) => { typed = value }).props.onChange({ target: { value: '12.50' } })
     expect(typed).toBe('12.50')
+  })
+
+  // Only the control knows its value: it tells the Field how full it is, so the count is drawn.
+  it('reports to its Field how full the box is', () => {
+    reported.length = 0
+    renderToStaticMarkup(<TextControl kind="text" value={LABEL} maxLength={MAX} onChange={ignore} />)
+    expect(reported).toContainEqual({ length: LABEL.length, max: MAX })
   })
 
   // Leaving the box is what lets its message show; the control only has to say it happened.
