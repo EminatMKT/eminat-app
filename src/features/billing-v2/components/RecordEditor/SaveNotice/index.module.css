@@ -17,3 +17,11 @@
   color: var(--c-danger-solid);
   font-weight: 600;
 }
+
+/* The phone breakpoint (48rem, see BillingBox's `.actions`): beside the buttons the line would be
+   a column a few words wide, so it takes the whole width and the footer wraps the buttons under. */
+@media (max-width: 48rem) {
+  .notice {
+    flex-basis: 100%;
+  }
+}

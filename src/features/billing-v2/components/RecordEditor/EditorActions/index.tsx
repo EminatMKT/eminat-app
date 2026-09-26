@@ -1,6 +1,7 @@
 'use client'
 import { useT } from '@/shared/i18n'
 import { Button } from '@/shared/components/ui'
+import BillingBox from '@/features/billing-v2/components/BillingBox'
 import DeleteRecord from '../DeleteRecord'
 import SaveNotice from '../SaveNotice'
 
@@ -22,13 +23,13 @@ export default function EditorActions(props: Props) {
   const { t } = useT()
 
   return (
-    <>
+    <BillingBox part="actions">
       {failure && <SaveNotice tone="failure">{failure}</SaveNotice>}
       {blocked && <SaveNotice tone="reason">{blocked}</SaveNotice>}
       {onDelete && <DeleteRecord disabled={busy} onConfirm={onDelete} />}
       <Button kind="cancel" onClick={onCancel} />
       <Button kind="confirm" label={t('billing.save')} onClick={onSave} ocupado={busy} deshabilitado={!!blocked} />
-    </>
+    </BillingBox>
   )
 }
 

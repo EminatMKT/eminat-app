@@ -6,6 +6,7 @@ const TITLE = 'title'
 type Props = {
   /** Which piece of the billing screen this box is. */
   part: 'page' | 'head' | 'title' | 'views' | 'panel' | 'records' | 'form' | 'row' | 'pills' | 'hint'
+    | 'choice' | 'label' | 'actions'
   children: ReactNode
 }
 

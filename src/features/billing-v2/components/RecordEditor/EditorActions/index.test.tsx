@@ -31,6 +31,13 @@ describe('EditorActions', () => {
     expect(html).toContain(REASON)
   })
 
+  // One box holds the reason and then the buttons, so a narrow footer can wrap the reason above.
+  it('draws the reason first, inside one box with the buttons', () => {
+    const html = renderToStaticMarkup(<EditorActions busy={false} blocked={REASON} onCancel={ignore} onSave={ignore} />)
+    expect(html.startsWith('<div')).toBe(true)
+    expect(html.indexOf(REASON)).toBeLessThan(html.indexOf('billing.save'))
+  })
+
   // The error that belongs to no field goes next to the action that failed, as an alert.
   it('says a write failed next to the actions', () => {
     const html = renderToStaticMarkup(<EditorActions busy={false} failure={FAILURE} onCancel={ignore} onSave={ignore} />)

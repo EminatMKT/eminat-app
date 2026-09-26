@@ -18,8 +18,8 @@ export default function TypePicker({ current, locked, onPick }: Props) {
   if (locked) return <BillingBox part="hint">{t(billingLabelKey(current))} · {t('billing.typeLocked')}</BillingBox>
 
   return (
-    <BillingBox part="form">
-      <BillingBox part="hint">{t('billing.typeLabel')}</BillingBox>
+    <BillingBox part="choice">
+      <BillingBox part="label">{t('billing.typeLabel')}</BillingBox>
       <BillingBox part="pills">
         {values.recordType.options.map((kind) => (
           <PillToggle key={kind} label={t(billingLabelKey(kind))} active={kind === current} onClick={() => onPick(kind)} />
