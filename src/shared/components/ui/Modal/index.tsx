@@ -1,10 +1,10 @@
 'use client'
 import type { ReactNode } from 'react'
 import ModalHead from '@/shared/components/ui/ModalHead'
+import { DIALOG } from '@/shared/constants/dom'
 import useDialog from './useDialog'
 import s from './index.module.css'
 
-const DIALOG = 'dialog'
 const ALERT_DIALOG = 'alertdialog'
 
 // centinela-exime: bloques-similares@3 — no hay markup nuevo: el encabezado SALIÓ de acá a

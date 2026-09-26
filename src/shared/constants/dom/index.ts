@@ -1,6 +1,9 @@
 /** The element a pressable surface draws, which is also the ARIA role it is found by. */
 export const BUTTON = 'button'
 
+/** The ARIA role a modal declares: how assistive tech, and the e2e, know one is open. */
+export const DIALOG = 'dialog'
+
 /** The ARIA role of `h1`–`h6`. */
 export const HEADING = 'heading'
 

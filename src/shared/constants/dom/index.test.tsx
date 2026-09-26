@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import Pressable from '@/shared/components/ui/Pressable'
-import { BUTTON, ENTER, ESCAPE, TAB } from './index'
+import { BUTTON, DIALOG, ENTER, ESCAPE, TAB } from './index'
 
 const ignore = () => undefined
 const LABEL = 'Day 30'
@@ -11,6 +11,11 @@ describe('dom names', () => {
   it('names the element a pressable surface draws', () => {
     const html = renderToStaticMarkup(<Pressable accessibleLabel={LABEL} onClick={ignore}>30</Pressable>)
     expect(html.startsWith(`<${BUTTON} `)).toBe(true)
+  })
+
+  // The e2e finds an open editor by this role; the Modal's own suite pins that it declares it.
+  it('names the role a modal declares, spelled as ARIA spells it', () => {
+    expect(DIALOG).toBe('dialog')
   })
 
   // The keys a dialog and a menu answer, spelled as `KeyboardEvent.key` spells them.

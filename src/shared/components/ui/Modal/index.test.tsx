@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { DIALOG } from '@/shared/constants/dom'
 import Modal from './index'
 
 vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key }) }))
@@ -16,7 +17,7 @@ const titled = () => renderToStaticMarkup(<Modal title={TITLE} onClose={ignore}>
 describe('Modal', () => {
   it('says it is a modal dialog to assistive technology', () => {
     const html = titled()
-    expect(html).toContain('role="dialog"')
+    expect(html).toContain(`role="${DIALOG}"`)
     expect(html).toContain('aria-modal="true"')
   })
 
