@@ -43,3 +43,17 @@ export function horaCorta(hora: string, intlLocale: string): string {
   const opciones: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' }
   return new Date(2000, 0, 1, h, m).toLocaleTimeString(intlLocale, opciones)
 }
+
+const LONG_DAY: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }
+const SHORT_MOMENT: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }
+
+/** The whole day as a person says it: "sábado, 26 de septiembre de 2026". For a wide screen. */
+export function longDay(d: Date, intlLocale: string): string {
+  return d.toLocaleDateString(intlLocale, LONG_DAY)
+}
+
+/** Day, month and minute, "26 sept, 5:47 p. m.": the moment in the width of a phone. Whether
+ *  the clock is 12h or 24h comes from the locale, like `horaCorta`. */
+export function shortMoment(d: Date, intlLocale: string): string {
+  return d.toLocaleString(intlLocale, SHORT_MOMENT)
+}

@@ -9,7 +9,7 @@
 // `@/shared/utils`, que es lo que evita el ciclo — verificarlo antes de sumar uno nuevo.
 // Ver `rules/codigo.md`.
 
-export { localDate, localMonth, fechaCorta, horaCorta } from './dates'
+export { localDate, localMonth, fechaCorta, horaCorta, longDay, shortMoment } from './dates'
 export { resolveToCanonical } from './canonical'
 export { detectSeparator, parseDelimited } from './delimited'
 export { applyFilters, countByOption, distinctValues, distinctTokens, visibleDefs, defaultFilterValues, resolveFilterValues, sameFilters, enRango, monthRange, RANGE_SEP } from './filters'

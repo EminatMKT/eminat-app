@@ -4,6 +4,15 @@ export const BUTTON = 'button'
 /** The ARIA role a modal declares: how assistive tech, and the e2e, know one is open. */
 export const DIALOG = 'dialog'
 
+/** The ARIA role of the page-wide `<header>`: the shell's topbar. */
+export const BANNER = 'banner'
+
+/** The element that gives a page its banner, when nothing but `body` holds it. */
+export const HEADER_ELEMENT = 'header'
+
+/** The element that holds the page's own content: one per screen, and the topbar is not in it. */
+export const MAIN_ELEMENT = 'main'
+
 /** The ARIA role of `h1`–`h6`. */
 export const HEADING = 'heading'
 

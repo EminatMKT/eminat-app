@@ -32,4 +32,7 @@ export const BUTTON_META = {
   // Asking again for something that failed to load. Added on 24/09/2026 with billing v2, whose
   // screen answers a failed read with this instead of an empty list that would look like "none".
   retry:   { icono: '↻',  labelKey: 'common.retry',        tono: 'secundario' },
+  // Opening the navigation that folds away on a phone. Added on 26/09/2026, when the topbar's
+  // hand-written ☰ moved out of an inline style; it is drawn icon-only.
+  menu:    { icono: '☰',  labelKey: 'shell.openMenu',      tono: 'secundario' },
 } satisfies Record<ButtonKind, ButtonMeta>

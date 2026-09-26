@@ -5,9 +5,9 @@ import Onboarding from '@/shared/components/shell/Onboarding'
 import Topbar from '@/shared/components/shell/Topbar'
 import Sidebar from '@/shared/components/shell/Sidebar'
 import LoadingScreen from '@/shared/components/shell/LoadingScreen'
-import { D } from '@/shared/components/shell/appShellConfig'
+import ShellLayout from '@/shared/components/shell/ShellLayout'
 
-interface Props {
+type Props = {
   children: ReactNode
   title?: string
   actions?: ReactNode
@@ -15,29 +15,28 @@ interface Props {
   onTabChange?: (tab: string) => void
 }
 
-// Orquestador del shell: compone Sidebar + Topbar + área de contenido.
-// El estado del panel vive en Sidebar; acá solo el toggle del sidebar móvil.
-export default function AppShell({ children, title, actions, activeTab, onTabChange }: Props) {
-  const { loading, bg } = useApp()
+/** The shell around every module: Sidebar, then a column with the Topbar over the page. The
+ *  panel's state lives in Sidebar; here only the toggle of the phone drawer. */
+export default function AppShell(props: Props) {
+  const { children, title, actions } = props
+  const { activeTab, onTabChange } = props
+  const { loading } = useApp()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   if (loading) return <LoadingScreen />
 
   return (
-    <div style={{ display: 'flex', height: '100vh', background: D.bg, color: D.t1, fontFamily: 'DM Sans, sans-serif' }}>
-      {mobileOpen && <div onClick={() => setMobileOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 49 }} />}
-
+    <ShellLayout part="root">
+      {mobileOpen && <ShellLayout part="scrim" onClick={() => setMobileOpen(false)} />}
       <Sidebar activeTab={activeTab} onTabChange={onTabChange} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
-
-      <main style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+      <ShellLayout part="column">
         <Topbar title={title} actions={actions} onHamburger={() => setMobileOpen(!mobileOpen)} />
-        {/* CONTENT AREA — always light */}
-        <div style={{ padding: '20px 24px', flex: 1, overflow: 'auto', background: bg, color: '#111827' }}>
-          {children}
-        </div>
-      </main>
-
+        <ShellLayout part="content">{children}</ShellLayout>
+      </ShellLayout>
       <Onboarding />
-    </div>
+    </ShellLayout>
   )
 }
+
+// Every module mounts inside this shell. Its layout lives in ShellLayout's stylesheet, and the
+// page's content is the one `main` of the screen.

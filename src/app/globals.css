@@ -25,14 +25,19 @@ html, body, * {
            todavía pintan con `style`. Al tocar un color hay que cambiarlo en los dos
            lados hasta que no quede ninguno; el .css es el que manda. */
 :root {
-  --bg: #08080D;
-  --s1: #0E0E18;
-  --s2: #141422;
+  /* The shell values are the ones the shell paints: they mirror `D` in
+     shell/appShellConfig/colores.ts, which the files still styled from JS read. */
+  --bg: #0A0A0F;
+  --s1: #111118;
+  --s2: #1A1A24;
   --s3: #1C1C2E;
   --accent: #7C6FF7;
-  --t1: #EDEDFF;
-  --t2: #9494B3;
-  --t3: #52526B;
+  --t1: #FFFFFF;
+  --t2: rgba(255, 255, 255, .6);
+  --t3: rgba(255, 255, 255, .3);
+  --border: rgba(255, 255, 255, .07);
+  /* The green of "online": the presence badge and the topbar's success flash. */
+  --ok: #34D399;
 
   --c-bg: #F9FAFB;
   --c-s1: #FFFFFF;
@@ -89,9 +94,9 @@ body {
   color: var(--t1);
   min-height: 100vh;
 }
-*::-webkit-scrollbar { width: 4px; height: 4px; }
+*::-webkit-scrollbar { width: .25rem; height: .25rem; }
 *::-webkit-scrollbar-track { background: transparent; }
-*::-webkit-scrollbar-thumb { background: rgba(124,111,247,0.3); border-radius: 2px; }
+*::-webkit-scrollbar-thumb { background: rgba(124,111,247,0.3); border-radius: .125rem; }
 
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
@@ -143,15 +148,17 @@ body {
 .tool-btn { transition: filter .12s ease, border-color .12s ease; }
 .tool-btn:hover { filter: brightness(.97); border-color: rgba(128, 128, 128, .45); }
 
-@media (max-width: 768px) {
+/* A phone: the sidebar folds into a drawer. The topbar's menu button appears at this same width
+   (TopbarLayout's stylesheet): change one, change the other. */
+@media (max-width: 48rem) {
   .sidebar-root { position: fixed !important; left: 0; top: 0; bottom: 0; transform: translateX(-100%); transition: transform .25s ease; }
   .sidebar-root.open { transform: translateX(0); }
-  .mobile-hamburger { display: flex !important; }
 }
 
+/* The topbar hides itself on paper (TopbarLayout's stylesheet); it used to be `main`'s first
+   child, and now it is not inside `main` at all. */
 @media print {
   aside { display: none !important; }
-  main > div:first-child { display: none !important; }
   #reporte-controls { display: none !important; }
   body, html { background: white !important; }
   main { overflow: visible !important; }

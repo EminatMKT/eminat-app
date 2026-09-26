@@ -1,19 +1,33 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
+import { useT } from '@/shared/i18n'
 import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 import { ColorBadge } from '@/shared/components/ui'
+import TopbarLayout from '@/shared/components/shell/TopbarLayout'
 
-// Las marcas del grupo en el topbar. Son etiquetas que se LEEN: no se clickean, no filtran nada.
-// Por eso usan `ColorBadge` —la etiqueta teñida compartida— y no un chip propio: `BrandChip` era
-// un punto de color más el código, con el mismo look que los chips que sí se eligen, así que la
-// app prometía interacción donde no la hay. De paso hereda su contraste medido: el color crudo de
-// una marca daba hasta 1.84:1 sobre el fondo teñido, y ColorBadge lo mezcla al 50% con el texto
-// de la app para llegar a 5.12:1.
+const SEPARATOR = ', '
+
+/** The group's brands in the topbar: labels to READ, never clicked, so `ColorBadge` and not a
+ *  chip that looks choosable. It also brings ColorBadge's measured contrast (5.12:1 at worst). */
 export default function TopbarBrands() {
   const { marcas } = useApp()
+  const { t } = useT()
+  if (!marcas.length) return null
+  const codes = marcas.map(m => m.codigo)
+  const hint = t('shell.brandsTitle', { list: codes.join(SEPARATOR) })
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      {marcas.map(m => <ColorBadge key={m.codigo} color={m.color ?? COLOR_MARCA_FALLBACK}>{m.codigo}</ColorBadge>)}
-    </div>
+    <>
+      <TopbarLayout part="wide">
+        <TopbarLayout part="brands">
+          {marcas.map(m => <ColorBadge key={m.codigo} color={m.color ?? COLOR_MARCA_FALLBACK}>{m.codigo}</ColorBadge>)}
+        </TopbarLayout>
+      </TopbarLayout>
+      <TopbarLayout part="narrow" title={hint}>
+        <ColorBadge color={COLOR_MARCA_FALLBACK}>{t('shell.brandsMore', { n: marcas.length })}</ColorBadge>
+      </TopbarLayout>
+    </>
   )
 }
+
+// On a phone the seven chips reached far past the screen's edge, so they fold into one count
+// whose hint names them all. The wide row is only tucked away there, so it is still read aloud.

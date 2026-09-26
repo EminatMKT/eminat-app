@@ -1,0 +1,153 @@
+/* The shell's topbar, always dark: it paints with the shell palette (`--*`), not the content one. */
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .6875rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--s1);
+}
+
+/* `min-width: 0` down the left side is what lets the title shrink instead of pushing the actions
+   off the screen: a flex item never gets narrower than its content without it. */
+.lead {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  min-width: 0;
+}
+
+.menu {
+  display: none;
+}
+
+.heading {
+  min-width: 0;
+}
+
+.title {
+  overflow: hidden;
+  font-size: .9375rem;
+  font-weight: 700;
+  color: var(--t1);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  min-width: 0;
+  margin-top: .1875rem;
+}
+
+.date {
+  font-size: .625rem;
+  color: var(--t3);
+  white-space: nowrap;
+}
+
+.rule {
+  width: 0;
+  height: .625rem;
+  border-left: 1px solid var(--border);
+}
+
+.brands {
+  display: flex;
+  align-items: center;
+  gap: .375rem;
+}
+
+.actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: .5rem;
+}
+
+/* The flash message may be long: it wraps inside what is left instead of widening the bar. */
+.flash {
+  min-width: 0;
+}
+
+.flash:empty {
+  display: none;
+}
+
+/* Presence: a green pill whose dot is drawn here, so the piece only carries its words. */
+.online {
+  display: inline-flex;
+  align-items: center;
+  gap: .3125rem;
+  padding: .3125rem .6875rem;
+  border: 1px solid color-mix(in srgb, var(--ok) 19%, transparent);
+  border-radius: 1.25rem;
+  background: color-mix(in srgb, var(--ok) 7%, transparent);
+  font-size: .6875rem;
+  font-weight: 500;
+  color: var(--ok);
+  white-space: nowrap;
+}
+
+.online::before {
+  content: '';
+  width: .375rem;
+  height: .375rem;
+  border-radius: 50%;
+  background: var(--ok);
+}
+
+.narrow {
+  display: none;
+}
+
+/* A phone: the same width at which the sidebar folds into a drawer (`.sidebar-root` in
+   globals.css). The two have to change together — a hamburger with no drawer, or a drawer with no
+   hamburger, is a dead end. */
+@media (max-width: 48rem) {
+  .bar {
+    padding: .5rem .75rem;
+  }
+
+  .lead {
+    gap: .5rem;
+  }
+
+  .actions {
+    gap: .375rem;
+  }
+
+  .online {
+    padding: .3125rem .5rem;
+  }
+
+  .menu {
+    display: flex;
+  }
+
+  .narrow {
+    display: inline;
+  }
+
+  /* Tucked away, not removed: a screen reader still reads the whole day and every brand. */
+  .wide {
+    position: absolute;
+    width: .0625rem;
+    height: .0625rem;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+@media print {
+  .bar {
+    display: none;
+  }
+}

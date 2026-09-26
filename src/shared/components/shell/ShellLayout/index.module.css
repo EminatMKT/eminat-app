@@ -1,0 +1,40 @@
+/* The whole screen: the sidebar and the column side by side, on the shell's dark background. */
+.root {
+  display: flex;
+  height: 100vh;
+  background: var(--bg);
+  color: var(--t1);
+}
+
+/* Behind the sidebar while it is open as a drawer on a phone; a click on it closes the drawer. */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 49;
+  background: rgba(0, 0, 0, .6);
+}
+
+/* The topbar and the page. It scrolls, so the sticky topbar stays on top of the page. */
+.column {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow: auto;
+}
+
+/* The page's content, always light. */
+.content {
+  flex: 1;
+  overflow: auto;
+  padding: 1.25rem 1.5rem;
+  background: var(--c-bg);
+  color: var(--c-t1);
+}
+
+/* On paper nothing scrolls: every page prints whole. */
+@media print {
+  .column,
+  .content {
+    overflow: visible;
+  }
+}
