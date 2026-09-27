@@ -14,20 +14,20 @@ function focusFirstInvalid() {
   document.querySelector<HTMLElement>('[aria-modal="true"] [aria-invalid="true"]')?.focus()
 }
 
-/** The editor's boxes, what is wrong with them, why Save is held, and the two writes. */
+/** The editor's boxes, every error and the ones shown, what Save is told, and the two writes. */
 export default function useRecordEditor(record: BillingV2Record | null, onSave: SaveRecord, onDrop: DropRecord, day?: string) {
   const { t } = useT()
   const [state, setState] = useState(() => editorState.open(recordForm(record, day)))
   const { initial, form, left, attempts, failure, busy } = state
   const inFlight = useRef(false)
   const { input, errors } = formInput(form)
-  const blocked = saveBlock(form, initial, errors, t)
+  const { fields, hold } = saveBlock(form, initial, t)
   useEffect(() => { if (attempts) focusFirstInvalid() }, [attempts])
   const edit: EditField = (name, value) => setState(editorState.edit(name, value))
   const leave: LeaveField = (name) => setState(editorState.leave(name))
   const pickType = (recordType: BillingRecordType) => setState(editorState.pick(recordType))
   const submit = async () => {
-    if (inFlight.current || blocked) return false
+    if (inFlight.current || hold) return false
     if (!input) {
       setState(editorState.attempted)
       return false
@@ -45,14 +45,15 @@ export default function useRecordEditor(record: BillingV2Record | null, onSave: 
     return landed
   }
   const shown = visibleErrors(errors, left, attempts > 0)
-  const editor = { form, errors: shown, blocked, failure, busy, edit, leave, pickType, submit, drop }
+  const editor = { form, errors, shown, fields, hold, failure, busy, edit, leave, pickType, submit, drop }
   return editor
 }
 
 // The boxes are validated on every change and the errors are never stored; what is kept is only
 // when to show them —a box that was left, or every box after Save met an invalid form—. That
 // attempt also takes the focus to the first invalid box, because in a scrolling dialog it may be
-// out of view. Save is held —with its reason— while something required is missing or nothing
-// changed, so it is never pressed in vain. A write that fails leaves every box as it was and only
+// out of view. The whole error map goes to Save's footer, which holds it —with its reason— while
+// any error is unresolved; nothing changed is the editor's own hold, added on top, so Save is
+// never pressed in vain. `shown` is only what the boxes draw under themselves. A write that fails leaves every box as it was and only
 // the failure line changes. The ref, and not `busy`, is what stops a double click: two clicks can
 // land before React draws the disabled button.

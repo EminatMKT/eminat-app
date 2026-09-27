@@ -1,0 +1,10 @@
+/* A form's footer: a line, when there is one, across the whole first row; the buttons under it at
+   the right. Wrapping is what puts the line above them. */
+.strip {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}

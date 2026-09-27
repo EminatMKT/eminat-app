@@ -96,12 +96,3 @@
   font-weight: 500;
   color: var(--c-t2);
 }
-
-/* The editor's footer: a notice, when there is one, across the whole first line; the buttons
-   under it at the right. `bar` already wraps, which is what puts the notice above. */
-.actions {
-  composes: bar;
-  flex: 1 1 auto;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}

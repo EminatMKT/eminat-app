@@ -45,7 +45,7 @@ describe('RecordEditor', () => {
   // An empty form says why it cannot be saved yet, beside a disabled Save, and scolds no box.
   it('holds Save back on an empty form, in view, with no box marked invalid yet', () => {
     const html = draw(null)
-    expect(html).toContain('billing.saveBlocked.missing')
+    expect(html).toContain('common.saveBlocked.missing')
     expect(html).toMatch(DISABLED_SAVE)
     expect(html).not.toContain('aria-invalid')
   })

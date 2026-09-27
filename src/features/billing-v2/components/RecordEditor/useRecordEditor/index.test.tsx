@@ -48,19 +48,19 @@ describe('useRecordEditor', () => {
     expect(await seen?.drop()).toBe(false)
     expect(onDrop).not.toHaveBeenCalled()
   })
-  // Nothing required missing and something changed, or Save stays held and says why.
-  it('holds Save back while something required is missing or nothing changed', async () => {
+  // Save gets every error from the first render, before any box shows one; nothing changed holds too.
+  it('hands Save every error, even unshown ones, and holds it while nothing changed', async () => {
     open(null)
-    expect(seen?.blocked).toBe('billing.saveBlocked.missing')
+    expect([seen?.shown, seen?.errors.title]).toEqual([{}, 'billing.error.title'])
     open(stored)
-    expect(seen?.blocked).toBe('billing.saveBlocked.unchanged')
+    expect([seen?.errors, seen?.hold]).toEqual([{}, 'billing.saveBlocked.unchanged'])
     expect(await seen?.submit()).toBe(false)
     expect(onSave).not.toHaveBeenCalled()
   })
   // Two clicks before the first answer is one save, not two records.
   it('updates the record once something changed, once per click race', async () => {
     open(stored, retitle)
-    expect(seen?.blocked).toBeNull()
+    expect(seen?.hold).toBeNull()
     expect(await Promise.all([seen?.submit(), seen?.submit()])).toEqual([true, false])
     expect(onSave).toHaveBeenCalledTimes(1)
     expect(onSave).toHaveBeenCalledWith('r1', expect.objectContaining({ title: CHANGED }))
@@ -74,8 +74,8 @@ describe('useRecordEditor', () => {
   it('shows the message of a box only after it was left', () => {
     const typo: Step = (editor) => editor.edit('amount', 'abc')
     open(stored, typo)
-    expect(seen?.errors).toEqual({})
+    expect([seen?.shown, seen?.errors]).toEqual([{}, { amount: 'billing.error.amount' }])
     open(stored, typo, (editor) => editor.leave('amount'))
-    expect(seen?.errors).toEqual({ amount: 'billing.error.amount' })
+    expect(seen?.shown).toEqual({ amount: 'billing.error.amount' })
   })
 })

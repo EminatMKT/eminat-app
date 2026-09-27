@@ -54,7 +54,7 @@ test('Save is held with its reason, a bad amount is named under its box, and 1.2
   // Wagner's norm: an unresolved error on change disables Save, and the reason names the box.
   await expect(save).toBeDisabled()
   const amountLabel = screen.say('billing.field.amount', LABEL_VARS)
-  await expect(reason).toHaveText(screen.say('billing.saveBlocked.invalid', { fields: amountLabel }))
+  await expect(reason).toHaveText(screen.say('common.saveBlocked.invalid',{ fields: amountLabel }))
   await amount.blur()
   await expect(complaint).toBeVisible()
   await expect(amount).toHaveAttribute(...INVALID)
