@@ -2,7 +2,8 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import type { I18nKey } from '@/shared/i18n'
 import fadeTimer from './index'
 
-const LIFE_MS = 4000
+/** Any life will do: the timer is told how long, so the test does not borrow the confirmation's. */
+const LIFE_MS = 1000
 const shown: (I18nKey | null)[] = []
 const show = (key: I18nKey | null) => { shown.push(key) }
 
