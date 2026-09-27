@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import type { BillingV2Record } from '@/shared/data'
+import fixtureRecord from '@/features/billing-v2/fixture-record'
 import reminderLists from './index'
 
 const TODAY = '2026-09-23'
-const row = (id: string, fields: Partial<BillingV2Record>) =>
-  ({ id, record_type: 'payment', payment_status: 'pending', scheduled_on: TODAY, ...fields }) as BillingV2Record
+const row = (id: string, fields: Partial<BillingV2Record>) => fixtureRecord({ id, scheduled_on: TODAY, ...fields })
 
 const late = row('late', { scheduled_on: '2026-09-22' })
 const older = row('older', { scheduled_on: '2026-08-31' })

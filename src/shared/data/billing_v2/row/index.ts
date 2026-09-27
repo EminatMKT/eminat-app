@@ -1,4 +1,5 @@
 import billingRecordInput from '@/features/billing-v2/domain/record-input'
+import isRecordInput from '@/features/billing-v2/domain/record-input/contract'
 import values from '@/features/billing-v2/domain/record-values'
 import type { BillingEventInput, BillingMonthNoteInput, BillingPaymentInput, BillingRecordInput } from '@/features/billing-v2/domain/types'
 import type { BillingV2Absent, BillingV2Write } from '../types'
@@ -39,10 +40,10 @@ function noteRow({ recordType, noteMonth, noteText }: BillingMonthNoteInput): Bi
 /** Validates a mutation and turns it into the exact columns this layer writes: the one place
  *  the stored currency is written, and one the server-owned columns never reach. */
 export default function billingRow(input: BillingRecordInput): BillingV2Write {
-  // With `strict` off in tsconfig, zod infers every nullable key as optional, so the parsed
-  // value no longer matches the DTO it validated. The schema's own suite proves they are one
-  // shape; naming it back is what keeps the blank-to-null transform instead of dropping it.
-  const parsed = billingRecordInput.parse(input) as BillingRecordInput
+  // The parsed value is what keeps the blank-to-null transform; it is named back as the DTO by
+  // the domain's guard, a check where a cast used to be.
+  const parsed: unknown = billingRecordInput.parse(input)
+  if (!isRecordInput(parsed)) throw new Error('billing v2: the parsed record left the contract')
   if (parsed.recordType === values.recordType.enum.payment) return paymentRow(parsed)
   if (parsed.recordType === values.recordType.enum.event) return eventRow(parsed)
   return noteRow(parsed)

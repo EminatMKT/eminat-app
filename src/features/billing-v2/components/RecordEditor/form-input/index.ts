@@ -1,6 +1,6 @@
 import type { z } from 'zod'
 import billingRecordInput from '@/features/billing-v2/domain/record-input'
-import type { BillingRecordInput } from '@/features/billing-v2/domain/types'
+import isRecordInput from '@/features/billing-v2/domain/record-input/contract'
 import formPayload from '../form-payload'
 import type { FieldErrors, FormResult, RecordForm } from '../types'
 import ERROR_KEYS from './error-keys'
@@ -8,9 +8,6 @@ import ERROR_KEYS from './error-keys'
 type Issue = z.ZodError['issues'][number]
 
 const isFormField = (name: string): name is keyof RecordForm => name in ERROR_KEYS.byField
-
-/** The schema's output checked against the hand-written contract, instead of cast into it. */
-const isRecordInput = (value: unknown): value is BillingRecordInput => billingRecordInput.safeParse(value).success
 
 /** The first issue of each field, as the message that goes under that field's box. */
 function fieldErrors(issues: readonly Issue[]): FieldErrors {

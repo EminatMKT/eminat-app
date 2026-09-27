@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import type { BillingV2Record } from '@/shared/data'
+import fixtureRecord from '@/features/billing-v2/fixture-record'
 import monthNote from './index'
 
 const SEPTEMBER = '2026-09-01'
-const note = (id: string, note_month: string) => ({ id, record_type: 'month_note', note_month }) as BillingV2Record
-const payment = { id: 'p', record_type: 'payment', scheduled_on: SEPTEMBER, note_month: null } as BillingV2Record
+const note = (id: string, note_month: string) => fixtureRecord({ id, record_type: 'month_note', note_month })
+const payment = fixtureRecord({ id: 'p', scheduled_on: SEPTEMBER })
 
 describe('monthNote', () => {
   it('finds the note of the month on screen', () => {

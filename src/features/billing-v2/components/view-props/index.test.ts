@@ -1,8 +1,9 @@
 import { expect, it } from 'vitest'
 import type { BillingV2Record } from '@/shared/data'
+import fixtureRecord from '@/features/billing-v2/fixture-record'
 import type { RecordViewProps } from './index'
 
-const record = { id: 'r1', record_type: 'payment' } as BillingV2Record
+const record = fixtureRecord({ id: 'r1' })
 const opened: BillingV2Record[] = []
 const props: RecordViewProps = { records: [record], today: '2026-09-23', onOpen: (one) => { opened.push(one) } }
 
