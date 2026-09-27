@@ -45,4 +45,14 @@ describe('EditorActions', () => {
     expect(html).toContain(FAILURE)
     expect(html).not.toContain('disabled')
   })
+
+  // A failed deletion of an untouched record also has «nothing to save»: one line, not two.
+  it('draws only the failure while there is one, never the reason beside it', () => {
+    const html = renderToStaticMarkup(
+      <EditorActions busy={false} blocked={REASON} failure={FAILURE} onCancel={ignore} onSave={ignore} onDelete={ignore} />,
+    )
+    expect(html).toContain(FAILURE)
+    expect(html).not.toContain(REASON)
+    expect(html).toMatch(/<button[^>]*disabled[^>]*>billing\.save/)
+  })
 })

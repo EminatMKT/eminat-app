@@ -34,4 +34,12 @@ describe('editorState', () => {
     expect(failed).toMatchObject({ busy: false, failure: 'billing.saveFailed', form: opened.form })
     expect(editorState.sending(failed)).toMatchObject({ busy: true, failure: null })
   })
+
+  // The failure answers the form as it was sent; once a box changes, the reason Save gives is
+  // about the new form, and the old failure would only compete with it.
+  it('forgets a failed write the moment a box changes', () => {
+    const failed = editorState.failed('billing.saveFailed')(opened)
+    expect(editorState.edit('title', 'y')(failed).failure).toBeNull()
+    expect(editorState.pick('event')(failed).failure).toBeNull()
+  })
 })

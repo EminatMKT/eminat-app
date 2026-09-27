@@ -1,6 +1,6 @@
 import SEPARATORS from './separators'
 
-const { dot, comma, blanks } = SEPARATORS
+const { dot, comma, blanks, currency } = SEPARATORS
 
 /** A whole part written in groups of three: 1-3 leading digits that do not start with zero. */
 const grouped = (sep: string) => new RegExp(`^[1-9]\\d{0,2}(?:\\${sep}\\d{3})+$`)
@@ -28,7 +28,8 @@ function oneSeparator(text: string, sep: string): string {
 
 /** What the person typed in the amount box, rewritten into the text the domain schema reads. */
 export default function amountText(typed: string): string {
-  const text = typed.replace(blanks, '')
+  const unspaced = typed.replace(blanks, '')
+  const text = unspaced.replace(currency, '')
   const hasDot = text.includes(dot)
   const hasComma = text.includes(comma)
   if (hasDot && hasComma) return bothSeparators(text)
@@ -38,7 +39,8 @@ export default function amountText(typed: string): string {
 }
 
 // The field accepts what the person types, and this is where it is normalized, before the domain
-// schema — which stays strict because it mirrors the database CHECK. Spaces go, whatever kind.
+// schema — which stays strict because it mirrors the database CHECK. Spaces go, whatever kind,
+// and so does a currency mark at either end (`$150`, `150 USD`): it names the money, not the figure.
 // A comma or a dot may be the decimal point: with both typed, the last one is, and the other has
 // to group the whole part in threes. With only one kind, it is a thousands separator when it groups
 // the number in threes —1-3 leading digits that do not start with zero, then groups of exactly

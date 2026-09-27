@@ -1,7 +1,8 @@
-/* The line beside the editor's actions. It takes the free width of the footer and wraps, so the
-   buttons keep their place at the right edge. */
+/* The line above the editor's actions. It takes the whole width of the footer, on a desk as on a
+   phone, and the buttons wrap under it at the right edge: beside Delete, Cancel and Save a long
+   failure was squeezed into a column a few words wide and five lines tall. */
 .notice {
-  flex: 1 1 12rem;
+  flex: 1 1 100%;
   min-width: 0;
   margin: 0;
   font-size: 0.75rem;
@@ -16,12 +17,4 @@
 .failure {
   color: var(--c-danger-solid);
   font-weight: 600;
-}
-
-/* The phone breakpoint (48rem, see BillingBox's `.actions`): beside the buttons the line would be
-   a column a few words wide, so it takes the whole width and the footer wraps the buttons under. */
-@media (max-width: 48rem) {
-  .notice {
-    flex-basis: 100%;
-  }
 }

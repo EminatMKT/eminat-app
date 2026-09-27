@@ -7,7 +7,10 @@ import type { RecordForm } from '../types'
 import RecordField from './index'
 
 vi.mock('@/shared/i18n', () => ({
-  useT: () => ({ t: (key: string, vars?: Record<string, string>) => (vars ? `${key}(${Object.values(vars).join()})` : key) }),
+  useT: () => ({
+    t: (key: string, vars?: Record<string, string>) => (vars ? `${key}(${Object.values(vars).join()})` : key),
+    intlLocale: 'en-US',
+  }),
 }))
 
 const spec = (name: keyof RecordForm) => fieldSpecs('payment').filter((s) => s.name === name)[0]
@@ -34,6 +37,13 @@ describe('RecordField', () => {
     expect(draw('amount')).toContain('billing.amount.unknown')
     expect(draw('amount', { ...recordForm(null), amount: '0' })).toContain('billing.amount.zero')
     expect(draw('amount', { ...recordForm(null), amount: '0,00' })).toContain('billing.amount.zero')
+  })
+
+  // The preview is money in the reader's format, the way the calendar draws it, never the machine
+  // text «1.5», which a Spanish reader takes for one and a half thousand.
+  it('previews a typed amount in money format, and says nothing of one that cannot be stored', () => {
+    expect(draw('amount', { ...recordForm(null), amount: '$1,5' })).toContain('billing.amount.set($1.50)')
+    expect(draw('amount', { ...recordForm(null), amount: 'abc' })).not.toContain('billing.amount.')
   })
 
   // The currency is in view while typing, taken from the domain, and a phone opens a keypad.

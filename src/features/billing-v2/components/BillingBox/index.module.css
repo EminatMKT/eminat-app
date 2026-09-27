@@ -97,19 +97,11 @@
   color: var(--c-t2);
 }
 
-/* The editor's footer: the reason Save is held, then the buttons, on one line at the right. */
+/* The editor's footer: a notice, when there is one, across the whole first line; the buttons
+   under it at the right. `bar` already wraps, which is what puts the notice above. */
 .actions {
   composes: bar;
   flex: 1 1 auto;
-  flex-wrap: nowrap;
   justify-content: flex-end;
   gap: 0.5rem;
-}
-
-/* The phone breakpoint, 48rem: the width where the sidebar folds into a drawer (globals.css and
-   TopbarLayout). Below it the footer wraps, and the reason takes the whole first line. */
-@media (max-width: 48rem) {
-  .actions {
-    flex-wrap: wrap;
-  }
 }

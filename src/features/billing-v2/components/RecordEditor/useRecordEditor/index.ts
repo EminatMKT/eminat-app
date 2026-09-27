@@ -21,7 +21,7 @@ export default function useRecordEditor(record: BillingV2Record | null, onSave: 
   const { initial, form, left, attempts, failure, busy } = state
   const inFlight = useRef(false)
   const { input, errors } = formInput(form)
-  const blocked = saveBlock(form, initial, t)
+  const blocked = saveBlock(form, initial, errors, t)
   useEffect(() => { if (attempts) focusFirstInvalid() }, [attempts])
   const edit: EditField = (name, value) => setState(editorState.edit(name, value))
   const leave: LeaveField = (name) => setState(editorState.leave(name))

@@ -17,10 +17,16 @@ const NORMALIZED: ReadonlyArray<readonly [string, string]> = [
   ['0.500', '0.500'],
   ['', ''],
   ['   ', ''],
+  ['$150', '150'],
+  ['150 USD', '150'],
+  ['150usd', '150'],
+  ['USD 150', '150'],
+  ['$ 1.250,40', '1250.40'],
+  ['1.250,40 $', '1250.40'],
 ]
 
 // Typed values the normalizer passes through untouched, so the domain schema refuses them.
-const STILL_REFUSED = ['-5', 'abc', '1250.405', '1.25.0', '12,34,5']
+const STILL_REFUSED = ['-5', 'abc', '1250.405', '1.25.0', '12,34,5', '150.-', '0,001', '$-5', '$$150', '1$50']
 
 describe('amountText', () => {
   it('turns every way of writing an amount into the one the schema reads', () => {
@@ -40,6 +46,12 @@ describe('amountText', () => {
     for (const [typed, expected] of NORMALIZED) {
       if (expected) expect(billingAmount.parse(amountText(typed))).toBe(expected)
     }
+  })
+
+  // The person types money the way it is written; the currency mark is not part of the figure.
+  it('drops a currency sign or code typed before or after the figure', () => {
+    expect(amountText('$150')).toBe('150')
+    expect(amountText('150 USD')).toBe('150')
   })
 
   it('leaves what it cannot read for the schema to refuse', () => {

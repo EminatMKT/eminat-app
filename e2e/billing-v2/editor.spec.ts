@@ -5,6 +5,7 @@ import { BUTTON } from '@/shared/constants/dom'
 import session from './session'
 import records from './records'
 import screen from './screen'
+import LABEL_VARS from '@/features/billing-v2/components/RecordEditor/label-vars'
 import { BAD_AMOUNT, PAYEE, RUN, STORED_AMOUNT, TYPED_AMOUNT } from './constants'
 
 // The first delivery's editor fixes: Save is held with its reason in view, a wrong box says so
@@ -50,6 +51,10 @@ test('Save is held with its reason, a bad amount is named under its box, and 1.2
   const complaint = page.getByText(screen.say('billing.error.amount'))
   await amount.fill(BAD_AMOUNT)
   await expect(complaint).toBeHidden()
+  // Wagner's norm: an unresolved error on change disables Save, and the reason names the box.
+  await expect(save).toBeDisabled()
+  const amountLabel = screen.say('billing.field.amount', LABEL_VARS)
+  await expect(reason).toHaveText(screen.say('billing.saveBlocked.invalid', { fields: amountLabel }))
   await amount.blur()
   await expect(complaint).toBeVisible()
   await expect(amount).toHaveAttribute(...INVALID)

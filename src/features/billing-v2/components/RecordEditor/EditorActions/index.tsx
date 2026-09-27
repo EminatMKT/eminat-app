@@ -25,7 +25,7 @@ export default function EditorActions(props: Props) {
   return (
     <BillingBox part="actions">
       {failure && <SaveNotice tone="failure">{failure}</SaveNotice>}
-      {blocked && <SaveNotice tone="reason">{blocked}</SaveNotice>}
+      {blocked && !failure && <SaveNotice tone="reason">{blocked}</SaveNotice>}
       {onDelete && <DeleteRecord disabled={busy} onConfirm={onDelete} />}
       <Button kind="cancel" onClick={onCancel} />
       <Button kind="confirm" label={t('billing.save')} onClick={onSave} ocupado={busy} deshabilitado={!!blocked} />
@@ -37,4 +37,7 @@ export default function EditorActions(props: Props) {
 // whether there is anything to delete: a record that was never stored has nothing to lose.
 // Save is disabled while it is held back, with the reason beside it, because an error that can
 // be prevented is prevented; the failure of a write belongs to no field, so it is said here,
-// next to the action that failed, and not at the end of a form that may be scrolled away.
+// next to the action that failed, and not at the end of a form that may be scrolled away. While
+// a failure is shown it is the only line: a failed deletion of an untouched record would
+// otherwise sit beside «nothing to save», an unrelated reason competing for the same glance.
+// Editing a box clears the failure (`editor-state`), so the reason comes back with the change.

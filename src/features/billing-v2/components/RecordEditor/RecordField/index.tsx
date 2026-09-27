@@ -2,6 +2,7 @@
 import { useT, type I18nKey } from '@/shared/i18n'
 import { Field } from '@/shared/components/ui'
 import BillingBox from '@/features/billing-v2/components/BillingBox'
+import moneyText from '@/features/billing-v2/components/money-text'
 import amountHint from '../amount-hint'
 import amountText from '../amount-text'
 import LABEL_VARS from '../label-vars'
@@ -14,10 +15,12 @@ type Props = FieldProps & {
 }
 
 export default function RecordField({ error, ...field }: Props) {
-  const { t } = useT()
+  const { t, intlLocale } = useT()
   const { labelKey, hintKey, required, liveAmount, maxLength = 0 } = field.spec
   const typed = amountText(field.form.amount)
-  const amount = t(amountHint(typed), { monto: typed })
+  const hint = amountHint(typed)
+  const money = moneyText({ amount: typed, currency_code: null }, intlLocale)
+  const amount = hint && t(hint, { monto: money ?? '' })
   const message = error && t(error, { max: maxLength })
 
   return (
@@ -26,7 +29,7 @@ export default function RecordField({ error, ...field }: Props) {
         <FieldControl {...field} />
       </Field>
       {hintKey && <BillingBox part="hint">{t(hintKey)}</BillingBox>}
-      {liveAmount && !message && <BillingBox part="hint">{amount}</BillingBox>}
+      {liveAmount && amount && !message && <BillingBox part="hint">{amount}</BillingBox>}
     </BillingBox>
   )
 }
@@ -34,7 +37,8 @@ export default function RecordField({ error, ...field }: Props) {
 // One row of the editor: the shared `Field` for the name, the control its spec asks for, and the
 // lines that help read it. The help goes beside the label and not inside it, because a label may
 // only hold the control it names. The amount carries a second line that changes as it is typed,
-// read from the same normalized text that will be sent, so «0,00» already says it is a zero.
+// read from the same normalized text that will be sent, so «0,00» already says it is a zero, and
+// drawn as money by the calendar's own `money-text`, so the preview reads «$1.000,00» and not «1000».
 //
 // The field's error is drawn by `Field`, right under the box, which it also marks invalid and
 // points at the message. A text that broke its column limit is told the limit it broke. The

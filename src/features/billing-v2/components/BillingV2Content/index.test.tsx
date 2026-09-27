@@ -29,6 +29,11 @@ describe('BillingV2Content', () => {
     expect(html.split(payment.title ?? '').length - 1).toBe(2)
   })
 
+  // The live region for «saved» / «deleted» is in place before a write lands, so it is announced.
+  it('keeps a live region ready for the confirmation of a write', () => {
+    expect(renderToStaticMarkup(<BillingV2Content />)).toContain('aria-live="polite"')
+  })
+
   // The editor only mounts when somebody opens a record or asks for a new one.
   it('keeps the editor closed until it is asked for', () => {
     expect(renderToStaticMarkup(<BillingV2Content />)).not.toContain('billing.editorNew')

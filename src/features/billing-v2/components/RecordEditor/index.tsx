@@ -1,6 +1,6 @@
 'use client'
 import type { BillingV2Record } from '@/shared/data'
-import { useT } from '@/shared/i18n'
+import { useT, type I18nKey } from '@/shared/i18n'
 import { Modal } from '@/shared/components/ui'
 import fieldSpecs from './field-specs'
 import useRecordEditor from './useRecordEditor'
@@ -16,16 +16,19 @@ type Props = {
   day?: string
   onSave: SaveRecord
   onDrop: DropRecord
+  /** A write landed and the editor is closing: what to confirm, in a key. */
+  onLanded?: (said: I18nKey) => void
   onClose: () => void
 }
 
 export default function RecordEditor(props: Props) {
-  const { record, day, onSave, onDrop, onClose } = props
+  const { record, day, onSave, onDrop, onLanded, onClose } = props
   const { t } = useT()
   const editor = useRecordEditor(record, onSave, onDrop, day)
   const { form, errors, blocked, failure, busy, edit, leave, pickType } = editor
-  const save = async () => { if (await editor.submit()) onClose() }
-  const remove = async () => { if (await editor.drop()) onClose() }
+  const landed = (said: I18nKey) => { onLanded?.(said); onClose() }
+  const save = async () => { if (await editor.submit()) landed('billing.saved') }
+  const remove = async () => { if (await editor.drop()) landed('billing.deleted') }
   const actions = <EditorActions busy={busy} blocked={blocked} failure={failure && t(failure)} onCancel={onClose}
     onSave={() => void save()} onDelete={record ? remove : undefined} />
 
@@ -43,4 +46,5 @@ export default function RecordEditor(props: Props) {
 // field's message is drawn under its own box, by the field; what belongs to no field —why Save is
 // held, a write that did not land— is said in the footer beside the actions, always in view.
 // The modal only closes when a write answers that it landed: a refused or failed save keeps every
-// box as it was typed, and a failed deletion keeps the record.
+// box as it was typed, and a failed deletion keeps the record. One that landed is confirmed by
+// the screen around it (`onLanded`), since the modal that could say so is closing.
