@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { MAIN_ELEMENT } from '@/shared/constants/dom'
+import { DIALOG, MAIN_ELEMENT } from '@/shared/constants/dom'
 import ShellLayout from './index'
 
 const PAGE = 'the page'
+const NAME = 'fixture drawer name'
 const MAIN_TAG = `<${MAIN_ELEMENT}`
 
 type Part = Parameters<typeof ShellLayout>[0]['part']
@@ -22,5 +23,16 @@ describe('ShellLayout', () => {
   it('keeps the column that holds the topbar out of main', () => {
     expect(draw('column')).not.toContain(MAIN_TAG)
     expect(draw('root')).not.toContain(MAIN_TAG)
+  })
+
+  // The open drawer covers the page like a modal, so it says it is one and carries its name.
+  it('draws the drawer as the dialog it is handed, with its name', () => {
+    const html = renderToStaticMarkup(
+      <ShellLayout part="drawerOpen" role={DIALOG} label={NAME} box={{ tabIndex: -1, 'aria-modal': true }}>{PAGE}</ShellLayout>,
+    )
+    expect(html).toContain(`role="${DIALOG}"`)
+    expect(html).toContain(`aria-label="${NAME}"`)
+    expect(html).toContain('aria-modal="true"')
+    expect(draw('drawer')).not.toContain('role=')
   })
 })

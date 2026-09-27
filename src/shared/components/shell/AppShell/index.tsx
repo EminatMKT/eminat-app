@@ -6,6 +6,7 @@ import Topbar from '@/shared/components/shell/Topbar'
 import Sidebar from '@/shared/components/shell/Sidebar'
 import LoadingScreen from '@/shared/components/shell/LoadingScreen'
 import ShellLayout from '@/shared/components/shell/ShellLayout'
+import ShellDrawer from '@/shared/components/shell/ShellDrawer'
 
 type Props = {
   children: ReactNode
@@ -22,13 +23,15 @@ export default function AppShell(props: Props) {
   const { activeTab, onTabChange } = props
   const { loading } = useApp()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const closeDrawer = () => setMobileOpen(false)
 
   if (loading) return <LoadingScreen />
 
   return (
     <ShellLayout part="root">
-      {mobileOpen && <ShellLayout part="scrim" onClick={() => setMobileOpen(false)} />}
-      <Sidebar activeTab={activeTab} onTabChange={onTabChange} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+      <ShellDrawer open={mobileOpen} onClose={closeDrawer}>
+        <Sidebar activeTab={activeTab} onTabChange={onTabChange} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+      </ShellDrawer>
       <ShellLayout part="column">
         <Topbar title={title} actions={actions} onHamburger={() => setMobileOpen(!mobileOpen)} />
         <ShellLayout part="content">{children}</ShellLayout>

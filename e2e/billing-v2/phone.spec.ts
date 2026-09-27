@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { MODULE, modulePath } from '@/shared/auth/permissions'
-import { BANNER, BUTTON, DIALOG, HEADING } from '@/shared/constants/dom'
+import { BANNER, BUTTON, DIALOG, ESCAPE, HEADING } from '@/shared/constants/dom'
 import pinToday from './clock'
 import expectOpaque from './opacity'
 import geometry from './geometry'
@@ -14,7 +14,10 @@ const PNG = 'image/png'
 const SAVE = screen.say('billing.save')
 const CANCEL = screen.say('common.cancel')
 // The reason's fixed opening, before the list of missing fields is filled in.
-const [HELD_BACK] = screen.say('billing.saveBlocked.missing').split('{')
+const [HELD_BACK] = screen.say('common.saveBlocked.missing').split('{')
+const MENU = screen.say('shell.openMenu')
+const NAVIGATION = screen.say('shell.navigation')
+const MODAL = ['aria-modal', 'true'] as const
 // The space a field leaves under itself (0.875rem): the type pills owe the next label the same.
 const FIELD_GAP_PX = 14
 
@@ -64,6 +67,20 @@ test('on a phone nothing of the page reaches past the screen, and the editor fit
   const pill = await geometry.edges(editor.getByRole(BUTTON, { name: screen.say('billing.type.payment'), exact: true }))
   const label = await geometry.edges(editor.getByText(screen.say('billing.field.scheduledOn'), { exact: true }))
   expect(label.top - pill.bottom).toBeGreaterThanOrEqual(FIELD_GAP_PX)
+})
+
+// The drawer covers the page like a modal, so it is one: named, focus in, Escape, focus back.
+test('on a phone the menu opens the navigation as a dialog, and Escape hands the focus back', async ({ page }) => {
+  await openBillingOnPhone(page)
+  const menu = page.getByRole(BUTTON, { name: MENU, exact: true })
+  await menu.click()
+  const drawer = page.getByRole(DIALOG, { name: NAVIGATION, exact: true })
+  await expect(drawer).toBeInViewport()
+  await expect(drawer).toHaveAttribute(...MODAL)
+  await expect(drawer.getByRole(BUTTON).first()).toBeFocused()
+  await page.keyboard.press(ESCAPE)
+  await expect(page.getByRole(DIALOG)).toHaveCount(0)
+  await expect(menu).toBeFocused()
 })
 
 // The phone check the 25/09 pass could not do (a maximized window would not resize). The page is

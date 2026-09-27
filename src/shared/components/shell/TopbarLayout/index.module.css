@@ -107,8 +107,8 @@
   display: none;
 }
 
-/* A phone: the same width at which the sidebar folds into a drawer (`.sidebar-root` in
-   globals.css). The two have to change together — a hamburger with no drawer, or a drawer with no
+/* A phone: the same width at which the sidebar folds into a drawer (`.drawer` in ShellLayout's
+   stylesheet). The two have to change together — a hamburger with no drawer, or a drawer with no
    hamburger, is a dead end. */
 @media (max-width: 48rem) {
   .bar {

@@ -7,6 +7,7 @@ const marks = vi.hoisted(() => ({ loading: false, topbar: 'the topbar', spinner:
 const absent = vi.hoisted(() => () => null)
 
 vi.mock('@/shared/context/AppContext', () => ({ useApp: () => ({ loading: marks.loading }) }))
+vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key }) }))
 vi.mock('@/shared/components/shell/Topbar', () => ({ default: () => marks.topbar }))
 vi.mock('@/shared/components/shell/LoadingScreen', () => ({ default: () => marks.spinner }))
 vi.mock('@/shared/components/shell/Sidebar', () => ({ default: absent }))

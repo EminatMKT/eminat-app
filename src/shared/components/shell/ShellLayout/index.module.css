@@ -14,6 +14,34 @@
   background: rgba(0, 0, 0, .6);
 }
 
+/* The sidebar's box. On a wide screen it only sits in the row, beside the column. */
+.drawer {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.drawerOpen {
+  composes: drawer;
+}
+
+/* A phone: the sidebar folds into a drawer that slides in over the page. The topbar's menu button
+   appears at this same width (TopbarLayout's stylesheet): change one, change the other. */
+@media (max-width: 48rem) {
+  .drawer {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+  }
+
+  .drawerOpen {
+    transform: translateX(0);
+  }
+}
+
 /* The topbar and the page. It scrolls, so the sticky topbar stays on top of the page. */
 .column {
   display: flex;
