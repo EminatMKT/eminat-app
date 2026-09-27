@@ -3,7 +3,7 @@ import type { SaveErrors, SaveField } from './index'
 
 // Fixtures, not shipped copy.
 const FIELD: SaveField = { name: 'amount', label: 'Amount', blank: false }
-const WRONG = 'error.key'
+const WRONG = 'fixture.amount.error'
 
 // A form's own error map —keyed by its own field names— is handed over as it is, with no copy.
 it('takes a form\'s own error map, whatever its field names', () => {

@@ -4,6 +4,9 @@ import type { ReactElement } from 'react'
 import CatalogoSelect from './index'
 
 vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key }) }))
+// `pick` calls the component as a function, outside a render; outside a Field the hook hands
+// nothing anyway. The wiring into a real Field is covered in __tests__/in-field.test.tsx.
+vi.mock('@/shared/components/ui/Field/useFieldControl', () => ({ default: () => ({}) }))
 
 type Box = ReactElement<{ onChange: (e: unknown) => void }>
 

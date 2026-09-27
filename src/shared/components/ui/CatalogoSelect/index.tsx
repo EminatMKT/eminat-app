@@ -1,6 +1,7 @@
 'use client'
 import { useT } from '@/shared/i18n'
 import Select from '@/shared/components/ui/Select'
+import useFieldControl from '@/shared/components/ui/Field/useFieldControl'
 import type { Creating, Props } from './types'
 
 /** Whether the select draws the blank first choice, and so may hand `''` back. */
@@ -13,6 +14,7 @@ function drawsBlank<V extends string>(props: Props<V>): props is Creating<V> {
 export default function CatalogoSelect<V extends string>(props: Props<V>) {
   const { catalogo, valor, etiqueta, onChange, placeholder, className } = props
   const { t } = useT()
+  const named = useFieldControl()
   const choose = (picked: string) => {
     const member = catalogo.valores.find((value) => value === picked)
     if (member !== undefined) onChange(member)
@@ -20,7 +22,7 @@ export default function CatalogoSelect<V extends string>(props: Props<V>) {
   }
 
   return (
-    <Select className={className} aria-label={etiqueta} value={valor} placeholder={placeholder}
+    <Select {...named} className={className} aria-label={etiqueta} value={valor} placeholder={placeholder}
       onChange={e => choose(e.target.value)}>
       {catalogo.valores.map(v => <option key={v} value={v}>{catalogo.label(v, t)}</option>)}
     </Select>
