@@ -24,7 +24,7 @@ const EVENT: BillingEventInput = {
 }
 const NOTE: BillingMonthNoteInput = {
   recordType: 'month_note',
-  noteMonth: '2026-10-01',
+  noteMonth: '2026-10-17',
   noteText: 'October plan',
 }
 
@@ -64,7 +64,7 @@ it('refuses a month note that carries a day, a time or a blank text', () => {
   expect(parse({ ...NOTE, scheduledOn: '2026-10-05' }).success).toBe(false)
   expect(parse({ ...NOTE, scheduledTime: '09:00' }).success).toBe(false)
   expect(parse({ ...NOTE, noteText: ' ' }).success).toBe(false)
-  expect(parse({ ...NOTE, noteMonth: '2026-10-02' }).success).toBe(false)
+  expect(parse({ ...NOTE, noteMonth: '2026-10-32' }).success).toBe(false)
 })
 
 it('refuses illegal record types, categories, statuses, times and amounts', () => {

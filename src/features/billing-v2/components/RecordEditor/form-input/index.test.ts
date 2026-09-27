@@ -48,9 +48,9 @@ describe('formInput', () => {
     expect(errors).toEqual({ title: 'billing.error.tooLong' })
   })
 
-  it('asks a month note for a real first-of-month and a text', () => {
-    const note: RecordForm = { ...valid, recordType: 'month_note', noteMonth: '2026-09-14', noteText: 'x' }
+  it('asks a month note for a real day —any day of its month— and a text', () => {
+    const note: RecordForm = { ...valid, recordType: 'month_note', noteMonth: '2026-09-31', noteText: 'x' }
     expect(formInput(note).errors).toEqual({ noteMonth: 'billing.error.noteMonth' })
-    expect(formInput({ ...note, noteMonth: '2026-09-01' }).errors).toEqual({})
+    expect(formInput({ ...note, noteMonth: '2026-09-14' }).errors).toEqual({})
   })
 })

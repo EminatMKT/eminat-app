@@ -25,7 +25,7 @@ beforeEach(() => { holder.from.mockReset() })
 describe('billing v2 mutations', () => {
   it('makes no request at all when the input is invalid', async () => {
     connect([OK, OK])
-    await expect(billingV2Records.create({ ...NOTE, noteMonth: '2026-09-15' })).rejects.toThrow()
+    await expect(billingV2Records.create({ ...NOTE, noteMonth: '2026-09-31' })).rejects.toThrow()
     await expect(billingV2Records.update('id-1', { ...NOTE, noteText: '  ' })).rejects.toThrow()
     expect(holder.from).not.toHaveBeenCalled()
   })

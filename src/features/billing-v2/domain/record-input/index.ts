@@ -32,7 +32,7 @@ const eventInput = z.strictObject({
 
 const monthNoteInput = z.strictObject({
   recordType: z.literal(kind.month_note),
-  noteMonth: temporal.monthStart,
+  noteMonth: temporal.isoDate,
   noteText: text.required(TEXT_MAX.noteText),
 })
 

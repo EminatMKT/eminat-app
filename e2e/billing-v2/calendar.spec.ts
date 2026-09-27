@@ -7,7 +7,7 @@ import screen from './screen'
 import { CHECK_MARK, RUN, TODAY_DAY } from './constants'
 
 // Task 8, the calendar side: a day starts a new record on its date, every record of a day is
-// reachable from the keyboard, and the month note sits above the grid and opens the editor.
+// reachable from the keyboard, and the month's notes sit above the grid and open the editor.
 test.describe.configure({ mode: 'serial' })
 session.install()
 
@@ -52,11 +52,16 @@ test('today is marked, and a paid payment is drawn apart from an unpaid one', as
   expect([paidMark.includes(CHECK_MARK), owedMark.includes(CHECK_MARK)]).toEqual([true, false])
 })
 
-test('the month note is drawn above the grid and opens the editor', async ({ page, request }) => {
+// A month holds any number of notes, each on any day: two in one month both reach the screen.
+test('the month notes are drawn above the grid and open the editor', async ({ page, request }) => {
   const note = `${RUN} month note`
-  await records.insert(request, { record_type: values.recordType.enum.month_note, note_month: screen.day(1), note_text: note })
+  const later = `${RUN} later note`
+  const kind = values.recordType.enum.month_note
+  await records.insert(request, { record_type: kind, note_month: screen.day(3), note_text: note })
+  await records.insert(request, { record_type: kind, note_month: screen.day(17), note_text: later })
   await session.openBilling(page)
   const noteButton = page.getByRole('button', { name: `${screen.say('billing.type.monthNote')} · ${note}` })
+  await expect(page.getByRole('button', { name: `${screen.say('billing.type.monthNote')} · ${later}` })).toBeVisible()
   const drawn = await noteButton.boundingBox()
   const grid = await screen.dayButton(page, 1).first().boundingBox()
   expect(drawn !== null && grid !== null && drawn.y < grid.y, 'the note sits above the month grid').toBe(true)

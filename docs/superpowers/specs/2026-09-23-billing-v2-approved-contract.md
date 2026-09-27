@@ -29,10 +29,13 @@ entered 2026-09-23.
 These follow from the decisions above and from the plan's confirmed scope. They are recorded here
 so nobody has to re-derive them, and so a disagreement has something concrete to point at.
 
-- **One table** (`billing_v2_records`), alternative A of the proposal.
-- **One month note per month, globally** — a consequence of decision 2: the dataset is shared, so
-  the note belongs to the group rather than to each person. A per-owner scope would need a
-  different unique key.
+- **One table** (`billing_v2_records`), alternative A of the proposal. Confirmed by Wagner on
+  2026-09-26: payments, events and month notes share one screen, one calendar and one permission.
+  Revisit (B: notes apart, or C: three tables) the day their permissions or lifecycles diverge.
+- ~~**One month note per month, globally**~~ — **reversed by Wagner on 2026-09-26**: a note may be
+  dated any day, with any number per month or per day; the calendar groups them by month.
+  Migration `20260927013027_billing_v2_notes_any_day` drops the unique index and the
+  first-of-month CHECK. The notes are still shared by the group, not scoped per person.
 - **`record_type` is immutable** after insert. Turning a payment into an event would silently strip
   its amount and status through the subtype check.
 - **`scheduled_on` on a payment is the due/planned date**, not the settlement date. This is the

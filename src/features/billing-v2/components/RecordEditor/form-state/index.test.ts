@@ -26,7 +26,7 @@ describe('recordForm', () => {
 
   // Pressing a day on the calendar opens a new payment already due on that day.
   it('opens a new record on the day it was started from', () => {
-    expect(recordForm(null, '2026-09-14').scheduledOn).toBe('2026-09-14')
+    expect(recordForm(null, '2026-09-14')).toMatchObject({ scheduledOn: '2026-09-14', noteMonth: '2026-09-14' })
     expect(recordForm(STORED, '2026-09-14').scheduledOn).toBe('2026-09-30')
   })
 

@@ -37,7 +37,7 @@ describe('saveBlock', () => {
   })
 
   it('asks a month note for its own required fields, not a payment\'s', () => {
-    expect(missing({ ...blank, recordType: 'month_note' })).toEqual(['billing.field.noteMonth', 'billing.field.noteText'])
+    expect(missing({ ...blank, recordType: 'month_note' })).toEqual(['billing.field.date', 'billing.field.noteText'])
   })
 
   // A box holding a refused value is not empty: the reason asks to fix it, not to fill it in.

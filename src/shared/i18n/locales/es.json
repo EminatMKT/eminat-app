@@ -1043,10 +1043,10 @@
   "billing.field.amount": "Monto ({currency})",
   "billing.field.eventTypeLabel": "Tipo de evento",
   "billing.field.noteText": "Nota",
-  "billing.field.noteMonth": "Mes",
+  "billing.field.date": "Fecha",
   "billing.field.followUp": "Marca de aprobación de cierre",
   "billing.help.scheduledOn": "Es la fecha en que el pago VENCE o está planificado, no la fecha en que se pagó.",
-  "billing.help.noteMonth": "La nota es del mes entero; se guarda con el primer día de ese mes.",
+  "billing.help.noteMonth": "Puede ser de cualquier día: en el calendario se agrupa con las demás notas de su mes.",
   "billing.help.followUp": "Es sólo una marca visible: no envía nada, no agenda nada y no significa que la aprobación haya ocurrido.",
   "billing.help.amount": "Dejalo vacío si el monto todavía no se sabe. Escribí 0 sólo si el monto es cero de verdad.",
   "billing.amount.unknown": "Monto desconocido: se guarda vacío, no como cero.",
@@ -1064,5 +1064,5 @@
   "billing.error.tooLong": "Tiene más de {max} caracteres. Acortalo para poder guardar.",
   "billing.error.eventTypeLabel": "El tipo de evento no es válido.",
   "billing.error.noteText": "La nota no puede quedar vacía.",
-  "billing.error.noteMonth": "El mes falta o no es un mes real."
+  "billing.error.noteMonth": "Falta la fecha o no es un día real."
 }

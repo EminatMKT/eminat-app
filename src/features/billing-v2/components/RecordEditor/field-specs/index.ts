@@ -19,14 +19,14 @@ const SPECS: Record<BillingRecordType, FieldSpec[]> = {
     NOTE,
   ],
   event: [
-    { name: 'scheduledOn', control: CONTROL.date, labelKey: 'billing.field.scheduledOn', required: true },
+    { name: 'scheduledOn', control: CONTROL.date, labelKey: 'billing.field.date', required: true },
     { name: 'scheduledTime', control: CONTROL.time, labelKey: 'billing.field.scheduledTime' },
     TITLE,
     { name: 'eventTypeLabel', control: CONTROL.text, labelKey: 'billing.field.eventTypeLabel', maxLength: TEXT_MAX.eventTypeLabel },
     NOTE,
   ],
   month_note: [
-    { name: 'noteMonth', control: CONTROL.date, labelKey: 'billing.field.noteMonth', hintKey: 'billing.help.noteMonth', required: true },
+    { name: 'noteMonth', control: CONTROL.date, labelKey: 'billing.field.date', hintKey: 'billing.help.noteMonth', required: true },
     { ...NOTE, required: true },
   ],
 }

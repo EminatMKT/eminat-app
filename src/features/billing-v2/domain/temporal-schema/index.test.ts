@@ -16,13 +16,6 @@ it('refuses malformed, impossible and out-of-range days', () => {
   for (const day of IMPOSSIBLE_DAYS) expect(temporal.isoDate.safeParse(day).success).toBe(false)
 })
 
-it('takes a month note month only as the first day of that month', () => {
-  expect(temporal.monthStart.parse('2026-09-01')).toBe('2026-09-01')
-  for (const day of ['2026-09-02', '2026-09-30', '2026-02-29']) {
-    expect(temporal.monthStart.safeParse(day).success).toBe(false)
-  }
-})
-
 it('takes wall-clock times at minute granularity and refuses 24:00', () => {
   for (const time of ['00:00', '09:30', '23:59']) {
     expect(temporal.minuteTime.parse(time)).toBe(time)

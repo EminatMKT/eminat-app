@@ -50,6 +50,6 @@ describe('billing v2 row', () => {
     expect(() => billingRow({ ...PAYMENT, amount: '10.005' })).toThrow()
     expect(() => billingRow({ ...PAYMENT, payeeLabel: '   ' })).toThrow()
     expect(() => billingRow({ ...EVENT, scheduledOn: '2026-02-30' })).toThrow()
-    expect(() => billingRow({ ...NOTE, noteMonth: '2026-09-15' })).toThrow()
+    expect(() => billingRow({ ...NOTE, noteMonth: '2026-09-31' })).toThrow()
   })
 })
