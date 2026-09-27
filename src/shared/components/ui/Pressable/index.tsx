@@ -11,13 +11,15 @@ type Props = {
   className?: string
   /** The whole text, shown on hover, for a surface that cuts what it draws with an ellipsis. */
   hint?: string
+  /** This surface is the current one of its set —today's cell of a calendar—: `aria-current`. */
+  current?: 'date'
   children: ReactNode
 }
 
 export default function Pressable(props: Props) {
-  const { accessibleLabel, onClick, className, hint, children } = props
+  const { accessibleLabel, onClick, className, hint, current, children } = props
   return (
-    <button type="button" onClick={onClick} aria-label={accessibleLabel} title={hint}
+    <button type="button" onClick={onClick} aria-label={accessibleLabel} title={hint} aria-current={current}
       className={`${s.surface} ${className ?? ''}`}>
       {children}
     </button>

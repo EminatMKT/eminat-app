@@ -55,6 +55,30 @@
   background: color-mix(in srgb, var(--c-accent) 26%, var(--c-s1));
 }
 
+/* A settled entry (`tone: 'done'`): a grey chip led by a check mark, so it is told apart by shape
+   and not by colour alone. The text keeps --c-t1: grey on grey fell under 4.5:1. The mark is
+   decoration; the entry's accessible name already says its state. */
+.done {
+  background: var(--c-s3);
+}
+
+.done::before {
+  content: "✓\00a0";
+  font-weight: 700;
+}
+
+.done:hover,
+.done:focus-visible {
+  background: var(--c-border);
+}
+
+/* Today's cell: a ring drawn inside the whole square and the number in the accent. */
+.today {
+  box-shadow: inset 0 0 0 2px var(--c-accent);
+  color: var(--c-accent-solid);
+  font-weight: 800;
+}
+
 /* The count of a full day reads as a link to more, not as one more entry. */
 .more {
   composes: row;

@@ -35,8 +35,14 @@ describe('Pressable', () => {
   it('hands the press back untouched', () => {
     let presses = 0
     const count = () => { presses += 1 }
-    const control = Pressable({ accessibleLabel: 'A day', onClick: count, children: '30' }) as Control
+    const control: Control = Pressable({ accessibleLabel: 'A day', onClick: count, children: '30' })
     control.props.onClick()
     expect(presses).toBe(1)
+  })
+
+  // The one of a set that is "now" —today's cell— says so to assistive technology.
+  it('says it is the current one only when the caller says so', () => {
+    expect(renderToStaticMarkup(<Pressable accessibleLabel="A day" current="date" onClick={ignore}>30</Pressable>)).toContain('aria-current="date"')
+    expect(renderToStaticMarkup(<Pressable accessibleLabel="A day" onClick={ignore}>30</Pressable>)).not.toContain('aria-current')
   })
 })

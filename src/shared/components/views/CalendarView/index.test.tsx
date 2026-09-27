@@ -18,7 +18,7 @@ const item = (id: string, date: string): CalendarItem => ({ id, date, label: `En
 const items = [item('A', '2026-09-14'), item('B', '2026-09-14'), item('C', '2026-08-31')]
 const picked: string[] = []
 const props: CalendarViewProps<CalendarItem> = {
-  period: '2026-09-01', mode: 'month', items, locale: 'en-US',
+  period: '2026-09-01', mode: 'month', items, locale: 'en-US', today: '2026-09-15',
   onPeriodChange: (period) => { picked.push(period) },
   onDaySelect: (date) => { picked.push(date) },
   onItemSelect: (id) => { picked.push(id) },
@@ -63,6 +63,11 @@ describe('CalendarView', () => {
     picked.length = 0
     press('2026-09-01', 'Entry B')
     expect(picked).toEqual(['B'])
+  })
+
+  it('marks the day the caller calls today, and only that one', () => {
+    const marked = draw('2026-09-01').drawn.filter((one) => one.current)
+    expect(marked.map((one) => one.accessibleLabel)).toEqual(['Tuesday, September 15, 2026'])
   })
 
   // A record button inside a day button would be a button inside a button: the browser keeps

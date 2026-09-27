@@ -6,14 +6,14 @@ import DayCell from './DayCell'
 import PeriodNav from './PeriodNav'
 
 export default function CalendarView<T extends CalendarItem>(props: CalendarViewProps<T>) {
-  const { period, mode, items, locale, onPeriodChange } = props
+  const { period, mode, items, locale, today, onPeriodChange } = props
   const { onDaySelect, onItemSelect, moreLabel, lessLabel } = props
   return (
     <CalendarBox part="page">
       <PeriodNav period={period} mode={mode} locale={locale} onPeriodChange={onPeriodChange} />
       <CalendarBox part="grid">
         {periodModes[mode].days(period).map((day) => (
-          <DayCell key={day} date={day} locale={locale} items={items.filter((one) => one.date === day)}
+          <DayCell key={day} date={day} locale={locale} today={day === today} items={items.filter((one) => one.date === day)}
             onDaySelect={onDaySelect} onItemSelect={onItemSelect} moreLabel={moreLabel} lessLabel={lessLabel} />
         ))}
       </CalendarBox>

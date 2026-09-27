@@ -23,6 +23,12 @@ describe('calendarItems', () => {
     expect(place([early])).toHaveLength(1)
   })
 
+  // Paid is a different kind of entry, so it is drawn differently; the calendar is told only a tone.
+  it('gives a paid payment the tone «done», and nothing else', () => {
+    const tones = place([early, late, meeting]).map(({ id, tone }) => [id, tone])
+    expect(Object.fromEntries(tones)).toEqual({ early: 'done', late: undefined, meeting: undefined })
+  })
+
   // A month note belongs to the month, not to a day; the billing screen shows it apart.
   it('leaves month notes off the day grid', () => {
     expect(place([note])).toEqual([])

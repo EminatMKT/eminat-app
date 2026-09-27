@@ -1,6 +1,6 @@
 'use client'
 import { useMemo, useState } from 'react'
-import { parseISO, startOfMonth } from 'date-fns'
+import { isSameMonth, parseISO, startOfMonth } from 'date-fns'
 import { useT } from '@/shared/i18n'
 import { localDate } from '@/shared/utils'
 import { CalendarView } from '@/shared/components/views'
@@ -20,12 +20,14 @@ export default function BillingCalendar({ records, today, onOpen, onNewOn }: Pro
   const [period, setPeriod] = useState(() => localDate(startOfMonth(parseISO(today))))
   const items = useMemo(() => calendarItems(records, t, intlLocale), [records, t, intlLocale])
   const note = monthNote(records, period)
+  const empty = !note && !items.some((one) => isSameMonth(parseISO(one.date), parseISO(period)))
   const openId = (id: string) => { const found = records.find((one) => one.id === id); if (found) onOpen(found) }
   const noteLine = t('billing.calendar.noteLine', { kind: t('billing.type.monthNote'), text: note?.note_text ?? '' })
   return (
     <BillingBox part="panel">
       {note && <RecordButton accessibleLabel={noteLine} look="note" onPress={() => onOpen(note)}>{noteLine}</RecordButton>}
-      <CalendarView period={period} mode="month" items={items} locale={intlLocale}
+      {empty && <BillingBox part="hint">{t('billing.calendar.empty')}</BillingBox>}
+      <CalendarView period={period} mode="month" items={items} locale={intlLocale} today={today}
         onPeriodChange={setPeriod} onDaySelect={onNewOn} onItemSelect={openId}
         moreLabel={(count) => t('billing.calendar.more', { count })} lessLabel={t('billing.calendar.less')} />
     </BillingBox>
@@ -41,4 +43,5 @@ export default function BillingCalendar({ records, today, onOpen, onNewOn }: Pro
 // and is drawn above the grid, never pinned to the 1st: `period` is the month's first day, which
 // is exactly how a note's month is stored. Pressing a day starts a new record on that date;
 // pressing a record inside the day opens that record — they are sibling buttons in the shared
-// view, so both answer the keyboard.
+// view, so both answer the keyboard. A month with nothing on it says, above the grid, how to add
+// something; the business day is handed to the view to mark as today.

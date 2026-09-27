@@ -3,7 +3,8 @@ import { useState } from 'react'
 import type { CalendarItem, CalendarViewProps } from '@/shared/components/views/types'
 import Pressable from '@/shared/components/ui/Pressable'
 import CalendarBox from '../CalendarBox'
-import dateLabel from '../date-label'
+import DayNumber from '../DayNumber'
+import DayEntry from '../DayEntry'
 import dayOverflow from '../day-overflow'
 import s from './index.module.css'
 
@@ -13,22 +14,20 @@ interface Props<T extends CalendarItem> extends Pick<CalendarViewProps<T>,
   'locale' | 'items' | 'onDaySelect' | 'onItemSelect' | 'moreLabel' | 'lessLabel'> {
   /** The square this cell is, as an ISO date-only string. */
   date: string
+  /** Whether this square is the feature's today. */
+  today?: boolean
 }
 
 export default function DayCell<T extends CalendarItem>(props: Props<T>) {
-  const { date, locale, items, onDaySelect, onItemSelect, moreLabel, lessLabel } = props
+  const { date, locale, today = false, items, onDaySelect, onItemSelect, moreLabel, lessLabel } = props
   const [open, setOpen] = useState(false)
   const { shown, hidden, folds } = dayOverflow(items, ROWS, open)
   const toggle = open ? lessLabel : moreLabel(hidden)
   return (
     <CalendarBox part="day">
       <CalendarBox part={open ? 'open' : 'entries'}>
-        <Pressable accessibleLabel={dateLabel(date, locale).day} className={s.number}
-          onClick={() => onDaySelect(date)}>{dateLabel(date, locale).number}</Pressable>
-        {shown.map((item) => (
-          <Pressable key={item.id} accessibleLabel={item.accessibleLabel} hint={item.accessibleLabel}
-            className={s.entry} onClick={() => onItemSelect(item.id)}>{item.label}</Pressable>
-        ))}
+        <DayNumber date={date} locale={locale} today={today} onDaySelect={onDaySelect} />
+        {shown.map((item) => <DayEntry key={item.id} item={item} onItemSelect={onItemSelect} />)}
         {folds && <Pressable accessibleLabel={toggle} className={s.more} onClick={() => setOpen(!open)}>{toggle}</Pressable>}
       </CalendarBox>
     </CalendarBox>

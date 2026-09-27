@@ -1,10 +1,10 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Locator } from '@playwright/test'
 import values from '@/features/billing-v2/domain/record-values'
 import { ENTER, TAB } from '@/shared/constants/dom'
 import session from './session'
 import records from './records'
 import screen from './screen'
-import { RUN } from './constants'
+import { CHECK_MARK, RUN, TODAY_DAY } from './constants'
 
 // Task 8, the calendar side: a day starts a new record on its date, every record of a day is
 // reachable from the keyboard, and the month note sits above the grid and opens the editor.
@@ -32,6 +32,24 @@ test('two records on one day are each reached by Tab and opened with Enter', asy
     await expect(screen.field(page, 'billing.field.title')).toHaveValue(title)
     await screen.press(page, 'common.cancel')
   }
+})
+
+/** A chip's fill and what its stylesheet draws before the text (the paid check mark). */
+function look(chip: Locator) {
+  return chip.evaluate((node) => [getComputedStyle(node).backgroundColor, getComputedStyle(node, '::before').content])
+}
+
+test('today is marked, and a paid payment is drawn apart from an unpaid one', async ({ page, request }) => {
+  const paid = `${RUN} paid`
+  const owed = `${RUN} owed`
+  await records.insert(request, records.payment(paid, screen.day(22), { payment_status: values.paymentStatus.enum.paid }))
+  await records.insert(request, records.payment(owed, screen.day(22)))
+  await session.openBilling(page)
+  await expect(screen.dayButton(page, TODAY_DAY)).toHaveAttribute('aria-current', 'date')
+  const [paidFill, paidMark] = await look(screen.chip(page, paid))
+  const [owedFill, owedMark] = await look(screen.chip(page, owed))
+  expect(paidFill).not.toBe(owedFill)
+  expect([paidMark.includes(CHECK_MARK), owedMark.includes(CHECK_MARK)]).toEqual([true, false])
 })
 
 test('the month note is drawn above the grid and opens the editor', async ({ page, request }) => {

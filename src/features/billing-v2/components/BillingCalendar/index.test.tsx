@@ -60,6 +60,18 @@ describe('BillingCalendar', () => {
     expect(view.props?.lessLabel).toBe('billing.calendar.less')
   })
 
+  it('hands the calendar the business day to mark as today', () => {
+    draw([])
+    expect(view.props?.today).toBe('2026-09-23')
+  })
+
+  // An empty month teaches what to do; a month with a payment or a note needs no lesson.
+  it('says how to start only while the month on screen has no records', () => {
+    expect(draw([])).toContain('billing.calendar.empty')
+    expect(draw([payment])).not.toContain('billing.calendar.empty')
+    expect(draw([note])).not.toContain('billing.calendar.empty')
+  })
+
   it('draws the note of the month above the grid instead of on a day', () => {
     expect(draw([note])).toContain(NOTE)
     expect(view.props?.items).toEqual([])

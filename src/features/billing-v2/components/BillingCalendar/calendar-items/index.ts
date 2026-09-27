@@ -19,7 +19,8 @@ export default function calendarItems(records: readonly BillingV2Record[], t: Tr
     const accessibleLabel = record.record_type === values.recordType.enum.payment
       ? t('billing.calendar.paymentAria', { ...fields, text, kind })
       : t('billing.calendar.eventAria', { date: fields.date, text, kind })
-    return { id: record.id, date: record.scheduled_on ?? '', label: text, accessibleLabel }
+    const done = record.payment_status === values.paymentStatus.enum.paid
+    return { id: record.id, date: record.scheduled_on ?? '', label: text, accessibleLabel, ...(done && { tone: 'done' }) }
   })
 }
 
@@ -34,4 +35,5 @@ export default function calendarItems(records: readonly BillingV2Record[], t: Tr
 //
 // Payments and events have a `scheduled_on`; a month note has none, so it never reaches the day
 // grid — the billing screen draws it above the month instead. A paid payment stays: paying
-// something takes it off the reminders, not off the calendar.
+// something takes it off the reminders, not off the calendar. It stays with the neutral tone
+// `done`, so the view draws it apart from what is still owed without learning what a payment is.

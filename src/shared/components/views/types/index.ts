@@ -1,7 +1,11 @@
 /** A record the calendar places on a day. `date` is an ISO date-only string (`YYYY-MM-DD`);
  *  `label` is the one line its chip draws, cut with an ellipsis when it does not fit, and
  *  `accessibleLabel` is the whole of it, said out loud and shown on hover. */
-export type CalendarItem = { id: string; date: string; label: string; accessibleLabel: string }
+export type CalendarItem = {
+  id: string; date: string; label: string; accessibleLabel: string
+  /** `done`: a settled item, drawn apart from the open ones with a check mark and a quiet chip. */
+  tone?: 'done'
+}
 
 /** How much time one page of the calendar covers. Only the month is drawn today. */
 export type CalendarMode = 'month'
@@ -14,6 +18,8 @@ export type CalendarViewProps<T extends CalendarItem> = {
   mode: CalendarMode
   items: readonly T[]
   locale: string
+  /** Today, as the feature counts days (same ISO shape): its cell is marked. */
+  today?: string
   onPeriodChange: (period: string) => void
   onDaySelect: (date: string) => void
   onItemSelect: (id: string) => void
