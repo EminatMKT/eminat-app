@@ -77,6 +77,14 @@
   border-color: var(--c-accent);
 }
 
+/* A control the Field marked invalid (it sets `aria-invalid` while its error is shown) says so with
+   its own border, in the red of the message under it: the text alone left the box looking fine.
+   It keeps the red while focused, so the box being fixed still reads as the wrong one. */
+.campo [aria-invalid="true"],
+.campo [aria-invalid="true"]:focus {
+  border-color: var(--c-danger-solid);
+}
+
 /* Variante destacada: el título de la tarea, que es el campo que se escribe primero. */
 .campo.grande input {
   font-size: .875rem;
