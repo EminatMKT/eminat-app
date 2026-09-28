@@ -8,8 +8,7 @@ import useBillingV2Records from '@/features/billing-v2/hooks/useBillingV2Records
 import useBusinessToday from '@/features/billing-v2/hooks/useBusinessToday'
 import BillingBox from '@/features/billing-v2/components/BillingBox'
 import RecordsGate from '@/features/billing-v2/components/RecordsGate'
-import BillingCalendar from '@/features/billing-v2/components/BillingCalendar'
-import ReminderPanel from '@/features/billing-v2/components/ReminderPanel'
+import BillingRecordsTab from '@/features/billing-v2/components/BillingRecordsTab'
 import RecordEditor from '@/features/billing-v2/components/RecordEditor'
 import Confirmation from '@/features/billing-v2/components/Confirmation'
 import useConfirmation from '@/features/billing-v2/components/Confirmation/useConfirmation'
@@ -33,10 +32,7 @@ export default function BillingV2Content() {
         <Button kind="new" label={t('billing.new')} onClick={() => setEditing({ record: null })} />
       </BillingBox>
       <RecordsGate hasRecords={records.length > 0} loading={loading} error={error} onRetry={() => void reload()}>
-        <BillingBox part="views">
-          <BillingCalendar records={records} today={today} onOpen={open} onNewOn={(day) => setEditing({ record: null, day })} />
-          <ReminderPanel records={records} today={today} onOpen={open} />
-        </BillingBox>
+        <BillingRecordsTab records={records} today={today} onOpen={open} onNewOn={(day) => setEditing({ record: null, day })} />
       </RecordsGate>
       {editing && <RecordEditor {...editing} onSave={save} onDrop={remove} onLanded={say} onClose={() => setEditing(null)} />}
     </BillingBox>

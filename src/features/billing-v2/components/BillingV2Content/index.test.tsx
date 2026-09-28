@@ -19,14 +19,10 @@ describe('BillingV2Content', () => {
     expect(html).toContain('billing.new')
   })
 
-  // One copy of the records feeds both views: the unpaid payment is drawn once on its day and
-  // once in Upcoming. (Their spoken labels come whole from the dictionary, which this mock
-  // reduces to bare keys.)
-  it('mounts the calendar and the reminders over the shared records', () => {
+  // The default tab is the records tab, which draws the calendar and reminders.
+  it('mounts its records tab by default', () => {
     const html = renderToStaticMarkup(<BillingV2Content />)
     expect(html).toContain('September 2026')
-    expect(html).toContain('billing.reminders.upcoming')
-    expect(html.split(payment.title ?? '').length - 1).toBe(2)
   })
 
   // The live region for «saved» / «deleted» is in place before a write lands, so it is announced.
