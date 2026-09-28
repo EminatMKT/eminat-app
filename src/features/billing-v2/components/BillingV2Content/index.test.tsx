@@ -5,6 +5,8 @@ import fixtureRecord from '@/features/billing-v2/fixture-record'
 import BillingV2Content from './index'
 
 vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key, intlLocale: 'en-US' }) }))
+vi.mock('@/shared/hooks', () => ({ useTabPreference: (_module: string, initial: unknown) => [initial, vi.fn()] }))
+vi.mock('@/shared/context/AppContext', () => ({ useApp: () => ({ t1: '#000', t3: '#999', accent: '#000' }) }))
 
 const payment = fixtureRecord({ id: 'r1' })
 const api = { records: [payment], loading: false, error: null, reload: vi.fn(), save: vi.fn(), remove: vi.fn() }
@@ -33,5 +35,12 @@ describe('BillingV2Content', () => {
   // The editor only mounts when somebody opens a record or asks for a new one.
   it('keeps the editor closed until it is asked for', () => {
     expect(renderToStaticMarkup(<BillingV2Content />)).not.toContain('billing.editorNew')
+  })
+
+  // Both tabs are always offered, whichever one is currently drawn.
+  it('offers both tabs', () => {
+    const html = renderToStaticMarkup(<BillingV2Content />)
+    expect(html).toContain('billing.tab.records')
+    expect(html).toContain('billing.tab.overview')
   })
 })

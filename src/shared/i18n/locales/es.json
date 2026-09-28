@@ -1068,5 +1068,7 @@
   "billing.summary.knownSubtotal": "Subtotal conocido",
   "billing.summary.unknownCount": "Pagos sin monto",
   "billing.summary.byCategory": "Por categoría",
-  "billing.summary.byStatus": "Por estado"
+  "billing.summary.byStatus": "Por estado",
+  "billing.tab.records": "Registros",
+  "billing.tab.overview": "Resumen"
 }

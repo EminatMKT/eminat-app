@@ -1068,5 +1068,7 @@
   "billing.summary.knownSubtotal": "Known subtotal",
   "billing.summary.unknownCount": "Payments without an amount",
   "billing.summary.byCategory": "By category",
-  "billing.summary.byStatus": "By status"
+  "billing.summary.byStatus": "By status",
+  "billing.tab.records": "Records",
+  "billing.tab.overview": "Overview"
 }
