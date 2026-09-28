@@ -1064,5 +1064,9 @@
   "billing.error.tooLong": "It is longer than {max} characters. Shorten it to save.",
   "billing.error.eventTypeLabel": "The event type is not valid.",
   "billing.error.noteText": "The note can't be empty.",
-  "billing.error.noteMonth": "The date is missing or is not a real day."
+  "billing.error.noteMonth": "The date is missing or is not a real day.",
+  "billing.summary.knownSubtotal": "Known subtotal",
+  "billing.summary.unknownCount": "Payments without an amount",
+  "billing.summary.byCategory": "By category",
+  "billing.summary.byStatus": "By status"
 }

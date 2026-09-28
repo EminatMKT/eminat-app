@@ -1064,5 +1064,9 @@
   "billing.error.tooLong": "Tiene más de {max} caracteres. Acortalo para poder guardar.",
   "billing.error.eventTypeLabel": "El tipo de evento no es válido.",
   "billing.error.noteText": "La nota no puede quedar vacía.",
-  "billing.error.noteMonth": "Falta la fecha o no es un día real."
+  "billing.error.noteMonth": "Falta la fecha o no es un día real.",
+  "billing.summary.knownSubtotal": "Subtotal conocido",
+  "billing.summary.unknownCount": "Pagos sin monto",
+  "billing.summary.byCategory": "Por categoría",
+  "billing.summary.byStatus": "Por estado"
 }
