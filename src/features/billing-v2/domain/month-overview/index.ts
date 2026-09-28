@@ -1,6 +1,6 @@
 import { isSameMonth, parseISO } from 'date-fns'
 import type { BillingV2Record } from '@/shared/data'
-import values from '../record-values'
+import isPayment from '../is-payment'
 
 type MonthOverview = {
   subtotalCents: number
@@ -9,7 +9,6 @@ type MonthOverview = {
   byStatus: Record<'pending' | 'scheduled' | 'pending_approval' | 'paid', number>
 }
 
-const isPayment = ({ record_type }: BillingV2Record) => record_type === values.recordType.enum.payment
 const inMonth = (today: string) => ({ scheduled_on }: BillingV2Record) =>
   scheduled_on !== null && isSameMonth(parseISO(scheduled_on), parseISO(today))
 
