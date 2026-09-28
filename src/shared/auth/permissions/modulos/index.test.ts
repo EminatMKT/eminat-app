@@ -23,6 +23,11 @@ describe('catálogo de módulos', () => {
     expect(Object.values(MODULE).sort()).toEqual([...ALL_MODULES].sort())
   })
 
+  // Only the display moved to billing: the stored slug is still the key of the entry.
+  it('shows the cobranzas permission as billing', () => {
+    expect(MODULE_META[MODULE.COBRANZAS].name).toBe('Billing')
+  })
+
   it('cada entrada se describe a sí misma', () => {
     for (const slug of ALL_MODULES) {
       expect(MODULE_META[slug].slug).toBe(slug)

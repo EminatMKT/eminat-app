@@ -1,0 +1,9 @@
+/* A panel's name: smaller than the screen title and in the same face, so the two read as one
+   outline. The margin is reset because the panel's own gap already spaces it. */
+.heading {
+  margin: 0;
+  font-family: Syne, sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--c-t1);
+}

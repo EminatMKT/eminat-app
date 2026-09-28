@@ -1,5 +1,5 @@
 .campo {
-  margin-bottom: 14px;
+  margin-bottom: .875rem;
 }
 
 .label {
@@ -7,11 +7,46 @@
   font-size: .75rem;
   font-weight: 500;
   color: var(--c-t2);
-  margin-bottom: 6px;
+  margin-bottom: .375rem;
 }
 
-.obligatorio {
+/* The asterisk comes from the stylesheet so the label holds one element less; the control says
+   it is required with `aria-required`, which is what assistive technology reads. */
+.label[data-required]::after {
+  content: " *";
   color: #f87171;
+}
+
+/* Under its own control, in the same red as ErrorList. --c-danger-solid and not --c-danger: the
+   light one gives 2.77:1 on white and WCAG AA asks 4.5:1 for small text. */
+.error {
+  margin-top: .375rem;
+  font-size: .75rem;
+  color: var(--c-danger-solid);
+}
+
+/* The count and the cut notice of a box with a length limit. --c-t2 and not --c-t3 for the quiet
+   tone: the lighter grey gives under 3:1 on white. The warning tone is amber, not red — nothing
+   is wrong yet, the box has only stopped taking characters. */
+.count,
+.cut {
+  margin-top: .25rem;
+  font-size: .75rem;
+  color: var(--c-t2);
+}
+
+.count {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.count[data-tone="full"],
+.cut {
+  color: var(--c-warn-solid);
+}
+
+.cut:empty {
+  display: none;
 }
 
 /* El control se estiliza desde acá y no desde cada formulario: así un input, un select y un
@@ -40,6 +75,14 @@
 .campo select:focus,
 .campo textarea:focus {
   border-color: var(--c-accent);
+}
+
+/* A control the Field marked invalid (it sets `aria-invalid` while its error is shown) says so with
+   its own border, in the red of the message under it: the text alone left the box looking fine.
+   It keeps the red while focused, so the box being fixed still reads as the wrong one. */
+.campo [aria-invalid="true"],
+.campo [aria-invalid="true"]:focus {
+  border-color: var(--c-danger-solid);
 }
 
 /* Variante destacada: el título de la tarea, que es el campo que se escribe primero. */

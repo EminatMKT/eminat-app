@@ -5,11 +5,13 @@ import { useApp } from '@/shared/context/AppContext'
 import { moduleForPath } from '@/shared/auth/permissions'
 import { writeUserPreference, LAST_MODULE_KEY } from '@/shared/hooks'
 import AccessDenied from '@/shared/components/access/AccessDenied'
+import { useT } from '@/shared/i18n'
 
 // Gate central por módulo: una sola fuente de verdad (antes cada módulo lo hacía suelto y se
 // olvidaron stratix-mkt/accounting/directorio/th-hr). Home (slug null) siempre pasa.
 export default function ModuleGate({ children }: { children: React.ReactNode }) {
   const { modules, loading, usuario } = useApp()
+  const { t } = useT()
   const slug = moduleForPath(usePathname())
 
   // Último módulo visitado, para el atajo del Launchpad. Se anota acá porque es el único punto
@@ -24,7 +26,7 @@ export default function ModuleGate({ children }: { children: React.ReactNode }) 
   }, [allowed, slug, userId])
 
   if (!loading && slug && !modules.includes(slug)) {
-    return <AccessDenied message="You do not have access to this module. Contact your administrator." />
+    return <AccessDenied message={t('shell.noModuleAccess')} />
   }
   return <>{children}</>
 }

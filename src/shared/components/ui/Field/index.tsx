@@ -1,33 +1,51 @@
-import type { ReactNode } from 'react'
-import s from '@/shared/components/ui/Field/index.module.css'
+'use client'
+import { cloneElement, useId } from 'react'
+import FieldFrame from './FieldFrame'
+import FieldLabel from './FieldLabel'
+import CutNotice from './CutNotice'
+import CharCount from './CharCount'
+import FieldContext from './field-context'
+import nativeChild from './native-child'
+import ownLimit from './own-limit'
+import useLengthLimit from './useLengthLimit'
+import type { ControlProps, FieldProps } from './types'
+import s from './index.module.css'
 
-// Un campo de formulario: su rótulo y su control. El asterisco de obligatorio lo pone el
-// componente, así que no se escribe a mano en cada formulario ni se olvida en uno.
-//
-// `icon` va por prop y NO dentro de la clave de i18n. En Stratix los emojis viven adentro del
-// texto —`"🎨 Marca / Área"`— y es el mismo problema que ya tuvo el "+" de los botones: el
-// símbolo se escribe en cada idioma, se desincroniza entre pantallas y falta en unas sí y en
-// otras no. Acá el texto es texto y el ícono es del componente.
-type Props = {
-  label: string
-  /** Emoji que acompaña al rótulo. Decorativo: va con aria-hidden. */
-  icon?: string
-  required?: boolean
-  grande?: boolean
-  /** El control crece con su contenido en vez de esconder el principio. Para un título o una
-   *  URL: se usa con un `<textarea rows={1}>`, que envuelve en vez de scrollear. */
-  crece?: boolean
-  children: ReactNode
-}
+export default function Field(props: FieldProps) {
+  const { label, icon, required = false, grande = false, crece = false, error, children } = props
+  const generated = useId()
+  const errorId = `${generated}-error`
+  const native = nativeChild(children)
+  const id = native?.props.id ?? generated
+  const { limit, cut, report, ids, describedBy, handlers } = useLengthLimit(generated, ownLimit(native?.props))
+  const described = error ? [errorId, ...describedBy] : describedBy
+  const control: ControlProps = {
+    id,
+    'aria-required': required || undefined,
+    'aria-invalid': error ? true : undefined,
+    'aria-describedby': described.length > 0 ? described.join(' ') : undefined,
+    ...handlers,
+  }
+  const channel = { control, report }
 
-export default function Field({ label, icon, required = false, grande = false, crece = false, children }: Props) {
   return (
-    <label className={`${s.campo} ${grande ? s.grande : ''} ${crece ? s.crece : ''}`}>
-      <span className={s.label}>
-        {icon && <span aria-hidden="true">{icon} </span>}
-        {label}{required && <span className={s.obligatorio}> *</span>}
-      </span>
-      {children}
-    </label>
+    <FieldFrame className={`${grande ? s.grande : ''} ${crece ? s.crece : ''}`} errorId={errorId} error={error}>
+      <FieldLabel htmlFor={id} label={label} icon={icon} required={required} />
+      <FieldContext.Provider value={channel}>
+        {native ? cloneElement(native, control) : children}
+      </FieldContext.Provider>
+      {limit && <CutNotice id={ids.cut} cut={cut} field={label} max={limit.max} />}
+      {limit && <CharCount id={ids.count} length={limit.length} max={limit.max} />}
+    </FieldFrame>
   )
 }
+
+// A form field: its label, its control and its error. The label NAMES the control —`htmlFor` to
+// the control's id—, which is what a screen reader reads and what makes a click on the text put
+// the cursor in the box. A native tag placed inside gets the id from the Field itself; a
+// component that draws its control asks for it with `useFieldControl`. The required asterisk and
+// the icon belong to the component, not to each form (nor to the i18n key).
+//
+// A box with a `maxLength` also gets, under it, the count once it nears the limit and a notice
+// when a paste is cut: every form with a limited box gets both without asking. They are added
+// to the control's description after the error, never in its place.

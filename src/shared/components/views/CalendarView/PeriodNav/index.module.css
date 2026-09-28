@@ -1,0 +1,19 @@
+/* The arrow is a target before it is a glyph: a fixed 2.25rem square, the size a thumb hits.
+   `flex: none` keeps the name between them from squeezing it. */
+.step {
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--c-border);
+  border-radius: .5rem;
+  color: var(--c-t2);
+  font-size: 1.125rem;
+  line-height: 2.125rem;
+  text-align: center;
+}
+
+.step:hover,
+.step:focus-visible {
+  background: var(--c-s3);
+  color: var(--c-t1);
+}

@@ -1,15 +1,17 @@
 #!/usr/bin/env sh
 # Gate local rápido antes de push (bypasseable con --no-verify; el gate duro es CI).
 #
-# Los tres `rules:*` llaman al centinela, que ya no vive acá: es un plugin instalado por
+# Los `rules:*` llaman al centinela, que ya no vive acá: es un plugin instalado por
 # desarrollador. `.githooks/centinela.sh` lo resuelve, y avisa sin abortar si no está — porque en
 # CI no está a propósito (es privado; ver ci.yml) y un gate que frena por eso se saltea entero.
-echo "▶ pre-push: reglas + contexto + barrido + RLS + typecheck + css + tests"
-pnpm rules:check || { echo "✖ el centinela no se valida a sí mismo"; exit 1; }
+# `rules:check` is not here on purpose: it tests the rules repo, not this app (which has no
+# `rules/` of its own), and a stale test over there should not block a push over here.
+echo "▶ pre-push: contexto + sweep + RLS + typecheck + lint + css + tests"
 pnpm rules:contexto || { echo "✖ un archivo de contexto quedó desactualizado"; exit 1; }
-pnpm rules:barrido || { echo "✖ algo se escribió esquivando el hook (un sed, un script) y no cumple"; exit 1; }
+pnpm rules:sweep || { echo "✖ something was written around the hook (sed, a script) and breaks a rule"; exit 1; }
 pnpm db:rls   || { echo "✖ hay una tabla de public sin RLS"; exit 1; }
 pnpm typecheck || { echo "✖ typecheck falló"; exit 1; }
+pnpm lint || { echo "✖ lint failed"; exit 1; }
 pnpm lint:css || { echo "✖ el CSS no compila"; exit 1; }
 pnpm test || { echo "✖ tests fallaron"; exit 1; }
 echo "✓ pre-push OK"

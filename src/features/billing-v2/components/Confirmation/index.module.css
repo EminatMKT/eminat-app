@@ -1,0 +1,15 @@
+/* The confirmation beside the screen's title. --c-t1 on the tinted fill keeps small text over
+   4.5:1; empty, the line collapses and the header keeps its size. */
+.line {
+  margin: 0 auto 0 0;
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--c-accent) 12%, var(--c-s1));
+  color: var(--c-t1);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.line:empty {
+  display: none;
+}

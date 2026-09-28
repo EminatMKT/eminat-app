@@ -1,4 +1,4 @@
-const DEFAULT_URL = 'http://127.0.0.1:54321'
+export const DEFAULT_URL ='http://127.0.0.1:54321'
 export const URL = process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_URL
 // Playwright no carga dotenv: en una terminal limpia el env queda vacío. Fallback: la llave
 // demo del stack local de Supabase (pública, la misma de ci.yml y de `supabase status`),

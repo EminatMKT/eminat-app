@@ -3,14 +3,24 @@ import { modulePath, moduleForPath, ROUTES } from './index'
 
 describe('modulePath', () => {
   it('la ruta de un módulo es / + slug', () => {
-    expect(modulePath('cobranzas')).toBe('/cobranzas')
     expect(modulePath('th-hr')).toBe('/th-hr')
+  })
+
+  // The stored permission stays `cobranzas`; only its public path moved to /billing.
+  it('serves the cobranzas permission at /billing', () => {
+    expect(modulePath('cobranzas')).toBe('/billing')
   })
 })
 
 describe('moduleForPath', () => {
-  it('mapea ruta a slug', () => { expect(moduleForPath('/cobranzas/x')).toBe('cobranzas') })
-  it('la raíz del módulo también', () => { expect(moduleForPath('/cobranzas')).toBe('cobranzas') })
+  it('mapea ruta a slug', () => { expect(moduleForPath('/billing/record')).toBe('cobranzas') })
+  it('la raíz del módulo también', () => { expect(moduleForPath('/billing')).toBe('cobranzas') })
+
+  // No alias: the old path belongs to no module, and a shared prefix is not a match.
+  it('leaves the old path and a half prefix unmapped', () => {
+    expect(moduleForPath('/cobranzas')).toBeNull()
+    expect(moduleForPath('/billing-extra')).toBeNull()
+  })
   it('overview → admin', () => { expect(moduleForPath('/overview')).toBe('admin') })
   it('ruta no gateada → null', () => {
     expect(moduleForPath(ROUTES.login)).toBeNull()

@@ -1,4 +1,4 @@
-import { MODULE, type ModuleSlug } from '@/shared/auth/permissions'
+import { MODULE, MODULE_META, type ModuleSlug } from '@/shared/auth/permissions'
 import type { PanelKey } from './tipos'
 
 // Rail principal: NAV (tipado) filtrado por los `modules` del usuario en runtime.
@@ -20,7 +20,7 @@ export const AUTO_TITLE: Partial<Record<ModuleSlug, string>> = {
   [MODULE.TASKS]: 'Tasks — Tareas del grupo',
   [MODULE.STRATIX_MKT]: 'Stratix 360 — Marketing',
   [MODULE.ACCOUNTING]: 'Accounting — Eminat Research',
-  [MODULE.COBRANZAS]: 'EMINAT LLC — Billing Dashboard',
+  [MODULE.COBRANZAS]: MODULE_META[MODULE.COBRANZAS].name,
   [MODULE.RESEARCH]: 'Eminat Research Group',
   [MODULE.MEDICAL]: 'Eminat Medical Center — HIPAA',
   [MODULE.DIRECTORIO]: 'Team Directory',

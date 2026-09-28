@@ -4,9 +4,9 @@
 // va `position: fixed` calculado a mano porque vive en un contenedor con `overflow-x: auto`, y
 // fija su contenido en vez de componer `children`.
 import { useEffect, useRef, type ReactNode } from 'react'
+import { ESCAPE } from '@/shared/constants/dom'
 import s from './index.module.css'
 
-const ESCAPE = 'Escape'
 const POINTER_DOWN = 'pointerdown'
 const KEY_DOWN = 'keydown'
 
@@ -33,9 +33,9 @@ export default function Dropdown(props: Props) {
   useEffect(() => {
     // `pointerdown` y no `click`: cierra antes de que el clic aterrice, así apretar el disparador
     // de OTRO desplegable lo abre en el mismo gesto en vez de gastarlo en cerrar éste.
-    const afuera = (e: PointerEvent) => {
+    const afuera = ({ target }: PointerEvent) => {
       const el = raiz.current
-      if (el?.open && !el.contains(e.target as Node)) el.open = false
+      if (el?.open && target instanceof Node && !el.contains(target)) el.open = false
     }
     const escape = (e: KeyboardEvent) => {
       if (e.key === ESCAPE && raiz.current?.open) raiz.current.open = false

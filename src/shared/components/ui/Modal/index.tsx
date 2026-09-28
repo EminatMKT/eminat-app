@@ -1,7 +1,11 @@
 'use client'
 import type { ReactNode } from 'react'
 import ModalHead from '@/shared/components/ui/ModalHead'
+import { DIALOG } from '@/shared/constants/dom'
+import useDialog from './useDialog'
 import s from './index.module.css'
+
+const ALERT_DIALOG = 'alertdialog'
 
 // centinela-exime: bloques-similares@3 — no hay markup nuevo: el encabezado SALIÓ de acá a
 // `ModalHead` y lo único que se agregó es el pie, que es un <div> con el `footer` adentro.
@@ -23,21 +27,30 @@ type Props = {
    *  letra del navegador, así que el texto se apretuja contra los bordes. El nombre lleva la
    *  unidad para que nadie le pase 480 pensando en píxeles (rules/componentes.md). */
   anchoRem?: number
+  /** `alertdialog` when it interrupts to ask for a decision (ConfirmModal). */
+  role?: typeof DIALOG | typeof ALERT_DIALOG
+  /** The dialog's name when it has no `title` to point at: a caller that draws its own `header`. */
+  label?: string
   onClose: () => void
   children: ReactNode
 }
 
 export default function Modal(props: Props) {
-  // Siete props no entran en la firma sin volverla un párrafo: se desestructuran en la primera
+  // Nueve props no entran en la firma sin volverla un párrafo: se desestructuran en la primera
   // línea del cuerpo (rules/codigo.md · "Un parámetro objeto se desestructura").
-  const { title, subtitle, header, footer, anchoRem = 30, onClose, children } = props
+  const { title, subtitle, header, footer, anchoRem = 30, role = DIALOG, label, onClose, children } = props
+  // Role, focus in, Tab kept inside, Escape and the focus given back: see `useDialog`.
+  const { titleId, box } = useDialog(onClose)
+  const labelledBy = title ? titleId : undefined
+  const ariaLabel = title ? undefined : label
 
   return (
     <div className={s.fondo} onClick={onClose}>
-      <div className={s.caja} style={{ '--ancho': `${anchoRem}rem` }} onClick={e => e.stopPropagation()}>
+      <div {...box} role={role} aria-labelledby={labelledBy} aria-label={ariaLabel} className={s.caja}
+        style={{ '--ancho': `${anchoRem}rem` }} onClick={e => e.stopPropagation()}>
         {(title || header) && (
-          <div className={s.head}>
-            {header ?? <ModalHead title={title} subtitle={subtitle} onClose={onClose} />}
+          <div className={s.head} data-dialog-head>
+            {header ?? <ModalHead titleId={titleId} title={title} subtitle={subtitle} onClose={onClose} />}
           </div>
         )}
         <div className={s.cuerpo}>{children}</div>

@@ -98,7 +98,7 @@ La validación ocurre en `src/app/login/page.tsx` antes de llamar a Supabase Aut
 | Stratix 360 | `/stratix-mkt` | Marketing propiamente dicho: Social Media, Competitors y Team. Las cuatro secciones de tareas se fueron a `/tasks` |
 | Medical | `/medical` | Gestión de pacientes, citas, incidentes, capacitaciones, auditoría |
 | Research | `/research` | Leads, campañas de email/SMS, pipeline, analíticas (ResearchModule.tsx, 1068 líneas) |
-| Cobranzas | `/cobranzas` | Ventas mensuales, cuentas por cobrar, depósitos. Import/export CSV |
+| Billing | `/billing` | Calendario de pagos, eventos y notas del mes + recordatorios de pagos impagos (vencidos / próximos). Tabla `billing_v2_records`. El permiso guardado sigue siendo `cobranzas`; `/cobranzas` ya no existe (404) |
 | Accounting | `/accounting` | KPIs financieros con gráficas por área (Resumen, Ventas, Por Cobrar, Bancario) |
 | Directorio | `/directorio` | Listado de miembros con búsqueda y filtros por departamento |
 | Reuniones | `/reuniones` | Actas de reunión: participantes, temas tratados, pendientes y acta imprimible |
@@ -178,14 +178,14 @@ src/
     motion/index.tsx   ← componentes de animación reutilizables (Framer Motion)
     i18n/              ← claves es.json / en.json + useT()
   features/            ← un directorio por módulo de negocio
-    accounting/  admin/  cobranzas/  directorio/
+    accounting/  admin/  billing-v2/  directorio/
     medical/     overview/  research/  reuniones/  stratix-mkt/  tasks/
   app/
     layout.tsx         ← layout raíz (fuentes Syne + DM Mono)
     (app)/             ← grupo de rutas protegidas
       layout.tsx       ← envuelve con AppProvider
       page.tsx         ← Launchpad
-      admin/ tasks/ stratix-mkt/ medical/ research/ cobranzas/ accounting/
+      admin/ tasks/ stratix-mkt/ medical/ research/ billing/ accounting/
     api/
       admin/           ← CRUD de usuarios (create, delete, reassign-and-delete, reset-password, update)
       mail/            ← envío de correo (send via Resend, con guard de módulo)

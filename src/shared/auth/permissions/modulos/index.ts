@@ -29,7 +29,7 @@ export const MODULE_META: Record<ModuleSlug, ModuleMeta> = {
   },
   [MODULE.COBRANZAS]: {
     slug: MODULE.COBRANZAS,
-    name: 'Cobranzas',
+    name: 'Billing',
     description: 'Facturación, cobros y conciliación.',
     leader: null,
   },

@@ -1,0 +1,67 @@
+/* The fixed places of a record card. The grid that names the areas is the card's own
+   (`RecordButton` `.card`); each field only says which area it sits in and how it reads. */
+
+.field {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date {
+  composes: field;
+  grid-area: date;
+  font-size: 0.75rem;
+  color: var(--c-t2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The status is the same small badge on every card, so it is compared at a glance. */
+.status {
+  composes: field;
+  grid-area: status;
+  justify-self: end;
+  padding: 0 0.375rem;
+  border: 1px solid var(--c-border);
+  border-radius: 1rem;
+  font-size: 0.6875rem;
+  color: var(--c-t2);
+}
+
+/* The concept may be long and have no spaces at all: it breaks anywhere and stops at two lines,
+   so it never overflows the card nor puts a scrollbar on the page. */
+.concept {
+  composes: field;
+  grid-area: concept;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.payee {
+  composes: field;
+  grid-area: payee;
+  font-size: 0.75rem;
+  color: var(--c-t2);
+}
+
+/* The amount sits on the right edge of every card, in figures of equal width, so the amounts of
+   the list line up and the largest is found by looking down one column. */
+.amount {
+  composes: field;
+  grid-area: amount;
+  justify-self: end;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.marker {
+  composes: field;
+  grid-area: marker;
+  font-size: 0.6875rem;
+  color: var(--c-accent);
+}

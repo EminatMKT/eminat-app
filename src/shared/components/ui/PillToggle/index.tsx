@@ -1,5 +1,5 @@
 'use client'
-import type { CSSProperties } from 'react'
+import useFieldControl from '@/shared/components/ui/Field/useFieldControl'
 import s from '@/shared/components/ui/PillToggle/index.module.css'
 
 // Píldora de selección: el control que eligen "una de estas" sin desplegar nada — los
@@ -18,10 +18,12 @@ type Props = {
 
 export default function PillToggle(props: Props) {
   const { label, active, onClick, size = 'md', color, count } = props
+  // Inside a Field, its label names the switch (the id it points at); alone, this hands nothing.
+  const named = useFieldControl()
   return (
-    <button type="button" aria-pressed={active} onClick={onClick}
+    <button {...named} type="button" aria-pressed={active} onClick={onClick}
       className={`${s.pill} ${active ? s.on : ''} ${size === 'sm' ? s.sm : ''} ${color ? s.tinted : ''}`}
-      style={color ? ({ '--pill-color': color } as CSSProperties) : undefined}>
+      style={color ? { '--pill-color': color } : undefined}>
       {label}{count !== undefined && <span className={s.cuenta}>{count}</span>}
     </button>
   )

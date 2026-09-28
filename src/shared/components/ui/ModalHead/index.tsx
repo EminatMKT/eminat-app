@@ -9,17 +9,19 @@ import s from './index.module.css'
 
 // El encabezado por defecto de un modal: su título, su bajada opcional y la ✕.
 type Props = {
+  /** The id the dialog's `aria-labelledby` points at: the title is the dialog's name. */
+  titleId?: string
   title?: string
   subtitle?: string
   onClose: () => void
 }
 
-export default function ModalHead({ title, subtitle, onClose }: Props) {
+export default function ModalHead({ titleId, title, subtitle, onClose }: Props) {
   const { t } = useT()
   return (
     <div className={s.fila}>
       <div>
-        <div className={s.titulo}>{title}</div>
+        <div id={titleId} className={s.titulo}>{title}</div>
         {subtitle && <div className={s.sub}>{subtitle}</div>}
       </div>
       {/* `aria-label`: la ✕ sola no le dice nada a un lector de pantalla. */}

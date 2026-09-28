@@ -9,7 +9,8 @@
 import { useState, type KeyboardEvent } from 'react'
 import { useT } from '@/shared/i18n'
 import { Button, Field, Modal } from '@/shared/components/ui'
-import { ENTER, MODAL_REM, FIELD_KEY, SAVE_KEY } from './constants'
+import { ENTER } from '@/shared/constants/dom'
+import { MODAL_REM, FIELD_KEY, SAVE_KEY } from './constants'
 
 type Props = {
   /** Qué botón lo abre: `new` para crear una vista, `edit` para corregir el nombre de una. */

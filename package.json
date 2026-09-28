@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3000",
     "build": "next build",
     "build:check": "NEXT_BUILD_DIR=.next-verify next build",
     "start": "next start",
@@ -12,10 +12,11 @@
     "test:watch": "TZ=America/Guayaquil vitest",
     "typecheck": "tsc --noEmit",
     "e2e": "playwright test",
+    "postinstall": "playwright install chromium",
     "prepare": "git config core.hooksPath .githooks 2>/dev/null || true",
-    "rules:check": "sh .githooks/centinela.sh --self-check --semilla",
+    "rules:check": "sh .githooks/centinela.sh --self-check",
     "rules:contexto": "sh .githooks/centinela.sh --contexto-al-dia",
-    "rules:barrido": "sh .githooks/centinela.sh --barrido",
+    "rules:sweep": "sh .githooks/centinela.sh --sweep",
     "db:rls": "sh supabase/checks/rls.sh",
     "lint:css": "stylelint \"src/**/*.css\""
   },
