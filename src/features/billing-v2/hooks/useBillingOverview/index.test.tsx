@@ -37,21 +37,21 @@ describe('useBillingOverview', () => {
     expect(captured?.overview.pendingCents).toBe(500)
   })
 
-  it('tallies the status donut in whole dollars, named by the raw value for PieChartCard to translate', () => {
+  it('tallies the status donut in cents, named by the raw value for PieChartCard to translate', () => {
     renderToStaticMarkup(<Probe />)
     const paid = captured?.statusData.find(d => d.name === PAID)
-    expect(paid?.value).toBe(10)
+    expect(paid?.value).toBe(1000)
   })
 
-  it('splits the category breakdown into its own paid and pending tallies, in whole dollars', () => {
+  it('splits the category breakdown into its own paid and pending tallies, in cents', () => {
     renderToStaticMarkup(<Probe />)
     expect(captured?.paidCategoryData).toEqual([
-      { name: 'payroll', value: 10 },
+      { name: 'payroll', value: 1000 },
       { name: 'contractors_vendors', value: 0 },
     ])
     expect(captured?.pendingCategoryData).toEqual([
       { name: 'payroll', value: 0 },
-      { name: 'contractors_vendors', value: 5 },
+      { name: 'contractors_vendors', value: 500 },
     ])
   })
 

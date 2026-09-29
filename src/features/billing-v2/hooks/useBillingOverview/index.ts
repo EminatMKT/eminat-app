@@ -20,10 +20,9 @@ export default function useBillingOverview(records: BillingV2Record[]) {
   const overview = billingOverview(filtered)
   const byStatus = billingBreakdown(filtered).byStatusCents
   const byCategory = billingBreakdown(exceptCategory)
-  const dollars = (cents: number) => Math.round(cents / 100)
-  const statusData = Object.entries(byStatus).map(([key, value]) => ({ name: key, value: dollars(value) }))
-  const paidCategoryData = Object.entries(byCategory.paidByCategoryCents).map(([key, value]) => ({ name: key, value: dollars(value) }))
-  const pendingCategoryData = Object.entries(byCategory.pendingByCategoryCents).map(([key, value]) => ({ name: key, value: dollars(value) }))
+  const statusData = Object.entries(byStatus).map(([key, value]) => ({ name: key, value }))
+  const paidCategoryData = Object.entries(byCategory.paidByCategoryCents).map(([key, value]) => ({ name: key, value }))
+  const pendingCategoryData = Object.entries(byCategory.pendingByCategoryCents).map(([key, value]) => ({ name: key, value }))
   const toggle = (key: string) => (v: string) => filtros.setValor(key, filtros.valores[key] === v ? '' : v)
   const result = {
     filtros,
@@ -42,5 +41,5 @@ export default function useBillingOverview(records: BillingV2Record[]) {
 // clickable, so there is no self-collapse to guard against. The two category donuts ARE
 // clickable, so each excludes the category filter from its own tally (see billing-filters).
 //
-// Chart `value`s go in whole dollars, not cents: `LegendItem` prints its number as-is, with no
-// currency formatter of its own (`money()`, in the component, handles the three KPI cards).
+// Chart `value`s stay in cents: `PieChartCard` now takes a `formatValue` — the component passes
+// `money()`, so the legend and the tooltip read as real currency, same as the three KPI cards.

@@ -40,23 +40,23 @@ describe('BillingOverviewTab', () => {
     expect(html).toContain('>1<')
   })
 
-  it('feeds the status donut every catalog member in whole dollars, named by the raw value', () => {
+  it('feeds the status donut every catalog member in cents, named by the raw value', () => {
     renderToStaticMarkup(<BillingOverviewTab records={[paidPayroll, pendingContractor]} />)
     const statusCall = pieCard.mock.calls[0]?.[0]
     const paid = statusCall?.data.find((d: { name: string }) => d.name === PAID)
-    expect(paid).toEqual({ name: PAID, value: 5 })
+    expect(paid).toEqual({ name: PAID, value: 500 })
   })
 
-  it('splits the category breakdown into a paid donut and a pending donut, in whole dollars', () => {
+  it('splits the category breakdown into a paid donut and a pending donut, in cents', () => {
     renderToStaticMarkup(<BillingOverviewTab records={[paidPayroll, pendingContractor]} />)
     const [, paidCategoryCall, pendingCategoryCall] = pieCard.mock.calls
     expect(paidCategoryCall?.[0]?.data).toEqual([
-      { name: 'payroll', value: 5 },
+      { name: 'payroll', value: 500 },
       { name: 'contractors_vendors', value: 0 },
     ])
     expect(pendingCategoryCall?.[0]?.data).toEqual([
       { name: 'payroll', value: 0 },
-      { name: 'contractors_vendors', value: 3 },
+      { name: 'contractors_vendors', value: 300 },
     ])
   })
 })

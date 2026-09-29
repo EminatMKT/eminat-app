@@ -34,17 +34,16 @@ export default function BillingOverviewTab({ records }: Props) {
         </StaggerGrid>
       </Panel>
       <StaggerGrid className={s.charts}>
-        <PieChartCard title={t('billing.summary.byStatus')} persistKey="billing-summary-status"
-          data={statusData} colors={STATUS_COLOR} labelOf={label} />
-        <PieChartCard title={t('billing.summary.paidByCategory')} persistKey="billing-summary-paid-category"
-          data={paidCategoryData} colors={CATEGORY_COLOR} labelOf={label}
+        <PieChartCard title={t('billing.summary.byStatus')} persistKey="billing-summary-status" data={statusData}
+          colors={STATUS_COLOR} labelOf={label} formatValue={money} donut centerLabel={money(overview.totalCents)} />
+        <PieChartCard title={t('billing.summary.paidByCategory')} persistKey="billing-summary-paid-category" data={paidCategoryData}
+          colors={CATEGORY_COLOR} labelOf={label} formatValue={money} donut centerLabel={money(overview.paidCents)}
           onSelect={toggle(CATEGORY_KEY)} selected={filtros.valores[CATEGORY_KEY]} />
-        <PieChartCard title={t('billing.summary.pendingByCategory')} persistKey="billing-summary-pending-category"
-          data={pendingCategoryData} colors={CATEGORY_COLOR} labelOf={label}
+        <PieChartCard title={t('billing.summary.pendingByCategory')} persistKey="billing-summary-pending-category" data={pendingCategoryData}
+          colors={CATEGORY_COLOR} labelOf={label} formatValue={money} donut centerLabel={money(overview.pendingCents)}
           onSelect={toggle(CATEGORY_KEY)} selected={filtros.valores[CATEGORY_KEY]} />
       </StaggerGrid>
     </>
   )
 }
-// No `period`: Total/Paid/Pending and the status donut read every filter; each category donut
-// cross-filters its own dimension so clicking "Payroll" doesn't erase "Contractors" from view.
+// Three KPIs plus three donuts, all amount-weighted — matches the reference spec's Resumen tab.
