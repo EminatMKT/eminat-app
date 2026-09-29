@@ -31,7 +31,7 @@ export default function BillingV2Content({ tab }: Props) {
       </BillingBox>
       <RecordsGate hasRecords={records.length > 0} loading={loading} error={error} onRetry={() => void reload()}>
         {tab === OVERVIEW_TAB
-          ? <BillingOverviewTab records={records} period={period} />
+          ? <BillingOverviewTab records={records} />
           : <BillingRecordsTab records={records} today={today} onOpen={open} period={period} onPeriodChange={setPeriod} onNewOn={(day) => setEditing({ record: null, day })} />}
       </RecordsGate>
       {editing && <RecordEditor {...editing} onSave={save} onDrop={remove} onLanded={say} onClose={() => setEditing(null)} />}
@@ -39,5 +39,5 @@ export default function BillingV2Content({ tab }: Props) {
   )
 }
 // Which tab is open is decided by the sidebar now (`BillingV2Module`, via `AppShell`'s
-// `activeTab`), not read here — this only draws whichever one `tab` names. `period` still lives
-// in `useCalendarPeriod`, so it survives a tab switch instead of resetting.
+// `activeTab`), not read here — this only draws whichever one `tab` names. `period` is Records'
+// own calendar month; Overview reads the same unfiltered `records` and filters on its own terms.

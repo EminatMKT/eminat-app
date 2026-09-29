@@ -2,10 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type { PieChartCard, BarChartCard } from '@/shared/components/dashboard'
 import fixtureRecord from '@/features/billing-v2/fixture-record'
+import billingRecordValues from '@/features/billing-v2/domain/record-values'
 import BillingOverviewTab from './index'
 
 vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key, intlLocale: 'en-US' }) }))
-vi.mock('@/shared/hooks', () => ({ useUserPreference: (_key: string | null, initial: unknown) => [initial, vi.fn()] }))
+vi.mock('@/shared/context/AppContext', () => ({ useApp: () => ({ usuario: null }) }))
+vi.mock('@/shared/components/filters', () => ({ FiltersPanel: () => null }))
 
 const { pieCard, barCard } = vi.hoisted(() => ({
   pieCard: vi.fn((_props: Parameters<typeof PieChartCard>[0]) => null),
@@ -14,7 +16,13 @@ const { pieCard, barCard } = vi.hoisted(() => ({
 vi.mock('@/shared/components/dashboard/PieChartCard', () => ({ default: pieCard }))
 vi.mock('@/shared/components/dashboard/BarChartCard', () => ({ default: barCard }))
 
-const PAID_KEY = 'billing.status.paid'
+const { paid: PAID } = billingRecordValues.paymentStatus.enum
+const onePaidPayroll = [fixtureRecord({
+  id: '1',
+  category: 'payroll',
+  payment_status: PAID,
+  amount: '5.00',
+})]
 
 describe('BillingOverviewTab', () => {
   beforeEach(() => {
@@ -22,32 +30,29 @@ describe('BillingOverviewTab', () => {
     barCard.mockClear()
   })
 
-  it('shows the selected month, the known subtotal and the unknown count', () => {
+  it('shows the known subtotal and the unknown count, with no month locking it', () => {
     const records = [
-      fixtureRecord({ id: '1', scheduled_on: '2026-09-05', amount: '100.00' }),
-      fixtureRecord({ id: '2', scheduled_on: '2026-09-10', amount: null }),
+      fixtureRecord({ id: '1', amount: '100.00' }),
+      fixtureRecord({ id: '2', amount: null }),
     ]
-    const html = renderToStaticMarkup(<BillingOverviewTab records={records} period="2026-09-01" />)
-    expect(html).toContain('September 2026')
+    const html = renderToStaticMarkup(<BillingOverviewTab records={records} />)
     expect(html).toContain('$100.00')
     expect(html).toContain('>1<')
   })
 
-  it('feeds the category and status charts with every catalog member, zeros included', () => {
-    const records = [fixtureRecord({
-      id: '1',
-      scheduled_on: '2026-09-05',
-      category: 'payroll',
-      payment_status: 'paid',
-      amount: '5.00',
-    })]
-    renderToStaticMarkup(<BillingOverviewTab records={records} period="2026-09-01" />)
+  it('feeds the category pie every catalog member, zeros included, keyed by the raw value', () => {
+    renderToStaticMarkup(<BillingOverviewTab records={onePaidPayroll} />)
     const categoryCall = pieCard.mock.calls[0]?.[0]
-    const statusCall = barCard.mock.calls[0]?.[0]
     expect(categoryCall?.data).toEqual([
-      { name: 'billing.category.payroll', value: 1 },
-      { name: 'billing.category.contractorsVendors', value: 0 },
+      { name: 'payroll', value: 1 },
+      { name: 'contractors_vendors', value: 0 },
     ])
-    expect(statusCall?.data.find((d) => d.name === PAID_KEY)?.value).toBe(1)
+  })
+
+  it('feeds the status bar a translated name with the raw value carried as its key', () => {
+    renderToStaticMarkup(<BillingOverviewTab records={onePaidPayroll} />)
+    const statusCall = barCard.mock.calls[0]?.[0]
+    const paid = statusCall?.data.find((d: { key?: string }) => d.key === PAID)
+    expect(paid).toEqual({ name: 'billing.status.paid', value: 1, key: PAID })
   })
 })
