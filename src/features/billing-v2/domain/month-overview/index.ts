@@ -9,8 +9,8 @@ type MonthOverview = {
   byStatus: Record<'pending' | 'scheduled' | 'pending_approval' | 'paid', number>
 }
 
-const inMonth = (today: string) => ({ scheduled_on }: BillingV2Record) =>
-  scheduled_on !== null && isSameMonth(parseISO(scheduled_on), parseISO(today))
+const inMonth = (period: string) => ({ scheduled_on }: BillingV2Record) =>
+  scheduled_on !== null && isSameMonth(parseISO(scheduled_on), parseISO(period))
 
 // A decimal string's cents as an integer, read once — never a running float total (see
 // `money-text`'s own comment: `Number` is safe for drawing ONE amount, not for adding many).
@@ -20,10 +20,10 @@ function toCents(amount: string): number {
   return Number(whole) * 100 + Number(cents)
 }
 
-/** The calendar month `today` falls in, tallied from every payment scheduled inside it. Events
+/** The calendar month `period` falls in, tallied from every payment scheduled inside it. Events
  *  and month notes never reach these numbers; only payments do. */
-export default function monthOverview(records: readonly BillingV2Record[], today: string): MonthOverview {
-  const payments = records.filter(isPayment).filter(inMonth(today))
+export default function monthOverview(records: readonly BillingV2Record[], period: string): MonthOverview {
+  const payments = records.filter(isPayment).filter(inMonth(period))
   const byCategory: Record<'payroll' | 'contractors_vendors', number> = { payroll: 0, contractors_vendors: 0 }
   const byStatus: Record<'pending' | 'scheduled' | 'pending_approval' | 'paid', number> = {
     pending: 0, scheduled: 0, pending_approval: 0, paid: 0,
