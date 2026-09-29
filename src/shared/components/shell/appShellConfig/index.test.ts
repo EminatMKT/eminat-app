@@ -7,9 +7,9 @@ it('titles the billing topbar with the name of its module', () => {
   expect(AUTO_TITLE[MODULE.COBRANZAS]).toBe(MODULE_META[MODULE.COBRANZAS].name)
 })
 
-// The billing panel offers Records and Overview, each translated by its own key.
+// The billing panel offers Overview before Records, each translated by its own key.
 it('gives billing two sub-items, both translated through labelKey', () => {
-  expect(SUB_ITEMS.billing.map(item => item.tab)).toEqual(['records', 'overview'])
+  expect(SUB_ITEMS.billing.map(item => item.tab)).toEqual(['overview', 'records'])
   expect(SUB_ITEMS.billing.every(item => item.labelKey)).toBe(true)
 })
 
