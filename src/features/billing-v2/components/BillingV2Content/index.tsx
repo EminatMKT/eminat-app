@@ -17,14 +17,14 @@ import Confirmation from '@/features/billing-v2/components/Confirmation'
 import useConfirmation from '@/features/billing-v2/components/Confirmation/useConfirmation'
 /** The record the editor is open on —null means a new one—, and the day a new one starts on. */
 type OpenEditor = { record: BillingV2Record | null; day?: string }
-const RECORDS_TAB = 'records', OVERVIEW_TAB = 'overview', MODULE_KEY = 'billing'
+const RECORDS_TAB: 'records' = 'records', OVERVIEW_TAB: 'overview' = 'overview', MODULE_KEY = 'billing'
 export default function BillingV2Content() {
   const { t } = useT()
   const { records, loading, error, reload, save, remove } = useBillingV2Records()
   const today = useBusinessToday()
   const [editing, setEditing] = useState<OpenEditor | null>(null)
   const { said, say } = useConfirmation()
-  const [tab, setTab] = useTabPreference(MODULE_KEY, RECORDS_TAB, [RECORDS_TAB, OVERVIEW_TAB])
+  const [tab, setTab] = useTabPreference<'records' | 'overview'>(MODULE_KEY, RECORDS_TAB, [RECORDS_TAB, OVERVIEW_TAB])
   const [period, setPeriod] = useCalendarPeriod(today)
   const open = (record: BillingV2Record) => setEditing({ record })
   return (
