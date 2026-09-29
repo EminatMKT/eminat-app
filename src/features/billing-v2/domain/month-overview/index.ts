@@ -26,7 +26,10 @@ export default function monthOverview(records: readonly BillingV2Record[], perio
   const payments = records.filter(isPayment).filter(inMonth(period))
   const byCategory: Record<'payroll' | 'contractors_vendors', number> = { payroll: 0, contractors_vendors: 0 }
   const byStatus: Record<'pending' | 'scheduled' | 'pending_approval' | 'paid', number> = {
-    pending: 0, scheduled: 0, pending_approval: 0, paid: 0,
+    pending: 0,
+    scheduled: 0,
+    pending_approval: 0,
+    paid: 0,
   }
   let subtotalCents = 0
   let unknownCount = 0
@@ -36,7 +39,12 @@ export default function monthOverview(records: readonly BillingV2Record[], perio
     if (payment.amount === null) unknownCount += 1
     else subtotalCents += toCents(payment.amount)
   }
-  const result: MonthOverview = { subtotalCents, unknownCount, byCategory, byStatus }
+  const result: MonthOverview = {
+    subtotalCents,
+    unknownCount,
+    byCategory,
+    byStatus,
+  }
   return result
 }
 

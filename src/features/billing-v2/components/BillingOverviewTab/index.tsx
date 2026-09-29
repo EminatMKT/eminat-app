@@ -11,14 +11,15 @@ import s from './index.module.css'
 
 const CATEGORY_COLOR: Record<string, string> = { payroll: CHART_COLORS[1], contractors_vendors: CHART_COLORS[3] }
 const STATUS_COLOR: Record<string, string> = {
-  pending: CHART_COLORS[9], scheduled: CHART_COLORS[1], pending_approval: CHART_COLORS[4], paid: CHART_COLORS[0],
+  pending: CHART_COLORS[9],
+  scheduled: CHART_COLORS[1],
+  pending_approval: CHART_COLORS[4],
+  paid: CHART_COLORS[0],
 }
 const MONTH_YEAR_FORMAT: Intl.DateTimeFormatOptions = { month: 'long', year: 'numeric' }
 const CURRENCY_FORMAT: Intl.NumberFormatOptions = { style: 'currency', currency: 'USD' }
-
 /** `period` is the calendar month to summarize — the same page the Records tab has on screen. */
 type Props = { records: readonly BillingV2Record[]; period: string }
-
 export default function BillingOverviewTab(props: Props) {
   const { records, period } = props
   const { t, intlLocale } = useT()
@@ -45,6 +46,5 @@ export default function BillingOverviewTab(props: Props) {
     </Panel>
   )
 }
-
 // Read-only, and follows wherever Records left the calendar — on purpose, since a "Today"
 // control now exists to get back. `records` is the same copy the other tab reads, no refetch.

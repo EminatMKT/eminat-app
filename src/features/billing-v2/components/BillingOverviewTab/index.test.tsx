@@ -34,7 +34,13 @@ describe('BillingOverviewTab', () => {
   })
 
   it('feeds the category and status charts with every catalog member, zeros included', () => {
-    const records = [fixtureRecord({ id: '1', scheduled_on: '2026-09-05', category: 'payroll', payment_status: 'paid', amount: '5.00' })]
+    const records = [fixtureRecord({
+      id: '1',
+      scheduled_on: '2026-09-05',
+      category: 'payroll',
+      payment_status: 'paid',
+      amount: '5.00',
+    })]
     renderToStaticMarkup(<BillingOverviewTab records={records} period="2026-09-01" />)
     const categoryCall = pieCard.mock.calls[0]?.[0]
     const statusCall = barCard.mock.calls[0]?.[0]
