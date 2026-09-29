@@ -9,8 +9,18 @@ vi.mock('@/shared/context/AppContext', () => ({ useApp: () => ({ usuario: null }
 
 const { paid: PAID, pending: PENDING } = billingRecordValues.paymentStatus.enum
 const records = [
-  fixtureRecord({ id: '1', category: 'payroll', payment_status: PAID }),
-  fixtureRecord({ id: '2', category: 'contractors_vendors', payment_status: PENDING }),
+  fixtureRecord({
+    id: '1',
+    category: 'payroll',
+    payment_status: PAID,
+    amount: '10.00',
+  }),
+  fixtureRecord({
+    id: '2',
+    category: 'contractors_vendors',
+    payment_status: PENDING,
+    amount: '5.00',
+  }),
 ]
 
 let captured: ReturnType<typeof useBillingOverview> | undefined
@@ -20,20 +30,33 @@ function Probe() {
 }
 
 describe('useBillingOverview', () => {
-  it('tallies every payment when nothing is filtered', () => {
+  it('totals every payment by amount when nothing is filtered', () => {
     renderToStaticMarkup(<Probe />)
-    expect(captured?.overview.byCategory).toEqual({ payroll: 1, contractors_vendors: 1 })
+    expect(captured?.overview.totalCents).toBe(1500)
+    expect(captured?.overview.paidCents).toBe(1000)
+    expect(captured?.overview.pendingCents).toBe(500)
   })
 
-  it('labels each status through i18n for the chart', () => {
+  it('tallies the status donut in whole dollars, named by the raw value for PieChartCard to translate', () => {
     renderToStaticMarkup(<Probe />)
-    const paid = captured?.statusData.find(d => d.key === PAID)
-    expect(paid?.name).toBe('billing.status.paid')
+    const paid = captured?.statusData.find(d => d.name === PAID)
+    expect(paid?.value).toBe(10)
   })
 
-  it('hands back the exact filter keys the charts click through', () => {
+  it('splits the category breakdown into its own paid and pending tallies, in whole dollars', () => {
+    renderToStaticMarkup(<Probe />)
+    expect(captured?.paidCategoryData).toEqual([
+      { name: 'payroll', value: 10 },
+      { name: 'contractors_vendors', value: 0 },
+    ])
+    expect(captured?.pendingCategoryData).toEqual([
+      { name: 'payroll', value: 0 },
+      { name: 'contractors_vendors', value: 5 },
+    ])
+  })
+
+  it('hands back the category filter key both donuts click through', () => {
     renderToStaticMarkup(<Probe />)
     expect(captured?.CATEGORY_KEY).toBe('category')
-    expect(captured?.STATUS_KEY).toBe('payment_status')
   })
 })

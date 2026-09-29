@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import type { PieChartCard, BarChartCard } from '@/shared/components/dashboard'
+import type { PieChartCard } from '@/shared/components/dashboard'
 import fixtureRecord from '@/features/billing-v2/fixture-record'
 import billingRecordValues from '@/features/billing-v2/domain/record-values'
 import BillingOverviewTab from './index'
@@ -9,50 +9,54 @@ vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key, intlLo
 vi.mock('@/shared/context/AppContext', () => ({ useApp: () => ({ usuario: null }) }))
 vi.mock('@/shared/components/filters', () => ({ FiltersPanel: () => null }))
 
-const { pieCard, barCard } = vi.hoisted(() => ({
+const { pieCard } = vi.hoisted(() => ({
   pieCard: vi.fn((_props: Parameters<typeof PieChartCard>[0]) => null),
-  barCard: vi.fn((_props: Parameters<typeof BarChartCard>[0]) => null),
 }))
 vi.mock('@/shared/components/dashboard/PieChartCard', () => ({ default: pieCard }))
-vi.mock('@/shared/components/dashboard/BarChartCard', () => ({ default: barCard }))
 
-const { paid: PAID } = billingRecordValues.paymentStatus.enum
-const onePaidPayroll = [fixtureRecord({
+const { paid: PAID, pending: PENDING } = billingRecordValues.paymentStatus.enum
+const paidPayroll = fixtureRecord({
   id: '1',
   category: 'payroll',
   payment_status: PAID,
   amount: '5.00',
-})]
+})
+const pendingContractor = fixtureRecord({
+  id: '2',
+  category: 'contractors_vendors',
+  payment_status: PENDING,
+  amount: '3.00',
+})
 
 describe('BillingOverviewTab', () => {
-  beforeEach(() => {
-    pieCard.mockClear()
-    barCard.mockClear()
-  })
+  beforeEach(() => pieCard.mockClear())
 
-  it('shows the known subtotal and the unknown count, with no month locking it', () => {
-    const records = [
-      fixtureRecord({ id: '1', amount: '100.00' }),
-      fixtureRecord({ id: '2', amount: null }),
-    ]
+  it('shows the total, paid, pending and unknown-count KPIs, with no month locking any of it', () => {
+    const records = [paidPayroll, pendingContractor, fixtureRecord({ id: '3', amount: null })]
     const html = renderToStaticMarkup(<BillingOverviewTab records={records} />)
-    expect(html).toContain('$100.00')
+    expect(html).toContain('$8.00')
+    expect(html).toContain('$5.00')
+    expect(html).toContain('$3.00')
     expect(html).toContain('>1<')
   })
 
-  it('feeds the category pie every catalog member, zeros included, keyed by the raw value', () => {
-    renderToStaticMarkup(<BillingOverviewTab records={onePaidPayroll} />)
-    const categoryCall = pieCard.mock.calls[0]?.[0]
-    expect(categoryCall?.data).toEqual([
-      { name: 'payroll', value: 1 },
-      { name: 'contractors_vendors', value: 0 },
-    ])
+  it('feeds the status donut every catalog member in whole dollars, named by the raw value', () => {
+    renderToStaticMarkup(<BillingOverviewTab records={[paidPayroll, pendingContractor]} />)
+    const statusCall = pieCard.mock.calls[0]?.[0]
+    const paid = statusCall?.data.find((d: { name: string }) => d.name === PAID)
+    expect(paid).toEqual({ name: PAID, value: 5 })
   })
 
-  it('feeds the status bar a translated name with the raw value carried as its key', () => {
-    renderToStaticMarkup(<BillingOverviewTab records={onePaidPayroll} />)
-    const statusCall = barCard.mock.calls[0]?.[0]
-    const paid = statusCall?.data.find((d: { key?: string }) => d.key === PAID)
-    expect(paid).toEqual({ name: 'billing.status.paid', value: 1, key: PAID })
+  it('splits the category breakdown into a paid donut and a pending donut, in whole dollars', () => {
+    renderToStaticMarkup(<BillingOverviewTab records={[paidPayroll, pendingContractor]} />)
+    const [, paidCategoryCall, pendingCategoryCall] = pieCard.mock.calls
+    expect(paidCategoryCall?.[0]?.data).toEqual([
+      { name: 'payroll', value: 5 },
+      { name: 'contractors_vendors', value: 0 },
+    ])
+    expect(pendingCategoryCall?.[0]?.data).toEqual([
+      { name: 'payroll', value: 0 },
+      { name: 'contractors_vendors', value: 3 },
+    ])
   })
 })

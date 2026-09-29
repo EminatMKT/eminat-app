@@ -29,7 +29,7 @@ describe('BillingV2Content', () => {
   // Overview has nothing to create: New record only belongs to the tab that lists them.
   it('mounts the overview tab it is handed, without a new-record button', () => {
     const html = renderToStaticMarkup(<BillingV2Content tab="overview" />)
-    expect(html).toContain('billing.summary.byCategory')
+    expect(html).toContain('billing.summary.paidByCategory')
     expect(html).not.toContain('billing.new')
   })
 

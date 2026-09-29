@@ -5,70 +5,37 @@ import billingOverview from './index'
 const payment = (fields: Parameters<typeof fixtureRecord>[0]) => fixtureRecord(fields)
 
 describe('billingOverview', () => {
-  it('sums the known amounts of whichever payments it is handed', () => {
+  it('totals the known amounts of whichever payments it is handed', () => {
     const records = [
       payment({ id: '1', amount: '100.50' }),
       payment({ id: '2', amount: '49.50' }),
     ]
-    expect(billingOverview(records).subtotalCents).toBe(15000)
+    expect(billingOverview(records).totalCents).toBe(15000)
   })
 
-  it('counts an explicit zero amount as known, not unknown', () => {
-    const records = [payment({ id: '1', amount: '0' })]
-    const result = billingOverview(records)
-    expect(result.subtotalCents).toBe(0)
-    expect(result.unknownCount).toBe(0)
-  })
-
-  it('counts a null amount as unknown and excludes it from the subtotal', () => {
+  it('counts a null amount as unknown and leaves it out of every total', () => {
     const records = [payment({ id: '1', amount: null })]
     const result = billingOverview(records)
-    expect(result.subtotalCents).toBe(0)
+    expect(result.totalCents).toBe(0)
     expect(result.unknownCount).toBe(1)
   })
 
-  it('ignores events and month notes entirely — the caller already filtered by date, not this', () => {
-    const records = [
-      payment({
-        id: '1',
-        record_type: 'event',
-        amount: null,
-        category: null,
-        payment_status: null,
-      }),
-      payment({
-        id: '2',
-        record_type: 'month_note',
-        note_month: '2026-09-01',
-        scheduled_on: null,
-        amount: null,
-        category: null,
-        payment_status: null,
-      }),
-    ]
-    const result = billingOverview(records)
-    expect(result.unknownCount).toBe(0)
-    expect(result.byCategory.payroll).toBe(0)
+  // isPayment/index.test.ts already covers events and month notes both; this only needs to
+  // prove billingOverview actually filters through it.
+  it('ignores a non-payment record — the caller filters by date, not this', () => {
+    const records = [payment({ id: '1', record_type: 'event', amount: null })]
+    expect(billingOverview(records).totalCents).toBe(0)
   })
 
-  it('tallies every payment by category and by status, known amount or not', () => {
+  it('splits the total into paid and pending, scheduled/pending_approval in neither', () => {
     const records = [
-      payment({
-        id: '1',
-        category: 'payroll',
-        payment_status: 'paid',
-        amount: '10.00',
-      }),
-      payment({
-        id: '2',
-        category: 'contractors_vendors',
-        payment_status: 'pending',
-        amount: null,
-      }),
+      payment({ id: '1', payment_status: 'paid', amount: '10.00' }),
+      payment({ id: '2', payment_status: 'pending', amount: '5.00' }),
+      payment({ id: '3', payment_status: 'scheduled', amount: '7.00' }),
     ]
     const result = billingOverview(records)
-    expect(result.byCategory).toEqual({ payroll: 1, contractors_vendors: 1 })
-    expect(result.byStatus.paid).toBe(1)
-    expect(result.byStatus.pending).toBe(1)
+    expect(result.paidCents).toBe(1000)
+    expect(result.pendingCents).toBe(500)
+    expect(result.totalCents).toBe(2200)
   })
 })
