@@ -2,7 +2,6 @@
 import { useState } from 'react'
 import type { BillingV2Record } from '@/shared/data'
 import { useT } from '@/shared/i18n'
-import { MODULE, MODULE_META } from '@/shared/auth/permissions'
 import { Button } from '@/shared/components/ui'
 import useBillingV2Records from '@/features/billing-v2/hooks/useBillingV2Records'
 import useBusinessToday from '@/features/billing-v2/hooks/useBusinessToday'
@@ -27,9 +26,8 @@ export default function BillingV2Content({ tab }: Props) {
   return (
     <BillingBox part="page">
       <BillingBox part="head">
-        <BillingBox part="title">{MODULE_META[MODULE.COBRANZAS].name}</BillingBox>
         <Confirmation text={said && t(said)} />
-        <Button kind="new" label={t('billing.new')} onClick={() => setEditing({ record: null })} />
+        {tab !== OVERVIEW_TAB && <Button kind="new" label={t('billing.new')} onClick={() => setEditing({ record: null })} />}
       </BillingBox>
       <RecordsGate hasRecords={records.length > 0} loading={loading} error={error} onRetry={() => void reload()}>
         {tab === OVERVIEW_TAB

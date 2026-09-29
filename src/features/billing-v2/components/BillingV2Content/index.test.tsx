@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { MODULE, MODULE_META } from '@/shared/auth/permissions'
 import fixtureRecord from '@/features/billing-v2/fixture-record'
 import BillingV2Content from './index'
 
@@ -8,28 +7,30 @@ vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key, intlLo
 vi.mock('@/shared/context/AppContext', () => ({ useApp: () => ({ t1: '#000', t3: '#999', accent: '#000' }) }))
 
 const payment = fixtureRecord({ id: 'r1' })
-const api = { records: [payment], loading: false, error: null, reload: vi.fn(), save: vi.fn(), remove: vi.fn() }
+const api = {
+  records: [payment],
+  loading: false,
+  error: null,
+  reload: vi.fn(),
+  save: vi.fn(),
+  remove: vi.fn(),
+}
 vi.mock('@/features/billing-v2/hooks/useBillingV2Records', () => ({ default: () => api }))
 vi.mock('@/features/billing-v2/hooks/useBusinessToday', () => ({ default: () => '2026-09-23' }))
 
 describe('BillingV2Content', () => {
-  // One name for one screen: the heading is the module's own name, the one the rail shows.
-  it('names the screen after its module and offers a new record', () => {
+  // The records tab draws the calendar and reminders, and offers a new record.
+  it('mounts the records tab it is handed and offers a new record', () => {
     const html = renderToStaticMarkup(<BillingV2Content tab="records" />)
-    expect(html).toContain(`>${MODULE_META[MODULE.COBRANZAS].name}</h2>`)
+    expect(html).toContain('September 2026')
     expect(html).toContain('billing.new')
   })
 
-  // The records tab draws the calendar and reminders.
-  it('mounts the records tab it is handed', () => {
-    const html = renderToStaticMarkup(<BillingV2Content tab="records" />)
-    expect(html).toContain('September 2026')
-  })
-
-  // Which tab is open is the sidebar's call now (`BillingV2Module`); this just draws it.
-  it('mounts the overview tab it is handed', () => {
+  // Overview has nothing to create: New record only belongs to the tab that lists them.
+  it('mounts the overview tab it is handed, without a new-record button', () => {
     const html = renderToStaticMarkup(<BillingV2Content tab="overview" />)
     expect(html).toContain('billing.summary.byCategory')
+    expect(html).not.toContain('billing.new')
   })
 
   // The live region for «saved» / «deleted» is in place before a write lands, so it is announced.
