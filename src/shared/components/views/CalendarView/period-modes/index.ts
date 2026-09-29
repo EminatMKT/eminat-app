@@ -2,6 +2,7 @@ import type { CalendarMode } from '@/shared/components/views/types'
 import buildMonthGrid from '../month-grid'
 import shiftMonth from '../shift-month'
 import dateLabel from '../date-label'
+import periodOfMonth from '../period-of'
 
 type PeriodMode = {
   /** Every day the page for `period` shows, as ISO date-only strings, in the order drawn. */
@@ -10,10 +11,12 @@ type PeriodMode = {
   step: (period: string, by: number) => string
   /** What the header says about the period on screen. */
   name: (period: string, locale: string) => string
+  /** The period a raw date belongs to, as its ISO first day — where the "jump to today" lands. */
+  periodOf: (date: string) => string
 }
 
 const PERIOD_MODES: Record<CalendarMode, PeriodMode> = {
-  month: { days: buildMonthGrid, step: shiftMonth, name: (period, locale) => dateLabel(period, locale).month },
+  month: { days: buildMonthGrid, step: shiftMonth, name: (period, locale) => dateLabel(period, locale).month, periodOf: periodOfMonth },
 }
 
 /** What each calendar mode means: which days its page shows, how far one step goes, its name. */

@@ -1070,5 +1070,6 @@
   "billing.summary.byCategory": "By category",
   "billing.summary.byStatus": "By status",
   "billing.tab.records": "Records",
-  "billing.tab.overview": "Overview"
+  "billing.tab.overview": "Overview",
+  "billing.calendar.today": "Today"
 }

@@ -17,3 +17,20 @@
   background: var(--c-s3);
   color: var(--c-t1);
 }
+
+/* Text, not a square target: it carries a word ("Today"), not a single glyph. */
+.today {
+  flex: none;
+  padding: 0 .75rem;
+  height: 2.25rem;
+  border: 1px solid var(--c-border);
+  border-radius: .5rem;
+  color: var(--c-t2);
+  font-size: .8125rem;
+}
+
+.today:hover,
+.today:focus-visible {
+  background: var(--c-s3);
+  color: var(--c-t1);
+}

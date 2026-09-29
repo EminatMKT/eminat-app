@@ -20,6 +20,9 @@ export type CalendarViewProps<T extends CalendarItem> = {
   locale: string
   /** Today, as the feature counts days (same ISO shape): its cell is marked. */
   today?: string
+  /** What the jump-to-today control says. Given together with `today`, the header offers it —
+   *  hidden while `period` already is today's — landing on the period `today` falls in. */
+  todayLabel?: string
   onPeriodChange: (period: string) => void
   onDaySelect: (date: string) => void
   onItemSelect: (id: string) => void

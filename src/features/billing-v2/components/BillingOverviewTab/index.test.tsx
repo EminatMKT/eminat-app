@@ -27,7 +27,7 @@ describe('BillingOverviewTab', () => {
       fixtureRecord({ id: '1', scheduled_on: '2026-09-05', amount: '100.00' }),
       fixtureRecord({ id: '2', scheduled_on: '2026-09-10', amount: null }),
     ]
-    const html = renderToStaticMarkup(<BillingOverviewTab records={records} today="2026-09-23" />)
+    const html = renderToStaticMarkup(<BillingOverviewTab records={records} period="2026-09-01" />)
     expect(html).toContain('September 2026')
     expect(html).toContain('$100.00')
     expect(html).toContain('>1<')
@@ -35,7 +35,7 @@ describe('BillingOverviewTab', () => {
 
   it('feeds the category and status charts with every catalog member, zeros included', () => {
     const records = [fixtureRecord({ id: '1', scheduled_on: '2026-09-05', category: 'payroll', payment_status: 'paid', amount: '5.00' })]
-    renderToStaticMarkup(<BillingOverviewTab records={records} today="2026-09-15" />)
+    renderToStaticMarkup(<BillingOverviewTab records={records} period="2026-09-01" />)
     const categoryCall = pieCard.mock.calls[0]?.[0]
     const statusCall = barCard.mock.calls[0]?.[0]
     expect(categoryCall?.data).toEqual([

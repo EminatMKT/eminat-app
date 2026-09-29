@@ -20,4 +20,8 @@ describe('periodModes', () => {
   it('names the period on screen in the locale it is given', () => {
     expect(month.name('2026-09-01', 'en-US')).toBe('September 2026')
   })
+
+  it('finds the period a raw date belongs to', () => {
+    expect(month.periodOf('2026-09-23')).toBe('2026-09-01')
+  })
 })

@@ -16,12 +16,14 @@ const STATUS_COLOR: Record<string, string> = {
 const MONTH_YEAR_FORMAT: Intl.DateTimeFormatOptions = { month: 'long', year: 'numeric' }
 const CURRENCY_FORMAT: Intl.NumberFormatOptions = { style: 'currency', currency: 'USD' }
 
-type Props = { records: readonly BillingV2Record[]; today: string }
+/** `period` is the calendar month to summarize — the same page the Records tab has on screen. */
+type Props = { records: readonly BillingV2Record[]; period: string }
 
-export default function BillingOverviewTab({ records, today }: Props) {
+export default function BillingOverviewTab(props: Props) {
+  const { records, period } = props
   const { t, intlLocale } = useT()
-  const overview = monthOverview(records, today)
-  const period = parseISO(today).toLocaleDateString(intlLocale, MONTH_YEAR_FORMAT)
+  const overview = monthOverview(records, period)
+  const periodLabel = parseISO(period).toLocaleDateString(intlLocale, MONTH_YEAR_FORMAT)
   const subtotal = (overview.subtotalCents / 100).toLocaleString(intlLocale, CURRENCY_FORMAT)
   const chartData = (tallies: Record<string, number>) =>
     Object.entries(tallies).map(([key, value]) => ({ name: t(billingLabelKey(key)), value }))
@@ -29,7 +31,7 @@ export default function BillingOverviewTab({ records, today }: Props) {
     Object.fromEntries(Object.entries(palette).map(([key, color]) => [t(billingLabelKey(key)), color]))
 
   return (
-    <Panel title={period} collapsible persistKey="billing-summary">
+    <Panel title={periodLabel} collapsible persistKey="billing-summary">
       <StaggerGrid className={s.stats}>
         <StatCard label={t('billing.summary.knownSubtotal')} value={subtotal} color={CHART_COLORS[0]} />
         <StatCard label={t('billing.summary.unknownCount')} value={overview.unknownCount} color={CHART_COLORS[9]} />
@@ -44,5 +46,5 @@ export default function BillingOverviewTab({ records, today }: Props) {
   )
 }
 
-// Read-only: never opens the editor. `records` is the same copy `BillingRecordsTab` reads, so
-// marking a payment paid there redraws these numbers too, with no second fetch of its own.
+// Read-only, and follows wherever Records left the calendar — on purpose, since a "Today"
+// control now exists to get back. `records` is the same copy the other tab reads, no refetch.

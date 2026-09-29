@@ -10,7 +10,7 @@ const payment = fixtureRecord({ id: 'r1' })
 describe('BillingRecordsTab', () => {
   it('mounts the calendar and the reminders over the same records', () => {
     const html = renderToStaticMarkup(
-      <BillingRecordsTab records={[payment]} today="2026-09-23" onOpen={vi.fn()} onNewOn={vi.fn()} />,
+      <BillingRecordsTab records={[payment]} today="2026-09-23" onOpen={vi.fn()} period="2026-09-01" onPeriodChange={vi.fn()} onNewOn={vi.fn()} />,
     )
     expect(html).toContain('September 2026')
     expect(html).toContain('billing.reminders.upcoming')
