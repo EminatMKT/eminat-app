@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import type { BillingV2Record } from '@/shared/data'
 import { useT } from '@/shared/i18n'
-import { Button } from '@/shared/components/ui'
+import { Button as PrimaryActionButton } from '@/shared/components/ui'
 import useBillingV2Records from '@/features/billing-v2/hooks/useBillingV2Records'
 import useBusinessToday from '@/features/billing-v2/hooks/useBusinessToday'
 import useCalendarPeriod from '@/features/billing-v2/hooks/useCalendarPeriod'
@@ -22,17 +22,24 @@ export default function BillingV2Content({ tab }: Props) {
   const [editing, setEditing] = useState<OpenEditor | null>(null)
   const { said, say } = useConfirmation()
   const [period, setPeriod] = useCalendarPeriod(today)
-  const open = (record: BillingV2Record) => setEditing({ record })
+  const isOverviewTab = tab === OVERVIEW_TAB
+  const hasPrimaryAction = !isOverviewTab
+  const open = (record: BillingV2Record) => { const next = { record }; setEditing(next) }
+  const startNewRecord = () => { const next = { record: null }; setEditing(next) }
+  const startNewRecordOnDay = (day: string) => { const next = { record: null, day }; setEditing(next) }
+  const primaryAction = <PrimaryActionButton kind="new" label={t('billing.new')} onClick={startNewRecord} />
+  const activeTabLabel = isOverviewTab ? t('billing.tab.overview') : t('billing.tab.records')
   return (
     <BillingBox part="page">
       <BillingBox part="head">
+        <BillingBox part="title">{activeTabLabel}</BillingBox>
         <Confirmation text={said && t(said)} />
-        {tab !== OVERVIEW_TAB && <Button kind="new" label={t('billing.new')} onClick={() => setEditing({ record: null })} />}
+        {hasPrimaryAction && primaryAction}
       </BillingBox>
       <RecordsGate hasRecords={records.length > 0} loading={loading} error={error} onRetry={() => void reload()}>
-        {tab === OVERVIEW_TAB
+        {isOverviewTab
           ? <BillingOverviewTab records={records} />
-          : <BillingRecordsTab records={records} today={today} onOpen={open} period={period} onPeriodChange={setPeriod} onNewOn={(day) => setEditing({ record: null, day })} />}
+          : <BillingRecordsTab records={records} today={today} onOpen={open} period={period} onPeriodChange={setPeriod} onNewOn={startNewRecordOnDay} />}
       </RecordsGate>
       {editing && <RecordEditor {...editing} onSave={save} onDrop={remove} onLanded={say} onClose={() => setEditing(null)} />}
     </BillingBox>

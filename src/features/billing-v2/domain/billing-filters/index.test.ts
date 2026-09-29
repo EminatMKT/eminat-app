@@ -6,22 +6,25 @@ import fixtureRecord from '@/features/billing-v2/fixture-record'
 import billingFilters from './index'
 
 const t = (k: I18nKey) => String(k)
-const DEFS = billingFilters({ t })
+const deps = { t }
+const DEFS = billingFilters(deps)
 const byKey = (key: string) => DEFS.find(d => d.key === key)!
 
+const marchPayrollData: Partial<BillingV2Record> = {
+  id: '1',
+  scheduled_on: '2026-03-05',
+  category: 'payroll',
+  payment_status: 'paid',
+}
+const julyVendorData: Partial<BillingV2Record> = {
+  id: '2',
+  scheduled_on: '2026-07-10',
+  category: 'contractors_vendors',
+  payment_status: 'pending',
+}
 const records: BillingV2Record[] = [
-  fixtureRecord({
-    id: '1',
-    scheduled_on: '2026-03-05',
-    category: 'payroll',
-    payment_status: 'paid',
-  }),
-  fixtureRecord({
-    id: '2',
-    scheduled_on: '2026-07-10',
-    category: 'contractors_vendors',
-    payment_status: 'pending',
-  }),
+  fixtureRecord(marchPayrollData),
+  fixtureRecord(julyVendorData),
 ]
 
 describe('billingFilters', () => {
@@ -30,13 +33,16 @@ describe('billingFilters', () => {
   })
 
   it('filters scheduled_on by range, any month included', () => {
-    const inRange = applyFilters(records, DEFS, { scheduled_on: '2026-07-01..2026-07-31' })
+    const julyRange = { scheduled_on: '2026-07-01..2026-07-31' }
+    const inRange = applyFilters(records, DEFS, julyRange)
     expect(inRange.map(r => r.id)).toEqual(['2'])
   })
 
   it('filters category and payment_status by exact match', () => {
-    expect(applyFilters(records, DEFS, { category: 'payroll' }).map(r => r.id)).toEqual(['1'])
-    expect(applyFilters(records, DEFS, { payment_status: 'pending' }).map(r => r.id)).toEqual(['2'])
+    const payrollFilter = { category: 'payroll' }
+    const pendingFilter = { payment_status: 'pending' }
+    expect(applyFilters(records, DEFS, payrollFilter).map(r => r.id)).toEqual(['1'])
+    expect(applyFilters(records, DEFS, pendingFilter).map(r => r.id)).toEqual(['2'])
   })
 
   it('offers the closed vocabulary as options, not whatever the data happens to contain', () => {
@@ -50,6 +56,7 @@ describe('billingFilters', () => {
   })
 
   it('combines with everything else in AND, same as any other filter', () => {
-    expect(applyFilters(records, DEFS, {}).length).toBe(2)
+    const emptyFilters = {}
+    expect(applyFilters(records, DEFS, emptyFilters).length).toBe(2)
   })
 })

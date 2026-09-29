@@ -16,6 +16,7 @@ const STATUS_COLOR: Record<string, string> = {
 }
 const CURRENCY_FORMAT: Intl.NumberFormatOptions = { style: 'currency', currency: 'USD' }
 type Props = { records: BillingV2Record[] }
+/** This tab has no async loading branch; if one is added, show a matching error state too. */
 export default function BillingOverviewTab({ records }: Props) {
   const { t, intlLocale } = useT()
   const {

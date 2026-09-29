@@ -5,7 +5,7 @@ import { useFilters } from '@/shared/hooks'
 import { MODULE } from '@/shared/auth/permissions'
 import billingFilters from '@/features/billing-v2/domain/billing-filters'
 
-/** The Overview tab's filters: date range, category, status — the module's own `useFilters`. */
+/** The Overview tab's filters — the module's own `useFilters`. */
 export default function useBillingFilters() {
   const { t } = useT()
   const defs = useMemo(() => billingFilters({ t }), [t])

@@ -16,7 +16,12 @@ type PeriodMode = {
 }
 
 const PERIOD_MODES: Record<CalendarMode, PeriodMode> = {
-  month: { days: buildMonthGrid, step: shiftMonth, name: (period, locale) => dateLabel(period, locale).month, periodOf: periodOfMonth },
+  month: {
+    days: buildMonthGrid,
+    step: shiftMonth,
+    name: (period, locale) => dateLabel(period, locale).month,
+    periodOf: periodOfMonth,
+  },
 }
 
 /** What each calendar mode means: which days its page shows, how far one step goes, its name. */

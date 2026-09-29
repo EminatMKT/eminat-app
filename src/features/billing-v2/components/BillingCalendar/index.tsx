@@ -21,11 +21,20 @@ type Props = RecordViewProps & {
 export default function BillingCalendar(props: Props) {
   const { records, today, onOpen, period, onPeriodChange, onNewOn } = props
   const { t, intlLocale } = useT()
-  const items = useMemo(() => calendarItems(records, t, intlLocale), [records, t, intlLocale])
+  const calendarItemsDependencies = [records, t, intlLocale]
+  const items = useMemo(() => calendarItems(records, t, intlLocale), calendarItemsDependencies)
   const notes = monthNotes(records, period)
   const empty = !notes.length && !items.some((one) => isSameMonth(parseISO(one.date), parseISO(period)))
   const openId = (id: string) => { const found = records.find((one) => one.id === id); if (found) onOpen(found) }
-  const noteLine = (text: string | null) => t('billing.calendar.noteLine', { kind: t('billing.type.monthNote'), text: text ?? '' })
+  const noteLine = (text: string | null) => {
+    const noteText = text === null ? '' : text
+    const noteParts = { kind: t('billing.type.monthNote'), text: noteText }
+    return t('billing.calendar.noteLine', noteParts)
+  }
+  const moreLabel = (count: number) => {
+    const moreParts = { count }
+    return t('billing.calendar.more', moreParts)
+  }
   return (
     <BillingBox part="panel">
       {notes.map((note) => (
@@ -36,7 +45,7 @@ export default function BillingCalendar(props: Props) {
       {empty && <BillingBox part="hint">{t('billing.calendar.empty')}</BillingBox>}
       <CalendarView period={period} mode="month" items={items} locale={intlLocale} today={today} todayLabel={t('billing.calendar.today')}
         onPeriodChange={onPeriodChange} onDaySelect={onNewOn} onItemSelect={openId}
-        moreLabel={(count) => t('billing.calendar.more', { count })} lessLabel={t('billing.calendar.less')} />
+        moreLabel={moreLabel} lessLabel={t('billing.calendar.less')} />
     </BillingBox>
   )
 }

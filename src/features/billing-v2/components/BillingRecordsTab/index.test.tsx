@@ -5,7 +5,8 @@ import BillingRecordsTab from './index'
 
 vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key, intlLocale: 'en-US' }) }))
 
-const payment = fixtureRecord({ id: 'r1' })
+const paymentFixture = { id: 'r1' }
+const payment = fixtureRecord(paymentFixture)
 
 describe('BillingRecordsTab', () => {
   it('mounts the calendar and the reminders over the same records', () => {
@@ -14,6 +15,7 @@ describe('BillingRecordsTab', () => {
     )
     expect(html).toContain('September 2026')
     expect(html).toContain('billing.reminders.upcoming')
-    expect(html.split(payment.title ?? '').length - 1).toBe(2)
+    const paymentTitle = payment.title ? payment.title : ''
+    expect(html.split(paymentTitle).length - 1).toBe(2)
   })
 })

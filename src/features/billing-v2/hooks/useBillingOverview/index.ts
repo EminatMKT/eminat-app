@@ -23,7 +23,12 @@ export default function useBillingOverview(records: BillingV2Record[]) {
   const statusData = Object.entries(byStatus).map(([key, value]) => ({ name: key, value }))
   const paidCategoryData = Object.entries(byCategory.paidByCategoryCents).map(([key, value]) => ({ name: key, value }))
   const pendingCategoryData = Object.entries(byCategory.pendingByCategoryCents).map(([key, value]) => ({ name: key, value }))
-  const toggle = (key: string) => (v: string) => filtros.setValor(key, filtros.valores[key] === v ? '' : v)
+  const toggle = (key: string) => (value: string) => {
+    const currentValue = filtros.valores[key]
+    const isClearingActiveFilter = currentValue === value
+    const nextValue = isClearingActiveFilter ? '' : value
+    filtros.setValor(key, nextValue)
+  }
   const result = {
     filtros,
     overview,

@@ -3,12 +3,14 @@ import type { I18nKey } from '@/shared/i18n'
 import type { BillingV2Record } from '@/shared/data'
 import billingLabelKey from '@/features/billing-v2/components/RecordEditor/labels'
 import billingRecordValues from '@/features/billing-v2/domain/record-values'
+import extraDefs from './extra-defs'
 
 type Deps = { t: (k: I18nKey) => string }
 
 /** The Overview tab's own filters: when a payment is due, what it's for, and how far along it
  *  is. Declared once so the bar, the predicate and the clear can't drift apart. */
 export default function billingFilters({ t }: Deps): FilterDef<BillingV2Record>[] {
+  const deps = { t }
   return [
     {
       key: 'scheduled_on',
@@ -34,6 +36,7 @@ export default function billingFilters({ t }: Deps): FilterDef<BillingV2Record>[
       optionLabel: v => t(billingLabelKey(v)),
       match: (r, v) => r.payment_status === v,
     },
+    ...extraDefs(deps),
   ]
 }
 

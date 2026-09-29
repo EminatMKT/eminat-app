@@ -25,7 +25,7 @@
 }
 
 .percentText {
-  font-family: 'Syne';
+  font-family: 'Syne', sans-serif;
   font-size: 0.9375rem;
   font-weight: 800;
   fill: #FFFFFF;
@@ -39,7 +39,7 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  font-family: 'Syne';
+  font-family: 'Syne', sans-serif;
   font-size: 0.9375rem;
   font-weight: 800;
   color: var(--c-t1);
@@ -47,4 +47,10 @@
 
 .clickable {
   cursor: pointer;
+}
+
+.empty {
+  margin: 0;
+  color: var(--c-t2);
+  font-size: 0.875rem;
 }

@@ -1,4 +1,8 @@
+import type { CSSProperties } from 'react'
+
 export type Datum = { name: string; value: number }
+
+export type LegendStyle = CSSProperties & { '--legend-columns': string }
 
 /** `donut`/`centerLabel` are opt-in for the hollow variant; a filled pie has nowhere to put a
  *  center total. `formatValue` formats the legend's and tooltip's number — as-is by default. */

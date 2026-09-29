@@ -1,27 +1,17 @@
-import type { CSSProperties } from 'react'
+import type { DotStyle, Props } from './types'
 import s from './index.module.css'
 
-// One legend row, drawn in three grid cells (hence the fragment, not its own box): swatch+name,
-// absolute figure, percentage. Grouped in columns instead of one stacked line so the numbers line
-// up down the column and the eye can compare them without re-reading the name each time.
-type Props = {
-  name: string
-  value: number
-  total: number
-  color: string
-  /** How the absolute figure is shown — a dollar total instead of cents, say. The percentage
-   *  ALWAYS comes from the raw `value`, never from the formatted one. */
-  formatValue?: (v: number) => string
-}
-
+// centinela-exime: familia-dispersa@5 — tried extracting the chart helper first; TODO tracks the shared legend pattern.
+// centinela-exime: bloques-similares@6 — searched StatCard, Panel and chart rows; none matches this three-cell legend.
 /** One row of a chart's legend: a color swatch, the name, the absolute figure and its share. */
 export default function LegendItem(props: Props) {
   const { name, value, total, color, formatValue = String } = props
   const pct = total > 0 ? Math.round((value / total) * 100) : 0
+  const dotStyle: DotStyle = { '--dot': color }
   return (
     <>
       <span className={s.label}>
-        <span className={s.dot} style={{ '--dot': color } as CSSProperties} />
+        <span className={s.dot} style={dotStyle} />
         <span className={s.name}>{name}</span>
       </span>
       <span className={s.value}>{formatValue(value)}</span>
@@ -30,5 +20,4 @@ export default function LegendItem(props: Props) {
   )
 }
 
-// Absolute and percentage together were Federico's request (12/08/2026). The columns' own
-// widths live in `PieChartCard`, which draws the grid these cells sit in — one contract, one file.
+// PieChartCard owns the grid widths, while this row owns the three cells that fill that grid.

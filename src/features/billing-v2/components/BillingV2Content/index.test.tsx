@@ -4,9 +4,11 @@ import fixtureRecord from '@/features/billing-v2/fixture-record'
 import BillingV2Content from './index'
 
 vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key, intlLocale: 'en-US' }) }))
-vi.mock('@/shared/context/AppContext', () => ({ useApp: () => ({ t1: '#000', t3: '#999', accent: '#000' }) }))
+const appColors = { t1: '#000', t3: '#999', accent: '#000' }
+vi.mock('@/shared/context/AppContext', () => ({ useApp: () => appColors }))
 
-const payment = fixtureRecord({ id: 'r1' })
+const paymentFixture = { id: 'r1' }
+const payment = fixtureRecord(paymentFixture)
 const api = {
   records: [payment],
   loading: false,
