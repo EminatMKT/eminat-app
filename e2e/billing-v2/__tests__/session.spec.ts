@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test'
-import { HEADING } from '@/shared/constants/dom'
 import expectOpaque from '../opacity'
 import screen from '../screen'
 import session from '../session'
@@ -23,5 +22,5 @@ test('openBilling reaches a billing screen that reads the pinned day', async ({ 
 test('billing is still seen after a reload', async ({ page }) => {
   await session.openBilling(page)
   await page.reload()
-  await expectOpaque(page.getByRole(HEADING, { level: 2, name: screen.title, exact: true }))
+  await expectOpaque(screen.defaultHeading(page))
 })

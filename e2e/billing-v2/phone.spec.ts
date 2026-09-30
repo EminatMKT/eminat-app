@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { MODULE, modulePath } from '@/shared/auth/permissions'
-import { BANNER, BUTTON, DIALOG, ESCAPE, HEADING } from '@/shared/constants/dom'
+import { BANNER, BUTTON, DIALOG, ESCAPE } from '@/shared/constants/dom'
 import pinToday from './clock'
 import expectOpaque from './opacity'
 import geometry from './geometry'
@@ -38,7 +38,7 @@ async function openBillingOnPhone(page: Page) {
   await pinToday(page)
   await session.loginAs(page, K.HOLDER_EMAIL)
   await page.goto(modulePath(MODULE.COBRANZAS))
-  const heading = page.getByRole(HEADING, { level: 2, name: screen.title, exact: true })
+  const heading = screen.defaultHeading(page)
   await expectOpaque(heading)
   await expect(screen.dayButton(page, 1).first()).toBeVisible()
   return heading
