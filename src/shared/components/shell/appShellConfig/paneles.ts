@@ -8,4 +8,5 @@ export const PANEL_META: Record<PanelKey, { title: string; sub: string; slug: Mo
   research: { title: 'Research', sub: 'Clinical Research Ops', slug: MODULE.RESEARCH },
   medical: { title: 'Medical', sub: 'HIPAA Compliance', slug: MODULE.MEDICAL },
   admin: { title: 'Admin', sub: 'Usuarios, roles y organización', slug: MODULE.ADMIN },
+  billing: { title: 'Billing', sub: 'Payment calendar & reminders', slug: MODULE.COBRANZAS },
 }

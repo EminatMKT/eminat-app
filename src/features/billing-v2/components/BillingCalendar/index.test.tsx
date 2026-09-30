@@ -24,13 +24,15 @@ const note = fixtureRecord({
 const opened: BillingV2Record[] = []
 const newOn: string[] = []
 const draw = (records: BillingV2Record[]) => renderToStaticMarkup(
-  <BillingCalendar records={records} today="2026-09-23" onOpen={(one) => opened.push(one)} onNewOn={(day) => newOn.push(day)} />,
+  <BillingCalendar records={records} today="2026-09-23" onOpen={(one) => opened.push(one)}
+    period="2026-09-01" onPeriodChange={vi.fn()} onNewOn={(day) => newOn.push(day)} />,
 )
 
 describe('BillingCalendar', () => {
   beforeEach(() => { opened.length = 0; newOn.length = 0; view.props = null })
 
-  it('opens a month page on the month of the business day', () => {
+  // Which month opens is the screen's call, not this adapter's: it only passes the page along.
+  it('draws a month page on whatever period it is given', () => {
     draw([])
     expect(view.props?.period).toBe('2026-09-01')
     expect(view.props?.mode).toBe('month')

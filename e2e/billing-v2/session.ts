@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { MODULE, modulePath } from '@/shared/auth/permissions'
-import { ENTER, HEADING } from '@/shared/constants/dom'
+import { ENTER } from '@/shared/constants/dom'
 import { PASSWORD, ensureUser, deleteUser } from '../seed'
 import pinToday from './clock'
 import expectOpaque from './opacity'
@@ -28,8 +28,7 @@ async function openBilling(page: Page) {
   await loginAs(page, K.HOLDER_EMAIL)
   await screen.rail(page).click()
   await page.waitForURL(`**${modulePath(MODULE.COBRANZAS)}`)
-  const heading = page.getByRole(HEADING, { level: 2, name: screen.title, exact: true })
-  await expectOpaque(heading)
+  await expectOpaque(screen.defaultHeading(page))
 }
 
 function install() {

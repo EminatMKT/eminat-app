@@ -39,4 +39,25 @@ describe('PeriodNav', () => {
   it('says which period is on screen', () => {
     expect(draw('2026-09-01')).toContain('September 2026')
   })
+
+  it('offers no jump-to-today control when it is not given a today or a label', () => {
+    draw('2026-09-01')
+    expect(arrows).toHaveLength(2)
+  })
+
+  it('offers a jump-to-today control, landing on the period today falls in', () => {
+    renderToStaticMarkup(
+      <PeriodNav period="2026-08-01" mode="month" locale="en-US" onPeriodChange={pick} today="2026-09-23" todayLabel="Today" />,
+    )
+    expect(arrows).toHaveLength(3)
+    arrows[0].onClick()
+    expect(picked).toEqual(['2026-09-01'])
+  })
+
+  it('hides the jump-to-today control once the period on screen already is today\'s', () => {
+    renderToStaticMarkup(
+      <PeriodNav period="2026-09-01" mode="month" locale="en-US" onPeriodChange={pick} today="2026-09-23" todayLabel="Today" />,
+    )
+    expect(arrows).toHaveLength(2)
+  })
 })

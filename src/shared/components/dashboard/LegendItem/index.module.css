@@ -1,0 +1,40 @@
+.label {
+  display: flex;
+  align-items: center;
+  gap: 0.4375rem;
+  font-size: 0.75rem;
+  color: var(--c-t2);
+  min-width: 0;
+}
+
+.dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 0.1875rem;
+  background: var(--dot);
+  flex-shrink: 0;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.figure {
+  font-family: 'DM Mono', monospace;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  font-size: 0.75rem;
+}
+
+.value {
+  composes: figure;
+  font-weight: 700;
+  color: var(--c-t1);
+}
+
+.pct {
+  composes: figure;
+  color: var(--c-t3);
+}

@@ -17,3 +17,24 @@
   background: var(--c-s3);
   color: var(--c-t1);
 }
+
+/* Text, not a square target: it carries a word ("Today"), not a single glyph. `width: auto`
+   is required, not decorative: `Pressable`'s own `:where(.surface)` sets `width: 100%` at zero
+   specificity so the caller always wins — an unset width here loses to it by default and the
+   button swallows the whole nav row, which is exactly the bug that rule exists to prevent. */
+.today {
+  flex: none;
+  width: auto;
+  padding: 0 .75rem;
+  height: 2.25rem;
+  border: 1px solid var(--c-border);
+  border-radius: .5rem;
+  color: var(--c-t2);
+  font-size: .8125rem;
+}
+
+.today:hover,
+.today:focus-visible {
+  background: var(--c-s3);
+  color: var(--c-t1);
+}

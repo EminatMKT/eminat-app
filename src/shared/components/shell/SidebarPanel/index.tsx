@@ -1,5 +1,6 @@
 'use client'
 import { useRouter, usePathname } from 'next/navigation'
+import { useT } from '@/shared/i18n'
 import { modulePath } from '@/shared/auth/permissions'
 import { D, SUB_ITEMS, PANEL_META, type PanelKey } from '@/shared/components/shell/appShellConfig'
 import PanelItem from '@/shared/components/shell/PanelItem'
@@ -14,12 +15,21 @@ type Props = {
 
 // Panel secundario del sidebar: título del módulo + sub-tabs. (Perfil/logout viven
 // ahora en el avatar del rail, RailProfile, accesible para todo usuario.)
-export default function SidebarPanel({ open, panel, activeTab, onTabChange, setMobileOpen }: Props) {
+export default function SidebarPanel(props: Props) {
+  const { open, panel, activeTab, onTabChange, setMobileOpen } = props
   const router = useRouter()
   const pathname = usePathname()
+  const { t } = useT()
   const subItems = SUB_ITEMS[panel]
   const { title: panelTitle, sub: panelSub } = PANEL_META[panel]
   const targetPath = modulePath(PANEL_META[panel].slug)
+
+  // Si el panel es de otro módulo, navegá a ese módulo antes de cambiar de tab.
+  function selectTab(tab: string) {
+    if (!pathname.startsWith(targetPath)) router.push(targetPath)
+    onTabChange?.(tab)
+    setMobileOpen(false)
+  }
 
   return (
     <div style={{ width: open ? 172 : 0, background: D.s1, borderRight: open ? `1px solid ${D.border}` : 'none', overflow: 'hidden', transition: 'width .2s ease', display: 'flex', flexDirection: 'column' }}>
@@ -29,12 +39,7 @@ export default function SidebarPanel({ open, panel, activeTab, onTabChange, setM
       </div>
       <nav style={{ flex: 1, padding: '0 8px', overflowY: 'auto' }}>
         {subItems.map(item => (
-          <PanelItem key={item.id} icon={item.icon} label={item.label} active={item.tabs ? item.tabs.includes(activeTab ?? '') : activeTab === item.tab} onClick={() => {
-            // Si el panel es de otro módulo, navegá a ese módulo antes de cambiar de tab.
-            if (!pathname.startsWith(targetPath)) router.push(targetPath)
-            onTabChange?.(item.tab)
-            setMobileOpen(false)
-          }} />
+          <PanelItem key={item.id} icon={item.icon} label={item.labelKey ? t(item.labelKey) : item.label} active={item.tabs ? item.tabs.includes(activeTab ?? '') : activeTab === item.tab} onClick={() => selectTab(item.tab)} />
         ))}
       </nav>
     </div>

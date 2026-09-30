@@ -1,10 +1,10 @@
 import type { BillingV2Record } from '@/shared/data'
 import values from '../record-values'
 import reminderGroup from '../reminder-group'
+import isPayment from '../is-payment'
 
 type ReminderLists = { overdue: BillingV2Record[]; upcoming: BillingV2Record[] }
 
-const isPayment = ({ record_type }: BillingV2Record) => record_type === values.recordType.enum.payment
 const dueKey = ({ scheduled_on, scheduled_time }: BillingV2Record) => `${scheduled_on ?? ''} ${scheduled_time ?? ''}`
 
 /** The unpaid payments split into Overdue and Upcoming around `today`, each by due date. */

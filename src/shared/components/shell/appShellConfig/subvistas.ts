@@ -40,4 +40,8 @@ export const SUB_ITEMS: Record<PanelKey, SubItem[]> = {
     { id: 'adm-usuarios', icon: '👥', label: 'Usuarios', tab: 'usuarios', tabs: ['usuarios', 'roles'] },
     { id: 'adm-org', icon: '🏛️', label: 'Organización', tab: 'empresas', tabs: ['empresas', 'departamentos', 'equipos', 'cargos', 'jornadas', 'vinculaciones'] },
   ],
+  billing: [
+    { id: 'billing-overview', icon: '📊', label: 'Overview', labelKey: 'billing.tab.overview', tab: 'overview' },
+    { id: 'billing-records', icon: '📅', label: 'Records', labelKey: 'billing.tab.records', tab: 'records' },
+  ],
 }
