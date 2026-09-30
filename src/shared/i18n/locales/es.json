@@ -776,6 +776,7 @@
   "stratix.detail.changeStatus": "Cambiar estado",
   "stratix.detail.statusChanged": "Estado → \"{estado}\"",
   "stratix.detail.driveFolder": "Ver la carpeta en Google Drive",
+  "stratix.detail.duplicate": "Duplicar",
   "stratix.detail.deleteTitle": "Eliminar tarea",
   "stratix.detail.deleteConfirm": "¿Eliminar esta tarea? No se puede deshacer.",
   "stratix.detail.deleted": "Tarea eliminada",

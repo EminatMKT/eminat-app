@@ -776,6 +776,7 @@
   "stratix.detail.changeStatus": "Change status",
   "stratix.detail.statusChanged": "Status → \"{estado}\"",
   "stratix.detail.driveFolder": "View folder in Google Drive",
+  "stratix.detail.duplicate": "Duplicate",
   "stratix.detail.deleteTitle": "Delete task",
   "stratix.detail.deleteConfirm": "Delete this task? This cannot be undone.",
   "stratix.detail.deleted": "Task deleted",
