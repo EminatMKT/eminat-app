@@ -6,7 +6,7 @@ export const NAV: { slug: ModuleSlug; key: string; icon: string; label: string; 
   { slug: MODULE.TASKS, key: 'tasks', icon: '✅', label: 'Tasks', panel: 'tasks' },
   { slug: MODULE.STRATIX_MKT, key: 'mkt', icon: '🚀', label: 'Stratix 360', panel: 'mkt' },
   { slug: MODULE.ACCOUNTING, key: 'accounting', icon: '🧾', label: 'Accounting' },
-  { slug: MODULE.COBRANZAS, key: 'cobranzas', icon: '💳', label: 'Billing' },
+  { slug: MODULE.COBRANZAS, key: 'cobranzas', icon: '💳', label: 'Billing', panel: 'billing' },
   { slug: MODULE.MEDICAL, key: 'medical', icon: '🏥', label: 'Medical', panel: 'medical' },
   { slug: MODULE.TH_HR, key: 'th-hr', icon: '👤', label: 'TH/HR' },
   { slug: MODULE.RESEARCH, key: 'research', icon: '🔬', label: 'Research', panel: 'research' },

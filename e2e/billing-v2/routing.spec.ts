@@ -27,7 +27,7 @@ test('a user without the module is denied at /billing', async ({ page }) => {
     await expect(page.getByText(screen.say('common.accessDenied'), { exact: true })).toBeVisible({ timeout: 8000 })
   }).toPass({ timeout: 45000, intervals: [500, 1500, 3000] })
   // The shared route gate answers first, through moduleForPath('/billing'): no billing screen mounts.
-  const heading = page.getByRole('heading', { name: screen.title, exact: true })
+  const heading = screen.defaultHeading(page)
   await expect(heading).toHaveCount(0)
 })
 

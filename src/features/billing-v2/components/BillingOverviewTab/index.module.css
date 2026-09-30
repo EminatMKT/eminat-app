@@ -1,0 +1,14 @@
+/* Grid, not flex: a StatCard has no width of its own, so a flex row left it shrink-to-fit and
+   sitting in a mostly-empty row. Same pattern as Research and Tasks' own KPI rows. */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10.3rem, 1fr));
+  gap: 0.625rem;
+}
+
+.charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: 0.75rem;
+  align-items: start;
+}
