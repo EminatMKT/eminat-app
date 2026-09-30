@@ -105,6 +105,10 @@
   margin-bottom: 18px;
 }
 
+.imprimirCabeza {
+  align-self: center;
+}
+
 .tabla {
   width: 100%;
   border-collapse: collapse;
@@ -151,4 +155,10 @@
   padding-top: 8px;
   font-size: 11px;
   color: var(--c-t3);
+}
+
+@media print {
+  .imprimirCabeza {
+    display: none;
+  }
 }

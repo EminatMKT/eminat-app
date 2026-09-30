@@ -9,6 +9,7 @@ const VERIFICADOS = Object.values(VERIFICADO)
 // más partiría el formato con el que ya quedaron escritas las vistas guardadas.
 const BLOQUEADA_SI = 'true'
 const BLOQUEADA_NO = 'false'
+const NOMBRES_MARCA_VACIOS: Record<string, string> = {}
 
 // Un filtro de DOMINIO CERRADO: las opciones no salen de los datos sino de una lista fija, se
 // rotulan traducidas y se comparan por igualdad. Los tres de acá abajo eran el mismo bloque
@@ -20,7 +21,7 @@ const dominio = (
   ({ key, labelKey, nameKey, options: () => [...valores], optionLabel: rotulo, match: (a, v) => leer(a) === v })
 
 /** En qué anda la tarea: su estado, su marca, dónde está en la revisión y si algo la frena. */
-export default function filtrosTrabajo({ t }: Deps): FilterDef<Actividad>[] {
+export default function filtrosTrabajo({ t, nombreMarca = NOMBRES_MARCA_VACIOS }: Deps): FilterDef<Actividad>[] {
   return [
     // Estado abre la barra: «en qué anda» es la pregunta que alguien que entra por primera vez
     // sabe hacer sin que le expliquen el tablero.
@@ -30,6 +31,7 @@ export default function filtrosTrabajo({ t }: Deps): FilterDef<Actividad>[] {
     // reciben actividades. Un desplegable con opciones que no filtran nada es ruido.
     { key: 'empresa', labelKey: 'stratix.filter.allBrands', nameKey: 'stratix.filter.brand',
       options: items => distinctValues(items, a => a.empresa),
+      optionLabel: v => nombreMarca[v] ?? v,
       match: (a, v) => a.empresa === v },
     // `verificado` NO es booleano: es texto con cuatro valores. Contesta «qué está esperando
     // aprobación», que hasta ahora había que contar a ojo columna por columna.

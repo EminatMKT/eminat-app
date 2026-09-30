@@ -74,6 +74,12 @@ describe('opciones y etiquetas', () => {
   it('la marca sale de los datos presentes', () => {
     expect(byKey('empresa').options?.(acts)).toEqual(['EMC', 'SVN'])
   })
+  it('la marca se rotula con el nombre completo si el catálogo lo trae', () => {
+    const defs = activityFilters({ ...base, nombreMarca: { EMC: 'Eminat Medical Center' } })
+    const def = defs.find(d => d.key === 'empresa')!
+    expect(def.optionLabel?.('EMC')).toBe('Eminat Medical Center')
+    expect(def.optionLabel?.('SVN')).toBe('SVN')
+  })
 })
 
 describe('filtro de área', () => {
