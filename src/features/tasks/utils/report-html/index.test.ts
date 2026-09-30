@@ -39,4 +39,15 @@ describe('reportHtml — el período', () => {
     expect(html).not.toMatch(/Invalid Date/i)
     expect(html).toContain('text-align:center">—</td>')
   })
+
+  it('deja el botón de imprimir antes de la tabla para que no quede perdido al final', () => {
+    const html = reportHtml(datos('es-EC'))
+    expect(html.indexOf('window.print()')).toBeLessThan(html.indexOf('<table'))
+  })
+
+  it('usa el rótulo traducido del botón compartido y no un "Print" fijo', () => {
+    const html = reportHtml(datos('es-EC'))
+    expect(html).toContain('common.print')
+    expect(html).not.toContain('>Print</button>')
+  })
 })

@@ -55,7 +55,6 @@ export default function ReporteTab() {
               <option key={p} value={p}>{periodoLargo(`${p}-01`, intlLocale)}</option>
             ))}
           </select>
-          <Button kind="print" onClick={handlePrintReport} />
         </div>
       </div>
       <div className={s.hoja}>
@@ -63,6 +62,9 @@ export default function ReporteTab() {
           <div>
             <div className={s.titulo}>{t('stratix.report.heading')}</div>
             <div className={s.sub}>{t('stratix.report.subheading')}</div>
+          </div>
+          <div className={s.imprimirCabeza}>
+            <Button kind="print" onClick={handlePrintReport} />
           </div>
           <div className={s.periodo}>
             <div className={s.dato}>{t('stratix.report.period')}</div>

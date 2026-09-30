@@ -19,9 +19,6 @@ type Datos = {
   hoy: Date
 }
 
-// centinela-exime: archivo-extenso@2 — es UNA plantilla HTML. Partirla dejaría el <head> en
-// un archivo y el <body> en otro: se lee peor, no mejor. Las partes que sí eran lógica
-// (escapado, colores del estado) ya salen de funciones compartidas.
 // La hoja imprimible del reporte de un miembro. Es una PLANTILLA, no lógica de pantalla: vive
 // acá y no en el hook porque ahí eran setenta líneas de string entre los handlers, y porque así
 // se puede verificar que escapa lo que viene de la base (un título con `<` rompía el HTML).
@@ -56,6 +53,7 @@ export function reportHtml({ acts, nombre, mes, intlLocale, completadas, horas, 
     .map(h => `<th style="padding:10px;text-align:left;font-size:10px;color:#888;font-family:monospace;text-transform:uppercase;border-bottom:2px solid #e5e7eb;font-weight:400">${escapeHtml(h)}</th>`).join('')
 
   const fecha = hoy.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
+  const imprimir = escapeHtml(t('common.print'))
 
   return `<!DOCTYPE html><html><head><title>${escapeHtml(t('stratix.report.heading'))} — ${escapeHtml(nombre)}</title>
     <style>
@@ -71,6 +69,11 @@ export function reportHtml({ acts, nombre, mes, intlLocale, completadas, horas, 
       <div>
         <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">${escapeHtml(t('stratix.report.teamMember'))}</div>
         <div style="font-size:20px;font-weight:700">${escapeHtml(nombre)}</div>
+      </div>
+      <div class="no-print" style="text-align:center">
+        <button onclick="window.print()" style="display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:10px;background:#7C6FF7;color:white;border:none;font-family:inherit;font-size:12px;font-weight:600;box-shadow:0 1px 2px rgba(16,24,40,.12);cursor:pointer">
+          <span aria-hidden="true">🖨</span>${imprimir}
+        </button>
       </div>
       <div style="text-align:right">
         <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">${escapeHtml(t('stratix.report.period'))}</div>
@@ -96,9 +99,6 @@ export function reportHtml({ acts, nombre, mes, intlLocale, completadas, horas, 
     <div style="margin-top:40px;padding-top:14px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10px;color:#aaa">
       <span>Generated on ${escapeHtml(fecha)}</span>
       <span>${escapeHtml(t('stratix.report.brand'))} — Stratix 360</span>
-    </div>
-    <div class="no-print" style="text-align:center;margin-top:30px">
-      <button onclick="window.print()" style="padding:10px 28px;border-radius:8px;background:#7C6FF7;color:white;border:none;font-size:13px;font-weight:600;cursor:pointer">Print</button>
     </div>
     </body></html>`
 }

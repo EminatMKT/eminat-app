@@ -5,6 +5,7 @@ import type { I18nKey } from '@/shared/i18n'
 export type Deps = {
   t: (k: I18nKey) => string
   nombrePorId: Record<string, string> // uuid de persona → nombre a mostrar
+  nombreMarca?: Record<string, string> // código de marca → nombre completo a mostrar
   departamentoPorResponsable: Record<string, string> // uuid de usuario → uuid de departamento
   nombreDepartamento: Record<string, string> // uuid de departamento → nombre a mostrar
   departamentoPropio?: string // el de quien mira: con eso arranca el filtro
