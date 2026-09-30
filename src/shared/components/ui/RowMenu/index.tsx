@@ -1,8 +1,16 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useApp } from '@/shared/context/AppContext'
+import { BUTTON_META } from '../Button/meta'
+import type { ButtonKind } from '../Button/types'
 
-export type RowMenuItem = { label: string; onClick: () => void; danger?: boolean }
+export type RowMenuItem = {
+  label: string
+  onClick: () => void
+  danger?: boolean
+  kind?: ButtonKind
+}
 
 // Menú de acciones de una fila (los tres puntos verticales). Reemplaza la hilera
 // de botones que ocupaba media tabla.
@@ -48,20 +56,20 @@ export default function RowMenu({ items, label }: { items: RowMenuItem[]; label:
 
   return (
     <>
-      <button ref={btnRef} onClick={alternar} aria-label={label} aria-haspopup="menu" aria-expanded={!!pos}
+      <button type="button" ref={btnRef} onClick={alternar} aria-label={label} aria-haspopup="menu" aria-expanded={!!pos}
         style={{ padding: '4px 8px', borderRadius: 8, border: 'none', background: pos ? s2 : 'transparent', color: t2, cursor: 'pointer', fontSize: 15, lineHeight: 1 }}>
         ⋮
       </button>
-      {pos && (
+      {pos && createPortal(
         <div role="menu" ref={panelRef}
           style={{ position: 'fixed', top: pos.top, right: pos.right, zIndex: 200, minWidth: 170, background: s1, border: `1px solid ${border}`, borderRadius: 10, padding: 4, boxShadow: '0 8px 24px rgba(0,0,0,0.18)' }}>
           {items.map(it => (
-            <button key={it.label} role="menuitem" onClick={() => { setPos(null); it.onClick() }}
+            <button type="button" key={it.label} role="menuitem" onClick={e => { e.stopPropagation(); setPos(null); it.onClick() }}
               style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 10px', borderRadius: 7, border: 'none', background: 'transparent', color: it.danger ? '#F87171' : t1, fontSize: 12, cursor: 'pointer' }}>
-              {it.label}
+              {it.kind && <span aria-hidden="true">{BUTTON_META[it.kind].icono} </span>}{it.label}
             </button>
           ))}
-        </div>
+        </div>, document.body
       )}
     </>
   )

@@ -39,7 +39,7 @@ export default function ActivityDetailHeader(props: Props) {
         </div>
         <div className={s.acciones}>
           <Button kind="edit" onClick={onEditar} />
-          <Button kind="new" label={t('stratix.detail.duplicate')} onClick={onDuplicar} />
+          <Button kind="duplicate" onClick={onDuplicar} />
           <Button kind="delete" onClick={onBorrar} />
           <button type="button" className={s.cerrar} onClick={onCerrar}>✕</button>
         </div>

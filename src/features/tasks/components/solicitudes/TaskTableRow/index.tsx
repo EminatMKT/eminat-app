@@ -3,25 +3,26 @@ import type { CSSProperties } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 import { ESTADO, ESTADO_COLORS, estadoLabel } from '@/shared/constants/domain'
+import { RowMenu } from '@/shared/components/ui'
 import { useT } from '@/shared/i18n'
 import { useTasks } from '@/features/tasks/components/TasksContext'
+import { actividadAPlantilla } from '@/features/tasks/utils/act-form'
 import { periodoLargo } from '@/features/tasks/utils/periodo'
 import type { Actividad } from '@/features/tasks/types'
 import s from './index.module.css'
 
-type Props = {
-  a: Actividad
-}
+type Props = { a: Actividad }
 
 export default function TaskTableRow({ a }: Props) {
   const { t, intlLocale } = useT()
   const { miembrosPorId, colorMarca } = useApp()
-  const { setModalVerAct } = useTasks()
+  const { setModalVerAct, setModalNuevaAct, setNuevaAct } = useTasks()
   const vencida = !!a.fecha_entrega && new Date(a.fecha_entrega) < new Date() && a.estado !== ESTADO.COMPLETADO
   const vars = {
     '--marca': colorMarca[a.empresa] ?? COLOR_MARCA_FALLBACK,
     '--estado': ESTADO_COLORS[a.estado] || 'var(--c-t3)',
   } as CSSProperties
+  const duplicar = () => { setNuevaAct(actividadAPlantilla(a)); setModalNuevaAct(true) }
 
   return (
     <tr className={s.row} style={vars} onClick={() => setModalVerAct(a)}>
@@ -42,6 +43,7 @@ export default function TaskTableRow({ a }: Props) {
           ? <a className={s.link} href={a.drive_url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>🔗 {t('stratix.sol.view')}</a>
           : <span className={s.td}>—</span>}
       </td>
+      <td className={s.tdAcciones}><RowMenu label={t('common.actions')} items={[{ kind: 'duplicate', label: t('common.duplicate'), onClick: duplicar }]} /></td>
     </tr>
   )
 }
