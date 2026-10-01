@@ -13,6 +13,11 @@
   padding: 10px 14px;
 }
 
+.tdAcciones {
+  padding: 10px 14px;
+  text-align: right;
+}
+
 .titulo {
   font-size: 12px;
   font-weight: 500;

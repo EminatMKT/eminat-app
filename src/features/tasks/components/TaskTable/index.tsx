@@ -13,7 +13,7 @@ import s from './index.module.css'
 // mientras cada uno veía únicamente lo suyo — ahí el dato era redundante y hoy es el que falta.
 const COLS: I18nKey[] = ['stratix.col.title', 'stratix.col.brand', 'stratix.col.assignee',
   'stratix.col.period', 'stratix.col.hours', 'stratix.col.status', 'stratix.col.due',
-  'stratix.col.drive']
+  'stratix.col.drive', 'common.actions']
 
 type Props = {
   acts: Actividad[]

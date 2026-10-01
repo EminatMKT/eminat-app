@@ -10,6 +10,12 @@ import { trimestreDe } from '@/features/tasks/utils/periodo'
 import { mesTestigo } from '@/features/tasks/utils/periodo/testigo'
 import type { NuevaActForm } from '@/features/tasks/types'
 
+function numeroNoNegativo(v: string) {
+  if (!v) return null
+  const n = Number(v)
+  return n < 0 ? null : n
+}
+
 export function payloadDeActividad(form: NuevaActForm): Record<string, unknown> {
   const {
     titulo, empresa, responsable_id, fecha_inicio, estado, descripcion,
@@ -27,8 +33,8 @@ export function payloadDeActividad(form: NuevaActForm): Record<string, unknown> 
     trimestre: trimestreDe(fecha_inicio) || null,
     estado,
     descripcion: descripcion || null,
-    horas: horas ? Number(horas) : null,
-    dias_produccion: dias_produccion ? Number(dias_produccion) : null,
+    horas: numeroNoNegativo(horas),
+    dias_produccion: numeroNoNegativo(dias_produccion),
     fecha_entrega: fecha_entrega || null,
     solicitante_id: solicitante_id || null,
     drive_url: drive_url || null,

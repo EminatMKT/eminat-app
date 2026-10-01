@@ -15,11 +15,13 @@ import s from './index.module.css'
 type Props = {
   act: Actividad
   onEditar: () => void
+  onDuplicar: () => void
   onBorrar: () => void
   onCerrar: () => void
 }
 
-export default function ActivityDetailHeader({ act, onEditar, onBorrar, onCerrar }: Props) {
+export default function ActivityDetailHeader(props: Props) {
+  const { act, onEditar, onDuplicar, onBorrar, onCerrar } = props
   const { t } = useT()
   const { colorMarca } = useApp()
 
@@ -37,6 +39,7 @@ export default function ActivityDetailHeader({ act, onEditar, onBorrar, onCerrar
         </div>
         <div className={s.acciones}>
           <Button kind="edit" onClick={onEditar} />
+          <Button kind="duplicate" onClick={onDuplicar} />
           <Button kind="delete" onClick={onBorrar} />
           <button type="button" className={s.cerrar} onClick={onCerrar}>✕</button>
         </div>

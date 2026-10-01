@@ -30,6 +30,12 @@ export const actividadAForm = (a: Actividad): NuevaActForm => {
   return form
 }
 
+/** Builds a new-task form from an existing task, resetting lifecycle-only fields. */
+export const actividadAPlantilla = (a: Actividad): NuevaActForm => {
+  const form = actividadAForm(a)
+  return { ...form, estado: ESTADO.PENDIENTE }
+}
+
 // Guardar una edición pide confirmación, pero solo si hay algo que pisar: sin esto, abrir el
 // editor y cerrarlo con el botón de guardar preguntaba igual, y una confirmación que aparece
 // cuando no pasa nada es la que después se aprieta sin leer.

@@ -40,4 +40,10 @@ describe('payloadDeActividad', () => {
     expect(p.horas).toBe(8)
     expect(p.dias_produccion).toBe(2)
   })
+
+  it('no manda horas ni días negativos', () => {
+    const p = payloadDeActividad(form({ horas: '-8', dias_produccion: '-2' }))
+    expect(p.horas).toBeNull()
+    expect(p.dias_produccion).toBeNull()
+  })
 })

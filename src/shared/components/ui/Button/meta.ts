@@ -35,4 +35,5 @@ export const BUTTON_META = {
   // Opening the navigation that folds away on a phone. Added on 26/09/2026, when the topbar's
   // hand-written ☰ moved out of an inline style; it is drawn icon-only.
   menu:    { icono: '☰',  labelKey: 'shell.openMenu',      tono: 'secundario' },
+  duplicate: { icono: '⧉', labelKey: 'common.duplicate', tono: 'secundario' },
 } satisfies Record<ButtonKind, ButtonMeta>

@@ -6,6 +6,7 @@ import Modal from '@/shared/components/ui/Modal'
 import ConfirmModal from '@/shared/components/ui/ConfirmModal'
 import { useTasks } from '@/features/tasks/components/TasksContext'
 import { camposDeActividad, rastroDeActividad } from '@/features/tasks/utils/act-detail-fields'
+import { actividadAPlantilla } from '@/features/tasks/utils/act-form'
 import ActivityDetailHeader from '../ActivityDetailHeader'
 import DetailGroup from '../DetailGroup'
 // Los dos editores rápidos de la ficha (estado y fecha de entrega) están comentados abajo por
@@ -20,7 +21,7 @@ import css from './index.module.css'
 export default function ActivityDetailModal() {
   const { t, locale } = useT()
   const { miembrosPorId } = useApp()
-  const { modalVerAct, setModalVerAct, abrirEdicion, eliminarAct } = useTasks()
+  const { modalVerAct, setModalVerAct, abrirEdicion, setModalNuevaAct, setNuevaAct, eliminarAct } = useTasks()
   const [confirmarBorrado, setConfirmarBorrado] = useState(false)
   if (!modalVerAct) return null
 
@@ -50,6 +51,11 @@ export default function ActivityDetailModal() {
   //   mostrarMensaje('ok', t('stratix.detail.dueChanged'))
   // }
 
+  function duplicarAct() {
+    setNuevaAct(actividadAPlantilla(modalVerAct))
+    setModalNuevaAct(true)
+    setModalVerAct(null)
+  }
 
   // El mismo ancho que `NewActivityModal`: es la misma tarea, leída y editada. Con 31.25 acá y 40
   // allá, darle a "Editar" ensanchaba el modal de golpe.
@@ -62,6 +68,7 @@ export default function ActivityDetailModal() {
         <ActivityDetailHeader
           act={modalVerAct}
           onEditar={() => abrirEdicion(modalVerAct)}
+          onDuplicar={duplicarAct}
           onBorrar={() => setConfirmarBorrado(true)}
           onCerrar={() => setModalVerAct(null)}
         />
