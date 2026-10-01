@@ -84,6 +84,14 @@ inherits the leadership.
   `security invoker` (RLS still applies), replaces the set in one transaction, and raises if
   `p_lider_id` is not null and not in `p_usuario_ids`. Create = insert task, then RPC; if the
   RPC fails the form shows the error and keeps its state.
+- **"Task assigned" notification** (today `useActividadForm/index.ts:111-113`, one row to the
+  single responsible on create only):
+  - on create, one `tarea_asignada` row per responsible, skipping the creator — a single
+    batched insert;
+  - on edit, the same notification for the responsibles **newly added** (the diff between the
+    old and new sets), skipping the editor. Removed people are not notified.
+  - Its error is shown, not swallowed. The known gate bug (`notif_insert_modulo` checks
+    `stratix-mkt` instead of `tasks`) stays out of scope: it is its own TODO item.
 - **Meet API** (`integrations/meet/_shared/contracts.ts`, `task-service.ts`), backward
   compatible:
   - requests accept the current single `responsable_id` **or** an optional
@@ -94,7 +102,8 @@ inherits the leadership.
 ## 4. Testing
 
 - Unit: `responsablePrincipal`, `esResponsable`, filters, `report-filter` (a task with two
-  responsibles appears on both sheets), the form's crown toggle logic.
+  responsibles appears on both sheets), the form's crown toggle logic, and the
+  newly-added diff that drives the edit notification.
 - DB (local Supabase): RPC rejects a leader outside the set; a second leader violates the index;
   reassign drops duplicates and transfers leadership; RLS blocks `anon`.
 - e2e: create a task with three people and a leader → card shows `[Crown] <leader> +2`; the
