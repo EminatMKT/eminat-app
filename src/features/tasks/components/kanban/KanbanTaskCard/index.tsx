@@ -28,7 +28,7 @@ export default function KanbanTaskCard({ a }: Props) {
         {periodo && <span className={s.periodo}>{periodo}</span>}
         <span className={s.espacio} />
         {a.drive_url && <span className={s.drive} title={t('stratix.detail.driveFolder')} />}
-        <RowMenu label={t('common.actions')} items={[{ kind: 'duplicate', label: t('common.duplicate'), onClick: duplicar }]} />
+        <div className={s.actions}><RowMenu label={t('common.actions')} items={[{ kind: 'duplicate', label: t('common.duplicate'), onClick: duplicar }]} /></div>
       </div>
       <div className={s.titulo}>{a.titulo}</div>
       <div className={s.pie}>

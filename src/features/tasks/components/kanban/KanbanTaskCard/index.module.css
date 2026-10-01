@@ -6,6 +6,8 @@
    Medidas en rem, no en px: si el usuario sube el tamaño de letra del navegador, la tarjeta
    entera crece con él en vez de apretar el texto contra un padding fijo. */
 .card {
+  --task-menu-inset: .25rem;
+  --task-menu-target: 1.75rem;
   position: relative;
   background: var(--c-s1);
   border: 1px solid var(--c-border);
@@ -53,9 +55,23 @@
   align-items: center;
   gap: .375rem;
   margin-bottom: .4375rem;
+  min-block-size: 1.5rem;
+  padding-inline-end: var(--task-menu-target);
   font-family: 'DM Mono', monospace;
   font-size: .625rem;
   letter-spacing: .04em;
+}
+
+/* Anchor the action to the card, not the text padding; keep its hit area clear of metadata. */
+.actions {
+  position: absolute;
+  inset-block-start: var(--task-menu-inset);
+  inset-inline-end: var(--task-menu-inset);
+}
+
+.actions > button {
+  min-inline-size: var(--task-menu-target);
+  min-block-size: var(--task-menu-target);
 }
 
 .marca {
