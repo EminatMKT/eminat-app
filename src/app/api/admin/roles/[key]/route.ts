@@ -2,35 +2,48 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { requireAdmin } from '@/shared/db/requireAdmin'
 import { validateModuleSlugs } from '@/shared/auth/roleValidation'
+import { RPCS, TABLES, TABLE_COLUMNS } from '@/shared/schema'
+import roleFailure from '../_shared/role-failure'
+import ROLE_HTTP from '../_shared/role-http'
 
-export async function PATCH(req: NextRequest, { params }: { params: { key: string } }) {
-  const authz = await requireAdmin(); if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
+const { roles, usuarios } = TABLE_COLUMNS
+const SYSTEM_ROLE_DELETE = 'A system role cannot be deleted.'
+const ROLE_IN_USE = 'The role still has users. Reassign them before deleting it.'
+type RouteContext = { params: Record<'key', string> }
+
+export async function PATCH(req: NextRequest, { params }: RouteContext) {
+  const authz = await requireAdmin()
+  const denied = { status: authz.status }
+  if (!authz.ok) return NextResponse.json({ error: authz.error }, denied)
   const { label, modules } = await req.json()
-  const db = supabaseAdmin()
-  // Roles is_system (admin/sin_asignar): se puede renombrar el label, NO editar módulos
-  // (admin = short-circuit sin filas; sin_asignar = baseline sin módulos). Evita data rot.
-  const { data: roleRow } = await db.from('roles').select('is_system').eq('key', params.key).maybeSingle()
-  if (label !== undefined) {
-    const { error } = await db.from('roles').update({ label: String(label).trim() }).eq('key', params.key)
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  const replacesModules = Array.isArray(modules)
+  const v = replacesModules ? validateModuleSlugs(modules) : null
+  if (v && !v.ok) return NextResponse.json({ error: (v as { error: string }).error }, ROLE_HTTP.badRequest)
+  // One transaction, row-locked: a system role keeps its label editable and its modules frozen,
+  // and two admins editing one role apply one after the other.
+  const saveParams = {
+    p_key: params.key,
+    p_label: label === undefined ? null : String(label),
+    p_modules: replacesModules ? modules : null,
+    p_is_new: false,
   }
-  if (Array.isArray(modules)) {
-    if (roleRow?.is_system) return NextResponse.json({ error: 'No se pueden editar los módulos de un rol del sistema.' }, { status: 400 })
-    const v = validateModuleSlugs(modules); if (!v.ok) return NextResponse.json({ error: (v as { error: string }).error }, { status: 400 })
-    await db.from('role_modules').delete().eq('role_key', params.key)
-    if (modules.length) await db.from('role_modules').insert(modules.map((m: string) => ({ role_key: params.key, module_slug: m })))
-  }
-  return NextResponse.json({ ok: true })
+  const { error } = await supabaseAdmin().rpc(RPCS.saveRole, saveParams)
+  if (!error) return NextResponse.json({ ok: true })
+  const { status, error: message } = roleFailure(error)
+  const failed = { status }
+  return NextResponse.json({ error: message }, failed)
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { key: string } }) {
-  const authz = await requireAdmin(); if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
+export async function DELETE(_req: NextRequest, { params }: RouteContext) {
+  const authz = await requireAdmin()
+  const denied = { status: authz.status }
+  if (!authz.ok) return NextResponse.json({ error: authz.error }, denied)
   const db = supabaseAdmin()
-  const { data: role } = await db.from('roles').select('is_system').eq('key', params.key).maybeSingle()
-  if (role?.is_system) return NextResponse.json({ error: 'No se puede borrar un rol del sistema.' }, { status: 400 })
-  const { count } = await db.from('usuarios').select('id', { count: 'exact', head: true }).eq('rol', params.key)
-  if (count && count > 0) return NextResponse.json({ error: `El rol tiene ${count} usuario(s). Reasignalos antes de borrar.` }, { status: 400 })
-  const { error } = await db.from('roles').delete().eq('key', params.key)
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  const { data: role } = await db.from(TABLES.roles).select(roles.isSystem).eq(roles.key, params.key).maybeSingle()
+  if (role?.is_system) return NextResponse.json({ error: SYSTEM_ROLE_DELETE }, ROLE_HTTP.badRequest)
+  const { count } = await db.from(TABLES.usuarios).select(usuarios.id, ROLE_HTTP.countOnly).eq(usuarios.rol, params.key)
+  if (count && count > 0) return NextResponse.json({ error: ROLE_IN_USE }, ROLE_HTTP.badRequest)
+  const { error } = await db.from(TABLES.roles).delete().eq(roles.key, params.key)
+  if (error) return NextResponse.json({ error: error.message }, ROLE_HTTP.badRequest)
   return NextResponse.json({ ok: true })
 }
