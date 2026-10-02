@@ -6,6 +6,7 @@ import { estadoLabel } from '@/shared/constants/domain'
 import { useT } from '@/shared/i18n'
 import { useTasks } from '@/features/tasks/components/TasksContext'
 import { DIA_W } from '@/features/tasks/utils/gantt-layout'
+import ResponsiblesCompact from '@/features/tasks/components/ResponsiblesCompact'
 import type { Actividad } from '@/features/tasks/types'
 import s from './index.module.css'
 
@@ -36,7 +37,7 @@ export default function GanttBar({ a, fechaMin, dias }: Props) {
       <div className={s.info}>
         <div className={s.titulo}>{a.titulo}</div>
         <div className={s.meta}>
-          <span className={s.quien}>{miembrosPorId[a.responsable_id] ?? '—'}</span>
+          <ResponsiblesCompact a={a} namesById={miembrosPorId} className={s.quien} />
           <span className={s.marca}>{a.empresa}</span>
         </div>
       </div>

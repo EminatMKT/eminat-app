@@ -8,8 +8,8 @@ import { TABLES, COLUMNS } from './tables'
 export const listForUser = (usuarioId: string) =>
   supabase.from(TABLES.notificaciones).select('*').eq('usuario_id', usuarioId).order(COLUMNS.createdAt, { ascending: false }).limit(50)
 
-// Inserta una notificación.
-export const insert = (record: Record<string, unknown>) =>
+// Inserta una o varias notificaciones (varias = un solo insert, todo o nada).
+export const insert = (record: Record<string, unknown> | Record<string, unknown>[]) =>
   supabase.from(TABLES.notificaciones).insert(record)
 
 // Marca como leídas un conjunto de notificaciones por id.

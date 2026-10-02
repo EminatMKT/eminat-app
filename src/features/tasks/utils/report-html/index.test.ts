@@ -45,6 +45,15 @@ describe('reportHtml — el período', () => {
     expect(html.indexOf('window.print()')).toBeLessThan(html.indexOf('<table'))
   })
 
+  it('the assignee column lists every responsible, leader first', () => {
+    const shared: Actividad[] = [{ titulo: 'Shared', fecha_inicio: '2026-08-17', responsables: [
+      { usuario_id: 'u2', es_lider: false },
+      { usuario_id: 'u1', es_lider: true },
+    ] }]
+    const html = reportHtml({ ...datos('en-US'), acts: shared, nombrePorId: { u1: 'Zoe', u2: 'Ana' } })
+    expect(html).toContain('>Zoe, Ana</td>')
+  })
+
   it('usa el rótulo traducido del botón compartido y no un "Print" fijo', () => {
     const html = reportHtml(datos('es-EC'))
     expect(html).toContain('common.print')

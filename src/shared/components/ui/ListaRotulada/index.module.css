@@ -1,0 +1,14 @@
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: .375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vacio {
+  margin: 0;
+  padding: .375rem .5rem;
+  color: var(--c-t2);
+}

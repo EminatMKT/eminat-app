@@ -4,13 +4,14 @@ import { useApp } from '@/shared/context/AppContext'
 import { Field } from '@/shared/components/ui'
 import { useT } from '@/shared/i18n'
 import { useTasks } from '@/features/tasks/components/TasksContext'
+import ResponsablesChecklist from './ResponsablesChecklist'
 import s from './index.module.css'
 
 // centinela-exime: bloques-similares@3 — dos `Field` con su `select`, sacados de
 // `NewActivityModal` al partirlo. Van juntos y aparte porque cargan una invariante propia.
 
-// A QUIÉN y a QUÉ marca. Los dos son obligatorios y los dos arrancan en el placeholder vacío:
-// sin él el navegador pinta la primera opción mientras el estado sigue en '' (rules/ui.md).
+// WHO and which brand. The brand is required and starts on the empty placeholder (rules/ui.md);
+// responsibles are optional: zero, one or many, with at most one leader.
 export default function ActivityAsignacion() {
   const { marcas, miembrosAsignables } = useApp()
   const { t } = useT()
@@ -34,11 +35,9 @@ export default function ActivityAsignacion() {
           {marcas.map(m => <option key={m.codigo} value={m.codigo}>{m.codigo} — {m.nombre}</option>)}
         </select>
       </Field>
-      <Field required icon="👤" label={t('stratix.new.assignee')}>
-        <select value={nuevaAct.responsable_id} onChange={e => setNuevaAct(p => ({ ...p, responsable_id: e.target.value }))}>
-          <option value="">{t('stratix.new.select')}</option>
-          {miembrosAsignables.map(m => <option key={m.id} value={m.id}>{m.nombre}</option>)}
-        </select>
+      <Field icon="👤" label={t('tasks.responsibles.label')}>
+        <ResponsablesChecklist members={miembrosAsignables} rows={nuevaAct.responsables}
+          onChange={responsables => setNuevaAct(p => ({ ...p, responsables }))} />
       </Field>
     </div>
   )

@@ -3,10 +3,14 @@
 // La regla es "lo que ejecuto más lo que pedí". Antes había una excepción escrita
 // con el ref literal de Freddy (`refRep === 'Coord_MFreddy'`), porque era el único
 // que solicitaba: eso era un dato, no una regla. Con la FK deja de necesitar código.
+//
+// "Executes" means being ANY of the task's responsibles: a task with A and B is on A's sheet and
+// on B's sheet (spec 2026-10-01, "Payroll").
 import { claveMes } from '@/features/tasks/utils/periodo'
+import responsables from '@/features/tasks/utils/responsables'
+import type { ResponsiblesInput } from '@/features/tasks/types'
 
-export type ActividadRef = {
-  responsable_id?: string | null
+export type ActividadRef = ResponsiblesInput & {
   solicitante_id?: string | null
   fecha_inicio?: string | null
 }
@@ -16,7 +20,7 @@ export type ActividadRef = {
 // 2027 el reporte de Enero habría incluido enero de 2026. El año va en la clave.
 export function esActividadDeMiembro(act: ActividadRef, idMiembro: string, mes?: string): boolean {
   if (!idMiembro) return false
-  const suya = act.responsable_id === idMiembro || act.solicitante_id === idMiembro
+  const suya = responsables.esResponsable(act, idMiembro) || act.solicitante_id === idMiembro
   if (!suya) return false
   return mes ? claveMes(act.fecha_inicio) === mes : true
 }
@@ -38,10 +42,13 @@ export type ActividadProduccion = ActividadRef & {
 //
 // Por eso el total de tareas del reporte y estas dos cifras divergen a propósito.
 // No "arreglar" pasándole `acts` sin filtrar.
+//
+// Several responsibles do NOT split the figures: each one gets the task's full hours and days
+// (spec 2026-10-01, "Payroll"). "Paid once" above is about the requester, who still earns nothing.
 export function totalesProduccion(acts: ActividadProduccion[], idMiembro: string): { horas: number; dias: number } {
-  const ejecutadas = idMiembro ? acts.filter(a => a.responsable_id === idMiembro) : []
+  const executed = acts.filter(a => responsables.esResponsable(a, idMiembro))
   return {
-    horas: Math.round(ejecutadas.reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10,
-    dias: ejecutadas.reduce((acc, a) => acc + (Number(a.dias_produccion) || 0), 0),
+    horas: Math.round(executed.reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10,
+    dias: executed.reduce((acc, a) => acc + (Number(a.dias_produccion) || 0), 0),
   }
 }

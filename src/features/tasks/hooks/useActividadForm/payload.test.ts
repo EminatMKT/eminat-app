@@ -3,7 +3,7 @@ import { payloadDeActividad } from './payload'
 import type { NuevaActForm } from '@/features/tasks/types'
 
 const form = (over: Partial<NuevaActForm> = {}): NuevaActForm => ({
-  titulo: 'Reel de agosto', descripcion: '', empresa: 'EMC', responsable_id: 'u1',
+  titulo: 'Reel de agosto', descripcion: '', empresa: 'EMC', responsables: [{ usuario_id: 'u1', es_lider: false }],
   fecha_inicio: '2026-08-19', horas: '', dias_produccion: '',
   estado: 'Pendiente', fecha_entrega: '', solicitante_id: '', drive_url: '', ...over,
 })
@@ -45,5 +45,9 @@ describe('payloadDeActividad', () => {
     const p = payloadDeActividad(form({ horas: '-8', dias_produccion: '-2' }))
     expect(p.horas).toBeNull()
     expect(p.dias_produccion).toBeNull()
+  })
+
+  it('no manda la columna vieja responsable_id', () => {
+    expect('responsable_id' in payloadDeActividad(form())).toBe(false)
   })
 })

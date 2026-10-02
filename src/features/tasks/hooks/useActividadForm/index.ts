@@ -1,16 +1,18 @@
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { ESTADO } from '@/shared/constants/domain'
-import { actividadesRepo, notificacionesRepo } from '@/shared/data'
+import { actividadesRepo } from '@/shared/data'
 import { useT } from '@/shared/i18n'
 import { localDate } from '@/shared/utils/dates'
 import { actividadAForm } from '@/features/tasks/utils/act-form'
 import { periodoLargo } from '@/features/tasks/utils/periodo'
 import { payloadDeActividad, payloadDeAlta } from './payload'
-import type { Actividad, NuevaActForm, FormActividad } from '@/features/tasks/types'
+import saveResponsables from './save-responsables'
+import upsertActividad from './upsert-actividad'
+import type { Actividad, ActividadResponsable, NuevaActForm, FormActividad } from '@/features/tasks/types'
 
 const emptyNuevaAct = (solicitanteId = ''): NuevaActForm => ({
-  titulo: '', descripcion: '', empresa: '', responsable_id: '',
+  titulo: '', descripcion: '', empresa: '', responsables: [],
   fecha_inicio: localDate(), horas: '', dias_produccion: '',
   estado: ESTADO.PENDIENTE, fecha_entrega: '', solicitante_id: solicitanteId, drive_url: '',
 })
@@ -46,10 +48,9 @@ export function useActividadForm() {
 
   function abrirEdicion(a: Actividad) {
     const f = actividadAForm(a)
-    // Mismo hueco que el efecto de empresa del modal, acá para el responsable: si la persona
-    // salió del equipo (o está excluida), el <select> se vería vacío mientras el estado conserva
-    // el id viejo — lo que se ve ≠ lo que se guarda. Se resetea.
-    if (!miembrosAsignables.some(m => m.id === f.responsable_id)) f.responsable_id = ''
+    // Someone who left the team has no row in the checklist: keeping them would save a person
+    // the form does not show.
+    f.responsables = f.responsables.filter(r => miembrosAsignables.some(m => m.id === r.usuario_id))
     // Ídem para el solicitante, PERO solo si el id está huérfano (el usuario ya no existe): un
     // inactivo EXISTE y el sistema lo sabe mostrar (miembrosPorId incluye inactivos a propósito;
     // borrarle la atribución perdería quién pidió la tarea).
@@ -79,13 +80,32 @@ export function useActividadForm() {
     mostrarMensaje('ok', t('stratix.detail.deleted'))
   }
 
+  // The task row is saved; this writes who is on it. On failure the form stays open editing the
+  // saved row, so a retry updates it instead of creating a duplicate.
+  async function persistResponsables(fila: Actividad, previos: ActividadResponsable[]) {
+    const notice = {
+      titulo: t('stratix.notif.assignedTitle'),
+      mensaje: `"${valores.titulo}" — ${valores.empresa} · ${periodoLargo(valores.fecha_inicio, intlLocale)}`,
+    }
+    const pedido = {
+      actividadId: fila.id,
+      previous: previos,
+      next: valores.responsables,
+      actorId: usuario?.id,
+      notice,
+    }
+    const fallo = await saveResponsables(pedido)
+    const visible = fallo ? fila : { ...fila, responsables: valores.responsables }
+    setActividades(prev => upsertActividad(prev, visible))
+    if (!fallo) return true
+    mostrarMensaje('error', t('common.errorWithDetail', { detail: fallo }))
+    setForm(p => ({ ...p, guardando: false, editando: fila }))
+    return false
+  }
+
   async function crearActividad() {
-    // Los tres son NOT NULL en la DB (`responsable_id` y `empresa` además son FK). Sin este
-    // chequeo, un usuario de Stratix fuera de MKT —cuyo select de responsable renderiza vacío
-    // porque `miembrosAsignables` lo está— manda `responsable_id: ''` y recibe un
-    // `invalid input syntax for type uuid` crudo de Postgres.
+    // Title and brand are required; responsibles are not — a task may stay unassigned.
     if (!valores.titulo.trim()) { mostrarMensaje('error', t('stratix.new.titleRequired')); return }
-    if (!valores.responsable_id) { mostrarMensaje('error', t('stratix.new.assigneeRequired')); return }
     if (!valores.empresa) { mostrarMensaje('error', t('stratix.new.brandRequired')); return }
 
     setForm(p => ({ ...p, guardando: true }))
@@ -101,16 +121,16 @@ export function useActividadForm() {
           return
         }
         if (error) { mostrarMensaje('error', t('common.errorWithDetail', { detail: error.message })); setForm(p => ({ ...p, guardando: false })); return }
-        setActividades(prev => prev.map(x => (x.id === editando.id ? data as Actividad : x)))
+        const guardados = await persistResponsables(data as Actividad, editando.responsables)
+        if (!guardados) return
         resetFormAct()
         mostrarMensaje('ok', t('stratix.edit.saved'))
       } else {
         const { data, error } = await actividadesRepo.create(payloadDeAlta(valores, usuario?.id))
         if (error) { mostrarMensaje('error', t('common.errorWithDetail', { detail: error.message })); setForm(p => ({ ...p, guardando: false })); return }
-        setActividades(prev => [data as Actividad, ...prev])
-        if (data && valores.responsable_id && valores.responsable_id !== usuario?.id) {
-          await notificacionesRepo.insert({ usuario_id: valores.responsable_id, tipo: 'tarea_asignada', titulo: t('stratix.notif.assignedTitle'), mensaje: `"${valores.titulo}" — ${valores.empresa} · ${periodoLargo(valores.fecha_inicio, intlLocale)}`, actividad_id: (data as Actividad).id, leida: false })
-        }
+        const sinResponsables: ActividadResponsable[] = []
+        const guardados = await persistResponsables(data as Actividad, sinResponsables)
+        if (!guardados) return
         resetFormAct()
         mostrarMensaje('ok', t('stratix.new.created'))
       }

@@ -7,6 +7,7 @@ import { useT } from '@/shared/i18n'
 import { useTasks } from '@/features/tasks/components/TasksContext'
 import { actividadAPlantilla } from '@/features/tasks/utils/act-form'
 import { datosTarjeta } from '@/features/tasks/utils/act-tarjeta'
+import ResponsiblesCompact from '@/features/tasks/components/ResponsiblesCompact'
 import type { Actividad } from '@/features/tasks/types'
 import s from './index.module.css'
 type Props = { a: Actividad }
@@ -15,8 +16,7 @@ export default function KanbanTaskCard({ a }: Props) {
   const { miembrosPorId, colorMarca } = useApp()
   const { t, intlLocale } = useT()
   const { dragId, onDragStart, onDragEnd, setModalVerAct, setModalNuevaAct, setNuevaAct } = useTasks()
-  const nombre = miembrosPorId[a.responsable_id ?? '']
-  const { inicial, entrega, vencida, periodo } = datosTarjeta(a, nombre, intlLocale)
+  const { inicial, entrega, vencida, periodo } = datosTarjeta(a, miembrosPorId, intlLocale)
   const vars = { '--marca': colorMarca[a.empresa ?? ''] ?? COLOR_MARCA_FALLBACK } as CSSProperties
   const duplicar = () => { setNuevaAct(actividadAPlantilla(a)); setModalNuevaAct(true) }
   return (
@@ -34,7 +34,7 @@ export default function KanbanTaskCard({ a }: Props) {
       <div className={s.pie}>
         <div className={s.persona}>
           <div className={s.avatar}>{inicial}</div>
-          <span className={s.quien}>{nombre ?? '—'}</span>
+          <ResponsiblesCompact a={a} namesById={miembrosPorId} className={s.quien} />
         </div>
         <div className={s.meta}>
           {!!a.horas && <span>{a.horas}h</span>}

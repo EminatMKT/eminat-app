@@ -1,6 +1,7 @@
 import { ESTADO_COLORS } from '@/shared/constants/domain'
 import { escapeHtml } from '@/shared/utils'
 import { periodoLargo } from '@/features/tasks/utils/periodo'
+import responsibleNames from '@/features/tasks/utils/responsables/label'
 import type { I18nKey } from '@/shared/i18n'
 import type { Actividad } from '@/features/tasks/types'
 
@@ -31,7 +32,7 @@ export function reportHtml({ acts, nombre, mes, intlLocale, completadas, horas, 
       <td style="${celda};text-align:center;color:#666">${i + 1}</td>
       <td style="${celda};color:#111;font-weight:500">${escapeHtml(a.titulo || '')}</td>
       <td style="${celda};color:#555">${escapeHtml(a.empresa || '')}</td>
-      <td style="${celda};color:#555">${escapeHtml(nombrePorId[a.responsable_id ?? ''] ?? '—')}</td>
+      <td style="${celda};color:#555">${escapeHtml(responsibleNames(a, nombrePorId))}</td>
       <td style="${celda};color:#555;font-family:monospace;text-align:center">${a.horas || 0}h</td>
       <td style="${celda};color:#555;font-family:monospace;text-align:center">${a.dias_produccion || 0}</td>
       <td style="${celda};color:#555;text-align:center">${escapeHtml(periodoLargo(a.fecha_inicio, intlLocale, 'short'))}</td>

@@ -1,8 +1,11 @@
 // Actividad de marketing (tabla `actividades`). Tipo canónico definido en el contexto compartido.
 // DEUDA: la línea de abajo re-exporta y esto no es un `index`; la regla lo frena. Pagarla es
 // cambiar el import en los 21 archivos que traen `Actividad` desde acá, y va en su propia rama.
-export type { Actividad } from '@/shared/context/loadAppData'
-import type { Actividad } from '@/shared/context/loadAppData'
+export type { Actividad, ActividadResponsable } from '@/shared/context/loadAppData'
+import type { Actividad, ActividadResponsable } from '@/shared/context/loadAppData'
+
+export type ResponsiblesUser = Partial<Record<'apellido' | 'nombre' | 'name' | 'email', string | null>> & Record<'id', string>
+export type ResponsiblesInput = Partial<Record<'responsables', ActividadResponsable[] | null>>
 
 // Resumen de horas/tareas por miembro (lo computa useTasksData.resumenHoras;
 // lo consume HoursSummaryCard).
@@ -37,7 +40,7 @@ export type NuevaActForm = {
   titulo: string
   descripcion: string
   empresa: string
-  responsable_id: string
+  responsables: ActividadResponsable[]
   fecha_inicio: string
   horas: string
   dias_produccion: string

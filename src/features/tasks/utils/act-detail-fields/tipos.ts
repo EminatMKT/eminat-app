@@ -6,7 +6,13 @@ export type Deps = {
   miembrosPorId: Record<string, string>
 }
 
-export type DetalleCampo = { label: string; value: string; vacio: boolean }
+export type DetalleCampo = {
+  label: string
+  value: string
+  vacio: boolean
+  /** The first name in `value` is the task leader: the view puts a crown before it. */
+  lider?: boolean
+}
 export type GrupoCampos = { titulo: string; campos: DetalleCampo[] }
 
 // Un campo sin dato existe igual —que la semana esté vacía ES información— pero no compite:

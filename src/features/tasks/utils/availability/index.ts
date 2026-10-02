@@ -3,6 +3,11 @@
 // Vivía dentro de MemberAvailabilityCard, mezclada con el markup. Acá se puede testear sin
 // montar nada, que es la mitad del motivo; la otra es que son horas — y lo que cuenta horas
 // lleva test (ver rules/codigo.md).
+import { ESTADO } from '@/shared/constants/domain'
+import type { Actividad } from '@/features/tasks/types'
+import responsables from '@/features/tasks/utils/responsables'
+
+const { esResponsable } = responsables
 
 export const HORAS_SEMANALES = 40
 
@@ -14,6 +19,13 @@ export type Carga = {
   horasLibres: number
   pctOcupado: number
   disponible: boolean
+}
+
+export function actividadesActivasDe(actividades: Actividad[], usuarioId: string): Actividad[] {
+  return actividades.filter(a => {
+    const estadoActivo = a.estado === ESTADO.EN_PROCESO || a.estado === ESTADO.PENDIENTE
+    return esResponsable(a, usuarioId) && estadoActivo
+  })
 }
 
 export function cargaDe(tareas: { horas?: number | string | null }[]): Carga {

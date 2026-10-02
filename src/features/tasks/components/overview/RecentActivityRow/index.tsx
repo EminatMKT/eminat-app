@@ -2,6 +2,7 @@
 import type { CSSProperties } from 'react'
 import { useApp, ESTADO_COLORS } from '@/shared/context/AppContext'
 import { periodoLargo } from '@/features/tasks/utils/periodo'
+import ResponsiblesCompact from '@/features/tasks/components/ResponsiblesCompact'
 import type { Actividad } from '@/features/tasks/types'
 import s from './index.module.css'
 import { estadoLabel } from '@/shared/constants/domain'
@@ -22,7 +23,7 @@ export default function RecentActivityRow({ a }: Props) {
       <div className={s.dot} />
       <div className={s.body}>
         <div className={s.title}>{a.titulo}</div>
-        <div className={s.meta}>{a.empresa} · {miembrosPorId[a.responsable_id] ?? '—'} · {periodoLargo(a.fecha_inicio, intlLocale, 'short')}</div>
+        <div className={s.meta}>{a.empresa} · <ResponsiblesCompact a={a} namesById={miembrosPorId} /> ·{periodoLargo(a.fecha_inicio, intlLocale, 'short')}</div>
       </div>
       <span className={s.badge}>{estadoLabel(a.estado, t)}</span>
     </div>

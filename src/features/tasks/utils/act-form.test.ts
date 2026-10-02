@@ -8,13 +8,13 @@ describe('actividadAForm', () => {
   it('mapea todos los campos del formulario desde la actividad', () => {
     const a = {
       id: '1', titulo: 'Post Instagram', descripcion: 'd', empresa: 'EMC',
-      responsable_id: 'r', fecha_inicio: '2026-07-08', estado: 'En proceso',
+      responsables: [{ usuario_id: 'r', es_lider: true }], fecha_inicio: '2026-07-08', estado: 'En proceso',
       horas: 5, dias_produccion: 2, fecha_entrega: '2026-07-30',
       solicitante_id: 's', drive_url: 'https://drive.example/x',
     }
     expect(actividadAForm(a)).toEqual({
       titulo: 'Post Instagram', descripcion: 'd', empresa: 'EMC',
-      responsable_id: 'r', fecha_inicio: '2026-07-08', horas: '5', dias_produccion: '2',
+      responsables: [{ usuario_id: 'r', es_lider: true }], fecha_inicio: '2026-07-08', horas: '5', dias_produccion: '2',
       estado: 'En proceso', fecha_entrega: '2026-07-30',
       solicitante_id: 's', drive_url: 'https://drive.example/x',
     })
@@ -22,11 +22,11 @@ describe('actividadAForm', () => {
 
   it('normaliza nulos y ausencias a cadenas vacías', () => {
     expect(actividadAForm({
-      titulo: 'T', descripcion: null, empresa: 'EMC', responsable_id: null,
+      titulo: 'T', descripcion: null, empresa: 'EMC', responsables: null,
       fecha_inicio: null, estado: null, horas: null, dias_produccion: null,
       fecha_entrega: null, solicitante_id: null, drive_url: null,
     })).toEqual({
-      titulo: 'T', descripcion: '', empresa: 'EMC', responsable_id: '',
+      titulo: 'T', descripcion: '', empresa: 'EMC', responsables: [],
       fecha_inicio: hoy, estado: 'Pendiente', horas: '', dias_produccion: '',
       fecha_entrega: '', solicitante_id: '', drive_url: '',
     })
@@ -44,7 +44,7 @@ describe('actividadAForm', () => {
 describe('hayCambios', () => {
   const original = {
     id: '1', titulo: 'Post Instagram', descripcion: 'd', empresa: 'EMC',
-    responsable_id: 'r', fecha_inicio: '2026-07-08', estado: 'En proceso',
+    responsables: [{ usuario_id: 'r', es_lider: true }], fecha_inicio: '2026-07-08', estado: 'En proceso',
     horas: 5, dias_produccion: 2, fecha_entrega: '2026-07-30',
     solicitante_id: 's', drive_url: 'https://drive.example/x',
   }
@@ -63,5 +63,13 @@ describe('hayCambios', () => {
 
   it('un espacio al final del título no es un cambio: el payload lo trimea', () => {
     expect(hayCambios({ ...actividadAForm(original), titulo: 'Post Instagram  ' }, original)).toBe(false)
+  })
+
+  it('detecta cambios de responsables sin depender del orden', () => {
+    const otroOrden = { ...original, responsables: [{ usuario_id: 'r2', es_lider: false }, { usuario_id: 'r', es_lider: true }] }
+    const base = { ...original, responsables: [{ usuario_id: 'r', es_lider: true }, { usuario_id: 'r2', es_lider: false }] }
+
+    expect(hayCambios(actividadAForm(otroOrden), base)).toBe(false)
+    expect(hayCambios({ ...actividadAForm(original), responsables: [] }, original)).toBe(true)
   })
 })
