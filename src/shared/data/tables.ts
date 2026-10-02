@@ -1,6 +1,6 @@
-// Única fuente de verdad para los nombres de tablas/vistas de Supabase.
-// Un rename de tabla se hace SOLO acá; los repos referencian estas constantes
-// en vez de strings sueltos (evita typos silenciosos y magic strings dispersos).
+import SHARED_COLUMNS from './columns/shared'
+
+/** Single source for Supabase table and view names; a rename happens only here. */
 export const TABLES = {
   usuarios: 'usuarios',
   equipoHoy: 'v_equipo_hoy',
@@ -26,6 +26,8 @@ export const TABLES = {
   reuniones: 'reuniones',
   reunionParticipantes: 'reunion_participantes',
   vistasFiltro: 'vistas_filtro',
+  topics: 'topics',
+  actividadResponsables: 'actividad_responsables',
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]
@@ -34,7 +36,7 @@ export type TableName = (typeof TABLES)[keyof typeof TABLES]
 // repos. No constantizamos cada columna puntual (id, email, estado…) — solo las
 // que se repiten entre tablas.
 export const COLUMNS = {
-  createdAt: 'created_at',
-  updatedAt: 'updated_at',
+  createdAt: SHARED_COLUMNS.created.createdAt,
+  updatedAt: SHARED_COLUMNS.versioned.updatedAt,
   onlineAt: 'online_at',
 } as const
