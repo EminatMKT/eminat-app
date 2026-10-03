@@ -7,8 +7,7 @@ const UPDATE_USER_URL = '/api/admin/update-user'
 const ERROR = 'error'
 const OK = 'ok'
 
-// Acciones por fila que mutan adminUsuarios in-place (rol, activación, validación).
-export function useUserActions() {
+export default function useUserActions() {
   const { setAdminUsuarios, mostrarMensaje } = useApp()
   const { t } = useT()
 
@@ -41,3 +40,6 @@ export function useUserActions() {
 
   return { cambiarRol, toggleActivo, validarUsuario }
 }
+
+// Per-row actions on the admin user list (role, activation, validation). Each one goes through
+// the server and, on success, patches `adminUsuarios` in place instead of reloading the list.

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
-import { requireAdmin } from '@/shared/db/requireAdmin'
+import requireAdmin from '@/shared/db/requireAdmin'
 import { ADMIN_ERRORS } from '@/shared/errors'
 
 /**

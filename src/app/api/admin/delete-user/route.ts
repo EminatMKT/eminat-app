@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
-import { requireAdmin } from '@/shared/db/requireAdmin'
-import { isLastAdmin } from '@/shared/auth/roleValidation'
+import requireAdmin from '@/shared/db/requireAdmin'
+import isOnlyAdminLeft from '@/shared/auth/roleValidation/isOnlyAdminLeft'
 import countUserTasks from './_shared/task-counts'
 import { ADMIN_ERRORS } from '@/shared/errors'
 
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     // Guard: nunca borrar al último admin (defensa en profundidad; el bloqueo
     // admin-tier de arriba ya lo cubre, pero esto sobrevive si ese cambia).
     const { data: all } = await db.from('usuarios').select('id,rol')
-    if (isLastAdmin(all || [], id)) {
+    if (isOnlyAdminLeft(all || [], id)) {
       return NextResponse.json({ error: ADMIN_ERRORS.lastAdminDelete }, { status: 400 })
     }
 

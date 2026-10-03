@@ -3,11 +3,11 @@ import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { normalizeRole, ADMIN_ROLE, DEFAULT_ROLE, MODULE_META, getModulesForRole } from '@/shared/auth/permissions'
-import { useUserActions } from '../hooks/useUserActions'
-import { cargoNamesOf } from '../org-catalogs'
+import useUserActions from '@/features/admin/hooks/useUserActions'
+import { cargoNamesOf } from '@/features/admin/org-catalogs'
 import ConfirmModal from '@/shared/components/ui/ConfirmModal'
 import RowMenu from '@/shared/components/ui/RowMenu'
-import type { AdminUser, ResetTarget } from '../types'
+import type { AdminUser, ResetTarget } from '@/features/admin/types'
 
 type Props = {
   user: AdminUser
