@@ -91,6 +91,16 @@ inherits the leadership.
   5. **Empty states.** "No one can be assigned yet" when the roster is empty; "Nobody matches
      '{query}'" with a clear-search button when a search filters everything out. The visible
      "Responsibles" label is wired to the search input.
+
+  **Superseded the same day (2026-10-02):** the user replaced the full-width open list with a
+  compact multi-select combobox matching Brand/Área. Brand and Responsables are back side by side
+  in the two-column row (one column on narrow screens). Closed, the box is styled by `Field` like
+  the Brand select and reads `— Elegir —` or the card's `👑 Leader +N`; open, the same box is the
+  search and the panel lists one option per member (checkbox mark + crown on the chosen ones),
+  staying open while picking. Escape or an outside press closes it. Points 1–3 and the helper text
+  of point 4 are gone (the summary chips, count and hint keys with them); the crown labels and the
+  two empty states of point 5 remain. Built on the shared `Combobox` ported from
+  `feat/operations`, extended with `MultiCombobox`.
 - **Compact displays** (Kanban card, Gantt bar, table row, recent activity):
   `[Crown] Ana Bravo +4` with a leader; `Ana Bravo +4` (no crown) without; `—` with nobody.
 - **Detail view:** all names; the leader carries the crown.

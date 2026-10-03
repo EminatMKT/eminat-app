@@ -1,5 +1,6 @@
 'use client'
 import type { SelectHTMLAttributes } from 'react'
+import useFieldControl from '../Field/useFieldControl'
 
 type Props = SelectHTMLAttributes<HTMLSelectElement> & {
   /** What the blank first choice reads. Without it there is no blank choice at all. */
@@ -7,8 +8,9 @@ type Props = SelectHTMLAttributes<HTMLSelectElement> & {
 }
 
 export default function Select({ placeholder, children, ...select }: Props) {
+  const named = useFieldControl()
   return (
-    <select {...select}>
+    <select {...named} {...select}>
       {placeholder !== undefined && <option value="">{placeholder}</option>}
       {children}
     </select>
@@ -21,6 +23,8 @@ export default function Select({ placeholder, children, ...select }: Props) {
 // with a DEFAULT never arrives empty, and a blank choice there would be one the database rejects.
 // So the prompt is what turns it on — a caller that creates passes one, a caller that edits does
 // not.
+//
+// Inside a Field it takes the id the label points at, so the label names it; its own props win.
 //
 // It lives apart from `CatalogoSelect` so each file draws at most two tags of its own: this one
 // the box and its blank choice, that one the catalog options. The options come in as children.
