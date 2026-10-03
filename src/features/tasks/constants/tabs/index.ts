@@ -19,3 +19,7 @@ export const TASKS_TABS: readonly TasksTab[] = Object.values(TASKS_TAB)
 // La clave con la que se recuerda la pestaña abierta. Propia del módulo: compartirla con
 // Stratix haría que abrir uno cambiara la sección del otro.
 export const TASKS_TAB_PREF = 'tab-tasks'
+
+// La vista global de rendimiento sólo pertenece al rol admin existente.
+export const visibleTasksTabs = (admin: boolean): readonly TasksTab[] =>
+  admin ? TASKS_TABS : TASKS_TABS.filter(tab => tab !== TASKS_TAB.OVERVIEW)

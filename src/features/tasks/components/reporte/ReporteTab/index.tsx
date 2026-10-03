@@ -7,6 +7,7 @@ import Button from '@/shared/components/ui/Button'
 import StatBox from '@/shared/components/ui/StatBox'
 import ReportTableRow from '../ReportTableRow'
 import s from './index.module.css'
+import WorkerReport from '../WorkerReport'
 
 // La columna "Assignee" hace legible por qué las horas de las filas no cierran
 // con el total: el reporte LISTA lo que la persona solicitó, pero solo SUMA lo
@@ -22,6 +23,11 @@ const REPORT_HEADERS = [
 ] as const
 
 export default function ReporteTab() {
+  const { esAdmin } = useApp()
+  return esAdmin ? <AdminReport /> : <WorkerReport />
+}
+
+function AdminReport() {
   const { accent, esAdmin, miembrosAsignables, miembrosPorId, actividades } = useApp()
   const { t, intlLocale } = useT()
   const {

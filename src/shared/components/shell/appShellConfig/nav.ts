@@ -12,7 +12,6 @@ export const NAV: { slug: ModuleSlug; key: string; icon: string; label: string; 
   { slug: MODULE.RESEARCH, key: 'research', icon: '🔬', label: 'Research', panel: 'research' },
   { slug: MODULE.DIRECTORIO, key: 'directorio', icon: '🏢', label: 'Directory' },
   { slug: MODULE.REUNIONES, key: 'reuniones', icon: '🗓️', label: 'Meetings' },
-  { slug: MODULE.METRICS, key: 'metrics', icon: '📊', label: 'Metrics' },
   { slug: MODULE.ADMIN, key: 'admin', icon: '🔐', label: 'Admin', panel: 'admin' },
 ]
 
@@ -27,5 +26,4 @@ export const AUTO_TITLE: Partial<Record<ModuleSlug, string>> = {
   [MODULE.DIRECTORIO]: 'Team Directory',
   [MODULE.REUNIONES]: 'Reuniones — Actas y pendientes',
   [MODULE.ADMIN]: 'Admin Panel',
-  [MODULE.METRICS]: 'LILLY Performance Center',
 }

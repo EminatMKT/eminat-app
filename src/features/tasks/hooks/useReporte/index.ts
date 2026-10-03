@@ -15,7 +15,7 @@ import type { ReporteCriterios } from '@/features/tasks/types'
 // quién entra en el reporte es la misma decisión de permisos que la de las gráficas, y
 // duplicarla acá era la forma de que las dos se desincronizaran.
 export function useReporte(idsTeam: string[]) {
-  const { usuario, actividades, miembrosPorId, miembrosAsignables } = useApp()
+  const { usuario, actividades, miembrosPorId, miembrosAsignables, esAdmin } = useApp()
   const { t, intlLocale } = useT()
 
   // `localMonth()` y no `toISOString().slice(0,7)`: en UTC-5, el 31 a las 20:00 ya es el mes
@@ -31,16 +31,17 @@ export function useReporte(idsTeam: string[]) {
   // que Stratix es un tablero de equipo (31/08), `miembrosAsignables` es el equipo entero para
   // cualquiera, así que TODOS abrían el reporte de la primera persona de la lista. En un
   // documento que se firma para pagar, abrir el de otro es peor que no abrir ninguno.
-  const idRep = miembroReporte || (idsTeam.includes(usuario?.id ?? '') ? usuario?.id : idsTeam[0]) || ''
+  const idRep = esAdmin ? (miembroReporte || (idsTeam.includes(usuario?.id ?? '') ? usuario?.id : idsTeam[0]) || '') : (usuario?.id || '')
   // El listado incluye lo solicitado; las horas y los días de producción, no (ver
   // `totalesProduccion`: se pagan una vez, a quien las ejecutó). La divergencia entre
   // `actsRep.length` y estas dos cifras es deliberada.
-  const actsRep = actividades.filter(a => esActividadDeMiembro(a, idRep, mesReporte || undefined))
+  const actsRep = esAdmin ? actividades.filter(a => esActividadDeMiembro(a, idRep, mesReporte || undefined)) : []
   const { horas: totalHorasRep, dias: totalDiasRep } = totalesProduccion(actsRep, idRep)
   const completadasRep = actsRep.filter(a => a.estado === ESTADO.COMPLETADO).length
   const nombreRep = nombreDelReporte(idRep, miembrosAsignables, miembrosPorId, usuario)
 
   function handlePrintReport() {
+    if (!esAdmin) return
     const w = window.open('', '_blank', 'width=900,height=700')
     if (!w) return
     w.document.write(reportHtml({

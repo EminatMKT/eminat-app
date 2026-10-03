@@ -3,7 +3,7 @@ const { requireAdmin, rpc } = vi.hoisted(() => ({ requireAdmin: vi.fn(), rpc: vi
 vi.mock('@/shared/db/requireAdmin', () => ({ requireAdmin }))
 vi.mock('@/shared/db/requireAccess', () => ({ ssrClient: () => ({ rpc }) }))
 import { GET } from './route'
-const request = (query = '') => ({ nextUrl: new URL(`http://localhost/api/metrics${query}`) }) as never
+const request = (query = '') => ({ nextUrl: new URL(`http://localhost/api/tasks/dashboard${query}`) }) as never
 beforeEach(() => { vi.clearAllMocks(); requireAdmin.mockResolvedValue({ ok: true }); rpc.mockResolvedValue({ data: { overview: { total: 0 } }, error: null }) })
 it('denies non-admins before aggregate query', async () => {
   requireAdmin.mockResolvedValue({ ok: false, status: 403, error: 'Forbidden' })

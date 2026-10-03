@@ -16,7 +16,6 @@ export const MODULE = {
   DIRECTORIO: 'directorio',
   REUNIONES: 'reuniones',
   ADMIN: 'admin',
-  METRICS: 'metrics',
 } as const
 
 export type ModuleSlug = (typeof MODULE)[keyof typeof MODULE]

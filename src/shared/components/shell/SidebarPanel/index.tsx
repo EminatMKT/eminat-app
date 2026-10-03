@@ -1,7 +1,9 @@
 'use client'
 import { useRouter, usePathname } from 'next/navigation'
 import { useT } from '@/shared/i18n'
+import { useApp } from '@/shared/context/AppContext'
 import { modulePath } from '@/shared/auth/permissions'
+import { visibleTasksTabs } from '@/features/tasks/constants/tabs'
 import { D, SUB_ITEMS, PANEL_META, type PanelKey } from '@/shared/components/shell/appShellConfig'
 import PanelItem from '@/shared/components/shell/PanelItem'
 
@@ -20,7 +22,9 @@ export default function SidebarPanel(props: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const { t } = useT()
-  const subItems = SUB_ITEMS[panel]
+  const { esAdmin } = useApp()
+  const subItems = panel === 'tasks' && !esAdmin
+    ? SUB_ITEMS.tasks.filter(item => visibleTasksTabs(false).some(tab => tab === item.tab)) : SUB_ITEMS[panel]
   const { title: panelTitle, sub: panelSub } = PANEL_META[panel]
   const targetPath = modulePath(PANEL_META[panel].slug)
 
