@@ -42,7 +42,7 @@ export default function filtrosGente(deps: Deps): FilterDef<Actividad>[] {
     Object.keys(nombrePorId).filter(usuarioId => esResponsable(a, usuarioId))
   return [
     // Responsable abre la barra junto al estado: «de quién es» es la otra pregunta que no hay
-    // que explicar.
+    // que explicar. The key keeps the old column name on purpose: saved views store it.
     { ...persona('responsable_id', 'stratix.filter.allAssignees', 'stratix.filter.assignee',
       nombrePorId, responsablesDe), principal: true },
     // Quién la PIDIÓ, que no es quién la ejecuta. Es la otra mitad de la pregunta que contesta

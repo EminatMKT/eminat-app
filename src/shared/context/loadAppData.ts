@@ -71,8 +71,6 @@ export type Actividad = {
   titulo?: string
   descripcion?: string
   empresa?: string
-  // Transitional legacy field for old call sites; Task 10 removes app reads after migration.
-  responsable_id?: string | null
   responsables?: ActividadResponsable[] | null
   // Cuándo empieza el trabajo. Su MES es el período de imputación del reporte de pago.
   // `mes`/`trimestre`/`semana` siguen en la tabla durante la fase 1 pero NADIE los lee: son el

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { requireAdmin } from '@/shared/db/requireAdmin'
 import { isLastAdmin } from '@/shared/auth/roleValidation'
+import countUserTasks from './_shared/task-counts'
 
 /**
  * Server-side admin endpoint — hard-deletes a user from BOTH:
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const id = typeof body?.id === 'string' ? body.id.trim() : ''
     if (!id) {
-      return NextResponse.json({ error: 'id requerido.' }, { status: 400 })
+      return NextResponse.json({ error: 'id is required.' }, { status: 400 })
     }
 
     // 1) Look up the row to find auth_id + email (for logging).
@@ -59,14 +60,14 @@ export async function POST(req: NextRequest) {
     if (lookupError) {
       console.error(`${TAG} lookup failed`, { id, error: lookupError.message })
       return NextResponse.json(
-        { error: `Lookup falló: ${lookupError.message}` },
+        { error: `Lookup failed: ${lookupError.message}` },
         { status: 500 },
       )
     }
     if (!row) {
       console.error(`${TAG} row not found`, { id })
       return NextResponse.json(
-        { error: 'Usuario no encontrado en public.usuarios.' },
+        { error: 'User not found in public.usuarios.' },
         { status: 404 },
       )
     }
@@ -77,7 +78,7 @@ export async function POST(req: NextRequest) {
     if (row.rol === 'superadmin' || row.rol === 'admin') {
       console.warn(`${TAG} blocked admin-tier delete`, { id, email: row.email, rol: row.rol })
       return NextResponse.json(
-        { error: 'No se puede borrar a un usuario con rol admin/superadmin. Cambia su rol primero.' },
+        { error: 'A user with the admin/superadmin role cannot be deleted. Change their role first.' },
         { status: 400 },
       )
     }
@@ -87,7 +88,7 @@ export async function POST(req: NextRequest) {
     const { data: all } = await db.from('usuarios').select('id,rol')
     if (isLastAdmin(all || [], id)) {
       return NextResponse.json(
-        { error: 'No se puede borrar al último admin.' },
+        { error: 'The last admin cannot be deleted.' },
         { status: 400 },
       )
     }
@@ -110,28 +111,14 @@ export async function POST(req: NextRequest) {
       const isFk = dbErrorCode === '23503'
       console.error(`${TAG} usuarios delete failed — auth INTACTO`, { id, code: dbErrorCode, error: dbError.message, isFk })
       if (isFk) {
-        // Count the actividades the user owns so the UI can offer the
-        // reassign-and-delete flow with the number up-front.
-        const { count: taskCount } = await db
-          .from('actividades')
-          .select('id', { count: 'exact', head: true })
-          .eq('responsable_id', id)
-        // Lo SOLICITADO va aparte y no se hereda: `admin_reassign_and_delete`
-        // pone `solicitante_id = NULL`. Se cuenta igual porque sin esto el modal
-        // afirma "no tiene tareas asignadas" a quien pidió tareas, y el admin no
-        // se entera de que va a perder el dato de quién las pidió.
-        const { count: requestedCount } = await db
-          .from('actividades')
-          .select('id', { count: 'exact', head: true })
-          .eq('solicitante_id', id)
+        const { taskCount, requestedCount } = await countUserTasks(db, id)
         return NextResponse.json(
           {
-            error:
-              'El usuario tiene registros relacionados (actividades, notificaciones u otros). Usa "Heredar y borrar" para transferir sus tareas a otro miembro, o "Deactivate" para preservar el historial intacto.',
+            error: 'The user has related records (tasks, notifications or others). Use "Reassign and delete" to transfer their tasks to another member, or "Deactivate" to keep the history intact.',
             dbErrorCode,
             blockedBy: 'foreign_key',
-            taskCount: taskCount ?? 0,
-            requestedCount: requestedCount ?? 0,
+            taskCount,
+            requestedCount,
             authDeleted: false,
             authNote: null,
           },
@@ -139,7 +126,7 @@ export async function POST(req: NextRequest) {
         )
       }
       return NextResponse.json(
-        { error: `DB delete falló: ${dbError.message}`, dbErrorCode, authDeleted: false, authNote: null },
+        { error: `DB delete failed: ${dbError.message}`, dbErrorCode, authDeleted: false, authNote: null },
         { status: 500 },
       )
     }
@@ -147,7 +134,7 @@ export async function POST(req: NextRequest) {
     if (!count) {
       console.warn(`${TAG} 0 rows affected — auth INTACTO`, { id })
       return NextResponse.json(
-        { error: 'La fila no se borró (0 filas afectadas). Puede que ya no exista.', authDeleted: false, authNote: null },
+        { error: 'The row was not deleted (0 rows affected). It may no longer exist.', authDeleted: false, authNote: null },
         { status: 404 },
       )
     }
@@ -173,7 +160,7 @@ export async function POST(req: NextRequest) {
       // se registra para que el admin sepa que quedó una cuenta huérfana.
       const msg = authErr.message || ''
       if (!/not.?found/i.test(msg)) {
-        authNote = `auth.users delete (id=${uid}) reportó: ${msg}`
+        authNote = `auth.users delete (id=${uid}) reported: ${msg}`
       }
     }
 
@@ -189,7 +176,7 @@ export async function POST(req: NextRequest) {
     const message = err instanceof Error ? err.message : ''
     console.error(`${TAG} unexpected`, { message })
     return NextResponse.json(
-      { error: message || 'Error inesperado al borrar el usuario.' },
+      { error: message || 'Unexpected error while deleting the user.' },
       { status: 500 },
     )
   }

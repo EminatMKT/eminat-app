@@ -8,7 +8,7 @@ type ActivityRow = Record<string, unknown> & { id: string; updated_at?: string }
 type ActivityResponsableRow = { usuario_id: string; es_lider: boolean }
 type ActivityRowWithEmbed = ActivityRow & { actividad_responsables?: ActivityResponsableRow[] | null }
 
-// Legacy responsable_id is absent: the migration drops it and later tasks consume responsables.
+// No responsable_id: the column is gone; who executes a task comes from the embedded join table.
 const ACTIVIDADES_SELECT = `
   id,
   titulo,

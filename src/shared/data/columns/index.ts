@@ -10,6 +10,7 @@ const TABLE_COLUMNS = {
     ...identified,
     ...created,
     ...versioned,
+    solicitanteId: 'solicitante_id',
   },
   topics: {
     ...identified,
@@ -34,6 +35,9 @@ const TABLE_COLUMNS = {
   roleModules: {
     roleKey: 'role_key',
     moduleSlug: 'module_slug',
+  },
+  actividadResponsables: {
+    usuarioId: 'usuario_id',
   },
 } as const
 
