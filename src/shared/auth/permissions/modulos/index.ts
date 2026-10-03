@@ -69,6 +69,12 @@ export const MODULE_META: Record<ModuleSlug, ModuleMeta> = {
     description: 'Actas, participantes y pendientes de las reuniones del grupo.',
     leader: null,
   },
+  [MODULE.METRICS]: {
+    slug: MODULE.METRICS,
+    name: 'Metrics',
+    description: 'Rendimiento operativo basado en Tasks.',
+    leader: null,
+  },
   [MODULE.ADMIN]: {
     slug: MODULE.ADMIN,
     name: 'Administración',
