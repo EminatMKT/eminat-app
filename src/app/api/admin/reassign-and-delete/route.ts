@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { requireAdmin } from '@/shared/db/requireAdmin'
 import { isLastAdmin } from '@/shared/auth/roleValidation'
+import ADMIN_ERRORS from '../_shared/admin-errors'
 
 /**
  * Server-side admin endpoint — reassign all of a user's actividades to a
@@ -43,19 +44,13 @@ export async function POST(req: NextRequest) {
     // Heredero OPCIONAL: sin heredero (newId ausente) el RPC solo limpia hijos y
     // borra — caso de usuario con 0 tareas.
     if (!oldId) {
-      return NextResponse.json({ error: 'oldId es requerido.' }, { status: 400 })
+      return NextResponse.json({ error: ADMIN_ERRORS.oldIdRequired }, { status: 400 })
     }
     if (newId && oldId === newId) {
-      return NextResponse.json(
-        { error: 'El nuevo dueño no puede ser el mismo usuario que se borra.' },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: ADMIN_ERRORS.sameOwner }, { status: 400 })
     }
     if (!VALID_STATUS.has(statusOverride ?? null)) {
-      return NextResponse.json(
-        { error: `statusOverride inválido: ${statusOverride}` },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: ADMIN_ERRORS.invalidStatusOverride(statusOverride) }, { status: 400 })
     }
 
     console.log(`${TAG} start`, { oldId, newId, statusOverride: statusOverride ?? null })
@@ -70,26 +65,20 @@ export async function POST(req: NextRequest) {
 
     if (lookupError) {
       console.error(`${TAG} lookup failed`, { oldId, error: lookupError.message })
-      return NextResponse.json({ error: `Lookup falló: ${lookupError.message}` }, { status: 500 })
+      return NextResponse.json({ error: ADMIN_ERRORS.lookupFailed(lookupError.message) }, { status: 500 })
     }
     if (!oldRow) {
-      return NextResponse.json({ error: 'Usuario no encontrado en public.usuarios.' }, { status: 404 })
+      return NextResponse.json({ error: ADMIN_ERRORS.userNotFound }, { status: 404 })
     }
     if (oldRow.rol === 'admin' || oldRow.rol === 'superadmin') {
       console.warn(`${TAG} blocked admin-tier delete`, { oldId, rol: oldRow.rol })
-      return NextResponse.json(
-        { error: 'No se puede borrar a un usuario con rol admin/superadmin. Cambia su rol primero.' },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: ADMIN_ERRORS.adminTierDelete }, { status: 400 })
     }
 
     // Guard: nunca borrar al último admin (defensa en profundidad).
     const { data: all } = await db.from('usuarios').select('id,rol')
     if (isLastAdmin(all || [], oldId)) {
-      return NextResponse.json(
-        { error: 'No se puede borrar al último admin.' },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: ADMIN_ERRORS.lastAdminDelete }, { status: 400 })
     }
 
     // Atomic reassign + cleanup + delete inside Postgres.
@@ -110,7 +99,7 @@ export async function POST(req: NextRequest) {
         code: dbErrorCode,
       })
       return NextResponse.json(
-        { error: rpcError.message || 'La herencia atómica falló.', dbErrorCode },
+        { error: rpcError.message || ADMIN_ERRORS.reassignFailed, dbErrorCode },
         { status: 500 },
       )
     }
@@ -132,7 +121,7 @@ export async function POST(req: NextRequest) {
         break
       }
       if (!/not.?found/i.test(authErr.message || '')) {
-        authNote = `auth.users delete (id=${uid}) reportó: ${authErr.message}`
+        authNote = ADMIN_ERRORS.authNote(uid, authErr.message)
         console.warn(`${TAG} auth delete error (continuing)`, { uid, error: authErr.message })
       }
     }
@@ -156,9 +145,6 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : ''
     console.error(`${TAG} unexpected`, { message })
-    return NextResponse.json(
-      { error: message || 'Error inesperado en la herencia.' },
-      { status: 500 },
-    )
+    return NextResponse.json({ error: message || ADMIN_ERRORS.unexpectedReassign }, { status: 500 })
   }
 }

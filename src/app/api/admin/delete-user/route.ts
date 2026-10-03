@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { requireAdmin } from '@/shared/db/requireAdmin'
 import { isLastAdmin } from '@/shared/auth/roleValidation'
 import countUserTasks from './_shared/task-counts'
+import ADMIN_ERRORS from '../_shared/admin-errors'
 
 /**
  * Server-side admin endpoint — hard-deletes a user from BOTH:
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const id = typeof body?.id === 'string' ? body.id.trim() : ''
     if (!id) {
-      return NextResponse.json({ error: 'id is required.' }, { status: 400 })
+      return NextResponse.json({ error: ADMIN_ERRORS.idRequired }, { status: 400 })
     }
 
     // 1) Look up the row to find auth_id + email (for logging).
@@ -59,17 +60,11 @@ export async function POST(req: NextRequest) {
 
     if (lookupError) {
       console.error(`${TAG} lookup failed`, { id, error: lookupError.message })
-      return NextResponse.json(
-        { error: `Lookup failed: ${lookupError.message}` },
-        { status: 500 },
-      )
+      return NextResponse.json({ error: ADMIN_ERRORS.lookupFailed(lookupError.message) }, { status: 500 })
     }
     if (!row) {
       console.error(`${TAG} row not found`, { id })
-      return NextResponse.json(
-        { error: 'User not found in public.usuarios.' },
-        { status: 404 },
-      )
+      return NextResponse.json({ error: ADMIN_ERRORS.userNotFound }, { status: 404 })
     }
 
     console.log(`${TAG} start`, { id, email: row.email, rol: row.rol, hasAuthId: !!row.auth_id })
@@ -77,20 +72,14 @@ export async function POST(req: NextRequest) {
     // Block deletion of superadmin rows as a guardrail.
     if (row.rol === 'superadmin' || row.rol === 'admin') {
       console.warn(`${TAG} blocked admin-tier delete`, { id, email: row.email, rol: row.rol })
-      return NextResponse.json(
-        { error: 'A user with the admin/superadmin role cannot be deleted. Change their role first.' },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: ADMIN_ERRORS.adminTierDelete }, { status: 400 })
     }
 
     // Guard: nunca borrar al último admin (defensa en profundidad; el bloqueo
     // admin-tier de arriba ya lo cubre, pero esto sobrevive si ese cambia).
     const { data: all } = await db.from('usuarios').select('id,rol')
     if (isLastAdmin(all || [], id)) {
-      return NextResponse.json(
-        { error: 'The last admin cannot be deleted.' },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: ADMIN_ERRORS.lastAdminDelete }, { status: 400 })
     }
 
     // 2) Public.usuarios delete PRIMERO, con service_role (bypasea RLS).
@@ -114,7 +103,7 @@ export async function POST(req: NextRequest) {
         const { taskCount, requestedCount } = await countUserTasks(db, id)
         return NextResponse.json(
           {
-            error: 'The user has related records (tasks, notifications or others). Use "Reassign and delete" to transfer their tasks to another member, or "Deactivate" to keep the history intact.',
+            error: ADMIN_ERRORS.relatedRecords,
             dbErrorCode,
             blockedBy: 'foreign_key',
             taskCount,
@@ -126,7 +115,7 @@ export async function POST(req: NextRequest) {
         )
       }
       return NextResponse.json(
-        { error: `DB delete failed: ${dbError.message}`, dbErrorCode, authDeleted: false, authNote: null },
+        { error: ADMIN_ERRORS.dbDeleteFailed(dbError.message), dbErrorCode, authDeleted: false, authNote: null },
         { status: 500 },
       )
     }
@@ -134,7 +123,7 @@ export async function POST(req: NextRequest) {
     if (!count) {
       console.warn(`${TAG} 0 rows affected — auth INTACTO`, { id })
       return NextResponse.json(
-        { error: 'The row was not deleted (0 rows affected). It may no longer exist.', authDeleted: false, authNote: null },
+        { error: ADMIN_ERRORS.rowNotDeleted, authDeleted: false, authNote: null },
         { status: 404 },
       )
     }
@@ -160,7 +149,7 @@ export async function POST(req: NextRequest) {
       // se registra para que el admin sepa que quedó una cuenta huérfana.
       const msg = authErr.message || ''
       if (!/not.?found/i.test(msg)) {
-        authNote = `auth.users delete (id=${uid}) reported: ${msg}`
+        authNote = ADMIN_ERRORS.authNote(uid, msg)
       }
     }
 
@@ -175,9 +164,6 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : ''
     console.error(`${TAG} unexpected`, { message })
-    return NextResponse.json(
-      { error: message || 'Unexpected error while deleting the user.' },
-      { status: 500 },
-    )
+    return NextResponse.json({ error: message || ADMIN_ERRORS.unexpectedDelete }, { status: 500 })
   }
 }

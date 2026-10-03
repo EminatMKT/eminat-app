@@ -171,7 +171,7 @@ test('C12 · guard de último admin bloquea degradarlo', async ({ page }) => {
   // ahora admin2 es el único → degradarlo debe fallar
   const blocked = await page.request.post('/api/admin/update-user', { data: { id: admin2Id, rol: 'sin_asignar' } })
   expect(blocked.status()).toBe(400)
-  expect((await blocked.json()).error).toContain('último admin')
+  expect((await blocked.json()).error).toContain('last admin')
 })
 
 // C13 (reassign-and-delete con dependencias) — no automatizado: requiere sembrar
