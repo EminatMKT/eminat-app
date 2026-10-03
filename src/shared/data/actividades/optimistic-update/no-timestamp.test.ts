@@ -3,13 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({ from: vi.fn() }))
 vi.mock('@/shared/db/supabase', () => ({ supabase: { from: mocks.from } }))
 
-import { update } from '../actividades'
+import optimisticUpdate from '.'
 
-describe('actividadesRepo missing optimistic timestamp', () => {
+describe('optimisticUpdate missing timestamp', () => {
   beforeEach(() => mocks.from.mockReset())
 
   it('does not write when expectedUpdatedAt is undefined', async () => {
-    const result = await update('act-1', { titulo: 'Local change' }, undefined)
+    const result = await optimisticUpdate('act-1', { titulo: 'Local change' }, undefined)
     const expected = {
       data: null,
       error: null,

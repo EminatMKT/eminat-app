@@ -7,7 +7,7 @@
 // "Executes" means being ANY of the task's responsibles: a task with A and B is on A's sheet and
 // on B's sheet (spec 2026-10-01, "Payroll").
 import { claveMes } from '@/features/tasks/utils/periodo'
-import responsables from '@/features/tasks/utils/responsables'
+import { esResponsable } from '@/features/tasks/utils/responsables'
 import type { ResponsiblesInput } from '@/features/tasks/types'
 
 export type ActividadRef = ResponsiblesInput & {
@@ -20,7 +20,7 @@ export type ActividadRef = ResponsiblesInput & {
 // 2027 el reporte de Enero habría incluido enero de 2026. El año va en la clave.
 export function esActividadDeMiembro(act: ActividadRef, idMiembro: string, mes?: string): boolean {
   if (!idMiembro) return false
-  const suya = responsables.esResponsable(act, idMiembro) || act.solicitante_id === idMiembro
+  const suya = esResponsable(act, idMiembro) || act.solicitante_id === idMiembro
   if (!suya) return false
   return mes ? claveMes(act.fecha_inicio) === mes : true
 }
@@ -46,7 +46,7 @@ export type ActividadProduccion = ActividadRef & {
 // Several responsibles do NOT split the figures: each one gets the task's full hours and days
 // (spec 2026-10-01, "Payroll"). "Paid once" above is about the requester, who still earns nothing.
 export function totalesProduccion(acts: ActividadProduccion[], idMiembro: string): { horas: number; dias: number } {
-  const executed = acts.filter(a => responsables.esResponsable(a, idMiembro))
+  const executed = acts.filter(a => esResponsable(a, idMiembro))
   return {
     horas: Math.round(executed.reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10,
     dias: executed.reduce((acc, a) => acc + (Number(a.dias_produccion) || 0), 0),

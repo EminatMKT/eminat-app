@@ -6,6 +6,11 @@ import type { Actividad, ActividadResponsable } from '@/shared/context/loadAppDa
 
 export type ResponsiblesUser = Partial<Record<'apellido' | 'nombre' | 'name' | 'email', string | null>> & Record<'id', string>
 export type ResponsiblesInput = Partial<Record<'responsables', ActividadResponsable[] | null>>
+/** One name for who executes a task, like `Ana Bravo +2`; `lider` says whether to draw the crown. */
+export type CompactResponsibleLabel = {
+  label: string
+  lider: boolean
+}
 
 // Resumen de horas/tareas por miembro (lo computa useTasksData.resumenHoras;
 // lo consume HoursSummaryCard).

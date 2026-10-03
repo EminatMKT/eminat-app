@@ -9,20 +9,20 @@ const acts = {
   ajena:     { responsables: owners('u9'), solicitante_id: 'u8', fecha_inicio: '2026-01-15' },
   otroMes:   { responsables: owners('u1'), solicitante_id: null, fecha_inicio: '2026-03-02' },
   sinMes:    { responsables: owners('u1'), solicitante_id: null, fecha_inicio: null },
-  // El bug que motivó todo esto: el MISMO mes, un año después.
+  // The bug that started all this: the SAME month, one year later.
   otroAnio:  { responsables: owners('u1'), solicitante_id: null, fecha_inicio: '2027-01-15' },
   // Several responsibles: the task belongs to the sheet of each one (spec 2026-10-01, "Payroll").
   compartida: { responsables: owners('u1', 'u2'), solicitante_id: 'u9', fecha_inicio: '2026-01-15' },
 }
 
 describe('esActividadDeMiembro', () => {
-  it('cuenta las que el miembro ejecuta', () => {
+  it('counts the tasks the member executes', () => {
     expect(esActividadDeMiembro(acts.suya, 'u1')).toBe(true)
   })
-  it('cuenta las que el miembro solicitó', () => {
+  it('counts the tasks the member requested', () => {
     expect(esActividadDeMiembro(acts.pedida, 'u1')).toBe(true)
   })
-  it('no cuenta las que no son suyas por ningún lado', () => {
+  it('does not count tasks that are theirs by no side', () => {
     expect(esActividadDeMiembro(acts.ajena, 'u1')).toBe(false)
   })
   it('a task with responsibles A and B is on A sheet and on B sheet', () => {
@@ -38,28 +38,28 @@ describe('esActividadDeMiembro', () => {
     expect(esActividadDeMiembro(nobody, 'u9')).toBe(true)
     expect(esActividadDeMiembro(nobody, 'u1')).toBe(false)
   })
-  it('sin mes no filtra por mes', () => {
+  it('without a month it does not filter by month', () => {
     expect(esActividadDeMiembro(acts.otroMes, 'u1')).toBe(true)
     expect(esActividadDeMiembro(acts.sinMes, 'u1')).toBe(true)
   })
-  it('con mes exige que coincida, aunque la actividad sea suya', () => {
+  it('with a month it must match, even when the task is theirs', () => {
     expect(esActividadDeMiembro(acts.suya, 'u1', '2026-01')).toBe(true)
     expect(esActividadDeMiembro(acts.otroMes, 'u1', '2026-01')).toBe(false)
   })
-  it('con mes también aplica a las solicitadas', () => {
+  it('the month applies to requested tasks too', () => {
     expect(esActividadDeMiembro(acts.pedida, 'u1', '2026-01')).toBe(true)
     expect(esActividadDeMiembro(acts.pedida, 'u1', '2026-03')).toBe(false)
   })
-  it('un id vacío no matchea nada, ni siquiera FK nulas', () => {
+  it('an empty id matches nothing, not even null FKs', () => {
     expect(esActividadDeMiembro({ responsables: null, solicitante_id: null }, '')).toBe(false)
   })
-  it('el reporte de un mes NO incluye ese mes de otro año', () => {
-    // Éste es el bug: con `mes = 'Enero'` guardado como texto, esta actividad de 2027 entraba
-    // en el reporte de enero de 2026 y las horas se pagaban dos veces.
+  it('the report of a month does NOT include that month of another year', () => {
+    // This is the bug: with `mes = 'Enero'` stored as text, this 2027 task entered the January
+    // 2026 report and its hours were paid twice.
     expect(esActividadDeMiembro(acts.otroAnio, 'u1', '2026-01')).toBe(false)
     expect(esActividadDeMiembro(acts.otroAnio, 'u1', '2027-01')).toBe(true)
   })
-  it('el día no importa: el período es el mes', () => {
+  it('the day does not matter: the period is the month', () => {
     expect(esActividadDeMiembro({ responsables: owners('u1'), fecha_inicio: '2026-01-31' }, 'u1', '2026-01')).toBe(true)
   })
 })

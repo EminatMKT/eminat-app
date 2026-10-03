@@ -5,9 +5,7 @@
 // lleva test (ver rules/codigo.md).
 import { ESTADO } from '@/shared/constants/domain'
 import type { Actividad } from '@/features/tasks/types'
-import responsables from '@/features/tasks/utils/responsables'
-
-const { esResponsable } = responsables
+import { esResponsable } from '@/features/tasks/utils/responsables'
 
 export const HORAS_SEMANALES = 40
 

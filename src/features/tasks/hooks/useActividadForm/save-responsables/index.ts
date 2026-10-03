@@ -1,5 +1,5 @@
 import { actividadesRepo, notificacionesRepo } from '@/shared/data'
-import responsablesForm from '../responsables'
+import { newlyAddedResponsableIds } from '../responsables'
 import type { ActividadResponsable } from '@/features/tasks/types'
 
 /** `notice` is the notification's title and body, already translated by the caller. */
@@ -19,7 +19,7 @@ export default async function saveResponsables(input: SaveResponsablesInput): Pr
   const saved = await actividadesRepo.setResponsables(actividadId, next)
   if (saved.error) return saved.error.message
 
-  const recipients = responsablesForm.newlyAddedResponsableIds(previous, next, actorId)
+  const recipients = newlyAddedResponsableIds(previous, next, actorId)
   if (recipients.length === 0) return null
 
   const rows = recipients.map(usuarioId => {

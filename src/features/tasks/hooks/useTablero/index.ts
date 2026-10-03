@@ -7,9 +7,7 @@ import { useT } from '@/shared/i18n'
 import { applyFilters, monthRange, RANGE_SEP } from '@/shared/utils'
 import { claveMes, periodoLargo } from '@/features/tasks/utils/periodo'
 import { isExcludedFromStratix360 } from '@/features/tasks/team'
-import responsables from '@/features/tasks/utils/responsables'
-
-const { esResponsable } = responsables
+import { esResponsable } from '@/features/tasks/utils/responsables'
 
 // centinela-exime: archivo-extenso@2 — son 20 derivaciones del MISMO conjunto filtrado
 // (`actsFiltradas`): partirlas obligaría a recalcular el filtro en cada pedazo o a pasarlo

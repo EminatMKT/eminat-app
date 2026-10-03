@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import responsibleNames from './label'
+import responsibleNames from '.'
 
 const names = { u1: 'Zoe', u2: 'Ana', u3: 'Bruno' }
 const owners = (...ids: string[]) => ids.map(usuario_id => ({ usuario_id, es_lider: false }))

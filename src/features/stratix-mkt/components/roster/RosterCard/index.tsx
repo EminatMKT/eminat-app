@@ -4,10 +4,8 @@ import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { ESTADO } from '@/shared/constants/domain'
 import type { Usuario } from '@/shared/context/loadAppData'
-import responsables from '@/features/tasks/utils/responsables'
+import { esResponsable } from '@/features/tasks/utils/responsables'
 import s from './index.module.css'
-
-const { esResponsable } = responsables
 
 interface UsuarioCargo { cargos?: { codigo: string; nombre: string } | null }
 // Campos canónicos de `Usuario` (Pick) + `auth_id` y el embed N:N `usuario_cargos`,

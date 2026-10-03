@@ -1,8 +1,7 @@
 import { ESTADO } from '@/shared/constants/domain'
 import { periodoLargo } from '@/features/tasks/utils/periodo'
-import responsables from '@/features/tasks/utils/responsables'
-import usersFromNames from '@/features/tasks/utils/responsables/names'
-import type { Actividad } from '@/features/tasks/types'
+import { etiquetaResponsablesCompacta, usersFromNames } from '@/features/tasks/utils/responsables'
+import type { Actividad, CompactResponsibleLabel } from '@/features/tasks/types'
 
 const EMPTY_LABEL = '—'
 
@@ -13,7 +12,7 @@ export type DatosTarjeta = {
   /** El período de imputación, corto: "ago 2026". Vacío si la tarea no tiene fecha. */
   periodo: string
   /** Leader (or first alphabetically) plus how many more: `Ana Bravo +2`, or `—`. */
-  responsable: { label: string; lider: boolean }
+  responsable: CompactResponsibleLabel
 }
 
 // Lo que la tarjeta del Kanban muestra, decidido acá y no en el JSX: "vencida" es una regla de
@@ -32,7 +31,7 @@ export function datosTarjeta(a: Actividad, namesById: Record<string, string>, in
   // Vacío y no '—' cuando falta: acá el período va detrás de un separador que también desaparece,
   // así que el hueco lo decide el JSX. En la ficha, donde el campo tiene rótulo, sí va el guion.
   const periodo = a.fecha_inicio ? periodoLargo(a.fecha_inicio, intlLocale, 'short') : ''
-  const responsable = responsables.etiquetaResponsablesCompacta(a, usersFromNames(namesById))
+  const responsable = etiquetaResponsablesCompacta(a, usersFromNames(namesById))
   const initial = responsable.label === EMPTY_LABEL ? '?' : responsable.label[0]
   const datos = { inicial: initial, entrega, vencida, periodo, responsable }
   return datos

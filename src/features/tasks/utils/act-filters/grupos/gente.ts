@@ -1,11 +1,9 @@
 import { distinctValues, type FilterDef } from '@/shared/utils'
 import type { I18nKey } from '@/shared/i18n'
 import type { Actividad } from '@/features/tasks/types'
-import responsables from '@/features/tasks/utils/responsables'
+import { esResponsable } from '@/features/tasks/utils/responsables'
 import { departamentoPorActividad } from '@/features/tasks/utils/departamento'
 import type { Deps } from '../tipos'
-
-const { esResponsable } = responsables
 
 type PersonValue = string | string[] | undefined
 

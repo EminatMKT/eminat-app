@@ -24,6 +24,7 @@ const TABLE_COLUMNS = {
     ...activatable,
     authId: 'auth_id',
     rol: 'rol',
+    email: 'email',
   },
   roles: {
     ...created,

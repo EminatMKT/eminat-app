@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import usersFromNames from './names'
+import usersFromNames from '.'
 
 describe('usersFromNames', () => {
   it('turns the id -> name map into user rows the ordering helpers can read', () => {

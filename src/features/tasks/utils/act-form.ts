@@ -11,9 +11,10 @@ const str = (v: unknown) => (v === null || v === undefined ? '' : String(v))
 const responsables = (rows: ActividadResponsable[] | null | undefined): ActividadResponsable[] =>
   rows?.map(r => ({ usuario_id: r.usuario_id, es_lider: r.es_lider })) ?? []
 
+const ROW_SEPARATOR = '|'
+const rowSignature = (r: ActividadResponsable) => `${r.usuario_id}:${r.es_lider ? '1' : '0'}`
 const mismosResponsables = (a: ActividadResponsable[], b: ActividadResponsable[]) => {
-  const firma = (rows: ActividadResponsable[]) =>
-    rows.map(r => `${r.usuario_id}:${r.es_lider ? '1' : '0'}`).sort().join('|')
+  const firma = (rows: ActividadResponsable[]) => rows.map(rowSignature).sort().join(ROW_SEPARATOR)
   return firma(a) === firma(b)
 }
 

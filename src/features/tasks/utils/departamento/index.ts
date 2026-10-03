@@ -1,8 +1,6 @@
 import type { Usuario, OrgRow } from '@/shared/context/loadAppData'
 import type { Actividad } from '@/features/tasks/types'
-import responsables from '@/features/tasks/utils/responsables'
-
-const { esResponsable } = responsables
+import { esResponsable } from '@/features/tasks/utils/responsables'
 
 // De qué departamento es cada persona, navegando `usuarios.equipo_id → equipos.departamento_id`.
 //
