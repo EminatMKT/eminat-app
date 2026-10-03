@@ -149,15 +149,14 @@ BEGIN
       USING ERRCODE = '22023';
   END IF;
 
-  UPDATE public.actividades
-     SET updated_at = now()
-   WHERE id = p_actividad_id
-   RETURNING id INTO touched;
-
+  -- Lock the task first: a second caller waits here, then replaces the whole set after us.
+  SELECT id INTO touched FROM public.actividades WHERE id = p_actividad_id FOR UPDATE;
   IF touched IS NULL THEN
     RAISE EXCEPTION 'actividad_no_visible_o_no_editable: %', p_actividad_id
       USING ERRCODE = '42501';
   END IF;
+
+  UPDATE public.actividades SET updated_at = now() WHERE id = p_actividad_id;
 
   DELETE FROM public.actividad_responsables
    WHERE actividad_id = p_actividad_id;
@@ -185,7 +184,8 @@ BEGIN
       USING ERRCODE = '42501';
   END IF;
 
-  SELECT nombre_display INTO v_old_name FROM public.usuarios WHERE id = p_old_id;
+  -- Lock the user being deleted before reading their tasks: a concurrent assignment waits on the FK.
+  SELECT nombre_display INTO v_old_name FROM public.usuarios WHERE id = p_old_id FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Usuario a borrar % no existe', p_old_id;
   END IF;
