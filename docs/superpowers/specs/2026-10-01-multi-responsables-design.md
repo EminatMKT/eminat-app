@@ -70,6 +70,27 @@ inherits the leadership.
   same assignable list as today (`deriveMiembrosAsignables`). Each checked row has a crown
   button; clicking sets that person as leader and clears any other; clicking the active one
   unsets it. Unchecking the leader also clears the leadership.
+- **Picker UX revision (2026-10-02, from a Codex review of the shipped checklist):** the first
+  version works but is hard to use with a real roster. It shares a `1fr 1fr` row with the brand
+  select inside a 40rem modal, so the search (fixed 13.75rem) and the row actions are cramped; the
+  list has no bounded scroll, keeps checked people mixed into the roster, and only a faint
+  background marks them; the crown's pressed state is easy to miss and its label ("Task leader:
+  {name}") names the role, not the action; one message ("Nobody matches that search") covers
+  both an empty roster and a search with no results; and the grid never stacks on narrow
+  screens. The revision:
+  1. **Full width.** Brand stays in the two-column row; responsibles take a full-width row below
+     it. On narrow screens the row stacks to one column. The search grows to the row's width for
+     this picker only — `ListToolbar` keeps its fixed width elsewhere (its comment explains why).
+  2. **Selected summary.** Above the list, the checked people as removable chips, leader first
+     with the crown and a visible "Leader" text badge, and a count ("3 selected").
+  3. **Bounded scroll.** The list scrolls inside a max-height, so the brand, the search and the
+     modal footer stay in view.
+  4. **Leader affordance.** Helper text under the label ("Optional: pick one leader"). The crown
+     button's label names the action: "Make {name} leader" / "Remove {name} as leader"; the
+     pressed state adds the text badge, not only a color change.
+  5. **Empty states.** "No one can be assigned yet" when the roster is empty; "Nobody matches
+     '{query}'" with a clear-search button when a search filters everything out. The visible
+     "Responsibles" label is wired to the search input.
 - **Compact displays** (Kanban card, Gantt bar, table row, recent activity):
   `[Crown] Ana Bravo +4` with a leader; `Ana Bravo +4` (no crown) without; `—` with nobody.
 - **Detail view:** all names; the leader carries the crown.

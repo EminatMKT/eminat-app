@@ -616,6 +616,44 @@ pnpm e2e e2e/tasks-multi-responsables.spec.ts
 ```
 Expected: PASS locally.
 
+### Task 11b: Responsibles picker UX revision
+
+Added 2026-10-02 after a Codex review of the shipped checklist. Design: the "Picker UX revision"
+bullet in `docs/superpowers/specs/2026-10-01-multi-responsables-design.md` §2. Runs before Task
+12 so the full gates cover it. Leader semantics do not change (`responsables.ts` helpers stay).
+
+**Files:**
+- Modify: `src/features/tasks/components/modals/ActivityAsignacion/index.tsx`, `index.module.css` (full-width row, stacks on narrow screens).
+- Modify: `src/features/tasks/components/modals/ActivityAsignacion/ResponsablesChecklist/index.tsx`; create its `index.module.css` (bounded scroll, summary, helper text, empty states).
+- Create: a selected-summary component next to the checklist (chips; leader first with crown + "Leader" badge; count).
+- Modify: `src/shared/components/ui/ChecklistChoice/` (stronger pressed state; text badge slot) — shared, so keep the change additive.
+- Modify: `src/shared/components/ui/ListToolbar/` only through an opt-in (prop or class) for a fluid search; the fixed width stays the default.
+- Modify: `src/shared/i18n/locales/{es,en}.json` — `tasks.responsibles.*`: hint, selected count, leader badge text, make/remove leader action labels, empty-roster and no-results (with `{query}`) messages, clear search.
+- Modify: `e2e/tasks-multi-responsables.spec.ts` if the crown's accessible name key changes.
+
+- [ ] **Step 1: Failing tests first**
+
+Component tests (Vitest + Testing Library, like `ResponsablesChecklist/index.test.tsx`):
+1. checked people appear in the summary, leader first, with the count;
+2. removing a chip unchecks that person (and clears leadership if it was the leader);
+3. the crown's accessible name is "Make {name} leader" when off and "Remove {name} as leader" when on;
+4. empty roster shows the empty-roster message; a non-matching query shows the no-results message with a working clear-search button;
+5. the visible label is associated with the search input.
+
+Run: `pnpm vitest run src/features/tasks/components/modals/ActivityAsignacion` — expected FAIL.
+
+- [ ] **Step 2: Implement** the five points of the spec, smallest diff per point; reuse `ResponsiblesCompact`'s crown pattern for the summary.
+
+- [ ] **Step 3: Verify**
+
+Run:
+```bash
+pnpm vitest run src/features/tasks src/shared/components/ui
+pnpm typecheck
+pnpm e2e e2e/tasks-multi-responsables.spec.ts
+```
+Expected: PASS. Then check by eye in the browser at desktop width and at ~375px (the stacked layout, the scroll area, the summary chips).
+
 ### Task 12: Full gates and Centinela sweep
 
 **Files:**
