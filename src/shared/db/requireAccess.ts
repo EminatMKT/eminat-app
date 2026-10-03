@@ -2,6 +2,7 @@ import { cookies } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
 import { clientEnv } from '@/shared/db/env.client'
 import type { ModuleSlug } from '@/shared/auth/permissions'
+import { ACCESS_ERRORS } from '@/shared/errors'
 
 // Guards de las rutas API que NO son de admin.
 //
@@ -21,7 +22,7 @@ export function ssrClient() {
 
 export async function requireSession(): Promise<Access> {
   const { data: { user } } = await ssrClient().auth.getUser()
-  if (!user) return { ok: false, status: 401, error: 'No autenticado.' }
+  if (!user) return { ok: false, status: 401, error: ACCESS_ERRORS.notAuthenticated }
   return { ok: true, userId: user.id }
 }
 
@@ -31,8 +32,8 @@ export async function requireSession(): Promise<Access> {
 export async function requireModule(slug: ModuleSlug): Promise<Access> {
   const ssr = ssrClient()
   const { data: { user } } = await ssr.auth.getUser()
-  if (!user) return { ok: false, status: 401, error: 'No autenticado.' }
+  if (!user) return { ok: false, status: 401, error: ACCESS_ERRORS.notAuthenticated }
   const { data: allowed } = await ssr.rpc('has_module', { p_slug: slug })
-  if (!allowed) return { ok: false, status: 403, error: `Requiere el módulo ${slug}.` }
+  if (!allowed) return { ok: false, status: 403, error: ACCESS_ERRORS.moduleRequired(slug) }
   return { ok: true, userId: user.id }
 }

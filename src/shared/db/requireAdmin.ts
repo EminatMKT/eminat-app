@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { clientEnv } from '@/shared/db/env.client'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { ADMIN_ROLE, normalizeRole } from '@/shared/auth/permissions'
+import { ACCESS_ERRORS } from '@/shared/errors'
 
 // Lee la sesión del caller (cookies SSR) y verifica que su rol en DB sea admin.
 // Las rutas admin lo usan para cerrar el acceso server-side antes de mutar nada.
@@ -18,8 +19,9 @@ export async function requireAdmin(): Promise<AdminAuth> {
     cookies: { get: (n) => cookieStore.get(n)?.value },
   })
   const { data: { user } } = await ssr.auth.getUser()
-  if (!user) return { ok: false, status: 401, error: 'No autenticado.' }
+  if (!user) return { ok: false, status: 401, error: ACCESS_ERRORS.notAuthenticated }
   const { data: row } = await supabaseAdmin().from('usuarios').select('id,rol').eq('auth_id', user.id).maybeSingle()
-  if (!row || normalizeRole(row.rol) !== ADMIN_ROLE) return { ok: false, status: 403, error: 'Requiere rol admin.' }
+  const isAdmin = row && normalizeRole(row.rol) === ADMIN_ROLE
+  if (!isAdmin) return { ok: false, status: 403, error: ACCESS_ERRORS.adminRequired }
   return { ok: true, userId: row.id }
 }

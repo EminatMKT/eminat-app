@@ -6,9 +6,8 @@ const USER_ID = 'u1'
 const NAME = 'Ana Pérez'
 const SPANISH_MARKS = /[áéíóúñ¿¡]|\b(?:requerido|usuario|correo|contraseña)\b/i
 
-const messages = Object.values(ADMIN_ERRORS).map(entry =>
-  typeof entry === 'function' ? entry(DETAIL, USER_ID) : entry,
-)
+const isText = (entry: unknown): entry is string => typeof entry === 'string'
+const messages = Object.values(ADMIN_ERRORS).filter(isText)
 
 describe('ADMIN_ERRORS', () => {
   it.each(messages)('"%s" is written in English', message => {
@@ -19,6 +18,8 @@ describe('ADMIN_ERRORS', () => {
     expect(ADMIN_ERRORS.lookupFailed(DETAIL)).toContain(DETAIL)
     expect(ADMIN_ERRORS.authNote(USER_ID, DETAIL)).toContain(USER_ID)
     expect(ADMIN_ERRORS.emailTaken(NAME)).toContain(NAME)
+    expect(ADMIN_ERRORS.missingField(DETAIL)).toContain(DETAIL)
+    expect(ADMIN_ERRORS.inUse(3)).toContain('3')
   })
 
   it('names the last-admin guard the e2e suite checks', () => {

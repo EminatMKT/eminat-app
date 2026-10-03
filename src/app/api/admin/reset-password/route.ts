@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { requireAdmin } from '@/shared/db/requireAdmin'
-import ADMIN_ERRORS from '../_shared/admin-errors'
+import { ADMIN_ERRORS } from '@/shared/errors'
 
 /**
  * Server-side admin endpoint — rotates a user's auth password to a new

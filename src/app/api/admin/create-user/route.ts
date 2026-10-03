@@ -7,7 +7,7 @@ import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { requireAdmin } from '@/shared/db/requireAdmin'
 import { syncUsuarioCargos, cargoNames } from '@/shared/db/usuarioCargos'
 import { MAIL_FROM, MARKETING_COORDINATOR_EMAIL, MARKETING_INBOX_EMAIL } from '@/shared/constants/contacts'
-import ADMIN_ERRORS from '../_shared/admin-errors'
+import { ADMIN_ERRORS } from '@/shared/errors'
 
 /**
  * Server-side admin endpoint — creates an Auth user AND its companion

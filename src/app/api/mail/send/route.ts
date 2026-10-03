@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { serverEnv } from '@/shared/db/env.server'
 import { requireModule } from '@/shared/db/requireAccess'
+import { MAIL_ERRORS } from '@/shared/errors'
 
 // Perezoso a propósito: `new Resend(undefined)` tira "Missing API key", y a
 // nivel de módulo eso rompe la ruta entera al importarla. Construyéndolo acá
@@ -10,6 +11,9 @@ function getResend() {
   const { RESEND_API_KEY } = serverEnv
   return RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null
 }
+
+const NOT_CONFIGURED = { error: MAIL_ERRORS.notConfigured }
+const MISSING_FIELDS = { error: MAIL_ERRORS.missingFields }
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,15 +24,11 @@ export async function POST(req: NextRequest) {
     if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
 
     const resend = getResend()
-    if (!resend) {
-      return NextResponse.json({ error: 'Envío de correo no configurado: falta RESEND_API_KEY.' }, { status: 503 })
-    }
+    if (!resend) return NextResponse.json(NOT_CONFIGURED, { status: 503 })
     const body = await req.json()
     const { to, subject, html, from } = body
 
-    if (!to || !subject || !html) {
-      return NextResponse.json({ error: 'Missing required fields: to, subject, html' }, { status: 400 })
-    }
+    if (!to || !subject || !html) return NextResponse.json(MISSING_FIELDS, { status: 400 })
 
     const recipients = Array.isArray(to) ? to : [to]
 
@@ -58,6 +58,6 @@ export async function POST(req: NextRequest) {
     })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : ''
-    return NextResponse.json({ error: message || 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: message || MAIL_ERRORS.unexpected }, { status: 500 })
   }
 }

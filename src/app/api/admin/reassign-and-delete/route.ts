@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { requireAdmin } from '@/shared/db/requireAdmin'
 import { isLastAdmin } from '@/shared/auth/roleValidation'
-import ADMIN_ERRORS from '../_shared/admin-errors'
+import { ADMIN_ERRORS } from '@/shared/errors'
 
 /**
  * Server-side admin endpoint — reassign all of a user's actividades to a

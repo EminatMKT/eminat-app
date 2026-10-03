@@ -10,6 +10,9 @@ const responsibleFields = {
   responsable_ids: z.array(uuid).max(50).optional(),
   lider_id: uuid.nullable().optional(),
 }
+const NO_CHANGES_ISSUE = { message: 'Send at least one field to update.' }
+// `expected_updated_at` is required, so any key beyond it is a change.
+const hasChanges = (input: object) => Object.keys(input).length > 1
 
 export const createMeetTaskSchema = z.object({
   topic_id: uuid,
@@ -28,10 +31,7 @@ export const updateMeetTaskSchema = z.object({
   ...responsibleFields,
   fecha_entrega: date.nullable().optional(),
   empresa: z.string().trim().min(1).max(100).optional(),
-}).strict().refine(
-  ({ expected_updated_at: _expected, ...changes }) => Object.keys(changes).length > 0,
-  { message: 'Send at least one field to update.' },
-).superRefine(validateResponsibles.update)
+}).strict().refine(hasChanges, NO_CHANGES_ISSUE).superRefine(validateResponsibles.update)
 
 export type CreateMeetTaskInput = z.infer<typeof createMeetTaskSchema>
 export type UpdateMeetTaskInput = z.infer<typeof updateMeetTaskSchema>

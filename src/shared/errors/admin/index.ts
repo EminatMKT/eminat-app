@@ -1,5 +1,10 @@
-/** Every error text the user-admin routes answer with; functions take the detail they interpolate. */
+/** Every error text the admin routes answer with; functions take the detail they interpolate. */
 const ADMIN_ERRORS = {
+  unknownCatalog: 'Unknown catalog.',
+  nameRequired: 'The name is required.',
+  inUseCheckFailed: 'Could not check whether it is in use. Try again.',
+  missingField: (field: string) => `A required field is missing: ${field}.`,
+  inUse: (count: number) => `In use by ${count} record(s). Reassign them before deleting.`,
   idRequired: 'id is required.',
   oldIdRequired: 'oldId is required.',
   userIdRequired: 'userId is required.',
