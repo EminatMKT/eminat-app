@@ -4,7 +4,12 @@ import type { RoleRow } from '@/shared/auth/permissions'
 
 const EXISTING: RoleRow[] = [{ key: 'admin', label: 'Administrador', is_system: true }]
 
+const MISSING_LABEL = undefined
+
 describe('validateNewRole', () => {
+  it('a missing label (a body without one) is "name required", not a crash', () => {
+    expect(validateNewRole(MISSING_LABEL, EXISTING).ok).toBe(false)
+  })
   it('ok derives the key from the label', () => {
     const r = validateNewRole('Soporte', EXISTING)
     expect(r).toEqual({ ok: true, key: 'soporte' })

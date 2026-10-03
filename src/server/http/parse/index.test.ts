@@ -3,6 +3,11 @@ import parse from './index'
 import type { Validate, Validation } from '../types'
 
 const URL = 'http://localhost/api/x'
+const VALID_BODY = '{"name":"Ana"}'
+const INVALID_BODY = '{}'
+const BROKEN_BODY = 'not json'
+const ACCEPTED = { ok: true, data: { name: 'Ana' } }
+const REJECTED_BODY = { ok: false, error: 'nameMissing' }
 const post = (body: string) => {
   const init = { method: 'POST', body }
   return new Request(URL, init)
@@ -16,12 +21,12 @@ const nameOnly: Validate<{ name: string }> = (body) => {
 
 describe('parse', () => {
   it('a body the contract accepts comes back as data', async () => {
-    expect(await parse(post('{"name":"Ana"}'), nameOnly)).toEqual({ ok: true, data: { name: 'Ana' } })
+    expect(await parse(post(VALID_BODY), nameOnly)).toEqual(ACCEPTED)
   })
   it('a rejected body answers the first issue message as the error key', async () => {
-    expect(await parse(post('{}'), nameOnly)).toEqual({ ok: false, error: 'nameMissing' })
+    expect(await parse(post(INVALID_BODY), nameOnly)).toEqual(REJECTED_BODY)
   })
   it('a body that is not JSON throws, so the handler answers it as unexpected', async () => {
-    await expect(parse(post('not json'), nameOnly)).rejects.toThrow()
+    await expect(parse(post(BROKEN_BODY), nameOnly)).rejects.toThrow()
   })
 })

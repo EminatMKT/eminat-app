@@ -8,8 +8,9 @@ const ALL_ROLES_KEY = 'todos'
 const RESERVED_ROLE_KEYS = new Set([ADMIN_ROLE, ALL_ROLES_KEY])
 const SUFFIX_SEPARATOR = '_'
 
-export default function validateNewRole(label: string, existing: RoleRow[]): RoleResult {
-  const trimmed = label.trim()
+export default function validateNewRole(label: unknown, existing: RoleRow[]): RoleResult {
+  // The label arrives from a request body: anything that isn't text counts as missing.
+  const trimmed = typeof label === 'string' ? label.trim() : ''
   if (!trimmed) return { ok: false, error: ROLE_ERRORS.nameRequired }
   if (existing.some((r) => r.label.toLowerCase() === trimmed.toLowerCase()))
     return { ok: false, error: ROLE_ERRORS.nameTaken }

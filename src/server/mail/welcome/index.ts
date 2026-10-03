@@ -1,5 +1,5 @@
 import { Resend } from 'resend'
-import { serverEnv, clientEnv } from '@/shared/db/server'
+import { serverEnv, clientEnv } from '@/server/db'
 import { ADMIN_ERRORS } from '@/shared/errors'
 import { MAIL_FROM, MARKETING_COORDINATOR_EMAIL } from '@/shared/constants/contacts'
 import WELCOME_COPY from './copy'

@@ -5,7 +5,7 @@ const fakes = vi.hoisted(() => ({
   env: { RESEND_API_KEY: 're_test', NEXT_PUBLIC_APP_ENV: 'production' },
   send: vi.fn(),
 }))
-vi.mock('@/shared/db/server', () => ({ serverEnv: fakes.env, clientEnv: fakes.env }))
+vi.mock('@/server/db', () => ({ serverEnv: fakes.env, clientEnv: fakes.env }))
 vi.mock('resend', () => ({ Resend: class { emails = { send: fakes.send } } }))
 
 import sendWelcomeEmail from './index'

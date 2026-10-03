@@ -2,44 +2,50 @@ import { useApp } from '@/shared/context/AppContext'
 import { usuariosRepo } from '@/shared/data'
 import { apiPost } from '@/shared/utils/api'
 import { useT } from '@/shared/i18n'
+import ADMIN_API from '@/shared/constants/admin-api'
 
-const UPDATE_USER_URL = '/api/admin/update-user'
+const UPDATE_USER_URL = ADMIN_API.updateUser
 const ERROR = 'error'
 const OK = 'ok'
 
 export default function useUserActions() {
   const { setAdminUsuarios, mostrarMensaje } = useApp()
   const { t } = useT()
+  const patchUser = (id: string, patch: object) => {
+    setAdminUsuarios(prev => prev.map(u => (u.id === id ? { ...u, ...patch } : u)))
+  }
 
-  async function cambiarRol(id: string, rol: string) {
-    const { res, result } = await apiPost<{ error?: string }>(UPDATE_USER_URL, { id, rol })
+  async function changeRole(id: string, rol: string) {
+    const change = { id, rol }
+    const { res, result } = await apiPost<{ error?: string }>(UPDATE_USER_URL, change)
     if (!res.ok) { mostrarMensaje(ERROR, result.error || t('admin.user.roleFailed')); return }
-    setAdminUsuarios(prev => prev.map(u => u.id === id ? { ...u, rol } : u))
+    patchUser(id, change)
     mostrarMensaje(OK, t('admin.user.roleUpdated'))
   }
 
-  async function toggleActivo(id: string, activo: boolean) {
-    // Ruteado por el endpoint admin server-side para usar service_role y no
-    // depender de lo que permita RLS al cliente. Surface de errores reales.
+  async function toggleActive(id: string, activo: boolean) {
+    const change = { id, activo: !activo }
     try {
-      const { res, result } = await apiPost<{ error?: string }>(UPDATE_USER_URL, { id, activo: !activo })
+      const { res, result } = await apiPost<{ error?: string }>(UPDATE_USER_URL, change)
       if (!res.ok) { mostrarMensaje(ERROR, result.error || t('admin.user.statusFailed')); return }
-      setAdminUsuarios(prev => prev.map(u => u.id === id ? { ...u, activo: !activo } : u))
+      patchUser(id, change)
       mostrarMensaje(OK, t(activo ? 'admin.user.deactivated' : 'admin.user.activated'))
     } catch (err: unknown) {
-      const detail = err instanceof Error ? err.message : ''
-      mostrarMensaje(ERROR, detail || t('admin.user.statusNetErr'))
+      mostrarMensaje(ERROR, (err instanceof Error && err.message) || t('admin.user.statusNetErr'))
     }
   }
 
-  async function validarUsuario(id: string) {
+  async function validateUser(id: string) {
+    const validated = { validado: true, activo: true }
     await usuariosRepo.validar(id)
-    setAdminUsuarios(prev => prev.map(u => u.id === id ? { ...u, validado: true, activo: true } : u))
+    patchUser(id, validated)
     mostrarMensaje(OK, t('admin.user.validated'))
   }
 
-  return { cambiarRol, toggleActivo, validarUsuario }
+  return { changeRole, toggleActive, validateUser }
 }
 
 // Per-row actions on the admin user list (role, activation, validation). Each one goes through
 // the server and, on success, patches `adminUsuarios` in place instead of reloading the list.
+// Activation goes through the admin endpoint (service_role) rather than straight to the table, so
+// it never depends on what RLS lets the client do, and the admin sees the real error.

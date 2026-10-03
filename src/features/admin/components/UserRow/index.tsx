@@ -33,7 +33,7 @@ function boldTerms(text: string, terms: string[]) {
 export default function UserRow({ user: u, onEdit, onReset, onDelete }: Props) {
   const { s2, border, t1, t2, t3, accent, roles, roleModuleMap, empresas, jornadas, vinculaciones } = useApp()
   const { t } = useT()
-  const { cambiarRol, toggleActivo, validarUsuario } = useUserActions()
+  const { changeRole, toggleActive, validateUser } = useUserActions()
   const isProtected = normalizeRole(u.rol) === ADMIN_ROLE
   const roleLabel = roles.find(r => r.key === u.rol)?.label || u.rol
   const nombre = `${u.nombre || ''} ${u.apellido || ''}`.trim()
@@ -75,7 +75,7 @@ export default function UserRow({ user: u, onEdit, onReset, onDelete }: Props) {
         <RowMenu label={t('admin.rowMenu', { name: nombre })} items={[
           { label: t('common.edit'), onClick: () => onEdit(u) },
           { label: t('admin.resetPwd'), onClick: () => onReset({ id: u.id, nombre: u.nombre || '', email: u.email || '' }) },
-          ...(!u.validado ? [{ label: t('admin.validate'), onClick: () => validarUsuario(u.id) }] : []),
+          ...(!u.validado ? [{ label: t('admin.validate'), onClick: () => validateUser(u.id) }] : []),
           ...(!isProtected ? [{ label: u.activo ? t('admin.deactivate') : t('admin.activate'), onClick: () => setConfirm({ kind: 'toggle' }) }] : []),
           ...(!isProtected ? [{ label: t('common.delete'), onClick: () => onDelete(u.id), danger: true }] : []),
         ]} />
@@ -102,7 +102,7 @@ export default function UserRow({ user: u, onEdit, onReset, onDelete }: Props) {
               )
             })()}
             confirmLabel={t('admin.confirm.assignBtn')}
-            onConfirm={async () => { await cambiarRol(u.id, confirm.value); setConfirm(null) }}
+            onConfirm={async () => { await changeRole(u.id, confirm.value); setConfirm(null) }}
             onClose={() => setConfirm(null)}
           />
         )}
@@ -112,7 +112,7 @@ export default function UserRow({ user: u, onEdit, onReset, onDelete }: Props) {
             message={boldTerms(t(u.activo ? 'admin.confirm.deactivateMsg' : 'admin.confirm.activateMsg', { name: nombre }), [nombre])}
             confirmLabel={u.activo ? t('admin.deactivate') : t('admin.activate')}
             destructive={!!u.activo}
-            onConfirm={async () => { await toggleActivo(u.id, !!u.activo); setConfirm(null) }}
+            onConfirm={async () => { await toggleActive(u.id, !!u.activo); setConfirm(null) }}
             onClose={() => setConfirm(null)}
           />
         )}

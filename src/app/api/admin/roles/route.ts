@@ -1,28 +1,33 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
+import { NextResponse } from 'next/server'
+import { supabaseAdmin } from '@/server/db'
 import requireAdmin from '@/shared/db/requireAdmin'
-import validateNewRole from '@/shared/auth/roleValidation/validateNewRole'
-import validateModuleSlugs from '@/shared/auth/roleValidation/validateModuleSlugs'
+import { validateModuleSlugs, validateNewRole } from '@/shared/auth/roleValidation'
 import type { RoleRow } from '@/shared/auth/permissions'
 import { RPCS, TABLES, TABLE_COLUMNS } from '@/shared/schema'
-import roleFailure from './_shared/role-failure'
-import ROLE_HTTP from './_shared/role-http'
+import { roleFailure, ROLE_HTTP } from '@/server/admin/roles'
 
 const { roles } = TABLE_COLUMNS
 const ROLE_LIST = [roles.key, roles.label, roles.isSystem].join()
 
-// No GET: the list is served by the context (useApp().roles). Only mutations here.
-export async function POST(req: NextRequest) {
+/** Creates a role with its modules. No GET: the context serves the list through `useApp().roles`. */
+export async function POST(req: Request) {
   const authz = await requireAdmin()
   const denied = { status: authz.status }
-  if (!authz.ok) return NextResponse.json({ error: authz.error }, denied)
+  const denial = { error: authz.error }
+  if (!authz.ok) return NextResponse.json(denial, denied)
   const { label, modules = [] } = await req.json()
   const mods = validateModuleSlugs(modules)
-  if (!mods.ok) return NextResponse.json({ error: (mods as { error: string }).error }, ROLE_HTTP.badRequest)
+  if (mods.ok === false) {
+    const badModules = { error: mods.error }
+    return NextResponse.json(badModules, ROLE_HTTP.badRequest)
+  }
   const db = supabaseAdmin()
   const { data: existing } = await db.from(TABLES.roles).select(ROLE_LIST).overrideTypes<RoleRow[], { merge: false }>()
   const v = validateNewRole(label, existing ?? [])
-  if (!v.ok) return NextResponse.json({ error: (v as { error: string }).error }, ROLE_HTTP.badRequest)
+  if (v.ok === false) {
+    const badLabel = { error: v.error }
+    return NextResponse.json(badLabel, ROLE_HTTP.badRequest)
+  }
   // One transaction: the role and its modules land together or not at all.
   const saveParams = {
     p_key: v.key,
@@ -31,8 +36,10 @@ export async function POST(req: NextRequest) {
     p_is_new: true,
   }
   const { error } = await db.rpc(RPCS.saveRole, saveParams)
-  if (!error) return NextResponse.json({ key: v.key }, ROLE_HTTP.created)
+  const created = { key: v.key }
+  if (!error) return NextResponse.json(created, ROLE_HTTP.created)
   const { status, error: message } = roleFailure(error)
   const failed = { status }
-  return NextResponse.json({ error: message }, failed)
+  const failure = { error: message }
+  return NextResponse.json(failure, failed)
 }

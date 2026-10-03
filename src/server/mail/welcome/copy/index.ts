@@ -15,4 +15,4 @@ const WELCOME_COPY = {
 
 export default WELCOME_COPY
 
-// Moved verbatim out of the create-user route, where it was inlined in the HTML.
+// The catalog the welcome HTML builder reads; the route used to inline this text in its markup.
