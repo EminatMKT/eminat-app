@@ -24,6 +24,11 @@ const ADMIN_ERRORS = {
   unexpectedCreate: 'Unexpected error while creating the user.',
   unexpectedReassign: 'Unexpected error during reassignment.',
   unexpectedResetPassword: 'Unexpected error while resetting the password.',
+  // Welcome-email warnings end in a period: CredentialsPanel appends `admin.shareManually`.
+  emailMissingKey: 'Email not sent: RESEND_API_KEY is missing.',
+  emailUnknownError: 'unknown error',
+  emailNotProduction: (env: string) => `Email not sent: the environment is "${env}", not production.`,
+  emailFailed: (detail: string) => `Email not sent: ${detail}.`,
   invalidStatusOverride: (value: unknown) => `Invalid statusOverride: ${value}`,
   lookupFailed: (detail: string) => `Lookup failed: ${detail}`,
   dbDeleteFailed: (detail: string) => `DB delete failed: ${detail}`,

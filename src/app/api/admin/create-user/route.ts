@@ -7,6 +7,7 @@ import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { requireAdmin } from '@/shared/db/requireAdmin'
 import { syncUsuarioCargos, cargoNames } from '@/shared/db/usuarioCargos'
 import { MAIL_FROM, MARKETING_COORDINATOR_EMAIL, MARKETING_INBOX_EMAIL } from '@/shared/constants/contacts'
+import ADMIN_ERRORS from '../_shared/admin-errors'
 
 /**
  * Server-side admin endpoint — creates an Auth user AND its companion
@@ -112,15 +113,13 @@ async function sendWelcomeEmail(args: {
 }): Promise<string | null> {
   try {
     const { RESEND_API_KEY } = serverEnv
-    if (!RESEND_API_KEY) return 'No se envió el correo: falta RESEND_API_KEY.'
+    if (!RESEND_API_KEY) return ADMIN_ERRORS.emailMissingKey
     // Fuera de producción NO se manda nada: el destinatario es una casilla
     // corporativa real y la contraseña viaja en el cuerpo. Probar el alta
     // contra la base local no puede terminar en el buzón de un compañero.
     // El texto NO cierra pidiendo compartirla a mano: CredentialsPanel ya
     // agrega `admin.shareManually` a continuación de este warning.
-    if (APP_ENV !== 'production') {
-      return `No se envió el correo: el entorno es "${APP_ENV}", no producción.`
-    }
+    if (APP_ENV !== 'production') return ADMIN_ERRORS.emailNotProduction(APP_ENV)
     const resend = new Resend(RESEND_API_KEY)
     const html = buildWelcomeEmail(args)
     const { error } = await resend.emails.send({
@@ -130,13 +129,10 @@ async function sendWelcomeEmail(args: {
       subject: 'Tu acceso a Stratix Solutions',
       html,
     })
-    // El punto final importa: CredentialsPanel concatena este texto con
-    // `admin.shareManually`, y los mensajes de Resend no traen puntuación.
-    if (error) return `No se envió el correo: ${error.message}.`
-    return null
+    return error ? ADMIN_ERRORS.emailFailed(error.message) : null
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : ''
-    return `No se envió el correo: ${message || 'error desconocido'}.`
+    return ADMIN_ERRORS.emailFailed(message || ADMIN_ERRORS.emailUnknownError)
   }
 }
 
@@ -155,16 +151,10 @@ export async function POST(req: NextRequest) {
     const { email, password, nombre, apellido, rol, color, empresa_id, jornada_id, vinculacion_id, ubicacion, equipo_id, cargoIds = [] } = body
 
     if (!email || !password || !nombre || !apellido) {
-      return NextResponse.json(
-        { error: 'Campos requeridos: email, password, nombre, apellido' },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: ADMIN_ERRORS.requiredFields }, { status: 400 })
     }
     if (typeof password !== 'string' || password.length < 8) {
-      return NextResponse.json(
-        { error: 'La contraseña debe tener al menos 8 caracteres.' },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: ADMIN_ERRORS.passwordTooShort }, { status: 400 })
     }
 
     // 0. ¿Ya hay una fila para este correo? Pasa con toda persona que exista
@@ -182,10 +172,8 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
 
     if (existing?.auth_id) {
-      return NextResponse.json(
-        { error: `${existing.nombre} ${existing.apellido} ya tiene una cuenta con ese correo. Usa "Restablecer" para cambiarle la contraseña.` },
-        { status: 409 },
-      )
+      const name = `${existing.nombre} ${existing.apellido}`
+      return NextResponse.json({ error: ADMIN_ERRORS.emailTaken(name) }, { status: 409 })
     }
 
     // 1. Auth user. email_confirm:true → no confirmation email sent.
@@ -197,10 +185,7 @@ export async function POST(req: NextRequest) {
 
     if (authError || !authData?.user) {
       console.error(`${TAG} auth.createUser failed`, { email, error: authError?.message })
-      return NextResponse.json(
-        { error: authError?.message || 'No se pudo crear el usuario en Auth.' },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: authError?.message || ADMIN_ERRORS.authCreateFailed }, { status: 400 })
     }
     userId = authData.user.id
     console.log(`${TAG} auth user created`, { email, userId })
@@ -256,12 +241,9 @@ export async function POST(req: NextRequest) {
         })
       }
       const detail = rollbackError
-        ? ` (rollback de la cuenta de Auth también falló: ${rollbackError.message} — borra el auth.users con id ${userId} desde el dashboard de Supabase).`
-        : ' (la cuenta de Auth fue revertida; no hay orphan).'
-      return NextResponse.json(
-        { error: `${dbError.message}.${detail}`, dbErrorCode },
-        { status: 400 },
-      )
+        ? ADMIN_ERRORS.authRollbackFailed(rollbackError.message, userId)
+        : ADMIN_ERRORS.authRollbackDone
+      return NextResponse.json({ error: `${dbError.message}.${detail}`, dbErrorCode }, { status: 400 })
     }
 
     // El id de la fila de `usuarios`, que NO es el de Auth cuando se enlazó
@@ -296,9 +278,6 @@ export async function POST(req: NextRequest) {
     if (userId) {
       try { await db.auth.admin.deleteUser(userId) } catch {}
     }
-    return NextResponse.json(
-      { error: message || 'Error inesperado al crear el usuario.' },
-      { status: 500 },
-    )
+    return NextResponse.json({ error: message || ADMIN_ERRORS.unexpectedCreate }, { status: 500 })
   }
 }
