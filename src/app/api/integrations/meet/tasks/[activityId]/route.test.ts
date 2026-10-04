@@ -25,6 +25,15 @@ describe('PATCH Meet Tasks', () => {
     expect((await PATCH(request, { params: { activityId: '11111111-1111-4111-8111-111111111111' } })).status).toBe(400)
     expect(update).not.toHaveBeenCalled()
   })
+  it('despacha el outbox luego de una reasignación válida', async () => {
+    update.mockResolvedValue({ ok: true, data: { id: '11111111-1111-4111-8111-111111111111' } })
+    const request = new Request('https://app.stratixsolutions.us/api/integrations/meet/tasks/11111111-1111-4111-8111-111111111111', {
+      method: 'PATCH', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ expected_updated_at: '2026-09-18T12:00:00Z', responsable_id: '22222222-2222-4222-8222-222222222222' }),
+    })
+    expect((await PATCH(request, { params: { activityId: '11111111-1111-4111-8111-111111111111' } })).status).toBe(200)
+    expect(dispatch).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111')
+  })
   it('pasa la identidad del JWT al GET para validar el vínculo con Meet', async () => {
     get.mockResolvedValue({ ok: true, data: { id: '11111111-1111-4111-8111-111111111111' } })
     const request = new Request('https://app.stratixsolutions.us/api/integrations/meet/tasks/11111111-1111-4111-8111-111111111111')

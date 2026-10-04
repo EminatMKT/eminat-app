@@ -37,7 +37,7 @@ export default function NotificationsBell() {
                 <div style={{ fontSize: 12 }}>{t('notif.empty')}</div>
               </div>
             ) : notificaciones.map((n: Notif) => (
-              <NotificationItem key={n.id} notif={n} onClick={() => { if (n.actividad_id) { router.push(modulePath('stratix-mkt')); setNotifAbiertas(false) } }} />
+              <NotificationItem key={n.id} notif={n} onClick={() => { if (n.actividad_id) { router.push(modulePath('tasks')); setNotifAbiertas(false) } }} />
             ))}
           </div>
         </div>

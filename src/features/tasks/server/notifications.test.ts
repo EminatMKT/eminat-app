@@ -1,6 +1,8 @@
 import { beforeEach, expect, it, vi } from 'vitest'
+
 const { send, db, env } = vi.hoisted(() => ({
-  send: vi.fn(), db: vi.fn(), env: { RESEND_API_KEY: 're_synthetic_test_key' },
+  send: vi.fn(), db: vi.fn(),
+  env: { RESEND_API_KEY: 're_synthetic_test_key', TASKS_PUBLIC_URL: 'https://preview.example/tasks', TASK_NOTIFY_FROM_EMAIL: undefined as string | undefined },
 }))
 vi.mock('resend', () => ({ Resend: class { emails = { send } } }))
 vi.mock('@/shared/db/supabaseAdmin', () => ({ supabaseAdmin: db }))
@@ -9,51 +11,84 @@ import { dispatchTaskAssignmentEmails } from './notifications'
 
 const taskId = '22222222-2222-4222-8222-222222222222'
 const recipientId = '11111111-1111-4111-8111-111111111111'
-function fakeDb({ pending = [{ id: 'event-1', recipient_id: recipientId }], claim = true, email = 'test@example.com' } = {}) {
-  const writes: { status: string; error?: string }[] = []
-  db.mockReturnValue({ from: (table: string) => {
-    if (table === 'task_email_outbox') return {
-      select: () => ({ eq: () => ({ eq: async () => ({ data: pending, error: null }) }) }),
-      update: (row: { status: string; error?: string }) => {
-        writes.push(row)
-        return { eq: () => ({ eq: () => ({ select: () => ({ maybeSingle: async () => ({ data: claim ? { id: 'event-1' } : null }) }) }) }) }
-      },
-    }
-    if (table === 'actividades') return { select: () => ({ eq: () => ({ single: async () => ({ data: { id: taskId, titulo: 'Private title', responsable_id: recipientId } }) }) }) }
-    return { select: () => ({ eq: () => ({ single: async () => ({ data: { email, nombre: 'Alex' } }) }) }) }
-  } })
-  return writes
+const event = { id: '33333333-3333-4333-8333-333333333333', activity_id: taskId, recipient_id: recipientId, event: 'created', attempts: 1 }
+
+function fakeDb(options: { events?: typeof event[]; assignee?: string; email?: string; dbError?: boolean; latestId?: string } = {}) {
+  const writes: { status?: string; error?: string; next_attempt_at?: string | null }[] = []
+  const rpc = vi.fn().mockResolvedValue({ data: options.events ?? [event], error: options.dbError ? { message: 'db' } : null })
+  db.mockReturnValue({
+    rpc,
+    from: (table: string) => {
+      if (table === 'task_email_outbox') return {
+        update: (row: typeof writes[number]) => ({ eq: async () => {
+          writes.push(row)
+          return { error: null }
+        } }),
+        select: () => ({ eq: () => ({ order: () => ({ limit: () => ({ maybeSingle: async () => ({ data: { id: options.latestId ?? event.id }, error: null }) }) }) }) }),
+      }
+      const data = table === 'actividades'
+        ? { id: taskId, titulo: 'Create launch', empresa: 'Marketing', fecha_entrega: '2026-10-10', responsable_id: options.assignee ?? recipientId }
+        : { id: recipientId, email: options.email === undefined ? 'alex@example.com' : options.email, nombre_display: 'Alex', activo: true }
+      return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data, error: null }) }) }) }
+    },
+  })
+  return { writes, rpc }
 }
 beforeEach(() => { vi.clearAllMocks(); env.RESEND_API_KEY = 're_synthetic_test_key'; send.mockResolvedValue({ data: { id: 'provider-1' }, error: null }) })
-it('does not send when a replay cannot claim the event', async () => {
-  fakeDb({ claim: false })
+
+it('claims once and sends only the recipient with a stable provider idempotency key', async () => {
+  const { writes, rpc } = fakeDb()
   await dispatchTaskAssignmentEmails(taskId)
-  expect(send).not.toHaveBeenCalled()
+  expect(rpc).toHaveBeenCalledWith('claim_task_assignment_emails', { p_activity_id: taskId, p_limit: 25 })
+  expect(send).toHaveBeenCalledTimes(1)
+  expect(send.mock.calls[0][0].to).toBe('alex@example.com')
+  expect(send.mock.calls[0][1]).toEqual({ idempotencyKey: `lilly-assignment-${event.id}` })
+  expect(send.mock.calls[0][0].html).toContain('Create launch')
+  expect(send.mock.calls[0][0].html).not.toContain('descripción')
+  expect(send.mock.calls[0][0].html).toContain('https://preview.example/tasks')
+  expect(writes.map(row => row.status)).toEqual(['sent'])
 })
-it('leaves event pending without a configured provider', async () => {
-  const writes = fakeDb()
+it('does not claim or send without Resend configuration', async () => {
+  const { rpc } = fakeDb()
   env.RESEND_API_KEY = ''
-  expect((await dispatchTaskAssignmentEmails(taskId)).warning).toMatch(/pendiente/)
-  expect(writes).toEqual([])
+  expect((await dispatchTaskAssignmentEmails()).warning).toMatch(/pendiente/)
+  expect(rpc).not.toHaveBeenCalled()
   expect(send).not.toHaveBeenCalled()
 })
-it('does not send when recipient email is missing', async () => {
-  const writes = fakeDb({ email: '' })
-  await dispatchTaskAssignmentEmails(taskId)
+it('does not send an older assignment after reassignment', async () => {
+  const { writes } = fakeDb({ assignee: '44444444-4444-4444-8444-444444444444' })
+  await dispatchTaskAssignmentEmails()
   expect(send).not.toHaveBeenCalled()
-  expect(writes.map(x => x.status)).toEqual(['sending', 'failed'])
+  expect(writes).toMatchObject([{ status: 'failed', next_attempt_at: null }])
 })
-it('records provider failure without automatic resend', async () => {
-  const writes = fakeDb()
-  send.mockResolvedValue({ data: null, error: { message: 'provider unavailable' } })
-  await dispatchTaskAssignmentEmails(taskId)
-  expect(send).toHaveBeenCalledTimes(1)
-  expect(writes.map(x => x.status)).toEqual(['sending', 'failed'])
+it('does not send an older event when an assignee returns to the same task', async () => {
+  const { writes } = fakeDb({ latestId: 'newer-event' })
+  await dispatchTaskAssignmentEmails()
+  expect(send).not.toHaveBeenCalled()
+  expect(writes).toMatchObject([{ status: 'failed', next_attempt_at: null }])
 })
-it('sends only generic content without task title or description', async () => {
-  const writes = fakeDb()
-  await dispatchTaskAssignmentEmails(taskId)
-  expect(send).toHaveBeenCalledTimes(1)
-  expect(send.mock.calls[0][0].html).not.toContain('Private title')
-  expect(writes.map(x => x.status)).toEqual(['sending', 'sent'])
+it('does not send if recipient email is missing', async () => {
+  const { writes } = fakeDb({ email: '' })
+  await dispatchTaskAssignmentEmails()
+  expect(send).not.toHaveBeenCalled()
+  expect(writes).toMatchObject([{ status: 'failed', next_attempt_at: null }])
+})
+it('retries explicit provider errors and keeps the same idempotency key', async () => {
+  const { writes } = fakeDb()
+  send.mockResolvedValue({ data: null, error: { message: 'rate limited' } })
+  await dispatchTaskAssignmentEmails()
+  expect(writes[0].status).toBe('failed')
+  expect(writes[0].next_attempt_at).toBeTruthy()
+  expect(send.mock.calls[0][1]).toEqual({ idempotencyKey: `lilly-assignment-${event.id}` })
+})
+it('leaves uncertain transport outcomes in sending for reconciliation', async () => {
+  const { writes } = fakeDb()
+  send.mockRejectedValue(new Error('network timeout'))
+  await dispatchTaskAssignmentEmails()
+  expect(writes).toEqual([{ error: 'network timeout' }])
+})
+it('does not send when there are no claimable events', async () => {
+  fakeDb({ events: [] })
+  await dispatchTaskAssignmentEmails()
+  expect(send).not.toHaveBeenCalled()
 })
