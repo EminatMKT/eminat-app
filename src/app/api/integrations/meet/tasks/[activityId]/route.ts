@@ -24,5 +24,8 @@ export async function PATCH(request: Request, { params }: { params: { activityId
   const parsed = updateMeetTaskSchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) return apiError(request, 400, 'INVALID_PAYLOAD', parsed.error.issues[0]?.message ?? 'Payload inválido.')
   const result = await updateTask(auth.actor.client, auth.actor.authUserId, params.activityId, parsed.data)
+  if (result.ok && result.data) {
+    await dispatchTaskAssignmentEmails(result.data.id).catch(() => null)
+  }
   return result.ok ? apiJson(request, { task: result.data }) : apiError(request, result.status ?? 500, result.code ?? 'TASK_ERROR', result.message ?? 'Error de TASK.', result.current ? { current: result.current } : undefined)
 }
