@@ -19,7 +19,7 @@ describe('nombreDelReporte', () => {
   })
 
   // El bug: el reporte es de otra persona, ningún catálogo la tiene, y la hoja salía con el
-  // nombre de quien miraba encima de las horas de esa otra persona.
+  // nombre de quien miraba encima de las tareas de esa otra persona.
   it('NO pone tu nombre en el reporte de otro cuando no está en ningún catálogo', () => {
     expect(nombreDelReporte('u9', asignables, catalogo, yo)).toBe('—')
     expect(nombreDelReporte('u9', [], {}, yo)).toBe('—')

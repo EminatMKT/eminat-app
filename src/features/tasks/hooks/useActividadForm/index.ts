@@ -1,12 +1,11 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { ESTADO } from '@/shared/constants/domain'
-import { actividadesRepo, notificacionesRepo } from '@/shared/data'
+import { actividadesRepo } from '@/shared/data'
 import { useT } from '@/shared/i18n'
 import { localDate } from '@/shared/utils/dates'
 import { actividadAForm } from '@/features/tasks/utils/act-form'
-import { periodoLargo } from '@/features/tasks/utils/periodo'
-import { payloadDeActividad, payloadDeAlta } from './payload'
+import { payloadDeActividad } from './payload'
 import type { Actividad, NuevaActForm, FormActividad } from '@/features/tasks/types'
 
 const emptyNuevaAct = (solicitanteId = ''): NuevaActForm => ({
@@ -28,7 +27,8 @@ const formVacio = (solicitanteId: string): FormActividad => ({
 // posible acá (la próxima "Nueva tarea" habría hecho UPDATE sobre la tarea vieja).
 export function useActividadForm() {
   const { usuario, usuarios, mostrarMensaje, setActividades, miembrosAsignables } = useApp()
-  const { t, intlLocale } = useT()
+  const { t } = useT()
+  const createRequestId = useRef<string | null>(null)
 
   // centinela-exime: useState@1 — la ficha abierta y el formulario son dos cosas distintas: se
   // abren por caminos distintos (la ficha desde una tarjeta, el form desde "Nueva tarea" o
@@ -60,7 +60,7 @@ export function useActividadForm() {
 
   // Apaga el formulario y lo deja limpio. Es lo que corre DESPUÉS de guardar: el cambio ya se ve
   // en el tablero y el aviso lo confirma, así que no hay a qué volver.
-  const resetFormAct = () => setForm(formVacio(usuario?.id || ''))
+  const resetFormAct = () => { createRequestId.current = null; setForm(formVacio(usuario?.id || '')) }
 
   // El que usan la ✕ y Cancelar. Salir del editor es "no quiero editar", no "no quiero ver la
   // tarea": se vuelve a la ficha de donde se abrió, no al tablero.
@@ -91,29 +91,24 @@ export function useActividadForm() {
     setForm(p => ({ ...p, guardando: true }))
     try {
       const payload = payloadDeActividad(valores)
-
-      if (editando?.id) {
-        const { data, error, conflict, current } = await actividadesRepo.update(editando.id, payload, editando.updated_at)
-        if (conflict) {
-          if (current) setActividades(prev => prev.map(x => (x.id === editando.id ? current as Actividad : x)))
-          mostrarMensaje('error', t('stratix.edit.conflict'))
-          setForm(p => ({ ...p, guardando: false }))
-          return
-        }
-        if (error) { mostrarMensaje('error', t('common.errorWithDetail', { detail: error.message })); setForm(p => ({ ...p, guardando: false })); return }
-        setActividades(prev => prev.map(x => (x.id === editando.id ? data as Actividad : x)))
-        resetFormAct()
-        mostrarMensaje('ok', t('stratix.edit.saved'))
-      } else {
-        const { data, error } = await actividadesRepo.create(payloadDeAlta(valores, usuario?.id))
-        if (error) { mostrarMensaje('error', t('common.errorWithDetail', { detail: error.message })); setForm(p => ({ ...p, guardando: false })); return }
-        setActividades(prev => [data as Actividad, ...prev])
-        if (data && valores.responsable_id && valores.responsable_id !== usuario?.id) {
-          await notificacionesRepo.insert({ usuario_id: valores.responsable_id, tipo: 'tarea_asignada', titulo: t('stratix.notif.assignedTitle'), mensaje: `"${valores.titulo}" — ${valores.empresa} · ${periodoLargo(valores.fecha_inicio, intlLocale)}`, actividad_id: (data as Actividad).id, leida: false })
-        }
-        resetFormAct()
-        mostrarMensaje('ok', t('stratix.new.created'))
+      if (!createRequestId.current) createRequestId.current = crypto.randomUUID()
+      const response = await fetch('/api/tasks/save', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestId: createRequestId.current, id: editando?.id,
+          expectedUpdatedAt: editando?.updated_at, payload }),
+      })
+      const result = await response.json()
+      if (response.status === 409) {
+        if (result.current && editando) setActividades(prev => prev.map(x => x.id === editando.id ? result.current as Actividad : x))
+        mostrarMensaje('error', t('stratix.edit.conflict'))
+        setForm(p => ({ ...p, guardando: false }))
+        return
       }
+      if (!response.ok) { mostrarMensaje('error', result.error || t('stratix.new.createError')); setForm(p => ({ ...p, guardando: false })); return }
+      if (editando?.id) setActividades(prev => prev.map(x => x.id === editando.id ? result.data as Actividad : x))
+      else setActividades(prev => [result.data as Actividad, ...prev.filter(x => x.id !== result.data.id)])
+      resetFormAct()
+      mostrarMensaje('ok', result.warning || t(editando ? 'stratix.edit.saved' : 'stratix.new.created'))
     } catch {
       mostrarMensaje('error', t(editando ? 'stratix.edit.saveError' : 'stratix.new.createError'))
     }

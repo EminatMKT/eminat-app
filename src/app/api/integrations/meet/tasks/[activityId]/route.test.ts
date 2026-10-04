@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { auth, update, get } = vi.hoisted(() => ({ auth: vi.fn(), update: vi.fn(), get: vi.fn() }))
+const { auth, update, get, dispatch } = vi.hoisted(() => ({ auth: vi.fn(), update: vi.fn(), get: vi.fn(), dispatch: vi.fn() }))
 vi.mock('../../_shared/auth', () => ({ requireMeetTaskActor: auth }))
 vi.mock('../../_shared/task-service', () => ({ updateTask: update, getCanonicalTask: get }))
+vi.mock('@/features/tasks/server/notifications', () => ({ dispatchTaskAssignmentEmails: dispatch }))
 
 import { GET, PATCH } from './route'
 
 describe('PATCH Meet Tasks', () => {
-  beforeEach(() => { vi.clearAllMocks(); auth.mockResolvedValue({ ok: true, actor: { client: {}, authUserId: 'auth-1', profileId: 'profile-1' } }) })
+  beforeEach(() => { vi.clearAllMocks(); dispatch.mockResolvedValue({ warning: null }); auth.mockResolvedValue({ ok: true, actor: { client: {}, authUserId: 'auth-1', profileId: 'profile-1' } }) })
   it('propaga 409 y la versión canónica cuando updated_at cambió', async () => {
     update.mockResolvedValue({ ok: false, status: 409, code: 'TASK_CONFLICT', message: 'Conflicto', current: { id: '11111111-1111-4111-8111-111111111111', updated_at: '2026-09-18T13:00:00Z' } })
     const request = new Request('https://app.stratixsolutions.us/api/integrations/meet/tasks/11111111-1111-4111-8111-111111111111', {

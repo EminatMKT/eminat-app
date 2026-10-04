@@ -12,10 +12,6 @@
   color: var(--c-t1);
 }
 
-.mono {
-  font-family: 'DM Mono', monospace;
-}
-
 .plano {
   padding: 8px 12px;
 }

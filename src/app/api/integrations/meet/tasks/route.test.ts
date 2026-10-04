@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { auth, create, list } = vi.hoisted(() => ({ auth: vi.fn(), create: vi.fn(), list: vi.fn() }))
+const { auth, create, list, dispatch } = vi.hoisted(() => ({ auth: vi.fn(), create: vi.fn(), list: vi.fn(), dispatch: vi.fn() }))
 vi.mock('../_shared/auth', () => ({ requireMeetTaskActor: auth }))
 vi.mock('../_shared/task-service', () => ({ createTaskForTopic: create, listCanonicalTasks: list }))
+vi.mock('@/features/tasks/server/notifications', () => ({ dispatchTaskAssignmentEmails: dispatch }))
 
 import { GET, POST } from './route'
 
@@ -16,7 +17,7 @@ const request = (payload: unknown) => new Request('https://app.stratixsolutions.
 })
 
 describe('POST Meet Tasks', () => {
-  beforeEach(() => { vi.clearAllMocks(); auth.mockResolvedValue({ ok: true, actor: { client: {}, authUserId: 'auth-1', profileId: 'profile-1' } }) })
+  beforeEach(() => { vi.clearAllMocks(); dispatch.mockResolvedValue({ warning: null }); auth.mockResolvedValue({ ok: true, actor: { client: {}, authUserId: 'auth-1', profileId: 'profile-1' } }) })
   it('rechaza al actor no autorizado antes de mutar', async () => {
     auth.mockResolvedValue({ ok: false, status: 403, error: 'Sin permiso' })
     const response = await POST(request(body))
@@ -28,6 +29,7 @@ describe('POST Meet Tasks', () => {
     const response = await POST(request(body))
     expect(response.status).toBe(201)
     expect(create.mock.calls[0][2]).toEqual(body)
+    expect(dispatch).toHaveBeenCalledWith('a-1')
   })
   it('devuelve 200 al repetir el mismo topic', async () => {
     create.mockResolvedValue({ ok: true, data: { task: { id: 'a-1' }, idempotent: true } })
@@ -36,7 +38,7 @@ describe('POST Meet Tasks', () => {
 })
 
 describe('GET Meet Tasks', () => {
-  beforeEach(() => { vi.clearAllMocks(); auth.mockResolvedValue({ ok: true, actor: { client: {}, authUserId: 'auth-1', profileId: 'profile-1' } }) })
+  beforeEach(() => { vi.clearAllMocks(); dispatch.mockResolvedValue({ warning: null }); auth.mockResolvedValue({ ok: true, actor: { client: {}, authUserId: 'auth-1', profileId: 'profile-1' } }) })
   it('devuelve exclusivamente el listado autorizado y el alcance del actor', async () => {
     list.mockResolvedValue({ ok: true, data: { tasks: [{ id: 'a-1' }], viewer: { profile_id: 'profile-1', equipo: null, empresa: null } } })
     const response = await GET(new Request('https://app.stratixsolutions.us/api/integrations/meet/tasks', { headers: { origin: 'https://meet.stratixsolutions.us' } }))
