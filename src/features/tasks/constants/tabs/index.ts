@@ -7,6 +7,7 @@ export const TASKS_TAB = {
   OVERVIEW: 'overview',
   KANBAN: 'kanban',
   SOLICITUDES: 'solicitudes',
+  PROJECTS: 'projects',
   REPORTE: 'reporte',
 } as const
 
