@@ -15,8 +15,8 @@ describe('catálogo de tabs de /tasks', () => {
     expect(TASKS_TABS.filter(t => (STRATIX_TABS as readonly string[]).includes(t))).toEqual([])
   })
 
-  it('son las cuatro secciones de tareas', () => {
-    expect([...TASKS_TABS]).toEqual(['overview', 'kanban', 'solicitudes', 'reporte'])
+  it('incluye Projects dentro de Tasks', () => {
+    expect([...TASKS_TABS]).toEqual(['overview', 'kanban', 'solicitudes', 'projects', 'reporte'])
   })
 
   // La preferencia es POR MÓDULO: si compartieran clave, abrir /tasks en Requests cambiaría

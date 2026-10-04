@@ -8,6 +8,7 @@ import KanbanTab from '../kanban/KanbanTab'
 import SolicitudesTab from '../solicitudes/SolicitudesTab'
 import ReporteTab from '../reporte/ReporteTab'
 import ActivityDetailModal from '../modals/ActivityDetailModal'
+import ProjectsTab from '../projects/ProjectsTab'
 import NewActivityModal from '../modals/NewActivityModal'
 import { visibleTasksTabs, type TasksTab } from '@/features/tasks/constants/tabs'
 
@@ -19,6 +20,7 @@ const tabViews: Record<string, JSX.Element> = {
   overview: <OverviewTab />,
   kanban: <KanbanTab />,
   solicitudes: <SolicitudesTab />,
+  projects: <ProjectsTab />,
   reporte: <ReporteTab />,
 }
 

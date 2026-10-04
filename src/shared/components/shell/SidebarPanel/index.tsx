@@ -43,7 +43,10 @@ export default function SidebarPanel(props: Props) {
       </div>
       <nav style={{ flex: 1, padding: '0 8px', overflowY: 'auto' }}>
         {subItems.map(item => (
-          <PanelItem key={item.id} icon={item.icon} label={item.labelKey ? t(item.labelKey) : item.label} active={item.tabs ? item.tabs.includes(activeTab ?? '') : activeTab === item.tab} onClick={() => selectTab(item.tab)} />
+          <div key={item.id}>
+            {panel === 'tasks' && item.id === 'tasks-projects' && <div style={{ padding: '19px 10px 7px', color: D.t3, fontFamily: 'DM Mono', fontSize: 9, letterSpacing: '.13em' }}>{t('projects.workspace')}</div>}
+            <PanelItem icon={item.icon} label={item.labelKey ? t(item.labelKey) : item.label} active={item.tabs ? item.tabs.includes(activeTab ?? '') : activeTab === item.tab} onClick={() => selectTab(item.tab)} />
+          </div>
         ))}
       </nav>
     </div>
