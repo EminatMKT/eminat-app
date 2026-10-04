@@ -56,7 +56,7 @@ test('Projects RLS gives admin full access and workers only their memberships', 
     await page.locator('input[type="password"]').press('Enter')
     await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
     await page.locator('[data-tour="tasks"]').click()
-    await page.getByRole('button', { name: /Projects/ }).click()
+    await page.getByRole('button', { name: /Projects|Proyectos/ }).click()
     await expect(page.getByText(project.name)).toBeVisible()
   } finally {
     if (projectId) await fetch(`${URL}/rest/v1/projects?id=eq.${projectId}`, { method: 'DELETE', headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}` } })
