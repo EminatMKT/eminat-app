@@ -13,7 +13,12 @@ const ADMIN2 = 'admin2@eminat.net'
 async function loginAs(page: Page, email: string) {
   await page.context().clearCookies()
   await page.goto('/login')
-  try { await page.evaluate(() => localStorage.clear()) } catch {}
+  // La sesión se reinicia entre casos; marcar el tour como completado antes del
+  // segundo load evita que su máscara capture los clicks en el rail de Admin.
+  await page.evaluate(() => {
+    localStorage.clear()
+    localStorage.setItem('eminat-onboarding-completed', 'true')
+  })
   await page.goto('/login')
   await page.getByPlaceholder('tu@eminat.net').fill(email)
   const pw = page.locator('input[type="password"]')
