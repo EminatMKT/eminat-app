@@ -40,16 +40,16 @@ Fecha: 2026-10-03. Rama: `feature/lilly-tasks-metrics`. Esta revisión reemplaza
 ## I. Tasks UI
 
 - **IMPLEMENTED** — Dashboard es el único centro global de rendimiento y sólo Super Admin puede abrirlo. Conserva indicadores, horas, días de producción, rankings, gráficos, actividad reciente, Gantt y resumen del equipo. Añade vencidas, carga por usuario/equipo/empresa y tendencia mediante agregados de servidor, sin duplicar las tarjetas ya existentes de total/completadas/pendientes/completion rate.
-- **IMPLEMENTED** — Report del trabajador muestra sólo tareas asignadas al usuario autenticado, empresa/área y estado. No monta selector de trabajadores, impresión de pago, horas, días de producción, productividad ni rankings. Report de Super Admin conserva el informe completo actual.
+- **IMPLEMENTED** — Report es un informe de tareas para todos los usuarios: sólo muestra tareas totales, completadas y datos operativos de cada tarea. El trabajador ve únicamente tareas asignadas a su cuenta y no tiene selector de personas. Super Admin puede seleccionar trabajadores y consultar sus tareas. La vista y su versión imprimible excluyen horas, días de producción, productividad y rankings; esa analítica permanece sólo en Dashboard.
 
 ## J. Authorization
 
-- **IMPLEMENTED** — `/api/tasks/dashboard` verifica Super Admin en API y SQL. `/api/tasks/report` exige permiso Tasks; rechaza el parámetro `user` ajeno para trabajadores, filtra por el `id` del perfil autenticado y selecciona únicamente columnas operacionales. Para admin permite seleccionar usuario y columnas completas. Ambas rutas responden con `Cache-Control: private, no-store`.
+- **IMPLEMENTED** — `/api/tasks/dashboard` verifica Super Admin en API y SQL. `/api/tasks/report` exige permiso Tasks; rechaza el parámetro `user` ajeno para trabajadores, filtra por el `id` del perfil autenticado y selecciona únicamente columnas operativas. Para admin permite seleccionar usuario, pero también devuelve sólo columnas operativas. Ambas rutas responden con `Cache-Control: private, no-store`.
 - **OBSERVED** — Production y Requests continúan usando la lista general de Tasks conforme a la arquitectura vigente. La nueva restricción de Report se aplica a su endpoint y vista; no sustituye la política general de lectura de `actividades` usada por esas otras pestañas.
 
 ## K. Tests
 
-- **VERIFIED** — `pnpm typecheck`, suite Vitest completa y build optimizado con variables sintéticas no Productivas. Tests nuevos cubren visibilidad de pestañas, API de Dashboard, acceso propio/ajeno a Report, columnas permitidas y períodos inválidos.
+- **VERIFIED** — `pnpm typecheck`, suite Vitest completa y build optimizado con variables sintéticas no Productivas. Tests cubren visibilidad de pestañas, API de Dashboard, acceso propio/ajeno a Report, columnas permitidas, períodos inválidos y ausencia de analítica de horas/días en Report.
 - **BLOCKED** — No se ejecutó prueba SQL ni E2E contra Supabase/Vercel Preview.
 
 ## L. Database Changes

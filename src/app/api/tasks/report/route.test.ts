@@ -41,12 +41,12 @@ it('returns only own rows and operational fields to a worker', async () => {
   expect(db.filters).toContainEqual(['fecha_inicio', '2026-10-01'])
   expect(db.fields[0]).not.toMatch(/horas|dias_produccion|solicitante_id/)
 })
-it('allows the existing admin role to select another worker with full fields', async () => {
+it('allows admin to select another worker without productivity fields', async () => {
   const db = dbFor('admin')
   expect((await GET(req(`?user=${otherId}`))).status).toBe(200)
   expect(db.filters).toContainEqual(['responsable_id', otherId])
-  expect(db.fields[0]).toContain('horas')
-  expect(db.fields[0]).toContain('dias_produccion')
+  expect(db.fields[0]).toContain('responsable_id')
+  expect(db.fields[0]).not.toMatch(/horas|dias_produccion/)
 })
 it('rejects malformed periods', async () => {
   const db = dbFor('stratix360')

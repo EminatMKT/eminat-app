@@ -3,7 +3,7 @@ import { ADMIN_ROLE, normalizeRole } from '@/shared/auth/permissions'
 import { requireModule, ssrClient } from '@/shared/db/requireAccess'
 
 const workerColumns = 'id,titulo,empresa,estado,fecha_inicio,fecha_entrega'
-const adminColumns = `${workerColumns},responsable_id,solicitante_id,horas,dias_produccion`
+const adminColumns = `${workerColumns},responsable_id`
 
 export async function GET(req: NextRequest) {
   const session = await requireModule('tasks')
