@@ -50,11 +50,14 @@ test('Projects RLS gives admin full access and workers only their memberships', 
     expect((await rest('projects', outsiderToken, 'POST', { name: 'Denied', company_code: 'PREMIER', created_by: adminId })).status).toBeGreaterThanOrEqual(400)
     expect((await rest('project_members', outsiderToken, 'POST', { project_id: projectId, user_id: (await getUsuario(OUTSIDER)).id })).status).toBeGreaterThanOrEqual(400)
 
+    // The first-visit tour covers module navigation; this test targets Projects.
+    await page.addInitScript(() => localStorage.setItem('eminat-onboarding-completed', 'true'))
     await page.goto('/login')
     await page.getByPlaceholder('tu@eminat.net').fill(ADMIN)
     await page.locator('input[type="password"]').fill(PASSWORD)
     await page.locator('input[type="password"]').press('Enter')
     await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
+    await expect(page.getByText('Home', { exact: true })).toBeVisible({ timeout: 20000 })
     await page.locator('[data-tour="tasks"]').click()
     await page.getByRole('button', { name: /Projects|Proyectos/ }).click()
     await expect(page.getByText(project.name)).toBeVisible()
