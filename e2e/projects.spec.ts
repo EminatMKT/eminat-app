@@ -77,7 +77,7 @@ test('Projects RLS gives admin full access and workers only their memberships', 
     await page.getByRole('button', { name: new RegExp(project.name) }).click()
     await page.getByRole('navigation', { name: /Secciones del proyecto|Project sections/ }).getByRole('button', { name: /Equipo|Team/ }).click()
     await expect(page.getByText('Project Member')).toBeVisible()
-    await expect(page.getByText(/Revisor|Reviewer/)).toBeVisible()
+    await expect(page.getByRole('combobox', { name: /Rol en el proyecto|Project role/ }).first()).toHaveValue('Reviewer')
     await page.getByRole('combobox', { name: /Agregar miembro|Add member/ }).selectOption((await getUsuario(OUTSIDER)).id)
     await page.getByRole('button', { name: /Agregar miembro|Add member/ }).click()
     await expect(page.getByText('Project Outsider')).toBeVisible()
