@@ -4,7 +4,7 @@ import { useState } from 'react'
 import * as auth from '@/shared/db/auth'
 import { usuariosRepo } from '@/shared/data'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, BarChart3, CheckCircle2, Circle, Eye, EyeOff, FolderKanban, ListTodo, LockKeyhole, Mail, Users } from 'lucide-react'
+import { ArrowRight, BarChart3, CheckCircle2, ChevronDown, Eye, EyeOff, Globe2, ListTodo, LockKeyhole, Mail, Users, Zap } from 'lucide-react'
 import { useT } from '@/shared/i18n'
 import { ROUTES } from '@/shared/auth/permissions'
 import { DOMINIOS_VALIDOS } from '@/shared/constants/domain'
@@ -26,41 +26,43 @@ const benefits = [
   { icon: ListTodo, key: 'login.benefitTasks' },
   { icon: Users, key: 'login.benefitTeam' },
   { icon: BarChart3, key: 'login.benefitProgress' },
-  { icon: FolderKanban, key: 'login.benefitProjects' },
+  { icon: Zap, key: 'login.benefitProjects' },
 ] as const
 
 function TasksPreview() {
   const { t } = useT()
   return (
     <div className={styles.previewWrap} aria-label={t('login.previewAlt')}>
-      <div className={styles.previewNote}>{t('login.ideas')} <span aria-hidden="true">↝</span></div>
+      <div className={styles.previewNote}><span>{t('login.ideas').split(' ')[0]}</span><br /><span>{t('login.ideas').split(' ').slice(1).join(' ')}</span><i aria-hidden="true" /></div>
       <div className={styles.previewScreen}>
-        <div className={styles.previewTop}><span className={styles.previewDots}>● ● ●</span><span>{t('login.tasksProduct')}</span><span>⋯</span></div>
+        <div className={styles.previewTop}><strong>{t('login.brand')}</strong><span className={styles.previewSearch}>⌕ &nbsp; {t('login.previewSearch')}</span><span className={styles.previewAvatar}>FC</span></div>
         <div className={styles.previewBody}>
           <aside className={styles.previewSidebar}>
-            <strong>{t('login.brand')}</strong>
+            <span>⌂ &nbsp; {t('login.previewWorkspace')}</span>
+            <span>⌑ &nbsp; {t('login.previewHome')}</span>
             <span className={styles.activeNav}>▦ &nbsp; {t('login.previewMyTasks')}</span>
-            <span>◷ &nbsp; {t('login.previewPending')}</span>
-            <span>◉ &nbsp; {t('login.previewProgress')}</span>
-            <span>✓ &nbsp; {t('login.previewDone')}</span>
-            <small>{t('login.previewProjects')}</small>
-            <span>◇ &nbsp; {t('login.previewCreative')}</span>
+            <span>▧ &nbsp; {t('login.previewProjects')}</span>
+            <span>◷ &nbsp; {t('login.previewCalendar')}</span>
+            <span>♧ &nbsp; {t('login.previewTeam')}</span>
+            <span>▤ &nbsp; {t('login.previewReports')}</span>
           </aside>
           <div className={styles.previewContent}>
-            <div className={styles.previewHeading}><div><small>{t('login.previewWorkspace')}</small><strong>{t('login.previewMyTasks')}</strong></div><span>+ {t('login.previewNewTask')}</span></div>
-            <div className={styles.previewStats}>
-              <div><small>{t('login.previewPending')}</small><b>08</b><i className={styles.purpleBar} /></div>
-              <div><small>{t('login.previewProgress')}</small><b>04</b><i className={styles.blueBar} /></div>
-              <div><small>{t('login.previewDone')}</small><b>12</b><i className={styles.greenBar} /></div>
+            <div className={styles.previewHeading}><strong>{t('login.previewMyTasks')}</strong><span>＋</span></div>
+            <div className={styles.previewPills}>
+              <span>{t('login.previewPending')} <b>12</b></span>
+              <span>{t('login.previewProgress')} <b>6</b></span>
+              <span>{t('login.previewDone')} <b>24</b></span>
             </div>
-            <div className={styles.previewListTitle}>{t('login.previewToday')} <span>{t('login.previewSeeAll')} →</span></div>
-            <div className={styles.previewTask}><Circle size={13} /><span>{t('login.previewTaskOne')}</span><em>{t('login.previewProgress')}</em></div>
-            <div className={styles.previewTask}><Circle size={13} /><span>{t('login.previewTaskTwo')}</span><em>{t('login.previewPendingOne')}</em></div>
-            <div className={styles.previewTask}><CheckCircle2 size={13} /><span>{t('login.previewTaskThree')}</span><em>{t('login.previewDoneOne')}</em></div>
+            <div className={styles.previewBoard}>
+              <div><h3>{t('login.previewPending')}</h3><div className={styles.previewTask}><span>{t('login.previewTaskOne')}</span><small>Eminat Medical Center</small><em>{t('login.previewPriorityHigh')}</em></div><div className={styles.previewTask}><span>{t('login.previewTaskTwo')}</span><small>Corazón Salud</small><em>{t('login.previewPriorityMedium')}</em></div><div className={styles.previewTask}><span>{t('login.previewTaskSeven')}</span><small>Vivi Negrete Foundation</small><em>{t('login.previewPriorityMedium')}</em></div></div>
+              <div><h3>{t('login.previewProgress')}</h3><div className={styles.previewTask}><span>{t('login.previewTaskThree')}</span><small>Premier Specialty Group</small><em>{t('login.previewPriorityHigh')}</em></div><div className={styles.previewTask}><span>{t('login.previewTaskFour')}</span><small>Eminat Group</small><em>{t('login.previewPriorityMedium')}</em></div><div className={styles.previewTask}><span>{t('login.previewTaskEight')}</span><small>Eminat Group</small><em>{t('login.previewPriorityMedium')}</em></div></div>
+              <div><h3>{t('login.previewDone')}</h3><div className={styles.previewTask}><CheckCircle2 size={10} /><span>{t('login.previewTaskFive')}</span><small>Eminat Group</small></div><div className={styles.previewTask}><CheckCircle2 size={10} /><span>{t('login.previewTaskSix')}</span><small>Stratix Communications</small></div><div className={styles.previewTask}><CheckCircle2 size={10} /><span>{t('login.previewTaskNine')}</span><small>Eminat Medical Center</small></div></div>
+            </div>
           </div>
         </div>
       </div>
       <div className={styles.previewBase} />
+      <div className={styles.deskMug}><span>Good<br />Ideas<br />Better<br />Results<span className={styles.mugDot}>.</span></span></div>{/* i18n-ignore: decorative wording in reference */}
     </div>
   )
 }
@@ -74,7 +76,7 @@ export default function LoginPage() {
   const [mode, setMode] = useState<'login' | 'reset'>('login')
   const [sent, setSent] = useState(false)
   const router = useRouter()
-  const { t } = useT()
+  const { t, locale, setLocale } = useT()
 
   function emailValido(e: string) {
     return DOMINIOS_VALIDOS.some(d => e.toLowerCase().endsWith(d))
@@ -153,6 +155,7 @@ export default function LoginPage() {
 
       <section className={styles.access} aria-labelledby="access-heading">
         <div className={styles.accessInner}>
+          <button className={styles.localeButton} type="button" onClick={() => setLocale(locale === 'es' ? 'en' : 'es')} aria-label={locale === 'es' ? 'Switch to English' : 'Cambiar a español'}><Globe2 size={17} />{locale.toUpperCase()}<ChevronDown size={13} /></button>
           <header className={styles.accessBrand}>
             <p>{t('login.welcomeTo')}</p>
             <div className={styles.brand}>LILLY<span>.</span></div>{/* i18n-ignore: product name */}
@@ -188,7 +191,7 @@ export default function LoginPage() {
                   {error && <div className={styles.error} role="alert">{error}</div>}
                   <button className={styles.submit} type="submit" disabled={loading}>{loading ? t('common.processing') : mode === 'login' ? t('login.signIn') : t('login.sendResetLink')}{!loading && <ArrowRight size={19} aria-hidden="true" />}</button>
                 </form>
-                {mode === 'reset' ? <button className={styles.backButton} type="button" onClick={() => { setMode('login'); setError('') }}>← {t('login.backToSignIn')}</button> : <p className={styles.requestAccess}>{t('login.needAccess')} <a href={`mailto:${MARKETING_COORDINATOR_EMAIL}`}>{t('login.requestAccess')}</a></p>}
+                {mode === 'reset' ? <button className={styles.backButton} type="button" onClick={() => { setMode('login'); setError('') }}>← {t('login.backToSignIn')}</button> : <p className={styles.requestAccess}>{t('login.noAccount')} <a href={`mailto:${MARKETING_COORDINATOR_EMAIL}`}>{MARKETING_COORDINATOR_EMAIL}</a></p>}
               </>
             )}
           </div>
