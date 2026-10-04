@@ -33,7 +33,6 @@ function TasksPreview() {
   const { t } = useT()
   return (
     <div className={styles.previewWrap} aria-label={t('login.previewAlt')}>
-      <div className={styles.previewNote}><span>{t('login.ideas').split(' ')[0]}</span><br /><span>{t('login.ideas').split(' ').slice(1).join(' ')}</span><i aria-hidden="true" /></div>
       <div className={styles.previewScreen}>
         <div className={styles.previewTop}><strong>{t('login.brand')}</strong><span className={styles.previewSearch}>⌕ &nbsp; {t('login.previewSearch')}</span><span className={styles.previewAvatar}>FC</span></div>
         <div className={styles.previewBody}>
