@@ -16,7 +16,7 @@ describe('catálogo de tabs de /tasks', () => {
   })
 
   it('incluye Projects dentro de Tasks', () => {
-    expect([...TASKS_TABS]).toEqual(['overview', 'kanban', 'solicitudes', 'projects', 'reporte'])
+    expect([...TASKS_TABS]).toEqual(['overview', 'kanban', 'solicitudes', 'projects', 'team', 'reporte'])
   })
 
   // La preferencia es POR MÓDULO: si compartieran clave, abrir /tasks en Requests cambiaría
