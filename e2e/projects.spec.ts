@@ -83,7 +83,7 @@ test('Projects RLS gives admin full access and workers only their memberships', 
     await expect(page.getByText('Project Outsider')).toBeVisible()
     const outsiderMembership = await rest('project_members', adminToken, 'GET', undefined, `?project_id=eq.${projectId}&user_id=eq.${(await getUsuario(OUTSIDER)).id}&select=project_role`)
     expect((await outsiderMembership.json())[0].project_role).toBe('Member')
-    await page.getByRole('button', { name: /Quitar|Remove/ }).last().click()
+    await page.getByRole('button', { name: 'Project Outsider' }).locator('..').getByRole('button', { name: /Quitar|Remove/ }).click()
     await expect(page.getByText('Project Outsider')).toHaveCount(0)
     await page.getByRole('button', { name: /Team|Equipo/, exact: true }).first().click()
     await expect(page.getByRole('heading', { name: /Team|Equipo/ })).toBeVisible()
