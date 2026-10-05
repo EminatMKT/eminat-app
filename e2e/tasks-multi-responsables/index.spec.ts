@@ -62,7 +62,7 @@ test('a task with three responsibles and a leader', async ({ page }) => {
     await modal.getByRole(BUTTON, named(say('stratix.new.create'))).click()
     const card = page.locator('[draggable="true"]').filter(holding(taskTitle))
     await expect(card).toBeVisible(UI_WAIT)
-    await expect(card.getByRole('img', named(say('tasks.responsibles.leaderBadge')))).toBeVisible()
+    await expect(card.getByRole('img', named(say('tasks.responsibles.leaderBadge')))).toBeVisible(UI_WAIT)
     await expect(card).toContainText(`${LEADER.full} +2`)
   })
   await test.step('the admin report lists it for each of the three', async () => {

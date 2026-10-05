@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import requireModule from '@/shared/db/requireAccess/requireModule'
 import ssrClient from '@/shared/db/requireAccess/ssrClient'
-import { dispatchTaskAssignmentEmails } from '@/features/tasks/server/notifications'
+import dispatchTaskAssignmentEmails from '@/features/tasks/server/notifications'
 
 const taskPayload = z.object({
   titulo: z.string().trim().min(1), empresa: z.string().min(1),

@@ -28,6 +28,8 @@ CREATE INDEX IF NOT EXISTS task_email_outbox_due_idx
   WHERE status IN ('pending', 'failed');
 CREATE INDEX IF NOT EXISTS task_email_outbox_latest_idx
   ON public.task_email_outbox(activity_id, sequence_id DESC);
+CREATE INDEX IF NOT EXISTS task_email_outbox_latest_recipient_idx
+  ON public.task_email_outbox(activity_id, recipient_id, sequence_id DESC);
 
 CREATE OR REPLACE FUNCTION public.claim_task_assignment_emails(
   p_activity_id uuid DEFAULT NULL, p_limit integer DEFAULT 25
@@ -58,41 +60,52 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   v_actor_id uuid;
   v_actor_name text;
+  v_task public.actividades%ROWTYPE;
   v_message text;
 BEGIN
-  IF NEW.responsable_id IS NULL THEN RETURN NEW; END IF;
-  IF TG_OP = 'UPDATE' AND NEW.responsable_id IS NOT DISTINCT FROM OLD.responsable_id THEN
+  IF TG_OP <> 'INSERT' THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT * INTO v_task FROM public.actividades WHERE id = NEW.actividad_id;
+  IF NOT FOUND THEN
     RETURN NEW;
   END IF;
 
   SELECT u.id, coalesce(nullif(u.nombre_display, ''), nullif(trim(concat_ws(' ', u.nombre, u.apellido)), ''))
     INTO v_actor_id, v_actor_name
     FROM public.usuarios u WHERE u.auth_id = auth.uid() LIMIT 1;
-  IF TG_OP = 'INSERT' AND v_actor_id IS NULL THEN
+  IF v_actor_id IS NULL THEN
     SELECT u.id, coalesce(nullif(u.nombre_display, ''), nullif(trim(concat_ws(' ', u.nombre, u.apellido)), ''))
       INTO v_actor_id, v_actor_name
-      FROM public.usuarios u WHERE u.id = NEW.created_by_id LIMIT 1;
+      FROM public.usuarios u WHERE u.id = v_task.created_by_id LIMIT 1;
   END IF;
 
   UPDATE public.task_email_outbox SET status = 'failed',
     error = 'Asignación reemplazada antes del envío.', next_attempt_at = NULL
-    WHERE activity_id = NEW.id AND status IN ('pending', 'failed');
+    WHERE activity_id = NEW.actividad_id
+      AND recipient_id = NEW.usuario_id
+      AND status IN ('pending', 'failed');
 
   INSERT INTO public.task_email_outbox(activity_id, recipient_id, event)
-  VALUES (NEW.id, NEW.responsable_id, CASE WHEN TG_OP = 'INSERT' THEN 'created' ELSE 'reassigned' END);
+  VALUES (NEW.actividad_id, NEW.usuario_id, 'reassigned');
 
   -- Self-assignment already appears in the person's Tasks list; avoid a redundant bell item.
-  IF v_actor_id IS DISTINCT FROM NEW.responsable_id THEN
+  IF v_actor_id IS DISTINCT FROM NEW.usuario_id THEN
     v_message := concat_ws(' ',
       CASE WHEN v_actor_name IS NOT NULL THEN 'Asignada por ' || v_actor_name || ':' ELSE NULL END,
-      left(coalesce(nullif(NEW.titulo, ''), 'Tarea sin título'), 160));
-    IF NEW.fecha_entrega IS NOT NULL THEN
-      v_message := v_message || ' · Entrega: ' || to_char(NEW.fecha_entrega, 'DD/MM/YYYY');
+      left(coalesce(nullif(v_task.titulo, ''), 'Tarea sin título'), 160));
+    IF v_task.fecha_entrega IS NOT NULL THEN
+      v_message := v_message || ' · Entrega: ' || to_char(v_task.fecha_entrega, 'DD/MM/YYYY');
     END IF;
     INSERT INTO public.notificaciones(usuario_id, tipo, titulo, mensaje, actividad_id, leida)
-    VALUES (NEW.responsable_id, 'tarea_asignada', 'Nueva tarea asignada', v_message, NEW.id, false);
+    VALUES (NEW.usuario_id, 'tarea_asignada', 'Nueva tarea asignada', v_message, NEW.actividad_id, false);
   END IF;
   RETURN NEW;
 END;
 $$;
 REVOKE ALL ON FUNCTION public.queue_task_assignment_email() FROM PUBLIC;
+DROP TRIGGER IF EXISTS actividades_assignment_email ON public.actividades;
+DROP TRIGGER IF EXISTS actividad_responsables_assignment_email ON public.actividad_responsables;
+CREATE TRIGGER actividad_responsables_assignment_email AFTER INSERT
+ON public.actividad_responsables FOR EACH ROW EXECUTE FUNCTION public.queue_task_assignment_email();

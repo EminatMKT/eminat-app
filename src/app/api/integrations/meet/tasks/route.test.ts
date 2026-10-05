@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { auth, create, list, dispatch } = vi.hoisted(() => ({ auth: vi.fn(), create: vi.fn(), list: vi.fn(), dispatch: vi.fn() }))
 vi.mock('../_shared/auth', () => ({ requireMeetTaskActor: auth }))
 vi.mock('../_shared/task-service', () => ({ createTaskForTopic: create, listCanonicalTasks: list }))
-vi.mock('@/features/tasks/server/notifications', () => ({ dispatchTaskAssignmentEmails: dispatch }))
+vi.mock('@/features/tasks/server/notifications', () => ({ default: dispatch }))
 
 import { GET, POST } from './route'
 

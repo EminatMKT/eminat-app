@@ -5,7 +5,7 @@ const { requireModule, ssrClient, dispatch } = vi.hoisted(() => ({
 }))
 vi.mock('@/shared/db/requireAccess/requireModule', () => ({ default: requireModule }))
 vi.mock('@/shared/db/requireAccess/ssrClient', () => ({ default: ssrClient }))
-vi.mock('@/features/tasks/server/notifications', () => ({ dispatchTaskAssignmentEmails: dispatch }))
+vi.mock('@/features/tasks/server/notifications', () => ({ default: dispatch }))
 import { POST } from './route'
 
 const uid = '11111111-1111-4111-8111-111111111111'

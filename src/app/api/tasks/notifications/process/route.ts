@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { timingSafeEqual } from 'node:crypto'
-import { dispatchTaskAssignmentEmails } from '@/features/tasks/server/notifications'
+import dispatchTaskAssignmentEmails from '@/features/tasks/server/notifications'
 
 export const runtime = 'nodejs'
 

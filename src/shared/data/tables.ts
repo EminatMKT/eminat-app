@@ -31,6 +31,7 @@ export const TABLES = {
   vistasFiltro: 'vistas_filtro',
   topics: 'topics',
   actividadResponsables: 'actividad_responsables',
+  taskEmailOutbox: 'task_email_outbox',
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]

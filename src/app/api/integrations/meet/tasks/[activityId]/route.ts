@@ -4,7 +4,7 @@ import { requireMeetTaskActor } from '../../_shared/auth'
 import MEET_ERRORS from '../../_shared/errors'
 import { apiAuthFailure, apiFailure, apiInvalidPayload, apiJson, optionsResponse } from '../../_shared/responses'
 import { getCanonicalTask, updateTask } from '../../_shared/task-service'
-import { dispatchTaskAssignmentEmails } from '@/features/tasks/server/notifications'
+import dispatchTaskAssignmentEmails from '@/features/tasks/server/notifications'
 
 export const runtime = 'nodejs'
 export const OPTIONS = optionsResponse

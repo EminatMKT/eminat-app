@@ -14,6 +14,10 @@ COMMENT ON COLUMN public.project_members.project_role IS
 
 -- Team workload is deliberately separate from Dashboard and contains no hours,
 -- days, rankings, or historical productivity. The server checks the caller.
+--
+-- `actividades.responsable_id` is gone (feat/multi-responsables): who executes a task lives in
+-- `actividad_responsables`, one row per responsible, so each responsible of a shared task counts
+-- its load in full, same convention as the rest of Tasks.
 CREATE FUNCTION public.lilly_team_workload()
 RETURNS TABLE (user_id uuid, pending_count integer, in_progress_count integer)
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $$
@@ -25,8 +29,8 @@ BEGIN
   SELECT ar.usuario_id,
          count(*) FILTER (WHERE a.estado = 'Pendiente')::integer,
          count(*) FILTER (WHERE a.estado = 'En proceso')::integer
-  FROM public.actividades a
-  JOIN public.actividad_responsables ar ON ar.actividad_id = a.id
+  FROM public.actividad_responsables ar
+  JOIN public.actividades a ON a.id = ar.actividad_id
   GROUP BY ar.usuario_id;
 END;
 $$;
