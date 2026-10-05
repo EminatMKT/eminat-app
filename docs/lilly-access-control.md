@@ -96,9 +96,18 @@ the preflight returns zero for every finding and enforcement remains `false`.
 That empty result does not validate the proposed Production grants. No
 Production SQL was changed.
 
-The Vercel Preview deployment is built from this feature branch, but the
-project-wide Vercel Preview variables still point to the separate Supabase
-`lilly-tasks-metrics-preview` branch. Do not treat the web deployment as an
-end-to-end test of `lilly-access-control-preview` until the environments are
-isolated and connected deliberately. CI runs the access isolation E2E with
-real sessions against disposable local Supabase instead.
+Vercel Preview now has branch-specific `NEXT_PUBLIC_SUPABASE_URL`, publishable
+key, and private `SUPABASE_SECRET_KEY` for `feature/lilly-access-control` only.
+The project-wide Preview variables and Production variables were not changed.
+Deployment `6k6MBXEBGZX3TB2qMfgRYeiAZ9iR` built commit `5c1ef85` with these
+overrides and served the login page. A nonexistent corporate test login received
+the expected invalid-credentials response. A transactional isolation check on
+hosted Supabase Preview exercised synthetic admin, scoped, Project-member, and
+unconfigured identities and rolled back its fixtures; the global switch stayed
+`false`. This is a hosted database RLS check, not a browser session test.
+
+Supabase Preview currently has no Auth users. A browser session isolation test
+requires disposable Preview users to be created through the Auth workflow and
+removed after testing. CI already runs the access isolation E2E with real
+sessions against disposable local Supabase. Do not mark the PR ready or deploy
+to Production until the hosted session test passes.
