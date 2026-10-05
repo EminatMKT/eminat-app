@@ -1,0 +1,55 @@
+.page { padding: 28px clamp(16px, 3vw, 48px) 60px; max-width: 1500px; margin: 0 auto; color: #111827; }
+.embedded { padding: 20px 0; }
+.heading { margin-bottom: 20px; }
+.heading h1 { font: 800 clamp(28px, 3vw, 42px)/1.15 Syne, sans-serif; margin: 7px 0; }
+.eyebrow { color: #6b5ce7; font: 700 11px 'DM Mono', monospace; letter-spacing: .16em; }
+.toolbar, .period, .mode, .filters { display: flex; align-items: center; gap: 10px; }
+.toolbar { justify-content: space-between; flex-wrap: wrap; margin-bottom: 18px; }
+.period strong { min-width: 185px; text-align: center; text-transform: capitalize; font: 700 17px Syne, sans-serif; }
+.page button, .page select { font: inherit; color: inherit; }
+.toolbar button, .more { background: #fff; border: 1px solid #d9dce3; border-radius: 9px; padding: 9px 12px; cursor: pointer; }
+.mode { background: #f4f1fb; padding: 4px; border-radius: 10px; }
+.mode button { border: 0; background: transparent; }
+.mode button[aria-pressed='true'] { background: #fff; color: #6547bb; box-shadow: 0 1px 5px #0001; }
+.filters { flex-wrap: wrap; margin-bottom: 20px; }
+.filters label { display: flex; flex-direction: column; gap: 5px; color: #6b7280; font-size: 12px; }
+.filters select { min-width: 160px; max-width: 240px; border: 1px solid #d9dce3; border-radius: 9px; padding: 9px 12px; background: #fff; }
+.grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid #e5e7eb; border-radius: 14px; overflow: hidden; background: #fff; }
+.weekday { text-align: center; padding: 10px 4px; color: #6b7280; font: 700 11px 'DM Mono', monospace; text-transform: uppercase; border-bottom: 1px solid #e5e7eb; }
+.day { min-width: 0; min-height: 145px; padding: 9px; border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; }
+.selected { outline: 2px solid #baa8ea; outline-offset: -2px; }
+.week .day { min-height: 340px; }
+.outside { background: #f9f9fb; }
+.today .dayHeading { background: #eee8ff; color: #6547bb; }
+.dayHeading { display: block; border: 0; border-radius: 7px; padding: 4px 6px; background: transparent; font-size: 12px !important; font-weight: 700 !important; text-transform: uppercase; cursor: pointer; }
+.desktopItems { display: flex; flex-direction: column; gap: 5px; margin-top: 7px; }
+.task { display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left; border: 1px solid #e4def4; border-left: 3px solid #9072d6; border-radius: 7px; background: #faf8ff; padding: 6px 7px; cursor: pointer; min-width: 0; }
+.task:hover, .task:focus-visible { border-color: #6547bb; }
+.task strong, .task span, .task small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
+.task strong { font-size: 12px; }
+.task span, .task small { font-size: 10px; color: #6b7280; }
+.completed { border-left-color: #668f7a; background: #f7faf8; }
+.marker { font-size: 11px; color: #586178; border: 1px dashed #b8c0ce; border-radius: 6px; padding: 4px 6px; overflow-wrap: anywhere; }
+.more { padding: 5px; font-size: 11px !important; color: #6547bb !important; }
+.notice { padding: 20px; color: #6b7280; text-align: center; }
+.error { padding: 12px; margin-bottom: 12px; color: #8c2433; background: #ffedf0; border-radius: 9px; }
+.agenda { display: none; }
+@media (max-width: 700px) {
+  .page { padding: 20px 14px 40px; }
+  .toolbar { align-items: flex-start; }
+  .period { width: 100%; justify-content: space-between; }
+  .period strong { min-width: 0; font-size: 14px; }
+  .filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filters select { width: 100%; min-width: 0; }
+  .grid { gap: 3px; background: transparent; border: 0; border-radius: 0; }
+  .weekday { border: 0; padding: 5px 0; font-size: 9px; }
+  .day, .week .day { min-height: 48px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 3px; background: #fff; }
+  .dayHeading { font-size: 10px !important; width: 100%; padding: 4px 0; }
+  .desktopItems { display: none; }
+  .day:has(.task) .dayHeading::after { content: ' •'; color: #6547bb; }
+  .agenda { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+  .agenda h2 { font: 700 18px Syne, sans-serif; text-transform: capitalize; }
+  .agenda p { color: #6b7280; }
+  .agenda .task { padding: 10px; }
+  .agenda .task strong { font-size: 13px; }
+}
