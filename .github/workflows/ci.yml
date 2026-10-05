@@ -39,11 +39,19 @@ jobs:
           SUPABASE_SECRET_KEY: dummy-service-role-key
           RESEND_API_KEY: re_dummy_key
 
-  e2e:
+  e2e-shard:
+    name: e2e (${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
-    # No es la solución al cuelgue —para eso está sacar apt de arriba— sino el tope: sin esto
-    # el default de GitHub son 6 HORAS de runner bloqueando el merge.
-    timeout-minutes: 20
+    # 4 shards para 27 spec files: Playwright reparte por archivo con --shard y cada shard
+    # levanta su propia Supabase local, así no compartimos DB entre runners. La corrida completa
+    # tardó ~5.7 min en serie; 12 min por shard deja margen para install/start sin volver al
+    # default de GitHub de 6 HORAS bloqueando el merge si algo se cuelga.
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+        total: [4]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -77,7 +85,7 @@ jobs:
       - if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install chromium
       - name: e2e (Playwright contra Supabase local)
-        run: pnpm e2e
+        run: pnpm exec playwright test --shard=${{ matrix.shard }}/${{ matrix.total }}
         env:
           # Keys demo de Supabase local (públicas, deterministas — NO secretos).
           NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
@@ -88,6 +96,23 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-failure-results
+          name: playwright-failure-results-${{ matrix.shard }}
           path: test-results/
           retention-days: 7
+
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    needs: [e2e-shard]
+    if: always()
+    steps:
+      # La ruleset de GitHub exige un check llamado exactamente `e2e`. Si el job matrix se
+      # llamara así, GitHub sólo publicaría checks por shard (`e2e (1/4)`, etc.) y el required
+      # check literal quedaría pendiente para siempre. Este agregador liviano conserva ese
+      # contexto y refleja el resultado real de todos los shards.
+      - name: Verificar shards e2e
+        run: |
+          if [ "${{ needs.e2e-shard.result }}" != "success" ]; then
+            echo "Al menos un shard e2e terminó con estado: ${{ needs.e2e-shard.result }}"
+            exit 1
+          fi
