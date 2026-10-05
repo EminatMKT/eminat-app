@@ -57,6 +57,13 @@ are now rejected there and by the database `is_admin()` helper. Team workload
 remains admin-only. Client filter options derive from RLS-visible users,
 companies, Projects, and Tasks.
 
+Company grants do not grant a product module. The current `finanzas` and
+`medico_investigacion` roles do not have the `tasks` module in the seeded role
+matrix. The isolated E2E grants that module to its disposable fixture roles so
+it can exercise company RLS. Giving those real roles Tasks/Calendar access is
+a separate administrative role decision before expecting those screens to work
+for Marco or medical/research users.
+
 ## Rollout
 
 1. Apply the two new migrations **only to a dedicated Supabase Preview**.
@@ -88,6 +95,18 @@ access-control branch and needs a separate notification repair before claiming
 that assignment email delivery works end to end. Internal notifications created
 by the current assignment flow remain subject to recipient and Task visibility.
 
-The migrations have not been applied to Preview and no live isolation or E2E
-result is claimed in this document. The browser audit above was read-only
-against Production; it changed no production data or permissions.
+The dedicated Supabase branch `lilly-access-control-preview` was created on
+2026-10-05. Supabase initialized it at migration `20261002171906`, behind
+Production's `20261005033135`, so the six missing baseline migrations and the
+two access migrations were applied there in order. Its migration history now
+ends at `20261005090100`. It has zero users, Tasks, Projects and access grants;
+the preflight returns zero for every finding and enforcement remains `false`.
+That empty result does not validate the proposed Production grants. No
+Production SQL was changed.
+
+The Vercel Preview deployment is built from this feature branch, but the
+project-wide Vercel Preview variables still point to the separate Supabase
+`lilly-tasks-metrics-preview` branch. Do not treat the web deployment as an
+end-to-end test of `lilly-access-control-preview` until the environments are
+isolated and connected deliberately. CI runs the access isolation E2E with
+real sessions against disposable local Supabase instead.
