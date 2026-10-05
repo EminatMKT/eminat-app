@@ -25,7 +25,7 @@ WITH task_evidence AS (
   LEFT JOIN task_evidence t ON t.usuario_id = u.id
   WHERE u.activo
 )
-SELECT c.usuario, c.rol, c.role_candidate AS scope_sugerido,
+SELECT c.id AS usuario_id, c.usuario, c.rol, c.role_candidate AS scope_sugerido,
   c.affiliation AS empresa_de_pertenencia,
   c.task_companies AS empresas_en_tareas_historicas,
   ARRAY(SELECT x.empresa_codigo FROM public.usuario_empresas_acceso x
