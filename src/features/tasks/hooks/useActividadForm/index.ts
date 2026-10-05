@@ -111,7 +111,6 @@ export function useActividadForm() {
     setForm(p => ({ ...p, guardando: true }))
     try {
       const payload = payloadDeActividad(valores)
-
       if (editando?.id) {
         const { data, error, conflict, current } = await actividadesRepo.update(editando.id, payload, editando.updated_at)
         if (conflict) {

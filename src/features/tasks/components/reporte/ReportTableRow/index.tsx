@@ -17,8 +17,6 @@ export default function ReportTableRow({ a, responsable }: Props) {
       <td className={s.titulo}>{a.titulo}</td>
       <td className={s.td}>{a.empresa}</td>
       <td className={s.td}>{responsable}</td>
-      <td className={`${s.td} ${s.mono}`}>{a.horas || 0}h</td>
-      <td className={`${s.td} ${s.mono}`}>{a.dias_produccion}</td>
       <td className={s.plano}><span className={s.chip}>{estadoLabel(a.estado, t)}</span></td>
     </tr>
   )

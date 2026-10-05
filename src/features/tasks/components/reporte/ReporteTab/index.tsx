@@ -8,40 +8,38 @@ import Button from '@/shared/components/ui/Button'
 import StatBox from '@/shared/components/ui/StatBox'
 import ReportTableRow from '../ReportTableRow'
 import s from './index.module.css'
+import WorkerReport from '../WorkerReport'
 
-// La columna "Assignee" hace legible por qué las horas de las filas no cierran
-// con el total: el reporte LISTA lo que la persona solicitó, pero solo SUMA lo
-// que ejecuta. Sin ella, un documento que se firma para pagar mostraba filas con
-// horas que el total ignoraba, sin nada que lo explicara.
 const REPORT_HEADERS = [
   'stratix.report.colTask',
   'stratix.report.colArea',
   'stratix.report.colAssignee',
-  'stratix.report.colHours',
-  'stratix.report.colProdDays',
   'stratix.report.colStatus',
 ] as const
 
 export default function ReporteTab() {
+  const { esAdmin } = useApp()
+  return esAdmin ? <AdminReport /> : <WorkerReport />
+}
+
+function AdminReport() {
   const { accent, esAdmin, miembrosAsignables, miembrosPorId, actividades } = useApp()
   const { t, intlLocale } = useT()
   const {
     mesReporte, setMesReporte, miembroReporte, setMiembroReporte,
-    actsRep, totalHorasRep, totalDiasRep, completadasRep, nombreRep, handlePrintReport,
+    actsRep, completadasRep, nombreRep, handlePrintReport,
   } = useTasks()
 
   const summary = [
     { label: t('stratix.report.totalTasks'), value: actsRep.length, color: accent },
     { label: t('stratix.report.completed'), value: completadasRep, color: '#34D399' },
-    { label: t('stratix.report.totalHours'), value: `${totalHorasRep}h`, color: '#F472B6' },
-    { label: t('stratix.report.prodDays'), value: totalDiasRep, color: '#60A5FA' },
   ]
 
   return (
     <div id="reporte-content">
       <div id="print-header" className={s.printHeader}>
-        <div className={s.printMarca}>{t('stratix.report.brand')}</div>
-        <div className={s.printTitulo}>{t('stratix.report.beneficiary')}</div>
+        <div className={s.printMarca}>{t('tasks.report.brand')}</div>
+        <div className={s.printTitulo}>{t('tasks.report.title')}</div>
       </div>
       <div id="reporte-controls" className={s.controles}>
         <div className={s.acciones}>
@@ -61,8 +59,8 @@ export default function ReporteTab() {
       <div className={s.hoja}>
         <div className={s.head}>
           <div>
-            <div className={s.titulo}>{t('stratix.report.heading')}</div>
-            <div className={s.sub}>{t('stratix.report.subheading')}</div>
+            <div className={s.titulo}>{t('tasks.report.title')}</div>
+            <div className={s.sub}>{t('tasks.report.subtitle')}</div>
           </div>
           <div className={s.imprimirCabeza}>
             <Button kind="print" onClick={handlePrintReport} />
@@ -94,10 +92,6 @@ export default function ReporteTab() {
           </tbody>
         </table>
         {actsRep.length === 0 && <div className={s.vacio}>{t('stratix.report.empty')}</div>}
-        <div className={s.firmas}>
-          <div className={s.firma}><div className={s.linea}>{t('stratix.report.signMember')}</div></div>
-          <div className={s.firma}><div className={s.linea}>{t('stratix.report.signCoordinator')}</div></div>
-        </div>
       </div>
     </div>
   )

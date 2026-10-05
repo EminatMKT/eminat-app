@@ -136,29 +136,14 @@
   color: var(--c-t3);
 }
 
-/* Las dos firmas del pie: es un documento que se firma en papel. */
-.firmas {
-  margin-top: 40px;
-  padding-top: 20px;
-  border-top: 1px solid var(--c-border);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 60px;
-}
-
-.firma {
-  text-align: center;
-}
-
-.linea {
-  border-top: 1px solid var(--c-border);
-  padding-top: 8px;
-  font-size: 11px;
-  color: var(--c-t3);
-}
-
 @media print {
   .imprimirCabeza {
     display: none;
   }
+}
+
+.workerCell {
+  padding: 9px 12px;
+  color: var(--c-t1);
+  border-bottom: 1px solid var(--c-border);
 }

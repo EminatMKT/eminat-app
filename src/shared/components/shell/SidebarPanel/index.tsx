@@ -1,7 +1,9 @@
 'use client'
 import { useRouter, usePathname } from 'next/navigation'
 import { useT } from '@/shared/i18n'
+import { useApp } from '@/shared/context/AppContext'
 import { modulePath } from '@/shared/auth/permissions'
+import { visibleTasksTabs } from '@/features/tasks/constants/tabs'
 import { D, SUB_ITEMS, PANEL_META, type PanelKey } from '@/shared/components/shell/appShellConfig'
 import PanelItem from '@/shared/components/shell/PanelItem'
 
@@ -20,7 +22,9 @@ export default function SidebarPanel(props: Props) {
   const router = useRouter()
   const pathname = usePathname()
   const { t } = useT()
-  const subItems = SUB_ITEMS[panel]
+  const { esAdmin } = useApp()
+  const subItems = panel === 'tasks' && !esAdmin
+    ? SUB_ITEMS.tasks.filter(item => visibleTasksTabs(false).some(tab => tab === item.tab)) : SUB_ITEMS[panel]
   const { title: panelTitle, sub: panelSub } = PANEL_META[panel]
   const targetPath = modulePath(PANEL_META[panel].slug)
 
@@ -39,7 +43,10 @@ export default function SidebarPanel(props: Props) {
       </div>
       <nav style={{ flex: 1, padding: '0 8px', overflowY: 'auto' }}>
         {subItems.map(item => (
-          <PanelItem key={item.id} icon={item.icon} label={item.labelKey ? t(item.labelKey) : item.label} active={item.tabs ? item.tabs.includes(activeTab ?? '') : activeTab === item.tab} onClick={() => selectTab(item.tab)} />
+          <div key={item.id}>
+            {panel === 'tasks' && item.id === 'tasks-projects' && <div style={{ padding: '19px 10px 7px', color: D.t3, fontFamily: 'DM Mono', fontSize: 9, letterSpacing: '.13em' }}>{t('projects.workspace')}</div>}
+            <PanelItem icon={item.icon} label={item.labelKey ? t(item.labelKey) : item.label} active={item.tabs ? item.tabs.includes(activeTab ?? '') : activeTab === item.tab} onClick={() => selectTab(item.tab)} />
+          </div>
         ))}
       </nav>
     </div>

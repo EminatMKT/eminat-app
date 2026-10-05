@@ -1,8 +1,8 @@
-// El nombre que sale IMPRESO en la hoja del reporte de pago, al lado de las horas que se cobran.
+// Nombre de la persona cuyas tareas se muestran en el reporte impreso.
 //
 // Era `miembrosPorId[idRep] ?? usuario?.nombre ?? '—'`, y ese `??` del medio mentía. Tenía sentido
 // cuando `idRep` era siempre quien miraba; desde que el reporte se puede pedir de cualquiera del
-// equipo, caer al nombre de quien mira firma las horas de OTRO con tu nombre.
+// equipo, caer al nombre de quien mira identifica las tareas de OTRO con tu nombre.
 //
 // Y no es hipotético: los dos catálogos salen de fuentes distintas. `miembrosPorId` deriva de
 // `adminUsuarios` (`listAll()`, sujeto a RLS) y exige `nombre`; los asignables derivan de
@@ -13,8 +13,7 @@
 // puede faltar —si no estuviera, esa persona no sería elegible— y sólo después al catálogo, que
 // es el único que conserva a los inactivos.
 //
-// Sin nombre se imprime el guion. Una hoja que dice "—" se pregunta; una que dice el nombre
-// equivocado se firma.
+// Sin nombre se imprime el guion para evitar atribuir tareas a otra persona.
 export function nombreDelReporte(
   idRep: string,
   asignables: { id: string; nombre: string }[],

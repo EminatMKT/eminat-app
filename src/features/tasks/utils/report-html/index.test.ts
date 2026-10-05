@@ -3,17 +3,15 @@ import { reportHtml } from './index'
 import type { I18nKey } from '@/shared/i18n'
 import type { Actividad } from '@/features/tasks/types'
 
-// Esta hoja se imprime y se firma en un pago: el período que dice es el período que se cobra.
-// Por eso está testeado y no sólo tipado — un `2026-08` impreso no rompe nada, se paga.
-// `t` devuelve la clave: acá no se verifica el diccionario, se verifica el período.
+// El reporte impreso debe mostrar únicamente datos operativos de tareas.
+// `t` devuelve la clave para verificar también qué rótulos aparecen.
 const t = (k: I18nKey) => k
 
-// `mes` es la clave del filtro ('YYYY-MM'); `fecha_inicio` es la fecha real de la fila. Las dos
-// llevan agosto de 2026 a propósito: `hoy` es de 2027 para que un año tomado del reloj cante.
+// `mes` es la clave del filtro ('YYYY-MM'); `hoy` es de 2027 para distinguirlo del período.
 const acts: Actividad[] = [{ titulo: 'Post', fecha_inicio: '2026-08-17' }]
 const datos = (intlLocale: string) => ({
   acts, nombre: 'Ada', mes: '2026-08', intlLocale,
-  completadas: 1, horas: 4, dias: 2, nombrePorId: {}, t, hoy: new Date(2027, 0, 15),
+  completadas: 1, nombrePorId: {}, t, hoy: new Date(2027, 0, 15),
 })
 
 describe('reportHtml — el período', () => {
@@ -30,14 +28,15 @@ describe('reportHtml — el período', () => {
     expect(reportHtml(datos('en-US'))).not.toMatch(/August 2027/i)
   })
 
-  it('la columna de cada fila sale de `fecha_inicio`, con su año', () => {
-    expect(reportHtml(datos('en-US'))).toMatch(/Aug 2026/i)
-  })
-
-  it('una fila sin fecha imprime el guion, no "Invalid Date"', () => {
-    const html = reportHtml({ ...datos('es-EC'), acts: [{ titulo: 'Sin fecha' }] })
-    expect(html).not.toMatch(/Invalid Date/i)
-    expect(html).toContain('text-align:center">—</td>')
+  it('muestra únicamente KPIs y columnas operativas', () => {
+    const html = reportHtml(datos('es-EC'))
+    expect(html).toContain('stratix.report.totalTasks')
+    expect(html).toContain('stratix.report.completed')
+    expect(html).toContain('stratix.report.colTask')
+    expect(html).toContain('stratix.report.colArea')
+    expect(html).toContain('stratix.report.colAssignee')
+    expect(html).toContain('stratix.report.colStatus')
+    expect(html).not.toMatch(/totalHours|prodDays|colHours|colProdDays/)
   })
 
   it('deja el botón de imprimir antes de la tabla para que no quede perdido al final', () => {

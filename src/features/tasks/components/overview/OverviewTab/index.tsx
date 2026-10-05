@@ -16,6 +16,8 @@ import s from './index.module.css'
 // Esta vista la monta `/tasks`, así que el «ver todas» apunta al catálogo de ESE módulo.
 // El archivo todavía vive acá porque la mudanza de carpetas es la fase 3.
 import { TASKS_TAB } from '@/features/tasks/constants/tabs'
+import OperationalMetrics from '../OperationalMetrics'
+import AccessDenied from '@/shared/components/access/AccessDenied'
 
 // El tablero de Stratix, armado con los MISMOS componentes que el de Research: una cosa es el
 // tablero y otra la producción (ver rules/arquitectura.md). Por eso vive en su propia
@@ -24,7 +26,7 @@ import { TASKS_TAB } from '@/features/tasks/constants/tabs'
 // Lo que este archivo aporta es el dominio —qué métrica va en cada card, con qué color, y que
 // las marcas conserven el suyo— más la grilla. El aspecto de cada bloque es de shared/.
 export default function OverviewTab() {
-  const { accent, onlineCount } = useApp()
+  const { accent, onlineCount, esAdmin } = useApp()
   const { t } = useT()
   const {
     totalQ, completadasQ, enProcesoQ, pendientesQ, pctCompletado, totalHoras, totalDias,
@@ -54,6 +56,8 @@ export default function OverviewTab() {
   const marcasColors = Object.fromEntries(datosPorMarca.map(m => [m.codigo, m.color]))
   const recientes = actsFiltradas.slice(0, 6)
 
+  if (!esAdmin) return <AccessDenied />
+
   return (
     <div>
       {/* Los filtros mandan sobre TODO el tablero —indicadores, gráficas, Gantt y horas—, no
@@ -77,6 +81,8 @@ export default function OverviewTab() {
           </StaggerGrid>
         </Panel>
       </div>
+
+      <div className={s.fila}><OperationalMetrics /></div>
 
       <div className={s.charts}>
         <BarChartCard persistKey="stratix-months" title={t('stratix.dash.byMonth')} data={mesesData}

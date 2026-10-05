@@ -13,6 +13,8 @@ const serverSchema = z.object({
   // credencial de mail volteando la administración de usuarios.
   // Sin ella el envío se saltea y devuelve su warning; ver `sendWelcomeEmail`.
   RESEND_API_KEY: z.string().startsWith('re_').optional(),
+  TASKS_PUBLIC_URL: z.string().url().optional(),
+  TASK_NOTIFY_FROM_EMAIL: z.string().min(1).optional(),
 
 })
 

@@ -2,12 +2,13 @@ import type { PanelKey, SubItem } from './tipos'
 
 // Sub-tabs de los módulos con panel secundario.
 export const SUB_ITEMS: Record<PanelKey, SubItem[]> = {
-  // Las cuatro secciones de tareas, con los MISMOS ids de tab que en Stratix: durante la fase 2
-  // las dos rutas montan las mismas vistas y una tab que no coincidiera abriría en blanco.
+  // Las secciones de tareas; Projects se agrega al workspace sin alterar las vistas existentes.
   tasks: [
     { id: 'tasks-dash', icon: '📊', label: 'Dashboard', tab: 'overview' },
     { id: 'tasks-prod', icon: '⚡', label: 'Production', tab: 'kanban' },
     { id: 'tasks-sol', icon: '📋', label: 'Requests', tab: 'solicitudes' },
+    { id: 'tasks-projects', icon: '📁', label: 'Projects', labelKey: 'projects.title', tab: 'projects' },
+    { id: 'tasks-team', icon: '👥', label: 'Team', labelKey: 'team.title', tab: 'team' },
     { id: 'tasks-rep', icon: '💰', label: 'Report', tab: 'reporte' },
   ],
   // Lo que le queda a Stratix con las tareas afuera: marketing propiamente dicho. Las cuatro

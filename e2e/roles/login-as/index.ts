@@ -1,7 +1,7 @@
 import { expect, type Page } from '@playwright/test'
 import { ENTER } from '@/shared/constants/dom'
 import { PASSWORD } from '@e2e/seed'
-import { HOME_TEXT, LOGIN_PATH, LOGIN_PLACEHOLDER } from '@e2e/billing-v2/constants'
+import { HOME_TEXT, LOGIN_PATH, LOGIN_PLACEHOLDER, ONBOARDING_DONE } from '@e2e/billing-v2/constants'
 
 const HOME_PATH = '/'
 const PASSWORD_INPUT = 'input[type="password"]'
@@ -20,6 +20,7 @@ export default async function loginAs(page: Page, email: string) {
   const devtools = await page.context().newCDPSession(page)
   await devtools.send(CLEAR_ORIGIN, clearLocal)
   await devtools.detach()
+  await page.evaluate(([key, done]) => localStorage.setItem(key, done), ONBOARDING_DONE)
   await page.goto(LOGIN_PATH)
   await page.getByPlaceholder(LOGIN_PLACEHOLDER).fill(email)
   const password = page.locator(PASSWORD_INPUT)
@@ -34,3 +35,5 @@ export default async function loginAs(page: Page, email: string) {
 // Logs a roles e2e user in from scratch: cookies and the origin's saved state are wiped first, so a
 // previous user's session never leaks into the next login. The origin's storage is cleared through
 // the browser's devtools protocol rather than from the page, and the e2e project runs Chromium only.
+// The onboarding flag is set right after: its first-visit tour overlay otherwise covers the rail
+// and swallows the admin-navigation clicks.
