@@ -2,7 +2,7 @@ import { createMeetTaskSchema } from '../_shared/contracts'
 import { requireMeetTaskActor } from '../_shared/auth'
 import { apiAuthFailure, apiFailure, apiInvalidPayload, apiJson, optionsResponse } from '../_shared/responses'
 import { createTaskForTopic, listCanonicalTasks } from '../_shared/task-service'
-import { dispatchTaskAssignmentEmails } from '@/features/tasks/server/notifications'
+import dispatchTaskAssignmentEmails from '@/features/tasks/server/notifications'
 
 export const runtime = 'nodejs'
 export const OPTIONS = optionsResponse

@@ -5,6 +5,10 @@ const sql = readFileSync(
   'supabase/migrations/20260918120000_create_meet_activity_for_topic.sql',
   'utf8',
 )
+const assignmentDeliverySql = readFileSync(
+  'supabase/migrations/20261004120000_lilly_task_assignment_delivery.sql',
+  'utf8',
+)
 
 describe('create_meet_activity_for_topic migration', () => {
   it('deriva el actor exclusivamente desde auth.uid y usuarios.auth_id', () => {
@@ -49,5 +53,15 @@ describe('create_meet_activity_for_topic migration', () => {
     expect(sql).toContain('SECURITY INVOKER')
     expect(sql).not.toContain('SECURITY DEFINER')
     expect(sql).not.toMatch(/ALTER TABLE[\s\S]*ROW LEVEL SECURITY/i)
+  })
+})
+
+describe('task assignment delivery migration', () => {
+  it('queues from actividad_responsables instead of the removed responsable_id column', () => {
+    expect(assignmentDeliverySql).toContain('ON public.actividad_responsables FOR EACH ROW')
+    expect(assignmentDeliverySql).toContain('NEW.actividad_id')
+    expect(assignmentDeliverySql).toContain('NEW.usuario_id')
+    expect(assignmentDeliverySql).not.toContain('NEW.responsable_id')
+    expect(assignmentDeliverySql).not.toContain('OLD.responsable_id')
   })
 })

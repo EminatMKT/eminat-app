@@ -1,7 +1,8 @@
 import { Resend } from 'resend'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { serverEnv } from '@/shared/db/env.server'
-import { buildAssignmentEmail } from './assignment-email'
+import { TABLES } from '@/shared/data/tables'
+import { buildAssignmentEmail } from '../assignment-email'
 
 type OutboxEvent = { id: string; activity_id: string; recipient_id: string; event: string; attempts: number; sequence_id: number }
 const MAX_ATTEMPTS = 5
@@ -12,7 +13,7 @@ function nextAttempt(attempts: number) {
 
 // Both immediate delivery and the scheduled worker claim through the same atomic SQL function.
 // An unknown provider outcome stays in `sending` for reconciliation; it is never resent blindly.
-export async function dispatchTaskAssignmentEmails(activityId?: string) {
+export default async function dispatchTaskAssignmentEmails(activityId?: string) {
   if (!serverEnv.RESEND_API_KEY) return { warning: 'Correo pendiente: RESEND_API_KEY no configurada.', processed: 0 }
   const db = supabaseAdmin()
   const { data: events, error } = await db.rpc('claim_task_assignment_emails', {
@@ -22,27 +23,32 @@ export async function dispatchTaskAssignmentEmails(activityId?: string) {
   const resend = new Resend(serverEnv.RESEND_API_KEY)
   let failed = 0
   for (const event of (events || []) as OutboxEvent[]) {
-    const eventDb = db.from('task_email_outbox')
+    const eventDb = db.from(TABLES.taskEmailOutbox)
     try {
-      const [{ data: task, error: taskError }, { data: recipient, error: recipientError }] = await Promise.all([
-        db.from('actividades').select('id,titulo,empresa,fecha_entrega,responsable_id').eq('id', event.activity_id).maybeSingle(),
-        db.from('usuarios').select('id,email,nombre_display,nombre,apellido,activo').eq('id', event.recipient_id).maybeSingle(),
-      ])
-      if (taskError || recipientError) {
+      // `actividades.responsable_id` is gone (feat/multi-responsables): "is this recipient still
+      // assigned" now means "is there still an actividad_responsables row for them".
+      const taskQuery = db.from(TABLES.actividades).select('id,titulo,empresa,fecha_entrega').eq('id', event.activity_id).maybeSingle()
+      const recipientQuery = db.from(TABLES.usuarios).select('id,email,nombre_display,nombre,apellido,activo').eq('id', event.recipient_id).maybeSingle()
+      const assignedQuery = db.from(TABLES.actividadResponsables).select('usuario_id').eq('actividad_id', event.activity_id).eq('usuario_id', event.recipient_id).maybeSingle()
+      const lookups: [typeof taskQuery, typeof recipientQuery, typeof assignedQuery] = [taskQuery, recipientQuery, assignedQuery]
+      const [{ data: task, error: taskError }, { data: recipient, error: recipientError }, { data: stillAssigned, error: assignedError }] =
+        await Promise.all(lookups)
+      if (taskError || recipientError || assignedError) {
         await eventDb.update({ status: 'failed', error: 'No se pudieron consultar los datos del aviso.',
           next_attempt_at: event.attempts < MAX_ATTEMPTS ? nextAttempt(event.attempts) : null }).eq('id', event.id)
         failed++
         continue
       }
-      const { data: latest, error: latestError } = await db.from('task_email_outbox')
-        .select('id').eq('activity_id', event.activity_id).order('sequence_id', { ascending: false }).limit(1).maybeSingle()
+      const { data: latest, error: latestError } = await db.from(TABLES.taskEmailOutbox)
+        .select('id').eq('activity_id', event.activity_id).eq('recipient_id', event.recipient_id)
+        .order('sequence_id', { ascending: false }).limit(1).maybeSingle()
       if (latestError) {
         await eventDb.update({ status: 'failed', error: 'No se pudo validar la asignación vigente.',
           next_attempt_at: event.attempts < MAX_ATTEMPTS ? nextAttempt(event.attempts) : null }).eq('id', event.id)
         failed++
         continue
       }
-      if (!task || task.responsable_id !== event.recipient_id || latest?.id !== event.id) {
+      if (!task || !stillAssigned || latest?.id !== event.id) {
         await eventDb.update({ status: 'failed', error: 'Asignación reemplazada antes del envío.', next_attempt_at: null }).eq('id', event.id)
         continue
       }

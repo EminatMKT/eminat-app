@@ -7,7 +7,7 @@ const { send, db, env } = vi.hoisted(() => ({
 vi.mock('resend', () => ({ Resend: class { emails = { send } } }))
 vi.mock('@/shared/db/supabaseAdmin', () => ({ supabaseAdmin: db }))
 vi.mock('@/shared/db/env.server', () => ({ serverEnv: env }))
-import { dispatchTaskAssignmentEmails } from './notifications'
+import dispatchTaskAssignmentEmails from '.'
 
 const taskId = '22222222-2222-4222-8222-222222222222'
 const recipientId = '11111111-1111-4111-8111-111111111111'
@@ -16,6 +16,9 @@ const event = { id: '33333333-3333-4333-8333-333333333333', activity_id: taskId,
 function fakeDb(options: { events?: typeof event[]; assignee?: string; email?: string; dbError?: boolean; latestId?: string } = {}) {
   const writes: { status?: string; error?: string; next_attempt_at?: string | null }[] = []
   const rpc = vi.fn().mockResolvedValue({ data: options.events ?? [event], error: options.dbError ? { message: 'db' } : null })
+  // The recipient is "still assigned" (an actividad_responsables row exists for them) unless
+  // `assignee` names someone else — same semantic the old `responsable_id` column check had.
+  const stillAssigned = (options.assignee ?? recipientId) === recipientId
   db.mockReturnValue({
     rpc,
     from: (table: string) => {
@@ -24,10 +27,14 @@ function fakeDb(options: { events?: typeof event[]; assignee?: string; email?: s
           writes.push(row)
           return { error: null }
         } }),
-        select: () => ({ eq: () => ({ order: () => ({ limit: () => ({ maybeSingle: async () => ({ data: { id: options.latestId ?? event.id }, error: null }) }) }) }) }),
+        select: () => ({ eq: () => ({ eq: () => ({ order: () => ({ limit: () => ({ maybeSingle: async () => ({ data: { id: options.latestId ?? event.id }, error: null }) }) }) }) }) }),
+      }
+      if (table === 'actividad_responsables') return {
+        select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () =>
+          ({ data: stillAssigned ? { usuario_id: recipientId } : null, error: null }) }) }) }),
       }
       const data = table === 'actividades'
-        ? { id: taskId, titulo: 'Create launch', empresa: 'Marketing', fecha_entrega: '2026-10-10', responsable_id: options.assignee ?? recipientId }
+        ? { id: taskId, titulo: 'Create launch', empresa: 'Marketing', fecha_entrega: '2026-10-10' }
         : { id: recipientId, email: options.email === undefined ? 'alex@example.com' : options.email, nombre_display: 'Alex', activo: true }
       return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data, error: null }) }) }) }
     },

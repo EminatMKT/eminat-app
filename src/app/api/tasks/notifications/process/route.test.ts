@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 
 const { dispatch } = vi.hoisted(() => ({ dispatch: vi.fn() }))
-vi.mock('@/features/tasks/server/notifications', () => ({ dispatchTaskAssignmentEmails: dispatch }))
+vi.mock('@/features/tasks/server/notifications', () => ({ default: dispatch }))
 import { GET } from './route'
 
 const request = (token?: string) => new NextRequest('https://preview.example/api/tasks/notifications/process', {
