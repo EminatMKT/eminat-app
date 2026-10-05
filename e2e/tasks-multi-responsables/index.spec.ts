@@ -17,7 +17,6 @@ const UI_WAIT = { timeout: 15000 }
 const COMBOBOX = 'combobox'
 const OPTION = 'option'
 const LISTBOX = 'listbox'
-const SELECTED = 'aria-selected'
 const say = (key: Parameters<typeof translate>[1]) => translate(LOCALE, key)
 const named = (name: string) => ({ name })
 const exactly = (name: string) => ({ name, exact: true })
@@ -39,26 +38,21 @@ test('a task with three responsibles and a leader', async ({ page }) => {
     await page.locator(`[data-tour="${MODULE.TASKS}"]`).click()
     await page.waitForURL(`**${modulePath(MODULE.TASKS)}`)
   }
-  await test.step('create it as a non-admin and see crown + leader +2 on the card', async () => {
+  await test.step('create one task with a principal and two collaborators', async () => {
     await openTasksAs(CREATOR.email)
     await page.getByRole(BUTTON, named(say('stratix.newTask'))).click()
     const modal = page.getByRole(DIALOG)
     await modal.getByPlaceholder(say('stratix.new.titlePh')).fill(taskTitle)
     await modal.locator(`select:has(option[value="${BRAND}"])`).selectOption(BRAND)
-    const picker = modal.getByRole(COMBOBOX, named(say('tasks.responsibles.label')))
-    await expect(picker).toHaveValue(say('stratix.new.select'))
+    await modal.getByLabel('Responsable principal').selectOption(labelled(LEADER.full))
+    const picker = modal.getByRole(COMBOBOX, named('Colaboradores'))
     await picker.click()
-    // Scoped to the panel: the requester select of the same form lists the same people as options.
     const panel = modal.getByRole(LISTBOX)
-    for (const p of PEOPLE) await panel.getByRole(OPTION, exactly(p.full)).click()
-    for (const p of PEOPLE) await expect(panel.getByRole(OPTION, exactly(p.full))).toHaveAttribute(SELECTED, 'true')
-    const makeLeader = translate(LOCALE, 'tasks.responsibles.makeLeaderAria', named(LEADER.full))
-    const removeLeader = translate(LOCALE, 'tasks.responsibles.removeLeaderAria', named(LEADER.full))
-    await modal.getByRole(BUTTON, exactly(makeLeader)).click()
-    await expect(modal.getByRole(BUTTON, exactly(removeLeader))).toHaveAttribute('aria-pressed', 'true')
+    for (const p of PEOPLE.filter(person => person !== LEADER)) await panel.getByRole(OPTION, exactly(p.full)).click()
+    await expect(panel.getByRole(OPTION, exactly(LEADER.full))).toHaveCount(0)
     await picker.press(ESCAPE)
     await expect(modal.getByRole(LISTBOX)).toHaveCount(0)
-    await expect(picker).toHaveValue(`👑 ${LEADER.full} +2`)
+    await expect(picker).toHaveValue('2 colaboradores')
     await modal.getByRole(BUTTON, named(say('stratix.new.create'))).click()
     const card = page.locator('[draggable="true"]').filter(holding(taskTitle))
     await expect(card).toBeVisible(UI_WAIT)

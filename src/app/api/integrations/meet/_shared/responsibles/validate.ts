@@ -16,6 +16,7 @@ const update = (request: ResponsiblesRequest, ctx: z.RefinementCtx) => {
   const set = normalizeResponsibles(request)
   const leaderOutside = Boolean(lider_id && !set?.ids.includes(lider_id))
   if (leaderOutside) ctx.addIssue(RESPONSIBLE_ISSUES.leaderOutside)
+  if (responsable_ids && !set?.ids.length) ctx.addIssue(RESPONSIBLE_ISSUES.noResponsible)
 }
 
 /** Same as `update`, and a new Task needs at least one responsible. */

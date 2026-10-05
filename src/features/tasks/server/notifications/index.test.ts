@@ -13,12 +13,12 @@ const taskId = '22222222-2222-4222-8222-222222222222'
 const recipientId = '11111111-1111-4111-8111-111111111111'
 const event = { id: '33333333-3333-4333-8333-333333333333', activity_id: taskId, recipient_id: recipientId, event: 'created', attempts: 1 }
 
-function fakeDb(options: { events?: typeof event[]; assignee?: string; email?: string; dbError?: boolean; latestId?: string } = {}) {
+function fakeDb(options: { events?: typeof event[]; assignee?: string; email?: string; dbError?: boolean; latestId?: string; assignmentLeader?: boolean; assignmentExists?: boolean } = {}) {
   const writes: { status?: string; error?: string; next_attempt_at?: string | null }[] = []
   const rpc = vi.fn().mockResolvedValue({ data: options.events ?? [event], error: options.dbError ? { message: 'db' } : null })
   // The recipient is "still assigned" (an actividad_responsables row exists for them) unless
   // `assignee` names someone else — same semantic the old `responsable_id` column check had.
-  const stillAssigned = (options.assignee ?? recipientId) === recipientId
+  const stillAssigned = options.assignmentExists ?? (options.assignee ?? recipientId) === recipientId
   db.mockReturnValue({
     rpc,
     from: (table: string) => {
@@ -31,10 +31,10 @@ function fakeDb(options: { events?: typeof event[]; assignee?: string; email?: s
       }
       if (table === 'actividad_responsables') return {
         select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () =>
-          ({ data: stillAssigned ? { usuario_id: recipientId } : null, error: null }) }) }) }),
+          ({ data: stillAssigned ? { es_lider: options.assignmentLeader !== false } : null, error: null }) }) }) }),
       }
       const data = table === 'actividades'
-        ? { id: taskId, titulo: 'Create launch', empresa: 'Marketing', fecha_entrega: '2026-10-10' }
+        ? { id: taskId, titulo: 'Create launch', empresa: 'Marketing', fecha_entrega: '2026-10-10', responsable_id: options.assignee ?? recipientId }
         : { id: recipientId, email: options.email === undefined ? 'alex@example.com' : options.email, nombre_display: 'Alex', activo: true }
       return { select: () => ({ eq: () => ({ maybeSingle: async () => ({ data, error: null }) }) }) }
     },
@@ -46,7 +46,7 @@ beforeEach(() => { vi.clearAllMocks(); env.RESEND_API_KEY = 're_synthetic_test_k
 it('claims once and sends only the recipient with a stable provider idempotency key', async () => {
   const { writes, rpc } = fakeDb()
   await dispatchTaskAssignmentEmails(taskId)
-  expect(rpc).toHaveBeenCalledWith('claim_task_assignment_emails', { p_activity_id: taskId, p_limit: 25 })
+  expect(rpc).toHaveBeenCalledWith('claim_task_assignment_emails', { p_activity_id: taskId, p_limit: 50 })
   expect(send).toHaveBeenCalledTimes(1)
   expect(send.mock.calls[0][0].to).toBe('alex@example.com')
   expect(send.mock.calls[0][1]).toEqual({ idempotencyKey: `lilly-assignment-${event.id}` })
@@ -98,4 +98,15 @@ it('does not send when there are no claimable events', async () => {
   fakeDb({ events: [] })
   await dispatchTaskAssignmentEmails()
   expect(send).not.toHaveBeenCalled()
+})
+it('sends a new collaborator through the same outbox', async () => {
+  fakeDb({ events: [{ ...event, event: 'collaborator_added' }], assignee: '44444444-4444-4444-8444-444444444444', assignmentLeader: false, assignmentExists: true })
+  await dispatchTaskAssignmentEmails(taskId)
+  expect(send).toHaveBeenCalledTimes(1)
+})
+it('cancels a pending email after the collaborator is removed', async () => {
+  const { writes } = fakeDb({ events: [{ ...event, event: 'collaborator_added' }], assignee: '44444444-4444-4444-8444-444444444444' })
+  await dispatchTaskAssignmentEmails(taskId)
+  expect(send).not.toHaveBeenCalled()
+  expect(writes).toMatchObject([{ status: 'failed', next_attempt_at: null }])
 })

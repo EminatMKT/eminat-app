@@ -1,5 +1,4 @@
-import { actividadesRepo, notificacionesRepo } from '@/shared/data'
-import { newlyAddedResponsableIds } from '../responsables'
+import { actividadesRepo } from '@/shared/data'
 import type { ActividadResponsable } from '@/features/tasks/types'
 
 /** `notice` is the notification's title and body, already translated by the caller. */
@@ -11,35 +10,25 @@ type SaveResponsablesInput = {
   notice: Record<'titulo' | 'mensaje', string>
 }
 
-const NOTICE_TYPE = 'tarea_asignada'
-
 export type SaveResponsablesResult = { error: string | null; updatedAt: string | null }
 
-/** Saves the task's responsables and notifies the newly added ones; returns the first error. */
+/** Saves assignments. Database triggers queue bell and email notices for changes only. */
 export default async function saveResponsables(input: SaveResponsablesInput): Promise<SaveResponsablesResult> {
-  const { actividadId, previous, next, actorId, notice } = input
+  const { actividadId, next } = input
   const saved = await actividadesRepo.setResponsables(actividadId, next)
   if (saved.error) return { error: saved.error.message, updatedAt: null }
   const updatedAt = (saved.data as string | null) ?? null
 
-  const recipients = newlyAddedResponsableIds(previous, next, actorId)
-  if (recipients.length === 0) return { error: null, updatedAt }
+  // Immediate delivery shares the same atomic outbox claim as the cron worker.
+  // A mail outage cannot roll back a successfully saved assignment.
+  await fetch('/api/tasks/notifications/process', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ activityId: actividadId }),
+  }).catch(() => null)
 
-  const rows = recipients.map(usuarioId => {
-    const row = {
-      usuario_id: usuarioId,
-      tipo: NOTICE_TYPE,
-      ...notice,
-      actividad_id: actividadId,
-      leida: false,
-    }
-    return row
-  })
-  const sent = await notificacionesRepo.insert(rows)
-  return { error: sent.error?.message ?? null, updatedAt }
+  // The assignment INSERT trigger owns bell and outbox delivery for every
+  // write path, including Meet. Sending here would duplicate the bell.
+  return { error: null, updatedAt }
 }
 
-// saveResponsables is the single write path for who is on a task: the set goes through the
-// atomic RPC first, and only people who were not there before get a notification. The RPC bumps
-// `actividades.updated_at` itself and hands back the new value, so the caller's local cache never
-// falls behind it — a second edit right after this one would otherwise 409 against nobody.
+// The RPC diffs the existing set and returns a fresh optimistic-lock version.

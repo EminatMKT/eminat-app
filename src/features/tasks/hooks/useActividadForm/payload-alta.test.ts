@@ -3,7 +3,7 @@ import { payloadDeActividad, payloadDeAlta } from './payload'
 import type { NuevaActForm } from '@/features/tasks/types'
 
 const form = (over: Partial<NuevaActForm> = {}): NuevaActForm => ({
-  titulo: 'Reel de agosto', descripcion: '', empresa: 'EMC', responsables: [{ usuario_id: 'u1', es_lider: false }],
+  titulo: 'Reel de agosto', descripcion: '', empresa: 'EMC', project_id: '', responsables: [{ usuario_id: 'u1', es_lider: false }],
   fecha_inicio: '2026-08-19', horas: '', dias_produccion: '',
   estado: 'Pendiente', fecha_entrega: '', solicitante_id: '', drive_url: '', ...over,
 })

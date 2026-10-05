@@ -7,7 +7,7 @@ import ACTIVITY_SELECT from '@/shared/data/actividades/activity-select'
 import flattenEmbed from '@/shared/data/actividades/flatten-embed'
 import { useT } from '@/shared/i18n'
 import { estadoLabel } from '@/shared/constants/domain'
-import { etiquetaResponsablesCompacta, usersFromNames } from '@/features/tasks/utils/responsables'
+import ResponsiblesCompact from '@/features/tasks/components/ResponsiblesCompact'
 import { useTasks } from '../../TasksContext'
 import type { Actividad } from '@/features/tasks/types'
 import { dateFromKey, movePeriod, period, todayKey, type CalendarMode } from '@/features/tasks/calendar/period'
@@ -38,7 +38,6 @@ export default function CalendarTab({ projectId }: { projectId?: string }) {
   const currentMonth = cursor.slice(0, 7)
   const projectById = useMemo(() => Object.fromEntries(projects.map(p => [p.id, p.name])), [projects])
   const brandByCode = useMemo(() => Object.fromEntries(empresas.map(e => [e.codigo, e.nombre])), [empresas])
-  const responsibleUsers = useMemo(() => usersFromNames(miembrosPorId), [miembrosPorId])
   const tasksByDay = useMemo(() => {
     const grouped: Record<string, Task[]> = {}
     for (const task of tasks) (grouped[task.fecha_entrega] ||= []).push(task)
@@ -100,7 +99,7 @@ export default function CalendarTab({ projectId }: { projectId?: string }) {
     setModalVerAct(flattenEmbed(data))
   }
   const taskLine = (task: Task) => <button key={task.id} className={`${s.task} ${task.estado === 'Completado' ? s.completed : ''}`} onClick={() => void openTask(task)} title={`${task.titulo} · ${estadoLabel(task.estado, t)} · ${task.fecha_entrega}`}>
-    <strong>{task.titulo}</strong><span>{projectById[task.project_id || ''] || brandByCode[task.empresa] || task.empresa}</span><small>{etiquetaResponsablesCompacta(task, responsibleUsers).label} · {estadoLabel(task.estado, t)}</small>
+    <strong>{task.titulo}</strong><span>{projectById[task.project_id || ''] || brandByCode[task.empresa] || task.empresa}</span><small><ResponsiblesCompact a={task} namesById={miembrosPorId} /> · {estadoLabel(task.estado, t)}</small>
   </button>
   const markerLines = (day: string) => (markersByDay[day] || []).map(({ marker, kind }) => <div className={s.marker} key={`${marker.id}-${kind}`}>◇ {marker.name} · {kind === 'start' ? t('calendar.projectStart') : t('calendar.projectTarget')}</div>)
   const dayTasks = (day: string) => tasksByDay[day] || []

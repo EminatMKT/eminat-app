@@ -2,6 +2,7 @@
 import { Field } from '@/shared/components/ui'
 import { useT } from '@/shared/i18n'
 import { useTasks } from '@/features/tasks/components/TasksContext'
+import { useApp } from '@/shared/context/AppContext'
 import s from './index.module.css'
 
 // centinela-exime: bloques-similares@3 — sale de `NewActivityModal`, que pasaba el techo de 150.
@@ -15,6 +16,8 @@ import s from './index.module.css'
 export default function ActivityNumeros() {
   const { t } = useT()
   const { nuevaAct, setNuevaAct } = useTasks()
+  const { esAdmin } = useApp()
+  if (!esAdmin) return null
 
   return (
     <div className={s.dos}>

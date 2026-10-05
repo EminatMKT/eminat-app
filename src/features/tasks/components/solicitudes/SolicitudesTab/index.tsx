@@ -3,6 +3,7 @@ import { useT, type I18nKey } from '@/shared/i18n'
 import TabButton from '@/shared/components/ui/TabButton'
 import TabBar from '@/shared/components/ui/TabBar'
 import { useTasks } from '@/features/tasks/components/TasksContext'
+import { useApp } from '@/shared/context/AppContext'
 import SolicitudesListView from '../SolicitudesListView'
 import SolicitudesAvailabilityView from '../SolicitudesAvailabilityView'
 
@@ -19,15 +20,17 @@ const views: Record<string, JSX.Element> = {
 export default function SolicitudesTab() {
   const { t } = useT()
   const { solTab, setSolTab } = useTasks()
+  const { esAdmin } = useApp()
+  const visibleTabs = esAdmin ? SUB_TABS : SUB_TABS.filter(tab => tab.key === 'lista')
   return (
     <div>
       <TabBar>
-        {SUB_TABS.map(tab => (
+          {visibleTabs.map(tab => (
           <TabButton key={tab.key} label={`${tab.icon} ${t(tab.labelKey)}`}
             active={solTab === tab.key} onClick={() => setSolTab(tab.key)} />
         ))}
       </TabBar>
-      {views[solTab]}
+      {views[esAdmin ? solTab : 'lista']}
     </div>
   )
 }

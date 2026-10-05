@@ -19,7 +19,7 @@ describe('validateResponsibles', () => {
     expect(passes(updateShape, { responsable_id: ana, responsable_ids: [beto] })).toBe(false)
     expect(passes(updateShape, { responsable_ids: [ana], lider_id: beto })).toBe(false)
     expect(passes(updateShape, { lider_id: ana })).toBe(false)
-    expect(passes(updateShape, { responsable_ids: [] })).toBe(true)
+    expect(passes(updateShape, { responsable_ids: [] })).toBe(false)
   })
 
   it('create also needs at least one responsible', () => {

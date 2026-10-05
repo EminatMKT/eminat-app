@@ -20,13 +20,13 @@ import css from './index.module.css'
 
 export default function ActivityDetailModal() {
   const { t, locale } = useT()
-  const { miembrosPorId } = useApp()
+  const { miembrosPorId, esAdmin } = useApp()
   const { modalVerAct, setModalVerAct, abrirEdicion, setModalNuevaAct, setNuevaAct, eliminarAct } = useTasks()
   const [confirmarBorrado, setConfirmarBorrado] = useState(false)
   if (!modalVerAct) return null
 
   const deps = { t, locale, miembrosPorId }
-  const grupos = camposDeActividad(modalVerAct, deps)
+  const grupos = camposDeActividad(modalVerAct, deps, esAdmin)
 
   // Quitados el 25/08/2026 por pedido de Wagner: el formulario de edición ya cubre estado y
   // fecha, y tener dos caminos para el mismo dato es lo que hace que uno de los dos se olvide.

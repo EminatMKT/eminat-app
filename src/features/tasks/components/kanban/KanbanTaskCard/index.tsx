@@ -13,7 +13,7 @@ import s from './index.module.css'
 type Props = { a: Actividad }
 
 export default function KanbanTaskCard({ a }: Props) {
-  const { miembrosPorId, colorMarca } = useApp()
+  const { miembrosPorId, colorMarca, esAdmin } = useApp()
   const { t, intlLocale } = useT()
   const { dragId, onDragStart, onDragEnd, setModalVerAct, setModalNuevaAct, setNuevaAct } = useTasks()
   const { inicial, entrega, vencida, periodo } = datosTarjeta(a, miembrosPorId, intlLocale)
@@ -37,7 +37,7 @@ export default function KanbanTaskCard({ a }: Props) {
           <ResponsiblesCompact a={a} namesById={miembrosPorId} className={s.quien} />
         </div>
         <div className={s.meta}>
-          {!!a.horas && <span>{a.horas}h</span>}
+          {esAdmin && !!a.horas && <span>{a.horas}h</span>}
           {entrega && <span className={vencida ? s.vencida : undefined}>{entrega}</span>}
         </div>
       </div>

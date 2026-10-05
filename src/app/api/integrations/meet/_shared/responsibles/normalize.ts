@@ -5,7 +5,10 @@ const normalizeResponsibles = ({ responsable_id, responsable_ids, lider_id }: Re
   const legacyIds = responsable_id ? [responsable_id] : null
   const ids = responsable_ids ?? legacyIds
   if (!ids) return null
-  const normalized: NormalizedResponsibles = { ids: Array.from(new Set(ids)), leaderId: lider_id ?? null }
+  const unique = Array.from(new Set(ids))
+  // Legacy Meet sends only responsable_id. It is the primary, not a leaderless
+  // collaborator; arrays without an explicit leader use their first person.
+  const normalized: NormalizedResponsibles = { ids: unique, leaderId: lider_id ?? unique[0] ?? null }
   return normalized
 }
 

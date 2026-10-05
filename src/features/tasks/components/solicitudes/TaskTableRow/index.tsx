@@ -15,7 +15,7 @@ type Props = { a: Actividad }
 
 export default function TaskTableRow({ a }: Props) {
   const { t, intlLocale } = useT()
-  const { miembrosPorId, colorMarca } = useApp()
+  const { miembrosPorId, colorMarca, esAdmin } = useApp()
   const { setModalVerAct, setModalNuevaAct, setNuevaAct } = useTasks()
   const vencida = !!a.fecha_entrega && new Date(a.fecha_entrega) < new Date() && a.estado !== ESTADO.COMPLETADO
   const vars = {
@@ -32,7 +32,7 @@ export default function TaskTableRow({ a }: Props) {
       <td className={s.tdTitulo}><span className={s.chipMarca}>{a.empresa}</span></td>
       <td className={s.td}><ResponsiblesCompact a={a} namesById={miembrosPorId} /></td>
       <td className={s.td}>{periodoLargo(a.fecha_inicio, intlLocale, 'short')}</td>
-      <td className={`${s.td} ${s.mono}`}>{a.horas || 0}h</td>
+      {esAdmin && <td className={`${s.td} ${s.mono}`}>{a.horas || 0}h</td>}
       <td className={s.tdTitulo}><span className={s.chipEstado}>{estadoLabel(a.estado, t)}</span></td>
       <td className={`${s.td} ${vencida ? s.vencida : ''}`}>
         {a.fecha_entrega ? new Date(a.fecha_entrega + 'T00:00:00').toLocaleDateString() : '—'}
