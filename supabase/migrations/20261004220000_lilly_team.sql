@@ -31,4 +31,5 @@ BEGIN
 END;
 $$;
 REVOKE ALL ON FUNCTION public.lilly_team_workload() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.lilly_team_workload() FROM anon;
 GRANT EXECUTE ON FUNCTION public.lilly_team_workload() TO authenticated;
