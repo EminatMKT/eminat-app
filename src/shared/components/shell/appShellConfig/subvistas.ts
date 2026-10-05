@@ -8,6 +8,7 @@ export const SUB_ITEMS: Record<PanelKey, SubItem[]> = {
     { id: 'tasks-prod', icon: '⚡', label: 'Production', tab: 'kanban' },
     { id: 'tasks-sol', icon: '📋', label: 'Requests', tab: 'solicitudes' },
     { id: 'tasks-projects', icon: '📁', label: 'Projects', labelKey: 'projects.title', tab: 'projects' },
+    { id: 'tasks-calendar', icon: '📅', label: 'Calendar', labelKey: 'calendar.title', tab: 'calendar' },
     { id: 'tasks-team', icon: '👥', label: 'Team', labelKey: 'team.title', tab: 'team' },
     { id: 'tasks-rep', icon: '💰', label: 'Report', tab: 'reporte' },
   ],

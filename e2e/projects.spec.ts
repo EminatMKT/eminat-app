@@ -75,6 +75,13 @@ test('Projects RLS gives admin full access and workers only their memberships', 
     await expect(page.getByRole('heading', { name: /Projects|Proyectos/ })).toBeVisible({ timeout: 20000 })
     await expect(page.getByText(project.name)).toBeVisible()
     await page.getByRole('button', { name: new RegExp(project.name) }).click()
+    const calendarRequest = page.waitForRequest(request => request.url().includes('/api/tasks/calendar?') && request.url().includes(`project=${projectId}`))
+    await page.getByRole('navigation', { name: /Secciones del proyecto|Project sections/ }).getByRole('button', { name: /Calendario|Calendar/ }).click()
+    await calendarRequest
+    await expect(page.getByRole('grid')).toBeVisible()
+    await page.getByRole('button', { name: /Semana|Week/ }).click()
+    await expect(page.getByRole('gridcell')).toHaveCount(7)
+    await page.getByRole('button', { name: /Hoy|Today/ }).click()
     await page.getByRole('navigation', { name: /Secciones del proyecto|Project sections/ }).getByRole('button', { name: /Equipo|Team/ }).click()
     await expect(page.getByText('Project Member')).toBeVisible()
     await expect(page.getByRole('combobox', { name: /Rol en el proyecto|Project role/ }).first()).toHaveValue('Reviewer')
