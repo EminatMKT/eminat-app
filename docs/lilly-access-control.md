@@ -22,8 +22,7 @@ temporarily keep legacy behavior until the final global switch is activated.
 
 Read-only Production audit on 2026-10-05 found 43 active users. No historical
 permission inference or per-user backfill is required for this rollout. Admin
-will assign scopes explicitly as users are configured. The earlier read-only
-matrix remains available as optional background and writes no grants.
+will assign scopes explicitly as users are configured.
 
 The same audit found 9 Tasks with a null company, 0 Projects without a valid
 company, and 0 task/Project company mismatches. The 9 Tasks retain legacy read
