@@ -487,6 +487,10 @@ CREATE TRIGGER trg_log_actividad_responsables_delete
 AFTER DELETE ON public.actividad_responsables
 FOR EACH ROW EXECUTE FUNCTION public.log_cambio_actividad_responsables();
 
+-- Prod has a trigger on this column that no tracked migration created (applied by hand, outside
+-- the CLI, sometime after this file was first written). Drop it here so the column drop below
+-- doesn't hit SQLSTATE 2BP01; whatever it did (queue a Lilly assignment email) stops firing.
+DROP TRIGGER IF EXISTS actividades_assignment_email ON public.actividades;
 DROP INDEX IF EXISTS public.idx_actividades_responsable;
 ALTER TABLE public.actividades DROP CONSTRAINT IF EXISTS actividades_responsable_id_fkey;
 ALTER TABLE public.actividades DROP COLUMN responsable_id;
