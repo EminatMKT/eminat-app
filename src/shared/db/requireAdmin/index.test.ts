@@ -30,7 +30,12 @@ describe('requireAdmin', () => {
   })
   it('an admin → ok with the profile id, not the auth id', async () => {
     fakes.getUser.mockResolvedValueOnce(SIGNED_IN)
-    fakes.maybeSingle.mockResolvedValueOnce({ data: { id: 'u-1', rol: 'admin' } })
+    fakes.maybeSingle.mockResolvedValueOnce({ data: { id: 'u-1', rol: 'admin', activo: true } })
     expect(await requireAdmin()).toEqual({ ok: true, userId: 'u-1' })
+  })
+  it('an inactive admin cannot use service-role routes', async () => {
+    fakes.getUser.mockResolvedValueOnce(SIGNED_IN)
+    fakes.maybeSingle.mockResolvedValueOnce({ data: { id: 'u-1', rol: 'admin', activo: false } })
+    expect(await requireAdmin()).toEqual(FORBIDDEN)
   })
 })

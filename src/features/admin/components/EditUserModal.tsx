@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useApp, COLORES_AVATAR } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { MODULE_META, getModulesForRole } from '@/shared/auth/permissions'
@@ -24,6 +24,36 @@ export default function EditUserModal({ user, onClose }: { user: EditUserDraft; 
   const [form, setForm] = useState<EditUserDraft>(user)
   const [editError, setEditError] = useState<string | null>(null)
   const [guardando, setGuardando] = useState(false)
+  const [scopeCodes, setScopeCodes] = useState<string[]>([])
+  const [scopesLoading, setScopesLoading] = useState(true)
+  const [scopesSaving, setScopesSaving] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    fetch(`/api/admin/user-scopes/${user.id}`, { cache: 'no-store' })
+      .then(async res => {
+        if (!res.ok) throw new Error(t('admin.edit.scopesLoadFailed'))
+        return res.json() as Promise<{ codes: string[] }>
+      })
+      .then(data => { if (active) setScopeCodes(data.codes) })
+      .catch(err => { if (active) setEditError(err.message) })
+      .finally(() => { if (active) setScopesLoading(false) })
+    return () => { active = false }
+  }, [user.id, t])
+
+  async function guardarAccesos() {
+    setScopesSaving(true); setEditError(null)
+    try {
+      const res = await fetch(`/api/admin/user-scopes/${user.id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ codes: scopeCodes }),
+      })
+      if (!res.ok) throw new Error(t('admin.edit.scopesFailed'))
+      mostrarMensaje('ok', t('admin.edit.scopesSaved'))
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : t('admin.edit.scopesFailed'))
+    } finally { setScopesSaving(false) }
+  }
 
   async function guardarEdicion() {
     setEditError(null)
@@ -84,6 +114,23 @@ export default function EditUserModal({ user, onClose }: { user: EditUserDraft; 
         })()}
         <CargosPicker value={form.cargoIds} onChange={ids => setForm(p => ({ ...p, cargoIds: ids }))} />
         <CatalogSelect labelKey="common.company" value={form.empresa_id} rows={empresas} onChange={id => setForm(p => ({ ...p, empresa_id: id }))} />
+        <fieldset style={{ border: `1px solid ${border}`, borderRadius: 10, marginBottom: 12, padding: 12 }}>
+          <legend style={{ fontSize: 12, color: t2 }}>{t('admin.edit.scopesTitle')}</legend>
+          <p style={{ fontSize: 11, color: t3, margin: '4px 0 10px' }}>{t('admin.edit.scopesHelp')}</p>
+          {scopesLoading ? <span style={{ fontSize: 11, color: t3 }}>{t('admin.edit.scopesLoading')}</span> :
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {empresas.map(e => <label key={e.codigo} style={{ fontSize: 12, color: t2, display: 'flex', gap: 6, alignItems: 'center' }}>
+                <input type="checkbox" checked={scopeCodes.includes(e.codigo)} onChange={event =>
+                  setScopeCodes(previous => event.target.checked
+                    ? [...previous, e.codigo] : previous.filter(code => code !== e.codigo))} />
+                {e.codigo} — {e.nombre}{e.recibe_actividades ? '' : t('admin.edit.noTasks')}
+              </label>)}
+            </div>}
+          <button type="button" disabled={scopesLoading || scopesSaving} onClick={guardarAccesos}
+            style={{ marginTop: 12, padding: '8px 12px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, cursor: 'pointer' }}>
+            {scopesSaving ? t('admin.edit.scopesSaving') : t('admin.edit.scopesSave')}
+          </button>
+        </fieldset>
         <CatalogSelect labelKey="common.jornada" value={form.jornada_id} rows={jornadas} onChange={id => setForm(p => ({ ...p, jornada_id: id }))} />
         <CatalogSelect labelKey="common.vinculacion" value={form.vinculacion_id} rows={vinculaciones} onChange={id => setForm(p => ({ ...p, vinculacion_id: id }))} />
         {/* Es la vía para reparar a quien quedó sin equipo — sin esto no era
