@@ -44,7 +44,8 @@ is service-role-only; `admin_reassign_and_delete` is service-role-only;
 `create_meet_activity_for_topic`, `update_meet_activity`, and
 `set_actividad_responsables` are invoker functions, so they retain RLS.
 Task audit/notification triggers write privileged records but do not expose
-Task rows. The legacy `v_kpis_globales` grant was the concrete bypass found.
+Task rows. This phase does not change notification policies, Resend, or Meet.
+The legacy `v_kpis_globales` grant was the concrete bypass found.
 
 The Calendar API and Report API use the caller's Supabase session, not
 `service_role`; Production and Requests use the shared `actividades` query.
@@ -84,9 +85,7 @@ for Marco or medical/research users.
 The baseline on `main` already removed `actividades.responsable_id` in its
 multi-responsable migration. The older email dispatcher still selects that
 column, and the old assignment email trigger is dropped. This predates the
-access-control branch and needs a separate notification repair before claiming
-that assignment email delivery works end to end. Internal notifications created
-by the current assignment flow remain subject to recipient and Task visibility.
+access-control branch. Notification delivery remains outside this phase.
 
 The dedicated Supabase branch `lilly-access-control-preview` was created on
 2026-10-05. Supabase initialized it at migration `20261002171906`, behind

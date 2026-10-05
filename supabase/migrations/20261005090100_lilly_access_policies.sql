@@ -112,13 +112,6 @@ CREATE POLICY lilly_projects_read ON public.projects FOR SELECT TO authenticated
 CREATE POLICY lilly_project_members_read ON public.project_members FOR SELECT TO authenticated
   USING (public.can_access_project(project_id));
 
--- Notifications are visible only if their target task is still visible.
-CREATE POLICY lilly_notifications_target_visible ON public.notificaciones
-  AS RESTRICTIVE FOR SELECT TO authenticated USING (
-    NOT public.lilly_access_enforced() OR public.is_admin() OR actividad_id IS NULL
-    OR EXISTS (SELECT 1 FROM public.actividades a WHERE a.id = actividad_id)
-  );
-
 -- Legacy aggregate is owner-executed and bypasses actividades RLS. No current
 -- application call site uses it; the admin-only metrics RPC replaces it.
 REVOKE ALL ON public.v_kpis_globales FROM anon, authenticated;
