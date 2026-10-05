@@ -75,6 +75,7 @@ test('RLS confines companies, people and Projects while allowing one shared Proj
       })
     }
     const day = new Date().toISOString().slice(0, 10)
+    const adminJwt = await token('freddy@eminat.net')
     const makeProject = async (company: string) => {
       const [row] = await service('projects', 'POST', {
         name: `LILLY access ${company} ${Date.now()}`, company_code: company,
@@ -84,11 +85,22 @@ test('RLS confines companies, people and Projects while allowing one shared Proj
       return row.id as string
     }
     const makeTask = async (company: string, projectId?: string) => {
-      const [row] = await service('actividades', 'POST', {
+      // The Project link trigger deliberately checks the caller's admin session,
+      // even for service_role. Create linked Tasks with a real admin JWT.
+      const response = await fetch(`${URL}/rest/v1/actividades?select=id`, {
+        method: 'POST',
+        headers: {
+          apikey: ANON, Authorization: `Bearer ${adminJwt}`,
+          'Content-Type': 'application/json', Prefer: 'return=representation',
+        },
+        body: JSON.stringify({
         titulo: `LILLY scope ${company} ${Date.now()}`, empresa: company,
         estado: 'Pendiente', fecha_inicio: day, fecha_entrega: day,
         created_by_id: admin.id, project_id: projectId ?? null,
-      }, '?select=id')
+        }),
+      })
+      if (!response.ok) throw new Error(`POST actividades: ${response.status} ${await response.text()}`)
+      const [row] = await response.json()
       createdTaskIds.push(row.id)
       return row.id as string
     }
