@@ -23,6 +23,7 @@ export default function TeamTab({ initialMemberId }: { initialMemberId?: string 
   const [teamId, setTeamId] = useState('')
   const [projectId, setProjectId] = useState('')
   const [loading, setLoading] = useState(true)
+  const [accessEnforced, setAccessEnforced] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => { if (initialMemberId) { setSelected(initialMemberId); setSection('overview') } }, [initialMemberId])
@@ -30,6 +31,9 @@ export default function TeamTab({ initialMemberId }: { initialMemberId?: string 
     let active = true
     async function load() {
       setLoading(true)
+      const { data: enforced } = await supabase.rpc('lilly_access_enforced')
+      if (!active) return
+      setAccessEnforced(enforced === true)
       const projectResult = await supabase.from(TABLES.projects).select('id,name,status').order('name').limit(1000)
       if (!active) return
       if (projectResult.error) { setError(projectResult.error.message); setLoading(false); return }
@@ -54,7 +58,9 @@ export default function TeamTab({ initialMemberId }: { initialMemberId?: string 
     return () => { active = false }
   }, [esAdmin])
 
-  const visibleIds = useMemo(() => visiblePeopleIds(esAdmin, miembrosAsignables.map(u => u.id), usuario?.id, memberships), [esAdmin, miembrosAsignables, memberships, usuario?.id])
+  const visibleIds = useMemo(() => visiblePeopleIds(esAdmin,
+    accessEnforced ? usuarios.map(u => u.id).filter((id): id is string => Boolean(id)) : miembrosAsignables.map(u => u.id),
+    usuario?.id, memberships, accessEnforced), [esAdmin, miembrosAsignables, memberships, usuario?.id, usuarios, accessEnforced])
   const people = useMemo(() => usuarios.filter(u => u.id && u.activo && visibleIds.has(u.id)), [usuarios, visibleIds])
   const activeProjects = useMemo(() => projects.filter(p => p.status !== 'Archived' && p.status !== 'Completed'), [projects])
   const filtered = useMemo(() => people.filter(person => {
@@ -75,7 +81,7 @@ export default function TeamTab({ initialMemberId }: { initialMemberId?: string 
       if (!selected || !visibleIds.has(selected)) { setTasks([]); return }
       // Workers only request their own tasks or assignments inside projects RLS made visible.
       let query = supabase.from(TABLES.actividades).select('id,titulo,estado,project_id,actividad_responsables!actividad_responsables_actividad_id_fkey!inner(usuario_id)').eq('actividad_responsables.usuario_id', selected).order('created_at', { ascending: false }).limit(100)
-      const scope = taskProjectScope(esAdmin, usuario?.id, selected, memberships)
+      const scope = taskProjectScope(esAdmin, usuario?.id, selected, memberships, accessEnforced)
       if (scope) {
         if (!scope.length) { setTasks([]); return }
         query = query.in('project_id', scope)
@@ -87,7 +93,7 @@ export default function TeamTab({ initialMemberId }: { initialMemberId?: string 
     }
     void loadTasks()
     return () => { active = false }
-  }, [esAdmin, memberships, selected, usuario?.id, visibleIds])
+  }, [esAdmin, memberships, selected, usuario?.id, visibleIds, accessEnforced])
 
   const teamName = (id?: string | null) => equipos.find(e => e.id === id)?.nombre || t('team.unassigned')
   const nameOf = (person: typeof people[number]) => `${person.nombre || ''} ${person.apellido || ''}`.trim()
