@@ -26,16 +26,20 @@ export default function EditUserModal({ user, onClose }: { user: EditUserDraft; 
   const [guardando, setGuardando] = useState(false)
   const [scopeCodes, setScopeCodes] = useState<string[]>([])
   const [scopesLoading, setScopesLoading] = useState(true)
+  const [scopesLoaded, setScopesLoaded] = useState(false)
   const [scopesSaving, setScopesSaving] = useState(false)
 
   useEffect(() => {
     let active = true
+    setScopesLoading(true)
+    setScopesLoaded(false)
+    setScopeCodes([])
     fetch(`/api/admin/user-scopes/${user.id}`, { cache: 'no-store' })
       .then(async res => {
         if (!res.ok) throw new Error(t('admin.edit.scopesLoadFailed'))
         return res.json() as Promise<{ codes: string[] }>
       })
-      .then(data => { if (active) setScopeCodes(data.codes) })
+      .then(data => { if (active) { setScopeCodes(data.codes); setScopesLoaded(true) } })
       .catch(err => { if (active) setEditError(err.message) })
       .finally(() => { if (active) setScopesLoading(false) })
     return () => { active = false }
@@ -126,7 +130,7 @@ export default function EditUserModal({ user, onClose }: { user: EditUserDraft; 
                 {e.codigo} — {e.nombre}{e.recibe_actividades ? '' : t('admin.edit.noTasks')}
               </label>)}
             </div>}
-          <button type="button" disabled={scopesLoading || scopesSaving} onClick={guardarAccesos}
+          <button type="button" disabled={!scopesLoaded || scopesSaving} onClick={guardarAccesos}
             style={{ marginTop: 12, padding: '8px 12px', borderRadius: 8, border: `1px solid ${border}`, background: s2, color: t2, cursor: 'pointer' }}>
             {scopesSaving ? t('admin.edit.scopesSaving') : t('admin.edit.scopesSave')}
           </button>

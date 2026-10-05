@@ -13,26 +13,23 @@ is the affiliation entry with `recibe_actividades = false`.
 scopes per user. The `admin` role, when active, has global access without rows
 in this table. A `project_members` row also grants access to that **one**
 Project and its linked Tasks; it never grants the Project's whole company.
-Workers can edit Tasks only in their company grants, not through membership
-alone. Assignment creation requires the recipient to have the company grant or
-specific Project membership after enforcement is enabled.
+Workers with configured scopes can edit Tasks only in their company grants, not
+through membership alone. Assignment creation for a configured recipient
+requires the company grant or specific Project membership. Users without scopes
+temporarily keep legacy behavior until the final global switch is activated.
 
 ## Audit
 
-Read-only Production audit on 2026-10-05 found 43 active users. A deliberately
-conservative role/affiliation/history proposal classifies 7 as clear, 20 as
-ambiguous, 15 without a role candidate, and 1 global admin. The query in
-`supabase/checks/lilly-access-backfill.sql` produces the per-user matrix after
-Phase A is installed; it writes no grants. Do not turn its suggestions into
-automatic permissions. Marco Aurelio Torres has affiliation `EMINAT` and
-historical Tasks in `EMC`, `EMINAT`, and `ERG`; the historical work does not
-justify EMC/ERG access. Ariana Sig-Tú has affiliation `STRATIX` and work across
-many task brands. Two active records share the display name Daniel Valderrama,
-with different roles; distinguish them by user ID during review.
+Read-only Production audit on 2026-10-05 found 43 active users. No historical
+permission inference or per-user backfill is required for this rollout. Admin
+will assign scopes explicitly as users are configured. The earlier read-only
+matrix remains available as optional background and writes no grants.
 
 The same audit found 9 Tasks with a null company, 0 Projects without a valid
-company, and 0 task/Project company mismatches. The 9 Tasks need explicit
-classification before activation.
+company, and 0 task/Project company mismatches. The 9 Tasks retain legacy read
+visibility, including for configured users, until they are classified. They
+are not reassigned automatically. The final global switch requires their
+classification and blocks new company-less Tasks after activation.
 
 Current broad reads: `actividades` is gated by module rather than company;
 `usuarios`, `empresas`, `equipos`, `departamentos`, `cargos`, and
@@ -66,25 +63,22 @@ for Marco or medical/research users.
 
 ## Rollout
 
-1. Apply the two new migrations **only to a dedicated Supabase Preview**.
-   They create grants and policies with `lilly_access_control.enforced = false`.
-   Existing staff visibility remains until activation.
-2. Run the backfill matrix and `SELECT * FROM public.lilly_access_preflight`
-   through an administrative connection. Review every ambiguous person and
-   every active person without a candidate. Assign grants through Admin, not
-   with inferred SQL. Classify the 9 company-less Tasks.
-3. Confirm no active non-admin lacks a scope, no Task or Project lacks a valid
-   company, and no Project-linked Task has a mismatched company. Review
-   `assignments_without_access` separately: old assignments do not silently
-   become grants and may cease to be visible to their former assignees.
-4. Run isolation tests with real Preview sessions for admin, Finance, Stratix,
-   EMC+ERG, and a cross-Project member, including direct REST requests,
-   Calendar, Team, Report, filters, and notifications. Only then call
-   `activate_lilly_access_control()` using the Preview service role. It refuses
-   activation if structural checks fail. Repeat the isolation tests with
-   enforcement enabled.
-5. Production requires a separate approved backfill and activation decision.
-   No migration or grant from this branch should be applied there now.
+1. Apply the three additive access migrations in Preview. The final global
+   switch remains `false`. An active user's first Admin-assigned scope makes
+   company RLS effective for that user immediately. Multiple grants combine.
+2. Users without explicit scopes keep the legacy visibility. Removing all a
+   user's scopes returns them to that fallback while the switch is off. This
+   transitional behavior must be understood when Admin removes a final scope.
+   Company-less historical Tasks also keep legacy read visibility temporarily.
+3. Validate configured and unconfigured user sessions in the connected App and
+   Supabase Preview. No inferred grants are written.
+4. Later, configure every active user, classify the 9 company-less Tasks, and
+   review `lilly_access_preflight`. Only then call the service-role-only
+   `activate_lilly_access_control()` for the final cutover. It checks coverage,
+   Task/Project company validity, and linked-company consistency, then removes
+   the fallback for users without scopes and company-less Tasks.
+5. This PR prepares the progressive rollout for Production. It does not merge
+   or activate the final global switch.
 
 ## Current limitations
 
@@ -99,7 +93,7 @@ The dedicated Supabase branch `lilly-access-control-preview` was created on
 2026-10-05. Supabase initialized it at migration `20261002171906`, behind
 Production's `20261005033135`, so the six missing baseline migrations and the
 two access migrations were applied there in order. Its migration history now
-ends at `20261005090100`. It has zero users, Tasks, Projects and access grants;
+ends at `20261005100000`. It has zero users, Tasks, Projects and access grants;
 the preflight returns zero for every finding and enforcement remains `false`.
 That empty result does not validate the proposed Production grants. No
 Production SQL was changed.

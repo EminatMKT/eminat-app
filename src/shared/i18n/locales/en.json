@@ -489,7 +489,7 @@
   "admin.edit.updated": "User updated",
   "admin.edit.title": "Edit user",
   "admin.edit.scopesTitle": "Company and brand access",
-  "admin.edit.scopesHelp": "Select multiple entries. The affiliation above does not grant access by itself.",
+  "admin.edit.scopesHelp": "Select one or more brands. Saving the first limits access to them. With none, the user temporarily keeps prior access.",
   "admin.edit.scopesLoading": "Loading access…",
   "admin.edit.scopesSaving": "Saving…",
   "admin.edit.scopesSave": "Save access",

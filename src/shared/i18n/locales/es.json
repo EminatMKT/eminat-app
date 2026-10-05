@@ -489,7 +489,7 @@
   "admin.edit.updated": "Usuario actualizado",
   "admin.edit.title": "Editar usuario",
   "admin.edit.scopesTitle": "Acceso a empresas y marcas",
-  "admin.edit.scopesHelp": "Puede seleccionar varias. La empresa de pertenencia de arriba no otorga acceso por sí sola.",
+  "admin.edit.scopesHelp": "Seleccione una o varias marcas. Al guardar la primera, el acceso se limita a ellas. Sin ninguna, el usuario conserva temporalmente el acceso anterior.",
   "admin.edit.scopesLoading": "Cargando accesos…",
   "admin.edit.scopesSaving": "Guardando…",
   "admin.edit.scopesSave": "Guardar accesos",

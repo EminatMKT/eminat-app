@@ -2,13 +2,14 @@ import { test, expect } from '@playwright/test'
 import { PASSWORD, H, ensureUser, getUsuario, deleteUser } from './seed'
 import { URL, ANON } from './constants'
 
-// This runs against the disposable Supabase stack in CI. It turns enforcement on
-// only for this test and restores the switch before other specs use the database.
+// This runs against the disposable Supabase stack in CI. Explicit grants enable
+// isolation per user while the global switch stays off for unconfigured users.
 const emails = {
   finance: 'lilly.finance.e2e@eminat.net',
   stratix: 'lilly.stratix.e2e@eminat.net',
   medical: 'lilly.medical.e2e@eminat.net',
   cross: 'lilly.cross.e2e@eminat.net',
+  legacy: 'lilly.legacy.e2e@eminat.net',
 }
 
 async function service(table: string, method = 'GET', data?: unknown, query = '') {
@@ -63,12 +64,13 @@ test('RLS confines companies, people and Projects while allowing one shared Proj
     await ensureUser(emails.stratix, 'stratix360', 'Stratix', 'Scope')
     await ensureUser(emails.medical, 'medico_investigacion', 'Medical', 'Scope')
     await ensureUser(emails.cross, 'stratix360', 'Cross', 'Project')
+    await ensureUser(emails.legacy, 'stratix360', 'Legacy', 'Scope')
     const ids = Object.fromEntries(await Promise.all(
       Object.entries(emails).map(async ([key, email]) => [key, (await getUsuario(email)).id]),
     )) as Record<keyof typeof emails, string>
     for (const [key, company] of [
       ['finance', 'EMINAT'], ['stratix', 'S'], ['medical', 'EMC'],
-      ['medical', 'ERG'], ['cross', 'S'],
+      ['medical', 'ERG'],
     ] as const) {
       await service('usuario_empresas_acceso', 'POST', {
         usuario_id: ids[key], empresa_codigo: company, created_by: admin.id,
@@ -84,7 +86,7 @@ test('RLS confines companies, people and Projects while allowing one shared Proj
       createdProjectIds.push(row.id)
       return row.id as string
     }
-    const makeTask = async (company: string, projectId?: string) => {
+    const makeTask = async (company: string | null, projectId?: string) => {
       // The Project link trigger deliberately checks the caller's admin session,
       // even for service_role. Create linked Tasks with a real admin JWT.
       const response = await fetch(`${URL}/rest/v1/actividades?select=id`, {
@@ -111,13 +113,19 @@ test('RLS confines companies, people and Projects while allowing one shared Proj
     const emcTask = await makeTask('EMC', emcProject)
     const otherEmcTask = await makeTask('EMC', otherEmcProject)
     const ergTask = await makeTask('ERG')
+    const unclassifiedTask = await makeTask(null)
     await service('project_members', 'POST', { project_id: emcProject, user_id: ids.cross })
     // A historical assignment by itself must not grant company visibility.
     await service('actividad_responsables', 'POST',
       { actividad_id: emcTask, usuario_id: ids.cross, es_lider: true })
     await service('actividad_responsables', 'POST',
       { actividad_id: otherEmcTask, usuario_id: ids.cross, es_lider: true })
-    await service('lilly_access_control', 'PATCH', { enforced: true }, '?singleton=eq.true')
+    // This assignment predates the explicit scope. It must not grant all EMC.
+    await service('usuario_empresas_acceso', 'POST', {
+      usuario_id: ids.cross, empresa_codigo: 'S', created_by: admin.id,
+    })
+    expect((await service('lilly_access_control', 'GET', undefined,
+      '?singleton=eq.true&select=enforced'))[0].enforced).toBe(false)
 
     const jwt = Object.fromEntries(await Promise.all([
       ['admin', 'freddy@eminat.net'], ...Object.entries(emails),
@@ -126,10 +134,11 @@ test('RLS confines companies, people and Projects while allowing one shared Proj
       'actividades', jwt[who], `?id=in.(${createdTaskIds.join(',')})&select=id`,
     )).map((row: { id: string }) => row.id))
     expect(await visibleTasks('admin')).toEqual(new Set(createdTaskIds))
-    expect(await visibleTasks('finance')).toEqual(new Set([eminatTask]))
-    expect(await visibleTasks('stratix')).toEqual(new Set([stratixTask]))
-    expect(await visibleTasks('medical')).toEqual(new Set([emcTask, otherEmcTask, ergTask]))
-    expect(await visibleTasks('cross')).toEqual(new Set([stratixTask, emcTask]))
+    expect(await visibleTasks('finance')).toEqual(new Set([eminatTask, unclassifiedTask]))
+    expect(await visibleTasks('stratix')).toEqual(new Set([stratixTask, unclassifiedTask]))
+    expect(await visibleTasks('medical')).toEqual(new Set([emcTask, otherEmcTask, ergTask, unclassifiedTask]))
+    expect(await visibleTasks('cross')).toEqual(new Set([stratixTask, emcTask, unclassifiedTask]))
+    expect(await visibleTasks('legacy')).toEqual(new Set(createdTaskIds))
 
     // Manual REST filters cannot disclose another company's rows.
     expect(await asUser('actividades', jwt.finance, '?empresa=eq.EMC&select=id')).toEqual([])
@@ -143,6 +152,8 @@ test('RLS confines companies, people and Projects while allowing one shared Proj
     const financeUsers = (await asUser('usuarios', jwt.finance,
       `?id=in.(${Object.values(ids).join(',')})&select=id`)).map((row: { id: string }) => row.id)
     expect(financeUsers).toEqual([ids.finance])
+    expect((await asUser('empresas', jwt.legacy, '?select=codigo')).length)
+      .toBeGreaterThan(crossCompanies.length)
 
     await page.goto('/login')
     await page.getByPlaceholder('tu@eminat.net').fill(emails.cross)
@@ -162,6 +173,16 @@ test('RLS confines companies, people and Projects while allowing one shared Proj
     expect(ownReport.status()).toBe(200)
     expect((await ownReport.json()).tasks.map((row: { id: string }) => row.id))
       .toEqual([emcTask])
+
+    // The final switch is prepared, but remains off in the rollout. Verify
+    // that it removes the unconfigured-user fallback when deliberately enabled.
+    await service('lilly_access_control', 'PATCH', { enforced: true }, '?singleton=eq.true')
+    expect(await visibleTasks('legacy')).toEqual(new Set())
+    expect(await visibleTasks('finance')).toEqual(new Set([eminatTask]))
+    await service('lilly_access_control', 'PATCH', { enforced: false }, '?singleton=eq.true')
+    await service('usuario_empresas_acceso', 'DELETE', undefined,
+      `?usuario_id=eq.${ids.finance}`)
+    expect(await visibleTasks('finance')).toEqual(new Set(createdTaskIds))
   } finally {
     await service('lilly_access_control', 'PATCH', { enforced: false }, '?singleton=eq.true')
     for (const id of createdTaskIds) await service('actividades', 'DELETE', undefined, `?id=eq.${id}`)
