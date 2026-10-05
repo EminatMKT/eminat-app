@@ -7,6 +7,8 @@ vi.mock('@/features/tasks/server/notifications', () => ({ dispatchTaskAssignment
 
 import { GET, PATCH } from './route'
 
+const TASK_URL = 'https://app.stratixsolutions.us/api/integrations/meet/tasks/11111111-1111-4111-8111-111111111111'
+
 describe('PATCH Meet Tasks', () => {
   beforeEach(() => { vi.clearAllMocks(); dispatch.mockResolvedValue({ warning: null }); auth.mockResolvedValue({ ok: true, actor: { client: {}, authUserId: 'auth-1', profileId: 'profile-1' } }) })
   it('propaga 409 y la versión canónica cuando updated_at cambió', async () => {
@@ -24,6 +26,18 @@ describe('PATCH Meet Tasks', () => {
     })
     expect((await PATCH(request, { params: { activityId: '11111111-1111-4111-8111-111111111111' } })).status).toBe(400)
     expect(update).not.toHaveBeenCalled()
+  })
+  it('accepts responsable_ids with a leader and hands them to the service', async () => {
+    const task = { id: '11111111-1111-4111-8111-111111111111', responsable_id: '22222222-2222-4222-8222-222222222222', responsables: [] }
+    const success = { ok: true, data: task }
+    update.mockResolvedValue(success)
+    const responsibles = ['22222222-2222-4222-8222-222222222222', '33333333-3333-4333-8333-333333333333']
+    const patch = { expected_updated_at: '2026-09-18T12:00:00Z', responsable_ids: responsibles, lider_id: responsibles[1] }
+    const init = { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(patch) }
+    const request = new Request(TASK_URL, init)
+    const context = { params: { activityId: '11111111-1111-4111-8111-111111111111' } }
+    expect((await PATCH(request, context)).status).toBe(200)
+    expect(update.mock.calls[0][3]).toEqual(patch)
   })
   it('despacha el outbox luego de una reasignación válida', async () => {
     update.mockResolvedValue({ ok: true, data: { id: '11111111-1111-4111-8111-111111111111' } })

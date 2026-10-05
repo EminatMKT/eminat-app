@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { departamentoPorUsuario } from './index'
+import { departamentoPorActividad, departamentoPorUsuario } from './index'
 import type { Usuario, OrgRow } from '@/shared/context/loadAppData'
 
 const equipos = [
@@ -34,5 +34,32 @@ describe('departamentoPorUsuario', () => {
 
   it('con catálogos vacíos devuelve un mapa vacío', () => {
     expect(departamentoPorUsuario([], [])).toEqual({})
+  })
+})
+
+describe('departamentoPorActividad', () => {
+  const porResponsable = { u1: 'd-mkt', u2: 'd-med', u3: 'd-mkt' }
+
+  it('incluye los departamentos de todos los responsables de una tarea compartida', () => {
+    const deps = departamentoPorActividad({
+      responsables: [
+        { usuario_id: 'u1', es_lider: true },
+        { usuario_id: 'u2', es_lider: false },
+      ],
+    }, porResponsable)
+
+    expect(deps).toEqual(['d-mkt', 'd-med'])
+  })
+
+  it('deduplica departamentos y omite responsables sin departamento derivable', () => {
+    const deps = departamentoPorActividad({
+      responsables: [
+        { usuario_id: 'u1', es_lider: true },
+        { usuario_id: 'u3', es_lider: false },
+        { usuario_id: 'u9', es_lider: false },
+      ],
+    }, porResponsable)
+
+    expect(deps).toEqual(['d-mkt'])
   })
 })

@@ -18,14 +18,13 @@ function numeroNoNegativo(v: string) {
 
 export function payloadDeActividad(form: NuevaActForm): Record<string, unknown> {
   const {
-    titulo, empresa, responsable_id, fecha_inicio, estado, descripcion,
+    titulo, empresa, fecha_inicio, estado, descripcion,
     horas, dias_produccion, fecha_entrega, solicitante_id, drive_url,
   } = form
 
   const fila: Record<string, unknown> = {
     titulo: titulo.trim(),
     empresa,
-    responsable_id,
     fecha_inicio,
     // Fase 1: `mes` y `trimestre` se siguen escribiendo para que el testigo no se quede viejo
     // mientras se verifica el backfill contra datos de producción. Se borran en la fase 2.

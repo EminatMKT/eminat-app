@@ -31,6 +31,19 @@ describe('POST Meet Tasks', () => {
     expect(create.mock.calls[0][2]).toEqual(body)
     expect(dispatch).toHaveBeenCalledWith('a-1')
   })
+  it('passes the new responsable_ids shape through to the service', async () => {
+    create.mockResolvedValue({ ok: true, data: { task: { id: 'a-1' }, idempotent: false } })
+    const { responsable_id: legacyId, ...rest } = body
+    const arrayBody = Object.assign(rest, { responsable_ids: [legacyId], lider_id: legacyId })
+    const response = await POST(request(arrayBody))
+    expect(response.status).toBe(201)
+    expect(create.mock.calls[0][2]).toEqual(arrayBody)
+  })
+  it('rejects a body that mixes the legacy id and the array before calling the service', async () => {
+    const mixed = Object.assign({}, body, { responsable_ids: [body.responsable_id] })
+    expect((await POST(request(mixed))).status).toBe(400)
+    expect(create).not.toHaveBeenCalled()
+  })
   it('devuelve 200 al repetir el mismo topic', async () => {
     create.mockResolvedValue({ ok: true, data: { task: { id: 'a-1' }, idempotent: true } })
     expect((await POST(request(body))).status).toBe(200)

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { cargaDe, slotOcupado, HORAS_SEMANALES } from './index'
+import { actividadesActivasDe, cargaDe, slotOcupado, HORAS_SEMANALES } from './index'
+import { ESTADO } from '@/shared/constants/domain'
 
 describe('cargaDe', () => {
   it('suma las horas y saca el resto de la semana', () => {
@@ -36,5 +37,21 @@ describe('slotOcupado', () => {
 
   it('poco cargada: ningún slot ocupado', () => {
     expect(slotOcupado(30, 12)).toBe(false)
+  })
+})
+
+describe('actividadesActivasDe', () => {
+  const actividades = [
+    { id: 'a', estado: ESTADO.EN_PROCESO, responsables: [{ usuario_id: 'u1', es_lider: true }] },
+    { id: 'b', estado: ESTADO.PENDIENTE, responsables: [
+      { usuario_id: 'u1', es_lider: true },
+      { usuario_id: 'u2', es_lider: false },
+    ] },
+    { id: 'c', estado: ESTADO.COMPLETADO, responsables: [{ usuario_id: 'u2', es_lider: true }] },
+  ]
+
+  it('incluye tareas activas compartidas para ambos responsables', () => {
+    expect(actividadesActivasDe(actividades, 'u1').map(a => a.id)).toEqual(['a', 'b'])
+    expect(actividadesActivasDe(actividades, 'u2').map(a => a.id)).toEqual(['b'])
   })
 })

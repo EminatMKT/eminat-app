@@ -57,6 +57,11 @@ export interface Notificacion {
   created_at?: string
 }
 
+export type ActividadResponsable = {
+  usuario_id: string
+  es_lider: boolean
+}
+
 // Actividad de marketing (tabla `actividades`). Tipo canónico compartido: este
 // módulo la almacena/pasa sin leer sus campos, pero las vistas de Stratix leen
 // campos opcionales. Index signature porque los registros vienen de Supabase.
@@ -66,7 +71,7 @@ export type Actividad = {
   titulo?: string
   descripcion?: string
   empresa?: string
-  responsable_id?: string
+  responsables?: ActividadResponsable[] | null
   // Cuándo empieza el trabajo. Su MES es el período de imputación del reporte de pago.
   // `mes`/`trimestre`/`semana` siguen en la tabla durante la fase 1 pero NADIE los lee: son el
   // testigo para verificar el backfill en producción. Se borran en la fase 2.
@@ -79,7 +84,7 @@ export type Actividad = {
   fecha_entrega?: string
   solicitante_id?: string
   // Quién CARGÓ la fila — no quién la pidió (`solicitante_id`) ni quién la ejecuta
-  // (`responsable_id`). Vacío en todo lo anterior a 2026-09: no hay de dónde backfillearlo.
+  // (`responsables`). Vacío en todo lo anterior a 2026-09: no hay de dónde backfillearlo.
   created_by_id?: string
   drive_url?: string
   // El resto de las columnas de `actividades`. Estaban cubiertas por el index signature de

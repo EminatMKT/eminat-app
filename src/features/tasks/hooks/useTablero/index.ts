@@ -7,6 +7,7 @@ import { useT } from '@/shared/i18n'
 import { applyFilters, monthRange, RANGE_SEP } from '@/shared/utils'
 import { claveMes, periodoLargo } from '@/features/tasks/utils/periodo'
 import { isExcludedFromStratix360 } from '@/features/tasks/team'
+import { esResponsable } from '@/features/tasks/utils/responsables'
 
 // centinela-exime: archivo-extenso@2 — son 20 derivaciones del MISMO conjunto filtrado
 // (`actsFiltradas`): partirlas obligaría a recalcular el filtro en cada pedazo o a pasarlo
@@ -97,9 +98,9 @@ export function useTablero() {
   const datosPorMiembro = idsTeam.map(id => ({
     id,
     nombre: miembrosPorId[id] ?? '—',
-    total: actsFiltradas.filter(a => a.responsable_id === id).length,
-    completadas: actsFiltradas.filter(a => a.responsable_id === id && a.estado === ESTADO.COMPLETADO).length,
-    horas: Math.round(actsFiltradas.filter(a => a.responsable_id === id).reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10,
+    total: actsFiltradas.filter(a => esResponsable(a, id)).length,
+    completadas: actsFiltradas.filter(a => esResponsable(a, id) && a.estado === ESTADO.COMPLETADO).length,
+    horas: Math.round(actsFiltradas.filter(a => esResponsable(a, id)).reduce((acc, a) => acc + (Number(a.horas) || 0), 0) * 10) / 10,
   })).filter(d => d.total > 0).sort((a, b) => b.total - a.total)
   const maxMiembro = Math.max(...datosPorMiembro.map(d => d.total), 1)
 
@@ -107,7 +108,7 @@ export function useTablero() {
   // filtro los mueve a los tres a la vez. Antes cada uno tenía su propio selector —un mes acá,
   // un Week/Month/Qn allá— y podían estar mirando períodos distintos.
   const resumenHoras = idsTeam.map(id => {
-    const acts = actsFiltradas.filter(a => a.responsable_id === id)
+    const acts = actsFiltradas.filter(a => esResponsable(a, id))
     const fila = {
       id,
       nombre: miembrosPorId[id] ?? '—',

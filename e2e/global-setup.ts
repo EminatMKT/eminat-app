@@ -1,4 +1,5 @@
 import { ensureUser, deleteRole, deleteUser } from './seed'
+import { MULTI_ADMIN_EMAIL } from './constants'
 
 // Estado base ANTES de cada corrida (idempotente):
 //  - freddy@  = admin (driver principal de la UI)
@@ -11,4 +12,5 @@ export default async function globalSetup() {
   await ensureUser('nuevo@eminat.net', 'sin_asignar', 'Nuevo', 'Usuario') // resetea rol → suelta 'soporte'
   await deleteRole('soporte')
   await deleteUser('creado@eminat.net') // lo crea el test de alta (A6)
+  await deleteUser(MULTI_ADMIN_EMAIL) // left behind only by an aborted tasks-multi-responsables run
 }

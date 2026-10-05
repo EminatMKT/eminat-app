@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ADMIN_ROLE, normalizeRole } from '@/shared/auth/permissions'
-import { requireModule, ssrClient } from '@/shared/db/requireAccess'
+import requireModule from '@/shared/db/requireAccess/requireModule'
+import ssrClient from '@/shared/db/requireAccess/ssrClient'
 
 const workerColumns = 'id,titulo,empresa,estado,fecha_inicio,fecha_entrega'
-const adminColumns = `${workerColumns},responsable_id`
+// `!inner` turns the embed into the filter: only activities with a matching row in the join
+// table come back, the same "any of the responsibles" rule the rest of Tasks uses. There is no
+// `responsable_id` column on `actividades` any more to `.eq()` against directly.
+const RESPONSABLES_FILTER = 'actividad_responsables!actividad_responsables_actividad_id_fkey!inner(usuario_id)'
 
 export async function GET(req: NextRequest) {
   const session = await requireModule('tasks')
@@ -24,8 +28,8 @@ export async function GET(req: NextRequest) {
   if (month && !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
     return NextResponse.json({ error: 'Período inválido.' }, { status: 400 })
   }
-  let query = db.from('actividades').select(admin ? adminColumns : workerColumns)
-    .eq('responsable_id', requestedUser).order('fecha_inicio', { ascending: false })
+  let query = db.from('actividades').select(`${workerColumns},${RESPONSABLES_FILTER}`)
+    .eq('actividad_responsables.usuario_id', requestedUser).order('fecha_inicio', { ascending: false })
   if (month) {
     const [year, number] = month.split('-').map(Number)
     const next = new Date(Date.UTC(year, number, 1)).toISOString().slice(0, 10)
@@ -33,6 +37,7 @@ export async function GET(req: NextRequest) {
   }
   const { data, error } = await query
   if (error) return NextResponse.json({ error: 'No se pudo cargar el reporte.' }, { status: 500 })
-  return NextResponse.json({ tasks: data || [], scope: admin ? 'admin' : 'self' },
+  const tasks = (data || []).map(({ actividad_responsables: _responsables, ...task }) => task)
+  return NextResponse.json({ tasks, scope: admin ? 'admin' : 'self' },
     { headers: { 'Cache-Control': 'private, no-store' } })
 }

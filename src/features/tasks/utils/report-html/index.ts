@@ -1,6 +1,7 @@
 import { ESTADO_COLORS } from '@/shared/constants/domain'
 import { escapeHtml } from '@/shared/utils'
 import { periodoLargo } from '@/features/tasks/utils/periodo'
+import responsibleNames from '@/features/tasks/utils/responsables/label'
 import type { I18nKey } from '@/shared/i18n'
 import type { Actividad } from '@/features/tasks/types'
 
@@ -22,7 +23,7 @@ export function reportHtml({ acts, nombre, mes, intlLocale, completadas, nombreP
   const filas = acts.map(a => `<tr>
       <td style="${celda};color:#111;font-weight:500">${escapeHtml(a.titulo || '')}</td>
       <td style="${celda};color:#555">${escapeHtml(a.empresa || '')}</td>
-      <td style="${celda};color:#555">${escapeHtml(nombrePorId[a.responsable_id ?? ''] ?? '—')}</td>
+      <td style="${celda};color:#555">${escapeHtml(responsibleNames(a, nombrePorId))}</td>
       <td style="${celda};text-align:center"><span style="font-size:11px;padding:2px 10px;border-radius:20px;background:${estadoColor(a.estado)}20;color:${estadoColor(a.estado)};font-weight:600">${escapeHtml(a.estado || '')}</span></td>
     </tr>`).join('')
   const kpis = [

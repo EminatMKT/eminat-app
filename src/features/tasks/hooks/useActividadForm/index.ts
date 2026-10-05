@@ -1,15 +1,18 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { ESTADO } from '@/shared/constants/domain'
 import { actividadesRepo } from '@/shared/data'
 import { useT } from '@/shared/i18n'
 import { localDate } from '@/shared/utils/dates'
 import { actividadAForm } from '@/features/tasks/utils/act-form'
-import { payloadDeActividad } from './payload'
-import type { Actividad, NuevaActForm, FormActividad } from '@/features/tasks/types'
+import { periodoLargo } from '@/features/tasks/utils/periodo'
+import { payloadDeActividad, payloadDeAlta } from './payload'
+import saveResponsables from './save-responsables'
+import upsertActividad from './upsert-actividad'
+import type { Actividad, ActividadResponsable, NuevaActForm, FormActividad } from '@/features/tasks/types'
 
 const emptyNuevaAct = (solicitanteId = ''): NuevaActForm => ({
-  titulo: '', descripcion: '', empresa: '', responsable_id: '',
+  titulo: '', descripcion: '', empresa: '', responsables: [],
   fecha_inicio: localDate(), horas: '', dias_produccion: '',
   estado: ESTADO.PENDIENTE, fecha_entrega: '', solicitante_id: solicitanteId, drive_url: '',
 })
@@ -27,8 +30,7 @@ const formVacio = (solicitanteId: string): FormActividad => ({
 // posible acá (la próxima "Nueva tarea" habría hecho UPDATE sobre la tarea vieja).
 export function useActividadForm() {
   const { usuario, usuarios, mostrarMensaje, setActividades, miembrosAsignables } = useApp()
-  const { t } = useT()
-  const createRequestId = useRef<string | null>(null)
+  const { t, intlLocale } = useT()
 
   // centinela-exime: useState@1 — la ficha abierta y el formulario son dos cosas distintas: se
   // abren por caminos distintos (la ficha desde una tarjeta, el form desde "Nueva tarea" o
@@ -46,10 +48,9 @@ export function useActividadForm() {
 
   function abrirEdicion(a: Actividad) {
     const f = actividadAForm(a)
-    // Mismo hueco que el efecto de empresa del modal, acá para el responsable: si la persona
-    // salió del equipo (o está excluida), el <select> se vería vacío mientras el estado conserva
-    // el id viejo — lo que se ve ≠ lo que se guarda. Se resetea.
-    if (!miembrosAsignables.some(m => m.id === f.responsable_id)) f.responsable_id = ''
+    // Someone who left the team has no row in the checklist: keeping them would save a person
+    // the form does not show.
+    f.responsables = f.responsables.filter(r => miembrosAsignables.some(m => m.id === r.usuario_id))
     // Ídem para el solicitante, PERO solo si el id está huérfano (el usuario ya no existe): un
     // inactivo EXISTE y el sistema lo sabe mostrar (miembrosPorId incluye inactivos a propósito;
     // borrarle la atribución perdería quién pidió la tarea).
@@ -60,7 +61,7 @@ export function useActividadForm() {
 
   // Apaga el formulario y lo deja limpio. Es lo que corre DESPUÉS de guardar: el cambio ya se ve
   // en el tablero y el aviso lo confirma, así que no hay a qué volver.
-  const resetFormAct = () => { createRequestId.current = null; setForm(formVacio(usuario?.id || '')) }
+  const resetFormAct = () => setForm(formVacio(usuario?.id || ''))
 
   // El que usan la ✕ y Cancelar. Salir del editor es "no quiero editar", no "no quiero ver la
   // tarea": se vuelve a la ficha de donde se abrió, no al tablero.
@@ -79,36 +80,61 @@ export function useActividadForm() {
     mostrarMensaje('ok', t('stratix.detail.deleted'))
   }
 
+  // The task row is saved; this writes who is on it. On failure the form stays open editing the
+  // saved row, so a retry updates it instead of creating a duplicate.
+  async function persistResponsables(fila: Actividad, previos: ActividadResponsable[]) {
+    const notice = {
+      titulo: t('stratix.notif.assignedTitle'),
+      mensaje: `"${valores.titulo}" — ${valores.empresa} · ${periodoLargo(valores.fecha_inicio, intlLocale)}`,
+    }
+    const pedido = {
+      actividadId: fila.id,
+      previous: previos,
+      next: valores.responsables,
+      actorId: usuario?.id,
+      notice,
+    }
+    const resultado = await saveResponsables(pedido)
+    const visible = resultado.error
+      ? fila
+      : { ...fila, responsables: valores.responsables, updated_at: resultado.updatedAt ?? fila.updated_at }
+    setActividades(prev => upsertActividad(prev, visible))
+    if (!resultado.error) return true
+    mostrarMensaje('error', t('common.errorWithDetail', { detail: resultado.error }))
+    setForm(p => ({ ...p, guardando: false, editando: fila }))
+    return false
+  }
+
   async function crearActividad() {
-    // Los tres son NOT NULL en la DB (`responsable_id` y `empresa` además son FK). Sin este
-    // chequeo, un usuario de Stratix fuera de MKT —cuyo select de responsable renderiza vacío
-    // porque `miembrosAsignables` lo está— manda `responsable_id: ''` y recibe un
-    // `invalid input syntax for type uuid` crudo de Postgres.
+    // Title and brand are required; responsibles are not — a task may stay unassigned.
     if (!valores.titulo.trim()) { mostrarMensaje('error', t('stratix.new.titleRequired')); return }
-    if (!valores.responsable_id) { mostrarMensaje('error', t('stratix.new.assigneeRequired')); return }
     if (!valores.empresa) { mostrarMensaje('error', t('stratix.new.brandRequired')); return }
 
     setForm(p => ({ ...p, guardando: true }))
     try {
       const payload = payloadDeActividad(valores)
-      if (!createRequestId.current) createRequestId.current = crypto.randomUUID()
-      const response = await fetch('/api/tasks/save', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestId: createRequestId.current, id: editando?.id,
-          expectedUpdatedAt: editando?.updated_at, payload }),
-      })
-      const result = await response.json()
-      if (response.status === 409) {
-        if (result.current && editando) setActividades(prev => prev.map(x => x.id === editando.id ? result.current as Actividad : x))
-        mostrarMensaje('error', t('stratix.edit.conflict'))
-        setForm(p => ({ ...p, guardando: false }))
-        return
+      if (editando?.id) {
+        const { data, error, conflict, current } = await actividadesRepo.update(editando.id, payload, editando.updated_at)
+        if (conflict) {
+          if (current) setActividades(prev => prev.map(x => (x.id === editando.id ? current as Actividad : x)))
+          mostrarMensaje('error', t('stratix.edit.conflict'))
+          setForm(p => ({ ...p, guardando: false }))
+          return
+        }
+        if (error) { mostrarMensaje('error', t('common.errorWithDetail', { detail: error.message })); setForm(p => ({ ...p, guardando: false })); return }
+        const guardados = await persistResponsables(data as Actividad, editando.responsables)
+        if (!guardados) return
+        resetFormAct()
+        mostrarMensaje('ok', t('stratix.edit.saved'))
+      } else {
+        const { data, error } = await actividadesRepo.create(payloadDeAlta(valores, usuario?.id))
+        if (error) { mostrarMensaje('error', t('common.errorWithDetail', { detail: error.message })); setForm(p => ({ ...p, guardando: false })); return }
+        const sinResponsables: ActividadResponsable[] = []
+        const guardados = await persistResponsables(data as Actividad, sinResponsables)
+        if (!guardados) return
+        resetFormAct()
+        mostrarMensaje('ok', t('stratix.new.created'))
       }
-      if (!response.ok) { mostrarMensaje('error', result.error || t('stratix.new.createError')); setForm(p => ({ ...p, guardando: false })); return }
-      if (editando?.id) setActividades(prev => prev.map(x => x.id === editando.id ? result.data as Actividad : x))
-      else setActividades(prev => [result.data as Actividad, ...prev.filter(x => x.id !== result.data.id)])
-      resetFormAct()
-      mostrarMensaje('ok', result.warning || t(editando ? 'stratix.edit.saved' : 'stratix.new.created'))
     } catch {
       mostrarMensaje('error', t(editando ? 'stratix.edit.saveError' : 'stratix.new.createError'))
     }

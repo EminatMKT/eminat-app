@@ -3,6 +3,7 @@ import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { periodoLargo, periodosDisponibles } from '@/features/tasks/utils/periodo'
 import { useTasks } from '@/features/tasks/components/TasksContext'
+import responsibleNames from '@/features/tasks/utils/responsables/label'
 import Button from '@/shared/components/ui/Button'
 import StatBox from '@/shared/components/ui/StatBox'
 import ReportTableRow from '../ReportTableRow'
@@ -86,7 +87,7 @@ function AdminReport() {
           </thead>
           <tbody>
             {actsRep.map(a => (
-              <ReportTableRow key={a.id} a={a} responsable={miembrosPorId[a.responsable_id ?? ''] ?? '—'} />
+              <ReportTableRow key={a.id} a={a} responsable={responsibleNames(a, miembrosPorId)} />
             ))}
           </tbody>
         </table>

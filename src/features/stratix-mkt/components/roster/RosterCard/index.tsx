@@ -4,6 +4,7 @@ import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { ESTADO } from '@/shared/constants/domain'
 import type { Usuario } from '@/shared/context/loadAppData'
+import { esResponsable } from '@/features/tasks/utils/responsables'
 import s from './index.module.css'
 
 interface UsuarioCargo { cargos?: { codigo: string; nombre: string } | null }
@@ -29,7 +30,7 @@ export default function RosterCard({ user, esLider }: Props) {
   const iniciales = nombreCompleto.split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase()
   const tieneCuenta = !!user.auth_id
   const isOnline = user.online_at ? new Date(user.online_at) > new Date(Date.now() - ONLINE_WINDOW_MS) : false
-  const enProceso = actividades.filter(a => a.responsable_id === user.id && a.estado === ESTADO.EN_PROCESO).length
+  const enProceso = actividades.filter(a => esResponsable(a, user.id) && a.estado === ESTADO.EN_PROCESO).length
   const cargo = (user.usuario_cargos || []).map(uc => uc.cargos?.nombre).filter(Boolean).join(', ')
 
   return (

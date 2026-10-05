@@ -15,6 +15,8 @@ type Props = {
   /** Qué se busca, cuando «Buscar» no alcanza: sin decir que mira también el email, la gente lo
    *  escribe y cree que la lista no lo encuentra. */
   placeholderKey?: I18nKey
+  inputId?: string
+  fluid?: boolean
 }
 
 // centinela-exime: bloques-similares@3 — la otra fila de encabezado del repo es `FilterBar`, y
@@ -23,11 +25,11 @@ type Props = {
 
 /** El encabezado de una lista: buscador, filtros y la acción de alta. */
 export default function ListToolbar(props: Props) {
-  const { busqueda, setBusqueda, action, children, placeholderKey = 'common.search', scroll } = props
+  const { busqueda, setBusqueda, action, children, placeholderKey = 'common.search', scroll, inputId, fluid } = props
   const { t } = useT()
   return (
-    <div className={s.fila}>
-      <input type="text" placeholder={t(placeholderKey)} value={busqueda} className={s.busqueda}
+    <div className={fluid ? `${s.fila} ${s.fluida}` : s.fila}>
+      <input id={inputId} type="text" placeholder={t(placeholderKey)} value={busqueda} className={s.busqueda}
         onChange={e => setBusqueda(e.target.value)} />
       {/* Los filtros en su propia caja: sueltos heredaban el gap de la fila, y dos chips se
           leían como dos controles sin relación. */}

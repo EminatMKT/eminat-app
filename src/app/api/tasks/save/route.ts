@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { requireModule, ssrClient } from '@/shared/db/requireAccess'
+import requireModule from '@/shared/db/requireAccess/requireModule'
+import ssrClient from '@/shared/db/requireAccess/ssrClient'
 import { dispatchTaskAssignmentEmails } from '@/features/tasks/server/notifications'
 
 const taskPayload = z.object({
