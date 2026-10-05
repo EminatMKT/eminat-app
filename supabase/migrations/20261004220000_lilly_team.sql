@@ -22,12 +22,12 @@ BEGIN
     RAISE EXCEPTION 'Team workload requires admin' USING ERRCODE = '42501';
   END IF;
   RETURN QUERY
-  SELECT a.responsable_id,
+  SELECT ar.usuario_id,
          count(*) FILTER (WHERE a.estado = 'Pendiente')::integer,
          count(*) FILTER (WHERE a.estado = 'En proceso')::integer
   FROM public.actividades a
-  WHERE a.responsable_id IS NOT NULL
-  GROUP BY a.responsable_id;
+  JOIN public.actividad_responsables ar ON ar.actividad_id = a.id
+  GROUP BY ar.usuario_id;
 END;
 $$;
 REVOKE ALL ON FUNCTION public.lilly_team_workload() FROM PUBLIC;

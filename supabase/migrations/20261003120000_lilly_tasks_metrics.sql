@@ -37,6 +37,13 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.queue_task_assignment_email() FROM PUBLIC;
 DROP TRIGGER IF EXISTS actividades_assignment_email ON public.actividades;
-CREATE TRIGGER actividades_assignment_email AFTER INSERT OR UPDATE OF responsable_id
-ON public.actividades FOR EACH ROW EXECUTE FUNCTION public.queue_task_assignment_email();
-
+-- Fresh databases already ran the earlier multi-responsable migration, which removed
+-- responsable_id. Production applied this file before that migration; keep its original
+-- trigger only when the legacy column still exists. No new Production migration is needed.
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns
+             WHERE table_schema = 'public' AND table_name = 'actividades' AND column_name = 'responsable_id') THEN
+    CREATE TRIGGER actividades_assignment_email AFTER INSERT OR UPDATE OF responsable_id
+    ON public.actividades FOR EACH ROW EXECUTE FUNCTION public.queue_task_assignment_email();
+  END IF;
+END $$;

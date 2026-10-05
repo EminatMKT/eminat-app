@@ -2,17 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 
 const mock = vi.hoisted(() => ({ admin: false, projectAccessible: true, calls: [] as [string, string, unknown][], tables: [] as string[] }))
-vi.mock('@/shared/db/requireAccess', () => ({
-  requireModule: async () => ({ ok: true, userId: 'auth-user' }),
-  ssrClient: () => ({
-    rpc: async () => ({ data: mock.admin }),
+vi.mock('@/shared/db/requireAccess/requireModule', () => ({ default: async () => ({ ok: true, userId: 'auth-user' }) }))
+vi.mock('@/shared/db/requireAccess/ssrClient', () => ({
+  default: () => ({
     from: (table: string) => {
       mock.tables.push(table)
       const query: Record<string, (...args: unknown[]) => unknown> = {}
       for (const method of ['select', 'eq', 'gte', 'lte', 'order', 'range', 'or']) {
         query[method] = (...args: unknown[]) => { mock.calls.push([table, method, args]); return query }
       }
-      query.maybeSingle = async () => ({ data: table === 'usuarios' ? { id: 'user', activo: true } : mock.projectAccessible ? { id: 'project' } : null })
+      query.maybeSingle = async () => ({ data: table === 'usuarios' ? { id: 'user', rol: mock.admin ? 'admin' : 'stratix360', activo: true } : mock.projectAccessible ? { id: 'project' } : null })
       query.then = (resolve: (v: unknown) => unknown) => Promise.resolve({ data: [], error: null }).then(resolve)
       return query
     },
@@ -42,6 +41,15 @@ describe('calendar API', () => {
     expect(mock.calls).toContainEqual(['actividades', 'eq', ['empresa', 'EMC']])
     expect(mock.calls).toContainEqual(['actividades', 'eq', ['estado', 'Pendiente']])
     expect(mock.calls).toContainEqual(['actividades', 'range', [0, 499]])
+    expect(mock.calls.find(([table, method]) => table === 'actividades' && method === 'select')?.[2]).toEqual([expect.stringContaining('actividad_responsables!')])
+    expect(mock.calls.find(([table, method]) => table === 'actividades' && method === 'select')?.[2]).not.toEqual([expect.stringContaining('responsable_id')])
+  })
+  it('filters an admin-selected member through the join table', async () => {
+    mock.admin = true
+    const member = '123e4567-e89b-42d3-a456-426614174000'
+    const response = await GET(url(`start=2026-10-01&end=2026-10-31&member=${member}`))
+    expect(response.status).toBe(200)
+    expect(mock.calls).toContainEqual(['actividades', 'eq', ['matched.usuario_id', member]])
   })
   it('does not query tasks for a project hidden by RLS', async () => {
     mock.projectAccessible = false

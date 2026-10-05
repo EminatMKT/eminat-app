@@ -74,7 +74,7 @@ export default function TeamTab({ initialMemberId }: { initialMemberId?: string 
     async function loadTasks() {
       if (!selected || !visibleIds.has(selected)) { setTasks([]); return }
       // Workers only request their own tasks or assignments inside projects RLS made visible.
-      let query = supabase.from(TABLES.actividades).select('id,titulo,estado,project_id').eq('responsable_id', selected).order('created_at', { ascending: false }).limit(100)
+      let query = supabase.from(TABLES.actividades).select('id,titulo,estado,project_id,actividad_responsables!actividad_responsables_actividad_id_fkey!inner(usuario_id)').eq('actividad_responsables.usuario_id', selected).order('created_at', { ascending: false }).limit(100)
       const scope = taskProjectScope(esAdmin, usuario?.id, selected, memberships)
       if (scope) {
         if (!scope.length) { setTasks([]); return }

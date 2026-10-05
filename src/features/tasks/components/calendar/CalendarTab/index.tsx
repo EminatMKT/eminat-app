@@ -3,8 +3,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { supabase } from '@/shared/db/supabase'
 import { TABLES } from '@/shared/data/tables'
+import ACTIVITY_SELECT from '@/shared/data/actividades/activity-select'
+import flattenEmbed from '@/shared/data/actividades/flatten-embed'
 import { useT } from '@/shared/i18n'
 import { estadoLabel } from '@/shared/constants/domain'
+import { etiquetaResponsablesCompacta, usersFromNames } from '@/features/tasks/utils/responsables'
 import { useTasks } from '../../TasksContext'
 import type { Actividad } from '@/features/tasks/types'
 import { dateFromKey, movePeriod, period, todayKey, type CalendarMode } from '@/features/tasks/calendar/period'
@@ -12,7 +15,7 @@ import s from './index.module.css'
 
 type Project = { id: string; name: string; company_code: string }
 type Marker = Project & { start_date: string | null; target_date: string | null }
-type Task = Actividad & { id: string; titulo: string; fecha_entrega: string; empresa: string; estado: string; responsable_id: string; project_id: string | null }
+type Task = Actividad & { id: string; titulo: string; fecha_entrega: string; empresa: string; estado: string; project_id: string | null }
 
 export default function CalendarTab({ projectId }: { projectId?: string }) {
   const { esAdmin, empresas, usuarios, miembrosPorId } = useApp()
@@ -35,6 +38,7 @@ export default function CalendarTab({ projectId }: { projectId?: string }) {
   const currentMonth = cursor.slice(0, 7)
   const projectById = useMemo(() => Object.fromEntries(projects.map(p => [p.id, p.name])), [projects])
   const brandByCode = useMemo(() => Object.fromEntries(empresas.map(e => [e.codigo, e.nombre])), [empresas])
+  const responsibleUsers = useMemo(() => usersFromNames(miembrosPorId), [miembrosPorId])
   const tasksByDay = useMemo(() => {
     const grouped: Record<string, Task[]> = {}
     for (const task of tasks) (grouped[task.fecha_entrega] ||= []).push(task)
@@ -91,12 +95,12 @@ export default function CalendarTab({ projectId }: { projectId?: string }) {
   function today() { const now = todayKey(); setCursor(now); setSelectedDay(now) }
   const dateLabel = (day: string, options: Intl.DateTimeFormatOptions) => dateFromKey(day).toLocaleDateString(intlLocale, options)
   async function openTask(task: Task) {
-    const { data, error: taskError } = await supabase.from(TABLES.actividades).select('*').eq('id', task.id).maybeSingle()
+    const { data, error: taskError } = await supabase.from(TABLES.actividades).select(ACTIVITY_SELECT).eq('id', task.id).maybeSingle()
     if (taskError || !data) { setError(t('calendar.loadError')); return }
-    setModalVerAct(data)
+    setModalVerAct(flattenEmbed(data))
   }
   const taskLine = (task: Task) => <button key={task.id} className={`${s.task} ${task.estado === 'Completado' ? s.completed : ''}`} onClick={() => void openTask(task)} title={`${task.titulo} · ${estadoLabel(task.estado, t)} · ${task.fecha_entrega}`}>
-    <strong>{task.titulo}</strong><span>{projectById[task.project_id || ''] || brandByCode[task.empresa] || task.empresa}</span><small>{miembrosPorId[task.responsable_id] || '—'} · {estadoLabel(task.estado, t)}</small>
+    <strong>{task.titulo}</strong><span>{projectById[task.project_id || ''] || brandByCode[task.empresa] || task.empresa}</span><small>{etiquetaResponsablesCompacta(task, responsibleUsers).label} · {estadoLabel(task.estado, t)}</small>
   </button>
   const markerLines = (day: string) => (markersByDay[day] || []).map(({ marker, kind }) => <div className={s.marker} key={`${marker.id}-${kind}`}>◇ {marker.name} · {kind === 'start' ? t('calendar.projectStart') : t('calendar.projectTarget')}</div>)
   const dayTasks = (day: string) => tasksByDay[day] || []

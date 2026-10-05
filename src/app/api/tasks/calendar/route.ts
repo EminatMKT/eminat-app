@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireModule, ssrClient } from '@/shared/db/requireAccess'
+import { ADMIN_ROLE, normalizeRole } from '@/shared/auth/permissions'
+import requireModule from '@/shared/db/requireAccess/requireModule'
+import ssrClient from '@/shared/db/requireAccess/ssrClient'
 
 const datePattern = /^\d{4}-(0[1-9]|1[0-2])-([0-2]\d|3[01])$/
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -25,7 +27,7 @@ export async function GET(req: NextRequest) {
   const db = ssrClient() // Caller session; all SELECTs retain RLS.
   const { data: profile } = await db.from('usuarios').select('id,rol,activo').eq('auth_id', session.userId).maybeSingle()
   if (!profile?.activo) return NextResponse.json({ error: 'Perfil no disponible.' }, { status: 403 })
-  const { data: isAdmin } = await db.rpc('is_admin')
+  const isAdmin = normalizeRole(profile.rol) === ADMIN_ROLE
   if (member && !isAdmin) return NextResponse.json({ error: 'Filtro de miembro no disponible.' }, { status: 403 })
   if (project) {
     const { data: accessible } = await db.from('projects').select('id').eq('id', project).maybeSingle()
@@ -35,15 +37,18 @@ export async function GET(req: NextRequest) {
   // Page within the visible DATE interval. PostgREST may cap a response at 1,000 rows.
   const tasks: Record<string, unknown>[] = []
   for (let offset = 0; ; offset += 500) {
-    let query = db.from('actividades').select('id,titulo,empresa,estado,fecha_entrega,responsable_id,project_id').gte('fecha_entrega', start).lte('fecha_entrega', end)
+    const responsibleEmbed = 'actividad_responsables!actividad_responsables_actividad_id_fkey(usuario_id,es_lider)'
+    const memberMatch = member ? ',matched:actividad_responsables!actividad_responsables_actividad_id_fkey!inner(usuario_id)' : ''
+    let query = db.from('actividades').select(`id,titulo,empresa,estado,fecha_entrega,project_id,${responsibleEmbed}${memberMatch}`).gte('fecha_entrega', start).lte('fecha_entrega', end)
       .order('fecha_entrega').order('id').range(offset, offset + 499)
     if (project) query = query.eq('project_id', project)
     if (company) query = query.eq('empresa', company)
-    if (member) query = query.eq('responsable_id', member)
+    if (member) query = query.eq('matched.usuario_id', member)
     if (status) query = query.eq('estado', status)
     const { data, error } = await query
     if (error) return NextResponse.json({ error: 'No se pudieron cargar las tareas.' }, { status: 500 })
-    tasks.push(...(data || []))
+    const rows = (data || []) as unknown as (Record<string, unknown> & { actividad_responsables?: { usuario_id: string; es_lider: boolean }[] })[]
+    tasks.push(...rows.map(({ actividad_responsables, matched: _matched, ...task }) => ({ ...task, responsables: actividad_responsables || [] })))
     if (!data || data.length < 500) break
   }
 

@@ -28,14 +28,22 @@ test('Projects RLS gives admin full access and workers only their memberships', 
   const memberToken = await token(MEMBER)
   const outsiderToken = await token(OUTSIDER)
   let projectId = ''
+  let taskId = ''
 
   try {
-    const created = await rest('projects', adminToken, 'POST', { name: `E2E Project ${Date.now()}`, company_code: 'PREMIER', created_by: adminId, status: 'Planning' }, '?select=id,name')
+    const due = new Date().toISOString().slice(0, 10)
+    const taskTitle = `Calendar E2E ${Date.now()}`
+    const created = await rest('projects', adminToken, 'POST', { name: `E2E Project ${Date.now()}`, company_code: 'PREMIER', created_by: adminId, status: 'Planning', start_date: due, target_date: due }, '?select=id,name')
     expect(created.status).toBe(201)
     const project = (await created.json())[0]
     projectId = project.id
     const membership = await rest('project_members', adminToken, 'POST', { project_id: projectId, user_id: memberId })
     expect(membership.status).toBe(201)
+    const taskCreated = await rest('actividades', adminToken, 'POST', { titulo: taskTitle, empresa: 'PREMIER', estado: 'Pendiente', fecha_inicio: due, fecha_entrega: due, project_id: projectId, created_by_id: adminId }, '?select=id')
+    expect(taskCreated.status).toBe(201)
+    taskId = (await taskCreated.json())[0].id
+    const assigned = await rest('actividad_responsables', adminToken, 'POST', { actividad_id: taskId, usuario_id: memberId, es_lider: true })
+    expect(assigned.status).toBe(201)
 
     const memberRead = await rest('projects', memberToken, 'GET', undefined, `?id=eq.${projectId}&select=id`)
     expect((await memberRead.json()).map((row: { id: string }) => row.id)).toEqual([projectId])
@@ -75,10 +83,15 @@ test('Projects RLS gives admin full access and workers only their memberships', 
     await expect(page.getByRole('heading', { name: /Projects|Proyectos/ })).toBeVisible({ timeout: 20000 })
     await expect(page.getByText(project.name)).toBeVisible()
     await page.getByRole('button', { name: new RegExp(project.name) }).click()
-    const calendarRequest = page.waitForRequest(request => request.url().includes('/api/tasks/calendar?') && request.url().includes(`project=${projectId}`))
+    const calendarResponse = page.waitForResponse(response => response.url().includes('/api/tasks/calendar?') && response.url().includes(`project=${projectId}`))
     await page.getByRole('navigation', { name: /Secciones del proyecto|Project sections/ }).getByRole('button', { name: /Calendario|Calendar/ }).click()
-    await calendarRequest
+    const response = await calendarResponse
+    expect(response.status()).toBe(200)
+    expect((await response.json()).tasks.some((task: { id: string }) => task.id === taskId)).toBe(true)
     await expect(page.getByRole('grid')).toBeVisible()
+    await page.getByRole('grid').getByRole('button', { name: new RegExp(taskTitle) }).click()
+    await expect(page.getByRole('dialog', { name: taskTitle })).toBeVisible()
+    await page.keyboard.press('Escape')
     await page.getByRole('button', { name: /Semana|Week/ }).click()
     await expect(page.getByRole('gridcell')).toHaveCount(7)
     await page.getByRole('button', { name: /Hoy|Today/ }).click()
@@ -103,6 +116,7 @@ test('Projects RLS gives admin full access and workers only their memberships', 
     await page.getByRole('navigation', { name: /Secciones del perfil|Profile sections/ }).getByRole('button', { name: /Projects|Proyectos/ }).click()
     await expect(page.getByText(project.name)).toBeVisible()
   } finally {
+    if (taskId) await rest('actividades', adminToken, 'DELETE', undefined, `?id=eq.${taskId}`)
     if (projectId) await fetch(`${URL}/rest/v1/projects?id=eq.${projectId}`, { method: 'DELETE', headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}` } })
     await deleteUser(MEMBER)
     await deleteUser(OUTSIDER)

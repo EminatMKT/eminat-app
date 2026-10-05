@@ -12,7 +12,7 @@ type Status = typeof STATUSES[number]
 const STATUS_KEYS: Record<Status, I18nKey> = { Planning: 'projects.status.Planning', Active: 'projects.status.Active', 'On Hold': 'projects.status.On Hold', Completed: 'projects.status.Completed', Archived: 'projects.status.Archived' }
 type Project = { id: string; name: string; description: string; company_code: string; status: Status; start_date: string | null; target_date: string | null; created_by: string }
 type Member = { project_id: string; user_id: string; project_role: string; usuarios: { nombre_display: string } | null }
-type Task = { id: string; project_id: string; titulo: string; estado: string; responsable_id: string | null }
+type Task = { id: string; project_id: string; titulo: string; estado: string }
 type Stats = { project_id: string; task_count: number; completed_count: number }
 type Draft = { name: string; description: string; company_code: string; status: Status; start_date: string; target_date: string; member_ids: string[] }
 const emptyDraft = (): Draft => ({ name: '', description: '', company_code: '', status: 'Planning', start_date: '', target_date: '', member_ids: [] })
@@ -70,7 +70,7 @@ export default function ProjectsTab({ onOpenMember }: { onOpenMember?: (userId: 
 
   useEffect(() => { void load() }, [load])
   const loadTasks = useCallback(async (projectId: string) => {
-    const { data, error } = await supabase.from(TABLES.actividades).select('id,project_id,titulo,estado,responsable_id').eq('project_id', projectId).order('created_at', { ascending: false })
+    const { data, error } = await supabase.from(TABLES.actividades).select('id,project_id,titulo,estado').eq('project_id', projectId).order('created_at', { ascending: false })
     if (error) setMessage(error.message)
     else setTasks((data ?? []) as Task[])
   }, [])
