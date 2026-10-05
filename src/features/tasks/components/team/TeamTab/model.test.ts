@@ -12,6 +12,12 @@ describe('Team visibility', () => {
     expect(Array.from(visiblePeopleIds(false, [], 'worker', memberships))).toEqual(['worker', 'colleague'])
   })
 
+  it('uses the RLS-visible roster and tasks after scope enforcement', () => {
+    expect(Array.from(visiblePeopleIds(false, ['worker', 'companyPeer'], 'worker', memberships, true)))
+      .toEqual(['worker', 'companyPeer', 'colleague'])
+    expect(taskProjectScope(false, 'worker', 'companyPeer', memberships, true)).toBeNull()
+  })
+
   it('restricts another member’s task query to visible projects', () => {
     expect(taskProjectScope(false, 'worker', 'colleague', memberships)).toEqual(['shared'])
     expect(taskProjectScope(false, 'worker', 'outsider', memberships)).toEqual([])

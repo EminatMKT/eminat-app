@@ -11,6 +11,7 @@ import ReporteTab from '../reporte/ReporteTab'
 import ActivityDetailModal from '../modals/ActivityDetailModal'
 import ProjectsTab from '../projects/ProjectsTab'
 import TeamTab from '../team/TeamTab'
+import CalendarTab from '../calendar/CalendarTab'
 import NewActivityModal from '../modals/NewActivityModal'
 import { visibleTasksTabs, type TasksTab } from '@/features/tasks/constants/tabs'
 
@@ -28,6 +29,7 @@ export default function TasksContent() {
     kanban: <KanbanTab />,
     solicitudes: <SolicitudesTab />,
     projects: <ProjectsTab onOpenMember={id => { setTeamMemberId(id); setTabActiva('team') }} />,
+    calendar: <CalendarTab />,
     team: <TeamTab initialMemberId={teamMemberId} />,
     reporte: <ReporteTab />,
   }

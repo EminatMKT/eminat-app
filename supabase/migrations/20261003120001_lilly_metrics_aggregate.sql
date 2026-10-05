@@ -11,17 +11,23 @@ BEGIN
     RAISE EXCEPTION 'Invalid date range' USING ERRCODE = '22023';
   END IF;
   WITH base AS (
-    SELECT a.id, a.estado, a.fecha_entrega, a.empresa, a.created_at, a.responsable_id,
+    SELECT a.id, a.estado, a.fecha_entrega, a.empresa, a.created_at, lead.responsable_id,
            u.nombre_display AS user_name, u.equipo_id,
            e.nombre AS team_name, e.departamento_id, d.nombre AS department_name
     FROM public.actividades a
-    LEFT JOIN public.usuarios u ON u.id = a.responsable_id
+    LEFT JOIN LATERAL (
+      SELECT ar.usuario_id AS responsable_id FROM public.actividad_responsables ar
+      WHERE ar.actividad_id = a.id ORDER BY ar.es_lider DESC, ar.usuario_id LIMIT 1
+    ) lead ON true
+    LEFT JOIN public.usuarios u ON u.id = lead.responsable_id
     LEFT JOIN public.equipos e ON e.id = u.equipo_id
     LEFT JOIN public.departamentos d ON d.id = e.departamento_id
     WHERE (p_from IS NULL OR a.created_at >= (p_from::timestamp AT TIME ZONE 'America/Guayaquil'))
       AND (p_to IS NULL OR a.created_at < ((p_to + 1)::timestamp AT TIME ZONE 'America/Guayaquil'))
       AND (p_empresa IS NULL OR a.empresa = p_empresa)
-      AND (p_user_id IS NULL OR a.responsable_id = p_user_id)
+      AND (p_user_id IS NULL OR EXISTS (
+        SELECT 1 FROM public.actividad_responsables ar
+        WHERE ar.actividad_id = a.id AND ar.usuario_id = p_user_id))
       AND (p_team_id IS NULL OR u.equipo_id = p_team_id)
       AND (p_department_id IS NULL OR e.departamento_id = p_department_id)
       AND (p_estado IS NULL OR a.estado = p_estado)

@@ -46,4 +46,3 @@ DROP TRIGGER IF EXISTS actividades_assignment_email ON public.actividades;
 DROP TRIGGER IF EXISTS actividad_responsables_assignment_email ON public.actividad_responsables;
 CREATE TRIGGER actividad_responsables_assignment_email AFTER INSERT
 ON public.actividad_responsables FOR EACH ROW EXECUTE FUNCTION public.queue_task_assignment_email();
-
