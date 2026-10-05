@@ -21,12 +21,13 @@ const mismosResponsables = (a: ActividadResponsable[], b: ActividadResponsable[]
 export const actividadAForm = (a: Actividad): NuevaActForm => {
   // Desestructurado adentro y no en la firma: son once campos, y una firma de once nombres deja
   // de leerse de un renglón. Así la lista dice de un vistazo qué llega al form y qué no.
-  const { titulo, descripcion, empresa, fecha_inicio, horas, responsables: responsablesAct,
+  const { titulo, descripcion, empresa, project_id, fecha_inicio, horas, responsables: responsablesAct,
     dias_produccion, estado, fecha_entrega, solicitante_id, drive_url } = a
   const form: NuevaActForm = {
     titulo: str(titulo),
     descripcion: str(descripcion),
     empresa: str(empresa),
+    project_id: str(project_id),
     responsables: responsables(responsablesAct),
     fecha_inicio: fecha_inicio || localDate(),
     horas: str(horas),

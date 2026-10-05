@@ -4,6 +4,8 @@ const ACTIVITY_SELECT = `
   titulo,
   descripcion,
   empresa,
+  project_id,
+  responsable_id,
   dias_produccion,
   horas,
   trimestre,
@@ -29,7 +31,7 @@ const ACTIVITY_SELECT = `
 
 export default ACTIVITY_SELECT
 
-// No `responsable_id`: the column is gone, and who executes a task comes from the embedded join
+// The primary responsible is stored on the task; the embedded rows also carry collaborators.
 // table. The embed names its foreign key because `actividad_responsables` reaches `actividades`
 // by one key only today, and PostgREST refuses an ambiguous embed the day a second one appears.
 // Every read and every write-back uses this list, so a Kanban move never blanks the assignees.

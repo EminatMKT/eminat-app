@@ -1,5 +1,6 @@
 'use client'
 import { useT, type I18nKey } from '@/shared/i18n'
+import { useApp } from '@/shared/context/AppContext'
 import type { Actividad } from '@/features/tasks/types'
 import TaskTableRow from '@/features/tasks/components/solicitudes/TaskTableRow'
 import s from './index.module.css'
@@ -21,13 +22,15 @@ type Props = {
 
 export default function TaskTable({ acts }: Props) {
   const { t } = useT()
+  const { esAdmin } = useApp()
+  const columns = esAdmin ? COLS : COLS.filter(column => column !== 'stratix.col.hours')
   return (
     <div className={s.marco}>
       <div className={s.visor}>
         <table className={s.tabla}>
           <thead>
             <tr className={s.encabezado}>
-              {COLS.map(c => <th key={c} className={s.th}>{t(c)}</th>)}
+              {columns.map(c => <th key={c} className={s.th}>{t(c)}</th>)}
             </tr>
           </thead>
           <tbody>

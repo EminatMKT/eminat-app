@@ -45,6 +45,7 @@ export type NuevaActForm = {
   titulo: string
   descripcion: string
   empresa: string
+  project_id: string
   responsables: ActividadResponsable[]
   fecha_inicio: string
   horas: string

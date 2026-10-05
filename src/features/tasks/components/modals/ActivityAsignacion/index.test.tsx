@@ -2,12 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import ActivityAssignment from './index'
 
-type Captured = { props?: Record<string, unknown> }
-
-const { picker } = vi.hoisted(() => {
-  const captured: Captured = {}
-  return { picker: captured }
-})
 const marcas = [{ codigo: 'EMC', nombre: 'Medical' }, { codigo: 'SVN', nombre: 'Servi-Net' }]
 const miembrosAsignables = [{ id: 'a', nombre: 'Ana' }]
 const responsables = [{ usuario_id: 'a', es_lider: true }]
@@ -15,17 +9,14 @@ const labelOf = (brand: typeof marcas[number]) => `${brand.codigo} — ${brand.n
 
 let offered = marcas
 
-vi.mock('@/shared/context/AppContext', () => ({ useApp: () => ({ marcas: offered, miembrosAsignables }) }))
+vi.mock('@/shared/context/AppContext', () => ({ useApp: () => ({ marcas: offered, miembrosAsignables, esAdmin: true }) }))
 vi.mock('@/features/tasks/components/TasksContext', () => ({
-  useTasks: () => ({ nuevaAct: { empresa: 'EMC', responsables }, setNuevaAct: vi.fn() }),
+  useTasks: () => ({ nuevaAct: { empresa: 'EMC', project_id: '', responsables }, setNuevaAct: vi.fn() }),
 }))
 vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key }) }))
-vi.mock('./ResponsiblesPicker', () => ({
-  default: (props: Record<string, unknown>) => { picker.props = props; return null },
-}))
 
 describe('ActivityAssignment', () => {
-  beforeEach(() => { picker.props = undefined; offered = marcas })
+  beforeEach(() => { offered = marcas })
 
   it('offers every brand after the blank placeholder, with the saved one selected', () => {
     const html = renderToStaticMarkup(<ActivityAssignment />)
@@ -42,14 +33,15 @@ describe('ActivityAssignment', () => {
     expect(html).toMatch(/<option[^>]*disabled=""[^>]*>stratix\.new\.noBrands<\/option>/)
   })
 
-  it('hands the assignable members and the current responsables to the picker', () => {
-    renderToStaticMarkup(<ActivityAssignment />)
-    expect(picker.props?.members).toBe(miembrosAsignables)
-    expect(picker.props?.rows).toBe(responsables)
+  it('shows one primary and a separate collaborator picker', () => {
+    const html = renderToStaticMarkup(<ActivityAssignment />)
+    expect(html).toContain('Responsable principal')
+    expect(html).toContain('Colaboradores')
+    expect(html).toContain('value="a" selected=""')
   })
 
-  it('labels the picker with the responsables label, beside the brand', () => {
+  it('shows Project beside the brand', () => {
     const html = renderToStaticMarkup(<ActivityAssignment />)
-    expect(html).toContain('tasks.responsibles.label')
+    expect(html).toContain('Project')
   })
 })

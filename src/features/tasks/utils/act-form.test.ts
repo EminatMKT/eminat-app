@@ -13,7 +13,7 @@ describe('actividadAForm', () => {
       solicitante_id: 's', drive_url: 'https://drive.example/x',
     }
     expect(actividadAForm(a)).toEqual({
-      titulo: 'Post Instagram', descripcion: 'd', empresa: 'EMC',
+      titulo: 'Post Instagram', descripcion: 'd', empresa: 'EMC', project_id: '',
       responsables: [{ usuario_id: 'r', es_lider: true }], fecha_inicio: '2026-07-08', horas: '5', dias_produccion: '2',
       estado: 'En proceso', fecha_entrega: '2026-07-30',
       solicitante_id: 's', drive_url: 'https://drive.example/x',
@@ -26,7 +26,7 @@ describe('actividadAForm', () => {
       fecha_inicio: null, estado: null, horas: null, dias_produccion: null,
       fecha_entrega: null, solicitante_id: null, drive_url: null,
     })).toEqual({
-      titulo: 'T', descripcion: '', empresa: 'EMC', responsables: [],
+      titulo: 'T', descripcion: '', empresa: 'EMC', project_id: '', responsables: [],
       fecha_inicio: hoy, estado: 'Pendiente', horas: '', dias_produccion: '',
       fecha_entrega: '', solicitante_id: '', drive_url: '',
     })

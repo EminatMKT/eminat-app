@@ -5,9 +5,9 @@ const anaId = '22222222-2222-4222-8222-222222222222'
 const betoId = '33333333-3333-4333-8333-333333333333'
 
 describe('normalizeResponsibles', () => {
-  it('turns the legacy single id into a one-item set without leader', () => {
+  it('turns the legacy single id into the primary responsible', () => {
     const legacy = { responsable_id: anaId }
-    expect(normalizeResponsibles(legacy)).toEqual({ ids: [anaId], leaderId: null })
+    expect(normalizeResponsibles(legacy)).toEqual({ ids: [anaId], leaderId: anaId })
   })
 
   it('deduplicates the array and keeps the leader', () => {

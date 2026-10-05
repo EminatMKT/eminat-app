@@ -8,9 +8,10 @@ describe('ACTIVITY_SELECT', () => {
     expect(ACTIVITY_SELECT).toContain(embed)
   })
 
-  it('names its columns and no longer asks for the dropped responsable_id', () => {
+  it('names the primary and Project columns alongside the assignment relation', () => {
     expect(ACTIVITY_SELECT).not.toContain('*')
-    expect(ACTIVITY_SELECT).not.toMatch(/\bresponsable_id\b/)
+    expect(ACTIVITY_SELECT).toMatch(/\bresponsable_id\b/)
+    expect(ACTIVITY_SELECT).toMatch(/\bproject_id\b/)
     expect(ACTIVITY_SELECT).toMatch(/\bupdated_at\b/)
   })
 })

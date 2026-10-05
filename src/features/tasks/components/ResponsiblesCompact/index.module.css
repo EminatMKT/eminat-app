@@ -1,0 +1,22 @@
+.people {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  background: var(--c-surface-2, #344054);
+  color: var(--c-t1);
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.more {
+  color: var(--c-t3);
+}

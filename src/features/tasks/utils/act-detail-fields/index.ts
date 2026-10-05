@@ -12,10 +12,10 @@ export { rastroDeActividad } from './rastro'
 // Las filas de la ficha, AGRUPADAS por lo que significan. Quince pares sueltos se leen como
 // una tabla de propiedades: hay que recorrerla entera para encontrar uno. Agrupados, la vista
 // salta primero al grupo y después al dato.
-export function camposDeActividad(a: Actividad, deps: Deps): GrupoCampos[] {
+export function camposDeActividad(a: Actividad, deps: Deps, includePrivate = true): GrupoCampos[] {
   const grupos = [
     grupoAsignacion(a, deps),
-    grupoEsfuerzo(a, deps),
+    ...(includePrivate ? [grupoEsfuerzo(a, deps)] : []),
     grupoFechas(a, deps),
     grupoAprobacion(a, deps),
   ]

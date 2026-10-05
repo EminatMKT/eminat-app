@@ -18,6 +18,8 @@ describe('ResponsiblesCompact', () => {
     const html = draw([member('u1'), member('u3', true), member('u2')])
     expect(html).toContain(LEADER_BADGE)
     expect(html).toContain('Carla Diaz +2')
+    expect(html).toContain(`aria-label="${names.u1}"`)
+    expect(html).toContain(`aria-label="${names.u2}"`)
   })
 
   it('without a leader draws no crown and picks the first name alphabetically', () => {
