@@ -37,7 +37,7 @@ async function asUser(table: string, jwt: string, query = '') {
   return response.json()
 }
 
-test('RLS confines companies, people and Projects while allowing one shared Project', async () => {
+test('RLS confines companies, people and Projects while allowing one shared Project', async ({ page }) => {
   const admin = await getUsuario('freddy@eminat.net')
   expect(admin?.id).toBeTruthy()
   const createdTaskIds: string[] = []
@@ -112,6 +112,11 @@ test('RLS confines companies, people and Projects while allowing one shared Proj
     const otherEmcTask = await makeTask('EMC', otherEmcProject)
     const ergTask = await makeTask('ERG')
     await service('project_members', 'POST', { project_id: emcProject, user_id: ids.cross })
+    // A historical assignment by itself must not grant company visibility.
+    await service('actividad_responsables', 'POST',
+      { actividad_id: emcTask, usuario_id: ids.cross, es_lider: true })
+    await service('actividad_responsables', 'POST',
+      { actividad_id: otherEmcTask, usuario_id: ids.cross, es_lider: true })
     await service('lilly_access_control', 'PATCH', { enforced: true }, '?singleton=eq.true')
 
     const jwt = Object.fromEntries(await Promise.all([
@@ -138,6 +143,25 @@ test('RLS confines companies, people and Projects while allowing one shared Proj
     const financeUsers = (await asUser('usuarios', jwt.finance,
       `?id=in.(${Object.values(ids).join(',')})&select=id`)).map((row: { id: string }) => row.id)
     expect(financeUsers).toEqual([ids.finance])
+
+    await page.goto('/login')
+    await page.getByPlaceholder('tu@eminat.net').fill(emails.cross)
+    await page.locator('input[type="password"]').fill(PASSWORD)
+    await page.locator('input[type="password"]').press('Enter')
+    await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
+    const calendar = await page.request.get(`/api/tasks/calendar?start=${day}&end=${day}&company=EMC`)
+    expect(calendar.status()).toBe(200)
+    expect((await calendar.json()).tasks.map((row: { id: string }) => row.id))
+      .toEqual([emcTask])
+    const deniedProject = await page.request.get(
+      `/api/tasks/calendar?start=${day}&end=${day}&project=${otherEmcProject}`)
+    expect(deniedProject.status()).toBe(404)
+    const deniedReport = await page.request.get(`/api/tasks/report?user=${ids.medical}`)
+    expect(deniedReport.status()).toBe(403)
+    const ownReport = await page.request.get(`/api/tasks/report?user=${ids.cross}`)
+    expect(ownReport.status()).toBe(200)
+    expect((await ownReport.json()).tasks.map((row: { id: string }) => row.id))
+      .toEqual([emcTask])
   } finally {
     await service('lilly_access_control', 'PATCH', { enforced: false }, '?singleton=eq.true')
     for (const id of createdTaskIds) await service('actividades', 'DELETE', undefined, `?id=eq.${id}`)
