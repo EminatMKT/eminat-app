@@ -18,6 +18,8 @@
     "rules:contexto": "sh .githooks/centinela.sh --contexto-al-dia",
     "rules:sweep": "sh .githooks/centinela.sh --sweep",
     "db:rls": "sh supabase/checks/rls.sh",
+    "db:migraciones-fresca": "sh supabase/checks/migraciones-base-fresca.sh",
+    "db:columna-borrada": "perl supabase/checks/columna-borrada-en-trigger.pl supabase/migrations/*.sql",
     "lint:css": "stylelint \"src/**/*.css\""
   },
   "dependencies": {
