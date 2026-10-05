@@ -10,14 +10,17 @@ const STATUSES = ['Planning', 'Active', 'On Hold', 'Completed', 'Archived'] as c
 type Status = typeof STATUSES[number]
 const STATUS_KEYS: Record<Status, I18nKey> = { Planning: 'projects.status.Planning', Active: 'projects.status.Active', 'On Hold': 'projects.status.On Hold', Completed: 'projects.status.Completed', Archived: 'projects.status.Archived' }
 type Project = { id: string; name: string; description: string; company_code: string; status: Status; start_date: string | null; target_date: string | null; created_by: string }
-type Member = { project_id: string; user_id: string; usuarios: { nombre_display: string } | null }
+type Member = { project_id: string; user_id: string; project_role: string; usuarios: { nombre_display: string } | null }
 type Task = { id: string; project_id: string; titulo: string; estado: string; responsable_id: string | null }
 type Stats = { project_id: string; task_count: number; completed_count: number }
 type Draft = { name: string; description: string; company_code: string; status: Status; start_date: string; target_date: string; member_ids: string[] }
 const emptyDraft = (): Draft => ({ name: '', description: '', company_code: '', status: 'Planning', start_date: '', target_date: '', member_ids: [] })
 const dateText = (value: string | null, locale: string) => value ? new Date(`${value}T12:00:00`).toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
 
-export default function ProjectsTab() {
+const PROJECT_ROLES = ['Project Lead', 'Member', 'Reviewer'] as const
+type ProjectRole = typeof PROJECT_ROLES[number]
+
+export default function ProjectsTab({ onOpenMember }: { onOpenMember?: (userId: string) => void }) {
   const { esAdmin, usuario, empresas, usuarios, actividades } = useApp()
   const { t, intlLocale } = useT()
   const [projects, setProjects] = useState<Project[]>([])
@@ -28,7 +31,7 @@ export default function ProjectsTab() {
   const [status, setStatus] = useState('Current')
   const [company, setCompany] = useState('')
   const [selected, setSelected] = useState<string | null>(null)
-  const [detailTab, setDetailTab] = useState<'Overview' | 'Tasks'>('Overview')
+  const [detailTab, setDetailTab] = useState<'Overview' | 'Tasks' | 'Team'>('Overview')
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<Draft>(emptyDraft)
   const [message, setMessage] = useState('')
@@ -37,6 +40,7 @@ export default function ProjectsTab() {
   const [limit, setLimit] = useState(100)
   const [hasMore, setHasMore] = useState(false)
   const [taskToLink, setTaskToLink] = useState('')
+  const [memberToAdd, setMemberToAdd] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -54,7 +58,7 @@ export default function ProjectsTab() {
     const ids = rows.slice(0, limit).map(p => p.id)
     if (!ids.length) { setMembers([]); setStats([]); setLoading(false); return }
     const [memberResult, statsResult] = await Promise.all([
-      supabase.from(TABLES.projectMembers).select('project_id,user_id,usuarios(nombre_display)').in('project_id', ids),
+      supabase.from(TABLES.projectMembers).select('project_id,user_id,project_role,usuarios(nombre_display)').in('project_id', ids),
       supabase.from(TABLES.projectTaskStats).select('project_id,task_count,completed_count').in('project_id', ids),
     ])
     if (memberResult.error || statsResult.error) setMessage(memberResult.error?.message || statsResult.error?.message || '')
@@ -127,6 +131,33 @@ export default function ProjectsTab() {
     setBusy(false)
   }
 
+  async function addMember() {
+    if (!esAdmin || !current || !memberToAdd) return
+    setBusy(true); setMessage('')
+    const { error } = await supabase.from(TABLES.projectMembers).insert({ project_id: current.id, user_id: memberToAdd, project_role: 'Member' })
+    if (error) setMessage(error.message)
+    else { setMemberToAdd(''); await load() }
+    setBusy(false)
+  }
+
+  async function removeMember(userId: string) {
+    if (!esAdmin || !current) return
+    setBusy(true); setMessage('')
+    const { error } = await supabase.from(TABLES.projectMembers).delete().eq('project_id', current.id).eq('user_id', userId)
+    if (error) setMessage(error.message)
+    else await load()
+    setBusy(false)
+  }
+
+  async function updateRole(userId: string, role: ProjectRole) {
+    if (!esAdmin || !current) return
+    setBusy(true); setMessage('')
+    const { error } = await supabase.from(TABLES.projectMembers).update({ project_role: role }).eq('project_id', current.id).eq('user_id', userId)
+    if (error) setMessage(error.message)
+    else await load()
+    setBusy(false)
+  }
+
   const availableTasks = current && esAdmin ? actividades.filter(a => a.id && a.empresa === current.company_code && !a.project_id && !projectTasks.some(task => task.id === a.id)) : []
   const statusLabel = (value: Status) => t(STATUS_KEYS[value])
   const formatDate = (value: string | null) => dateText(value, intlLocale)
@@ -150,8 +181,8 @@ export default function ProjectsTab() {
       <div className={s.row}><div><div className={s.eyebrow}>{companyNames[current.company_code] || current.company_code}</div><h2>{current.name}</h2></div><div className={s.actions}>{esAdmin && <><button onClick={() => startEdit(current)}>{t('projects.edit')}</button><button disabled={busy} onClick={() => void archive(current)}>{t('projects.archive')}</button></>}</div></div>
       <p>{current.description || t('projects.noDescription')}</p><div className={s.meta}><span className={s.badge}>{statusLabel(current.status)}</span><span>{formatDate(current.start_date)} → {formatDate(current.target_date)}</span><span>{t('projects.members', { count: projectMembers.length })}</span></div>
       <div className={s.progress}><div className={s.row}><strong>{t('projects.progress')}</strong><span>{t('projects.taskCount', { done: taskCount(current.id).done, all: taskCount(current.id).all })}</span></div><div className={s.track}><div style={{ width: `${taskCount(current.id).all ? Math.round(taskCount(current.id).done / taskCount(current.id).all * 100) : 0}%` }} /></div></div>
-      <nav className={s.detailNav} aria-label={t('projects.sections')}><button className={detailTab === 'Overview' ? s.active : ''} onClick={() => setDetailTab('Overview')}>{t('projects.overview')}</button><button className={detailTab === 'Tasks' ? s.active : ''} onClick={() => setDetailTab('Tasks')}>{t('projects.tasks')}</button><button disabled title={t('projects.soon')}>{t('projects.team')}</button><button disabled title={t('projects.soon')}>{t('projects.calendar')}</button></nav>
-      {detailTab === 'Overview' ? <div className={s.detailGrid}><div><h3>{t('projects.about')}</h3><p>{current.description || t('projects.noDescription')}</p><h3>{t('projects.delivery')}</h3><p>{formatDate(current.start_date)} → {formatDate(current.target_date)}</p></div><div><h3>{t('projects.membersAccess')}</h3><p>{memberNames(current.id).join(' · ') || t('projects.noMembers')}</p></div></div> : <div><h3>{t('projects.projectTasks')}</h3>{projectTasks.length ? <ul className={s.taskList}>{projectTasks.map(task => <li key={task.id}><span>{task.titulo}</span><small>{task.estado}</small></li>)}</ul> : <p>{t('projects.noTasks')}</p>}{esAdmin && <div className={s.actions}><select aria-label={t('projects.linkTask')} value={taskToLink} onChange={e => setTaskToLink(e.target.value)}><option value="">{t('projects.linkSelect')}</option>{availableTasks.map(a => <option key={a.id} value={a.id}>{a.titulo}</option>)}</select><button disabled={!taskToLink || busy} onClick={() => void linkTask()}>{t('projects.linkTask')}</button></div>}</div>}
+      <nav className={s.detailNav} aria-label={t('projects.sections')}><button className={detailTab === 'Overview' ? s.active : ''} onClick={() => setDetailTab('Overview')}>{t('projects.overview')}</button><button className={detailTab === 'Tasks' ? s.active : ''} onClick={() => setDetailTab('Tasks')}>{t('projects.tasks')}</button><button className={detailTab === 'Team' ? s.active : ''} onClick={() => setDetailTab('Team')}>{t('projects.team')}</button><button disabled title={t('projects.soon')}>{t('projects.calendar')}</button></nav>
+      {detailTab === 'Overview' ? <div className={s.detailGrid}><div><h3>{t('projects.about')}</h3><p>{current.description || t('projects.noDescription')}</p><h3>{t('projects.delivery')}</h3><p>{formatDate(current.start_date)} → {formatDate(current.target_date)}</p></div><div><h3>{t('projects.membersAccess')}</h3><p>{memberNames(current.id).join(' · ') || t('projects.noMembers')}</p></div></div> : detailTab === 'Tasks' ? <div><h3>{t('projects.projectTasks')}</h3>{projectTasks.length ? <ul className={s.taskList}>{projectTasks.map(task => <li key={task.id}><span>{task.titulo}</span><small>{task.estado}</small></li>)}</ul> : <p>{t('projects.noTasks')}</p>}{esAdmin && <div className={s.actions}><select aria-label={t('projects.linkTask')} value={taskToLink} onChange={e => setTaskToLink(e.target.value)}><option value="">{t('projects.linkSelect')}</option>{availableTasks.map(a => <option key={a.id} value={a.id}>{a.titulo}</option>)}</select><button disabled={!taskToLink || busy} onClick={() => void linkTask()}>{t('projects.linkTask')}</button></div>}</div> : <div className={s.projectTeam}><h3>{t('projects.membersAccess')}</h3>{projectMembers.length ? <div className={s.teamRows}>{projectMembers.map(member => <div className={s.teamRow} key={member.user_id}><button className={s.memberLink} onClick={() => onOpenMember?.(member.user_id)}>{member.usuarios?.nombre_display || usuarios.find(u => u.id === member.user_id)?.nombre || t('team.member')}</button>{esAdmin ? <><select aria-label={t('team.projectRole')} value={member.project_role} disabled={busy} onChange={e => void updateRole(member.user_id, e.target.value as ProjectRole)}>{PROJECT_ROLES.map(role => <option key={role} value={role}>{t(`team.role.${role}` as 'team.role.Member')}</option>)}</select><button disabled={busy} onClick={() => void removeMember(member.user_id)}>{t('team.remove')}</button></> : <span>{t(`team.role.${member.project_role}` as 'team.role.Member')}</span>}</div>)}</div> : <p>{t('projects.noMembers')}</p>}{esAdmin && <div className={s.actions}><select aria-label={t('team.addMember')} value={memberToAdd} onChange={e => setMemberToAdd(e.target.value)}><option value="">{t('team.selectMember')}</option>{usuarios.filter(u => u.activo && !projectMembers.some(m => m.user_id === u.id)).map(u => <option key={u.id} value={u.id}>{u.nombre} {u.apellido}</option>)}</select><button disabled={!memberToAdd || busy} onClick={() => void addMember()}>{t('team.addMember')}</button></div>}</div>}
     </section> : <>
       <div className={s.filters}><input aria-label={t('projects.search')} placeholder={t('projects.search')} value={search} onChange={e => { setLimit(100); setSearch(e.target.value) }} /><select aria-label={t('projects.status')} value={status} onChange={e => { setLimit(100); setStatus(e.target.value) }}><option value="Current">{t('projects.current')}</option><option value="All">{t('projects.all')}</option>{STATUSES.map(v => <option key={v} value={v}>{statusLabel(v)}</option>)}</select><select aria-label={t('projects.company')} value={company} onChange={e => { setLimit(100); setCompany(e.target.value) }}><option value="">{t('projects.allBrands')}</option>{empresas.map(e => <option key={e.codigo} value={e.codigo}>{e.nombre}</option>)}</select></div>
       {loading ? <p>{t('projects.loading')}</p> : projects.length ? <><div className={s.grid}>{projects.map(p => { const count = taskCount(p.id); return <button className={s.card} key={p.id} onClick={() => { setDetailTab('Overview'); setSelected(p.id) }}><div className={s.row}><strong>{p.name}</strong><span className={s.badge}>{statusLabel(p.status)}</span></div><div className={s.brand}>{companyNames[p.company_code] || p.company_code}</div><div className={s.cardProgress}><span>{t('projects.taskCount', { done: count.done, all: count.all })}</span><span>{count.all ? Math.round(count.done / count.all * 100) : 0}%</span></div><div className={s.track}><div style={{ width: `${count.all ? Math.round(count.done / count.all * 100) : 0}%` }} /></div><div className={s.cardFooter}><span>{memberNames(p.id).slice(0, 3).join(' · ') || t('projects.noMembers')}</span><span>{formatDate(p.target_date)}</span></div></button> })}</div>{hasMore && <button className={s.more} onClick={() => setLimit(v => v + 100)}>{t('projects.loadMore')}</button>}</> : <div className={s.empty}>{t('projects.empty')}</div>}

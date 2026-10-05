@@ -8,6 +8,7 @@ export const SUB_ITEMS: Record<PanelKey, SubItem[]> = {
     { id: 'tasks-prod', icon: '⚡', label: 'Production', tab: 'kanban' },
     { id: 'tasks-sol', icon: '📋', label: 'Requests', tab: 'solicitudes' },
     { id: 'tasks-projects', icon: '📁', label: 'Projects', labelKey: 'projects.title', tab: 'projects' },
+    { id: 'tasks-team', icon: '👥', label: 'Team', labelKey: 'team.title', tab: 'team' },
     { id: 'tasks-rep', icon: '💰', label: 'Report', tab: 'reporte' },
   ],
   // Lo que le queda a Stratix con las tareas afuera: marketing propiamente dicho. Las cuatro

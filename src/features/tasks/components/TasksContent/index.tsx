@@ -1,5 +1,6 @@
 'use client'
 import dynamic from 'next/dynamic'
+import { useState } from 'react'
 import { ModuloTabs } from '@/shared/components/shell'
 import { LoadingView } from '@/shared/components/ui'
 import { useTasks } from '../TasksContext'
@@ -9,6 +10,7 @@ import SolicitudesTab from '../solicitudes/SolicitudesTab'
 import ReporteTab from '../reporte/ReporteTab'
 import ActivityDetailModal from '../modals/ActivityDetailModal'
 import ProjectsTab from '../projects/ProjectsTab'
+import TeamTab from '../team/TeamTab'
 import NewActivityModal from '../modals/NewActivityModal'
 import { visibleTasksTabs, type TasksTab } from '@/features/tasks/constants/tabs'
 
@@ -16,18 +18,19 @@ import { visibleTasksTabs, type TasksTab } from '@/features/tasks/constants/tabs
 // tres son tablas y tarjetas: envolverlas agregaría un chunk y un viaje de red a cambio de nada.
 const OverviewTab = dynamic(() => import('../overview/OverviewTab'), { ssr: false, loading: LoadingView })
 
-const tabViews: Record<string, JSX.Element> = {
-  overview: <OverviewTab />,
-  kanban: <KanbanTab />,
-  solicitudes: <SolicitudesTab />,
-  projects: <ProjectsTab />,
-  reporte: <ReporteTab />,
-}
-
 export default function TasksContent() {
   const { tabActiva, setTabActiva } = useTasks()
   const { esAdmin } = useApp()
+  const [teamMemberId, setTeamMemberId] = useState<string | null>(null)
   const allowedTabs = visibleTasksTabs(esAdmin)
+  const tabViews: Record<string, JSX.Element> = {
+    overview: <OverviewTab />,
+    kanban: <KanbanTab />,
+    solicitudes: <SolicitudesTab />,
+    projects: <ProjectsTab onOpenMember={id => { setTeamMemberId(id); setTabActiva('team') }} />,
+    team: <TeamTab initialMemberId={teamMemberId} />,
+    reporte: <ReporteTab />,
+  }
 
   return (
     <ModuloTabs<TasksTab> panel="tasks" titulo="Tasks" tabs={allowedTabs} activa={tabActiva} onTab={setTabActiva} vistas={tabViews}>
