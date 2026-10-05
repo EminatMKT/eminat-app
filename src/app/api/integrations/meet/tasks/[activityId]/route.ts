@@ -1,31 +1,37 @@
 import { z } from 'zod'
 import { updateMeetTaskSchema } from '../../_shared/contracts'
 import { requireMeetTaskActor } from '../../_shared/auth'
-import { apiError, apiJson, optionsResponse } from '../../_shared/responses'
+import MEET_ERRORS from '../../_shared/errors'
+import { apiAuthFailure, apiFailure, apiInvalidPayload, apiJson, optionsResponse } from '../../_shared/responses'
 import { getCanonicalTask, updateTask } from '../../_shared/task-service'
 import { dispatchTaskAssignmentEmails } from '@/features/tasks/server/notifications'
 
 export const runtime = 'nodejs'
 export const OPTIONS = optionsResponse
 const idSchema = z.string().uuid()
+type RouteContext = { params: Record<'activityId', string> }
 
-export async function GET(request: Request, { params }: { params: { activityId: string } }) {
+export async function GET(request: Request, { params }: RouteContext) {
   const auth = await requireMeetTaskActor(request)
-  if (!auth.ok || !auth.actor) return apiError(request, auth.status ?? 401, 'UNAUTHORIZED', auth.error ?? 'No autenticado.')
-  if (!idSchema.safeParse(params.activityId).success) return apiError(request, 400, 'INVALID_ID', 'activityId inválido.')
+  if (!auth.ok || !auth.actor) return apiAuthFailure(request, auth)
+  if (!idSchema.safeParse(params.activityId).success) return apiFailure(request, MEET_ERRORS.invalidId)
   const result = await getCanonicalTask(auth.actor.client, params.activityId, auth.actor.authUserId)
-  return result.ok ? apiJson(request, { task: result.data }) : apiError(request, result.status ?? 500, result.code ?? 'TASK_ERROR', result.message ?? 'Error de TASK.')
+  const body = { task: result.data }
+  return result.ok ? apiJson(request, body) : apiFailure(request, result)
 }
 
-export async function PATCH(request: Request, { params }: { params: { activityId: string } }) {
+export async function PATCH(request: Request, { params }: RouteContext) {
   const auth = await requireMeetTaskActor(request)
-  if (!auth.ok || !auth.actor) return apiError(request, auth.status ?? 401, 'UNAUTHORIZED', auth.error ?? 'No autenticado.')
-  if (!idSchema.safeParse(params.activityId).success) return apiError(request, 400, 'INVALID_ID', 'activityId inválido.')
+  if (!auth.ok || !auth.actor) return apiAuthFailure(request, auth)
+  if (!idSchema.safeParse(params.activityId).success) return apiFailure(request, MEET_ERRORS.invalidId)
   const parsed = updateMeetTaskSchema.safeParse(await request.json().catch(() => null))
-  if (!parsed.success) return apiError(request, 400, 'INVALID_PAYLOAD', parsed.error.issues[0]?.message ?? 'Payload inválido.')
+  if (!parsed.success) return apiInvalidPayload(request, parsed.error.issues[0]?.message)
   const result = await updateTask(auth.actor.client, auth.actor.authUserId, params.activityId, parsed.data)
   if (result.ok && result.data) {
     await dispatchTaskAssignmentEmails(result.data.id).catch(() => null)
+    return apiJson(request, { task: result.data })
   }
-  return result.ok ? apiJson(request, { task: result.data }) : apiError(request, result.status ?? 500, result.code ?? 'TASK_ERROR', result.message ?? 'Error de TASK.', result.current ? { current: result.current } : undefined)
+  // A 409 carries the current version so Meet can show the conflict.
+  const conflict = result.current ? { current: result.current } : undefined
+  return apiFailure(request, result, MEET_ERRORS.taskError, conflict)
 }

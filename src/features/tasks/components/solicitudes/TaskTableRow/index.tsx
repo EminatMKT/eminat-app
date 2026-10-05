@@ -3,10 +3,10 @@ import type { CSSProperties } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { COLOR_MARCA_FALLBACK } from '@/shared/context/empresa-derivations'
 import { ESTADO, ESTADO_COLORS, estadoLabel } from '@/shared/constants/domain'
-import { RowMenu } from '@/shared/components/ui'
 import { useT } from '@/shared/i18n'
 import { useTasks } from '@/features/tasks/components/TasksContext'
-import { actividadAPlantilla } from '@/features/tasks/utils/act-form'
+import DuplicateTaskMenu from '@/features/tasks/components/DuplicateTaskMenu'
+import ResponsiblesCompact from '@/features/tasks/components/ResponsiblesCompact'
 import { periodoLargo } from '@/features/tasks/utils/periodo'
 import type { Actividad } from '@/features/tasks/types'
 import s from './index.module.css'
@@ -22,7 +22,6 @@ export default function TaskTableRow({ a }: Props) {
     '--marca': colorMarca[a.empresa] ?? COLOR_MARCA_FALLBACK,
     '--estado': ESTADO_COLORS[a.estado] || 'var(--c-t3)',
   } as CSSProperties
-  const duplicar = () => { setNuevaAct(actividadAPlantilla(a)); setModalNuevaAct(true) }
 
   return (
     <tr className={s.row} style={vars} onClick={() => setModalVerAct(a)}>
@@ -31,7 +30,7 @@ export default function TaskTableRow({ a }: Props) {
         {a.descripcion && <div className={s.desc}>{a.descripcion}</div>}
       </td>
       <td className={s.tdTitulo}><span className={s.chipMarca}>{a.empresa}</span></td>
-      <td className={s.td}>{miembrosPorId[a.responsable_id] ?? '—'}</td>
+      <td className={s.td}><ResponsiblesCompact a={a} namesById={miembrosPorId} /></td>
       <td className={s.td}>{periodoLargo(a.fecha_inicio, intlLocale, 'short')}</td>
       <td className={`${s.td} ${s.mono}`}>{a.horas || 0}h</td>
       <td className={s.tdTitulo}><span className={s.chipEstado}>{estadoLabel(a.estado, t)}</span></td>
@@ -43,7 +42,7 @@ export default function TaskTableRow({ a }: Props) {
           ? <a className={s.link} href={a.drive_url} target="_blank" rel="noreferrer" onClick={e => e.stopPropagation()}>🔗 {t('stratix.sol.view')}</a>
           : <span className={s.td}>—</span>}
       </td>
-      <td className={s.tdAcciones}><RowMenu label={t('common.actions')} items={[{ kind: 'duplicate', label: t('common.duplicate'), onClick: duplicar }]} /></td>
+      <td className={s.tdAcciones}><DuplicateTaskMenu a={a} /></td>
     </tr>
   )
 }

@@ -2,8 +2,7 @@
 import type { CSSProperties } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
-import { ESTADO } from '@/shared/constants/domain'
-import { cargaDe, slotOcupado, HORAS_SEMANALES } from '@/features/tasks/utils/availability'
+import { actividadesActivasDe, cargaDe, slotOcupado, HORAS_SEMANALES } from '@/features/tasks/utils/availability'
 import HourSlot from '../HourSlot'
 import ActiveTaskLine from '../ActiveTaskLine'
 import s from './index.module.css'
@@ -20,8 +19,7 @@ type Props = {
 export default function MemberAvailabilityCard({ userId, nombre }: Props) {
   const { usuarios, actividades } = useApp()
   const { t } = useT()
-  const activas = actividades.filter(a => a.responsable_id === userId
-    && (a.estado === ESTADO.EN_PROCESO || a.estado === ESTADO.PENDIENTE))
+  const activas = actividadesActivasDe(actividades, userId)
   const { horasOcupadas, horasLibres, pctOcupado, disponible } = cargaDe(activas)
   const userInfo = usuarios.find(u => u.id === userId)
   const isOnline = userInfo?.online_at ? new Date(userInfo.online_at) > new Date(Date.now() - ONLINE_WINDOW_MS) : false

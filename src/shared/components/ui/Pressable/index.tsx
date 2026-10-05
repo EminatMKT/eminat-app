@@ -13,13 +13,16 @@ type Props = {
   hint?: string
   /** This surface is the current one of its set —today's cell of a calendar—: `aria-current`. */
   current?: 'date'
+  /** This surface toggles a state —for example the leader marker in a checklist. */
+  pressed?: boolean
   children: ReactNode
 }
 
 export default function Pressable(props: Props) {
-  const { accessibleLabel, onClick, className, hint, current, children } = props
+  const { accessibleLabel, onClick, className, hint, current, pressed, children } = props
   return (
     <button type="button" onClick={onClick} aria-label={accessibleLabel} title={hint} aria-current={current}
+      aria-pressed={pressed}
       className={`${s.surface} ${className ?? ''}`}>
       {children}
     </button>

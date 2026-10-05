@@ -1,6 +1,6 @@
 import { ESTADO } from '@/shared/constants/domain'
 import { localDate } from '@/shared/utils'
-import type { Actividad, NuevaActForm } from '../types'
+import type { Actividad, ActividadResponsable, NuevaActForm } from '../types'
 
 // Mapea una actividad existente al formulario "New task" para reusar ese modal
 // en modo edición. Los campos numéricos llegan de la DB como number|string y el
@@ -8,17 +8,26 @@ import type { Actividad, NuevaActForm } from '../types'
 // (no debería existir: la columna es NOT NULL) cae a hoy, que es el mismo
 // default que pone la base.
 const str = (v: unknown) => (v === null || v === undefined ? '' : String(v))
+const responsables = (rows: ActividadResponsable[] | null | undefined): ActividadResponsable[] =>
+  rows?.map(r => ({ usuario_id: r.usuario_id, es_lider: r.es_lider })) ?? []
+
+const ROW_SEPARATOR = '|'
+const rowSignature = (r: ActividadResponsable) => `${r.usuario_id}:${r.es_lider ? '1' : '0'}`
+const mismosResponsables = (a: ActividadResponsable[], b: ActividadResponsable[]) => {
+  const firma = (rows: ActividadResponsable[]) => rows.map(rowSignature).sort().join(ROW_SEPARATOR)
+  return firma(a) === firma(b)
+}
 
 export const actividadAForm = (a: Actividad): NuevaActForm => {
   // Desestructurado adentro y no en la firma: son once campos, y una firma de once nombres deja
   // de leerse de un renglón. Así la lista dice de un vistazo qué llega al form y qué no.
-  const { titulo, descripcion, empresa, responsable_id, fecha_inicio, horas,
+  const { titulo, descripcion, empresa, fecha_inicio, horas, responsables: responsablesAct,
     dias_produccion, estado, fecha_entrega, solicitante_id, drive_url } = a
   const form: NuevaActForm = {
     titulo: str(titulo),
     descripcion: str(descripcion),
     empresa: str(empresa),
-    responsable_id: str(responsable_id),
+    responsables: responsables(responsablesAct),
     fecha_inicio: fecha_inicio || localDate(),
     horas: str(horas),
     dias_produccion: str(dias_produccion),
@@ -45,5 +54,8 @@ export const actividadAPlantilla = (a: Actividad): NuevaActForm => {
 export const hayCambios = (form: NuevaActForm, original: Actividad): boolean => {
   const base = actividadAForm(original)
   const campos = Object.keys(base) as (keyof NuevaActForm)[]
-  return campos.some(k => (k === 'titulo' ? form[k].trim() !== base[k].trim() : form[k] !== base[k]))
+  return campos.some(k => {
+    if (k === 'responsables') return !mismosResponsables(form.responsables, base.responsables)
+    return k === 'titulo' ? form[k].trim() !== base[k].trim() : form[k] !== base[k]
+  })
 }

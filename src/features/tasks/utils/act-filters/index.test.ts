@@ -13,9 +13,14 @@ const base = { t, nombrePorId, departamentoPorResponsable: {}, nombreDepartament
 const DEFS = activityFilters(base)
 
 const acts: Actividad[] = [
-  { id: '1', fecha_inicio: '2026-01-15', estado: ESTADO.PENDIENTE, empresa: 'EMC', responsable_id: 'u1' },
-  { id: '2', fecha_inicio: '2026-07-10', estado: ESTADO.COMPLETADO, empresa: 'SVN', responsable_id: 'u2' },
-  { id: '3', fecha_inicio: '2026-08-20', estado: ESTADO.COMPLETADO, empresa: 'EMC', responsable_id: 'u1' },
+  { id: '1', fecha_inicio: '2026-01-15', estado: ESTADO.PENDIENTE, empresa: 'EMC',
+    responsables: [{ usuario_id: 'u1', es_lider: true }] },
+  { id: '2', fecha_inicio: '2026-07-10', estado: ESTADO.COMPLETADO, empresa: 'SVN',
+    responsables: [{ usuario_id: 'u2', es_lider: true }] },
+  { id: '3', fecha_inicio: '2026-08-20', estado: ESTADO.COMPLETADO, empresa: 'EMC', responsables: [
+    { usuario_id: 'u1', es_lider: true },
+    { usuario_id: 'u2', es_lider: false },
+  ] },
 ]
 const ids = (rows: Actividad[]) => rows.map(a => a.id)
 
@@ -58,8 +63,8 @@ describe('activityFilters', () => {
   it('combina filtros en AND', () => {
     expect(ids(applyFilters(acts, DEFS, { estado: ESTADO.COMPLETADO, empresa: 'EMC' }))).toEqual(['3'])
   })
-  it('filtra por responsable, que es un uuid', () => {
-    expect(ids(applyFilters(acts, DEFS, { responsable_id: 'u2' }))).toEqual(['2'])
+  it('filtra por responsable, incluyendo tareas con dos responsables', () => {
+    expect(ids(applyFilters(acts, DEFS, { responsable_id: 'u2' }))).toEqual(['2', '3'])
   })
 })
 
@@ -96,14 +101,19 @@ describe('filtro de área', () => {
   })
 
   it('el match navega responsable → departamento', () => {
-    expect(def().match({ responsable_id: 'u1' }, 'd-mkt')).toBe(true)
-    expect(def().match({ responsable_id: 'u2' }, 'd-mkt')).toBe(false)
+    const compartida = { responsables: [
+      { usuario_id: 'u1', es_lider: true },
+      { usuario_id: 'u2', es_lider: false },
+    ] }
+    expect(def().match(compartida, 'd-mkt')).toBe(true)
+    expect(def().match(compartida, 'd-med')).toBe(true)
+    expect(def().match({ responsables: [{ usuario_id: 'u2', es_lider: true }] }, 'd-mkt')).toBe(false)
   })
 
   // Con la fase 0 a medias hay gente sin equipo. El filtro las deja fuera; lo que no puede
   // hacer es tirar una excepción y llevarse el tablero.
   it('un responsable sin departamento no matchea y no revienta', () => {
-    expect(def().match({ responsable_id: 'u9' }, 'd-mkt')).toBe(false)
+    expect(def().match({ responsables: [{ usuario_id: 'u9', es_lider: true }] }, 'd-mkt')).toBe(false)
     expect(def().match({}, 'd-mkt')).toBe(false)
   })
 

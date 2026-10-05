@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
-import { requireAdmin } from '@/shared/db/requireAdmin'
-import { isLastAdmin } from '@/shared/auth/roleValidation'
+import requireAdmin from '@/shared/db/requireAdmin'
+import isOnlyAdminLeft from '@/shared/auth/roleValidation/isOnlyAdminLeft'
 import { syncUsuarioCargos } from '@/shared/db/usuarioCargos'
+import { ADMIN_ERRORS } from '@/shared/errors'
 
 /**
  * Server-side admin endpoint — partial user update.
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
     } = body
 
     if (!id || typeof id !== 'string') {
-      return NextResponse.json({ error: 'id requerido.' }, { status: 400 })
+      return NextResponse.json({ error: ADMIN_ERRORS.idRequired }, { status: 400 })
     }
 
     // Only include keys that were explicitly sent. undefined → skip.
@@ -79,7 +80,7 @@ export async function POST(req: NextRequest) {
     // van aparte — pero cuentan como "algo para actualizar".
     const syncCargos = Array.isArray(cargoIds)
     if (Object.keys(updatePayload).length === 0 && !syncCargos) {
-      return NextResponse.json({ error: 'Sin campos para actualizar.' }, { status: 400 })
+      return NextResponse.json({ error: ADMIN_ERRORS.noFieldsToUpdate }, { status: 400 })
     }
 
     console.log(`${TAG} start`, { id, fields: Object.keys(updatePayload) })
@@ -88,11 +89,8 @@ export async function POST(req: NextRequest) {
     // sobre un usuario que ES admin). Read-then-write a nivel app (no TOCTOU-safe).
     if (rol !== undefined && rol !== 'admin') {
       const { data: all } = await db.from('usuarios').select('id,rol')
-      if (isLastAdmin(all || [], id)) {
-        return NextResponse.json(
-          { error: 'No se puede degradar al último admin.' },
-          { status: 400 },
-        )
+      if (isOnlyAdminLeft(all || [], id)) {
+        return NextResponse.json({ error: ADMIN_ERRORS.lastAdminDemote }, { status: 400 })
       }
     }
 
@@ -111,7 +109,7 @@ export async function POST(req: NextRequest) {
       })
       if (authError) {
         console.error(`${TAG} auth email update failed`, { id, error: authError.message })
-        return NextResponse.json({ error: `Auth: ${authError.message}` }, { status: 400 })
+        return NextResponse.json({ error: ADMIN_ERRORS.authFailed(authError.message) }, { status: 400 })
       }
     }
 
@@ -141,8 +139,8 @@ export async function POST(req: NextRequest) {
           email_confirm: true,
         })
         const tail = revertError
-          ? ` (no se pudo revertir el email en Auth: ${revertError.message} — corre el rollback manual en el dashboard).`
-          : ' (email de Auth revertido).'
+          ? ADMIN_ERRORS.authEmailRevertFailed(revertError.message)
+          : ADMIN_ERRORS.authEmailReverted
         return NextResponse.json(
           { error: `${dbError.message}.${tail}`, dbErrorCode },
           { status: 400 },
@@ -156,10 +154,7 @@ export async function POST(req: NextRequest) {
 
     if (count === 0) {
       console.error(`${TAG} usuarios update affected 0 rows`, { id })
-      return NextResponse.json(
-        { error: 'La fila no se actualizó (0 filas afectadas). El id puede no existir.' },
-        { status: 404 },
-      )
+      return NextResponse.json({ error: ADMIN_ERRORS.rowNotUpdated }, { status: 404 })
     }
 
     // 3) Cargos N:N. Va después del update para no dejar el puente sincronizado
@@ -178,9 +173,6 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : ''
     console.error(`${TAG} unexpected`, { message })
-    return NextResponse.json(
-      { error: message || 'Error inesperado al actualizar el usuario.' },
-      { status: 500 },
-    )
+    return NextResponse.json({ error: message || ADMIN_ERRORS.unexpectedUpdate }, { status: 500 })
   }
 }

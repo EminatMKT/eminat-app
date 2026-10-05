@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 const { requireAdmin, rpc } = vi.hoisted(() => ({ requireAdmin: vi.fn(), rpc: vi.fn() }))
-vi.mock('@/shared/db/requireAdmin', () => ({ requireAdmin }))
-vi.mock('@/shared/db/requireAccess', () => ({ ssrClient: () => ({ rpc }) }))
+vi.mock('@/shared/db/requireAdmin', () => ({ default: requireAdmin }))
+vi.mock('@/shared/db/requireAccess/ssrClient', () => ({ default: () => ({ rpc }) }))
 import { GET } from './route'
 const request = (query = '') => ({ nextUrl: new URL(`http://localhost/api/tasks/dashboard${query}`) }) as never
 beforeEach(() => { vi.clearAllMocks(); requireAdmin.mockResolvedValue({ ok: true }); rpc.mockResolvedValue({ data: { overview: { total: 0 } }, error: null }) })

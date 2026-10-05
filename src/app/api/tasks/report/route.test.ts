@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 const { requireModule, ssrClient } = vi.hoisted(() => ({ requireModule: vi.fn(), ssrClient: vi.fn() }))
-vi.mock('@/shared/db/requireAccess', () => ({ requireModule, ssrClient }))
+vi.mock('@/shared/db/requireAccess/requireModule', () => ({ default: requireModule }))
+vi.mock('@/shared/db/requireAccess/ssrClient', () => ({ default: ssrClient }))
 import { GET } from './route'
 const ownId = '11111111-1111-4111-8111-111111111111'
 const otherId = '22222222-2222-4222-8222-222222222222'
@@ -37,15 +38,14 @@ it('returns only own rows and operational fields to a worker', async () => {
   const response = await GET(req('?month=2026-10'))
   expect(response.status).toBe(200)
   expect((await response.json()).scope).toBe('self')
-  expect(db.filters).toContainEqual(['responsable_id', ownId])
+  expect(db.filters).toContainEqual(['actividad_responsables.usuario_id', ownId])
   expect(db.filters).toContainEqual(['fecha_inicio', '2026-10-01'])
   expect(db.fields[0]).not.toMatch(/horas|dias_produccion|solicitante_id/)
 })
-it('allows admin to select another worker without productivity fields', async () => {
+it('allows admin to select another worker, scoped by the responsables join', async () => {
   const db = dbFor('admin')
   expect((await GET(req(`?user=${otherId}`))).status).toBe(200)
-  expect(db.filters).toContainEqual(['responsable_id', otherId])
-  expect(db.fields[0]).toContain('responsable_id')
+  expect(db.filters).toContainEqual(['actividad_responsables.usuario_id', otherId])
   expect(db.fields[0]).not.toMatch(/horas|dias_produccion/)
 })
 it('rejects malformed periods', async () => {

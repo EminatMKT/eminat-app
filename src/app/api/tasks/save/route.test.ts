@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const { requireModule, ssrClient, dispatch } = vi.hoisted(() => ({
   requireModule: vi.fn(), ssrClient: vi.fn(), dispatch: vi.fn(),
 }))
-vi.mock('@/shared/db/requireAccess', () => ({ requireModule, ssrClient }))
+vi.mock('@/shared/db/requireAccess/requireModule', () => ({ default: requireModule }))
+vi.mock('@/shared/db/requireAccess/ssrClient', () => ({ default: ssrClient }))
 vi.mock('@/features/tasks/server/notifications', () => ({ dispatchTaskAssignmentEmails: dispatch }))
 import { POST } from './route'
 

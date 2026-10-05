@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAdmin } from '@/shared/db/requireAdmin'
-import { ssrClient } from '@/shared/db/requireAccess'
+import requireAdmin from '@/shared/db/requireAdmin'
+import ssrClient from '@/shared/db/requireAccess/ssrClient'
 
 const date = (value: string | null) => value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null
 const uuid = (value: string | null) => value && /^[0-9a-f]{8}-[0-9a-f-]{27,36}$/i.test(value) ? value : null

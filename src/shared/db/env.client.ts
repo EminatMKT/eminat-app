@@ -5,6 +5,11 @@ import { z } from 'zod'
 // base de prod. El ref no es secreto: ya viaja en NEXT_PUBLIC_SUPABASE_URL.
 const PROD_DB_REF = 'ruedelunbtaomhrzgelc'
 
+const ENV_ERRORS = {
+  prodDbOutsideProduction: (tier: string) =>
+    `NEXT_PUBLIC_APP_ENV=${tier} but the URL points at the PRODUCTION database (${PROD_DB_REF}). Only production may use it.`,
+} as const
+
 const clientSchema = z.object({
 
   // ── Supabase (cliente + servidor) ─────────────────────────────
@@ -31,8 +36,7 @@ const clientSchema = z.object({
     ctx.addIssue({
       code: 'custom',
       path: ['NEXT_PUBLIC_SUPABASE_URL'],
-      message: `NEXT_PUBLIC_APP_ENV=${env.NEXT_PUBLIC_APP_ENV} pero la URL apunta a la base de PRODUCCIÓN (${PROD_DB_REF}). ` +
-        `Solo production debe usar esa base.`,
+      message: ENV_ERRORS.prodDbOutsideProduction(env.NEXT_PUBLIC_APP_ENV),
     })
   }
 })

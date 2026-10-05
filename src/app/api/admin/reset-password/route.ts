@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
-import { requireAdmin } from '@/shared/db/requireAdmin'
+import requireAdmin from '@/shared/db/requireAdmin'
+import { ADMIN_ERRORS } from '@/shared/errors'
 
 /**
  * Server-side admin endpoint — rotates a user's auth password to a new
@@ -21,13 +22,10 @@ export async function POST(req: NextRequest) {
   try {
     const { userId, password } = await req.json()
     if (!userId) {
-      return NextResponse.json({ error: 'userId requerido.' }, { status: 400 })
+      return NextResponse.json({ error: ADMIN_ERRORS.userIdRequired }, { status: 400 })
     }
     if (!password || typeof password !== 'string' || password.length < 8) {
-      return NextResponse.json(
-        { error: 'La contraseña debe tener al menos 8 caracteres.' },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: ADMIN_ERRORS.passwordTooShort }, { status: 400 })
     }
 
     console.log(`${TAG} start`, { userId })
@@ -42,7 +40,7 @@ export async function POST(req: NextRequest) {
       .eq('id', userId)
       .maybeSingle()
     if (!row) {
-      return NextResponse.json({ error: 'Usuario no encontrado en public.usuarios.' }, { status: 404 })
+      return NextResponse.json({ error: ADMIN_ERRORS.userNotFound }, { status: 404 })
     }
     const authCandidates = [row.auth_id, row.id].filter(
       (v): v is string => typeof v === 'string' && v.length > 0,
@@ -55,18 +53,15 @@ export async function POST(req: NextRequest) {
         console.log(`${TAG} success`, { userId, authId: uid })
         return NextResponse.json({ ok: true })
       }
-      lastError = error?.message || 'No se pudo actualizar la contraseña.'
+      lastError = error?.message || ADMIN_ERRORS.passwordUpdateFailed
       if (!/not.?found/i.test(lastError)) break // error real (no "user not found") → no seguir probando
     }
 
     console.error(`${TAG} auth.updateUserById failed`, { userId, error: lastError })
-    return NextResponse.json({ error: lastError || 'No se pudo actualizar la contraseña.' }, { status: 400 })
+    return NextResponse.json({ error: lastError || ADMIN_ERRORS.passwordUpdateFailed }, { status: 400 })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : ''
     console.error(`${TAG} unexpected`, { message })
-    return NextResponse.json(
-      { error: message || 'Error inesperado al resetear la contraseña.' },
-      { status: 500 },
-    )
+    return NextResponse.json({ error: message || ADMIN_ERRORS.unexpectedResetPassword }, { status: 500 })
   }
 }

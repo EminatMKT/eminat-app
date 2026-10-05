@@ -3,3 +3,15 @@
   grid-template-columns: 1fr 1fr;
   gap: .75rem;
 }
+
+/* A grid track would grow to the closed box's longest summary; `min-width: 0` lets the box
+   ellipsize instead of pushing the brand column. */
+.responsibles {
+  min-width: 0;
+}
+
+@media (max-width: 38rem) {
+  .dos {
+    grid-template-columns: 1fr;
+  }
+}

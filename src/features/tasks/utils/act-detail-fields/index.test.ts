@@ -9,6 +9,7 @@ const t = (k: I18nKey) => k as string
 const deps = { t, locale: 'es-ES', miembrosPorId: { u1: 'Ana Sinequipo', u2: 'Beto Medico' } }
 
 type Act = Parameters<typeof camposDeActividad>[0]
+const onlyAna = [{ usuario_id: 'u1', es_lider: false }]
 const todos = (a: Act) => camposDeActividad(a, deps).flatMap(g => g.campos)
 const buscar = (a: Act, label: string) => todos(a).find(c => c.label === label)
 
@@ -23,14 +24,25 @@ describe('camposDeActividad', () => {
   })
 
   it('resuelve los ids de persona contra el mapa y cae a — si no está', () => {
-    const a = { responsable_id: 'u1', solicitante_id: 'u9' }
-    expect(buscar(a, 'stratix.col.assignee')?.value).toBe('Ana Sinequipo')
+    const a = { responsables: onlyAna, solicitante_id: 'u9' }
+    expect(buscar(a, 'tasks.responsibles.label')?.value).toBe('Ana Sinequipo')
     expect(buscar(a, 'stratix.detail.requestedBy')?.value).toBe('—')
   })
 
+  it('lists every responsible, leader first with the crown flag', () => {
+    const a = { responsables: [{ usuario_id: 'u1', es_lider: false }, { usuario_id: 'u2', es_lider: true }] }
+    expect(buscar(a, 'tasks.responsibles.label')).toMatchObject({ value: 'Beto Medico, Ana Sinequipo', lider: true })
+  })
+
+  it('without a leader lists alphabetically and flags no crown; nobody is a dimmed —', () => {
+    const a = { responsables: [{ usuario_id: 'u2', es_lider: false }, { usuario_id: 'u1', es_lider: false }] }
+    expect(buscar(a, 'tasks.responsibles.label')).toMatchObject({ value: 'Ana Sinequipo, Beto Medico', lider: false })
+    expect(buscar({ responsables: [] }, 'tasks.responsibles.label')).toMatchObject({ value: '—', vacio: true })
+  })
+
   it('marca `vacio` el campo sin dato, para que la ficha lo atenúe en vez de darle peso', () => {
-    const a = { responsable_id: 'u1' }
-    expect(buscar(a, 'stratix.col.assignee')?.vacio).toBe(false)
+    const a = { responsables: onlyAna }
+    expect(buscar(a, 'tasks.responsibles.label')?.vacio).toBe(false)
     expect(buscar(a, 'stratix.detail.start')?.vacio).toBe(true)
     expect(buscar(a, 'stratix.detail.approvedBy')?.vacio).toBe(true)
   })
@@ -83,7 +95,7 @@ describe('camposDeActividad', () => {
   })
 
   it('muestra el nombre de quien cargó la tarea', () => {
-    const creada = buscar({ responsable_id: 'u1', created_by_id: 'u2' }, 'stratix.detail.createdBy')
+    const creada = buscar({ responsables: onlyAna, created_by_id: 'u2' }, 'stratix.detail.createdBy')
     expect(creada?.value).toBe('Beto Medico')
     expect(creada?.vacio).toBe(false)
   })
@@ -91,7 +103,7 @@ describe('camposDeActividad', () => {
   // Las filas anteriores a la columna no tienen creador y nunca lo van a tener. El campo existe
   // igual —que no se sepa ES información— pero atenuado, como el resto de los vacíos.
   it('muestra «—» atenuado cuando no hay creador', () => {
-    const creada = buscar({ responsable_id: 'u1' }, 'stratix.detail.createdBy')
+    const creada = buscar({ responsables: onlyAna }, 'stratix.detail.createdBy')
     expect(creada?.value).toBe('—')
     expect(creada?.vacio).toBe(true)
   })

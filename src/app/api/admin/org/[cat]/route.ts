@@ -1,21 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
-import { requireAdmin } from '@/shared/db/requireAdmin'
+import requireAdmin from '@/shared/db/requireAdmin'
 import { ORG_CATALOGS, isOrgCat, codigoFrom, pickFields, dupError } from '@/features/admin/org-catalogs'
 import type { OrgRow } from '@/shared/context/loadAppData'
+import { ADMIN_ERRORS } from '@/shared/errors'
 
 // Sin GET: las listas las sirve el contexto (useApp().departamentos/equipos/cargos).
 // Acá solo mutaciones, igual que /api/admin/roles. `cat` viene de la whitelist
 // ORG_CATALOGS — nunca del body — así el nombre de tabla no es inyectable.
 export async function POST(req: NextRequest, { params }: { params: { cat: string } }) {
   const authz = await requireAdmin(); if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
-  if (!isOrgCat(params.cat)) return NextResponse.json({ error: 'Catálogo desconocido.' }, { status: 404 })
+  if (!isOrgCat(params.cat)) {
+    return NextResponse.json({ error: ADMIN_ERRORS.unknownCatalog }, { status: 404 })
+  }
 
   const row = pickFields(params.cat, (await req.json()) as Partial<OrgRow>)
   const nombre = (row.nombre ?? '').trim()
-  if (!nombre) return NextResponse.json({ error: 'El nombre es obligatorio.' }, { status: 400 })
+  if (!nombre) return NextResponse.json({ error: ADMIN_ERRORS.nameRequired }, { status: 400 })
   for (const f of ORG_CATALOGS[params.cat].fields) {
-    if (f.required && !row[f.name]) return NextResponse.json({ error: `Falta un campo obligatorio: ${f.name}.` }, { status: 400 })
+    const missingRequired = f.required && !row[f.name]
+    if (missingRequired) {
+      return NextResponse.json({ error: ADMIN_ERRORS.missingField(f.name) }, { status: 400 })
+    }
   }
 
   // `codigo` solo es editable donde el catálogo lo declara como campo (empresas:

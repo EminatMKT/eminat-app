@@ -3,7 +3,7 @@ import { payloadDeActividad, payloadDeAlta } from './payload'
 import type { NuevaActForm } from '@/features/tasks/types'
 
 const form = (over: Partial<NuevaActForm> = {}): NuevaActForm => ({
-  titulo: 'Reel de agosto', descripcion: '', empresa: 'EMC', responsable_id: 'u1',
+  titulo: 'Reel de agosto', descripcion: '', empresa: 'EMC', responsables: [{ usuario_id: 'u1', es_lider: false }],
   fecha_inicio: '2026-08-19', horas: '', dias_produccion: '',
   estado: 'Pendiente', fecha_entrega: '', solicitante_id: '', drive_url: '', ...over,
 })
@@ -28,5 +28,9 @@ describe('payloadDeAlta', () => {
   // nulls, así que si `created_by_id` estuviera adentro, cada edición borraría al creador.
   it('el payload compartido NO lleva la clave, ni siquiera en null', () => {
     expect('created_by_id' in payloadDeActividad(form())).toBe(false)
+  })
+
+  it('el payload de alta no manda la columna vieja responsable_id', () => {
+    expect('responsable_id' in payloadDeAlta(form(), 'u9')).toBe(false)
   })
 })

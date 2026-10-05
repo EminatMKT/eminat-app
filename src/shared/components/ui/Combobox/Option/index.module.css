@@ -1,0 +1,56 @@
+/* A row of the combobox list. Flex so a multiple row lines up its box, its label and its action. */
+
+/* Every row is as tall as one carrying its action, so checking a row never pushes the rest down. */
+.item {
+  display: flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: .5rem;
+  padding: .375rem .5rem;
+  border-radius: .375rem;
+  font-size: .8125rem;
+  color: var(--c-t1);
+  cursor: pointer;
+}
+
+/* The keyboard highlight and the mouse one are the same: two cues for "this one goes if you
+   confirm now" force a choice of which wins. */
+.item:hover,
+.marcado {
+  background: var(--c-s3);
+}
+
+/* The fixed option goes first AND bold: first alone is not enough in an alphabetical list. */
+.fija {
+  font-weight: 600;
+}
+
+/* The checkbox of a multiple row. Drawn, not a native input: the row is the option, and a real
+   checkbox inside it would be a second control for the same choice. */
+.casilla {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: .875rem;
+  height: .875rem;
+  border: 1px solid var(--c-border-strong);
+  border-radius: .25rem;
+  font-size: .625rem;
+  line-height: 1;
+}
+
+.casilla[data-checked='true'] {
+  border-color: var(--c-accent-solid);
+  background: var(--c-accent-solid);
+  color: var(--c-s1);
+}
+
+.casilla[data-checked='true']::after {
+  content: '✓';
+}
+
+/* The action sits at the far end of the row, away from the label it acts on. */
+.accion {
+  margin-left: auto;
+}

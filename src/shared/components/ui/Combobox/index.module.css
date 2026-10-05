@@ -1,0 +1,75 @@
+/* The app's search-or-pick box: the text box, the arrow and the list that drops under it.
+
+   The box is NOT styled here. `Field` already dresses every form control from `.campo input`
+   —border, radius, type and focus ring—, the same rule that dresses its selects, so a combobox
+   next to a select is the same box. The only thing `Field` cannot know is that this input has an
+   arrow on top, so the only thing here is the room for it. */
+
+.raiz {
+  position: relative;
+}
+
+/* `.raiz .caja` and not `.caja` alone: `.campo input` from `Field` is more specific than one class
+   and would hand back the symmetric padding, sending long text under the arrow. A read-only box
+   (a closed multiple combobox) still opens on a click, so it keeps the pointer of a control. */
+.raiz .caja {
+  padding-right: 2rem;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+/* Points down while closed, like the native select beside it, and flips up when open. No pointer
+   events: the click on the arrow has to reach the input and open the list. */
+.flecha {
+  position: absolute;
+  top: 50%;
+  right: .75rem;
+  transform: translateY(-50%);
+  transition: transform .15s ease;
+  font-size: .5625rem;
+  line-height: 1;
+  color: var(--c-t3);
+  pointer-events: none;
+}
+
+.abierta {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.panel {
+  position: absolute;
+  z-index: 30;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin: .25rem 0 0;
+  padding: .375rem;
+  max-height: 13rem;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--c-border);
+  border-radius: .625rem;
+  background: var(--c-s1);
+  box-shadow: 0 .5rem 1.5rem rgb(0 0 0 / 12%);
+  animation: caer .12s ease-out;
+}
+
+/* The empty message may carry its own way out (clear the search), so it lines up like a row. */
+.vacio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem;
+  padding: .5rem;
+  font-size: .75rem;
+  color: var(--c-t2);
+}
+
+@keyframes caer {
+  from { opacity: 0; transform: translateY(-.25rem); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel { animation: none; }
+  .flecha { transition: none; }
+}

@@ -45,4 +45,9 @@ describe('Pressable', () => {
     expect(renderToStaticMarkup(<Pressable accessibleLabel="A day" current="date" onClick={ignore}>30</Pressable>)).toContain('aria-current="date"')
     expect(renderToStaticMarkup(<Pressable accessibleLabel="A day" onClick={ignore}>30</Pressable>)).not.toContain('aria-current')
   })
+
+  it('says it is pressed only when the caller says so', () => {
+    expect(renderToStaticMarkup(<Pressable accessibleLabel="Leader" pressed onClick={ignore}>★</Pressable>)).toContain('aria-pressed="true"')
+    expect(renderToStaticMarkup(<Pressable accessibleLabel="Leader" onClick={ignore}>★</Pressable>)).not.toContain('aria-pressed')
+  })
 })
