@@ -15,3 +15,5 @@ pnpm lint || { echo "✖ lint failed"; exit 1; }
 pnpm lint:css || { echo "✖ el CSS no compila"; exit 1; }
 pnpm test || { echo "✖ tests fallaron"; exit 1; }
 echo "✓ pre-push OK"
+pnpm db:columna-borrada || exit 1
+pnpm db:migraciones-fresca || exit 1
