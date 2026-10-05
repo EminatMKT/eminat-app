@@ -71,6 +71,8 @@ export type Actividad = {
   titulo?: string
   descripcion?: string
   empresa?: string
+  project_id?: string | null
+  responsable_id?: string | null
   responsables?: ActividadResponsable[] | null
   // Cuándo empieza el trabajo. Su MES es el período de imputación del reporte de pago.
   // `mes`/`trimestre`/`semana` siguen en la tabla durante la fase 1 pero NADIE los lee: son el

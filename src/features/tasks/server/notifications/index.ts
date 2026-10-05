@@ -17,7 +17,7 @@ export default async function dispatchTaskAssignmentEmails(activityId?: string) 
   if (!serverEnv.RESEND_API_KEY) return { warning: 'Correo pendiente: RESEND_API_KEY no configurada.', processed: 0 }
   const db = supabaseAdmin()
   const { data: events, error } = await db.rpc('claim_task_assignment_emails', {
-    p_activity_id: activityId || null, p_limit: 25,
+    p_activity_id: activityId || null, p_limit: 50,
   })
   if (error) return { warning: 'No se pudo reclamar la cola de correo.', processed: 0 }
   const resend = new Resend(serverEnv.RESEND_API_KEY)
@@ -25,13 +25,11 @@ export default async function dispatchTaskAssignmentEmails(activityId?: string) 
   for (const event of (events || []) as OutboxEvent[]) {
     const eventDb = db.from(TABLES.taskEmailOutbox)
     try {
-      // `actividades.responsable_id` is gone (feat/multi-responsables): "is this recipient still
-      // assigned" now means "is there still an actividad_responsables row for them".
-      const taskQuery = db.from(TABLES.actividades).select('id,titulo,empresa,fecha_entrega').eq('id', event.activity_id).maybeSingle()
+      const taskQuery = db.from(TABLES.actividades).select('id,titulo,empresa,fecha_entrega,responsable_id').eq('id', event.activity_id).maybeSingle()
       const recipientQuery = db.from(TABLES.usuarios).select('id,email,nombre_display,nombre,apellido,activo').eq('id', event.recipient_id).maybeSingle()
-      const assignedQuery = db.from(TABLES.actividadResponsables).select('usuario_id').eq('actividad_id', event.activity_id).eq('usuario_id', event.recipient_id).maybeSingle()
+      const assignedQuery = db.from(TABLES.actividadResponsables).select('es_lider').eq('actividad_id', event.activity_id).eq('usuario_id', event.recipient_id).maybeSingle()
       const lookups: [typeof taskQuery, typeof recipientQuery, typeof assignedQuery] = [taskQuery, recipientQuery, assignedQuery]
-      const [{ data: task, error: taskError }, { data: recipient, error: recipientError }, { data: stillAssigned, error: assignedError }] =
+      const [{ data: task, error: taskError }, { data: recipient, error: recipientError }, { data: assignment, error: assignedError }] =
         await Promise.all(lookups)
       if (taskError || recipientError || assignedError) {
         await eventDb.update({ status: 'failed', error: 'No se pudieron consultar los datos del aviso.',
@@ -48,6 +46,9 @@ export default async function dispatchTaskAssignmentEmails(activityId?: string) 
         failed++
         continue
       }
+      const stillAssigned = event.event === 'collaborator_added'
+        ? assignment?.es_lider === false
+        : task?.responsable_id === event.recipient_id && assignment?.es_lider === true
       if (!task || !stillAssigned || latest?.id !== event.id) {
         await eventDb.update({ status: 'failed', error: 'Asignación reemplazada antes del envío.', next_attempt_at: null }).eq('id', event.id)
         continue

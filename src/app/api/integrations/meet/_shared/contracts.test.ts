@@ -48,7 +48,7 @@ describe('Meet contract: multiple responsibles', () => {
   it('update accepts either the legacy single id or the array', () => {
     expect(updateMeetTaskSchema.safeParse({ ...stamp, responsable_id: ana }).success).toBe(true)
     expect(updateMeetTaskSchema.safeParse({ ...stamp, responsable_ids: [ana, beto], lider_id: ana }).success).toBe(true)
-    expect(updateMeetTaskSchema.safeParse({ ...stamp, responsable_ids: [] }).success).toBe(true)
+    expect(updateMeetTaskSchema.safeParse({ ...stamp, responsable_ids: [] }).success).toBe(false)
   })
   it('update rejects a leader without the responsibles it belongs to', () => {
     expect(updateMeetTaskSchema.safeParse({ ...stamp, lider_id: ana }).success).toBe(false)

@@ -179,7 +179,7 @@ describe('Meet task service', () => {
       p_expected_updated_at: stamp,
       p_changes: { empresa: 'STRATIX' },
       p_usuario_ids: [assigneeId],
-      p_lider_id: null,
+      p_lider_id: assigneeId,
       p_replace_responsibles: true,
     }
     expect(rpcCallOf(calls)).toEqual(expectedRpc)
@@ -231,7 +231,7 @@ describe('Meet task service', () => {
       empresa: 'STRATIX',
     }
     const result = await createTaskForTopic(client, owner, input)
-    const expectedParams = { p_responsable_ids: [assigneeId], p_lider_id: null }
+    const expectedParams = { p_responsable_ids: [assigneeId], p_lider_id: assigneeId }
     expect(result.data?.task.responsables).toHaveLength(1)
     expect(rpcCallOf(calls)).toMatchObject(expectedParams)
     expect(rpcCallOf(calls)).not.toHaveProperty('p_responsable_id')

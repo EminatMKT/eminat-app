@@ -6,7 +6,7 @@ import ssrClient from '@/shared/db/requireAccess/ssrClient'
 const workerColumns = 'id,titulo,empresa,estado,fecha_inicio,fecha_entrega'
 // `!inner` turns the embed into the filter: only activities with a matching row in the join
 // table come back, the same "any of the responsibles" rule the rest of Tasks uses. There is no
-// `responsable_id` column on `actividades` any more to `.eq()` against directly.
+// `responsable_id` names only the primary; the relation also includes collaborators.
 const RESPONSABLES_FILTER = 'actividad_responsables!actividad_responsables_actividad_id_fkey!inner(usuario_id)'
 
 export async function GET(req: NextRequest) {

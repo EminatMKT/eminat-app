@@ -12,7 +12,7 @@ import upsertActividad from './upsert-actividad'
 import type { Actividad, ActividadResponsable, NuevaActForm, FormActividad } from '@/features/tasks/types'
 
 const emptyNuevaAct = (solicitanteId = ''): NuevaActForm => ({
-  titulo: '', descripcion: '', empresa: '', responsables: [],
+  titulo: '', descripcion: '', empresa: '', project_id: '', responsables: [],
   fecha_inicio: localDate(), horas: '', dias_produccion: '',
   estado: ESTADO.PENDIENTE, fecha_entrega: '', solicitante_id: solicitanteId, drive_url: '',
 })
@@ -97,7 +97,9 @@ export function useActividadForm() {
     const resultado = await saveResponsables(pedido)
     const visible = resultado.error
       ? fila
-      : { ...fila, responsables: valores.responsables, updated_at: resultado.updatedAt ?? fila.updated_at }
+      : { ...fila, responsables: valores.responsables,
+          responsable_id: valores.responsables.find(row => row.es_lider)?.usuario_id || null,
+          updated_at: resultado.updatedAt ?? fila.updated_at }
     setActividades(prev => upsertActividad(prev, visible))
     if (!resultado.error) return true
     mostrarMensaje('error', t('common.errorWithDetail', { detail: resultado.error }))
@@ -106,9 +108,12 @@ export function useActividadForm() {
   }
 
   async function crearActividad() {
-    // Title and brand are required; responsibles are not — a task may stay unassigned.
+    // Every new Task has exactly one primary responsible.
     if (!valores.titulo.trim()) { mostrarMensaje('error', t('stratix.new.titleRequired')); return }
     if (!valores.empresa) { mostrarMensaje('error', t('stratix.new.brandRequired')); return }
+    if (valores.responsables.filter(r => r.es_lider).length !== 1) {
+      mostrarMensaje('error', 'Selecciona un responsable principal.'); return
+    }
 
     setForm(p => ({ ...p, guardando: true }))
     try {

@@ -3,7 +3,7 @@ import { payloadDeActividad } from './payload'
 import type { NuevaActForm } from '@/features/tasks/types'
 
 const form = (over: Partial<NuevaActForm> = {}): NuevaActForm => ({
-  titulo: 'Reel de agosto', descripcion: '', empresa: 'EMC', responsables: [{ usuario_id: 'u1', es_lider: false }],
+  titulo: 'Reel de agosto', descripcion: '', empresa: 'EMC', project_id: '', responsables: [{ usuario_id: 'u1', es_lider: false }],
   fecha_inicio: '2026-08-19', horas: '', dias_produccion: '',
   estado: 'Pendiente', fecha_entrega: '', solicitante_id: '', drive_url: '', ...over,
 })
@@ -27,10 +27,15 @@ describe('payloadDeActividad', () => {
   // ausentes, así que un opcional vacío va como null explícito y nunca omitido.
   it('manda null explícito por cada opcional vacío', () => {
     const p = payloadDeActividad(form())
-    for (const k of ['descripcion', 'horas', 'dias_produccion', 'fecha_entrega', 'solicitante_id', 'drive_url']) {
+    for (const k of ['descripcion', 'project_id', 'horas', 'dias_produccion', 'fecha_entrega', 'solicitante_id', 'drive_url']) {
       expect(k in p, `${k} tiene que viajar`).toBe(true)
       expect(p[k], `${k} tiene que ser null`).toBeNull()
     }
+  })
+
+  it('persists an explicitly selected Project without changing the company', () => {
+    const payload = payloadDeActividad(form({ project_id: 'project-1' }))
+    expect(payload).toMatchObject({ project_id: 'project-1', empresa: 'EMC' })
   })
 
   // Las horas son plata: van como número, porque '8' en una columna numeric la escribe bien pero
