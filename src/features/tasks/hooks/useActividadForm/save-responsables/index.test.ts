@@ -13,7 +13,8 @@ const A = { usuario_id: 'a', es_lider: false }
 const B = { usuario_id: 'b', es_lider: true }
 const C = { usuario_id: 'c', es_lider: false }
 const notice = { titulo: 'Assigned', mensaje: '"T" — EMC' }
-const OK = { error: null }
+const STAMP = '2026-10-05T03:31:00.000Z'
+const OK = { error: null, data: STAMP }
 const LEADER_ERROR = { error: { message: 'leader not in set' } }
 const RLS_ERROR = { error: { message: 'rls' } }
 const base = {
@@ -33,8 +34,8 @@ describe('saveResponsables', () => {
 
   it('saves the set and notifies every new responsible except the actor, in one insert', async () => {
     const created = { ...base, previous: [], next: [A, B, C] }
-    const error = await saveResponsables(created)
-    expect(error).toBeNull()
+    const result = await saveResponsables(created)
+    expect(result).toEqual({ error: null, updatedAt: STAMP })
     expect(setResponsables).toHaveBeenCalledWith('t1', [A, B, C])
     expect(insert).toHaveBeenCalledTimes(1)
     expect(notified()).toEqual(['b', 'c'])
@@ -60,15 +61,15 @@ describe('saveResponsables', () => {
   it('returns the RPC error and does not notify', async () => {
     setResponsables.mockResolvedValue(LEADER_ERROR)
     const rejected = { ...base, previous: [], next: [B] }
-    const error = await saveResponsables(rejected)
-    expect(error).toBe('leader not in set')
+    const result = await saveResponsables(rejected)
+    expect(result).toEqual({ error: 'leader not in set', updatedAt: null })
     expect(insert).not.toHaveBeenCalled()
   })
 
-  it('returns the notification error instead of swallowing it', async () => {
+  it('returns the notification error instead of swallowing it, but keeps the fresh timestamp', async () => {
     insert.mockResolvedValue(RLS_ERROR)
     const unnotified = { ...base, previous: [], next: [B] }
-    const error = await saveResponsables(unnotified)
-    expect(error).toBe('rls')
+    const result = await saveResponsables(unnotified)
+    expect(result).toEqual({ error: 'rls', updatedAt: STAMP })
   })
 })

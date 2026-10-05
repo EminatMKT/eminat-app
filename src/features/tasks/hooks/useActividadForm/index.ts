@@ -94,11 +94,13 @@ export function useActividadForm() {
       actorId: usuario?.id,
       notice,
     }
-    const fallo = await saveResponsables(pedido)
-    const visible = fallo ? fila : { ...fila, responsables: valores.responsables }
+    const resultado = await saveResponsables(pedido)
+    const visible = resultado.error
+      ? fila
+      : { ...fila, responsables: valores.responsables, updated_at: resultado.updatedAt ?? fila.updated_at }
     setActividades(prev => upsertActividad(prev, visible))
-    if (!fallo) return true
-    mostrarMensaje('error', t('common.errorWithDetail', { detail: fallo }))
+    if (!resultado.error) return true
+    mostrarMensaje('error', t('common.errorWithDetail', { detail: resultado.error }))
     setForm(p => ({ ...p, guardando: false, editando: fila }))
     return false
   }

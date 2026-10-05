@@ -13,14 +13,17 @@ type SaveResponsablesInput = {
 
 const NOTICE_TYPE = 'tarea_asignada'
 
+export type SaveResponsablesResult = { error: string | null; updatedAt: string | null }
+
 /** Saves the task's responsables and notifies the newly added ones; returns the first error. */
-export default async function saveResponsables(input: SaveResponsablesInput): Promise<string | null> {
+export default async function saveResponsables(input: SaveResponsablesInput): Promise<SaveResponsablesResult> {
   const { actividadId, previous, next, actorId, notice } = input
   const saved = await actividadesRepo.setResponsables(actividadId, next)
-  if (saved.error) return saved.error.message
+  if (saved.error) return { error: saved.error.message, updatedAt: null }
+  const updatedAt = (saved.data as string | null) ?? null
 
   const recipients = newlyAddedResponsableIds(previous, next, actorId)
-  if (recipients.length === 0) return null
+  if (recipients.length === 0) return { error: null, updatedAt }
 
   const rows = recipients.map(usuarioId => {
     const row = {
@@ -33,8 +36,10 @@ export default async function saveResponsables(input: SaveResponsablesInput): Pr
     return row
   })
   const sent = await notificacionesRepo.insert(rows)
-  return sent.error?.message ?? null
+  return { error: sent.error?.message ?? null, updatedAt }
 }
 
 // saveResponsables is the single write path for who is on a task: the set goes through the
-// atomic RPC first, and only people who were not there before get a notification.
+// atomic RPC first, and only people who were not there before get a notification. The RPC bumps
+// `actividades.updated_at` itself and hands back the new value, so the caller's local cache never
+// falls behind it — a second edit right after this one would otherwise 409 against nobody.
