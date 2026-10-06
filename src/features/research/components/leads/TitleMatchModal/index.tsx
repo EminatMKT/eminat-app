@@ -1,8 +1,8 @@
 'use client'
-import { RESEARCH_THEME } from '../../theme'
+import { RESEARCH_THEME } from '@/features/research/theme'
 import { useT } from '@/shared/i18n'
-import { NCT_COLUMN } from '../../constants'
-import type { Lead } from '../../types'
+import { NCT_COLUMN } from '@/features/research/tableConstants/constants'
+import type { Lead } from '@/features/research/types'
 
 // Candidatos de ClinicalTrials.gov encontrados por título (para leads sin NCT#). El usuario
 // elige cuál es su estudio → se rellena NCT# + campos (merge no destructivo, con confirmación).

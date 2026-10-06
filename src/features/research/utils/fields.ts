@@ -5,7 +5,8 @@
 // LEAD_FIELDS / FIELD_LABELS / CSV_COLUMN_MAP sueltos, que usaban nombres amigables
 // distintos de las columnas y rompían el guardado, la edición, el detalle y el import.
 // Las etiquetas y mensajes son claves i18n (ver shared/i18n) — nada de texto hardcodeado.
-import { PIPELINE_COLS, NCT_COLUMN, STAGE_LABEL_KEY } from '../constants'
+import { PIPELINE_COLS, STAGE_LABEL_KEY } from '../stages'
+import { NCT_COLUMN } from '../tableConstants/constants'
 import { resolveToCanonical } from '@/shared/utils/canonical'
 import { SPECIALTIES, SPECIALTY_LABEL_KEY, canonicalSpecialty } from './specialty'
 import type { I18nKey } from '@/shared/i18n'
@@ -32,8 +33,7 @@ export interface LeadFieldDef {
 }
 
 // Sugerencias (datalist) — admiten valor libre para no romper data existente (ej. phase="2").
-const PHASES = ['Early Phase 1', 'Phase 1', 'Phase 1/Phase 2', 'Phase 2', 'Phase 2/Phase 3', 'Phase 3', 'Phase 4', 'N/A']
-const STATUSES = ['Recruiting', 'Not yet recruiting', 'Enrolling by invitation', 'Active, not recruiting', 'Completed', 'Suspended', 'Terminated', 'Withdrawn', 'Unknown status']
+const PHASES = ['Early Phase 1', 'Phase 1', 'Phase 1/Phase 2', 'Phase 2', 'Phase 2/Phase 3', 'Phase 3', 'Phase 4', 'N/A'], STATUSES = ['Recruiting', 'Not yet recruiting', 'Enrolling by invitation', 'Active, not recruiting', 'Completed', 'Suspended', 'Terminated', 'Withdrawn', 'Unknown status']
 const STUDY_TYPES = ['Interventional', 'Observational'] // dominio cerrado -> select estricto
 
 // Los CSV suelen traer la fase como número o multivalor ("2", "1 & 2") en vez del label del

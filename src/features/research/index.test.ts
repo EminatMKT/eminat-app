@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import * as research from './index'
 import { EXPORT_HEADERS, leadColumnFor, validateLead, validateLeadFields, buildLeadPayload, normalizeDomainValue } from './utils/fields'
 import { fetchStudyByNCT, splitStudyMerge, studyFromProtocol } from './utils/clinicalTrials'
-import { PIPELINE_COLS, PIPELINE_ACTIVE_COLS, ARCHIVED_STAGE, DEFAULT_STAGE, STAGE, STAGE_LABEL_KEY, stageLabel } from './constants'
+import { PIPELINE_COLS, PIPELINE_ACTIVE_COLS, ARCHIVED_STAGE, DEFAULT_STAGE, STAGE, STAGE_LABEL_KEY, stageLabel } from './stages'
 
 describe('features/research API pública', () => {
   it('expone ResearchModule', () => {
@@ -161,13 +161,13 @@ describe('etapas del CRM (constantes + display)', () => {
   // research_leads.stage y a los que la migración manual mapea. Si cambian, es un breaking
   // change deliberado y este test se actualiza a conciencia. El resto de los tests usan las
   // constantes/tipos (STAGE / DEFAULT_STAGE / STAGE_LABEL_KEY), no literales sueltos.
-  it('los valores canónicos son exactamente estos 4, en orden', () => {
-    expect(PIPELINE_COLS).toEqual(['Nuevo', 'Contactado', 'Ganado', 'Sin respuesta'])
-    expect(STAGE).toEqual({ NUEVO: 'Nuevo', CONTACTADO: 'Contactado', GANADO: 'Ganado', SIN_RESPUESTA: 'Sin respuesta' })
+  it('los valores canónicos son exactamente estos 5, en orden', () => {
+    expect(PIPELINE_COLS).toEqual(['Nuevo', 'Contactado', 'En comunicación', 'Ganado', 'Sin respuesta'])
+    expect(STAGE).toEqual({ NUEVO: 'Nuevo', CONTACTADO: 'Contactado', EN_COMUNICACION: 'En comunicación', GANADO: 'Ganado', SIN_RESPUESTA: 'Sin respuesta' })
   })
   it('el archivado es una etapa real pero queda fuera del pipeline activo (Kanban/pie)', () => {
     expect(PIPELINE_COLS).toContain(ARCHIVED_STAGE)
-    expect(PIPELINE_ACTIVE_COLS).toEqual([STAGE.NUEVO, STAGE.CONTACTADO, STAGE.GANADO])
+    expect(PIPELINE_ACTIVE_COLS).toEqual([STAGE.NUEVO, STAGE.CONTACTADO, STAGE.EN_COMUNICACION, STAGE.GANADO])
     expect(PIPELINE_ACTIVE_COLS).not.toContain(ARCHIVED_STAGE)
   })
   it('el default de un lead nuevo es la primera etapa (Nuevo)', () => {

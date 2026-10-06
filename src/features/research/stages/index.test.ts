@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { stageColors, PIPELINE_COLORS, STAGE } from './constants'
+import { stageColors, PIPELINE_COLORS, PIPELINE_COLS, STAGE } from './index'
+
+const EN_COMUNICACION_LITERAL = 'En comunicación'
+const NEXT_STAGE_OFFSET = 1
 
 // Las 9 etapas legacy que el CHECK de research_leads todavía acepta (migración 20260721225916),
 // más el bucket sintético que arma el dashboard para stage null/''. Son las que pueden coexistir
@@ -24,7 +27,7 @@ describe('stageColors (pie y leyenda comparten un único mapa)', () => {
   it('ninguna etapa del mismo gráfico comparte color, ni en el peor caso', () => {
     // El segundo bug: el hash mandaba Identificado, Contacto y Docs al mismo violeta. El tercero:
     // el módulo sobre una paleta de 6 hacía colisionar de a pares al pasar de 6 legacy. Por eso
-    // se verifica el PEOR caso real y completo (las 10 legacy + las 4 canónicas), no un recorte
+    // se verifica el PEOR caso real y completo (las 10 legacy + las 5 canónicas), no un recorte
     // del tamaño de la paleta — ese tope era una propiedad de la paleta, no de los datos.
     const todas = [...LEGACY, ...Object.keys(PIPELINE_COLORS)]
     const map = stageColors(todas)
@@ -38,5 +41,17 @@ describe('stageColors (pie y leyenda comparten un único mapa)', () => {
     for (const name of porCantidad) {
       expect(stageColors(porCantidad)[name]).toBe(stageColors(alReves)[name])
     }
+  })
+})
+
+describe('the En comunicación stage sits between Contactado and Ganado', () => {
+  it('exists with the exact literal stored in research_leads.stage', () => {
+    expect(STAGE.EN_COMUNICACION).toBe(EN_COMUNICACION_LITERAL)
+  })
+
+  it('the pipeline orders it between Contactado and Ganado', () => {
+    const index = PIPELINE_COLS.indexOf(STAGE.EN_COMUNICACION)
+    expect(index).toBe(PIPELINE_COLS.indexOf(STAGE.CONTACTADO) + NEXT_STAGE_OFFSET)
+    expect(index).toBe(PIPELINE_COLS.indexOf(STAGE.GANADO) - NEXT_STAGE_OFFSET)
   })
 })

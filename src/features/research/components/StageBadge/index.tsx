@@ -1,6 +1,6 @@
 'use client'
-import { RESEARCH_THEME } from '../theme'
-import { PIPELINE_COLORS, stageLabel } from '../constants'
+import { RESEARCH_THEME } from '@/features/research/theme'
+import { PIPELINE_COLORS, stageLabel } from '@/features/research/stages'
 import { useT } from '@/shared/i18n'
 
 // Badge de stage del pipeline (color por stage, texto traducido).

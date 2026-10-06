@@ -1,10 +1,10 @@
 'use client'
-import { RESEARCH_THEME } from '../../theme'
-import { PIPELINE_COLORS, stageLabel } from '../../constants'
+import { RESEARCH_THEME } from '@/features/research/theme'
+import { PIPELINE_COLORS, stageLabel } from '@/features/research/stages'
 import { useT } from '@/shared/i18n'
-import { useResearch } from '../ResearchContext'
-import PipelineCard from './PipelineCard'
-import type { Lead, Stage } from '../../types'
+import { useResearch } from '@/features/research/components/ResearchContext'
+import PipelineCard from '../PipelineCard'
+import type { Lead, Stage } from '@/features/research/types'
 
 type Props = {
   col: Stage

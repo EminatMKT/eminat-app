@@ -1,7 +1,7 @@
 'use client'
-import { RESEARCH_THEME } from '../theme'
-import { stageColors, stageLabel } from '../constants'
-import { useResearch } from './ResearchContext'
+import { RESEARCH_THEME } from '@/features/research/theme'
+import { stageColors, stageLabel } from '@/features/research/stages'
+import { useResearch } from '../ResearchContext'
 import StatCard from '@/shared/components/dashboard/StatCard'
 import Panel from '@/shared/components/dashboard/Panel'
 // import CountryChip from './CountryChip' // ponytail: oculto por pedido de dirección (reunión 2026-07-20) — restaurar descomentando esto + el bloque "Leads by Country"

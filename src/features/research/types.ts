@@ -7,7 +7,7 @@ import type { Specialty } from './utils/specialty'
 // Union canónica: los valores EXACTOS que se guardan (la migración manual mapea a estos).
 // El mapa de datos `STAGE_META` (constants.ts) se valida `satisfies Record<Stage, StageMeta>`
 // → si allá falta o sobra una etapa, es error de tsc (no pueden desincronizarse).
-export type Stage = 'Nuevo' | 'Contactado' | 'Ganado' | 'Sin respuesta'
+export type Stage = 'Nuevo' | 'Contactado' | 'En comunicación' | 'Ganado' | 'Sin respuesta'
 
 // Metadata de display por etapa (clave i18n + color). El DATO vive en constants.ts (STAGE_META).
 export type StageMeta = { labelKey: I18nKey; color: string }

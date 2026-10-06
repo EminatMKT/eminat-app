@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { researchRepo, removeChannel } from '@/shared/data'
-import { STAGE, COUNT_COLUMN } from '../constants'
+import { STAGE } from '../stages'
+import { COUNT_COLUMN } from '../tableConstants/constants'
 import { EXPORT_HEADERS, validateLead, buildLeadPayload } from '../utils/fields'
 import { LEAD_FILTERS } from '../utils/filters'
 import { localMonth } from '@/shared/utils/dates'
@@ -131,8 +132,7 @@ export function useResearchData() {
   }
 
   async function deleteLead(id: string) {
-    await researchRepo.deleteLead(id)
-    setLeads(prev => prev.filter(l => l.id !== id))
+    await researchRepo.deleteLead(id); setLeads(prev => prev.filter(l => l.id !== id))
     mostrarMensaje('ok', 'Lead eliminado')
   }
 

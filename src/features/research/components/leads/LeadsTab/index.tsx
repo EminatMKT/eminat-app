@@ -1,12 +1,12 @@
 'use client'
-import { RESEARCH_THEME } from '../../theme'
+import { RESEARCH_THEME } from '@/features/research/theme'
 import { useT, type I18nKey } from '@/shared/i18n'
-import { FROZEN_COLS } from '../../constants'
-import { useResearch } from '../ResearchContext'
+import { FROZEN_COLS } from '@/features/research/tableConstants/constants'
+import { useResearch } from '@/features/research/components/ResearchContext'
 import Panel from '@/shared/components/dashboard/Panel'
 import { FiltersPanel } from '@/shared/components/filters'
-import ToolbarButton from '../ToolbarButton'
-import LeadRow from './LeadRow'
+import ToolbarButton from '@/features/research/components/ToolbarButton'
+import LeadRow from '../LeadRow'
 
 // Cabeceras de la tabla. Claves cortas propias (`research.col.*`) y no las de `research.field.*`:
 // el label de formulario ("Nombre de contacto") no entra en una columna de tabla.
