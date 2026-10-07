@@ -10,5 +10,5 @@ export {
   stageLabel,
 } from '../constants'
 
-// Entrada pública del dominio de etapas de Research: mantiene los imports nuevos bajo `stages/`
-// mientras la fuente histórica sigue en `../constants` hasta que ese catálogo se termine de partir.
+// Public entrypoint for Research stages: new imports stay under `stages/` while the historical
+// implementation remains in `../constants` until that catalog is fully split.
