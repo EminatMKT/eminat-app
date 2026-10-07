@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { buildImportPlan as buildPlanCompartido } from '@/shared/import'
 import { guessMapping, indexByNct, buildImportPlan, identityPorNct, planCounterChanges, stripCounterFor, ignoredHeaders } from './importPlan'
-import { DEFAULT_STAGE, STAGE } from '../constants'
+import { DEFAULT_STAGE, STAGE } from '../stages'
 
 describe('guessMapping', () => {
   it('resuelve columnas reales, aliases legacy y marca desconocidas como null', () => {

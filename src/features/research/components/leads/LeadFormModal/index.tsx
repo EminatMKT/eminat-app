@@ -1,16 +1,17 @@
 'use client'
 import { useState } from 'react'
-import { RESEARCH_THEME } from '../../theme'
+import { RESEARCH_THEME } from '@/features/research/theme'
 import { useT } from '@/shared/i18n'
-import { LEAD_FIELD_DEFS, LEAD_GROUPS, GROUP_LABEL_KEY, validateLeadFields } from '../../utils/fields'
+import { LEAD_FIELD_DEFS, LEAD_GROUPS, GROUP_LABEL_KEY, validateLeadFields } from '@/features/research/utils/fields'
 import type { I18nKey } from '@/shared/i18n'
-import { fetchStudyByNCT, fetchStudiesByTitle, splitStudyMerge, type StudyConflict } from '../../utils/clinicalTrials'
-import { NCT_COLUMN, TITLE_COLUMN, COUNT_COLUMN, normNct } from '../../constants'
-import type { Lead } from '../../types'
-import { useResearch } from '../ResearchContext'
-import LeadFormField from './LeadFormField'
-import NctConflictModal from './NctConflictModal'
-import TitleMatchModal from './TitleMatchModal'
+import { fetchStudyByNCT, fetchStudiesByTitle, splitStudyMerge, type StudyConflict } from '@/features/research/utils/clinicalTrials'
+import { NCT_COLUMN, TITLE_COLUMN, COUNT_COLUMN } from '@/features/research/tableConstants/constants'
+import normNct from '@/features/research/utils/normNct'
+import type { Lead } from '@/features/research/types'
+import { useResearch } from '@/features/research/components/ResearchContext'
+import LeadFormField from '../LeadFormField'
+import NctConflictModal from '../NctConflictModal'
+import TitleMatchModal from '../TitleMatchModal'
 
 const LABEL_BY_COL = Object.fromEntries(LEAD_FIELD_DEFS.map(f => [f.column, f.labelKey]))
 
@@ -93,8 +94,7 @@ export default function LeadFormModal() {
   function applyPicked() {
     const patch: Record<string, unknown> = {}
     for (const c of conflicts) if (picked.has(c.column)) patch[c.column] = c.incoming
-    setNewLead(p => ({ ...p, ...patch }))
-    setConflicts([]); setNctHint(filledHint)
+    setNewLead(p => ({ ...p, ...patch })); setConflicts([]); setNctHint(filledHint)
   }
 
   // onBlur/action/hint/help dependen de la columna: NCT# autocompleta; título busca en CT.gov.

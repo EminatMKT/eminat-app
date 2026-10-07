@@ -1,11 +1,11 @@
 'use client'
 import { useState } from 'react'
-import { RESEARCH_THEME, inputStyle } from '../../theme'
+import { RESEARCH_THEME, inputStyle } from '@/features/research/theme'
 import { useT } from '@/shared/i18n'
-import { useResearch } from '../ResearchContext'
-import { nextCount } from '../../utils/counters'
-import { coerceLeadValue } from '../../utils/fields'
-import { COUNT_COLUMN } from '../../constants'
+import { useResearch } from '@/features/research/components/ResearchContext'
+import { nextCount } from '@/features/research/utils/counters'
+import { coerceLeadValue } from '@/features/research/utils/fields'
+import { COUNT_COLUMN } from '@/features/research/tableConstants/constants'
 
 // Pop-up de confirmación del contador de correos. Existe por un motivo concreto que pidió
 // Federico en la reunión del 12/08/2026: sin confirmación "se te va el dedo y se pierde la

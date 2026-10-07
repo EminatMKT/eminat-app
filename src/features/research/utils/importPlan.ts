@@ -9,7 +9,9 @@
 import { buildImportPlan as buildPlanCompartido } from '@/shared/import'
 import type { Identity, ImportPlan } from '@/shared/import'
 import { leadColumnFor, coerceLeadValue, normalizeDomainValue } from './fields'
-import { normNct, DEFAULT_STAGE, COUNT_COLUMN } from '../constants'
+import normNct from './normNct'
+import { DEFAULT_STAGE } from '../stages'
+import { COUNT_COLUMN } from '../tableConstants/constants'
 
 export type { ImportPlan }
 
@@ -98,9 +100,7 @@ export function buildImportPlan(input: {
   // Insert: si el CSV no trae stage (columna ausente o celda vacía), arranca en la etapa default.
   const toInsert = plan.toInsert.map(values => (values.stage == null ? { ...values, stage: DEFAULT_STAGE } : values))
 
-  if (dupMode === 'skip') {
-    return { ...plan, toInsert, toUpdate: [], skipped: plan.skipped + plan.toUpdate.length }
-  }
+  if (dupMode === 'skip') return { ...plan, toInsert, toUpdate: [], skipped: plan.skipped + plan.toUpdate.length }
 
   // El contador solo se pisa si el CSV trae un valor. Celda vacía = "no lo informé", NO
   // "ponelo en cero": sin esto, exportar y reimportar sin llenar la columna borraría los

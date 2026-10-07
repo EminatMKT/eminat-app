@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { LEAD_FILTERS } from './filters'
 import { NO_SPECIALTY } from './specialty'
 import { applyFilters } from '@/shared/utils'
+import { STAGE } from '../stages'
 import type { Lead } from '../types'
 
 const lead = (nct: string, date_added?: string) => ({ id: nct, nct_number: nct, date_added } as Lead)
@@ -49,5 +50,12 @@ describe('filtro de especialidad', () => {
   it('el centinela está entre las opciones del filtro, si no no se puede elegir a mano', () => {
     const def = LEAD_FILTERS.find(f => f.key === 'specialty')!
     expect(def.options!(byEsp)).toContain(NO_SPECIALTY)
+  })
+})
+
+describe('stage filter options', () => {
+  it('includes En comunicación even before a lead uses it', () => {
+    const def = LEAD_FILTERS.find(f => f.key === 'stage')!
+    expect(def.options!(leads)).toContain(STAGE.EN_COMUNICACION)
   })
 })

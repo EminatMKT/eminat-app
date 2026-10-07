@@ -1,15 +1,18 @@
 'use client'
-import { RESEARCH_THEME } from '../../theme'
-import { STAGE } from '../../constants'
-import { useResearch } from '../ResearchContext'
+import { RESEARCH_THEME } from '@/features/research/theme'
+import { STAGE } from '@/features/research/stages'
+import { useResearch } from '@/features/research/components/ResearchContext'
 import StatCard from '@/shared/components/dashboard/StatCard'
-import OpportunityRow from './OpportunityRow'
+import OpportunityRow from '../OpportunityRow'
+
+export function isOpportunityStage(stage: string): boolean {
+  return stage === STAGE.CONTACTADO || stage === STAGE.EN_COMUNICACION || stage === STAGE.GANADO
+}
 
 export default function OportunidadesTab() {
   const { s1, s2, border, t3 } = RESEARCH_THEME
   const { leads } = useResearch()
-  // Oportunidad = lead ya trabajado con valor potencial: Contactado (en gestión) o Ganado (cerrado).
-  const opps = leads.filter(l => l.stage === STAGE.CONTACTADO || l.stage === STAGE.GANADO)
+  const opps = leads.filter(l => isOpportunityStage(l.stage))
   const totalEstimado = opps.reduce((s, l) => s + (Number(l.valor_estimado) || 0), 0)
   return (
     <div>

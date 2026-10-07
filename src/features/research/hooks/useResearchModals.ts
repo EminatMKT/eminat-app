@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Lead, Campaign } from '../types'
-import { DEFAULT_STAGE } from '../constants'
+import { DEFAULT_STAGE } from '../stages'
 
 // Estado de apertura de modales, compartido entre header, tabs y pipeline.
 export function useResearchModals() {

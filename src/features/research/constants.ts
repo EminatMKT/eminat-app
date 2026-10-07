@@ -9,6 +9,7 @@ import type { Stage, StageMeta } from './types'
 export const STAGE = {
   NUEVO: 'Nuevo',
   CONTACTADO: 'Contactado',
+  EN_COMUNICACION: 'En comunicación',
   GANADO: 'Ganado',
   SIN_RESPUESTA: 'Sin respuesta',
 } satisfies Record<string, Stage>
@@ -20,6 +21,7 @@ export const STAGE = {
 const STAGE_META = {
   [STAGE.NUEVO]:         { labelKey: 'research.stage.nuevo',         color: '#60A5FA' },
   [STAGE.CONTACTADO]:    { labelKey: 'research.stage.contactado',    color: '#FBB040' },
+  [STAGE.EN_COMUNICACION]: { labelKey: 'research.stage.en_comunicacion', color: '#A78BFA' },
   [STAGE.GANADO]:        { labelKey: 'research.stage.ganado',        color: '#34D399' },
   [STAGE.SIN_RESPUESTA]: { labelKey: 'research.stage.sin_respuesta', color: '#9494B3' },
 } satisfies Record<Stage, StageMeta>
@@ -43,10 +45,6 @@ export function stageLabel(stage: string | undefined, t: (k: I18nKey) => string)
   const key = (STAGE_LABEL_KEY as Record<string, I18nKey>)[stage ?? '']
   return key ? t(key) : (stage || '—')
 }
-
-// Re-export: la paleta es de shared/components/dashboard/theme, pero `stageColors` (abajo) la
-// necesita acá para descartar los hexes que ya usa el pipeline.
-export { CHART_COLORS } from '@/shared/components/dashboard/theme'
 
 // Colores del pie de etapas y su leyenda, resueltos DE UNA VEZ para todo el gráfico. Antes cada
 // uno resolvía el suyo (el pie caía a CHART_COLORS[i], la leyenda a `accent`) y el mismo dato
@@ -77,38 +75,4 @@ function legacyColor(i: number): string {
   return i < EXTRA_COLORS.length ? EXTRA_COLORS[i] : `hsl(${(i * 137.5) % 360} 62% 62%)`
 }
 
-// ponytail: sin uso tras comentar "Leads by Country" (dirección, reunión 2026-07-20). Su único
-// consumidor era `components/CountryChip/`, hoy comentado. No borrar — restaurar junto con ese bloque.
-/*
-export const COUNTRY_FLAGS: Record<string, string> = {
-  'United States': '🇺🇸', 'USA': '🇺🇸', 'US': '🇺🇸', 'Spain': '🇪🇸', 'Germany': '🇩🇪', 'France': '🇫🇷', 'UK': '🇬🇧', 'United Kingdom': '🇬🇧',
-  'Italy': '🇮🇹', 'Canada': '🇨🇦', 'Australia': '🇦🇺', 'Japan': '🇯🇵', 'China': '🇨🇳', 'Brazil': '🇧🇷', 'Mexico': '🇲🇽', 'India': '🇮🇳',
-  'Argentina': '🇦🇷', 'Colombia': '🇨🇴', 'Chile': '🇨🇱', 'Peru': '🇵🇪', 'Ecuador': '🇪🇨', 'Netherlands': '🇳🇱', 'Belgium': '🇧🇪',
-  'Switzerland': '🇨🇭', 'Austria': '🇦🇹', 'Poland': '🇵🇱', 'Portugal': '🇵🇹', 'Sweden': '🇸🇪', 'Norway': '🇳🇴', 'Denmark': '🇩🇰',
-  'Finland': '🇫🇮', 'Ireland': '🇮🇪', 'Israel': '🇮🇱', 'South Korea': '🇰🇷', 'Turkey': '🇹🇷', 'Russia': '🇷🇺', 'South Africa': '🇿🇦',
-  'New Zealand': '🇳🇿', 'Greece': '🇬🇷', 'Czech Republic': '🇨🇿', 'Hungary': '🇭🇺', 'Romania': '🇷🇴', 'Taiwan': '🇹🇼',
-}
-*/
-
-// Columnas congeladas de la tabla de leads: las dos primeras (NCT# y título), que son las que
-// dicen DE QUÉ ESTUDIO es la fila. Sin esto, al desplazarse a la derecha se ven fase, sponsor y
-// etapa de una fila que ya no se sabe cuál es.
-// El ancho vive acá y no en cada componente porque `left` de la segunda ES el ancho de la
-// primera: si la cabecera y la fila usan números distintos, las columnas se solapan.
-// `position: sticky` solo pega al borde izquierdo, así que estas dos TIENEN que ser las
-// primeras de la tabla — de ahí el orden de COLUMNS en LeadsTab.
-export const FROZEN_COLS = [{ width: 118, left: 0 }, { width: 240, left: 118 }] as const
-
-// Los campos de un lead (form/export/import/validación) viven en ./utils/fields.ts.
-
-// — NCT# (identificador del estudio en ClinicalTrials.gov) — fuente única, no repetir literales.
-export const NCT_COLUMN = 'nct_number'
-// — Contador de intentos de contacto (correos enviados a ese estudio) — fuente única.
-export const COUNT_COLUMN = 'email_count'
-export const TITLE_COLUMN = 'official_title' // se usa para buscar el estudio por título en CT.gov
-export const NCT_RE = /^NCT\d{8}$/i
-export const CLINICAL_TRIALS_BASE = 'https://clinicaltrials.gov'
-// Normaliza un NCT# para comparar/indexar/consultar: sin espacios, en mayúsculas.
-export const normNct = (v: unknown) => String(v ?? '').trim().toUpperCase()
-
-export const MAIL_ESTADO_COLOR: Record<string, string> = { Borrador: '#9CA3AF', Programado: '#60A5FA', Enviado: '#34D399', Cancelado: '#F87171' }
+// Los campos de tabla/campañas viven en ./tableConstants/constants.ts y NCT en ./utils/normNct.

@@ -1,8 +1,8 @@
 'use client'
 import { useState } from 'react'
-import { PIPELINE_ACTIVE_COLS } from '../../constants'
-import { useResearch } from '../ResearchContext'
-import PipelineColumn from './PipelineColumn'
+import { PIPELINE_ACTIVE_COLS } from '@/features/research/stages'
+import { useResearch } from '@/features/research/components/ResearchContext'
+import PipelineColumn from '../PipelineColumn'
 
 export default function PipelineTab() {
   const { leads } = useResearch()

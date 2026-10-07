@@ -3,7 +3,8 @@
 // desde el browser. Devuelve un parcial con COLUMNAS REALES de research_leads, listo para
 // mergear en el form. Errores como clave i18n (research.nct.*).
 import type { I18nKey } from '@/shared/i18n'
-import { NCT_COLUMN, NCT_RE, CLINICAL_TRIALS_BASE, normNct } from '../constants'
+import { NCT_COLUMN, NCT_RE, CLINICAL_TRIALS_BASE } from '../tableConstants/constants'
+import normNct from './normNct'
 import { specialtyFromMesh, type ConditionBrowse } from './specialty'
 
 const PHASE_MAP: Record<string, string> = { EARLY_PHASE1: 'Early Phase 1', PHASE1: 'Phase 1', PHASE2: 'Phase 2', PHASE3: 'Phase 3', PHASE4: 'Phase 4', NA: 'N/A' }
@@ -56,8 +57,7 @@ export type TitleResult = { studies?: StudyPartial[]; error?: I18nKey }
 // Es opcional porque no todos los estudios lo traen y porque el mapeo del protocolSection no
 // depende de él: sin MeSH, la clave `especialidad` simplemente no se agrega.
 export function studyFromProtocol(p: CtProtocolSection, derived?: CtDerivedSection): StudyPartial {
-  const idm: CtIdentificationModule = p.identificationModule || {}, st: CtStatusModule = p.statusModule || {}, des: CtDesignModule = p.designModule || {}
-  const cond: CtConditionsModule = p.conditionsModule || {}, spo: CtSponsorModule = p.sponsorCollaboratorsModule || {}, loc: CtContactsLocationsModule = p.contactsLocationsModule || {}, desc: CtDescriptionModule = p.descriptionModule || {}
+  const idm: CtIdentificationModule = p.identificationModule || {}, st: CtStatusModule = p.statusModule || {}, des: CtDesignModule = p.designModule || {}, cond: CtConditionsModule = p.conditionsModule || {}, spo: CtSponsorModule = p.sponsorCollaboratorsModule || {}, loc: CtContactsLocationsModule = p.contactsLocationsModule || {}, desc: CtDescriptionModule = p.descriptionModule || {}
   const lead: CtLeadSponsor = spo.leadSponsor || {}
   const countries = Array.from(new Set((loc.locations || []).map(l => l.country).filter(Boolean))).sort()
 

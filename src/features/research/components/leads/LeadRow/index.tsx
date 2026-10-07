@@ -1,11 +1,11 @@
 'use client'
-import { RESEARCH_THEME } from '../../theme'
+import { RESEARCH_THEME } from '@/features/research/theme'
 import { useT } from '@/shared/i18n'
-import { useResearch } from '../ResearchContext'
-import StageBadge from '../StageBadge'
-import { FROZEN_COLS } from '../../constants'
-import { specialtyLabel } from '../../utils/specialty'
-import type { Lead } from '../../types'
+import { useResearch } from '@/features/research/components/ResearchContext'
+import StageBadge from '@/features/research/components/StageBadge'
+import { FROZEN_COLS } from '@/features/research/tableConstants/constants'
+import { specialtyLabel } from '@/features/research/utils/specialty'
+import type { Lead } from '@/features/research/types'
 
 export default function LeadRow({ lead: l }: { lead: Lead }) {
   const { border, t1, t2, t3, accent } = RESEARCH_THEME
