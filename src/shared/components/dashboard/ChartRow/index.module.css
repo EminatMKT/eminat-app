@@ -1,0 +1,18 @@
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  align-items: start;
+}
+
+/* A row with only one chart spans both tracks instead of leaving half the row empty. */
+.row > :only-child {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 68.75rem) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+}

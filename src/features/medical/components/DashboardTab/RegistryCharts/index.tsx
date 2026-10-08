@@ -1,6 +1,11 @@
 'use client'
 import { useT } from '@/shared/i18n'
-import { Panel, PieChartCard, BarChartCard } from '@/shared/components/dashboard'
+import {
+  Panel,
+  PieChartCard,
+  BarChartCard,
+  ChartRow,
+} from '@/shared/components/dashboard'
 import shapes from './shapes'
 import type { Props } from './types'
 
@@ -18,18 +23,24 @@ export default function RegistryCharts(props: Props) {
 
   return (
     <>
-      <Panel collapsible persistKey="medical-dashboard-birthdays" title={t('med.dashboardBirthdaysByMonth')}>
-        {t('med.dashboardUnavailable')}
-      </Panel>
-      <PieChartCard persistKey="medical-dashboard-gender" title={t('med.dashboardGenderSplit')} data={genderData} colors={genderColors} />
-      <BarChartCard persistKey="medical-dashboard-age-buckets" title={t('med.dashboardAgeBuckets')} data={ageBucketData} />
-      {noAreaCodes ? (
-        <Panel collapsible persistKey="medical-dashboard-area-codes" title={t('med.dashboardAreaCodes')}>
-          {t('metrics.noData')}
+      <ChartRow>
+        <Panel collapsible persistKey="medical-dashboard-birthdays" title={t('med.dashboardBirthdaysByMonth')}>
+          {t('med.dashboardUnavailable')}
         </Panel>
-      ) : (
-        <BarChartCard persistKey="medical-dashboard-area-codes" title={t('med.dashboardAreaCodes')} data={areaData} vertical />
-      )}
+        <PieChartCard persistKey="medical-dashboard-gender" title={t('med.dashboardGenderSplit')} data={genderData} colors={genderColors} />
+      </ChartRow>
+      <ChartRow>
+        <BarChartCard persistKey="medical-dashboard-age-buckets" title={t('med.dashboardAgeBuckets')} data={ageBucketData} />
+      </ChartRow>
+      <ChartRow>
+        {noAreaCodes ? (
+          <Panel collapsible persistKey="medical-dashboard-area-codes" title={t('med.dashboardAreaCodes')}>
+            {t('metrics.noData')}
+          </Panel>
+        ) : (
+          <BarChartCard persistKey="medical-dashboard-area-codes" title={t('med.dashboardAreaCodes')} data={areaData} vertical />
+        )}
+      </ChartRow>
     </>
   )
 }
