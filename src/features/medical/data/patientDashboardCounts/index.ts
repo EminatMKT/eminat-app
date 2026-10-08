@@ -5,14 +5,17 @@ import type { AreaCodeCount, PatientDashboardCounts } from './types'
 
 // Count-only columns. These stay local to this module instead of the shared `TABLE_COLUMNS`
 // catalog: that catalog only names columns reused across tables, and none of these are.
-const ID_COLUMN = 'id'
-const EMAIL_COLUMN = 'email'
-const GENERO_COLUMN = 'genero'
-const TELEFONO_COLUMN = 'telefono'
-const FECHA_NACIMIENTO_COLUMN = 'fecha_nacimiento'
-const IS_OPERATOR = 'is'
-const GENERO_FEMALE = 'F'
-const GENERO_MALE = 'M'
+// Exported (as constants, not functions — plain constants don't count against the one-exported
+// -function-per-file rule) so the test suite asserts filter arguments against the same names
+// the implementation uses, instead of duplicating them as its own string literals.
+export const ID_COLUMN = 'id'
+export const EMAIL_COLUMN = 'email'
+export const GENERO_COLUMN = 'genero'
+export const TELEFONO_COLUMN = 'telefono'
+export const FECHA_NACIMIENTO_COLUMN = 'fecha_nacimiento'
+export const IS_OPERATOR = 'is'
+export const GENERO_FEMALE = 'F'
+export const GENERO_MALE = 'M'
 
 const COUNT_ONLY = { count: 'exact', head: true } as const
 
@@ -24,13 +27,13 @@ const AREA_CODE_305 = '305'
 const AREA_CODE_954 = '954'
 const AREA_CODE_754 = '754'
 const AREA_CODE_561 = '561'
-const AREA_CODE_OTHER = 'other'
+export const AREA_CODE_OTHER = 'other'
 const LABEL_MIAMI_DADE = 'Miami-Dade'
 const LABEL_BROWARD = 'Broward'
 const LABEL_PALM_BEACH = 'Palm Beach'
-const LABEL_OTHER = 'Other'
+export const LABEL_OTHER = 'Other'
 
-const KNOWN_AREA_CODES: { code: string; label: string }[] = [
+export const KNOWN_AREA_CODES: { code: string; label: string }[] = [
   { code: AREA_CODE_786, label: LABEL_MIAMI_DADE },
   { code: AREA_CODE_305, label: LABEL_MIAMI_DADE },
   { code: AREA_CODE_954, label: LABEL_BROWARD },
@@ -38,11 +41,16 @@ const KNOWN_AREA_CODES: { code: string; label: string }[] = [
   { code: AREA_CODE_561, label: LABEL_PALM_BEACH },
 ]
 
-// Cutoff ages for the five buckets, youngest to oldest.
-const CHILD_CUTOFF_YEARS = 18
-const YOUNG_ADULT_CUTOFF_YEARS = 35
-const ADULT_CUTOFF_YEARS = 50
-const OLDER_ADULT_CUTOFF_YEARS = 65
+// Cutoff ages for the five buckets, youngest to oldest. Exported so the test can build the same
+// cutoff dates independently, without importing the (unexported, to stay the file's one function
+// export) `cutoffIso` helper itself.
+export const CHILD_CUTOFF_YEARS = 18
+export const YOUNG_ADULT_CUTOFF_YEARS = 35
+export const ADULT_CUTOFF_YEARS = 50
+export const OLDER_ADULT_CUTOFF_YEARS = 65
+
+const DATE_PART_LENGTH = 2
+const ZERO_PAD = '0'
 
 type CountResult = { count: number | null; error: PostgrestError | null }
 
@@ -78,9 +86,9 @@ async function countByGenero(value: string): Promise<number> {
   return readCount(result)
 }
 
-// Born strictly after `cutoffIso` (younger than the cutoff age).
-async function countBornAfter(cutoffIso: string): Promise<number> {
-  const result = await countQuery().gt(FECHA_NACIMIENTO_COLUMN, cutoffIso)
+// Born strictly after `cutoffIsoValue` (younger than the cutoff age).
+async function countBornAfter(cutoffIsoValue: string): Promise<number> {
+  const result = await countQuery().gt(FECHA_NACIMIENTO_COLUMN, cutoffIsoValue)
   return readCount(result)
 }
 
@@ -91,9 +99,9 @@ async function countBornBetween(sinceIso: string, untilIso: string): Promise<num
   return readCount(result)
 }
 
-// Born on or before `cutoffIso` (older than, or exactly, the cutoff age).
-async function countBornOnOrBefore(cutoffIso: string): Promise<number> {
-  const result = await countQuery().lte(FECHA_NACIMIENTO_COLUMN, cutoffIso)
+// Born on or before `cutoffIsoValue` (older than, or exactly, the cutoff age).
+async function countBornOnOrBefore(cutoffIsoValue: string): Promise<number> {
+  const result = await countQuery().lte(FECHA_NACIMIENTO_COLUMN, cutoffIsoValue)
   return readCount(result)
 }
 
@@ -103,22 +111,26 @@ async function countByAreaCode(code: string): Promise<number> {
   return readCount(result)
 }
 
-// ISO (YYYY-MM-DD) date `yearsAgo` years before `today` — a birth-date cutoff for an age bucket.
+// ISO (YYYY-MM-DD) local-calendar date `yearsAgo` years before `today` — a birth-date cutoff
+// for an age bucket. Built from `today`'s own local year/month/day instead of round-tripping
+// through `toISOString()` (which converts to UTC and can shift the date near midnight,
+// depending on the local time zone offset).
 function cutoffIso(yearsAgo: number, today: Date): string {
-  const cutoff = new Date(today.getFullYear() - yearsAgo, today.getMonth(), today.getDate())
-  return cutoff.toISOString().slice(0, 10)
+  const year = today.getFullYear() - yearsAgo
+  const month = String(today.getMonth() + 1).padStart(DATE_PART_LENGTH, ZERO_PAD)
+  const day = String(today.getDate()).padStart(DATE_PART_LENGTH, ZERO_PAD)
+  return `${year}-${month}-${day}`
 }
 
-// Known-prefix counts plus one trailing `other` bucket, so the areas always sum to the total
-// without a query for every unlisted prefix.
-async function computeAreaCodes(totalPatients: number): Promise<AreaCodeCount[]> {
-  const entries: AreaCodeCount[] = []
-  let knownTotal = 0
-  for (const known of KNOWN_AREA_CODES) {
-    const count = await countByAreaCode(known.code)
-    entries.push({ code: known.code, label: known.label, count })
-    knownTotal += count
-  }
+// Known-prefix counts paired with their area, plus one trailing `other` bucket so the areas
+// always sum to the total without a query for every unlisted prefix.
+function buildAreaCodeEntries(totalPatients: number, knownCounts: number[]): AreaCodeCount[] {
+  const entries: AreaCodeCount[] = KNOWN_AREA_CODES.map((known, index) => ({
+    code: known.code,
+    label: known.label,
+    count: knownCounts[index] ?? 0,
+  }))
+  const knownTotal = knownCounts.reduce((sum, count) => sum + count, 0)
   entries.push({ code: AREA_CODE_OTHER, label: LABEL_OTHER, count: totalPatients - knownTotal })
   return entries
 }
@@ -129,6 +141,10 @@ async function computeAreaCodes(totalPatients: number): Promise<AreaCodeCount[]>
 // `date` column with no month extraction available without a database aggregate, which this
 // bite does not add. Median/min/max age and the duplicate/typo data-quality counts stay `null`
 // for the same reason — they need a full row load or a database aggregate this bite forbids.
+//
+// None of the 14 count queries depends on another's *construction* — only the derived
+// subtractions below depend on their *values* — so every query fires concurrently through one
+// `Promise.all`, instead of 14 sequential round-trips.
 export default async function patientDashboardCounts(): Promise<PatientDashboardCounts> {
   const today = new Date()
   const childCutoff = cutoffIso(CHILD_CUTOFF_YEARS, today)
@@ -136,16 +152,23 @@ export default async function patientDashboardCounts(): Promise<PatientDashboard
   const adultCutoff = cutoffIso(ADULT_CUTOFF_YEARS, today)
   const olderAdultCutoff = cutoffIso(OLDER_ADULT_CUTOFF_YEARS, today)
 
-  const totalPatients = await countTotalPatients()
-  const withEmail = await countWithEmail()
-  const female = await countByGenero(GENERO_FEMALE)
-  const male = await countByGenero(GENERO_MALE)
-  const child = await countBornAfter(childCutoff)
-  const youngAdult = await countBornBetween(youngAdultCutoff, childCutoff)
-  const adult = await countBornBetween(adultCutoff, youngAdultCutoff)
-  const olderAdult = await countBornBetween(olderAdultCutoff, adultCutoff)
-  const senior = await countBornOnOrBefore(olderAdultCutoff)
-  const areaCodes = await computeAreaCodes(totalPatients)
+  const [totalPatients, withEmail, female, male, ageCounts, knownAreaCounts] = await Promise.all([
+    countTotalPatients(),
+    countWithEmail(),
+    countByGenero(GENERO_FEMALE),
+    countByGenero(GENERO_MALE),
+    Promise.all([
+      countBornAfter(childCutoff),
+      countBornBetween(youngAdultCutoff, childCutoff),
+      countBornBetween(adultCutoff, youngAdultCutoff),
+      countBornBetween(olderAdultCutoff, adultCutoff),
+      countBornOnOrBefore(olderAdultCutoff),
+    ]),
+    Promise.all(KNOWN_AREA_CODES.map((known) => countByAreaCode(known.code))),
+  ])
+
+  const [child, youngAdult, adult, olderAdult, senior] = ageCounts
+  const areaCodes = buildAreaCodeEntries(totalPatients, knownAreaCounts)
 
   const withoutEmail = totalPatients - withEmail
   const genderUnknown = totalPatients - female - male

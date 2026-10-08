@@ -4,7 +4,23 @@ const mocks = vi.hoisted(() => ({ from: vi.fn() }))
 vi.mock('@/shared/db', () => ({ supabase: { from: mocks.from } }))
 vi.mock('@/shared/db/supabase', () => ({ supabase: { from: mocks.from } }))
 
-import patientDashboardCounts from '.'
+import patientDashboardCounts, {
+  ID_COLUMN,
+  EMAIL_COLUMN,
+  GENERO_COLUMN,
+  TELEFONO_COLUMN,
+  FECHA_NACIMIENTO_COLUMN,
+  IS_OPERATOR,
+  GENERO_FEMALE,
+  GENERO_MALE,
+  KNOWN_AREA_CODES,
+  AREA_CODE_OTHER,
+  LABEL_OTHER,
+  CHILD_CUTOFF_YEARS,
+  YOUNG_ADULT_CUTOFF_YEARS,
+  ADULT_CUTOFF_YEARS,
+  OLDER_ADULT_CUTOFF_YEARS,
+} from '.'
 
 const TOTAL_PATIENTS = 7101
 const WITH_EMAIL = 4200
@@ -23,52 +39,91 @@ const AREA_305 = 40
 const AREA_954 = 30
 const AREA_754 = 20
 const AREA_561 = 10
-const AREA_OTHER = TOTAL_PATIENTS - (AREA_786 + AREA_305 + AREA_954 + AREA_754 + AREA_561)
+const KNOWN_AREA_COUNTS = [AREA_786, AREA_305, AREA_954, AREA_754, AREA_561]
+const AREA_OTHER = TOTAL_PATIENTS - KNOWN_AREA_COUNTS.reduce((sum, count) => sum + count, 0)
 
-// One queue entry per `await` the implementation issues, in the order it issues them: total,
-// withEmail, genero F, genero M, child, youngAdult, adult, olderAdult, senior, then the five
-// known area-code prefixes.
-const COUNT_QUEUE = [
-  TOTAL_PATIENTS,
-  WITH_EMAIL,
-  FEMALE,
-  MALE,
-  CHILD,
-  YOUNG_ADULT,
-  ADULT,
-  OLDER_ADULT,
-  SENIOR,
-  AREA_786,
-  AREA_305,
-  AREA_954,
-  AREA_754,
-  AREA_561,
-]
+// Same local-calendar cutoff formula the implementation uses, computed independently here (not
+// imported — it's the thing under test) so the test can assert the exact `.gt`/`.lte` values
+// each age-bucket query must send.
+const DATE_PART_LENGTH = 2
+const ZERO_PAD = '0'
+function cutoffIso(yearsAgo: number, today: Date): string {
+  const year = today.getFullYear() - yearsAgo
+  const month = String(today.getMonth() + 1).padStart(DATE_PART_LENGTH, ZERO_PAD)
+  const day = String(today.getDate()).padStart(DATE_PART_LENGTH, ZERO_PAD)
+  return `${year}-${month}-${day}`
+}
 
-function buildChainableQuery(queue: number[]) {
-  const selectCalls: unknown[][] = []
-  const query: Record<string, unknown> = {}
-  query.select = vi.fn((...args: unknown[]) => {
-    selectCalls.push(args)
-    return query
-  })
-  query.eq = vi.fn(() => query)
-  query.gt = vi.fn(() => query)
-  query.lte = vi.fn(() => query)
-  query.not = vi.fn(() => query)
-  query.like = vi.fn(() => query)
-  query.then = (resolve: (value: unknown) => unknown) => {
-    const count = queue.shift() ?? 0
-    return Promise.resolve(resolve({ data: null, error: null, count }))
+const TODAY = new Date()
+const CHILD_CUTOFF = cutoffIso(CHILD_CUTOFF_YEARS, TODAY)
+const YOUNG_ADULT_CUTOFF = cutoffIso(YOUNG_ADULT_CUTOFF_YEARS, TODAY)
+const ADULT_CUTOFF = cutoffIso(ADULT_CUTOFF_YEARS, TODAY)
+const OLDER_ADULT_CUTOFF = cutoffIso(OLDER_ADULT_CUTOFF_YEARS, TODAY)
+
+type Call = { method: string; args: unknown[] }
+
+const getCall = (calls: Call[], method: string) => calls.find((call) => call.method === method)
+
+function resolveCountFor(calls: Call[]): number {
+  if (calls.length === 1) return TOTAL_PATIENTS // bare select(), no filter: the total
+
+  const notCall = getCall(calls, 'not')
+  if (notCall && notCall.args[0] === EMAIL_COLUMN && notCall.args[1] === IS_OPERATOR) return WITH_EMAIL
+
+  const eqCall = getCall(calls, 'eq')
+  if (eqCall && eqCall.args[0] === GENERO_COLUMN) {
+    if (eqCall.args[1] === GENERO_FEMALE) return FEMALE
+    if (eqCall.args[1] === GENERO_MALE) return MALE
   }
-  return { query, selectCalls }
+
+  const likeCall = getCall(calls, 'like')
+  if (likeCall && likeCall.args[0] === TELEFONO_COLUMN) {
+    const index = KNOWN_AREA_CODES.findIndex((known) => likeCall.args[1] === `(${known.code})%`)
+    if (index >= 0) return KNOWN_AREA_COUNTS[index] ?? 0
+  }
+
+  const gtCall = getCall(calls, 'gt')
+  const lteCall = getCall(calls, 'lte')
+  if (gtCall && !lteCall) return CHILD
+  if (lteCall && !gtCall) return SENIOR
+  if (gtCall && lteCall) {
+    if (lteCall.args[1] === CHILD_CUTOFF) return YOUNG_ADULT
+    if (lteCall.args[1] === YOUNG_ADULT_CUTOFF) return ADULT
+    if (lteCall.args[1] === ADULT_CUTOFF) return OLDER_ADULT
+  }
+
+  throw new Error(`unexpected query shape in test mock: ${JSON.stringify(calls)}`)
+}
+
+// One fresh chainable query per `supabase.from()` call, each with its own call log — the 14
+// count queries run concurrently (Promise.all), so a single shared chain would mix unrelated
+// filters together instead of keeping each logical query's recorded calls isolated.
+function makeQuery() {
+  const calls: Call[] = []
+  const query: Record<string, unknown> = {}
+  const record = (method: string) => (...args: unknown[]) => {
+    calls.push({ method, args })
+    return query
+  }
+  query.select = vi.fn(record('select'))
+  query.eq = vi.fn(record('eq'))
+  query.gt = vi.fn(record('gt'))
+  query.lte = vi.fn(record('lte'))
+  query.not = vi.fn(record('not'))
+  query.like = vi.fn(record('like'))
+  query.then = (resolve: (value: unknown) => unknown) =>
+    Promise.resolve(resolve({ data: null, error: null, count: resolveCountFor(calls) }))
+  return { query, calls }
 }
 
 describe('patientDashboardCounts', () => {
   it('returns a dashboard aggregate built only from count queries, with birthdays left null', async () => {
-    const queue = [...COUNT_QUEUE]
-    const { query, selectCalls } = buildChainableQuery(queue)
-    mocks.from.mockReturnValue(query)
+    const createdQueries: Call[][] = []
+    mocks.from.mockImplementation(() => {
+      const { query, calls } = makeQuery()
+      createdQueries.push(calls)
+      return query
+    })
 
     const result = await patientDashboardCounts()
 
@@ -91,12 +146,12 @@ describe('patientDashboardCounts', () => {
         unknown: AGE_UNKNOWN,
       },
       areaCodes: [
-        { code: '786', label: 'Miami-Dade', count: AREA_786 },
-        { code: '305', label: 'Miami-Dade', count: AREA_305 },
-        { code: '954', label: 'Broward', count: AREA_954 },
-        { code: '754', label: 'Broward', count: AREA_754 },
-        { code: '561', label: 'Palm Beach', count: AREA_561 },
-        { code: 'other', label: 'Other', count: AREA_OTHER },
+        ...KNOWN_AREA_CODES.map((known, index) => ({
+          code: known.code,
+          label: known.label,
+          count: KNOWN_AREA_COUNTS[index],
+        })),
+        { code: AREA_CODE_OTHER, label: LABEL_OTHER, count: AREA_OTHER },
       ],
       dataQuality: {
         missingEmail: WITHOUT_EMAIL,
@@ -107,9 +162,59 @@ describe('patientDashboardCounts', () => {
       },
     })
 
-    expect(selectCalls.length).toBeGreaterThan(0)
-    for (const call of selectCalls) {
-      expect(call[0]).toBe('id')
+    // Fourteen logical count queries: total, withEmail, 2 genero, 5 age buckets, 5 area codes.
+    expect(createdQueries).toHaveLength(14)
+
+    // Every one selects only `ID_COLUMN` — never a full row (`'*'`).
+    for (const calls of createdQueries) {
+      expect(getCall(calls, 'select')?.args[0]).toBe(ID_COLUMN)
     }
+
+    // Important finding 1a — area-code `.like()` calls use the `(XXX)%` pattern (matching the
+    // pre-formatted `(XXX) XXX-XXXX` storage), not a bare-digit pattern, for every known prefix.
+    for (const known of KNOWN_AREA_CODES) {
+      const matches = createdQueries.filter((calls) => {
+        const likeCall = getCall(calls, 'like')
+        return likeCall?.args[0] === TELEFONO_COLUMN && likeCall.args[1] === `(${known.code})%`
+      })
+      expect(matches).toHaveLength(1)
+    }
+    const bareDigitLike = createdQueries.some((calls) => {
+      const likeCall = getCall(calls, 'like')
+      return typeof likeCall?.args[1] === 'string' && !(likeCall.args[1] as string).startsWith('(')
+    })
+    expect(bareDigitLike).toBe(false)
+
+    // Important finding 1b — genero `.eq()` calls use the two expected values, not swapped.
+    const generoEqValues = createdQueries
+      .map((calls) => getCall(calls, 'eq'))
+      .filter((call): call is Call => call?.args[0] === GENERO_COLUMN)
+      .map((call) => call.args[1])
+    expect(generoEqValues.slice().sort()).toEqual([GENERO_FEMALE, GENERO_MALE].slice().sort())
+
+    // Important finding 1c — age-bucket `.gt`/`.lte` calls use the cutoffs in the correct
+    // relative order: child only `.gt(childCutoff)`, senior only `.lte(olderAdultCutoff)`, and
+    // each middle bucket's `.lte` upper bound lines up with the next younger bucket's cutoff
+    // (this fails if `.gte` is substituted for `.gt`, or a cutoff is swapped/misordered).
+    const ageQueries = createdQueries.filter((calls) => getCall(calls, 'gt') || getCall(calls, 'lte'))
+    expect(ageQueries).toHaveLength(5)
+
+    const childQuery = ageQueries.find((calls) => !getCall(calls, 'lte'))
+    expect(getCall(childQuery ?? [], 'gt')?.args).toEqual([FECHA_NACIMIENTO_COLUMN, CHILD_CUTOFF])
+
+    const seniorQuery = ageQueries.find((calls) => !getCall(calls, 'gt'))
+    expect(getCall(seniorQuery ?? [], 'lte')?.args).toEqual([FECHA_NACIMIENTO_COLUMN, OLDER_ADULT_CUTOFF])
+
+    const middleByUpperBound = (upperBound: string) =>
+      ageQueries.find((calls) => getCall(calls, 'lte')?.args[1] === upperBound)
+
+    const youngAdultQuery = middleByUpperBound(CHILD_CUTOFF)
+    expect(getCall(youngAdultQuery ?? [], 'gt')?.args).toEqual([FECHA_NACIMIENTO_COLUMN, YOUNG_ADULT_CUTOFF])
+
+    const adultQuery = middleByUpperBound(YOUNG_ADULT_CUTOFF)
+    expect(getCall(adultQuery ?? [], 'gt')?.args).toEqual([FECHA_NACIMIENTO_COLUMN, ADULT_CUTOFF])
+
+    const olderAdultQuery = middleByUpperBound(ADULT_CUTOFF)
+    expect(getCall(olderAdultQuery ?? [], 'gt')?.args).toEqual([FECHA_NACIMIENTO_COLUMN, OLDER_ADULT_CUTOFF])
   })
 })
