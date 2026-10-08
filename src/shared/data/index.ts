@@ -2,6 +2,7 @@
 // datos contra Supabase (supabase.from(...)) para que una futura migración de
 // DB toque un solo lugar.
 export { removeChannel } from './realtime' // helper de Realtime, único para toda la capa de datos
+export { TABLES } from './tables'
 export * as usuariosRepo from './usuarios'
 export * as actividadesRepo from './actividades'
 export * as notificacionesRepo from './notificaciones'

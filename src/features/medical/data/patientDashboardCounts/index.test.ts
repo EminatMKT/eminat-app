@@ -4,24 +4,9 @@ const mocks = vi.hoisted(() => ({ from: vi.fn() }))
 vi.mock('@/shared/db', () => ({ supabase: { from: mocks.from } }))
 vi.mock('@/shared/db/supabase', () => ({ supabase: { from: mocks.from } }))
 
-import patientDashboardCounts, {
-  ID_COLUMN,
-  EMAIL_COLUMN,
-  GENERO_COLUMN,
-  TELEFONO_COLUMN,
-  FECHA_NACIMIENTO_COLUMN,
-  IS_OPERATOR,
-  GENERO_FEMALE,
-  GENERO_MALE,
-  KNOWN_AREA_CODES,
-  AREA_CODE_OTHER,
-  LABEL_OTHER,
-  CHILD_CUTOFF_YEARS,
-  YOUNG_ADULT_CUTOFF_YEARS,
-  ADULT_CUTOFF_YEARS,
-  OLDER_ADULT_CUTOFF_YEARS,
-} from '.'
-
+import patientDashboardCounts from '.'
+import derive from './derive'
+import { ID_COLUMN, EMAIL_COLUMN, GENERO_COLUMN, TELEFONO_COLUMN, FECHA_NACIMIENTO_COLUMN, IS_OPERATOR, GENERO_FEMALE, GENERO_MALE, KNOWN_AREA_CODES, AREA_CODE_OTHER, LABEL_OTHER, CHILD_CUTOFF_YEARS, YOUNG_ADULT_CUTOFF_YEARS, ADULT_CUTOFF_YEARS, OLDER_ADULT_CUTOFF_YEARS } from './constants'
 const TOTAL_PATIENTS = 7101
 const WITH_EMAIL = 4200
 const WITHOUT_EMAIL = TOTAL_PATIENTS - WITH_EMAIL
@@ -42,23 +27,14 @@ const AREA_561 = 10
 const KNOWN_AREA_COUNTS = [AREA_786, AREA_305, AREA_954, AREA_754, AREA_561]
 const AREA_OTHER = TOTAL_PATIENTS - KNOWN_AREA_COUNTS.reduce((sum, count) => sum + count, 0)
 
-// Same local-calendar cutoff formula the implementation uses, computed independently here (not
-// imported — it's the thing under test) so the test can assert the exact `.gt`/`.lte` values
-// each age-bucket query must send.
-const DATE_PART_LENGTH = 2
-const ZERO_PAD = '0'
-function cutoffIso(yearsAgo: number, today: Date): string {
-  const year = today.getFullYear() - yearsAgo
-  const month = String(today.getMonth() + 1).padStart(DATE_PART_LENGTH, ZERO_PAD)
-  const day = String(today.getDate()).padStart(DATE_PART_LENGTH, ZERO_PAD)
-  return `${year}-${month}-${day}`
-}
+// `cutoffIso` has its own black-box unit test in `derive.test.ts`; this suite trusts it here
+// and only asserts the orchestrator passes the right cutoffs to the right queries.
 
 const TODAY = new Date()
-const CHILD_CUTOFF = cutoffIso(CHILD_CUTOFF_YEARS, TODAY)
-const YOUNG_ADULT_CUTOFF = cutoffIso(YOUNG_ADULT_CUTOFF_YEARS, TODAY)
-const ADULT_CUTOFF = cutoffIso(ADULT_CUTOFF_YEARS, TODAY)
-const OLDER_ADULT_CUTOFF = cutoffIso(OLDER_ADULT_CUTOFF_YEARS, TODAY)
+const CHILD_CUTOFF = derive.cutoffIso(CHILD_CUTOFF_YEARS, TODAY)
+const YOUNG_ADULT_CUTOFF = derive.cutoffIso(YOUNG_ADULT_CUTOFF_YEARS, TODAY)
+const ADULT_CUTOFF = derive.cutoffIso(ADULT_CUTOFF_YEARS, TODAY)
+const OLDER_ADULT_CUTOFF = derive.cutoffIso(OLDER_ADULT_CUTOFF_YEARS, TODAY)
 
 type Call = { method: string; args: unknown[] }
 
