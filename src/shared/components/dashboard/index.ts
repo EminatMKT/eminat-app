@@ -1,5 +1,6 @@
 export { default as Panel } from './Panel'
 export { default as StatCard } from './StatCard'
+export { default as StatBreakdownRow } from './StatBreakdownRow'
 export { default as PieChartCard } from './PieChartCard'
 export { default as BarChartCard } from './BarChartCard'
 

@@ -23,11 +23,13 @@ export type PatientDashboardCounts = {
     unknown: number
   }
   areaCodes: AreaCodeCount[]
-  dataQuality: {
-    missingEmail: number
-    sharedPhone: number | null
-    sharedEmail: number | null
-    repeatedName: number | null
-    typoEmailDomain: number | null
-  }
+  dataQuality: DataQualityCounts
+}
+
+export type DataQualityCounts = {
+  missingEmail: number
+  sharedPhone: number | null
+  sharedEmail: number | null
+  repeatedName: number | null
+  typoEmailDomain: number | null
 }
