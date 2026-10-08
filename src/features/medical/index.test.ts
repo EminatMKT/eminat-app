@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import * as medical from './index'
 import { calcAge } from './dates'
-import { generateDemoData } from './demo-data'
+import { generateDemoData } from './deprecated/demo-data'
 
 describe('features/medical API pública', () => {
   it('expone MedicalModule', () => {
