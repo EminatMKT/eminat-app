@@ -1,22 +1,22 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT, type I18nKey } from '@/shared/i18n'
-import { useMedical } from './MedicalContext'
-import { useMedicalStyles } from '../hooks/useMedicalStyles'
-import PatientRow from './PatientRow'
-import PatientDetail from './PatientDetail'
-import type { Paciente } from '../types'
+import { useMedicalStyles } from '@/features/medical/hooks/useMedicalStyles'
+import type { Paciente } from '@/features/medical/types'
+import { useMedical } from '../MedicalContext'
+import PatientRow from '../PatientRow'
+import PatientDetail from '../PatientDetail'
 
 const COLS: (I18nKey | '')[] = ['med.colMrn', 'med.colPatient', 'med.colAge', 'med.colGender', 'med.colInsurance', 'med.colPhone', 'med.colStatus', '']
-
-export default function PacientesTab({ onNewPatient, onImportPatients }: { onNewPatient: () => void; onImportPatients: () => void }) {
+type Props = { onNewPatient: () => void; onImportPatients: () => void }
+export default function PacientesTab({ onNewPatient, onImportPatients }: Props) {
   const { t3, border, inputStyle } = useApp()
   const { t } = useT()
-  const { searchPaciente, setSearchPaciente, filterEstadoPaciente, setFilterEstadoPaciente, filteredPacientes } = useMedical()
+  const { searchPaciente, setSearchPaciente, filterEstadoPaciente, setFilterEstadoPaciente, filteredPacientes, ensurePacientesLoaded, pacientesLoading } = useMedical()
   const { cardStyle, btnPrimary } = useMedicalStyles()
   const [detalle, setDetalle] = useState<Paciente | null>(null)
-
+  useEffect(() => void ensurePacientesLoaded(), [ensurePacientesLoaded])
   return (
     <div>
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -46,7 +46,7 @@ export default function PacientesTab({ onNewPatient, onImportPatients }: { onNew
             </thead>
             <tbody>{filteredPacientes.map(p => <PatientRow key={p.id} paciente={p} onSelect={setDetalle} />)}</tbody>
           </table>
-          {filteredPacientes.length === 0 && (
+          {filteredPacientes.length === 0 && !pacientesLoading && (
             <div style={{ textAlign: 'center', padding: 32, color: t3, fontSize: 12 }}>{t('med.noPatients')}</div>
           )}
         </div>
