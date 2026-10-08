@@ -9,11 +9,6 @@ const BASE = {
   counts: null,
   loading: false,
   error: null,
-  citasHoyCount: 0,
-  citasMananaCount: 0,
-  complianceScore: 0,
-  incidentesTotal: 0,
-  incidentesAbiertosCount: 0,
 }
 
 describe('RegistryKpis', () => {
@@ -32,11 +27,5 @@ describe('RegistryKpis', () => {
   it('surfaces a failure message instead of staying silent', () => {
     const html = renderToStaticMarkup(<RegistryKpis {...BASE} error={new Error('boom')} />)
     expect(html).toContain('med.dashboardLoadError')
-  })
-
-  it('keeps showing the operational counts regardless of registry load state', () => {
-    const html = renderToStaticMarkup(<RegistryKpis {...BASE} citasHoyCount={4} incidentesAbiertosCount={2} />)
-    expect(html).toContain('4')
-    expect(html).toContain('2')
   })
 })

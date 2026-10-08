@@ -1,6 +1,5 @@
 import type { I18nKey } from '@/shared/i18n'
 import { CHART_COLORS } from '@/shared/components/dashboard/theme'
-import colors from '@/features/medical/components/DashboardTab/colors'
 import { PLACEHOLDER } from '../constants'
 import type { Stat } from '../StatGrid/types'
 import type { RegistryCounts } from '../types'
@@ -39,14 +38,8 @@ function registryStats(counts: RegistryCounts | null, t: Translate): Stat[] {
   ]
 }
 
-function complianceColor(score: number): string {
-  if (score >= 80) return colors.COLOR_ACCENT
-  if (score >= 60) return colors.COLOR_WARN
-  return colors.COLOR_DANGER
-}
-
-const stats = { registryStats, complianceColor }
+const stats = { registryStats }
 
 export default stats
-// A named decision per tier instead of a nested ternary: `complianceColor` lets the reader see
-// one rule at a time, same as `registryStats` keeps the dash-vs-real-value decision in one place.
+// `registryStats` keeps the dash-vs-real-value decision for the patient-registry KPI row in one
+// place, read once per render by `RegistryKpis`.

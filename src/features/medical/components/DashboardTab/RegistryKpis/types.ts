@@ -6,9 +6,4 @@ export type Props = {
   counts: RegistryCounts | null
   loading: boolean
   error: Error | null
-  citasHoyCount: number
-  citasMananaCount: number
-  complianceScore: number
-  incidentesTotal: number
-  incidentesAbiertosCount: number
 }
