@@ -25,6 +25,28 @@
   - Existing Medical rows: `TodayAppointmentItem`, `IncidentAlertCard`, `PendingTrainingItem`, `RecentActivityRow`.
 - Keep the full patient table, filters, CSV export, drawer behavior, and import matching in patient workflows, not in the Dashboard performance bite.
 
+## Centinela guardrails
+
+These constraints are part of the plan so implementation does not fight the local guard:
+
+- Edit repository files through patch/Edit tools, not shell redirection, `sed -i`, or interpreter writes.
+- Keep all Supabase reads in `src/features/medical/data/...`; components and hooks do not call `supabase` directly.
+- Use the existing Supabase singleton from `@/shared/db`; do not create clients or use service-role keys.
+- Do not add migrations, RPCs, or database functions in this bite. Nullable aggregate fields stay nullable until a separate database plan is approved.
+- Avoid new inline `style` attributes in touched TSX. If `DashboardTab.tsx` needs layout that shared dashboard components do not cover, add a local CSS module beside the component or extract a small component folder with its own CSS module.
+- Do not add hard-coded user-facing text in TSX. Add i18n keys in `src/shared/i18n/locales/en.json` and `src/shared/i18n/locales/es.json`, then render through `useT()`.
+- Do not add hard-coded colors in new TSX/CSS. Prefer shared dashboard components, `CHART_COLORS`, or existing CSS variables.
+- Write CSS sizes in `rem`, not `px`, when adding a CSS module.
+- Keep one component per `.tsx` file. If a data-quality row becomes more than a trivial local render helper, create `src/features/medical/components/DataQualityRow/index.tsx`.
+- Keep repeated JSX inside `.map()` as a component, not an inline JSX block.
+- Keep exported types in `types.ts`, not next to exported functions.
+- Keep files small: split the dashboard count module into helper files if it approaches the repo ceiling.
+- Build returned objects in named variables before returning them from non-trivial functions.
+- Use named intermediate variables for Supabase query chains instead of long inline chains.
+- Do not use `as` assertions to force TypeScript. Type values where they are born or narrow them with small helpers.
+- Use explicit button types and accessible labels for any new buttons.
+- Add tests with any new testable helper; do not invent shallow tests that only import the module.
+
 ## Reference mapping
 
 The reference panel has three views: main panel, patient list, and campaign segments. This plan maps only the main panel content into the existing `/medical` Dashboard tab.
@@ -52,17 +74,26 @@ The reference segment examples are useful later as drill-downs, but the first Da
 |---|---|
 | `src/features/medical/data/patientDashboardCounts/index.test.ts` | Tests for count/aggregate data returned by the Medical dashboard data module. |
 | `src/features/medical/data/patientDashboardCounts/index.ts` | Count-only or aggregate-only reads for the Dashboard. No full row registry loads. |
+| `src/features/medical/data/patientDashboardCounts/types.ts` | Export `PatientDashboardCounts` and related named object types. |
+| `src/features/medical/data/patientDashboardCounts/monthCounts.ts` | Birthday month count helpers if `index.ts` grows too large. |
+| `src/features/medical/data/patientDashboardCounts/ageCounts.ts` | Age bucket count helpers if `index.ts` grows too large. |
+| `src/features/medical/data/patientDashboardCounts/areaCounts.ts` | Area-code count helpers if `index.ts` grows too large. |
 | `src/features/medical/hooks/usePatientDashboardCounts/index.test.ts` | Tests hook loading/error/reload behavior. |
 | `src/features/medical/hooks/usePatientDashboardCounts/index.ts` | Client hook that loads the dashboard aggregate once and exposes reload. |
 | `src/features/medical/hooks/usePacientes.ts` | Make full registry loading explicit and lazy. |
 | `src/features/medical/hooks/useMedicalData.ts` | Expose dashboard aggregates and explicit patient-registry loader through Medical context. |
 | `src/features/medical/components/DashboardTab.tsx` | Replace inline patient stats with reference-based registry panels using shared components. |
+| `src/features/medical/components/DashboardTab/index.module.css` | Local layout only if shared dashboard components do not cover a layout need. |
+| `src/features/medical/components/DataQualityRow/index.tsx` | Optional extracted row component if the quality panel repeats JSX. |
+| `src/features/medical/components/DataQualityRow/index.module.css` | Optional row styling without inline styles. |
 | `src/features/medical/components/PacientesTab.tsx` | Trigger full registry load when the user opens the patient list. |
 | `src/features/medical/components/PacientesImportModal/index.tsx` | Trigger full registry load before import planning. |
+| `src/shared/i18n/locales/en.json` | Add dashboard labels for registry KPIs/charts. |
+| `src/shared/i18n/locales/es.json` | Add dashboard labels for registry KPIs/charts. |
 
 ## Dashboard data contract
 
-Create this type in `src/features/medical/data/patientDashboardCounts/index.ts` and export it for the hook:
+Create this type in `src/features/medical/data/patientDashboardCounts/types.ts` and export it for the hook:
 
 ```ts
 export type PatientDashboardCounts = {
@@ -107,6 +138,7 @@ Implementation rules:
 **Files:**
 - Create: `src/features/medical/data/patientDashboardCounts/index.test.ts`
 - Create: `src/features/medical/data/patientDashboardCounts/index.ts`
+- Create: `src/features/medical/data/patientDashboardCounts/types.ts`
 
 - [ ] **Step 1: Write the failing test**
 
@@ -154,21 +186,24 @@ Expected: FAIL because the module does not exist.
 
 - [ ] **Step 3: Implement minimal count helpers**
 
-Create `src/features/medical/data/patientDashboardCounts/index.ts` with small helpers:
+Create `src/features/medical/data/patientDashboardCounts/index.ts` with small helpers. Keep each Supabase chain in named variables:
 
 ```ts
 import { supabase } from '@/shared/db'
 import { TABLES } from '@/shared/data/tables'
 
 async function countPatients(apply?: (query: ReturnType<typeof supabase.from>) => unknown): Promise<number> {
-  const base = supabase.from(TABLES.pacientes).select('id', { count: 'exact', head: true })
-  const result = apply ? await apply(base) as { count: number | null; error: Error | null } : await base
+  const table = supabase.from(TABLES.pacientes)
+  const base = table.select('id', { count: 'exact', head: true })
+  const result = apply ? await apply(base) : await base
   if (result.error) throw result.error
   return result.count ?? 0
 }
 ```
 
 Then implement `patientDashboardCounts()` with only count queries. Use existing columns from `Paciente`: `email`, `telefono`, `fecha_nacimiento`, and `genero`.
+
+If `index.ts` grows toward the file-size ceiling, split month, age, or area helpers into the helper files listed in the File Structure section before continuing.
 
 - [ ] **Step 4: Verify**
 
@@ -318,6 +353,11 @@ git commit -m "feat(medical): expose patient dashboard aggregates"
 
 **Files:**
 - Modify: `src/features/medical/components/DashboardTab.tsx`
+- Modify: `src/shared/i18n/locales/en.json`
+- Modify: `src/shared/i18n/locales/es.json`
+- Optional create: `src/features/medical/components/DashboardTab/index.module.css`
+- Optional create: `src/features/medical/components/DataQualityRow/index.tsx`
+- Optional create: `src/features/medical/components/DataQualityRow/index.module.css`
 
 - [ ] **Step 1: Replace the KPI row**
 
@@ -335,7 +375,7 @@ Render four `StatCard`s:
 - Median age.
 - Current-month birthdays.
 
-Use `patientDashboard.counts`, not `pacientes`.
+Use `patientDashboard.counts`, not `pacientes`. Labels, footnotes, unavailable text, and chart titles must come from i18n keys, not inline string literals.
 
 - [ ] **Step 2: Add reference charts using shared components**
 
@@ -344,9 +384,9 @@ Build chart arrays in `DashboardTab.tsx`:
 ```ts
 const birthdayData = counts.birthdaysByMonth.map(({ month, count }) => ({ name: MONTHS[month - 1], value: count }))
 const genderData = [
-  { name: 'Female', value: counts.gender.female },
-  { name: 'Male', value: counts.gender.male },
-  { name: 'Unknown', value: counts.gender.unknown },
+  { name: t('med.dashboard.genderFemale'), value: counts.gender.female },
+  { name: t('med.dashboard.genderMale'), value: counts.gender.male },
+  { name: t('med.dashboard.genderUnknown'), value: counts.gender.unknown },
 ].filter(item => item.value > 0)
 const ageBucketData = [
   { name: '0-17', value: counts.ageBuckets.child },
@@ -377,9 +417,13 @@ Use `Panel` and a local inline row renderer for:
 
 Do not compute duplicate groups in the browser from loaded patients.
 
+If the row renderer repeats JSX in a `.map()`, extract `DataQualityRow` as its own component folder before adding the panel.
+
 - [ ] **Step 4: Keep existing operational widgets below the registry dashboard**
 
 Keep today's appointments, HIPAA alerts, pending training, and recent PHI activity using existing Medical row components, but wrap their sections with `Panel` instead of new custom cards where practical.
+
+When touching existing inline-style sections, either replace them fully with shared dashboard components or move the remaining layout into the optional CSS module. Do not add new inline style objects to `DashboardTab.tsx`.
 
 - [ ] **Step 5: Verify Dashboard no longer needs patient arrays**
 
