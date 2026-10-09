@@ -1,5 +1,5 @@
 'use client'
-import { RESEARCH_THEME } from '@/features/research/theme'
+import { useResearchTheme } from '@/features/research/theme'
 import { STAGE } from '@/features/research/stages'
 import { useResearch } from '@/features/research/components/ResearchContext'
 import StatCard from '@/shared/components/dashboard/StatCard'
@@ -10,7 +10,7 @@ export function isOpportunityStage(stage: string): boolean {
 }
 
 export default function OportunidadesTab() {
-  const { s1, s2, border, t3 } = RESEARCH_THEME
+  const { s1, s2, border, t3 } = useResearchTheme()
   const { leads } = useResearch()
   const opps = leads.filter(l => isOpportunityStage(l.stage))
   const totalEstimado = opps.reduce((s, l) => s + (Number(l.valor_estimado) || 0), 0)

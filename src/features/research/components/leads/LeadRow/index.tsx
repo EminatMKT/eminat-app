@@ -1,5 +1,5 @@
 'use client'
-import { RESEARCH_THEME } from '@/features/research/theme'
+import { useResearchTheme } from '@/features/research/theme'
 import { useT } from '@/shared/i18n'
 import { useResearch } from '@/features/research/components/ResearchContext'
 import StageBadge from '@/features/research/components/StageBadge'
@@ -8,7 +8,7 @@ import { specialtyLabel } from '@/features/research/utils/specialty'
 import type { Lead } from '@/features/research/types'
 
 export default function LeadRow({ lead: l }: { lead: Lead }) {
-  const { border, t1, t2, t3, accent } = RESEARCH_THEME
+  const { border, t1, t2, t3, accent } = useResearchTheme()
   const { t } = useT()
   const { setModalLead, openEditLead, setModalActivity, setModalCount } = useResearch()
   // Una celda = una regla. Las de datos sueltos en gris medio; las identificatorias (NCT#,

@@ -1,11 +1,11 @@
 'use client'
-import { RESEARCH_THEME } from '../theme'
+import { useResearchTheme } from '../theme'
 import { useT } from '@/shared/i18n'
 
 // Solo identidad del módulo. Las acciones (nuevo lead, import, export, PDF) viven en la cabecera
 // del panel de Registros: operan sobre esa tabla, no sobre el módulo entero.
 export default function ResearchHeader() {
-  const { border, t1, t3, accent } = RESEARCH_THEME
+  const { border, t1, t3, accent } = useResearchTheme()
   const { t } = useT()
   return (
     // Una línea fina cierra el encabezado: separa la identidad del módulo del contenido sin

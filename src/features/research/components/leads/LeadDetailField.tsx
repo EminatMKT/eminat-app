@@ -1,10 +1,10 @@
 'use client'
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import { useT } from '@/shared/i18n'
 import type { LeadFieldDef } from '../../utils/fields'
 
 export default function LeadDetailField({ def, value }: { def: LeadFieldDef; value: string | number | boolean | null | undefined }) {
-  const { s2, t1, t3 } = RESEARCH_THEME
+  const { s2, t1, t3 } = useResearchTheme()
   const { t } = useT()
   const display = def.type === 'checkbox' ? t(value === true || value === 'true' ? 'research.common.yes' : 'research.common.no') : value
   return (

@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import { useT } from '@/shared/i18n'
 import { useApp } from '@/shared/context/AppContext'
 import { useResearch } from '../ResearchContext'
@@ -16,7 +16,7 @@ import type { SpecialtyScan } from '../../hooks/useResearchData'
 // proyecto: los datos entran por el frontend). Así el backfill dobla como QA del flujo y queda
 // disponible cada vez que entren leads nuevos, no solo hoy.
 export default function SpecialtyBackfillModal() {
-  const { s1, s2, border, t1, t2, t3, accent } = RESEARCH_THEME
+  const { s1, s2, border, t1, t2, t3, accent } = useResearchTheme()
   const { t } = useT()
   const { mostrarMensaje } = useApp()
   const { leads, modalSpecialty, setModalSpecialty, scanSpecialties, applySpecialties } = useResearch()

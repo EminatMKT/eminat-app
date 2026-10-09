@@ -1,10 +1,10 @@
 'use client'
-import { RESEARCH_THEME, inputStyle } from '../../theme'
+import { useResearchTheme, inputStyle } from '../../theme'
 import { useT, type I18nKey } from '@/shared/i18n'
 import type { LeadFieldDef } from '../../utils/fields'
 
 export default function LeadFormField({ def, value, onChange, onBlur, hint, help, error, action }: { def: LeadFieldDef; value: string | number | boolean | null | undefined; onChange: (v: string | boolean) => void; onBlur?: () => void; hint?: React.ReactNode; help?: React.ReactNode; error?: I18nKey; action?: () => void }) {
-  const { t3, accent } = RESEARCH_THEME
+  const { t3, accent } = useResearchTheme()
   const { t } = useT()
   // Los campos de texto/select siempre reciben string; el `as` solo satisface al valor del input
   // (para checkbox se usa `value` directamente vía `checked`, nunca `v`).
@@ -39,7 +39,7 @@ export default function LeadFormField({ def, value, onChange, onBlur, hint, help
       case 'textarea':
         return <textarea value={v} onChange={e => onChange(e.target.value)} style={{ ...style, minHeight: 60, resize: 'vertical' }} />
       case 'checkbox':
-        return <input type="checkbox" checked={value === true || value === 'true'} onChange={e => onChange(e.target.checked)} style={{ width: 18, height: 18, accentColor: RESEARCH_THEME.accent }} />
+        return <input type="checkbox" checked={value === true || value === 'true'} onChange={e => onChange(e.target.checked)} style={{ width: 18, height: 18, accentColor: accent }} />
       default:
         if (action) return (
           // Botón de búsqueda dentro del campo (autocompletado CT.gov, además del blur).

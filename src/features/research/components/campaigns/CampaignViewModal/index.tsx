@@ -1,12 +1,12 @@
 'use client'
-import { RESEARCH_THEME } from '@/features/research/theme'
+import { useResearchTheme } from '@/features/research/theme'
 import { MAIL_ESTADO_COLOR } from '@/features/research/tableConstants/constants'
 import { useResearch } from '@/features/research/components/ResearchContext'
 import { StatBox } from '@/shared/components/ui'
 import EmailPreview from '../EmailPreview'
 
 export default function CampaignViewModal() {
-  const { s1, border, t1, t3 } = RESEARCH_THEME
+  const { s1, border, t1, t3 } = useResearchTheme()
   const { mailViewCampaign, setMailViewCampaign } = useResearch()
   if (!mailViewCampaign) return null
   const c = mailViewCampaign

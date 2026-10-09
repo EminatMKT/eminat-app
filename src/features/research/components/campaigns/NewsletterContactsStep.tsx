@@ -1,5 +1,5 @@
 'use client'
-import { RESEARCH_THEME, inputStyle } from '../../theme'
+import { useResearchTheme, inputStyle } from '../../theme'
 import { useResearch } from '../ResearchContext'
 import ContactCheckRow from './ContactCheckRow'
 import StageBadge from '../StageBadge'
@@ -13,7 +13,7 @@ type Props = {
 }
 
 export default function NewsletterContactsStep({ selected, onToggle, search, setSearch, onNext }: Props) {
-  const { s1, border, t3, accent } = RESEARCH_THEME
+  const { s1, border, t3, accent } = useResearchTheme()
   const { leads } = useResearch()
   const visible = leads.filter(l => !search || (l.contact_name || '').toLowerCase().includes(search.toLowerCase()) || (l.contact_email || '').toLowerCase().includes(search.toLowerCase()) || (l.contact_phone || '').includes(search))
 

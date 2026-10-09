@@ -1,5 +1,5 @@
 'use client'
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import { useT, type I18nKey } from '@/shared/i18n'
 import type { StudyConflict } from '../../utils/clinicalTrials'
 
@@ -13,7 +13,7 @@ export default function NctConflictModal({ conflicts, labelByCol, picked, setPic
   onApply: () => void
   onCancel: () => void
 }) {
-  const { s1, border, t1, t2, t3, accent } = RESEARCH_THEME
+  const { s1, border, t1, t2, t3, accent } = useResearchTheme()
   const { t } = useT()
 
   const toggle = (col: string) => {

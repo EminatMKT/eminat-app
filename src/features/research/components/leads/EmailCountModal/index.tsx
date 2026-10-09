@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { RESEARCH_THEME, inputStyle } from '@/features/research/theme'
+import { useResearchTheme, inputStyle } from '@/features/research/theme'
 import { useT } from '@/shared/i18n'
 import { useResearch } from '@/features/research/components/ResearchContext'
 import { nextCount } from '@/features/research/utils/counters'
@@ -11,7 +11,7 @@ import { COUNT_COLUMN } from '@/features/research/tableConstants/constants'
 // Federico en la reunión del 12/08/2026: sin confirmación "se te va el dedo y se pierde la
 // trazabilidad". Por eso el número no se escribe hasta apretar Guardar.
 export default function EmailCountModal() {
-  const { s1, s2, border, t1, t2, t3, accent } = RESEARCH_THEME
+  const { s1, s2, border, t1, t2, t3, accent } = useResearchTheme()
   const { t } = useT()
   const { modalCount, setModalCount, setEmailCount } = useResearch()
   const [draft, setDraft] = useState<string>('')

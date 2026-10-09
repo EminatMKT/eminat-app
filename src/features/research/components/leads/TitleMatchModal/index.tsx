@@ -1,5 +1,5 @@
 'use client'
-import { RESEARCH_THEME } from '@/features/research/theme'
+import { useResearchTheme } from '@/features/research/theme'
 import { useT } from '@/shared/i18n'
 import { NCT_COLUMN } from '@/features/research/tableConstants/constants'
 import type { Lead } from '@/features/research/types'
@@ -12,7 +12,7 @@ export default function TitleMatchModal({ studies, onPick, onCancel }: {
   onPick: (study: Partial<Lead>) => void
   onCancel: () => void
 }) {
-  const { s1, s2, border, t1, t2, t3, accent } = RESEARCH_THEME
+  const { s1, s2, border, t1, t2, t3, accent } = useResearchTheme()
   const { t } = useT()
 
   return (

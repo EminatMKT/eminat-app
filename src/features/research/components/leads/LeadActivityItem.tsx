@@ -1,8 +1,8 @@
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import type { Activity } from '../../types'
 
 export default function LeadActivityItem({ activity: a }: { activity: Activity }) {
-  const { border, t1, t3 } = RESEARCH_THEME
+  const { border, t1, t3 } = useResearchTheme()
   return (
     <div style={{ display: 'flex', gap: 10, padding: '6px 0', borderBottom: `1px solid ${border}` }}>
       <span style={{ fontSize: 14 }}>{a.tipo === 'email' ? '📧' : a.tipo === 'llamada' ? '📞' : '🤝'}</span>

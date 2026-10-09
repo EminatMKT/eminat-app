@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { RESEARCH_THEME } from '@/features/research/theme'
+import { useResearchTheme } from '@/features/research/theme'
 import { useT } from '@/shared/i18n'
 import { LEAD_FIELD_DEFS, LEAD_GROUPS, GROUP_LABEL_KEY, validateLeadFields } from '@/features/research/utils/fields'
 import type { I18nKey } from '@/shared/i18n'
@@ -16,7 +16,7 @@ import TitleMatchModal from '../TitleMatchModal'
 const LABEL_BY_COL = Object.fromEntries(LEAD_FIELD_DEFS.map(f => [f.column, f.labelKey]))
 
 export default function LeadFormModal() {
-  const { s1, border, t1, t2, t3, accent } = RESEARCH_THEME
+  const { s1, border, t1, t2, t3, accent } = useResearchTheme()
   const { t } = useT()
   const { modalNewLead, newLead, setNewLead, editingLead, closeLeadForm, saveLead, leads, openEditLead } = useResearch()
   const [nctHint, setNctHint] = useState<React.ReactNode>(null)

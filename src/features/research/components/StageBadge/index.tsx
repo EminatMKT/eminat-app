@@ -1,11 +1,11 @@
 'use client'
-import { RESEARCH_THEME } from '@/features/research/theme'
+import { useResearchTheme } from '@/features/research/theme'
 import { PIPELINE_COLORS, stageLabel } from '@/features/research/stages'
 import { useT } from '@/shared/i18n'
 
 // Badge de stage del pipeline (color por stage, texto traducido).
 export default function StageBadge({ stage }: { stage?: string }) {
-  const { t3 } = RESEARCH_THEME
+  const { t3 } = useResearchTheme()
   const { t } = useT()
   // Gris deliberado para un valor legacy: en la tabla el badge no distingue etapas entre sí
   // (para eso está el texto), señala "esta etapa no es del pipeline actual". Por eso NO usa

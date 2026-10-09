@@ -1,5 +1,5 @@
 'use client'
-import { RESEARCH_THEME } from '@/features/research/theme'
+import { useResearchTheme } from '@/features/research/theme'
 import { stageColors, stageLabel } from '@/features/research/stages'
 import { useResearch } from '../ResearchContext'
 import StatCard from '@/shared/components/dashboard/StatCard'
@@ -20,7 +20,7 @@ export default function DashboardTab() {
   // Cada parte de la card hace UN trabajo: el rótulo dice qué se cuenta, el badge la proporción,
   // y el pie la base de esa proporción. Se lee de corrido: "2 · 25% · de 8 leads cargados".
   const ofLoaded = t('research.kpi.ofLoadedLeads', { n: totalLeads })
-  const { accent } = RESEARCH_THEME
+  const { accent, t3 } = useResearchTheme()
   const mesEnCurso = new Date().toLocaleDateString(locale === 'en' ? 'en-US' : 'es-ES', { month: 'long', year: 'numeric' })
   // Clic en una barra/porción = filtrar el tablero por ese valor; clic en la que ya está activa
   // = sacarlo. Sin el toggle, para volver atrás habría que ir a buscar el desplegable — y el
@@ -59,7 +59,7 @@ export default function DashboardTab() {
               {t('research.kpi.filtered', { n: filtros.activos })} ✕
             </button>
           )}
-          <span style={{ fontSize: 10, color: RESEARCH_THEME.t3, fontFamily: 'DM Mono' }}>{ofLoaded}</span>
+          <span style={{ fontSize: 10, color: t3, fontFamily: 'DM Mono' }}>{ofLoaded}</span>
         </span>}>
       {/* alignItems:start — al desplegar el detalle de una card, las otras no tienen por qué
           estirarse con ella y quedar con un hueco blanco al pie. */}
