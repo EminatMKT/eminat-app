@@ -1,12 +1,16 @@
-import { THEME } from '@/shared/theme/tokens'
+import { useApp } from '@/shared/context/AppContext'
 
 // Los mismos colores que las variables `--c-*` de globals.css, en JS. Existen sólo para los
 // archivos que todavía pintan con `style={}`; el día que no quede ninguno, esto se borra.
-// `features/research/theme.ts` los re-exporta como RESEARCH_THEME.
+// `features/research/theme.ts` los re-exporta como useResearchTheme.
 //
-// ponytail: los nueve estaban COPIADOS de `shared/theme/tokens.ts`. Derivados, la paleta se
-// cambia en un lugar. Si `THEME` algún día sigue al dark de la app, acá hay que fijarlos.
-export const DASHBOARD_THEME = { ...THEME, warn: '#FBBF24' }
+// Hook (no constante): sigue el toggle claro/oscuro vía los tokens de AppContext. Los nueve
+// campos de base son derivados de ahí, la paleta se cambia en un solo lugar
+// (`shared/theme/tokens.ts`).
+export function useDashboardTheme() {
+  const { bg, s1, s2, s3, border, t1, t2, t3, accent, inputStyle } = useApp()
+  return { bg, s1, s2, s3, border, t1, t2, t3, accent, inputStyle, warn: '#FBBF24' }
+}
 
 // Paleta por defecto de las series sin color propio. `features/research/constants.ts` la
 // re-exporta como CHART_COLORS y deriva de ella los colores de etapa.

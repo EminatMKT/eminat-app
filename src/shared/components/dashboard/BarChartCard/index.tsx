@@ -1,6 +1,6 @@
 'use client'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Cell, LabelList, ResponsiveContainer } from 'recharts'
-import { DASHBOARD_THEME } from '@/shared/components/dashboard/theme'
+import { useDashboardTheme } from '@/shared/components/dashboard/theme'
 import { CHART_COLORS } from '@/shared/components/dashboard/theme'
 import Panel from '@/shared/components/dashboard/Panel'
 import ChartFilterHint from '@/shared/components/dashboard/ChartFilterHint'
@@ -23,7 +23,7 @@ type Datum = { name: string; value: number; key?: string }
 // propio en el dominio (las marcas de Eminat), donde la paleta genérica sería un color inventado
 // encima de uno que la gente ya reconoce. Sin él, se pinta con CHART_COLORS por posición.
 export default function BarChartCard({ title, data, vertical = false, height, persistKey, colors, onSelect, selected }: { title: string; data: Datum[]; vertical?: boolean; height?: number; persistKey: string; colors?: Record<string, string>; onSelect?: (value: string) => void; selected?: string }) {
-  const { s1, border, t1, t2 } = DASHBOARD_THEME
+  const { s1, border, t1, t2 } = useDashboardTheme()
   const tooltipStyle = { background: s1, border: `1px solid ${border}`, borderRadius: 8, fontSize: 11 }
   const figure = { fontFamily: 'Syne', fontSize: 13, fontWeight: 800 }
   const valueOf = (d: Datum) => d.key ?? d.name
