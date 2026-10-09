@@ -1,8 +1,17 @@
+import type { PostgrestError } from '@supabase/supabase-js'
+
 export type AreaCodeCount = {
   code: string
   label: string
   count: number
 }
+
+export type BirthdayMonthCount = {
+  month: number
+  count: number
+}
+
+export type CountResult = { count: number | null; error: PostgrestError | null }
 
 export type PatientDashboardCounts = {
   totalPatients: number
@@ -11,8 +20,8 @@ export type PatientDashboardCounts = {
   medianAge: number | null
   minAge: number | null
   maxAge: number | null
-  birthdaysThisMonth: number | null
-  birthdaysByMonth: { month: number; count: number }[] | null
+  birthdaysThisMonth: number
+  birthdaysByMonth: BirthdayMonthCount[]
   gender: { female: number; male: number; unknown: number }
   ageBuckets: {
     child: number

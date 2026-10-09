@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ from: vi.fn() }))
-vi.mock('@/shared/db', () => ({ supabase: { from: mocks.from } }))
-vi.mock('@/shared/db/supabase', () => ({ supabase: { from: mocks.from } }))
+const mocks = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn() }))
+vi.mock('@/shared/db', () => ({ supabase: { from: mocks.from, rpc: mocks.rpc } }))
+vi.mock('@/shared/db/supabase', () => ({ supabase: { from: mocks.from, rpc: mocks.rpc } }))
 
 import patientDashboardCounts from '.'
 import derive from './derive'
@@ -26,7 +26,6 @@ const AREA_754 = 20
 const AREA_561 = 10
 const KNOWN_AREA_COUNTS = [AREA_786, AREA_305, AREA_954, AREA_754, AREA_561]
 const AREA_OTHER = TOTAL_PATIENTS - KNOWN_AREA_COUNTS.reduce((sum, count) => sum + count, 0)
-
 // `cutoffIso` has its own black-box unit test in `derive.test.ts`; this suite trusts it here
 // and only asserts the orchestrator passes the right cutoffs to the right queries.
 
@@ -35,11 +34,11 @@ const CHILD_CUTOFF = derive.cutoffIso(CHILD_CUTOFF_YEARS, TODAY)
 const YOUNG_ADULT_CUTOFF = derive.cutoffIso(YOUNG_ADULT_CUTOFF_YEARS, TODAY)
 const ADULT_CUTOFF = derive.cutoffIso(ADULT_CUTOFF_YEARS, TODAY)
 const OLDER_ADULT_CUTOFF = derive.cutoffIso(OLDER_ADULT_CUTOFF_YEARS, TODAY)
-
+const BIRTHDAY_COUNT = 9
+const BIRTHDAY_ROWS = [{ month: TODAY.getMonth() + 1, count: BIRTHDAY_COUNT }]
 type Call = { method: string; args: unknown[] }
 
 const getCall = (calls: Call[], method: string) => calls.find((call) => call.method === method)
-
 function resolveCountFor(calls: Call[]): number {
   if (calls.length === 1) return TOTAL_PATIENTS // bare select(), no filter: the total
 
@@ -70,7 +69,6 @@ function resolveCountFor(calls: Call[]): number {
 
   throw new Error(`unexpected query shape in test mock: ${JSON.stringify(calls)}`)
 }
-
 // One fresh chainable query per `supabase.from()` call, each with its own call log — the 14
 // count queries run concurrently (Promise.all), so a single shared chain would mix unrelated
 // filters together instead of keeping each logical query's recorded calls isolated.
@@ -91,27 +89,24 @@ function makeQuery() {
     Promise.resolve(resolve({ data: null, error: null, count: resolveCountFor(calls) }))
   return { query, calls }
 }
-
 describe('patientDashboardCounts', () => {
-  it('returns a dashboard aggregate built only from count queries, with birthdays left null', async () => {
+  it('returns a dashboard aggregate built from count queries plus the birthday-months RPC', async () => {
     const createdQueries: Call[][] = []
     mocks.from.mockImplementation(() => {
       const { query, calls } = makeQuery()
       createdQueries.push(calls)
       return query
     })
-
+    const birthdayResult = { data: BIRTHDAY_ROWS, error: null }
+    mocks.rpc.mockResolvedValue(birthdayResult)
     const result = await patientDashboardCounts()
-
-    expect(result).toEqual({
+    const expected = {
       totalPatients: TOTAL_PATIENTS,
       withEmail: WITH_EMAIL,
       withoutEmail: WITHOUT_EMAIL,
       medianAge: null,
       minAge: null,
       maxAge: null,
-      birthdaysThisMonth: null,
-      birthdaysByMonth: null,
       gender: { female: FEMALE, male: MALE, unknown: GENDER_UNKNOWN },
       ageBuckets: {
         child: CHILD,
@@ -136,11 +131,11 @@ describe('patientDashboardCounts', () => {
         repeatedName: null,
         typoEmailDomain: null,
       },
-    })
-
+    }
+    expect(result).toMatchObject(expected)
+    expect(result.birthdaysThisMonth).toBe(BIRTHDAY_COUNT)
     // Fourteen logical count queries: total, withEmail, 2 genero, 5 age buckets, 5 area codes.
     expect(createdQueries).toHaveLength(14)
-
     // Every one selects only `ID_COLUMN` — never a full row (`'*'`).
     for (const calls of createdQueries) {
       expect(getCall(calls, 'select')?.args[0]).toBe(ID_COLUMN)

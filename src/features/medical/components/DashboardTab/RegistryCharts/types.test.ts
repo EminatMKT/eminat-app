@@ -5,6 +5,7 @@ it('narrows the aggregate to just the fields the charts read', () => {
   expectTypeOf<ChartCounts>().toHaveProperty('gender')
   expectTypeOf<ChartCounts>().toHaveProperty('ageBuckets')
   expectTypeOf<ChartCounts>().toHaveProperty('areaCodes')
+  expectTypeOf<ChartCounts>().toHaveProperty('birthdaysByMonth')
 })
 
 it('wraps the chart counts as the component prop', () => {

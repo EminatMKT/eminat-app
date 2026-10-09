@@ -5,6 +5,7 @@ const RPCS = {
   hasModule: 'has_module',
   updateMeetActivity: 'update_meet_activity',
   saveRole: 'save_role',
+  patientBirthdayMonths: 'patient_birthday_months',
 } as const
 
 export default RPCS

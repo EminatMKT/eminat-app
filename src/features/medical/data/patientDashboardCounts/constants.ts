@@ -41,3 +41,9 @@ export const CHILD_CUTOFF_YEARS = 18
 export const YOUNG_ADULT_CUTOFF_YEARS = 35
 export const ADULT_CUTOFF_YEARS = 50
 export const OLDER_ADULT_CUTOFF_YEARS = 65
+
+/** Used by `cutoffIso`'s zero-padded ISO date formatting and `buildBirthdayMonths`'s dense,
+ *  1-12 month range. */
+export const DATE_PART_LENGTH = 2
+export const ZERO_PAD = '0'
+export const MONTHS_IN_YEAR = 12

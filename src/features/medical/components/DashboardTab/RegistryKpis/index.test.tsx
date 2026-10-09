@@ -18,7 +18,12 @@ describe('RegistryKpis', () => {
   })
 
   it('renders the real registry numbers once counts resolve', () => {
-    const counts = { totalPatients: 500, withEmail: 300, withoutEmail: 200 }
+    const counts = {
+      totalPatients: 500,
+      withEmail: 300,
+      withoutEmail: 200,
+      birthdaysThisMonth: 4,
+    }
     const html = renderToStaticMarkup(<RegistryKpis {...BASE} counts={counts} />)
     expect(html).toContain('500')
     expect(html).toContain('300')

@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ from: vi.fn() }))
-vi.mock('@/shared/db', () => ({ supabase: { from: mocks.from } }))
-vi.mock('@/shared/db/supabase', () => ({ supabase: { from: mocks.from } }))
+const mocks = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn() }))
+vi.mock('@/shared/db', () => ({ supabase: { from: mocks.from, rpc: mocks.rpc } }))
+vi.mock('@/shared/db/supabase', () => ({ supabase: { from: mocks.from, rpc: mocks.rpc } }))
 
 import queries from './queries'
 import { ID_COLUMN, EMAIL_COLUMN, GENERO_COLUMN, TELEFONO_COLUMN, FECHA_NACIMIENTO_COLUMN, IS_OPERATOR, COUNT_ONLY } from './constants'
@@ -53,7 +53,6 @@ describe('queries', () => {
     await queries.countBornAfter('2008-01-01')
     expect(chain.gt).toHaveBeenCalledWith(FECHA_NACIMIENTO_COLUMN, '2008-01-01')
   })
-
   it('filters birth date in an (older, younger] band', async () => {
     const chain = stubChain(1)
     mocks.from.mockReturnValue(chain)
@@ -74,5 +73,10 @@ describe('queries', () => {
     mocks.from.mockReturnValue(chain)
     await queries.countByAreaCode('305')
     expect(chain.like).toHaveBeenCalledWith(TELEFONO_COLUMN, '(305)%')
+  })
+  it('returns the birthday-months RPC rows', async () => {
+    const resolved = { data: [{ month: 3, count: 7 }], error: null }
+    mocks.rpc.mockResolvedValue(resolved)
+    await expect(queries.countBirthdaysByMonth()).resolves.toEqual(resolved.data)
   })
 })

@@ -20,3 +20,25 @@ it('pairs each known area code with its count, plus a trailing other bucket', ()
   expect(entries[0]).toEqual({ code: KNOWN_AREA_CODES[0].code, label: KNOWN_AREA_CODES[0].label, count: 10 })
   expect(entries[entries.length - 1].count).toBe(100 - KNOWN_AREA_CODES.length * 10)
 })
+
+it('fills every month from 1 to 12, zeroing the months the RPC left out', () => {
+  const sparse = [{ month: 3, count: 7 }, { month: 11, count: 2 }]
+  const dense = derive.buildBirthdayMonths(sparse)
+
+  expect(dense).toHaveLength(12)
+  expect(dense.map((entry) => entry.month)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+  expect(dense[2]).toEqual({ month: 3, count: 7 })
+  expect(dense[10]).toEqual({ month: 11, count: 2 })
+  expect(dense[0]).toEqual({ month: 1, count: 0 })
+})
+
+it('builds the data-quality object with only missingEmail resolved', () => {
+  const quality = derive.buildDataQuality(42)
+  expect(quality).toEqual({
+    missingEmail: 42,
+    sharedPhone: null,
+    sharedEmail: null,
+    repeatedName: null,
+    typoEmailDomain: null,
+  })
+})

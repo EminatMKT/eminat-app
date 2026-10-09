@@ -9,11 +9,12 @@ import {
 import shapes from './shapes'
 import type { Props } from './types'
 
-/** Renders the reference charts for the patient registry: gender split, age distribution,
- *  area-code concentration, and a birthdays-by-month placeholder (no DB aggregate exists yet). */
+/** Renders the reference charts for the patient registry: birthdays by month, gender split,
+ *  age distribution, and area-code concentration. */
 export default function RegistryCharts(props: Props) {
   const { counts } = props
   const { t } = useT()
+  const birthdayData = shapes.birthdayMonthChartData(counts, t)
   const genderData = shapes.genderChartData(counts, t)
   const genderColors = shapes.genderChartColors(t)
   const ageBucketData = shapes.ageBucketChartData(counts, t)
@@ -24,9 +25,7 @@ export default function RegistryCharts(props: Props) {
   return (
     <>
       <ChartRow>
-        <Panel collapsible persistKey="medical-dashboard-birthdays" title={t('med.dashboardBirthdaysByMonth')}>
-          {t('med.dashboardUnavailable')}
-        </Panel>
+        <BarChartCard persistKey="medical-dashboard-birthdays" title={t('med.dashboardBirthdaysByMonth')} data={birthdayData} />
         <PieChartCard persistKey="medical-dashboard-gender" title={t('med.dashboardGenderSplit')} data={genderData} colors={genderColors} />
       </ChartRow>
       <ChartRow>
@@ -45,6 +44,6 @@ export default function RegistryCharts(props: Props) {
   )
 }
 
-// Birthdays-by-month stays a static "not available" panel instead of a BarChartCard: the count
-// module returns `birthdaysByMonth: null` until a database aggregate exists, and faking 12
-// zero-bars would look like real data with nothing happening in any month.
+// `shapes.birthdayMonthChartData` relies on `counts.birthdaysByMonth` already being a dense
+// 12-entry array (one per month, zero-filled) — a sparse list would render fewer than 12 bars
+// instead of showing the months with no births at all.

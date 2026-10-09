@@ -42,6 +42,10 @@ function areaChartData(counts: ChartCounts) {
   return counts.areaCodes.map((area) => ({ name: `${area.code} ${area.label}`, value: area.count }))
 }
 
+/** `{name, value}` pairs for the twelve birthday-month bars, January through December. */
+function birthdayMonthChartData(counts: ChartCounts, t: Translate) {
+  return counts.birthdaysByMonth.map((entry) => ({ name: t(`med.month${entry.month}` as 'med.month1'), value: entry.count }))
+}
 /** Pure chart-data shaping for the patient-registry charts — turns raw counts into the
  *  `{name, value}` arrays and color lookups the chart components render. */
 const shapes = {
@@ -49,6 +53,7 @@ const shapes = {
   genderChartColors,
   ageBucketChartData,
   areaChartData,
+  birthdayMonthChartData,
 }
 
 export default shapes

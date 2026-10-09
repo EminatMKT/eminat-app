@@ -5,6 +5,7 @@ import RegistryCharts from './index'
 vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key }) }))
 vi.mock('@/shared/context/AppContext', () => ({ useApp: () => ({ usuario: null }) }))
 
+const birthdaysByMonth = [{ month: 1, count: 5 }]
 const counts = {
   gender: { female: 260, male: 230, unknown: 10 },
   ageBuckets: {
@@ -16,12 +17,14 @@ const counts = {
     unknown: 0,
   },
   areaCodes: [{ code: '305', label: 'Miami-Dade', count: 220 }],
+  birthdaysByMonth,
 }
 
 describe('RegistryCharts', () => {
-  it('shows an unavailable note for birthdays instead of a fake chart', () => {
+  it('renders a real birthdays-by-month chart instead of the unavailable note', () => {
     const html = renderToStaticMarkup(<RegistryCharts counts={counts} />)
-    expect(html).toContain('med.dashboardUnavailable')
+    expect(html).toContain('med.dashboardBirthdaysByMonth')
+    expect(html).not.toContain('med.dashboardUnavailable')
   })
 
   it('drops the unknown-gender slice once nobody is in it', () => {

@@ -4,9 +4,9 @@ import { CHILD_CUTOFF_YEARS, YOUNG_ADULT_CUTOFF_YEARS, ADULT_CUTOFF_YEARS, OLDER
 import derive from './derive'
 import queries from './queries'
 
-/** Dashboard-ready counts for the patient registry, built only from Supabase COUNT queries —
- *  opening the Dashboard tab never loads the full `pacientes` table. Birthday and data-quality
- *  fields stay `null` until a database aggregate exists for them. */
+/** Dashboard-ready counts for the patient registry, built from Supabase COUNT queries plus one
+ *  aggregate RPC for birthday months — opening the Dashboard tab never loads full patient rows.
+ *  The other data-quality fields stay `null` until their own aggregates exist. */
 export default async function patientDashboardCounts(): Promise<PatientDashboardCounts> {
   const today = new Date()
   const childCutoff = derive.cutoffIso(CHILD_CUTOFF_YEARS, today)
@@ -27,23 +27,23 @@ export default async function patientDashboardCounts(): Promise<PatientDashboard
     queries.countBornOnOrBefore(olderAdultCutoff),
     ...areaCountTasks,
   ]
+  const [countResults, birthdayRows] = await Promise.all([
+    Promise.all(countTasks),
+    queries.countBirthdaysByMonth(),
+  ])
   const [totalPatients, withEmail, female, male, child, youngAdult, adult, olderAdult, senior, ...knownAreaCounts] =
-    await Promise.all(countTasks)
+    countResults
   const areaCodes = derive.buildAreaCodeEntries(totalPatients, knownAreaCounts)
+  const birthdaysByMonth = derive.buildBirthdayMonths(birthdayRows)
 
   const withoutEmail = totalPatients - withEmail
   const genderUnknown = totalPatients - female - male
   const ageBucketsUnknown = totalPatients - (child + youngAdult + adult + olderAdult + senior)
+  const birthdaysThisMonth = birthdaysByMonth[today.getMonth()].count
 
   const gender = { female, male, unknown: genderUnknown }
   const ageBuckets = { child, youngAdult, adult, olderAdult, senior, unknown: ageBucketsUnknown }
-  const dataQuality = {
-    missingEmail: withoutEmail,
-    sharedPhone: null,
-    sharedEmail: null,
-    repeatedName: null,
-    typoEmailDomain: null,
-  }
+  const dataQuality = derive.buildDataQuality(withoutEmail)
 
   const counts: PatientDashboardCounts = {
     totalPatients,
@@ -52,8 +52,8 @@ export default async function patientDashboardCounts(): Promise<PatientDashboard
     medianAge: null,
     minAge: null,
     maxAge: null,
-    birthdaysThisMonth: null,
-    birthdaysByMonth: null,
+    birthdaysThisMonth,
+    birthdaysByMonth,
     gender,
     ageBuckets,
     areaCodes,
@@ -62,6 +62,6 @@ export default async function patientDashboardCounts(): Promise<PatientDashboard
 
   return counts
 }
-// This module's 14 count queries are independent of each other's construction — only the
-// derived subtractions above depend on their values — so they run concurrently through nested
-// `Promise.all` calls instead of sequential round-trips.
+// This module's 14 count queries and the birthday-months RPC are independent of each other's
+// construction — only the derived subtractions above depend on their values — so they run
+// concurrently through nested `Promise.all` calls instead of sequential round-trips.
