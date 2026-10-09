@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext, useMemo, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, ReactNode } from 'react'
 import {
   normalizeRole,
   getModulesForRole,
@@ -9,7 +9,8 @@ import {
   type RoleRow,
   type RoleModuleMap,
 } from '@/shared/auth/permissions'
-import { THEME, inputStyle } from '@/shared/theme/tokens'
+import { getTheme, type ThemeName } from '@/shared/theme/tokens'
+import { useTheme } from '@/shared/theme/useTheme'
 import { useAppData } from './useAppData'
 import type { Usuario, Notificacion, Actividad, Equipo, OrgRow } from './loadAppData'
 import SessionErrorScreen from './SessionErrorScreen'
@@ -38,6 +39,8 @@ interface AppContextType {
   miembrosAsignables: { id: string; nombre: string }[]
   equipoMarketing: Usuario[]
   loading: boolean
+  theme: ThemeName
+  setTheme: (t: ThemeName) => void
   dark: boolean
   setDark: (v: boolean) => void
   horaActual: string
@@ -89,6 +92,16 @@ const AppContext = createContext<AppContextType | undefined>(undefined)
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const { sessionError, ...app } = useAppData()
+  const { theme, setTheme } = useTheme()
+  // Compat booleana para lo que aún lee dark/setDark (ThemeToggle).
+  const dark = theme === 'dark'
+  const setDark = (v: boolean) => setTheme(v ? 'dark' : 'light')
+  // `.dark` en <html> es lo que gatea el bloque oscuro de las --c-* (globals.css) y
+  // darkMode:'class' de Tailwind — todo lo que pinta con CSS Modules o clases de Tailwind
+  // sigue el toggle a través de esto, sin tocar archivo por archivo.
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', dark)
+  }, [dark])
 
   const miembrosPorId = deriveMiembrosPorId(app.adminUsuarios)
   const miembrosAsignables = useMemo(
@@ -111,6 +124,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider
       value={{
         ...app,
+        theme,
+        setTheme,
+        dark,
+        setDark,
         miembrosPorId,
         miembrosAsignables,
         equipoMarketing,
@@ -120,8 +137,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         cargo,
         role,
         modules,
-        ...THEME,
-        inputStyle,
+        ...getTheme(theme),
       }}
     >
       {children}
