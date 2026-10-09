@@ -1,7 +1,8 @@
 'use client'
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT, type I18nKey } from '@/shared/i18n'
+import { LoadingView } from '@/shared/components/ui'
 import { ImportModal, type ImportPlan, type SourceWarning } from '@/shared/import'
 import { useMedical } from '../MedicalContext'
 import {
@@ -14,7 +15,6 @@ import {
 } from '@/features/medical/utils/pacienteImportPlan'
 import type { Identificable } from '@/features/medical/utils/pacienteIdentity'
 import type { FilaEscritura } from '@/features/medical/utils/escribirImport'
-
 // Pegamento entre el mapeador genérico (`@/shared/import`) y el dominio de pacientes: le pasa
 // el catálogo de campos, arma el plan por (fuente, clave_origen) + candidatos por similitud
 // (`buildPacienteImportPlan`, que hace todo el trabajo de identidad) y traduce el plan ya
@@ -40,12 +40,11 @@ const CAMPO_LABEL_KEYS: Partial<Record<string, I18nKey>> = {
 }
 
 type Props = { onClose: () => void }
-
 export default function PacientesImportModal({ onClose }: Props) {
   const { mostrarMensaje } = useApp()
   const { t } = useT()
-  const { pacientes, pacienteFuentes, importarPacientes } = useMedical()
-
+  const { pacientes, pacienteFuentes, importarPacientes, pacientesLoaded, ensurePacientesLoaded } = useMedical()
+  useEffect(() => void ensurePacientesLoaded(), [ensurePacientesLoaded])
   const pacientesIdentificables = useMemo<Identificable[]>(
     () => pacientes.map(p => ({ id: p.id, nombre: p.nombre, apellido: p.apellido, fecha_nacimiento: p.fecha_nacimiento, telefono: p.telefono, email: p.email })),
     [pacientes],
@@ -124,7 +123,7 @@ export default function PacientesImportModal({ onClose }: Props) {
     }
     return true
   }, [pacientesById, importarPacientes, mostrarMensaje, t])
-
+  if (!pacientesLoaded) return <LoadingView />
   return (
     <ImportModal<ImportPlan>
       open

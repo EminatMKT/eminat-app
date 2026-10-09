@@ -1,5 +1,5 @@
-import type { Paciente, Cita, HipaaLog, HipaaIncidente, HipaaTraining } from './types'
-import { formatDate, addDays } from './dates'
+import type { Paciente, Cita, HipaaLog, HipaaIncidente, HipaaTraining } from '../types'
+import { formatDate, addDays } from '../dates'
 
 // Datos demo del módulo medical (sin backend — fuente de verdad in-memory).
 export function generateDemoData() {

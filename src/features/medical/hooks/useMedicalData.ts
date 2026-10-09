@@ -2,11 +2,11 @@ import { useState, useEffect, useMemo } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { applyFilters, defaultFilterValues } from '@/shared/utils'
-import { generateDemoData } from '../demo-data'
+import { generateDemoData } from '../deprecated/demo-data'
 import { formatDate, addDays } from '../dates'
 import appointmentFilters from '@/features/medical/utils/filters'
 import { DOCTORES, SALAS } from '../constants'
-import { usePacientes } from './usePacientes'
+import usePatientManagement from './usePatientManagement'
 import type { Paciente, Cita, HipaaLog, HipaaIncidente, HipaaTraining } from '../types'
 
 export function useMedicalData() {
@@ -14,14 +14,17 @@ export function useMedicalData() {
   const { t } = useT()
 
   const [demo] = useState(() => generateDemoData())
-  const { pacientes, pacienteFuentes, pacienteContactos, addPaciente: addPacienteDb, editPaciente, importarPacientes } = usePacientes()
+  const {
+    pacientes, pacienteFuentes, pacienteContactos, addPacienteDb, editPaciente, importarPacientes,
+    pacientesLoading, pacientesLoaded, ensurePacientesLoaded, patientDashboard,
+    searchPaciente, setSearchPaciente, filterEstadoPaciente, setFilterEstadoPaciente,
+    pacientesActivos, filteredPacientes,
+  } = usePatientManagement()
   const [citas, setCitas] = useState<Cita[]>([])
   const [auditLogs, setAuditLogs] = useState<HipaaLog[]>([])
   const [incidentes, setIncidentes] = useState<HipaaIncidente[]>([])
   const [trainings, setTrainings] = useState<HipaaTraining[]>([])
 
-  const [searchPaciente, setSearchPaciente] = useState('')
-  const [filterEstadoPaciente, setFilterEstadoPaciente] = useState('todos')
   // La agenda abre en «hoy», y eso lo dice el def (`defaultValue`), no este `useState`: el
   // arranque de un filtro es del filtro.
   const citaFilters = useMemo(() => appointmentFilters(t), [t])
@@ -39,16 +42,9 @@ export function useMedicalData() {
   const hoy = formatDate(new Date())
   const citasHoy = citas.filter(c => c.fecha === hoy)
   const citasManana = citas.filter(c => c.fecha === formatDate(addDays(new Date(), 1)))
-  const pacientesActivos = pacientes.filter(p => p.estado === 'activo')
   const incidentesAbiertos = incidentes.filter(i => i.estado === 'abierto' || i.estado === 'investigando')
   const trainingsPendientes = trainings.filter(t => t.estado === 'pendiente' || t.estado === 'vencido')
   const complianceScore = Math.round(((trainings.filter(t => t.estado === 'completado').length / Math.max(trainings.length, 1)) * 70) + ((incidentes.filter(i => i.estado === 'resuelto' || i.estado === 'cerrado').length / Math.max(incidentes.length, 1)) * 30))
-
-  const filteredPacientes = useMemo(() => pacientes.filter(p => {
-    const matchSearch = !searchPaciente || `${p.nombre} ${p.apellido} ${p.mrn}`.toLowerCase().includes(searchPaciente.toLowerCase())
-    const matchEstado = filterEstadoPaciente === 'todos' || p.estado === filterEstadoPaciente
-    return matchSearch && matchEstado
-  }), [pacientes, searchPaciente, filterEstadoPaciente])
 
   const filteredCitas = useMemo(
     () => applyFilters(citas, citaFilters, { fecha: filterCitaFecha }), [citas, citaFilters, filterCitaFecha])
@@ -120,6 +116,7 @@ export function useMedicalData() {
 
   return {
     pacientes, pacienteFuentes, pacienteContactos, editPaciente, importarPacientes, citas, auditLogs, incidentes, trainings,
+    pacientesLoading, pacientesLoaded, ensurePacientesLoaded, patientDashboard,
     searchPaciente, setSearchPaciente, filterEstadoPaciente, setFilterEstadoPaciente,
     citaFilters, filterCitaFecha, setFilterCitaFecha, searchAudit, setSearchAudit, filterAuditNivel, setFilterAuditNivel,
     hoy, citasHoy, citasManana, pacientesActivos, incidentesAbiertos, trainingsPendientes, complianceScore,
