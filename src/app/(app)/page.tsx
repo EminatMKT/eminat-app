@@ -7,20 +7,6 @@ import { PageTransition } from '@/shared/motion'
 import { MODULE_META, ROUTES, modulePath, isModuleSlug, type ModuleSlug } from '@/shared/auth/permissions'
 import { useUserPreference, LAST_MODULE_KEY } from '@/shared/hooks'
 
-// ── Dark theme (matches AppShell's sidebar palette) ───────────────────
-const D = {
-  bg: '#0A0A0F',
-  card: '#13131C',
-  cardHover: '#191923',
-  border: 'rgba(255,255,255,0.07)',
-  borderHover: 'rgba(79,70,229,0.55)',
-  t1: '#FFFFFF',
-  t2: 'rgba(255,255,255,0.65)',
-  t3: 'rgba(255,255,255,0.35)',
-  accent: '#4F46E5',
-  accentSoft: 'rgba(79,70,229,0.12)',
-}
-
 // ── Inline SVG icons (no emoji) ────────────────────────────────────────
 const stroke = {
   fill: 'none',
@@ -99,7 +85,7 @@ function ModuleIcon({ slug }: { slug: ModuleSlug }) {
 // ── Launchpad ──────────────────────────────────────────────────────────
 
 export default function LaunchpadPage() {
-  const { usuario, modules, esAdmin } = useApp()
+  const { usuario, modules, esAdmin, bg, t1, t2, t3, accent, border } = useApp()
   const { t } = useT()
   const router = useRouter()
   // El atajo solo aparece si el módulo guardado sigue existiendo Y el rol todavía lo tiene:
@@ -117,8 +103,8 @@ export default function LaunchpadPage() {
           style={{
             margin: '-20px -24px',
             minHeight: 'calc(100vh - 60px)',
-            background: D.bg,
-            color: D.t1,
+            background: bg,
+            color: t1,
             padding: '64px 32px 96px',
             fontFamily: 'Poppins, "DM Sans", sans-serif',
           }}
@@ -133,17 +119,17 @@ export default function LaunchpadPage() {
                   gap: 10,
                   padding: '5px 12px',
                   borderRadius: 999,
-                  background: D.accentSoft,
-                  border: `1px solid ${D.accent}30`,
+                  background: `${accent}1f`,
+                  border: `1px solid ${accent}30`,
                   fontSize: 10,
                   fontWeight: 700,
                   letterSpacing: '.22em',
                   textTransform: 'uppercase',
-                  color: '#A5A7FF',
+                  color: accent,
                   marginBottom: 18,
                 }}
               >
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: D.accent }} />
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: accent }} />
                 {t('launchpad.badge')}
               </div>
               <h1
@@ -153,7 +139,7 @@ export default function LaunchpadPage() {
                   fontWeight: 800,
                   lineHeight: 1.05,
                   letterSpacing: '-0.02em',
-                  color: D.t1,
+                  color: t1,
                   margin: 0,
                 }}
               >
@@ -163,7 +149,7 @@ export default function LaunchpadPage() {
                 style={{
                   marginTop: 12,
                   fontSize: 15,
-                  color: D.t2,
+                  color: t2,
                   fontWeight: 400,
                 }}
               >
@@ -176,10 +162,10 @@ export default function LaunchpadPage() {
                 sin pasar por el sidebar. */}
             {ultimo && (
               <button onClick={() => router.push(modulePath(ultimo))}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 22, padding: '10px 16px', borderRadius: 12, background: D.accentSoft, border: `1px solid ${D.accent}30`, color: D.t1, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 22, padding: '10px 16px', borderRadius: 12, background: `${accent}1f`, border: `1px solid ${accent}30`, color: t1, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                 <ModuleIcon slug={ultimo} />
                 {t('launchpad.resume', { module: MODULE_META[ultimo].name })}
-                <span style={{ color: D.t2 }}>→</span>
+                <span style={{ color: t2 }}>→</span>
               </button>
             )}
 
@@ -217,9 +203,9 @@ export default function LaunchpadPage() {
               style={{
                 marginTop: 64,
                 paddingTop: 18,
-                borderTop: `1px solid ${D.border}`,
+                borderTop: `1px solid ${border}`,
                 fontSize: 10,
-                color: D.t3,
+                color: t3,
                 letterSpacing: '.16em',
                 textTransform: 'uppercase',
                 textAlign: 'center',
@@ -242,8 +228,8 @@ export default function LaunchpadPage() {
   )
 }
 
-function VerTodoBanner({ onClick }: { onClick: () => void }) {
-  const { t } = useT()
+type VerTodoBannerProps = { onClick: () => void }; function VerTodoBanner({ onClick }: VerTodoBannerProps) {
+  const { t } = useT(), { t1, t2, accent } = useApp()
   return (
     <button
       onClick={onClick}
@@ -256,11 +242,11 @@ function VerTodoBanner({ onClick }: { onClick: () => void }) {
         padding: '18px 22px',
         borderRadius: 14,
         background: 'linear-gradient(135deg, rgba(79,70,229,0.18) 0%, rgba(124,58,237,0.12) 100%)',
-        border: `1px solid ${D.accent}40`,
+        border: `1px solid ${accent}40`,
         cursor: 'pointer',
         textAlign: 'left',
         fontFamily: 'inherit',
-        color: D.t1,
+        color: t1,
         transition: 'background .2s, border-color .2s, transform .2s',
       }}
       onMouseEnter={(e) => {
@@ -272,7 +258,7 @@ function VerTodoBanner({ onClick }: { onClick: () => void }) {
       onMouseLeave={(e) => {
         e.currentTarget.style.background =
           'linear-gradient(135deg, rgba(79,70,229,0.18) 0%, rgba(124,58,237,0.12) 100%)'
-        e.currentTarget.style.borderColor = `${D.accent}40`
+        e.currentTarget.style.borderColor = `${accent}40`
         e.currentTarget.style.transform = 'translateY(0)'
       }}
     >
@@ -284,7 +270,7 @@ function VerTodoBanner({ onClick }: { onClick: () => void }) {
             borderRadius: 10,
             display: 'grid',
             placeItems: 'center',
-            background: D.accent,
+            background: accent,
             color: 'white',
           }}
         >
@@ -295,7 +281,7 @@ function VerTodoBanner({ onClick }: { onClick: () => void }) {
         </span>
         <div>
           <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '-.01em' }}>{t('launchpad.seeAll')}</div>
-          <div style={{ fontSize: 12, color: D.t2, marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: t2, marginTop: 2 }}>
             {t('launchpad.seeAllDesc')}
           </div>
         </div>
@@ -318,19 +304,19 @@ function VerTodoBanner({ onClick }: { onClick: () => void }) {
     </button>
   )
 }
-
+type LaunchCardProps = {
+  slug: ModuleSlug
+  meta: typeof MODULE_META[ModuleSlug]
+  onClick: () => void
+  delay: number
+}
 function LaunchCard({
   slug,
   meta,
   onClick,
   delay,
-}: {
-  slug: ModuleSlug
-  meta: typeof MODULE_META[ModuleSlug]
-  onClick: () => void
-  delay: number
-}) {
-  const { t } = useT()
+}: LaunchCardProps) {
+  const { t } = useT(), { t1, t2, t3 } = useApp(), { accent, border } = useApp(), { s1, s3 } = useApp()
   return (
     <button
       onClick={onClick}
@@ -342,27 +328,27 @@ function LaunchCard({
         gap: 14,
         padding: 22,
         borderRadius: 16,
-        background: D.card,
-        border: `1px solid ${D.border}`,
+        background: s1,
+        border: `1px solid ${border}`,
         cursor: 'pointer',
         textAlign: 'left',
         fontFamily: 'inherit',
-        color: D.t1,
+        color: t1,
         transition: 'transform .25s ease, background .25s ease, border-color .25s ease, box-shadow .25s ease',
         animationDelay: `${delay}s`,
       }}
       onMouseEnter={(e) => {
         const el = e.currentTarget
         el.style.transform = 'translateY(-4px)'
-        el.style.background = D.cardHover
-        el.style.borderColor = D.borderHover
+        el.style.background = s3
+        el.style.borderColor = accent
         el.style.boxShadow = '0 22px 44px -16px rgba(79,70,229,0.45)'
       }}
       onMouseLeave={(e) => {
         const el = e.currentTarget
         el.style.transform = 'translateY(0)'
-        el.style.background = D.card
-        el.style.borderColor = D.border
+        el.style.background = s1
+        el.style.borderColor = border
         el.style.boxShadow = 'none'
       }}
     >
@@ -373,8 +359,8 @@ function LaunchCard({
           borderRadius: 12,
           display: 'grid',
           placeItems: 'center',
-          background: D.accentSoft,
-          color: D.accent,
+          background: `${accent}1f`,
+          color: accent,
         }}
       >
         <ModuleIcon slug={slug} />
@@ -385,14 +371,14 @@ function LaunchCard({
             fontFamily: 'Poppins, sans-serif',
             fontSize: 17,
             fontWeight: 700,
-            color: D.t1,
+            color: t1,
             letterSpacing: '-.01em',
             marginBottom: 4,
           }}
         >
           {meta.name}
         </div>
-        <div style={{ fontSize: 12, color: D.t2, lineHeight: 1.5 }}>{meta.description}</div>
+        <div style={{ fontSize: 12, color: t2, lineHeight: 1.5 }}>{meta.description}</div>
       </div>
 
       {/* Leader / Titular */}
@@ -401,7 +387,7 @@ function LaunchCard({
           width: '100%',
           marginTop: 4,
           paddingTop: 12,
-          borderTop: `1px solid ${D.border}`,
+          borderTop: `1px solid ${border}`,
         }}
       >
         <div
@@ -410,7 +396,7 @@ function LaunchCard({
             fontWeight: 700,
             letterSpacing: '.18em',
             textTransform: 'uppercase',
-            color: D.t3,
+            color: t3,
             marginBottom: 6,
           }}
         >
@@ -423,7 +409,7 @@ function LaunchCard({
                 width: 22,
                 height: 22,
                 borderRadius: '50%',
-                background: D.accent,
+                background: accent,
                 color: 'white',
                 fontSize: 10,
                 fontWeight: 700,
@@ -439,14 +425,14 @@ function LaunchCard({
                 .join('')}
             </span>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: D.t1 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: t1 }}>
                 {meta.leader.name}
               </div>
-              <div style={{ fontSize: 10, color: D.t2 }}>{meta.leader.title}</div>
+              <div style={{ fontSize: 10, color: t2 }}>{meta.leader.title}</div>
             </div>
           </div>
         ) : (
-          <div style={{ fontSize: 11, color: D.t3, fontStyle: 'italic' }}>
+          <div style={{ fontSize: 11, color: t3, fontStyle: 'italic' }}>
             {t('launchpad.unassigned')}
           </div>
         )}
@@ -462,11 +448,11 @@ function LaunchCard({
                   justifyContent: 'space-between',
                   gap: 8,
                   fontSize: 10,
-                  color: D.t2,
+                  color: t2,
                 }}
               >
-                <span style={{ color: D.t3 }}>{sa.name}</span>
-                <span style={{ color: D.t1, fontWeight: 500, textAlign: 'right' }}>
+                <span style={{ color: t3 }}>{sa.name}</span>
+                <span style={{ color: t1, fontWeight: 500, textAlign: 'right' }}>
                   {sa.leader}
                 </span>
               </div>
@@ -483,7 +469,7 @@ function LaunchCard({
           marginTop: 4,
           fontSize: 11,
           fontWeight: 600,
-          color: D.accent,
+          color: accent,
           letterSpacing: '.02em',
         }}
       >
@@ -497,18 +483,18 @@ function LaunchCard({
 }
 
 function EmptyState() {
-  const { t } = useT()
+  const { t } = useT(), { t1, t2, border } = useApp()
   return (
     <div
       style={{
-        border: `1px dashed ${D.border}`,
+        border: `1px dashed ${border}`,
         borderRadius: 16,
         padding: '48px 32px',
         textAlign: 'center',
-        color: D.t2,
+        color: t2,
       }}
     >
-      <div style={{ fontSize: 14, fontWeight: 600, color: D.t1, marginBottom: 6 }}>
+      <div style={{ fontSize: 14, fontWeight: 600, color: t1, marginBottom: 6 }}>
         {t('launchpad.emptyTitle')}
       </div>
       <div style={{ fontSize: 12 }}>
