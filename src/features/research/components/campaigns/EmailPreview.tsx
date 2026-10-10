@@ -1,12 +1,12 @@
 import type { CSSProperties } from 'react'
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 
 // Preview del email (header indigo + párrafos del contenido + footer opcional).
 // Compartido por el wizard de envío (size lg + footer) y el modal de vista (size sm).
 type Props = { contenido?: string; size?: 'sm' | 'lg'; footer?: boolean; style?: CSSProperties }
 
 export default function EmailPreview({ contenido, size = 'lg', footer = false, style }: Props) {
-  const { border } = RESEARCH_THEME
+  const { border } = useResearchTheme()
   const lg = size === 'lg'
   return (
     <div style={{ border: `1px solid ${border}`, borderRadius: 12, overflow: 'hidden', ...style }}>

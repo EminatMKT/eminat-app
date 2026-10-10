@@ -20,7 +20,6 @@ export function useAppData() {
   const [equipo, setEquipo] = useState<Equipo[]>([])
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [loading, setLoading] = useState(true)
-  const [dark, setDark] = useState(true)
   const [onlineCount, setOnlineCount] = useState(0)
   const [mensaje, setMensaje] = useState<{ tipo: 'ok' | 'error'; texto: string } | null>(null)
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([])
@@ -79,7 +78,7 @@ export function useAppData() {
 
   return {
     usuario, sessionError, actividades, setActividades, equipo, usuarios, setUsuarios,
-    loading, dark, setDark, horaActual, onlineCount,
+    loading, horaActual, onlineCount,
     mensaje, notificaciones, setNotificaciones, notifAbiertas, setNotifAbiertas,
     adminUsuarios, setAdminUsuarios, mostrarMensaje, handleLogout,
     roles, setRoles, roleModuleMap, setRoleModuleMap, reloadRoles,

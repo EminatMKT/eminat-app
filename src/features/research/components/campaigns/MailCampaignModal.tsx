@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { researchRepo } from '@/shared/data'
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import { escapeHtml } from '@/shared/utils/html'
 import { useResearch } from '../ResearchContext'
 import type { Campaign } from '../../types'
@@ -15,7 +15,7 @@ import MailPreviewStep from './MailPreviewStep'
 type CampaignDraft = { nombre: string; asunto: string; contenido: string; estado: string }
 
 export default function MailCampaignModal() {
-  const { s1, border, t1, t3 } = RESEARCH_THEME
+  const { s1, border, t1, t3 } = useResearchTheme()
   const { mostrarMensaje } = useApp()
   const { mailModal, setMailModal, leads, setCampaigns } = useResearch()
 

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { RESEARCH_THEME } from '../theme'
+import { useResearchTheme } from '../theme'
 
 // Botón de la barra de acciones del módulo. Existe para que las cuatro acciones dejen de repetir
 // su estilo inline (y de divergir: antes el primario medía 12px y los otros 11).
@@ -10,7 +10,7 @@ export default function ToolbarButton({ icon, children, onClick, primary = false
   onClick: () => void
   primary?: boolean
 }) {
-  const { s1, border, t2, accent } = RESEARCH_THEME
+  const { s1, border, t2, accent } = useResearchTheme()
   return (
     <button onClick={onClick} className="tool-btn" style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,

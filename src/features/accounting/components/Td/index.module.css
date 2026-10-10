@@ -1,0 +1,5 @@
+.td { border-bottom: 1px solid var(--c-border); padding: .625rem .75rem; font-size: .75rem; color: var(--td-color, var(--c-t1)); }
+.left { text-align: left; }
+.right { text-align: right; }
+.mono { font-family: 'DM Mono', monospace; }
+.bold { font-weight: 700; }

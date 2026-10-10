@@ -1,5 +1,5 @@
 'use client'
-import { RESEARCH_THEME } from '../../theme'
+import { useResearchTheme } from '../../theme'
 import { useT } from '@/shared/i18n'
 import type { CounterChange } from '../../utils/importPlan'
 
@@ -11,7 +11,7 @@ export default function CounterChangeRow({ change, apply, onToggle }: {
   apply: boolean
   onToggle: () => void
 }) {
-  const { border, t2, t3, accent, warn } = RESEARCH_THEME
+  const { border, t2, t3, accent, warn } = useResearchTheme()
   const { t } = useT()
   const dim = apply ? 1 : 0.45
 

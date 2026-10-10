@@ -10,6 +10,7 @@ import TableWrap from './TableWrap'
 import Th from './Th'
 import Td from './Td'
 import DepositRow from './DepositRow'
+import s from './BankingTab.module.css'
 
 export default function BankingTab() {
   const { t: tr } = useT()
@@ -18,7 +19,7 @@ export default function BankingTab() {
   const total = filtered.reduce((a, b) => a + b.monto, 0)
   return (
     <SectionCard title="Bank Deposits — March" subtitle={`${filtered.length} deposits · ${fmt(total)}`}>
-      <div className="mb-3 flex gap-1.5">
+      <div className={s.filters}>
         {([SIN_FILTRO, 'SOUTH STATE', 'SPACE COAST'] as const).map(b => (
           <FilterBtn key={b} active={banco === b} color={ACCENT.teal} onClick={() => setBanco(b)}>
             {b === SIN_FILTRO ? tr('common.all') : b}
@@ -29,7 +30,7 @@ export default function BankingTab() {
         <thead><tr><Th>Day</Th><Th>Period</Th><Th>Payer</Th><Th>Lab</Th><Th>Study</Th><Th>Bank</Th><Th align="right">Amount</Th></tr></thead>
         <tbody>
           {filtered.map((d, i) => <DepositRow key={i} deposito={d} />)}
-          <tr className="bg-gray-50">
+          <tr className={s.totalRow}>
             <Td bold>TOTAL</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td>
             <Td align="right" mono bold color={ACCENT.green}>{fmt(total)}</Td>
           </tr>

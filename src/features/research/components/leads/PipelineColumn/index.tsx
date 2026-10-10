@@ -1,5 +1,5 @@
 'use client'
-import { RESEARCH_THEME } from '@/features/research/theme'
+import { useResearchTheme } from '@/features/research/theme'
 import { PIPELINE_COLORS, stageLabel } from '@/features/research/stages'
 import { useT } from '@/shared/i18n'
 import { useResearch } from '@/features/research/components/ResearchContext'
@@ -16,7 +16,7 @@ type Props = {
 }
 
 export default function PipelineColumn({ col, leads, dragId, setDragId, dragOver, setDragOver }: Props) {
-  const { s1, s2, border, t1, t3 } = RESEARCH_THEME
+  const { s1, s2, border, t1, t3 } = useResearchTheme()
   const { updateStage, setModalLead } = useResearch()
   const { t } = useT()
   const colLeads = leads.filter(l => l.stage === col)

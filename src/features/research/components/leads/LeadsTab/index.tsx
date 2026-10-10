@@ -1,5 +1,5 @@
 'use client'
-import { RESEARCH_THEME } from '@/features/research/theme'
+import { useResearchTheme } from '@/features/research/theme'
 import { useT, type I18nKey } from '@/shared/i18n'
 import { FROZEN_COLS } from '@/features/research/tableConstants/constants'
 import { useResearch } from '@/features/research/components/ResearchContext'
@@ -23,7 +23,7 @@ const COLUMNS: I18nKey[] = [
 ]
 
 export default function LeadsTab() {
-  const { s2, border, t2, t3, accent } = RESEARCH_THEME
+  const { s2, border, t2, t3, accent } = useResearchTheme()
   const { t } = useT()
   const { filteredLeads, leads, filtros, openNewLead, setModalImport, setModalSpecialty, handleExport, handlePrint } = useResearch()
   return (

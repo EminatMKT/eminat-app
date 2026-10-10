@@ -10,8 +10,8 @@ export default function SalesRow({ venta: v }: { venta: Venta }) {
       <Td>{v.mes}</Td>
       <Td color={ACCENT.teal} mono bold>{v.periodo}</Td>
       <Td bold>{v.lab}</Td>
-      <Td color="#6b7280">{v.estudio}</Td>
-      <Td align="right" mono color={v.monto > 0 ? '#111827' : '#9ca3af'}>{fmt(v.monto)}</Td>
+      <Td color="var(--c-t2)">{v.estudio}</Td>
+      <Td align="right" mono color={v.monto > 0 ? 'var(--c-t1)' : 'var(--c-t3)'}>{fmt(v.monto)}</Td>
     </Tr>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 import type { Dispatch, SetStateAction } from 'react'
-import { RESEARCH_THEME, inputStyle } from '../../theme'
+import { useResearchTheme, inputStyle } from '../../theme'
 
 // Borrador editable del wizard de mailing (los campos que este paso toca).
 type CampaignDraft = { nombre: string; asunto: string; contenido: string; estado: string }
@@ -14,7 +14,7 @@ type Props = {
 }
 
 export default function MailContentStep({ campaign, setCampaign, onCancel, onSaveDraft, onNext }: Props) {
-  const { border, t1, t2, t3, accent } = RESEARCH_THEME
+  const { border, t1, t2, t3, accent } = useResearchTheme()
   return (
     <div>
       <div style={{ marginBottom: 14 }}><label style={{ fontSize: 11, color: t2, display: 'block', marginBottom: 4, fontWeight: 600 }}>Campaign name</label><input value={campaign.nombre} onChange={e => setCampaign(p => ({ ...p, nombre: e.target.value }))} style={inputStyle} placeholder="Ej: Newsletter Abril 2026" /></div>

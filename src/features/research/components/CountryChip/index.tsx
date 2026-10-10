@@ -8,7 +8,7 @@
 // dirección. Migrarlo a `ColorBadge` fue el paso que esta regla pide; mudarlo de módulo sería
 // restaurarlo por la puerta de atrás.
 /*
-import { RESEARCH_THEME } from '@/features/research/theme'
+import { useResearchTheme } from '@/features/research/theme'
 import { COUNTRY_FLAGS } from '@/features/research/constants'
 import { ColorBadge } from '@/shared/components/ui'
 
@@ -19,8 +19,9 @@ type Props = {
 
 export default function CountryChip(props: Props) {
   const { country, count } = props
+  const { accent } = useResearchTheme()
   return (
-    <ColorBadge color={RESEARCH_THEME.accent}>
+    <ColorBadge color={accent}>
       {COUNTRY_FLAGS[country] || '🌍'} {country} · {count}
     </ColorBadge>
   )
