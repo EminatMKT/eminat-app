@@ -1,0 +1,3 @@
+.th { border-bottom: 1px solid var(--c-border); padding: .625rem .75rem; font-size: .625rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--c-t2); }
+.left { text-align: left; }
+.right { text-align: right; }

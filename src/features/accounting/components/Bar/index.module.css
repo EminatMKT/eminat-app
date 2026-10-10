@@ -1,0 +1,6 @@
+.wrap { margin-bottom: .625rem; }
+.row { margin-bottom: .25rem; display: flex; justify-content: space-between; font-size: .75rem; }
+.label { font-weight: 500; color: var(--c-t1); }
+.value { font-family: 'DM Mono', monospace; color: var(--c-t2); }
+.track { height: .5rem; overflow: hidden; border-radius: 62.4375rem; background: var(--c-s3); }
+.fill { width: var(--bar-width); height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--bar-color), var(--bar-color-alpha)); transition: width .2s; }

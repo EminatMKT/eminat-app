@@ -10,6 +10,7 @@ import TableWrap from './TableWrap'
 import Th from './Th'
 import Td from './Td'
 import ReceivableRow from './ReceivableRow'
+import s from './ReceivablesTab.module.css'
 
 export default function ReceivablesTab() {
   const { t: tr } = useT()
@@ -20,7 +21,7 @@ export default function ReceivablesTab() {
   const totT = filtered.reduce((a, b) => a + b.total, 0)
   return (
     <SectionCard title="Receivables" subtitle={`${filtered.length} records · ${fmt(totT)} outstanding`}>
-      <div className="mb-3 flex gap-1.5">
+      <div className={s.filters}>
         {([SIN_FILTRO, 'DATA', 'INVOICE'] as const).map(t => (
           <FilterBtn key={t} active={tipo === t} color={ACCENT.teal} onClick={() => setTipo(t)}>
             {t === SIN_FILTRO ? tr('common.all') : t}
@@ -31,10 +32,10 @@ export default function ReceivablesTab() {
         <thead><tr><Th>Lab</Th><Th>Study</Th><Th>Type</Th><Th>Period</Th><Th align="right">Overdue</Th><Th align="right">Not Due</Th><Th align="right">Total</Th></tr></thead>
         <tbody>
           {filtered.map((p, i) => <ReceivableRow key={i} row={p} />)}
-          <tr className="bg-gray-50">
+          <tr className={s.totalRow}>
             <Td bold>TOTAL</Td><Td>{''}</Td><Td>{''}</Td><Td>{''}</Td>
             <Td align="right" mono bold color={ACCENT.red}>{fmt(totV)}</Td>
-            <Td align="right" mono bold color="#b45309">{fmt(totPV)}</Td>
+            <Td align="right" mono bold color="var(--c-warn-solid)">{fmt(totPV)}</Td>
             <Td align="right" mono bold color={ACCENT.teal}>{fmt(totT)}</Td>
           </tr>
         </tbody>

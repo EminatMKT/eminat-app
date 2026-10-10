@@ -1,0 +1,4 @@
+.card { margin-bottom: 1rem; border-radius: .75rem; border: 1px solid var(--c-border); background: var(--c-s1); padding: 1.25rem; box-shadow: 0 1px 2px rgba(0, 0, 0, .05); }
+.head { margin-bottom: 1rem; }
+.title { font-size: 1rem; font-weight: 700; color: var(--c-t1); }
+.subtitle { margin-top: .125rem; font-size: .75rem; color: var(--c-t2); }
