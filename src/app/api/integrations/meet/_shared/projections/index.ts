@@ -6,9 +6,10 @@ const RESPONSIBLES = `actividad_responsables!actividad_responsables_actividad_id
 const MEET_PROJECTIONS = {
   task: `id, titulo, descripcion, estado, fecha_inicio, fecha_entrega, fecha_requerida, empresa, updated_at, ${RESPONSIBLES}`,
   topicOwner: 'id, meetings!inner(user_id)',
+  topicReadable: 'id, meetings!inner(id)',
   topicLink: 'id, actividad_id, meetings!inner(user_id)',
-  topicOrigin: 'actividad_id, meetings(id, title, user_id, empresas(nombre))',
-  viewerProfile: 'id, equipo_id, empresa_id, equipos!usuarios_equipo_id_fkey(id, nombre), empresas(id, codigo, nombre)',
+  topicOrigin: 'actividad_id, meetings(id, title, user_id, empresas!meetings_company_id_fkey(nombre))',
+  viewerProfile: 'id, equipo_id, empresa_id, equipos!usuarios_equipo_id_fkey(id, nombre), empresas!usuarios_empresa_id_fkey(id, codigo, nombre)',
   directoryUser: 'id, equipo_id, empresa_id',
   assigneeCheck: 'id, rol, activo',
   catalogRow: 'id, codigo, nombre',

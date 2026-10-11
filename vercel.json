@@ -4,7 +4,7 @@
     "deploymentEnabled": {
       "**": false,
       "feature/lilly-calendar": true,
-      "main": true
+      "main": false
     }
   },
   "crons": [{ "path": "/api/tasks/notifications/process", "schedule": "0 3 * * *" }]
