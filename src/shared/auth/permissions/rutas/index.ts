@@ -4,6 +4,8 @@ import { ALL_MODULES, MODULE, type ModuleSlug } from '../modulos'
 // existing grants keep working; only the URL moved.
 const MODULE_PATH_OVERRIDES: Partial<Record<ModuleSlug, string>> = {
   [MODULE.COBRANZAS]: '/billing',
+  // Meet is the canonical functional UI; the existing /reuniones route remains legacy.
+  [MODULE.REUNIONES]: '/meetings',
 }
 
 // La ruta de un módulo es '/' + slug (convención del App Router). `modulePath()` la centraliza
@@ -29,6 +31,7 @@ export const ROUTES = {
 // 'admin', así que sólo un admin llega.
 export function moduleForPath(pathname: string): ModuleSlug | null {
   if (pathname === ROUTES.overview || pathname.startsWith(ROUTES.overview + '/')) return 'admin'
+  if (pathname === '/reuniones' || pathname.startsWith('/reuniones/')) return MODULE.REUNIONES
   const entries = ALL_MODULES.map((slug) => [slug, modulePath(slug)] as const)
     .sort((a, b) => b[1].length - a[1].length)
   for (const [slug, prefix] of entries) {

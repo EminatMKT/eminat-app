@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Meet's semantic classes stay inside its new LILLY module. */
+.meet-module .surface { border-color: #e5e7eb; background: #fff; }
+.meet-module .muted { color: #6b7280; }
+.meet-module .heading { color: #111827; }
+.meet-module .field { border-color: #d1d5db; background: #fff; color: #111827; }
+
 /* Poppins en TODA la app, por encima de cualquier `font-family` que declare un componente.
    El `!important` es deliberado y le gana incluso a los `style` inline.
 

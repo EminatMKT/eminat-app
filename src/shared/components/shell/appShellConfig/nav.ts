@@ -24,6 +24,6 @@ export const AUTO_TITLE: Partial<Record<ModuleSlug, string>> = {
   [MODULE.RESEARCH]: 'Eminat Research Group',
   [MODULE.MEDICAL]: 'Eminat Medical Center — HIPAA',
   [MODULE.DIRECTORIO]: 'Team Directory',
-  [MODULE.REUNIONES]: 'Reuniones — Actas y pendientes',
+  [MODULE.REUNIONES]: 'Meetings — Actas y pendientes',
   [MODULE.ADMIN]: 'Admin Panel',
 }

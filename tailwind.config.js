@@ -19,6 +19,11 @@ module.exports = {
         erg: '#A78BFA',
         vnf: '#FB923C',
         premier: '#34D399',
+        brand: {
+          DEFAULT: '#16a34a',
+          dark: '#15803d',
+          light: '#22c55e',
+        },
       },
       fontFamily: {
         syne: ['Syne', 'sans-serif'],
