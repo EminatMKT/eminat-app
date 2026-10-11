@@ -330,6 +330,16 @@ describe('Meet task service', () => {
     expect(result.data?.tasks).toEqual([])
   })
 
+  it('reports a meeting-link query error instead of returning an incomplete Task list', async () => {
+    const { client } = fakeClient({
+      usuarios: [ok({ id: assigneeId }), ok([{ id: assigneeId }])],
+      actividades: [ok([activity()])],
+      topics: [{ data: null, error: { message: 'Meeting link query failed' } }],
+    })
+    const result = await listCanonicalTasks(client, owner, assigneeId)
+    expect(result).toMatchObject({ ok: false, message: 'Meeting link query failed' })
+  })
+
   it('reads a linked Task for a participant but keeps write ownership separate', async () => {
     const participant = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
     const { client } = fakeClient({

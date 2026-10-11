@@ -109,7 +109,7 @@ export async function listCanonicalTasks(client: SupabaseClient, authUserId: str
     client.from(TABLES.actividades).select(MEET_PROJECTIONS.task),
     client.from(TABLES.topics).select(MEET_PROJECTIONS.topicOrigin).not(topics.actividadId, IS_OPERATOR, null),
   ])
-  const error = profileResult.error || directoryResult.error || activitiesResult.error
+  const error = profileResult.error || directoryResult.error || activitiesResult.error || topicsResult.error
   if (error || !profileResult.data) return failWith(MEET_ERRORS.taskListForbidden, error?.message)
 
   const profile = profileResult.data as DirectoryUserRow
@@ -122,15 +122,13 @@ export async function listCanonicalTasks(client: SupabaseClient, authUserId: str
   )
   const origins = new Map<string, CanonicalMeetTaskListItem['meeting']>()
   const visibleMeetingActivities = new Set<string>()
-  if (!topicsResult.error) {
-    for (const row of (topicsResult.data ?? []) as unknown as ListTopicRow[]) {
-      if (!row.actividad_id) continue
-      const meeting = first(row.meetings)
-      if (!meeting) continue
-      const company = first(meeting.empresas)
-      origins.set(row.actividad_id, { id: meeting.id, title: meeting.title, company: company?.nombre ?? null })
-      visibleMeetingActivities.add(row.actividad_id)
-    }
+  for (const row of (topicsResult.data ?? []) as unknown as ListTopicRow[]) {
+    if (!row.actividad_id) continue
+    const meeting = first(row.meetings)
+    if (!meeting) continue
+    const company = first(meeting.empresas)
+    origins.set(row.actividad_id, { id: meeting.id, title: meeting.title, company: company?.nombre ?? null })
+    visibleMeetingActivities.add(row.actividad_id)
   }
   const tasks = ((activitiesResult.data ?? []) as unknown as ActivityRow[])
     .filter((row) => (row.actividad_responsables ?? []).some(({ usuario_id }) => authorizedAssignees.has(usuario_id)) || visibleMeetingActivities.has(row.id))
