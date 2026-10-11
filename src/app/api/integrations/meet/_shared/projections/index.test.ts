@@ -14,4 +14,9 @@ describe('MEET_PROJECTIONS', () => {
     expect(MEET_PROJECTIONS.task).toContain('actividad_responsables!actividad_responsables_actividad_id_fkey')
     expect(MEET_PROJECTIONS.task).not.toContain(LEGACY_SINGLE_RESPONSIBLE)
   })
+
+  it('selects the viewer company through the profile affiliation foreign key', () => {
+    expect(MEET_PROJECTIONS.viewerProfile).toContain('empresas!usuarios_empresa_id_fkey(')
+    expect(MEET_PROJECTIONS.topicOrigin).toContain('empresas!meetings_company_id_fkey(')
+  })
 })
