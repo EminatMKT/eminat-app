@@ -4,6 +4,8 @@ import { defineConfig, devices } from '@playwright/test'
 // (apuntando al stack local) y `supabase start`. El dev server se reutiliza si ya corre.
 export default defineConfig({
   testDir: './e2e',
+  // Uses a fully synthetic Supabase endpoint and its own config/server fixture.
+  testIgnore: '**/meetings-synthetic.spec.ts',
   globalSetup: './e2e/global-setup.ts',
   globalTeardown: './e2e/global-teardown.ts',
   fullyParallel: false,
