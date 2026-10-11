@@ -298,4 +298,53 @@ describe('Meet task service', () => {
     expect(result.data?.tasks[1].meeting).toEqual({ id: 'meeting-1', title: 'Reunión propia', company: 'Stratix' })
     expect(result.data?.viewer).toEqual({ profile_id: assigneeId, equipo: null, empresa: null })
   })
+
+  it('lists a Task linked to an explicitly visible meeting across companies', async () => {
+    const other = '33333333-3333-4333-8333-333333333333'
+    const crossCompanyTask = activityOf('88888888-8888-4888-8888-888888888888', [responsibleRow({ id: other })])
+    const { client } = fakeClient({
+      usuarios: [
+        ok({ id: assigneeId, equipo_id: 'team-1', empresa_id: 'company-1' }),
+        ok([{ id: assigneeId, equipo_id: 'team-1', empresa_id: 'company-1' }, { id: other, equipo_id: 'team-2', empresa_id: 'company-2' }]),
+      ],
+      actividades: [ok([crossCompanyTask])],
+      topics: [ok([{ actividad_id: crossCompanyTask.id, meetings: { id: 'shared-meeting', title: 'Shared', user_id: other } }])],
+    })
+    const result = await listCanonicalTasks(client, owner, assigneeId)
+    expect(result.data?.tasks.map((task) => task.id)).toEqual([crossCompanyTask.id])
+    expect(result.data?.tasks[0].meeting?.id).toBe('shared-meeting')
+  })
+
+  it('does not list an unrelated cross-company Task without a visible meeting', async () => {
+    const other = '33333333-3333-4333-8333-333333333333'
+    const unrelated = activityOf('99999999-9999-4999-8999-999999999999', [responsibleRow({ id: other })])
+    const { client } = fakeClient({
+      usuarios: [
+        ok({ id: assigneeId, equipo_id: 'team-1', empresa_id: 'company-1' }),
+        ok([{ id: assigneeId, equipo_id: 'team-1', empresa_id: 'company-1' }, { id: other, equipo_id: 'team-2', empresa_id: 'company-2' }]),
+      ],
+      actividades: [ok([unrelated])],
+      topics: [ok([])],
+    })
+    const result = await listCanonicalTasks(client, owner, assigneeId)
+    expect(result.data?.tasks).toEqual([])
+  })
+
+  it('reads a linked Task for a participant but keeps write ownership separate', async () => {
+    const participant = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+    const { client } = fakeClient({
+      topics: [ok({ id: 'topic-1', meetings: { id: 'shared-meeting' } }), ok({ id: 'topic-1', meetings: { user_id: owner } })],
+      actividades: [ok(activity())],
+    })
+    const result = await getCanonicalTask(client, activityId, participant)
+    expect(result.ok).toBe(true)
+    const write = await updateTask(client, participant, activityId, { expected_updated_at: stamp, titulo: 'Change' })
+    expect(write).toMatchObject({ ok: false, status: 403 })
+  })
+
+  it('denies Task detail when no linked meeting is visible under RLS', async () => {
+    const { client } = fakeClient({ topics: [ok(null)] })
+    const result = await getCanonicalTask(client, activityId, owner)
+    expect(result).toMatchObject({ ok: false, status: 403 })
+  })
 })

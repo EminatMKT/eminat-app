@@ -83,8 +83,19 @@ async function canManageActivity(client: SupabaseClient, activityId: string, aut
   return !error && Boolean(row) && first(row?.meetings)?.user_id === authUserId
 }
 
+async function canReadMeetingActivity(client: SupabaseClient, activityId: string) {
+  const { data, error } = await client
+    .from(TABLES.topics)
+    .select(MEET_PROJECTIONS.topicReadable)
+    .eq(topics.actividadId, activityId)
+    .limit(ONE_ROW)
+    .maybeSingle()
+  // The caller's RLS must allow both the topic and its inner-joined meeting.
+  return !error && Boolean(data)
+}
+
 export async function getCanonicalTask(client: SupabaseClient, activityId: string, authUserId?: string): Promise<ServiceResult<CanonicalMeetTask>> {
-  if (authUserId && !(await canManageActivity(client, activityId, authUserId))) return failWith(MEET_ERRORS.taskReadForbidden)
+  if (authUserId && !(await canReadMeetingActivity(client, activityId))) return failWith(MEET_ERRORS.taskReadForbidden)
   const { data, error } = await client.from(TABLES.actividades).select(MEET_PROJECTIONS.task).eq(actividades.id, activityId).maybeSingle()
   if (error) return failWith(MEET_ERRORS.taskReadDenied, error.message)
   if (!data) return failWith(MEET_ERRORS.taskNotFound)
@@ -110,7 +121,7 @@ export async function listCanonicalTasks(client: SupabaseClient, authUserId: str
       .map((user) => user.id),
   )
   const origins = new Map<string, CanonicalMeetTaskListItem['meeting']>()
-  const ownedActivities = new Set<string>()
+  const visibleMeetingActivities = new Set<string>()
   if (!topicsResult.error) {
     for (const row of (topicsResult.data ?? []) as unknown as ListTopicRow[]) {
       if (!row.actividad_id) continue
@@ -118,11 +129,11 @@ export async function listCanonicalTasks(client: SupabaseClient, authUserId: str
       if (!meeting) continue
       const company = first(meeting.empresas)
       origins.set(row.actividad_id, { id: meeting.id, title: meeting.title, company: company?.nombre ?? null })
-      if (meeting.user_id === authUserId) ownedActivities.add(row.actividad_id)
+      visibleMeetingActivities.add(row.actividad_id)
     }
   }
   const tasks = ((activitiesResult.data ?? []) as unknown as ActivityRow[])
-    .filter((row) => (row.actividad_responsables ?? []).some(({ usuario_id }) => authorizedAssignees.has(usuario_id)) || ownedActivities.has(row.id))
+    .filter((row) => (row.actividad_responsables ?? []).some(({ usuario_id }) => authorizedAssignees.has(usuario_id)) || visibleMeetingActivities.has(row.id))
     .map((row) => ({ ...canonical(row), meeting: origins.get(row.id) ?? null }))
   return { ok: true, data: {
     tasks,
