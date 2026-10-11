@@ -12,7 +12,8 @@ import { ALL_MODULES, modulePath } from './permissions'
 const APP_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'app', '(app)')
 
 // Carpetas de ruta que existen a propósito SIN ser módulos (stubs / vistas especiales).
-const NON_MODULE_ROUTES = ['finanzas', 'overview']
+// /reuniones remains reachable and gated while /meetings becomes the canonical module path.
+const NON_MODULE_ROUTES = ['finanzas', 'overview', 'reuniones']
 
 const routeFolders = readdirSync(APP_DIR, { withFileTypes: true })
   .filter(d => d.isDirectory() && !d.name.startsWith('(')) // ignora route groups

@@ -10,10 +10,19 @@ describe('modulePath', () => {
   it('serves the cobranzas permission at /billing', () => {
     expect(modulePath('cobranzas')).toBe('/billing')
   })
+  it('serves the existing reuniones permission at canonical /meetings', () => {
+    expect(modulePath('reuniones')).toBe('/meetings')
+  })
 })
 
 describe('moduleForPath', () => {
   it('mapea ruta a slug', () => { expect(moduleForPath('/billing/record')).toBe('cobranzas') })
+  it('gates canonical Meet and the untouched legacy page with the same grant', () => {
+    expect(moduleForPath('/meetings')).toBe('reuniones')
+    expect(moduleForPath('/meetings/history')).toBe('reuniones')
+    expect(moduleForPath('/reuniones')).toBe('reuniones')
+    expect(moduleForPath('/reuniones-extra')).toBeNull()
+  })
   it('la raíz del módulo también', () => { expect(moduleForPath('/billing')).toBe('cobranzas') })
 
   // No alias: the old path belongs to no module, and a shared prefix is not a match.
