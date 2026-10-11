@@ -1,7 +1,9 @@
 'use client'
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { messages, STORAGE_LOCALE, STORAGE_THEME, type Locale, type MessageKey } from '@/features/meet/lib/i18n'
+import { createContext, useContext, useMemo } from 'react'
+import { messages, type Locale, type MessageKey } from '@/features/meet/lib/i18n'
+import { useT } from '@/shared/i18n'
+import { useApp } from '@/shared/context/AppContext'
 
 export type Theme = 'light' | 'dark'
 
@@ -17,26 +19,8 @@ type Preferences = {
 const PreferencesContext = createContext<Preferences | null>(null)
 
 export function PreferencesProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>('es')
-  const [theme, setThemeState] = useState<Theme>('light')
-
-  useEffect(() => {
-    const storedLocale = localStorage.getItem(STORAGE_LOCALE)
-    const storedTheme = localStorage.getItem(STORAGE_THEME)
-    const initialLocale: Locale = storedLocale === 'en' ? 'en' : 'es'
-    const initialTheme: Theme = storedTheme === 'dark' ? 'dark' : 'light'
-    setLocaleState(initialLocale)
-    setThemeState(initialTheme)
-  }, [])
-
-  const setLocale = (value: Locale) => {
-    localStorage.setItem(STORAGE_LOCALE, value)
-    setLocaleState(value)
-  }
-  const setTheme = (value: Theme) => {
-    localStorage.setItem(STORAGE_THEME, value)
-    setThemeState(value)
-  }
+  const { locale, setLocale } = useT()
+  const { theme, setTheme } = useApp()
 
   const value = useMemo<Preferences>(() => ({
     locale,
@@ -45,7 +29,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     setTheme,
     t: (key) => messages[locale][key],
     formatDate: (date, options) => new Intl.DateTimeFormat(locale === 'es' ? 'es-EC' : 'en-US', options ?? { dateStyle: 'medium' }).format(new Date(date)),
-  }), [locale, theme])
+  }), [locale, theme, setLocale, setTheme])
 
   return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>
 }
