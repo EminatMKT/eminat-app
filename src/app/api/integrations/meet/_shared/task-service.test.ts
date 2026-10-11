@@ -12,7 +12,7 @@ function fakeClient(initial: Scripts) {
   const take = (table: string): Result => scripts[table]?.shift() ?? { data: null, error: null }
   const from = (table: string) => {
     const query: Record<string, unknown> = {}
-    for (const method of ['select', 'update', 'insert', 'eq', 'limit', 'order', 'not']) {
+    for (const method of ['select', 'update', 'insert', 'eq', 'limit', 'order', 'not', 'range']) {
       query[method] = (...args: unknown[]) => { calls.push({ table, method, args }); return query }
     }
     query.maybeSingle = async () => take(table)
@@ -313,6 +313,32 @@ describe('Meet task service', () => {
     const result = await listCanonicalTasks(client, owner, assigneeId)
     expect(result.data?.tasks.map((task) => task.id)).toEqual([crossCompanyTask.id])
     expect(result.data?.tasks[0].meeting?.id).toBe('shared-meeting')
+  })
+
+  it('loads Tasks beyond the first database response page', async () => {
+    const firstPage = Array.from({ length: 500 }, (_, index) => activityOf(`unrelated-${index}`, []))
+    const started = activityOf('started-after-page-one', [responsibleRow(ana)])
+    started.estado = 'En proceso'
+    const { client, calls } = fakeClient({
+      usuarios: [ok({ id: assigneeId }), ok([{ id: assigneeId }])],
+      actividades: [ok(firstPage), ok([started])],
+      topics: [ok([])],
+    })
+    const result = await listCanonicalTasks(client, owner, assigneeId)
+    expect(result.data?.tasks.map((task) => task.id)).toEqual([started.id])
+    expect(result.data?.tasks[0].estado).toBe('En proceso')
+    expect(calls.filter((call) => call.table === 'actividades' && call.method === 'range').map((call) => call.args)).toEqual([[0, 499], [500, 999]])
+  })
+
+  it('fails the Task list if a later database page fails', async () => {
+    const firstPage = Array.from({ length: 500 }, (_, index) => activityOf(`task-${index}`, [responsibleRow(ana)]))
+    const { client } = fakeClient({
+      usuarios: [ok({ id: assigneeId }), ok([{ id: assigneeId }])],
+      actividades: [ok(firstPage), { data: null, error: { message: 'Page two failed' } }],
+      topics: [ok([])],
+    })
+    const result = await listCanonicalTasks(client, owner, assigneeId)
+    expect(result).toMatchObject({ ok: false, message: 'Page two failed' })
   })
 
   it('does not list an unrelated cross-company Task without a visible meeting', async () => {

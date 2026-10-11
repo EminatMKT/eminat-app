@@ -34,6 +34,7 @@ const ONLY_ACTIVE = true
 const ONLY_RECEIVING = true
 const IS_OPERATOR = 'is'
 const ONE_ROW = 1
+const TASK_PAGE_SIZE = 500
 /** The SQLSTATE `update_meet_activity` raises for a stale version; PostgREST answers it as HTTP 409. */
 const VERSION_CONFLICT = 'PT409'
 
@@ -103,10 +104,21 @@ export async function getCanonicalTask(client: SupabaseClient, activityId: strin
 }
 
 export async function listCanonicalTasks(client: SupabaseClient, authUserId: string, profileId: string): Promise<ServiceResult<CanonicalMeetTaskList>> {
+  const activitiesPromise = (async () => {
+    const rows: ActivityRow[] = []
+    for (let offset = 0; ; offset += TASK_PAGE_SIZE) {
+      const result = await client.from(TABLES.actividades).select(MEET_PROJECTIONS.task)
+        .order(actividades.id, { ascending: true }).range(offset, offset + TASK_PAGE_SIZE - 1)
+      if (result.error) return { rows: [], error: result.error }
+      const page = (result.data ?? []) as unknown as ActivityRow[]
+      rows.push(...page)
+      if (page.length < TASK_PAGE_SIZE) return { rows, error: null }
+    }
+  })()
   const [profileResult, directoryResult, activitiesResult, topicsResult] = await Promise.all([
     client.from(TABLES.usuarios).select(MEET_PROJECTIONS.viewerProfile).eq(usuarios.id, profileId).maybeSingle(),
     client.from(TABLES.usuarios).select(MEET_PROJECTIONS.directoryUser).eq(usuarios.activo, ONLY_ACTIVE),
-    client.from(TABLES.actividades).select(MEET_PROJECTIONS.task),
+    activitiesPromise,
     client.from(TABLES.topics).select(MEET_PROJECTIONS.topicOrigin).not(topics.actividadId, IS_OPERATOR, null),
   ])
   const error = profileResult.error || directoryResult.error || activitiesResult.error || topicsResult.error
@@ -130,7 +142,7 @@ export async function listCanonicalTasks(client: SupabaseClient, authUserId: str
     origins.set(row.actividad_id, { id: meeting.id, title: meeting.title, company: company?.nombre ?? null })
     visibleMeetingActivities.add(row.actividad_id)
   }
-  const tasks = ((activitiesResult.data ?? []) as unknown as ActivityRow[])
+  const tasks = activitiesResult.rows
     .filter((row) => (row.actividad_responsables ?? []).some(({ usuario_id }) => authorizedAssignees.has(usuario_id)) || visibleMeetingActivities.has(row.id))
     .map((row) => ({ ...canonical(row), meeting: origins.get(row.id) ?? null }))
   return { ok: true, data: {
