@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { meetingDisplayCopy } from '../lib/display-copy'
 import { useParams } from 'next/navigation'
 import { getMeetingById } from '@/features/meet/lib/services/meetings'
 import { listMeetingEvents, type MeetingEvent } from '@/features/meet/lib/services/meeting-history'
@@ -49,7 +50,7 @@ export default function MeetingHistoryPage() {
         <span className="absolute -left-2 mt-1 h-4 w-4 rounded-full border-4 border-white bg-brand dark:border-slate-950" />
         <article className="surface rounded-xl border p-4">
           <p className="heading font-semibold">{eventLabels[locale][event.event_type]}</p>
-          <p className="muted mt-1 text-sm">{event.summary}</p>
+          <p className="muted mt-1 text-sm">{meetingDisplayCopy(event.summary)}</p>
           {typeof event.metadata.actor_name === 'string' && <p className="mt-1 text-sm font-medium text-emerald-700 dark:text-emerald-300">{event.metadata.actor_name}</p>}
           <time className="mt-2 block text-xs text-gray-400">{formatDate(event.created_at, { dateStyle: 'medium', timeStyle: 'short' })}</time>
         </article>

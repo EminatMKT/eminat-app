@@ -2,7 +2,7 @@
 import { usePathname } from 'next/navigation'
 import { useApp } from '@/shared/context/AppContext'
 import { modulePath, ROUTES } from '@/shared/auth/permissions'
-import TopbarBrands from '@/shared/components/shell/TopbarBrands'
+import WorldClocks from '@/shared/components/shell/WorldClocks'
 import TopbarDate from '@/shared/components/shell/TopbarDate'
 import TopbarLayout from '@/shared/components/shell/TopbarLayout'
 import { NAV, AUTO_TITLE } from '@/shared/components/shell/appShellConfig'
@@ -27,11 +27,10 @@ export default function TopbarHeading({ title }: Props) {
       <TopbarLayout part="title">{title || autoTitle}</TopbarLayout>
       <TopbarLayout part="meta">
         <TopbarDate />
-        <TopbarLayout part="rule" />
-        <TopbarBrands />
+        <WorldClocks />
       </TopbarLayout>
     </TopbarLayout>
   )
 }
 
-// The left side of the topbar: where the person is, today's date and the group's brands.
+// The left side of the topbar: where the person is, today's date and the world's clocks.

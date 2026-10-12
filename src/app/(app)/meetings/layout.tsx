@@ -18,7 +18,7 @@ const tabs = [
 export default function MeetingsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { t } = useT()
-  const overview = ['/meetings', '/meetings/tasks', '/meetings/history'].includes(pathname)
+  const overview = ['/meetings', '/meetings/new', '/meetings/tasks', '/meetings/history'].includes(pathname)
   const Shell = overview ? MeetingsOverviewShell : AppShell
   return (
     <Shell title={overview ? t('reuniones.title') : 'Meetings'}>

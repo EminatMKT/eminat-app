@@ -307,6 +307,7 @@
   "shell.navigation": "Navigation",
   "shell.dayAndTime": "{day} · {time}",
   "shell.brandsMore": "+{n}",
+  "shell.worldClocks": "World clocks",
   "shell.brandsTitle": "Group brands: {list}",
   "notif.title": "Notifications",
   "notif.markAllRead": "Mark all as read",

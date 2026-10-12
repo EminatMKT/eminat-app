@@ -1,7 +1,7 @@
 .page, .tabs { color: var(--c-t1); }
 .page { min-width: 0; }
 /* Meet formerly mixed OS-driven Tailwind dark variants with LILLY's .dark toggle.
-   These three overview routes use only the content palette selected by LILLY. */
+   These Meetings routes use only the content palette selected by LILLY. */
 .page [class~="surface"], .page [class~="bg-white"], .panel, .tabs a, .scopes, .page select {
   background: var(--c-s1);
   color: var(--c-t1);
@@ -39,3 +39,25 @@
   .filters select { flex: 1 1 10rem; }
   .page dl { grid-template-columns: 1fr; }
 }
+
+.page [class~="text-gray-700"] { color: var(--c-t1); }
+.page [class~="field"] { background: var(--c-s1); color: var(--c-t1); border-color: var(--c-border-strong); color-scheme: light; }
+.page [class~="field"]::placeholder { color: var(--c-t2); }
+.form { background: var(--c-s1); border-color: var(--c-border-strong); color: var(--c-t1); }
+.inviteeList { background: var(--c-s1); border-color: var(--c-border-strong); }
+.inviteeRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1rem; border-bottom: 1px solid var(--c-border); padding: .75rem; font-size: .875rem; background: var(--c-s1); color: var(--c-t1); }
+.inviteeRow:last-child { border-bottom: 0; }
+.inviteeRow:hover { background: var(--c-s3); }
+.inviteeRow[data-selected="true"] { background: color-mix(in srgb, var(--c-s1) 90%, var(--c-accent-solid) 10%); }
+.inviteeRow:focus-within { outline: 2px solid var(--c-accent-solid); outline-offset: -2px; }
+.inviteeRow > span { overflow-wrap: anywhere; }
+.inviteeRow label { color: var(--c-t2); }
+.inviteeCheckbox { width: 1rem; height: 1rem; flex-shrink: 0; accent-color: var(--c-accent-solid); color-scheme: light; }
+@media (max-width: 40rem) {
+  .form { padding: 1rem; }
+  .form > [class~="grid-cols-2"] { grid-template-columns: 1fr; }
+  .inviteeRow { gap: .5rem; }
+}
+
+html[class~="dark"] .page [class~="field"], html[class~="dark"] .inviteeCheckbox { color-scheme: dark; }
+.page [class~="hover:bg-gray-100"]:hover { background: var(--c-s3); }

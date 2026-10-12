@@ -1,0 +1,18 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  padding: .125rem 0 .25rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--t3) transparent;
+  overscroll-behavior-inline: contain;
+}
+.clock { display: inline-flex; flex: 0 0 auto; align-items: baseline; gap: .375rem; white-space: nowrap; font-size: .6875rem; line-height: 1.4; }
+.clock + .clock { border-left: 1px solid var(--border); padding-left: .75rem; }
+.city { color: var(--t2); }
+.clock time { color: var(--t1); font-variant-numeric: tabular-nums; }
+.row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: .25rem; }
+@media (max-width: 48rem) { .clock { font-size: .625rem; } .row { gap: .5rem; } .clock + .clock { padding-left: .5rem; } }

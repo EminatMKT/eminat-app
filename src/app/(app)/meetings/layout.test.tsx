@@ -11,11 +11,11 @@ vi.mock('@/features/meet/components/MeetingsOverviewShell', () => ({ default: ({
 vi.mock('@/features/meet/lib/preferences', () => ({ PreferencesProvider: ({ children }: { children: ReactNode }) => children }))
 
 describe('Meetings overlay fix stays inside the authorized routes', () => {
-  it.each(['/meetings', '/meetings/tasks', '/meetings/history'])('uses the nonblocking overview shell for %s', (path) => {
+  it.each(['/meetings', '/meetings/new', '/meetings/tasks', '/meetings/history'])('uses the nonblocking overview shell for %s', (path) => {
     state.pathname = path
     expect(renderToStaticMarkup(<MeetingsLayout>{'content'}</MeetingsLayout>)).toContain('data-shell="meetings-overview"')
   })
-  it.each(['/meetings/new', '/meetings/qa-id', '/meetings/qa-id/history'])('preserves the original shell for %s', (path) => {
+  it.each(['/meetings/qa-id', '/meetings/qa-id/history'])('preserves the original shell for %s', (path) => {
     state.pathname = path
     expect(renderToStaticMarkup(<MeetingsLayout>{'content'}</MeetingsLayout>)).toContain('data-shell="original"')
   })

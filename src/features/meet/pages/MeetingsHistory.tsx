@@ -32,9 +32,9 @@ type TrackedTask = {
 export default function HistoryPage() {
   const { locale, t, formatDate } = usePreferences()
   const copy = locale === 'es' ? {
-    title: 'Historial de reuniones', intro: 'Revisa sesiones pasadas y consulta las Tasks administradas por el CRM.', tracking: 'Seguimiento de Tasks', onlyPending: 'Solo no completadas', emptyTasks: 'No hay Tasks que mostrar con el filtro actual.', assignee: 'Responsable', meeting: 'Reunión', finished: 'Reuniones finalizadas', emptyMeetings: 'Todavía no hay reuniones finalizadas.', task: 'Task', tasks: 'Tasks', incomplete: 'sin completar',
+    title: 'Historial de reuniones', intro: 'Revisa sesiones pasadas y consulta las Tasks administradas por el módulo Tasks de LILLY.', tracking: 'Seguimiento de Tasks', onlyPending: 'Solo no completadas', emptyTasks: 'No hay Tasks que mostrar con el filtro actual.', assignee: 'Responsable', meeting: 'Reunión', finished: 'Reuniones finalizadas', emptyMeetings: 'Todavía no hay reuniones finalizadas.', task: 'Task', tasks: 'Tasks', incomplete: 'sin completar',
   } : {
-    title: 'Meeting history', intro: 'Review past sessions and the Tasks managed in StratixCRM.', tracking: 'Task tracking', onlyPending: 'Incomplete only', emptyTasks: 'No Tasks match the current filter.', assignee: 'Assignee', meeting: 'Meeting', finished: 'Finalized meetings', emptyMeetings: 'There are no finalized meetings yet.', task: 'Task', tasks: 'Tasks', incomplete: 'incomplete',
+    title: 'Meeting history', intro: 'Review past sessions and the Tasks managed in LILLY’s Tasks module.', tracking: 'Task tracking', onlyPending: 'Incomplete only', emptyTasks: 'No Tasks match the current filter.', assignee: 'Assignee', meeting: 'Meeting', finished: 'Finalized meetings', emptyMeetings: 'There are no finalized meetings yet.', task: 'Task', tasks: 'Tasks', incomplete: 'incomplete',
   }
   const [meetings, setMeetings] = useState<MeetingWithCompany[]>([])
   const [tasks, setTasks] = useState<TrackedTask[]>([])
