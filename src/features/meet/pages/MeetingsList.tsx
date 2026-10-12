@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { meetingDisplayCopy } from '../lib/display-copy'
 import styles from '../components/MeetingOverview.module.css'
 import { supabase } from '@/shared/db/supabase'
 import { listTasks } from '@/features/meet/lib/services/task-api'
@@ -345,7 +346,7 @@ function MeetingCard({
       )}
       <div className="mt-4 border-t border-gray-100 pt-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('lastActivity')}</p>
-        <p className="mt-1 text-sm text-gray-500">{latestEvent ? `${latestEvent.summary}${typeof latestEvent.metadata.actor_name === 'string' ? ` · ${latestEvent.metadata.actor_name}` : ''} · ${formatDate(latestEvent.created_at, { dateStyle: 'medium', timeStyle: 'short' })}` : t('noActivity')}</p>
+        <p className="mt-1 text-sm text-gray-500">{latestEvent ? `${meetingDisplayCopy(latestEvent.summary)}${typeof latestEvent.metadata.actor_name === 'string' ? ` · ${latestEvent.metadata.actor_name}` : ''} · ${formatDate(latestEvent.created_at, { dateStyle: 'medium', timeStyle: 'short' })}` : t('noActivity')}</p>
         <div className="mt-3 flex gap-4">
           <Link href={`/meetings/${meeting.id}`} className="text-sm font-semibold text-brand">{t('viewMeeting')} →</Link>
           <Link href={`/meetings/${meeting.id}/history`} className="text-sm font-semibold text-gray-500">{t('viewHistory')}</Link>

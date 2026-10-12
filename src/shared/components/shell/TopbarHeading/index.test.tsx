@@ -5,10 +5,11 @@ import TopbarHeading from './index'
 
 const PAGE_TITLE = 'Page title'
 const blank = vi.hoisted(() => () => null)
+const clockFixture = vi.hoisted(() => 'World clocks fixture')
 
 vi.mock('next/navigation', () => ({ usePathname: () => modulePath(MODULE.COBRANZAS) }))
 vi.mock('@/shared/context/AppContext', () => ({ useApp: () => ({ usuario: null }) }))
-vi.mock('@/shared/components/shell/TopbarBrands', () => ({ default: blank }))
+vi.mock('@/shared/components/shell/WorldClocks', () => ({ default: () => <span>{clockFixture}</span> }))
 vi.mock('@/shared/components/shell/TopbarDate', () => ({ default: blank }))
 
 describe('TopbarHeading', () => {
@@ -20,4 +21,10 @@ describe('TopbarHeading', () => {
   it('says the module name when the page gives no title', () => {
     expect(renderToStaticMarkup(<TopbarHeading />)).toContain(MODULE_META[MODULE.COBRANZAS].name)
   })
+})
+
+it('replaces the brand chips with the world clocks', () => {
+  const markup = renderToStaticMarkup(<TopbarHeading />)
+  expect(markup).toContain('World clocks fixture')
+  expect(markup).not.toContain('EMINAT')
 })

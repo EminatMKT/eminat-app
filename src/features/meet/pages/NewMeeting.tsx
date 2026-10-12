@@ -1,5 +1,6 @@
 'use client'
 
+import styles from '../components/MeetingOverview.module.css'
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/shared/db/supabase'
@@ -20,7 +21,7 @@ import { getTaskCatalogs } from '@/features/meet/lib/services/task-api'
 import { usePreferences } from '@/features/meet/lib/preferences'
 
 const inputClass =
-  'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
+  'field w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand'
 
 export default function NewMeetingPage() {
   const router = useRouter()
@@ -117,7 +118,7 @@ export default function NewMeetingPage() {
       .maybeSingle()
     if (!company?.codigo || !creatorProfile?.id) {
       setSaving(false)
-      setError(locale === 'es' ? 'No se pudo identificar la empresa o el responsable en StratixCRM.' : 'The company or assignee could not be identified in StratixCRM.')
+      setError(locale === 'es' ? 'No se pudo identificar la empresa o el responsable en LILLY.' : 'The company or assignee could not be identified in LILLY.')
       return
     }
 
@@ -190,7 +191,7 @@ export default function NewMeetingPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className={`${styles.page} mx-auto max-w-3xl`}>
       <h1 className="text-2xl font-bold text-gray-900">{copy.title}</h1>
       <p className="mt-1 text-sm text-gray-500">
         {copy.intro}
@@ -198,7 +199,7 @@ export default function NewMeetingPage() {
 
       <form
         onSubmit={handleSubmit}
-        className="mt-6 space-y-5 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+        className={`${styles.form} mt-6 space-y-5 rounded-xl border p-6 shadow-sm`}
       >
         {/* Nombre */}
         <div>
@@ -206,6 +207,7 @@ export default function NewMeetingPage() {
             {copy.name}
           </label>
           <input
+            aria-label={copy.name}
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -221,7 +223,8 @@ export default function NewMeetingPage() {
               {copy.company}
             </label>
             <select
-              value={companyId}
+              aria-label={copy.company}
+            value={companyId}
               onChange={(e) => setCompanyId(e.target.value)}
               className={inputClass}
               disabled={loadingCatalogs}
@@ -241,7 +244,8 @@ export default function NewMeetingPage() {
               {copy.type}
             </label>
             <select
-              value={meetingType}
+              aria-label={copy.type}
+            value={meetingType}
               onChange={(e) => setMeetingType(e.target.value as MeetingType)}
               className={inputClass}
             >
@@ -261,6 +265,7 @@ export default function NewMeetingPage() {
             {copy.objective}
           </label>
           <textarea
+            aria-label={copy.objective}
             value={objective}
             onChange={(e) => setObjective(e.target.value)}
             rows={2}
@@ -277,7 +282,8 @@ export default function NewMeetingPage() {
             </label>
             <input
               type="date"
-              value={date}
+              aria-label={copy.date}
+            value={date}
               onChange={(e) => setDate(e.target.value)}
               required
               className={inputClass}
@@ -288,7 +294,8 @@ export default function NewMeetingPage() {
               {copy.modality}
             </label>
             <select
-              value={modality}
+              aria-label={copy.modality}
+            value={modality}
               onChange={(e) => setModality(e.target.value as MeetingModality)}
               className={inputClass}
             >
@@ -309,7 +316,8 @@ export default function NewMeetingPage() {
             </label>
             <input
               type="time"
-              value={startTime}
+              aria-label={copy.start}
+            value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
               required
               className={inputClass}
@@ -321,7 +329,8 @@ export default function NewMeetingPage() {
             </label>
             <input
               type="time"
-              value={endTime}
+              aria-label={copy.end}
+            value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
               className={inputClass}
             />
@@ -334,6 +343,7 @@ export default function NewMeetingPage() {
             {copy.location}
           </label>
           <input
+            aria-label={copy.location}
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder={
@@ -359,9 +369,10 @@ export default function NewMeetingPage() {
             value={participantSearch}
             onChange={(e) => setParticipantSearch(e.target.value)}
             placeholder={copy.search}
+            aria-label={copy.search}
             className={`${inputClass} mb-2`}
           />
-          <div className="max-h-56 overflow-y-auto rounded-lg border border-gray-200">
+          <div className={`${styles.inviteeList} max-h-56 overflow-y-auto rounded-lg border`}>
             {loadingCatalogs ? (
               <p className="p-3 text-sm text-gray-400">{copy.loadingUsers}</p>
             ) : filteredProfiles.length === 0 ? (
@@ -372,15 +383,18 @@ export default function NewMeetingPage() {
               filteredProfiles.map((p) => (
                 <div
                   key={p.id}
-                  className="grid grid-cols-[1fr_auto] items-center gap-4 border-b border-gray-100 px-3 py-2 text-sm last:border-b-0 hover:bg-gray-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                  className={styles.inviteeRow}
+                  data-selected={inviteeIds.includes(p.id)}
+                  data-invitee-id={p.id}
                 >
                   <span className="text-gray-900">{profileName(p)}</span>
                   <label className="flex cursor-pointer items-center gap-2 text-xs text-gray-600">
                     <input
                       type="checkbox"
+                      aria-label={profileName(p)}
                       checked={inviteeIds.includes(p.id)}
                       onChange={() => toggleInvitee(p.id)}
-                      className="rounded border-gray-300 text-brand focus:ring-brand"
+                      className={styles.inviteeCheckbox}
                     />
                     {copy.invitee}
                   </label>

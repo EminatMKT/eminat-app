@@ -5,81 +5,16 @@ import { useT } from '@/shared/i18n'
 import AppShell from '@/shared/components/shell/AppShell'
 import { PageTransition } from '@/shared/motion'
 import { MODULE_META, ROUTES, modulePath, isModuleSlug, type ModuleSlug } from '@/shared/auth/permissions'
+import ModuleIcon from '@/features/home/ModuleIcon'
 import { useUserPreference, LAST_MODULE_KEY } from '@/shared/hooks'
 
-// ── Inline SVG icons (no emoji) ────────────────────────────────────────
+// Shared SVG stroke for the remaining Home controls.
 const stroke = {
   fill: 'none',
   stroke: 'currentColor',
   strokeWidth: 1.6,
   strokeLinecap: 'round' as const,
   strokeLinejoin: 'round' as const,
-}
-
-function ModuleIcon({ slug }: { slug: ModuleSlug }) {
-  const props = { width: 26, height: 26, viewBox: '0 0 24 24', 'aria-hidden': true as const }
-  switch (slug) {
-    case 'stratix-mkt':
-      return (
-        <svg {...props}>
-          <path d="M3 11l16-6v14L3 13v-2z" {...stroke} />
-          <path d="M7 13v4a2 2 0 0 0 4 0v-3" {...stroke} />
-        </svg>
-      )
-    case 'cobranzas':
-      return (
-        <svg {...props}>
-          <rect x="3" y="6" width="18" height="13" rx="2" {...stroke} />
-          <path d="M3 10h18M7 15h4" {...stroke} />
-        </svg>
-      )
-    case 'research':
-      return (
-        <svg {...props}>
-          <circle cx="11" cy="11" r="6" {...stroke} />
-          <path d="M16 16l5 5M8 11h6M11 8v6" {...stroke} />
-        </svg>
-      )
-    case 'medical':
-      return (
-        <svg {...props}>
-          <rect x="5" y="5" width="14" height="14" rx="3" {...stroke} />
-          <path d="M12 8v8M8 12h8" {...stroke} />
-        </svg>
-      )
-    case 'accounting':
-      return (
-        <svg {...props}>
-          <rect x="4" y="3" width="16" height="18" rx="2" {...stroke} />
-          <path d="M8 8h8M8 12h8M8 16h5" {...stroke} />
-        </svg>
-      )
-    case 'th-hr':
-      return (
-        <svg {...props}>
-          <circle cx="12" cy="8" r="3.5" {...stroke} />
-          <path d="M5 20a7 7 0 0 1 14 0" {...stroke} />
-        </svg>
-      )
-    case 'directorio':
-      return (
-        <svg {...props}>
-          <circle cx="9" cy="9" r="3.5" {...stroke} />
-          <path d="M3 19a6 6 0 0 1 12 0" {...stroke} />
-          <circle cx="17" cy="8" r="2.5" {...stroke} />
-          <path d="M14.5 19a4.5 4.5 0 0 1 7 0" {...stroke} />
-        </svg>
-      )
-    case 'admin':
-      return (
-        <svg {...props}>
-          <path d="M12 3l8 4v5c0 5-4 8-8 9-4-1-8-4-8-9V7l8-4z" {...stroke} />
-          <path d="M9 12l2 2 4-4" {...stroke} />
-        </svg>
-      )
-    default:
-      return null
-  }
 }
 
 // ── Launchpad ──────────────────────────────────────────────────────────

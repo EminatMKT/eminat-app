@@ -174,7 +174,7 @@ export default function MeetingPage() {
         { activity_id: linked.activity.id, topic_id: linked.topic.id, kind: 'meeting_activity', retry: true }
       )
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : (locale === 'es' ? 'No se pudo vincular la reunión con StratixCRM.' : 'The meeting could not be linked to StratixCRM.'))
+      setError(caught instanceof Error ? caught.message : (locale === 'es' ? 'No se pudo vincular la reunión con LILLY.' : 'The meeting could not be linked to LILLY.'))
     }
   }
 
@@ -643,7 +643,7 @@ export default function MeetingPage() {
                       : locale === 'es' ? 'No disponible' : 'Unavailable'}
                   </span>
                   <span className="text-[10px] uppercase tracking-wide text-emerald-700 dark:text-emerald-300">
-                    {locale === 'es' ? 'Solo lectura · StratixCRM' : 'Read only · StratixCRM'}
+                    {locale === 'es' ? 'Solo lectura · LILLY' : 'Read only · LILLY'}
                   </span>
                 </div>
               )}
@@ -723,9 +723,9 @@ export default function MeetingPage() {
         )}
         {!meetingActivityLinked && meetingQuery.capabilities.canMutateTopics && (
           <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
-            <p>{locale === 'es' ? 'La reunión está guardada, pero su Activity aún no está vinculada en StratixCRM.' : 'The meeting is saved, but its Activity is not linked in StratixCRM yet.'}</p>
+            <p>{locale === 'es' ? 'La reunión está guardada, pero su Activity aún no está vinculada en LILLY.' : 'The meeting is saved, but its Activity is not linked in LILLY yet.'}</p>
             <button type="button" onClick={() => void retryMeetingActivity()} className="mt-2 rounded-lg bg-amber-700 px-3 py-2 font-medium text-white">
-              {locale === 'es' ? 'Reintentar vínculo con StratixCRM' : 'Retry StratixCRM link'}
+              {locale === 'es' ? 'Reintentar vínculo con LILLY' : 'Retry LILLY link'}
             </button>
           </div>
         )}
@@ -768,7 +768,7 @@ export default function MeetingPage() {
           const sectionText = locale === 'es' ? section : ({
             resumen: { label: 'Summary', description: 'Key points discussed' },
             decisiones: { label: 'Decisions', description: 'Agreements reached during the meeting' },
-            proximos_pasos: { label: 'Tasks', description: 'Tasks linked to StratixCRM' },
+            proximos_pasos: { label: 'Tasks', description: 'Tasks linked to LILLY' },
             detalles: { label: 'Details', description: 'Additional notes and context' },
           } as const)[section.key]
           const sectionTopics = topics.filter((t) => t.section === section.key)
@@ -786,7 +786,7 @@ export default function MeetingPage() {
                 <p className="text-xs text-gray-400">{sectionText.description}</p>
                 {isNextSteps && (
                   <p className="mt-2 inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                    {locale === 'es' ? 'Estado de solo lectura · StratixCRM' : 'Read-only status · StratixCRM'}
+                    {locale === 'es' ? 'Estado de solo lectura · LILLY' : 'Read-only status · LILLY'}
                   </p>
                 )}
               </div>
@@ -965,7 +965,7 @@ function TopicEditorRow({
   const rowCopy = locale === 'es' ? {
     saving: 'Guardando…', save: 'Guardar', cancel: 'Cancelar', title: 'Título del punto', content: 'Contenido del punto', assignee: 'Responsable', currentAssignee: 'Responsable actual (no elegible)', noTeam: 'Sin equipo', noDepartment: 'Sin departamento', crmStatus: 'Estado administrado por el CRM', company: 'Empresa de la Task', due: 'Fecha límite de la Task', conflict: 'La Task cambió en el CRM. Tus cambios no se enviaron.', loadCrm: 'Cargar versión actual del CRM', drag: 'Arrastrar para reordenar', unassigned: 'sin asignar', unavailable: 'Activity no disponible — vínculo o permisos NOT VERIFIED', pendingSend: 'Pendiente de enviar', noDue: 'sin definir', saveAssignee: 'Guardar responsable', editDue: 'Editar fecha límite', saveDue: 'Guardar fecha', edit: 'Editar', dueButton: 'Fecha límite', cannotDelete: 'No se puede eliminar: tiene una Activity vinculada', deletePoint: 'Eliminar punto',
   } : {
-    saving: 'Saving…', save: 'Save', cancel: 'Cancel', title: 'Item title', content: 'Item content', assignee: 'Assignee', currentAssignee: 'Current assignee (not eligible)', noTeam: 'No team', noDepartment: 'No department', crmStatus: 'Status managed by StratixCRM', company: 'Task company', due: 'Task due date', conflict: 'The Task changed in StratixCRM. Your changes were not submitted.', loadCrm: 'Load current StratixCRM version', drag: 'Drag to reorder', unassigned: 'unassigned', unavailable: 'Activity unavailable — link or permissions NOT VERIFIED', pendingSend: 'Pending submission', noDue: 'not set', saveAssignee: 'Save assignee', editDue: 'Edit due date', saveDue: 'Save date', edit: 'Edit', dueButton: 'Due date', cannotDelete: 'Cannot delete: an Activity is linked', deletePoint: 'Delete item',
+    saving: 'Saving…', save: 'Save', cancel: 'Cancel', title: 'Item title', content: 'Item content', assignee: 'Assignee', currentAssignee: 'Current assignee (not eligible)', noTeam: 'No team', noDepartment: 'No department', crmStatus: 'Status managed by LILLY', company: 'Task company', due: 'Task due date', conflict: 'The Task changed in LILLY. Your changes were not submitted.', loadCrm: 'Load current LILLY version', drag: 'Drag to reorder', unassigned: 'unassigned', unavailable: 'Activity unavailable — link or permissions NOT VERIFIED', pendingSend: 'Pending submission', noDue: 'not set', saveAssignee: 'Save assignee', editDue: 'Edit due date', saveDue: 'Save date', edit: 'Edit', dueButton: 'Due date', cannotDelete: 'Cannot delete: an Activity is linked', deletePoint: 'Delete item',
   }
   const editor = useTopicsEditor(topic)
   const taskEditor = useTaskEditor(activity)

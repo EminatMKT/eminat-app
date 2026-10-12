@@ -19,6 +19,7 @@
   align-items: center;
   gap: .75rem;
   min-width: 0;
+  flex: 1;
 }
 
 .menu {
@@ -26,6 +27,7 @@
 }
 
 .heading {
+  flex: 1;
   min-width: 0;
 }
 
@@ -40,6 +42,7 @@
 
 .meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: .5rem;
   min-width: 0;
@@ -135,7 +138,7 @@
     display: inline;
   }
 
-  /* Tucked away, not removed: a screen reader still reads the whole day and every brand. */
+  /* Keep the full date available to assistive technology on narrow screens. */
   .wide {
     position: absolute;
     width: .0625rem;

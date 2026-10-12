@@ -307,6 +307,7 @@
   "shell.navigation": "Navegación",
   "shell.dayAndTime": "{day} · {time}",
   "shell.brandsMore": "+{n}",
+  "shell.worldClocks": "Horas mundiales",
   "shell.brandsTitle": "Marcas del grupo: {list}",
   "notif.title": "Notificaciones",
   "notif.markAllRead": "Marcar todo como leído",
