@@ -4,6 +4,7 @@ import type { MeetingReportData } from '@/features/meet/lib/pdf/meeting-report'
 
 type Version = { id: string; snapshot: MeetingReportData; sent_at: string | null; version: number }
 type QueryResult = { data: unknown; error: { message: string } | null }
+type MailEvent = { key: string; payload: Record<string, unknown>; rows: { id: string; name: string; email: string; status: string; provider_message_id: string | null; error: string | null }[] }
 interface Query extends PromiseLike<QueryResult> {
   select(): Query; eq(): Query; order(): Query; limit(): Query; in(): Query
   insert(value: unknown): Query; update(value: unknown): Query
@@ -15,12 +16,36 @@ const mock = vi.hoisted(() => ({
   versions: [] as Version[], versionError: false, saveError: false, permission: true, owner: 'auth-creator',
   finalized: true, responsibles: [] as { id: string; nombre_display: string; email: string }[],
   topics: [] as { section: string; actividad_id?: string; title?: string; description?: string }[],
+  mail: [] as MailEvent[],
 }))
 vi.mock('resend', () => ({ Resend: class { emails = { send: mock.send } } }))
 vi.mock('@supabase/supabase-js', () => ({
   createClient: () => ({
     auth: { getUser: async () => ({ data: { user: { id: 'auth-creator' } } }) },
-    rpc: async () => ({ data: mock.permission, error: null }),
+    rpc: async (name: string, args: Record<string, unknown> = {}) => {
+      if (name === 'enqueue_meeting_mail') {
+        let event = mock.mail.find(e => e.key === args.p_key)
+        if (!event) {
+          event = { key: args.p_key as string, payload: args.p_payload as Record<string, unknown>, rows: [] }
+          mock.mail.push(event)
+        }
+        for (const person of args.p_recipients as { name: string; email: string }[]) {
+          if (!event.rows.some(row => row.email === person.email)) event.rows.push({ id: event.key + '/' + person.email, ...person, status: 'pending', provider_message_id: null, error: null })
+        }
+        return { data: event.key, error: null }
+      }
+      if (name === 'claim_meeting_mail') {
+        const events = mock.mail.filter(e => !args.p_event_id || e.key === args.p_event_id)
+        return { data: events.flatMap(e => e.rows.filter(row => row.status === 'pending' || row.status === 'retry').map(row => ({ ...row, claim_id: 'qa-claim', kind: 'minutes', payload: e.payload, attempts: 1 }))), error: null }
+      }
+      if (name === 'finish_meeting_mail') {
+        const row = mock.mail.flatMap(e => e.rows).find(row => row.id === args.p_id)!
+        row.status = args.p_outcome as string; row.provider_message_id = args.p_provider_id as string | null; row.error = args.p_error as string | null
+        return { data: true, error: null }
+      }
+      if (name === 'meeting_mail_status') return { data: mock.mail.find(e => e.key === args.p_event_id)?.rows, error: null }
+      return { data: mock.permission, error: null }
+    },
     from: (table: string) => {
       let operation = 'read'
       let value: unknown
@@ -60,10 +85,13 @@ const request = (action = 'send') => new Request('https://qa.example.test/api/me
 })
 beforeEach(() => {
   vi.clearAllMocks()
-  mock.writes = []; mock.versions = []; mock.topics = []; mock.responsibles = []
+  mock.writes = []; mock.versions = []; mock.topics = []; mock.responsibles = []; mock.mail = []
   mock.versionError = false; mock.saveError = false; mock.permission = true
   mock.owner = 'auth-creator'; mock.finalized = true
   vi.stubEnv('RESEND_API_KEY', 're_qa_never_sent')
+  vi.stubEnv('SUPABASE_SECRET_KEY', 'dummy-qa-only')
+  vi.stubEnv('MEETINGS_MAIL_MODE', 'qa')
+  vi.stubEnv('MEETINGS_QA_RECIPIENTS', 'attendee@example.test,absent@example.test,creator@example.test,owner@example.test,collaborator@example.test')
   vi.stubGlobal('fetch', mock.fetch)
   mock.send.mockResolvedValue({ data: { id: 'provider-qa-id' }, error: null })
 })
@@ -131,14 +159,14 @@ describe('Meeting minutes recipient policy and delivery safeguards (no external 
   })
   it('reuses the same PDF and provider key after a partial send', async () => {
     mock.send.mockResolvedValueOnce({ data: { id: 'accepted' }, error: null })
-      .mockResolvedValueOnce({ data: null, error: { message: 'try later' } })
+      .mockResolvedValueOnce({ data: null, error: { message: 'try later', statusCode: 503 } })
       .mockResolvedValueOnce({ data: { id: 'accepted-creator' }, error: null })
     expect((await POST(request())).status).toBe(502)
     mock.versions[0].sent_at = '2026-10-12T10:00:00Z'
     const original = mock.send.mock.calls.map(([p, options]) => ({ attachment: p.attachments, key: options.idempotencyKey }))
     mock.send.mockClear()
     expect((await POST(request())).status).toBe(200)
-    expect(mock.send.mock.calls.map(([p, options]) => ({ attachment: p.attachments, key: options.idempotencyKey }))).toEqual(original)
+    expect(mock.send.mock.calls.map(([p, options]) => ({ attachment: p.attachments, key: options.idempotencyKey }))).toEqual([original[1]])
     expect(mock.writes.filter(w => w.table === 'meeting_report_versions' && w.operation === 'insert')).toHaveLength(1)
   })
   it('fails instead of claiming acceptance if the provider returns no message ID', async () => {

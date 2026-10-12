@@ -1,4 +1,5 @@
 # Meetings: auditoría de notificaciones y actas
+Actualización del PR #101: [estado y gates de cierre](./meetings-notifications-closure.md). Los hallazgos siguientes describen el baseline anterior al nuevo worker/outbox.
 Fecha 2026-10-12. Baseline LILLY e345a65. Scope: notificaciones/email/PDF únicamente.
 
 ## Evidencia y límites

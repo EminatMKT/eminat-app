@@ -423,15 +423,17 @@ export default function MeetingPage() {
         headers: { 'Content-Type': 'application/json', ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}) },
         body: JSON.stringify({ meetingId: meeting.id, locale, action: 'send' }),
       })
-      const reportResult = (await response.json()) as { error?: string; recipients?: number; omitted?: { name: string; reason: string }[]; deliveries?: { name: string; email: string; status: 'sent' | 'failed'; reason?: string }[] }
+      const reportResult = (await response.json()) as { error?: string; queued?: boolean; recipients?: number; omitted?: { name: string; reason: string }[]; deliveries?: { name: string; email: string; status: 'sent' | 'failed'; reason?: string }[] }
       const failed = reportResult.deliveries?.filter((delivery) => delivery.status === 'failed') ?? []
       const omitted = reportResult.omitted ?? []
       if (response.ok === false) {
         const detail = failed.map((item) => `${item.name} (${item.email}): ${item.reason ?? 'falló'}`).concat(omitted.map((item) => `${item.name}: ${item.reason}`)).join(' · ')
         setError([reportResult.error ?? 'No se pudo enviar el acta.', detail].filter(Boolean).join(' '))
+      } else if (reportResult.queued) {
+        setNotice(locale === 'es' ? 'Acta registrada: envío de correo pendiente en la cola.' : 'Minutes recorded: email delivery is pending in the queue.')
       } else {
         const omittedText = omitted.length > 0 ? ` ${locale === 'es' ? 'Omitidos' : 'Omitted'}: ${omitted.map((item) => `${item.name} (${item.reason})`).join(', ')}.` : ''
-        setNotice(`${locale === 'es' ? 'Acta enviada correctamente' : 'Meeting minutes sent successfully'} (${reportResult.recipients ?? 0}).${omittedText}`)
+        setNotice(`${locale === 'es' ? 'Acta aceptada por el servicio de correo' : 'Minutes accepted by the email provider'} (${reportResult.recipients ?? 0}).${omittedText}`)
       }
     } catch {
       setError('Falló la conexión durante el envío del acta.')

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { Resend } from 'resend'
 import {
   classifyAttendance,
   createMeetingPdf,
@@ -9,7 +8,7 @@ import {
   type ReportPerson,
   type ReportTask,
 } from '@/features/meet/lib/pdf/meeting-report'
-import { createHash } from 'node:crypto'
+import { enqueueMeetingMail, meetingMailDatabase, minutesDeliveryKey, processMeetingMail } from '@/features/meet/server/mail-outbox'
 import { canManageMeeting } from '@/features/meet/lib/notifications/task-command'
 import { buildMeetingReportEmail } from '@/features/meet/lib/email/meeting-report'
 import { getStratixMeetSender } from '@/features/meet/lib/email/sender'
@@ -137,7 +136,11 @@ async function loadReport(request: Request, meetingId: string, locale: 'es' | 'e
   if (requireFinalized && meeting.status !== 'finalizada') {
     return { error: 'La reunión aún no está finalizada', status: 409 } as const
   }
-  const invitees = (inviteesResult.data ?? []).map((row) => row.usuarios as unknown as ReportProfile | null).filter((profile): profile is ReportProfile => Boolean(profile))
+  if ((inviteesResult.data ?? []).some((row) => !row.usuarios)) {
+    return { error: 'Uno o más convocados no están disponibles para resolver sus correos.', status: 502 } as const
+  }
+  const invitees = (inviteesResult.data ?? []).map((row) => row.usuarios as unknown as ReportProfile)
+    .sort((a, b) => (a.email ?? '').localeCompare(b.email ?? ''))
   const name = (profile: ReportProfile) =>
     profile.nombre_display || `${profile.nombre ?? ''} ${profile.apellido ?? ''}`.trim() || '—'
   const person = (profile: ReportProfile): ReportPerson => {
@@ -278,16 +281,12 @@ export async function POST(request: Request) {
       },
     })
   }
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey || loaded.recipients.length === 0) {
+  if (loaded.recipients.length === 0) {
     return NextResponse.json({
-      error: !apiKey
-        ? 'El servicio de correo no está configurado.'
-        : 'No hay involucrados con un correo válido para recibir el acta.',
+      error: 'No hay involucrados con un correo válido para recibir el acta.',
       omitted: loaded.omitted,
     }, { status: 422 })
   }
-  const resend = new Resend(apiKey)
   let from: string
   try {
     from = getStratixMeetSender()
@@ -306,40 +305,24 @@ export async function POST(request: Request) {
     if (error || !data) return NextResponse.json({ error: 'No se pudo registrar la versión del acta antes del envío.' }, { status: 500 })
     storedVersionId = data.id
   }
-  // Include the actual message/PDF, not only meetings.updated_at: Topics and Tasks change independently.
-  const deliveryFingerprint = createHash('sha256').update(JSON.stringify({ from, message, attachment })).digest('hex')
-  const results = await Promise.allSettled(
-    loaded.recipients.map((recipient) => {
-      const recipientHash = createHash('sha256')
-        .update(recipient.email.toLowerCase())
-        .digest('hex')
-        .slice(0, 16)
-      return resend.emails.send(
-        {
-          from,
-          to: recipient.email,
-          ...message,
-          attachments: [
-            {
-              filename: `acta-${meetingId}.pdf`,
-              content: attachment,
-            },
-          ],
-        },
-        {
-          idempotencyKey: `meeting-report/${meetingId}/${deliveryFingerprint}/${recipientHash}`,
-        }
-      )
+  const { generatedAt: _generatedAt, ...canonicalContent } = loaded.report
+  const deliveryKey = minutesDeliveryKey(meetingId, canonicalContent, from)
+  let result: Awaited<ReturnType<typeof processMeetingMail>>
+  try {
+    const db = meetingMailDatabase()
+    const eventId = await enqueueMeetingMail(db, {
+      meetingId, key: deliveryKey, kind: 'minutes',
+      message: { from, ...message, attachments: [{ filename: `acta-${meetingId}.pdf`, content: attachment }] },
+      recipients: loaded.recipients,
     })
-  )
-  const deliveries = results.map((result, index) => {
-    const recipient = loaded.recipients[index]
-    if (result.status === 'rejected') return { ...recipient, status: 'failed' as const, reason: result.reason instanceof Error ? result.reason.message : 'Resend rechazó la solicitud' }
-    if (result.value.error) return { ...recipient, status: 'failed' as const, reason: result.value.error.message }
-    if (!result.value.data?.id) return { ...recipient, status: 'failed' as const, reason: 'El proveedor no devolvió un identificador del correo.' }
-    // "sent" is API acceptance for backwards compatibility, not proof of mailbox delivery.
-    return { ...recipient, status: 'sent' as const, provider_message_id: result.value.data.id }
-  })
+    result = await processMeetingMail({ db, eventId })
+  } catch {
+    return NextResponse.json({ error: 'El acta está registrada; no se pudo procesar su cola de correo.', version, omitted: loaded.omitted }, { status: 503 })
+  }
+  const deliveries = result.deliveries
+  if (result.warning && deliveries.length === 0) {
+    return NextResponse.json({ ok: true, queued: true, warning: result.warning, version, recipients: 0, omitted: loaded.omitted }, { status: 202 })
+  }
   const sent = deliveries.filter((delivery) => delivery.status === 'sent')
   const failed = deliveries.filter((delivery) => delivery.status === 'failed')
   const versionWrite = loaded.client
@@ -360,7 +343,7 @@ export async function POST(request: Request) {
     {
       meeting_id: meetingId, actor_id: loaded.actorId, event_type: 'report_sent',
       summary: `Acta v${version}: ${sent.length} enviada(s), ${failed.length} fallida(s), ${loaded.omitted.length} omitida(s)`,
-      metadata: { version, sent: sent.length, accepted: sent, failed, omitted: loaded.omitted, delivery_fingerprint: deliveryFingerprint, actor_name: loaded.actorName, reused_canonical_pdf: Boolean(reusableVersion) },
+      metadata: { version, sent: sent.length, accepted: sent, failed, omitted: loaded.omitted, delivery_key: deliveryKey, actor_name: loaded.actorName, reused_canonical_pdf: Boolean(reusableVersion) },
     },
   ]
   const { error: eventError } = await loaded.client.from('meeting_events').insert(events)
