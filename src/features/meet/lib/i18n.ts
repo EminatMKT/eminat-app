@@ -5,6 +5,7 @@ export const STORAGE_THEME = 'stratix-meet.theme'
 
 export const messages = {
   es: {
+    searchTasks: 'Buscar por Task, responsable, empresa o reunión', searchHistory: 'Buscar en el historial', clearSearch: 'Limpiar búsqueda', results: 'resultados', noSearchResults: 'No hay resultados con estos filtros.',
     meetings: 'Reuniones', newMeeting: 'Nueva reunión', history: 'Historial', tasks: 'Tasks', signOut: 'Salir',
     welcome: 'Bienvenido a Stratix Meet', hello: 'Hola', welcomePerson: 'bienvenido/a', team: 'Equipo', company: 'Empresa',
     light: 'Claro', dark: 'Oscuro', language: 'Idioma', loading: 'Cargando…',
@@ -20,6 +21,7 @@ export const messages = {
     meetingHistory: 'Historial de la reunión', noEvents: 'Todavía no hay eventos registrados.',
   },
   en: {
+    searchTasks: 'Search Task, assignee, company or meeting', searchHistory: 'Search meeting history', clearSearch: 'Clear search', results: 'results', noSearchResults: 'No results match these filters.',
     meetings: 'Meetings', newMeeting: 'New meeting', history: 'History', tasks: 'Tasks', signOut: 'Sign out',
     welcome: 'Welcome to Stratix Meet', hello: 'Hello', welcomePerson: 'welcome', team: 'Team', company: 'Company',
     light: 'Light', dark: 'Dark', language: 'Language', loading: 'Loading…',

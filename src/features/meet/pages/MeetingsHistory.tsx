@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import MeetingSearch from '../components/MeetingSearch'
+import styles from '../components/MeetingOverview.module.css'
+import { matchesMeetingSearch } from '../lib/search'
 import { supabase } from '@/shared/db/supabase'
 import { listTasks } from '@/features/meet/lib/services/task-api'
 import { loadMeetingListAndTasks } from '@/features/meet/lib/services/meeting-list-load'
@@ -10,6 +13,7 @@ import {
   meetingTypeLabel,
   taskStatusLabel,
   type Meeting,
+  type CanonicalTaskListItem,
 } from '@/features/meet/lib/types'
 import { usePreferences } from '@/features/meet/lib/preferences'
 
@@ -22,10 +26,11 @@ type TrackedTask = {
   estado: string
   responsable: string | null
   meetingId: string
+  source: CanonicalTaskListItem
 }
 
 export default function HistoryPage() {
-  const { locale } = usePreferences()
+  const { locale, t, formatDate } = usePreferences()
   const copy = locale === 'es' ? {
     title: 'Historial de reuniones', intro: 'Revisa sesiones pasadas y consulta las Tasks administradas por el CRM.', tracking: 'Seguimiento de Tasks', onlyPending: 'Solo no completadas', emptyTasks: 'No hay Tasks que mostrar con el filtro actual.', assignee: 'Responsable', meeting: 'Reunión', finished: 'Reuniones finalizadas', emptyMeetings: 'Todavía no hay reuniones finalizadas.', task: 'Task', tasks: 'Tasks', incomplete: 'sin completar',
   } : {
@@ -33,6 +38,7 @@ export default function HistoryPage() {
   }
   const [meetings, setMeetings] = useState<MeetingWithCompany[]>([])
   const [tasks, setTasks] = useState<TrackedTask[]>([])
+  const [query, setQuery] = useState('')
   const [onlyPending, setOnlyPending] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -55,6 +61,7 @@ export default function HistoryPage() {
       setError(loaded.meetingError ?? loaded.taskError)
 
       setTasks((loaded.tasks?.tasks ?? []).flatMap((task) => task.meeting ? [{
+          source: task,
           actividadId: task.id,
           titulo: task.titulo,
           estado: task.estado,
@@ -82,18 +89,18 @@ export default function HistoryPage() {
     [meetings]
   )
   const pastMeetings = useMemo(
-    () => meetings.filter((m) => m.status === 'finalizada'),
-    [meetings]
+    () => meetings.filter((m) => m.status === 'finalizada' && matchesMeetingSearch(query, [m.title, m.empresas?.nombre, m.objective, m.location, ...tasks.filter((task) => task.meetingId === m.id).flatMap((task) => [task.titulo, task.responsable, task.source.descripcion, task.source.empresa])])),
+    [meetings, query, tasks]
   )
 
   const visibleTasks = tasks.filter((t) =>
-    onlyPending ? t.estado !== 'Completado' : true
+    (!onlyPending || t.estado !== 'Completado') && matchesMeetingSearch(query, [t.titulo, t.responsable, t.source.descripcion, t.source.empresa, t.source.meeting?.company, t.source.meeting?.title, meetingsById[t.meetingId]?.title, meetingsById[t.meetingId]?.empresas?.nombre, meetingsById[t.meetingId]?.objective])
   )
 
   if (loading) return <p className="text-gray-500">{locale === 'es' ? 'Cargando…' : 'Loading…'}</p>
 
   return (
-    <div className="space-y-8">
+    <div className={`${styles.page} space-y-8`}>
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
           {copy.title}
@@ -103,8 +110,11 @@ export default function HistoryPage() {
         </p>
       </div>
 
+      <div className={styles.filters}><MeetingSearch history value={query} onChange={setQuery} /></div>
+      <p role="status" className={styles.count}>{visibleTasks.length} {copy.tasks} · {pastMeetings.length} {copy.finished}</p>
+
       {/* Seguimiento de tareas del CRM */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className={`${styles.panel} rounded-xl border p-5 shadow-sm`}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-gray-900">
             {copy.tracking}
@@ -132,22 +142,23 @@ export default function HistoryPage() {
               {copy.emptyTasks}
             </p>
           ) : (
-            visibleTasks.map((t) => {
-              const origin = meetingsById[t.meetingId]
+            visibleTasks.map((task) => {
+              const origin = meetingsById[task.meetingId]
               return (
                 <div
-                  key={t.actividadId}
+                  key={`${task.actividadId}:${task.meetingId}`}
+                  data-task-id={task.actividadId}
                   className="flex flex-wrap items-start justify-between gap-3 rounded-lg border border-gray-200 p-3"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-gray-900">
-                      {t.titulo}
+                      {task.titulo}
                     </p>
                     <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                      {t.responsable && (
+                      {task.responsable && (
                         <span>
                           <span className="font-medium">{copy.assignee}:</span>{' '}
-                          {t.responsable}
+                          {task.responsable}
                         </span>
                       )}
                       {origin && (
@@ -157,15 +168,24 @@ export default function HistoryPage() {
                         </span>
                       )}
                     </div>
+                    <dl className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                      {[
+                        [t('company'), task.source.meeting?.company ?? task.source.empresa],
+                        [t('team'), task.source.equipo?.nombre],
+                        [t('department'), task.source.departamento?.nombre],
+                        [t('createdAt'), task.source.created_at ? formatDate(task.source.created_at) : null],
+                        [t('dueDate'), task.source.fecha_entrega ? formatDate(task.source.fecha_entrega) : t('noDate')],
+                      ].map(([label, value]) => <div key={label}><dt className="muted">{label}</dt><dd className="heading mt-1">{value || t('notRegistered')}</dd></div>)}
+                    </dl>
                   </div>
 
                   <div className="flex shrink-0 items-center gap-2">
                     <span
                       className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${actividadEstadoStyle(
-                        t.estado
+                        task.estado
                       )}`}
                     >
-                      {taskStatusLabel(t.estado, locale)}
+                      {taskStatusLabel(task.estado, locale)}
                     </span>
                   </div>
                 </div>

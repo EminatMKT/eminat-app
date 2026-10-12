@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import styles from '../components/MeetingOverview.module.css'
 import { supabase } from '@/shared/db/supabase'
 import { listTasks } from '@/features/meet/lib/services/task-api'
 import { loadMeetingListAndTasks } from '@/features/meet/lib/services/meeting-list-load'
@@ -142,7 +143,7 @@ export default function HomePage() {
   const { active, finished } = splitMeetingHistory(meetings)
 
   return (
-    <div className="space-y-8">
+    <div className={`${styles.page} space-y-8`}>
       <section className="rounded-3xl bg-gradient-to-br from-emerald-950 via-emerald-800 to-brand p-7 text-white shadow-xl shadow-emerald-950/10">
         <p className="text-sm font-medium text-emerald-100">{t('welcome')}</p>
         <h1 className="mt-1 text-3xl font-bold">{t('hello')}{name ? `, ${name}` : ''}, {t('welcomePerson')}</h1>
@@ -151,7 +152,7 @@ export default function HomePage() {
           {company && <span className="rounded-full bg-white/15 px-3 py-1.5">{t('company')}: {company}</span>}
         </div>}
       </section>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="heading text-2xl font-bold">{t('meetings')}</h1>
           <p className="text-sm text-gray-500">
@@ -292,18 +293,18 @@ function MeetingCard({
         )}
       </div>
 
-      <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
+      <p className="mt-1 text-sm text-gray-500">
         {meeting.meeting_date} · {schedule}
       </p>
-      <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-500 dark:text-slate-400">
+      <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-gray-500">
         <span>{t('created')}: {formatDate(meeting.created_at, { dateStyle: 'medium', timeStyle: 'short' })}</span>
         <span>{t('updated')}: {formatDate(meeting.updated_at, { dateStyle: 'medium', timeStyle: 'short' })}</span>
       </div>
-      {creator && <p className="mt-2 text-xs text-gray-500 dark:text-slate-400">{t('createdBy')}: <span className="font-medium">{creator}</span></p>}
+      {creator && <p className="mt-2 text-xs text-gray-500">{t('createdBy')}: <span className="font-medium">{creator}</span></p>}
 
       {meetingActivity !== undefined && (
-        <div className="mt-3 flex items-center justify-between rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-2 dark:border-emerald-900 dark:bg-emerald-950/40">
-          <span className="text-xs font-semibold text-emerald-900 dark:text-emerald-100">
+        <div className="mt-3 flex items-center justify-between rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-2">
+          <span className="text-xs font-semibold text-emerald-900">
             {locale === 'es' ? 'Estado de reunión' : 'Meeting status'}
           </span>
           <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${actividadEstadoStyle(meetingActivity?.estado)}`}>
@@ -342,12 +343,12 @@ function MeetingCard({
           {meeting.participants.join(', ')}
         </p>
       )}
-      <div className="mt-4 border-t border-gray-100 pt-3 dark:border-slate-800">
+      <div className="mt-4 border-t border-gray-100 pt-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{t('lastActivity')}</p>
-        <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">{latestEvent ? `${latestEvent.summary}${typeof latestEvent.metadata.actor_name === 'string' ? ` · ${latestEvent.metadata.actor_name}` : ''} · ${formatDate(latestEvent.created_at, { dateStyle: 'medium', timeStyle: 'short' })}` : t('noActivity')}</p>
+        <p className="mt-1 text-sm text-gray-500">{latestEvent ? `${latestEvent.summary}${typeof latestEvent.metadata.actor_name === 'string' ? ` · ${latestEvent.metadata.actor_name}` : ''} · ${formatDate(latestEvent.created_at, { dateStyle: 'medium', timeStyle: 'short' })}` : t('noActivity')}</p>
         <div className="mt-3 flex gap-4">
           <Link href={`/meetings/${meeting.id}`} className="text-sm font-semibold text-brand">{t('viewMeeting')} →</Link>
-          <Link href={`/meetings/${meeting.id}/history`} className="text-sm font-semibold text-gray-500 dark:text-slate-300">{t('viewHistory')}</Link>
+          <Link href={`/meetings/${meeting.id}/history`} className="text-sm font-semibold text-gray-500">{t('viewHistory')}</Link>
         </div>
       </div>
     </article>
