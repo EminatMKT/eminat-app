@@ -346,6 +346,21 @@ describe('Meet task service', () => {
     })
   })
 
+  it('retains creator-only and requester-only history without an assignment or Meeting', async () => {
+    const other = '33333333-3333-4333-8333-333333333333'
+    const creatorOnly = activity({ id: 'creator-only', created_by_id: assigneeId, solicitante_id: other, actividad_responsables: [responsibleRow({ id: other })] })
+    const requesterOnly = activity({ id: 'requester-only', created_by_id: other, solicitante_id: assigneeId, actividad_responsables: [responsibleRow({ id: other })] })
+    const { client } = fakeClient({
+      usuarios: [ok({ id: assigneeId }), ok([{ id: assigneeId }, { id: other }])],
+      actividades: [ok([creatorOnly, requesterOnly])],
+      topics: [ok([])],
+    })
+    const result = await listCanonicalTasks(client, owner, assigneeId)
+    expect(result.data?.tasks.map((task) => [task.id, task.related_to_viewer])).toEqual([
+      ['creator-only', true], ['requester-only', true],
+    ])
+  })
+
   it('loads Tasks beyond the first database response page', async () => {
     const firstPage = Array.from({ length: 500 }, (_, index) => activityOf(`unrelated-${index}`, []))
     const started = activityOf('started-after-page-one', [responsibleRow(ana)])
