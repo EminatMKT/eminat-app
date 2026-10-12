@@ -11,10 +11,6 @@
     {
       "path": "/api/tasks/notifications/process",
       "schedule": "0 3 * * *"
-    },
-    {
-      "path": "/api/meetings/notifications/process",
-      "schedule": "*/5 * * * *"
     }
   ]
 }
