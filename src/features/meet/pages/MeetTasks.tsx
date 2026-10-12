@@ -9,7 +9,8 @@ import { usePreferences } from '@/features/meet/lib/preferences'
 
 export default function TasksPage() {
   const { t, formatDate, locale } = usePreferences()
-  const [scope, setScope] = useState<TaskScope>('all')
+  const [scope, setScope] = useState<TaskScope>('related')
+  const [status, setStatus] = useState('all')
   const [tasks, setTasks] = useState<CanonicalTaskListItem[]>([])
   const [profileId, setProfileId] = useState<string | null>(null)
   const [teamId, setTeamId] = useState<string | null>(null)
@@ -37,8 +38,9 @@ export default function TasksPage() {
     return () => { mounted = false }
   }, [])
 
-  const visible = useMemo(() => visibleMeetTasks(tasks, scope, { profileId, teamId, company }, assigneeId), [assigneeId, company, profileId, scope, tasks, teamId])
+  const visible = useMemo(() => visibleMeetTasks(tasks, scope, { profileId, teamId, company }, assigneeId, status), [assigneeId, company, profileId, scope, status, tasks, teamId])
   const assignees = useMemo(() => Array.from(new Map(tasks.map((task) => [task.responsable_id, task.responsable])).entries()), [tasks])
+  const statuses = useMemo(() => Array.from(new Set(tasks.map((task) => task.estado))).sort(), [tasks])
 
   return (
     <div className="space-y-6">
@@ -51,14 +53,18 @@ export default function TasksPage() {
           <p className="muted mt-1 text-sm">{t('taskSourceNotice')}</p>
         </div>
         <div className="flex rounded-xl border border-gray-200 bg-white p-1 dark:border-slate-700 dark:bg-slate-900">
-          {(['all', 'mine', 'team', 'company'] as TaskScope[]).map((value) => {
-            const label = value === 'all' ? 'all' : value === 'mine' ? 'mine' : value === 'team' ? 'myTeam' : 'myCompany'
+          {(['related', 'all', 'mine', 'team', 'company'] as TaskScope[]).map((value) => {
+            const label = value === 'related' ? 'relatedToMe' : value === 'all' ? 'all' : value === 'mine' ? 'mine' : value === 'team' ? 'myTeam' : 'myCompany'
             return <button key={value} onClick={() => setScope(value)} className={`rounded-lg px-3 py-1.5 text-xs font-medium ${scope === value ? 'bg-brand text-white' : 'text-gray-600 dark:text-slate-300'}`}>{t(label)}</button>
           })}
         </div>
         <select value={assigneeId} onChange={(event) => { setAssigneeId(event.target.value); setScope('all') }} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
           <option value="">{t('allAssignees')}</option>
           {assignees.map(([id, assignee]) => <option key={id} value={id}>{assignee?.nombre ?? id}</option>)}
+        </select>
+        <select aria-label={t('status')} value={status} onChange={(event) => setStatus(event.target.value)} className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900">
+          <option value="all">{t('allStatuses')}</option>
+          {statuses.map((value) => <option key={value} value={value}>{taskStatusLabel(value, locale)}</option>)}
         </select>
       </header>
 
@@ -80,7 +86,7 @@ export default function TasksPage() {
                 <Field label={t('team')} value={task.equipo?.nombre} />
                 <Field label={t('department')} value={task.departamento?.nombre} />
                 <Field label={t('company')} value={task.meeting?.company ?? task.empresa} />
-                <Field label={t('createdAt')} value={task.fecha_inicio ? formatDate(task.fecha_inicio) : null} />
+                <Field label={t('createdAt')} value={task.created_at ? formatDate(task.created_at) : null} />
                 <Field label={t('dueDate')} value={task.fecha_entrega ? formatDate(task.fecha_entrega) : t('noDate')} />
               </dl>
               {task.meeting && <Link href={`/meetings/${task.meeting.id}`} className="mt-4 inline-flex text-sm font-medium text-brand hover:text-brand-dark">{t('originMeeting')}: {task.meeting.title}</Link>}

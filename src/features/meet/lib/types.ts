@@ -174,6 +174,7 @@ export interface CanonicalTaskRecord {
   fecha_inicio: string
   fecha_entrega: string | null
   empresa: string
+  created_at: string
   updated_at: string
   responsable: { id: string; nombre: string } | null
   equipo: { id: string; codigo: string; nombre: string } | null
@@ -182,6 +183,8 @@ export interface CanonicalTaskRecord {
 
 export interface CanonicalTaskListItem extends CanonicalTaskRecord {
   meeting: { id: string; title: string; company: string | null } | null
+  topic_id: string | null
+  related_to_viewer: boolean
 }
 
 export interface CanonicalTaskList {

@@ -4,11 +4,11 @@ const RESPONSIBLES = `actividad_responsables!actividad_responsables_actividad_id
 
 /** The `select` strings the Meet API reads with, named once per shape it needs. */
 const MEET_PROJECTIONS = {
-  task: `id, titulo, descripcion, estado, fecha_inicio, fecha_entrega, fecha_requerida, empresa, updated_at, ${RESPONSIBLES}`,
+  task: `id, titulo, descripcion, estado, fecha_inicio, fecha_entrega, fecha_requerida, empresa, created_at, updated_at, created_by_id, solicitante_id, ${RESPONSIBLES}`,
   topicOwner: 'id, meetings!inner(user_id)',
   topicReadable: 'id, meetings!inner(id)',
   topicLink: 'id, actividad_id, meetings!inner(user_id)',
-  topicOrigin: 'actividad_id, meetings(id, title, user_id, empresas!meetings_company_id_fkey(nombre))',
+  topicOrigin: 'id, actividad_id, meetings(id, title, user_id, empresas!meetings_company_id_fkey(nombre))',
   viewerProfile: 'id, equipo_id, empresa_id, equipos!usuarios_equipo_id_fkey(id, nombre), empresas!usuarios_empresa_id_fkey(id, codigo, nombre)',
   directoryUser: 'id, equipo_id, empresa_id',
   assigneeCheck: 'id, rol, activo',

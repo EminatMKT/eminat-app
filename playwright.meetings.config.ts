@@ -7,7 +7,7 @@ export default defineConfig({
   use: { baseURL: 'http://localhost:3000', trace: 'retain-on-failure' },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'NEXT_BUILD_DIR=.next-verify pnpm start',
+    command: 'pnpm start',
     url: 'http://localhost:3000',
     reuseExistingServer: false,
     timeout: 30000,
