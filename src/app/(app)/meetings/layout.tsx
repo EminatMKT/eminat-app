@@ -1,6 +1,9 @@
 'use client'
 
 import Link from 'next/link'
+import MeetingsOverviewShell from '@/features/meet/components/MeetingsOverviewShell'
+import styles from '@/features/meet/components/MeetingOverview.module.css'
+import { useT } from '@/shared/i18n'
 import { usePathname } from 'next/navigation'
 import { AppShell } from '@/shared/components/shell'
 import { PreferencesProvider } from '@/features/meet/lib/preferences'
@@ -14,11 +17,14 @@ const tabs = [
 
 export default function MeetingsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const { t } = useT()
+  const overview = ['/meetings', '/meetings/tasks', '/meetings/history'].includes(pathname)
+  const Shell = overview ? MeetingsOverviewShell : AppShell
   return (
-    <AppShell title="Meetings">
+    <Shell title={overview ? t('reuniones.title') : 'Meetings'}>
       <PreferencesProvider>
         <div className="meet-module mx-auto max-w-6xl space-y-6">
-          <nav aria-label="Meetings" className="flex flex-wrap gap-2 border-b border-gray-200 pb-4">
+          <nav aria-label={overview ? t('reuniones.title') : 'Meetings'} className={`${overview ? styles.tabs : ''} flex flex-wrap gap-2 border-b border-gray-200 pb-4`}>
             {tabs.map(({ href, label }) => {
               const active = pathname === href || (href === '/meetings' && /^\/meetings\/[^/]+/.test(pathname) && !['/meetings/new', '/meetings/tasks', '/meetings/history'].some((route) => pathname.startsWith(route)))
               return <Link key={href} href={href} aria-current={active ? 'page' : undefined} className={`rounded-lg px-3 py-2 text-sm font-medium ${active ? 'bg-brand text-white' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>{label}</Link>
@@ -27,6 +33,6 @@ export default function MeetingsLayout({ children }: { children: React.ReactNode
           {children}
         </div>
       </PreferencesProvider>
-    </AppShell>
+    </Shell>
   )
 }

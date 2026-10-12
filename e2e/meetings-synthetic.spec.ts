@@ -17,16 +17,20 @@ const meetings = Array.from({ length: 9 }, (_, index) => ({
 }))
 const tasks = Array.from({ length: 48 }, (_, index) => ({
   id: `20000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
-  titulo: `Actividad QA ${index + 1}`, descripcion: null,
+  titulo: `Actividad QA ${index + 1}`, descripcion: 'Texto relacionado clínico',
   estado: index < 43 ? 'Pendiente' : index < 45 ? 'En proceso' : index < 47 ? 'Por aprobar' : 'Completado',
   responsable_id: index < 11 ? qaProfileId : 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
   fecha_inicio: '2026-10-01', fecha_entrega: null, empresa: 'QA', created_at: '2026-10-01T00:00:00Z', updated_at: '2026-10-01T00:00:00Z',
-  responsable: { id: qaProfileId, nombre: 'QA Meetings' }, equipo: null, departamento: null,
-  meeting: { id: meetings[index % 9].id, title: meetings[index % 9].title, company: 'Empresa QA' },
-  topic_id: `topic-${index + 1}`, related_to_viewer: true,
+  responsable: { id: qaProfileId, nombre: 'QA Meetings' }, equipo: { id: 'qa-team', codigo: 'QA', nombre: 'Equipo QA' }, departamento: { id: 'qa-dept', codigo: 'QA', nombre: 'Departamento QA' },
+  meeting: index < 6 ? null : { id: meetings[index % 9].id, title: meetings[index % 9].title, company: 'Empresa QA' },
+  topic_id: index < 6 ? null : `topic-${index + 1}`, related_to_viewer: true,
 }))
 
 test('canonical Meet UI displays 9 authorized meetings and 48 historically related Tasks with one LILLY session', async ({ page, context }) => {
+  const writes: string[] = []
+  page.on('request', (request) => {
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method()) && (/\/rest\/v1\/(meetings|topics|actividades)(?:[?\/]|$)/.test(request.url()) || request.url().includes('/api/integrations/meet/'))) writes.push(request.url())
+  })
   const exp = Math.floor(Date.now() / 1000) + 3600
   const jwt = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub: qaAuthId, aud: 'authenticated', role: 'authenticated', exp })).toString('base64url')}.test-signature`
   const session = { access_token: jwt, refresh_token: 'qa-refresh', expires_at: exp, expires_in: 3600, token_type: 'bearer', user: qaUser }
@@ -53,7 +57,7 @@ test('canonical Meet UI displays 9 authorized meetings and 48 historically relat
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(single ? rows[0] ?? null : rows) })
   })
   await page.route('**/api/integrations/meet/tasks', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ tasks, viewer: { profile_id: qaProfileId, equipo: null, empresa: { id: '11111111-1111-4111-8111-111111111111', codigo: 'QA', nombre: 'Empresa QA' } } }) })
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ tasks, viewer: { profile_id: qaProfileId, equipo: { id: 'qa-team', nombre: 'Equipo QA' }, empresa: { id: '11111111-1111-4111-8111-111111111111', codigo: 'QA', nombre: 'Empresa QA' } } }) })
   })
 
   await page.goto('/meetings')
@@ -78,6 +82,51 @@ test('canonical Meet UI displays 9 authorized meetings and 48 historically relat
   await expect(taskCards).toHaveCount(1)
   await page.getByRole('combobox', { name: 'Estado' }).selectOption('all')
   await expect(taskCards).toHaveCount(48)
+
+  await expect(page.locator('#onboarding-mask')).toHaveCount(0)
+  expect(await page.evaluate(() => localStorage.getItem('eminat-onboarding-completed'))).toBeNull()
+  const search = page.getByRole('searchbox')
+  for (const scope of ['Todas relacionadas conmigo', 'Todas visibles', 'Mis Tasks', 'Mi equipo', 'Mi empresa']) {
+    await page.getByRole('button', { name: scope, exact: true }).click()
+    await search.fill('Actividad QA 48')
+    await expect(taskCards).toHaveCount(scope === 'Mis Tasks' ? 0 : 1)
+    await search.fill('')
+    await expect(taskCards).toHaveCount(scope === 'Mis Tasks' ? 11 : 48)
+  }
+  await page.getByRole('button', { name: 'Todas relacionadas conmigo', exact: true }).click()
+  for (const query of ['QA Meetings', 'QA', 'Reunión QA 9']) {
+    await search.fill(query)
+    await expect(taskCards).toHaveCount(query === 'Reunión QA 9' ? 8 : 48)
+  }
+  await page.getByRole('button', { name: 'Limpiar búsqueda' }).click()
+  await expect(taskCards).toHaveCount(48)
+  for (const task of tasks.slice(0, 6)) await expect(page.locator(`[data-task-id="${task.id}"]`)).toHaveCount(1)
+  // OS preference must not override LILLY's selected content theme.
+  await page.emulateMedia({ colorScheme: 'dark' })
+  await page.evaluate(() => document.documentElement.classList.remove('dark'))
+  await expect(taskCards.first()).toHaveCSS('background-color', 'rgb(255, 255, 255)')
+  await expect(taskCards.first().getByRole('heading')).toHaveCSS('color', 'rgb(17, 24, 39)')
+  await page.evaluate(() => document.documentElement.classList.add('dark'))
+  await expect(taskCards.first()).toHaveCSS('background-color', 'rgb(19, 19, 28)')
+  await expect(taskCards.first().getByRole('heading')).toHaveCSS('color', 'rgb(255, 255, 255)')
+  await page.screenshot({ path: test.info().outputPath('meetings-tasks-dark.png'), fullPage: false })
+  await page.setViewportSize({ width: 390, height: 844 })
+  expect(await page.locator('.meet-module').evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true)
+  await page.screenshot({ path: test.info().outputPath('meetings-tasks-mobile.png'), fullPage: false })
+  await page.goto('/meetings/history')
+  const historySearch = page.getByRole('searchbox')
+  await expect(page.locator('[data-task-id]')).toHaveCount(42)
+  for (const query of ['Actividad QA 48', 'QA Meetings', 'Empresa QA', 'Reunión QA 9', 'clinico']) {
+    await historySearch.fill(query)
+    await expect(page.locator('[data-task-id]')).toHaveCount(query === 'Actividad QA 48' ? 1 : query === 'Reunión QA 9' ? 8 : 42)
+  }
+  await historySearch.fill('no-match')
+  await expect(page.locator('[data-task-id]')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Limpiar búsqueda' }).click()
+  await expect(page.locator('[data-task-id]')).toHaveCount(42)
+
+  await page.screenshot({ path: test.info().outputPath('meetings-history.png'), fullPage: false })
+  expect(writes).toEqual([])
 
   await page.route('**/api/integrations/meet/tasks', async (route) => {
     await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: { code: 'TASK_API_ERROR', message: 'Tasks API unavailable' } }) })
