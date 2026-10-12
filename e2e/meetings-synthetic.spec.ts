@@ -15,16 +15,18 @@ const meetings = Array.from({ length: 9 }, (_, index) => ({
   created_at: '2026-10-01T00:00:00Z', updated_at: '2026-10-01T00:00:00Z',
   empresas: { nombre: index < 8 ? 'Empresa QA' : 'Empresa Invitada' },
 }))
-const tasks = Array.from({ length: 47 }, (_, index) => ({
+const tasks = Array.from({ length: 48 }, (_, index) => ({
   id: `20000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
-  titulo: `Actividad QA ${index + 1}`, descripcion: null, estado: index < 11 ? 'Pendiente' : 'Completado',
+  titulo: `Actividad QA ${index + 1}`, descripcion: null,
+  estado: index < 43 ? 'Pendiente' : index < 45 ? 'En proceso' : index < 47 ? 'Por aprobar' : 'Completado',
   responsable_id: index < 11 ? qaProfileId : 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
-  fecha_inicio: '2026-10-01', fecha_entrega: null, empresa: 'QA', updated_at: '2026-10-01T00:00:00Z',
+  fecha_inicio: '2026-10-01', fecha_entrega: null, empresa: 'QA', created_at: '2026-10-01T00:00:00Z', updated_at: '2026-10-01T00:00:00Z',
   responsable: { id: qaProfileId, nombre: 'QA Meetings' }, equipo: null, departamento: null,
   meeting: { id: meetings[index % 9].id, title: meetings[index % 9].title, company: 'Empresa QA' },
+  topic_id: `topic-${index + 1}`, related_to_viewer: true,
 }))
 
-test('canonical Meet UI displays 9 authorized meetings and 47 related Tasks with one LILLY session', async ({ page, context }) => {
+test('canonical Meet UI displays 9 authorized meetings and 48 historically related Tasks with one LILLY session', async ({ page, context }) => {
   const exp = Math.floor(Date.now() / 1000) + 3600
   const jwt = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub: qaAuthId, aud: 'authenticated', role: 'authenticated', exp })).toString('base64url')}.test-signature`
   const session = { access_token: jwt, refresh_token: 'qa-refresh', expires_at: exp, expires_in: 3600, token_type: 'bearer', user: qaUser }
@@ -60,7 +62,22 @@ test('canonical Meet UI displays 9 authorized meetings and 47 related Tasks with
   await expect(page.getByText('Reunión QA 9')).toBeVisible()
   await page.goto('/meetings/tasks')
   await expect(page.getByRole('heading', { name: 'Tasks', exact: true })).toBeVisible()
-  await expect(page.locator('article').filter({ hasText: 'Actividad QA' })).toHaveCount(47)
+  const taskCards = page.locator('article').filter({ hasText: 'Actividad QA' })
+  await expect(page.getByRole('button', { name: 'Todas relacionadas conmigo' })).toBeVisible()
+  await expect(taskCards).toHaveCount(48)
+  await page.getByRole('button', { name: 'Mis Tasks' }).click()
+  await expect(taskCards).toHaveCount(11)
+  await page.getByRole('button', { name: 'Todas relacionadas conmigo' }).click()
+  await expect(taskCards).toHaveCount(48)
+  await page.getByRole('combobox', { name: 'Estado' }).selectOption('En proceso')
+  await expect(taskCards).toHaveCount(2)
+  await expect(taskCards.first()).toContainText('En proceso')
+  await page.getByRole('combobox', { name: 'Estado' }).selectOption('Por aprobar')
+  await expect(taskCards).toHaveCount(2)
+  await page.getByRole('combobox', { name: 'Estado' }).selectOption('Completado')
+  await expect(taskCards).toHaveCount(1)
+  await page.getByRole('combobox', { name: 'Estado' }).selectOption('all')
+  await expect(taskCards).toHaveCount(48)
 
   await page.route('**/api/integrations/meet/tasks', async (route) => {
     await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: { code: 'TASK_API_ERROR', message: 'Tasks API unavailable' } }) })

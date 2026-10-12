@@ -38,6 +38,8 @@ jobs:
           # env del servidor (env.server.ts los valida al colectar las rutas /api): dummies para CI
           SUPABASE_SECRET_KEY: dummy-service-role-key
           RESEND_API_KEY: re_dummy_key
+      - run: pnpm exec playwright install chromium
+      - run: pnpm exec playwright test --config=playwright.meetings.config.ts
 
   e2e-shard:
     name: e2e (${{ matrix.shard }}/${{ matrix.total }})

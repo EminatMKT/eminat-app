@@ -361,19 +361,22 @@ describe('Meet task service', () => {
     ])
   })
 
-  it('loads Tasks beyond the first database response page', async () => {
+  it('loads all 1020 Tasks, including one after the API row cap', async () => {
     const firstPage = Array.from({ length: 500 }, (_, index) => activityOf(`unrelated-${index}`, []))
-    const started = activityOf('started-after-page-one', [responsibleRow(ana)])
+    const secondPage = Array.from({ length: 500 }, (_, index) => activityOf(`unrelated-${index + 500}`, []))
+    const finalPage = Array.from({ length: 19 }, (_, index) => activityOf(`unrelated-${index + 1000}`, []))
+    const started = activityOf('started-after-row-1000', [responsibleRow(ana)])
     started.estado = 'En proceso'
+    finalPage.push(started)
     const { client, calls } = fakeClient({
       usuarios: [ok({ id: assigneeId }), ok([{ id: assigneeId }])],
-      actividades: [ok(firstPage), ok([started])],
+      actividades: [ok(firstPage), ok(secondPage), ok(finalPage)],
       topics: [ok([])],
     })
     const result = await listCanonicalTasks(client, owner, assigneeId)
     expect(result.data?.tasks.map((task) => task.id)).toEqual([started.id])
     expect(result.data?.tasks[0].estado).toBe('En proceso')
-    expect(calls.filter((call) => call.table === 'actividades' && call.method === 'range').map((call) => call.args)).toEqual([[0, 499], [500, 999]])
+    expect(calls.filter((call) => call.table === 'actividades' && call.method === 'range').map((call) => call.args)).toEqual([[0, 499], [500, 999], [1000, 1499]])
   })
 
   it('fails the Task list if a later database page fails', async () => {
