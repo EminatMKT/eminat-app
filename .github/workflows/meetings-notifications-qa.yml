@@ -7,6 +7,8 @@ on:
       - 'src/app/api/meetings/notifications/**'
       - 'docs/sql/meetings-notification-outbox.review.sql'
       - 'docs/sql/meetings-delivery-reconciliation.review.sql'
+      - 'supabase/pending/20261012173000_meetings_mail_storage.sql'
+      - 'supabase/rollback/20261012173000_meetings_mail_storage.sql'
       - 'scripts/qa/meeting-*.mjs'
       - '.github/workflows/meetings-notifications-qa.yml'
   workflow_dispatch:
@@ -25,6 +27,8 @@ jobs:
         run: PGLITE_MODULE="$RUNNER_TEMP/meeting-pglite/node_modules/@electric-sql/pglite/dist/index.js" node scripts/qa/meeting-outbox-sql.mjs
       - name: PostgreSQL delivery reconciliation (no provider access)
         run: PGLITE_MODULE="$RUNNER_TEMP/meeting-pglite/node_modules/@electric-sql/pglite/dist/index.js" node scripts/qa/meeting-delivery-sql.mjs
+      - name: Idempotent mail migration and rollback (isolated database only)
+        run: PGLITE_MODULE="$RUNNER_TEMP/meeting-pglite/node_modules/@electric-sql/pglite/dist/index.js" node scripts/qa/meeting-mail-migration.mjs
   controlled-provider:
     if: github.event_name == 'workflow_dispatch'
     needs: isolated-sql
