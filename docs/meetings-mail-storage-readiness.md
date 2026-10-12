@@ -12,13 +12,15 @@ Dependencias: meetings (id,user_id,title,meeting_date,start_time,end_time,locati
 
 ## Verificación real de entornos
 
-Production ruedelunbtaomhrzgelc: catálogo de funciones public observado tras sesión segura; enqueue_meeting_mail no existe. No se aplicó SQL.
+Production ruedelunbtaomhrzgelc: catálogo de funciones public observado tras sesión segura; enqueue_meeting_mail no existe. Tablas, columnas, tipos, nulabilidad, triggers e índices relacionados revisados read-only. No se aplicó SQL.
+
+Precheck encontró meeting_date nullable; la concatenación anterior podía producir text NULL. PR #102 usa coalesce(m.meeting_date::text,'Sin fecha') únicamente en el body. El snapshot sigue conservando date JSON null: no cambia reuniones, IDs ni fechas, no backfill. La prueba activa los triggers de creación y actualización con fecha NULL y verifica subject/body no NULL, texto Sin fecha y fecha intacta. Incluye una reunión histórica con fecha NULL y su versión de acta, ambas intactas tras instalaciones y rollback repetidos.
 
 Previews existentes observados read-only: lilly-tasks-metrics-preview pyesjnjzcnvxargnugcl (40 tablas) y gina-phase-2-preview whuxnwjkpjccgzpzovha (37 tablas). Carecen de meetings/meeting_participants/meeting_events; no tienen la RPC. No aplicar allí una migración incompleta ni crear/importar schema de negocio a ciegas. La validación hosted staging NO está cerrada. No se creó otro entorno.
 
 ## Pruebas y rollback
 
-scripts/qa/meeting-mail-migration.mjs: 17 comprobaciones PASS en PostgreSQL aislado/PGlite, cero emails/red/Production. Instala dos veces, conserva watermark y negocio, dedupe de destinatarios, replay accepted sin reenvío, reinstala con provider IDs intactos, rollback dos veces y retención de intentos, ACL authenticated denegada. Esto no sustituye ensayo hosted con schema real.
+scripts/qa/meeting-mail-migration.mjs: 25 comprobaciones PASS en PostgreSQL aislado/PGlite, cero emails/red/Production. Instala dos veces, conserva watermark y negocio, dedupe de destinatarios, replay accepted sin reenvío, reinstala con provider IDs intactos, rollback dos veces y retención de intentos, ACL authenticated denegada. Fixture sintético de dependencias actualizado con tipos, nulabilidad y unicidad observados en Production, incluida meeting_date date nullable, participants text[], meeting_events y meeting_report_versions. No es un clon integral ni un ensayo hosted de Production.
 
 Rollback SQL: supabase/rollback/20261012173000_meetings_mail_storage.sql. No destructivo: retira exclusivamente sus tres triggers; conserva tablas, snapshots, provider IDs, RPCs y dedupe. Antes de usarlo: pausar worker/conciliación y restaurar deployment anterior verificado. Reaplicar migración restaura triggers sin resetear watermark. No borrar colas aceptadas ni historial.
 
@@ -32,4 +34,4 @@ Metadata secretos/variables no accesible por el conector (endpoint no soportado)
 
 ANNIE conexiones existentes: run 38150994213, job ssh-test 114504248667, 2026-10-11: SSH PASS read-only, servicios PASS y 33 migraciones leídas desde PostgreSQL. Esto verifica el mecanismo/secrets production-ssh entonces; no es un inventario nuevo ni prueba del release actual. Password DB permaneció dentro de contenedor según probe. Sin reproducción del job ni secreto expuesto.
 
-QA delivery real de emails continúa pendiente por decisión del usuario, separada del código y del ensayo de schema. Listo para aplicar fix notifications: NO hasta ensayo hosted compatible y rollback verificado allí. Listo para inventario: NO hasta binding LILLY y despacho accesible. Listo para redirect: NO hasta deployment LILLY compatible/verificado; rollback Meet disponible.
+QA delivery real de emails continúa pendiente por decisión del usuario, separada del código y del ensayo de schema. Compatibilidad de dependencias observadas y ensayo PostgreSQL aislado: PASS tras corregir fecha NULL. Aplicación de fix notifications no ejecutada; requiere confirmación final independiente. Hosted staging integral sigue sin verificarse. Listo para inventario: NO hasta binding LILLY y despacho accesible. Listo para redirect: NO hasta deployment LILLY compatible/verificado; rollback Meet disponible.

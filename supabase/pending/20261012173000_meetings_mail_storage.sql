@@ -186,7 +186,7 @@ BEGIN
  prefix:=CASE WHEN kind='created' THEN 'Convocatoria de reunión' ELSE 'Actualización de reunión' END;
  message:=jsonb_build_object('from','Stratix Meet <notifications@stratixsolutions.us>',
   'subject',prefix||': '||m.title,
-  'text',prefix||E'\n'||m.title||E'\nFecha: '||m.meeting_date||E'\nHora: '||coalesce(m.start_time::text,'Sin hora')||' – '||coalesce(m.end_time::text,'Sin hora')||
+  'text',prefix||E'\n'||m.title||E'\nFecha: '||coalesce(m.meeting_date::text,'Sin fecha')||E'\nHora: '||coalesce(m.start_time::text,'Sin hora')||' – '||coalesce(m.end_time::text,'Sin hora')||
   E'\nLugar: '||coalesce(m.location,'Sin lugar')||E'\nConvocados: '||coalesce((SELECT string_agg(value,', ') FROM jsonb_array_elements_text(snap->'inviteeNames')),'Sin convocados'));
  -- Freeze exact provider body before first claim, including template and sender.
  PERFORM public.enqueue_meeting_mail(m.id,'lifecycle/'||m.id||'/'||rev,kind,snap||message,recipients);
