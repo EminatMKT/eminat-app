@@ -26,7 +26,6 @@ type ActivityRow = {
   updated_at: string
   created_by_id?: string | null
   solicitante_id?: string | null
-  responsable_id?: string | null
   actividad_responsables?: MeetResponsibleRow[] | null
 }
 type TopicRow = { id: string; actividad_id?: string | null; meetings?: { user_id: string } | { user_id: string }[] | null }
@@ -151,7 +150,6 @@ export async function listCanonicalTasks(client: SupabaseClient, authUserId: str
   }
   const tasks = activitiesResult.rows
     .filter((row) => (row.actividad_responsables ?? []).some(({ usuario_id }) => authorizedAssignees.has(usuario_id)) ||
-      (row.responsable_id ? authorizedAssignees.has(row.responsable_id) : false) ||
       row.created_by_id === profileId || row.created_by_id === authUserId ||
       row.solicitante_id === profileId || visibleMeetingActivities.has(row.id))
     .map((row) => ({
@@ -159,7 +157,7 @@ export async function listCanonicalTasks(client: SupabaseClient, authUserId: str
       meeting: origins.get(row.id) ?? null,
       topic_id: topicIds.get(row.id) ?? null,
       related_to_viewer: (row.actividad_responsables ?? []).some(({ usuario_id }) => usuario_id === profileId) ||
-        row.responsable_id === profileId || row.created_by_id === profileId || row.created_by_id === authUserId ||
+        row.created_by_id === profileId || row.created_by_id === authUserId ||
         row.solicitante_id === profileId || visibleMeetingActivities.has(row.id),
     }))
   return { ok: true, data: {
