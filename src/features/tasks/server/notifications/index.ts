@@ -76,7 +76,13 @@ export default async function dispatchTaskAssignmentEmails(activityId?: string) 
         failed++
         continue
       }
-      const { error: updateError } = await eventDb.update({ status: 'sent', provider_message_id: data?.id || null,
+      if (!data?.id) {
+        // Unknown acceptance cannot be marked sent or replayed blindly.
+        await eventDb.update({ error: 'El proveedor no devolvió un ID; conciliar antes de reenviar.' }).eq('id', event.id)
+        failed++
+        continue
+      }
+      const { error: updateError } = await eventDb.update({ status: 'sent', provider_message_id: data.id,
         sent_at: new Date().toISOString(), next_attempt_at: null }).eq('id', event.id)
       if (updateError) failed++ // Provider accepted it. Leave `sending` for manual reconciliation.
     } catch (err) {

@@ -58,6 +58,19 @@ export async function recordMeetingEvent(
     summary,
     metadata: { ...metadata, actor_name: actorName },
   })
+  // SQL captures the durable event. This is only an immediate flush hint; cron drains retries.
+  if (!error && (eventType === 'meeting_created' || eventType === 'meeting_updated')) {
+    try {
+      const { data: session } = await client.auth.getSession()
+      if (session.session?.access_token) {
+        await fetch('/api/meetings/notifications/process', {
+          method: 'POST', signal: AbortSignal.timeout(5000),
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.session.access_token}` },
+          body: JSON.stringify({ meetingId }),
+        })
+      }
+    } catch { /* Advisory flush only: the committed outbox remains for the worker. */ }
+  }
   return !error
 }
 

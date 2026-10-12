@@ -62,6 +62,13 @@ it('does not claim or send without Resend configuration', async () => {
   expect(rpc).not.toHaveBeenCalled()
   expect(send).not.toHaveBeenCalled()
 })
+it('keeps a response without provider ID in sending for reconciliation', async () => {
+  const { writes } = fakeDb()
+  send.mockResolvedValue({ data: null, error: null })
+  expect((await dispatchTaskAssignmentEmails()).warning).toBeTruthy()
+  expect(writes.every(row => !row.status)).toBe(true)
+  expect(writes[0].error).toContain('ID')
+})
 it('does not send an older assignment after reassignment', async () => {
   const { writes } = fakeDb({ assignee: '44444444-4444-4444-8444-444444444444' })
   await dispatchTaskAssignmentEmails()
