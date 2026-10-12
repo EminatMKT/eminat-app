@@ -22,11 +22,15 @@ type ActivityRow = {
   fecha_entrega?: string | null
   fecha_requerida?: string | null
   empresa: string
+  created_at: string
   updated_at: string
+  created_by_id?: string | null
+  solicitante_id?: string | null
+  responsable_id?: string | null
   actividad_responsables?: MeetResponsibleRow[] | null
 }
 type TopicRow = { id: string; actividad_id?: string | null; meetings?: { user_id: string } | { user_id: string }[] | null }
-type ListTopicRow = { actividad_id?: string | null; meetings?: { id: string; title: string; user_id: string; empresas?: { nombre: string } | { nombre: string }[] | null } | { id: string; title: string; user_id: string; empresas?: { nombre: string } | { nombre: string }[] | null }[] | null }
+type ListTopicRow = { id: string; actividad_id?: string | null; meetings?: { id: string; title: string; user_id: string; empresas?: { nombre: string } | { nombre: string }[] | null } | { id: string; title: string; user_id: string; empresas?: { nombre: string } | { nombre: string }[] | null }[] | null }
 type DirectoryUserRow = { id: string; equipo_id?: string | null; empresa_id?: string | null; equipos?: { id: string; nombre: string } | { id: string; nombre: string }[] | null; empresas?: { id: string; codigo: string; nombre: string } | { id: string; codigo: string; nombre: string }[] | null }
 
 const { actividades, topics, usuarios, roleModules, empresas, departamentos, equipos } = TABLE_COLUMNS
@@ -66,6 +70,7 @@ function canonical(row: ActivityRow): CanonicalMeetTask {
     // fecha_requerida is only read-compatibility for historical rows.
     fecha_entrega: row.fecha_entrega ?? row.fecha_requerida ?? null,
     empresa: row.empresa,
+    created_at: row.created_at,
     updated_at: row.updated_at,
     equipo: team && pickRef(team),
     departamento: department && pickRef(department),
@@ -133,6 +138,7 @@ export async function listCanonicalTasks(client: SupabaseClient, authUserId: str
       .map((user) => user.id),
   )
   const origins = new Map<string, CanonicalMeetTaskListItem['meeting']>()
+  const topicIds = new Map<string, string>()
   const visibleMeetingActivities = new Set<string>()
   for (const row of (topicsResult.data ?? []) as unknown as ListTopicRow[]) {
     if (!row.actividad_id) continue
@@ -140,11 +146,22 @@ export async function listCanonicalTasks(client: SupabaseClient, authUserId: str
     if (!meeting) continue
     const company = first(meeting.empresas)
     origins.set(row.actividad_id, { id: meeting.id, title: meeting.title, company: company?.nombre ?? null })
+    topicIds.set(row.actividad_id, row.id)
     visibleMeetingActivities.add(row.actividad_id)
   }
   const tasks = activitiesResult.rows
-    .filter((row) => (row.actividad_responsables ?? []).some(({ usuario_id }) => authorizedAssignees.has(usuario_id)) || visibleMeetingActivities.has(row.id))
-    .map((row) => ({ ...canonical(row), meeting: origins.get(row.id) ?? null }))
+    .filter((row) => (row.actividad_responsables ?? []).some(({ usuario_id }) => authorizedAssignees.has(usuario_id)) ||
+      (row.responsable_id ? authorizedAssignees.has(row.responsable_id) : false) ||
+      row.created_by_id === profileId || row.created_by_id === authUserId ||
+      row.solicitante_id === profileId || visibleMeetingActivities.has(row.id))
+    .map((row) => ({
+      ...canonical(row),
+      meeting: origins.get(row.id) ?? null,
+      topic_id: topicIds.get(row.id) ?? null,
+      related_to_viewer: (row.actividad_responsables ?? []).some(({ usuario_id }) => usuario_id === profileId) ||
+        row.responsable_id === profileId || row.created_by_id === profileId || row.created_by_id === authUserId ||
+        row.solicitante_id === profileId || visibleMeetingActivities.has(row.id),
+    }))
   return { ok: true, data: {
     tasks,
     viewer: { profile_id: profileId, equipo: first(profile.equipos), empresa: first(profile.empresas) },

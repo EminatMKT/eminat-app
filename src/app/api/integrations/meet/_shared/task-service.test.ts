@@ -70,6 +70,7 @@ function activity(over = noOverrides) {
     fecha_entrega: '2026-09-30',
     fecha_requerida: null,
     empresa: 'STRATIX',
+    created_at: '2026-09-18T12:00:00Z',
     updated_at: '2026-09-18T13:00:00Z',
     actividad_responsables: [responsibleRow(ana)],
     ...over,
@@ -313,6 +314,36 @@ describe('Meet task service', () => {
     const result = await listCanonicalTasks(client, owner, assigneeId)
     expect(result.data?.tasks.map((task) => task.id)).toEqual([crossCompanyTask.id])
     expect(result.data?.tasks[0].meeting?.id).toBe('shared-meeting')
+  })
+
+  it('keeps the full historical relationship set and original status and assignee', async () => {
+    const other = '33333333-3333-4333-8333-333333333333'
+    const rows = Array.from({ length: 48 }, (_, index) => activity({
+      id: `historical-${index}`,
+      estado: index === 12 || index === 13 ? 'En proceso' : index === 47 ? 'Por aprobar' : 'Pendiente',
+      created_by_id: index < 47 ? assigneeId : other,
+      solicitante_id: index < 47 ? assigneeId : other,
+      responsable_id: index < 11 ? assigneeId : other,
+      actividad_responsables: [responsibleRow(index < 11 ? ana : { id: other })],
+    }))
+    const links = rows.slice(6).map((row, index) => ({
+      id: `topic-${index}`, actividad_id: row.id,
+      meetings: { id: `meeting-${index % 9}`, title: 'Historical meeting', user_id: owner },
+    }))
+    const { client } = fakeClient({
+      usuarios: [ok({ id: assigneeId }), ok([{ id: assigneeId }, { id: other }])],
+      actividades: [ok(rows)],
+      topics: [ok(links)],
+    })
+    const result = await listCanonicalTasks(client, owner, assigneeId)
+    expect(result.data?.tasks).toHaveLength(48)
+    expect(result.data?.tasks.filter((task) => task.related_to_viewer)).toHaveLength(48)
+    expect(result.data?.tasks.filter((task) => task.estado === 'En proceso')).toHaveLength(2)
+    expect(result.data?.tasks[12]).toMatchObject({
+      id: 'historical-12', estado: 'En proceso', responsable_id: other,
+      created_at: '2026-09-18T12:00:00Z', updated_at: '2026-09-18T13:00:00Z',
+      topic_id: 'topic-6', meeting: { id: 'meeting-6' },
+    })
   })
 
   it('loads Tasks beyond the first database response page', async () => {

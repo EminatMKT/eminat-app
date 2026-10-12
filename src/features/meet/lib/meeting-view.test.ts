@@ -10,10 +10,12 @@ describe('Meet inside LILLY: synthetic Diana equivalent', () => {
     status: index === 0 || index === 8 ? 'finalizada' as const : 'activa' as const,
     company_id: index === 8 ? 'other-company' : 'qa-company',
   }))
-  const tasks = Array.from({ length: 47 }, (_, index) => ({
+  const tasks = Array.from({ length: 48 }, (_, index) => ({
     id: `activity-${index + 1}`,
     responsable_id: index < 11 ? 'qa-profile' : 'other-profile',
-    empresa: index === 46 ? 'OTHER' : 'QA',
+    estado: index === 12 || index === 13 ? 'En proceso' : index === 47 ? 'Por aprobar' : 'Pendiente',
+    related_to_viewer: true,
+    empresa: index === 47 ? 'OTHER' : 'QA',
     equipo: null,
     meeting: { id: meetings[index % 9].id, title: `Meeting ${index % 9}` },
   })) as CanonicalTaskListItem[]
@@ -30,9 +32,11 @@ describe('Meet inside LILLY: synthetic Diana equivalent', () => {
     expect(displayed.finished.some((meeting) => meeting.company_id === 'other-company')).toBe(true)
   })
 
-  it('shows all 47 API-authorized activities by default, including 11 directly assigned', () => {
-    expect(visibleMeetTasks(tasks, 'all', { profileId: 'qa-profile', teamId: null, company: 'QA' }, '')).toHaveLength(47)
+  it('shows all 48 historically related activities, including two in progress assigned elsewhere', () => {
+    expect(visibleMeetTasks(tasks, 'related', { profileId: 'qa-profile', teamId: null, company: 'QA' }, '')).toHaveLength(48)
     expect(visibleMeetTasks(tasks, 'mine', { profileId: 'qa-profile', teamId: null, company: 'QA' }, '')).toHaveLength(11)
+    expect(visibleMeetTasks(tasks, 'related', { profileId: 'qa-profile', teamId: null, company: 'QA' }, '', 'En proceso')).toHaveLength(2)
+    expect(visibleMeetTasks(tasks, 'related', { profileId: 'qa-profile', teamId: null, company: 'QA' }, '', 'Por aprobar')).toHaveLength(1)
   })
 
   it('keeps meetings visible and surfaces the Task API error', async () => {
