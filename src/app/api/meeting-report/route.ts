@@ -13,6 +13,7 @@ import { createHash } from 'node:crypto'
 import { canManageMeeting } from '@/features/meet/lib/notifications/task-command'
 import { buildMeetingReportEmail } from '@/features/meet/lib/email/meeting-report'
 import { getStratixMeetSender } from '@/features/meet/lib/email/sender'
+import { resolveReportRecipients } from '@/features/meet/lib/email/recipients'
 import { meetingModalityLabel, meetingTypeLabel, taskStatusLabel, type Meeting, type MeetingModality, type MeetingType } from '@/features/meet/lib/types'
 import { MODULE } from '@/shared/auth/permissions'
 import { RPCS } from '@/shared/schema'
@@ -53,7 +54,7 @@ function sameCanonicalReport(left: MeetingReportData, right: MeetingReportData) 
   return JSON.stringify(leftContent) === JSON.stringify(rightContent)
 }
 
-async function loadCanonicalTask(request: Request, token: string, activityId: string): Promise<ReportTask | null> {
+async function loadCanonicalTask(request: Request, token: string, activityId: string): Promise<(ReportTask & { responsibleIds: string[] }) | null> {
   const response = await fetch(new URL(`${TASK_API}/tasks/${activityId}`, request.url), {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
@@ -66,22 +67,26 @@ async function loadCanonicalTask(request: Request, token: string, activityId: st
       descripcion: string | null
       estado: string
       fecha_entrega: string | null
-      responsable: { nombre: string } | null
+      responsable: { id: string; nombre: string } | null
+      responsables?: { id: string; nombre: string }[]
       equipo: { nombre: string } | null
       departamento: { nombre: string } | null
     }
   }
   const task = body.task
-  if (!task) return null
+  if (!task || task.id !== activityId) return null
   return {
     id: task.id,
     title: task.titulo,
     description: task.descripcion,
-    responsible: task.responsable?.nombre ?? null,
+    responsible: task.responsables?.length
+      ? task.responsables.map((person) => person.nombre).join(', ')
+      : task.responsable?.nombre ?? null,
     team: task.equipo?.nombre ?? null,
     department: task.departamento?.nombre ?? null,
     dueDate: task.fecha_entrega,
     status: task.estado,
+    responsibleIds: Array.from(new Set([...(task.responsables ?? []).map((person) => person.id), ...(task.responsable ? [task.responsable.id] : [])])),
   }
 }
 
@@ -95,7 +100,7 @@ async function loadReport(request: Request, meetingId: string, locale: 'es' | 'e
   if (permissionError || !hasMeetingsAccess) return { error: 'Sin permiso de Meetings', status: 403 } as const
   const { data: actorProfile } = await client
     .from('usuarios')
-    .select('nombre_display, nombre, apellido')
+    .select('nombre_display, nombre, apellido, email')
     .eq('auth_id', auth.user.id)
     .eq('activo', true)
     .maybeSingle()
@@ -155,22 +160,27 @@ async function loadReport(request: Request, meetingId: string, locale: 'es' | 'e
   ))
   const taskResults = await Promise.all(activityIds.map((activityId) => loadCanonicalTask(request, token, activityId)))
   if (taskResults.some((task) => !task)) {
-    return { error: 'Una o más Tasks vinculadas no están disponibles en StratixCRM', status: 502 } as const
+    return { error: 'Una o más Tasks vinculadas no están disponibles en LILLY', status: 502 } as const
   }
   const inviteePeople = invitees.map(person)
   const attendance = classifyAttendance(inviteePeople, meeting.participants ?? [])
-  const attendeeNames = new Set(attendance.attendees.map((person) => person.name))
-  const attendedProfiles = invitees.filter((profile) => attendeeNames.has(name(profile)))
-  const recipients = attendedProfiles
-    .filter((profile) => typeof profile.email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email))
-    .map((profile) => ({ name: name(profile), email: profile.email as string }))
+  const responsibleIds = Array.from(new Set(taskResults.flatMap((task) => task?.responsibleIds ?? [])))
+  // Resolve only canonical assignee IDs through the caller's RLS; never guess emails by name.
+  const responsibleProfiles = responsibleIds.length
+    ? await client.from('usuarios').select('id, nombre_display, nombre, apellido, email').in('id', responsibleIds)
+    : { data: [], error: null }
+  if (responsibleProfiles.error) return { error: 'No se pudieron resolver los destinatarios responsables.', status: 502 } as const
+  const resolvedIds = new Set((responsibleProfiles.data ?? []).map((profile) => profile.id))
+  if (responsibleIds.some((id) => !resolvedIds.has(id))) {
+    return { error: 'Uno o más responsables no están disponibles para resolver sus correos.', status: 502 } as const
+  }
+  const delivery = resolveReportRecipients([
+    ...invitees.map((profile) => ({ name: name(profile), email: profile.email })),
+    { name: actorName || '—', email: actorProfile.email },
+    ...(responsibleProfiles.data ?? []).map((profile) => ({ name: name(profile as ReportProfile), email: profile.email })),
+  ], locale)
   const omitted = [
-    ...attendedProfiles
-      .filter((profile) => !profile.email)
-      .map((profile) => ({ name: name(profile), reason: locale === 'en' ? 'No email available' : 'Sin correo disponible' })),
-    ...attendedProfiles
-      .filter((profile) => profile.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email))
-      .map((profile) => ({ name: name(profile), reason: locale === 'en' ? 'Invalid email' : 'Correo inválido' })),
+    ...delivery.omitted,
     ...attendance.externalGuests.map((guest) => ({ name: guest.name, reason: locale === 'en' ? 'External attendee without an email profile' : 'Asistente externo sin perfil de correo' })),
   ]
   const report: MeetingReportData = {
@@ -196,7 +206,7 @@ async function loadReport(request: Request, meetingId: string, locale: 'es' | 'e
     attendees: attendance.attendees,
     absentees: attendance.absentees,
     externalGuests: attendance.externalGuests,
-    tasks: (taskResults as ReportTask[]).map((task) => ({ ...task, status: taskStatusLabel(task.status, locale) })),
+    tasks: taskResults.filter((task): task is NonNullable<typeof task> => Boolean(task)).map(({ responsibleIds: _ids, ...task }) => ({ ...task, status: taskStatusLabel(task.status, locale) })),
     nextMeeting: null,
     sections: Object.entries(labels).map(([key, title]) => ({
       title,
@@ -208,9 +218,8 @@ async function loadReport(request: Request, meetingId: string, locale: 'es' | 'e
     client,
     actorId: auth.user.id,
     actorName,
-    recipients: Array.from(new Map(recipients.map((recipient) => [recipient.email.toLowerCase(), recipient])).values()),
+    recipients: delivery.recipients,
     omitted,
-    reportVersion: `${meeting.id}:${meeting.updated_at}`,
   }
 }
 
@@ -231,17 +240,18 @@ export async function POST(request: Request) {
   if ('error' in loaded) {
     return NextResponse.json({ error: loaded.error }, { status: loaded.status })
   }
-  const { data: previousVersions } = await loaded.client
+  const { data: previousVersions, error: previousVersionError } = await loaded.client
     .from('meeting_report_versions')
     .select('id, version, sent_at, snapshot')
     .eq('meeting_id', meetingId)
     .order('version', { ascending: false })
     .limit(10)
+  if (previousVersionError) return NextResponse.json({ error: 'No se pudo consultar la versión del acta.' }, { status: 500 })
   const latestVersion = ((previousVersions?.[0] as { version?: number } | undefined)?.version ?? 0)
   const reusableVersion = action === 'send'
     ? ((previousVersions ?? []) as ReportVersion[]).find((entry) =>
-      !entry.sent_at && entry.snapshot && sameCanonicalReport(entry.snapshot as MeetingReportData, loaded.report)
-    ) as { id: string; version: number; snapshot: MeetingReportData } | undefined
+      entry.snapshot && sameCanonicalReport(entry.snapshot as MeetingReportData, loaded.report)
+    ) as { id: string; version: number; sent_at: string | null; snapshot: MeetingReportData } | undefined
     : undefined
   const reportForDelivery = reusableVersion?.snapshot ?? loaded.report
   const pdf = createMeetingPdf(reportForDelivery)
@@ -273,7 +283,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       error: !apiKey
         ? 'El servicio de correo no está configurado.'
-        : 'No hay asistentes con un correo válido para recibir el acta.',
+        : 'No hay involucrados con un correo válido para recibir el acta.',
       omitted: loaded.omitted,
     }, { status: 422 })
   }
@@ -286,6 +296,18 @@ export async function POST(request: Request) {
   }
   const attachment = Buffer.from(pdf).toString('base64')
   const message = buildMeetingReportEmail(reportForDelivery)
+  // Save the exact PDF snapshot before sending, so partial retries reuse its bytes.
+  let storedVersionId = reusableVersion?.id
+  if (!storedVersionId) {
+    const { data, error } = await loaded.client.from('meeting_report_versions').insert({
+      meeting_id: meetingId, version, generated_by: loaded.actorId,
+      generated_at: new Date().toISOString(), sent_at: null, snapshot: reportForDelivery,
+    }).select('id').maybeSingle()
+    if (error || !data) return NextResponse.json({ error: 'No se pudo registrar la versión del acta antes del envío.' }, { status: 500 })
+    storedVersionId = data.id
+  }
+  // Include the actual message/PDF, not only meetings.updated_at: Topics and Tasks change independently.
+  const deliveryFingerprint = createHash('sha256').update(JSON.stringify({ from, message, attachment })).digest('hex')
   const results = await Promise.allSettled(
     loaded.recipients.map((recipient) => {
       const recipientHash = createHash('sha256')
@@ -305,7 +327,7 @@ export async function POST(request: Request) {
           ],
         },
         {
-          idempotencyKey: `meeting-report/${loaded.reportVersion}/${recipientHash}`,
+          idempotencyKey: `meeting-report/${meetingId}/${deliveryFingerprint}/${recipientHash}`,
         }
       )
     })
@@ -314,29 +336,18 @@ export async function POST(request: Request) {
     const recipient = loaded.recipients[index]
     if (result.status === 'rejected') return { ...recipient, status: 'failed' as const, reason: result.reason instanceof Error ? result.reason.message : 'Resend rechazó la solicitud' }
     if (result.value.error) return { ...recipient, status: 'failed' as const, reason: result.value.error.message }
-    return { ...recipient, status: 'sent' as const }
+    if (!result.value.data?.id) return { ...recipient, status: 'failed' as const, reason: 'El proveedor no devolvió un identificador del correo.' }
+    // "sent" is API acceptance for backwards compatibility, not proof of mailbox delivery.
+    return { ...recipient, status: 'sent' as const, provider_message_id: result.value.data.id }
   })
   const sent = deliveries.filter((delivery) => delivery.status === 'sent')
   const failed = deliveries.filter((delivery) => delivery.status === 'failed')
-  const versionWrite = reusableVersion
-    ? loaded.client
-      .from('meeting_report_versions')
-      .update({ sent_at: sent.length > 0 ? new Date().toISOString() : null })
-      .eq('id', reusableVersion.id)
-      .select('id')
-      .maybeSingle()
-    : loaded.client
-      .from('meeting_report_versions')
-      .insert({
-        meeting_id: meetingId,
-        version,
-        generated_by: loaded.actorId,
-        generated_at: new Date().toISOString(),
-        sent_at: sent.length > 0 ? new Date().toISOString() : null,
-        snapshot: reportForDelivery,
-      })
-      .select('id')
-      .maybeSingle()
+  const versionWrite = loaded.client
+    .from('meeting_report_versions')
+    .update({ sent_at: sent.length > 0 ? new Date().toISOString() : reusableVersion?.sent_at ?? null })
+    .eq('id', storedVersionId)
+    .select('id')
+    .maybeSingle()
   const { data: storedVersion, error: versionError } = await versionWrite
   if (versionError || !storedVersion) {
     return NextResponse.json({ error: 'El envío terminó, pero no se pudo registrar la versión del acta.', deliveries, omitted: loaded.omitted }, { status: 500 })
@@ -349,7 +360,7 @@ export async function POST(request: Request) {
     {
       meeting_id: meetingId, actor_id: loaded.actorId, event_type: 'report_sent',
       summary: `Acta v${version}: ${sent.length} enviada(s), ${failed.length} fallida(s), ${loaded.omitted.length} omitida(s)`,
-      metadata: { version, sent: sent.length, failed, omitted: loaded.omitted, actor_name: loaded.actorName, reused_canonical_pdf: Boolean(reusableVersion) },
+      metadata: { version, sent: sent.length, accepted: sent, failed, omitted: loaded.omitted, delivery_fingerprint: deliveryFingerprint, actor_name: loaded.actorName, reused_canonical_pdf: Boolean(reusableVersion) },
     },
   ]
   const { error: eventError } = await loaded.client.from('meeting_events').insert(events)
