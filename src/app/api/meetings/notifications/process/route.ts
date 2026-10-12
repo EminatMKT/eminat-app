@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { timingSafeEqual } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { processMeetingMail } from '@/features/meet/server/mail-outbox'
+import { reconcileMeetingNotifications } from '@/features/meet/server/mail-reconciliation'
 import { MODULE } from '@/shared/auth/permissions'
 import { RPCS } from '@/shared/schema'
 
@@ -16,7 +17,8 @@ export async function GET(request: Request) {
   if (a.length !== b.length || !timingSafeEqual(a, b)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401, headers })
   try {
     const result = await processMeetingMail()
-    return NextResponse.json(result, { status: result.warning ? 503 : 200, headers })
+    const reconciliation = await reconcileMeetingNotifications()
+    return NextResponse.json({ ...result, reconciliation }, { status: result.warning || reconciliation.warning ? 503 : 200, headers })
   } catch { return NextResponse.json({ error: 'Meeting mail worker unavailable' }, { status: 503, headers }) }
 }
 

@@ -1,14 +1,15 @@
 // Manual, controlled QA only. No Supabase connection, Production CRUD or deployment.
-// Requires MEETINGS_QA_RESEND_API_KEY and exactly four designated controlled QA mailboxes.
+// Reuses the existing RESEND_API_KEY; never creates a key or account.
 import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { resolve, dirname } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { createHash } from 'node:crypto'
 const emails=(process.env.MEETINGS_QA_RECIPIENTS??'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean)
-if (!process.env.MEETINGS_QA_RESEND_API_KEY || !process.env.PGLITE_MODULE || emails.length!==4 || new Set(emails).size!==4 ||
+const existingKey=process.env.RESEND_API_KEY || process.env.MEETINGS_QA_RESEND_API_KEY
+if (!existingKey || !process.env.PGLITE_MODULE || emails.length!==4 || new Set(emails).size!==4 ||
  emails.some(x=>!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x)) || process.env.MEETINGS_QA_ENABLE_LIVE!=='true') {
- console.error('BLOCKED: controlled QA key, four verified mailboxes, isolated PGlite and explicit live-QA flag required')
+ console.error('BLOCKED: existing Resend key access, four verified QA mailboxes, isolated PGlite and explicit live-QA flag required')
  process.exit(2)
 }
 const require=createRequire(resolve('package.json'))
@@ -54,8 +55,8 @@ const adapter={rpc:async(name,args)=>{
  } catch(error){return {data:null,error:{message:error.message}}}
 }}
 process.env.MEETINGS_MAIL_MODE='qa'
-process.env.RESEND_API_KEY=process.env.MEETINGS_QA_RESEND_API_KEY
-const client=new Resend(process.env.MEETINGS_QA_RESEND_API_KEY)
+process.env.RESEND_API_KEY=existingKey
+const client=new Resend(existingKey)
 let sendCalls=0
 const provider={send:async(message,options)=>{await delay(600);sendCalls++;return client.emails.send(message,options)}}
 const outbox=await load('src/features/meet/server/mail-outbox.ts')

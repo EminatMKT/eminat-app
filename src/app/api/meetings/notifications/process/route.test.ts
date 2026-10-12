@@ -2,6 +2,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { GET, POST } from './route'
 const mock = vi.hoisted(() => ({ process: vi.fn(), owner: 'actor', permission: true, active: true, signed: true }))
 vi.mock('@/features/meet/server/mail-outbox', () => ({ processMeetingMail: mock.process }))
+vi.mock('@/features/meet/server/mail-reconciliation', () => ({ reconcileMeetingNotifications: async () => ({ warning: null, checked: 0 }) }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: () => ({
   auth: { getUser: async () => ({ data: { user: mock.signed ? { id: 'actor' } : null }, error: null }) },
   rpc: async () => ({ data: mock.permission, error: null }),
