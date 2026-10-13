@@ -8,7 +8,7 @@ import s from './profile.module.css'
 export default function ProfileEditor({ onClose }: { onClose: () => void }) {
   const { usuario, setUsuario, setUsuarios, empresas, roles } = useApp()
   const [selected, setSelected] = useState<AvatarKey | null>(normalizeAvatarKey(usuario?.avatar_key))
-  const [birthDate, setBirthDate] = useState<string | null>(null)
+  const [birthday, setBirthday] = useState<{ cumple_mes: number | null; cumple_dia: number | null; cumple_confirmado: boolean } | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
@@ -19,9 +19,9 @@ export default function ProfileEditor({ onClose }: { onClose: () => void }) {
     fetch('/api/profile', { cache: 'no-store' })
       .then(async response => {
         if (!response.ok) throw new Error('No se pudo cargar el perfil')
-        return response.json() as Promise<{ profile: { fecha_nacimiento: string | null } }>
+        return response.json() as Promise<{ profile: { cumple_mes: number | null; cumple_dia: number | null; cumple_confirmado: boolean } }>
       })
-      .then(data => setBirthDate(data.profile.fecha_nacimiento))
+      .then(data => setBirthday(data.profile))
       .catch(() => setError('La fecha de nacimiento no está disponible por ahora.'))
   }, [])
 
@@ -59,7 +59,7 @@ export default function ProfileEditor({ onClose }: { onClose: () => void }) {
         <AvatarArt avatarKey={avatar.key} size={82} /><span>{avatar.label}</span>
       </button>)}
     </div>
-    <div className={s.privateField}><strong>Cumpleaños</strong><span>{birthDate || 'No registrado'}</span><small>Este dato lo administra el equipo autorizado.</small></div>
+    <div className={s.privateField}><strong>Cumpleaños</strong><span>{birthday?.cumple_mes && birthday.cumple_dia ? `${birthday.cumple_dia} de ${new Intl.DateTimeFormat('es', { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2000, birthday.cumple_mes - 1, 1)))}${birthday.cumple_confirmado ? '' : ' · pendiente de confirmar'}` : 'No registrado'}</span><small>Este dato lo administra el equipo autorizado.</small></div>
     {error && <p className={s.error} role="alert">{error}</p>}
     {saved && <p className={s.success} role="status">Avatar actualizado. Ya aparece en tu perfil y en Directory.</p>}
   </Modal>

@@ -28,7 +28,10 @@ export default function EditUserModal({ user, onClose }: { user: EditUserDraft; 
   const [scopesLoading, setScopesLoading] = useState(true)
   const [scopesLoaded, setScopesLoaded] = useState(false)
   const [scopesSaving, setScopesSaving] = useState(false)
-  const [birthDate, setBirthDate] = useState('')
+  const [birthMonth, setBirthMonth] = useState('')
+  const [birthDay, setBirthDay] = useState('')
+  const [birthYear, setBirthYear] = useState('')
+  const [birthdayConfirmed, setBirthdayConfirmed] = useState(false)
   const [birthdaySaving, setBirthdaySaving] = useState(false)
   const [birthdayLoaded, setBirthdayLoaded] = useState(false)
 
@@ -37,9 +40,9 @@ export default function EditUserModal({ user, onClose }: { user: EditUserDraft; 
     fetch(`/api/admin/user-birthday/${user.id}`, { cache: 'no-store' })
       .then(async response => {
         if (!response.ok) throw new Error('No se pudo cargar el cumpleaños')
-        return response.json() as Promise<{ fecha_nacimiento: string | null }>
+        return response.json() as Promise<{ cumple_mes: number | null; cumple_dia: number | null; anio_nacimiento: number | null; cumple_confirmado: boolean }>
       })
-      .then(data => { if (active) { setBirthDate(data.fecha_nacimiento || ''); setBirthdayLoaded(true) } })
+      .then(data => { if (active) { setBirthMonth(data.cumple_mes?.toString() || ''); setBirthDay(data.cumple_dia?.toString() || ''); setBirthYear(data.anio_nacimiento?.toString() || ''); setBirthdayConfirmed(data.cumple_confirmado); setBirthdayLoaded(true) } })
       .catch(error => { if (active) setEditError(error.message) })
     return () => { active = false }
   }, [user.id])
@@ -49,7 +52,10 @@ export default function EditUserModal({ user, onClose }: { user: EditUserDraft; 
     try {
       const response = await fetch(`/api/admin/user-birthday/${user.id}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fecha_nacimiento: birthDate || null }),
+        body: JSON.stringify({ cumple_mes: birthMonth ? Number(birthMonth) : null,
+          cumple_dia: birthDay ? Number(birthDay) : null,
+          anio_nacimiento: birthYear ? Number(birthYear) : null,
+          cumple_confirmado: birthdayConfirmed }),
       })
       if (!response.ok) throw new Error('No se pudo guardar el cumpleaños')
       mostrarMensaje('ok', 'Cumpleaños guardado')
@@ -172,11 +178,16 @@ export default function EditUserModal({ user, onClose }: { user: EditUserDraft; 
         <CatalogSelect labelKey="common.equipo" value={form.equipo_id} rows={equipos} onChange={id => setForm(p => ({ ...p, equipo_id: id }))} />
         <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t('common.location')}</label><input type="text" value={form.ubicacion} onChange={e => setForm(p => ({ ...p, ubicacion: e.target.value }))} style={inputStyle} /></div>
         <div style={{ marginBottom: 16 }}>
-          <label htmlFor="admin-user-birthday" style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Fecha de nacimiento · solo admin</label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input id="admin-user-birthday" type="date" value={birthDate} max={new Date().toISOString().slice(0, 10)} disabled={!birthdayLoaded || birthdaySaving} onChange={event => setBirthDate(event.target.value)} style={inputStyle} />
-            <button type="button" disabled={!birthdayLoaded || birthdaySaving} onClick={guardarCumpleanos} style={{ border: `1px solid ${border}`, borderRadius: 8, background: s2, color: t2, padding: '0 12px', cursor: 'pointer' }}>Guardar fecha</button>
+          <label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Cumpleaños · dato privado, solo Admin</label>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <select aria-label="Mes de cumpleaños" value={birthMonth} disabled={!birthdayLoaded || birthdaySaving} onChange={event => setBirthMonth(event.target.value)} style={inputStyle}>
+              <option value="">Mes</option>{Array.from({ length: 12 }, (_, index) => <option key={index} value={index + 1}>{new Intl.DateTimeFormat('es', { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2000, index, 1)))}</option>)}
+            </select>
+            <input aria-label="Día de cumpleaños" type="number" min="1" max="31" placeholder="Día" value={birthDay} disabled={!birthdayLoaded || birthdaySaving} onChange={event => setBirthDay(event.target.value)} style={{ ...inputStyle, width: 75 }} />
+            <input aria-label="Año de nacimiento opcional" type="number" min="1800" max={new Date().getFullYear()} placeholder="Año (opcional)" value={birthYear} disabled={!birthdayLoaded || birthdaySaving} onChange={event => setBirthYear(event.target.value)} style={{ ...inputStyle, width: 130 }} />
           </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '8px 0', fontSize: 11, color: t2 }}><input type="checkbox" checked={birthdayConfirmed} disabled={!birthdayLoaded || birthdaySaving} onChange={event => setBirthdayConfirmed(event.target.checked)} /> Fecha confirmada para felicitación automática</label>
+          <button type="button" disabled={!birthdayLoaded || birthdaySaving} onClick={guardarCumpleanos} style={{ border: `1px solid ${border}`, borderRadius: 8, background: s2, color: t2, padding: '8px 12px', cursor: 'pointer' }}>Guardar cumpleaños</button>
         </div>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, color: t2, fontSize: 12 }}>
           <input type="checkbox" checked={form.directorio_visible} onChange={event => setForm(previous => ({ ...previous, directorio_visible: event.target.checked }))} />
