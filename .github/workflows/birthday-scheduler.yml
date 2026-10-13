@@ -1,0 +1,26 @@
+name: Directory birthday scheduler
+on:
+  schedule:
+    # 08:07 America/Guayaquil (UTC-5); GitHub schedule is best effort.
+    - cron: '7 13 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: directory-birthday-production
+  cancel-in-progress: false
+jobs:
+  tick:
+    if: github.ref == 'refs/heads/main' && vars.BIRTHDAY_SCHEDULER_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node --test scripts/qa/birthday-scheduler.checks.mjs
+      - name: Invoke LILLY birthday worker once
+        env:
+          BIRTHDAY_SCHEDULER_ENABLED: ${{ vars.BIRTHDAY_SCHEDULER_ENABLED }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: node scripts/qa/birthday-scheduler.mjs

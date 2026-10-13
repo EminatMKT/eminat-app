@@ -16,9 +16,11 @@ export async function GET() {
   const { client, profile, status } = await ownProfile()
   if (!profile) return NextResponse.json({ error: 'Perfil no disponible' }, { status })
   const { data, error } = await client.from('usuario_perfil_privado')
-    .select('fecha_nacimiento').eq('usuario_id', profile.id).maybeSingle()
+    .select('cumple_mes,cumple_dia,anio_nacimiento,cumple_confirmado').eq('usuario_id', profile.id).maybeSingle()
   if (error) return NextResponse.json({ error: 'No se pudo cargar el perfil' }, { status: 500 })
-  return NextResponse.json({ profile: { ...profile, fecha_nacimiento: data?.fecha_nacimiento ?? null } })
+  return NextResponse.json({ profile: { ...profile, cumple_mes: data?.cumple_mes ?? null,
+    cumple_dia: data?.cumple_dia ?? null, anio_nacimiento: data?.anio_nacimiento ?? null,
+    cumple_confirmado: data?.cumple_confirmado ?? false } })
 }
 
 export async function PATCH(request: NextRequest) {
