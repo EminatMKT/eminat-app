@@ -40,13 +40,13 @@ export default function Sidebar({ activeTab, onTabChange, mobileOpen, setMobileO
   return (
     <aside className={`sidebar-root${mobileOpen ? ' open' : ''}`} style={{ display: 'flex', flexShrink: 0, height: '100vh', position: 'relative', zIndex: 50 }}>
       {/* RAIL de íconos */}
-      <div style={{ width: 62, background: D.s1, borderRight: `1px solid ${D.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 12 }}>
+      <div style={{ width: 112, background: D.s1, borderRight: `1px solid ${D.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 12 }}>
         <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '0 4px', width: '100%' }}>
           {sidebarIcons.map(item => (
             <RailButton key={item.key} tourKey={item.key} icon={item.icon} label={item.label} active={activeIconKey === item.key} onClick={() => { item.action(); setMobileOpen(false) }} />
           ))}
         </nav>
-        <div style={{ padding: '10px 0 12px', borderTop: `1px solid ${D.border}`, width: '100%', display: 'flex', justifyContent: 'center' }}>
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
           <RailProfile />
         </div>
       </div>

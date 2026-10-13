@@ -77,7 +77,7 @@ export function useAppData() {
   }), [setOrg])
 
   return {
-    usuario, sessionError, actividades, setActividades, equipo, usuarios, setUsuarios,
+    usuario, setUsuario, sessionError, actividades, setActividades, equipo, usuarios, setUsuarios,
     loading, horaActual, onlineCount,
     mensaje, notificaciones, setNotificaciones, notifAbiertas, setNotifAbiertas,
     adminUsuarios, setAdminUsuarios, mostrarMensaje, handleLogout,

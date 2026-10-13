@@ -16,7 +16,7 @@ import ErrorBlock from './ErrorBlock'
 // `tipo` y `cargoIds` (selección N:N, se persiste en usuario_cargos).
 export type EditUserDraft = Required<
   Pick<Usuario, 'id' | 'nombre' | 'apellido' | 'email' | 'rol' | 'color' | 'ubicacion' | 'empresa_id' | 'jornada_id' | 'vinculacion_id' | 'equipo_id'>
-> & { currentEmail: string; cargoIds: string[] }
+> & { currentEmail: string; cargoIds: string[]; directorio_visible: boolean }
 
 export default function EditUserModal({ user, onClose }: { user: EditUserDraft; onClose: () => void }) {
   const { setAdminUsuarios, mostrarMensaje, border, s2, t2, t3, accent, inputStyle, roles, roleModuleMap, empresas, jornadas, vinculaciones, equipos } = useApp()
@@ -28,6 +28,35 @@ export default function EditUserModal({ user, onClose }: { user: EditUserDraft; 
   const [scopesLoading, setScopesLoading] = useState(true)
   const [scopesLoaded, setScopesLoaded] = useState(false)
   const [scopesSaving, setScopesSaving] = useState(false)
+  const [birthDate, setBirthDate] = useState('')
+  const [birthdaySaving, setBirthdaySaving] = useState(false)
+  const [birthdayLoaded, setBirthdayLoaded] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    fetch(`/api/admin/user-birthday/${user.id}`, { cache: 'no-store' })
+      .then(async response => {
+        if (!response.ok) throw new Error('No se pudo cargar el cumpleaños')
+        return response.json() as Promise<{ fecha_nacimiento: string | null }>
+      })
+      .then(data => { if (active) { setBirthDate(data.fecha_nacimiento || ''); setBirthdayLoaded(true) } })
+      .catch(error => { if (active) setEditError(error.message) })
+    return () => { active = false }
+  }, [user.id])
+
+  async function guardarCumpleanos() {
+    setBirthdaySaving(true); setEditError(null)
+    try {
+      const response = await fetch(`/api/admin/user-birthday/${user.id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fecha_nacimiento: birthDate || null }),
+      })
+      if (!response.ok) throw new Error('No se pudo guardar el cumpleaños')
+      mostrarMensaje('ok', 'Cumpleaños guardado')
+    } catch (error) {
+      setEditError(error instanceof Error ? error.message : 'No se pudo guardar el cumpleaños')
+    } finally { setBirthdaySaving(false) }
+  }
 
   useEffect(() => {
     let active = true
@@ -70,6 +99,7 @@ export default function EditUserModal({ user, onClose }: { user: EditUserDraft; 
         empresa_id: form.empresa_id, jornada_id: form.jornada_id,
         vinculacion_id: form.vinculacion_id, equipo_id: form.equipo_id,
         cargoIds: form.cargoIds,
+        directorio_visible: form.directorio_visible,
       })
       if (!res.ok) { setEditError(result.error || t('admin.edit.failed')); setGuardando(false); return }
       setAdminUsuarios(prev => prev.map(u => u.id === form.id ? { ...u, ...result.user } : u))
@@ -141,6 +171,17 @@ export default function EditUserModal({ user, onClose }: { user: EditUserDraft; 
             asignable en Stratix y no había forma de arreglarlo desde el panel. */}
         <CatalogSelect labelKey="common.equipo" value={form.equipo_id} rows={equipos} onChange={id => setForm(p => ({ ...p, equipo_id: id }))} />
         <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>{t('common.location')}</label><input type="text" value={form.ubicacion} onChange={e => setForm(p => ({ ...p, ubicacion: e.target.value }))} style={inputStyle} /></div>
+        <div style={{ marginBottom: 16 }}>
+          <label htmlFor="admin-user-birthday" style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Fecha de nacimiento · solo admin</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input id="admin-user-birthday" type="date" value={birthDate} max={new Date().toISOString().slice(0, 10)} disabled={!birthdayLoaded || birthdaySaving} onChange={event => setBirthDate(event.target.value)} style={inputStyle} />
+            <button type="button" disabled={!birthdayLoaded || birthdaySaving} onClick={guardarCumpleanos} style={{ border: `1px solid ${border}`, borderRadius: 8, background: s2, color: t2, padding: '0 12px', cursor: 'pointer' }}>Guardar fecha</button>
+          </div>
+        </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, color: t2, fontSize: 12 }}>
+          <input type="checkbox" checked={form.directorio_visible} onChange={event => setForm(previous => ({ ...previous, directorio_visible: event.target.checked }))} />
+          Mostrar como persona en Directory
+        </label>
         <div style={{ marginBottom: 20 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 8 }}>{t('common.avatarColor')}</label><div style={{ display: 'flex', gap: 8 }}>{COLORES_AVATAR.map(c => <div key={c} onClick={() => setForm(p => ({ ...p, color: c }))} style={{ width: 24, height: 24, borderRadius: '50%', background: c, cursor: 'pointer', border: form.color === c ? '3px solid white' : '2px solid transparent', boxSizing: 'border-box' }} />)}</div></div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>{t('common.cancel')}</button>

@@ -1,12 +1,12 @@
-// Forma de un miembro del directorio (ver DIRECTORIO_DATA en shared/context/AppContext).
 export type Member = {
+  id: string
   nombre: string
-  nickname?: string
   cargo: string
   email: string
   ubicacion: string
-  credenciales?: string
   departamento: string
   empresa: string
+  empresaId: string
   color: string
+  avatarKey: string | null
 }

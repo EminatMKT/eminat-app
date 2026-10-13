@@ -8,7 +8,6 @@ const fakes = vi.hoisted(() => {
     setAdminUsuarios: vi.fn(),
     mostrarMensaje: vi.fn(),
     apiPost: vi.fn(),
-    validar: vi.fn(),
   }
   return fake
 })
@@ -16,7 +15,6 @@ vi.mock('@/shared/context/AppContext', () => ({
   useApp: () => ({ setAdminUsuarios: fakes.setAdminUsuarios, mostrarMensaje: fakes.mostrarMensaje }),
 }))
 vi.mock('@/shared/utils/api', () => ({ apiPost: fakes.apiPost }))
-vi.mock('@/shared/data', () => ({ usuariosRepo: { validar: fakes.validar } }))
 vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key }) }))
 
 import useUserActions from '.'
@@ -66,8 +64,9 @@ describe('useUserActions', () => {
     expect(fakes.mostrarMensaje).toHaveBeenCalledWith('error', 'offline')
   })
   it('validateUser validates and activates the row', async () => {
+    fakes.apiPost.mockResolvedValue(answer(true))
     await useUserActions().validateUser(ANA.id)
-    expect(fakes.validar).toHaveBeenCalledWith(ANA.id)
+    expect(fakes.apiPost).toHaveBeenCalledWith(UPDATE_URL, { id: ANA.id, validado: true, activo: true })
     expect(patched()[0]).toMatchObject({ validado: true, activo: true })
   })
 })
