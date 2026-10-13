@@ -4,8 +4,8 @@ export const AVATARS = [
   { key: 'dog', label: 'Tokyo', animal: 'Perrito', background: '#F3E4D1', face: '#D69D70' },
   { key: 'cat', label: 'Berlín', animal: 'Gatito', background: '#EAE3F6', face: '#A899C7' },
   { key: 'capybara', label: 'Quito', animal: 'Capibara', background: '#E4E9D9', face: '#AD8768' },
-  // Keep the stored key so existing avatars continue to work; the drawing is now an eagle.
-  { key: 'bird', label: 'París', animal: 'Águila', background: '#DCECF4', face: '#F8F5EA' },
+  // Keep the stored key so existing avatars continue to work.
+  { key: 'bird', label: 'París', animal: 'Corazón kawaii', background: '#FFE8EF', face: '#FF5B75' },
   { key: 'bear', label: 'Roma', animal: 'Oso', background: '#F1E5DB', face: '#AB846F' },
 ] as const
 
@@ -52,11 +52,15 @@ export default function AvatarArt({ avatarKey, size = 56, style }: {
       <ellipse cx="50" cy="62" rx="5" ry="3.5" fill={outline} />
     </>}
     {key === 'bird' && <>
-      <path d="M24 54 Q13 65 19 78 L36 69 M76 54 Q87 65 81 78 L64 69" fill="#916A4B" />
-      <ellipse cx="50" cy="58" rx="29" ry="31" fill="#795B43" />
-      <path d="M30 49 Q28 21 50 20 Q72 21 70 49 L64 70 Q50 82 36 70Z" fill={face} />
-      <path d="M32 42 45 48 M68 42 55 48" stroke="#695646" strokeWidth="3" strokeLinecap="round" />
-      <path d="M43 60 50 76 57 60Z" fill="#E5A33E" />
+      <path d="M50 82C39 73 16 60 16 40c0-12 9-21 21-21 6 0 11 3 13 8 3-5 8-8 14-8 12 0 21 9 21 21 0 20-23 33-35 42Z" fill={face} />
+      <path d="M25 34c2-5 6-8 11-8" fill="none" stroke="#fff" strokeWidth="4" strokeLinecap="round" opacity=".5" />
+      <circle cx="39" cy="48" r="3.5" fill="#392B3A" />
+      <circle cx="61" cy="48" r="3.5" fill="#392B3A" />
+      <circle cx="40" cy="47" r="1" fill="#fff" />
+      <circle cx="62" cy="47" r="1" fill="#fff" />
+      <ellipse cx="30" cy="56" rx="5" ry="2.5" fill="#FFADC0" />
+      <ellipse cx="70" cy="56" rx="5" ry="2.5" fill="#FFADC0" />
+      <path d="M43 59q7 8 14 0" fill="none" stroke="#392B3A" strokeWidth="2.5" strokeLinecap="round" />
     </>}
     {key === 'bear' && <>
       <circle cx="27" cy="32" r="12" fill={face} /><circle cx="73" cy="32" r="12" fill={face} />
@@ -65,10 +69,7 @@ export default function AvatarArt({ avatarKey, size = 56, style }: {
       <ellipse cx="50" cy="66" rx="13" ry="11" fill="#E5CABB" />
       <ellipse cx="50" cy="62" rx="4.5" ry="3" fill={outline} />
     </>}
-    {key === 'bird' ? <>
-      <circle cx="41" cy="53" r="2.7" fill={outline} />
-      <circle cx="59" cy="53" r="2.7" fill={outline} />
-    </> : <>
+    {key !== 'bird' && <>
       <circle cx="39" cy="54" r="2.7" fill={outline} />
       <circle cx="61" cy="54" r="2.7" fill={outline} />
     </>}
