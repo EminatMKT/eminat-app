@@ -13,4 +13,4 @@ After the migration, merge, deployment, and verification, set repository variabl
 
 ## Data still requiring confirmation
 
-The audit found 43 active users; 38 currently visible in Directory and five legacy test/service accounts hidden by the Directory rule. Across active users, four lack company, seven lack a cargo assignment, and ten lack a team (which may legitimately be optional). Only eight birthdays were supplied and confirmed. Do not fill other profiles or birthdays from assumptions.
+The audit found 43 active users; 38 currently visible in Directory and five legacy test/service accounts hidden by the Directory rule. Across active users, four lack company, seven lack a cargo assignment, and ten lack a team (which may legitimately be optional). Location data also needs confirmation: one profile says “Ubicación desconocida,” two say only “Miami,” and three say “Nueva, Ecuador.” Only eight birthdays were supplied and confirmed. Do not fill other profiles or birthdays from assumptions.
