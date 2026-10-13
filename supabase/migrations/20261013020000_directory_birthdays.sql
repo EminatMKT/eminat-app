@@ -43,15 +43,19 @@ GRANT ALL ON public.usuario_cumpleanos_envios TO service_role;
 -- Only the eight dates explicitly confirmed by the Directory owner. These
 -- inserts do not touch public.usuarios or its updated_at trigger.
 INSERT INTO public.usuario_perfil_privado (usuario_id, cumple_mes, cumple_dia, cumple_confirmado)
-VALUES
-  ('425d057f-d76f-44ad-a368-29e913498427', 2, 19, true), -- Tasha
-  ('f567c0b0-1e5d-46c8-ab57-230576a2b6b0', 3, 7, true), -- Bryan
-  ('e73fedf1-437b-462d-90f0-34bc2b9fc319', 6, 17, true), -- Naomi
-  ('cab67a3e-4fc0-45d4-bc75-bbe158a6a435', 7, 2, true), -- David
-  ('c6409c32-b71b-47bc-bafe-5fe4a549ee3d', 8, 29, true), -- Joselyne
-  ('4ceef186-6264-47c4-b38c-cc3946954777', 9, 16, true), -- Wagner
-  ('2344e112-76ef-42a8-ac56-7c488084e0f5', 10, 31, true), -- Freddy
-  ('0f9e34b8-a4d5-4c40-9e16-cac08fce885f', 11, 12, true) -- Angie
+SELECT confirmed.usuario_id, confirmed.cumple_mes, confirmed.cumple_dia, true
+FROM (VALUES
+  ('425d057f-d76f-44ad-a368-29e913498427'::uuid, 2, 19), -- Tasha
+  ('f567c0b0-1e5d-46c8-ab57-230576a2b6b0'::uuid, 3, 7), -- Bryan
+  ('e73fedf1-437b-462d-90f0-34bc2b9fc319'::uuid, 6, 17), -- Naomi
+  ('cab67a3e-4fc0-45d4-bc75-bbe158a6a435'::uuid, 7, 2), -- David
+  ('c6409c32-b71b-47bc-bafe-5fe4a549ee3d'::uuid, 8, 29), -- Joselyne
+  ('4ceef186-6264-47c4-b38c-cc3946954777'::uuid, 9, 16), -- Wagner
+  ('2344e112-76ef-42a8-ac56-7c488084e0f5'::uuid, 10, 31), -- Freddy
+  ('0f9e34b8-a4d5-4c40-9e16-cac08fce885f'::uuid, 11, 12) -- Angie
+) AS confirmed(usuario_id, cumple_mes, cumple_dia)
+JOIN public.usuarios u ON u.id = confirmed.usuario_id AND u.activo = true
+WHERE true
 ON CONFLICT (usuario_id) DO UPDATE SET
   cumple_mes = EXCLUDED.cumple_mes,
   cumple_dia = EXCLUDED.cumple_dia,
