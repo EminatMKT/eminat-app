@@ -2,6 +2,15 @@ import type { PanelKey, SubItem } from './tipos'
 
 // Sub-tabs de los módulos con panel secundario.
 export const SUB_ITEMS: Record<PanelKey, SubItem[]> = {
+  sales: [
+    { id: 'sales-dashboard', icon: '📊', label: 'Dashboard', tab: 'dashboard' },
+    { id: 'sales-leads', icon: '👥', label: 'Leads', tab: 'leads' },
+    { id: 'sales-contacts', icon: '📇', label: 'Contacts', tab: 'contacts' },
+    { id: 'sales-accounts', icon: '🏢', label: 'Accounts', tab: 'accounts' },
+    { id: 'sales-opportunities', icon: '🎯', label: 'Opportunities', tab: 'opportunities' },
+    { id: 'sales-pipeline', icon: '🛤️', label: 'Pipeline', tab: 'pipeline' },
+    { id: 'sales-activities', icon: '🗓️', label: 'Activities', tab: 'activities' },
+  ],
   // Las secciones de tareas; Projects se agrega al workspace sin alterar las vistas existentes.
   tasks: [
     { id: 'tasks-dash', icon: '📊', label: 'Dashboard', tab: 'overview' },

@@ -13,7 +13,7 @@ export type SubItem = {
 }
 
 /** Which sidebar panel is open. */
-export type PanelKey = 'tasks' | 'mkt' | 'medical' | 'research' | 'admin' | 'billing'
+export type PanelKey = 'tasks' | 'mkt' | 'medical' | 'research' | 'admin' | 'billing' | 'sales'
 
 // The two shapes `SidebarPanel` reads to draw itself: which panels exist (`PanelKey`) and what
 // each one's sub-items look like (`SubItem`). No behavior lives here — the data that uses these
