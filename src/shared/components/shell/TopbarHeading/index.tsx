@@ -1,31 +1,26 @@
 'use client'
-import { usePathname } from 'next/navigation'
 import { useApp } from '@/shared/context/AppContext'
-import { modulePath, ROUTES } from '@/shared/auth/permissions'
 import WorldClocks from '@/shared/components/shell/WorldClocks'
 import TopbarDate from '@/shared/components/shell/TopbarDate'
 import TopbarLayout from '@/shared/components/shell/TopbarLayout'
-import { NAV, AUTO_TITLE } from '@/shared/components/shell/appShellConfig'
+import s from './index.module.css'
 
 type Props = {
-  /** The page's own title. Without it, the one derived from the route. */
+  /** The page title remains available as a hover hint. */
   title?: string
 }
 
 export default function TopbarHeading({ title }: Props) {
-  const { usuario } = useApp()
-  const pathname = usePathname()
-
-  // The page's explicit title, or one derived from the route (AUTO_TITLE by slug).
-  const activeNav = NAV.find(i => pathname.startsWith(modulePath(i.slug)))
-  const autoTitle = pathname === ROUTES.home
-    ? `Eminat Group — Welcome, ${usuario?.nombre}`
-    : (activeNav && AUTO_TITLE[activeNav.slug]) || 'Stratix'
+  const { usuario, empresas } = useApp()
+  const company = empresas.find(item => item.id === usuario?.empresa_id)?.nombre?.trim() || 'Organization'
+  const firstName = usuario?.nombre?.trim().split(/\s+/)[0] || usuario?.apellido?.trim() || ''
 
   return (
-    <TopbarLayout part="heading">
-      <TopbarLayout part="title">{title || autoTitle}</TopbarLayout>
+    <TopbarLayout part="heading" title={title}>
+      <TopbarLayout part="title">LILLY</TopbarLayout>
+      <div className={s.signature}>Powered by Stratix Communications.</div>
       <TopbarLayout part="meta">
+        <span className={s.welcome}>{company} — Welcome{firstName ? `, ${firstName}` : ''}</span>
         <TopbarDate />
         <WorldClocks />
       </TopbarLayout>
