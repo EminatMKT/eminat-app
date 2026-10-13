@@ -17,14 +17,11 @@ CREATE OR REPLACE FUNCTION public.has_module(p_slug text) RETURNS boolean
 $$;
 
 ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS avatar_key text;
-ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS directorio_visible boolean NOT NULL DEFAULT false;
--- Existing named staff are visible by default. Known shared/test accounts remain
--- hidden; future accounts require an explicit admin choice before appearing.
-UPDATE public.usuarios SET directorio_visible = true
-WHERE lower(email) NOT IN (
-  'e2e-meet-tasks@stratixsolutions.us', 'prueba@emc.health',
-  'video@stratix360.com', 'design@stratix360.com', 'marketing@eminat.net'
-);
+-- Existing rows remain NULL: Directory resolves their legacy visibility without
+-- touching usuarios or firing its updated_at trigger. New rows default to hidden
+-- until an admin explicitly makes them visible.
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS directorio_visible boolean;
+ALTER TABLE public.usuarios ALTER COLUMN directorio_visible SET DEFAULT false;
 ALTER TABLE public.usuarios DROP CONSTRAINT IF EXISTS usuarios_avatar_key_check;
 ALTER TABLE public.usuarios ADD CONSTRAINT usuarios_avatar_key_check
   CHECK (avatar_key IS NULL OR avatar_key IN ('dog', 'cat', 'capybara', 'bird', 'lizard', 'bear', 'seal'));

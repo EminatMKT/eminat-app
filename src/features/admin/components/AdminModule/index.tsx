@@ -22,6 +22,7 @@ import { cargoIdsOf, isOrgCat, ORG_CATS, type OrgCat } from '@/features/admin/or
 import type { AdminUser, ResetTarget } from '@/features/admin/types'
 import { useUserPreference } from '@/shared/hooks/useUserPreference'
 import { oneOf } from '@/shared/hooks/usePersistedState'
+import { isVisibleInDirectory } from '@/shared/utils/directoryVisibility'
 
 // Convención de navegación del shell (ver appShellConfig): el sidebar lista las
 // SECCIONES (Usuarios · Organización) y la barra horizontal solo las sub-vistas
@@ -50,7 +51,7 @@ export default function AdminModule() {
     empresa_id: u.empresa_id ?? null, jornada_id: u.jornada_id ?? null,
     vinculacion_id: u.vinculacion_id ?? null, equipo_id: u.equipo_id ?? null,
     cargoIds: cargoIdsOf(u),
-    directorio_visible: u.directorio_visible ?? false,
+    directorio_visible: isVisibleInDirectory(u),
   })
 
   const crearBtn = <Button kind="new" label={t('admin.newUser')} onClick={() => setModalCrear(true)} />

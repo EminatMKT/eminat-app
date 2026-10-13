@@ -25,7 +25,7 @@ export interface Usuario {
   apellido?: string
   color?: string
   avatar_key?: string | null
-  directorio_visible?: boolean
+  directorio_visible?: boolean | null
   ubicacion?: string
   email?: string
   empresa_id?: string | null
