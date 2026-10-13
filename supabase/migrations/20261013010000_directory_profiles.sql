@@ -1,4 +1,21 @@
 -- Public avatar choice and private birth date for real Directory users.
+-- A retired user may still hold an unexpired Auth session. Make membership and
+-- module checks require an active usuarios row, so RLS also revokes data access.
+CREATE OR REPLACE FUNCTION public.es_personal() RETURNS boolean
+  LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $$
+  SELECT EXISTS (SELECT 1 FROM public.usuarios u
+    WHERE u.auth_id = auth.uid() AND u.activo = true);
+$$;
+
+CREATE OR REPLACE FUNCTION public.has_module(p_slug text) RETURNS boolean
+  LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $$
+  SELECT public.is_admin() OR EXISTS (
+    SELECT 1 FROM public.usuarios u
+    JOIN public.role_modules rm ON rm.role_key = u.rol
+    WHERE u.auth_id = auth.uid() AND u.activo = true AND rm.module_slug = p_slug
+  );
+$$;
+
 ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS avatar_key text;
 ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS directorio_visible boolean NOT NULL DEFAULT false;
 -- Existing named staff are visible by default. Known shared/test accounts remain
@@ -19,6 +36,10 @@ GRANT UPDATE (avatar_key, online_at, ubicacion) ON public.usuarios TO authentica
 -- Defensive cleanup in case an older installation retained the legacy
 -- all-operations policy. Admin writes use service_role routes.
 DROP POLICY IF EXISTS "superadmin_all_users" ON public.usuarios;
+DROP POLICY IF EXISTS "usuario_update_propio" ON public.usuarios;
+CREATE POLICY "usuario_update_propio" ON public.usuarios FOR UPDATE TO authenticated
+  USING (auth_id = auth.uid() AND activo = true)
+  WITH CHECK (auth_id = auth.uid() AND activo = true);
 
 CREATE TABLE IF NOT EXISTS public.usuario_perfil_privado (
   usuario_id uuid PRIMARY KEY REFERENCES public.usuarios(id) ON DELETE CASCADE,
