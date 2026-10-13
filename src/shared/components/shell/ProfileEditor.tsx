@@ -2,12 +2,12 @@
 import { useEffect, useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import Modal from '@/shared/components/ui/Modal'
-import AvatarArt, { AVATARS, type AvatarKey } from '@/shared/components/AvatarArt'
+import AvatarArt, { AVATARS, normalizeAvatarKey, type AvatarKey } from '@/shared/components/AvatarArt'
 import s from './profile.module.css'
 
 export default function ProfileEditor({ onClose }: { onClose: () => void }) {
   const { usuario, setUsuario, setUsuarios, empresas, roles } = useApp()
-  const [selected, setSelected] = useState<AvatarKey | null>((usuario?.avatar_key as AvatarKey) || null)
+  const [selected, setSelected] = useState<AvatarKey | null>(normalizeAvatarKey(usuario?.avatar_key))
   const [birthDate, setBirthDate] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')

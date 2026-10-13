@@ -33,6 +33,8 @@ describe('PATCH /api/profile', () => {
     for (const body of [
       { avatar_key: 'cat', rol: 'admin' },
       { avatar_key: 'uploaded-image-url' },
+      { avatar_key: 'lizard' },
+      { avatar_key: 'seal' },
       { nombre: 'Changed' },
     ]) {
       const response = await PATCH(request(body))
