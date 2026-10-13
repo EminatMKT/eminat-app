@@ -9,6 +9,7 @@ export type CreateUserInput = Pick<UserRow, 'nombre' | 'apellido'> & Catalogs & 
   email: string
   password: string
   cargoIds?: string[]
+  directorio_visible?: boolean
 }
 
 /** The 201 body: the saved row and the welcome-email warning (null when it went out). */

@@ -1,52 +1,62 @@
 'use client'
-import { useState } from 'react'
-import { DIRECTORIO_DATA } from '@/shared/context/AppContext'
+import { useEffect, useState } from 'react'
+import { useApp } from '@/shared/context/AppContext'
 import { AppShell } from '@/shared/components/shell'
 import { ListToolbar } from '@/shared/components/ui'
-import { ChipFilter } from '@/shared/components/filters'
 import { applyFilters, type FilterValues } from '@/shared/utils'
 import { PageTransition, StaggerGrid } from '@/shared/motion'
 import MEMBER_FILTERS from '@/features/directorio/utils/filters'
+import type { Member } from '@/features/directorio/types'
 import MemberCard from '../MemberCard'
 import s from './index.module.css'
 
-// centinela-exime: familia-dispersa@2 — la familia `*Module` son nueve en nueve directorios
-// porque así está partido el repo: un módulo de negocio por feature. Juntarlos sería deshacer
-// `src/features/`.
-
-// centinela-exime: bloques-similares@3 — el markup propio son dos `<div>`: el título y la fila de
-// departamentos. El resto compone `AppShell`, `ListToolbar`, `ChipFilter` y `StaggerGrid` —
-// busqué un encabezado de listado compartido y `ListToolbar` es el que terminó usando.
-
-const [SEARCH, DEPARTMENT] = MEMBER_FILTERS
+const [SEARCH, ...SELECTS] = MEMBER_FILTERS
 
 export default function DirectorioModule() {
-  // Los dos criterios en UN estado: se aplican sobre la misma lista y se limpian de una, así que
-  // separarlos sólo daba dos formas de dejarlos desincronizados.
+  const { usuario } = useApp()
   const [values, setValues] = useState<FilterValues>({})
-  const set = (key: string, value: string) => setValues(p => ({ ...p, [key]: value }))
-  const found = applyFilters(DIRECTORIO_DATA, MEMBER_FILTERS, values)
+  const [rows, setRows] = useState<Member[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    let active = true
+    fetch('/api/directory', { cache: 'no-store' })
+      .then(async response => {
+        if (!response.ok) throw new Error('No se pudo cargar Directory')
+        return response.json() as Promise<{ members: Member[] }>
+      })
+      .then(data => { if (active) setRows(data.members) })
+      .catch(cause => { if (active) setError(cause instanceof Error ? cause.message : 'Error de carga') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [])
+  const members = rows.map(member => member.id === usuario?.id
+    ? { ...member, avatarKey: usuario.avatar_key || null } : member)
+  const found = applyFilters(members, MEMBER_FILTERS, values)
+  const set = (key: string, value: string) => setValues(prev => ({ ...prev, [key]: value }))
 
   return (
     <AppShell>
       <PageTransition>
-        <div className={s.titulo}>{DIRECTORIO_DATA.length} Eminat Group members</div>
+        <div className={s.titulo}>{members.length} integrantes activos</div>
         <ListToolbar placeholderKey={SEARCH.labelKey}
-          busqueda={values[SEARCH.key] ?? ''} setBusqueda={v => set(SEARCH.key, v)}>
-          <ChipFilter def={DEPARTMENT} items={DIRECTORIO_DATA} withCount
-            value={values[DEPARTMENT.key] ?? ''} onChange={v => set(DEPARTMENT.key, v)} />
+          busqueda={values[SEARCH.key] ?? ''} setBusqueda={value => set(SEARCH.key, value)}>
+          <div className={s.filters}>
+            {SELECTS.map(def => <label key={def.key} className={s.filter}>
+              <span>{def.key === 'empresa' ? 'Empresa / unidad' : def.key === 'departamento' ? 'Departamento' : 'Cargo'}</span>
+              <select value={values[def.key] ?? ''} onChange={event => set(def.key, event.target.value)}>
+                <option value="">Todos</option>
+                {def.options?.(members).map(option => <option key={option} value={option}>{option}</option>)}
+              </select>
+            </label>)}
+          </div>
         </ListToolbar>
-        <StaggerGrid className={s.grilla}>
-          {found.map(m => <MemberCard key={m.email} member={m} />)}
-        </StaggerGrid>
+        {error ? <p className={s.empty} role="alert">{error}</p> : loading ? <p>Cargando directorio…</p> : found.length ? (
+          <StaggerGrid className={s.grilla}>
+            {found.map(member => <MemberCard key={member.id} member={member} />)}
+          </StaggerGrid>
+        ) : <p className={s.empty}>No hay integrantes que coincidan con la búsqueda.</p>}
       </PageTransition>
     </AppShell>
   )
 }
-
-// El listado de miembros del grupo: buscador, departamentos y la grilla de tarjetas.
-//
-// El filtrado ya no es suyo. Vivía en `useDirectorioFilter`, que escribía el predicado a mano —un
-// `if` por criterio— sobre `DIRECTORIO_DATA` importado adentro del hook. Ahora los dos criterios
-// son un `FilterDef` y el predicado sale de `applyFilters`, el mismo que corre en Tasks y en
-// Research; lo que queda acá es de dónde salen los datos y cómo se dibujan.

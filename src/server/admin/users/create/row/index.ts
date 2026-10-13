@@ -26,6 +26,7 @@ export default function buildRow(input: CreateUserInput, existing: ExistingUser 
     activo: true,
     validado: true,
     auth_id: authId,
+    directorio_visible: input.directorio_visible === true,
   }
   // Linking is not editing: a catalog the admin did not choose again must not be wiped.
   for (const key of CATALOGS) {

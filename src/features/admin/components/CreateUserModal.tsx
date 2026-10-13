@@ -19,6 +19,7 @@ const DEFAULT_NEW = {
   empresa_id: null as string | null, jornada_id: null as string | null,
   vinculacion_id: null as string | null, equipo_id: null as string | null,
   cargoIds: [] as string[],
+  directorio_visible: true,
 }
 
 export default function CreateUserModal({ onClose }: { onClose: () => void }) {
@@ -49,6 +50,7 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
         jornada_id: nuevoUsr.jornada_id, vinculacion_id: nuevoUsr.vinculacion_id,
         equipo_id: nuevoUsr.equipo_id,
         ubicacion: 'Guayaquil, Ecuador', cargoIds: nuevoUsr.cargoIds,
+        directorio_visible: nuevoUsr.directorio_visible,
       })
       if (!res.ok) { setCreateError(result.error || t('admin.create.failed')); setGuardando(false); return }
       setCreateSuccess({ pwd: nuevoUsr.password, nombre: `${nuevoUsr.nombre} ${nuevoUsr.apellido}`, email: nuevoUsr.email, cargo, emailWarning: result.emailWarning || null })
@@ -104,6 +106,10 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
             {/* Sin equipo la persona no entra en las derivaciones de Stratix y
                 nunca aparece como asignable. Antes no había dónde setearlo. */}
             <CatalogSelect labelKey="common.equipo" value={nuevoUsr.equipo_id} rows={equipos} onChange={id => setNuevoUsr(p => ({ ...p, equipo_id: id }))} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, color: t2, fontSize: 12 }}>
+              <input type="checkbox" checked={nuevoUsr.directorio_visible} onChange={event => setNuevoUsr(previous => ({ ...previous, directorio_visible: event.target.checked }))} />
+              Mostrar como persona en Directory
+            </label>
             <div style={{ marginBottom: 20 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 8 }}>{t('common.avatarColor')}</label><div style={{ display: 'flex', gap: 8 }}>{COLORES_AVATAR.map(c => <div key={c} onClick={() => setNuevoUsr(p => ({ ...p, color: c }))} style={{ width: 24, height: 24, borderRadius: '50%', background: c, cursor: 'pointer', border: nuevoUsr.color === c ? '3px solid white' : '2px solid transparent', boxSizing: 'border-box' }} />)}</div></div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1px solid ${border}`, background: 'transparent', color: t2, fontSize: 13, cursor: 'pointer' }}>{t('common.cancel')}</button>

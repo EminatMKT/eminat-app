@@ -50,6 +50,7 @@ export default function AdminModule() {
     empresa_id: u.empresa_id ?? null, jornada_id: u.jornada_id ?? null,
     vinculacion_id: u.vinculacion_id ?? null, equipo_id: u.equipo_id ?? null,
     cargoIds: cargoIdsOf(u),
+    directorio_visible: u.directorio_visible ?? false,
   })
 
   const crearBtn = <Button kind="new" label={t('admin.newUser')} onClick={() => setModalCrear(true)} />

@@ -1,5 +1,4 @@
 import { useApp } from '@/shared/context/AppContext'
-import { usuariosRepo } from '@/shared/data'
 import { apiPost } from '@/shared/utils/api'
 import { useT } from '@/shared/i18n'
 import ADMIN_API from '@/shared/constants/admin-api'
@@ -37,7 +36,8 @@ export default function useUserActions() {
 
   async function validateUser(id: string) {
     const validated = { validado: true, activo: true }
-    await usuariosRepo.validar(id)
+    const { res, result } = await apiPost<{ error?: string }>(UPDATE_USER_URL, { id, ...validated })
+    if (!res.ok) { mostrarMensaje(ERROR, result.error || t('admin.user.statusFailed')); return }
     patchUser(id, validated)
     mostrarMensaje(OK, t('admin.user.validated'))
   }
