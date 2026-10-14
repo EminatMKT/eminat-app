@@ -189,6 +189,52 @@ export async function salesContactLeads(request: Request, id: string): Promise<R
   }
 }
 
+// ANNIE retains AccountContact after clearing a Contact's primaryAccountId.
+// Its own versioned link endpoint must deactivate that relationship before
+// the Contact can be archived. Keep this under the Contact-only QA switch.
+export async function salesContactAccountLinks(request: Request, accountId: string): Promise<Response> {
+  try {
+    if (!uuid.test(accountId)) throw new SalesError(400, 'INVALID_ID')
+    if (new URL(request.url).search) throw new SalesError(400, 'INVALID_FILTER')
+    if (request.method === 'GET') {
+      const { mapping, token } = await mappedActor(request)
+      const data = await annieGet(`/api/crm/accounts/${accountId}/contacts`, mapping.annie_organization_id, token)
+      return Response.json(scopedResult(data, mapping.annie_organization_id), { headers: { 'Cache-Control': 'no-store' } })
+    }
+    if (request.method !== 'POST') throw new SalesError(405, 'METHOD_NOT_ALLOWED')
+    if (process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED !== 'true') throw new SalesError(403, 'CONTACT_WRITE_DISABLED')
+    const version = request.headers.get('x-annie-expected-version')
+    if (!version || !/^(?:"[1-9]\d*"|[1-9]\d*)$/.test(version)) throw new SalesError(428, 'IF_MATCH_REQUIRED')
+    let payload: unknown
+    try { payload = await request.json() } catch { throw new SalesError(400, 'INVALID_JSON') }
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload) ||
+      Object.keys(payload).length !== 2 ||
+      typeof (payload as { contactId?: unknown }).contactId !== 'string' ||
+      !uuid.test((payload as { contactId: string }).contactId) ||
+      (payload as { active?: unknown }).active !== false)
+      throw new SalesError(400, 'INVALID_BODY')
+    const { mapping, token } = await mappedActor(request)
+    // ANNIE enforces commercial:write, account/contact scope, the primary-link
+    // constraint, optimistic versioning, and commercial history.
+    const response = await fetch(new URL(`/api/crm/accounts/${accountId}/contacts`, origin()), {
+      method: 'POST', redirect: 'error', cache: 'no-store',
+      headers: {
+        Cookie: `annie_session=${token}; annie_org=${mapping.annie_organization_id}`,
+        Origin: origin(), 'Content-Type': 'application/json', Accept: 'application/json',
+        'If-Match': version,
+      },
+      body: JSON.stringify(payload), signal: AbortSignal.timeout(10000),
+    })
+    let result: unknown
+    try { result = await response.json() } catch { throw new SalesError(502, 'ANNIE_INVALID_RESPONSE') }
+    if (response.ok) scopedResult(result, mapping.annie_organization_id)
+    return Response.json(result, { status: response.status, headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    const known = error instanceof SalesError ? error : new SalesError(502, 'ANNIE_UNAVAILABLE')
+    return Response.json({ code: known.code }, { status: known.status, headers: { 'Cache-Control': 'no-store' } })
+  }
+}
+
 export async function salesDirectory(request: Request): Promise<Response> {
   try {
     const { mapping, token } = await mappedActor(request)

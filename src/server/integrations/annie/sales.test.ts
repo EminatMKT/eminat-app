@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({ createClient: vi.fn(), admin: vi.fn() }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: mocks.createClient }))
 vi.mock('@/shared/db/supabaseAdmin', () => ({ supabaseAdmin: mocks.admin }))
 
-import { salesContactHistory, salesContactLeads, salesContactWrite, salesLeadHistory, salesLeadWrite, salesRead } from './sales'
+import { salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesLeadHistory, salesLeadWrite, salesRead } from './sales'
 
 function chain(data: unknown) {
   const query = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn().mockResolvedValue({ data, error: null }) }
@@ -175,6 +175,44 @@ describe('Phase C Contact write boundary', () => {
     const fetch = vi.fn(); vi.stubGlobal('fetch', fetch)
     expect((await salesContactLeads(request(`https://lilly.example/api/integrations/annie/sales/contacts/${id.lead}/leads?limit=25`), id.lead)).status).toBe(400)
     expect(fetch).not.toHaveBeenCalled()
+  })
+  it('keeps Account link changes off with Contact writes and rejects broad payloads', async () => {
+    const fetch = vi.fn(); vi.stubGlobal('fetch', fetch)
+    const url = `https://lilly.example/api/integrations/annie/sales/accounts/${id.lead}/contacts`
+    const make = (body: object) => new Request(url, { method: 'POST',
+      headers: { Authorization: 'Bearer supabase-session', 'X-Annie-Expected-Version': '2' },
+      body: JSON.stringify(body) })
+    expect((await salesContactAccountLinks(make({ contactId: id.lead, active: false }), id.lead)).status).toBe(403)
+    process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED = 'true'
+    expect((await salesContactAccountLinks(make({ contactId: id.lead, active: true }), id.lead)).status).toBe(400)
+    expect((await salesContactAccountLinks(make({ contactId: id.lead, active: false, role: 'admin' }), id.lead)).status).toBe(400)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+  it('uses ANNIE version and tenant policy to deactivate only an existing Account link', async () => {
+    process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED = 'true'
+    const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: {
+      accountId: id.lead, contactId: id.lead, organizationId: id.org, active: false,
+    } }))
+    vi.stubGlobal('fetch', fetch)
+    const response = await salesContactAccountLinks(new Request(
+      `https://lilly.example/api/integrations/annie/sales/accounts/${id.lead}/contacts`, {
+        method: 'POST', headers: { Authorization: 'Bearer supabase-session', 'X-Annie-Expected-Version': '2' },
+        body: JSON.stringify({ contactId: id.lead, active: false }),
+      }), id.lead)
+    expect(response.status).toBe(200)
+    expect(fetch.mock.calls[1][1]).toMatchObject({ method: 'POST',
+      body: JSON.stringify({ contactId: id.lead, active: false }) })
+    expect(fetch.mock.calls[1][1].headers).toMatchObject({
+      'If-Match': '2', Cookie: `annie_session=${token}; annie_org=${id.org}`,
+    })
+  })
+  it('rejects out-of-Organization Account links', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: [{
+      accountId: id.lead, contactId: id.lead, organizationId: 'other', active: true,
+    }] }))
+    vi.stubGlobal('fetch', fetch)
+    expect((await salesContactAccountLinks(request(
+      `https://lilly.example/api/integrations/annie/sales/accounts/${id.lead}/contacts`), id.lead)).status).toBe(502)
   })
 })
 
