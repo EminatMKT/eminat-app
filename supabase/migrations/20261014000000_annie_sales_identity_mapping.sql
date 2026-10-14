@@ -42,7 +42,7 @@ CREATE TRIGGER annie_sales_user_updated_at BEFORE UPDATE ON public.annie_sales_u
 
 ALTER TABLE public.annie_sales_tenant_mappings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.annie_sales_user_mappings ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.annie_sales_tenant_mappings FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON public.annie_sales_user_mappings FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON public.annie_sales_tenant_mappings FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON public.annie_sales_user_mappings FROM PUBLIC, anon, authenticated, service_role;
 GRANT SELECT ON public.annie_sales_tenant_mappings TO service_role;
 GRANT SELECT ON public.annie_sales_user_mappings TO service_role;
