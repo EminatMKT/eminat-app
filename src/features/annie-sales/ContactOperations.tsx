@@ -73,6 +73,7 @@ export default function ContactOperations({ selected, writeEnabled, onChanged }:
   const [accounts, setAccounts] = useState<Account[]>([])
   const [relatedLeads, setRelatedLeads] = useState<RelatedLead[]>([])
   const [relatedNext, setRelatedNext] = useState<string | null>(null)
+  const [relatedError, setRelatedError] = useState('')
   const [archiveReason, setArchiveReason] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -99,15 +100,15 @@ export default function ContactOperations({ selected, writeEnabled, onChanged }:
     return result
   }
   useEffect(() => {
-    setHistory([]); setHistoryNext(null); setRelatedLeads([]); setRelatedNext(null); setMode(null); setError(''); setNotice('')
+    setHistory([]); setHistoryNext(null); setRelatedLeads([]); setRelatedNext(null); setRelatedError(''); setMode(null); setError(''); setNotice('')
     if (!selected) return
     let cancelled = false
     void api(`contacts/${selected.id}/history?limit=25`).then(result => {
       if (!cancelled) { setHistory(Array.isArray(result.data) ? result.data as History[] : []); setHistoryNext(result.nextCursor ?? null) }
     }).catch(() => { if (!cancelled) setHistory([]) })
-    void api(`contacts/${selected.id}/leads?limit=25`).then(result => {
+    void api(`contacts/${selected.id}/leads`).then(result => {
       if (!cancelled) { setRelatedLeads(Array.isArray(result.data) ? result.data as RelatedLead[] : []); setRelatedNext(result.nextCursor ?? null) }
-    }).catch(() => { if (!cancelled) setRelatedLeads([]) })
+    }).catch(cause => { if (!cancelled) setRelatedError(cause instanceof Error ? cause.message : 'RELATIONSHIP_READ_FAILED') })
     return () => { cancelled = true }
   }, [selected?.id, selected?.version]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -161,7 +162,7 @@ export default function ContactOperations({ selected, writeEnabled, onChanged }:
   async function moreRelated() {
     if (!selected || !relatedNext) return
     try {
-      const result = await api(`contacts/${selected.id}/leads?limit=25&cursor=${relatedNext}`)
+      const result = await api(`contacts/${selected.id}/leads?cursor=${relatedNext}`)
       setRelatedLeads(current => [...current, ...(Array.isArray(result.data) ? result.data as RelatedLead[] : [])])
       setRelatedNext(result.nextCursor ?? null)
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'RELATIONSHIP_READ_FAILED') }
@@ -179,8 +180,8 @@ export default function ContactOperations({ selected, writeEnabled, onChanged }:
         <label>Reason <input value={archiveReason} onChange={event => setArchiveReason(event.target.value)} /></label>
         <button type="button" disabled={busy || !archiveReason.trim()} onClick={archive}>{selected.archivedAt ? 'Restore' : 'Archive'} in ANNIE</button>
       </details>}
-      <details><summary>Related ANNIE Leads</summary>{relatedLeads.length ? <ul>{relatedLeads.map(lead =>
-        <li key={lead.id}>{lead.displayName ?? 'Lead'} · {lead.id}</li>)}</ul> : <p>No related Leads returned.</p>}
+      <details><summary>Leads created from this Contact</summary>{relatedError ? <p role="alert" className={s.error}>{relatedError}</p> : relatedLeads.length ? <ul>{relatedLeads.map(lead =>
+        <li key={lead.id}>{lead.displayName ?? 'Lead'} · {lead.id}</li>)}</ul> : <p>No Leads created from this Contact.</p>}
         {relatedNext && <button type="button" onClick={() => void moreRelated()}>Load more Leads</button>}
       </details>
       <details open><summary>ANNIE history</summary>{history.length ? <ul>{history.map(event => <li key={event.id}>
