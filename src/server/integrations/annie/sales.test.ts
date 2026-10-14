@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({ createClient: vi.fn(), admin: vi.fn() }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: mocks.createClient }))
 vi.mock('@/shared/db/supabaseAdmin', () => ({ supabaseAdmin: mocks.admin }))
 
-import { salesAccountHistory, salesAccountWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesLeadHistory, salesLeadWrite, salesRead } from './sales'
+import { salesAccountHistory, salesAccountWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead } from './sales'
 
 function chain(data: unknown) {
   const query = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn().mockResolvedValue({ data, error: null }) }
@@ -37,7 +37,56 @@ beforeEach(() => {
   mocks.admin.mockReturnValue({ from: vi.fn(() => chain({ empresa_codigo: null,
     access_kind: 'external_sales_entitlement', annie_organization_id: id.org, annie_principal_id: id.principal })) })
 })
-afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_SESSION_TOKENS_JSON; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON; delete process.env.ANNIE_SALES_QA_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED })
+afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_SESSION_TOKENS_JSON; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON; delete process.env.ANNIE_SALES_QA_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED })
+
+describe('Phase C Opportunity write boundary', () => {
+  const identity = () => Response.json({ data: { principalId: id.principal, organizationId: id.org,
+    capabilities: { salesRead: true } } })
+  const write = (method: string, body: object, version?: string) => new Request('https://lilly.example/api/integrations/annie/sales/opportunities', {
+    method, headers: { Authorization: 'Bearer supabase-session', ...(version ? { 'X-Annie-Expected-Version': version } : {}) },
+    body: JSON.stringify(body),
+  })
+  it('remains off when other commercial write switches are on', async () => {
+    process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED = 'true'
+    const fetch = vi.fn(); vi.stubGlobal('fetch', fetch)
+    expect((await salesOpportunityWrite(write('POST', { name: 'QA PHASE C Opportunity' }), 'create')).status).toBe(403)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+  it('rejects a non-synthetic create before ANNIE commercial writes', async () => {
+    process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED = 'true'
+    const fetch = vi.fn().mockResolvedValueOnce(identity()); vi.stubGlobal('fetch', fetch)
+    expect((await salesOpportunityWrite(write('POST', { name: 'Real Deal' }), 'create')).status).toBe(403)
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+  it('rejects a transition on an existing real Opportunity', async () => {
+    process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED = 'true'
+    const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: {
+      id: id.lead, organizationId: id.org, name: 'Real Deal', version: 3,
+    } })); vi.stubGlobal('fetch', fetch)
+    expect((await salesOpportunityWrite(write('POST', { stageCode: 'LOST', lostReason: 'QA' }, '3'), 'transition', id.lead)).status).toBe(403)
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+  it('forwards synthetic transition with version and preserves ANNIE conflict', async () => {
+    process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED = 'true'
+    const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: {
+      id: id.lead, organizationId: id.org, name: 'QA PHASE C Opportunity', version: 3,
+    } })).mockResolvedValueOnce(Response.json({ code: 'VERSION_CONFLICT' }, { status: 409 }))
+    vi.stubGlobal('fetch', fetch)
+    const response = await salesOpportunityWrite(write('POST', { stageCode: 'PROPOSAL', amount: '100.00' }, '2'), 'transition', id.lead)
+    expect(response.status).toBe(409)
+    expect((await response.json()).code).toBe('VERSION_CONFLICT')
+    expect(fetch.mock.calls[2][1].headers).toMatchObject({ 'If-Match': '2',
+      Cookie: `annie_session=${token}; annie_org=${id.org}` })
+    expect(String(fetch.mock.calls[2][0])).toContain(`/api/crm/opportunities/${id.lead}/transitions`)
+  })
+  it('reads links/history only in the mapped organization', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: [{
+      id: id.lead, organizationId: id.org, contactId: id.user,
+    }] })); vi.stubGlobal('fetch', fetch)
+    expect((await salesOpportunityRelated(request(`https://lilly.example/api/integrations/annie/sales/opportunities/${id.lead}/contacts`), id.lead, 'contacts')).status).toBe(200)
+    expect(String(fetch.mock.calls[1][0])).toContain(`/api/crm/opportunities/${id.lead}/contacts`)
+  })
+})
 
 describe('Phase C Account write boundary', () => {
   const identity = () => Response.json({ data: { principalId: id.principal, organizationId: id.org,

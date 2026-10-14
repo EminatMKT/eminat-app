@@ -4,10 +4,11 @@ import AppShell from '@/shared/components/shell/AppShell'
 import SalesDenied from './SalesDenied'
 import { supabase } from '@/shared/db/supabase'
 import { SUB_ITEMS } from '@/shared/components/shell/appShellConfig'
-import { useSalesQaAccess, useSalesQaAccountWriteAccess, useSalesQaContactWriteAccess, useSalesQaWriteAccess } from './useSalesQaAccess'
+import { useSalesQaAccess, useSalesQaAccountWriteAccess, useSalesQaContactWriteAccess, useSalesQaOpportunityWriteAccess, useSalesQaWriteAccess } from './useSalesQaAccess'
 import LeadOperations, { type Lead } from './LeadOperations'
 import ContactOperations, { type Contact } from './ContactOperations'
 import AccountOperations, { type Account } from './AccountOperations'
+import OpportunityOperations, { type Opportunity } from './OpportunityOperations'
 import s from './SalesModule.module.css'
 
 type Row = { id: string; organizationId: string; displayName?: string; name?: string; title?: string; label?: string; code?: string; status?: string; stageCode?: string; ownerProfileId?: string; email?: string; companyName?: string; dueAt?: string }
@@ -39,6 +40,7 @@ export default function SalesModule() {
   const writeEnabled = useSalesQaWriteAccess()
   const contactWriteEnabled = useSalesQaContactWriteAccess()
   const accountWriteEnabled = useSalesQaAccountWriteAccess()
+  const opportunityWriteEnabled = useSalesQaOpportunityWriteAccess()
 
   useEffect(() => { setCursor(null); setRows([]); setSelected(null); setNextCursor(null); setDashboard(null) }, [tab, search, status, ownerFilter, teamFilter, followUp, archived])
   useEffect(() => {
@@ -66,7 +68,7 @@ export default function SalesModule() {
         query.set('limit', '25')
         if (search) query.set('q', search)
         if (status && tab === 'leads') query.set('status', status)
-        if (tab === 'leads' || tab === 'contacts' || tab === 'accounts') {
+        if (tab === 'leads' || tab === 'contacts' || tab === 'accounts' || tab === 'opportunities') {
           if (ownerFilter && tab !== 'accounts') query.set('ownerProfileId', ownerFilter)
           if (teamFilter && tab !== 'accounts') query.set('teamId', teamFilter)
           if (followUp && tab === 'leads') query.set('followUp', followUp)
@@ -110,14 +112,14 @@ export default function SalesModule() {
   if (!allowed) return <SalesDenied />
   return <AppShell title={`Sales — ${SUB_ITEMS.sales.find(item => item.tab === tab)?.label ?? 'Sales'}`} activeTab={tab} onTabChange={setTab}>
     <section className={s.page}>
-      <header className={s.header}><div><p className={s.eyebrow}>ANNIE · LIVE</p><h1>Sales</h1><p className={s.muted}>Commercial records stay in ANNIE.</p></div><span className={s.badge}>{tab === 'leads' && writeEnabled ? 'Controlled Lead writes' : tab === 'contacts' && contactWriteEnabled ? 'Controlled Contact writes' : tab === 'accounts' && accountWriteEnabled ? 'Controlled Account writes' : 'Read only'}</span></header>
+      <header className={s.header}><div><p className={s.eyebrow}>ANNIE · LIVE</p><h1>Sales</h1><p className={s.muted}>Commercial records stay in ANNIE.</p></div><span className={s.badge}>{tab === 'leads' && writeEnabled ? 'Controlled Lead writes' : tab === 'contacts' && contactWriteEnabled ? 'Controlled Contact writes' : tab === 'accounts' && accountWriteEnabled ? 'Controlled Account writes' : tab === 'opportunities' && opportunityWriteEnabled ? 'Controlled Opportunity writes' : 'Read only'}</span></header>
       {paged.has(tab) && <div className={s.filters}><label>Search <input value={search} onChange={event => setSearch(event.target.value)} maxLength={200} placeholder={`Search ${tab}`} /></label>
         {tab === 'leads' && <><label>Status <select value={status} onChange={event => setStatus(event.target.value)}>{['', 'NEW', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'PAYMENT_PENDING', 'WON', 'LOST'].map(value => <option key={value} value={value}>{value || 'All statuses'}</option>)}</select></label>
           <label>Follow-up <select value={followUp} onChange={event => setFollowUp(event.target.value)}><option value="">Any</option><option value="overdue">Overdue</option><option value="next_7_days">Next 7 days</option><option value="none">None</option></select></label>
           <label>View <select value={leadView} onChange={event => setLeadView(event.target.value as 'list' | 'board')}><option value="list">List</option><option value="board">Board</option></select></label></>}
         {(tab === 'leads' || tab === 'contacts') && <><label>Owner <select value={ownerFilter} onChange={event => setOwnerFilter(event.target.value)}><option value="">All owners</option>{directory.users?.map(user => <option key={user.principalId} value={user.principalId}>{user.principalId} · {user.role}</option>)}</select></label>
           <label>Team <select value={teamFilter} onChange={event => setTeamFilter(event.target.value)}><option value="">All teams</option>{directory.teams?.map(team => <option key={team} value={team}>{team}</option>)}</select></label></>}
-        {(tab === 'leads' || tab === 'contacts' || tab === 'accounts') && <label>Archived <input type="checkbox" checked={archived} onChange={event => setArchived(event.target.checked)} /></label>}</div>}
+        {(tab === 'leads' || tab === 'contacts' || tab === 'accounts' || tab === 'opportunities') && <label>Archived <input type="checkbox" checked={archived} onChange={event => setArchived(event.target.checked)} /></label>}</div>}
       {loading && <p role="status" className={s.muted}>Loading ANNIE data…</p>}
       {error && <p role="alert" className={s.error}>{error}</p>}
       {!loading && !error && tab === 'dashboard' && dashboard && <><div className={s.stats}>
@@ -133,6 +135,7 @@ export default function SalesModule() {
       {tab === 'leads' && <LeadOperations selected={selected as Lead | null} writeEnabled={writeEnabled} onChanged={leadChanged} />}
       {tab === 'contacts' && <ContactOperations selected={selected as Contact | null} writeEnabled={contactWriteEnabled} onChanged={leadChanged} />}
       {tab === 'accounts' && <AccountOperations selected={selected as Account | null} writeEnabled={accountWriteEnabled} onChanged={leadChanged} />}
+      {tab === 'opportunities' && <OpportunityOperations selected={selected as Opportunity | null} writeEnabled={opportunityWriteEnabled} onChanged={leadChanged} />}
     </section>
   </AppShell>
 }

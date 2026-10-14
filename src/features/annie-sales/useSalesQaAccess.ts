@@ -77,3 +77,20 @@ export function useSalesQaAccountWriteAccess() {
   }, [])
   return enabled
 }
+
+export function useSalesQaOpportunityWriteAccess() {
+  const [enabled, setEnabled] = useState(false)
+  useEffect(() => {
+    let cancelled = false
+    void supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) return
+      const response = await fetch('/api/integrations/annie/sales/access', {
+        cache: 'no-store', headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      const body = await response.json() as { allowed?: boolean; opportunityWriteEnabled?: boolean }
+      if (!cancelled) setEnabled(response.ok && body.allowed === true && body.opportunityWriteEnabled === true)
+    }).catch(() => { if (!cancelled) setEnabled(false) })
+    return () => { cancelled = true }
+  }, [])
+  return enabled
+}
