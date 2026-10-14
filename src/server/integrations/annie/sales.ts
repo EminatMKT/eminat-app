@@ -178,7 +178,8 @@ export async function salesContactLeads(request: Request, id: string): Promise<R
   try {
     if (!uuid.test(id)) throw new SalesError(400, 'INVALID_ID')
     const query = new URL(request.url).searchParams
-    for (const key of Array.from(query.keys())) if (key !== 'limit' && key !== 'cursor') throw new SalesError(400, 'INVALID_FILTER')
+    // ANNIE's contact-origin Lead endpoint accepts cursor only and fixes page size at 50.
+    for (const key of Array.from(query.keys())) if (key !== 'cursor') throw new SalesError(400, 'INVALID_FILTER')
     const { mapping, token } = await mappedActor(request)
     const data = await annieGet(`/api/crm/contacts/${id}/leads`, mapping.annie_organization_id, token, query)
     return Response.json(scopedResult(data, mapping.annie_organization_id), { headers: { 'Cache-Control': 'no-store' } })

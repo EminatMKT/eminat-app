@@ -168,8 +168,13 @@ describe('Phase C Contact write boundary', () => {
       id: id.lead, organizationId: 'other',
     }] }))
     vi.stubGlobal('fetch', fetch)
-    expect((await salesContactLeads(request(`https://lilly.example/api/integrations/annie/sales/contacts/${id.lead}/leads?limit=10`), id.lead)).status).toBe(502)
-    expect(String(fetch.mock.calls[1][0])).toContain(`/api/crm/contacts/${id.lead}/leads?limit=10`)
+    expect((await salesContactLeads(request(`https://lilly.example/api/integrations/annie/sales/contacts/${id.lead}/leads`), id.lead)).status).toBe(502)
+    expect(String(fetch.mock.calls[1][0])).toBe(`https://annie.example/api/crm/contacts/${id.lead}/leads`)
+  })
+  it('rejects unsupported Contact-origin Lead filters before contacting ANNIE', async () => {
+    const fetch = vi.fn(); vi.stubGlobal('fetch', fetch)
+    expect((await salesContactLeads(request(`https://lilly.example/api/integrations/annie/sales/contacts/${id.lead}/leads?limit=25`), id.lead)).status).toBe(400)
+    expect(fetch).not.toHaveBeenCalled()
   })
 })
 
