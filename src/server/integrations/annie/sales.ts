@@ -3,13 +3,12 @@ import { clientEnv } from '@/shared/db/env.client'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { salesQaAllowed } from './qa-gate'
 
-const resources = ['leads', 'contacts', 'accounts', 'opportunities'] as const
+const resources = ['leads', 'contacts', 'accounts', 'opportunities', 'dashboard', 'activities'] as const
 export type SalesResource = (typeof resources)[number]
 export const isSalesResource = (value: string): value is SalesResource =>
   (resources as readonly string[]).includes(value)
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-const companyCode = /^[A-Za-z0-9_-]{1,80}$/
 const listKeys = new Set([
   'q', 'limit', 'cursor', 'status', 'stageCode', 'type', 'accountId',
   'ownerProfileId', 'teamId', 'archived', 'followUp',
@@ -60,13 +59,16 @@ async function annieGet(path: string, organizationId: string, token: string, que
   try { return await response.json() } catch { throw new SalesError(502, 'ANNIE_INVALID_RESPONSE') }
 }
 
-type Mapping = { annie_principal_id: string; annie_organization_id: string; empresa_codigo: string }
+type Mapping = {
+  annie_principal_id: string
+  annie_organization_id: string
+  empresa_codigo: string | null
+  access_kind: 'company_tenant' | 'external_sales_entitlement'
+}
 async function mappedActor(request: Request): Promise<{ mapping: Mapping; token: string }> {
   const authorization = request.headers.get('authorization') ?? ''
   const supabaseToken = authorization.startsWith('Bearer ') ? authorization.slice(7) : ''
   if (!supabaseToken) throw new SalesError(401, 'UNAUTHENTICATED')
-  const company = request.headers.get('x-lilly-company-code') ?? ''
-  if (!companyCode.test(company)) throw new SalesError(400, 'COMPANY_REQUIRED')
 
   const client = createClient(clientEnv.NEXT_PUBLIC_SUPABASE_URL, clientEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -80,15 +82,20 @@ async function mappedActor(request: Request): Promise<{ mapping: Mapping; token:
   if (!salesQaAllowed(profile.id, auth.user.id)) throw new SalesError(403, 'SALES_QA_DENIED')
 
   const admin = supabaseAdmin()
-  const { data: tenant, error: tenantError } = await admin.from('annie_sales_tenant_mappings')
-    .select('empresa_codigo,annie_organization_id').eq('empresa_codigo', company).eq('status', 'active').maybeSingle()
-  if (tenantError || !tenant) throw new SalesError(403, 'TENANT_MAPPING_REQUIRED')
   const { data: mapping, error: mappingError } = await admin.from('annie_sales_user_mappings')
-    .select('annie_principal_id,annie_organization_id,empresa_codigo')
+    .select('annie_principal_id,annie_organization_id,empresa_codigo,access_kind')
     .eq('lilly_usuario_id', profile.id).eq('supabase_auth_id', auth.user.id)
-    .eq('empresa_codigo', company).eq('annie_organization_id', tenant.annie_organization_id)
     .eq('status', 'active').maybeSingle()
   if (mappingError || !mapping) throw new SalesError(403, 'USER_MAPPING_REQUIRED')
+  if (mapping.access_kind === 'company_tenant') {
+    if (!mapping.empresa_codigo) throw new SalesError(403, 'TENANT_MAPPING_REQUIRED')
+    const { data: tenant, error: tenantError } = await admin.from('annie_sales_tenant_mappings')
+      .select('annie_organization_id').eq('empresa_codigo', mapping.empresa_codigo)
+      .eq('annie_organization_id', mapping.annie_organization_id).eq('status', 'active').maybeSingle()
+    if (tenantError || !tenant) throw new SalesError(403, 'TENANT_MAPPING_REQUIRED')
+  } else if (mapping.access_kind !== 'external_sales_entitlement' || mapping.empresa_codigo !== null) {
+    throw new SalesError(403, 'TENANT_MAPPING_REQUIRED')
+  }
   const token = sessionToken(mapping.annie_principal_id, mapping.annie_organization_id)
   const identity = await annieGet('/api/crm/integration/session/identity', mapping.annie_organization_id, token)
   const data = (identity as { data?: Record<string, unknown> })?.data
@@ -112,15 +119,19 @@ export async function salesRead(request: Request, resource: SalesResource | 'pip
   try {
     if (id && !uuid.test(id)) throw new SalesError(400, 'INVALID_ID')
     const query = new URL(request.url).searchParams
-    if (id || resource === 'pipeline') {
+    if (id || resource === 'pipeline' || resource === 'dashboard') {
       if (Array.from(query.keys()).length) throw new SalesError(400, 'INVALID_FILTER')
     } else {
       for (const key of Array.from(query.keys())) if (!listKeys.has(key)) throw new SalesError(400, 'INVALID_FILTER')
     }
     const { mapping, token } = await mappedActor(request)
-    const path = `/api/crm/${resource}${id ? `/${id}` : ''}`
-    const data = await annieGet(path, mapping.annie_organization_id, token, id || resource === 'pipeline' ? undefined : query)
-    return Response.json(scopedResult(data, mapping.annie_organization_id), { headers: { 'Cache-Control': 'no-store' } })
+    const path = resource === 'activities' ? `/api/crm/activities/tasks${id ? `/${id}` : ''}` : `/api/crm/${resource}${id ? `/${id}` : ''}`
+    const data = await annieGet(path, mapping.annie_organization_id, token,
+      id || resource === 'pipeline' || resource === 'dashboard' ? undefined : query)
+    // ANNIE's dashboard aggregates have no per-row organizationId; its policy
+    // scopes them to the verified Principal and Organization on the server.
+    return Response.json(resource === 'dashboard' ? data : scopedResult(data, mapping.annie_organization_id),
+      { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     const known = error instanceof SalesError ? error : new SalesError(500, 'SALES_ADAPTER_ERROR')
     return Response.json({ code: known.code }, { status: known.status, headers: { 'Cache-Control': 'no-store' } })
