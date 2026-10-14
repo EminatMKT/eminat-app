@@ -197,6 +197,16 @@ describe('Phase C Lead write boundary', () => {
     expect((await salesLeadWrite(write('POST', { displayName: 'QA', source: 'manual' }), 'create')).status).toBe(403)
     expect(fetch).toHaveBeenCalledTimes(1)
   })
+  it('preserves ANNIE commercial-write denial after a valid mapped read identity', async () => {
+    process.env.ANNIE_SALES_QA_WRITE_ENABLED = 'true'
+    const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(
+      Response.json({ code: 'FORBIDDEN' }, { status: 403 }))
+    vi.stubGlobal('fetch', fetch)
+    const response = await salesLeadWrite(write('POST', { displayName: 'QA', source: 'manual' }), 'create')
+    expect(response.status).toBe(403)
+    expect((await response.json()).code).toBe('FORBIDDEN')
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
   it('rejects an out-of-Organization write response', async () => {
     process.env.ANNIE_SALES_QA_WRITE_ENABLED = 'true'
     const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: {
