@@ -11,8 +11,9 @@ describe('getModulesForRole', () => {
   })
   it('rol desconocido → []', () => { expect(getModulesForRole(MAP, 'nope')).toEqual([]) })
   it('null → []', () => { expect(getModulesForRole(MAP, null)).toEqual([]) })
-  it('admin → ALL_MODULES (short-circuit, aun con mapa vacío)', () => {
-    expect(getModulesForRole({}, ADMIN_ROLE).sort()).toEqual([...ALL_MODULES].sort())
+  it('admin and role grants do not expose QA-only Sales', () => {
+    expect(getModulesForRole({}, ADMIN_ROLE).sort()).toEqual(ALL_MODULES.filter(slug => slug !== 'sales').sort())
+    expect(getModulesForRole({ seller: ['sales'] }, 'seller')).toEqual([])
   })
   it('devuelve una copia: mutarla no toca el catálogo', () => {
     // El largo se toma antes: cuántos módulos hay es el candado de `modulos/index.test.ts`,

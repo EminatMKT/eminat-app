@@ -1,6 +1,6 @@
 # ANNIE Sales Phase B integration contract
 
-Status: implementation prepared in code; no Production activation or identity mappings have been inserted. ANNIE remains the commercial source of truth. LILLY stores only reviewed identity/tenant links, never commercial records.
+Status: implementation prepared in code; no Production activation or identity mappings have been inserted. ANNIE remains the commercial source of truth. LILLY stores only reviewed identity/tenant links, never commercial records. Sales is hidden and denied by default for every role, including admin.
 
 ## Endpoint audit (ANNIE current main)
 
@@ -24,12 +24,18 @@ CRM validation errors use `{code, details}` with HTTP 422. Authentication/permis
 1. Discover tenant and Principal candidates read-only from both systems using immutable IDs and documented business evidence. Prepare a review table with LILLY `usuarios.id`, `auth_id`, `empresas.codigo`, ANNIE Principal ID and Organization ID. Do not join by email or create an inferred mapping.
 2. A designated reviewer resolves each row and records `evidence_ref`, `approved_by`, and `approved_at`. Ambiguous candidates remain unmapped. Never alter ANNIE Principal, LILLY Auth ID, or merge accounts.
 3. Insert reviewed tenant mappings before user mappings. `active` requires approval metadata. Database keys prevent conflicting user/Principal/Organization assignments. Mapping tables are hidden from browser roles and readable only by the LILLY service role.
-4. Grant the LILLY `sales` module to approved roles in `role_modules`. Admin has the existing local module short-circuit. This local grant does not replace ANNIE authorization. FINANCE in ANNIE remains denied for Sales even if LILLY grants its module.
+4. Configure `ANNIE_SALES_QA_ENABLED=true` and server-only `ANNIE_SALES_QA_ALLOWLIST_JSON` with reviewed exact `{ "lillyUsuarioId": "<uuid>", "supabaseAuthId": "<uuid>" }` pairs for the controlled QA users only. With the switch absent or false, no Sales page, navigation, or adapter read is available. Roles, including admin, cannot bypass the QA gate. Do not grant Sales in `role_modules`; the QA gate is independent of broad module permissions. FINANCE in ANNIE remains denied for Sales even if its LILLY identity is on the QA list.
 5. Deploy ANNIE `/integration/session/identity`, then configure server-only `ANNIE_SALES_API_ORIGIN` and secret-manager supplied `ANNIE_SALES_SESSION_TOKENS_JSON`. The JSON is a map from `principalId:organizationId` to that Principal's native ANNIE session token. Never use one shared token for multiple users. Never expose values through `NEXT_PUBLIC_`, logs, or the browser. Expired/revoked tokens fail closed.
 6. Validate ADMIN, FINANCE, and seller controlled accounts in each tenant, including wrong Organization requests, direct detail ID guessing, cursor pagination, search/filter, and exact ANNIE IDs. Until these live tests pass, Phase B is pending.
 
 The adapter calls ANNIE's new identity endpoint before every Sales read and checks Principal ID, Organization ID, and `salesRead`. It forwards only GET to fixed ANNIE API paths; query keys are allowlisted and ANNIE performs final validation and record authorization. No INSERT, PATCH, DELETE, synchronization, or commercial Supabase tables are provided.
 
+## Schema-only Production preparation
+
+The migration creates only the two mapping tables, their foreign keys, constraints, trigger, RLS and `service_role` SELECT grants. It inserts no mapping or commercial record. Both table statuses default to `pending`; `active` rows require approval metadata. Normal `anon` and `authenticated` roles have no table privileges. Creating an approved mapping later requires a separate, reviewed administrative operation and exact IDs. The QA gate remains OFF even if a mapping is active.
+
+Before applying the migration, make a protected Supabase backup and verify its restore path. Run the migration against an isolated current-schema database first. On Production, record the migration ledger and precheck that neither mapping table already exists; after applying, verify both tables have zero rows, no active rows, RLS enabled, and no browser-role INSERT/UPDATE/DELETE/SELECT grants. Never log credentials or row contents. A failed check stops activation; do not add mappings as part of the schema deployment.
+
 ## Rollback
 
-Remove the LILLY `sales` module grants and unset the server-only ANNIE session configuration. ANNIE continues at its existing address. No redirect, shutdown, migration, or Production commercial data change is part of this branch.
+Set `ANNIE_SALES_QA_ENABLED=false` (or remove it) and remove the server-only ANNIE session configuration. ANNIE continues at its existing address. No redirect, shutdown, or Production commercial data change is part of this branch. The empty schema can remain inert; do not drop it as an emergency rollback.

@@ -25,6 +25,8 @@ function request(url = 'https://lilly.example/api/integrations/annie/sales/leads
 }
 
 beforeEach(() => {
+  process.env.ANNIE_SALES_QA_ENABLED = 'true'
+  process.env.ANNIE_SALES_QA_ALLOWLIST_JSON = JSON.stringify([{ lillyUsuarioId: id.profile, supabaseAuthId: id.user }])
   process.env.ANNIE_SALES_API_ORIGIN = 'https://annie.example'
   process.env.ANNIE_SALES_SESSION_TOKENS_JSON = JSON.stringify({ [`${id.principal}:${id.org}`]: token })
   mocks.createClient.mockReturnValue({
@@ -36,9 +38,16 @@ beforeEach(() => {
     ? { empresa_codigo: 'ACME', annie_organization_id: id.org }
     : { empresa_codigo: 'ACME', annie_organization_id: id.org, annie_principal_id: id.principal })) })
 })
-afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_SESSION_TOKENS_JSON })
+afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_SESSION_TOKENS_JSON; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON })
 
 describe('ANNIE Sales adapter', () => {
+  it('is disabled without an explicit QA switch and exact ID pair', async () => {
+    delete process.env.ANNIE_SALES_QA_ENABLED
+    const fetch = vi.fn()
+    vi.stubGlobal('fetch', fetch)
+    expect((await salesRead(request(), 'leads')).status).toBe(403)
+    expect(fetch).not.toHaveBeenCalled()
+  })
   it('rejects unapproved query keys before authentication or upstream access', async () => {
     const response = await salesRead(request('https://lilly.example/api/integrations/annie/sales/leads?organizationId=other'), 'leads')
     expect(response.status).toBe(400)

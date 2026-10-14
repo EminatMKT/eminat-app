@@ -19,7 +19,8 @@ export function normalizeRole(raw: unknown): Role | null {
 
 export function getModulesForRole(map: RoleModuleMap, role: Role | null): ModuleSlug[] {
   if (!role) return []
-  if (role === ADMIN_ROLE) return [...ALL_MODULES]  // short-circuit: admin ve todo
-  return map[role] ?? []
+  // Sales is a QA-only integration; normal role grants, including admin, never expose it.
+  if (role === ADMIN_ROLE) return ALL_MODULES.filter(slug => slug !== 'sales')
+  return (map[role] ?? []).filter(slug => slug !== 'sales')
 }
 // (sin canAccess: los consumidores usan `getModulesForRole(map, role).includes(slug)`)

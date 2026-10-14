@@ -14,7 +14,7 @@ export default function RoleCard({ role: r, onEdit, onDelete, deleting }: {
   const { s1, s2, border, t1, t2, t3, roleModuleMap, adminUsuarios } = useApp()
   const { t } = useT()
   const isAdmin = r.key === ADMIN_ROLE
-  const mods = isAdmin ? ALL_MODULES : (roleModuleMap[r.key] || [])
+  const mods = (isAdmin ? ALL_MODULES : (roleModuleMap[r.key] || [])).filter(slug => slug !== 'sales')
   const userCount = adminUsuarios.filter(u => u.rol === r.key).length
   const canDelete = !isAdmin && !r.is_system && userCount === 0
 

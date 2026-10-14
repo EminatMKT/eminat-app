@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { clientEnv } from '@/shared/db/env.client'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
+import { salesQaAllowed } from './qa-gate'
 
 const resources = ['leads', 'contacts', 'accounts', 'opportunities'] as const
 export type SalesResource = (typeof resources)[number]
@@ -71,11 +72,10 @@ async function mappedActor(request: Request): Promise<{ mapping: Mapping; token:
   })
   const { data: auth, error: authError } = await client.auth.getUser(supabaseToken)
   if (authError || !auth.user) throw new SalesError(401, 'INVALID_SESSION')
-  const { data: allowed, error: moduleError } = await client.rpc('has_module', { p_slug: 'sales' })
-  if (moduleError || !allowed) throw new SalesError(403, 'SALES_MODULE_DENIED')
   const { data: profile, error: profileError } = await client.from('usuarios')
     .select('id').eq('auth_id', auth.user.id).eq('activo', true).maybeSingle()
   if (profileError || !profile?.id) throw new SalesError(403, 'ACTIVE_PROFILE_REQUIRED')
+  if (!salesQaAllowed(profile.id, auth.user.id)) throw new SalesError(403, 'SALES_QA_DENIED')
 
   const admin = supabaseAdmin()
   const { data: tenant, error: tenantError } = await admin.from('annie_sales_tenant_mappings')

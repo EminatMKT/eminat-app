@@ -2,16 +2,15 @@
 import { useEffect, useState } from 'react'
 import AppShell from '@/shared/components/shell/AppShell'
 import AccessDenied from '@/shared/components/access/AccessDenied'
-import { useApp } from '@/shared/context/AppContext'
 import { supabase } from '@/shared/db/supabase'
 import { SUB_ITEMS } from '@/shared/components/shell/appShellConfig'
+import { useSalesQaAccess } from './useSalesQaAccess'
 
 type Row = { id: string; organizationId: string; displayName?: string; name?: string; status?: string; stageCode?: string; ownerProfileId?: string }
 type Result = { data: Row[] | (Row & { stages?: Row[] }); nextCursor?: string | null }
 const readTabs = new Set(['leads', 'contacts', 'accounts', 'opportunities', 'pipeline'])
 
 export default function SalesModule() {
-  const { modules } = useApp()
   const [tab, setTab] = useState('dashboard')
   const [company, setCompany] = useState('')
   const [search, setSearch] = useState('')
@@ -22,7 +21,7 @@ export default function SalesModule() {
   const [selected, setSelected] = useState<Row | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const allowed = modules.includes('sales')
+  const allowed = useSalesQaAccess()
 
   useEffect(() => { setCursor(null); setRows([]); setSelected(null); setNextCursor(null) }, [tab, company, search, status])
   useEffect(() => {
