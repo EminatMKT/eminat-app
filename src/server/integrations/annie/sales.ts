@@ -48,7 +48,9 @@ async function annieGet(path: string, organizationId: string, token: string, que
   try {
     response = await fetch(url, {
       method: 'GET', redirect: 'error', cache: 'no-store',
-      headers: { Authorization: `Bearer ${token}`, 'X-Organization-Id': organizationId, Accept: 'application/json' },
+      // ANNIE's public CRM route is its server proxy. It reads the native
+      // session cookies and forwards Bearer/X-Organization-Id internally.
+      headers: { Cookie: `annie_session=${token}; annie_org=${organizationId}`, Accept: 'application/json' },
       signal: AbortSignal.timeout(10000),
     })
   } catch { throw new SalesError(502, 'ANNIE_UNAVAILABLE') }
@@ -88,7 +90,7 @@ async function mappedActor(request: Request): Promise<{ mapping: Mapping; token:
     .eq('status', 'active').maybeSingle()
   if (mappingError || !mapping) throw new SalesError(403, 'USER_MAPPING_REQUIRED')
   const token = sessionToken(mapping.annie_principal_id, mapping.annie_organization_id)
-  const identity = await annieGet('/api/v1/integration/session/identity', mapping.annie_organization_id, token)
+  const identity = await annieGet('/api/crm/integration/session/identity', mapping.annie_organization_id, token)
   const data = (identity as { data?: Record<string, unknown> })?.data
   if (data?.principalId !== mapping.annie_principal_id ||
       data?.organizationId !== mapping.annie_organization_id ||
@@ -116,7 +118,7 @@ export async function salesRead(request: Request, resource: SalesResource | 'pip
       for (const key of Array.from(query.keys())) if (!listKeys.has(key)) throw new SalesError(400, 'INVALID_FILTER')
     }
     const { mapping, token } = await mappedActor(request)
-    const path = `/api/v1/${resource}${id ? `/${id}` : ''}`
+    const path = `/api/crm/${resource}${id ? `/${id}` : ''}`
     const data = await annieGet(path, mapping.annie_organization_id, token, id || resource === 'pipeline' ? undefined : query)
     return Response.json(scopedResult(data, mapping.annie_organization_id), { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
