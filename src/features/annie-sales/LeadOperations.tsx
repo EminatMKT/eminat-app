@@ -90,11 +90,12 @@ export default function LeadOperations({ selected, writeEnabled, onChanged }: {
       method, cache: 'no-store', headers: {
         Authorization: `Bearer ${session.access_token}`,
         ...(body ? { 'Content-Type': 'application/json' } : {}),
-        ...(version ? { 'If-Match': String(version) } : {}),
+        ...(version ? { 'X-Annie-Expected-Version': String(version) } : {}),
         ...(key ? { 'Idempotency-Key': key } : {}),
       }, body: body ? JSON.stringify(body) : undefined,
     })
-    const result = await response.json() as { data?: unknown; code?: string; details?: unknown; nextCursor?: string | null }
+    let result: { data?: unknown; code?: string; details?: unknown; nextCursor?: string | null }
+    try { result = await response.json() } catch { throw new Error('ANNIE_INVALID_RESPONSE') }
     if (!response.ok) {
       const details = Array.isArray(result.details) ? result.details
         .map(issue => issue && typeof issue === 'object' ? `${(issue as { field?: string }).field ?? 'Field'}: ${(issue as { message?: string }).message ?? 'invalid'}` : '')
