@@ -153,12 +153,19 @@ describe('Phase C Lead write boundary', () => {
     expect((await salesLeadWrite(write('POST', { status: 'CONTACTED' }), 'transition', id.lead)).status).toBe(428)
     expect(fetch).not.toHaveBeenCalled()
   })
+  it('does not accept a browser If-Match header as the adapter version', async () => {
+    process.env.ANNIE_SALES_QA_WRITE_ENABLED = 'true'
+    const fetch = vi.fn()
+    vi.stubGlobal('fetch', fetch)
+    expect((await salesLeadWrite(write('PATCH', { nextAction: 'Call' }, { 'If-Match': '1' }), 'edit', id.lead)).status).toBe(428)
+    expect(fetch).not.toHaveBeenCalled()
+  })
   it('keeps ANNIE transition and version errors authoritative', async () => {
     process.env.ANNIE_SALES_QA_WRITE_ENABLED = 'true'
     const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(
       Response.json({ code: 'INVALID_LEAD_TRANSITION' }, { status: 409 }))
     vi.stubGlobal('fetch', fetch)
-    const response = await salesLeadWrite(write('POST', { status: 'WON' }, { 'If-Match': '1' }), 'transition', id.lead)
+    const response = await salesLeadWrite(write('POST', { status: 'WON' }, { 'X-Annie-Expected-Version': '1' }), 'transition', id.lead)
     expect(response.status).toBe(409)
     expect((await response.json()).code).toBe('INVALID_LEAD_TRANSITION')
     expect(fetch.mock.calls[1][1].headers['If-Match']).toBe('1')
@@ -169,7 +176,7 @@ describe('Phase C Lead write boundary', () => {
       id: id.lead, organizationId: id.org, version: 2, status: 'CONTACTED',
     } }))
     vi.stubGlobal('fetch', fetch)
-    const response = await salesLeadWrite(write('POST', { status: 'CONTACTED' }, { 'If-Match': '1' }), 'transition', id.lead)
+    const response = await salesLeadWrite(write('POST', { status: 'CONTACTED' }, { 'X-Annie-Expected-Version': '1' }), 'transition', id.lead)
     expect(response.status).toBe(200)
     expect((await response.json()).data).toMatchObject({ id: id.lead, status: 'CONTACTED', version: 2 })
     expect(String(fetch.mock.calls[1][0])).toBe(`https://annie.example/api/crm/leads/${id.lead}/transitions`)
@@ -181,9 +188,9 @@ describe('Phase C Lead write boundary', () => {
       .mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org, version: 3 } }))
       .mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: { leadId: id.lead, accountId: '66666666-6666-4666-8666-666666666666' } }))
     vi.stubGlobal('fetch', fetch)
-    expect((await salesLeadWrite(write('PATCH', { nextAction: 'Call' }, { 'If-Match': '1' }), 'edit', id.lead)).status).toBe(200)
-    expect((await salesLeadWrite(write('POST', { reason: 'QA', restore: false }, { 'If-Match': '2' }), 'archive', id.lead)).status).toBe(200)
-    expect((await salesLeadWrite(write('POST', {}, { 'If-Match': '3', 'Idempotency-Key': 'phasecQA1' }), 'convert', id.lead)).status).toBe(200)
+    expect((await salesLeadWrite(write('PATCH', { nextAction: 'Call' }, { 'X-Annie-Expected-Version': '1' }), 'edit', id.lead)).status).toBe(200)
+    expect((await salesLeadWrite(write('POST', { reason: 'QA', restore: false }, { 'X-Annie-Expected-Version': '2' }), 'archive', id.lead)).status).toBe(200)
+    expect((await salesLeadWrite(write('POST', {}, { 'X-Annie-Expected-Version': '3', 'Idempotency-Key': 'phasecQA1' }), 'convert', id.lead)).status).toBe(200)
     expect(fetch.mock.calls[3][1].headers['If-Match']).toBe('2')
     expect(fetch.mock.calls[5][1].headers['Idempotency-Key']).toBe('phasecQA1')
     expect(String(fetch.mock.calls[5][0])).toBe(`https://annie.example/api/crm/leads/${id.lead}/convert`)
@@ -213,7 +220,7 @@ describe('Phase C Lead write boundary', () => {
       id: id.lead, organizationId: 'other', version: 2,
     } }))
     vi.stubGlobal('fetch', fetch)
-    expect((await salesLeadWrite(write('PATCH', { displayName: 'Changed' }, { 'If-Match': '1' }), 'edit', id.lead)).status).toBe(502)
+    expect((await salesLeadWrite(write('PATCH', { displayName: 'Changed' }, { 'X-Annie-Expected-Version': '1' }), 'edit', id.lead)).status).toBe(502)
   })
   it('reads ANNIE history with the same mapped session and Organization', async () => {
     const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: [{

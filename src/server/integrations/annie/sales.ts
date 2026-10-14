@@ -76,7 +76,8 @@ export async function salesLeadWrite(request: Request, operation: LeadWriteOpera
     const path = leadWritePath(operation, id)
     const expectedMethod = operation === 'edit' ? 'PATCH' : 'POST'
     if (request.method !== expectedMethod) throw new SalesError(405, 'METHOD_NOT_ALLOWED')
-    const version = request.headers.get('if-match')
+    // Keep If-Match on the private ANNIE hop; edge caches may consume it on browser requests.
+    const version = request.headers.get('x-annie-expected-version')
     if (operation !== 'create' && (!version || !/^(?:"[1-9]\d*"|[1-9]\d*)$/.test(version)))
       throw new SalesError(428, 'IF_MATCH_REQUIRED')
     const key = request.headers.get('idempotency-key')
