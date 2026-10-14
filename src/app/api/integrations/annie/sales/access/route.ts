@@ -18,6 +18,7 @@ export async function GET(request: Request) {
     .select('id').eq('auth_id', auth.user.id).eq('activo', true).maybeSingle()
   const allowed = !profileError && !!profile?.id && salesQaAllowed(profile.id, auth.user.id)
   return Response.json({ allowed, writeEnabled: allowed && process.env.ANNIE_SALES_QA_WRITE_ENABLED === 'true',
-    contactWriteEnabled: allowed && process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED === 'true' },
+    contactWriteEnabled: allowed && process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED === 'true',
+    accountWriteEnabled: allowed && process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED === 'true' },
     { headers: { 'Cache-Control': 'no-store' } })
 }
