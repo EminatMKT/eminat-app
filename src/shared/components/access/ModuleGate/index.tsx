@@ -7,6 +7,7 @@ import { writeUserPreference, LAST_MODULE_KEY } from '@/shared/hooks'
 import AccessDenied from '@/shared/components/access/AccessDenied'
 import { useT } from '@/shared/i18n'
 import { useSalesQaAccess } from '@/features/annie-sales/useSalesQaAccess'
+import SalesDenied from '@/features/annie-sales/SalesDenied'
 
 // Gate central por módulo: una sola fuente de verdad (antes cada módulo lo hacía suelto y se
 // olvidaron stratix-mkt/accounting/directorio/th-hr). Home (slug null) siempre pasa.
@@ -28,6 +29,7 @@ export default function ModuleGate({ children }: { children: React.ReactNode }) 
   }, [allowed, slug, userId])
 
   if (!loading && slug && !allowed) {
+    if (slug === 'sales') return <SalesDenied />
     return <AccessDenied message={t('shell.noModuleAccess')} />
   }
   return <>{children}</>
