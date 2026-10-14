@@ -68,6 +68,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       # `supabase start` levanta Postgres+Auth+REST locales y aplica supabase/migrations.
       - run: supabase start
+      - name: Assert ANNIE Sales mappings start empty and browser roles cannot edit them
+        run: |
+          set -euo pipefail
+          result=$(psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -At -v ON_ERROR_STOP=1 -f supabase/checks/annie-sales-empty.sql)
+          test "$result" = t
       # La RLS se verifica contra la base real, no contra el archivo de migración:
       # el 29/08/2026 las policies estaban escritas y RLS apagada. Ver rules/base-de-datos.md.
       - run: pnpm db:rls
