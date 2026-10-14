@@ -59,6 +59,80 @@ async function annieGet(path: string, organizationId: string, token: string, que
   try { return await response.json() } catch { throw new SalesError(502, 'ANNIE_INVALID_RESPONSE') }
 }
 
+// Phase C writes use ANNIE's own validation, policy, version checks and audit trail.
+// This separate switch is deliberately absent from Production until Lead QA passes.
+export type LeadWriteOperation = 'create' | 'edit' | 'transition' | 'archive' | 'convert'
+
+function leadWritePath(operation: LeadWriteOperation, id?: string): string {
+  if (operation === 'create') return '/api/crm/leads'
+  if (!id || !uuid.test(id)) throw new SalesError(400, 'INVALID_ID')
+  if (operation === 'edit') return `/api/crm/leads/${id}`
+  return `/api/crm/leads/${id}/${operation === 'transition' ? 'transitions' : operation}`
+}
+
+export async function salesLeadWrite(request: Request, operation: LeadWriteOperation, id?: string): Promise<Response> {
+  try {
+    if (process.env.ANNIE_SALES_QA_WRITE_ENABLED !== 'true') throw new SalesError(403, 'SALES_WRITE_DISABLED')
+    const path = leadWritePath(operation, id)
+    const expectedMethod = operation === 'edit' ? 'PATCH' : 'POST'
+    if (request.method !== expectedMethod) throw new SalesError(405, 'METHOD_NOT_ALLOWED')
+    const version = request.headers.get('if-match')
+    if (operation !== 'create' && (!version || !/^(?:"[1-9]\d*"|[1-9]\d*)$/.test(version)))
+      throw new SalesError(428, 'IF_MATCH_REQUIRED')
+    const key = request.headers.get('idempotency-key')
+    if (operation === 'convert' && (!key || !/^[A-Za-z0-9_-]{8,128}$/.test(key)))
+      throw new SalesError(400, 'IDEMPOTENCY_KEY_REQUIRED')
+    let payload: unknown
+    try { payload = await request.json() } catch { throw new SalesError(400, 'INVALID_JSON') }
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new SalesError(400, 'INVALID_BODY')
+    const body = JSON.stringify(payload)
+    if (Buffer.byteLength(body) > 32768) throw new SalesError(413, 'BODY_TOO_LARGE')
+    const { mapping, token } = await mappedActor(request)
+    const response = await fetch(new URL(path, origin()), {
+      method: expectedMethod, redirect: 'error', cache: 'no-store',
+      headers: {
+        Cookie: `annie_session=${token}; annie_org=${mapping.annie_organization_id}`,
+        Origin: origin(), 'Content-Type': 'application/json', Accept: 'application/json',
+        ...(version ? { 'If-Match': version } : {}),
+        ...(key ? { 'Idempotency-Key': key } : {}),
+      },
+      body, signal: AbortSignal.timeout(10000),
+    })
+    let result: unknown
+    try { result = await response.json() } catch { throw new SalesError(502, 'ANNIE_INVALID_RESPONSE') }
+    if (response.ok && operation !== 'convert') scopedResult(result, mapping.annie_organization_id)
+    return Response.json(result, { status: response.status, headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    const known = error instanceof SalesError ? error : new SalesError(502, 'ANNIE_UNAVAILABLE')
+    return Response.json({ code: known.code }, { status: known.status, headers: { 'Cache-Control': 'no-store' } })
+  }
+}
+
+export async function salesLeadHistory(request: Request, id: string): Promise<Response> {
+  try {
+    if (!uuid.test(id)) throw new SalesError(400, 'INVALID_ID')
+    const query = new URL(request.url).searchParams
+    for (const key of Array.from(query.keys())) if (key !== 'limit' && key !== 'cursor') throw new SalesError(400, 'INVALID_FILTER')
+    const { mapping, token } = await mappedActor(request)
+    const data = await annieGet(`/api/crm/leads/${id}/history`, mapping.annie_organization_id, token, query)
+    return Response.json(scopedResult(data, mapping.annie_organization_id), { headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    const known = error instanceof SalesError ? error : new SalesError(500, 'SALES_ADAPTER_ERROR')
+    return Response.json({ code: known.code }, { status: known.status, headers: { 'Cache-Control': 'no-store' } })
+  }
+}
+
+export async function salesDirectory(request: Request): Promise<Response> {
+  try {
+    const { mapping, token } = await mappedActor(request)
+    const data = await annieGet('/api/crm/directory', mapping.annie_organization_id, token)
+    return Response.json(data, { headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    const known = error instanceof SalesError ? error : new SalesError(500, 'SALES_ADAPTER_ERROR')
+    return Response.json({ code: known.code }, { status: known.status, headers: { 'Cache-Control': 'no-store' } })
+  }
+}
+
 type Mapping = {
   annie_principal_id: string
   annie_organization_id: string

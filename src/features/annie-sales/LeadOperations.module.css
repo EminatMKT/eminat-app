@@ -1,0 +1,15 @@
+.workspace { display: grid; gap: 1rem; margin-top: 1rem; }
+.panel { background: var(--c-s1); border: 1px solid var(--c-border); border-radius: 1rem; padding: 1rem; }
+.panel h3 { margin: 0 0 .5rem; }
+.panel p { color: var(--c-t2); overflow-wrap: anywhere; }
+.panel details { border-top: 1px solid var(--c-border); margin-top: 1rem; padding-top: 1rem; }
+.panel summary { cursor: pointer; font-weight: 700; }
+.form { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .85rem; margin-top: .9rem; }
+.form label, .panel label { display: grid; gap: .3rem; font-size: .82rem; }
+.form input, .form select, .form textarea, .panel input, .panel select { width: 100%; padding: .55rem; border: 1px solid var(--c-border-strong); border-radius: .55rem; background: var(--c-s1); color: var(--c-t1); }
+.form input[type=checkbox] { width: auto; justify-self: start; }
+.actions { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; margin: .7rem 0; }
+.actions label { min-width: 12rem; }
+.action, .actions button, .panel button, .form button { width: fit-content; padding: .55rem .75rem; border: 1px solid var(--c-border-strong); border-radius: .55rem; background: var(--c-s2); color: var(--c-t1); cursor: pointer; }
+.action { background: var(--c-accent-solid); color: white; }
+.error { color: #b42318; background: #fef3f2; padding: .8rem; border-radius: .6rem; }

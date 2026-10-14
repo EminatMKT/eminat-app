@@ -16,6 +16,7 @@ export async function GET(request: Request) {
   if (error || !auth.user) return Response.json({ allowed: false }, { status: 401, headers: { 'Cache-Control': 'no-store' } })
   const { data: profile, error: profileError } = await client.from('usuarios')
     .select('id').eq('auth_id', auth.user.id).eq('activo', true).maybeSingle()
-  return Response.json({ allowed: !profileError && !!profile?.id && salesQaAllowed(profile.id, auth.user.id) },
+  const allowed = !profileError && !!profile?.id && salesQaAllowed(profile.id, auth.user.id)
+  return Response.json({ allowed, writeEnabled: allowed && process.env.ANNIE_SALES_QA_WRITE_ENABLED === 'true' },
     { headers: { 'Cache-Control': 'no-store' } })
 }
