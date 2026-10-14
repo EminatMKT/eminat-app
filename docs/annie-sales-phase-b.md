@@ -1,6 +1,6 @@
 # ANNIE Sales Phase B integration contract
 
-Status: implementation prepared in code; no Production activation or identity mappings have been inserted. ANNIE remains the commercial source of truth. LILLY stores only reviewed identity/tenant links, never commercial records. Sales is hidden and denied by default for every role, including admin.
+Status: owner-only rollout prepared. ANNIE remains the commercial source of truth. LILLY stores only reviewed identity links and Sales entitlements, never commercial records. Sales is hidden and denied by default for every role, including admin.
 
 ## Endpoint audit (ANNIE current main)
 
@@ -21,12 +21,12 @@ CRM validation errors use `{code, details}` with HTTP 422. Authentication/permis
 
 ## Explicit mapping activation
 
-1. Discover tenant and Principal candidates read-only from both systems using immutable IDs and documented business evidence. Prepare a review table with LILLY `usuarios.id`, `auth_id`, `empresas.codigo`, ANNIE Principal ID and Organization ID. Do not join by email or create an inferred mapping.
-2. A designated reviewer resolves each row and records `evidence_ref`, `approved_by`, and `approved_at`. Ambiguous candidates remain unmapped. Never alter ANNIE Principal, LILLY Auth ID, or merge accounts.
-3. Insert reviewed tenant mappings before user mappings. `active` requires approval metadata. Database keys prevent conflicting user/Principal/Organization assignments. Mapping tables are hidden from browser roles and readable only by the LILLY service role.
-4. Configure `ANNIE_SALES_QA_ENABLED=true` and server-only `ANNIE_SALES_QA_ALLOWLIST_JSON` with reviewed exact `{ "lillyUsuarioId": "<uuid>", "supabaseAuthId": "<uuid>" }` pairs for the controlled QA users only. With the switch absent or false, no Sales page, navigation, or adapter read is available. Roles, including admin, cannot bypass the QA gate. Do not grant Sales in `role_modules`; the QA gate is independent of broad module permissions. FINANCE in ANNIE remains denied for Sales even if its LILLY identity is on the QA list.
+1. Record explicit owner approval and exact LILLY user/Auth and ANNIE Principal/Organization IDs. Email is not a matching mechanism. The owner entitlement uses `access_kind='external_sales_entitlement'` and a NULL `empresa_codigo`; the user's primary LILLY company remains unchanged. Company tenant mappings are a separate, later-reviewed concept.
+2. Record `evidence_ref`, `approved_by`, and `approved_at`. Ambiguous candidates remain unmapped. Never alter ANNIE Principal, LILLY Auth ID, or merge accounts.
+3. Apply the external entitlement schema migration before inserting a reviewed owner mapping. `active` requires approval metadata. Database keys prevent conflicting user/Principal/Organization assignments. Mapping tables are hidden from browser roles and readable only by the LILLY service role.
+4. Configure `ANNIE_SALES_QA_ENABLED=true` and server-only `ANNIE_SALES_QA_ALLOWLIST_JSON` with only the owner's exact `{ "lillyUsuarioId": "<uuid>", "supabaseAuthId": "<uuid>" }` pair. With the switch absent or false, no Sales page, navigation, or adapter read is available. Roles, including admin, cannot bypass the gate. Do not grant Sales in `role_modules`; the gate is independent of broad module permissions.
 5. Deploy ANNIE `/integration/session/identity`, then configure server-only `ANNIE_SALES_API_ORIGIN` and secret-manager supplied `ANNIE_SALES_SESSION_TOKENS_JSON`. On the public ANNIE origin, LILLY calls `/api/crm/...`; ANNIE's server proxy accepts the native session cookies and forwards the bearer session and Organization ID to its internal `/api/v1/...` API. The JSON is a map from `principalId:organizationId` to that Principal's native ANNIE session token. Never use one shared token for multiple users. Never expose values through `NEXT_PUBLIC_`, logs, or the browser. Expired/revoked tokens fail closed.
-6. Validate ADMIN, FINANCE, and seller controlled accounts in each tenant, including wrong Organization requests, direct detail ID guessing, cursor pagination, search/filter, and exact ANNIE IDs. Until these live tests pass, Phase B is pending.
+6. Validate the owner-only read path through LILLY, including the seven Sales screens, pagination, search/filter, and exact ANNIE IDs. Role-specific QA follows the initial owner visual review.
 
 The adapter calls ANNIE's new identity endpoint before every Sales read and checks Principal ID, Organization ID, and `salesRead`. It forwards only GET to fixed ANNIE API paths; query keys are allowlisted and ANNIE performs final validation and record authorization. No INSERT, PATCH, DELETE, synchronization, or commercial Supabase tables are provided.
 

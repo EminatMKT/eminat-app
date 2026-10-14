@@ -21,7 +21,7 @@ function chain(data: unknown) {
   return query
 }
 function request(url = 'https://lilly.example/api/integrations/annie/sales/leads') {
-  return new Request(url, { headers: { Authorization: 'Bearer supabase-session', 'X-Lilly-Company-Code': 'ACME' } })
+  return new Request(url, { headers: { Authorization: 'Bearer supabase-session' } })
 }
 
 beforeEach(() => {
@@ -34,9 +34,8 @@ beforeEach(() => {
     rpc: vi.fn().mockResolvedValue({ data: true, error: null }),
     from: vi.fn().mockReturnValue(chain({ id: id.profile })),
   })
-  mocks.admin.mockReturnValue({ from: vi.fn((table: string) => chain(table === 'annie_sales_tenant_mappings'
-    ? { empresa_codigo: 'ACME', annie_organization_id: id.org }
-    : { empresa_codigo: 'ACME', annie_organization_id: id.org, annie_principal_id: id.principal })) })
+  mocks.admin.mockReturnValue({ from: vi.fn(() => chain({ empresa_codigo: null,
+    access_kind: 'external_sales_entitlement', annie_organization_id: id.org, annie_principal_id: id.principal })) })
 })
 afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_SESSION_TOKENS_JSON; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON })
 
@@ -62,12 +61,23 @@ describe('ANNIE Sales adapter', () => {
     expect(response.status).toBe(403)
     expect(fetch).toHaveBeenCalledTimes(1)
   })
-  it('denies an unmapped tenant without contacting ANNIE', async () => {
+  it('denies an unmapped user without contacting ANNIE', async () => {
     mocks.admin.mockReturnValue({ from: vi.fn().mockReturnValue(chain(null)) })
     const fetch = vi.fn()
     vi.stubGlobal('fetch', fetch)
     expect((await salesRead(request(), 'leads')).status).toBe(403)
     expect(fetch).not.toHaveBeenCalled()
+  })
+  it('keeps the LILLY primary company separate from an external Sales entitlement', async () => {
+    const from = vi.fn(() => chain({ empresa_codigo: null, access_kind: 'external_sales_entitlement',
+      annie_organization_id: id.org, annie_principal_id: id.principal }))
+    mocks.admin.mockReturnValue({ from })
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(Response.json({ data: { principalId: id.principal, organizationId: id.org, capabilities: { salesRead: true } } }))
+      .mockResolvedValueOnce(Response.json({ data: [{ id: id.lead, organizationId: id.org }] }))
+    vi.stubGlobal('fetch', fetch)
+    expect((await salesRead(request(), 'leads')).status).toBe(200)
+    expect(from).not.toHaveBeenCalledWith('annie_sales_tenant_mappings')
   })
   it('honors ANNIE FINANCE denial even if LILLY grants the Sales module', async () => {
     const fetch = vi.fn().mockResolvedValue(Response.json({ data: {
