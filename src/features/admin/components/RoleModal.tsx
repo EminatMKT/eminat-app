@@ -8,7 +8,7 @@ import Modal from '@/shared/components/ui/Modal'
 import ErrorBlock from './ErrorBlock'
 
 // 'admin' NO se reparte: el acceso total es el ROL admin (short-circuit), no un módulo asignable.
-const ASIGNABLES = ALL_MODULES.filter(s => s !== ADMIN_ROLE)
+const ASIGNABLES = ALL_MODULES.filter(s => s !== ADMIN_ROLE && s !== 'sales')
 
 export default function RoleModal({ role, onClose }: { role?: RoleRow; onClose: () => void }) {
   const { border, t2, t3, accent, inputStyle, roleModuleMap, reloadRoles } = useApp()

@@ -15,6 +15,7 @@ export const MODULE = {
   TH_HR: 'th-hr',
   DIRECTORIO: 'directorio',
   REUNIONES: 'reuniones',
+  SALES: 'sales',
   ADMIN: 'admin',
 } as const
 
