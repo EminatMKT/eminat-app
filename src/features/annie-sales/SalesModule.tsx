@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import AppShell from '@/shared/components/shell/AppShell'
-import AccessDenied from '@/shared/components/access/AccessDenied'
+import SalesDenied from './SalesDenied'
 import { supabase } from '@/shared/db/supabase'
 import { SUB_ITEMS } from '@/shared/components/shell/appShellConfig'
 import { useSalesQaAccess } from './useSalesQaAccess'
@@ -70,7 +70,7 @@ export default function SalesModule() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'READ_FAILED') }
   }
 
-  if (!allowed) return <AccessDenied />
+  if (!allowed) return <SalesDenied />
   return <AppShell title={`Sales — ${SUB_ITEMS.sales.find(item => item.tab === tab)?.label ?? 'Sales'}`} activeTab={tab} onTabChange={setTab}>
     <section className={s.page}>
       <header className={s.header}><div><p className={s.eyebrow}>ANNIE · LIVE READ</p><h1>Sales</h1><p className={s.muted}>Commercial records stay in ANNIE.</p></div><span className={s.badge}>Read only</span></header>
