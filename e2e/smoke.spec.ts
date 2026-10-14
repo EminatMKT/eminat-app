@@ -13,7 +13,7 @@ const FREDDY = 'freddy@eminat.net'
 
 // Derivado de NAV (fuente única del rail): [data-tour key, ruta]. Auto-cubre módulos
 // nuevos. finanzas no está en NAV (sin ícono de rail) → no se recorre, como antes.
-const MODULES = NAV.map(n => [n.key, modulePath(n.slug)] as const)
+const MODULES = NAV.filter(n => n.slug !== 'sales').map(n => [n.key, modulePath(n.slug)] as const)
 
 // Mismo helper que roles.spec.ts (duplicado a propósito: mantiene este spec autónomo).
 async function loginAs(page: Page, email: string) {
@@ -37,6 +37,7 @@ test('smoke · cada módulo carga para admin sin crashear', async ({ page }) => 
   page.on('pageerror', e => errors.push(e.message))
 
   await loginAs(page, FREDDY)
+  await expect(page.locator('[data-tour="sales"]')).toHaveCount(0)
 
   for (const [key, path] of MODULES) {
     await page.locator(`[data-tour="${key}"]`).click()
@@ -45,6 +46,10 @@ test('smoke · cada módulo carga para admin sin crashear', async ({ page }) => 
     await expect(page.getByText('Acceso denegado')).toBeHidden()
     await expect(page.locator('[data-tour="home"]')).toBeVisible()
   }
+
+  // Even admin cannot reach the QA-only route when the server switch is absent.
+  const denied = await page.goto('/sales')
+  expect(denied?.status()).toBe(404)
 
   expect(errors, `errores de runtime en módulos: ${errors.join(' | ')}`).toHaveLength(0)
 })
