@@ -123,6 +123,71 @@ export async function salesLeadHistory(request: Request, id: string): Promise<Re
   }
 }
 
+// Contact writes have their own default-off switch so Lead QA cannot enable them.
+export async function salesContactWrite(request: Request, operation: 'create' | 'edit' | 'archive', id?: string): Promise<Response> {
+  try {
+    if (process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED !== 'true') throw new SalesError(403, 'CONTACT_WRITE_DISABLED')
+    if (operation !== 'create' && (!id || !uuid.test(id))) throw new SalesError(400, 'INVALID_ID')
+    const method = operation === 'edit' ? 'PATCH' : 'POST'
+    if (request.method !== method) throw new SalesError(405, 'METHOD_NOT_ALLOWED')
+    const version = request.headers.get('x-annie-expected-version')
+    if (operation !== 'create' && (!version || !/^(?:"[1-9]\d*"|[1-9]\d*)$/.test(version)))
+      throw new SalesError(428, 'IF_MATCH_REQUIRED')
+    let payload: unknown
+    try { payload = await request.json() } catch { throw new SalesError(400, 'INVALID_JSON') }
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new SalesError(400, 'INVALID_BODY')
+    const body = JSON.stringify(payload)
+    if (Buffer.byteLength(body) > 32768) throw new SalesError(413, 'BODY_TOO_LARGE')
+    const { mapping, token } = await mappedActor(request)
+    const path = operation === 'create' ? '/api/crm/contacts' :
+      `/api/crm/contacts/${id}${operation === 'archive' ? '/archive' : ''}`
+    const response = await fetch(new URL(path, origin()), {
+      method, redirect: 'error', cache: 'no-store',
+      headers: {
+        Cookie: `annie_session=${token}; annie_org=${mapping.annie_organization_id}`,
+        Origin: origin(), 'Content-Type': 'application/json', Accept: 'application/json',
+        ...(version ? { 'If-Match': version } : {}),
+      },
+      body, signal: AbortSignal.timeout(10000),
+    })
+    let result: unknown
+    try { result = await response.json() } catch { throw new SalesError(502, 'ANNIE_INVALID_RESPONSE') }
+    if (response.ok) scopedResult(result, mapping.annie_organization_id)
+    return Response.json(result, { status: response.status, headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    const known = error instanceof SalesError ? error : new SalesError(502, 'ANNIE_UNAVAILABLE')
+    return Response.json({ code: known.code }, { status: known.status, headers: { 'Cache-Control': 'no-store' } })
+  }
+}
+
+export async function salesContactHistory(request: Request, id: string): Promise<Response> {
+  try {
+    if (!uuid.test(id)) throw new SalesError(400, 'INVALID_ID')
+    const query = new URL(request.url).searchParams
+    for (const key of Array.from(query.keys())) if (key !== 'limit' && key !== 'cursor') throw new SalesError(400, 'INVALID_FILTER')
+    const { mapping, token } = await mappedActor(request)
+    const data = await annieGet(`/api/crm/contacts/${id}/history`, mapping.annie_organization_id, token, query)
+    return Response.json(scopedResult(data, mapping.annie_organization_id), { headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    const known = error instanceof SalesError ? error : new SalesError(500, 'SALES_ADAPTER_ERROR')
+    return Response.json({ code: known.code }, { status: known.status, headers: { 'Cache-Control': 'no-store' } })
+  }
+}
+
+export async function salesContactLeads(request: Request, id: string): Promise<Response> {
+  try {
+    if (!uuid.test(id)) throw new SalesError(400, 'INVALID_ID')
+    const query = new URL(request.url).searchParams
+    for (const key of Array.from(query.keys())) if (key !== 'limit' && key !== 'cursor') throw new SalesError(400, 'INVALID_FILTER')
+    const { mapping, token } = await mappedActor(request)
+    const data = await annieGet(`/api/crm/contacts/${id}/leads`, mapping.annie_organization_id, token, query)
+    return Response.json(scopedResult(data, mapping.annie_organization_id), { headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    const known = error instanceof SalesError ? error : new SalesError(500, 'SALES_ADAPTER_ERROR')
+    return Response.json({ code: known.code }, { status: known.status, headers: { 'Cache-Control': 'no-store' } })
+  }
+}
+
 export async function salesDirectory(request: Request): Promise<Response> {
   try {
     const { mapping, token } = await mappedActor(request)

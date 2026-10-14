@@ -4,9 +4,9 @@ import AppShell from '@/shared/components/shell/AppShell'
 import SalesDenied from './SalesDenied'
 import { supabase } from '@/shared/db/supabase'
 import { SUB_ITEMS } from '@/shared/components/shell/appShellConfig'
-import { useSalesQaAccess } from './useSalesQaAccess'
-import { useSalesQaWriteAccess } from './useSalesQaAccess'
+import { useSalesQaAccess, useSalesQaContactWriteAccess, useSalesQaWriteAccess } from './useSalesQaAccess'
 import LeadOperations, { type Lead } from './LeadOperations'
+import ContactOperations, { type Contact } from './ContactOperations'
 import s from './SalesModule.module.css'
 
 type Row = { id: string; organizationId: string; displayName?: string; name?: string; title?: string; label?: string; code?: string; status?: string; stageCode?: string; ownerProfileId?: string; email?: string; companyName?: string; dueAt?: string }
@@ -36,10 +36,11 @@ export default function SalesModule() {
   const [refreshKey, setRefreshKey] = useState(0)
   const allowed = useSalesQaAccess()
   const writeEnabled = useSalesQaWriteAccess()
+  const contactWriteEnabled = useSalesQaContactWriteAccess()
 
   useEffect(() => { setCursor(null); setRows([]); setSelected(null); setNextCursor(null); setDashboard(null) }, [tab, search, status, ownerFilter, teamFilter, followUp, archived])
   useEffect(() => {
-    if (!allowed || tab !== 'leads') return
+    if (!allowed || (tab !== 'leads' && tab !== 'contacts')) return
     let cancelled = false
     void supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) return
@@ -63,10 +64,10 @@ export default function SalesModule() {
         query.set('limit', '25')
         if (search) query.set('q', search)
         if (status && tab === 'leads') query.set('status', status)
-        if (tab === 'leads') {
+        if (tab === 'leads' || tab === 'contacts') {
           if (ownerFilter) query.set('ownerProfileId', ownerFilter)
           if (teamFilter) query.set('teamId', teamFilter)
-          if (followUp) query.set('followUp', followUp)
+          if (followUp && tab === 'leads') query.set('followUp', followUp)
           if (archived) query.set('archived', 'true')
         }
         if (cursor) query.set('cursor', cursor)
@@ -107,14 +108,14 @@ export default function SalesModule() {
   if (!allowed) return <SalesDenied />
   return <AppShell title={`Sales — ${SUB_ITEMS.sales.find(item => item.tab === tab)?.label ?? 'Sales'}`} activeTab={tab} onTabChange={setTab}>
     <section className={s.page}>
-      <header className={s.header}><div><p className={s.eyebrow}>ANNIE · LIVE</p><h1>Sales</h1><p className={s.muted}>Commercial records stay in ANNIE.</p></div><span className={s.badge}>{tab === 'leads' && writeEnabled ? 'Controlled Lead writes' : 'Read only'}</span></header>
+      <header className={s.header}><div><p className={s.eyebrow}>ANNIE · LIVE</p><h1>Sales</h1><p className={s.muted}>Commercial records stay in ANNIE.</p></div><span className={s.badge}>{tab === 'leads' && writeEnabled ? 'Controlled Lead writes' : tab === 'contacts' && contactWriteEnabled ? 'Controlled Contact writes' : 'Read only'}</span></header>
       {paged.has(tab) && <div className={s.filters}><label>Search <input value={search} onChange={event => setSearch(event.target.value)} maxLength={200} placeholder={`Search ${tab}`} /></label>
         {tab === 'leads' && <><label>Status <select value={status} onChange={event => setStatus(event.target.value)}>{['', 'NEW', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'PAYMENT_PENDING', 'WON', 'LOST'].map(value => <option key={value} value={value}>{value || 'All statuses'}</option>)}</select></label>
-          <label>Owner <select value={ownerFilter} onChange={event => setOwnerFilter(event.target.value)}><option value="">All owners</option>{directory.users?.map(user => <option key={user.principalId} value={user.principalId}>{user.principalId} · {user.role}</option>)}</select></label>
-          <label>Team <select value={teamFilter} onChange={event => setTeamFilter(event.target.value)}><option value="">All teams</option>{directory.teams?.map(team => <option key={team} value={team}>{team}</option>)}</select></label>
           <label>Follow-up <select value={followUp} onChange={event => setFollowUp(event.target.value)}><option value="">Any</option><option value="overdue">Overdue</option><option value="next_7_days">Next 7 days</option><option value="none">None</option></select></label>
-          <label>Archived <input type="checkbox" checked={archived} onChange={event => setArchived(event.target.checked)} /></label>
-          <label>View <select value={leadView} onChange={event => setLeadView(event.target.value as 'list' | 'board')}><option value="list">List</option><option value="board">Board</option></select></label></>}</div>}
+          <label>View <select value={leadView} onChange={event => setLeadView(event.target.value as 'list' | 'board')}><option value="list">List</option><option value="board">Board</option></select></label></>}
+        {(tab === 'leads' || tab === 'contacts') && <><label>Owner <select value={ownerFilter} onChange={event => setOwnerFilter(event.target.value)}><option value="">All owners</option>{directory.users?.map(user => <option key={user.principalId} value={user.principalId}>{user.principalId} · {user.role}</option>)}</select></label>
+          <label>Team <select value={teamFilter} onChange={event => setTeamFilter(event.target.value)}><option value="">All teams</option>{directory.teams?.map(team => <option key={team} value={team}>{team}</option>)}</select></label>
+          <label>Archived <input type="checkbox" checked={archived} onChange={event => setArchived(event.target.checked)} /></label></>}</div>}
       {loading && <p role="status" className={s.muted}>Loading ANNIE data…</p>}
       {error && <p role="alert" className={s.error}>{error}</p>}
       {!loading && !error && tab === 'dashboard' && dashboard && <><div className={s.stats}>
@@ -128,6 +129,7 @@ export default function SalesModule() {
         {nextCursor && <button type="button" className={s.next} onClick={() => setCursor(nextCursor)}>Next page</button>}</div>}
       {selected && <aside className={s.detail}><div className={s.cardHeader}><h2>{label(selected)}</h2><button type="button" onClick={() => setSelected(null)}>Close</button></div><dl><dt>ANNIE ID</dt><dd>{selected.id}</dd><dt>Organization</dt><dd>{selected.organizationId}</dd><dt>Status</dt><dd>{selected.status ?? selected.stageCode ?? '—'}</dd><dt>Owner ID</dt><dd>{selected.ownerProfileId ?? '—'}</dd></dl></aside>}
       {tab === 'leads' && <LeadOperations selected={selected as Lead | null} writeEnabled={writeEnabled} onChanged={leadChanged} />}
+      {tab === 'contacts' && <ContactOperations selected={selected as Contact | null} writeEnabled={contactWriteEnabled} onChanged={leadChanged} />}
     </section>
   </AppShell>
 }
