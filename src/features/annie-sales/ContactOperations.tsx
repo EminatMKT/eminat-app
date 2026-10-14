@@ -10,7 +10,8 @@ export type Contact = Record<string, unknown> & {
 }
 type History = { id: string; action?: string; eventType?: string; occurredAt?: string; actorId?: string; changes?: unknown }
 type Directory = { users?: { principalId: string; role: string }[]; teams?: string[] }
-type Account = { id: string; name?: string; organizationId: string }
+type Account = { id: string; name?: string; organizationId: string; version: number }
+type AccountLink = { accountId: string; contactId: string; active: boolean; organizationId: string }
 type RelatedLead = { id: string; displayName?: string; organizationId: string }
 type Field = { key: string; label: string; type?: 'text' | 'email' | 'date' | 'datetime-local' | 'textarea' | 'checkbox' | 'owner' | 'team' | 'account'; required?: boolean }
 const fields: Field[] = [
@@ -71,6 +72,9 @@ export default function ContactOperations({ selected, writeEnabled, onChanged }:
   const [historyNext, setHistoryNext] = useState<string | null>(null)
   const [directory, setDirectory] = useState<Directory>({})
   const [accounts, setAccounts] = useState<Account[]>([])
+  const [relationshipAccountId, setRelationshipAccountId] = useState('')
+  const [accountLinks, setAccountLinks] = useState<AccountLink[]>([])
+  const [relationshipError, setRelationshipError] = useState('')
   const [relatedLeads, setRelatedLeads] = useState<RelatedLead[]>([])
   const [relatedNext, setRelatedNext] = useState<string | null>(null)
   const [relatedError, setRelatedError] = useState('')
@@ -101,6 +105,7 @@ export default function ContactOperations({ selected, writeEnabled, onChanged }:
   }
   useEffect(() => {
     setHistory([]); setHistoryNext(null); setRelatedLeads([]); setRelatedNext(null); setRelatedError(''); setMode(null); setError(''); setNotice('')
+    setRelationshipAccountId(selected?.primaryAccountId ?? ''); setAccountLinks([]); setRelationshipError('')
     if (!selected) return
     let cancelled = false
     void api(`contacts/${selected.id}/history?limit=25`).then(result => {
@@ -151,6 +156,32 @@ export default function ContactOperations({ selected, writeEnabled, onChanged }:
       reason: archiveReason.trim(), restore: Boolean(selected.archivedAt),
     }, selected.version), selected.archivedAt ? 'Contact restored in ANNIE.' : 'Contact archived in ANNIE.')
   }
+  async function loadAccountLinks(accountId: string) {
+    setRelationshipAccountId(accountId); setAccountLinks([]); setRelationshipError('')
+    if (!accountId) return
+    try {
+      const result = await api(`accounts/${accountId}/contacts`)
+      setAccountLinks(Array.isArray(result.data) ? result.data as AccountLink[] : [])
+    } catch (cause) { setRelationshipError(cause instanceof Error ? cause.message : 'RELATIONSHIP_READ_FAILED') }
+  }
+  async function deactivateAccountLink() {
+    if (!selected || !relationshipAccountId || selected.primaryAccountId === relationshipAccountId) return
+    const account = accounts.find(row => row.id === relationshipAccountId)
+    if (!account?.version || !accountLinks.some(link => link.contactId === selected.id && link.active)) return
+    setBusy(true); setRelationshipError(''); setNotice('')
+    try {
+      await api(`accounts/${account.id}/contacts`, 'POST', { contactId: selected.id, active: false }, account.version)
+      const [linksResult, accountResult] = await Promise.all([
+        api(`accounts/${account.id}/contacts`), api(`accounts/${account.id}`),
+      ])
+      setAccountLinks(Array.isArray(linksResult.data) ? linksResult.data as AccountLink[] : [])
+      const updated = accountResult.data as Account
+      setAccounts(current => current.map(row => row.id === updated.id ? updated : row))
+      setNotice('Account relationship deactivated in ANNIE. Contact archive can now be retried.')
+    } catch (cause) {
+      setRelationshipError(cause instanceof Error ? cause.message : 'RELATIONSHIP_WRITE_FAILED')
+    } finally { setBusy(false) }
+  }
   async function moreHistory() {
     if (!selected || !historyNext) return
     try {
@@ -176,6 +207,25 @@ export default function ContactOperations({ selected, writeEnabled, onChanged }:
       <p>Primary Account ID: {selected.primaryAccountId ?? '—'}</p>
       <button type="button" disabled={busy} onClick={() => onChanged(selected.id)}>Refresh from ANNIE</button>
       {canEdit && !selected.archivedAt && <button type="button" onClick={() => open('edit')}>Edit Contact</button>}
+      {writeEnabled && !selected.archivedAt && <details><summary>ANNIE Account relationship</summary>
+        <p>ANNIE requires active Account links to be deactivated before this Contact can be archived.</p>
+        <label>Account
+          <select value={relationshipAccountId} onChange={event => void loadAccountLinks(event.target.value)}>
+            <option value="">Select an ANNIE Account</option>
+            {accounts.map(account => <option key={account.id} value={account.id}>{account.name ?? account.id} · {account.id}</option>)}
+          </select>
+        </label>
+        {relationshipAccountId && <button type="button" disabled={busy} onClick={() => void loadAccountLinks(relationshipAccountId)}>Refresh relationship</button>}
+        {accountLinks.filter(link => link.contactId === selected.id).map(link => <p key={`${link.accountId}:${link.contactId}`}>
+          {link.active ? 'Active' : 'Inactive'} Account–Contact link · {link.accountId}
+        </p>)}
+        {relationshipAccountId && accountLinks.some(link => link.contactId === selected.id && link.active) &&
+          (selected.primaryAccountId === relationshipAccountId
+            ? <p>Clear the primary Account in Edit Contact before deactivating this link.</p>
+            : canEdit && <button type="button" disabled={busy || !accounts.find(row => row.id === relationshipAccountId)?.version}
+              onClick={() => void deactivateAccountLink()}>Deactivate this ANNIE link</button>)}
+        {relationshipError && <p role="alert" className={s.error}>{relationshipError}</p>}
+      </details>}
       {canEdit && <details><summary>{selected.archivedAt ? 'Restore Contact' : 'Archive Contact'}</summary>
         <label>Reason <input value={archiveReason} onChange={event => setArchiveReason(event.target.value)} /></label>
         <button type="button" disabled={busy || !archiveReason.trim()} onClick={archive}>{selected.archivedAt ? 'Restore' : 'Archive'} in ANNIE</button>
