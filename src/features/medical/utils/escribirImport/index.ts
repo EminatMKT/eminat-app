@@ -12,8 +12,8 @@ import { ESTADO_PACIENTE_DEFAULT } from '@/features/medical/constants'
 import type { ContactoEntrante } from '@/features/medical/utils/pacienteImportPlan'
 import type { Paciente, PacienteFuente } from '@/features/medical/types'
 
-const TAMANO_LOTE = 500; const TIPO_NUEVA_ESCRITURA = 'nueva'
-
+const TAMANO_LOTE = 500
+const TIPO_NUEVA_ESCRITURA = 'nueva'
 // Columnas que trae el archivo y que SÍ se fusionan. `id`, `mrn`, `created_at` y `updated_at`
 // los pone esta escritura, nunca la fusión: si `fusionar()` los viera (recorre
 // `Object.keys(existente) ∪ Object.keys(entrante)`, no una lista declarada) un `mrn` distinto
@@ -213,8 +213,8 @@ function contarChoques(listas: readonly FilaLista[]): { campo: string; n: number
   return Array.from(conteo.entries()).map(([campo, n]) => ({ campo, n }))
 }
 
-import payloadContactos from './contactPayloads'; import flagSiblingCollisions from './flagSiblingCollisions'
-
+import payloadContactos from './contactPayloads'
+import flagSiblingCollisions from './flagSiblingCollisions'
 // Límite de confianza: acá entran datos de un archivo. `pacientes_nombre_no_vacio` y
 // `pacientes_apellido_no_vacio` rechazan la fila en la base, pero rechazan el LOTE entero -500
 // filas adentro, con un mensaje de constraint que no dice cuál fue-. El saneamiento de la
@@ -232,8 +232,8 @@ function prepararFilas(filas: readonly FilaEscritura[]): { listas: FilaLista[]; 
   const grupos = agruparPorId(resueltas)
   const idsNuevos = new Set(resueltas.filter((r, i) => filas[i].tipo === TIPO_NUEVA_ESCRITURA).map((r) => r.id))
 
-  const listas: FilaLista[] = [], rechazadas: FilaRechazada[] = []
-
+  const listas: FilaLista[] = []
+  const rechazadas: FilaRechazada[] = []
   grupos.forEach((grupo) => {
     const sinNombre = vacio(grupo.paciente.nombre)
     const motivo = sinNombre ? 'sin_nombre' : vacio(grupo.paciente.apellido) ? 'sin_apellido' : null
@@ -292,7 +292,7 @@ export async function escribirImport(filas: readonly FilaEscritura[]): Promise<R
         error: { mensaje: errorPacientes.message, paso: 'pacientes', lote: i },
       }
     }
-    const nuevasDelLote = grupo.filter((f) => idsNuevos.has(f.id)); if (nuevasDelLote.length > 1) await flagSiblingCollisions(nuevasDelLote)
+    await flagSiblingCollisions(grupo.filter((f) => idsNuevos.has(f.id)))
     const { error: errorFuentes } = await upsertPacienteFuentes(loteFuentes)
     if (errorFuentes) {
       // Los pacientes de ESTE lote sí quedaron escritos -solo falló la identidad de origen-,

@@ -23,6 +23,10 @@ export default async function dedupSignal(fresh: Paciente, roster: readonly Paci
       failed += 1
     }
   }
+  if (failed > 0) {
+    const message = `dedupSignal: ${failed} registrar call(s) failed`
+    console.warn(message)
+  }
   return { failed }
 }
 

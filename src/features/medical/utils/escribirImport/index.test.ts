@@ -3,17 +3,14 @@ import { lotes, escribirImport, type FilaEscritura } from './index'
 import { upsertPacientes, upsertPacienteFuentes, upsertPacienteContactos } from '@/features/medical/data/pacientes'
 import { ESTADO_PACIENTE_DEFAULT } from '@/features/medical/constants'
 import type { ContactoEntrante } from '@/features/medical/utils/pacienteImportPlan'
-import flagSiblingCollisions from './flagSiblingCollisions'
 vi.mock('@/features/medical/data/pacientes', () => ({
   upsertPacientes: vi.fn(),
   upsertPacienteFuentes: vi.fn(),
   upsertPacienteContactos: vi.fn(),
 }))
-vi.mock('./flagSiblingCollisions', () => ({ default: vi.fn() }))
 const upsertPacientesMock = vi.mocked(upsertPacientes)
 const upsertPacienteFuentesMock = vi.mocked(upsertPacienteFuentes)
 const upsertPacienteContactosMock = vi.mocked(upsertPacienteContactos)
-const flagSiblingCollisionsMock = vi.mocked(flagSiblingCollisions)
 
 describe('lotes', () => {
   it('1.200 filas en lotes de 500 da 500/500/200', () => {

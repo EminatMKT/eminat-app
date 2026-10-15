@@ -46,11 +46,15 @@ describe('flagSiblingCollisions', () => {
     expect(registrar).not.toHaveBeenCalled()
   })
 
-  it('swallows a failed registration instead of throwing', async () => {
+  it('swallows a failed registration instead of throwing, but warns about it', async () => {
     const a = fresca('a1', 'Ana', 'Ruiz')
     const b = fresca('b1', 'Ana', 'Ruiz')
     vi.mocked(registrar).mockRejectedValue(new Error('boom'))
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
     await expect(flagSiblingCollisions([a, b])).resolves.not.toThrow()
+
+    expect(warn).toHaveBeenCalledOnce()
+    warn.mockRestore()
   })
 })

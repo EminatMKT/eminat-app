@@ -41,11 +41,15 @@ describe('dedupSignal', () => {
     expect(registrar).not.toHaveBeenCalled()
   })
 
-  it('swallows a failed registration instead of throwing', async () => {
+  it('swallows a failed registration instead of throwing, but warns about it', async () => {
     const existing = pacienteFixture({ id: 'existing-2', fecha_nacimiento: '1990-01-01' })
     const fresh = pacienteFixture({ id: 'fresh-3', fecha_nacimiento: '1990-01-01' })
     vi.mocked(registrar).mockRejectedValue(new Error('boom'))
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
     await expect(dedupSignal(fresh, [existing])).resolves.not.toThrow()
+
+    expect(warn).toHaveBeenCalledOnce()
+    warn.mockRestore()
   })
 })

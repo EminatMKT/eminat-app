@@ -43,6 +43,10 @@ export default async function flagSiblingCollisions(freshRows: FilaResuelta[]): 
       }
     }
   }
+  if (failed > 0) {
+    const message = `flagSiblingCollisions: ${failed} registrar call(s) failed`
+    console.warn(message)
+  }
   const resultado = { failed }
   return resultado
 }
