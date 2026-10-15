@@ -25,6 +25,9 @@ DECLARE
   v_primary_keys text[];
   v_moved_keys jsonb;
   v_moved jsonb := '[]'::jsonb;
+  v_key_match text;
+  v_row jsonb;
+  v_key jsonb;
 BEGIN
   IF p_entidad IS NULL OR p_ganador_id IS NULL OR p_perdedor_id IS NULL OR p_valores_finales IS NULL THEN
     RAISE EXCEPTION 'Duplicate merge inputs must not be null' USING ERRCODE = '22004';
@@ -99,12 +102,24 @@ BEGIN
     IF v_primary_keys IS NULL THEN
       RAISE EXCEPTION 'Registered child table must have a primary key' USING ERRCODE = '22023';
     END IF;
-    -- RETURNING records only rows this UPDATE actually moved, including composite primary keys.
-    EXECUTE format('WITH moved AS (UPDATE public.%I SET %I = $1 WHERE %I = $2 RETURNING *)
-      SELECT coalesce(jsonb_agg((SELECT jsonb_object_agg(e.key, e.value)
-        FROM jsonb_each(to_jsonb(m)) e WHERE e.key = ANY($3)) ORDER BY to_jsonb(m)), ''[]''::jsonb)
-      FROM moved m', v_child->>'tabla', v_child->>'columna', v_child->>'columna')
-      INTO v_moved_keys USING p_ganador_id, p_perdedor_id, v_primary_keys;
+    SELECT string_agg(format('c.%I = r.%I', k, k), ' AND ') INTO v_key_match FROM unnest(v_primary_keys) k;
+    v_moved_keys := '[]'::jsonb;
+    -- One block (one savepoint) per row: a row colliding with the winner's own unique key is
+    -- skipped, and cascades away with the loser below. Needs ON DELETE CASCADE on the child FK.
+    FOR v_row IN EXECUTE format('SELECT to_jsonb(c) FROM public.%I c WHERE %I = $1 ORDER BY to_jsonb(c) FOR UPDATE',
+        v_child->>'tabla', v_child->>'columna') USING p_perdedor_id LOOP
+      BEGIN
+        EXECUTE format('UPDATE public.%I c SET %I = $1 FROM jsonb_populate_record(NULL::public.%I, $2) r WHERE %s
+          RETURNING (SELECT jsonb_object_agg(e.key, e.value) FROM jsonb_each(to_jsonb(c)) e WHERE e.key = ANY($3))',
+          v_child->>'tabla', v_child->>'columna', v_child->>'tabla', v_key_match)
+          INTO v_key USING p_ganador_id, v_row, v_primary_keys;
+        IF v_key IS NOT NULL THEN
+          v_moved_keys := v_moved_keys || jsonb_build_array(v_key);
+        END IF;
+      EXCEPTION WHEN unique_violation THEN
+        NULL;
+      END;
+    END LOOP;
     v_moved := v_moved || jsonb_build_array(jsonb_build_object(
       'tabla', v_child->>'tabla', 'columna', v_child->>'columna', 'claves', v_moved_keys));
   END LOOP;

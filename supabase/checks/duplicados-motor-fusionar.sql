@@ -136,21 +136,30 @@ BEGIN
   END IF;
 END $$;
 
+-- Both share contact 555-0136 from the same source, the most common real duplicate. The
+-- colliding loser row (…037) sorts before a non-colliding one (…038), so a skip must not
+-- swallow the rows after it.
+RESET ROLE;
+INSERT INTO public.paciente_contactos (id, paciente_id, tipo, valor) VALUES
+  ('d0900000-0000-0000-0000-000000000038', 'd0900000-0000-0000-0000-000000000007', 'telefono', '555-0138');
+SET LOCAL ROLE authenticated;
 DO $$
 DECLARE
   v_winner uuid := 'd0900000-0000-0000-0000-000000000006';
   v_loser uuid := 'd0900000-0000-0000-0000-000000000007';
-  v_before jsonb;
+  v_audit public.duplicados_fusiones;
 BEGIN
-  SELECT to_jsonb(p) INTO v_before FROM public.pacientes p WHERE id = v_winner;
-  PERFORM pg_temp.assert_merge_rejected('pacientes', v_winner, v_loser, '{"telefono":"555-0107"}', '23505', NULL);
-  IF v_before IS DISTINCT FROM (SELECT to_jsonb(p) FROM public.pacientes p WHERE id = v_winner)
-     OR NOT EXISTS (SELECT 1 FROM public.pacientes WHERE id = v_loser)
-     OR NOT EXISTS (SELECT 1 FROM public.paciente_fuentes WHERE clave_origen = 'merge-collision' AND paciente_id = v_loser)
-     OR (SELECT count(*) FROM public.paciente_contactos WHERE paciente_id IN (v_winner, v_loser)) <> 2
-     OR NOT EXISTS (SELECT 1 FROM public.duplicados_pendientes WHERE entidad = 'pacientes' AND item_id_a = v_winner AND item_id_b = v_loser)
-     OR EXISTS (SELECT 1 FROM public.duplicados_fusiones WHERE ganador_id = v_winner) THEN
-    RAISE EXCEPTION 'Child uniqueness failure must roll back the entire merge';
+  PERFORM public.fusionar_duplicado('pacientes', v_winner, v_loser, '{"telefono":"555-0107"}');
+  IF EXISTS (SELECT 1 FROM public.pacientes WHERE id = v_loser)
+     OR EXISTS (SELECT 1 FROM public.paciente_contactos WHERE id = 'd0900000-0000-0000-0000-000000000037')
+     OR (SELECT array_agg(id ORDER BY id) FROM public.paciente_contactos WHERE paciente_id = v_winner)
+        IS DISTINCT FROM ARRAY['d0900000-0000-0000-0000-000000000036', 'd0900000-0000-0000-0000-000000000038']::uuid[]
+     OR NOT EXISTS (SELECT 1 FROM public.paciente_fuentes WHERE clave_origen = 'merge-collision' AND paciente_id = v_winner) THEN
+    RAISE EXCEPTION 'A child row colliding with the winner must be skipped, not abort the merge';
+  END IF;
+  SELECT * INTO STRICT v_audit FROM public.duplicados_fusiones WHERE ganador_id = v_winner;
+  IF v_audit.hijos_movidos IS DISTINCT FROM '[{"tabla":"paciente_fuentes","columna":"paciente_id","claves":[{"fuente":"manual","clave_origen":"merge-collision"}]},{"tabla":"paciente_contactos","columna":"paciente_id","claves":[{"id":"d0900000-0000-0000-0000-000000000038"}]}]'::jsonb THEN
+    RAISE EXCEPTION 'Audit must list only the child rows actually moved: %', v_audit.hijos_movidos;
   END IF;
 END $$;
 RESET ROLE;
