@@ -1,47 +1,42 @@
 'use client'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { Pendiente } from '@/shared/dedup/types'
-
-type EstadoAbierto<T> = {
-  abierto: Pendiente | null
-  itemA: T | null
-  itemB: T | null
-  elecciones: Record<string, string>
-}
+import type { EstadoAbierto } from './types'
 
 function vacio<T>(): EstadoAbierto<T> {
-  const estado: EstadoAbierto<T> = {
-    abierto: null,
-    itemA: null,
-    itemB: null,
-    elecciones: {},
-  }
+  const estado: EstadoAbierto<T> = { parCargado: null, elecciones: {}, error: false }
   return estado
 }
 
-/** The open pair (if any), the two loaded items, and the merge choices made so far. */
+/** The open pair (if any), the two loaded items, and the merge choices made so far. A request
+ *  counter drops a stale load that resolves after a newer `abrirPendiente` call started. */
 export default function useAbrirPendiente<T>(cargarItem: (id: string) => Promise<T>) {
   const [estado, setEstado] = useState<EstadoAbierto<T>>(vacio())
-  const { abierto, itemA, itemB, elecciones } = estado
+  const { parCargado, elecciones, error } = estado
+  const solicitud = useRef(0)
+
   const abrirPendiente = async (par: Pendiente) => {
-    const [a, b] = await Promise.all([cargarItem(par.item_id_a), cargarItem(par.item_id_b)])
-    setEstado(p => ({
-      ...p,
-      abierto: par,
-      itemA: a,
-      itemB: b,
-      elecciones: {},
-    }))
+    const mia = ++solicitud.current
+    try {
+      const [a, b] = await Promise.all([cargarItem(par.item_id_a), cargarItem(par.item_id_b)])
+      if (solicitud.current !== mia) return
+      const nuevo: EstadoAbierto<T> = { parCargado: { pendiente: par, a, b }, elecciones: {}, error: false }
+      setEstado(nuevo)
+    } catch {
+      if (solicitud.current === mia) setEstado(p => ({ ...p, error: true }))
+    }
   }
-  const cerrarPendiente = () => setEstado(vacio())
+
+  const cerrarPendiente = () => { solicitud.current += 1; setEstado(vacio()) }
   const onElegir = (campo: string, valor: string) => {
     setEstado(p => ({ ...p, elecciones: { ...p.elecciones, [campo]: valor } }))
   }
   const resultado = {
-    abierto,
-    itemA,
-    itemB,
+    abierto: parCargado?.pendiente ?? null,
+    itemA: parCargado?.a ?? null,
+    itemB: parCargado?.b ?? null,
     elecciones,
+    error,
     abrirPendiente,
     cerrarPendiente,
     onElegir,

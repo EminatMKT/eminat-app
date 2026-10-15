@@ -5,6 +5,7 @@ import Modal from '@/shared/components/ui/Modal'
 import Button from '@/shared/components/ui/Button'
 import Field from '@/shared/components/ui/Field'
 import fieldPrompt from './fieldPrompt'
+import confirmedNote from './confirmedNote'
 import type { Props } from './types'
 import s from './index.module.css'
 
@@ -27,13 +28,13 @@ export default function ConfirmModal(props: Props) {
   // The two fields are mutually exclusive, so each check is vacuously true when its own prop is
   // absent — `listo` only ever depends on whichever one the caller actually passed.
   const fraseOk = !confirmPhrase || typed.trim().toLowerCase() === confirmPhrase.trim().toLowerCase()
-  const noteOk = !notaLabel || typed.trim().length > 0
+  const text = confirmedNote(notaLabel, typed)
+  const noteOk = !notaLabel || text !== undefined
   const listo = fraseOk && noteOk
   const setTyped = (valor: string) => setEstado(p => ({ ...p, typed: valor }))
 
   async function ejecutar() {
     if (!listo || busy) return
-    const text = notaLabel ? typed.trim() : undefined
     setEstado(p => ({ ...p, busy: true }))
     try { await onConfirm(text) } finally { setEstado(p => ({ ...p, busy: false })) }
   }

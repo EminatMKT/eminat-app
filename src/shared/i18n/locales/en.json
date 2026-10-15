@@ -1338,5 +1338,6 @@
   "dedup.levelPartial": "Partial match",
   "dedup.openAria": "Open duplicate comparison",
   "dedup.mergeFailed": "Could not merge. Make sure every differing field has a chosen value.",
+  "dedup.merge": "Merge",
   "dedup.pendingCount": "{n} pending duplicates"
 }

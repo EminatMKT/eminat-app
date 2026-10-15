@@ -15,7 +15,7 @@ export default function useDecidirPendiente(
   const { ocupado, error } = estado
   const descartarPendiente = async (motivo: string, nota: string | null) => {
     if (!abierto) return
-    setEstado(p => ({ ...p, ocupado: true }))
+    setEstado(p => ({ ...p, ocupado: true, error: false }))
     const args = {
       entidad,
       itemIdA: abierto.item_id_a,
@@ -23,7 +23,8 @@ export default function useDecidirPendiente(
       motivo,
       nota,
     }
-    await descartar(args)
+    const { error: fallo } = await descartar(args)
+    if (fallo) return setEstado(p => ({ ...p, ocupado: false, error: true }))
     setEstado(INICIAL)
     alDecidir()
   }

@@ -37,7 +37,7 @@ export default function PairDetail<T>(props: Props<T>) {
       <Button kind="cancel" onClick={onCancelar} />
       <Button kind="notSame" onClick={onNotSame} ocupado={ocupado} />
       <Button kind="keepSeparate" onClick={() => setNotaAbierta(true)} ocupado={ocupado} />
-      <Button kind="confirm" onClick={onFusionar} ocupado={ocupado} />
+      <Button kind="confirm" label={t('dedup.merge')} onClick={onFusionar} ocupado={ocupado} />
 
       {notaAbierta && (
         <ConfirmModal

@@ -1,24 +1,51 @@
 import {
+  beforeEach,
   describe,
   expect,
   it,
   vi,
 } from 'vitest'
-import { renderToStaticMarkup } from 'react-dom/server'
+import capturarHook from '../capturarHook'
 import useListaDuplicados from '.'
 
-vi.mock('@/shared/dedup/data/listPendientes', () => ({ default: () => Promise.resolve({ data: [] }) }))
-vi.mock('@/shared/dedup/data/escanear', () => ({ default: () => Promise.resolve() }))
-
-function Sonda() {
-  const { pendientes, ocupado } = useListaDuplicados('pacientes')
-  return <>{`${pendientes.length} ${ocupado}`}</>
-}
+const mocks = vi.hoisted(() => ({
+  listPendientes: vi.fn(),
+  escanear: vi.fn(),
+}))
+vi.mock('@/shared/dedup/data/listPendientes', () => ({ default: mocks.listPendientes }))
+vi.mock('@/shared/dedup/data/escanear', () => ({ default: mocks.escanear }))
 
 describe('useListaDuplicados', () => {
+  beforeEach(() => {
+    mocks.listPendientes.mockReset().mockResolvedValue({ data: [] })
+    mocks.escanear.mockReset().mockResolvedValue({ error: null })
+  })
+
   // The effect that calls `listPendientes` never runs under `renderToStaticMarkup`, so this only
   // asserts the hook's initial values, not the fetch.
   it('starts empty and idle', () => {
-    expect(renderToStaticMarkup(<Sonda />)).toBe('0 false')
+    const { pendientes, ocupado } = capturarHook(() => useListaDuplicados('pacientes'))
+    expect(pendientes.length).toBe(0)
+    expect(ocupado).toBe(false)
+  })
+
+  it('reloads the list after a successful scan', async () => {
+    const { escanearPendientes } = capturarHook(() => useListaDuplicados('pacientes'))
+    await escanearPendientes()
+    expect(mocks.escanear).toHaveBeenCalledWith('pacientes')
+    expect(mocks.listPendientes).toHaveBeenCalledWith('pacientes')
+  })
+
+  it('does not reload when the scan itself fails', async () => {
+    mocks.escanear.mockResolvedValue({ error: new Error('denied') })
+    const { escanearPendientes } = capturarHook(() => useListaDuplicados('pacientes'))
+    await escanearPendientes()
+    expect(mocks.listPendientes).not.toHaveBeenCalled()
+  })
+
+  it('does not throw when the list itself fails to load', async () => {
+    mocks.listPendientes.mockResolvedValue({ data: null, error: new Error('denied') })
+    const { recargar } = capturarHook(() => useListaDuplicados('pacientes'))
+    await expect(recargar()).resolves.toBeUndefined()
   })
 })
