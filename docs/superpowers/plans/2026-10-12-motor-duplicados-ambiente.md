@@ -25,6 +25,7 @@ Copied from the spec and this repo's centinela rules. Apply to **every** task.
 - **The module slug lives in a variable and the migration aborts if it doesn't exist** (centinela rule `base-de-datos.md`) — already applied in the spec for `'medical'`; repeat the pattern if another slug is ever added.
 - **A migration that distributes permissions lists the explicit role, never copies it with a `SELECT`.**
 - **No policy authorizes just for having a session** (`qual: true` is forbidden).
+- **Audit actor IDs reference `usuarios.id`, not `usuarios.auth_id`.** Use `public.usuario_actual_id()` for `decidido_por` and `revertido_por`; test with different application and authentication IDs.
 - **Commits by explicit path**: `git commit path/one.ts path/two.ts -m "…"`. Never `git add -A`.
 - **Verification**: `pnpm typecheck && pnpm test` before every TS/UI commit. For SQL checks: the `rls.sh`-style pattern (`psql ... -f file.sql`, skips if the local stack isn't up).
 
@@ -687,7 +688,7 @@ BEGIN
   WHERE entidad = p_entidad AND item_id_a = least(p_item_id_a, p_item_id_b) AND item_id_b = greatest(p_item_id_a, p_item_id_b);
 
   INSERT INTO public.duplicados_descartes (entidad, item_id_a, item_id_b, motivo, nota, decidido_por)
-  VALUES (p_entidad, least(p_item_id_a, p_item_id_b), greatest(p_item_id_a, p_item_id_b), p_motivo, p_nota, auth.uid())
+  VALUES (p_entidad, least(p_item_id_a, p_item_id_b), greatest(p_item_id_a, p_item_id_b), p_motivo, p_nota, public.usuario_actual_id())
   ON CONFLICT (entidad, item_id_a, item_id_b) DO NOTHING;
 END;
 $$;
@@ -779,127 +780,41 @@ git commit supabase/migrations/20261012120300_duplicados_motor_descartes.sql sup
 ## Task 8: RPC `escanear_duplicados` + `pacientes_candidatos_escaneo()`
 
 **Files:**
-- Create: `supabase/migrations/20261012120400_duplicados_motor_escaneo.sql`
-- Create: `supabase/checks/duplicados-motor-escaneo.sql`
+- `supabase/migrations/20261012120400_duplicados_motor_escaneo.sql`
+- `supabase/checks/duplicados-motor-escaneo.sql`
 
 **Interfaces:**
-- Consumes: `registrar_candidato_duplicado` (Task 5), the blocking indexes (Task 2).
-- Produces: `public.escanear_duplicados(p_entidad text)` — called by Task 14.
+- Consumes `registrar_candidato_duplicado` (Task 5) and the entity registry.
+- Produces `public.escanear_duplicados(p_entidad text)` — called by Task 14.
 
-- [ ] **Step 1: Write the failing check**
+**Approved classifier correction (2026-10-13):** the user explicitly chose the same
+classification as `pacienteIdentity.candidatos`, not the earlier phonetic-all-partial sketch.
+The migration is the implementation reference; do not restore the superseded sketch.
 
-```sql
-DO $$
-DECLARE
-  id_a uuid; id_b uuid; id_sin_dob uuid;
-BEGIN
-  INSERT INTO public.pacientes (nombre, apellido, fecha_nacimiento)
-    VALUES ('Maria', 'Hernandez', '1990-05-01') RETURNING id INTO id_a;
-  INSERT INTO public.pacientes (nombre, apellido, fecha_nacimiento)
-    VALUES ('Maria', 'Ernandez', '1990-05-01') RETURNING id INTO id_b;
-  INSERT INTO public.pacientes (nombre, apellido) VALUES ('SinDob', 'Test') RETURNING id INTO id_sin_dob;
+- Repair mojibake, apply NFD accent removal, lowercase ASCII tokens of length ≥2, and preserve
+  multiplicity in sorted name cores. Equal cores and DOB are exact unless both nonempty phones
+  and both nonempty emails disagree; containment is partial.
+- Both DOBs must exist. Different DOBs qualify only with equal cores and the same nonempty phone,
+  always partial. Phonetic similarity alone does not qualify.
+- Generate ordered UUID pairs through two disjoint equality joins: same DOB, or different DOB
+  with equal core and shared phone. Combine with `UNION ALL`; classify afterward. Year, initial
+  and phonetic indexes from Task 2 cannot safely narrow these canonical matches.
+- Authorize through the registry module, qualify and quote dynamic function identifiers, keep
+  helpers internal, and expose only the hardened scanner to authenticated callers.
+- Prefilter pending/discarded pairs and delegate pair advisory/row locks to registration.
+  Contain only its known missing-row/discarded-pair rejections by SQLSTATE and exact message;
+  propagate unexpected failures.
 
-  PERFORM public.escanear_duplicados('pacientes');
-
-  IF NOT EXISTS (
-    SELECT 1 FROM public.duplicados_pendientes
-    WHERE entidad = 'pacientes' AND item_id_a = least(id_a,id_b) AND item_id_b = greatest(id_a,id_b)
-  ) THEN
-    RAISE EXCEPTION '(2) the scan did not find the Hernandez/Ernandez pair';
-  END IF;
-
-  IF EXISTS (SELECT 1 FROM public.duplicados_pendientes WHERE entidad = 'pacientes' AND item_id_a = item_id_b) THEN
-    RAISE EXCEPTION '(3) the scan produced a self-pair';
-  END IF;
-
-  IF EXISTS (SELECT 1 FROM public.duplicados_pendientes WHERE entidad = 'pacientes' AND (item_id_a = id_sin_dob OR item_id_b = id_sin_dob)) THEN
-    RAISE EXCEPTION '(4) a patient with no DOB should not generate candidates';
-  END IF;
-
-  DELETE FROM public.duplicados_pendientes WHERE entidad='pacientes' AND item_id_a=least(id_a,id_b) AND item_id_b=greatest(id_a,id_b);
-  INSERT INTO public.duplicados_descartes (entidad, item_id_a, item_id_b, motivo) VALUES ('pacientes', least(id_a,id_b), greatest(id_a,id_b), 'no_son_la_misma');
-  PERFORM public.escanear_duplicados('pacientes');
-  IF EXISTS (SELECT 1 FROM public.duplicados_pendientes WHERE entidad='pacientes' AND item_id_a=least(id_a,id_b) AND item_id_b=greatest(id_a,id_b)) THEN
-    RAISE EXCEPTION '(5) the scan re-inserted an already-discarded pair';
-  END IF;
-
-  DELETE FROM public.duplicados_pendientes WHERE entidad='pacientes' AND (item_id_a IN (id_a,id_b,id_sin_dob) OR item_id_b IN (id_a,id_b,id_sin_dob));
-  DELETE FROM public.duplicados_descartes WHERE entidad='pacientes' AND (item_id_a IN (id_a,id_b,id_sin_dob) OR item_id_b IN (id_a,id_b,id_sin_dob));
-  DELETE FROM public.pacientes WHERE id IN (id_a, id_b, id_sin_dob);
-END $$;
-```
-
-- [ ] **Step 2: Run and confirm it fails.**
-
-- [ ] **Step 3: Implement**
-
-```sql
-CREATE OR REPLACE FUNCTION public.pacientes_candidatos_escaneo()
-RETURNS TABLE(item_id_a uuid, item_id_b uuid, nivel text)
-LANGUAGE sql
-STABLE
-AS $$
-  WITH bucket_dmetaphone AS (
-    SELECT a.id AS a_id, b.id AS b_id
-    FROM public.pacientes a JOIN public.pacientes b
-      ON dmetaphone(a.apellido) = dmetaphone(b.apellido)
-     AND extract(year FROM a.fecha_nacimiento) = extract(year FROM b.fecha_nacimiento)
-     AND left(a.nombre, 1) = left(b.nombre, 1)
-     AND a.id < b.id
-    WHERE a.fecha_nacimiento IS NOT NULL AND b.fecha_nacimiento IS NOT NULL
-  ),
-  bucket_nysiis AS (
-    SELECT a.id AS a_id, b.id AS b_id
-    FROM public.pacientes a JOIN public.pacientes b
-      ON public.nysiis(a.apellido) = public.nysiis(b.apellido)
-     AND extract(year FROM a.fecha_nacimiento) = extract(year FROM b.fecha_nacimiento)
-     AND left(a.nombre, 1) = left(b.nombre, 1)
-     AND a.id < b.id
-    WHERE a.fecha_nacimiento IS NOT NULL AND b.fecha_nacimiento IS NOT NULL
-  ),
-  pares AS (
-    SELECT a_id, b_id FROM bucket_dmetaphone
-    UNION
-    SELECT a_id, b_id FROM bucket_nysiis
-  )
-  SELECT p.a_id, p.b_id, 'parcial'::text
-  FROM pares p;
-$$;
-
-CREATE OR REPLACE FUNCTION public.escanear_duplicados(p_entidad text)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  v_modulo  text;
-  v_funcion text;
-  r RECORD;
-BEGIN
-  SELECT modulo, funcion_candidatos INTO v_modulo, v_funcion FROM public.duplicados_entidades WHERE entidad = p_entidad;
-  IF v_funcion IS NULL THEN RAISE EXCEPTION 'entidad % is not registered', p_entidad; END IF;
-  IF NOT public.has_module(v_modulo) THEN RAISE EXCEPTION 'missing module % for %', v_modulo, p_entidad; END IF;
-
-  FOR r IN EXECUTE format('SELECT item_id_a, item_id_b, nivel FROM %I()', v_funcion) LOOP
-    BEGIN
-      PERFORM public.registrar_candidato_duplicado(p_entidad, r.item_id_a, r.item_id_b, r.nivel, 'escaneo');
-    EXCEPTION WHEN OTHERS THEN
-      CONTINUE;
-    END;
-  END LOOP;
-END;
-$$;
-
-REVOKE EXECUTE ON FUNCTION public.escanear_duplicados(text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.escanear_duplicados(text) TO authenticated;
-```
-
-- [ ] **Step 4: Apply and re-run the check.**
-
-- [ ] **Step 5: Commit**
+**Verification:**
+- [x] Observe missing scanner RED before implementation.
+- [x] Apply incrementally on local Supabase and pass rollback SQL checks covering classification,
+  authorization, helper ACLs, repeat scans, discarded pairs, NULL DOB and safe blocking.
+- [x] Independently compare actual TS classifier with SQL helpers: 4,656 pairs, zero differences.
+- [ ] Complete quality re-review after replacing the broad OR join with disjoint equality joins.
+- [ ] Queue final changes through pending-commits; commit only after human approval.
 
 ```bash
-git commit supabase/migrations/20261012120400_duplicados_motor_escaneo.sql supabase/checks/duplicados-motor-escaneo.sql -m "feat(db): pacientes_candidatos_escaneo and escanear_duplicados"
+psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/checks/duplicados-motor-escaneo.sql
 ```
 
 ---
@@ -1100,7 +1015,7 @@ BEGIN
   INSERT INTO public.duplicados_fusiones
     (entidad, ganador_id, perdedor_id, perdedor_snapshot, ganador_snapshot_previo, hijos_movidos, decidido_por)
   VALUES
-    (p_entidad, p_ganador_id, p_perdedor_id, v_perdedor_snapshot, v_ganador_snapshot, v_hijos_movidos, auth.uid());
+    (p_entidad, p_ganador_id, p_perdedor_id, v_perdedor_snapshot, v_ganador_snapshot, v_hijos_movidos, public.usuario_actual_id());
 END;
 $$;
 
@@ -1231,7 +1146,7 @@ BEGIN
       USING v_perdedor_id, v_ganador_id;
   END LOOP;
 
-  UPDATE public.duplicados_fusiones SET revertido_por = auth.uid(), revertido_at = now() WHERE id = p_fusion_id;
+  UPDATE public.duplicados_fusiones SET revertido_por = public.usuario_actual_id(), revertido_at = now() WHERE id = p_fusion_id;
 END;
 $$;
 
