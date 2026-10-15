@@ -3,6 +3,7 @@ import { escribirImport, type FilaEscritura, type ResultadoEscritura } from '@/f
 import type { Paciente } from '@/features/medical/types'
 import useRegistryState from './useRegistryState'
 import mutations from './mutations'
+import dedupSignal from './dedupSignal'
 
 /** The full patient registry, loaded on demand through `ensureLoaded` instead of on mount — the
  *  Dashboard reads aggregate counts through `usePatientDashboardAggregate` instead. */
@@ -12,9 +13,12 @@ export function usePacientes() {
 
   const addPaciente = useCallback(async (data: Partial<Paciente>) => {
     const result = await mutations.add(data)
-    if ('data' in result) addLocal(result.data)
+    if ('data' in result) {
+      void dedupSignal(result.data, pacientes)
+      addLocal(result.data)
+    }
     return result
-  }, [addLocal])
+  }, [addLocal, pacientes])
 
   const editPaciente = useCallback(async (id: string, data: Partial<Paciente>) => {
     const previo = pacientes.find(p => p.id === id)

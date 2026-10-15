@@ -8,6 +8,11 @@ export const listPacienteFuentes = () => listAllRows<PacienteFuente>(TABLES.paci
 export const listPacienteContactos = () =>
   listAllRows<PacienteContacto>(TABLES.pacienteContactos, 'created_at')
 
+const COLUMNA_ID = 'id'
+
+export const getPaciente = (id: string) =>
+  supabase.from(TABLES.pacientes).select().eq(COLUMNA_ID, id).single()
+
 export const insertPaciente = (data: Partial<Paciente>) =>
   supabase.from(TABLES.pacientes).insert([data]).select().single()
 

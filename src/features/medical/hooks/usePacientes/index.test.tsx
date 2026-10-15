@@ -1,13 +1,21 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+} from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import useRegistryState from './useRegistryState'
 import mutations from './mutations'
 import pacienteFixture from './fixture'
+import dedupSignal from './dedupSignal'
 import type { Paciente } from '@/features/medical/types'
 import { usePacientes } from './index'
 
 vi.mock('./useRegistryState', () => ({ default: vi.fn() }))
 vi.mock('./mutations', () => ({ default: { add: vi.fn(), edit: vi.fn() } }))
+vi.mock('./dedupSignal', () => ({ default: vi.fn() }))
 
 const registryState = {
   pacientes: [] as Paciente[],
@@ -65,5 +73,12 @@ describe('usePacientes', () => {
     const input = { nombre: 'Ana' }
     await seen?.editPaciente('p1', input)
     expect(registryState.updateLocal).toHaveBeenCalledWith('p1', landed.data)
+  })
+
+  it('signals the new patient against the current roster on a successful add', async () => {
+    const landed = { data: pacienteFixture() }
+    vi.mocked(mutations.add).mockResolvedValue(landed)
+    await seen?.addPaciente({ nombre: 'Ana' })
+    expect(dedupSignal).toHaveBeenCalledWith(landed.data, registryState.pacientes)
   })
 })

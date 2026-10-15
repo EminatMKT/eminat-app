@@ -5,17 +5,18 @@ import { useT } from '@/shared/i18n'
 import AppShell from '@/shared/components/shell/AppShell'
 import AccessDenied from '@/shared/components/access/AccessDenied'
 import { PageTransition } from '@/shared/motion'
-import { useMedicalStyles } from '../hooks/useMedicalStyles'
-import { MedicalProvider } from './MedicalContext'
-import DashboardTab from './DashboardTab'
-import PacientesTab from './PacientesTab'
-import CitasTab from './CitasTab'
-import HipaaTab from './HipaaTab'
-import AuditTab from './AuditTab'
-import PacienteModal from './PacienteModal'
-import PacientesImportModal from './PacientesImportModal'
-import CitaModal from './CitaModal'
-import IncidenteModal from './IncidenteModal'
+import { useMedicalStyles } from '@/features/medical/hooks/useMedicalStyles'
+import { MedicalProvider } from '../MedicalContext'
+import DashboardTab from '../DashboardTab'
+import PacientesTab from '../PacientesTab'
+import CitasTab from '../CitasTab'
+import HipaaTab from '../HipaaTab'
+import AuditTab from '../AuditTab'
+import PacienteModal from '../PacienteModal'
+import PacientesImportModal from '../PacientesImportModal'
+import CitaModal from '../CitaModal'
+import IncidenteModal from '../IncidenteModal'
+import MedicalDuplicatesTab from '../MedicalDuplicatesTab'
 import { useUserPreference } from '@/shared/hooks/useUserPreference'
 import { oneOf } from '@/shared/hooks/usePersistedState'
 import { SUB_ITEMS } from '@/shared/components/shell/appShellConfig'
@@ -52,6 +53,7 @@ export default function MedicalModule() {
           {tab === 'citas' && <CitasTab onNewCita={() => setModalCita(true)} />}
           {tab === 'hipaa' && <HipaaTab onNewIncidente={() => setModalIncidente(true)} />}
           {tab === 'audit' && <AuditTab />}
+          {tab === 'duplicados' && <MedicalDuplicatesTab />}
 
           {modalPaciente && <PacienteModal onClose={() => setModalPaciente(false)} />}
           {modalImportPacientes && <PacientesImportModal onClose={() => setModalImportPacientes(false)} />}

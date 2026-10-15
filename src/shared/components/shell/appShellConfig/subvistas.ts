@@ -25,6 +25,13 @@ export const SUB_ITEMS: Record<PanelKey, SubItem[]> = {
     { id: 'med-appointments', icon: '📅', label: 'Appointments', tab: 'citas' },
     { id: 'med-hipaa', icon: '🛡️', label: 'HIPAA', tab: 'hipaa' },
     { id: 'med-audit', icon: '📋', label: 'Audit Log', tab: 'audit' },
+    {
+      id: 'med-duplicates',
+      icon: '🔗',
+      label: 'Duplicates',
+      labelKey: 'dedup.medicalTab',
+      tab: 'duplicados',
+    },
   ],
   research: [
     { id: 'res-dash', icon: '📊', label: 'Dashboard', tab: 'dashboard' },
