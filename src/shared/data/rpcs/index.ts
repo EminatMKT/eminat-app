@@ -9,6 +9,7 @@ const RPCS = {
   escanearDuplicados: 'escanear_duplicados',
   decidirDescarteDuplicado: 'decidir_descarte_duplicado',
   fusionarDuplicado: 'fusionar_duplicado',
+  registrarCandidatoDuplicado: 'registrar_candidato_duplicado',
 } as const
 
 export default RPCS

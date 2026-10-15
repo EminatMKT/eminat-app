@@ -749,6 +749,17 @@
   "med.fuente.eclinpro": "eClinPro",
   "med.fuente.emed": "eMedicalPractice",
   "med.fuente.manual": "Manual entry",
+  "med.field.nombre": "First name",
+  "med.field.apellido": "Last name",
+  "med.field.fecha_nacimiento": "Date of birth",
+  "med.field.genero": "Gender",
+  "med.field.seguro": "Insurance",
+  "med.field.seguro_id": "Insurance ID",
+  "med.field.direccion": "Address",
+  "med.field.estado": "Status",
+  "med.field.alergias": "Allergies",
+  "med.field.condiciones": "Conditions",
+  "med.field.notas": "Notes",
   "med.importPatientsBtn": "Import patients",
   "med.import.title": "Import patients",
   "med.import.selectFile": "Choose the .xlsx registry (eClinicalWorks / eClinPro / eMedicalPractice)",
@@ -1339,5 +1350,7 @@
   "dedup.openAria": "Open duplicate comparison",
   "dedup.mergeFailed": "Could not merge. Make sure every differing field has a chosen value.",
   "dedup.merge": "Merge",
-  "dedup.pendingCount": "{n} pending duplicates"
+  "dedup.pendingCount": "{n} pending duplicates",
+  "dedup.medicalTab": "Duplicates",
+  "dedup.noFieldDiffs": "No differing fields to review."
 }

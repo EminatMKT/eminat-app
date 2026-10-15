@@ -749,6 +749,17 @@
   "med.fuente.eclinpro": "eClinPro",
   "med.fuente.emed": "eMedicalPractice",
   "med.fuente.manual": "Carga manual",
+  "med.field.nombre": "Nombre",
+  "med.field.apellido": "Apellido",
+  "med.field.fecha_nacimiento": "Fecha de nacimiento",
+  "med.field.genero": "Género",
+  "med.field.seguro": "Seguro",
+  "med.field.seguro_id": "ID de seguro",
+  "med.field.direccion": "Dirección",
+  "med.field.estado": "Estado",
+  "med.field.alergias": "Alergias",
+  "med.field.condiciones": "Condiciones",
+  "med.field.notas": "Notas",
   "med.importPatientsBtn": "Importar pacientes",
   "med.import.title": "Importar pacientes",
   "med.import.selectFile": "Elegí el .xlsx del registro (eClinicalWorks / eClinPro / eMedicalPractice)",
@@ -1339,5 +1350,7 @@
   "dedup.openAria": "Abrir comparación de duplicado",
   "dedup.mergeFailed": "No se pudo fusionar. Revisá que cada campo distinto tenga un valor elegido.",
   "dedup.merge": "Fusionar",
-  "dedup.pendingCount": "{n} duplicados pendientes"
+  "dedup.pendingCount": "{n} duplicados pendientes",
+  "dedup.medicalTab": "Duplicados",
+  "dedup.noFieldDiffs": "No hay campos distintos para revisar."
 }
