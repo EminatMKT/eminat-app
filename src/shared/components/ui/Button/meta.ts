@@ -36,4 +36,13 @@ export const BUTTON_META = {
   // hand-written ☰ moved out of an inline style; it is drawn icon-only.
   menu:    { icono: '☰',  labelKey: 'shell.openMenu',      tono: 'secundario' },
   duplicate: { icono: '⧉', labelKey: 'common.duplicate', tono: 'secundario' },
+  // Looking for new duplicate pairs. Added on 14/10/2026 with the dedup engine's pending-pair
+  // list, which needs its own trigger — none of the existing kinds mean "run the scan".
+  scan: { icono: '🔍', labelKey: 'dedup.scanButton', tono: 'secundario' },
+  // Recording that two candidates are not the same person. Secondary: it doesn't delete or
+  // change any row, it only logs a reviewer's call so the pair stops coming up again.
+  notSame: { icono: '≠', labelKey: 'dedup.notSame', tono: 'secundario' },
+  // Recording that two candidates ARE the same person but stay as two separate rows on
+  // purpose. Same tone as `notSame` for the same reason — a decision, not a data change.
+  keepSeparate: { icono: '✂️', labelKey: 'dedup.sameSeparated', tono: 'secundario' },
 } satisfies Record<ButtonKind, ButtonMeta>

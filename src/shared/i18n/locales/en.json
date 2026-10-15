@@ -1326,5 +1326,17 @@
   "team.role.Reviewer": "Reviewer",
   "team.addMember": "Add member",
   "team.selectMember": "Select a person…",
-  "team.remove": "Remove"
+  "team.remove": "Remove",
+  "dedup.scanButton": "Scan for duplicates",
+  "dedup.notSame": "Not the same person",
+  "dedup.sameSeparated": "Same person, keep separate",
+  "dedup.sameSeparatedMessage": "The pair stays as two separate records, with your note explaining why.",
+  "dedup.separatedNotePrompt": "Why do they stay separate?",
+  "dedup.listLabel": "Pending duplicates",
+  "dedup.emptyState": "No pending duplicates.",
+  "dedup.levelExact": "Exact match",
+  "dedup.levelPartial": "Partial match",
+  "dedup.openAria": "Open duplicate comparison",
+  "dedup.mergeFailed": "Could not merge. Make sure every differing field has a chosen value.",
+  "dedup.pendingCount": "{n} pending duplicates"
 }

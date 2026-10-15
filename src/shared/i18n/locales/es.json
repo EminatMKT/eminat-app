@@ -1326,5 +1326,17 @@
   "team.role.Reviewer": "Revisor",
   "team.addMember": "Agregar miembro",
   "team.selectMember": "Seleccionar persona…",
-  "team.remove": "Quitar"
+  "team.remove": "Quitar",
+  "dedup.scanButton": "Buscar duplicados",
+  "dedup.notSame": "No son la misma persona",
+  "dedup.sameSeparated": "Es la misma, mantener separados",
+  "dedup.sameSeparatedMessage": "El par queda como dos registros separados, con tu nota explicando por qué.",
+  "dedup.separatedNotePrompt": "¿Por qué quedan separados?",
+  "dedup.listLabel": "Duplicados pendientes",
+  "dedup.emptyState": "No hay duplicados pendientes.",
+  "dedup.levelExact": "Coincidencia exacta",
+  "dedup.levelPartial": "Coincidencia parcial",
+  "dedup.openAria": "Abrir comparación de duplicado",
+  "dedup.mergeFailed": "No se pudo fusionar. Revisá que cada campo distinto tenga un valor elegido.",
+  "dedup.pendingCount": "{n} duplicados pendientes"
 }
