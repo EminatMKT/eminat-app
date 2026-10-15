@@ -1038,130 +1038,39 @@ git commit supabase/migrations/20261012120500_duplicados_motor_fusionar.sql supa
 ## Task 10: RPC `revertir_fusion_duplicado`
 
 **Files:**
-- Create: `supabase/migrations/20261012120600_duplicados_motor_revertir.sql`
-- Create: `supabase/checks/duplicados-motor-revertir.sql`
+- `supabase/migrations/20261012120600_duplicados_motor_revertir.sql`
+- `supabase/checks/duplicados-motor-revertir.sql`
 
 **Interfaces:**
 - Produces: `public.revertir_fusion_duplicado(p_fusion_id uuid)` — called by Task 14.
 
-- [ ] **Step 1: Write the failing check (covers spec scenarios a, b, c)**
+**Addendum corrections applied (2026-10-14):** a review before implementation found the Step
+1/Step 3 sketch above unsafe; it was superseded and is kept only as historical context — do not
+restore it. The migration file is the implementation reference. Corrections actually applied:
+- Child rows are restored only from the exact `hijos_movidos[].claves` recorded at merge time, via
+  `jsonb_to_recordset` typed per primary-key column — never "every row the winner currently owns."
+- `v_hijo->>'columna'` is used throughout; no hardcoded `paciente_id` literal.
+- The "merged again later" guard is scoped by `entidad = v_entidad`.
+- `SET search_path = pg_catalog, pg_temp` is set, with every reference fully `public.`-qualified.
+- Grants: `REVOKE ALL ... FROM PUBLIC, anon` + `GRANT EXECUTE ... TO authenticated`, matching
+  `fusionar_duplicado`.
+- The child table's primary-key column names and types are read in one combined catalog query
+  (avoids writing the `pg_index`/`pg_attribute` lookup twice, which Centinela flags).
 
-```sql
-DO $$
-DECLARE
-  id_a uuid; id_b uuid; id_c uuid; fusion1 uuid; fusion2 uuid;
-BEGIN
-  INSERT INTO public.pacientes (nombre, apellido) VALUES ('Rev', 'A') RETURNING id INTO id_a;
-  INSERT INTO public.pacientes (nombre, apellido) VALUES ('Rev', 'B') RETURNING id INTO id_b;
-  INSERT INTO public.pacientes (nombre, apellido) VALUES ('Rev', 'C') RETURNING id INTO id_c;
+Two genuine bugs were also found and fixed, with explicit approval, in the check fixture itself
+during implementation (not in the migration): a missing `telefono` column in an INSERT's column
+list, and a statement-ordering issue where an RLS-gated fusion-id lookup ran after the session's
+JWT claim had already switched to a permission-denied test user — fixed with psql's `\gset` to
+capture the id before the switch, the same pattern the file already used later for
+`v_fusion_1`/`v_fusion_2`.
 
-  PERFORM public.registrar_candidato_duplicado('pacientes', id_a, id_b, 'exacta', 'alta_manual');
-  PERFORM public.fusionar_duplicado('pacientes', id_a, id_b, '{}'::jsonb);
-  SELECT id INTO fusion1 FROM public.duplicados_fusiones WHERE entidad='pacientes' AND ganador_id=id_a AND perdedor_id=id_b;
-
-  PERFORM public.registrar_candidato_duplicado('pacientes', id_a, id_c, 'exacta', 'alta_manual');
-  PERFORM public.fusionar_duplicado('pacientes', id_a, id_c, '{}'::jsonb);
-  SELECT id INTO fusion2 FROM public.duplicados_fusiones WHERE entidad='pacientes' AND ganador_id=id_a AND perdedor_id=id_c;
-
-  BEGIN
-    PERFORM public.revertir_fusion_duplicado(fusion1);
-    RAISE EXCEPTION '(a) should have blocked the revert for a later active merge';
-  EXCEPTION WHEN OTHERS THEN IF SQLERRM NOT LIKE '%merged again later%' THEN RAISE; END IF;
-  END;
-
-  PERFORM public.revertir_fusion_duplicado(fusion2);
-  IF NOT EXISTS (SELECT 1 FROM public.pacientes WHERE id = id_c) THEN RAISE EXCEPTION 'did not recreate C'; END IF;
-
-  PERFORM public.revertir_fusion_duplicado(fusion1);
-  IF NOT EXISTS (SELECT 1 FROM public.pacientes WHERE id = id_b) THEN RAISE EXCEPTION '(c) did not recreate B'; END IF;
-
-  BEGIN
-    PERFORM public.revertir_fusion_duplicado(fusion1);
-    RAISE EXCEPTION '(b) should have rejected a double revert';
-  EXCEPTION WHEN OTHERS THEN IF SQLERRM NOT LIKE '%already reverted%' THEN RAISE; END IF;
-  END;
-
-  DELETE FROM public.duplicados_fusiones WHERE id IN (fusion1, fusion2);
-  DELETE FROM public.duplicados_pendientes WHERE entidad='pacientes' AND (item_id_a IN (id_a,id_b,id_c) OR item_id_b IN (id_a,id_b,id_c));
-  DELETE FROM public.pacientes WHERE id IN (id_a, id_b, id_c);
-END $$;
-```
-
-- [ ] **Step 2: Run and confirm it fails.**
-
-- [ ] **Step 3: Implement**
-
-```sql
-CREATE OR REPLACE FUNCTION public.revertir_fusion_duplicado(p_fusion_id uuid)
-RETURNS void
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  v_entidad text;
-  v_tabla   text;
-  v_modulo  text;
-  v_ganador_id uuid;
-  v_perdedor_id uuid;
-  v_decidido_at timestamptz;
-  v_revertido_at timestamptz;
-  v_perdedor_snapshot jsonb;
-  v_ganador_snapshot_previo jsonb;
-  v_hijos_movidos jsonb;
-  v_hijo jsonb;
-BEGIN
-  SELECT entidad, ganador_id, perdedor_id, decidido_at, revertido_at, perdedor_snapshot, ganador_snapshot_previo, hijos_movidos
-  INTO v_entidad, v_ganador_id, v_perdedor_id, v_decidido_at, v_revertido_at, v_perdedor_snapshot, v_ganador_snapshot_previo, v_hijos_movidos
-  FROM public.duplicados_fusiones WHERE id = p_fusion_id FOR UPDATE;
-
-  IF v_entidad IS NULL THEN RAISE EXCEPTION 'fusion % does not exist', p_fusion_id; END IF;
-  IF v_revertido_at IS NOT NULL THEN RAISE EXCEPTION 'this merge was already reverted'; END IF;
-
-  SELECT tabla, modulo INTO v_tabla, v_modulo FROM public.duplicados_entidades WHERE entidad = v_entidad;
-  IF NOT public.has_module(v_modulo) THEN RAISE EXCEPTION 'missing module % for %', v_modulo, v_entidad; END IF;
-
-  EXECUTE format('SELECT 1 FROM %I WHERE id = $1 FOR UPDATE', v_tabla) USING v_ganador_id;
-
-  IF EXISTS (
-    SELECT 1 FROM public.duplicados_fusiones f2
-    WHERE f2.decidido_at > v_decidido_at AND f2.revertido_at IS NULL
-      AND (f2.ganador_id = v_ganador_id OR f2.perdedor_id = v_ganador_id)
-  ) THEN
-    RAISE EXCEPTION 'cannot revert: this item merged again later';
-  END IF;
-
-  EXECUTE format(
-    'UPDATE %I SET %s WHERE id = $1', v_tabla,
-    (SELECT string_agg(format('%I = %L', key, value), ', ') FROM jsonb_each_text(v_ganador_snapshot_previo))
-  ) USING v_ganador_id;
-
-  EXECUTE format(
-    'INSERT INTO %I (%s) VALUES (%s)', v_tabla,
-    (SELECT string_agg(quote_ident(key), ', ') FROM jsonb_each_text(v_perdedor_snapshot)),
-    (SELECT string_agg(quote_nullable(value), ', ') FROM jsonb_each_text(v_perdedor_snapshot))
-  );
-
-  FOR v_hijo IN SELECT * FROM jsonb_array_elements(v_hijos_movidos) LOOP
-    EXECUTE format('UPDATE %I SET %I = $1 WHERE %I = $2', v_hijo->>'tabla', 'paciente_id', 'paciente_id')
-      USING v_perdedor_id, v_ganador_id;
-  END LOOP;
-
-  UPDATE public.duplicados_fusiones SET revertido_por = public.usuario_actual_id(), revertido_at = now() WHERE id = p_fusion_id;
-END;
-$$;
-
-REVOKE EXECUTE ON FUNCTION public.revertir_fusion_duplicado(uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.revertir_fusion_duplicado(uuid) TO authenticated;
-```
-
-Note: the dynamic `UPDATE`/`INSERT` over `v_hijo->>'tabla'` hardcodes the `paciente_id` column name because it's the only child column that exists today for Medical. If a future entity ever has a different child column, generalize to `v_hijo->>'columna'` instead of the literal — add a test for it when that entity actually arrives.
-
-- [ ] **Step 4: Apply and re-run the check.**
-
-- [ ] **Step 5: Commit**
+**Verification:**
+- [x] Observed missing-function RED before implementation.
+- [x] Applied locally (`pnpm supabase migration up`) and the check reached the final `PASS:` line.
+- [x] Queued through pending-commits (`032-dedup-task10-revertir`); commit only after human approval.
 
 ```bash
-git commit supabase/migrations/20261012120600_duplicados_motor_revertir.sql supabase/checks/duplicados-motor-revertir.sql -m "feat(db): revertir_fusion_duplicado RPC"
+psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/checks/duplicados-motor-revertir.sql
 ```
 
 ---
