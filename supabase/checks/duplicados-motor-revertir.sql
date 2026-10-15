@@ -16,7 +16,7 @@ INSERT INTO public.usuarios (id, auth_id, email, nombre, apellido, rol) VALUES
   ('d1000000-0000-0000-0000-000000000022', 'd1000000-0000-0000-0000-000000000012',
    'dedup-revert-denied@example.invalid', 'Dedup', 'Denied', 'dedup_revert_denied');
 
-INSERT INTO public.pacientes (id, mrn, nombre, apellido) VALUES
+INSERT INTO public.pacientes (id, mrn, nombre, apellido, telefono) VALUES
   ('d1000000-0000-0000-0000-000000000001', 'REVERT-A', 'Rev', 'A', '555-1001'),
   ('d1000000-0000-0000-0000-000000000002', 'REVERT-B', 'Rev', 'B', '555-1002'),
   ('d1000000-0000-0000-0000-000000000003', 'REVERT-C', 'Rev', 'C', '555-1003');
@@ -69,11 +69,13 @@ SELECT public.fusionar_duplicado(
   'd1000000-0000-0000-0000-000000000003',
   '{"apellido":"A","telefono":"555-1003"}'
 );
+SELECT id AS fusion2_id FROM public.duplicados_fusiones
+  WHERE ganador_id = 'd1000000-0000-0000-0000-000000000001'
+    AND perdedor_id = 'd1000000-0000-0000-0000-000000000003'
+\gset
 SELECT set_config('request.jwt.claim.sub', 'd1000000-0000-0000-0000-000000000012', true);
 SELECT pg_temp.assert_revert_rejected(
-  (SELECT id FROM public.duplicados_fusiones
-   WHERE ganador_id = 'd1000000-0000-0000-0000-000000000001'
-     AND perdedor_id = 'd1000000-0000-0000-0000-000000000003'),
+  :'fusion2_id'::uuid,
   '42501',
   'Duplicate entity module access denied'
 );
