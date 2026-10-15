@@ -36,11 +36,9 @@ export default async function flagSiblingCollisions(freshRows: FilaResuelta[]): 
         nivel: match.nivel,
         origen: ORIGEN_IMPORT,
       }
-      try {
-        await registrar(args)
-      } catch {
-        failed += 1
-      }
+      // `{ error }` is a database failure, a rejection a network one: both count, neither throws.
+      const fallo = await registrar(args).then(({ error }) => Boolean(error), () => true)
+      if (fallo) failed += 1
     }
   }
   if (failed > 0) {

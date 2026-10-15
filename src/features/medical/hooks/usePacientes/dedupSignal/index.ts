@@ -16,12 +16,10 @@ export default async function dedupSignal(fresh: Paciente, roster: readonly Paci
       nivel: candidate.nivel,
       origen: ORIGEN_ALTA_MANUAL,
     }
-    try {
-      await registrar(args)
-    } catch {
-      // Recorded, not rethrown: this signal never blocks the add it rides on.
-      failed += 1
-    }
+    // The RPC resolves `{ error }` on a database failure and only rejects on a network one; both
+    // are recorded, never rethrown: this signal never blocks the add it rides on.
+    const fallo = await registrar(args).then(({ error }) => Boolean(error), () => true)
+    if (fallo) failed += 1
   }
   if (failed > 0) {
     const message = `dedupSignal: ${failed} registrar call(s) failed`

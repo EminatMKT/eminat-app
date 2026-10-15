@@ -5,12 +5,14 @@ import {
   vi,
   beforeEach,
 } from 'vitest'
-import registrar from '@/shared/dedup/data/registrar'
 import { ORIGEN_IMPORT } from '@/shared/dedup/types'
 import type { Paciente } from '@/features/medical/types'
 import flagSiblingCollisions from '.'
 
-vi.mock('@/shared/dedup/data/registrar', () => ({ default: vi.fn() }))
+// Untyped on purpose: the real `registrar` resolves a Postgrest response, and these tests only
+// need its `{ error }` half — the shape `supabase.rpc()` resolves with even when the RPC fails.
+const mocks = vi.hoisted(() => ({ registrar: vi.fn() }))
+vi.mock('@/shared/dedup/data/registrar', () => ({ default: mocks.registrar }))
 
 function fresca(id: string, nombre: string, apellido: string): { id: string; paciente: Partial<Paciente> } {
   const paciente: Partial<Paciente> = { nombre, apellido, fecha_nacimiento: '1990-01-01' }
@@ -19,16 +21,18 @@ function fresca(id: string, nombre: string, apellido: string): { id: string; pac
 
 describe('flagSiblingCollisions', () => {
   beforeEach(() => {
-    vi.mocked(registrar).mockReset()
+    mocks.registrar.mockReset()
+    mocks.registrar.mockResolvedValue({ error: null })
   })
 
   it('registers a match between two new rows of the same batch', async () => {
     const a = fresca('a1', 'Ana', 'Ruiz')
     const b = fresca('b1', 'Ana', 'Ruiz')
 
-    await flagSiblingCollisions([a, b])
+    const { failed } = await flagSiblingCollisions([a, b])
 
-    expect(registrar).toHaveBeenCalledWith({
+    expect(failed).toBe(0)
+    expect(mocks.registrar).toHaveBeenCalledWith({
       entidad: 'pacientes',
       itemIdA: 'a1',
       itemIdB: 'b1',
@@ -43,18 +47,33 @@ describe('flagSiblingCollisions', () => {
 
     await flagSiblingCollisions([a, b])
 
-    expect(registrar).not.toHaveBeenCalled()
+    expect(mocks.registrar).not.toHaveBeenCalled()
   })
 
-  it('swallows a failed registration instead of throwing, but warns about it', async () => {
+  // The bug this guards against: the RPC resolves `{ error }` instead of throwing, so a
+  // try/catch alone counted nothing and the warning never fired.
+  it('counts and warns about a registration the RPC resolved with an error', async () => {
     const a = fresca('a1', 'Ana', 'Ruiz')
     const b = fresca('b1', 'Ana', 'Ruiz')
-    vi.mocked(registrar).mockRejectedValue(new Error('boom'))
+    mocks.registrar.mockResolvedValue({ error: { code: '42501', message: 'denied' } })
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-    await expect(flagSiblingCollisions([a, b])).resolves.not.toThrow()
+    const { failed } = await flagSiblingCollisions([a, b])
 
+    expect(failed).toBe(1)
     expect(warn).toHaveBeenCalledOnce()
+    warn.mockRestore()
+  })
+
+  it('still swallows a registration that throws, such as a network failure', async () => {
+    const a = fresca('a1', 'Ana', 'Ruiz')
+    const b = fresca('b1', 'Ana', 'Ruiz')
+    mocks.registrar.mockRejectedValue(new Error('offline'))
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const { failed } = await flagSiblingCollisions([a, b])
+
+    expect(failed).toBe(1)
     warn.mockRestore()
   })
 })

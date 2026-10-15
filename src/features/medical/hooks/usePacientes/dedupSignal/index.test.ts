@@ -7,23 +7,27 @@ import {
 } from 'vitest'
 import pacienteFixture from '../fixture'
 import { ORIGEN_ALTA_MANUAL } from '@/shared/dedup/types'
-import registrar from '@/shared/dedup/data/registrar'
 import dedupSignal from '.'
 
-vi.mock('@/shared/dedup/data/registrar', () => ({ default: vi.fn() }))
+// Untyped on purpose: the real `registrar` resolves a Postgrest response, and these tests only
+// need its `{ error }` half — the shape `supabase.rpc()` resolves with even when the RPC fails.
+const mocks = vi.hoisted(() => ({ registrar: vi.fn() }))
+vi.mock('@/shared/dedup/data/registrar', () => ({ default: mocks.registrar }))
 
 describe('dedupSignal', () => {
   beforeEach(() => {
-    vi.mocked(registrar).mockReset()
+    mocks.registrar.mockReset()
+    mocks.registrar.mockResolvedValue({ error: null })
   })
 
   it('registers a candidate pair against an existing patient that matches', async () => {
     const existing = pacienteFixture({ id: 'existing-1', fecha_nacimiento: '1990-01-01' })
     const fresh = pacienteFixture({ id: 'fresh-1', fecha_nacimiento: '1990-01-01' })
 
-    await dedupSignal(fresh, [existing])
+    const { failed } = await dedupSignal(fresh, [existing])
 
-    expect(registrar).toHaveBeenCalledWith({
+    expect(failed).toBe(0)
+    expect(mocks.registrar).toHaveBeenCalledWith({
       entidad: 'pacientes',
       itemIdA: 'fresh-1',
       itemIdB: 'existing-1',
@@ -38,18 +42,33 @@ describe('dedupSignal', () => {
 
     await dedupSignal(fresh, [unrelated])
 
-    expect(registrar).not.toHaveBeenCalled()
+    expect(mocks.registrar).not.toHaveBeenCalled()
   })
 
-  it('swallows a failed registration instead of throwing, but warns about it', async () => {
+  // The bug this guards against: the RPC resolves `{ error }` instead of throwing, so a
+  // try/catch alone counted nothing and the warning never fired.
+  it('counts and warns about a registration the RPC resolved with an error', async () => {
     const existing = pacienteFixture({ id: 'existing-2', fecha_nacimiento: '1990-01-01' })
     const fresh = pacienteFixture({ id: 'fresh-3', fecha_nacimiento: '1990-01-01' })
-    vi.mocked(registrar).mockRejectedValue(new Error('boom'))
+    mocks.registrar.mockResolvedValue({ error: { code: '42501', message: 'denied' } })
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-    await expect(dedupSignal(fresh, [existing])).resolves.not.toThrow()
+    const { failed } = await dedupSignal(fresh, [existing])
 
+    expect(failed).toBe(1)
     expect(warn).toHaveBeenCalledOnce()
+    warn.mockRestore()
+  })
+
+  it('still swallows a registration that throws, such as a network failure', async () => {
+    const existing = pacienteFixture({ id: 'existing-3', fecha_nacimiento: '1990-01-01' })
+    const fresh = pacienteFixture({ id: 'fresh-4', fecha_nacimiento: '1990-01-01' })
+    mocks.registrar.mockRejectedValue(new Error('offline'))
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const { failed } = await dedupSignal(fresh, [existing])
+
+    expect(failed).toBe(1)
     warn.mockRestore()
   })
 })
