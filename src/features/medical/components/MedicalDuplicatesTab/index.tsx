@@ -1,15 +1,10 @@
 'use client'
 import { useT } from '@/shared/i18n'
 import DuplicatesTab from '@/shared/dedup/DuplicatesTab'
-import { getPaciente } from '@/features/medical/data/pacientes'
 import type { Paciente } from '@/features/medical/types'
 import comparePacientes from './comparePacientes'
-
-async function loadPaciente(id: string): Promise<Paciente> {
-  const { data } = await getPaciente(id)
-  const patient: Paciente = data
-  return patient
-}
+import loadPaciente from './loadPaciente'
+import buildMergeValues from './buildMergeValues'
 
 function summarizePaciente({ nombre, apellido }: Paciente): string {
   const summary = `${nombre} ${apellido}`
@@ -27,6 +22,7 @@ export default function MedicalDuplicatesTab() {
       cargarItem={loadPaciente}
       renderResumen={summarizePaciente}
       renderComparacion={(a, b, onChoose) => comparePacientes(a, b, onChoose, t)}
+      construirValoresFinales={buildMergeValues}
     />
   )
 }

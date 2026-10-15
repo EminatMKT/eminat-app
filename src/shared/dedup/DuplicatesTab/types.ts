@@ -7,6 +7,9 @@ export type Props<T> = {
   cargarItem: (id: string) => Promise<T>
   renderResumen: (item: T) => string
   renderComparacion: (a: T, b: T, onElegir: (campo: string, valor: string) => void) => ReactNode
+  /** The full merge values for `a` (the winner) and `b`: every column that differs resolved,
+   *  with the reviewer's clicks in `elecciones` overriding the caller's default pick. */
+  construirValoresFinales: (a: T, b: T, elecciones: Record<string, string>) => Record<string, unknown>
 }
 
 /** The whole screen in one value: the list, the open pair's two loaded items, and the in-flight

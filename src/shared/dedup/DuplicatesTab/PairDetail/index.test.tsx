@@ -16,12 +16,13 @@ const itemB: Item = { id: 'b' }
 const renderResumen = (item: Item): string => item.id
 const renderGrid = (): string => 'grid'
 
-const renderDetalle = (error: boolean) => renderToStaticMarkup(
+const renderDetalle = (errorDescarte: boolean, errorFusion: boolean) => renderToStaticMarkup(
   <PairDetail
     itemA={itemA}
     itemB={itemB}
     ocupado={false}
-    error={error}
+    errorDescarte={errorDescarte}
+    errorFusion={errorFusion}
     renderResumen={renderResumen}
     renderComparacion={renderGrid}
     onElegir={vi.fn()}
@@ -33,11 +34,20 @@ const renderDetalle = (error: boolean) => renderToStaticMarkup(
 )
 
 describe('PairDetail', () => {
-  it('does not show a merge-failed warning before any attempt', () => {
-    expect(renderDetalle(false)).not.toContain('dedup.mergeFailed')
+  it('does not show a failure warning before any attempt', () => {
+    const html = renderDetalle(false, false)
+    expect(html).not.toContain('dedup.mergeFailed')
+    expect(html).not.toContain('dedup.discardFailed')
   })
 
   it('shows the merge-failed warning once a merge attempt failed', () => {
-    expect(renderDetalle(true)).toContain('dedup.mergeFailed')
+    expect(renderDetalle(false, true)).toContain('dedup.mergeFailed')
+  })
+
+  // A failed discard used to show the merge copy, telling the reviewer to fix field choices.
+  it('shows its own warning for a failed discard, not the merge one', () => {
+    const html = renderDetalle(true, false)
+    expect(html).toContain('dedup.discardFailed')
+    expect(html).not.toContain('dedup.mergeFailed')
   })
 })

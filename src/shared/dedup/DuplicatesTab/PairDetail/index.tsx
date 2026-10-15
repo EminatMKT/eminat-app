@@ -13,7 +13,7 @@ import type { Props } from './types'
  *  decisions available once two candidates are loaded — keep comparing, discard, or merge. */
 export default function PairDetail<T>(props: Props<T>) {
   const {
-    itemA, itemB, ocupado, error, renderResumen, renderComparacion,
+    itemA, itemB, ocupado, errorDescarte, errorFusion, renderResumen, renderComparacion,
     onElegir, onCancelar, onNotSame, onKeepSeparate, onFusionar,
   } = props
   const { t } = useT()
@@ -32,7 +32,8 @@ export default function PairDetail<T>(props: Props<T>) {
 
       {renderComparacion(itemA, itemB, onElegir)}
 
-      {error && <WarningCallout message={t('dedup.mergeFailed')} />}
+      {errorDescarte && <WarningCallout message={t('dedup.discardFailed')} />}
+      {errorFusion && <WarningCallout message={t('dedup.mergeFailed')} />}
 
       <Button kind="cancel" onClick={onCancelar} />
       <Button kind="notSame" onClick={onNotSame} ocupado={ocupado} />

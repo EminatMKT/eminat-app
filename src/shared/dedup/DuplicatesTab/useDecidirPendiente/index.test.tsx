@@ -6,7 +6,7 @@ import {
   vi,
 } from 'vitest'
 import capturarHook from '../capturarHook'
-import pendienteFixture from '../pendienteFixture'
+import decidirArgsFixture from '../decidirArgsFixture'
 import useDecidirPendiente from '.'
 
 const mocks = vi.hoisted(() => ({
@@ -16,8 +16,6 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/shared/dedup/data/descartar', () => ({ default: mocks.descartar }))
 vi.mock('@/shared/dedup/data/fusionar', () => ({ default: mocks.fusionar }))
 
-const abierto = pendienteFixture()
-
 describe('useDecidirPendiente', () => {
   beforeEach(() => {
     mocks.descartar.mockReset()
@@ -25,15 +23,16 @@ describe('useDecidirPendiente', () => {
   })
 
   it('starts idle without error', () => {
-    const { ocupado, error } = capturarHook(() => useDecidirPendiente('pacientes', null, {}, () => {}))
-    expect(ocupado).toBe(false)
-    expect(error).toBe(false)
+    const decidir = capturarHook(() => useDecidirPendiente(decidirArgsFixture({ abierto: null })))
+    expect(decidir.ocupado).toBe(false)
+    expect(decidir.errorDescarte).toBe(false)
+    expect(decidir.errorFusion).toBe(false)
   })
 
   it('calls alDecidir after a successful discard', async () => {
     mocks.descartar.mockResolvedValue({ error: null })
     const alDecidir = vi.fn()
-    const { descartarPendiente } = capturarHook(() => useDecidirPendiente('pacientes', abierto, {}, alDecidir))
+    const { descartarPendiente } = capturarHook(() => useDecidirPendiente(decidirArgsFixture({ alDecidir })))
     await descartarPendiente('no_son_la_misma', null)
     expect(alDecidir).toHaveBeenCalledOnce()
   })
@@ -43,7 +42,7 @@ describe('useDecidirPendiente', () => {
   it('does not call alDecidir when the discard fails', async () => {
     mocks.descartar.mockResolvedValue({ error: new Error('denied') })
     const alDecidir = vi.fn()
-    const { descartarPendiente } = capturarHook(() => useDecidirPendiente('pacientes', abierto, {}, alDecidir))
+    const { descartarPendiente } = capturarHook(() => useDecidirPendiente(decidirArgsFixture({ alDecidir })))
     await descartarPendiente('no_son_la_misma', null)
     expect(alDecidir).not.toHaveBeenCalled()
   })
@@ -51,7 +50,7 @@ describe('useDecidirPendiente', () => {
   it('calls alDecidir after a successful merge', async () => {
     mocks.fusionar.mockResolvedValue({ error: null })
     const alDecidir = vi.fn()
-    const { fusionarPendiente } = capturarHook(() => useDecidirPendiente('pacientes', abierto, {}, alDecidir))
+    const { fusionarPendiente } = capturarHook(() => useDecidirPendiente(decidirArgsFixture({ alDecidir })))
     await fusionarPendiente()
     expect(alDecidir).toHaveBeenCalledOnce()
   })
@@ -59,7 +58,7 @@ describe('useDecidirPendiente', () => {
   it('does not call alDecidir when the merge fails', async () => {
     mocks.fusionar.mockResolvedValue({ error: new Error('missing field') })
     const alDecidir = vi.fn()
-    const { fusionarPendiente } = capturarHook(() => useDecidirPendiente('pacientes', abierto, {}, alDecidir))
+    const { fusionarPendiente } = capturarHook(() => useDecidirPendiente(decidirArgsFixture({ alDecidir })))
     await fusionarPendiente()
     expect(alDecidir).not.toHaveBeenCalled()
   })

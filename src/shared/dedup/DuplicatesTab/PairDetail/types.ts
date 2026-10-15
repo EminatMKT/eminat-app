@@ -6,7 +6,8 @@ export type Props<T> = {
   itemA: T
   itemB: T
   ocupado: boolean
-  error: boolean
+  errorDescarte: boolean
+  errorFusion: boolean
   renderResumen: (item: T) => string
   renderComparacion: (a: T, b: T, onElegir: (campo: string, valor: string) => void) => ReactNode
   onElegir: (campo: string, valor: string) => void
