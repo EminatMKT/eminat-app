@@ -33,7 +33,11 @@ export default function PillToggle(props: Props) {
   const className = `${s.pill} ${active ? s.on : ''} ${size === 'sm' ? s.sm : ''} ${color ? s.tinted : ''} ${diff ? s.diff : ''} ${onClick ? '' : s.estatico}`
   const style = color ? { '--pill-color': color } : undefined
   // Mismo elemento siempre, sólo cambia la etiqueta: sin `onClick` no hay nada que elegir, así
-  // que se dibuja como un valor (`span`) en vez de un control (`button`).
+  // que se dibuja como un valor (`span`) en vez de un control (`button`). Atención: esto sólo
+  // typechequea porque las dos ramas comparten exactamente los mismos atributos; un prop
+  // propio de `<button>` (`disabled`, `type`, `form`, `name`) rompe esa unión y obliga a volver
+  // a dos elementos separados — lo que `markup_dibujado` volvería a bloquear (ver el historial
+  // en `.superpowers/sdd/2026-10-12-motor-duplicados-ambiente/task-12-report-v3.md`).
   const Tag = onClick ? 'button' : 'span'
   // Un `<button>` sin `type` hace submit si vive dentro de un `<form>`; cancelar el evento por
   // omisión evita eso sin necesitar el atributo `type`, que `<span>` no admite.
@@ -42,7 +46,7 @@ export default function PillToggle(props: Props) {
     : undefined
   return (
     <Tag
-      {...named}
+      {...(onClick ? named : undefined)}
       aria-pressed={onClick ? active : undefined}
       onClick={handleClick}
       className={className}
