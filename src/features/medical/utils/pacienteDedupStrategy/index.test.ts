@@ -41,13 +41,21 @@ describe('pacienteDedupStrategy', () => {
 
     const existingBefore = { ...existing }
     const incomingBefore = { ...incoming }
-    const { resultado: result } = pacienteDedupStrategy.fusionar(existing, incoming)
+    const { resultado: result, choques: conflicts } = pacienteDedupStrategy.fusionar(existing, incoming)
 
     expect(result).toEqual({ nombre: 'Ana', apellido: 'Gomez' })
     expect(result).not.toHaveProperty('id')
     expect(result).not.toHaveProperty('mrn')
     expect(result).not.toHaveProperty('created_at')
     expect(result).not.toHaveProperty('updated_at')
+    // `id`/`mrn`/`created_at`/`updated_at` always differ between two real patients, so if
+    // they ever reached `choques`, every real pair would report a conflict the UI can't
+    // render (`FIELD_MAPS` only knows clinical fields) — and a pair with no clinical
+    // conflict at all would show a blank comparison instead of the "nothing differs" message.
+    expect(conflicts).not.toContain('id')
+    expect(conflicts).not.toContain('mrn')
+    expect(conflicts).not.toContain('created_at')
+    expect(conflicts).not.toContain('updated_at')
     expect(existing).toEqual(existingBefore)
     expect(incoming).toEqual(incomingBefore)
   })

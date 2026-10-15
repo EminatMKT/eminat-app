@@ -23,8 +23,11 @@ export const pacienteDedupStrategy: DedupStrategy<Identificable> = {
     return candidates.map(({ nivel: level, paciente: patient }) => ({ nivel: level, item: patient }))
   },
   fusionar: (existing, incoming) => {
-    const { paciente: patient, choques: conflicts } = mergePatient(existing, incoming)
-    return { resultado: omitIdentityColumns(patient), choques: conflicts }
+    const { paciente: patient, choques: conflicts } = mergePatient(
+      omitIdentityColumns(existing),
+      omitIdentityColumns(incoming),
+    )
+    return { resultado: patient, choques: conflicts }
   },
 }
 
