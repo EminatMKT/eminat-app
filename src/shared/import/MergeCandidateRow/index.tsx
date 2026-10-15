@@ -1,7 +1,7 @@
 import { useId, type CSSProperties } from 'react'
 import { useT, type I18nKey } from '@/shared/i18n'
+import { FieldCompare } from '@/shared/components/ui'
 import type { NivelCandidato } from '../identity'
-import MergeFieldRow from '../MergeFieldRow'
 import s from './index.module.css'
 
 // Una fila del paso "Duplicados" (paso 5): la fila entrante del archivo, enfrentada a uno o
@@ -88,7 +88,7 @@ export default function MergeCandidateRow({ fields, entrante, candidatos, select
           const entranteVal = fmt(entrante[f.column])
           const valores = [entranteVal, ...candidatos.map(c => fmt(c.values[f.column]))]
           const distinta = candidatos.some(c => !haySolape(c.values[f.column], entrante[f.column]))
-          return <MergeFieldRow key={f.column} labelKey={f.labelKey} values={valores} diff={distinta} />
+          return <FieldCompare key={f.column} {...({ labelKey: f.labelKey, values: valores, diff: distinta })} />
         })}
       </div>
     </div>

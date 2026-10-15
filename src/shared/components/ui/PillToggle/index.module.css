@@ -1,10 +1,10 @@
 .pill {
-  padding: 5px 16px;
-  border-radius: 20px;
+  padding: .3125rem 1rem;
+  border-radius: 1.25rem;
   border: 1px solid var(--c-border);
   background: transparent;
   color: var(--c-t2);
-  font-size: 12px;
+  font-size: .75rem;
   font-weight: 600;
   cursor: pointer;
 }
@@ -26,9 +26,22 @@
 
 /* Variante chica: las vistas del Gantt son seis y compiten con el título. */
 .pill.sm {
-  padding: 5px 12px;
-  font-size: 11px;
+  padding: .3125rem .75rem;
+  font-size: .6875rem;
   font-weight: 400;
+}
+
+/* Resalta la píldora como distinta del otro lado de una comparación — cosmético, no cambia
+   qué se puede elegir. */
+.pill.diff {
+  border-color: #B45309;
+  color: #B45309;
+  background: color-mix(in srgb, #FBBF24 18%, transparent);
+}
+
+/* Sin `onClick` la píldora es un valor, no un control: nada que señalar con el puntero. */
+.pill.estatico {
+  cursor: default;
 }
 
 /* El número que lleva la píldora cuando cuenta algo: apagado, para que el rótulo siga siendo lo

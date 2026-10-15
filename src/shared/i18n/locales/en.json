@@ -223,6 +223,7 @@
   "import.merge.levelPartial": "Partial match",
   "import.merge.mergeWith": "Merge with this one",
   "import.merge.none": "None (new)",
+  "import.merge.noValue": "No value",
   "import.merge.exactSection": "Exact — {n}",
   "import.merge.partialSection": "Partial — {n}",
   "import.merge.unmarkAll": "Unmark all",

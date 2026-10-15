@@ -223,6 +223,7 @@
   "import.merge.levelPartial": "Coincidencia parcial",
   "import.merge.mergeWith": "Fusionar con este",
   "import.merge.none": "Ninguno (nuevo)",
+  "import.merge.noValue": "Sin valor",
   "import.merge.exactSection": "Exactas — {n}",
   "import.merge.partialSection": "Parciales — {n}",
   "import.merge.unmarkAll": "Desmarcar todas",
