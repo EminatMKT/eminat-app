@@ -1081,9 +1081,28 @@ Not automatable with a single script — it genuinely needs two interleaved sess
 
 **Files:** none — manual procedure, documented so it leaves a record.
 
-- [ ] **Step 1:** Open two psql sessions against local. Session 1: begin a transaction and take `pg_advisory_xact_lock` on a given pair without committing. Session 2, same pair: try `decidir_descarte_duplicado` — it has to block until session 1 commits.
-- [ ] **Step 2:** Repeat with `registrar_candidato_duplicado` on a pair sharing one id with an in-flight, uncommitted `fusionar_duplicado` on an unrelated pair — confirm session 2 also blocks (scenario t of the spec).
-- [ ] **Step 3:** Record the outcome in this task's PR before merging.
+- [x] **Step 1:** Open two psql sessions against local. Session 1: begin a transaction and take `pg_advisory_xact_lock` on a given pair without committing. Session 2, same pair: try `decidir_descarte_duplicado` — it has to block until session 1 commits.
+- [x] **Step 2:** Repeat with `registrar_candidato_duplicado` on a pair sharing one id with an in-flight, uncommitted `fusionar_duplicado` on an unrelated pair — confirm session 2 also blocks (scenario t of the spec).
+- [x] **Step 3:** Record the outcome in this task's PR before merging.
+
+**Addendum — results (2026-10-14):** executed per the Addendum's concrete procedure against local
+Supabase (`127.0.0.1:54322`), with two concurrent `psql` processes (one backgrounded, holding a
+lock open behind a `pg_sleep(5)`; one foregrounded and timed with `time`) instead of literal human
+sessions. Throwaway fixtures (a `dedup_lock_test` role/user with the `medical` module, five
+`pacientes` rows) were inserted and committed before each scenario, then deleted afterward; a
+residue check confirmed 0 rows left in any touched table.
+
+- **Scenario n/r** (raw `pg_advisory_xact_lock` on a pair held open 5s vs. `decidir_descarte_duplicado`
+  on the same pair): Session 2 measured **`real 0m4.764s`** — blocked on the shared advisory lock
+  key until Session 1 committed. PASS.
+- **Scenario t** (`fusionar_duplicado('pacientes', X, Y, '{}'::jsonb)` held open 5s vs.
+  `registrar_candidato_duplicado('pacientes', X, Z, ...)` — a different pair sharing only id X):
+  Session 2 measured **`real 0m4.800s`** — blocked not on the advisory lock (different pair key)
+  but on X's row-level `SELECT ... FOR UPDATE`, confirming that mechanism is what actually
+  serializes overlapping pairs. PASS.
+- Queued through pending-commits (`034-dedup-task11-concurrency-results`); commit only after human
+  approval. No migration files were touched — both scenarios confirmed the already-reviewed lock
+  protocol behaves as designed.
 
 ---
 
