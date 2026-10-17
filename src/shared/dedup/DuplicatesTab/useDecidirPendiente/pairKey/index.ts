@@ -8,4 +8,4 @@ export default function pairKey(abierto: Pendiente | null): string | null {
   return key
 }
 
-// Names the open pair for `decisionFor`'s lookup, so a result for pair A never paints pair B.
+// Names the open pair for `flagsForPair`'s lookup, so a result for pair A never paints pair B.

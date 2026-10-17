@@ -20,3 +20,7 @@ export type EstadoDecidir = {
   /** Which open pair these flags belong to. */
   pair: string | null
 }
+
+/** Which pair is open, and which "opening" of it — a pair that closed and reopened carries a
+ *  new generation even when it's the exact same pair again. */
+export type PairMoment = { pair: string | null; generation: number }
