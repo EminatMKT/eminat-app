@@ -1,6 +1,15 @@
 \set ON_ERROR_STOP on
 BEGIN;
-SELECT 'public.fusionar_duplicado(text,uuid,uuid,jsonb)'::regprocedure;
+SELECT 'public.fusionar_duplicado(text,uuid,uuid,jsonb,uuid[])'::regprocedure;
+DO $$ BEGIN
+  IF to_regprocedure('public.fusionar_duplicado(text,uuid,uuid,jsonb)') IS NOT NULL THEN
+    RAISE EXCEPTION 'The 4-argument overload must be gone: next to the new one it makes every 4-argument call ambiguous';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public'
+      AND table_name = 'duplicados_fusiones' AND column_name = 'hijos_descartados') THEN
+    RAISE EXCEPTION 'duplicados_fusiones must keep the skipped child rows';
+  END IF;
+END $$;
 \if :{?adapter_payload}
 \else
 \set adapter_payload '{"nombre":"Fixture","apellido":"Winner","telefono":"555-0102","estado":"activo","email":null}'
@@ -23,7 +32,9 @@ INSERT INTO public.pacientes (id, mrn, nombre, apellido, telefono) VALUES
   ('d0900000-0000-0000-0000-000000000004', 'MERGE-4', 'Fixture', 'Same', NULL),
   ('d0900000-0000-0000-0000-000000000005', 'MERGE-5', 'Fixture', 'Same', NULL),
   ('d0900000-0000-0000-0000-000000000006', 'MERGE-6', 'Fixture', 'Collision', NULL),
-  ('d0900000-0000-0000-0000-000000000007', 'MERGE-7', 'Fixture', 'Collision', '555-0107');
+  ('d0900000-0000-0000-0000-000000000007', 'MERGE-7', 'Fixture', 'Collision', '555-0107'),
+  ('d0900000-0000-0000-0000-000000000008', 'MERGE-8', 'Fixture', 'Exclude', NULL),
+  ('d0900000-0000-0000-0000-000000000009', 'MERGE-9', 'Fixture', 'Exclude', NULL);
 INSERT INTO public.paciente_fuentes (paciente_id, fuente, clave_origen) VALUES
   ('d0900000-0000-0000-0000-000000000001', 'manual', 'merge-winner'),
   ('d0900000-0000-0000-0000-000000000002', 'manual', 'merge-loser'),
@@ -32,7 +43,13 @@ INSERT INTO public.paciente_contactos (id, paciente_id, tipo, valor) VALUES
   ('d0900000-0000-0000-0000-000000000031', 'd0900000-0000-0000-0000-000000000001', 'telefono', '555-0131'),
   ('d0900000-0000-0000-0000-000000000032', 'd0900000-0000-0000-0000-000000000002', 'telefono', '555-0132'),
   ('d0900000-0000-0000-0000-000000000036', 'd0900000-0000-0000-0000-000000000006', 'telefono', '555-0136'),
-  ('d0900000-0000-0000-0000-000000000037', 'd0900000-0000-0000-0000-000000000007', 'telefono', '555-0136');
+  ('d0900000-0000-0000-0000-000000000037', 'd0900000-0000-0000-0000-000000000007', 'telefono', '555-0136'),
+  ('d0900000-0000-0000-0000-000000000041', 'd0900000-0000-0000-0000-000000000008', 'telefono', '555-0141'),
+  ('d0900000-0000-0000-0000-000000000042', 'd0900000-0000-0000-0000-000000000009', 'telefono', '555-0142'),
+  ('d0900000-0000-0000-0000-000000000043', 'd0900000-0000-0000-0000-000000000009', 'telefono', '555-0143'),
+  ('d0900000-0000-0000-0000-000000000044', 'd0900000-0000-0000-0000-000000000009', 'email', 'solo@example.invalid'),
+  ('d0900000-0000-0000-0000-000000000045', 'd0900000-0000-0000-0000-000000000009', 'telefono', '555-0141'),
+  ('d0900000-0000-0000-0000-000000000046', 'd0900000-0000-0000-0000-000000000003', 'telefono', '555-0146');
 INSERT INTO public.duplicados_entidades (entidad, tabla, modulo, funcion_candidatos) VALUES
   ('merge_other', 'pacientes', 'medical', 'unused_check');
 INSERT INTO public.duplicados_pendientes (entidad, item_id_a, item_id_b, nivel, origen) VALUES
@@ -40,17 +57,18 @@ INSERT INTO public.duplicados_pendientes (entidad, item_id_a, item_id_b, nivel, 
   ('pacientes', 'd0900000-0000-0000-0000-000000000002', 'd0900000-0000-0000-0000-000000000003', 'parcial', 'import'),
   ('pacientes', 'd0900000-0000-0000-0000-000000000004', 'd0900000-0000-0000-0000-000000000005', 'exacta', 'import'),
   ('pacientes', 'd0900000-0000-0000-0000-000000000006', 'd0900000-0000-0000-0000-000000000007', 'parcial', 'import'),
+  ('pacientes', 'd0900000-0000-0000-0000-000000000008', 'd0900000-0000-0000-0000-000000000009', 'parcial', 'import'),
   ('merge_other', 'd0900000-0000-0000-0000-000000000002', 'd0900000-0000-0000-0000-000000000003', 'parcial', 'import');
 INSERT INTO public.duplicados_descartes (entidad, item_id_a, item_id_b, motivo) VALUES
   ('pacientes', 'd0900000-0000-0000-0000-000000000002', 'd0900000-0000-0000-0000-000000000004', 'no_son_la_misma'),
   ('merge_other', 'd0900000-0000-0000-0000-000000000002', 'd0900000-0000-0000-0000-000000000004', 'no_son_la_misma');
 
-CREATE FUNCTION pg_temp.assert_merge_rejected(p_entity text, p_winner uuid, p_loser uuid, p_payload jsonb, p_state text, p_message text)
+CREATE FUNCTION pg_temp.assert_merge_rejected(p_entity text, p_winner uuid, p_loser uuid, p_payload jsonb, p_state text, p_message text, p_excluded uuid[] DEFAULT '{}')
 RETURNS void LANGUAGE plpgsql AS $$
 DECLARE v_state text; v_message text;
 BEGIN
   BEGIN
-    PERFORM public.fusionar_duplicado(p_entity, p_winner, p_loser, p_payload);
+    PERFORM public.fusionar_duplicado(p_entity, p_winner, p_loser, p_payload, p_excluded);
   EXCEPTION WHEN OTHERS THEN
     GET STACKED DIAGNOSTICS v_state = RETURNED_SQLSTATE, v_message = MESSAGE_TEXT;
   END;
@@ -117,6 +135,9 @@ BEGIN
   IF v_audit.hijos_movidos IS DISTINCT FROM '[{"tabla":"paciente_fuentes","columna":"paciente_id","claves":[{"fuente":"manual","clave_origen":"merge-loser"}]},{"tabla":"paciente_contactos","columna":"paciente_id","claves":[{"id":"d0900000-0000-0000-0000-000000000032"}]}]'::jsonb THEN
     RAISE EXCEPTION 'Audit must identify exactly moved primary keys, including composite keys: %', v_audit.hijos_movidos;
   END IF;
+  IF (SELECT count(*) FROM jsonb_array_elements(v_audit.hijos_descartados) t, jsonb_array_elements(t->'filas')) <> 0 THEN
+    RAISE EXCEPTION 'A merge that skipped nothing must record no discarded rows: %', v_audit.hijos_descartados;
+  END IF;
   IF EXISTS (SELECT 1 FROM public.pacientes WHERE id = v_loser)
      OR (SELECT telefono FROM public.pacientes WHERE id = v_winner) IS DISTINCT FROM '555-0102'
      OR (SELECT count(*) FROM public.paciente_fuentes WHERE paciente_id = v_winner) <> 2
@@ -161,10 +182,56 @@ BEGIN
   IF v_audit.hijos_movidos IS DISTINCT FROM '[{"tabla":"paciente_fuentes","columna":"paciente_id","claves":[{"fuente":"manual","clave_origen":"merge-collision"}]},{"tabla":"paciente_contactos","columna":"paciente_id","claves":[{"id":"d0900000-0000-0000-0000-000000000038"}]}]'::jsonb THEN
     RAISE EXCEPTION 'Audit must list only the child rows actually moved: %', v_audit.hijos_movidos;
   END IF;
+  IF (SELECT jsonb_agg(f->>'id') FROM jsonb_array_elements(v_audit.hijos_descartados) t, jsonb_array_elements(t->'filas') f)
+       IS DISTINCT FROM '["d0900000-0000-0000-0000-000000000037"]'::jsonb
+     OR NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_audit.hijos_descartados) t, jsonb_array_elements(t->'filas') f
+       WHERE t->>'tabla' = 'paciente_contactos' AND f->>'paciente_id' = v_loser::text AND f->>'valor' = '555-0136') THEN
+    RAISE EXCEPTION 'A collision-skipped row must be kept whole in the audit: %', v_audit.hijos_descartados;
+  END IF;
+END $$;
+
+-- Loser …009: the reviewer drops …042, …045 (which would collide with the winner's …041 anyway)
+-- and its only email …044, and keeps …043. The list repeats …042 on purpose: duplicates are fine.
+DO $$
+DECLARE
+  v_winner uuid := 'd0900000-0000-0000-0000-000000000008';
+  v_loser uuid := 'd0900000-0000-0000-0000-000000000009';
+  v_drop uuid[] := ARRAY['d0900000-0000-0000-0000-000000000042', 'd0900000-0000-0000-0000-000000000044',
+    'd0900000-0000-0000-0000-000000000045', 'd0900000-0000-0000-0000-000000000042']::uuid[];
+  v_audit public.duplicados_fusiones;
+BEGIN
+  PERFORM pg_temp.assert_merge_rejected('pacientes', v_winner, v_loser, '{}', '22004', 'Duplicate merge inputs must not be null', NULL);
+  -- The winner's own contact, a third patient's contact, and a NULL entry: all foreign.
+  PERFORM pg_temp.assert_merge_rejected('pacientes', v_winner, v_loser, '{}', '22023', 'Excluded child rows must belong to the loser',
+    ARRAY['d0900000-0000-0000-0000-000000000041']::uuid[]);
+  PERFORM pg_temp.assert_merge_rejected('pacientes', v_winner, v_loser, '{}', '22023', 'Excluded child rows must belong to the loser',
+    ARRAY['d0900000-0000-0000-0000-000000000042', 'd0900000-0000-0000-0000-000000000046']::uuid[]);
+  PERFORM pg_temp.assert_merge_rejected('pacientes', v_winner, v_loser, '{}', '22023', 'Excluded child rows must belong to the loser',
+    ARRAY[NULL]::uuid[]);
+  IF NOT EXISTS (SELECT 1 FROM public.pacientes WHERE id = v_loser)
+     OR (SELECT count(*) FROM public.paciente_contactos WHERE paciente_id = v_loser) <> 4 THEN
+    RAISE EXCEPTION 'A rejected exclusion list must leave the loser and its contacts untouched';
+  END IF;
+
+  PERFORM public.fusionar_duplicado('pacientes', v_winner, v_loser, '{}', v_drop);
+  IF EXISTS (SELECT 1 FROM public.paciente_contactos WHERE id = ANY(v_drop))
+     OR (SELECT array_agg(id ORDER BY id) FROM public.paciente_contactos WHERE paciente_id = v_winner)
+        IS DISTINCT FROM ARRAY['d0900000-0000-0000-0000-000000000041', 'd0900000-0000-0000-0000-000000000043']::uuid[]
+     OR NOT EXISTS (SELECT 1 FROM public.paciente_contactos WHERE id = 'd0900000-0000-0000-0000-000000000046') THEN
+    RAISE EXCEPTION 'Excluded loser contacts must be gone, and every other contact must survive';
+  END IF;
+  SELECT * INTO STRICT v_audit FROM public.duplicados_fusiones WHERE ganador_id = v_winner;
+  IF v_audit.hijos_movidos IS DISTINCT FROM '[{"tabla":"paciente_fuentes","columna":"paciente_id","claves":[]},{"tabla":"paciente_contactos","columna":"paciente_id","claves":[{"id":"d0900000-0000-0000-0000-000000000043"}]}]'::jsonb THEN
+    RAISE EXCEPTION 'Audit must list only the contacts that actually moved: %', v_audit.hijos_movidos;
+  END IF;
+  IF (SELECT jsonb_agg(f->>'id' ORDER BY f->>'id') FROM jsonb_array_elements(v_audit.hijos_descartados) t, jsonb_array_elements(t->'filas') f)
+       IS DISTINCT FROM '["d0900000-0000-0000-0000-000000000042","d0900000-0000-0000-0000-000000000044","d0900000-0000-0000-0000-000000000045"]'::jsonb THEN
+    RAISE EXCEPTION 'Every excluded row must be kept whole in the audit, once: %', v_audit.hijos_descartados;
+  END IF;
 END $$;
 RESET ROLE;
 DO $$
-DECLARE v_function regprocedure := 'public.fusionar_duplicado(text,uuid,uuid,jsonb)';
+DECLARE v_function regprocedure := 'public.fusionar_duplicado(text,uuid,uuid,jsonb,uuid[])';
 BEGIN
   IF has_function_privilege('anon', v_function, 'EXECUTE')
      OR NOT has_function_privilege('authenticated', v_function, 'EXECUTE')

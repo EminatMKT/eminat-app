@@ -1,8 +1,18 @@
+-- The full rows a merge skipped (a collision with the winner, or the reviewer's exclusion): they
+-- go away with the loser, so this is the only copy a revert can re-create them from.
+ALTER TABLE public.duplicados_fusiones
+  ADD COLUMN IF NOT EXISTS hijos_descartados jsonb NOT NULL DEFAULT '[]'::jsonb;
+
+-- Dropped first: adding a parameter with CREATE OR REPLACE would leave the 4-argument version
+-- next to it, and every 4-argument call would then be ambiguous.
+DROP FUNCTION IF EXISTS public.fusionar_duplicado(text, uuid, uuid, jsonb);
+
 CREATE OR REPLACE FUNCTION public.fusionar_duplicado(
   p_entidad text,
   p_ganador_id uuid,
   p_perdedor_id uuid,
-  p_valores_finales jsonb
+  p_valores_finales jsonb,
+  p_contactos_excluidos uuid[] DEFAULT '{}'
 ) RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -28,8 +38,14 @@ DECLARE
   v_key_match text;
   v_row jsonb;
   v_key jsonb;
+  v_dropped_ids text[];
+  v_owned bigint := 0;
+  v_count bigint;
+  v_skipped_rows jsonb;
+  v_skipped jsonb := '[]'::jsonb;
 BEGIN
-  IF p_entidad IS NULL OR p_ganador_id IS NULL OR p_perdedor_id IS NULL OR p_valores_finales IS NULL THEN
+  IF p_entidad IS NULL OR p_ganador_id IS NULL OR p_perdedor_id IS NULL OR p_valores_finales IS NULL
+     OR p_contactos_excluidos IS NULL THEN
     RAISE EXCEPTION 'Duplicate merge inputs must not be null' USING ERRCODE = '22004';
   END IF;
   SELECT tabla, modulo, hijos INTO v_table, v_module, v_children
@@ -85,6 +101,18 @@ BEGIN
     RAISE EXCEPTION 'Merge values omit a differing column' USING ERRCODE = '22023';
   END IF;
 
+  -- Every excluded id must be the `id` of one of the loser's child rows: anything else (the
+  -- winner's row, a third patient's, a NULL) is a malformed call, so the whole merge is refused.
+  v_dropped_ids := ARRAY(SELECT DISTINCT e::text FROM unnest(p_contactos_excluidos) e);
+  FOR v_child IN SELECT value FROM jsonb_array_elements(v_children) LOOP
+    EXECUTE format('SELECT count(*) FROM public.%I c WHERE %I = $1 AND to_jsonb(c)->>''id'' = ANY($2)',
+      v_child->>'tabla', v_child->>'columna') INTO v_count USING p_perdedor_id, v_dropped_ids;
+    v_owned := v_owned + v_count;
+  END LOOP;
+  IF v_owned <> cardinality(v_dropped_ids) THEN
+    RAISE EXCEPTION 'Excluded child rows must belong to the loser' USING ERRCODE = '22023';
+  END IF;
+
   SELECT string_agg(format('%I = v.%I', k, k), ', ' ORDER BY k) INTO v_assignments
     FROM jsonb_object_keys(p_valores_finales) k;
   -- Equal allowed snapshots need no UPDATE; an empty SET clause is invalid SQL.
@@ -104,10 +132,16 @@ BEGIN
     END IF;
     SELECT string_agg(format('c.%I = r.%I', k, k), ' AND ') INTO v_key_match FROM unnest(v_primary_keys) k;
     v_moved_keys := '[]'::jsonb;
+    v_skipped_rows := '[]'::jsonb;
     -- One block (one savepoint) per row: a row colliding with the winner's own unique key is
     -- skipped, and cascades away with the loser below. Needs ON DELETE CASCADE on the child FK.
     FOR v_row IN EXECUTE format('SELECT to_jsonb(c) FROM public.%I c WHERE %I = $1 ORDER BY to_jsonb(c) FOR UPDATE',
         v_child->>'tabla', v_child->>'columna') USING p_perdedor_id LOOP
+      -- An excluded row takes the collision's path: it never moves and cascades away the same way.
+      IF v_row->>'id' = ANY(v_dropped_ids) THEN
+        v_skipped_rows := v_skipped_rows || jsonb_build_array(v_row);
+        CONTINUE;
+      END IF;
       BEGIN
         EXECUTE format('UPDATE public.%I c SET %I = $1 FROM jsonb_populate_record(NULL::public.%I, $2) r WHERE %s
           RETURNING (SELECT jsonb_object_agg(e.key, e.value) FROM jsonb_each(to_jsonb(c)) e WHERE e.key = ANY($3))',
@@ -117,11 +151,14 @@ BEGIN
           v_moved_keys := v_moved_keys || jsonb_build_array(v_key);
         END IF;
       EXCEPTION WHEN unique_violation THEN
-        NULL;
+        -- Variables survive the savepoint rollback: the skipped row is still recorded.
+        v_skipped_rows := v_skipped_rows || jsonb_build_array(v_row);
       END;
     END LOOP;
     v_moved := v_moved || jsonb_build_array(jsonb_build_object(
       'tabla', v_child->>'tabla', 'columna', v_child->>'columna', 'claves', v_moved_keys));
+    v_skipped := v_skipped || jsonb_build_array(jsonb_build_object(
+      'tabla', v_child->>'tabla', 'columna', v_child->>'columna', 'filas', v_skipped_rows));
   END LOOP;
 
   EXECUTE format('DELETE FROM public.%I WHERE id = $1', v_table) USING p_perdedor_id;
@@ -130,10 +167,10 @@ BEGIN
   DELETE FROM public.duplicados_descartes
     WHERE entidad = p_entidad AND p_perdedor_id IN (item_id_a, item_id_b);
   INSERT INTO public.duplicados_fusiones
-    (entidad, ganador_id, perdedor_id, perdedor_snapshot, ganador_snapshot_previo, hijos_movidos, decidido_por)
-    VALUES (p_entidad, p_ganador_id, p_perdedor_id, v_loser, v_winner, v_moved, public.usuario_actual_id());
+    (entidad, ganador_id, perdedor_id, perdedor_snapshot, ganador_snapshot_previo, hijos_movidos, hijos_descartados, decidido_por)
+    VALUES (p_entidad, p_ganador_id, p_perdedor_id, v_loser, v_winner, v_moved, v_skipped, public.usuario_actual_id());
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.fusionar_duplicado(text, uuid, uuid, jsonb) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.fusionar_duplicado(text, uuid, uuid, jsonb) TO authenticated;
+REVOKE ALL ON FUNCTION public.fusionar_duplicado(text, uuid, uuid, jsonb, uuid[]) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.fusionar_duplicado(text, uuid, uuid, jsonb, uuid[]) TO authenticated;
