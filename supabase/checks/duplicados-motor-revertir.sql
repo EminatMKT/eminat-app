@@ -124,6 +124,48 @@ BEGIN
   PERFORM pg_temp.assert_revert_rejected(v_fusion_1, 'P0001', 'this merge was already reverted');
 END $$;
 
+-- A merge that skipped two loser contacts — …041 collides with the winner's …040, …042 was
+-- unchecked — must give both back on revert, whole, next to the one that moved (…043).
+RESET ROLE;
+INSERT INTO public.pacientes (id, mrn, nombre, apellido) VALUES
+  ('d1000000-0000-0000-0000-000000000004', 'REVERT-D', 'Rev', 'D'),
+  ('d1000000-0000-0000-0000-000000000005', 'REVERT-E', 'Rev', 'D');
+INSERT INTO public.paciente_contactos (id, paciente_id, tipo, valor) VALUES
+  ('d1000000-0000-0000-0000-000000000040', 'd1000000-0000-0000-0000-000000000004', 'telefono', '555-1040'),
+  ('d1000000-0000-0000-0000-000000000041', 'd1000000-0000-0000-0000-000000000005', 'telefono', '555-1040'),
+  ('d1000000-0000-0000-0000-000000000042', 'd1000000-0000-0000-0000-000000000005', 'telefono', '555-1042'),
+  ('d1000000-0000-0000-0000-000000000043', 'd1000000-0000-0000-0000-000000000005', 'telefono', '555-1043');
+INSERT INTO public.duplicados_pendientes (entidad, item_id_a, item_id_b, nivel, origen) VALUES
+  ('pacientes', 'd1000000-0000-0000-0000-000000000004', 'd1000000-0000-0000-0000-000000000005', 'exacta', 'alta_manual');
+SET LOCAL ROLE authenticated;
+DO $$
+DECLARE
+  v_d uuid := 'd1000000-0000-0000-0000-000000000004';
+  v_e uuid := 'd1000000-0000-0000-0000-000000000005';
+  v_before jsonb;
+  v_fusion uuid;
+BEGIN
+  SELECT jsonb_agg(to_jsonb(c) ORDER BY c.id) INTO v_before FROM public.paciente_contactos c WHERE paciente_id = v_e;
+  PERFORM public.fusionar_duplicado('pacientes', v_d, v_e, '{}', ARRAY['d1000000-0000-0000-0000-000000000042']::uuid[]);
+  SELECT id INTO STRICT v_fusion FROM public.duplicados_fusiones WHERE ganador_id = v_d AND perdedor_id = v_e;
+
+  -- A current row holding a discarded row's key: the revert must refuse, not restore half.
+  INSERT INTO public.paciente_contactos (id, paciente_id, tipo, valor)
+    VALUES ('d1000000-0000-0000-0000-000000000042', v_d, 'telefono', '555-1099');
+  PERFORM pg_temp.assert_revert_rejected(v_fusion, 'P0001', 'cannot revert: a discarded paciente_contactos row conflicts with a current one');
+  IF EXISTS (SELECT 1 FROM public.pacientes WHERE id = v_e) THEN
+    RAISE EXCEPTION 'A refused revert must leave the loser deleted';
+  END IF;
+  DELETE FROM public.paciente_contactos WHERE id = 'd1000000-0000-0000-0000-000000000042';
+
+  PERFORM public.revertir_fusion_duplicado(v_fusion);
+  IF (SELECT jsonb_agg(to_jsonb(c) ORDER BY c.id) FROM public.paciente_contactos c WHERE paciente_id = v_e) IS DISTINCT FROM v_before
+     OR (SELECT array_agg(id) FROM public.paciente_contactos WHERE paciente_id = v_d)
+        IS DISTINCT FROM ARRAY['d1000000-0000-0000-0000-000000000040']::uuid[] THEN
+    RAISE EXCEPTION 'Revert must re-create every skipped contact whole and move the moved one back';
+  END IF;
+END $$;
+
 RESET ROLE;
 DO $$
 DECLARE v_function regprocedure := 'public.revertir_fusion_duplicado(uuid)';

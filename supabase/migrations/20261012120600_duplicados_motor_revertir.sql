@@ -15,16 +15,18 @@ DECLARE
   v_perdedor_snapshot       jsonb;
   v_ganador_snapshot_previo jsonb;
   v_hijos_movidos           jsonb;
+  v_hijos_descartados       jsonb;
   v_hijo                    jsonb;
+  v_fila                    jsonb;
   v_locked_id               uuid;
   v_assignments             text;
   v_col_defs                text;
   v_join_cond               text;
 BEGIN
   SELECT entidad, ganador_id, perdedor_id, decidido_at, revertido_at,
-         perdedor_snapshot, ganador_snapshot_previo, hijos_movidos
+         perdedor_snapshot, ganador_snapshot_previo, hijos_movidos, hijos_descartados
     INTO v_entidad, v_ganador_id, v_perdedor_id, v_decidido_at, v_revertido_at,
-         v_perdedor_snapshot, v_ganador_snapshot_previo, v_hijos_movidos
+         v_perdedor_snapshot, v_ganador_snapshot_previo, v_hijos_movidos, v_hijos_descartados
     FROM public.duplicados_fusiones WHERE id = p_fusion_id FOR UPDATE;
 
   IF v_entidad IS NULL THEN
@@ -88,6 +90,19 @@ BEGIN
       'UPDATE public.%I AS child SET %I = $1 FROM jsonb_to_recordset($2) AS r(%s) WHERE %s',
       v_hijo->>'tabla', v_hijo->>'columna', v_col_defs, v_join_cond
     ) USING v_perdedor_id, v_hijo->'claves';
+  END LOOP;
+
+  -- Re-create the rows the merge skipped (a collision, or the reviewer's exclusion). They were
+  -- deleted with the loser, which now exists again; a key already taken means the world moved on.
+  FOR v_hijo IN SELECT * FROM jsonb_array_elements(v_hijos_descartados) LOOP
+    FOR v_fila IN SELECT * FROM jsonb_array_elements(v_hijo->'filas') LOOP
+      BEGIN
+        EXECUTE format('INSERT INTO public.%I SELECT (jsonb_populate_record(NULL::public.%I, $1)).*',
+          v_hijo->>'tabla', v_hijo->>'tabla') USING v_fila;
+      EXCEPTION WHEN unique_violation THEN
+        RAISE EXCEPTION 'cannot revert: a discarded % row conflicts with a current one', v_hijo->>'tabla';
+      END;
+    END LOOP;
   END LOOP;
 
   UPDATE public.duplicados_fusiones
