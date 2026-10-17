@@ -1355,5 +1355,6 @@
   "dedup.merge": "Fusionar",
   "dedup.pendingCount": "{n} duplicados pendientes",
   "dedup.medicalTab": "Duplicados",
-  "dedup.noFieldDiffs": "No hay campos distintos para revisar."
+  "dedup.noFieldDiffs": "No hay campos distintos para revisar.",
+  "dedup.keptOnWinner": "Ya incluido en ficha conservada"
 }

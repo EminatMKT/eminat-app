@@ -1355,5 +1355,6 @@
   "dedup.merge": "Merge",
   "dedup.pendingCount": "{n} pending duplicates",
   "dedup.medicalTab": "Duplicates",
-  "dedup.noFieldDiffs": "No differing fields to review."
+  "dedup.noFieldDiffs": "No differing fields to review.",
+  "dedup.keptOnWinner": "Already on the record that stays"
 }

@@ -1,6 +1,6 @@
 import { useId, type CSSProperties } from 'react'
 import { useT, type I18nKey } from '@/shared/i18n'
-import { FieldCompare } from '@/shared/components/ui'
+import { Checkbox, FieldCompare } from '@/shared/components/ui'
 import type { NivelCandidato } from '../identity'
 import s from './index.module.css'
 
@@ -60,11 +60,10 @@ export default function MergeCandidateRow({ fields, entrante, candidatos, select
           {t(nivel === 'exacta' ? 'import.merge.levelExact' : 'import.merge.levelPartial')}
         </span>
         {candidatos.length === 1 ? (
-          <label className={s.toggle}>
-            <input type="checkbox" checked={selectedId === candidatos[0].id}
-              onChange={e => onSelect(e.target.checked ? candidatos[0].id : null)} />
+          <Checkbox className={s.toggle} checked={selectedId === candidatos[0].id}
+            onChange={checked => onSelect(checked ? candidatos[0].id : null)}>
             {t('import.merge.mergeWith')}
-          </label>
+          </Checkbox>
         ) : (
           <div className={s.radios}>
             {candidatos.map(c => (

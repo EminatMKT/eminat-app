@@ -25,5 +25,8 @@ export const ESCAPE = 'Escape'
 /** `KeyboardEvent.key` for the key that moves the focus. */
 export const TAB = 'Tab'
 
+/** The `type` of an `<input>` that turns one value on or off. */
+export const CHECKBOX = 'checkbox'
+
 // Names the web platform spells, not the app: a typo in one compiles and then never matches, so
 // each is written once here and read by the screens, their unit suites and the e2e alike.
