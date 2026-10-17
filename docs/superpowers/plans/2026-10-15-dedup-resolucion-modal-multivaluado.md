@@ -1277,6 +1277,11 @@ Expected: typecheck and tests pass, and the `grep` prints nothing.
 
 - [ ] **Step 5: Queue.** Use the slug `dedup-modal-t4-comparefield` and every file above. Message: `feat(dedup): resolve multivalued fields with checkboxes, detected by shape`.
 
+**Deferred from the Task 4 review (16/10), owner's call — pick up before Task 8's final pass:**
+1. `src/shared/import/MergeCandidateRow/index.tsx` was rewired to the new `Checkbox` component while landing `Checkbox`, but this file is explicitly out of scope (Global Constraints, above). Behavior-preserving (same tests), but revert or keep is still an open decision.
+2. `src/shared/components/ui/Checkbox/index.tsx`'s default export has no `/** */` doc comment, unlike every other component this task added.
+3. `MultiValueChoice/index.tsx` imports `Checkbox` by subpath (`@/shared/components/ui/Checkbox`) instead of the barrel — consistent with existing repo practice elsewhere, not a new regression, but still against this plan's own barrel-import constraint.
+
 ---
 
 ## Task 5: The dialog — `PairDetail` in `Modal`, guarded close, a labelled winner
