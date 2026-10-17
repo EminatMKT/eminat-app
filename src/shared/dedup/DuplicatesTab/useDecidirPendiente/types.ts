@@ -8,6 +8,7 @@ export type Args<T> = Pick<Props<T>, 'entidad' | 'construirValoresFinales'> & {
   itemA: T | null
   itemB: T | null
   elecciones: Record<string, string>
+  excludedIds: string[]
   alDecidir: () => void
 }
 
@@ -16,4 +17,6 @@ export type EstadoDecidir = {
   ocupado: boolean
   errorDescarte: boolean
   errorFusion: boolean
+  /** Which open pair these flags belong to. */
+  pair: string | null
 }

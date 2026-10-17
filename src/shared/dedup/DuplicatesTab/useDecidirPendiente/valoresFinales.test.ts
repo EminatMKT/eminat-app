@@ -28,12 +28,13 @@ describe('useDecidirPendiente merge values', () => {
 
     await fusionarPendiente()
 
-    expect(construirValoresFinales).toHaveBeenCalledWith(args.itemA, args.itemB, elecciones)
+    expect(construirValoresFinales).toHaveBeenCalledWith(args.itemA, args.itemB, elecciones, [])
     expect(mocks.fusionar).toHaveBeenCalledWith({
       entidad: args.entidad,
       ganadorId: args.abierto?.item_id_a,
       perdedorId: args.abierto?.item_id_b,
       valoresFinales: { nombre: 'Ana', telefono: '555-0002' },
+      excludedIds: [],
     })
   })
 
@@ -41,5 +42,16 @@ describe('useDecidirPendiente merge values', () => {
     const { fusionarPendiente } = capturarHook(() => useDecidirPendiente(decidirArgsFixture({ itemB: null })))
     await fusionarPendiente()
     expect(mocks.fusionar).not.toHaveBeenCalled()
+  })
+
+  // The adapter needs the unchecked ids too: without them a blank winner column gets filled
+  // with the very value the reviewer just dropped.
+  it('hands the unchecked ids to construirValoresFinales and to the RPC', async () => {
+    const construirValoresFinales = vi.fn(() => ({}))
+    const args = decidirArgsFixture({ excludedIds: ['c1', 'c2'], construirValoresFinales })
+    const { fusionarPendiente } = capturarHook(() => useDecidirPendiente(args))
+    await fusionarPendiente()
+    expect(construirValoresFinales).toHaveBeenCalledWith(args.itemA, args.itemB, {}, ['c1', 'c2'])
+    expect(mocks.fusionar).toHaveBeenCalledWith(expect.objectContaining({ excludedIds: ['c1', 'c2'] }))
   })
 })

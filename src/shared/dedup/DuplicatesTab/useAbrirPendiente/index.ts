@@ -1,10 +1,19 @@
 'use client'
 import { useRef, useState } from 'react'
 import type { Pendiente } from '@/shared/dedup/types'
+import buildControls from './buildControls'
+import buildResultado from './buildResultado'
+import openedPair from './openedPair'
+import toggleExcluded from './toggleExcluded'
 import type { EstadoAbierto } from './types'
 
 function vacio<T>(): EstadoAbierto<T> {
-  const estado: EstadoAbierto<T> = { parCargado: null, elecciones: {}, error: false }
+  const estado: EstadoAbierto<T> = {
+    parCargado: null,
+    elecciones: {},
+    excludedIds: [],
+    error: false,
+  }
   return estado
 }
 
@@ -12,7 +21,7 @@ function vacio<T>(): EstadoAbierto<T> {
  *  counter drops a stale load that resolves after a newer `abrirPendiente` call started. */
 export default function useAbrirPendiente<T>(cargarItem: (id: string) => Promise<T>) {
   const [estado, setEstado] = useState<EstadoAbierto<T>>(vacio())
-  const { parCargado, elecciones, error } = estado
+  const { elecciones, excludedIds } = estado
   const solicitud = useRef(0)
 
   const abrirPendiente = async (par: Pendiente) => {
@@ -20,8 +29,7 @@ export default function useAbrirPendiente<T>(cargarItem: (id: string) => Promise
     try {
       const [a, b] = await Promise.all([cargarItem(par.item_id_a), cargarItem(par.item_id_b)])
       if (solicitud.current !== mia) return
-      const nuevo: EstadoAbierto<T> = { parCargado: { pendiente: par, a, b }, elecciones: {}, error: false }
-      setEstado(nuevo)
+      setEstado(openedPair(par, a, b))
     } catch {
       if (solicitud.current === mia) setEstado(p => ({ ...p, error: true }))
     }
@@ -31,18 +39,20 @@ export default function useAbrirPendiente<T>(cargarItem: (id: string) => Promise
   const onElegir = (campo: string, valor: string) => {
     setEstado(p => ({ ...p, elecciones: { ...p.elecciones, [campo]: valor } }))
   }
-  const resultado = {
-    abierto: parCargado?.pendiente ?? null,
-    itemA: parCargado?.a ?? null,
-    itemB: parCargado?.b ?? null,
-    elecciones,
-    error,
+  const onToggleExcluded = (ids: string[]) => {
+    setEstado(p => ({ ...p, excludedIds: toggleExcluded(p.excludedIds, ids) }))
+  }
+  const controls = buildControls(elecciones, onElegir, excludedIds, onToggleExcluded)
+  const callbacks = {
     abrirPendiente,
     cerrarPendiente,
     onElegir,
+    onToggleExcluded,
   }
+  const resultado = buildResultado(estado, callbacks, controls)
   return resultado
 }
 
 // Owns which pair is open and what has been loaded and chosen for it; `useDecidirPendiente`
-// reads this state but never writes it directly — only `cerrarPendiente` resets it.
+// reads this state but never writes it directly — only `cerrarPendiente` resets it. The excluded
+// ids reset with every open, same as the choices.

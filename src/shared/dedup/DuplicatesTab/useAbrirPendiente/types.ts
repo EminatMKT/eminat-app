@@ -7,5 +7,7 @@ export type ParCargado<T> = { pendiente: Pendiente; a: T; b: T }
 export type EstadoAbierto<T> = {
   parCargado: ParCargado<T> | null
   elecciones: Record<string, string>
+  /** Loser child-row ids the reviewer unchecked on this pair. */
+  excludedIds: string[]
   error: boolean
 }

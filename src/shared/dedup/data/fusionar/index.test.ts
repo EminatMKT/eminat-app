@@ -20,6 +20,7 @@ describe('fusionar', () => {
       ganadorId: 'a',
       perdedorId: 'b',
       valoresFinales: { telefono: '555-0100' },
+      excludedIds: ['c1'],
     }
     await fusionar(args)
 
@@ -28,6 +29,7 @@ describe('fusionar', () => {
       p_ganador_id: 'a',
       p_perdedor_id: 'b',
       p_valores_finales: { telefono: '555-0100' },
+      p_contactos_excluidos: ['c1'],
     }
     expect(mocks.rpc).toHaveBeenCalledWith('fusionar_duplicado', esperado)
   })

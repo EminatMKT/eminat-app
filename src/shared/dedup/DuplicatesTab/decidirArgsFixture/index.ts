@@ -13,6 +13,7 @@ export default function decidirArgsFixture(overrides: Partial<Args<Item>>): Args
     itemA: { id: abierto.item_id_a, telefono: '555-0001' },
     itemB: { id: abierto.item_id_b, telefono: '555-0002' },
     elecciones: {},
+    excludedIds: [],
     construirValoresFinales: ({ telefono }) => ({ telefono }),
     alDecidir: () => {},
   }
