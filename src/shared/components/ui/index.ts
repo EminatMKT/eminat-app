@@ -1,5 +1,6 @@
 export { default as Button } from './Button'
 export { default as CatalogoSelect } from './CatalogoSelect'
+export { default as Checkbox } from './Checkbox'
 export { default as Combobox } from './Combobox'
 export { default as MultiCombobox } from './Combobox/Multi'
 export type { ComboOption, ComboSearch } from './Combobox/types'
