@@ -95,8 +95,8 @@ export default function AccountOperations({ selected, writeEnabled, syntheticOnl
       else if (value || mode === 'edit') body[key] = value || null
     }
     if (mode === 'create' || draft.type !== selected?.type) body.type = draft.type
-    if (mode === 'create') { void submit(() => api('accounts', 'POST', body), 'Synthetic Account created in ANNIE.'); return }
-    if (selected && Object.keys(body).length) void submit(() => api(`accounts/${selected.id}`, 'PATCH', body, selected.version), 'Synthetic Account updated in ANNIE.')
+    if (mode === 'create') { void submit(() => api('accounts', 'POST', body), `${syntheticOnly ? 'Synthetic ' : ''}Account created in ANNIE.`); return }
+    if (selected && Object.keys(body).length) void submit(() => api(`accounts/${selected.id}`, 'PATCH', body, selected.version), `${syntheticOnly ? 'Synthetic ' : ''}Account updated in ANNIE.`)
   }
   function archive() {
     if (!selected || !reason.trim()) return

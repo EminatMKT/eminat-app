@@ -113,8 +113,8 @@ export default function OpportunityOperations({ selected, writeEnabled, syntheti
       if (key === 'primaryContactId' || key === 'amount' || key === 'description') body[key] = value || null
       else body[key] = value
     }
-    if (mode === 'create') { void submit(() => api('opportunities', 'POST', body), 'Synthetic Opportunity created in ANNIE.'); return }
-    if (selected && Object.keys(body).length) void submit(() => api(`opportunities/${selected.id}`, 'PATCH', body, selected.version), 'Synthetic Opportunity updated in ANNIE.')
+    if (mode === 'create') { void submit(() => api('opportunities', 'POST', body), `${syntheticOnly ? 'Synthetic ' : ''}Opportunity created in ANNIE.`); return }
+    if (selected && Object.keys(body).length) void submit(() => api(`opportunities/${selected.id}`, 'PATCH', body, selected.version), `${syntheticOnly ? 'Synthetic ' : ''}Opportunity updated in ANNIE.`)
   }
   function transition() {
     if (!selected || !stageCode) return
