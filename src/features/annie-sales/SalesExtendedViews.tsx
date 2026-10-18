@@ -43,6 +43,7 @@ type SocialConversation = { id: string; kind: string; channel: string; lastText?
 type SocialEvent = { id: string; at: string; kind: string; text?: string | null }
 type SocialProvider = { id: string; capabilities?: Record<string, boolean> }
 type SocialAsset = { id: string; label: string; kind: string }
+type SocialLead = { id: string; leadId: string; leadName: string; status: string; pageName?: string | null; createdAt: string }
 
 async function extended(path: string): Promise<Response> {
   const { data: { session } } = await supabase.auth.getSession()
@@ -228,6 +229,7 @@ function Social() {
   const [health, setHealth] = useState('')
   const [providers, setProviders] = useState<SocialProvider[]>([])
   const [assets, setAssets] = useState<SocialAsset[]>([])
+  const [leads, setLeads] = useState<SocialLead[]>([])
   const [selected, setSelected] = useState<SocialConversation | null>(null)
   const [events, setEvents] = useState<SocialEvent[]>([])
   const [eventError, setEventError] = useState('')
@@ -242,14 +244,16 @@ function Social() {
       json<{ data?: { mode?: string; webhooks?: string } }>('meta/status'),
       json<{ data: SocialProvider[] }>('social/providers'),
       json<{ data: SocialAsset[] }>('social/meta/assets'),
-    ]).then(([c, inbox, status, available, pageAssets]) => {
+      json<{ data: SocialLead[] }>('meta/leads'),
+    ]).then(([c, inbox, status, available, pageAssets, socialLeads]) => {
       if (cancelled) return
       if (c.status === 'fulfilled') setConnections(c.value.data ?? [])
       if (inbox.status === 'fulfilled') setConversations(inbox.value.data ?? [])
       if (status.status === 'fulfilled') setHealth(`Mode: ${status.value.data?.mode ?? 'Unavailable'} · Webhooks: ${status.value.data?.webhooks ?? 'Unavailable'}`)
       if (available.status === 'fulfilled') setProviders(available.value.data ?? [])
       if (pageAssets.status === 'fulfilled') setAssets(pageAssets.value.data ?? [])
-      if ([c, inbox, status, available, pageAssets].some(result => result.status === 'rejected'))
+      if (socialLeads.status === 'fulfilled') setLeads(socialLeads.value.data ?? [])
+      if ([c, inbox, status, available, pageAssets, socialLeads].some(result => result.status === 'rejected'))
         setError('Some ANNIE Social sections are unavailable. Available sections remain visible.')
     })
       .finally(() => { if (!cancelled) setLoading(false) })
@@ -278,6 +282,8 @@ function Social() {
       <div className={s.card}><div className={s.cardHeader}><h2>Pages and accounts</h2><span>{assets.length}</span></div>{assets.length ? <ul className={s.list}>{assets.map(asset => <li key={asset.id}>{asset.label} <small>{asset.kind}</small></li>)}</ul> : <p className={s.muted}>No provider assets are available.</p>}</div>
       <div className={s.card}><div className={s.cardHeader}><h2>Messages</h2><span>{messages.length}</span></div>{conversationList(messages)}</div>
       <div className={s.card}><div className={s.cardHeader}><h2>Comments</h2><span>{comments.length}</span></div>{conversationList(comments)}</div>
+      <div className={s.card}><div className={s.cardHeader}><h2>Social Leads</h2><span>{leads.length}</span></div>{leads.length ? <ul className={s.list}>{leads.map(lead =>
+        <li key={lead.id}><span>{lead.leadName} <small>{lead.pageName || 'Meta Page'}</small></span><strong>{lead.status}</strong></li>)}</ul> : <p className={s.muted}>No ANNIE-visible Social Leads are available.</p>}</div>
       {selected && <aside className={s.detail}><div className={s.cardHeader}><h2>{selected.connection?.pageName || selected.channel} · {selected.kind}</h2><button type="button" onClick={() => { eventRequest.current++; setSelected(null) }}>Close</button></div>
         {eventError && <p role="alert" className={s.error}>{eventError}</p>}
         {events.length ? <ul className={s.list}>{events.map(event => <li key={event.id}><span>{event.text || 'Event without text'}</span><small>{event.at.slice(0, 16)} · {event.kind}</small></li>)}</ul> : !eventError && <p className={s.muted}>No events are available for this conversation.</p>}

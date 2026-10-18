@@ -289,6 +289,16 @@ describe('ANNIE Sales adapter', () => {
     expect((await salesExtendedRead(new Request('https://lilly.example/', { method: 'POST' }),
       ['reports', 'schedule'])).status).toBe(405)
   })
+  it('routes Social Leads only through the ANNIE Meta read endpoint', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(Response.json({ data: {
+      principalId: id.principal, organizationId: id.org, role: 'OPERATOR',
+      capabilities: { salesRead: true },
+    } })).mockResolvedValueOnce(Response.json({ data: [] }))
+    vi.stubGlobal('fetch', fetch)
+    expect((await salesExtendedRead(request(), ['meta', 'leads'])).status).toBe(200)
+    expect(String(fetch.mock.calls[1][0])).toContain('/api/crm/meta/leads')
+    expect((await salesExtendedRead(request(), ['meta', 'leads', 'other'])).status).toBe(404)
+  })
   it('uses the canonical ANNIE role and capabilities for UI access', async () => {
     const fetch = vi.fn().mockResolvedValue(Response.json({ data: {
       principalId: id.principal, organizationId: id.org, role: 'SALES_MANAGER',

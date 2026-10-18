@@ -540,7 +540,7 @@ function extendedPath(parts: string[]): { path: string; pdf: boolean; scoped: bo
       ['integrations', 'accounts', 'assets'].includes(idAction))
     return { path: `/api/crm/social/meta/${idAction}`, pdf: false, scoped: false }
   if (section === 'meta' && parts.length === 2 &&
-      ['status', 'connections', 'conversations', 'links'].includes(action))
+      ['status', 'connections', 'conversations', 'leads', 'links'].includes(action))
     return { path: `/api/crm/meta/${action}`, pdf: false, scoped: false }
   if (section === 'meta' && parts.length === 4 && action === 'conversations' &&
       uuid.test(idAction) && parts[3] === 'events')
