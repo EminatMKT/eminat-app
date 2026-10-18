@@ -1,0 +1,20 @@
+import type { PostgrestError } from '@supabase/supabase-js'
+
+const databaseCodes = {
+  SALES_ACCESS_DENIED: 403,
+  LEAD_NOT_FOUND: 404,
+  VERSION_CONFLICT: 409,
+  INVALID_LEAD_TRANSITION: 409,
+  LEAD_WON_REQUIRES_PAID_OPPORTUNITY: 409,
+  INVALID_FILTER: 400,
+  INVALID_REQUEST: 400,
+} as const
+
+/** Never return arbitrary PostgREST messages, SQL detail, or hint to clients. */
+export function nativeSalesDatabaseError(error: Pick<PostgrestError, 'code' | 'message'>): Response {
+  const code = error.message as keyof typeof databaseCodes
+  if (Object.hasOwn(databaseCodes, code))
+    return Response.json({ code }, { status: databaseCodes[code], headers: { 'Cache-Control': 'no-store' } })
+  console.warn('NATIVE_SALES_DATABASE_ERROR', error.code)
+  return Response.json({ code: 'SALES_UNAVAILABLE' }, { status: 503, headers: { 'Cache-Control': 'no-store' } })
+}
