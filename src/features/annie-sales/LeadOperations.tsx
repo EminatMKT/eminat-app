@@ -64,8 +64,9 @@ function payloadFrom(draft: Record<string, string | boolean>, selected: Lead | n
   return output
 }
 
-export default function LeadOperations({ selected, writeEnabled, onChanged, stages }: {
-  selected: Lead | null; writeEnabled: boolean; onChanged: (id: string) => void; stages: LeadStage[]
+export default function LeadOperations({ selected, writeEnabled, syntheticOnly, onChanged, stages }: {
+  selected: Lead | null; writeEnabled: boolean; syntheticOnly: boolean;
+  onChanged: (id: string) => void; stages: LeadStage[]
 }) {
   const [mode, setMode] = useState<'create' | 'edit' | null>(null)
   const [draft, setDraft] = useState<Record<string, string | boolean>>({})
@@ -172,9 +173,10 @@ export default function LeadOperations({ selected, writeEnabled, onChanged, stag
       setHistoryNext(result.nextCursor ?? null)
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'HISTORY_FAILED') }
   }
-  const canEdit = writeEnabled && selected?.displayName?.startsWith('QA PHASE C ') === true && selected.access?.canEdit === true
+  const canEdit = writeEnabled && selected?.access?.canEdit === true &&
+    (!syntheticOnly || selected.displayName?.startsWith('QA PHASE C ') === true)
   return <div className={s.workspace}>
-    {writeEnabled && <button type="button" className={s.action} onClick={() => open('create')}>Create synthetic Lead</button>}
+    {writeEnabled && <button type="button" className={s.action} onClick={() => open('create')}>{syntheticOnly ? 'Create synthetic Lead' : 'Create Lead'}</button>}
     {selected && <section className={s.panel} aria-label="Lead operations">
       <h3>{selected.displayName ?? 'Lead'} · ANNIE</h3>
       <p>{selected.status}</p>
@@ -187,23 +189,25 @@ export default function LeadOperations({ selected, writeEnabled, onChanged, stag
       {canEdit && !selected.archivedAt && !selected.convertedAt && selected.status !== 'LOST' && <details><summary>Convert Lead</summary>
         <div className={s.form}>
           <label>New synthetic account name <input required value={conversion.accountName} onChange={e => setConversion(v => ({ ...v, accountName: e.target.value }))} /></label>
-          <p>ANNIE creates a synthetic Contact from this Lead.</p>
+          <p>ANNIE creates the Contact from this Lead.</p>
           <label>Opportunity name (optional) <input value={conversion.opportunityName} onChange={e => setConversion(v => ({ ...v, opportunityName: e.target.value }))} /></label>
           {conversion.opportunityName && <><label>Currency <input value={conversion.currency} maxLength={3} onChange={e => setConversion(v => ({ ...v, currency: e.target.value }))} /></label><label>Amount <input value={conversion.amount} onChange={e => setConversion(v => ({ ...v, amount: e.target.value }))} /></label><label>Expected close <input type="date" value={conversion.expectedCloseDate} onChange={e => setConversion(v => ({ ...v, expectedCloseDate: e.target.value }))} /></label></>}
-          <button type="button" disabled={busy || !conversion.accountName.startsWith('QA PHASE C ') ||
-            Boolean(conversion.opportunityName && !conversion.opportunityName.startsWith('QA PHASE C '))} onClick={convert}>Convert in ANNIE</button>
+          <button type="button" disabled={busy || !conversion.accountName.trim() ||
+            (syntheticOnly && (!conversion.accountName.startsWith('QA PHASE C ') ||
+              Boolean(conversion.opportunityName && !conversion.opportunityName.startsWith('QA PHASE C '))))} onClick={convert}>Convert in ANNIE</button>
         </div></details>}
       {canEdit && <details><summary>{selected.archivedAt ? 'Restore Lead' : 'Archive Lead'}</summary><label>Reason <input value={archiveReason} onChange={e => setArchiveReason(e.target.value)} /></label><button type="button" disabled={busy || !archiveReason.trim()} onClick={archive}>{selected.archivedAt ? 'Restore' : 'Archive'} in ANNIE</button></details>}
       <details open><summary>ANNIE history</summary>{history.length ? <ul>{history.map(event => <li key={event.id}><strong>{event.action ?? event.eventType ?? 'Change'}</strong> · {event.occurredAt ?? ''}<br />Actor {ownerLabel(directory, event.actorId)}{historyChanges(event.changes, directory).map(change => <div key={change}>{change}</div>)}</li>)}</ul> : <p>No history returned.</p>}{historyNext && <button type="button" onClick={() => void moreHistory()}>Load more history</button>}</details>
     </section>}
-    {mode && <section className={s.panel}><h3>{mode === 'create' ? 'Create synthetic Lead' : 'Edit synthetic Lead'}</h3><form className={s.form} onSubmit={saveForm}>
+    {mode && <section className={s.panel}><h3>{mode === 'create' ? (syntheticOnly ? 'Create synthetic Lead' : 'Create Lead') : (syntheticOnly ? 'Edit synthetic Lead' : 'Edit Lead')}</h3><form className={s.form} onSubmit={saveForm}>
       {fields.map(field => <label key={field.key}>{field.label}
         {field.type === 'checkbox' ? <input type="checkbox" checked={Boolean(draft[field.key])} onChange={e => setDraft(v => ({ ...v, [field.key]: e.target.checked }))} />
           : field.type === 'textarea' ? <textarea value={String(draft[field.key] ?? '')} onChange={e => setDraft(v => ({ ...v, [field.key]: e.target.value }))} />
           : field.type === 'owner' ? <select value={String(draft[field.key] ?? '')} onChange={e => setDraft(v => ({ ...v, [field.key]: e.target.value }))}><option value="">ANNIE default owner</option>{directory.users?.map(user => <option key={user.principalId} value={user.principalId}>{ownerLabel(directory, user.principalId)} · {roleLabel(user.role)}</option>)}</select>
           : field.type === 'team' ? <select value={String(draft[field.key] ?? '')} onChange={e => setDraft(v => ({ ...v, [field.key]: e.target.value }))}><option value="">No team</option>{directory.teams?.map(team => <option key={team} value={team}>{teamLabel(directory, team)}</option>)}</select>
           : <input type={field.type ?? 'text'} required={field.required} value={String(draft[field.key] ?? '')} onChange={e => setDraft(v => ({ ...v, [field.key]: e.target.value }))} />}
-      </label>)}<div className={s.actions}><button type="submit" disabled={busy || !String(draft.displayName ?? '').startsWith('QA PHASE C ')}>Save in ANNIE</button><button type="button" onClick={() => setMode(null)}>Cancel</button></div>
+      </label>)}<div className={s.actions}><button type="submit" disabled={busy || !String(draft.displayName ?? '').trim() ||
+        (syntheticOnly && !String(draft.displayName ?? '').startsWith('QA PHASE C '))}>Save in ANNIE</button><button type="button" onClick={() => setMode(null)}>Cancel</button></div>
     </form></section>}
     {error && <p role="alert" className={s.error}>{error}</p>}
     {notice && <p role="status">{notice}</p>}

@@ -10,6 +10,7 @@ export type SalesAccess = {
   canReassign: boolean
   canReadAudit: boolean
   writeEnabled: boolean
+  leadWriteMode: 'disabled' | 'qa' | 'commercial'
   contactWriteEnabled: boolean
   accountWriteEnabled: boolean
   opportunityWriteEnabled: boolean
@@ -22,6 +23,7 @@ export type SalesAccess = {
 const denied: SalesAccess = {
   loading: false, allowed: false, canWrite: false, canReassign: false,
   canReadAudit: false, writeEnabled: false, contactWriteEnabled: false,
+  leadWriteMode: 'disabled',
   accountWriteEnabled: false, opportunityWriteEnabled: false, importEnabled: false,
   interactionEnabled: false,
   emailEnabled: false,
@@ -40,12 +42,15 @@ export function useSalesAccess(): SalesAccess {
       if (!response.ok) return denied
       const body = await response.json() as Partial<SalesAccess>
       if (body.allowed !== true) return denied
+      const leadMode: SalesAccess['leadWriteMode'] = body.leadWriteMode === 'qa' ||
+        body.leadWriteMode === 'commercial' ? body.leadWriteMode : 'disabled'
       return {
         loading: false, allowed: true, role: body.role,
         canWrite: body.canWrite === true,
         canReassign: body.canReassign === true,
         canReadAudit: body.canReadAudit === true,
         writeEnabled: body.writeEnabled === true,
+        leadWriteMode: leadMode,
         contactWriteEnabled: body.contactWriteEnabled === true,
         accountWriteEnabled: body.accountWriteEnabled === true,
         opportunityWriteEnabled: body.opportunityWriteEnabled === true,

@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { clientEnv } from '@/shared/db/env.client'
-import { salesAccessDetails } from '@/server/integrations/annie/sales'
+import { leadWriteMode, salesAccessDetails } from '@/server/integrations/annie/sales'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,8 +19,10 @@ export async function GET(request: Request) {
   const access = !profileError && !!profile?.id ? await salesAccessDetails(request) :
     { allowed: false, canWrite: false, canReassign: false, canReadAudit: false }
   const write = access.allowed && access.canWrite
+  const leadMode = write ? leadWriteMode() : 'disabled'
   return Response.json({ ...access,
-    writeEnabled: write && process.env.ANNIE_SALES_QA_WRITE_ENABLED === 'true',
+    writeEnabled: leadMode !== 'disabled',
+    leadWriteMode: leadMode,
     contactWriteEnabled: write && process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED === 'true',
     accountWriteEnabled: write && process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED === 'true',
     opportunityWriteEnabled: write && process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED === 'true',

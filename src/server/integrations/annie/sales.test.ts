@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({ createClient: vi.fn(), admin: vi.fn() }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: mocks.createClient }))
 vi.mock('@/shared/db/supabaseAdmin', () => ({ supabaseAdmin: mocks.admin }))
 
-import { salesAccessDetails, salesAccountHistory, salesAccountWrite, salesActivityWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesExtendedRead, salesImportRequest, salesIndividualEmail, salesRecordInteractions, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead } from './sales'
+import { leadWriteMode, salesAccessDetails, salesAccountHistory, salesAccountWrite, salesActivityWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesExtendedRead, salesImportRequest, salesIndividualEmail, salesRecordInteractions, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead } from './sales'
 
 function chain(data: unknown) {
   const query = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn().mockResolvedValue({ data, error: null }) }
@@ -38,7 +38,7 @@ beforeEach(() => {
   mocks.admin.mockReturnValue({ from: vi.fn(() => chain({ empresa_codigo: null,
     access_kind: 'external_sales_entitlement', annie_organization_id: id.org, annie_principal_id: id.principal })) })
 })
-afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_TRUST_KEY; delete process.env.ANNIE_SALES_ENABLED; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON; delete process.env.ANNIE_SALES_QA_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_IMPORT_ENABLED; delete process.env.ANNIE_SALES_QA_INTERACTION_ENABLED; delete process.env.ANNIE_SALES_QA_EMAIL_ENABLED; delete process.env.ANNIE_SALES_QA_ACTIVITY_ENABLED })
+afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_TRUST_KEY; delete process.env.ANNIE_SALES_ENABLED; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON; delete process.env.ANNIE_SALES_QA_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_LEAD_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_IMPORT_ENABLED; delete process.env.ANNIE_SALES_QA_INTERACTION_ENABLED; delete process.env.ANNIE_SALES_QA_EMAIL_ENABLED; delete process.env.ANNIE_SALES_QA_ACTIVITY_ENABLED })
 
 describe('controlled ANNIE task boundary', () => {
   const identity = () => Response.json({ data: { principalId: id.principal, organizationId: id.org,
@@ -558,7 +558,7 @@ describe('Phase C Lead write boundary', () => {
   }
   function identity() {
     return Response.json({ data: { principalId: id.principal, organizationId: id.org,
-      capabilities: { salesRead: true } } })
+      capabilities: { salesRead: true, salesWrite: true } } })
   }
   it('remains disabled by default even for the owner mapping', async () => {
     const fetch = vi.fn()
@@ -569,6 +569,35 @@ describe('Phase C Lead write boundary', () => {
   it('denies a real Lead create despite the controlled write switch', async () => {
     process.env.ANNIE_SALES_QA_WRITE_ENABLED = 'true'
     const fetch = vi.fn().mockResolvedValueOnce(identity()); vi.stubGlobal('fetch', fetch)
+    expect((await salesLeadWrite(write('POST', { displayName: 'Real Lead', source: 'manual' }), 'create')).status).toBe(403)
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+  it('fails closed if QA and commercial Lead write switches conflict', async () => {
+    process.env.ANNIE_SALES_QA_WRITE_ENABLED = 'true'
+    process.env.ANNIE_SALES_COMMERCIAL_LEAD_WRITE_ENABLED = 'true'
+    expect(leadWriteMode()).toBe('disabled')
+    const fetch = vi.fn(); vi.stubGlobal('fetch', fetch)
+    expect((await salesLeadWrite(write('POST', { displayName: 'Real Lead', source: 'manual' }), 'create')).status).toBe(403)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+  it('allows explicitly enabled commercial Lead writes through ANNIE only', async () => {
+    process.env.ANNIE_SALES_COMMERCIAL_LEAD_WRITE_ENABLED = 'true'
+    expect(leadWriteMode()).toBe('commercial')
+    const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: {
+      id: id.lead, organizationId: id.org, version: 1,
+    } }, { status: 201 }))
+    vi.stubGlobal('fetch', fetch)
+    const response = await salesLeadWrite(write('POST', { displayName: 'Real Lead', source: 'manual' }), 'create')
+    expect(response.status).toBe(201)
+    expect(String(fetch.mock.calls[1][0])).toBe('https://annie.example/api/crm/leads')
+  })
+  it('denies a mapped read-only role before a commercial Lead write', async () => {
+    process.env.ANNIE_SALES_COMMERCIAL_LEAD_WRITE_ENABLED = 'true'
+    const fetch = vi.fn().mockResolvedValueOnce(Response.json({ data: {
+      principalId: id.principal, organizationId: id.org,
+      capabilities: { salesRead: true, salesWrite: false },
+    } }))
+    vi.stubGlobal('fetch', fetch)
     expect((await salesLeadWrite(write('POST', { displayName: 'Real Lead', source: 'manual' }), 'create')).status).toBe(403)
     expect(fetch).toHaveBeenCalledTimes(1)
   })

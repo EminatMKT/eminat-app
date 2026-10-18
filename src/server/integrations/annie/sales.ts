@@ -75,6 +75,12 @@ async function annieGet(path: string, organizationId: string, token: string, que
 // Phase C writes use ANNIE's own validation, policy, version checks and audit trail.
 // This separate switch is deliberately absent from Production until Lead QA passes.
 export type LeadWriteOperation = 'create' | 'edit' | 'transition' | 'archive' | 'convert'
+export function leadWriteMode(): 'disabled' | 'qa' | 'commercial' {
+  const qa = process.env.ANNIE_SALES_QA_WRITE_ENABLED === 'true'
+  const commercial = process.env.ANNIE_SALES_COMMERCIAL_LEAD_WRITE_ENABLED === 'true'
+  if (qa === commercial) return 'disabled'
+  return commercial ? 'commercial' : 'qa'
+}
 
 function leadWritePath(operation: LeadWriteOperation, id?: string): string {
   if (operation === 'create') return '/api/crm/leads'
@@ -85,7 +91,8 @@ function leadWritePath(operation: LeadWriteOperation, id?: string): string {
 
 export async function salesLeadWrite(request: Request, operation: LeadWriteOperation, id?: string): Promise<Response> {
   try {
-    if (process.env.ANNIE_SALES_QA_WRITE_ENABLED !== 'true') throw new SalesError(403, 'SALES_WRITE_DISABLED')
+    const mode = leadWriteMode()
+    if (mode === 'disabled') throw new SalesError(403, 'SALES_WRITE_DISABLED')
     const path = leadWritePath(operation, id)
     const expectedMethod = operation === 'edit' ? 'PATCH' : 'POST'
     if (request.method !== expectedMethod) throw new SalesError(405, 'METHOD_NOT_ALLOWED')
@@ -101,12 +108,13 @@ export async function salesLeadWrite(request: Request, operation: LeadWriteOpera
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new SalesError(400, 'INVALID_BODY')
     const body = JSON.stringify(payload)
     if (Buffer.byteLength(body) > 32768) throw new SalesError(413, 'BODY_TOO_LARGE')
-    const { mapping, token } = await mappedActor(request)
+    const { mapping, token, identity } = await mappedActor(request)
+    if (identity.capabilities?.salesWrite !== true) throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
     const proposed = payload as Record<string, unknown>
-    if (operation === 'create') {
+    if (mode === 'qa' && operation === 'create') {
       if (typeof proposed.displayName !== 'string' || !proposed.displayName.startsWith('QA PHASE C '))
         throw new SalesError(403, 'SYNTHETIC_LEAD_REQUIRED')
-    } else {
+    } else if (mode === 'qa') {
       const prior = scopedResult(await annieGet(`/api/crm/leads/${id}`, mapping.annie_organization_id, token),
         mapping.annie_organization_id) as { data?: { displayName?: unknown } }
       if (typeof prior.data?.displayName !== 'string' || !prior.data.displayName.startsWith('QA PHASE C '))

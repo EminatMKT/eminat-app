@@ -139,7 +139,7 @@ export default function SalesModule() {
   if (!allowed) return <SalesDenied />
   return <AppShell title={`Sales — ${SUB_ITEMS.sales.find(item => item.tab === tab)?.label ?? 'Sales'}`} activeTab={tab} onTabChange={setTab}>
     <section className={s.page}>
-      <header className={s.header}><div><p className={s.eyebrow}>ANNIE · LIVE</p><h1>Sales</h1><p className={s.muted}>Commercial records stay in ANNIE.</p></div><span className={s.badge}>{access.role ? `${roleLabel(access.role)} · ` : ''}{tab === 'leads' && writeEnabled ? 'Controlled Lead writes' : tab === 'contacts' && contactWriteEnabled ? 'Controlled Contact writes' : tab === 'accounts' && accountWriteEnabled ? 'Controlled Account writes' : tab === 'opportunities' && opportunityWriteEnabled ? 'Controlled Opportunity writes' : 'Read only'}</span></header>
+      <header className={s.header}><div><p className={s.eyebrow}>ANNIE · LIVE</p><h1>Sales</h1><p className={s.muted}>Commercial records stay in ANNIE.</p></div><span className={s.badge}>{access.role ? `${roleLabel(access.role)} · ` : ''}{tab === 'leads' && writeEnabled ? (access.leadWriteMode === 'commercial' ? 'Lead writes' : 'Controlled Lead writes') : tab === 'contacts' && contactWriteEnabled ? 'Controlled Contact writes' : tab === 'accounts' && accountWriteEnabled ? 'Controlled Account writes' : tab === 'opportunities' && opportunityWriteEnabled ? 'Controlled Opportunity writes' : 'Read only'}</span></header>
       {paged.has(tab) && <div className={s.filters}><label>Search <input value={search} onChange={event => setSearch(event.target.value)} maxLength={200} placeholder={`Search ${tab}`} /></label>
         {tab === 'leads' && <><label>Status <select value={status} onChange={event => setStatus(event.target.value)}><option value="">All statuses</option>{leadStages.map(stage => <option key={stage.code} value={stage.code}>{stage.label}</option>)}</select></label>
           <label>Follow-up <select value={followUp} onChange={event => setFollowUp(event.target.value)}><option value="">Any</option><option value="overdue">Overdue</option><option value="next_7_days">Next 7 days</option><option value="none">None</option></select></label>
@@ -170,7 +170,7 @@ export default function SalesModule() {
         selected={selected} directory={directory} writeEnabled={access.interactionEnabled} onChanged={leadChanged} />}
       {selected && (tab === 'leads' || tab === 'contacts') && <SalesEmail key={`email-${tab}-${selected.id}`}
         resource={tab} selected={selected} enabled={access.emailEnabled} />}
-      {tab === 'leads' && <LeadOperations selected={selected as Lead | null} writeEnabled={writeEnabled} onChanged={leadChanged} stages={leadStages} />}
+      {tab === 'leads' && <LeadOperations selected={selected as Lead | null} writeEnabled={writeEnabled} syntheticOnly={access.leadWriteMode !== 'commercial'} onChanged={leadChanged} stages={leadStages} />}
       {tab === 'contacts' && <ContactOperations selected={selected as Contact | null} writeEnabled={contactWriteEnabled} onChanged={leadChanged} />}
       {tab === 'accounts' && <AccountOperations selected={selected as Account | null} writeEnabled={accountWriteEnabled} onChanged={leadChanged} directory={directory} />}
       {tab === 'opportunities' && <OpportunityOperations selected={selected as Opportunity | null} writeEnabled={opportunityWriteEnabled} onChanged={leadChanged} directory={directory} />}
