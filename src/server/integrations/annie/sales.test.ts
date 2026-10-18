@@ -69,6 +69,21 @@ describe('ANNIE meeting write boundary', () => {
     expect(fetch.mock.calls[3][1].headers).toMatchObject({ 'Idempotency-Key': id.lead,
       Cookie: assertionCookie })
   })
+  it('requires a version and an existing synthetic meeting before an edit', async () => {
+    process.env.ANNIE_SALES_QA_MEETING_ENABLED = 'true'
+    const edit = (version?: string) => new Request(`https://lilly.example/api/integrations/annie/sales/meetings/${id.lead}`, {
+      method: 'PATCH', headers: { Authorization: 'Bearer supabase-session',
+        ...(version ? { 'X-Annie-Expected-Version': version } : {}) },
+      body: JSON.stringify({ status: 'COMPLETED', outcome: 'QA completed' }),
+    })
+    const fetch = vi.fn().mockResolvedValueOnce(identity('SALES_MANAGER'))
+      .mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org,
+        title: 'Real customer meeting' } }))
+    vi.stubGlobal('fetch', fetch)
+    expect((await salesMeetingWrite(edit(), 'edit', id.lead)).status).toBe(428)
+    expect((await salesMeetingWrite(edit('2'), 'edit', id.lead)).status).toBe(403)
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
 })
 
 describe('Finance summary boundary', () => {

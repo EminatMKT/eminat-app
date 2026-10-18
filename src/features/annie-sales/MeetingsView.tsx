@@ -5,8 +5,9 @@ import { ownerLabel, type SalesDirectory } from './salesDirectory'
 import s from './SalesModule.module.css'
 
 type Meeting = {
-  id: string; title: string; status: string; startAt: string; endAt: string
+  id: string; title: string; version: number; status: string; startAt: string; endAt: string
   timezone: string; organizerId: string; assigneeId: string; location?: string | null
+  notes?: string | null; outcome?: string | null
 }
 type MeetingResult = { data?: Meeting[]; code?: string }
 function meetingTime(instant: string, timezone: string, date: boolean) {
@@ -28,6 +29,10 @@ export default function MeetingsView({ directory, enabled, syntheticOnly }: {
   const [end, setEnd] = useState('')
   const [location, setLocation] = useState('')
   const [busy, setBusy] = useState(false)
+  const [selected, setSelected] = useState<Meeting | null>(null)
+  const [status, setStatus] = useState('SCHEDULED')
+  const [notes, setNotes] = useState('')
+  const [outcome, setOutcome] = useState('')
   const key = useRef('')
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [error, setError] = useState('')
@@ -77,6 +82,26 @@ export default function MeetingsView({ directory, enabled, syntheticOnly }: {
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'MEETING_CREATE_FAILED') }
     finally { setBusy(false) }
   }
+  async function update(event: React.FormEvent) {
+    event.preventDefault()
+    if (!selected || !enabled || !Number.isSafeInteger(selected.version) || selected.version < 1 ||
+        (syntheticOnly && !selected.title.startsWith('QA PHASE C '))) return
+    setBusy(true); setError('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('SESSION_REQUIRED')
+      const response = await fetch(`/api/integrations/annie/sales/meetings/${selected.id}`, {
+        method: 'PATCH', cache: 'no-store',
+        headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json',
+          'X-Annie-Expected-Version': String(selected.version) },
+        body: JSON.stringify({ status, notes: notes.trim() || null, outcome: outcome.trim() || null }),
+      })
+      const body = await response.json() as { code?: string }
+      if (!response.ok) throw new Error(body.code ?? 'MEETING_UPDATE_FAILED')
+      setSelected(null); setRefresh(value => value + 1)
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'MEETING_UPDATE_FAILED') }
+    finally { setBusy(false) }
+  }
   return <section className={s.card} aria-label="ANNIE meetings">
     <div className={s.cardHeader}><h2>Meetings</h2><label>View <select value={view} onChange={event => setView(event.target.value)}>
       {['upcoming', 'today', 'overdue', 'completed', 'all'].map(value =>
@@ -101,13 +126,28 @@ export default function MeetingsView({ directory, enabled, syntheticOnly }: {
         (syntheticOnly && !title.startsWith('QA PHASE C '))}>Save in ANNIE</button>
       <button type="button" onClick={() => setCreating(false)}>Cancel</button>
     </form>}
+    {selected && <form onSubmit={event => void update(event)}>
+      <h3>{selected.title}</h3>
+      <label>Status <select value={status} onChange={event => setStatus(event.target.value)}>
+        {['SCHEDULED', 'COMPLETED', 'CANCELLED', 'NO_SHOW'].map(value =>
+          <option key={value} value={value}>{value.replaceAll('_', ' ')}</option>)}
+      </select></label>
+      <label>Notes <textarea maxLength={4000} value={notes} onChange={event => setNotes(event.target.value)} /></label>
+      <label>Outcome <textarea maxLength={4000} value={outcome} onChange={event => setOutcome(event.target.value)} /></label>
+      <button type="submit" disabled={busy}>Save in ANNIE</button>
+      <button type="button" onClick={() => setSelected(null)}>Cancel</button>
+    </form>}
     {loading && <p role="status">Loading meetings…</p>}
     {error && <p role="alert" className={s.error}>{error}</p>}
     {!loading && !error && (meetings.length ? <ul className={s.list}>{meetings.map(meeting =>
       <li key={meeting.id}><div><strong>{meeting.title}</strong><small>{meeting.status} ·
         {' '}{meetingTime(meeting.startAt, meeting.timezone, true)} – {meetingTime(meeting.endAt, meeting.timezone, false)}
         {' '}{meeting.timezone}</small></div>
-        <small>{ownerLabel(directory, meeting.assigneeId)}{meeting.location ? ` · ${meeting.location}` : ''}</small></li>)}</ul>
+        <small>{ownerLabel(directory, meeting.assigneeId)}{meeting.location ? ` · ${meeting.location}` : ''}
+          {enabled && (!syntheticOnly || meeting.title.startsWith('QA PHASE C ')) &&
+            <button type="button" onClick={() => { setSelected(meeting); setStatus(meeting.status);
+              setNotes(meeting.notes ?? ''); setOutcome(meeting.outcome ?? ''); setError('') }}>Manage</button>}
+        </small></li>)}</ul>
       : <p className={s.muted}>No meetings in this view.</p>)}
   </section>
 }
