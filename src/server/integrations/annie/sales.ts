@@ -13,6 +13,7 @@ const listKeys = new Set([
   'q', 'limit', 'cursor', 'status', 'stageCode', 'type', 'accountId',
   'ownerProfileId', 'teamId', 'archived', 'followUp',
 ])
+const activityKeys = new Set(['view', 'leadId', 'timezone', 'limit'])
 const extendedQueryKeys = new Set([
   'search', 'page', 'status', 'demo', 'plan', 'modality', 'duration',
   'sellerProfileId', 'issuedFrom', 'issuedTo', 'expiresFrom', 'expiresTo',
@@ -529,7 +530,8 @@ export async function salesRead(request: Request, resource: SalesResource | 'pip
     if (id || resource === 'pipeline' || resource === 'dashboard') {
       if (Array.from(query.keys()).length) throw new SalesError(400, 'INVALID_FILTER')
     } else {
-      for (const key of Array.from(query.keys())) if (!listKeys.has(key)) throw new SalesError(400, 'INVALID_FILTER')
+      const allowedKeys = resource === 'activities' ? activityKeys : listKeys
+      for (const key of Array.from(query.keys())) if (!allowedKeys.has(key)) throw new SalesError(400, 'INVALID_FILTER')
     }
     const { mapping, token } = await mappedActor(request)
     const path = resource === 'activities' ? `/api/crm/activities/tasks${id ? `/${id}` : ''}` : `/api/crm/${resource}${id ? `/${id}` : ''}`

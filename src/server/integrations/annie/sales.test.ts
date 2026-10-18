@@ -262,6 +262,18 @@ describe('ANNIE Sales adapter', () => {
     expect(claims.exp - claims.iat).toBe(30)
     expect(signature).toMatch(/^[A-Za-z0-9_-]+$/)
   })
+  it('allows scoped activity views and rejects unrelated task filters', async () => {
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(Response.json({ data: {
+        principalId: id.principal, organizationId: id.org, capabilities: { salesRead: true },
+      } }))
+      .mockResolvedValueOnce(Response.json({ data: [{ id: id.lead, organizationId: id.org, title: 'QA follow-up' }] }))
+    vi.stubGlobal('fetch', fetch)
+    const response = await salesRead(request('https://lilly.example/api/integrations/annie/sales/activities?view=overdue&timezone=America%2FNew_York'), 'activities')
+    expect(response.status).toBe(200)
+    expect(String(fetch.mock.calls[1][0])).toContain('/api/crm/activities/tasks?view=overdue&timezone=America%2FNew_York')
+    expect((await salesRead(request('https://lilly.example/api/integrations/annie/sales/activities?ownerProfileId=other'), 'activities')).status).toBe(400)
+  })
   it('rejects an out-of-scope upstream row even after identity verification', async () => {
     const fetch = vi.fn()
       .mockResolvedValueOnce(Response.json({ data: {
