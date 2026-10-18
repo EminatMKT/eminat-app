@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/shared/db/supabase'
+import { historyChanges } from './salesHistory'
 import { ownerLabel, roleLabel, teamLabel, type SalesDirectory } from './salesDirectory'
 import s from './LeadOperations.module.css'
 
@@ -193,7 +194,7 @@ export default function LeadOperations({ selected, writeEnabled, onChanged, stag
             Boolean(conversion.opportunityName && !conversion.opportunityName.startsWith('QA PHASE C '))} onClick={convert}>Convert in ANNIE</button>
         </div></details>}
       {canEdit && <details><summary>{selected.archivedAt ? 'Restore Lead' : 'Archive Lead'}</summary><label>Reason <input value={archiveReason} onChange={e => setArchiveReason(e.target.value)} /></label><button type="button" disabled={busy || !archiveReason.trim()} onClick={archive}>{selected.archivedAt ? 'Restore' : 'Archive'} in ANNIE</button></details>}
-      <details open><summary>ANNIE history</summary>{history.length ? <ul>{history.map(event => <li key={event.id}><strong>{event.action ?? event.eventType ?? 'Change'}</strong> · {event.occurredAt ?? ''}<br />Actor {ownerLabel(directory, event.actorId)}{event.changes != null && <pre>{JSON.stringify(event.changes, null, 2)}</pre>}</li>)}</ul> : <p>No history returned.</p>}{historyNext && <button type="button" onClick={() => void moreHistory()}>Load more history</button>}</details>
+      <details open><summary>ANNIE history</summary>{history.length ? <ul>{history.map(event => <li key={event.id}><strong>{event.action ?? event.eventType ?? 'Change'}</strong> · {event.occurredAt ?? ''}<br />Actor {ownerLabel(directory, event.actorId)}{historyChanges(event.changes, directory).map(change => <div key={change}>{change}</div>)}</li>)}</ul> : <p>No history returned.</p>}{historyNext && <button type="button" onClick={() => void moreHistory()}>Load more history</button>}</details>
     </section>}
     {mode && <section className={s.panel}><h3>{mode === 'create' ? 'Create synthetic Lead' : 'Edit synthetic Lead'}</h3><form className={s.form} onSubmit={saveForm}>
       {fields.map(field => <label key={field.key}>{field.label}

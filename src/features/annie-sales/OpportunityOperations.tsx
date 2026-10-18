@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/shared/db/supabase'
+import { historyChanges } from './salesHistory'
 import { ownerLabel, type SalesDirectory } from './salesDirectory'
 import s from './LeadOperations.module.css'
 
@@ -155,7 +156,7 @@ export default function OpportunityOperations({ selected, writeEnabled, onChange
         <button type="button" disabled={busy || !archiveReason.trim()} onClick={archive}>{selected.archivedAt ? 'Restore' : 'Archive'} in ANNIE</button>
       </details>}
       <details open><summary>ANNIE Contact links</summary>{links.length ? <ul>{links.map(link => <li key={link.id}>{link.contact?.displayName ?? 'Contact'}</li>)}</ul> : <p>No links returned.</p>}</details>
-      <details open><summary>ANNIE history</summary>{history.length ? <ul>{history.map(event => <li key={event.id}><strong>{event.action ?? event.eventType ?? 'Change'}</strong> · {event.occurredAt ?? ''}<br />Actor {ownerLabel(directory, event.actorId)}{event.changes != null && <pre>{JSON.stringify(event.changes, null, 2)}</pre>}</li>)}</ul> : <p>No history returned.</p>}</details>
+      <details open><summary>ANNIE history</summary>{history.length ? <ul>{history.map(event => <li key={event.id}><strong>{event.action ?? event.eventType ?? 'Change'}</strong> · {event.occurredAt ?? ''}<br />Actor {ownerLabel(directory, event.actorId)}{historyChanges(event.changes, directory).map(change => <div key={change}>{change}</div>)}</li>)}</ul> : <p>No history returned.</p>}</details>
     </section>}
     {mode && <section className={s.panel}><h3>{mode === 'create' ? 'Create synthetic Opportunity' : 'Edit synthetic Opportunity'}</h3>
       <form className={s.form} onSubmit={save}>{fields.map(([key, label]) => <label key={key}>{label}{key === 'accountId' ? <select required value={draft[key] ?? ''} onChange={event => setDraft(value => ({ ...value, [key]: event.target.value }))}><option value="">Select synthetic account</option>{accounts.filter(account => account.name?.startsWith('QA PHASE C ')).map(account => <option key={account.id} value={account.id}>{account.name}</option>)}</select> : key === 'primaryContactId' ? <select value={draft[key] ?? ''} onChange={event => setDraft(value => ({ ...value, [key]: event.target.value }))}><option value="">No primary contact</option>{contacts.filter(contact => contact.displayName?.startsWith('QA PHASE C ')).map(contact => <option key={contact.id} value={contact.id}>{contact.displayName}</option>)}</select> : key === 'description' ? <textarea value={draft[key] ?? ''} onChange={event => setDraft(value => ({ ...value, [key]: event.target.value }))} /> :

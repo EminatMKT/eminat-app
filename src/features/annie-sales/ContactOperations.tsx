@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/shared/db/supabase'
+import { historyChanges } from './salesHistory'
 import { ownerLabel, roleLabel, teamLabel, type SalesDirectory } from './salesDirectory'
 import s from './LeadOperations.module.css'
 
@@ -235,7 +236,7 @@ export default function ContactOperations({ selected, writeEnabled, onChanged }:
       </details>
       <details open><summary>ANNIE history</summary>{history.length ? <ul>{history.map(event => <li key={event.id}>
         <strong>{event.action ?? event.eventType ?? 'Change'}</strong> · {event.occurredAt ?? ''}<br />
-        Actor {ownerLabel(directory, event.actorId)}{event.changes != null && <pre>{JSON.stringify(event.changes, null, 2)}</pre>}
+        Actor {ownerLabel(directory, event.actorId)}{historyChanges(event.changes, directory).map(change => <div key={change}>{change}</div>)}
       </li>)}</ul> : <p>No history returned.</p>}
         {historyNext && <button type="button" onClick={() => void moreHistory()}>Load more history</button>}
       </details>
