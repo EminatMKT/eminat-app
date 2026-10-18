@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { clientEnv } from '@/shared/db/env.client'
-import { accountWriteMode, activityWriteMode, contactWriteMode, emailWriteMode, interactionWriteMode, leadWriteMode,
+import { accountWriteMode, activityWriteMode, contactWriteMode, emailWriteMode, interactionWriteMode, leadWriteMode, meetingWriteMode,
   opportunityWriteMode, salesAccessDetails } from '@/server/integrations/annie/sales'
 
 export const dynamic = 'force-dynamic'
@@ -25,6 +25,8 @@ export async function GET(request: Request) {
   const accountMode = write ? accountWriteMode() : 'disabled'
   const opportunityMode = write ? opportunityWriteMode() : 'disabled'
   const activityMode = write ? activityWriteMode() : 'disabled'
+  const meetingMode = write && ['SUPERADMIN', 'ADMINISTRATOR', 'SALES_MANAGER'].includes(access.role ?? '')
+    ? meetingWriteMode() : 'disabled'
   const interactionMode = write ? interactionWriteMode() : 'disabled'
   const emailMode = write ? emailWriteMode() : 'disabled'
   return Response.json({ ...access,
@@ -37,6 +39,7 @@ export async function GET(request: Request) {
     interactionEnabled: interactionMode !== 'disabled', interactionWriteMode: interactionMode,
     emailEnabled: emailMode !== 'disabled', emailWriteMode: emailMode,
     activityEnabled: activityMode !== 'disabled', activityWriteMode: activityMode,
+    meetingEnabled: meetingMode !== 'disabled', meetingWriteMode: meetingMode,
     membershipQaEnabled: write && access.role === 'SUPERADMIN' &&
       process.env.ANNIE_SALES_QA_MEMBERSHIP_ENABLED === 'true',
     reportScheduleWriteEnabled: access.allowed &&

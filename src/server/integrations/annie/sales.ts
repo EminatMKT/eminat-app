@@ -95,6 +95,8 @@ export const opportunityWriteMode = () => resourceWriteMode(
   'ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED', 'ANNIE_SALES_COMMERCIAL_OPPORTUNITY_WRITE_ENABLED')
 export const activityWriteMode = () => resourceWriteMode(
   'ANNIE_SALES_QA_ACTIVITY_ENABLED', 'ANNIE_SALES_COMMERCIAL_ACTIVITY_WRITE_ENABLED')
+export const meetingWriteMode = () => resourceWriteMode(
+  'ANNIE_SALES_QA_MEETING_ENABLED', 'ANNIE_SALES_COMMERCIAL_MEETING_WRITE_ENABLED')
 export const interactionWriteMode = () => resourceWriteMode(
   'ANNIE_SALES_QA_INTERACTION_ENABLED', 'ANNIE_SALES_COMMERCIAL_INTERACTION_WRITE_ENABLED')
 export const emailWriteMode = () => resourceWriteMode(
@@ -1073,6 +1075,88 @@ export async function salesActivityWrite(request: Request, operation: 'create' |
     if (!upstream.ok) {
       const code = (result as { code?: unknown })?.code
       throw new SalesError(upstream.status, typeof code === 'string' && /^[A-Z0-9_]{2,80}$/.test(code) ? code : 'ANNIE_REQUEST_FAILED')
+    }
+    scopedResult(result, mapping.annie_organization_id)
+    return Response.json(result, { headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    const known = error instanceof SalesError ? error : new SalesError(502, 'ANNIE_UNAVAILABLE')
+    return Response.json({ code: known.code }, { status: known.status, headers: { 'Cache-Control': 'no-store' } })
+  }
+}
+
+export async function salesMeetingWrite(request: Request, operation: 'create' | 'edit', id?: string): Promise<Response> {
+  try {
+    const mode = meetingWriteMode()
+    if (mode === 'disabled') throw new SalesError(403, 'MEETING_WRITE_DISABLED')
+    if (operation === 'edit' && (!id || !uuid.test(id))) throw new SalesError(400, 'INVALID_ID')
+    if (request.method !== (operation === 'create' ? 'POST' : 'PATCH'))
+      throw new SalesError(405, 'METHOD_NOT_ALLOWED')
+    const version = request.headers.get('x-annie-expected-version')
+    const key = request.headers.get('idempotency-key')
+    if (operation === 'edit' && (!version || !/^[1-9]\d*$/.test(version)))
+      throw new SalesError(428, 'IF_MATCH_REQUIRED')
+    if (operation === 'create' && (!key || !uuid.test(key)))
+      throw new SalesError(400, 'IDEMPOTENCY_KEY_REQUIRED')
+    let payload: unknown
+    try { payload = await request.json() } catch { throw new SalesError(400, 'INVALID_JSON') }
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload))
+      throw new SalesError(400, 'INVALID_BODY')
+    const proposed = payload as Record<string, unknown>
+    const keys = new Set(['title', 'description', 'assigneeId', 'participants', 'startAt', 'endAt',
+      'timezone', 'location', 'virtualUrl', 'leadId', 'contactId', 'accountId', 'opportunityId',
+      'notes', 'outcome', ...(operation === 'edit' ? ['status'] : [])])
+    if (Object.keys(proposed).some(field => !keys.has(field)))
+      throw new SalesError(400, 'INVALID_BODY')
+    const body = JSON.stringify(proposed)
+    if (Buffer.byteLength(body) > 16_384) throw new SalesError(413, 'BODY_TOO_LARGE')
+    const { mapping, token, identity } = await mappedActor(request)
+    if (identity.capabilities?.salesWrite !== true ||
+        !['SUPERADMIN', 'ADMINISTRATOR', 'SALES_MANAGER'].includes(identity.role ?? ''))
+      throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
+    if (mode === 'qa') {
+      if (operation === 'edit') {
+        const prior = scopedResult(await annieGet(`/api/crm/activities/meetings/${id}`,
+          mapping.annie_organization_id, token), mapping.annie_organization_id) as { data?: { title?: unknown } }
+        if (typeof prior.data?.title !== 'string' || !prior.data.title.startsWith('QA PHASE C '))
+          throw new SalesError(403, 'SYNTHETIC_MEETING_REQUIRED')
+      }
+      if (operation === 'create' || Object.hasOwn(proposed, 'title')) {
+        if (typeof proposed.title !== 'string' || !proposed.title.startsWith('QA PHASE C '))
+          throw new SalesError(403, 'SYNTHETIC_MEETING_REQUIRED')
+      }
+      for (const [field, resource, nameField] of [
+        ['leadId', 'leads', 'displayName'], ['contactId', 'contacts', 'displayName'],
+        ['accountId', 'accounts', 'name'], ['opportunityId', 'opportunities', 'name'],
+      ] as const) {
+        const relation = proposed[field]
+        if (relation == null) continue
+        if (typeof relation !== 'string' || !uuid.test(relation))
+          throw new SalesError(400, 'INVALID_RELATION_ID')
+        const row = scopedResult(await annieGet(`/api/crm/${resource}/${relation}`,
+          mapping.annie_organization_id, token), mapping.annie_organization_id) as { data?: Record<string, unknown> }
+        if (typeof row.data?.[nameField] !== 'string' ||
+            !(row.data[nameField] as string).startsWith('QA PHASE C '))
+          throw new SalesError(403, 'SYNTHETIC_RELATION_REQUIRED')
+      }
+    }
+    let upstream: Response
+    try {
+      upstream = await fetch(new URL(`/api/crm/activities/meetings${id ? `/${id}` : ''}`, origin()), {
+        method: request.method, redirect: 'error', cache: 'no-store',
+        headers: { Cookie: `annie_session=${token}; annie_org=${mapping.annie_organization_id}`,
+          Origin: origin(), 'Content-Type': 'application/json', Accept: 'application/json',
+          ...(key ? { 'Idempotency-Key': key } : {}), ...(version ? { 'If-Match': version } : {}) },
+        body, signal: AbortSignal.timeout(10_000),
+      })
+    } catch { throw new SalesError(502, 'ANNIE_UNAVAILABLE') }
+    if (upstream.status === 401 || upstream.status === 403)
+      throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
+    let result: unknown
+    try { result = await upstream.json() } catch { throw new SalesError(502, 'ANNIE_INVALID_RESPONSE') }
+    if (!upstream.ok) {
+      const code = (result as { code?: unknown })?.code
+      throw new SalesError(upstream.status, typeof code === 'string' && /^[A-Z0-9_]{2,80}$/.test(code)
+        ? code : 'ANNIE_REQUEST_FAILED')
     }
     scopedResult(result, mapping.annie_organization_id)
     return Response.json(result, { headers: { 'Cache-Control': 'no-store' } })

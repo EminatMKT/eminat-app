@@ -67,6 +67,8 @@ export default function SalesModule() {
       (access.opportunityWriteMode === 'commercial' ? 'Opportunity writes' : 'Controlled Opportunity writes') :
     tab === 'activities' && access.activityEnabled ?
       (access.activityWriteMode === 'commercial' ? 'Task writes' : 'Controlled task writes') :
+    tab === 'activities' && access.meetingEnabled ?
+      (access.meetingWriteMode === 'commercial' ? 'Meeting writes' : 'Controlled meeting writes') :
     tab === 'memberships' && access.membershipQaEnabled ? 'Controlled membership writes' :
     tab === 'reports' && access.reportScheduleWriteEnabled ? 'Schedule settings' : 'Read only'
 
@@ -217,7 +219,8 @@ export default function SalesModule() {
       {tab === 'opportunities' && <OpportunityOperations selected={selected as Opportunity | null} writeEnabled={opportunityWriteEnabled} syntheticOnly={access.opportunityWriteMode !== 'commercial'} onChanged={leadChanged} directory={directory} />}
       {tab === 'activities' && <ActivityOperations selected={selected as Task | null} directory={directory}
         enabled={access.activityEnabled} syntheticOnly={access.activityWriteMode !== 'commercial'} onChanged={leadChanged} />}
-      {tab === 'activities' && access.role !== 'AUDITOR' && <MeetingsView directory={directory} />}
+      {tab === 'activities' && access.role !== 'AUDITOR' && <MeetingsView directory={directory}
+        enabled={access.meetingEnabled} syntheticOnly={access.meetingWriteMode !== 'commercial'} />}
       {tab === 'pipeline' && !loading && !error && <PipelineBoard stages={rows as { id: string; code: string; label: string }[]} directory={directory} writeEnabled={opportunityWriteEnabled} syntheticOnly={access.opportunityWriteMode !== 'commercial'} />}
       {(tab === 'memberships' || tab === 'reports' || tab === 'social') && <SalesExtendedViews tab={tab}
         membershipQaEnabled={access.membershipQaEnabled} canManageSchedule={['SUPERADMIN', 'ADMINISTRATOR'].includes(access.role ?? '')}

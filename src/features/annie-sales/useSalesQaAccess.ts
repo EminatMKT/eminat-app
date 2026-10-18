@@ -15,6 +15,7 @@ export type SalesAccess = {
   accountWriteMode: 'disabled' | 'qa' | 'commercial'
   opportunityWriteMode: 'disabled' | 'qa' | 'commercial'
   activityWriteMode: 'disabled' | 'qa' | 'commercial'
+  meetingWriteMode: 'disabled' | 'qa' | 'commercial'
   interactionWriteMode: 'disabled' | 'qa' | 'commercial'
   emailWriteMode: 'disabled' | 'qa' | 'commercial'
   contactWriteEnabled: boolean
@@ -24,6 +25,7 @@ export type SalesAccess = {
   interactionEnabled: boolean
   emailEnabled: boolean
   activityEnabled: boolean
+  meetingEnabled: boolean
   membershipQaEnabled: boolean
   reportScheduleWriteEnabled: boolean
 }
@@ -34,12 +36,14 @@ const denied: SalesAccess = {
   leadWriteMode: 'disabled',
   contactWriteMode: 'disabled', accountWriteMode: 'disabled', opportunityWriteMode: 'disabled',
   activityWriteMode: 'disabled',
+  meetingWriteMode: 'disabled',
   interactionWriteMode: 'disabled',
   emailWriteMode: 'disabled',
   accountWriteEnabled: false, opportunityWriteEnabled: false, importEnabled: false,
   interactionEnabled: false,
   emailEnabled: false,
   activityEnabled: false,
+  meetingEnabled: false,
   membershipQaEnabled: false,
   reportScheduleWriteEnabled: false,
 }
@@ -71,6 +75,7 @@ export function useSalesAccess(): SalesAccess {
         accountWriteMode: mode(body.accountWriteMode),
         opportunityWriteMode: mode(body.opportunityWriteMode),
         activityWriteMode: mode(body.activityWriteMode),
+        meetingWriteMode: mode(body.meetingWriteMode),
         interactionWriteMode: mode(body.interactionWriteMode),
         emailWriteMode: mode(body.emailWriteMode),
         contactWriteEnabled: body.contactWriteEnabled === true,
@@ -80,6 +85,7 @@ export function useSalesAccess(): SalesAccess {
         interactionEnabled: body.interactionEnabled === true,
         emailEnabled: body.emailEnabled === true,
         activityEnabled: body.activityEnabled === true,
+        meetingEnabled: body.meetingEnabled === true,
         membershipQaEnabled: body.membershipQaEnabled === true,
         reportScheduleWriteEnabled: body.reportScheduleWriteEnabled === true,
       }
