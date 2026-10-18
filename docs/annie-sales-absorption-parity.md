@@ -3,7 +3,7 @@
 ANNIE remains the commercial source of truth. This matrix distinguishes verified
 Production behavior from capabilities that still need browser acceptance. ANNIE
 `959be75ded593f296001d9833b104b3a40d0d22d` and LILLY
-`2891185f686814f91b21472f65c9797dbd880c78` are deployed. Draft PRs #30
+`91e21fe9b44a56970b6a34165d21f9cf8ab0e34b` are deployed. Draft PRs #30
 and #119 remain open. A visible control or passing unit test alone does not count
 as Production parity.
 
