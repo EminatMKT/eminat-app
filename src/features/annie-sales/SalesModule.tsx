@@ -177,7 +177,7 @@ export default function SalesModule() {
       {tab === 'activities' && <ActivityOperations selected={selected as Task | null} directory={directory}
         enabled={access.activityEnabled} onChanged={leadChanged} />}
       {tab === 'pipeline' && !loading && !error && <PipelineBoard stages={rows as { id: string; code: string; label: string }[]} directory={directory} writeEnabled={opportunityWriteEnabled} syntheticOnly={access.opportunityWriteMode !== 'commercial'} />}
-      {(tab === 'memberships' || tab === 'reports' || tab === 'social') && <SalesExtendedViews tab={tab} />}
+      {(tab === 'memberships' || tab === 'reports' || tab === 'social') && <SalesExtendedViews tab={tab} membershipQaEnabled={access.membershipQaEnabled} />}
     </section>
   </AppShell>
 }

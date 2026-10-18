@@ -33,6 +33,8 @@ export async function GET(request: Request) {
     importEnabled: write && process.env.ANNIE_SALES_IMPORT_ENABLED === 'true',
     interactionEnabled: write && process.env.ANNIE_SALES_QA_INTERACTION_ENABLED === 'true',
     emailEnabled: write && process.env.ANNIE_SALES_QA_EMAIL_ENABLED === 'true',
-    activityEnabled: write && process.env.ANNIE_SALES_QA_ACTIVITY_ENABLED === 'true' },
+    activityEnabled: write && process.env.ANNIE_SALES_QA_ACTIVITY_ENABLED === 'true',
+    membershipQaEnabled: write && access.role === 'SUPERADMIN' &&
+      process.env.ANNIE_SALES_QA_MEMBERSHIP_ENABLED === 'true' },
     { headers: { 'Cache-Control': 'no-store' } })
 }

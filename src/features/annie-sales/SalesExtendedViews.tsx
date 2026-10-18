@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/shared/db/supabase'
 import s from './SalesModule.module.css'
+import MembershipQaCreate from './MembershipQaCreate'
 
 type Tab = 'memberships' | 'reports' | 'social'
 type Membership = {
@@ -62,7 +63,7 @@ async function json<T>(path: string): Promise<T> {
   return body
 }
 
-function Memberships() {
+function Memberships({ membershipQaEnabled }: { membershipQaEnabled: boolean }) {
   const [catalog, setCatalog] = useState<MembershipCatalog | null>(null)
   const [quotePlan, setQuotePlan] = useState('')
   const [quoteModality, setQuoteModality] = useState('')
@@ -75,6 +76,7 @@ function Memberships() {
   const [hasMore, setHasMore] = useState(false)
   const [selected, setSelected] = useState<MembershipDetail | null>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshKey, setRefreshKey] = useState(0)
   const [error, setError] = useState('')
   useEffect(() => {
     let cancelled = false
@@ -99,7 +101,7 @@ function Memberships() {
     }).catch(cause => { if (!cancelled) setError(cause instanceof Error ? cause.message : 'MEMBERSHIPS_UNAVAILABLE') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [search, demo, status, page])
+  }, [search, demo, status, page, refreshKey])
 
   async function open(id: string) {
     setError('')
@@ -124,6 +126,9 @@ function Memberships() {
   const money = (cents: number) => new Intl.NumberFormat('en-US',
     { style: 'currency', currency: 'USD' }).format(cents / 100)
   return <>
+    {membershipQaEnabled && catalog && <MembershipQaCreate catalog={catalog} onCreated={id => {
+      setDemo('DEMO'); setPage(1); setRefreshKey(value => value + 1); void open(id)
+    }} />}
     {catalog && <div className={s.card}>
       <h2>ANNIE membership pricing</h2>
       <div className={s.filters}>
@@ -292,8 +297,10 @@ function Social() {
   </>
 }
 
-export default function SalesExtendedViews({ tab }: { tab: Tab }) {
-  if (tab === 'memberships') return <Memberships />
+export default function SalesExtendedViews({ tab, membershipQaEnabled = false }: {
+  tab: Tab; membershipQaEnabled?: boolean
+}) {
+  if (tab === 'memberships') return <Memberships membershipQaEnabled={membershipQaEnabled} />
   if (tab === 'reports') return <Reports />
   return <Social />
 }

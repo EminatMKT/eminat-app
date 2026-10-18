@@ -618,6 +618,84 @@ export async function salesExtendedRead(request: Request, parts: string[]): Prom
   }
 }
 
+// Demo enrollment is isolated from real payment and membership issuance.
+// ANNIE still calculates the quote, generates the PDFs and writes the audit trail.
+export async function salesDemoMembershipCreate(request: Request): Promise<Response> {
+  try {
+    if (process.env.ANNIE_SALES_QA_MEMBERSHIP_ENABLED !== 'true')
+      throw new SalesError(403, 'MEMBERSHIP_QA_DISABLED')
+    if (request.method !== 'POST') throw new SalesError(405, 'METHOD_NOT_ALLOWED')
+    const proposed = await request.json().catch(() => { throw new SalesError(400, 'INVALID_JSON') }) as Record<string, unknown>
+    if (!proposed || typeof proposed !== 'object' || Array.isArray(proposed) ||
+      Object.keys(proposed).some(key => !['plan', 'modality', 'duration', 'members',
+        'issuedAt', 'saleDate', 'opportunityId'].includes(key))) throw new SalesError(400, 'INVALID_BODY')
+    if (!['ESSENTIAL', 'PLUS', 'MAX'].includes(String(proposed.plan)) ||
+      !['INDIVIDUAL', 'FAMILY'].includes(String(proposed.modality)) ||
+      !['MONTHLY', '3M', '6M', '12M'].includes(String(proposed.duration)) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(String(proposed.issuedAt)) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(String(proposed.saleDate)) ||
+      typeof proposed.opportunityId !== 'string' || !uuid.test(proposed.opportunityId) ||
+      !Array.isArray(proposed.members) || proposed.members.length < 1 || proposed.members.length > 3 ||
+      (proposed.modality === 'INDIVIDUAL' && proposed.members.length !== 1))
+      throw new SalesError(400, 'INVALID_BODY')
+    const members = proposed.members as Record<string, unknown>[]
+    if (members.some(member => !member || typeof member !== 'object' || Array.isArray(member) ||
+      Object.keys(member).some(key => !['contactId', 'firstName', 'lastName',
+        'phoneCountryCode', 'phone', 'email', 'address'].includes(key)) ||
+      typeof member.contactId !== 'string' || !uuid.test(member.contactId) ||
+      ['firstName', 'lastName', 'phoneCountryCode', 'phone', 'email', 'address'].some(key =>
+        typeof member[key] !== 'string' || !(member[key] as string).trim())))
+      throw new SalesError(400, 'INVALID_BODY')
+    if (new Set(members.map(member => member.contactId)).size !== members.length)
+      throw new SalesError(400, 'DUPLICATE_FAMILY_CONTACT')
+    if (Buffer.byteLength(JSON.stringify(proposed)) > 16_384) throw new SalesError(413, 'BODY_TOO_LARGE')
+    const { mapping, token, identity } = await mappedActor(request)
+    if (identity.role !== 'SUPERADMIN' || identity.capabilities?.salesWrite !== true)
+      throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
+    const organizationId = mapping.annie_organization_id
+    const opportunity = scopedResult(await annieGet(`/api/crm/opportunities/${proposed.opportunityId}`,
+      organizationId, token), organizationId) as { data?: { name?: unknown; stageId?: unknown } }
+    const pipeline = await annieGet('/api/crm/pipeline', organizationId, token) as
+      { data?: { stages?: { id: string; outcome?: string }[] } }
+    if (typeof opportunity.data?.name !== 'string' || !opportunity.data.name.startsWith('QA PHASE C ') ||
+      !pipeline.data?.stages?.some(stage => stage.id === opportunity.data?.stageId && stage.outcome === 'won'))
+      throw new SalesError(403, 'SYNTHETIC_WON_OPPORTUNITY_REQUIRED')
+    for (const member of members) {
+      const contact = scopedResult(await annieGet(`/api/crm/contacts/${member.contactId}`,
+        organizationId, token), organizationId) as { data?: { displayName?: unknown } }
+      if (typeof contact.data?.displayName !== 'string' ||
+        !contact.data.displayName.startsWith('QA PHASE C '))
+        throw new SalesError(403, 'SYNTHETIC_CONTACT_REQUIRED')
+    }
+    const body = JSON.stringify({ ...proposed, isDemo: true, manualPaymentConfirmed: true })
+    if (Buffer.byteLength(body) > 16_384) throw new SalesError(413, 'BODY_TOO_LARGE')
+    const response = await fetch(new URL('/api/crm/program-memberships', origin()), {
+      method: 'POST', redirect: 'error', cache: 'no-store',
+      headers: { Cookie: `annie_session=${token}; annie_org=${organizationId}`,
+        Origin: origin(), 'Content-Type': 'application/json', Accept: 'application/json' },
+      body, signal: AbortSignal.timeout(15000),
+    })
+    const result = await response.json().catch(() => { throw new SalesError(502, 'ANNIE_INVALID_RESPONSE') }) as unknown
+    if (response.ok) {
+      scopedResult(result, organizationId)
+      const created = (result as { members?: unknown }).members
+      if (!Array.isArray(created) || created.length !== members.length ||
+        created.some(row => !row || typeof row !== 'object' ||
+          (row as { organizationId?: unknown }).organizationId !== organizationId))
+        throw new SalesError(502, 'ANNIE_SCOPE_MISMATCH')
+    }
+    if (!response.ok) {
+      const code = (result as { code?: unknown } | null)?.code
+      return Response.json({ code: typeof code === 'string' && /^[A-Z][A-Z0-9_]{1,79}$/.test(code) ?
+        code : 'ANNIE_UPSTREAM_ERROR' }, { status: response.status, headers: { 'Cache-Control': 'no-store' } })
+    }
+    return Response.json(result, { headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    const known = error instanceof SalesError ? error : new SalesError(502, 'ANNIE_UNAVAILABLE')
+    return Response.json({ code: known.code }, { status: known.status, headers: { 'Cache-Control': 'no-store' } })
+  }
+}
+
 // ANNIE owns parsing, duplicate detection, tenant assignment and processing.
 // LILLY only forwards a bounded, explicit import workflow for the mapped actor.
 export async function salesImportRequest(request: Request, parts: string[]): Promise<Response> {
