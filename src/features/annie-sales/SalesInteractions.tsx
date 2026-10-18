@@ -12,8 +12,8 @@ const kinds = [
   ['email_manual', 'Email logged'], ['whatsapp', 'WhatsApp logged'],
 ] as const
 
-export default function SalesInteractions({ resource, selected, directory, writeEnabled, onChanged }: {
-  resource: Resource; selected: Selected; directory: SalesDirectory; writeEnabled: boolean; onChanged: (id: string) => void
+export default function SalesInteractions({ resource, selected, directory, writeEnabled, syntheticOnly, onChanged }: {
+  resource: Resource; selected: Selected; directory: SalesDirectory; writeEnabled: boolean; syntheticOnly: boolean; onChanged: (id: string) => void
 }) {
   const [rows, setRows] = useState<Interaction[]>([])
   const [kind, setKind] = useState<(typeof kinds)[number][0]>('note')
@@ -65,7 +65,7 @@ export default function SalesInteractions({ resource, selected, directory, write
       <strong>{kinds.find(item => item[0] === row.kind)?.[1] ?? 'Interaction'}</strong><p>{row.body}</p>
       <small>{new Date(row.occurredAt).toLocaleString()} · {ownerLabel(directory, row.authorId)}{row.durationMinutes ? ` · ${row.durationMinutes} min` : ''}</small>
     </div></li>)}</ul> : <p className={s.muted}>No interactions recorded.</p>)}
-    {writeEnabled && synthetic && selected.access?.canEdit === true && <form className={s.filters} onSubmit={event => void save(event)}>
+    {writeEnabled && (!syntheticOnly || synthetic) && selected.access?.canEdit === true && <form className={s.filters} onSubmit={event => void save(event)}>
       <label>Type <select value={kind} onChange={event => setKind(event.target.value as typeof kind)}>{kinds.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       <label>Notes <textarea required maxLength={10_000} value={body} onChange={event => setBody(event.target.value)} /></label>
       {(kind === 'call' || kind === 'call_no_answer') && <label>Minutes <input type="number" min="1" max="1440" value={duration} onChange={event => setDuration(event.target.value)} /></label>}

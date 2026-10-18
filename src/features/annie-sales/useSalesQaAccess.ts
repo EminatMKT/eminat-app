@@ -14,6 +14,8 @@ export type SalesAccess = {
   contactWriteMode: 'disabled' | 'qa' | 'commercial'
   accountWriteMode: 'disabled' | 'qa' | 'commercial'
   opportunityWriteMode: 'disabled' | 'qa' | 'commercial'
+  activityWriteMode: 'disabled' | 'qa' | 'commercial'
+  interactionWriteMode: 'disabled' | 'qa' | 'commercial'
   contactWriteEnabled: boolean
   accountWriteEnabled: boolean
   opportunityWriteEnabled: boolean
@@ -29,6 +31,8 @@ const denied: SalesAccess = {
   canReadAudit: false, writeEnabled: false, contactWriteEnabled: false,
   leadWriteMode: 'disabled',
   contactWriteMode: 'disabled', accountWriteMode: 'disabled', opportunityWriteMode: 'disabled',
+  activityWriteMode: 'disabled',
+  interactionWriteMode: 'disabled',
   accountWriteEnabled: false, opportunityWriteEnabled: false, importEnabled: false,
   interactionEnabled: false,
   emailEnabled: false,
@@ -62,6 +66,8 @@ export function useSalesAccess(): SalesAccess {
         contactWriteMode: mode(body.contactWriteMode),
         accountWriteMode: mode(body.accountWriteMode),
         opportunityWriteMode: mode(body.opportunityWriteMode),
+        activityWriteMode: mode(body.activityWriteMode),
+        interactionWriteMode: mode(body.interactionWriteMode),
         contactWriteEnabled: body.contactWriteEnabled === true,
         accountWriteEnabled: body.accountWriteEnabled === true,
         opportunityWriteEnabled: body.opportunityWriteEnabled === true,

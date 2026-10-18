@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { clientEnv } from '@/shared/db/env.client'
-import { accountWriteMode, contactWriteMode, leadWriteMode,
+import { accountWriteMode, activityWriteMode, contactWriteMode, interactionWriteMode, leadWriteMode,
   opportunityWriteMode, salesAccessDetails } from '@/server/integrations/annie/sales'
 
 export const dynamic = 'force-dynamic'
@@ -24,6 +24,8 @@ export async function GET(request: Request) {
   const contactMode = write ? contactWriteMode() : 'disabled'
   const accountMode = write ? accountWriteMode() : 'disabled'
   const opportunityMode = write ? opportunityWriteMode() : 'disabled'
+  const activityMode = write ? activityWriteMode() : 'disabled'
+  const interactionMode = write ? interactionWriteMode() : 'disabled'
   return Response.json({ ...access,
     writeEnabled: leadMode !== 'disabled',
     leadWriteMode: leadMode,
@@ -31,9 +33,9 @@ export async function GET(request: Request) {
     accountWriteEnabled: accountMode !== 'disabled', accountWriteMode: accountMode,
     opportunityWriteEnabled: opportunityMode !== 'disabled', opportunityWriteMode: opportunityMode,
     importEnabled: write && process.env.ANNIE_SALES_IMPORT_ENABLED === 'true',
-    interactionEnabled: write && process.env.ANNIE_SALES_QA_INTERACTION_ENABLED === 'true',
+    interactionEnabled: interactionMode !== 'disabled', interactionWriteMode: interactionMode,
     emailEnabled: write && process.env.ANNIE_SALES_QA_EMAIL_ENABLED === 'true',
-    activityEnabled: write && process.env.ANNIE_SALES_QA_ACTIVITY_ENABLED === 'true',
+    activityEnabled: activityMode !== 'disabled', activityWriteMode: activityMode,
     membershipQaEnabled: write && access.role === 'SUPERADMIN' &&
       process.env.ANNIE_SALES_QA_MEMBERSHIP_ENABLED === 'true' },
     { headers: { 'Cache-Control': 'no-store' } })

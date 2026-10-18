@@ -7,8 +7,8 @@ import s from './LeadOperations.module.css'
 export type Task = { id: string; title: string; version: number; status: string; dueAt: string; description?: string | null;
   priority: string; assigneeId: string; leadId?: string | null; notes?: string | null }
 
-export default function ActivityOperations({ selected, directory, enabled, onChanged }: {
-  selected: Task | null; directory: SalesDirectory; enabled: boolean; onChanged: (id: string) => void
+export default function ActivityOperations({ selected, directory, enabled, syntheticOnly, onChanged }: {
+  selected: Task | null; directory: SalesDirectory; enabled: boolean; syntheticOnly: boolean; onChanged: (id: string) => void
 }) {
   const key = useRef('')
   const [mode, setMode] = useState<'create' | 'edit' | null>(null)
@@ -33,7 +33,7 @@ export default function ActivityOperations({ selected, directory, enabled, onCha
 
   async function save(event: React.FormEvent) {
     event.preventDefault()
-    if (!mode || !title.startsWith('QA PHASE C ') || !due || !assignee) return
+    if (!mode || (syntheticOnly && !title.startsWith('QA PHASE C ')) || !due || !assignee) return
     setBusy(true); setError(''); setNotice('')
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -58,13 +58,13 @@ export default function ActivityOperations({ selected, directory, enabled, onCha
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'ACTIVITY_SAVE_FAILED') }
     finally { setBusy(false) }
   }
-  const editable = selected?.title.startsWith('QA PHASE C ') === true &&
+  const editable = !!selected && (!syntheticOnly || selected.title.startsWith('QA PHASE C ')) &&
     !['COMPLETED', 'CANCELLED'].includes(selected.status)
   return <section className={s.workspace} aria-label="ANNIE task operations">
     {enabled && <button className={s.action} type="button" onClick={() => {
-      setTitle('QA PHASE C '); setDescription(''); setDue(''); setAssignee(''); setPriority('MEDIUM'); setStatus('PENDING'); setMode('create')
-    }}>Create synthetic task</button>}
-    {enabled && editable && <button type="button" onClick={() => setMode('edit')}>Edit synthetic task</button>}
+      setTitle(syntheticOnly ? 'QA PHASE C ' : ''); setDescription(''); setDue(''); setAssignee(''); setPriority('MEDIUM'); setStatus('PENDING'); setMode('create')
+    }}>Create {syntheticOnly ? 'synthetic ' : ''}task</button>}
+    {enabled && editable && <button type="button" onClick={() => setMode('edit')}>Edit {syntheticOnly ? 'synthetic ' : ''}task</button>}
     {selected && <p>{selected.title} · {selected.status} · {ownerLabel(directory, selected.assigneeId)}</p>}
     {error && <p role="alert" className={s.error}>{error}</p>}
     {notice && <p role="status">{notice}</p>}
@@ -82,7 +82,7 @@ export default function ActivityOperations({ selected, directory, enabled, onCha
       {mode === 'edit' && selected && <label>Status <select value={status} onChange={event => setStatus(event.target.value)}>
         {['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'].map(value => <option key={value} value={value}>{value}</option>)}
       </select></label>}
-      <button type="submit" disabled={busy || !title.startsWith('QA PHASE C ') || !due || !assignee}>Save in ANNIE</button>
+      <button type="submit" disabled={busy || !title.trim() || (syntheticOnly && !title.startsWith('QA PHASE C ')) || !due || !assignee}>Save in ANNIE</button>
       <button type="button" onClick={() => setMode(null)}>Cancel</button>
     </form>}
   </section>

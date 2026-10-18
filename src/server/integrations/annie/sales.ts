@@ -93,6 +93,10 @@ export const accountWriteMode = () => resourceWriteMode(
   'ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED', 'ANNIE_SALES_COMMERCIAL_ACCOUNT_WRITE_ENABLED')
 export const opportunityWriteMode = () => resourceWriteMode(
   'ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED', 'ANNIE_SALES_COMMERCIAL_OPPORTUNITY_WRITE_ENABLED')
+export const activityWriteMode = () => resourceWriteMode(
+  'ANNIE_SALES_QA_ACTIVITY_ENABLED', 'ANNIE_SALES_COMMERCIAL_ACTIVITY_WRITE_ENABLED')
+export const interactionWriteMode = () => resourceWriteMode(
+  'ANNIE_SALES_QA_INTERACTION_ENABLED', 'ANNIE_SALES_COMMERCIAL_INTERACTION_WRITE_ENABLED')
 
 function leadWritePath(operation: LeadWriteOperation, id?: string): string {
   if (operation === 'create') return '/api/crm/leads'
@@ -770,15 +774,17 @@ export async function salesRecordInteractions(request: Request, resource: string
     if (!interactionResources.has(resource) || !uuid.test(id)) throw new SalesError(404, 'NOT_FOUND')
     if (request.method !== 'GET' && request.method !== 'POST') throw new SalesError(405, 'METHOD_NOT_ALLOWED')
     if (new URL(request.url).search) throw new SalesError(400, 'INVALID_FILTER')
-    if (request.method === 'POST' && process.env.ANNIE_SALES_QA_INTERACTION_ENABLED !== 'true')
+    const mode = interactionWriteMode()
+    if (request.method === 'POST' && mode === 'disabled')
       throw new SalesError(403, 'INTERACTION_WRITE_DISABLED')
-    const { mapping, token } = await mappedActor(request)
+    const { mapping, token, identity } = await mappedActor(request)
     let body: string | undefined
     if (request.method === 'POST') {
+      if (identity.capabilities?.salesWrite !== true) throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
       const detail = scopedResult(await annieGet(`/api/crm/${resource}/${id}`, mapping.annie_organization_id, token),
         mapping.annie_organization_id) as { data?: { displayName?: string; name?: string; access?: { canEdit?: boolean } } }
       if (detail.data?.access?.canEdit !== true ||
-          !(detail.data.displayName ?? detail.data.name ?? '').startsWith('QA PHASE C '))
+          (mode === 'qa' && !(detail.data.displayName ?? detail.data.name ?? '').startsWith('QA PHASE C ')))
         throw new SalesError(403, 'SYNTHETIC_RECORD_REQUIRED')
       let payload: unknown
       try { payload = await request.json() } catch { throw new SalesError(400, 'INVALID_JSON') }
@@ -897,7 +903,8 @@ export async function salesIndividualEmail(request: Request, operation: 'list' |
 
 export async function salesActivityWrite(request: Request, operation: 'create' | 'edit', id?: string): Promise<Response> {
   try {
-    if (process.env.ANNIE_SALES_QA_ACTIVITY_ENABLED !== 'true') throw new SalesError(403, 'ACTIVITY_WRITE_DISABLED')
+    const mode = activityWriteMode()
+    if (mode === 'disabled') throw new SalesError(403, 'ACTIVITY_WRITE_DISABLED')
     if (operation === 'edit' && (!id || !uuid.test(id))) throw new SalesError(400, 'INVALID_ID')
     const method = operation === 'create' ? 'POST' : 'PATCH'
     if (request.method !== method) throw new SalesError(405, 'METHOD_NOT_ALLOWED')
@@ -912,11 +919,12 @@ export async function salesActivityWrite(request: Request, operation: 'create' |
     const body = JSON.stringify(proposed)
     if (Buffer.byteLength(body) > 16_384 || Object.hasOwn(proposed, 'programMembershipId'))
       throw new SalesError(400, 'INVALID_BODY')
-    const { mapping, token } = await mappedActor(request)
-    if (operation === 'create') {
+    const { mapping, token, identity } = await mappedActor(request)
+    if (identity.capabilities?.salesWrite !== true) throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
+    if (mode === 'qa' && operation === 'create') {
       if (typeof proposed.title !== 'string' || !proposed.title.startsWith('QA PHASE C '))
         throw new SalesError(403, 'SYNTHETIC_TASK_REQUIRED')
-    } else {
+    } else if (mode === 'qa') {
       const prior = scopedResult(await annieGet(`/api/crm/activities/tasks/${id}`,
         mapping.annie_organization_id, token), mapping.annie_organization_id) as { data?: { title?: unknown } }
       if (typeof prior.data?.title !== 'string' || !prior.data.title.startsWith('QA PHASE C ') ||
@@ -924,7 +932,7 @@ export async function salesActivityWrite(request: Request, operation: 'create' |
             (typeof proposed.title !== 'string' || !proposed.title.startsWith('QA PHASE C '))))
         throw new SalesError(403, 'SYNTHETIC_TASK_REQUIRED')
     }
-    for (const [field, resource, nameField] of [
+    if (mode === 'qa') for (const [field, resource, nameField] of [
       ['leadId', 'leads', 'displayName'], ['contactId', 'contacts', 'displayName'],
       ['accountId', 'accounts', 'name'], ['opportunityId', 'opportunities', 'name'],
     ] as const) {

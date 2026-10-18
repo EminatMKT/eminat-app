@@ -167,7 +167,8 @@ export default function SalesModule() {
       {selected && <aside className={s.detail}><div className={s.cardHeader}><h2>{label(selected)}</h2><button type="button" onClick={() => setSelected(null)}>Close</button></div><dl><dt>Status</dt><dd>{selected.status ?? selected.stageCode ?? '—'}</dd><dt>{tab === 'activities' ? 'Assignee' : 'Owner'}</dt><dd>{ownerLabel(directory, tab === 'activities' ? selected.assigneeId : selected.ownerProfileId)}</dd>{tab === 'activities' && <><dt>Due</dt><dd>{selected.dueAt ? new Date(selected.dueAt).toLocaleString() : '—'}</dd><dt>Priority</dt><dd>{selected.priority ?? '—'}</dd></>}</dl></aside>}
       {selected && ['leads', 'contacts', 'accounts', 'opportunities'].includes(tab) && <SalesInteractions
         key={`${tab}-${selected.id}`} resource={tab as 'leads' | 'contacts' | 'accounts' | 'opportunities'}
-        selected={selected} directory={directory} writeEnabled={access.interactionEnabled} onChanged={leadChanged} />}
+        selected={selected} directory={directory} writeEnabled={access.interactionEnabled}
+        syntheticOnly={access.interactionWriteMode !== 'commercial'} onChanged={leadChanged} />}
       {selected && (tab === 'leads' || tab === 'contacts') && <SalesEmail key={`email-${tab}-${selected.id}`}
         resource={tab} selected={selected} enabled={access.emailEnabled} />}
       {tab === 'leads' && <LeadOperations selected={selected as Lead | null} writeEnabled={writeEnabled} syntheticOnly={access.leadWriteMode !== 'commercial'} onChanged={leadChanged} stages={leadStages} />}
@@ -175,7 +176,7 @@ export default function SalesModule() {
       {tab === 'accounts' && <AccountOperations selected={selected as Account | null} writeEnabled={accountWriteEnabled} syntheticOnly={access.accountWriteMode !== 'commercial'} onChanged={leadChanged} directory={directory} />}
       {tab === 'opportunities' && <OpportunityOperations selected={selected as Opportunity | null} writeEnabled={opportunityWriteEnabled} syntheticOnly={access.opportunityWriteMode !== 'commercial'} onChanged={leadChanged} directory={directory} />}
       {tab === 'activities' && <ActivityOperations selected={selected as Task | null} directory={directory}
-        enabled={access.activityEnabled} onChanged={leadChanged} />}
+        enabled={access.activityEnabled} syntheticOnly={access.activityWriteMode !== 'commercial'} onChanged={leadChanged} />}
       {tab === 'pipeline' && !loading && !error && <PipelineBoard stages={rows as { id: string; code: string; label: string }[]} directory={directory} writeEnabled={opportunityWriteEnabled} syntheticOnly={access.opportunityWriteMode !== 'commercial'} />}
       {(tab === 'memberships' || tab === 'reports' || tab === 'social') && <SalesExtendedViews tab={tab} membershipQaEnabled={access.membershipQaEnabled} />}
     </section>
