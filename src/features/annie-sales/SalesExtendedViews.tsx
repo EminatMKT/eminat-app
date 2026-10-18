@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/shared/db/supabase'
 import s from './SalesModule.module.css'
 
@@ -37,8 +37,12 @@ type ReportSchedule = { data: {
     periodStart: string; periodEnd: string; sentAt: string | null; errorCode: string | null }[]
 } }
 type SocialConnection = { id: string; displayName?: string; pageName?: string; status?: string; provider?: string }
-type SocialConversation = { id: string; displayName?: string; participantName?: string; status?: string; channel?: string }
+type SocialConversation = { id: string; kind: string; channel: string; lastText?: string | null;
+  lastEventAt: string; unread: boolean; localEntityType?: string | null;
+  connection?: { pageName?: string | null } }
+type SocialEvent = { id: string; at: string; kind: string; text?: string | null }
 type SocialProvider = { id: string; capabilities?: Record<string, boolean> }
+type SocialAsset = { id: string; label: string; kind: string }
 
 async function extended(path: string): Promise<Response> {
   const { data: { session } } = await supabase.auth.getSession()
@@ -223,6 +227,11 @@ function Social() {
   const [conversations, setConversations] = useState<SocialConversation[]>([])
   const [health, setHealth] = useState('')
   const [providers, setProviders] = useState<SocialProvider[]>([])
+  const [assets, setAssets] = useState<SocialAsset[]>([])
+  const [selected, setSelected] = useState<SocialConversation | null>(null)
+  const [events, setEvents] = useState<SocialEvent[]>([])
+  const [eventError, setEventError] = useState('')
+  const eventRequest = useRef(0)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   useEffect(() => {
@@ -232,24 +241,47 @@ function Social() {
       json<{ data: SocialConversation[] }>('meta/conversations'),
       json<{ data?: { mode?: string; webhooks?: string } }>('meta/status'),
       json<{ data: SocialProvider[] }>('social/providers'),
-    ]).then(([c, inbox, status, available]) => {
+      json<{ data: SocialAsset[] }>('social/meta/assets'),
+    ]).then(([c, inbox, status, available, pageAssets]) => {
       if (cancelled) return
       if (c.status === 'fulfilled') setConnections(c.value.data ?? [])
       if (inbox.status === 'fulfilled') setConversations(inbox.value.data ?? [])
       if (status.status === 'fulfilled') setHealth(`Mode: ${status.value.data?.mode ?? 'Unavailable'} · Webhooks: ${status.value.data?.webhooks ?? 'Unavailable'}`)
       if (available.status === 'fulfilled') setProviders(available.value.data ?? [])
-      if ([c, inbox, status, available].some(result => result.status === 'rejected'))
+      if (pageAssets.status === 'fulfilled') setAssets(pageAssets.value.data ?? [])
+      if ([c, inbox, status, available, pageAssets].some(result => result.status === 'rejected'))
         setError('Some ANNIE Social sections are unavailable. Available sections remain visible.')
     })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [])
+  async function openConversation(conversation: SocialConversation) {
+    const requestId = ++eventRequest.current
+    setSelected(conversation); setEvents([]); setEventError('')
+    try {
+      const result = await json<{ data: SocialEvent[] }>(`meta/conversations/${conversation.id}/events`)
+      if (requestId === eventRequest.current) setEvents(result.data ?? [])
+    } catch (cause) { if (requestId === eventRequest.current)
+      setEventError(cause instanceof Error ? cause.message : 'CONVERSATION_UNAVAILABLE') }
+  }
+  const messages = conversations.filter(conversation => conversation.kind !== 'comment')
+  const comments = conversations.filter(conversation => conversation.kind === 'comment')
+  const conversationList = (rows: SocialConversation[]) => rows.length ? <ul className={s.list}>{rows.map(conversation =>
+    <li key={conversation.id}><div><button type="button" onClick={() => void openConversation(conversation)}>{conversation.connection?.pageName || conversation.channel} · {conversation.kind}</button>
+      <small>{conversation.lastText || 'No message preview'} · {conversation.localEntityType ? 'Linked to CRM' : 'Not linked to CRM'}</small></div>
+      <small>{conversation.unread ? 'Unread' : 'Read'}</small></li>)}</ul> : <p className={s.muted}>No items are available.</p>
   return <>
     {loading && <p role="status">Loading Social from ANNIE…</p>}
     {error && <p role="alert" className={s.error}>{error}</p>}
     {!loading && <><div className={s.card}><h2>Connection health</h2><p>{health || 'Unavailable'}</p><p className={s.muted}>Providers: {providers.map(provider => provider.id).join(', ') || 'None available'}</p></div>
       <div className={s.card}><div className={s.cardHeader}><h2>Connections</h2><span>{connections.length}</span></div>{connections.length ? <ul className={s.list}>{connections.map(connection => <li key={connection.id}>{connection.displayName ?? connection.pageName ?? connection.provider ?? 'Meta Page'} <small>{connection.status ?? 'Status unavailable'}</small></li>)}</ul> : <p className={s.muted}>No live Social connection is available yet.</p>}</div>
-      <div className={s.card}><div className={s.cardHeader}><h2>Inbox</h2><span>{conversations.length}</span></div>{conversations.length ? <ul className={s.list}>{conversations.map(conversation => <li key={conversation.id}>{conversation.displayName ?? conversation.participantName ?? 'Conversation'} <small>{conversation.channel ?? ''} {conversation.status ?? ''}</small></li>)}</ul> : <p className={s.muted}>No conversations are available.</p>}</div>
+      <div className={s.card}><div className={s.cardHeader}><h2>Pages and accounts</h2><span>{assets.length}</span></div>{assets.length ? <ul className={s.list}>{assets.map(asset => <li key={asset.id}>{asset.label} <small>{asset.kind}</small></li>)}</ul> : <p className={s.muted}>No provider assets are available.</p>}</div>
+      <div className={s.card}><div className={s.cardHeader}><h2>Messages</h2><span>{messages.length}</span></div>{conversationList(messages)}</div>
+      <div className={s.card}><div className={s.cardHeader}><h2>Comments</h2><span>{comments.length}</span></div>{conversationList(comments)}</div>
+      {selected && <aside className={s.detail}><div className={s.cardHeader}><h2>{selected.connection?.pageName || selected.channel} · {selected.kind}</h2><button type="button" onClick={() => { eventRequest.current++; setSelected(null) }}>Close</button></div>
+        {eventError && <p role="alert" className={s.error}>{eventError}</p>}
+        {events.length ? <ul className={s.list}>{events.map(event => <li key={event.id}><span>{event.text || 'Event without text'}</span><small>{event.at.slice(0, 16)} · {event.kind}</small></li>)}</ul> : !eventError && <p className={s.muted}>No events are available for this conversation.</p>}
+      </aside>}
     </>}
   </>
 }
