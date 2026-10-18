@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import AppShell from '@/shared/components/shell/AppShell'
 import SalesDenied from './SalesDenied'
 import { supabase } from '@/shared/db/supabase'
@@ -50,10 +50,25 @@ export default function SalesModule() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
+  const detailRequest = useRef(0)
+  const activeTab = useRef(tab)
+  activeTab.current = tab
   const access = useSalesAccess()
   const { allowed, writeEnabled, contactWriteEnabled, accountWriteEnabled, opportunityWriteEnabled } = access
+  const writeBadge = tab === 'leads' && writeEnabled ?
+    (access.leadWriteMode === 'commercial' ? 'Lead writes' : 'Controlled Lead writes') :
+    tab === 'contacts' && contactWriteEnabled ?
+      (access.contactWriteMode === 'commercial' ? 'Contact writes' : 'Controlled Contact writes') :
+    tab === 'accounts' && accountWriteEnabled ?
+      (access.accountWriteMode === 'commercial' ? 'Account writes' : 'Controlled Account writes') :
+    (tab === 'opportunities' || tab === 'pipeline') && opportunityWriteEnabled ?
+      (access.opportunityWriteMode === 'commercial' ? 'Opportunity writes' : 'Controlled Opportunity writes') :
+    tab === 'activities' && access.activityEnabled ?
+      (access.activityWriteMode === 'commercial' ? 'Task writes' : 'Controlled task writes') :
+    tab === 'memberships' && access.membershipQaEnabled ? 'Controlled membership writes' :
+    tab === 'reports' && access.reportScheduleWriteEnabled ? 'Schedule settings' : 'Read only'
 
-  useEffect(() => { setCursor(null); setRows([]); setSelected(null); setNextCursor(null); setDashboard(null) }, [tab, search, status, ownerFilter, teamFilter, followUp, archived, activityView])
+  useEffect(() => { detailRequest.current += 1; setCursor(null); setRows([]); setSelected(null); setNextCursor(null); setDashboard(null) }, [tab, search, status, ownerFilter, teamFilter, followUp, archived, activityView])
   useEffect(() => { setImportOpen(false) }, [tab])
   useEffect(() => {
     if (!allowed) return
@@ -138,14 +153,17 @@ export default function SalesModule() {
   }, [allowed, tab, search, status, ownerFilter, teamFilter, followUp, archived, activityView, cursor, refreshKey])
 
   async function openDetail(id: string) {
+    const targetTab = tab
+    const requestId = ++detailRequest.current
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { setError('Session required'); return }
+    if (!session) { if (detailRequest.current === requestId) setError('Session required'); return }
     try {
-      const response = await fetch(`/api/integrations/annie/sales/${tab}/${id}`, { cache: 'no-store', headers: { Authorization: `Bearer ${session.access_token}` } })
+      const response = await fetch(`/api/integrations/annie/sales/${targetTab}/${id}`, { cache: 'no-store', headers: { Authorization: `Bearer ${session.access_token}` } })
       const body = await response.json() as { data?: Row; code?: string }
       if (!response.ok || !body.data) throw new Error(body.code ?? 'READ_FAILED')
-      setSelected(body.data)
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'READ_FAILED') }
+      if (detailRequest.current === requestId && activeTab.current === targetTab) setSelected(body.data)
+    } catch (cause) { if (detailRequest.current === requestId && activeTab.current === targetTab)
+      setError(cause instanceof Error ? cause.message : 'READ_FAILED') }
   }
 
   function leadChanged(id: string) {
@@ -157,7 +175,7 @@ export default function SalesModule() {
   if (!allowed) return <SalesDenied />
   return <AppShell title={`Sales — ${SUB_ITEMS.sales.find(item => item.tab === tab)?.label ?? 'Sales'}`} activeTab={tab} onTabChange={setTab}>
     <section className={s.page}>
-      <header className={s.header}><div><p className={s.eyebrow}>ANNIE · LIVE</p><h1>Sales</h1><p className={s.muted}>Commercial records stay in ANNIE.</p></div><span className={s.badge}>{access.role ? `${roleLabel(access.role)} · ` : ''}{tab === 'leads' && writeEnabled ? (access.leadWriteMode === 'commercial' ? 'Lead writes' : 'Controlled Lead writes') : tab === 'contacts' && contactWriteEnabled ? (access.contactWriteMode === 'commercial' ? 'Contact writes' : 'Controlled Contact writes') : tab === 'accounts' && accountWriteEnabled ? (access.accountWriteMode === 'commercial' ? 'Account writes' : 'Controlled Account writes') : tab === 'opportunities' && opportunityWriteEnabled ? (access.opportunityWriteMode === 'commercial' ? 'Opportunity writes' : 'Controlled Opportunity writes') : 'Read only'}</span></header>
+      <header className={s.header}><div><p className={s.eyebrow}>ANNIE · LIVE</p><h1>Sales</h1><p className={s.muted}>Commercial records stay in ANNIE.</p></div><span className={s.badge}>{access.role ? `${roleLabel(access.role)} · ` : ''}{writeBadge}</span></header>
       {paged.has(tab) && <div className={s.filters}><label>Search <input value={search} onChange={event => setSearch(event.target.value)} maxLength={200} placeholder={`Search ${tab}`} /></label>
         {tab === 'leads' && <><label>Status <select value={status} onChange={event => setStatus(event.target.value)}><option value="">All statuses</option>{leadStages.map(stage => <option key={stage.code} value={stage.code}>{stage.label}</option>)}</select></label>
           <label>Follow-up <select value={followUp} onChange={event => setFollowUp(event.target.value)}><option value="">Any</option><option value="overdue">Overdue</option><option value="next_7_days">Next 7 days</option><option value="none">None</option></select></label>
@@ -182,7 +200,7 @@ export default function SalesModule() {
       {!loading && !error && tabs.has(tab) && tab !== 'dashboard' && tab !== 'pipeline' && <div className={s.card}><div className={s.cardHeader}><h2>{SUB_ITEMS.sales.find(item => item.tab === tab)?.label}</h2><span>{rows.length} shown</span></div>
         {rows.length === 0 ? <p className={s.muted}>No records in this view.</p> : tab === 'leads' && leadView === 'board' ? <div className={s.board}>{leadStages.map(stage => <section key={stage.code}><h3>{stage.label}</h3>{rows.filter(row => row.status === stage.code).map(row => <article key={row.id}><button type="button" onClick={() => void openDetail(row.id)}>{label(row)}</button><small>{ownerLabel(directory, row.ownerProfileId)}</small></article>)}</section>)}</div> : <ul className={s.list}>{rows.map(row => <li key={row.id}><div>{tab === 'pipeline' ? <strong>{label(row)}</strong> : <button type="button" onClick={() => void openDetail(row.id)}>{label(row)}</button>}<small>{summary(row, tab === 'opportunities' ? opportunityStages.find(stage => stage.id === row.stageId || stage.code === row.stageCode)?.label : undefined)}</small></div><small>{row.assigneeId || row.ownerProfileId ? ownerLabel(directory, row.assigneeId ?? row.ownerProfileId) : ''}</small></li>)}</ul>}
         {nextCursor && <button type="button" className={s.next} onClick={() => setCursor(nextCursor)}>Next page</button>}</div>}
-      {selected && <aside className={s.detail}><div className={s.cardHeader}><h2>{label(selected)}</h2><button type="button" onClick={() => setSelected(null)}>Close</button></div><dl><dt>Status</dt><dd>{selected.status ?? selected.stageCode ?? '—'}</dd><dt>{tab === 'activities' ? 'Assignee' : 'Owner'}</dt><dd>{ownerLabel(directory, tab === 'activities' ? selected.assigneeId : selected.ownerProfileId)}</dd>{tab === 'activities' && <><dt>Due</dt><dd>{selected.dueAt ? new Date(selected.dueAt).toLocaleString() : '—'}</dd><dt>Priority</dt><dd>{selected.priority ?? '—'}</dd></>}</dl></aside>}
+      {selected && <aside className={s.detail}><div className={s.cardHeader}><h2>{label(selected)}</h2><button type="button" onClick={() => { detailRequest.current += 1; setSelected(null) }}>Close</button></div><dl><dt>Status</dt><dd>{selected.status ?? selected.stageCode ?? '—'}</dd><dt>{tab === 'activities' ? 'Assignee' : 'Owner'}</dt><dd>{ownerLabel(directory, tab === 'activities' ? selected.assigneeId : selected.ownerProfileId)}</dd>{tab === 'activities' && <><dt>Due</dt><dd>{selected.dueAt ? new Date(selected.dueAt).toLocaleString() : '—'}</dd><dt>Priority</dt><dd>{selected.priority ?? '—'}</dd></>}</dl></aside>}
       {selected && ['leads', 'contacts', 'accounts', 'opportunities'].includes(tab) && <SalesInteractions
         key={`${tab}-${selected.id}`} resource={tab as 'leads' | 'contacts' | 'accounts' | 'opportunities'}
         selected={selected} directory={directory} writeEnabled={access.interactionEnabled}
