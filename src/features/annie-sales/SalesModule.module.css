@@ -30,9 +30,11 @@
 .detail dd { margin: 0; }
 .error { color: #b42318; background: #fef3f2; border-radius: .7rem; padding: .8rem; }
 .board { display: grid; grid-template-columns: repeat(7, minmax(10rem, 1fr)); gap: .65rem; overflow-x: auto; }
+.board:focus-visible { outline: 2px solid var(--c-accent-solid); outline-offset: 2px; }
+.mobileScrollHint { display: none; }
 .board section { border: 1px solid var(--c-border); border-radius: .7rem; padding: .6rem; }
 .board h3 { font-size: .78rem; overflow-wrap: anywhere; }
 .board article { display: grid; gap: .35rem; border-top: 1px solid var(--c-border); padding: .6rem 0; }
 .board button { border: 0; background: none; text-align: left; color: var(--c-t1); cursor: pointer; }
 .board code { color: var(--c-t2); font-size: .65rem; overflow-wrap: anywhere; }
-@media (max-width: 42rem) { .header { flex-direction: column; } .list li { align-items: flex-start; flex-direction: column; } .list code { text-align: left; } }
+@media (max-width: 42rem) { .header { flex-direction: column; } .list li { align-items: flex-start; flex-direction: column; } .list code { text-align: left; } .mobileScrollHint { display: block; color: var(--c-t2); font-size: .8rem; margin: .25rem 0 .75rem; } }

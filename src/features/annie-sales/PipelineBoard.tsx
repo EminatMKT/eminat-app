@@ -95,7 +95,8 @@ export default function PipelineBoard({ stages, directory, writeEnabled, synthet
     {truncated && <p role="status">Showing the first 2,000 opportunities. Use ANNIE search for older records.</p>}
     {error && <p role="alert" className={s.error}>{error}</p>}
     {notice && <p role="status">{notice}</p>}
-    {!loading && <div className={s.board} aria-label="Opportunity stages">{stages.map(stage => <section key={stage.id}
+    {!loading && <p id="sales-pipeline-scroll-hint" className={s.mobileScrollHint}>Swipe sideways to see all stages.</p>}
+    {!loading && <div className={s.board} aria-label="Opportunity stages" aria-describedby="sales-pipeline-scroll-hint" tabIndex={0}>{stages.map(stage => <section key={stage.id}
       onDragOver={event => { if (writeEnabled) event.preventDefault() }}
       onDrop={event => { event.preventDefault(); const card = cards.find(item => item.id === event.dataTransfer.getData('text/plain')); if (card) choose(card, stage) }}>
       <h3>{stage.label} · {visible.filter(card => card.stageId === stage.id).length}</h3>
