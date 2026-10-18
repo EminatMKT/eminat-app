@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({ createClient: vi.fn(), admin: vi.fn() }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: mocks.createClient }))
 vi.mock('@/shared/db/supabaseAdmin', () => ({ supabaseAdmin: mocks.admin }))
 
-import { salesAccessDetails, salesAccountHistory, salesAccountWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesExtendedRead, salesImportRequest, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead } from './sales'
+import { salesAccessDetails, salesAccountHistory, salesAccountWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesExtendedRead, salesImportRequest, salesRecordInteractions, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead } from './sales'
 
 function chain(data: unknown) {
   const query = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn().mockResolvedValue({ data, error: null }) }
@@ -38,7 +38,38 @@ beforeEach(() => {
   mocks.admin.mockReturnValue({ from: vi.fn(() => chain({ empresa_codigo: null,
     access_kind: 'external_sales_entitlement', annie_organization_id: id.org, annie_principal_id: id.principal })) })
 })
-afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_TRUST_KEY; delete process.env.ANNIE_SALES_ENABLED; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON; delete process.env.ANNIE_SALES_QA_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_IMPORT_ENABLED })
+afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_TRUST_KEY; delete process.env.ANNIE_SALES_ENABLED; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON; delete process.env.ANNIE_SALES_QA_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_IMPORT_ENABLED; delete process.env.ANNIE_SALES_QA_INTERACTION_ENABLED })
+
+describe('ANNIE interaction boundary', () => {
+  it('keeps interaction writes off while read access is available', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(Response.json({ data: {
+      principalId: id.principal, organizationId: id.org, capabilities: { salesRead: true },
+    } })).mockResolvedValueOnce(Response.json({ data: [{ id: id.lead, organizationId: id.org, kind: 'note' }] }))
+    vi.stubGlobal('fetch', fetch)
+    const read = await salesRecordInteractions(request(), 'leads', id.lead)
+    expect(read.status).toBe(200)
+    expect((await read.json()).data).toHaveLength(1)
+    const write = new Request('https://lilly.example/api/integrations/annie/sales/interactions/leads', {
+      method: 'POST', headers: { Authorization: 'Bearer supabase-session' },
+      body: JSON.stringify({ kind: 'note', body: 'QA', occurredAt: new Date().toISOString() }),
+    })
+    expect((await salesRecordInteractions(write, 'leads', id.lead)).status).toBe(403)
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+  it('cannot add a note to a real record even when synthetic QA is enabled', async () => {
+    process.env.ANNIE_SALES_QA_INTERACTION_ENABLED = 'true'
+    const fetch = vi.fn().mockResolvedValueOnce(Response.json({ data: {
+      principalId: id.principal, organizationId: id.org, capabilities: { salesRead: true },
+    } })).mockResolvedValueOnce(Response.json({ data: { organizationId: id.org, displayName: 'Real lead', access: { canEdit: true } } }))
+    vi.stubGlobal('fetch', fetch)
+    const write = new Request('https://lilly.example/api/integrations/annie/sales/interactions/leads', {
+      method: 'POST', headers: { Authorization: 'Bearer supabase-session' },
+      body: JSON.stringify({ kind: 'note', body: 'QA', occurredAt: new Date().toISOString() }),
+    })
+    expect((await salesRecordInteractions(write, 'leads', id.lead)).status).toBe(403)
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+})
 
 describe('ANNIE-owned import workflow boundary', () => {
   it('keeps upload and processing disabled independently of Lead writes', async () => {
@@ -326,19 +357,27 @@ describe('Phase C Contact write boundary', () => {
     expect((await salesContactWrite(write('POST', { displayName: 'QA' }), 'create')).status).toBe(403)
     expect(fetch).not.toHaveBeenCalled()
   })
+  it('denies a real Contact create despite the controlled write switch', async () => {
+    process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED = 'true'
+    const fetch = vi.fn().mockResolvedValueOnce(identity()); vi.stubGlobal('fetch', fetch)
+    expect((await salesContactWrite(write('POST', { displayName: 'Real Contact' }), 'create')).status).toBe(403)
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
   it('forwards a versioned Contact create and edit through the mapped ANNIE session', async () => {
     process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED = 'true'
     const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: {
       id: id.lead, organizationId: id.org, version: 1,
     } }, { status: 201 })).mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: {
+      id: id.lead, organizationId: id.org, displayName: 'QA PHASE C Contact', version: 1,
+    } })).mockResolvedValueOnce(Response.json({ data: {
       id: id.lead, organizationId: id.org, version: 2,
     } }))
     vi.stubGlobal('fetch', fetch)
-    expect((await salesContactWrite(write('POST', { displayName: 'QA' }), 'create')).status).toBe(201)
+    expect((await salesContactWrite(write('POST', { displayName: 'QA PHASE C Contact' }), 'create')).status).toBe(201)
     expect(String(fetch.mock.calls[1][0])).toBe('https://annie.example/api/crm/contacts')
     expect((await salesContactWrite(write('PATCH', { title: 'QA title' }, '1'), 'edit', id.lead)).status).toBe(200)
-    expect(fetch.mock.calls[3][1].headers['If-Match']).toBe('1')
-    expect(fetch.mock.calls[3][1].headers.Cookie).toEqual(assertionCookie)
+    expect(fetch.mock.calls[4][1].headers['If-Match']).toBe('1')
+    expect(fetch.mock.calls[4][1].headers.Cookie).toEqual(assertionCookie)
   })
   it('requires a version for archive and rejects out-of-Organization responses', async () => {
     process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED = 'true'
@@ -348,7 +387,7 @@ describe('Phase C Contact write boundary', () => {
     vi.stubGlobal('fetch', fetch)
     expect((await salesContactWrite(write('POST', { reason: 'QA', restore: false }), 'archive', id.lead)).status).toBe(428)
     expect(fetch).not.toHaveBeenCalled()
-    expect((await salesContactWrite(write('POST', { displayName: 'QA' }), 'create')).status).toBe(502)
+    expect((await salesContactWrite(write('POST', { displayName: 'QA PHASE C Contact' }), 'create')).status).toBe(502)
   })
   it('reads Contact history only with the verified Principal and Organization', async () => {
     const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: [{
@@ -386,7 +425,10 @@ describe('Phase C Contact write boundary', () => {
   })
   it('uses ANNIE version and tenant policy to deactivate only an existing Account link', async () => {
     process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED = 'true'
-    const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: {
+    const fetch = vi.fn().mockResolvedValueOnce(identity())
+      .mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org, name: 'QA PHASE C Account' } }))
+      .mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org, displayName: 'QA PHASE C Contact' } }))
+      .mockResolvedValueOnce(Response.json({ data: {
       accountId: id.lead, contactId: id.lead, organizationId: id.org, active: false,
     } }))
     vi.stubGlobal('fetch', fetch)
@@ -396,11 +438,25 @@ describe('Phase C Contact write boundary', () => {
         body: JSON.stringify({ contactId: id.lead, active: false }),
       }), id.lead)
     expect(response.status).toBe(200)
-    expect(fetch.mock.calls[1][1]).toMatchObject({ method: 'POST',
+    expect(fetch.mock.calls[3][1]).toMatchObject({ method: 'POST',
       body: JSON.stringify({ contactId: id.lead, active: false }) })
-    expect(fetch.mock.calls[1][1].headers).toMatchObject({
+    expect(fetch.mock.calls[3][1].headers).toMatchObject({
       'If-Match': '2', Cookie: assertionCookie,
     })
+  })
+  it('cannot deactivate a link on a real Account during synthetic QA', async () => {
+    process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED = 'true'
+    const fetch = vi.fn().mockResolvedValueOnce(identity())
+      .mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org, name: 'Real Account' } }))
+      .mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org, displayName: 'QA PHASE C Contact' } }))
+    vi.stubGlobal('fetch', fetch)
+    const response = await salesContactAccountLinks(new Request(
+      `https://lilly.example/api/integrations/annie/sales/accounts/${id.lead}/contacts`, {
+        method: 'POST', headers: { Authorization: 'Bearer supabase-session', 'X-Annie-Expected-Version': '2' },
+        body: JSON.stringify({ contactId: id.lead, active: false }),
+      }), id.lead)
+    expect(response.status).toBe(403)
+    expect(fetch).toHaveBeenCalledTimes(3)
   })
   it('rejects out-of-Organization Account links', async () => {
     const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: [{
@@ -429,17 +485,23 @@ describe('Phase C Lead write boundary', () => {
     expect((await salesLeadWrite(write('POST', { displayName: 'QA', source: 'manual' }), 'create')).status).toBe(403)
     expect(fetch).not.toHaveBeenCalled()
   })
+  it('denies a real Lead create despite the controlled write switch', async () => {
+    process.env.ANNIE_SALES_QA_WRITE_ENABLED = 'true'
+    const fetch = vi.fn().mockResolvedValueOnce(identity()); vi.stubGlobal('fetch', fetch)
+    expect((await salesLeadWrite(write('POST', { displayName: 'Real Lead', source: 'manual' }), 'create')).status).toBe(403)
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
   it('forwards a Lead create only through ANNIE and preserves its ID', async () => {
     process.env.ANNIE_SALES_QA_WRITE_ENABLED = 'true'
     const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: {
       id: id.lead, organizationId: id.org, version: 1,
     } }, { status: 201 }))
     vi.stubGlobal('fetch', fetch)
-    const response = await salesLeadWrite(write('POST', { displayName: 'QA', source: 'manual' }), 'create')
+    const response = await salesLeadWrite(write('POST', { displayName: 'QA PHASE C Lead', source: 'manual' }), 'create')
     expect(response.status).toBe(201)
     expect((await response.json()).data.id).toBe(id.lead)
     expect(String(fetch.mock.calls[1][0])).toBe('https://annie.example/api/crm/leads')
-    expect(fetch.mock.calls[1][1]).toMatchObject({ method: 'POST', body: JSON.stringify({ displayName: 'QA', source: 'manual' }) })
+    expect(fetch.mock.calls[1][1]).toMatchObject({ method: 'POST', body: JSON.stringify({ displayName: 'QA PHASE C Lead', source: 'manual' }) })
     expect(fetch.mock.calls[1][1].headers).toMatchObject({ Origin: 'https://annie.example', Cookie: assertionCookie })
   })
   it('requires a version for edits and transitions before any upstream call', async () => {
@@ -459,38 +521,42 @@ describe('Phase C Lead write boundary', () => {
   })
   it('keeps ANNIE transition and version errors authoritative', async () => {
     process.env.ANNIE_SALES_QA_WRITE_ENABLED = 'true'
-    const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(
+    const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: {
+      id: id.lead, organizationId: id.org, displayName: 'QA PHASE C Lead', version: 1,
+    } })).mockResolvedValueOnce(
       Response.json({ code: 'INVALID_LEAD_TRANSITION' }, { status: 409 }))
     vi.stubGlobal('fetch', fetch)
     const response = await salesLeadWrite(write('POST', { status: 'WON' }, { 'X-Annie-Expected-Version': '1' }), 'transition', id.lead)
     expect(response.status).toBe(409)
     expect((await response.json()).code).toBe('INVALID_LEAD_TRANSITION')
-    expect(fetch.mock.calls[1][1].headers['If-Match']).toBe('1')
+    expect(fetch.mock.calls[2][1].headers['If-Match']).toBe('1')
   })
   it('allows a valid transition only after ANNIE accepts it and keeps the versioned ID', async () => {
     process.env.ANNIE_SALES_QA_WRITE_ENABLED = 'true'
     const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: {
+      id: id.lead, organizationId: id.org, displayName: 'QA PHASE C Lead', version: 1,
+    } })).mockResolvedValueOnce(Response.json({ data: {
       id: id.lead, organizationId: id.org, version: 2, status: 'CONTACTED',
     } }))
     vi.stubGlobal('fetch', fetch)
     const response = await salesLeadWrite(write('POST', { status: 'CONTACTED' }, { 'X-Annie-Expected-Version': '1' }), 'transition', id.lead)
     expect(response.status).toBe(200)
     expect((await response.json()).data).toMatchObject({ id: id.lead, status: 'CONTACTED', version: 2 })
-    expect(String(fetch.mock.calls[1][0])).toBe(`https://annie.example/api/crm/leads/${id.lead}/transitions`)
+    expect(String(fetch.mock.calls[2][0])).toBe(`https://annie.example/api/crm/leads/${id.lead}/transitions`)
   })
   it('forwards edit, archive and conversion to ANNIE with version and conversion idempotency', async () => {
     process.env.ANNIE_SALES_QA_WRITE_ENABLED = 'true'
     const fetch = vi.fn()
-      .mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org, version: 2 } }))
-      .mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org, version: 3 } }))
-      .mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: { leadId: id.lead, accountId: '66666666-6666-4666-8666-666666666666' } }))
+      .mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org, displayName: 'QA PHASE C Lead', version: 1 } })).mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org, version: 2 } }))
+      .mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org, displayName: 'QA PHASE C Lead', version: 2 } })).mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org, version: 3 } }))
+      .mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org, displayName: 'QA PHASE C Lead', version: 3 } })).mockResolvedValueOnce(Response.json({ data: { leadId: id.lead, accountId: '66666666-6666-4666-8666-666666666666' } }))
     vi.stubGlobal('fetch', fetch)
     expect((await salesLeadWrite(write('PATCH', { nextAction: 'Call' }, { 'X-Annie-Expected-Version': '1' }), 'edit', id.lead)).status).toBe(200)
     expect((await salesLeadWrite(write('POST', { reason: 'QA', restore: false }, { 'X-Annie-Expected-Version': '2' }), 'archive', id.lead)).status).toBe(200)
-    expect((await salesLeadWrite(write('POST', {}, { 'X-Annie-Expected-Version': '3', 'Idempotency-Key': 'phasecQA1' }), 'convert', id.lead)).status).toBe(200)
-    expect(fetch.mock.calls[3][1].headers['If-Match']).toBe('2')
-    expect(fetch.mock.calls[5][1].headers['Idempotency-Key']).toBe('phasecQA1')
-    expect(String(fetch.mock.calls[5][0])).toBe(`https://annie.example/api/crm/leads/${id.lead}/convert`)
+    expect((await salesLeadWrite(write('POST', { accountName: 'QA PHASE C Account' }, { 'X-Annie-Expected-Version': '3', 'Idempotency-Key': 'phasecQA1' }), 'convert', id.lead)).status).toBe(200)
+    expect(fetch.mock.calls[5][1].headers['If-Match']).toBe('2')
+    expect(fetch.mock.calls[8][1].headers['Idempotency-Key']).toBe('phasecQA1')
+    expect(String(fetch.mock.calls[8][0])).toBe(`https://annie.example/api/crm/leads/${id.lead}/convert`)
   })
   it('denies a mapped caller when ANNIE identity lacks commercial read before any write', async () => {
     process.env.ANNIE_SALES_QA_WRITE_ENABLED = 'true'
@@ -506,7 +572,7 @@ describe('Phase C Lead write boundary', () => {
     const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(
       Response.json({ code: 'FORBIDDEN' }, { status: 403 }))
     vi.stubGlobal('fetch', fetch)
-    const response = await salesLeadWrite(write('POST', { displayName: 'QA', source: 'manual' }), 'create')
+    const response = await salesLeadWrite(write('POST', { displayName: 'QA PHASE C Lead', source: 'manual' }), 'create')
     expect(response.status).toBe(403)
     expect((await response.json()).code).toBe('FORBIDDEN')
     expect(fetch).toHaveBeenCalledTimes(2)
@@ -514,10 +580,12 @@ describe('Phase C Lead write boundary', () => {
   it('rejects an out-of-Organization write response', async () => {
     process.env.ANNIE_SALES_QA_WRITE_ENABLED = 'true'
     const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: {
+      id: id.lead, organizationId: id.org, displayName: 'QA PHASE C Lead', version: 1,
+    } })).mockResolvedValueOnce(Response.json({ data: {
       id: id.lead, organizationId: 'other', version: 2,
     } }))
     vi.stubGlobal('fetch', fetch)
-    expect((await salesLeadWrite(write('PATCH', { displayName: 'Changed' }, { 'X-Annie-Expected-Version': '1' }), 'edit', id.lead)).status).toBe(502)
+    expect((await salesLeadWrite(write('PATCH', { displayName: 'QA PHASE C Changed' }, { 'X-Annie-Expected-Version': '1' }), 'edit', id.lead)).status).toBe(502)
   })
   it('reads ANNIE history with the same mapped session and Organization', async () => {
     const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: [{

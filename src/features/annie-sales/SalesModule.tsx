@@ -13,6 +13,7 @@ import { ownerLabel, roleLabel, teamLabel, type SalesDirectory } from './salesDi
 import SalesExtendedViews from './SalesExtendedViews'
 import PipelineBoard from './PipelineBoard'
 import SalesImporter from './SalesImporter'
+import SalesInteractions from './SalesInteractions'
 import s from './SalesModule.module.css'
 
 type Row = { id: string; organizationId: string; displayName?: string; name?: string; title?: string; label?: string; code?: string; status?: string; stageCode?: string; ownerProfileId?: string; assigneeId?: string; priority?: string; email?: string; companyName?: string; dueAt?: string }
@@ -162,6 +163,9 @@ export default function SalesModule() {
         {rows.length === 0 ? <p className={s.muted}>No records in this view.</p> : tab === 'leads' && leadView === 'board' ? <div className={s.board}>{leadStages.map(stage => <section key={stage.code}><h3>{stage.label}</h3>{rows.filter(row => row.status === stage.code).map(row => <article key={row.id}><button type="button" onClick={() => void openDetail(row.id)}>{label(row)}</button><small>{ownerLabel(directory, row.ownerProfileId)}</small></article>)}</section>)}</div> : <ul className={s.list}>{rows.map(row => <li key={row.id}><div>{tab === 'pipeline' ? <strong>{label(row)}</strong> : <button type="button" onClick={() => void openDetail(row.id)}>{label(row)}</button>}<small>{row.companyName ?? row.email ?? row.dueAt ?? row.status ?? row.stageCode ?? ''}</small></div><small>{row.assigneeId || row.ownerProfileId ? ownerLabel(directory, row.assigneeId ?? row.ownerProfileId) : ''}</small></li>)}</ul>}
         {nextCursor && <button type="button" className={s.next} onClick={() => setCursor(nextCursor)}>Next page</button>}</div>}
       {selected && <aside className={s.detail}><div className={s.cardHeader}><h2>{label(selected)}</h2><button type="button" onClick={() => setSelected(null)}>Close</button></div><dl><dt>Status</dt><dd>{selected.status ?? selected.stageCode ?? '—'}</dd><dt>{tab === 'activities' ? 'Assignee' : 'Owner'}</dt><dd>{ownerLabel(directory, tab === 'activities' ? selected.assigneeId : selected.ownerProfileId)}</dd>{tab === 'activities' && <><dt>Due</dt><dd>{selected.dueAt ? new Date(selected.dueAt).toLocaleString() : '—'}</dd><dt>Priority</dt><dd>{selected.priority ?? '—'}</dd></>}</dl></aside>}
+      {selected && ['leads', 'contacts', 'accounts', 'opportunities'].includes(tab) && <SalesInteractions
+        key={`${tab}-${selected.id}`} resource={tab as 'leads' | 'contacts' | 'accounts' | 'opportunities'}
+        selected={selected} directory={directory} writeEnabled={access.interactionEnabled} onChanged={leadChanged} />}
       {tab === 'leads' && <LeadOperations selected={selected as Lead | null} writeEnabled={writeEnabled} onChanged={leadChanged} stages={leadStages} />}
       {tab === 'contacts' && <ContactOperations selected={selected as Contact | null} writeEnabled={contactWriteEnabled} onChanged={leadChanged} />}
       {tab === 'accounts' && <AccountOperations selected={selected as Account | null} writeEnabled={accountWriteEnabled} onChanged={leadChanged} directory={directory} />}

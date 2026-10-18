@@ -102,6 +102,27 @@ export async function salesLeadWrite(request: Request, operation: LeadWriteOpera
     const body = JSON.stringify(payload)
     if (Buffer.byteLength(body) > 32768) throw new SalesError(413, 'BODY_TOO_LARGE')
     const { mapping, token } = await mappedActor(request)
+    const proposed = payload as Record<string, unknown>
+    if (operation === 'create') {
+      if (typeof proposed.displayName !== 'string' || !proposed.displayName.startsWith('QA PHASE C '))
+        throw new SalesError(403, 'SYNTHETIC_LEAD_REQUIRED')
+    } else {
+      const prior = scopedResult(await annieGet(`/api/crm/leads/${id}`, mapping.annie_organization_id, token),
+        mapping.annie_organization_id) as { data?: { displayName?: unknown } }
+      if (typeof prior.data?.displayName !== 'string' || !prior.data.displayName.startsWith('QA PHASE C '))
+        throw new SalesError(403, 'SYNTHETIC_LEAD_REQUIRED')
+      if (operation === 'edit' && Object.hasOwn(proposed, 'displayName') &&
+          (typeof proposed.displayName !== 'string' || !proposed.displayName.startsWith('QA PHASE C ')))
+        throw new SalesError(403, 'SYNTHETIC_LEAD_REQUIRED')
+      if (operation === 'convert') {
+        if (proposed.accountId || proposed.contactId || typeof proposed.accountName !== 'string' ||
+            !proposed.accountName.startsWith('QA PHASE C '))
+          throw new SalesError(403, 'SYNTHETIC_CONVERSION_REQUIRED')
+        const opportunity = proposed.opportunity as { name?: unknown } | undefined
+        if (opportunity && (typeof opportunity.name !== 'string' || !opportunity.name.startsWith('QA PHASE C ')))
+          throw new SalesError(403, 'SYNTHETIC_CONVERSION_REQUIRED')
+      }
+    }
     const response = await fetch(new URL(path, origin()), {
       method: expectedMethod, redirect: 'error', cache: 'no-store',
       headers: {
@@ -152,6 +173,27 @@ export async function salesContactWrite(request: Request, operation: 'create' | 
     const body = JSON.stringify(payload)
     if (Buffer.byteLength(body) > 32768) throw new SalesError(413, 'BODY_TOO_LARGE')
     const { mapping, token } = await mappedActor(request)
+    const proposed = payload as Record<string, unknown>
+    if (operation === 'create') {
+      if (typeof proposed.displayName !== 'string' || !proposed.displayName.startsWith('QA PHASE C '))
+        throw new SalesError(403, 'SYNTHETIC_CONTACT_REQUIRED')
+    } else {
+      const prior = scopedResult(await annieGet(`/api/crm/contacts/${id}`, mapping.annie_organization_id, token),
+        mapping.annie_organization_id) as { data?: { displayName?: unknown } }
+      if (typeof prior.data?.displayName !== 'string' || !prior.data.displayName.startsWith('QA PHASE C '))
+        throw new SalesError(403, 'SYNTHETIC_CONTACT_REQUIRED')
+      if (operation === 'edit' && Object.hasOwn(proposed, 'displayName') &&
+          (typeof proposed.displayName !== 'string' || !proposed.displayName.startsWith('QA PHASE C ')))
+        throw new SalesError(403, 'SYNTHETIC_CONTACT_REQUIRED')
+    }
+    if (proposed.primaryAccountId) {
+      if (typeof proposed.primaryAccountId !== 'string' || !uuid.test(proposed.primaryAccountId))
+        throw new SalesError(400, 'INVALID_ACCOUNT_ID')
+      const account = scopedResult(await annieGet(`/api/crm/accounts/${proposed.primaryAccountId}`,
+        mapping.annie_organization_id, token), mapping.annie_organization_id) as { data?: { name?: unknown } }
+      if (typeof account.data?.name !== 'string' || !account.data.name.startsWith('QA PHASE C '))
+        throw new SalesError(403, 'SYNTHETIC_ACCOUNT_REQUIRED')
+    }
     const path = operation === 'create' ? '/api/crm/contacts' :
       `/api/crm/contacts/${id}${operation === 'archive' ? '/archive' : ''}`
     const response = await fetch(new URL(path, origin()), {
@@ -282,6 +324,18 @@ export async function salesOpportunityWrite(request: Request, operation: 'create
           !(payload as { name: string }).name.startsWith('QA PHASE C ')))
         throw new SalesError(403, 'SYNTHETIC_OPPORTUNITY_REQUIRED')
     }
+    const relation = payload as { accountId?: unknown; primaryContactId?: unknown }
+    for (const [resource, value, nameKey] of [
+      ['accounts', relation.accountId, 'name'], ['contacts', relation.primaryContactId, 'displayName'],
+    ] as const) {
+      if (value === undefined || value === null || value === '') continue
+      if (typeof value !== 'string' || !uuid.test(value)) throw new SalesError(400, 'INVALID_RELATION_ID')
+      const related = scopedResult(await annieGet(`/api/crm/${resource}/${value}`,
+        mapping.annie_organization_id, token), mapping.annie_organization_id) as { data?: Record<string, unknown> }
+      const name = related.data?.[nameKey]
+      if (typeof name !== 'string' || !name.startsWith('QA PHASE C '))
+        throw new SalesError(403, 'SYNTHETIC_RELATION_REQUIRED')
+    }
     const path = operation === 'create' ? '/api/crm/opportunities' :
       `/api/crm/opportunities/${id}${operation === 'edit' ? '' : operation === 'transition' ? '/transitions' : '/archive'}`
     const response = await fetch(new URL(path, origin()), {
@@ -356,6 +410,14 @@ export async function salesContactAccountLinks(request: Request, accountId: stri
       (payload as { active?: unknown }).active !== false)
       throw new SalesError(400, 'INVALID_BODY')
     const { mapping, token } = await mappedActor(request)
+    const account = scopedResult(await annieGet(`/api/crm/accounts/${accountId}`,
+      mapping.annie_organization_id, token), mapping.annie_organization_id) as { data?: { name?: unknown } }
+    const contactId = (payload as { contactId: string }).contactId
+    const contact = scopedResult(await annieGet(`/api/crm/contacts/${contactId}`,
+      mapping.annie_organization_id, token), mapping.annie_organization_id) as { data?: { displayName?: unknown } }
+    if (typeof account.data?.name !== 'string' || !account.data.name.startsWith('QA PHASE C ') ||
+        typeof contact.data?.displayName !== 'string' || !contact.data.displayName.startsWith('QA PHASE C '))
+      throw new SalesError(403, 'SYNTHETIC_RELATION_REQUIRED')
     // ANNIE enforces commercial:write, account/contact scope, the primary-link
     // constraint, optimistic versioning, and commercial history.
     const response = await fetch(new URL(`/api/crm/accounts/${accountId}/contacts`, origin()), {
@@ -584,6 +646,57 @@ export async function salesImportRequest(request: Request, parts: string[]): Pro
       const code = (result as { code?: unknown })?.code
       throw new SalesError(upstream.status, typeof code === 'string' && /^[A-Z0-9_]{2,80}$/.test(code) ? code : 'ANNIE_IMPORT_FAILED')
     }
+    return Response.json(result, { headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    const known = error instanceof SalesError ? error : new SalesError(502, 'ANNIE_UNAVAILABLE')
+    return Response.json({ code: known.code }, { status: known.status, headers: { 'Cache-Control': 'no-store' } })
+  }
+}
+
+const interactionResources = new Set(['leads', 'contacts', 'accounts', 'opportunities'])
+export async function salesRecordInteractions(request: Request, resource: string, id: string): Promise<Response> {
+  try {
+    if (!interactionResources.has(resource) || !uuid.test(id)) throw new SalesError(404, 'NOT_FOUND')
+    if (request.method !== 'GET' && request.method !== 'POST') throw new SalesError(405, 'METHOD_NOT_ALLOWED')
+    if (new URL(request.url).search) throw new SalesError(400, 'INVALID_FILTER')
+    if (request.method === 'POST' && process.env.ANNIE_SALES_QA_INTERACTION_ENABLED !== 'true')
+      throw new SalesError(403, 'INTERACTION_WRITE_DISABLED')
+    const { mapping, token } = await mappedActor(request)
+    let body: string | undefined
+    if (request.method === 'POST') {
+      const detail = scopedResult(await annieGet(`/api/crm/${resource}/${id}`, mapping.annie_organization_id, token),
+        mapping.annie_organization_id) as { data?: { displayName?: string; name?: string; access?: { canEdit?: boolean } } }
+      if (detail.data?.access?.canEdit !== true ||
+          !(detail.data.displayName ?? detail.data.name ?? '').startsWith('QA PHASE C '))
+        throw new SalesError(403, 'SYNTHETIC_RECORD_REQUIRED')
+      let payload: unknown
+      try { payload = await request.json() } catch { throw new SalesError(400, 'INVALID_JSON') }
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new SalesError(400, 'INVALID_BODY')
+      const value = payload as Record<string, unknown>
+      if (Object.keys(value).some(key => !['kind', 'occurredAt', 'body', 'durationMinutes'].includes(key)) ||
+          !['note', 'call', 'call_no_answer', 'email_manual', 'whatsapp'].includes(String(value.kind)) ||
+          typeof value.body !== 'string' || !value.body.trim() || value.body.length > 10_000 ||
+          typeof value.occurredAt !== 'string' || Number.isNaN(Date.parse(value.occurredAt)))
+        throw new SalesError(400, 'INVALID_INTERACTION')
+      body = JSON.stringify(value)
+    }
+    let response: Response
+    try {
+      response = await fetch(new URL(`/api/crm/${resource}/${id}/interactions`, origin()), {
+        method: request.method, redirect: 'error', cache: 'no-store',
+        headers: { Cookie: `annie_session=${token}; annie_org=${mapping.annie_organization_id}`,
+          Accept: 'application/json', ...(body ? { Origin: origin(), 'Content-Type': 'application/json' } : {}) },
+        body, signal: AbortSignal.timeout(10_000),
+      })
+    } catch { throw new SalesError(502, 'ANNIE_UNAVAILABLE') }
+    if (response.status === 401 || response.status === 403) throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
+    let result: unknown
+    try { result = await response.json() } catch { throw new SalesError(502, 'ANNIE_INVALID_RESPONSE') }
+    if (!response.ok) {
+      const code = (result as { code?: unknown })?.code
+      throw new SalesError(response.status, typeof code === 'string' && /^[A-Z0-9_]{2,80}$/.test(code) ? code : 'ANNIE_REQUEST_FAILED')
+    }
+    scopedResult(result, mapping.annie_organization_id)
     return Response.json(result, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {
     const known = error instanceof SalesError ? error : new SalesError(502, 'ANNIE_UNAVAILABLE')

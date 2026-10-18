@@ -24,6 +24,7 @@ export async function GET(request: Request) {
     contactWriteEnabled: write && process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED === 'true',
     accountWriteEnabled: write && process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED === 'true',
     opportunityWriteEnabled: write && process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED === 'true',
-    importEnabled: write && process.env.ANNIE_SALES_IMPORT_ENABLED === 'true' },
+    importEnabled: write && process.env.ANNIE_SALES_IMPORT_ENABLED === 'true',
+    interactionEnabled: write && process.env.ANNIE_SALES_QA_INTERACTION_ENABLED === 'true' },
     { headers: { 'Cache-Control': 'no-store' } })
 }
