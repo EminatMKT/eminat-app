@@ -12,6 +12,7 @@ import OpportunityOperations, { type Opportunity } from './OpportunityOperations
 import { ownerLabel, roleLabel, teamLabel, type SalesDirectory } from './salesDirectory'
 import SalesExtendedViews from './SalesExtendedViews'
 import PipelineBoard from './PipelineBoard'
+import SalesImporter from './SalesImporter'
 import s from './SalesModule.module.css'
 
 type Row = { id: string; organizationId: string; displayName?: string; name?: string; title?: string; label?: string; code?: string; status?: string; stageCode?: string; ownerProfileId?: string; assigneeId?: string; priority?: string; email?: string; companyName?: string; dueAt?: string }
@@ -30,6 +31,7 @@ export default function SalesModule() {
   const [followUp, setFollowUp] = useState('')
   const [archived, setArchived] = useState(false)
   const [leadView, setLeadView] = useState<'list' | 'board'>('list')
+  const [importOpen, setImportOpen] = useState(false)
   const [activityView, setActivityView] = useState('all')
   const [directory, setDirectory] = useState<SalesDirectory>({})
   const [leadStages, setLeadStages] = useState<LeadStage[]>([])
@@ -45,6 +47,7 @@ export default function SalesModule() {
   const { allowed, writeEnabled, contactWriteEnabled, accountWriteEnabled, opportunityWriteEnabled } = access
 
   useEffect(() => { setCursor(null); setRows([]); setSelected(null); setNextCursor(null); setDashboard(null) }, [tab, search, status, ownerFilter, teamFilter, followUp, archived, activityView])
+  useEffect(() => { setImportOpen(false) }, [tab])
   useEffect(() => {
     if (!allowed) return
     let cancelled = false
@@ -141,6 +144,9 @@ export default function SalesModule() {
         {(tab === 'leads' || tab === 'contacts') && <><label>Owner <select value={ownerFilter} onChange={event => setOwnerFilter(event.target.value)}><option value="">All owners</option>{directory.users?.map(user => <option key={user.principalId} value={user.principalId}>{ownerLabel(directory, user.principalId)} · {roleLabel(user.role)}</option>)}</select></label>
           <label>Team <select value={teamFilter} onChange={event => setTeamFilter(event.target.value)}><option value="">All teams</option>{directory.teams?.map(team => <option key={team} value={team}>{teamLabel(directory, team)}</option>)}</select></label></>}
         {(tab === 'leads' || tab === 'contacts' || tab === 'accounts' || tab === 'opportunities') && <label>Archived <input type="checkbox" checked={archived} onChange={event => setArchived(event.target.checked)} /></label>}</div>}
+      {(tab === 'leads' || tab === 'contacts') && access.importEnabled && <button className={s.next} type="button" onClick={() => setImportOpen(true)}>Import {tab} through ANNIE</button>}
+      {importOpen && (tab === 'leads' || tab === 'contacts') && <SalesImporter destination={tab === 'leads' ? 'LEAD' : 'CONTACT'}
+        directory={directory} onClose={() => setImportOpen(false)} onComplete={() => setRefreshKey(value => value + 1)} />}
       {tab === 'activities' && <div className={s.filters}><label>Tasks <select value={activityView} onChange={event => setActivityView(event.target.value)}>
         {['all', 'today', 'upcoming', 'overdue', 'completed'].map(value => <option key={value} value={value}>{value[0].toUpperCase() + value.slice(1)}</option>)}
       </select></label></div>}

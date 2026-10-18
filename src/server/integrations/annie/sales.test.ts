@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({ createClient: vi.fn(), admin: vi.fn() }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: mocks.createClient }))
 vi.mock('@/shared/db/supabaseAdmin', () => ({ supabaseAdmin: mocks.admin }))
 
-import { salesAccessDetails, salesAccountHistory, salesAccountWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesExtendedRead, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead } from './sales'
+import { salesAccessDetails, salesAccountHistory, salesAccountWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesExtendedRead, salesImportRequest, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead } from './sales'
 
 function chain(data: unknown) {
   const query = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn().mockResolvedValue({ data, error: null }) }
@@ -38,7 +38,33 @@ beforeEach(() => {
   mocks.admin.mockReturnValue({ from: vi.fn(() => chain({ empresa_codigo: null,
     access_kind: 'external_sales_entitlement', annie_organization_id: id.org, annie_principal_id: id.principal })) })
 })
-afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_TRUST_KEY; delete process.env.ANNIE_SALES_ENABLED; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON; delete process.env.ANNIE_SALES_QA_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED })
+afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_TRUST_KEY; delete process.env.ANNIE_SALES_ENABLED; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON; delete process.env.ANNIE_SALES_QA_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_IMPORT_ENABLED })
+
+describe('ANNIE-owned import workflow boundary', () => {
+  it('keeps upload and processing disabled independently of Lead writes', async () => {
+    process.env.ANNIE_SALES_QA_WRITE_ENABLED = 'true'
+    const fetch = vi.fn(); vi.stubGlobal('fetch', fetch)
+    const form = new FormData(); form.set('destination', 'LEAD'); form.set('file', new File(['name'], 'qa.csv'))
+    const upload = new Request('https://lilly.example/api/integrations/annie/sales/imports', { method: 'POST',
+      headers: { Authorization: 'Bearer supabase-session', 'Idempotency-Key': id.lead }, body: form })
+    expect((await salesImportRequest(upload, [])).status).toBe(403)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+  it('rejects unknown paths and client supplied organization fields', async () => {
+    process.env.ANNIE_SALES_IMPORT_ENABLED = 'true'
+    const fetch = vi.fn().mockResolvedValueOnce(Response.json({ data: {
+      principalId: id.principal, organizationId: id.org, capabilities: { salesRead: true },
+    } }))
+    vi.stubGlobal('fetch', fetch)
+    const preview = new Request(`https://lilly.example/api/integrations/annie/sales/imports/${id.lead}/preview`, {
+      method: 'POST', headers: { Authorization: 'Bearer supabase-session' },
+      body: JSON.stringify({ organizationId: 'other', sheetName: 'CSV', mapping: [] }),
+    })
+    expect((await salesImportRequest(preview, [id.lead, 'preview'])).status).toBe(400)
+    expect((await salesImportRequest(request(), ['all'])).status).toBe(404)
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+})
 
 describe('Phase C Opportunity write boundary', () => {
   const identity = () => Response.json({ data: { principalId: id.principal, organizationId: id.org,

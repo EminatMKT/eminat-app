@@ -523,6 +523,74 @@ export async function salesExtendedRead(request: Request, parts: string[]): Prom
   }
 }
 
+// ANNIE owns parsing, duplicate detection, tenant assignment and processing.
+// LILLY only forwards a bounded, explicit import workflow for the mapped actor.
+export async function salesImportRequest(request: Request, parts: string[]): Promise<Response> {
+  try {
+    const [id, action] = parts
+    const upload = parts.length === 0 && request.method === 'POST'
+    const detail = parts.length === 1 && uuid.test(id) && request.method === 'GET'
+    const errors = parts.length === 2 && uuid.test(id) && action === 'errors' && request.method === 'GET'
+    const command = parts.length === 2 && uuid.test(id) &&
+      ['preview', 'start', 'cancel'].includes(action) && request.method === 'POST'
+    if (!upload && !detail && !errors && !command) throw new SalesError(404, 'NOT_FOUND')
+    if ((upload || command) && process.env.ANNIE_SALES_IMPORT_ENABLED !== 'true')
+      throw new SalesError(403, 'IMPORT_DISABLED')
+    const query = new URL(request.url).searchParams
+    if (query.toString().length > 300 || Array.from(query.keys()).some(key => !detail || key !== 'sheet'))
+      throw new SalesError(400, 'INVALID_FILTER')
+    const { mapping, token } = await mappedActor(request)
+    let body: FormData | string | undefined
+    if (upload) {
+      const length = Number(request.headers.get('content-length') ?? 0)
+      if (length > 11_000_000) throw new SalesError(413, 'BODY_TOO_LARGE')
+      const incoming = await request.formData()
+      const file = incoming.get('file')
+      const destination = incoming.get('destination')
+      if (!(file instanceof File) || file.size === 0 || file.size > 10_000_000 ||
+          !/\.(csv|xlsx)$/i.test(file.name) || !['LEAD', 'CONTACT'].includes(String(destination)))
+        throw new SalesError(400, 'INVALID_IMPORT_FILE')
+      const key = request.headers.get('idempotency-key')
+      if (!key || !uuid.test(key)) throw new SalesError(400, 'IDEMPOTENCY_KEY_REQUIRED')
+      const form = new FormData()
+      form.set('file', file, file.name)
+      form.set('destination', String(destination))
+      body = form
+    } else if (command && action === 'preview') {
+      const raw = await request.text()
+      if (Buffer.byteLength(raw) > 32_768) throw new SalesError(413, 'BODY_TOO_LARGE')
+      let parsed: unknown
+      try { parsed = JSON.parse(raw) } catch { throw new SalesError(400, 'INVALID_JSON') }
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) ||
+          Object.keys(parsed).some(key => !['sheetName', 'mapping', 'duplicateMode', 'ownerProfileId', 'teamId', 'defaultSource'].includes(key)))
+        throw new SalesError(400, 'INVALID_IMPORT_PREVIEW')
+      body = raw
+    } else if (command) body = '{}'
+    const url = new URL(`/api/crm/import-jobs${parts.length ? `/${parts.join('/')}` : ''}`, origin())
+    url.search = query.toString()
+    let upstream: Response
+    try {
+      upstream = await fetch(url, { method: request.method, redirect: 'error', cache: 'no-store',
+        headers: { Cookie: `annie_session=${token}; annie_org=${mapping.annie_organization_id}`,
+          Accept: 'application/json', ...(request.method === 'POST' ? { Origin: origin() } : {}),
+          ...(typeof body === 'string' ? { 'Content-Type': 'application/json' } : {}),
+          ...(upload ? { 'Idempotency-Key': request.headers.get('idempotency-key')! } : {}) },
+        body, signal: AbortSignal.timeout(upload ? 60_000 : 15_000) })
+    } catch { throw new SalesError(502, 'ANNIE_UNAVAILABLE') }
+    if (upstream.status === 401 || upstream.status === 403) throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
+    let result: unknown
+    try { result = await upstream.json() } catch { throw new SalesError(502, 'ANNIE_INVALID_RESPONSE') }
+    if (!upstream.ok) {
+      const code = (result as { code?: unknown })?.code
+      throw new SalesError(upstream.status, typeof code === 'string' && /^[A-Z0-9_]{2,80}$/.test(code) ? code : 'ANNIE_IMPORT_FAILED')
+    }
+    return Response.json(result, { headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    const known = error instanceof SalesError ? error : new SalesError(502, 'ANNIE_UNAVAILABLE')
+    return Response.json({ code: known.code }, { status: known.status, headers: { 'Cache-Control': 'no-store' } })
+  }
+}
+
 export async function salesRead(request: Request, resource: SalesResource | 'pipeline', id?: string): Promise<Response> {
   try {
     if (id && !uuid.test(id)) throw new SalesError(400, 'INVALID_ID')
