@@ -704,6 +704,86 @@ export async function salesRecordInteractions(request: Request, resource: string
   }
 }
 
+const qaRecipient = 'freddy@stratix360.com'
+export async function salesIndividualEmail(request: Request, operation: 'list' | 'create' | 'queue', messageId?: string): Promise<Response> {
+  try {
+    if (operation === 'list' ? request.method !== 'GET' : request.method !== 'POST')
+      throw new SalesError(405, 'METHOD_NOT_ALLOWED')
+    const query = new URL(request.url).searchParams
+    let payload: Record<string, unknown> | undefined
+    if (operation === 'list') {
+      if (Array.from(query.keys()).some(key => !['subjectType', 'subjectId'].includes(key)) ||
+          !['leads', 'contacts'].includes(query.get('subjectType') ?? '') || !uuid.test(query.get('subjectId') ?? ''))
+        throw new SalesError(400, 'INVALID_FILTER')
+    } else {
+      if (query.size || process.env.ANNIE_SALES_QA_EMAIL_ENABLED !== 'true')
+        throw new SalesError(403, 'EMAIL_DISABLED')
+      try { payload = await request.json() as Record<string, unknown> } catch { throw new SalesError(400, 'INVALID_JSON') }
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload) ||
+          !['leads', 'contacts'].includes(String(payload.subjectType)) || !uuid.test(String(payload.subjectId)))
+        throw new SalesError(400, 'INVALID_EMAIL')
+      if (operation === 'create' && (Object.keys(payload).some(key =>
+        !['subjectType', 'subjectId', 'recipient', 'subject', 'bodyText'].includes(key)) ||
+          payload.recipient !== qaRecipient || typeof payload.subject !== 'string' ||
+          !payload.subject.trim() || payload.subject.length > 500 ||
+          typeof payload.bodyText !== 'string' || !payload.bodyText.trim() || payload.bodyText.length > 50_000))
+        throw new SalesError(400, 'INVALID_EMAIL')
+      if (operation === 'queue' && (Object.keys(payload).some(key =>
+        !['subjectType', 'subjectId'].includes(key)) || !messageId || !uuid.test(messageId)))
+        throw new SalesError(400, 'INVALID_EMAIL')
+    }
+    const { mapping, token } = await mappedActor(request)
+    const subjectType = operation === 'list' ? query.get('subjectType')! : String(payload!.subjectType)
+    const subjectId = operation === 'list' ? query.get('subjectId')! : String(payload!.subjectId)
+    const subject = scopedResult(await annieGet(`/api/crm/${subjectType}/${subjectId}`,
+      mapping.annie_organization_id, token), mapping.annie_organization_id) as { data?: {
+        displayName?: string; email?: string; doNotEmail?: boolean; access?: { canEdit?: boolean }
+      } }
+    if (operation !== 'list' && (subject.data?.access?.canEdit !== true ||
+        !subject.data.displayName?.startsWith('QA PHASE C ') ||
+        subject.data.email?.toLowerCase() !== qaRecipient || subject.data.doNotEmail === true))
+      throw new SalesError(403, 'SYNTHETIC_EMAIL_SUBJECT_REQUIRED')
+    const messageQuery = new URLSearchParams({ subjectType, subjectId })
+    if (operation === 'list' || operation === 'queue') {
+      const existing = scopedResult(await annieGet('/api/crm/communications/messages',
+        mapping.annie_organization_id, token, messageQuery), mapping.annie_organization_id) as {
+        data?: { id: string; purpose: string; recipient: string; version: number }[]
+      }
+      if (operation === 'list') return Response.json(existing, { headers: { 'Cache-Control': 'no-store' } })
+      const target = existing.data?.find(row => row.id === messageId)
+      if (!target || target.purpose !== 'individual' || target.recipient.toLowerCase() !== qaRecipient ||
+          !Number.isInteger(target.version) || target.version < 1)
+        throw new SalesError(403, 'QA_MESSAGE_REQUIRED')
+      payload = { version: target.version }
+    }
+    const path = operation === 'create' ? '/api/crm/communications/messages/individual' :
+      `/api/crm/communications/messages/${messageId}/queue`
+    const key = request.headers.get('idempotency-key')
+    if (operation === 'create' && (!key || !uuid.test(key))) throw new SalesError(400, 'IDEMPOTENCY_KEY_REQUIRED')
+    let upstream: Response
+    try {
+      upstream = await fetch(new URL(path, origin()), { method: 'POST', redirect: 'error', cache: 'no-store',
+        headers: { Cookie: `annie_session=${token}; annie_org=${mapping.annie_organization_id}`,
+          Origin: origin(), 'Content-Type': 'application/json', Accept: 'application/json',
+          ...(operation === 'create' ? { 'Idempotency-Key': key! } : { 'If-Match': String(payload!.version) }) },
+        body: operation === 'create' ? JSON.stringify({ ...payload, channel: 'email', cc: [], bcc: [] }) : '{}',
+        signal: AbortSignal.timeout(10_000) })
+    } catch { throw new SalesError(502, 'ANNIE_UNAVAILABLE') }
+    if (upstream.status === 401 || upstream.status === 403) throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
+    let result: unknown
+    try { result = await upstream.json() } catch { throw new SalesError(502, 'ANNIE_INVALID_RESPONSE') }
+    if (!upstream.ok) {
+      const code = (result as { code?: unknown })?.code
+      throw new SalesError(upstream.status, typeof code === 'string' && /^[A-Z0-9_]{2,80}$/.test(code) ? code : 'ANNIE_REQUEST_FAILED')
+    }
+    scopedResult(result, mapping.annie_organization_id)
+    return Response.json(result, { headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    const known = error instanceof SalesError ? error : new SalesError(502, 'ANNIE_UNAVAILABLE')
+    return Response.json({ code: known.code }, { status: known.status, headers: { 'Cache-Control': 'no-store' } })
+  }
+}
+
 export async function salesRead(request: Request, resource: SalesResource | 'pipeline', id?: string): Promise<Response> {
   try {
     if (id && !uuid.test(id)) throw new SalesError(400, 'INVALID_ID')

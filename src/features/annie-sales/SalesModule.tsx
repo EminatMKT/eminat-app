@@ -14,9 +14,10 @@ import SalesExtendedViews from './SalesExtendedViews'
 import PipelineBoard from './PipelineBoard'
 import SalesImporter from './SalesImporter'
 import SalesInteractions from './SalesInteractions'
+import SalesEmail from './SalesEmail'
 import s from './SalesModule.module.css'
 
-type Row = { id: string; organizationId: string; displayName?: string; name?: string; title?: string; label?: string; code?: string; status?: string; stageCode?: string; ownerProfileId?: string; assigneeId?: string; priority?: string; email?: string; companyName?: string; dueAt?: string }
+type Row = { id: string; organizationId: string; displayName?: string; name?: string; title?: string; label?: string; code?: string; status?: string; stageCode?: string; ownerProfileId?: string; assigneeId?: string; priority?: string; email?: string; companyName?: string; dueAt?: string; access?: { canEdit?: boolean } }
 type Dashboard = { pipeline?: { openCount?: number }; closures?: { won?: number; lost?: number }; followUp?: { overdue?: number; upcoming?: number; interactionsLast30Days?: number }; opportunitiesByStage?: { code: string; label: string; count: number }[] }
 type Result = { data: Row[] | (Row & { stages?: Row[] }) | Dashboard; nextCursor?: string | null; code?: string }
 const paged = new Set(['leads', 'contacts', 'accounts', 'opportunities'])
@@ -166,6 +167,8 @@ export default function SalesModule() {
       {selected && ['leads', 'contacts', 'accounts', 'opportunities'].includes(tab) && <SalesInteractions
         key={`${tab}-${selected.id}`} resource={tab as 'leads' | 'contacts' | 'accounts' | 'opportunities'}
         selected={selected} directory={directory} writeEnabled={access.interactionEnabled} onChanged={leadChanged} />}
+      {selected && (tab === 'leads' || tab === 'contacts') && <SalesEmail key={`email-${tab}-${selected.id}`}
+        resource={tab} selected={selected} enabled={access.emailEnabled} />}
       {tab === 'leads' && <LeadOperations selected={selected as Lead | null} writeEnabled={writeEnabled} onChanged={leadChanged} stages={leadStages} />}
       {tab === 'contacts' && <ContactOperations selected={selected as Contact | null} writeEnabled={contactWriteEnabled} onChanged={leadChanged} />}
       {tab === 'accounts' && <AccountOperations selected={selected as Account | null} writeEnabled={accountWriteEnabled} onChanged={leadChanged} directory={directory} />}

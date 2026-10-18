@@ -15,6 +15,7 @@ export type SalesAccess = {
   opportunityWriteEnabled: boolean
   importEnabled: boolean
   interactionEnabled: boolean
+  emailEnabled: boolean
 }
 
 const denied: SalesAccess = {
@@ -22,6 +23,7 @@ const denied: SalesAccess = {
   canReadAudit: false, writeEnabled: false, contactWriteEnabled: false,
   accountWriteEnabled: false, opportunityWriteEnabled: false, importEnabled: false,
   interactionEnabled: false,
+  emailEnabled: false,
 }
 
 export function useSalesAccess(): SalesAccess {
@@ -47,6 +49,7 @@ export function useSalesAccess(): SalesAccess {
         opportunityWriteEnabled: body.opportunityWriteEnabled === true,
         importEnabled: body.importEnabled === true,
         interactionEnabled: body.interactionEnabled === true,
+        emailEnabled: body.emailEnabled === true,
       }
     }).then(value => { if (!cancelled) setAccess(value) })
       .catch(() => { if (!cancelled) setAccess(denied) })

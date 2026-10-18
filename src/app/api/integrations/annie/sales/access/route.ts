@@ -25,6 +25,7 @@ export async function GET(request: Request) {
     accountWriteEnabled: write && process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED === 'true',
     opportunityWriteEnabled: write && process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED === 'true',
     importEnabled: write && process.env.ANNIE_SALES_IMPORT_ENABLED === 'true',
-    interactionEnabled: write && process.env.ANNIE_SALES_QA_INTERACTION_ENABLED === 'true' },
+    interactionEnabled: write && process.env.ANNIE_SALES_QA_INTERACTION_ENABLED === 'true',
+    emailEnabled: write && process.env.ANNIE_SALES_QA_EMAIL_ENABLED === 'true' },
     { headers: { 'Cache-Control': 'no-store' } })
 }

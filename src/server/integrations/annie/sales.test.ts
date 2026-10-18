@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({ createClient: vi.fn(), admin: vi.fn() }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: mocks.createClient }))
 vi.mock('@/shared/db/supabaseAdmin', () => ({ supabaseAdmin: mocks.admin }))
 
-import { salesAccessDetails, salesAccountHistory, salesAccountWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesExtendedRead, salesImportRequest, salesRecordInteractions, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead } from './sales'
+import { salesAccessDetails, salesAccountHistory, salesAccountWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesExtendedRead, salesImportRequest, salesIndividualEmail, salesRecordInteractions, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead } from './sales'
 
 function chain(data: unknown) {
   const query = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn().mockResolvedValue({ data, error: null }) }
@@ -38,7 +38,37 @@ beforeEach(() => {
   mocks.admin.mockReturnValue({ from: vi.fn(() => chain({ empresa_codigo: null,
     access_kind: 'external_sales_entitlement', annie_organization_id: id.org, annie_principal_id: id.principal })) })
 })
-afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_TRUST_KEY; delete process.env.ANNIE_SALES_ENABLED; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON; delete process.env.ANNIE_SALES_QA_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_IMPORT_ENABLED; delete process.env.ANNIE_SALES_QA_INTERACTION_ENABLED })
+afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_TRUST_KEY; delete process.env.ANNIE_SALES_ENABLED; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON; delete process.env.ANNIE_SALES_QA_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_IMPORT_ENABLED; delete process.env.ANNIE_SALES_QA_INTERACTION_ENABLED; delete process.env.ANNIE_SALES_QA_EMAIL_ENABLED })
+
+describe('controlled ANNIE individual email boundary', () => {
+  const identity = () => Response.json({ data: { principalId: id.principal, organizationId: id.org,
+    capabilities: { salesRead: true } } })
+  it('reads only a scoped record history and keeps sending disabled by default', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(identity())
+      .mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org } }))
+      .mockResolvedValueOnce(Response.json({ data: [{ id: id.lead, organizationId: id.org, purpose: 'individual' }] }))
+    vi.stubGlobal('fetch', fetch)
+    const read = await salesIndividualEmail(request(`https://lilly.example/api/integrations/annie/sales/email?subjectType=leads&subjectId=${id.lead}`), 'list')
+    expect(read.status).toBe(200)
+    expect((await read.json()).data).toHaveLength(1)
+    const create = new Request('https://lilly.example/api/integrations/annie/sales/email', {
+      method: 'POST', headers: { Authorization: 'Bearer supabase-session' },
+      body: JSON.stringify({ subjectType: 'leads', subjectId: id.lead, recipient: 'freddy@stratix360.com', subject: 'QA', bodyText: 'QA' }),
+    })
+    expect((await salesIndividualEmail(create, 'create')).status).toBe(403)
+    expect(fetch).toHaveBeenCalledTimes(3)
+  })
+  it('rejects any non-QA recipient before accessing ANNIE', async () => {
+    process.env.ANNIE_SALES_QA_EMAIL_ENABLED = 'true'
+    const fetch = vi.fn(); vi.stubGlobal('fetch', fetch)
+    const create = new Request('https://lilly.example/api/integrations/annie/sales/email', {
+      method: 'POST', headers: { Authorization: 'Bearer supabase-session' },
+      body: JSON.stringify({ subjectType: 'leads', subjectId: id.lead, recipient: 'customer@example.com', subject: 'QA', bodyText: 'QA' }),
+    })
+    expect((await salesIndividualEmail(create, 'create')).status).toBe(400)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+})
 
 describe('ANNIE interaction boundary', () => {
   it('keeps interaction writes off while read access is available', async () => {
