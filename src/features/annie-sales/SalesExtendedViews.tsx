@@ -179,6 +179,9 @@ function ReportList({ title, rows }: { title: string; rows: Bucket[] }) {
   return <div className={s.card}><h2>{title}</h2>{rows.length ? <ul className={s.list}>{rows.map((row, index) => <li key={`${row.code}-${index}`}><span>{row.label ?? row.code}</span><strong>{row.count}</strong></li>)}</ul> : <p className={s.muted}>No data for this period.</p>}</div>
 }
 
+const sellerLabel = (label: string) => label === 'Vendedor sin nombre' ? 'Seller name unavailable' : label
+const activityKindLabel: Record<string, string> = { email_manual: 'Manual email', note: 'Note', call: 'Call' }
+
 function Reports({ canManageSchedule, reportScheduleWriteEnabled }: {
   canManageSchedule: boolean; reportScheduleWriteEnabled: boolean
 }) {
@@ -269,15 +272,17 @@ function Reports({ canManageSchedule, reportScheduleWriteEnabled }: {
     </div>
       <ReportList title="Leads by stage" rows={report.leadsByStage} />
       <ReportList title="Leads by source" rows={report.leadsBySource} />
-      <ReportList title="Leads by seller" rows={report.leadsBySeller.map(row => ({ ...row, count: row.count }))} />
+      <ReportList title="Leads by seller" rows={report.leadsBySeller.map(row => ({ ...row,
+        label: sellerLabel(row.label ?? row.code) }))} />
       <div className={s.card}><h2>Conversion by seller</h2>{report.conversionBySeller.length ?
-        <ul className={s.list}>{report.conversionBySeller.map(row => <li key={row.code}><span>{row.label}</span><strong>{row.converted} converted · {row.rate}%</strong></li>)}</ul> : <p className={s.muted}>No conversion data for this period.</p>}</div>
+        <ul className={s.list}>{report.conversionBySeller.map(row => <li key={row.code}><span>{sellerLabel(row.label)}</span><strong>{row.converted} converted · {row.rate}%</strong></li>)}</ul> : <p className={s.muted}>No conversion data for this period.</p>}</div>
       <div className={s.card}><h2>Membership sales by seller</h2>{report.salesBySeller.length ?
-        <ul className={s.list}>{report.salesBySeller.map(row => <li key={row.code}><span>{row.label}</span><strong>{row.memberships} memberships · {Object.entries(row.salesByCurrency).map(([currency, total]) => `${currency} ${total.toFixed(2)}`).join(', ') || 'No sales amount'}</strong></li>)}</ul> : <p className={s.muted}>No membership sales for this period.</p>}</div>
+        <ul className={s.list}>{report.salesBySeller.map(row => <li key={row.code}><span>{sellerLabel(row.label)}</span><strong>{row.memberships} memberships · {Object.entries(row.salesByCurrency).map(([currency, total]) => `${currency} ${total.toFixed(2)}`).join(', ') || 'No sales amount'}</strong></li>)}</ul> : <p className={s.muted}>No membership sales for this period.</p>}</div>
       <ReportList title="Opportunities by stage" rows={report.pipeline} />
       <ReportList title="Memberships by plan" rows={report.membershipsByPlan} />
       <ReportList title="Memberships by modality" rows={report.membershipsByModality} />
-      <ReportList title="Activity by kind" rows={report.activityPerformance.byKind} />
+      <ReportList title="Activity by kind" rows={report.activityPerformance.byKind.map(row => ({ ...row,
+        label: activityKindLabel[row.code] ?? row.label ?? row.code }))} />
     </>}
     {schedule && <div className={s.card}><h2>Scheduled ANNIE reports</h2>
       <p>{schedule.configured && schedule.setting ? `${schedule.setting.cadence === 'daily' ? 'Daily' : 'Weekly'} · Recipient roles: ${schedule.setting.roles.join(', ')}` : 'No daily or weekly Sales summary is configured.'}</p>
