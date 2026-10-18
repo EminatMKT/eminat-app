@@ -69,7 +69,7 @@ export default function SalesModule() {
       (access.activityWriteMode === 'commercial' ? 'Task writes' : 'Controlled task writes') :
     tab === 'activities' && access.meetingEnabled ?
       (access.meetingWriteMode === 'commercial' ? 'Meeting writes' : 'Controlled meeting writes') :
-    tab === 'memberships' && access.membershipQaEnabled ? 'Controlled membership writes' :
+    tab === 'memberships' && (access.membershipQaEnabled || access.membershipWriteEnabled) ? 'Membership issuance' :
     tab === 'reports' && access.reportScheduleWriteEnabled ? 'Schedule settings' : 'Read only'
 
   useEffect(() => { detailRequest.current += 1; setCursor(null); setRows([]); setSelected(null); setNextCursor(null); setDashboard(null) }, [tab, search, status, ownerFilter, teamFilter, followUp, archived, activityView])
@@ -223,7 +223,8 @@ export default function SalesModule() {
         enabled={access.meetingEnabled} syntheticOnly={access.meetingWriteMode !== 'commercial'} />}
       {tab === 'pipeline' && !loading && !error && <PipelineBoard stages={rows as { id: string; code: string; label: string }[]} directory={directory} writeEnabled={opportunityWriteEnabled} syntheticOnly={access.opportunityWriteMode !== 'commercial'} />}
       {(tab === 'memberships' || tab === 'reports' || tab === 'social') && <SalesExtendedViews tab={tab}
-        membershipQaEnabled={access.membershipQaEnabled} canManageSchedule={['SUPERADMIN', 'ADMINISTRATOR'].includes(access.role ?? '')}
+        membershipQaEnabled={access.membershipQaEnabled} membershipWriteEnabled={access.membershipWriteEnabled}
+        canManageSchedule={['SUPERADMIN', 'ADMINISTRATOR'].includes(access.role ?? '')}
         reportScheduleWriteEnabled={access.reportScheduleWriteEnabled} />}
     </section>
   </AppShell>

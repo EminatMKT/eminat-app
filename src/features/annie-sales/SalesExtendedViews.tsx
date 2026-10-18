@@ -66,7 +66,9 @@ async function json<T>(path: string): Promise<T> {
   return body
 }
 
-function Memberships({ membershipQaEnabled }: { membershipQaEnabled: boolean }) {
+function Memberships({ membershipQaEnabled, membershipWriteEnabled }: {
+  membershipQaEnabled: boolean; membershipWriteEnabled: boolean
+}) {
   const [catalog, setCatalog] = useState<MembershipCatalog | null>(null)
   const [quotePlan, setQuotePlan] = useState('')
   const [quoteModality, setQuoteModality] = useState('')
@@ -129,6 +131,9 @@ function Memberships({ membershipQaEnabled }: { membershipQaEnabled: boolean }) 
   const money = (cents: number) => new Intl.NumberFormat('en-US',
     { style: 'currency', currency: 'USD' }).format(cents / 100)
   return <>
+    {membershipWriteEnabled && catalog && <MembershipQaCreate paid catalog={catalog} onCreated={id => {
+      setDemo('REAL'); setPage(1); setRefreshKey(value => value + 1); void open(id)
+    }} />}
     {membershipQaEnabled && catalog && <MembershipQaCreate catalog={catalog} onCreated={id => {
       setDemo('DEMO'); setPage(1); setRefreshKey(value => value + 1); void open(id)
     }} />}
@@ -367,11 +372,13 @@ function Social() {
   </>
 }
 
-export default function SalesExtendedViews({ tab, membershipQaEnabled = false,
+export default function SalesExtendedViews({ tab, membershipQaEnabled = false, membershipWriteEnabled = false,
   canManageSchedule = false, reportScheduleWriteEnabled = false }: {
-  tab: Tab; membershipQaEnabled?: boolean; canManageSchedule?: boolean; reportScheduleWriteEnabled?: boolean
+  tab: Tab; membershipQaEnabled?: boolean; membershipWriteEnabled?: boolean;
+  canManageSchedule?: boolean; reportScheduleWriteEnabled?: boolean
 }) {
-  if (tab === 'memberships') return <Memberships membershipQaEnabled={membershipQaEnabled} />
+  if (tab === 'memberships') return <Memberships membershipQaEnabled={membershipQaEnabled}
+    membershipWriteEnabled={membershipWriteEnabled} />
   if (tab === 'reports') return <Reports canManageSchedule={canManageSchedule}
     reportScheduleWriteEnabled={reportScheduleWriteEnabled} />
   return <Social />

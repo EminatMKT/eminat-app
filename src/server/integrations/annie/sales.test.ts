@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({ createClient: vi.fn(), admin: vi.fn() }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: mocks.createClient }))
 vi.mock('@/shared/db/supabaseAdmin', () => ({ supabaseAdmin: mocks.admin }))
 
-import { accountWriteMode, activityWriteMode, contactWriteMode, emailWriteMode, interactionWriteMode, leadWriteMode, opportunityWriteMode, salesAccessDetails, salesAccountHistory, salesAccountWrite, salesActivityWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesDemoMembershipCreate, salesExtendedRead, salesFinanceSummary, salesImportRequest, salesIndividualEmail, salesMeetingWrite, salesRecordInteractions, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead, salesReportScheduleConfig } from './sales'
+import { accountWriteMode, activityWriteMode, contactWriteMode, emailWriteMode, interactionWriteMode, leadWriteMode, opportunityWriteMode, salesAccessDetails, salesAccountHistory, salesAccountWrite, salesActivityWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesDemoMembershipCreate, salesPaidMembershipCreate, salesExtendedRead, salesFinanceSummary, salesImportRequest, salesIndividualEmail, salesMeetingWrite, salesRecordInteractions, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead, salesReportScheduleConfig } from './sales'
 
 function chain(data: unknown) {
   const query = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn().mockResolvedValue({ data, error: null }) }
@@ -38,7 +38,7 @@ beforeEach(() => {
   mocks.admin.mockReturnValue({ from: vi.fn(() => chain({ empresa_codigo: null,
     access_kind: 'external_sales_entitlement', annie_organization_id: id.org, annie_principal_id: id.principal })) })
 })
-afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_TRUST_KEY; delete process.env.ANNIE_SALES_ENABLED; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON; delete process.env.ANNIE_SALES_QA_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_LEAD_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_IMPORT_ENABLED; delete process.env.ANNIE_SALES_QA_INTERACTION_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_INTERACTION_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_EMAIL_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_EMAIL_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACTIVITY_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_ACTIVITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_MEETING_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_MEETING_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_MEMBERSHIP_ENABLED; delete process.env.ANNIE_SALES_REPORT_SCHEDULE_WRITE_ENABLED })
+afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_TRUST_KEY; delete process.env.ANNIE_SALES_ENABLED; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON; delete process.env.ANNIE_SALES_QA_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_LEAD_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_IMPORT_ENABLED; delete process.env.ANNIE_SALES_QA_INTERACTION_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_INTERACTION_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_EMAIL_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_EMAIL_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACTIVITY_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_ACTIVITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_MEETING_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_MEETING_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_MEMBERSHIP_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_MEMBERSHIP_WRITE_ENABLED; delete process.env.ANNIE_SALES_REPORT_SCHEDULE_WRITE_ENABLED })
 
 describe('ANNIE meeting write boundary', () => {
   const identity = (role: string) => Response.json({ data: { principalId: id.principal,
@@ -219,6 +219,65 @@ describe('controlled demo membership boundary', () => {
     expect(String(fetch.mock.calls[4][0])).toBe('https://annie.example/api/crm/program-memberships')
     expect(JSON.parse(fetch.mock.calls[4][1].body)).toMatchObject({ isDemo: true,
       manualPaymentConfirmed: true, opportunityId: id.lead })
+    expect(fetch.mock.calls[4][1].headers.Cookie).toEqual(assertionCookie)
+  })
+})
+
+describe('recorded-payment membership issuance boundary', () => {
+  const contactId = '66666666-6666-4666-8666-666666666666'
+  const stageId = '77777777-7777-4777-8777-777777777777'
+  const body = { plan: 'ESSENTIAL', modality: 'INDIVIDUAL', duration: 'MONTHLY',
+    issuedAt: '2026-10-18', saleDate: '2026-10-18', opportunityId: id.lead,
+    salesPaymentId: id.user,
+    members: [{ contactId, firstName: 'QA', lastName: 'Member', phoneCountryCode: '+',
+      phone: '+15555550123', email: 'qa@example.test', address: 'QA only' }] }
+  const create = (value: object = body) => new Request('https://lilly.example/api/integrations/annie/sales/memberships', {
+    method: 'POST', headers: { Authorization: 'Bearer supabase-session' }, body: JSON.stringify(value),
+  })
+  const identity = () => Response.json({ data: { principalId: id.principal,
+    organizationId: id.org, role: 'OPERATOR', capabilities: { salesRead: true, salesWrite: true } } })
+
+  it('defaults off and rejects client demo/manual overrides without contacting ANNIE', async () => {
+    const fetch = vi.fn(); vi.stubGlobal('fetch', fetch)
+    expect((await salesPaidMembershipCreate(create())).status).toBe(403)
+    process.env.ANNIE_SALES_COMMERCIAL_MEMBERSHIP_WRITE_ENABLED = 'true'
+    expect((await salesPaidMembershipCreate(create({ ...body, isDemo: true }))).status).toBe(400)
+    expect((await salesPaidMembershipCreate(create({ ...body, manualPaymentConfirmed: true }))).status).toBe(400)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('requires a Won Opportunity and an unused recorded payment', async () => {
+    process.env.ANNIE_SALES_COMMERCIAL_MEMBERSHIP_WRITE_ENABLED = 'true'
+    const fetch = vi.fn().mockResolvedValueOnce(identity())
+      .mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org, stageId } }))
+      .mockResolvedValueOnce(Response.json({ data: { stages: [{ id: stageId, outcome: 'open' }] } }))
+      .mockResolvedValueOnce(identity())
+      .mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org, stageId } }))
+      .mockResolvedValueOnce(Response.json({ data: { stages: [{ id: stageId, outcome: 'won' }] } }))
+      .mockResolvedValueOnce(Response.json({ data: [{ id: id.user, organizationId: id.org,
+        availableForMembership: false, paidAt: '2026-10-18' }] }))
+    vi.stubGlobal('fetch', fetch)
+    expect((await salesPaidMembershipCreate(create())).status).toBe(422)
+    expect((await salesPaidMembershipCreate(create())).status).toBe(409)
+    expect(fetch).toHaveBeenCalledTimes(7)
+  })
+
+  it('lets ANNIE issue from one eligible recorded payment and forces real state', async () => {
+    process.env.ANNIE_SALES_COMMERCIAL_MEMBERSHIP_WRITE_ENABLED = 'true'
+    const fetch = vi.fn().mockResolvedValueOnce(identity())
+      .mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org, stageId } }))
+      .mockResolvedValueOnce(Response.json({ data: { stages: [{ id: stageId, outcome: 'won' }] } }))
+      .mockResolvedValueOnce(Response.json({ data: [{ id: id.user, organizationId: id.org,
+        availableForMembership: true, paidAt: '2026-10-18T00:00:00.000Z' }] }))
+      .mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org },
+        members: [{ id: id.lead, organizationId: id.org }] }))
+    vi.stubGlobal('fetch', fetch)
+    const response = await salesPaidMembershipCreate(create())
+    expect(response.status).toBe(200)
+    expect(String(fetch.mock.calls[4][0])).toBe('https://annie.example/api/crm/program-memberships')
+    expect(JSON.parse(fetch.mock.calls[4][1].body)).toMatchObject({
+      isDemo: false, manualPaymentConfirmed: false, salesPaymentId: id.user,
+    })
     expect(fetch.mock.calls[4][1].headers.Cookie).toEqual(assertionCookie)
   })
 })

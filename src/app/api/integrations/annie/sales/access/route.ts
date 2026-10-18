@@ -42,6 +42,8 @@ export async function GET(request: Request) {
     meetingEnabled: meetingMode !== 'disabled', meetingWriteMode: meetingMode,
     membershipQaEnabled: write && access.role === 'SUPERADMIN' &&
       process.env.ANNIE_SALES_QA_MEMBERSHIP_ENABLED === 'true',
+    membershipWriteEnabled: write &&
+      process.env.ANNIE_SALES_COMMERCIAL_MEMBERSHIP_WRITE_ENABLED === 'true',
     reportScheduleWriteEnabled: access.allowed &&
       ['SUPERADMIN', 'ADMINISTRATOR'].includes(access.role ?? '') &&
       process.env.ANNIE_SALES_REPORT_SCHEDULE_WRITE_ENABLED === 'true' },

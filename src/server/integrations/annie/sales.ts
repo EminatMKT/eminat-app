@@ -752,6 +752,89 @@ export async function salesDemoMembershipCreate(request: Request): Promise<Respo
   }
 }
 
+// Recorded SalesPayments are only references to an already confirmed payment.
+// This path never collects money or marks a payment paid. ANNIE owns pricing,
+// payment allocation, membership issuance, PDFs and delivery.
+export async function salesPaidMembershipCreate(request: Request): Promise<Response> {
+  try {
+    if (process.env.ANNIE_SALES_COMMERCIAL_MEMBERSHIP_WRITE_ENABLED !== 'true')
+      throw new SalesError(403, 'MEMBERSHIP_WRITE_DISABLED')
+    if (request.method !== 'POST') throw new SalesError(405, 'METHOD_NOT_ALLOWED')
+    const raw = await request.text()
+    if (Buffer.byteLength(raw) > 16_384) throw new SalesError(413, 'BODY_TOO_LARGE')
+    let proposed: Record<string, unknown>
+    try { proposed = JSON.parse(raw) as Record<string, unknown> }
+    catch { throw new SalesError(400, 'INVALID_JSON') }
+    if (!proposed || typeof proposed !== 'object' || Array.isArray(proposed) ||
+      Object.keys(proposed).some(key => !['plan', 'modality', 'duration', 'members',
+        'issuedAt', 'saleDate', 'opportunityId', 'salesPaymentId'].includes(key)))
+      throw new SalesError(400, 'INVALID_BODY')
+    if (!['ESSENTIAL', 'PLUS', 'MAX'].includes(String(proposed.plan)) ||
+      !['INDIVIDUAL', 'FAMILY'].includes(String(proposed.modality)) ||
+      !['MONTHLY', '3M', '6M', '12M'].includes(String(proposed.duration)) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(String(proposed.issuedAt)) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(String(proposed.saleDate)) ||
+      typeof proposed.opportunityId !== 'string' || !uuid.test(proposed.opportunityId) ||
+      typeof proposed.salesPaymentId !== 'string' || !uuid.test(proposed.salesPaymentId) ||
+      !Array.isArray(proposed.members) || proposed.members.length < 1 || proposed.members.length > 3 ||
+      (proposed.modality === 'INDIVIDUAL' && proposed.members.length !== 1))
+      throw new SalesError(400, 'INVALID_BODY')
+    const members = proposed.members as Record<string, unknown>[]
+    if (members.some(member => !member || typeof member !== 'object' || Array.isArray(member) ||
+      Object.keys(member).some(key => !['contactId', 'firstName', 'lastName',
+        'phoneCountryCode', 'phone', 'email', 'address'].includes(key)) ||
+      typeof member.contactId !== 'string' || !uuid.test(member.contactId) ||
+      ['firstName', 'lastName', 'phoneCountryCode', 'phone', 'email', 'address'].some(key =>
+        typeof member[key] !== 'string' || !(member[key] as string).trim())))
+      throw new SalesError(400, 'INVALID_BODY')
+    if (new Set(members.map(member => member.contactId)).size !== members.length)
+      throw new SalesError(400, 'DUPLICATE_FAMILY_CONTACT')
+    const { mapping, token, identity } = await mappedActor(request)
+    if (identity.capabilities?.salesWrite !== true) throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
+    const organizationId = mapping.annie_organization_id
+    const opportunity = scopedResult(await annieGet(`/api/crm/opportunities/${proposed.opportunityId}`,
+      organizationId, token), organizationId) as { data?: { stageId?: unknown } }
+    const pipeline = await annieGet('/api/crm/pipeline', organizationId, token) as
+      { data?: { stages?: { id: string; outcome?: string }[] } }
+    if (!pipeline.data?.stages?.some(stage => stage.id === opportunity.data?.stageId && stage.outcome === 'won'))
+      throw new SalesError(422, 'WON_OPPORTUNITY_REQUIRED')
+    const payments = scopedResult(await annieGet(`/api/crm/opportunities/${proposed.opportunityId}/payments`,
+      organizationId, token), organizationId) as { data?: { id?: string; availableForMembership?: boolean;
+        paidAt?: string }[] }
+    const selected = payments.data?.find(payment => payment.id === proposed.salesPaymentId)
+    if (!selected) throw new SalesError(422, 'PAYMENT_NOT_FOUND')
+    if (!selected.availableForMembership) throw new SalesError(409, 'PAYMENT_ALREADY_USED_FOR_PRIMARY_MEMBERSHIP')
+    if (selected.paidAt?.slice(0, 10) !== proposed.saleDate)
+      throw new SalesError(422, 'PAYMENT_DETAILS_MISMATCH')
+    const body = JSON.stringify({ ...proposed, isDemo: false, manualPaymentConfirmed: false })
+    const response = await fetch(new URL('/api/crm/program-memberships', origin()), {
+      method: 'POST', redirect: 'error', cache: 'no-store',
+      headers: { Cookie: `annie_session=${token}; annie_org=${organizationId}`,
+        Origin: origin(), 'Content-Type': 'application/json', Accept: 'application/json' },
+      body, signal: AbortSignal.timeout(15000),
+    })
+    const result = await response.json().catch(() => { throw new SalesError(502, 'ANNIE_INVALID_RESPONSE') }) as unknown
+    if (response.ok) {
+      scopedResult(result, organizationId)
+      const created = (result as { members?: unknown }).members
+      if (!Array.isArray(created) || created.length !== members.length ||
+        created.some(row => !row || typeof row !== 'object' ||
+          (row as { organizationId?: unknown }).organizationId !== organizationId))
+        throw new SalesError(502, 'ANNIE_SCOPE_MISMATCH')
+    }
+    if (!response.ok) {
+      const code = (result as { code?: unknown } | null)?.code
+      return Response.json({ code: typeof code === 'string' && /^[A-Z][A-Z0-9_]{1,79}$/.test(code) ?
+        code : 'ANNIE_UPSTREAM_ERROR' }, { status: response.status >= 500 ? 502 : response.status,
+        headers: { 'Cache-Control': 'no-store' } })
+    }
+    return Response.json(result, { headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    const known = error instanceof SalesError ? error : new SalesError(502, 'ANNIE_UNAVAILABLE')
+    return Response.json({ code: known.code }, { status: known.status, headers: { 'Cache-Control': 'no-store' } })
+  }
+}
+
 // Organization administrators may configure ANNIE's existing Sales summary
 // worker. LILLY exposes only this one setting and never reads integration data.
 export async function salesReportScheduleConfig(request: Request): Promise<Response> {
