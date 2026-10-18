@@ -21,6 +21,7 @@
 .list li button, .detail button { background: none; border: 0; color: var(--c-t1); cursor: pointer; font: inherit; font-weight: 700; padding: 0; text-align: left; }
 .list li button:hover, .detail button:hover { color: var(--c-accent-solid); }
 .list small { display: block; color: var(--c-t2); margin-top: .25rem; }
+.timelineBody { min-width: 0; overflow-wrap: anywhere; }
 .list code { color: var(--c-t2); font-size: .68rem; overflow-wrap: anywhere; text-align: right; }
 .next { margin-top: .8rem; border: 1px solid var(--c-border-strong); border-radius: .65rem; background: var(--c-s2); color: var(--c-t1); padding: .55rem .8rem; cursor: pointer; }
 .detail { margin-top: 1rem; }

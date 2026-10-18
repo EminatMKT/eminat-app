@@ -66,7 +66,7 @@ export default function SalesTimeline({ resource, recordId, directory, refreshKe
     {loading && !events.length && <p role="status">Loading timeline…</p>}
     {!loading && !events.length && !error && <p className={s.muted}>No events yet.</p>}
     {!!events.length && <ul className={s.list}>{events.map(event => <li key={event.id}>
-      <div><strong>{event.action.replaceAll(/[._]/g, ' ')}</strong>
+      <div className={s.timelineBody}><strong>{event.action.replaceAll(/[._]/g, ' ')}</strong>
         {description(event.changes) && <p>{description(event.changes)}</p>}
         <small>{Number.isFinite(Date.parse(event.occurredAt)) ? new Date(event.occurredAt).toLocaleString() : 'Time unavailable'}
           {' · '}{event.actorName?.trim() || ownerLabel(directory, event.actorId)}</small>

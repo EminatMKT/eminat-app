@@ -212,7 +212,7 @@ export default function SalesModule() {
         selected={selected} directory={directory} writeEnabled={access.interactionEnabled}
         syntheticOnly={access.interactionWriteMode !== 'commercial'} onChanged={leadChanged} />}
       {selected && ['leads', 'contacts', 'accounts', 'opportunities'].includes(tab) && <SalesTimeline
-        key={`timeline-${tab}-${selected.id}`} resource={tab as 'leads' | 'contacts' | 'accounts' | 'opportunities'}
+        key={`timeline-${tab}-${selected.id}-${refreshKey}`} resource={tab as 'leads' | 'contacts' | 'accounts' | 'opportunities'}
         recordId={selected.id} directory={directory} refreshKey={refreshKey} />}
       {selected && (tab === 'leads' || tab === 'contacts') && <SalesEmail key={`email-${tab}-${selected.id}`}
         resource={tab} selected={selected} enabled={access.emailEnabled}
