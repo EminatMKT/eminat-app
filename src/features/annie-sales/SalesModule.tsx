@@ -18,14 +18,14 @@ import SalesEmail from './SalesEmail'
 import ActivityOperations, { type Task } from './ActivityOperations'
 import s from './SalesModule.module.css'
 
-type Row = { id: string; organizationId: string; version?: number; displayName?: string; name?: string; title?: string; label?: string; code?: string; status?: string; stageCode?: string; ownerProfileId?: string; assigneeId?: string; priority?: string; email?: string; companyName?: string; dueAt?: string; access?: { canEdit?: boolean } }
+type Row = { id: string; organizationId: string; version?: number; displayName?: string; name?: string; title?: string; label?: string; code?: string; status?: string; stageCode?: string; stageId?: string; ownerProfileId?: string; assigneeId?: string; priority?: string; email?: string; companyName?: string; dueAt?: string; access?: { canEdit?: boolean } }
 type Dashboard = { pipeline?: { openCount?: number }; closures?: { won?: number; lost?: number }; followUp?: { overdue?: number; upcoming?: number; interactionsLast30Days?: number }; opportunitiesByStage?: { code: string; label: string; count: number }[] }
 type Result = { data: Row[] | (Row & { stages?: Row[] }) | Dashboard; nextCursor?: string | null; code?: string }
 const paged = new Set(['leads', 'contacts', 'accounts', 'opportunities'])
 const tabs = new Set(['leads', 'contacts', 'accounts', 'opportunities', 'dashboard', 'pipeline', 'activities'])
 const label = (r: Row) => r.displayName ?? r.name ?? r.title ?? r.label ?? r.code ?? 'Untitled record'
 const technicalId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-const summary = (row: Row) => [row.companyName, row.email, row.dueAt, row.status, row.stageCode]
+const summary = (row: Row, stageLabel?: string) => stageLabel ?? [row.companyName, row.email, row.dueAt, row.status, row.stageCode]
   .find(value => typeof value === 'string' && value.trim() && !technicalId.test(value)) ?? ''
 
 export default function SalesModule() {
@@ -41,6 +41,7 @@ export default function SalesModule() {
   const [activityView, setActivityView] = useState('all')
   const [directory, setDirectory] = useState<SalesDirectory>({})
   const [leadStages, setLeadStages] = useState<LeadStage[]>([])
+  const [opportunityStages, setOpportunityStages] = useState<{ id: string; code: string; label: string }[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [rows, setRows] = useState<Row[]>([])
@@ -67,6 +68,20 @@ export default function SalesModule() {
     }).catch(() => {})
     return () => { cancelled = true }
   }, [allowed])
+  useEffect(() => {
+    if (!allowed || tab !== 'opportunities') return
+    let cancelled = false
+    void supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) return
+      const response = await fetch('/api/integrations/annie/sales/pipeline', {
+        cache: 'no-store', headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (!response.ok) return
+      const body = await response.json() as { data?: { stages?: { id: string; code: string; label: string }[] } }
+      if (!cancelled && Array.isArray(body.data?.stages)) setOpportunityStages(body.data.stages)
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [allowed, tab])
   useEffect(() => {
     if (!allowed) return
     let cancelled = false
@@ -165,7 +180,7 @@ export default function SalesModule() {
         <article><span>Interactions · 30 days</span><strong>{dashboard.followUp?.interactionsLast30Days ?? 0}</strong></article>
       </div><div className={s.card}><h2>Opportunities by stage</h2><ul className={s.list}>{(dashboard.opportunitiesByStage ?? []).map(stage => <li key={stage.code}><span>{stage.label}</span><strong>{stage.count}</strong></li>)}</ul></div></>}
       {!loading && !error && tabs.has(tab) && tab !== 'dashboard' && tab !== 'pipeline' && <div className={s.card}><div className={s.cardHeader}><h2>{SUB_ITEMS.sales.find(item => item.tab === tab)?.label}</h2><span>{rows.length} shown</span></div>
-        {rows.length === 0 ? <p className={s.muted}>No records in this view.</p> : tab === 'leads' && leadView === 'board' ? <div className={s.board}>{leadStages.map(stage => <section key={stage.code}><h3>{stage.label}</h3>{rows.filter(row => row.status === stage.code).map(row => <article key={row.id}><button type="button" onClick={() => void openDetail(row.id)}>{label(row)}</button><small>{ownerLabel(directory, row.ownerProfileId)}</small></article>)}</section>)}</div> : <ul className={s.list}>{rows.map(row => <li key={row.id}><div>{tab === 'pipeline' ? <strong>{label(row)}</strong> : <button type="button" onClick={() => void openDetail(row.id)}>{label(row)}</button>}<small>{summary(row)}</small></div><small>{row.assigneeId || row.ownerProfileId ? ownerLabel(directory, row.assigneeId ?? row.ownerProfileId) : ''}</small></li>)}</ul>}
+        {rows.length === 0 ? <p className={s.muted}>No records in this view.</p> : tab === 'leads' && leadView === 'board' ? <div className={s.board}>{leadStages.map(stage => <section key={stage.code}><h3>{stage.label}</h3>{rows.filter(row => row.status === stage.code).map(row => <article key={row.id}><button type="button" onClick={() => void openDetail(row.id)}>{label(row)}</button><small>{ownerLabel(directory, row.ownerProfileId)}</small></article>)}</section>)}</div> : <ul className={s.list}>{rows.map(row => <li key={row.id}><div>{tab === 'pipeline' ? <strong>{label(row)}</strong> : <button type="button" onClick={() => void openDetail(row.id)}>{label(row)}</button>}<small>{summary(row, tab === 'opportunities' ? opportunityStages.find(stage => stage.id === row.stageId || stage.code === row.stageCode)?.label : undefined)}</small></div><small>{row.assigneeId || row.ownerProfileId ? ownerLabel(directory, row.assigneeId ?? row.ownerProfileId) : ''}</small></li>)}</ul>}
         {nextCursor && <button type="button" className={s.next} onClick={() => setCursor(nextCursor)}>Next page</button>}</div>}
       {selected && <aside className={s.detail}><div className={s.cardHeader}><h2>{label(selected)}</h2><button type="button" onClick={() => setSelected(null)}>Close</button></div><dl><dt>Status</dt><dd>{selected.status ?? selected.stageCode ?? '—'}</dd><dt>{tab === 'activities' ? 'Assignee' : 'Owner'}</dt><dd>{ownerLabel(directory, tab === 'activities' ? selected.assigneeId : selected.ownerProfileId)}</dd>{tab === 'activities' && <><dt>Due</dt><dd>{selected.dueAt ? new Date(selected.dueAt).toLocaleString() : '—'}</dd><dt>Priority</dt><dd>{selected.priority ?? '—'}</dd></>}</dl></aside>}
       {selected && ['leads', 'contacts', 'accounts', 'opportunities'].includes(tab) && <SalesInteractions
