@@ -524,6 +524,20 @@ describe('ANNIE Sales adapter', () => {
     expect((await salesExtendedRead(request('https://lilly.example/api/integrations/annie/sales/extended/meetings?status=PAID'),
       ['meetings'])).status).toBe(400)
   })
+  it('reads only scoped recorded payments for an Opportunity and denies unrelated filters', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(Response.json({ data: {
+      principalId: id.principal, organizationId: id.org, role: 'OPERATOR',
+      capabilities: { salesRead: true },
+    } })).mockResolvedValueOnce(Response.json({ data: [{ id: id.user,
+      organizationId: id.org, amount: '119.98', currency: 'USD', availableForMembership: true }] }))
+    vi.stubGlobal('fetch', fetch)
+    const response = await salesExtendedRead(request(), ['opportunities', id.lead, 'payments'])
+    expect(response.status).toBe(200)
+    expect(String(fetch.mock.calls[1][0])).toContain(`/api/crm/opportunities/${id.lead}/payments`)
+    expect((await salesExtendedRead(request('https://lilly.example/?demo=REAL'),
+      ['opportunities', id.lead, 'payments'])).status).toBe(400)
+    expect((await salesExtendedRead(request(), ['opportunities', id.lead, 'payments', 'new'])).status).toBe(404)
+  })
   it('keeps membership list rows in the mapped organization', async () => {
     const fetch = vi.fn().mockResolvedValueOnce(Response.json({ data: {
       principalId: id.principal, organizationId: id.org, role: 'OPERATOR',

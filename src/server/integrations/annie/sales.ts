@@ -601,6 +601,8 @@ function extendedPath(parts: string[]): { path: string; pdf: boolean; scoped: bo
     if (parts.length === 3 && uuid.test(action) && ['pdf', 'agreement'].includes(idAction))
       return { path: `/api/crm/program-memberships/${action}/${idAction}`, pdf: true, scoped: false }
   }
+  if (section === 'opportunities' && parts.length === 3 && uuid.test(action) && idAction === 'payments')
+    return { path: `/api/crm/opportunities/${action}/payments`, pdf: false, scoped: true }
   if (section === 'reports' && parts.length === 1)
     return { path: '/api/crm/reports', pdf: false, scoped: false }
   if (section === 'reports' && parts.length === 2 && action === 'schedule')
@@ -633,6 +635,8 @@ export async function salesExtendedRead(request: Request, parts: string[]): Prom
     if (query.toString().length > 2048 || Array.from(query.keys()).some(key => !queryKeys.has(key)))
       throw new SalesError(400, 'INVALID_FILTER')
     if (parts[0] === 'meetings' && parts.length > 1 && query.size)
+      throw new SalesError(400, 'INVALID_FILTER')
+    if (parts[0] === 'opportunities' && query.size)
       throw new SalesError(400, 'INVALID_FILTER')
     if (target.pdf && query.size) throw new SalesError(400, 'INVALID_FILTER')
     const { mapping, token } = await mappedActor(request)
