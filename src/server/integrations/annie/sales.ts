@@ -410,7 +410,10 @@ async function mappedActor(request: Request): Promise<{ mapping: SalesMapping; t
 
 export async function salesAccess(request: Request): Promise<boolean> {
   try { await mappedActor(request); return true }
-  catch { return false }
+  catch (error) {
+    console.warn('SALES_ACCESS_DENIED', error instanceof SalesError ? error.code : 'UNEXPECTED_ERROR')
+    return false
+  }
 }
 
 function scopedResult(value: unknown, organizationId: string): unknown {
