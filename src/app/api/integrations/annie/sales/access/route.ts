@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { clientEnv } from '@/shared/db/env.client'
-import { salesAccess } from '@/server/integrations/annie/sales'
+import { salesAccessDetails } from '@/server/integrations/annie/sales'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,10 +16,13 @@ export async function GET(request: Request) {
   if (error || !auth.user) return Response.json({ allowed: false }, { status: 401, headers: { 'Cache-Control': 'no-store' } })
   const { data: profile, error: profileError } = await client.from('usuarios')
     .select('id').eq('auth_id', auth.user.id).eq('activo', true).maybeSingle()
-  const allowed = !profileError && !!profile?.id && await salesAccess(request)
-  return Response.json({ allowed, writeEnabled: allowed && process.env.ANNIE_SALES_QA_WRITE_ENABLED === 'true',
-    contactWriteEnabled: allowed && process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED === 'true',
-    accountWriteEnabled: allowed && process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED === 'true',
-    opportunityWriteEnabled: allowed && process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED === 'true' },
+  const access = !profileError && !!profile?.id ? await salesAccessDetails(request) :
+    { allowed: false, canWrite: false, canReassign: false, canReadAudit: false }
+  const write = access.allowed && access.canWrite
+  return Response.json({ ...access,
+    writeEnabled: write && process.env.ANNIE_SALES_QA_WRITE_ENABLED === 'true',
+    contactWriteEnabled: write && process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED === 'true',
+    accountWriteEnabled: write && process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED === 'true',
+    opportunityWriteEnabled: write && process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED === 'true' },
     { headers: { 'Cache-Control': 'no-store' } })
 }

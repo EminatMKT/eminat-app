@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/shared/db/supabase'
+import { ownerLabel, type SalesDirectory } from './salesDirectory'
 import s from './LeadOperations.module.css'
 
 export type Account = Record<string, unknown> & {
@@ -15,8 +16,8 @@ const fields = [
   ['website', 'Website'], ['phone', 'Phone'], ['email', 'Email'], ['description', 'Notes'],
 ] as const
 
-export default function AccountOperations({ selected, writeEnabled, onChanged }: {
-  selected: Account | null; writeEnabled: boolean; onChanged: (id: string) => void
+export default function AccountOperations({ selected, writeEnabled, onChanged, directory }: {
+  selected: Account | null; writeEnabled: boolean; onChanged: (id: string) => void; directory: SalesDirectory
 }) {
   const [mode, setMode] = useState<'create' | 'edit' | null>(null)
   const [draft, setDraft] = useState<Record<string, string>>({})
@@ -106,7 +107,6 @@ export default function AccountOperations({ selected, writeEnabled, onChanged }:
     {writeEnabled && <button type="button" className={s.action} onClick={() => open('create')}>Create synthetic Account</button>}
     {selected && <section className={s.panel} aria-label="Account operations">
       <h3>{selected.name ?? 'Account'} · ANNIE</h3>
-      <p>Version {selected.version} · {selected.id}</p>
       <button type="button" disabled={busy} onClick={() => onChanged(selected.id)}>Refresh from ANNIE</button>
       {canEdit && !selected.archivedAt && selected.name?.startsWith('QA PHASE C ') &&
         <button type="button" onClick={() => open('edit')}>Edit synthetic Account</button>}
@@ -115,15 +115,15 @@ export default function AccountOperations({ selected, writeEnabled, onChanged }:
         <button type="button" disabled={busy || !reason.trim()} onClick={archive}>{selected.archivedAt ? 'Restore' : 'Archive'} in ANNIE</button>
       </details>}
       <details open><summary>ANNIE Contact relationships</summary>
-        {links.length ? <ul>{links.map(link => <li key={link.contactId}>{link.active ? 'Active' : 'Inactive'} · {link.contact?.displayName ?? 'Contact'} · {link.contactId}</li>)}</ul>
+        {links.length ? <ul>{links.map(link => <li key={link.contactId}>{link.active ? 'Active' : 'Inactive'} · {link.contact?.displayName ?? 'Contact'}</li>)}</ul>
           : <p>No Account–Contact links returned.</p>}
       </details>
       <details open><summary>ANNIE Opportunities for this Account</summary>
-        {opportunities.length ? <ul>{opportunities.map(row => <li key={row.id}>{row.name ?? row.title ?? 'Opportunity'} · {row.id}</li>)}</ul>
+        {opportunities.length ? <ul>{opportunities.map(row => <li key={row.id}>{row.name ?? row.title ?? 'Opportunity'}</li>)}</ul>
           : <p>No Opportunities returned.</p>}
       </details>
       <details open><summary>ANNIE history</summary>
-        {history.length ? <ul>{history.map(event => <li key={event.id}><strong>{event.action ?? event.eventType ?? 'Change'}</strong> · {event.occurredAt ?? ''}<br />Actor {event.actorId ?? '—'}{event.changes != null && <pre>{JSON.stringify(event.changes, null, 2)}</pre>}</li>)}</ul>
+        {history.length ? <ul>{history.map(event => <li key={event.id}><strong>{event.action ?? event.eventType ?? 'Change'}</strong> · {event.occurredAt ?? ''}<br />Actor {ownerLabel(directory, event.actorId)}{event.changes != null && <pre>{JSON.stringify(event.changes, null, 2)}</pre>}</li>)}</ul>
           : <p>No history returned.</p>}
       </details>
     </section>}

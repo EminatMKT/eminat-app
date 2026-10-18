@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/shared/db/supabase'
+import { ownerLabel, type SalesDirectory } from './salesDirectory'
 import s from './LeadOperations.module.css'
 
 export type Opportunity = Record<string, unknown> & {
@@ -12,18 +13,22 @@ export type Opportunity = Record<string, unknown> & {
 type Stage = { id: string; code: string; label: string; outcome: string; organizationId: string }
 type History = { id: string; action?: string; eventType?: string; occurredAt?: string; actorId?: string; changes?: unknown }
 type Link = { id: string; contactId: string; organizationId: string; contact?: { displayName?: string } }
-const fields = [['name', 'Name'], ['accountId', 'ANNIE Account ID'], ['primaryContactId', 'ANNIE Contact ID'],
+type AccountOption = { id: string; name?: string }
+type ContactOption = { id: string; displayName?: string }
+const fields = [['name', 'Name'], ['accountId', 'Account'], ['primaryContactId', 'Primary contact'],
   ['currency', 'Currency'], ['amount', 'Amount'], ['expectedCloseDate', 'Expected close date'], ['description', 'Notes']] as const
 const datePart = (value: unknown) => typeof value === 'string' ? value.slice(0, 10) : ''
 
-export default function OpportunityOperations({ selected, writeEnabled, onChanged }: {
-  selected: Opportunity | null; writeEnabled: boolean; onChanged: (id: string) => void
+export default function OpportunityOperations({ selected, writeEnabled, onChanged, directory }: {
+  selected: Opportunity | null; writeEnabled: boolean; onChanged: (id: string) => void; directory: SalesDirectory
 }) {
   const [mode, setMode] = useState<'create' | 'edit' | null>(null)
   const [draft, setDraft] = useState<Record<string, string>>({})
   const [stages, setStages] = useState<Stage[]>([])
   const [history, setHistory] = useState<History[]>([])
   const [links, setLinks] = useState<Link[]>([])
+  const [accounts, setAccounts] = useState<AccountOption[]>([])
+  const [contacts, setContacts] = useState<ContactOption[]>([])
   const [stageCode, setStageCode] = useState('')
   const [transitionAmount, setTransitionAmount] = useState('')
   const [lostReason, setLostReason] = useState('')
@@ -56,6 +61,17 @@ export default function OpportunityOperations({ selected, writeEnabled, onChange
     }).catch(cause => { if (!cancelled) setError(cause instanceof Error ? cause.message : 'PIPELINE_READ_FAILED') })
     return () => { cancelled = true }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!writeEnabled) return
+    let cancelled = false
+    void Promise.all([api('accounts?limit=100'), api('contacts?limit=100')]).then(([a, c]) => {
+      if (!cancelled) {
+        setAccounts(Array.isArray(a.data) ? a.data as AccountOption[] : [])
+        setContacts(Array.isArray(c.data) ? c.data as ContactOption[] : [])
+      }
+    }).catch(() => { if (!cancelled) { setAccounts([]); setContacts([]) } })
+    return () => { cancelled = true }
+  }, [writeEnabled]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     setHistory([]); setLinks([]); setMode(null); setError(''); setNotice('')
     if (!selected) return
@@ -121,14 +137,13 @@ export default function OpportunityOperations({ selected, writeEnabled, onChange
     {writeEnabled && <button type="button" className={s.action} onClick={() => open('create')}>Create synthetic Opportunity</button>}
     {selected && <section className={s.panel} aria-label="Opportunity operations">
       <h3>{selected.name ?? 'Opportunity'} · ANNIE</h3>
-      <p>Version {selected.version} · {selected.id}</p>
-      <p>Stage {currentStage?.label ?? selected.stageId ?? '—'} · Owner {selected.ownerProfileId ?? '—'}</p>
-      <p>Account {selected.accountName ?? '—'} · {selected.accountId ?? '—'}</p>
-      <p>Primary Contact {selected.contactName ?? '—'} · {selected.primaryContactId ?? '—'}</p>
+      <p>Stage {currentStage?.label ?? '—'} · Owner {ownerLabel(directory, selected.ownerProfileId)}</p>
+      <p>Account {selected.accountName ?? accounts.find(account => account.id === selected.accountId)?.name ?? '—'}</p>
+      <p>Primary Contact {selected.contactName ?? contacts.find(contact => contact.id === selected.primaryContactId)?.displayName ?? '—'}</p>
       <button type="button" disabled={busy} onClick={() => onChanged(selected.id)}>Refresh from ANNIE</button>
       {canWrite && !selected.archivedAt && <button type="button" onClick={() => open('edit')}>Edit synthetic Opportunity</button>}
       {canWrite && !selected.archivedAt && <details><summary>Change stage in ANNIE</summary>
-        <label>Next stage <select value={stageCode} onChange={event => setStageCode(event.target.value)}><option value="">Choose stage</option>{stages.map(stage => <option key={stage.id} value={stage.code}>{stage.label} ({stage.code})</option>)}</select></label>
+        <label>Next stage <select value={stageCode} onChange={event => setStageCode(event.target.value)}><option value="">Choose stage</option>{stages.map(stage => <option key={stage.id} value={stage.code}>{stage.label}</option>)}</select></label>
         <label>Amount <input value={transitionAmount} onChange={event => setTransitionAmount(event.target.value)} /></label>
         <label>Loss reason <input value={lostReason} onChange={event => setLostReason(event.target.value)} /></label>
         <label>Reopen reason <input value={reopenReason} onChange={event => setReopenReason(event.target.value)} /></label>
@@ -139,11 +154,11 @@ export default function OpportunityOperations({ selected, writeEnabled, onChange
         <label>Reason <input value={archiveReason} onChange={event => setArchiveReason(event.target.value)} /></label>
         <button type="button" disabled={busy || !archiveReason.trim()} onClick={archive}>{selected.archivedAt ? 'Restore' : 'Archive'} in ANNIE</button>
       </details>}
-      <details open><summary>ANNIE Contact links</summary>{links.length ? <ul>{links.map(link => <li key={link.id}>{link.contact?.displayName ?? 'Contact'} · {link.contactId}</li>)}</ul> : <p>No links returned.</p>}</details>
-      <details open><summary>ANNIE history</summary>{history.length ? <ul>{history.map(event => <li key={event.id}><strong>{event.action ?? event.eventType ?? 'Change'}</strong> · {event.occurredAt ?? ''}<br />Actor {event.actorId ?? '—'}{event.changes != null && <pre>{JSON.stringify(event.changes, null, 2)}</pre>}</li>)}</ul> : <p>No history returned.</p>}</details>
+      <details open><summary>ANNIE Contact links</summary>{links.length ? <ul>{links.map(link => <li key={link.id}>{link.contact?.displayName ?? 'Contact'}</li>)}</ul> : <p>No links returned.</p>}</details>
+      <details open><summary>ANNIE history</summary>{history.length ? <ul>{history.map(event => <li key={event.id}><strong>{event.action ?? event.eventType ?? 'Change'}</strong> · {event.occurredAt ?? ''}<br />Actor {ownerLabel(directory, event.actorId)}{event.changes != null && <pre>{JSON.stringify(event.changes, null, 2)}</pre>}</li>)}</ul> : <p>No history returned.</p>}</details>
     </section>}
     {mode && <section className={s.panel}><h3>{mode === 'create' ? 'Create synthetic Opportunity' : 'Edit synthetic Opportunity'}</h3>
-      <form className={s.form} onSubmit={save}>{fields.map(([key, label]) => <label key={key}>{label}{key === 'description' ? <textarea value={draft[key] ?? ''} onChange={event => setDraft(value => ({ ...value, [key]: event.target.value }))} /> :
+      <form className={s.form} onSubmit={save}>{fields.map(([key, label]) => <label key={key}>{label}{key === 'accountId' ? <select required value={draft[key] ?? ''} onChange={event => setDraft(value => ({ ...value, [key]: event.target.value }))}><option value="">Select account</option>{accounts.map(account => <option key={account.id} value={account.id}>{account.name ?? 'Account'}</option>)}</select> : key === 'primaryContactId' ? <select value={draft[key] ?? ''} onChange={event => setDraft(value => ({ ...value, [key]: event.target.value }))}><option value="">No primary contact</option>{contacts.map(contact => <option key={contact.id} value={contact.id}>{contact.displayName ?? 'Contact'}</option>)}</select> : key === 'description' ? <textarea value={draft[key] ?? ''} onChange={event => setDraft(value => ({ ...value, [key]: event.target.value }))} /> :
         <input type={key === 'expectedCloseDate' ? 'date' : key === 'amount' ? 'number' : 'text'} step={key === 'amount' ? '0.01' : undefined}
           required={['name', 'accountId', 'currency', 'expectedCloseDate'].includes(key)} value={draft[key] ?? ''}
           onChange={event => setDraft(value => ({ ...value, [key]: event.target.value }))} />}</label>)}

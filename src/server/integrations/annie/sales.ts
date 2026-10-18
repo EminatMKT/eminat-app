@@ -382,7 +382,12 @@ export async function salesDirectory(request: Request): Promise<Response> {
   }
 }
 
-async function mappedActor(request: Request): Promise<{ mapping: SalesMapping; token: string }> {
+type SalesIdentity = {
+  role?: string
+  capabilities?: { salesRead?: boolean; salesWrite?: boolean; salesReassign?: boolean; salesAuditRead?: boolean }
+}
+
+async function mappedActor(request: Request): Promise<{ mapping: SalesMapping; token: string; identity: SalesIdentity }> {
   const authorization = request.headers.get('authorization') ?? ''
   const supabaseToken = authorization.startsWith('Bearer ') ? authorization.slice(7) : ''
   if (!supabaseToken) throw new SalesError(401, 'UNAUTHENTICATED')
@@ -405,7 +410,7 @@ async function mappedActor(request: Request): Promise<{ mapping: SalesMapping; t
       data?.organizationId !== mapping.annie_organization_id ||
       (data?.capabilities as { salesRead?: boolean } | undefined)?.salesRead !== true)
     throw new SalesError(403, 'ANNIE_IDENTITY_MISMATCH')
-  return { mapping, token }
+  return { mapping, token, identity: data as SalesIdentity }
 }
 
 export async function salesAccess(request: Request): Promise<boolean> {
@@ -413,6 +418,23 @@ export async function salesAccess(request: Request): Promise<boolean> {
   catch (error) {
     console.warn('SALES_ACCESS_DENIED', error instanceof SalesError ? error.code : 'UNEXPECTED_ERROR')
     return false
+  }
+}
+
+export async function salesAccessDetails(request: Request): Promise<{
+  allowed: boolean; role?: string; canWrite: boolean; canReassign: boolean; canReadAudit: boolean
+}> {
+  try {
+    const { identity } = await mappedActor(request)
+    const role = identity.role
+    if (!role || !['SUPERADMIN', 'ADMINISTRATOR', 'SALES_MANAGER', 'OPERATOR', 'AUDITOR'].includes(role))
+      return { allowed: false, canWrite: false, canReassign: false, canReadAudit: false }
+    return { allowed: true, role, canWrite: identity.capabilities?.salesWrite === true,
+      canReassign: identity.capabilities?.salesReassign === true,
+      canReadAudit: identity.capabilities?.salesAuditRead === true }
+  } catch (error) {
+    console.warn('SALES_ACCESS_DENIED', error instanceof SalesError ? error.code : 'UNEXPECTED_ERROR')
+    return { allowed: false, canWrite: false, canReassign: false, canReadAudit: false }
   }
 }
 

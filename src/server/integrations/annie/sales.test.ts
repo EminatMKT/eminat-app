@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({ createClient: vi.fn(), admin: vi.fn() }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: mocks.createClient }))
 vi.mock('@/shared/db/supabaseAdmin', () => ({ supabaseAdmin: mocks.admin }))
 
-import { salesAccountHistory, salesAccountWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead } from './sales'
+import { salesAccessDetails, salesAccountHistory, salesAccountWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead } from './sales'
 
 function chain(data: unknown) {
   const query = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn().mockResolvedValue({ data, error: null }) }
@@ -144,6 +144,26 @@ describe('Phase C Account write boundary', () => {
 })
 
 describe('ANNIE Sales adapter', () => {
+  it('uses the canonical ANNIE role and capabilities for UI access', async () => {
+    const fetch = vi.fn().mockResolvedValue(Response.json({ data: {
+      principalId: id.principal, organizationId: id.org, role: 'SALES_MANAGER',
+      capabilities: { salesRead: true, salesWrite: true, salesReassign: true, salesAuditRead: false },
+    } }))
+    vi.stubGlobal('fetch', fetch)
+    expect(await salesAccessDetails(request())).toEqual({ allowed: true, role: 'SALES_MANAGER',
+      canWrite: true, canReassign: true, canReadAudit: false })
+  })
+  it('fails closed when ANNIE omits its role or denies commercial read', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(Response.json({ data: {
+      principalId: id.principal, organizationId: id.org, capabilities: { salesRead: true },
+    } })).mockResolvedValueOnce(Response.json({ data: {
+      principalId: id.principal, organizationId: id.org, role: 'FINANCE',
+      capabilities: { salesRead: false },
+    } }))
+    vi.stubGlobal('fetch', fetch)
+    expect((await salesAccessDetails(request())).allowed).toBe(false)
+    expect((await salesAccessDetails(request())).allowed).toBe(false)
+  })
   it('admits an approved mapping after Sales rollout without the original QA allowlist', async () => {
     delete process.env.ANNIE_SALES_QA_ENABLED
     process.env.ANNIE_SALES_ENABLED = 'true'
