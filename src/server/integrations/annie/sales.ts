@@ -585,6 +585,9 @@ function scopedResult(value: unknown, organizationId: string): unknown {
 
 function extendedPath(parts: string[]): { path: string; pdf: boolean; scoped: boolean } {
   const [section, action, idAction] = parts
+  if (['leads', 'contacts', 'accounts', 'opportunities'].includes(section) &&
+      parts.length === 3 && uuid.test(action) && idAction === 'timeline')
+    return { path: `/api/crm/${section}/${action}/timeline`, pdf: false, scoped: false }
   if (section === 'meetings') {
     if (parts.length === 1) return { path: '/api/crm/activities/meetings', pdf: false, scoped: true }
     if (parts.length === 2 && uuid.test(action))
@@ -630,13 +633,14 @@ export async function salesExtendedRead(request: Request, parts: string[]): Prom
     if (request.method !== 'GET') throw new SalesError(405, 'METHOD_NOT_ALLOWED')
     const target = extendedPath(parts)
     const query = new URL(request.url).searchParams
-    const queryKeys = parts[0] === 'meetings'
+    const isTimeline = parts[2] === 'timeline'
+    const queryKeys = isTimeline ? new Set(['limit', 'cursor']) : parts[0] === 'meetings'
       ? new Set(['view', 'leadId', 'timezone', 'limit']) : extendedQueryKeys
     if (query.toString().length > 2048 || Array.from(query.keys()).some(key => !queryKeys.has(key)))
       throw new SalesError(400, 'INVALID_FILTER')
     if (parts[0] === 'meetings' && parts.length > 1 && query.size)
       throw new SalesError(400, 'INVALID_FILTER')
-    if (parts[0] === 'opportunities' && query.size)
+    if (parts[0] === 'opportunities' && !isTimeline && query.size)
       throw new SalesError(400, 'INVALID_FILTER')
     if (target.pdf && query.size) throw new SalesError(400, 'INVALID_FILTER')
     const { mapping, token } = await mappedActor(request)
@@ -662,6 +666,13 @@ export async function salesExtendedRead(request: Request, parts: string[]): Prom
     }
     let result: unknown
     try { result = await upstream.json() } catch { throw new SalesError(502, 'ANNIE_INVALID_RESPONSE') }
+    if (isTimeline && (!result || typeof result !== 'object' ||
+      !Array.isArray((result as { data?: unknown }).data) ||
+      (result as { data: unknown[] }).data.some(row => !row || typeof row !== 'object' ||
+        typeof (row as { id?: unknown }).id !== 'string' ||
+        typeof (row as { action?: unknown }).action !== 'string' ||
+        typeof (row as { occurredAt?: unknown }).occurredAt !== 'string')))
+      throw new SalesError(502, 'ANNIE_INVALID_RESPONSE')
     if (target.scoped) scopedResult(result, mapping.annie_organization_id)
     return Response.json(result, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) {

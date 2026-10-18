@@ -611,6 +611,23 @@ describe('ANNIE Sales adapter', () => {
       ['opportunities', id.lead, 'payments'])).status).toBe(400)
     expect((await salesExtendedRead(request(), ['opportunities', id.lead, 'payments', 'new'])).status).toBe(404)
   })
+  it('reads ANNIE canonical timeline with cursor while rejecting unrelated filters and malformed events', async () => {
+    const identity = { data: { principalId: id.principal, organizationId: id.org,
+      role: 'OPERATOR', capabilities: { salesRead: true } } }
+    const fetch = vi.fn().mockResolvedValueOnce(Response.json(identity)).mockResolvedValueOnce(
+      Response.json({ data: [{ id: 'history:event', action: 'created', occurredAt: '2026-10-18T10:00:00.000Z' }],
+        nextCursor: 'cursor' }))
+    vi.stubGlobal('fetch', fetch)
+    const path = ['leads', id.lead, 'timeline']
+    const response = await salesExtendedRead(request('https://lilly.example/?limit=25&cursor=cursor'), path)
+    expect(response.status).toBe(200)
+    expect(String(fetch.mock.calls[1][0])).toContain(`/api/crm/leads/${id.lead}/timeline?limit=25&cursor=cursor`)
+    expect((await salesExtendedRead(request('https://lilly.example/?teamId=x'), path)).status).toBe(400)
+    const malformed = vi.fn().mockResolvedValueOnce(Response.json(identity)).mockResolvedValueOnce(
+      Response.json({ data: [{ id: 'event', action: 'created' }] }))
+    vi.stubGlobal('fetch', malformed)
+    expect((await salesExtendedRead(request(), path)).status).toBe(502)
+  })
   it('keeps membership list rows in the mapped organization', async () => {
     const fetch = vi.fn().mockResolvedValueOnce(Response.json({ data: {
       principalId: id.principal, organizationId: id.org, role: 'OPERATOR',

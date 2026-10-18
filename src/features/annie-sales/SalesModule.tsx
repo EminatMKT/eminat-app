@@ -14,6 +14,7 @@ import SalesExtendedViews from './SalesExtendedViews'
 import PipelineBoard from './PipelineBoard'
 import SalesImporter from './SalesImporter'
 import SalesInteractions from './SalesInteractions'
+import SalesTimeline from './SalesTimeline'
 import SalesEmail from './SalesEmail'
 import ActivityOperations, { type Task } from './ActivityOperations'
 import FinanceSummary from './FinanceSummary'
@@ -210,6 +211,9 @@ export default function SalesModule() {
         key={`${tab}-${selected.id}`} resource={tab as 'leads' | 'contacts' | 'accounts' | 'opportunities'}
         selected={selected} directory={directory} writeEnabled={access.interactionEnabled}
         syntheticOnly={access.interactionWriteMode !== 'commercial'} onChanged={leadChanged} />}
+      {selected && ['leads', 'contacts', 'accounts', 'opportunities'].includes(tab) && <SalesTimeline
+        key={`timeline-${tab}-${selected.id}`} resource={tab as 'leads' | 'contacts' | 'accounts' | 'opportunities'}
+        recordId={selected.id} directory={directory} refreshKey={refreshKey} />}
       {selected && (tab === 'leads' || tab === 'contacts') && <SalesEmail key={`email-${tab}-${selected.id}`}
         resource={tab} selected={selected} enabled={access.emailEnabled}
         syntheticOnly={access.emailWriteMode !== 'commercial'} />}
