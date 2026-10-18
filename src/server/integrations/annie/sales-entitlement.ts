@@ -13,14 +13,31 @@ export type SalesMapping = {
 // An approved, active mapping is the LILLY entitlement. The rollout switch is
 // default-off; the original per-person QA allowlist remains usable during rollout.
 export async function salesEntitlement(lillyUsuarioId: string, supabaseAuthId: string): Promise<SalesMapping | null> {
-  if (!uuid.test(lillyUsuarioId) || !uuid.test(supabaseAuthId)) return null
-  if (process.env.ANNIE_SALES_ENABLED !== 'true' && !salesQaAllowed(lillyUsuarioId, supabaseAuthId)) return null
+  if (!uuid.test(lillyUsuarioId) || !uuid.test(supabaseAuthId)) {
+    console.warn('SALES_ENTITLEMENT_INVALID_ID')
+    return null
+  }
+  if (process.env.ANNIE_SALES_ENABLED !== 'true' && !salesQaAllowed(lillyUsuarioId, supabaseAuthId)) {
+    console.warn('SALES_ENTITLEMENT_ROLLOUT_DENIED')
+    return null
+  }
   const admin = supabaseAdmin()
   const { data: mapping, error } = await admin.from('annie_sales_user_mappings')
     .select('annie_principal_id,annie_organization_id,empresa_codigo,access_kind')
     .eq('lilly_usuario_id', lillyUsuarioId).eq('supabase_auth_id', supabaseAuthId)
     .eq('status', 'active').maybeSingle()
-  if (error || !mapping || !uuid.test(mapping.annie_principal_id) || !uuid.test(mapping.annie_organization_id)) return null
+  if (error) {
+    console.warn('SALES_ENTITLEMENT_MAPPING_QUERY_FAILED', error.code)
+    return null
+  }
+  if (!mapping) {
+    console.warn('SALES_ENTITLEMENT_MAPPING_MISSING')
+    return null
+  }
+  if (!uuid.test(mapping.annie_principal_id) || !uuid.test(mapping.annie_organization_id)) {
+    console.warn('SALES_ENTITLEMENT_MAPPING_INVALID_ID')
+    return null
+  }
   if (mapping.access_kind === 'company_tenant') {
     if (!mapping.empresa_codigo) return null
     const { data: tenant, error: tenantError } = await admin.from('annie_sales_tenant_mappings')
