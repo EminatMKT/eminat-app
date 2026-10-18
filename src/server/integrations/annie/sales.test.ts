@@ -84,6 +84,20 @@ describe('ANNIE meeting write boundary', () => {
     expect((await salesMeetingWrite(edit('2'), 'edit', id.lead)).status).toBe(403)
     expect(fetch).toHaveBeenCalledTimes(2)
   })
+  it('links a synthetic meeting to a scoped synthetic Lead and rejects a real Lead in QA', async () => {
+    process.env.ANNIE_SALES_QA_MEETING_ENABLED = 'true'
+    const fetch = vi.fn().mockResolvedValueOnce(identity('SALES_MANAGER'))
+      .mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org,
+        displayName: 'Real Lead' } }))
+      .mockResolvedValueOnce(identity('SALES_MANAGER'))
+      .mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org,
+        displayName: 'QA PHASE C Linked Lead' } }))
+      .mockResolvedValueOnce(Response.json({ data: { id: id.user, organizationId: id.org } }))
+    vi.stubGlobal('fetch', fetch)
+    expect((await salesMeetingWrite(create({ ...body, leadId: id.lead }), 'create')).status).toBe(403)
+    expect((await salesMeetingWrite(create({ ...body, leadId: id.lead }), 'create')).status).toBe(200)
+    expect(JSON.parse(fetch.mock.calls[4][1].body).leadId).toBe(id.lead)
+  })
 })
 
 describe('Finance summary boundary', () => {
