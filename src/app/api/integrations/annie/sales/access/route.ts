@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { clientEnv } from '@/shared/db/env.client'
-import { salesQaAllowed } from '@/server/integrations/annie/qa-gate'
+import { salesAccess } from '@/server/integrations/annie/sales'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   if (error || !auth.user) return Response.json({ allowed: false }, { status: 401, headers: { 'Cache-Control': 'no-store' } })
   const { data: profile, error: profileError } = await client.from('usuarios')
     .select('id').eq('auth_id', auth.user.id).eq('activo', true).maybeSingle()
-  const allowed = !profileError && !!profile?.id && salesQaAllowed(profile.id, auth.user.id)
+  const allowed = !profileError && !!profile?.id && await salesAccess(request)
   return Response.json({ allowed, writeEnabled: allowed && process.env.ANNIE_SALES_QA_WRITE_ENABLED === 'true',
     contactWriteEnabled: allowed && process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED === 'true',
     accountWriteEnabled: allowed && process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED === 'true',

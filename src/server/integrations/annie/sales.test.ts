@@ -7,7 +7,8 @@ const id = {
   org: '44444444-4444-4444-8444-444444444444',
   lead: '55555555-5555-4555-8555-555555555555',
 }
-const token = `annie_${'a'.repeat(40)}`
+const key = Buffer.alloc(32, 7).toString('base64url')
+const assertionCookie = expect.stringMatching(/^annie_session=eyJ[A-Za-z0-9_.-]+; annie_org=44444444-4444-4444-8444-444444444444$/)
 const mocks = vi.hoisted(() => ({ createClient: vi.fn(), admin: vi.fn() }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: mocks.createClient }))
 vi.mock('@/shared/db/supabaseAdmin', () => ({ supabaseAdmin: mocks.admin }))
@@ -28,7 +29,7 @@ beforeEach(() => {
   process.env.ANNIE_SALES_QA_ENABLED = 'true'
   process.env.ANNIE_SALES_QA_ALLOWLIST_JSON = JSON.stringify([{ lillyUsuarioId: id.profile, supabaseAuthId: id.user }])
   process.env.ANNIE_SALES_API_ORIGIN = 'https://annie.example'
-  process.env.ANNIE_SALES_SESSION_TOKENS_JSON = JSON.stringify({ [`${id.principal}:${id.org}`]: token })
+  process.env.ANNIE_SALES_TRUST_KEY = key
   mocks.createClient.mockReturnValue({
     auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: id.user } }, error: null }) },
     rpc: vi.fn().mockResolvedValue({ data: true, error: null }),
@@ -37,7 +38,7 @@ beforeEach(() => {
   mocks.admin.mockReturnValue({ from: vi.fn(() => chain({ empresa_codigo: null,
     access_kind: 'external_sales_entitlement', annie_organization_id: id.org, annie_principal_id: id.principal })) })
 })
-afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_SESSION_TOKENS_JSON; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON; delete process.env.ANNIE_SALES_QA_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED })
+afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_TRUST_KEY; delete process.env.ANNIE_SALES_ENABLED; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON; delete process.env.ANNIE_SALES_QA_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED })
 
 describe('Phase C Opportunity write boundary', () => {
   const identity = () => Response.json({ data: { principalId: id.principal, organizationId: id.org,
@@ -76,7 +77,7 @@ describe('Phase C Opportunity write boundary', () => {
     expect(response.status).toBe(409)
     expect((await response.json()).code).toBe('VERSION_CONFLICT')
     expect(fetch.mock.calls[2][1].headers).toMatchObject({ 'If-Match': '2',
-      Cookie: `annie_session=${token}; annie_org=${id.org}` })
+      Cookie: assertionCookie })
     expect(String(fetch.mock.calls[2][0])).toContain(`/api/crm/opportunities/${id.lead}/transitions`)
   })
   it('reads links/history only in the mapped organization', async () => {
@@ -130,7 +131,7 @@ describe('Phase C Account write boundary', () => {
     expect(response.status).toBe(200)
     expect((await response.json()).data.id).toBe(id.lead)
     expect(fetch.mock.calls[2][1].headers).toMatchObject({ 'If-Match': '2',
-      Cookie: `annie_session=${token}; annie_org=${id.org}` })
+      Cookie: assertionCookie })
   })
   it('reads Account history only through the mapped ANNIE session', async () => {
     const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(Response.json({ data: [{
@@ -143,6 +144,16 @@ describe('Phase C Account write boundary', () => {
 })
 
 describe('ANNIE Sales adapter', () => {
+  it('admits an approved mapping after Sales rollout without the original QA allowlist', async () => {
+    delete process.env.ANNIE_SALES_QA_ENABLED
+    process.env.ANNIE_SALES_ENABLED = 'true'
+    const fetch = vi.fn().mockResolvedValueOnce(Response.json({ data: { principalId: id.principal,
+      organizationId: id.org, capabilities: { salesRead: true } } }))
+      .mockResolvedValueOnce(Response.json({ data: [{ id: id.lead, organizationId: id.org }] }))
+    vi.stubGlobal('fetch', fetch)
+    expect((await salesRead(request(), 'leads')).status).toBe(200)
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
   it('is disabled without an explicit QA switch and exact ID pair', async () => {
     delete process.env.ANNIE_SALES_QA_ENABLED
     const fetch = vi.fn()
@@ -204,8 +215,15 @@ describe('ANNIE Sales adapter', () => {
     expect(String(fetch.mock.calls[0][0])).toContain('/api/crm/integration/session/identity')
     expect(String(fetch.mock.calls[1][0])).toContain('/api/crm/leads?limit=1&q=Acme')
     expect(fetch.mock.calls[1][1].method).toBe('GET')
-    expect(fetch.mock.calls[1][1].headers.Cookie).toBe(`annie_session=${token}; annie_org=${id.org}`)
+    expect(fetch.mock.calls[1][1].headers.Cookie).toEqual(assertionCookie)
     expect(fetch.mock.calls[1][1].headers.Authorization).toBeUndefined()
+    const signed = String(fetch.mock.calls[1][1].headers.Cookie).split(';')[0].slice('annie_session='.length)
+    const [header, payload, signature] = signed.split('.')
+    expect(JSON.parse(Buffer.from(header, 'base64url').toString())).toEqual({ alg: 'HS256', typ: 'JWT' })
+    const claims = JSON.parse(Buffer.from(payload, 'base64url').toString())
+    expect(claims).toMatchObject({ iss: 'lilly-sales', aud: 'annie-sales', sub: id.principal, org: id.org, purpose: 'sales' })
+    expect(claims.exp - claims.iat).toBe(30)
+    expect(signature).toMatch(/^[A-Za-z0-9_-]+$/)
   })
   it('rejects an out-of-scope upstream row even after identity verification', async () => {
     const fetch = vi.fn()
@@ -245,7 +263,7 @@ describe('Phase C Contact write boundary', () => {
     expect(String(fetch.mock.calls[1][0])).toBe('https://annie.example/api/crm/contacts')
     expect((await salesContactWrite(write('PATCH', { title: 'QA title' }, '1'), 'edit', id.lead)).status).toBe(200)
     expect(fetch.mock.calls[3][1].headers['If-Match']).toBe('1')
-    expect(fetch.mock.calls[3][1].headers.Cookie).toBe(`annie_session=${token}; annie_org=${id.org}`)
+    expect(fetch.mock.calls[3][1].headers.Cookie).toEqual(assertionCookie)
   })
   it('requires a version for archive and rejects out-of-Organization responses', async () => {
     process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED = 'true'
@@ -306,7 +324,7 @@ describe('Phase C Contact write boundary', () => {
     expect(fetch.mock.calls[1][1]).toMatchObject({ method: 'POST',
       body: JSON.stringify({ contactId: id.lead, active: false }) })
     expect(fetch.mock.calls[1][1].headers).toMatchObject({
-      'If-Match': '2', Cookie: `annie_session=${token}; annie_org=${id.org}`,
+      'If-Match': '2', Cookie: assertionCookie,
     })
   })
   it('rejects out-of-Organization Account links', async () => {
@@ -347,7 +365,7 @@ describe('Phase C Lead write boundary', () => {
     expect((await response.json()).data.id).toBe(id.lead)
     expect(String(fetch.mock.calls[1][0])).toBe('https://annie.example/api/crm/leads')
     expect(fetch.mock.calls[1][1]).toMatchObject({ method: 'POST', body: JSON.stringify({ displayName: 'QA', source: 'manual' }) })
-    expect(fetch.mock.calls[1][1].headers).toMatchObject({ Origin: 'https://annie.example', Cookie: `annie_session=${token}; annie_org=${id.org}` })
+    expect(fetch.mock.calls[1][1].headers).toMatchObject({ Origin: 'https://annie.example', Cookie: assertionCookie })
   })
   it('requires a version for edits and transitions before any upstream call', async () => {
     process.env.ANNIE_SALES_QA_WRITE_ENABLED = 'true'

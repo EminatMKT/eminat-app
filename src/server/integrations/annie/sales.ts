@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
+import { createHmac, randomUUID } from 'node:crypto'
 import { clientEnv } from '@/shared/db/env.client'
-import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
-import { salesQaAllowed } from './qa-gate'
+import { salesEntitlement, type SalesMapping } from './sales-entitlement'
 
 const resources = ['leads', 'contacts', 'accounts', 'opportunities', 'dashboard', 'activities'] as const
 export type SalesResource = (typeof resources)[number]
@@ -29,15 +29,22 @@ function origin(): string {
 }
 
 function sessionToken(principalId: string, organizationId: string): string {
-  // Secret-manager supplied, per Principal and Organization. Never sent to the browser.
-  // An ANNIE native session is required for the mapped user; a shared service Principal is forbidden.
-  let entries: Record<string, unknown>
-  try { entries = JSON.parse(process.env.ANNIE_SALES_SESSION_TOKENS_JSON ?? '{}') }
-  catch { throw new SalesError(503, 'ANNIE_SESSION_NOT_CONFIGURED') }
-  const token = entries[`${principalId}:${organizationId}`]
-  if (typeof token !== 'string' || !/^annie_[A-Za-z0-9_-]{40,200}$/.test(token))
-    throw new SalesError(503, 'ANNIE_SESSION_NOT_CONFIGURED')
-  return token
+  // Mint a new, short-lived assertion for every server request. The shared key
+  // stays in LILLY's server environment; ANNIE still resolves the current role,
+  // active membership and record scope from its own database.
+  const encoded = process.env.ANNIE_SALES_TRUST_KEY ?? ''
+  if (!/^[A-Za-z0-9_-]+$/.test(encoded)) throw new SalesError(503, 'ANNIE_TRUST_NOT_CONFIGURED')
+  const key = Buffer.from(encoded, 'base64url')
+  if (key.length < 32 || key.toString('base64url') !== encoded)
+    throw new SalesError(503, 'ANNIE_TRUST_NOT_CONFIGURED')
+  if (!uuid.test(principalId) || !uuid.test(organizationId)) throw new SalesError(403, 'USER_MAPPING_REQUIRED')
+  const issuedAt = Math.floor(Date.now() / 1000)
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')
+  const payload = Buffer.from(JSON.stringify({ iss: 'lilly-sales', aud: 'annie-sales', sub: principalId,
+    org: organizationId, purpose: 'sales', iat: issuedAt, exp: issuedAt + 30, jti: randomUUID() })).toString('base64url')
+  const input = `${header}.${payload}`
+  const signature = createHmac('sha256', key).update(input).digest('base64url')
+  return `${input}.${signature}`
 }
 
 async function annieGet(path: string, organizationId: string, token: string, query?: URLSearchParams): Promise<unknown> {
@@ -375,13 +382,7 @@ export async function salesDirectory(request: Request): Promise<Response> {
   }
 }
 
-type Mapping = {
-  annie_principal_id: string
-  annie_organization_id: string
-  empresa_codigo: string | null
-  access_kind: 'company_tenant' | 'external_sales_entitlement'
-}
-async function mappedActor(request: Request): Promise<{ mapping: Mapping; token: string }> {
+async function mappedActor(request: Request): Promise<{ mapping: SalesMapping; token: string }> {
   const authorization = request.headers.get('authorization') ?? ''
   const supabaseToken = authorization.startsWith('Bearer ') ? authorization.slice(7) : ''
   if (!supabaseToken) throw new SalesError(401, 'UNAUTHENTICATED')
@@ -395,23 +396,8 @@ async function mappedActor(request: Request): Promise<{ mapping: Mapping; token:
   const { data: profile, error: profileError } = await client.from('usuarios')
     .select('id').eq('auth_id', auth.user.id).eq('activo', true).maybeSingle()
   if (profileError || !profile?.id) throw new SalesError(403, 'ACTIVE_PROFILE_REQUIRED')
-  if (!salesQaAllowed(profile.id, auth.user.id)) throw new SalesError(403, 'SALES_QA_DENIED')
-
-  const admin = supabaseAdmin()
-  const { data: mapping, error: mappingError } = await admin.from('annie_sales_user_mappings')
-    .select('annie_principal_id,annie_organization_id,empresa_codigo,access_kind')
-    .eq('lilly_usuario_id', profile.id).eq('supabase_auth_id', auth.user.id)
-    .eq('status', 'active').maybeSingle()
-  if (mappingError || !mapping) throw new SalesError(403, 'USER_MAPPING_REQUIRED')
-  if (mapping.access_kind === 'company_tenant') {
-    if (!mapping.empresa_codigo) throw new SalesError(403, 'TENANT_MAPPING_REQUIRED')
-    const { data: tenant, error: tenantError } = await admin.from('annie_sales_tenant_mappings')
-      .select('annie_organization_id').eq('empresa_codigo', mapping.empresa_codigo)
-      .eq('annie_organization_id', mapping.annie_organization_id).eq('status', 'active').maybeSingle()
-    if (tenantError || !tenant) throw new SalesError(403, 'TENANT_MAPPING_REQUIRED')
-  } else if (mapping.access_kind !== 'external_sales_entitlement' || mapping.empresa_codigo !== null) {
-    throw new SalesError(403, 'TENANT_MAPPING_REQUIRED')
-  }
+  const mapping = await salesEntitlement(profile.id, auth.user.id)
+  if (!mapping) throw new SalesError(403, 'USER_MAPPING_REQUIRED')
   const token = sessionToken(mapping.annie_principal_id, mapping.annie_organization_id)
   const identity = await annieGet('/api/crm/integration/session/identity', mapping.annie_organization_id, token)
   const data = (identity as { data?: Record<string, unknown> })?.data
@@ -420,6 +406,11 @@ async function mappedActor(request: Request): Promise<{ mapping: Mapping; token:
       (data?.capabilities as { salesRead?: boolean } | undefined)?.salesRead !== true)
     throw new SalesError(403, 'ANNIE_IDENTITY_MISMATCH')
   return { mapping, token }
+}
+
+export async function salesAccess(request: Request): Promise<boolean> {
+  try { await mappedActor(request); return true }
+  catch { return false }
 }
 
 function scopedResult(value: unknown, organizationId: string): unknown {
