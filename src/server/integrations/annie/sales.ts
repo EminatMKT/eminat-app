@@ -763,6 +763,69 @@ export async function salesDemoMembershipCreate(request: Request): Promise<Respo
   }
 }
 
+// Staff requests remain pending in ANNIE until explicit authorized staff
+// approval. ANNIE issues any zero-charge dependant and owns the audit.
+export async function salesFamilyMemberRequest(request: Request, membershipId: string,
+  requestId?: string): Promise<Response> {
+  try {
+    if (process.env.ANNIE_SALES_FAMILY_WRITE_ENABLED !== 'true')
+      throw new SalesError(403, 'FAMILY_REQUESTS_DISABLED')
+    if (!uuid.test(membershipId) || (requestId && !uuid.test(requestId)))
+      throw new SalesError(404, 'NOT_FOUND')
+    const method = request.method
+    if ((requestId && method !== 'PATCH') || (!requestId && !['GET', 'POST'].includes(method)))
+      throw new SalesError(405, 'METHOD_NOT_ALLOWED')
+    const { mapping, token, identity } = await mappedActor(request)
+    if (method !== 'GET' && identity.capabilities?.salesWrite !== true)
+      throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
+    if (method === 'PATCH' && !['SUPERADMIN', 'ADMINISTRATOR'].includes(identity.role))
+      throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
+    let body: string | undefined
+    if (method !== 'GET') {
+      const raw = await request.text()
+      if (Buffer.byteLength(raw) > 2048) throw new SalesError(413, 'BODY_TOO_LARGE')
+      let proposed: Record<string, unknown>
+      try { proposed = JSON.parse(raw) as Record<string, unknown> }
+      catch { throw new SalesError(400, 'INVALID_JSON') }
+      if (!proposed || typeof proposed !== 'object' || Array.isArray(proposed))
+        throw new SalesError(400, 'INVALID_BODY')
+      if (method === 'POST') {
+        if (Object.keys(proposed).some(key => !['dependentContactId', 'relationship'].includes(key)) ||
+          typeof proposed.dependentContactId !== 'string' || !uuid.test(proposed.dependentContactId) ||
+          !['SPOUSE', 'CHILD', 'PARENT', 'OTHER'].includes(String(proposed.relationship)))
+          throw new SalesError(400, 'INVALID_BODY')
+      } else if (Object.keys(proposed).length !== 1 ||
+        !['APPROVED', 'REJECTED'].includes(String(proposed.status)))
+        throw new SalesError(400, 'INVALID_BODY')
+      body = JSON.stringify(proposed)
+    }
+    const path = `/api/crm/program-memberships/${membershipId}/family-requests${requestId ? `/${requestId}` : ''}`
+    const response = await fetch(new URL(path, origin()), {
+      method, redirect: 'error', cache: 'no-store',
+      headers: { Cookie: `annie_session=${token}; annie_org=${mapping.annie_organization_id}`,
+        Origin: origin(), Accept: 'application/json',
+        ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      body, signal: AbortSignal.timeout(15000),
+    })
+    const result = await response.json().catch(() => { throw new SalesError(502, 'ANNIE_INVALID_RESPONSE') }) as unknown
+    if (!response.ok) {
+      const code = (result as { code?: unknown } | null)?.code
+      return Response.json({ code: typeof code === 'string' && /^[A-Z][A-Z0-9_]{1,79}$/.test(code) ?
+        code : 'ANNIE_UPSTREAM_ERROR' }, { status: response.status >= 500 ? 502 : response.status,
+        headers: { 'Cache-Control': 'no-store' } })
+    }
+    if (!result || typeof result !== 'object' ||
+      (method === 'GET' ? !Array.isArray((result as { data?: unknown }).data) :
+        typeof (result as { data?: { id?: unknown } }).data?.id !== 'string'))
+      throw new SalesError(502, 'ANNIE_INVALID_RESPONSE')
+    return Response.json(result, { headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    const known = error instanceof SalesError ? error : new SalesError(502, 'ANNIE_UNAVAILABLE')
+    return Response.json({ code: known.code }, { status: known.status,
+      headers: { 'Cache-Control': 'no-store' } })
+  }
+}
+
 // Recorded SalesPayments are only references to an already confirmed payment.
 // This path never collects money or marks a payment paid. ANNIE owns pricing,
 // payment allocation, membership issuance, PDFs and delivery.

@@ -12,7 +12,7 @@ verified Production behavior from work staged in draft PRs #30 (ANNIE) and #119
 | Contacts and Accounts | 8% | Lists and details | Isolated writes, links and history | Conversion, duplicates and relation regression in browser |
 | Opportunities and Pipeline | 15% | Lists and seven stages | Isolated writes, transitions and drag/drop with rejection rollback | Won/Lost and persisted drag/drop browser QA |
 | Activities and follow-up | 10% | Task list | Isolated task and interaction writes; email history; meeting follow-up task type; scoped ANNIE meeting list and guarded synthetic meeting creation/status updates with optional Lead/Contact/Opportunity links; read-only canonical timeline for selected Leads, Contacts, Accounts and Opportunities | Timeline and relation browser QA, normal-user QA |
-| Memberships and PDF | 15% | None in LILLY Production | ANNIE catalog/pricing, family detail, PDF, guarded synthetic enrollment and default-off recorded-payment issuance from Won Opportunity | Controlled create/PDF QA, normal-user issuance browser QA, family add/relationship support in ANNIE. Owner rule: adding a dependant to an existing paid Family membership stays pending until staff approval and has no extra charge. |
+| Memberships and PDF | 15% | None in LILLY Production | ANNIE catalog/pricing, family detail, PDF, guarded synthetic enrollment and default-off recorded-payment issuance from Won Opportunity; additive staff Family request/approval with zero-charge dependant issuance and a default-off LILLY UI | Migration review, controlled create/PDF QA, normal-user issuance and Family approval browser QA. Owner rule: adding a dependant to an existing paid Family membership stays pending until staff approval and has no extra charge. |
 | Reports | 10% | None in LILLY Production | ANNIE metrics, seller breakdown and guarded schedule settings | Role-scoped browser comparison, delivery status and safe schedule QA |
 | Social | 8% | None in LILLY Production | ANNIE providers, connections, messages, comments and Social Leads | Meta live authorization remains externally blocked; reply and attribution QA |
 | Navigation and UX | 3% | Core tabs | Memberships, Reports, Social and readable history labels | Mobile and accessibility browser pass |
@@ -32,5 +32,10 @@ membership. Family dependants may share that primary payment reference.
 ANNIE's staged issuance path rejects a second primary for the same payment,
 including concurrent requests. LILLY's synthetic-only enrollment path does
 not accept a SalesPayment ID. The separate recorded-payment path remains
-disabled unless `ANNIE_SALES_COMMERCIAL_MEMBERSHIP_WRITE_ENABLED=true` and
-still needs controlled end-to-end browser QA before a Production release.
+disabled unless `ANNIE_SALES_COMMERCIAL_MEMBERSHIP_WRITE_ENABLED=true`.
+After-issuance Family requests remain disabled unless
+`ANNIE_SALES_FAMILY_WRITE_ENABLED=true`; ANNIE requires an existing Contact,
+an active paid primary Family membership, capacity below three, and explicit
+authorized staff review. Approval creates a zero-charge dependant credential,
+period, PDF and household relation. Both paths need controlled end-to-end
+browser QA before a Production release.

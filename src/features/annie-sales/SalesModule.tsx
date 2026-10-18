@@ -228,6 +228,7 @@ export default function SalesModule() {
       {tab === 'pipeline' && !loading && !error && <PipelineBoard stages={rows as { id: string; code: string; label: string }[]} directory={directory} writeEnabled={opportunityWriteEnabled} syntheticOnly={access.opportunityWriteMode !== 'commercial'} />}
       {(tab === 'memberships' || tab === 'reports' || tab === 'social') && <SalesExtendedViews tab={tab}
         membershipQaEnabled={access.membershipQaEnabled} membershipWriteEnabled={access.membershipWriteEnabled}
+        familyWriteEnabled={access.familyWriteEnabled} canReviewFamily={['SUPERADMIN', 'ADMINISTRATOR'].includes(access.role ?? '')}
         canManageSchedule={['SUPERADMIN', 'ADMINISTRATOR'].includes(access.role ?? '')}
         reportScheduleWriteEnabled={access.reportScheduleWriteEnabled} />}
     </section>

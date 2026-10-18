@@ -28,6 +28,7 @@ export type SalesAccess = {
   meetingEnabled: boolean
   membershipQaEnabled: boolean
   membershipWriteEnabled: boolean
+  familyWriteEnabled: boolean
   reportScheduleWriteEnabled: boolean
 }
 
@@ -47,6 +48,7 @@ const denied: SalesAccess = {
   meetingEnabled: false,
   membershipQaEnabled: false,
   membershipWriteEnabled: false,
+  familyWriteEnabled: false,
   reportScheduleWriteEnabled: false,
 }
 
@@ -90,6 +92,7 @@ export function useSalesAccess(): SalesAccess {
         meetingEnabled: body.meetingEnabled === true,
         membershipQaEnabled: body.membershipQaEnabled === true,
         membershipWriteEnabled: body.membershipWriteEnabled === true,
+        familyWriteEnabled: body.familyWriteEnabled === true,
         reportScheduleWriteEnabled: body.reportScheduleWriteEnabled === true,
       }
     }).then(value => { if (!cancelled) setAccess(value) })

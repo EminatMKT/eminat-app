@@ -3,12 +3,14 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/shared/db/supabase'
 import s from './SalesModule.module.css'
 import MembershipQaCreate from './MembershipQaCreate'
+import SalesFamilyRequests from './SalesFamilyRequests'
 
 type Tab = 'memberships' | 'reports' | 'social'
 type Membership = {
   id: string; code: string; firstName: string; lastName: string; plan?: string | null
   modality?: string | null; duration?: string | null; effectiveStatus: string
   issuedAt: string; expiresAt: string; isDemo?: boolean; hasPdf?: boolean
+  familyMemberIndex?: number | null
 }
 type MembershipDetail = {
   data: Membership
@@ -66,8 +68,9 @@ async function json<T>(path: string): Promise<T> {
   return body
 }
 
-function Memberships({ membershipQaEnabled, membershipWriteEnabled }: {
-  membershipQaEnabled: boolean; membershipWriteEnabled: boolean
+function Memberships({ membershipQaEnabled, membershipWriteEnabled, familyWriteEnabled, canReviewFamily }: {
+  membershipQaEnabled: boolean; membershipWriteEnabled: boolean;
+  familyWriteEnabled: boolean; canReviewFamily: boolean
 }) {
   const [catalog, setCatalog] = useState<MembershipCatalog | null>(null)
   const [quotePlan, setQuotePlan] = useState('')
@@ -163,6 +166,11 @@ function Memberships({ membershipQaEnabled, membershipWriteEnabled }: {
       {selected.data.hasPdf && <button className={s.next} type="button" onClick={() => void download(selected.data.id)}>Download ANNIE membership PDF</button>}
       {(selected.periods?.length ?? 0) > 0 && <div><h3>Periods</h3><ul>{selected.periods?.map(period => <li key={`${period.startsAt}-${period.expiresAt}`}>{period.startsAt.slice(0, 10)} – {period.expiresAt.slice(0, 10)} · {period.plan} · {period.duration}</li>)}</ul></div>}
       {(selected.familyMembers?.length ?? 0) > 0 && <div><h3>Family members</h3><ul>{selected.familyMembers?.map(member => <li key={member.id}><button type="button" onClick={() => void open(member.id)}>{member.firstName} {member.lastName}</button> · {member.familyMemberIndex === 1 ? 'Primary member' : 'Family member'} · {member.effectiveStatus}</li>)}</ul></div>}
+      {familyWriteEnabled && !selected.data.isDemo && selected.data.modality === 'FAMILY' &&
+        selected.data.familyMemberIndex === 1 && selected.data.effectiveStatus === 'ACTIVE' &&
+        <SalesFamilyRequests key={selected.data.id} primaryId={selected.data.id}
+          canReview={canReviewFamily} canRequest={(selected.familyMembers?.length ?? 1) < 3}
+          onApproved={() => { setRefreshKey(value => value + 1); void open(selected.data.id) }} />}
     </aside>}
   </>
 }
@@ -373,12 +381,15 @@ function Social() {
 }
 
 export default function SalesExtendedViews({ tab, membershipQaEnabled = false, membershipWriteEnabled = false,
+  familyWriteEnabled = false, canReviewFamily = false,
   canManageSchedule = false, reportScheduleWriteEnabled = false }: {
   tab: Tab; membershipQaEnabled?: boolean; membershipWriteEnabled?: boolean;
+  familyWriteEnabled?: boolean; canReviewFamily?: boolean;
   canManageSchedule?: boolean; reportScheduleWriteEnabled?: boolean
 }) {
   if (tab === 'memberships') return <Memberships membershipQaEnabled={membershipQaEnabled}
-    membershipWriteEnabled={membershipWriteEnabled} />
+    membershipWriteEnabled={membershipWriteEnabled} familyWriteEnabled={familyWriteEnabled}
+    canReviewFamily={canReviewFamily} />
   if (tab === 'reports') return <Reports canManageSchedule={canManageSchedule}
     reportScheduleWriteEnabled={reportScheduleWriteEnabled} />
   return <Social />
