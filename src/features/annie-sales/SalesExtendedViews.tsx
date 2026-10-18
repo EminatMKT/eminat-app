@@ -9,7 +9,16 @@ type Membership = {
   modality?: string | null; duration?: string | null; effectiveStatus: string
   issuedAt: string; expiresAt: string; isDemo?: boolean; hasPdf?: boolean
 }
-type MembershipDetail = { data: Membership; periods?: { startsAt: string; expiresAt: string; plan: string; duration: string }[] }
+type MembershipDetail = {
+  data: Membership
+  periods?: { startsAt: string; expiresAt: string; plan: string; duration: string }[]
+  familyMembers?: { id: string; code: string; firstName: string; lastName: string; familyMemberIndex: number | null; effectiveStatus: string }[]
+}
+type MembershipCatalog = {
+  plans: string[]; modalities: string[]; durations: string[]
+  quotes: { plan: string; modality: string; duration: string; monthlyCents: number;
+    totalCents: number; visitFeeCents: number; includedVisits: number; initialMonths: number }[]
+}
 type Bucket = { code: string; label?: string; count: number; converted?: number; conversionRate?: number }
 type Report = { data: {
   conversion: { totalLeads: number; converted: number; rate: number }
@@ -41,6 +50,10 @@ async function json<T>(path: string): Promise<T> {
 }
 
 function Memberships() {
+  const [catalog, setCatalog] = useState<MembershipCatalog | null>(null)
+  const [quotePlan, setQuotePlan] = useState('')
+  const [quoteModality, setQuoteModality] = useState('')
+  const [quoteDuration, setQuoteDuration] = useState('')
   const [search, setSearch] = useState('')
   const [demo, setDemo] = useState('ALL')
   const [status, setStatus] = useState('')
@@ -50,6 +63,17 @@ function Memberships() {
   const [selected, setSelected] = useState<MembershipDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  useEffect(() => {
+    let cancelled = false
+    void json<MembershipCatalog>('memberships/catalog').then(result => {
+      if (cancelled) return
+      setCatalog(result)
+      setQuotePlan(result.plans[0] ?? '')
+      setQuoteModality(result.modalities[0] ?? '')
+      setQuoteDuration(result.durations[0] ?? '')
+    }).catch(() => { if (!cancelled) setCatalog(null) })
+    return () => { cancelled = true }
+  }, [])
   useEffect(() => { setPage(1); setSelected(null) }, [search, demo, status])
   useEffect(() => {
     let cancelled = false
@@ -82,7 +106,21 @@ function Memberships() {
       window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'PDF_UNAVAILABLE') }
   }
+  const quote = catalog?.quotes.find(item => item.plan === quotePlan &&
+    item.modality === quoteModality && item.duration === quoteDuration)
+  const money = (cents: number) => new Intl.NumberFormat('en-US',
+    { style: 'currency', currency: 'USD' }).format(cents / 100)
   return <>
+    {catalog && <div className={s.card}>
+      <h2>ANNIE membership pricing</h2>
+      <div className={s.filters}>
+        <label>Plan <select value={quotePlan} onChange={event => setQuotePlan(event.target.value)}>{catalog.plans.map(plan => <option key={plan} value={plan}>{plan}</option>)}</select></label>
+        <label>Type <select value={quoteModality} onChange={event => setQuoteModality(event.target.value)}>{catalog.modalities.map(modality => <option key={modality} value={modality}>{modality === 'FAMILY' ? 'Family' : 'Individual'}</option>)}</select></label>
+        <label>Term <select value={quoteDuration} onChange={event => setQuoteDuration(event.target.value)}>{catalog.durations.map(duration => <option key={duration} value={duration}>{duration === 'MONTHLY' ? 'Month to month' : `${duration.slice(0, -1)} months`}</option>)}</select></label>
+      </div>
+      {quote && <p>{money(quote.totalCents)} initial total · {money(quote.monthlyCents)} monthly rate · {quote.initialMonths} month initial period · {quote.includedVisits} included visits per member · {money(quote.visitFeeCents)} visit fee</p>}
+      {quoteDuration === 'MONTHLY' && <p className={s.muted}>Month to month starts with two months paid in advance, then continues monthly. This quote comes from ANNIE.</p>}
+    </div>}
     <div className={s.filters}>
       <label>Search <input value={search} onChange={event => setSearch(event.target.value)} maxLength={160} placeholder="Name or membership code" /></label>
       <label>Records <select value={demo} onChange={event => setDemo(event.target.value)}><option value="ALL">All</option><option value="REAL">Real</option><option value="DEMO">Demo</option></select></label>
@@ -98,6 +136,7 @@ function Memberships() {
       <dl><dt>Code</dt><dd>{selected.data.code}</dd><dt>Status</dt><dd>{selected.data.effectiveStatus}</dd><dt>Plan</dt><dd>{selected.data.plan ?? 'Legacy'}</dd><dt>Modality</dt><dd>{selected.data.modality ?? '—'}</dd><dt>Duration</dt><dd>{selected.data.duration ?? '—'}</dd><dt>Issued</dt><dd>{selected.data.issuedAt.slice(0, 10)}</dd><dt>Expires</dt><dd>{selected.data.expiresAt.slice(0, 10)}</dd></dl>
       {selected.data.hasPdf && <button className={s.next} type="button" onClick={() => void download(selected.data.id)}>Download ANNIE membership PDF</button>}
       {(selected.periods?.length ?? 0) > 0 && <div><h3>Periods</h3><ul>{selected.periods?.map(period => <li key={`${period.startsAt}-${period.expiresAt}`}>{period.startsAt.slice(0, 10)} – {period.expiresAt.slice(0, 10)} · {period.plan} · {period.duration}</li>)}</ul></div>}
+      {(selected.familyMembers?.length ?? 0) > 0 && <div><h3>Family members</h3><ul>{selected.familyMembers?.map(member => <li key={member.id}><button type="button" onClick={() => void open(member.id)}>{member.firstName} {member.lastName}</button> · {member.familyMemberIndex === 1 ? 'Primary member' : 'Family member'} · {member.effectiveStatus}</li>)}</ul></div>}
     </aside>}
   </>
 }
