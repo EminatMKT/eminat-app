@@ -6,7 +6,7 @@ import s from './LeadOperations.module.css'
 
 export type Task = { id: string; title: string; version: number; status: string; dueAt: string; description?: string | null;
   priority: string; type?: string; assigneeId: string; leadId?: string | null; notes?: string | null }
-const taskTypes = [['GENERAL', 'Follow-up'], ['MEETING', 'Meeting']] as const
+const taskTypes = [['GENERAL', 'Follow-up'], ['MEETING', 'Meeting follow-up']] as const
 
 export default function ActivityOperations({ selected, directory, enabled, syntheticOnly, onChanged }: {
   selected: Task | null; directory: SalesDirectory; enabled: boolean; syntheticOnly: boolean; onChanged: (id: string) => void

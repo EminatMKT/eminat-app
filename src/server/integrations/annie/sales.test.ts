@@ -465,6 +465,19 @@ describe('ANNIE Sales adapter', () => {
     expect((await salesExtendedRead(request(), ['meta', 'oauth', 'start'])).status).toBe(404)
     expect(fetch).not.toHaveBeenCalled()
   })
+  it('reads scoped meetings with only approved filters', async () => {
+    const identity = Response.json({ data: { principalId: id.principal, organizationId: id.org,
+      role: 'SALES_MANAGER', capabilities: { salesRead: true } } })
+    const fetch = vi.fn().mockResolvedValueOnce(identity).mockResolvedValueOnce(Response.json({ data: [{
+      id: id.lead, organizationId: id.org, title: 'QA Meeting',
+    }] }))
+    vi.stubGlobal('fetch', fetch)
+    expect((await salesExtendedRead(request('https://lilly.example/api/integrations/annie/sales/extended/meetings?view=upcoming&limit=50'),
+      ['meetings'])).status).toBe(200)
+    expect(String(fetch.mock.calls[1][0])).toContain('/api/crm/activities/meetings?view=upcoming&limit=50')
+    expect((await salesExtendedRead(request('https://lilly.example/api/integrations/annie/sales/extended/meetings?status=PAID'),
+      ['meetings'])).status).toBe(400)
+  })
   it('keeps membership list rows in the mapped organization', async () => {
     const fetch = vi.fn().mockResolvedValueOnce(Response.json({ data: {
       principalId: id.principal, organizationId: id.org, role: 'OPERATOR',

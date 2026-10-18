@@ -583,6 +583,13 @@ function scopedResult(value: unknown, organizationId: string): unknown {
 
 function extendedPath(parts: string[]): { path: string; pdf: boolean; scoped: boolean } {
   const [section, action, idAction] = parts
+  if (section === 'meetings') {
+    if (parts.length === 1) return { path: '/api/crm/activities/meetings', pdf: false, scoped: true }
+    if (parts.length === 2 && uuid.test(action))
+      return { path: `/api/crm/activities/meetings/${action}`, pdf: false, scoped: true }
+    if (parts.length === 3 && uuid.test(action) && idAction === 'history')
+      return { path: `/api/crm/activities/meetings/${action}/history`, pdf: false, scoped: true }
+  }
   if (section === 'memberships') {
     if (parts.length === 1) return { path: '/api/crm/program-memberships', pdf: false, scoped: true }
     if (parts.length === 2 && ['catalog', 'dashboard', 'reports'].includes(action))
@@ -619,7 +626,11 @@ export async function salesExtendedRead(request: Request, parts: string[]): Prom
     if (request.method !== 'GET') throw new SalesError(405, 'METHOD_NOT_ALLOWED')
     const target = extendedPath(parts)
     const query = new URL(request.url).searchParams
-    if (query.toString().length > 2048 || Array.from(query.keys()).some(key => !extendedQueryKeys.has(key)))
+    const queryKeys = parts[0] === 'meetings'
+      ? new Set(['view', 'leadId', 'timezone', 'limit']) : extendedQueryKeys
+    if (query.toString().length > 2048 || Array.from(query.keys()).some(key => !queryKeys.has(key)))
+      throw new SalesError(400, 'INVALID_FILTER')
+    if (parts[0] === 'meetings' && parts.length > 1 && query.size)
       throw new SalesError(400, 'INVALID_FILTER')
     if (target.pdf && query.size) throw new SalesError(400, 'INVALID_FILTER')
     const { mapping, token } = await mappedActor(request)
