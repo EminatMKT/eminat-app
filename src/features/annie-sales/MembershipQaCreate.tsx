@@ -7,7 +7,7 @@ type Catalog = { plans: string[]; modalities: string[]; durations: string[];
   quotes: { plan: string; modality: string; duration: string; totalCents: number }[] }
 type Contact = { id: string; displayName: string; firstName?: string | null;
   lastName?: string | null; phone?: string | null; email?: string | null }
-type Opportunity = { id: string; name: string; stageId: string }
+type Opportunity = { id: string; name: string; stageId: string; primaryContactId?: string | null }
 type Payment = { id: string; amount: string; currency: string; paidAt: string;
   reference?: string | null; availableForMembership: boolean }
 type Stage = { id: string; outcome?: string }
@@ -36,6 +36,7 @@ export default function MembershipQaCreate({ catalog, onCreated, paid = false }:
   const [contacts, setContacts] = useState<Contact[]>([])
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
   const [payments, setPayments] = useState<Payment[]>([])
+  const [linkedContacts, setLinkedContacts] = useState<Contact[]>([])
   const [salesPaymentId, setSalesPaymentId] = useState('')
   const [opportunityId, setOpportunityId] = useState('')
   const [plan, setPlan] = useState(catalog.plans[0] ?? '')
@@ -49,10 +50,12 @@ export default function MembershipQaCreate({ catalog, onCreated, paid = false }:
   const quote = catalog.quotes.find(item => item.plan === plan && item.modality === modality && item.duration === duration)
   const eligiblePayments = payments.filter(payment => payment.availableForMembership &&
     payment.currency === 'USD' && quote && Math.round(Number(payment.amount) * 100) === quote.totalCents)
+  const availableContacts = paid ? linkedContacts : contacts
   useEffect(() => {
     let cancelled = false
     void Promise.all([
-      annie('contacts?limit=100'), annie('opportunities?limit=100'), annie('pipeline'),
+      paid ? Promise.resolve({ data: [] }) : annie('contacts?limit=100'),
+      annie('opportunities?limit=100'), annie('pipeline'),
     ]).then(([contactResult, opportunityResult, pipelineResult]) => {
       if (cancelled) return
       const stageIds = new Set(((pipelineResult.data as { stages?: Stage[] } | undefined)?.stages ?? [])
@@ -65,11 +68,25 @@ export default function MembershipQaCreate({ catalog, onCreated, paid = false }:
     return () => { cancelled = true }
   }, [paid])
   useEffect(() => {
-    setSalesPaymentId(''); setPayments([])
+    setSalesPaymentId(''); setPayments([]); setLinkedContacts([])
     if (!paid || !opportunityId) return
     let cancelled = false
-    void annie(`extended/opportunities/${opportunityId}/payments`).then(result => {
-      if (!cancelled) setPayments((result.data as Payment[] | undefined) ?? [])
+    void Promise.all([
+      annie(`extended/opportunities/${opportunityId}/payments`),
+      annie(`opportunities/${opportunityId}`),
+      annie(`opportunities/${opportunityId}/contacts`),
+    ]).then(async ([paymentResult, opportunityResult, linksResult]) => {
+      const primaryId = (opportunityResult.data as Opportunity | undefined)?.primaryContactId
+      const primaryResult = primaryId ? await annie(`contacts/${primaryId}`) : null
+      const related = ((linksResult.data as { contact?: Contact }[] | undefined) ?? [])
+        .map(link => link.contact).filter((contact): contact is Contact => !!contact)
+      const mapped = new Map<string, Contact>()
+      for (const contact of [...related, ...(primaryResult?.data ? [primaryResult.data as Contact] : [])])
+        mapped.set(contact.id, contact)
+      if (!cancelled) {
+        setPayments((paymentResult.data as Payment[] | undefined) ?? [])
+        setLinkedContacts(Array.from(mapped.values()))
+      }
     }).catch(cause => { if (!cancelled) setError(cause instanceof Error ? cause.message : 'PAYMENTS_UNAVAILABLE') })
     return () => { cancelled = true }
   }, [paid, opportunityId])
@@ -77,7 +94,7 @@ export default function MembershipQaCreate({ catalog, onCreated, paid = false }:
     setMembers(current => current.map((member, i) => i === index ? { ...member, [field]: value } : member))
   }
   function choose(index: number, id: string) {
-    const contact = contacts.find(row => row.id === id)
+    const contact = availableContacts.find(row => row.id === id)
     setMembers(current => current.map((member, i) => i === index ? {
       ...member, contactId: id, firstName: contact?.firstName ?? '',
       lastName: contact?.lastName ?? '', phone: contact?.phone ?? '',
@@ -111,7 +128,7 @@ export default function MembershipQaCreate({ catalog, onCreated, paid = false }:
       : 'SUPERADMIN QA only. ANNIE creates demo records and PDFs; no real payment or member email is sent.'}</p>
     <form onSubmit={event => void submit(event)}>
       <div className={s.filters}>
-        <label>{paid ? 'Won Opportunity' : 'Won synthetic Opportunity'} <select required value={opportunityId} onChange={event => setOpportunityId(event.target.value)}><option value="">Select…</option>{opportunities.map(opportunity => <option key={opportunity.id} value={opportunity.id}>{opportunity.name}</option>)}</select></label>
+        <label>{paid ? 'Won Opportunity' : 'Won synthetic Opportunity'} <select required value={opportunityId} onChange={event => { setOpportunityId(event.target.value); setMembers([emptyMember()]); setError('') }}><option value="">Select…</option>{opportunities.map(opportunity => <option key={opportunity.id} value={opportunity.id}>{opportunity.name}</option>)}</select></label>
         {paid && <label>Recorded payment matching ANNIE quote <select required value={salesPaymentId} onChange={event => setSalesPaymentId(event.target.value)}><option value="">Select…</option>{eligiblePayments.map(payment => <option key={payment.id} value={payment.id}>{payment.currency} {payment.amount} · {payment.paidAt.slice(0, 10)} · {payment.reference || 'Recorded payment'}</option>)}</select></label>}
         <label>Plan <select value={plan} onChange={event => setPlan(event.target.value)}>{catalog.plans.map(value => <option key={value}>{value}</option>)}</select></label>
         <label>Type <select value={modality} onChange={event => { setModality(event.target.value); if (event.target.value === 'INDIVIDUAL') setMembers(current => current.slice(0, 1)) }}><option value="INDIVIDUAL">Individual</option><option value="FAMILY">Family</option></select></label>
@@ -122,7 +139,7 @@ export default function MembershipQaCreate({ catalog, onCreated, paid = false }:
         <p className={s.muted}>No unused recorded payment matches this ANNIE quote. Confirm the payment and membership plan in ANNIE.</p>}
       {members.map((member, index) => <fieldset key={index}><legend>{index === 0 ? 'Primary member' : `Family member ${index + 1}`}</legend>
         <div className={s.filters}>
-          <label>{paid ? 'ANNIE Contact' : 'ANNIE synthetic Contact'} <select required value={member.contactId} onChange={event => choose(index, event.target.value)}><option value="">Select…</option>{contacts.filter(contact => !members.some((other, i) => i !== index && other.contactId === contact.id)).map(contact => <option key={contact.id} value={contact.id}>{contact.displayName}</option>)}</select></label>
+          <label>{paid ? 'Opportunity Contact' : 'ANNIE synthetic Contact'} <select required value={member.contactId} onChange={event => choose(index, event.target.value)}><option value="">Select…</option>{availableContacts.filter(contact => !members.some((other, i) => i !== index && other.contactId === contact.id)).map(contact => <option key={contact.id} value={contact.id}>{contact.displayName}</option>)}</select></label>
           {(['firstName', 'lastName', 'phoneCountryCode', 'phone', 'email', 'address'] as const).map(field =>
             <label key={field}>{({ firstName: 'First name', lastName: 'Last name', phoneCountryCode: 'Phone country code', phone: 'Phone', email: 'Email', address: 'Address' })[field]}
               <input required type={field === 'email' ? 'email' : 'text'} value={member[field]} onChange={event => update(index, field, event.target.value)} /></label>)}
