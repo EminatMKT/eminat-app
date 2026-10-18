@@ -5,11 +5,12 @@ import SalesDenied from './SalesDenied'
 import { supabase } from '@/shared/db/supabase'
 import { SUB_ITEMS } from '@/shared/components/shell/appShellConfig'
 import { useSalesAccess } from './useSalesQaAccess'
-import LeadOperations, { type Lead } from './LeadOperations'
+import LeadOperations, { type Lead, type LeadStage } from './LeadOperations'
 import ContactOperations, { type Contact } from './ContactOperations'
 import AccountOperations, { type Account } from './AccountOperations'
 import OpportunityOperations, { type Opportunity } from './OpportunityOperations'
 import { ownerLabel, roleLabel, teamLabel, type SalesDirectory } from './salesDirectory'
+import SalesExtendedViews from './SalesExtendedViews'
 import s from './SalesModule.module.css'
 
 type Row = { id: string; organizationId: string; displayName?: string; name?: string; title?: string; label?: string; code?: string; status?: string; stageCode?: string; ownerProfileId?: string; email?: string; companyName?: string; dueAt?: string }
@@ -29,6 +30,7 @@ export default function SalesModule() {
   const [archived, setArchived] = useState(false)
   const [leadView, setLeadView] = useState<'list' | 'board'>('list')
   const [directory, setDirectory] = useState<SalesDirectory>({})
+  const [leadStages, setLeadStages] = useState<LeadStage[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [rows, setRows] = useState<Row[]>([])
@@ -51,6 +53,20 @@ export default function SalesModule() {
         const body = await response.json() as { data?: SalesDirectory }
         setDirectory(body.data ?? {})
       }
+    }).catch(() => {})
+    return () => { cancelled = true }
+  }, [allowed])
+  useEffect(() => {
+    if (!allowed) return
+    let cancelled = false
+    void supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session) return
+      const response = await fetch('/api/integrations/annie/sales/extended/lead-lifecycle', {
+        cache: 'no-store', headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (!response.ok) return
+      const body = await response.json() as { data?: LeadStage[] }
+      if (!cancelled && Array.isArray(body.data)) setLeadStages(body.data)
     }).catch(() => {})
     return () => { cancelled = true }
   }, [allowed])
@@ -113,9 +129,9 @@ export default function SalesModule() {
     <section className={s.page}>
       <header className={s.header}><div><p className={s.eyebrow}>ANNIE · LIVE</p><h1>Sales</h1><p className={s.muted}>Commercial records stay in ANNIE.</p></div><span className={s.badge}>{access.role ? `${roleLabel(access.role)} · ` : ''}{tab === 'leads' && writeEnabled ? 'Controlled Lead writes' : tab === 'contacts' && contactWriteEnabled ? 'Controlled Contact writes' : tab === 'accounts' && accountWriteEnabled ? 'Controlled Account writes' : tab === 'opportunities' && opportunityWriteEnabled ? 'Controlled Opportunity writes' : 'Read only'}</span></header>
       {paged.has(tab) && <div className={s.filters}><label>Search <input value={search} onChange={event => setSearch(event.target.value)} maxLength={200} placeholder={`Search ${tab}`} /></label>
-        {tab === 'leads' && <><label>Status <select value={status} onChange={event => setStatus(event.target.value)}>{['', 'NEW', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'PAYMENT_PENDING', 'WON', 'LOST'].map(value => <option key={value} value={value}>{value || 'All statuses'}</option>)}</select></label>
+        {tab === 'leads' && <><label>Status <select value={status} onChange={event => setStatus(event.target.value)}><option value="">All statuses</option>{leadStages.map(stage => <option key={stage.code} value={stage.code}>{stage.label}</option>)}</select></label>
           <label>Follow-up <select value={followUp} onChange={event => setFollowUp(event.target.value)}><option value="">Any</option><option value="overdue">Overdue</option><option value="next_7_days">Next 7 days</option><option value="none">None</option></select></label>
-          <label>View <select value={leadView} onChange={event => setLeadView(event.target.value as 'list' | 'board')}><option value="list">List</option><option value="board">Board</option></select></label></>}
+          <label>View <select value={leadView} onChange={event => setLeadView(event.target.value as 'list' | 'board')}><option value="list">List</option><option value="board" disabled={!leadStages.length}>Board</option></select></label></>}
         {(tab === 'leads' || tab === 'contacts') && <><label>Owner <select value={ownerFilter} onChange={event => setOwnerFilter(event.target.value)}><option value="">All owners</option>{directory.users?.map(user => <option key={user.principalId} value={user.principalId}>{ownerLabel(directory, user.principalId)} · {roleLabel(user.role)}</option>)}</select></label>
           <label>Team <select value={teamFilter} onChange={event => setTeamFilter(event.target.value)}><option value="">All teams</option>{directory.teams?.map(team => <option key={team} value={team}>{teamLabel(directory, team)}</option>)}</select></label></>}
         {(tab === 'leads' || tab === 'contacts' || tab === 'accounts' || tab === 'opportunities') && <label>Archived <input type="checkbox" checked={archived} onChange={event => setArchived(event.target.checked)} /></label>}</div>}
@@ -127,14 +143,15 @@ export default function SalesModule() {
         <article><span>Overdue follow-up</span><strong>{dashboard.followUp?.overdue ?? 0}</strong></article>
         <article><span>Interactions · 30 days</span><strong>{dashboard.followUp?.interactionsLast30Days ?? 0}</strong></article>
       </div><div className={s.card}><h2>Opportunities by stage</h2><ul className={s.list}>{(dashboard.opportunitiesByStage ?? []).map(stage => <li key={stage.code}><span>{stage.label}</span><strong>{stage.count}</strong></li>)}</ul></div></>}
-      {!loading && !error && tab !== 'dashboard' && <div className={s.card}><div className={s.cardHeader}><h2>{SUB_ITEMS.sales.find(item => item.tab === tab)?.label}</h2><span>{rows.length} shown</span></div>
-        {rows.length === 0 ? <p className={s.muted}>No records in this view.</p> : tab === 'leads' && leadView === 'board' ? <div className={s.board}>{['NEW', 'CONTACTED', 'QUALIFIED', 'PROPOSAL', 'PAYMENT_PENDING', 'WON', 'LOST'].map(stage => <section key={stage}><h3>{stage}</h3>{rows.filter(row => row.status === stage).map(row => <article key={row.id}><button type="button" onClick={() => void openDetail(row.id)}>{label(row)}</button><small>{ownerLabel(directory, row.ownerProfileId)}</small></article>)}</section>)}</div> : <ul className={s.list}>{rows.map(row => <li key={row.id}><div>{tab === 'pipeline' ? <strong>{label(row)}</strong> : <button type="button" onClick={() => void openDetail(row.id)}>{label(row)}</button>}<small>{row.companyName ?? row.email ?? row.dueAt ?? row.status ?? row.stageCode ?? ''}</small></div><small>{row.ownerProfileId ? ownerLabel(directory, row.ownerProfileId) : ''}</small></li>)}</ul>}
+      {!loading && !error && tabs.has(tab) && tab !== 'dashboard' && <div className={s.card}><div className={s.cardHeader}><h2>{SUB_ITEMS.sales.find(item => item.tab === tab)?.label}</h2><span>{rows.length} shown</span></div>
+        {rows.length === 0 ? <p className={s.muted}>No records in this view.</p> : tab === 'leads' && leadView === 'board' ? <div className={s.board}>{leadStages.map(stage => <section key={stage.code}><h3>{stage.label}</h3>{rows.filter(row => row.status === stage.code).map(row => <article key={row.id}><button type="button" onClick={() => void openDetail(row.id)}>{label(row)}</button><small>{ownerLabel(directory, row.ownerProfileId)}</small></article>)}</section>)}</div> : <ul className={s.list}>{rows.map(row => <li key={row.id}><div>{tab === 'pipeline' ? <strong>{label(row)}</strong> : <button type="button" onClick={() => void openDetail(row.id)}>{label(row)}</button>}<small>{row.companyName ?? row.email ?? row.dueAt ?? row.status ?? row.stageCode ?? ''}</small></div><small>{row.ownerProfileId ? ownerLabel(directory, row.ownerProfileId) : ''}</small></li>)}</ul>}
         {nextCursor && <button type="button" className={s.next} onClick={() => setCursor(nextCursor)}>Next page</button>}</div>}
       {selected && <aside className={s.detail}><div className={s.cardHeader}><h2>{label(selected)}</h2><button type="button" onClick={() => setSelected(null)}>Close</button></div><dl><dt>Status</dt><dd>{selected.status ?? selected.stageCode ?? '—'}</dd><dt>Owner</dt><dd>{ownerLabel(directory, selected.ownerProfileId)}</dd></dl></aside>}
-      {tab === 'leads' && <LeadOperations selected={selected as Lead | null} writeEnabled={writeEnabled} onChanged={leadChanged} />}
+      {tab === 'leads' && <LeadOperations selected={selected as Lead | null} writeEnabled={writeEnabled} onChanged={leadChanged} stages={leadStages} />}
       {tab === 'contacts' && <ContactOperations selected={selected as Contact | null} writeEnabled={contactWriteEnabled} onChanged={leadChanged} />}
       {tab === 'accounts' && <AccountOperations selected={selected as Account | null} writeEnabled={accountWriteEnabled} onChanged={leadChanged} directory={directory} />}
       {tab === 'opportunities' && <OpportunityOperations selected={selected as Opportunity | null} writeEnabled={opportunityWriteEnabled} onChanged={leadChanged} directory={directory} />}
+      {(tab === 'memberships' || tab === 'reports' || tab === 'social') && <SalesExtendedViews tab={tab} />}
     </section>
   </AppShell>
 }

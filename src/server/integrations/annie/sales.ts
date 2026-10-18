@@ -13,6 +13,11 @@ const listKeys = new Set([
   'q', 'limit', 'cursor', 'status', 'stageCode', 'type', 'accountId',
   'ownerProfileId', 'teamId', 'archived', 'followUp',
 ])
+const extendedQueryKeys = new Set([
+  'search', 'page', 'status', 'demo', 'plan', 'modality', 'duration',
+  'sellerProfileId', 'issuedFrom', 'issuedTo', 'expiresFrom', 'expiresTo',
+  'saleFrom', 'saleTo', 'from', 'to', 'timezone', 'ownerProfileId', 'teamId', 'membershipType',
+])
 
 class SalesError extends Error {
   constructor(readonly status: number, readonly code: string) { super(code) }
@@ -445,6 +450,76 @@ function scopedResult(value: unknown, organizationId: string): unknown {
     (row as { organizationId?: unknown }).organizationId !== organizationId))
     throw new SalesError(502, 'ANNIE_SCOPE_MISMATCH')
   return value
+}
+
+function extendedPath(parts: string[]): { path: string; pdf: boolean; scoped: boolean } {
+  const [section, action, idAction] = parts
+  if (section === 'memberships') {
+    if (parts.length === 1) return { path: '/api/crm/program-memberships', pdf: false, scoped: true }
+    if (parts.length === 2 && ['catalog', 'dashboard', 'reports'].includes(action))
+      return { path: `/api/crm/program-memberships/${action}`, pdf: false, scoped: false }
+    if (parts.length === 2 && uuid.test(action))
+      return { path: `/api/crm/program-memberships/${action}`, pdf: false, scoped: true }
+    if (parts.length === 3 && uuid.test(action) && ['pdf', 'agreement'].includes(idAction))
+      return { path: `/api/crm/program-memberships/${action}/${idAction}`, pdf: true, scoped: false }
+  }
+  if (section === 'reports' && parts.length === 1)
+    return { path: '/api/crm/reports', pdf: false, scoped: false }
+  if (section === 'sales-dashboard' && parts.length === 1)
+    return { path: '/api/crm/sales-dashboard', pdf: false, scoped: false }
+  if (section === 'lead-lifecycle' && parts.length === 1)
+    return { path: '/api/crm/lead-lifecycle', pdf: false, scoped: false }
+  if (section === 'social' && parts.length === 2 && action === 'providers')
+    return { path: '/api/crm/social/providers', pdf: false, scoped: false }
+  if (section === 'social' && parts.length === 3 && action === 'meta' &&
+      ['integrations', 'accounts', 'assets'].includes(idAction))
+    return { path: `/api/crm/social/meta/${idAction}`, pdf: false, scoped: false }
+  if (section === 'meta' && parts.length === 2 &&
+      ['status', 'connections', 'conversations', 'links'].includes(action))
+    return { path: `/api/crm/meta/${action}`, pdf: false, scoped: false }
+  if (section === 'meta' && parts.length === 4 && action === 'conversations' &&
+      uuid.test(idAction) && parts[3] === 'events')
+    return { path: `/api/crm/meta/conversations/${idAction}/events`, pdf: false, scoped: false }
+  throw new SalesError(404, 'NOT_FOUND')
+}
+
+export async function salesExtendedRead(request: Request, parts: string[]): Promise<Response> {
+  try {
+    if (request.method !== 'GET') throw new SalesError(405, 'METHOD_NOT_ALLOWED')
+    const target = extendedPath(parts)
+    const query = new URL(request.url).searchParams
+    if (query.toString().length > 2048 || Array.from(query.keys()).some(key => !extendedQueryKeys.has(key)))
+      throw new SalesError(400, 'INVALID_FILTER')
+    if (target.pdf && query.size) throw new SalesError(400, 'INVALID_FILTER')
+    const { mapping, token } = await mappedActor(request)
+    const url = new URL(target.path, origin())
+    url.search = query.toString()
+    let upstream: Response
+    try {
+      upstream = await fetch(url, { method: 'GET', redirect: 'error', cache: 'no-store',
+        headers: { Cookie: `annie_session=${token}; annie_org=${mapping.annie_organization_id}`,
+          Accept: target.pdf ? 'application/pdf' : 'application/json' },
+        signal: AbortSignal.timeout(10000) })
+    } catch { throw new SalesError(502, 'ANNIE_UNAVAILABLE') }
+    if (upstream.status === 401 || upstream.status === 403) throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
+    if (upstream.status === 404) throw new SalesError(404, 'NOT_FOUND')
+    if (!upstream.ok) throw new SalesError(502, 'ANNIE_UPSTREAM_ERROR')
+    if (target.pdf) {
+      if (!upstream.headers.get('content-type')?.startsWith('application/pdf'))
+        throw new SalesError(502, 'ANNIE_INVALID_RESPONSE')
+      const bytes = await upstream.arrayBuffer()
+      if (bytes.byteLength > 5_000_000) throw new SalesError(502, 'ANNIE_INVALID_RESPONSE')
+      return new Response(bytes, { headers: { 'Content-Type': 'application/pdf',
+        'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } })
+    }
+    let result: unknown
+    try { result = await upstream.json() } catch { throw new SalesError(502, 'ANNIE_INVALID_RESPONSE') }
+    if (target.scoped) scopedResult(result, mapping.annie_organization_id)
+    return Response.json(result, { headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    const known = error instanceof SalesError ? error : new SalesError(500, 'SALES_ADAPTER_ERROR')
+    return Response.json({ code: known.code }, { status: known.status, headers: { 'Cache-Control': 'no-store' } })
+  }
 }
 
 export async function salesRead(request: Request, resource: SalesResource | 'pipeline', id?: string): Promise<Response> {

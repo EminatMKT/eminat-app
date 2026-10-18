@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({ createClient: vi.fn(), admin: vi.fn() }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: mocks.createClient }))
 vi.mock('@/shared/db/supabaseAdmin', () => ({ supabaseAdmin: mocks.admin }))
 
-import { salesAccessDetails, salesAccountHistory, salesAccountWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead } from './sales'
+import { salesAccessDetails, salesAccountHistory, salesAccountWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesExtendedRead, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead } from './sales'
 
 function chain(data: unknown) {
   const query = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn().mockResolvedValue({ data, error: null }) }
@@ -144,6 +144,23 @@ describe('Phase C Account write boundary', () => {
 })
 
 describe('ANNIE Sales adapter', () => {
+  it('allows only named ANNIE Sales extras and rejects accounting or OAuth paths', async () => {
+    const fetch = vi.fn(); vi.stubGlobal('fetch', fetch)
+    expect((await salesExtendedRead(request(), ['quickbooks', 'connections'])).status).toBe(404)
+    expect((await salesExtendedRead(request(), ['meta', 'oauth', 'start'])).status).toBe(404)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+  it('keeps membership list rows in the mapped organization', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(Response.json({ data: {
+      principalId: id.principal, organizationId: id.org, role: 'OPERATOR',
+      capabilities: { salesRead: true },
+    } })).mockResolvedValueOnce(Response.json({ data: [{ id: id.lead,
+      organizationId: 'other', code: 'DEMO' }] }))
+    vi.stubGlobal('fetch', fetch)
+    const response = await salesExtendedRead(request(), ['memberships'])
+    expect(response.status).toBe(502)
+    expect(String(fetch.mock.calls[1][0])).toContain('/api/crm/program-memberships')
+  })
   it('uses the canonical ANNIE role and capabilities for UI access', async () => {
     const fetch = vi.fn().mockResolvedValue(Response.json({ data: {
       principalId: id.principal, organizationId: id.org, role: 'SALES_MANAGER',

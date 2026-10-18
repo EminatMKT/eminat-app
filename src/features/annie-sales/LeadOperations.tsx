@@ -8,6 +8,7 @@ export type Lead = Record<string, unknown> & {
   id: string; organizationId: string; version: number; displayName?: string; status?: string
   archivedAt?: string | null; convertedAt?: string | null; access?: { canEdit?: boolean }
 }
+export type LeadStage = { code: string; label: string; nextCodes: string[] }
 type History = { id: string; action?: string; eventType?: string; occurredAt?: string; actorId?: string; changes?: unknown }
 type AccountOption = { id: string; name?: string }
 type ContactOption = { id: string; displayName?: string }
@@ -33,11 +34,6 @@ const fields: Field[] = [
   { key: 'ownerProfileId', label: 'ANNIE owner', type: 'owner' },
   { key: 'teamId', label: 'ANNIE team', type: 'team' },
 ]
-const moves: Record<string, string[]> = {
-  NEW: ['CONTACTED', 'LOST'], CONTACTED: ['QUALIFIED', 'LOST'],
-  QUALIFIED: ['PROPOSAL', 'LOST'], PROPOSAL: ['PAYMENT_PENDING', 'LOST'],
-  PAYMENT_PENDING: ['WON', 'LOST'], WON: [], LOST: ['NEW'],
-}
 function valueOf(row: Lead | null, key: string): string | boolean {
   const value = key.includes('.') ? (row?.[key.split('.')[0]] as Record<string, unknown> | null)?.[key.split('.')[1]] : row?.[key]
   if (typeof value === 'boolean') return value
@@ -69,8 +65,8 @@ function payloadFrom(draft: Record<string, string | boolean>, selected: Lead | n
   return output
 }
 
-export default function LeadOperations({ selected, writeEnabled, onChanged }: {
-  selected: Lead | null; writeEnabled: boolean; onChanged: (id: string) => void
+export default function LeadOperations({ selected, writeEnabled, onChanged, stages }: {
+  selected: Lead | null; writeEnabled: boolean; onChanged: (id: string) => void; stages: LeadStage[]
 }) {
   const [mode, setMode] = useState<'create' | 'edit' | null>(null)
   const [draft, setDraft] = useState<Record<string, string | boolean>>({})
@@ -195,7 +191,7 @@ export default function LeadOperations({ selected, writeEnabled, onChanged }: {
       <button type="button" disabled={busy} onClick={() => onChanged(selected.id)}>Refresh from ANNIE</button>
       {canEdit && !selected.archivedAt && !selected.convertedAt && <div className={s.actions}>
         <button type="button" onClick={() => open('edit')}>Edit</button>
-        <label>Next status <select value={transition} onChange={event => setTransition(event.target.value)}><option value="">Select…</option>{(moves[selected.status ?? ''] ?? []).map(status => <option key={status} value={status}>{status}</option>)}</select></label>
+        <label>Next status <select value={transition} onChange={event => setTransition(event.target.value)}><option value="">Select…</option>{(stages.find(stage => stage.code === selected.status)?.nextCodes ?? []).map(code => <option key={code} value={code}>{stages.find(stage => stage.code === code)?.label ?? code}</option>)}</select></label>
         <button type="button" disabled={!transition || busy} onClick={move}>Move Lead</button>
       </div>}
       {canEdit && !selected.archivedAt && !selected.convertedAt && selected.status !== 'LOST' && <details><summary>Convert Lead</summary>
