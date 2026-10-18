@@ -64,8 +64,8 @@ function payloadFrom(draft: Record<string, string | boolean>, selected: Contact 
   return output
 }
 
-export default function ContactOperations({ selected, writeEnabled, onChanged }: {
-  selected: Contact | null; writeEnabled: boolean; onChanged: (id: string) => void
+export default function ContactOperations({ selected, writeEnabled, syntheticOnly, onChanged }: {
+  selected: Contact | null; writeEnabled: boolean; syntheticOnly: boolean; onChanged: (id: string) => void
 }) {
   const [mode, setMode] = useState<'create' | 'edit' | null>(null)
   const [draft, setDraft] = useState<Record<string, string | boolean>>({})
@@ -199,9 +199,10 @@ export default function ContactOperations({ selected, writeEnabled, onChanged }:
       setRelatedNext(result.nextCursor ?? null)
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'RELATIONSHIP_READ_FAILED') }
   }
-  const canEdit = writeEnabled && selected?.displayName?.startsWith('QA PHASE C ') === true && selected.access?.canEdit === true
+  const canEdit = writeEnabled && selected?.access?.canEdit === true &&
+    (!syntheticOnly || selected.displayName?.startsWith('QA PHASE C ') === true)
   return <div className={s.workspace}>
-    {writeEnabled && <button type="button" className={s.action} onClick={() => open('create')}>Create synthetic Contact</button>}
+    {writeEnabled && <button type="button" className={s.action} onClick={() => open('create')}>{syntheticOnly ? 'Create synthetic Contact' : 'Create Contact'}</button>}
     {selected && <section className={s.panel} aria-label="Contact operations">
       <h3>{selected.displayName ?? 'Contact'} · ANNIE</h3>
       <p>Primary account: {accounts.find(account => account.id === selected.primaryAccountId)?.name ?? (selected.primaryAccountId ? 'Account' : '—')}</p>
@@ -212,7 +213,7 @@ export default function ContactOperations({ selected, writeEnabled, onChanged }:
         <label>Account
           <select value={relationshipAccountId} onChange={event => void loadAccountLinks(event.target.value)}>
             <option value="">Select an ANNIE Account</option>
-            {accounts.filter(account => account.name?.startsWith('QA PHASE C ')).map(account => <option key={account.id} value={account.id}>{account.name}</option>)}
+            {accounts.filter(account => !syntheticOnly || account.name?.startsWith('QA PHASE C ')).map(account => <option key={account.id} value={account.id}>{account.name}</option>)}
           </select>
         </label>
         {relationshipAccountId && <button type="button" disabled={busy} onClick={() => void loadAccountLinks(relationshipAccountId)}>Refresh relationship</button>}
@@ -241,15 +242,16 @@ export default function ContactOperations({ selected, writeEnabled, onChanged }:
         {historyNext && <button type="button" onClick={() => void moreHistory()}>Load more history</button>}
       </details>
     </section>}
-    {mode && <section className={s.panel}><h3>{mode === 'create' ? 'Create synthetic Contact' : 'Edit synthetic Contact'}</h3>
+    {mode && <section className={s.panel}><h3>{mode === 'create' ? (syntheticOnly ? 'Create synthetic Contact' : 'Create Contact') : (syntheticOnly ? 'Edit synthetic Contact' : 'Edit Contact')}</h3>
       <form className={s.form} onSubmit={save}>{fields.map(field => <label key={field.key}>{field.label}
         {field.type === 'checkbox' ? <input type="checkbox" checked={Boolean(draft[field.key])} onChange={event => setDraft(value => ({ ...value, [field.key]: event.target.checked }))} />
           : field.type === 'textarea' ? <textarea value={String(draft[field.key] ?? '')} onChange={event => setDraft(value => ({ ...value, [field.key]: event.target.value }))} />
           : field.type === 'owner' ? <select value={String(draft[field.key] ?? '')} onChange={event => setDraft(value => ({ ...value, [field.key]: event.target.value }))}><option value="">ANNIE default owner</option>{directory.users?.map(user => <option key={user.principalId} value={user.principalId}>{ownerLabel(directory, user.principalId)} · {roleLabel(user.role)}</option>)}</select>
           : field.type === 'team' ? <select value={String(draft[field.key] ?? '')} onChange={event => setDraft(value => ({ ...value, [field.key]: event.target.value }))}><option value="">No team</option>{directory.teams?.map(team => <option key={team} value={team}>{teamLabel(directory, team)}</option>)}</select>
-          : field.type === 'account' ? <select value={String(draft[field.key] ?? '')} onChange={event => setDraft(value => ({ ...value, [field.key]: event.target.value }))}><option value="">No primary account</option>{accounts.filter(account => account.name?.startsWith('QA PHASE C ')).map(account => <option key={account.id} value={account.id}>{account.name}</option>)}</select>
+          : field.type === 'account' ? <select value={String(draft[field.key] ?? '')} onChange={event => setDraft(value => ({ ...value, [field.key]: event.target.value }))}><option value="">No primary account</option>{accounts.filter(account => !syntheticOnly || account.name?.startsWith('QA PHASE C ')).map(account => <option key={account.id} value={account.id}>{account.name}</option>)}</select>
           : <input type={field.type ?? 'text'} required={field.required} value={String(draft[field.key] ?? '')} onChange={event => setDraft(value => ({ ...value, [field.key]: event.target.value }))} />}
-      </label>)}<div className={s.actions}><button type="submit" disabled={busy || !String(draft.displayName ?? '').startsWith('QA PHASE C ')}>Save in ANNIE</button><button type="button" onClick={() => setMode(null)}>Cancel</button></div></form>
+      </label>)}<div className={s.actions}><button type="submit" disabled={busy || !String(draft.displayName ?? '').trim() ||
+        (syntheticOnly && !String(draft.displayName ?? '').startsWith('QA PHASE C '))}>Save in ANNIE</button><button type="button" onClick={() => setMode(null)}>Cancel</button></div></form>
     </section>}
     {error && <p role="alert" className={s.error}>{error}</p>}
     {notice && <p role="status">{notice}</p>}

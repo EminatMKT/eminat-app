@@ -17,8 +17,9 @@ const fields = [
   ['website', 'Website'], ['phone', 'Phone'], ['email', 'Email'], ['description', 'Notes'],
 ] as const
 
-export default function AccountOperations({ selected, writeEnabled, onChanged, directory }: {
-  selected: Account | null; writeEnabled: boolean; onChanged: (id: string) => void; directory: SalesDirectory
+export default function AccountOperations({ selected, writeEnabled, syntheticOnly, onChanged, directory }: {
+  selected: Account | null; writeEnabled: boolean; syntheticOnly: boolean;
+  onChanged: (id: string) => void; directory: SalesDirectory
 }) {
   const [mode, setMode] = useState<'create' | 'edit' | null>(null)
   const [draft, setDraft] = useState<Record<string, string>>({})
@@ -101,17 +102,17 @@ export default function AccountOperations({ selected, writeEnabled, onChanged, d
     if (!selected || !reason.trim()) return
     void submit(() => api(`accounts/${selected.id}/archive`, 'POST', {
       reason: reason.trim(), restore: Boolean(selected.archivedAt),
-    }, selected.version), selected.archivedAt ? 'Synthetic Account restored in ANNIE.' : 'Synthetic Account archived in ANNIE.')
+    }, selected.version), selected.archivedAt ? 'Account restored in ANNIE.' : 'Account archived in ANNIE.')
   }
   const canEdit = writeEnabled && (!selected || selected.access?.canEdit === true)
   return <div className={s.workspace}>
-    {writeEnabled && <button type="button" className={s.action} onClick={() => open('create')}>Create synthetic Account</button>}
+    {writeEnabled && <button type="button" className={s.action} onClick={() => open('create')}>{syntheticOnly ? 'Create synthetic Account' : 'Create Account'}</button>}
     {selected && <section className={s.panel} aria-label="Account operations">
       <h3>{selected.name ?? 'Account'} · ANNIE</h3>
       <button type="button" disabled={busy} onClick={() => onChanged(selected.id)}>Refresh from ANNIE</button>
-      {canEdit && !selected.archivedAt && selected.name?.startsWith('QA PHASE C ') &&
-        <button type="button" onClick={() => open('edit')}>Edit synthetic Account</button>}
-      {canEdit && selected.name?.startsWith('QA PHASE C ') && <details><summary>{selected.archivedAt ? 'Restore Account' : 'Archive Account'}</summary>
+      {canEdit && !selected.archivedAt && (!syntheticOnly || selected.name?.startsWith('QA PHASE C ')) &&
+        <button type="button" onClick={() => open('edit')}>Edit Account</button>}
+      {canEdit && (!syntheticOnly || selected.name?.startsWith('QA PHASE C ')) && <details><summary>{selected.archivedAt ? 'Restore Account' : 'Archive Account'}</summary>
         <label>Reason <input value={reason} onChange={event => setReason(event.target.value)} /></label>
         <button type="button" disabled={busy || !reason.trim()} onClick={archive}>{selected.archivedAt ? 'Restore' : 'Archive'} in ANNIE</button>
       </details>}
@@ -128,14 +129,15 @@ export default function AccountOperations({ selected, writeEnabled, onChanged, d
           : <p>No history returned.</p>}
       </details>
     </section>}
-    {mode && <section className={s.panel}><h3>{mode === 'create' ? 'Create synthetic Account' : 'Edit synthetic Account'}</h3>
+    {mode && <section className={s.panel}><h3>{mode === 'create' ? (syntheticOnly ? 'Create synthetic Account' : 'Create Account') : (syntheticOnly ? 'Edit synthetic Account' : 'Edit Account')}</h3>
       <form className={s.form} onSubmit={save}>
         {fields.map(([key, label]) => <label key={key}>{label}{key === 'description' ? <textarea value={draft[key] ?? ''} onChange={event => setDraft(value => ({ ...value, [key]: event.target.value }))} /> :
           <input type={key === 'email' ? 'email' : key === 'website' ? 'url' : 'text'} required={key === 'name'} value={draft[key] ?? ''} onChange={event => setDraft(value => ({ ...value, [key]: event.target.value }))} />}</label>)}
         <label>Type <select value={draft.type ?? 'prospect'} onChange={event => setDraft(value => ({ ...value, type: event.target.value }))}>
           <option value="prospect">Prospect</option><option value="customer">Customer</option><option value="partner">Partner</option>
         </select></label>
-        <div className={s.actions}><button type="submit" disabled={busy || !draft.name?.startsWith('QA PHASE C ')}>Save in ANNIE</button><button type="button" onClick={() => setMode(null)}>Cancel</button></div>
+        <div className={s.actions}><button type="submit" disabled={busy || !draft.name?.trim() ||
+          (syntheticOnly && !draft.name?.startsWith('QA PHASE C '))}>Save in ANNIE</button><button type="button" onClick={() => setMode(null)}>Cancel</button></div>
       </form>
     </section>}
     {error && <p role="alert" className={s.error}>{error}</p>}

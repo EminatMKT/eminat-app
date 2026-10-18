@@ -23,8 +23,8 @@ async function sales(path: string, options?: { method: 'POST'; body: object; ver
   return result
 }
 
-export default function PipelineBoard({ stages, directory, writeEnabled }: {
-  stages: Stage[]; directory: SalesDirectory; writeEnabled: boolean
+export default function PipelineBoard({ stages, directory, writeEnabled, syntheticOnly }: {
+  stages: Stage[]; directory: SalesDirectory; writeEnabled: boolean; syntheticOnly: boolean
 }) {
   const [cards, setCards] = useState<Card[]>([])
   const [owner, setOwner] = useState('')
@@ -61,7 +61,7 @@ export default function PipelineBoard({ stages, directory, writeEnabled }: {
   useEffect(() => { void reload() }, [reload])
 
   function choose(card: Card, stage: Stage) {
-    if (card.stageId === stage.id || !writeEnabled || !card.name.startsWith('QA PHASE C ')) return
+    if (card.stageId === stage.id || !writeEnabled || (syntheticOnly && !card.name.startsWith('QA PHASE C '))) return
     setPending({ card, stage }); setAmount(String(card.amount ?? '')); setLostReason(''); setReopenReason(''); setError(''); setNotice('')
   }
   async function move(event: React.FormEvent) {
@@ -71,7 +71,7 @@ export default function PipelineBoard({ stages, directory, writeEnabled }: {
     try {
       const detail = await sales(`opportunities/${pending.card.id}`)
       const current = detail.data as Card | undefined
-      if (!current || current.access?.canEdit !== true || !current.name.startsWith('QA PHASE C '))
+      if (!current || current.access?.canEdit !== true || (syntheticOnly && !current.name.startsWith('QA PHASE C ')))
         throw new Error('OPPORTUNITY_READ_ONLY')
       if (current.stageId !== pending.card.stageId) throw new Error('OPPORTUNITY_CHANGED_REFRESH_REQUIRED')
       await sales(`opportunities/${current.id}/transitions`, { method: 'POST', version: current.version,
@@ -100,10 +100,10 @@ export default function PipelineBoard({ stages, directory, writeEnabled }: {
       onDrop={event => { event.preventDefault(); const card = cards.find(item => item.id === event.dataTransfer.getData('text/plain')); if (card) choose(card, stage) }}>
       <h3>{stage.label} · {visible.filter(card => card.stageId === stage.id).length}</h3>
       {visible.filter(card => card.stageId === stage.id).map(card => <article key={card.id}
-        draggable={writeEnabled && card.name.startsWith('QA PHASE C ')}
+        draggable={writeEnabled && (!syntheticOnly || card.name.startsWith('QA PHASE C '))}
         onDragStart={event => event.dataTransfer.setData('text/plain', card.id)}>
         <strong>{card.name}</strong><small>{ownerLabel(directory, card.ownerProfileId)} · {card.currency ?? 'USD'} {String(card.amount ?? '—')}</small>
-        {writeEnabled && card.name.startsWith('QA PHASE C ') && <label>Move to <select value="" onChange={event => {
+        {writeEnabled && (!syntheticOnly || card.name.startsWith('QA PHASE C ')) && <label>Move to <select value="" onChange={event => {
           const target = stages.find(item => item.id === event.target.value); if (target) choose(card, target)
         }}><option value="">Choose stage</option>{stages.filter(item => item.id !== stage.id).map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>}
       </article>)}

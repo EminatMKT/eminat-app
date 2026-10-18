@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({ createClient: vi.fn(), admin: vi.fn() }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: mocks.createClient }))
 vi.mock('@/shared/db/supabaseAdmin', () => ({ supabaseAdmin: mocks.admin }))
 
-import { leadWriteMode, salesAccessDetails, salesAccountHistory, salesAccountWrite, salesActivityWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesExtendedRead, salesImportRequest, salesIndividualEmail, salesRecordInteractions, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead } from './sales'
+import { accountWriteMode, contactWriteMode, leadWriteMode, opportunityWriteMode, salesAccessDetails, salesAccountHistory, salesAccountWrite, salesActivityWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesExtendedRead, salesImportRequest, salesIndividualEmail, salesRecordInteractions, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead } from './sales'
 
 function chain(data: unknown) {
   const query = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn().mockResolvedValue({ data, error: null }) }
@@ -38,7 +38,17 @@ beforeEach(() => {
   mocks.admin.mockReturnValue({ from: vi.fn(() => chain({ empresa_codigo: null,
     access_kind: 'external_sales_entitlement', annie_organization_id: id.org, annie_principal_id: id.principal })) })
 })
-afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_TRUST_KEY; delete process.env.ANNIE_SALES_ENABLED; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON; delete process.env.ANNIE_SALES_QA_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_LEAD_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_IMPORT_ENABLED; delete process.env.ANNIE_SALES_QA_INTERACTION_ENABLED; delete process.env.ANNIE_SALES_QA_EMAIL_ENABLED; delete process.env.ANNIE_SALES_QA_ACTIVITY_ENABLED })
+afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_TRUST_KEY; delete process.env.ANNIE_SALES_ENABLED; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON; delete process.env.ANNIE_SALES_QA_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_LEAD_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_IMPORT_ENABLED; delete process.env.ANNIE_SALES_QA_INTERACTION_ENABLED; delete process.env.ANNIE_SALES_QA_EMAIL_ENABLED; delete process.env.ANNIE_SALES_QA_ACTIVITY_ENABLED })
+
+it('keeps each commercial resource write mode isolated and fails closed on conflicting switches', () => {
+  expect([contactWriteMode(), accountWriteMode(), opportunityWriteMode()]).toEqual(['disabled', 'disabled', 'disabled'])
+  process.env.ANNIE_SALES_COMMERCIAL_CONTACT_WRITE_ENABLED = 'true'
+  process.env.ANNIE_SALES_COMMERCIAL_ACCOUNT_WRITE_ENABLED = 'true'
+  process.env.ANNIE_SALES_COMMERCIAL_OPPORTUNITY_WRITE_ENABLED = 'true'
+  expect([contactWriteMode(), accountWriteMode(), opportunityWriteMode()]).toEqual(['commercial', 'commercial', 'commercial'])
+  process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED = 'true'
+  expect([contactWriteMode(), accountWriteMode(), opportunityWriteMode()]).toEqual(['disabled', 'commercial', 'commercial'])
+})
 
 describe('controlled ANNIE task boundary', () => {
   const identity = () => Response.json({ data: { principalId: id.principal, organizationId: id.org,
@@ -157,7 +167,7 @@ describe('ANNIE-owned import workflow boundary', () => {
 
 describe('Phase C Opportunity write boundary', () => {
   const identity = () => Response.json({ data: { principalId: id.principal, organizationId: id.org,
-    capabilities: { salesRead: true } } })
+    capabilities: { salesRead: true, salesWrite: true } } })
   const write = (method: string, body: object, version?: string) => new Request('https://lilly.example/api/integrations/annie/sales/opportunities', {
     method, headers: { Authorization: 'Bearer supabase-session', ...(version ? { 'X-Annie-Expected-Version': version } : {}) },
     body: JSON.stringify(body),
@@ -206,7 +216,7 @@ describe('Phase C Opportunity write boundary', () => {
 
 describe('Phase C Account write boundary', () => {
   const identity = () => Response.json({ data: { principalId: id.principal, organizationId: id.org,
-    capabilities: { salesRead: true } } })
+    capabilities: { salesRead: true, salesWrite: true } } })
   const write = (method: string, body: object, version?: string) => new Request('https://lilly.example/api/integrations/annie/sales/accounts', {
     method, headers: { Authorization: 'Bearer supabase-session', ...(version ? { 'X-Annie-Expected-Version': version } : {}) },
     body: JSON.stringify(body),
@@ -425,7 +435,7 @@ describe('ANNIE Sales adapter', () => {
 
 describe('Phase C Contact write boundary', () => {
   const identity = () => Response.json({ data: { principalId: id.principal, organizationId: id.org,
-    capabilities: { salesRead: true } } })
+    capabilities: { salesRead: true, salesWrite: true } } })
   function write(method: string, body: unknown, version?: string) {
     return new Request('https://lilly.example/api/integrations/annie/sales/contacts', {
       method, headers: { Authorization: 'Bearer supabase-session', 'Content-Type': 'application/json',

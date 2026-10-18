@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { clientEnv } from '@/shared/db/env.client'
-import { leadWriteMode, salesAccessDetails } from '@/server/integrations/annie/sales'
+import { accountWriteMode, contactWriteMode, leadWriteMode,
+  opportunityWriteMode, salesAccessDetails } from '@/server/integrations/annie/sales'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,12 +21,15 @@ export async function GET(request: Request) {
     { allowed: false, canWrite: false, canReassign: false, canReadAudit: false }
   const write = access.allowed && access.canWrite
   const leadMode = write ? leadWriteMode() : 'disabled'
+  const contactMode = write ? contactWriteMode() : 'disabled'
+  const accountMode = write ? accountWriteMode() : 'disabled'
+  const opportunityMode = write ? opportunityWriteMode() : 'disabled'
   return Response.json({ ...access,
     writeEnabled: leadMode !== 'disabled',
     leadWriteMode: leadMode,
-    contactWriteEnabled: write && process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED === 'true',
-    accountWriteEnabled: write && process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED === 'true',
-    opportunityWriteEnabled: write && process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED === 'true',
+    contactWriteEnabled: contactMode !== 'disabled', contactWriteMode: contactMode,
+    accountWriteEnabled: accountMode !== 'disabled', accountWriteMode: accountMode,
+    opportunityWriteEnabled: opportunityMode !== 'disabled', opportunityWriteMode: opportunityMode,
     importEnabled: write && process.env.ANNIE_SALES_IMPORT_ENABLED === 'true',
     interactionEnabled: write && process.env.ANNIE_SALES_QA_INTERACTION_ENABLED === 'true',
     emailEnabled: write && process.env.ANNIE_SALES_QA_EMAIL_ENABLED === 'true',

@@ -11,6 +11,9 @@ export type SalesAccess = {
   canReadAudit: boolean
   writeEnabled: boolean
   leadWriteMode: 'disabled' | 'qa' | 'commercial'
+  contactWriteMode: 'disabled' | 'qa' | 'commercial'
+  accountWriteMode: 'disabled' | 'qa' | 'commercial'
+  opportunityWriteMode: 'disabled' | 'qa' | 'commercial'
   contactWriteEnabled: boolean
   accountWriteEnabled: boolean
   opportunityWriteEnabled: boolean
@@ -24,6 +27,7 @@ const denied: SalesAccess = {
   loading: false, allowed: false, canWrite: false, canReassign: false,
   canReadAudit: false, writeEnabled: false, contactWriteEnabled: false,
   leadWriteMode: 'disabled',
+  contactWriteMode: 'disabled', accountWriteMode: 'disabled', opportunityWriteMode: 'disabled',
   accountWriteEnabled: false, opportunityWriteEnabled: false, importEnabled: false,
   interactionEnabled: false,
   emailEnabled: false,
@@ -44,6 +48,8 @@ export function useSalesAccess(): SalesAccess {
       if (body.allowed !== true) return denied
       const leadMode: SalesAccess['leadWriteMode'] = body.leadWriteMode === 'qa' ||
         body.leadWriteMode === 'commercial' ? body.leadWriteMode : 'disabled'
+      const mode = (value: unknown): SalesAccess['leadWriteMode'] =>
+        value === 'qa' || value === 'commercial' ? value : 'disabled'
       return {
         loading: false, allowed: true, role: body.role,
         canWrite: body.canWrite === true,
@@ -51,6 +57,9 @@ export function useSalesAccess(): SalesAccess {
         canReadAudit: body.canReadAudit === true,
         writeEnabled: body.writeEnabled === true,
         leadWriteMode: leadMode,
+        contactWriteMode: mode(body.contactWriteMode),
+        accountWriteMode: mode(body.accountWriteMode),
+        opportunityWriteMode: mode(body.opportunityWriteMode),
         contactWriteEnabled: body.contactWriteEnabled === true,
         accountWriteEnabled: body.accountWriteEnabled === true,
         opportunityWriteEnabled: body.opportunityWriteEnabled === true,

@@ -81,6 +81,18 @@ export function leadWriteMode(): 'disabled' | 'qa' | 'commercial' {
   if (qa === commercial) return 'disabled'
   return commercial ? 'commercial' : 'qa'
 }
+function resourceWriteMode(qaName: string, commercialName: string): 'disabled' | 'qa' | 'commercial' {
+  const qa = process.env[qaName] === 'true'
+  const commercial = process.env[commercialName] === 'true'
+  if (qa === commercial) return 'disabled'
+  return commercial ? 'commercial' : 'qa'
+}
+export const contactWriteMode = () => resourceWriteMode(
+  'ANNIE_SALES_QA_CONTACT_WRITE_ENABLED', 'ANNIE_SALES_COMMERCIAL_CONTACT_WRITE_ENABLED')
+export const accountWriteMode = () => resourceWriteMode(
+  'ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED', 'ANNIE_SALES_COMMERCIAL_ACCOUNT_WRITE_ENABLED')
+export const opportunityWriteMode = () => resourceWriteMode(
+  'ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED', 'ANNIE_SALES_COMMERCIAL_OPPORTUNITY_WRITE_ENABLED')
 
 function leadWritePath(operation: LeadWriteOperation, id?: string): string {
   if (operation === 'create') return '/api/crm/leads'
@@ -168,7 +180,8 @@ export async function salesLeadHistory(request: Request, id: string): Promise<Re
 // Contact writes have their own default-off switch so Lead QA cannot enable them.
 export async function salesContactWrite(request: Request, operation: 'create' | 'edit' | 'archive', id?: string): Promise<Response> {
   try {
-    if (process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED !== 'true') throw new SalesError(403, 'CONTACT_WRITE_DISABLED')
+    const mode = contactWriteMode()
+    if (mode === 'disabled') throw new SalesError(403, 'CONTACT_WRITE_DISABLED')
     if (operation !== 'create' && (!id || !uuid.test(id))) throw new SalesError(400, 'INVALID_ID')
     const method = operation === 'edit' ? 'PATCH' : 'POST'
     if (request.method !== method) throw new SalesError(405, 'METHOD_NOT_ALLOWED')
@@ -180,12 +193,13 @@ export async function salesContactWrite(request: Request, operation: 'create' | 
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new SalesError(400, 'INVALID_BODY')
     const body = JSON.stringify(payload)
     if (Buffer.byteLength(body) > 32768) throw new SalesError(413, 'BODY_TOO_LARGE')
-    const { mapping, token } = await mappedActor(request)
+    const { mapping, token, identity } = await mappedActor(request)
+    if (identity.capabilities?.salesWrite !== true) throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
     const proposed = payload as Record<string, unknown>
-    if (operation === 'create') {
+    if (mode === 'qa' && operation === 'create') {
       if (typeof proposed.displayName !== 'string' || !proposed.displayName.startsWith('QA PHASE C '))
         throw new SalesError(403, 'SYNTHETIC_CONTACT_REQUIRED')
-    } else {
+    } else if (mode === 'qa') {
       const prior = scopedResult(await annieGet(`/api/crm/contacts/${id}`, mapping.annie_organization_id, token),
         mapping.annie_organization_id) as { data?: { displayName?: unknown } }
       if (typeof prior.data?.displayName !== 'string' || !prior.data.displayName.startsWith('QA PHASE C '))
@@ -199,7 +213,8 @@ export async function salesContactWrite(request: Request, operation: 'create' | 
         throw new SalesError(400, 'INVALID_ACCOUNT_ID')
       const account = scopedResult(await annieGet(`/api/crm/accounts/${proposed.primaryAccountId}`,
         mapping.annie_organization_id, token), mapping.annie_organization_id) as { data?: { name?: unknown } }
-      if (typeof account.data?.name !== 'string' || !account.data.name.startsWith('QA PHASE C '))
+      if (mode === 'qa' && (typeof account.data?.name !== 'string' ||
+          !account.data.name.startsWith('QA PHASE C ')))
         throw new SalesError(403, 'SYNTHETIC_ACCOUNT_REQUIRED')
     }
     const path = operation === 'create' ? '/api/crm/contacts' :
@@ -242,7 +257,8 @@ export async function salesContactHistory(request: Request, id: string): Promise
 // edit or archive a real Account, even with a crafted request.
 export async function salesAccountWrite(request: Request, operation: 'create' | 'edit' | 'archive', id?: string): Promise<Response> {
   try {
-    if (process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED !== 'true') throw new SalesError(403, 'ACCOUNT_WRITE_DISABLED')
+    const mode = accountWriteMode()
+    if (mode === 'disabled') throw new SalesError(403, 'ACCOUNT_WRITE_DISABLED')
     if (operation !== 'create' && (!id || !uuid.test(id))) throw new SalesError(400, 'INVALID_ID')
     const method = operation === 'edit' ? 'PATCH' : 'POST'
     if (request.method !== method) throw new SalesError(405, 'METHOD_NOT_ALLOWED')
@@ -254,11 +270,12 @@ export async function salesAccountWrite(request: Request, operation: 'create' | 
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new SalesError(400, 'INVALID_BODY')
     const body = JSON.stringify(payload)
     if (Buffer.byteLength(body) > 32768) throw new SalesError(413, 'BODY_TOO_LARGE')
-    const { mapping, token } = await mappedActor(request)
-    if (operation === 'create') {
+    const { mapping, token, identity } = await mappedActor(request)
+    if (identity.capabilities?.salesWrite !== true) throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
+    if (mode === 'qa' && operation === 'create') {
       const name = (payload as { name?: unknown }).name
       if (typeof name !== 'string' || !name.startsWith('QA PHASE C ')) throw new SalesError(403, 'SYNTHETIC_ACCOUNT_REQUIRED')
-    } else {
+    } else if (mode === 'qa') {
       const prior = await annieGet(`/api/crm/accounts/${id}`, mapping.annie_organization_id, token) as { data?: { name?: unknown } }
       scopedResult(prior, mapping.annie_organization_id)
       if (typeof prior.data?.name !== 'string' || !prior.data.name.startsWith('QA PHASE C '))
@@ -306,7 +323,8 @@ export async function salesAccountHistory(request: Request, id: string): Promise
 // records explicitly named as Phase C synthetic data.
 export async function salesOpportunityWrite(request: Request, operation: 'create' | 'edit' | 'transition' | 'archive', id?: string): Promise<Response> {
   try {
-    if (process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED !== 'true') throw new SalesError(403, 'OPPORTUNITY_WRITE_DISABLED')
+    const mode = opportunityWriteMode()
+    if (mode === 'disabled') throw new SalesError(403, 'OPPORTUNITY_WRITE_DISABLED')
     if (operation !== 'create' && (!id || !uuid.test(id))) throw new SalesError(400, 'INVALID_ID')
     const method = operation === 'edit' ? 'PATCH' : 'POST'
     if (request.method !== method) throw new SalesError(405, 'METHOD_NOT_ALLOWED')
@@ -318,11 +336,12 @@ export async function salesOpportunityWrite(request: Request, operation: 'create
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new SalesError(400, 'INVALID_BODY')
     const body = JSON.stringify(payload)
     if (Buffer.byteLength(body) > 32768) throw new SalesError(413, 'BODY_TOO_LARGE')
-    const { mapping, token } = await mappedActor(request)
-    if (operation === 'create') {
+    const { mapping, token, identity } = await mappedActor(request)
+    if (identity.capabilities?.salesWrite !== true) throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
+    if (mode === 'qa' && operation === 'create') {
       const name = (payload as { name?: unknown }).name
       if (typeof name !== 'string' || !name.startsWith('QA PHASE C ')) throw new SalesError(403, 'SYNTHETIC_OPPORTUNITY_REQUIRED')
-    } else {
+    } else if (mode === 'qa') {
       const prior = await annieGet(`/api/crm/opportunities/${id}`, mapping.annie_organization_id, token) as { data?: { name?: unknown } }
       scopedResult(prior, mapping.annie_organization_id)
       if (typeof prior.data?.name !== 'string' || !prior.data.name.startsWith('QA PHASE C '))
@@ -341,7 +360,7 @@ export async function salesOpportunityWrite(request: Request, operation: 'create
       const related = scopedResult(await annieGet(`/api/crm/${resource}/${value}`,
         mapping.annie_organization_id, token), mapping.annie_organization_id) as { data?: Record<string, unknown> }
       const name = related.data?.[nameKey]
-      if (typeof name !== 'string' || !name.startsWith('QA PHASE C '))
+      if (mode === 'qa' && (typeof name !== 'string' || !name.startsWith('QA PHASE C ')))
         throw new SalesError(403, 'SYNTHETIC_RELATION_REQUIRED')
     }
     const path = operation === 'create' ? '/api/crm/opportunities' :
@@ -395,7 +414,7 @@ export async function salesContactLeads(request: Request, id: string): Promise<R
 
 // ANNIE retains AccountContact after clearing a Contact's primaryAccountId.
 // Its own versioned link endpoint must deactivate that relationship before
-// the Contact can be archived. Keep this under the Contact-only QA switch.
+// the Contact can be archived. Keep this under the Contact-specific write mode.
 export async function salesContactAccountLinks(request: Request, accountId: string): Promise<Response> {
   try {
     if (!uuid.test(accountId)) throw new SalesError(400, 'INVALID_ID')
@@ -406,7 +425,8 @@ export async function salesContactAccountLinks(request: Request, accountId: stri
       return Response.json(scopedResult(data, mapping.annie_organization_id), { headers: { 'Cache-Control': 'no-store' } })
     }
     if (request.method !== 'POST') throw new SalesError(405, 'METHOD_NOT_ALLOWED')
-    if (process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED !== 'true') throw new SalesError(403, 'CONTACT_WRITE_DISABLED')
+    const mode = contactWriteMode()
+    if (mode === 'disabled') throw new SalesError(403, 'CONTACT_WRITE_DISABLED')
     const version = request.headers.get('x-annie-expected-version')
     if (!version || !/^(?:"[1-9]\d*"|[1-9]\d*)$/.test(version)) throw new SalesError(428, 'IF_MATCH_REQUIRED')
     let payload: unknown
@@ -417,14 +437,17 @@ export async function salesContactAccountLinks(request: Request, accountId: stri
       !uuid.test((payload as { contactId: string }).contactId) ||
       (payload as { active?: unknown }).active !== false)
       throw new SalesError(400, 'INVALID_BODY')
-    const { mapping, token } = await mappedActor(request)
+    const { mapping, token, identity } = await mappedActor(request)
+    if (identity.capabilities?.salesWrite !== true) throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
     const account = scopedResult(await annieGet(`/api/crm/accounts/${accountId}`,
       mapping.annie_organization_id, token), mapping.annie_organization_id) as { data?: { name?: unknown } }
     const contactId = (payload as { contactId: string }).contactId
     const contact = scopedResult(await annieGet(`/api/crm/contacts/${contactId}`,
       mapping.annie_organization_id, token), mapping.annie_organization_id) as { data?: { displayName?: unknown } }
-    if (typeof account.data?.name !== 'string' || !account.data.name.startsWith('QA PHASE C ') ||
-        typeof contact.data?.displayName !== 'string' || !contact.data.displayName.startsWith('QA PHASE C '))
+    if (mode === 'qa' && (typeof account.data?.name !== 'string' ||
+        !account.data.name.startsWith('QA PHASE C ') ||
+        typeof contact.data?.displayName !== 'string' ||
+        !contact.data.displayName.startsWith('QA PHASE C ')))
       throw new SalesError(403, 'SYNTHETIC_RELATION_REQUIRED')
     // ANNIE enforces commercial:write, account/contact scope, the primary-link
     // constraint, optimistic versioning, and commercial history.
