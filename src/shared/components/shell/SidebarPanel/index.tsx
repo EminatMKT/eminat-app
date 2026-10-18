@@ -12,18 +12,20 @@ type Props = {
   panel: PanelKey
   activeTab?: string
   onTabChange?: (tab: string) => void
+  visibleTabs?: string[]
   setMobileOpen: (v: boolean) => void
 }
 
 // Panel secundario del sidebar: título del módulo + sub-tabs. (Perfil/logout viven
 // ahora en el avatar del rail, RailProfile, accesible para todo usuario.)
 export default function SidebarPanel(props: Props) {
-  const { open, panel, activeTab, onTabChange, setMobileOpen } = props
+  const { open, panel, activeTab, onTabChange, visibleTabs, setMobileOpen } = props
   const router = useRouter()
   const pathname = usePathname()
   const { t } = useT()
   const { esAdmin } = useApp()
-  const subItems = panel === 'tasks' && !esAdmin
+  const subItems = panel === 'sales' && visibleTabs
+    ? SUB_ITEMS.sales.filter(item => visibleTabs.includes(item.tab)) : panel === 'tasks' && !esAdmin
     ? SUB_ITEMS.tasks.filter(item => visibleTasksTabs(false).some(tab => tab === item.tab)) : SUB_ITEMS[panel]
   const { title: panelTitle, sub: panelSub } = PANEL_META[panel]
   const targetPath = modulePath(PANEL_META[panel].slug)

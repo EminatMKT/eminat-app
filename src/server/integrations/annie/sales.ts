@@ -489,10 +489,10 @@ export async function salesDirectory(request: Request): Promise<Response> {
 
 type SalesIdentity = {
   role?: string
-  capabilities?: { salesRead?: boolean; salesWrite?: boolean; salesReassign?: boolean; salesAuditRead?: boolean }
+  capabilities?: { salesRead?: boolean; salesWrite?: boolean; salesReassign?: boolean; salesAuditRead?: boolean; paymentsRead?: boolean }
 }
 
-async function mappedActor(request: Request): Promise<{ mapping: SalesMapping; token: string; identity: SalesIdentity }> {
+async function mappedActor(request: Request, access: 'commercial' | 'finance' | 'either' = 'commercial'): Promise<{ mapping: SalesMapping; token: string; identity: SalesIdentity }> {
   const authorization = request.headers.get('authorization') ?? ''
   const supabaseToken = authorization.startsWith('Bearer ') ? authorization.slice(7) : ''
   if (!supabaseToken) throw new SalesError(401, 'UNAUTHENTICATED')
@@ -511,9 +511,12 @@ async function mappedActor(request: Request): Promise<{ mapping: SalesMapping; t
   const token = sessionToken(mapping.annie_principal_id, mapping.annie_organization_id)
   const identity = await annieGet('/api/crm/integration/session/identity', mapping.annie_organization_id, token)
   const data = (identity as { data?: Record<string, unknown> })?.data
+  const capabilities = data?.capabilities as SalesIdentity['capabilities'] | undefined
+  const commercial = capabilities?.salesRead === true
+  const finance = data?.role === 'FINANCE' && capabilities?.paymentsRead === true
   if (data?.principalId !== mapping.annie_principal_id ||
       data?.organizationId !== mapping.annie_organization_id ||
-      (data?.capabilities as { salesRead?: boolean } | undefined)?.salesRead !== true)
+      !(access === 'commercial' ? commercial : access === 'finance' ? finance : commercial || finance))
     throw new SalesError(403, 'ANNIE_IDENTITY_MISMATCH')
   return { mapping, token, identity: data as SalesIdentity }
 }
@@ -530,8 +533,10 @@ export async function salesAccessDetails(request: Request): Promise<{
   allowed: boolean; role?: string; canWrite: boolean; canReassign: boolean; canReadAudit: boolean
 }> {
   try {
-    const { identity } = await mappedActor(request)
+    const { identity } = await mappedActor(request, 'either')
     const role = identity.role
+    if (role === 'FINANCE' && identity.capabilities?.paymentsRead === true)
+      return { allowed: true, role, canWrite: false, canReassign: false, canReadAudit: false }
     if (!role || !['SUPERADMIN', 'ADMINISTRATOR', 'SALES_MANAGER', 'OPERATOR', 'AUDITOR'].includes(role))
       return { allowed: false, canWrite: false, canReassign: false, canReadAudit: false }
     return { allowed: true, role, canWrite: identity.capabilities?.salesWrite === true,
@@ -540,6 +545,30 @@ export async function salesAccessDetails(request: Request): Promise<{
   } catch (error) {
     console.warn('SALES_ACCESS_DENIED', error instanceof SalesError ? error.code : 'UNEXPECTED_ERROR')
     return { allowed: false, canWrite: false, canReassign: false, canReadAudit: false }
+  }
+}
+
+export async function salesFinanceSummary(request: Request): Promise<Response> {
+  try {
+    const { mapping, token } = await mappedActor(request, 'finance')
+    const result = await annieGet('/api/crm/payments/dashboard', mapping.annie_organization_id, token,
+      new URLSearchParams({ demo: 'REAL' })) as Record<string, unknown>
+    const finiteCount = (value: unknown) => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+      ? value : null
+    const statuses = result.byStatus
+    if (typeof result.revenue !== 'string' || !/^\d+(?:\.\d{2})?$/.test(result.revenue) ||
+        typeof statuses !== 'object' || !statuses || Array.isArray(statuses) ||
+        !finiteCount(result.due) || !finiteCount(result.renewalRate) || result.demo !== false)
+      throw new SalesError(502, 'ANNIE_INVALID_RESPONSE')
+    const byStatus = Object.fromEntries(Object.entries(statuses).map(([key, value]) => {
+      if (!/^[A-Z_]{1,32}$/.test(key) || !finiteCount(value)) throw new SalesError(502, 'ANNIE_INVALID_RESPONSE')
+      return [key, value]
+    }))
+    return Response.json({ revenue: result.revenue, byStatus, due: result.due,
+      renewalRate: result.renewalRate }, { headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    const known = error instanceof SalesError ? error : new SalesError(500, 'SALES_ADAPTER_ERROR')
+    return Response.json({ code: known.code }, { status: known.status, headers: { 'Cache-Control': 'no-store' } })
   }
 }
 

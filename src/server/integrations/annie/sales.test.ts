@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({ createClient: vi.fn(), admin: vi.fn() }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: mocks.createClient }))
 vi.mock('@/shared/db/supabaseAdmin', () => ({ supabaseAdmin: mocks.admin }))
 
-import { accountWriteMode, activityWriteMode, contactWriteMode, emailWriteMode, interactionWriteMode, leadWriteMode, opportunityWriteMode, salesAccessDetails, salesAccountHistory, salesAccountWrite, salesActivityWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesDemoMembershipCreate, salesExtendedRead, salesImportRequest, salesIndividualEmail, salesRecordInteractions, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead, salesReportScheduleConfig } from './sales'
+import { accountWriteMode, activityWriteMode, contactWriteMode, emailWriteMode, interactionWriteMode, leadWriteMode, opportunityWriteMode, salesAccessDetails, salesAccountHistory, salesAccountWrite, salesActivityWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesDemoMembershipCreate, salesExtendedRead, salesFinanceSummary, salesImportRequest, salesIndividualEmail, salesRecordInteractions, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead, salesReportScheduleConfig } from './sales'
 
 function chain(data: unknown) {
   const query = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn().mockResolvedValue({ data, error: null }) }
@@ -39,6 +39,40 @@ beforeEach(() => {
     access_kind: 'external_sales_entitlement', annie_organization_id: id.org, annie_principal_id: id.principal })) })
 })
 afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_TRUST_KEY; delete process.env.ANNIE_SALES_ENABLED; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON; delete process.env.ANNIE_SALES_QA_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_LEAD_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_IMPORT_ENABLED; delete process.env.ANNIE_SALES_QA_INTERACTION_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_INTERACTION_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_EMAIL_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_EMAIL_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACTIVITY_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_ACTIVITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_MEMBERSHIP_ENABLED; delete process.env.ANNIE_SALES_REPORT_SCHEDULE_WRITE_ENABLED })
+
+describe('Finance summary boundary', () => {
+  const finance = () => Response.json({ data: { principalId: id.principal, organizationId: id.org,
+    role: 'FINANCE', capabilities: { salesRead: false, paymentsRead: true } } })
+  it('returns only aggregate fields, excluding seller breakdown and upstream details', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(finance())
+      .mockResolvedValueOnce(Response.json({ revenue: '25.00', due: 2, renewalRate: 50,
+        byStatus: { PAID: 1, PENDING: 1 }, bySeller: { [id.principal]: 2500 },
+        accountId: id.lead, demo: false }))
+    vi.stubGlobal('fetch', fetch)
+    const response = await salesFinanceSummary(request())
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ revenue: '25.00', due: 2, renewalRate: 50,
+      byStatus: { PAID: 1, PENDING: 1 } })
+    expect(String(fetch.mock.calls[1][0])).toContain('/api/crm/payments/dashboard?demo=REAL')
+    expect(fetch.mock.calls[1][1].headers.Cookie).toEqual(assertionCookie)
+  })
+  it('rejects commercial access for Finance and denies non-Finance roles', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(finance())
+      .mockResolvedValueOnce(Response.json({ data: { principalId: id.principal,
+        organizationId: id.org, role: 'OPERATOR', capabilities: { salesRead: true, paymentsRead: true } } }))
+    vi.stubGlobal('fetch', fetch)
+    expect((await salesRead(request(), 'leads')).status).toBe(403)
+    expect((await salesFinanceSummary(request())).status).toBe(403)
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+  it('rejects malformed upstream aggregates', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(finance())
+      .mockResolvedValueOnce(Response.json({ revenue: 'NaN', due: 0, renewalRate: 0,
+        byStatus: {}, demo: false }))
+    vi.stubGlobal('fetch', fetch)
+    expect((await salesFinanceSummary(request())).status).toBe(502)
+  })
+})
 
 describe('ANNIE scheduled report configuration boundary', () => {
   const url = 'https://lilly.example/api/integrations/annie/sales/report-schedule'

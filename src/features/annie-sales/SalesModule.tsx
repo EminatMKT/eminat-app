@@ -16,6 +16,7 @@ import SalesImporter from './SalesImporter'
 import SalesInteractions from './SalesInteractions'
 import SalesEmail from './SalesEmail'
 import ActivityOperations, { type Task } from './ActivityOperations'
+import FinanceSummary from './FinanceSummary'
 import s from './SalesModule.module.css'
 
 type Row = { id: string; organizationId: string; version?: number; displayName?: string; name?: string; title?: string; label?: string; code?: string; status?: string; stageCode?: string; stageId?: string; ownerProfileId?: string; assigneeId?: string; priority?: string; type?: string; email?: string; companyName?: string; dueAt?: string; access?: { canEdit?: boolean } }
@@ -71,7 +72,7 @@ export default function SalesModule() {
   useEffect(() => { detailRequest.current += 1; setCursor(null); setRows([]); setSelected(null); setNextCursor(null); setDashboard(null) }, [tab, search, status, ownerFilter, teamFilter, followUp, archived, activityView])
   useEffect(() => { setImportOpen(false) }, [tab])
   useEffect(() => {
-    if (!allowed) return
+    if (!allowed || access.role === 'FINANCE') return
     let cancelled = false
     void supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) return
@@ -82,9 +83,9 @@ export default function SalesModule() {
       }
     }).catch(() => {})
     return () => { cancelled = true }
-  }, [allowed])
+  }, [allowed, access.role])
   useEffect(() => {
-    if (!allowed || tab !== 'opportunities') return
+    if (!allowed || access.role === 'FINANCE' || tab !== 'opportunities') return
     let cancelled = false
     void supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) return
@@ -96,9 +97,9 @@ export default function SalesModule() {
       if (!cancelled && Array.isArray(body.data?.stages)) setOpportunityStages(body.data.stages)
     }).catch(() => {})
     return () => { cancelled = true }
-  }, [allowed, tab])
+  }, [allowed, access.role, tab])
   useEffect(() => {
-    if (!allowed) return
+    if (!allowed || access.role === 'FINANCE') return
     let cancelled = false
     void supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) return
@@ -110,9 +111,9 @@ export default function SalesModule() {
       if (!cancelled && Array.isArray(body.data)) setLeadStages(body.data)
     }).catch(() => {})
     return () => { cancelled = true }
-  }, [allowed])
+  }, [allowed, access.role])
   useEffect(() => {
-    if (!allowed || !tabs.has(tab)) return
+    if (!allowed || access.role === 'FINANCE' || !tabs.has(tab)) return
     let cancelled = false
     const run = async () => {
       setLoading(true); setError('')
@@ -150,7 +151,7 @@ export default function SalesModule() {
     }
     void run()
     return () => { cancelled = true }
-  }, [allowed, tab, search, status, ownerFilter, teamFilter, followUp, archived, activityView, cursor, refreshKey])
+  }, [allowed, access.role, tab, search, status, ownerFilter, teamFilter, followUp, archived, activityView, cursor, refreshKey])
 
   async function openDetail(id: string) {
     const targetTab = tab
@@ -173,6 +174,7 @@ export default function SalesModule() {
 
   if (access.loading) return <main role="status" className={s.page}>Checking Sales access…</main>
   if (!allowed) return <SalesDenied />
+  if (access.role === 'FINANCE') return <FinanceSummary />
   return <AppShell title={`Sales — ${SUB_ITEMS.sales.find(item => item.tab === tab)?.label ?? 'Sales'}`} activeTab={tab} onTabChange={setTab}>
     <section className={s.page}>
       <header className={s.header}><div><p className={s.eyebrow}>ANNIE · LIVE</p><h1>Sales</h1><p className={s.muted}>Commercial records stay in ANNIE.</p></div><span className={s.badge}>{access.role ? `${roleLabel(access.role)} · ` : ''}{writeBadge}</span></header>

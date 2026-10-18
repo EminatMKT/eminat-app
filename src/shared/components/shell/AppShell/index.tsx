@@ -14,13 +14,14 @@ type Props = {
   actions?: ReactNode
   activeTab?: string
   onTabChange?: (tab: string) => void
+  visibleTabs?: string[]
 }
 
 /** The shell around every module: Sidebar, then a column with the Topbar over the page. The
  *  panel's state lives in Sidebar; here only the toggle of the phone drawer. */
 export default function AppShell(props: Props) {
   const { children, title, actions } = props
-  const { activeTab, onTabChange } = props
+  const { activeTab, onTabChange, visibleTabs } = props
   const { loading } = useApp()
   const [mobileOpen, setMobileOpen] = useState(false)
   const closeDrawer = () => setMobileOpen(false)
@@ -30,7 +31,7 @@ export default function AppShell(props: Props) {
   return (
     <ShellLayout part="root">
       <ShellDrawer open={mobileOpen} onClose={closeDrawer}>
-        <Sidebar activeTab={activeTab} onTabChange={onTabChange} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+        <Sidebar activeTab={activeTab} onTabChange={onTabChange} visibleTabs={visibleTabs} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
       </ShellDrawer>
       <ShellLayout part="column">
         <Topbar title={title} actions={actions} onHamburger={() => setMobileOpen(!mobileOpen)} />
