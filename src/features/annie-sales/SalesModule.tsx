@@ -15,9 +15,10 @@ import PipelineBoard from './PipelineBoard'
 import SalesImporter from './SalesImporter'
 import SalesInteractions from './SalesInteractions'
 import SalesEmail from './SalesEmail'
+import ActivityOperations, { type Task } from './ActivityOperations'
 import s from './SalesModule.module.css'
 
-type Row = { id: string; organizationId: string; displayName?: string; name?: string; title?: string; label?: string; code?: string; status?: string; stageCode?: string; ownerProfileId?: string; assigneeId?: string; priority?: string; email?: string; companyName?: string; dueAt?: string; access?: { canEdit?: boolean } }
+type Row = { id: string; organizationId: string; version?: number; displayName?: string; name?: string; title?: string; label?: string; code?: string; status?: string; stageCode?: string; ownerProfileId?: string; assigneeId?: string; priority?: string; email?: string; companyName?: string; dueAt?: string; access?: { canEdit?: boolean } }
 type Dashboard = { pipeline?: { openCount?: number }; closures?: { won?: number; lost?: number }; followUp?: { overdue?: number; upcoming?: number; interactionsLast30Days?: number }; opportunitiesByStage?: { code: string; label: string; count: number }[] }
 type Result = { data: Row[] | (Row & { stages?: Row[] }) | Dashboard; nextCursor?: string | null; code?: string }
 const paged = new Set(['leads', 'contacts', 'accounts', 'opportunities'])
@@ -173,6 +174,8 @@ export default function SalesModule() {
       {tab === 'contacts' && <ContactOperations selected={selected as Contact | null} writeEnabled={contactWriteEnabled} onChanged={leadChanged} />}
       {tab === 'accounts' && <AccountOperations selected={selected as Account | null} writeEnabled={accountWriteEnabled} onChanged={leadChanged} directory={directory} />}
       {tab === 'opportunities' && <OpportunityOperations selected={selected as Opportunity | null} writeEnabled={opportunityWriteEnabled} onChanged={leadChanged} directory={directory} />}
+      {tab === 'activities' && <ActivityOperations selected={selected as Task | null} directory={directory}
+        enabled={access.activityEnabled} onChanged={leadChanged} />}
       {tab === 'pipeline' && !loading && !error && <PipelineBoard stages={rows as { id: string; code: string; label: string }[]} directory={directory} writeEnabled={opportunityWriteEnabled} />}
       {(tab === 'memberships' || tab === 'reports' || tab === 'social') && <SalesExtendedViews tab={tab} />}
     </section>

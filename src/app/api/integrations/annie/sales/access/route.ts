@@ -26,6 +26,7 @@ export async function GET(request: Request) {
     opportunityWriteEnabled: write && process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED === 'true',
     importEnabled: write && process.env.ANNIE_SALES_IMPORT_ENABLED === 'true',
     interactionEnabled: write && process.env.ANNIE_SALES_QA_INTERACTION_ENABLED === 'true',
-    emailEnabled: write && process.env.ANNIE_SALES_QA_EMAIL_ENABLED === 'true' },
+    emailEnabled: write && process.env.ANNIE_SALES_QA_EMAIL_ENABLED === 'true',
+    activityEnabled: write && process.env.ANNIE_SALES_QA_ACTIVITY_ENABLED === 'true' },
     { headers: { 'Cache-Control': 'no-store' } })
 }

@@ -1,10 +1,11 @@
-import { isSalesResource, salesAccountWrite, salesContactWrite, salesLeadWrite, salesOpportunityWrite, salesRead } from '@/server/integrations/annie/sales'
+import { isSalesResource, salesAccountWrite, salesActivityWrite, salesContactWrite, salesLeadWrite, salesOpportunityWrite, salesRead } from '@/server/integrations/annie/sales'
 export const dynamic = 'force-dynamic'
 export async function GET(request: Request, { params }: { params: { resource: string } }) {
   if (!isSalesResource(params.resource)) return Response.json({ code: 'NOT_FOUND' }, { status: 404 })
   return salesRead(request, params.resource)
 }
 export async function POST(request: Request, { params }: { params: { resource: string } }) {
+  if (params.resource === 'activities') return salesActivityWrite(request, 'create')
   if (params.resource === 'opportunities') return salesOpportunityWrite(request, 'create')
   if (params.resource === 'accounts') return salesAccountWrite(request, 'create')
   if (params.resource === 'contacts') return salesContactWrite(request, 'create')
