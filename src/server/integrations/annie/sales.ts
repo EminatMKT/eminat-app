@@ -631,7 +631,11 @@ export async function salesDemoMembershipCreate(request: Request): Promise<Respo
     if (process.env.ANNIE_SALES_QA_MEMBERSHIP_ENABLED !== 'true')
       throw new SalesError(403, 'MEMBERSHIP_QA_DISABLED')
     if (request.method !== 'POST') throw new SalesError(405, 'METHOD_NOT_ALLOWED')
-    const proposed = await request.json().catch(() => { throw new SalesError(400, 'INVALID_JSON') }) as Record<string, unknown>
+    const raw = await request.text()
+    if (Buffer.byteLength(raw) > 16_384) throw new SalesError(413, 'BODY_TOO_LARGE')
+    let proposed: Record<string, unknown>
+    try { proposed = JSON.parse(raw) as Record<string, unknown> }
+    catch { throw new SalesError(400, 'INVALID_JSON') }
     if (!proposed || typeof proposed !== 'object' || Array.isArray(proposed) ||
       Object.keys(proposed).some(key => !['plan', 'modality', 'duration', 'members',
         'issuedAt', 'saleDate', 'opportunityId'].includes(key))) throw new SalesError(400, 'INVALID_BODY')
