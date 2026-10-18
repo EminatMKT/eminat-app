@@ -5,7 +5,8 @@ import { ownerLabel, type SalesDirectory } from './salesDirectory'
 import s from './LeadOperations.module.css'
 
 export type Task = { id: string; title: string; version: number; status: string; dueAt: string; description?: string | null;
-  priority: string; assigneeId: string; leadId?: string | null; notes?: string | null }
+  priority: string; type?: string; assigneeId: string; leadId?: string | null; notes?: string | null }
+const taskTypes = [['GENERAL', 'Follow-up'], ['MEETING', 'Meeting']] as const
 
 export default function ActivityOperations({ selected, directory, enabled, syntheticOnly, onChanged }: {
   selected: Task | null; directory: SalesDirectory; enabled: boolean; syntheticOnly: boolean; onChanged: (id: string) => void
@@ -17,6 +18,7 @@ export default function ActivityOperations({ selected, directory, enabled, synth
   const [due, setDue] = useState('')
   const [assignee, setAssignee] = useState('')
   const [priority, setPriority] = useState('MEDIUM')
+  const [taskType, setTaskType] = useState('GENERAL')
   const [status, setStatus] = useState('PENDING')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -27,9 +29,10 @@ export default function ActivityOperations({ selected, directory, enabled, synth
     setTitle(selected?.title ?? ''); setDescription(selected?.description ?? '')
     setDue(selected?.dueAt ? new Date(selected.dueAt).toISOString().slice(0, 16) : '')
     setAssignee(selected?.assigneeId ?? ''); setPriority(selected?.priority ?? 'MEDIUM')
+    setTaskType(selected?.type ?? 'GENERAL')
     setStatus(selected?.status ?? 'PENDING'); key.current = ''
   }, [selected?.id, selected?.version, selected?.title, selected?.description, selected?.dueAt,
-    selected?.assigneeId, selected?.priority, selected?.status])
+    selected?.assigneeId, selected?.priority, selected?.type, selected?.status])
 
   async function save(event: React.FormEvent) {
     event.preventDefault()
@@ -40,9 +43,9 @@ export default function ActivityOperations({ selected, directory, enabled, synth
       if (!session) throw new Error('Session required')
       const create = mode === 'create'
       if (create && !key.current) key.current = crypto.randomUUID()
-      const body = create ? { title, description: description || null, type: 'GENERAL', assigneeId: assignee,
+      const body = create ? { title, description: description || null, type: taskType, assigneeId: assignee,
         priority, dueAt: new Date(due).toISOString() } :
-        { title, description: description || null, assigneeId: assignee, priority,
+        { title, description: description || null, type: taskType, assigneeId: assignee, priority,
           dueAt: new Date(due).toISOString(), status }
       const response = await fetch(`/api/integrations/annie/sales/activities${!create && selected ? `/${selected.id}` : ''}`, {
         method: create ? 'POST' : 'PATCH', cache: 'no-store',
@@ -62,7 +65,7 @@ export default function ActivityOperations({ selected, directory, enabled, synth
     !['COMPLETED', 'CANCELLED'].includes(selected.status)
   return <section className={s.workspace} aria-label="ANNIE task operations">
     {enabled && <button className={s.action} type="button" onClick={() => {
-      setTitle(syntheticOnly ? 'QA PHASE C ' : ''); setDescription(''); setDue(''); setAssignee(''); setPriority('MEDIUM'); setStatus('PENDING'); setMode('create')
+      setTitle(syntheticOnly ? 'QA PHASE C ' : ''); setDescription(''); setDue(''); setAssignee(''); setPriority('MEDIUM'); setTaskType('GENERAL'); setStatus('PENDING'); setMode('create')
     }}>Create {syntheticOnly ? 'synthetic ' : ''}task</button>}
     {enabled && editable && <button type="button" onClick={() => setMode('edit')}>Edit {syntheticOnly ? 'synthetic ' : ''}task</button>}
     {selected && <p>{selected.title} · {selected.status} · {ownerLabel(directory, selected.assigneeId)}</p>}
@@ -71,6 +74,10 @@ export default function ActivityOperations({ selected, directory, enabled, synth
     {mode && <form className={s.form} onSubmit={event => void save(event)}>
       <label>Title <input required maxLength={240} value={title} onChange={event => setTitle(event.target.value)} /></label>
       <label>Description <textarea maxLength={4000} value={description} onChange={event => setDescription(event.target.value)} /></label>
+      <label>Activity type <select value={taskType} onChange={event => setTaskType(event.target.value)}>
+        {!taskTypes.some(([value]) => value === taskType) && <option value={taskType}>Existing type: {taskType}</option>}
+        {taskTypes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+      </select></label>
       <label>Due <input type="datetime-local" required value={due} onChange={event => setDue(event.target.value)} /></label>
       <label>Assignee <select required value={assignee} onChange={event => setAssignee(event.target.value)}><option value="">Select staff member</option>
         {directory.users?.filter(user => ['SUPERADMIN', 'ADMINISTRATOR', 'SALES_MANAGER', 'OPERATOR'].includes(user.role))
