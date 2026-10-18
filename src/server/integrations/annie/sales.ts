@@ -97,6 +97,8 @@ export const activityWriteMode = () => resourceWriteMode(
   'ANNIE_SALES_QA_ACTIVITY_ENABLED', 'ANNIE_SALES_COMMERCIAL_ACTIVITY_WRITE_ENABLED')
 export const interactionWriteMode = () => resourceWriteMode(
   'ANNIE_SALES_QA_INTERACTION_ENABLED', 'ANNIE_SALES_COMMERCIAL_INTERACTION_WRITE_ENABLED')
+export const emailWriteMode = () => resourceWriteMode(
+  'ANNIE_SALES_QA_EMAIL_ENABLED', 'ANNIE_SALES_COMMERCIAL_EMAIL_WRITE_ENABLED')
 
 function leadWritePath(operation: LeadWriteOperation, id?: string): string {
   if (operation === 'create') return '/api/crm/leads'
@@ -700,6 +702,67 @@ export async function salesDemoMembershipCreate(request: Request): Promise<Respo
   }
 }
 
+// Organization administrators may configure ANNIE's existing Sales summary
+// worker. LILLY exposes only this one setting and never reads integration data.
+export async function salesReportScheduleConfig(request: Request): Promise<Response> {
+  try {
+    if (!['GET', 'PATCH'].includes(request.method)) throw new SalesError(405, 'METHOD_NOT_ALLOWED')
+    if (new URL(request.url).search) throw new SalesError(400, 'INVALID_FILTER')
+    if (request.method === 'PATCH' && process.env.ANNIE_SALES_REPORT_SCHEDULE_WRITE_ENABLED !== 'true')
+      throw new SalesError(403, 'REPORT_SCHEDULE_WRITE_DISABLED')
+    const { mapping, token, identity } = await mappedActor(request)
+    if (!['SUPERADMIN', 'ADMINISTRATOR'].includes(identity.role ?? ''))
+      throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
+    const organizationId = mapping.annie_organization_id
+    if (request.method === 'GET') {
+      const current = await annieGet('/api/crm/administration/organization',
+        organizationId, token) as { data: { id?: unknown; version?: unknown;
+          communicationSettings?: { salesSummary?: unknown } | null } }
+      if (current.data?.id !== organizationId) throw new SalesError(502, 'ANNIE_SCOPE_MISMATCH')
+      return Response.json({ data: { version: current.data.version,
+        setting: current.data.communicationSettings?.salesSummary ?? null } },
+      { headers: { 'Cache-Control': 'no-store' } })
+    }
+    const raw = await request.text()
+    if (Buffer.byteLength(raw) > 4_096) throw new SalesError(413, 'BODY_TOO_LARGE')
+    let input: Record<string, unknown>
+    try { input = JSON.parse(raw) as Record<string, unknown> }
+    catch { throw new SalesError(400, 'INVALID_JSON') }
+    if (!input || typeof input !== 'object' || Array.isArray(input) ||
+      Object.keys(input).some(key => !['version', 'enabled', 'cadence', 'roles'].includes(key)) ||
+      !Number.isSafeInteger(input.version) || Number(input.version) < 1 ||
+      typeof input.enabled !== 'boolean' || !['daily', 'weekly'].includes(String(input.cadence)) ||
+      !Array.isArray(input.roles) || input.roles.length < 1 || input.roles.length > 3 ||
+      new Set(input.roles).size !== input.roles.length ||
+      input.roles.some(role => !['SUPERADMIN', 'ADMINISTRATOR', 'SALES_MANAGER'].includes(String(role))))
+      throw new SalesError(400, 'INVALID_SCHEDULE')
+    const body = JSON.stringify({ communicationSettings: { salesSummary: {
+      enabled: input.enabled, cadence: input.cadence, roles: input.roles } } })
+    let upstream: Response
+    try {
+      upstream = await fetch(new URL('/api/crm/administration/organization', origin()), {
+        method: 'PATCH', redirect: 'error', cache: 'no-store',
+        headers: { Cookie: `annie_session=${token}; annie_org=${organizationId}`,
+          Origin: origin(), 'Content-Type': 'application/json', Accept: 'application/json',
+          'If-Match': String(input.version) }, body, signal: AbortSignal.timeout(10_000),
+      })
+    } catch { throw new SalesError(502, 'ANNIE_UNAVAILABLE') }
+    if (upstream.status === 401 || upstream.status === 403) throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
+    const result = await upstream.json().catch(() => { throw new SalesError(502, 'ANNIE_INVALID_RESPONSE') }) as
+      { data?: { organizationId?: unknown; id?: unknown; version?: unknown;
+          communicationSettings?: { salesSummary?: unknown } | null }; code?: unknown }
+    if (!upstream.ok) throw new SalesError(upstream.status,
+      typeof result.code === 'string' && /^[A-Z0-9_]{2,80}$/.test(result.code) ? result.code : 'ANNIE_REQUEST_FAILED')
+    if (result.data?.id !== organizationId) throw new SalesError(502, 'ANNIE_SCOPE_MISMATCH')
+    return Response.json({ data: { version: result.data.version,
+      setting: result.data.communicationSettings?.salesSummary ?? null } },
+    { headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) {
+    const known = error instanceof SalesError ? error : new SalesError(502, 'ANNIE_UNAVAILABLE')
+    return Response.json({ code: known.code }, { status: known.status, headers: { 'Cache-Control': 'no-store' } })
+  }
+}
+
 // ANNIE owns parsing, duplicate detection, tenant assignment and processing.
 // LILLY only forwards a bounded, explicit import workflow for the mapped actor.
 export async function salesImportRequest(request: Request, parts: string[]): Promise<Response> {
@@ -824,6 +887,7 @@ export async function salesRecordInteractions(request: Request, resource: string
 const qaRecipient = 'freddy@stratix360.com'
 export async function salesIndividualEmail(request: Request, operation: 'list' | 'create' | 'queue', messageId?: string): Promise<Response> {
   try {
+    const mode = emailWriteMode()
     if (operation === 'list' ? request.method !== 'GET' : request.method !== 'POST')
       throw new SalesError(405, 'METHOD_NOT_ALLOWED')
     const query = new URL(request.url).searchParams
@@ -833,7 +897,7 @@ export async function salesIndividualEmail(request: Request, operation: 'list' |
           !['leads', 'contacts'].includes(query.get('subjectType') ?? '') || !uuid.test(query.get('subjectId') ?? ''))
         throw new SalesError(400, 'INVALID_FILTER')
     } else {
-      if (query.size || process.env.ANNIE_SALES_QA_EMAIL_ENABLED !== 'true')
+      if (query.size || mode === 'disabled')
         throw new SalesError(403, 'EMAIL_DISABLED')
       try { payload = await request.json() as Record<string, unknown> } catch { throw new SalesError(400, 'INVALID_JSON') }
       if (!payload || typeof payload !== 'object' || Array.isArray(payload) ||
@@ -841,7 +905,8 @@ export async function salesIndividualEmail(request: Request, operation: 'list' |
         throw new SalesError(400, 'INVALID_EMAIL')
       if (operation === 'create' && (Object.keys(payload).some(key =>
         !['subjectType', 'subjectId', 'recipient', 'subject', 'bodyText'].includes(key)) ||
-          payload.recipient !== qaRecipient || typeof payload.subject !== 'string' ||
+          typeof payload.recipient !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.recipient) ||
+          (mode === 'qa' && payload.recipient !== qaRecipient) || typeof payload.subject !== 'string' ||
           !payload.subject.trim() || payload.subject.length > 500 ||
           typeof payload.bodyText !== 'string' || !payload.bodyText.trim() || payload.bodyText.length > 50_000))
         throw new SalesError(400, 'INVALID_EMAIL')
@@ -849,7 +914,9 @@ export async function salesIndividualEmail(request: Request, operation: 'list' |
         !['subjectType', 'subjectId'].includes(key)) || !messageId || !uuid.test(messageId)))
         throw new SalesError(400, 'INVALID_EMAIL')
     }
-    const { mapping, token } = await mappedActor(request)
+    const { mapping, token, identity } = await mappedActor(request)
+    if (operation !== 'list' && identity.capabilities?.salesWrite !== true)
+      throw new SalesError(403, 'ANNIE_ACCESS_DENIED')
     const subjectType = operation === 'list' ? query.get('subjectType')! : String(payload!.subjectType)
     const subjectId = operation === 'list' ? query.get('subjectId')! : String(payload!.subjectId)
     const subject = scopedResult(await annieGet(`/api/crm/${subjectType}/${subjectId}`,
@@ -857,8 +924,10 @@ export async function salesIndividualEmail(request: Request, operation: 'list' |
         displayName?: string; email?: string; doNotEmail?: boolean; access?: { canEdit?: boolean }
       } }
     if (operation !== 'list' && (subject.data?.access?.canEdit !== true ||
-        !subject.data.displayName?.startsWith('QA PHASE C ') ||
-        subject.data.email?.toLowerCase() !== qaRecipient || subject.data.doNotEmail === true))
+        (mode === 'qa' && !subject.data.displayName?.startsWith('QA PHASE C ')) ||
+        !subject.data.email || subject.data.doNotEmail === true ||
+        (mode === 'qa' && subject.data.email.toLowerCase() !== qaRecipient) ||
+        (operation === 'create' && String(payload?.recipient).toLowerCase() !== subject.data.email.toLowerCase())))
       throw new SalesError(403, 'SYNTHETIC_EMAIL_SUBJECT_REQUIRED')
     const messageQuery = new URLSearchParams({ subjectType, subjectId })
     if (operation === 'list' || operation === 'queue') {
@@ -868,7 +937,8 @@ export async function salesIndividualEmail(request: Request, operation: 'list' |
       }
       if (operation === 'list') return Response.json(existing, { headers: { 'Cache-Control': 'no-store' } })
       const target = existing.data?.find(row => row.id === messageId)
-      if (!target || target.purpose !== 'individual' || target.recipient.toLowerCase() !== qaRecipient ||
+      if (!target || target.purpose !== 'individual' ||
+          target.recipient.toLowerCase() !== subject.data.email.toLowerCase() ||
           !Number.isInteger(target.version) || target.version < 1)
         throw new SalesError(403, 'QA_MESSAGE_REQUIRED')
       payload = { version: target.version }

@@ -37,6 +37,9 @@ type ReportSchedule = { data: {
   deliveries: { id: string; cadence: string; recipientRole: string; status: string;
     periodStart: string; periodEnd: string; sentAt: string | null; errorCode: string | null }[]
 } }
+type ScheduleRole = 'SUPERADMIN' | 'ADMINISTRATOR' | 'SALES_MANAGER'
+type ScheduleConfig = { data: { version: number; setting: {
+  enabled: boolean; cadence: 'daily' | 'weekly'; roles: ScheduleRole[] } | null } }
 type SocialConnection = { id: string; displayName?: string; pageName?: string; status?: string; provider?: string }
 type SocialConversation = { id: string; kind: string; channel: string; lastText?: string | null;
   lastEventAt: string; unread: boolean; localEntityType?: string | null;
@@ -163,12 +166,17 @@ function ReportList({ title, rows }: { title: string; rows: Bucket[] }) {
   return <div className={s.card}><h2>{title}</h2>{rows.length ? <ul className={s.list}>{rows.map((row, index) => <li key={`${row.code}-${index}`}><span>{row.label ?? row.code}</span><strong>{row.count}</strong></li>)}</ul> : <p className={s.muted}>No data for this period.</p>}</div>
 }
 
-function Reports() {
+function Reports({ canManageSchedule, reportScheduleWriteEnabled }: {
+  canManageSchedule: boolean; reportScheduleWriteEnabled: boolean
+}) {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [range, setRange] = useState({ from: '', to: '' })
   const [report, setReport] = useState<Report['data'] | null>(null)
   const [schedule, setSchedule] = useState<ReportSchedule['data'] | null>(null)
+  const [config, setConfig] = useState<ScheduleConfig['data'] | null>(null)
+  const [scheduleError, setScheduleError] = useState('')
+  const [scheduleBusy, setScheduleBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   useEffect(() => {
@@ -190,6 +198,45 @@ function Reports() {
     }).catch(() => { if (!cancelled) setSchedule(null) })
     return () => { cancelled = true }
   }, [])
+  useEffect(() => {
+    if (!canManageSchedule) return
+    let cancelled = false
+    const load = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Session required')
+      const response = await fetch('/api/integrations/annie/sales/report-schedule', {
+        cache: 'no-store', headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      const value = await response.json() as ScheduleConfig & { code?: string }
+      if (!response.ok) throw new Error(value.code ?? 'SCHEDULE_UNAVAILABLE')
+      if (!cancelled) setConfig(value.data)
+    }
+    void load().catch(cause => { if (!cancelled) setScheduleError(cause instanceof Error ? cause.message : 'SCHEDULE_UNAVAILABLE') })
+    return () => { cancelled = true }
+  }, [canManageSchedule])
+  async function saveSchedule(event: React.FormEvent) {
+    event.preventDefault()
+    if (!config?.setting || !reportScheduleWriteEnabled || scheduleBusy) return
+    setScheduleBusy(true); setScheduleError('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Session required')
+      const response = await fetch('/api/integrations/annie/sales/report-schedule', {
+        method: 'PATCH', cache: 'no-store', headers: { Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json' },
+        body: JSON.stringify({ version: config.version, ...config.setting }),
+      })
+      const value = await response.json() as ScheduleConfig & { code?: string }
+      if (!response.ok) throw new Error(value.code ?? 'SCHEDULE_SAVE_FAILED')
+      setConfig(value.data)
+      const refreshed = await json<ReportSchedule>('reports/schedule')
+      setSchedule(refreshed.data)
+    } catch (cause) { setScheduleError(cause instanceof Error ? cause.message : 'SCHEDULE_SAVE_FAILED') }
+    finally { setScheduleBusy(false) }
+  }
+  const updateSetting = (change: Partial<NonNullable<ScheduleConfig['data']['setting']>>) =>
+    setConfig(current => current ? { ...current, setting: { enabled: false, cadence: 'daily', roles: ['SUPERADMIN'],
+      ...current.setting, ...change } } : current)
   return <>
     <form className={s.filters} onSubmit={event => { event.preventDefault(); if (!from || !to || to >= from) setRange({ from, to }) }}>
       <label>From <input type="date" value={from} onChange={event => setFrom(event.target.value)} /></label>
@@ -224,6 +271,29 @@ function Reports() {
       <p className={s.muted}>Delivery remains subject to ANNIE’s email safety controls.</p>
       {schedule.deliveries.length > 0 && <ul className={s.list}>{schedule.deliveries.map(row =>
         <li key={row.id}><span>{row.periodStart.slice(0, 10)} – {row.periodEnd.slice(0, 10)} · {row.cadence} · {row.recipientRole}</span><strong>{row.status}{row.errorCode ? ` · ${row.errorCode}` : ''}</strong></li>)}</ul>}
+    </div>}
+    {canManageSchedule && config && <div className={s.card}><h2>Sales summary schedule</h2>
+      <p className={s.muted}>ANNIE owns scheduling and delivery. Changes are available to organization administrators.</p>
+      {scheduleError && <p role="alert" className={s.error}>{scheduleError}</p>}
+      <form onSubmit={event => void saveSchedule(event)}>
+        <div className={s.filters}>
+          <label>Enabled <input type="checkbox" disabled={!reportScheduleWriteEnabled} checked={config.setting?.enabled ?? false}
+            onChange={event => updateSetting({ enabled: event.target.checked })} /></label>
+          <label>Cadence <select disabled={!reportScheduleWriteEnabled} value={config.setting?.cadence ?? 'daily'}
+            onChange={event => updateSetting({ cadence: event.target.value as 'daily' | 'weekly' })}>
+            <option value="daily">Daily</option><option value="weekly">Weekly</option></select></label>
+        </div>
+        <fieldset disabled={!reportScheduleWriteEnabled}><legend>Recipient roles</legend>
+          {(['SUPERADMIN', 'ADMINISTRATOR', 'SALES_MANAGER'] as const).map(role => <label key={role}>
+            <input type="checkbox" checked={config.setting?.roles.includes(role) ?? role === 'SUPERADMIN'}
+              onChange={event => { const roles = config.setting?.roles ?? ['SUPERADMIN'];
+                updateSetting({ roles: event.target.checked ? [...roles, role] : roles.filter(value => value !== role) }) }} />
+            {role === 'SALES_MANAGER' ? 'Sales managers' : role === 'ADMINISTRATOR' ? 'Administrators' : 'Superadmins'}
+          </label>)}
+        </fieldset>
+        {reportScheduleWriteEnabled ? <button className={s.next} type="submit" disabled={scheduleBusy || !config.setting?.roles.length}>Save in ANNIE</button> :
+          <p className={s.muted}>Schedule changes are not enabled in this release.</p>}
+      </form>
     </div>}
   </>
 }
@@ -297,10 +367,12 @@ function Social() {
   </>
 }
 
-export default function SalesExtendedViews({ tab, membershipQaEnabled = false }: {
-  tab: Tab; membershipQaEnabled?: boolean
+export default function SalesExtendedViews({ tab, membershipQaEnabled = false,
+  canManageSchedule = false, reportScheduleWriteEnabled = false }: {
+  tab: Tab; membershipQaEnabled?: boolean; canManageSchedule?: boolean; reportScheduleWriteEnabled?: boolean
 }) {
   if (tab === 'memberships') return <Memberships membershipQaEnabled={membershipQaEnabled} />
-  if (tab === 'reports') return <Reports />
+  if (tab === 'reports') return <Reports canManageSchedule={canManageSchedule}
+    reportScheduleWriteEnabled={reportScheduleWriteEnabled} />
   return <Social />
 }

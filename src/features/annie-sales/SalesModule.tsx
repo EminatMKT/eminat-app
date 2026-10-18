@@ -170,7 +170,8 @@ export default function SalesModule() {
         selected={selected} directory={directory} writeEnabled={access.interactionEnabled}
         syntheticOnly={access.interactionWriteMode !== 'commercial'} onChanged={leadChanged} />}
       {selected && (tab === 'leads' || tab === 'contacts') && <SalesEmail key={`email-${tab}-${selected.id}`}
-        resource={tab} selected={selected} enabled={access.emailEnabled} />}
+        resource={tab} selected={selected} enabled={access.emailEnabled}
+        syntheticOnly={access.emailWriteMode !== 'commercial'} />}
       {tab === 'leads' && <LeadOperations selected={selected as Lead | null} writeEnabled={writeEnabled} syntheticOnly={access.leadWriteMode !== 'commercial'} onChanged={leadChanged} stages={leadStages} />}
       {tab === 'contacts' && <ContactOperations selected={selected as Contact | null} writeEnabled={contactWriteEnabled} syntheticOnly={access.contactWriteMode !== 'commercial'} onChanged={leadChanged} />}
       {tab === 'accounts' && <AccountOperations selected={selected as Account | null} writeEnabled={accountWriteEnabled} syntheticOnly={access.accountWriteMode !== 'commercial'} onChanged={leadChanged} directory={directory} />}
@@ -178,7 +179,9 @@ export default function SalesModule() {
       {tab === 'activities' && <ActivityOperations selected={selected as Task | null} directory={directory}
         enabled={access.activityEnabled} syntheticOnly={access.activityWriteMode !== 'commercial'} onChanged={leadChanged} />}
       {tab === 'pipeline' && !loading && !error && <PipelineBoard stages={rows as { id: string; code: string; label: string }[]} directory={directory} writeEnabled={opportunityWriteEnabled} syntheticOnly={access.opportunityWriteMode !== 'commercial'} />}
-      {(tab === 'memberships' || tab === 'reports' || tab === 'social') && <SalesExtendedViews tab={tab} membershipQaEnabled={access.membershipQaEnabled} />}
+      {(tab === 'memberships' || tab === 'reports' || tab === 'social') && <SalesExtendedViews tab={tab}
+        membershipQaEnabled={access.membershipQaEnabled} canManageSchedule={['SUPERADMIN', 'ADMINISTRATOR'].includes(access.role ?? '')}
+        reportScheduleWriteEnabled={access.reportScheduleWriteEnabled} />}
     </section>
   </AppShell>
 }

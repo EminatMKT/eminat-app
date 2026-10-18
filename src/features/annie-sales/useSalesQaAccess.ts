@@ -16,6 +16,7 @@ export type SalesAccess = {
   opportunityWriteMode: 'disabled' | 'qa' | 'commercial'
   activityWriteMode: 'disabled' | 'qa' | 'commercial'
   interactionWriteMode: 'disabled' | 'qa' | 'commercial'
+  emailWriteMode: 'disabled' | 'qa' | 'commercial'
   contactWriteEnabled: boolean
   accountWriteEnabled: boolean
   opportunityWriteEnabled: boolean
@@ -24,6 +25,7 @@ export type SalesAccess = {
   emailEnabled: boolean
   activityEnabled: boolean
   membershipQaEnabled: boolean
+  reportScheduleWriteEnabled: boolean
 }
 
 const denied: SalesAccess = {
@@ -33,11 +35,13 @@ const denied: SalesAccess = {
   contactWriteMode: 'disabled', accountWriteMode: 'disabled', opportunityWriteMode: 'disabled',
   activityWriteMode: 'disabled',
   interactionWriteMode: 'disabled',
+  emailWriteMode: 'disabled',
   accountWriteEnabled: false, opportunityWriteEnabled: false, importEnabled: false,
   interactionEnabled: false,
   emailEnabled: false,
   activityEnabled: false,
   membershipQaEnabled: false,
+  reportScheduleWriteEnabled: false,
 }
 
 export function useSalesAccess(): SalesAccess {
@@ -68,6 +72,7 @@ export function useSalesAccess(): SalesAccess {
         opportunityWriteMode: mode(body.opportunityWriteMode),
         activityWriteMode: mode(body.activityWriteMode),
         interactionWriteMode: mode(body.interactionWriteMode),
+        emailWriteMode: mode(body.emailWriteMode),
         contactWriteEnabled: body.contactWriteEnabled === true,
         accountWriteEnabled: body.accountWriteEnabled === true,
         opportunityWriteEnabled: body.opportunityWriteEnabled === true,
@@ -76,6 +81,7 @@ export function useSalesAccess(): SalesAccess {
         emailEnabled: body.emailEnabled === true,
         activityEnabled: body.activityEnabled === true,
         membershipQaEnabled: body.membershipQaEnabled === true,
+        reportScheduleWriteEnabled: body.reportScheduleWriteEnabled === true,
       }
     }).then(value => { if (!cancelled) setAccess(value) })
       .catch(() => { if (!cancelled) setAccess(denied) })

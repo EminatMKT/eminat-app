@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({ createClient: vi.fn(), admin: vi.fn() }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: mocks.createClient }))
 vi.mock('@/shared/db/supabaseAdmin', () => ({ supabaseAdmin: mocks.admin }))
 
-import { accountWriteMode, activityWriteMode, contactWriteMode, interactionWriteMode, leadWriteMode, opportunityWriteMode, salesAccessDetails, salesAccountHistory, salesAccountWrite, salesActivityWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesDemoMembershipCreate, salesExtendedRead, salesImportRequest, salesIndividualEmail, salesRecordInteractions, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead } from './sales'
+import { accountWriteMode, activityWriteMode, contactWriteMode, emailWriteMode, interactionWriteMode, leadWriteMode, opportunityWriteMode, salesAccessDetails, salesAccountHistory, salesAccountWrite, salesActivityWrite, salesContactAccountLinks, salesContactHistory, salesContactLeads, salesContactWrite, salesDemoMembershipCreate, salesExtendedRead, salesImportRequest, salesIndividualEmail, salesRecordInteractions, salesLeadHistory, salesLeadWrite, salesOpportunityRelated, salesOpportunityWrite, salesRead, salesReportScheduleConfig } from './sales'
 
 function chain(data: unknown) {
   const query = { select: vi.fn(), eq: vi.fn(), maybeSingle: vi.fn().mockResolvedValue({ data, error: null }) }
@@ -38,7 +38,54 @@ beforeEach(() => {
   mocks.admin.mockReturnValue({ from: vi.fn(() => chain({ empresa_codigo: null,
     access_kind: 'external_sales_entitlement', annie_organization_id: id.org, annie_principal_id: id.principal })) })
 })
-afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_TRUST_KEY; delete process.env.ANNIE_SALES_ENABLED; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON; delete process.env.ANNIE_SALES_QA_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_LEAD_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_IMPORT_ENABLED; delete process.env.ANNIE_SALES_QA_INTERACTION_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_INTERACTION_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_EMAIL_ENABLED; delete process.env.ANNIE_SALES_QA_ACTIVITY_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_ACTIVITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_MEMBERSHIP_ENABLED })
+afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); delete process.env.ANNIE_SALES_API_ORIGIN; delete process.env.ANNIE_SALES_TRUST_KEY; delete process.env.ANNIE_SALES_ENABLED; delete process.env.ANNIE_SALES_QA_ENABLED; delete process.env.ANNIE_SALES_QA_ALLOWLIST_JSON; delete process.env.ANNIE_SALES_QA_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_LEAD_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_CONTACT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_ACCOUNT_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_OPPORTUNITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_IMPORT_ENABLED; delete process.env.ANNIE_SALES_QA_INTERACTION_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_INTERACTION_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_EMAIL_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_EMAIL_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_ACTIVITY_ENABLED; delete process.env.ANNIE_SALES_COMMERCIAL_ACTIVITY_WRITE_ENABLED; delete process.env.ANNIE_SALES_QA_MEMBERSHIP_ENABLED; delete process.env.ANNIE_SALES_REPORT_SCHEDULE_WRITE_ENABLED })
+
+describe('ANNIE scheduled report configuration boundary', () => {
+  const url = 'https://lilly.example/api/integrations/annie/sales/report-schedule'
+  const identity = (role: string) => Response.json({ data: { principalId: id.principal,
+    organizationId: id.org, role, capabilities: { salesRead: true } } })
+  const patch = (body: object) => new Request(url, { method: 'PATCH',
+    headers: { Authorization: 'Bearer supabase-session' }, body: JSON.stringify(body) })
+  const setting = { version: 3, enabled: true, cadence: 'weekly', roles: ['SUPERADMIN'] }
+
+  it('keeps schedule writes disabled before reading ANNIE', async () => {
+    const fetch = vi.fn(); vi.stubGlobal('fetch', fetch)
+    expect((await salesReportScheduleConfig(patch(setting))).status).toBe(403)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+  it('denies non-admin roles and client-supplied integration settings', async () => {
+    process.env.ANNIE_SALES_REPORT_SCHEDULE_WRITE_ENABLED = 'true'
+    const fetch = vi.fn().mockResolvedValueOnce(identity('OPERATOR'))
+      .mockResolvedValueOnce(identity('SUPERADMIN'))
+    vi.stubGlobal('fetch', fetch)
+    expect((await salesReportScheduleConfig(new Request(url, {
+      headers: { Authorization: 'Bearer supabase-session' },
+    }))).status).toBe(403)
+    expect((await salesReportScheduleConfig(patch({ ...setting, integrations: {} }))).status).toBe(400)
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+  it('reads only the schedule fields and preserves ANNIE version on update', async () => {
+    process.env.ANNIE_SALES_REPORT_SCHEDULE_WRITE_ENABLED = 'true'
+    const fetch = vi.fn().mockResolvedValueOnce(identity('SUPERADMIN'))
+      .mockResolvedValueOnce(Response.json({ data: { id: id.org, version: 3,
+        communicationSettings: { salesSummary: { enabled: true, cadence: 'weekly', roles: ['SUPERADMIN'] } },
+        integrations: [{ configuration: { secret: 'must-not-return' } }] } }))
+      .mockResolvedValueOnce(identity('SUPERADMIN'))
+      .mockResolvedValueOnce(Response.json({ data: { id: id.org, version: 4,
+        communicationSettings: { salesSummary: { enabled: true, cadence: 'weekly', roles: ['SUPERADMIN'] } } } }))
+    vi.stubGlobal('fetch', fetch)
+    const read = await salesReportScheduleConfig(new Request(url, {
+      headers: { Authorization: 'Bearer supabase-session' },
+    }))
+    expect(read.status).toBe(200)
+    expect(JSON.stringify(await read.json())).not.toContain('must-not-return')
+    const saved = await salesReportScheduleConfig(patch(setting))
+    expect(saved.status).toBe(200)
+    expect(fetch.mock.calls[3][1].headers['If-Match']).toBe('3')
+    expect(JSON.parse(fetch.mock.calls[3][1].body)).toEqual({ communicationSettings: {
+      salesSummary: { enabled: true, cadence: 'weekly', roles: ['SUPERADMIN'] } } })
+  })
+})
 
 describe('controlled demo membership boundary', () => {
   const contactId = '66666666-6666-4666-8666-666666666666'
@@ -174,6 +221,28 @@ describe('controlled ANNIE individual email boundary', () => {
     })
     expect((await salesIndividualEmail(create, 'create')).status).toBe(400)
     expect(fetch).not.toHaveBeenCalled()
+  })
+  it('permits only the record email in isolated commercial mode and preserves ANNIE guards', async () => {
+    process.env.ANNIE_SALES_COMMERCIAL_EMAIL_WRITE_ENABLED = 'true'
+    expect(emailWriteMode()).toBe('commercial')
+    const identity = () => Response.json({ data: { principalId: id.principal, organizationId: id.org,
+      capabilities: { salesRead: true, salesWrite: true } } })
+    const subject = () => Response.json({ data: { id: id.lead, organizationId: id.org,
+      displayName: 'Real lead', email: 'customer@example.com', doNotEmail: false, access: { canEdit: true } } })
+    const fetch = vi.fn().mockResolvedValueOnce(identity()).mockResolvedValueOnce(subject())
+      .mockResolvedValueOnce(identity()).mockResolvedValueOnce(subject())
+      .mockResolvedValueOnce(Response.json({ data: { id: id.lead, organizationId: id.org, status: 'DRAFT' } }))
+    vi.stubGlobal('fetch', fetch)
+    const create = (recipient: string) => new Request('https://lilly.example/api/integrations/annie/sales/email', {
+      method: 'POST', headers: { Authorization: 'Bearer supabase-session', 'Idempotency-Key': id.lead },
+      body: JSON.stringify({ subjectType: 'leads', subjectId: id.lead, recipient,
+        subject: 'Follow-up', bodyText: 'Hello' }),
+    })
+    expect((await salesIndividualEmail(create('other@example.com'), 'create')).status).toBe(403)
+    expect((await salesIndividualEmail(create('customer@example.com'), 'create')).status).toBe(200)
+    expect(String(fetch.mock.calls[4][0])).toContain('/api/crm/communications/messages/individual')
+    process.env.ANNIE_SALES_QA_EMAIL_ENABLED = 'true'
+    expect(emailWriteMode()).toBe('disabled')
   })
 })
 

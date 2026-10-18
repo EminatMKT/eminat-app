@@ -8,8 +8,8 @@ type Message = { id: string; purpose: string; subject: string; recipient: string
   createdAt?: string; sentAt?: string | null; failedAt?: string | null; lastErrorCode?: string | null }
 const qaRecipient = 'freddy@stratix360.com'
 
-export default function SalesEmail({ resource, selected, enabled }: {
-  resource: 'leads' | 'contacts'; selected: Subject; enabled: boolean
+export default function SalesEmail({ resource, selected, enabled, syntheticOnly }: {
+  resource: 'leads' | 'contacts'; selected: Subject; enabled: boolean; syntheticOnly: boolean
 }) {
   const key = useRef('')
   const [rows, setRows] = useState<Message[]>([])
@@ -52,7 +52,7 @@ export default function SalesEmail({ resource, selected, enabled }: {
       if (!id) {
         if (!key.current) key.current = crypto.randomUUID()
         const created = await request('', 'POST', { subjectType: resource, subjectId: selected.id,
-          recipient: qaRecipient, subject: subject.trim(), bodyText: body.trim() }, key.current)
+          recipient: syntheticOnly ? qaRecipient : selected.email, subject: subject.trim(), bodyText: body.trim() }, key.current)
         id = Array.isArray(created.data) ? '' : created.data?.id ?? ''
         if (!id) throw new Error('ANNIE_INVALID_RESPONSE')
         setDraftId(id)
@@ -66,8 +66,9 @@ export default function SalesEmail({ resource, selected, enabled }: {
       await reload()
     } finally { setBusy(false) }
   }
-  const canCompose = enabled && selected.displayName?.startsWith('QA PHASE C ') === true &&
-    selected.access?.canEdit === true && selected.email?.toLowerCase() === qaRecipient
+  const canCompose = enabled && (!syntheticOnly || selected.displayName?.startsWith('QA PHASE C ') === true) &&
+    selected.access?.canEdit === true && Boolean(selected.email) &&
+    (!syntheticOnly || selected.email?.toLowerCase() === qaRecipient)
   return <section className={s.card} aria-label="ANNIE individual email">
     <div className={s.cardHeader}><h2>Individual email</h2><button className={s.next} type="button" onClick={() => void reload()}>Refresh delivery status</button></div>
     {error && <p role="alert" className={s.error}>{error}</p>}
@@ -76,7 +77,7 @@ export default function SalesEmail({ resource, selected, enabled }: {
       <small>{row.status} · {row.sentAt ?? row.failedAt ?? row.createdAt ?? ''}{row.lastErrorCode ? ` · ${row.lastErrorCode}` : ''}</small>
     </div></li>)}</ul> : <p className={s.muted}>No individual email history for this record.</p>}
     {canCompose && <form className={s.filters} onSubmit={event => void send(event)}>
-      <p>Controlled QA recipient: {qaRecipient}. ANNIE consent and delivery guards remain authoritative.</p>
+      <p>Recipient: {syntheticOnly ? qaRecipient : selected.email}. ANNIE consent and delivery guards remain authoritative.</p>
       <label>Subject <input required maxLength={500} disabled={Boolean(draftId)} value={subject} onChange={event => setSubject(event.target.value)} /></label>
       <label>Message <textarea required maxLength={50_000} disabled={Boolean(draftId)} value={body} onChange={event => setBody(event.target.value)} /></label>
       <button className={s.next} type="submit" disabled={busy || (!draftId && (!subject.trim() || !body.trim()))}>
