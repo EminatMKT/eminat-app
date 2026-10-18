@@ -25,8 +25,16 @@ type Report = { data: {
   outcomes: { won: number; lost: number }
   membershipsSold: number; unresponsiveLeads: number
   leadsByStage: Bucket[]; leadsBySource: Bucket[]; leadsBySeller: Bucket[]
+  conversionBySeller: { code: string; label: string; converted: number; rate: number }[]
+  salesBySeller: { code: string; label: string; memberships: number; salesByCurrency: Record<string, number> }[]
   pipeline: Bucket[]; membershipsByPlan: Bucket[]; membershipsByModality: Bucket[]
   activityPerformance: { interactions: number; byKind: Bucket[] }
+} }
+type ReportSchedule = { data: {
+  configured: boolean
+  setting: { cadence: 'daily' | 'weekly'; roles: string[] } | null
+  deliveries: { id: string; cadence: string; recipientRole: string; status: string;
+    periodStart: string; periodEnd: string; sentAt: string | null; errorCode: string | null }[]
 } }
 type SocialConnection = { id: string; displayName?: string; pageName?: string; status?: string; provider?: string }
 type SocialConversation = { id: string; displayName?: string; participantName?: string; status?: string; channel?: string }
@@ -150,6 +158,7 @@ function Reports() {
   const [to, setTo] = useState('')
   const [range, setRange] = useState({ from: '', to: '' })
   const [report, setReport] = useState<Report['data'] | null>(null)
+  const [schedule, setSchedule] = useState<ReportSchedule['data'] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   useEffect(() => {
@@ -164,6 +173,13 @@ function Reports() {
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [range])
+  useEffect(() => {
+    let cancelled = false
+    void json<ReportSchedule>('reports/schedule').then(result => {
+      if (!cancelled) setSchedule(result.data)
+    }).catch(() => { if (!cancelled) setSchedule(null) })
+    return () => { cancelled = true }
+  }, [])
   return <>
     <form className={s.filters} onSubmit={event => { event.preventDefault(); if (!from || !to || to >= from) setRange({ from, to }) }}>
       <label>From <input type="date" value={from} onChange={event => setFrom(event.target.value)} /></label>
@@ -184,11 +200,21 @@ function Reports() {
       <ReportList title="Leads by stage" rows={report.leadsByStage} />
       <ReportList title="Leads by source" rows={report.leadsBySource} />
       <ReportList title="Leads by seller" rows={report.leadsBySeller.map(row => ({ ...row, count: row.count }))} />
+      <div className={s.card}><h2>Conversion by seller</h2>{report.conversionBySeller.length ?
+        <ul className={s.list}>{report.conversionBySeller.map(row => <li key={row.code}><span>{row.label}</span><strong>{row.converted} converted · {row.rate}%</strong></li>)}</ul> : <p className={s.muted}>No conversion data for this period.</p>}</div>
+      <div className={s.card}><h2>Membership sales by seller</h2>{report.salesBySeller.length ?
+        <ul className={s.list}>{report.salesBySeller.map(row => <li key={row.code}><span>{row.label}</span><strong>{row.memberships} memberships · {Object.entries(row.salesByCurrency).map(([currency, total]) => `${currency} ${total.toFixed(2)}`).join(', ') || 'No sales amount'}</strong></li>)}</ul> : <p className={s.muted}>No membership sales for this period.</p>}</div>
       <ReportList title="Opportunities by stage" rows={report.pipeline} />
       <ReportList title="Memberships by plan" rows={report.membershipsByPlan} />
       <ReportList title="Memberships by modality" rows={report.membershipsByModality} />
       <ReportList title="Activity by kind" rows={report.activityPerformance.byKind} />
     </>}
+    {schedule && <div className={s.card}><h2>Scheduled ANNIE reports</h2>
+      <p>{schedule.configured && schedule.setting ? `${schedule.setting.cadence === 'daily' ? 'Daily' : 'Weekly'} · Recipient roles: ${schedule.setting.roles.join(', ')}` : 'No daily or weekly Sales summary is configured.'}</p>
+      <p className={s.muted}>Delivery remains subject to ANNIE’s email safety controls.</p>
+      {schedule.deliveries.length > 0 && <ul className={s.list}>{schedule.deliveries.map(row =>
+        <li key={row.id}><span>{row.periodStart.slice(0, 10)} – {row.periodEnd.slice(0, 10)} · {row.cadence} · {row.recipientRole}</span><strong>{row.status}{row.errorCode ? ` · ${row.errorCode}` : ''}</strong></li>)}</ul>}
+    </div>}
   </>
 }
 

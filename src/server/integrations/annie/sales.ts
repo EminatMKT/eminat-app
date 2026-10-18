@@ -528,6 +528,8 @@ function extendedPath(parts: string[]): { path: string; pdf: boolean; scoped: bo
   }
   if (section === 'reports' && parts.length === 1)
     return { path: '/api/crm/reports', pdf: false, scoped: false }
+  if (section === 'reports' && parts.length === 2 && action === 'schedule')
+    return { path: '/api/crm/reports/schedule', pdf: false, scoped: false }
   if (section === 'sales-dashboard' && parts.length === 1)
     return { path: '/api/crm/sales-dashboard', pdf: false, scoped: false }
   if (section === 'lead-lifecycle' && parts.length === 1)
