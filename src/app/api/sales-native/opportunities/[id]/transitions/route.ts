@@ -37,7 +37,7 @@ export async function POST(request: Request, context: { params: { id: string } }
       return Response.json({ code: 'BODY_TOO_LARGE' }, { status: 413 })
     const parsed = transition.safeParse(payload)
     if (!parsed.success) return Response.json({ code: 'VALIDATION_ERROR' }, { status: 422 })
-    const { data, error } = await supabaseAdmin().rpc('native_sales_transition_opportunity', {
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_transition_opportunity', {
       p_organization_id: actor.organizationId,
       p_actor_member_id: actor.memberId,
       p_opportunity_id: context.params.id,

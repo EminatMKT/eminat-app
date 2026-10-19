@@ -27,4 +27,10 @@ describe('native Sales runtime boundary', () => {
       expect(source, file).not.toContain('annie.stratixsolutions.us')
     }
   })
+
+  it('keeps the shared shell on the native access route during native preview', () => {
+    const accessHook = readFileSync(join(process.cwd(), 'src/features/annie-sales/useSalesQaAccess.ts'), 'utf8')
+    expect(accessHook).toContain("pathname.startsWith('/sales-native')")
+    expect(accessHook).toContain("nativePreview ? '/api/sales-native/access' : '/api/sales/access'")
+  })
 })

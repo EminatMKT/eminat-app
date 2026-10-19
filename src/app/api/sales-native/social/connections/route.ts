@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     const actor = await resolveSalesActor(request)
     if (!salesCan(actor, 'sales:social:manage'))
       return Response.json({ code: 'SALES_ACCESS_DENIED' }, { status: 403 })
-    const db = supabaseAdmin()
+    const db = supabaseAdmin({ noStore: true })
     const { data: provider, error: providerError } = await db.from('sales_social_providers')
       .select('enabled').eq('code', 'META').maybeSingle()
     if (providerError) return nativeSalesDatabaseError(providerError)

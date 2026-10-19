@@ -31,7 +31,7 @@ export async function GET(request: Request) {
         !Number.isSafeInteger(limit) || limit < 1 || limit > 100 ||
         !Number.isSafeInteger(offset) || offset < 0 || offset > 100000)
       return Response.json({ code: 'INVALID_FILTER' }, { status: 422 })
-    const { data, error } = await supabaseAdmin().rpc('native_sales_list_activities', {
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_list_activities', {
       p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
       p_resource: resource, p_record_id: recordId, p_limit: limit, p_offset: offset,
     })
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       body.resource, body.recordId, body.kind, body.title, body.body ?? null,
       body.dueAt ?? null, body.assigneeMemberId ?? null,
     ])).digest('hex')
-    const { data, error } = await supabaseAdmin().rpc('native_sales_create_activity', {
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_create_activity', {
       p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
       p_resource: body.resource, p_record_id: body.recordId ?? null,
       p_kind: body.kind, p_title: body.title, p_body: body.body ?? null,

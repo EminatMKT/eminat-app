@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     const parsed = filter.safeParse(Object.fromEntries(new URL(request.url).searchParams))
     if (!parsed.success || parsed.data.to < parsed.data.from)
       return Response.json({ code: 'INVALID_PERIOD' }, { status: 422 })
-    const { data, error } = await supabaseAdmin().rpc('native_sales_report_detail', {
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_report_detail', {
       p_organization_id: actor.organizationId,
       p_actor_member_id: actor.memberId,
       p_from: parsed.data.from,

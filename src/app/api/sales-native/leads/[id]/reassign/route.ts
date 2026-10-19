@@ -25,7 +25,7 @@ export async function POST(request: Request, context: { params: { id: string } }
           !uuid.test(String((payload as { teamId?: unknown }).teamId)))
       return Response.json({ code: 'INVALID_BODY' }, { status: 400 })
     const body = payload as { ownerMemberId: string; teamId: string | null }
-    const { data, error } = await supabaseAdmin().rpc('native_sales_reassign_lead', {
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_reassign_lead', {
       p_organization_id: actor.organizationId,
       p_actor_member_id: actor.memberId,
       p_lead_id: context.params.id,

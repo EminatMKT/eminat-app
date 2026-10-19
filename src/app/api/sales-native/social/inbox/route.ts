@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     const actor = await resolveSalesActor(request)
     if (!salesCan(actor, 'sales:read'))
       return Response.json({ code: 'SALES_ACCESS_DENIED' }, { status: 403 })
-    const db = supabaseAdmin()
+    const db = supabaseAdmin({ noStore: true })
     const { data: assets, error: assetError } = await db.from('sales_social_assets')
       .select('id,display_name,asset_type,default_owner_member_id,default_team_id')
       .eq('organization_id', actor.organizationId).limit(500)

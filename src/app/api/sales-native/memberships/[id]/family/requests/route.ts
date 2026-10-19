@@ -17,7 +17,7 @@ export async function GET(request: Request, context: { params: { id: string } })
     if (new URL(request.url).searchParams.size)
       return Response.json({ code: 'INVALID_FILTER' }, { status: 422 })
     const actor = await resolveSalesActor(request)
-    const { data, error } = await supabaseAdmin().rpc('native_sales_list_family_requests', {
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_list_family_requests', {
       p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
       p_membership_id: context.params.id,
     })
@@ -42,7 +42,7 @@ export async function POST(request: Request, context: { params: { id: string } }
       return Response.json({ code: 'BODY_TOO_LARGE' }, { status: 413 })
     const parsed = requestSchema.safeParse(payload)
     if (!parsed.success) return Response.json({ code: 'VALIDATION_ERROR' }, { status: 422 })
-    const { data, error } = await supabaseAdmin().rpc('native_sales_request_family_member', {
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_request_family_member', {
       p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
       p_membership_id: context.params.id, p_contact_id: parsed.data.contactId,
       p_relationship: parsed.data.relationship, p_idempotency_key: key,

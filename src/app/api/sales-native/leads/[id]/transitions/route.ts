@@ -22,7 +22,7 @@ export async function POST(request: Request, context: { params: { id: string } }
     if (!payload || typeof payload !== 'object' || Array.isArray(payload) ||
         Object.keys(payload).length !== 1 || !isLeadStatus((payload as Record<string, unknown>).toStatus))
       return Response.json({ code: 'INVALID_BODY' }, { status: 400 })
-    const { data, error } = await supabaseAdmin().rpc('native_sales_transition_lead', {
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_transition_lead', {
       p_organization_id: actor.organizationId,
       p_actor_member_id: actor.memberId,
       p_lead_id: context.params.id,

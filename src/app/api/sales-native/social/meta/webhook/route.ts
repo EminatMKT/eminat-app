@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   let accepted = 0; let replayed = 0; let pending = 0; let failed = 0
   for (const event of events) {
     const hash = createHash('sha256').update(JSON.stringify(event.normalized)).digest('hex')
-    const { data, error } = await supabaseAdmin().rpc('native_sales_receive_social_event', {
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_receive_social_event', {
       p_external_asset_id: event.externalAssetId,
       p_external_event_id: event.externalEventId,
       p_kind: event.kind,

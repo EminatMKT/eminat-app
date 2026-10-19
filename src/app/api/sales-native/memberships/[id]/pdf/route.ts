@@ -25,7 +25,7 @@ export async function GET(request: Request, context: { params: { id: string } })
     if (Array.from(params.keys()).some(key => key!=='download') ||
         (params.has('download') && params.get('download')!=='1'))
       return Response.json({ code: 'INVALID_FILTER' }, { status: 400 })
-    const { data, error } = await supabaseAdmin().rpc('native_sales_visible_memberships', {
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_visible_memberships', {
       p_organization_id: actor.organizationId,p_actor_member_id: actor.memberId,
       p_limit: 1,p_offset: 0,p_q: null,p_id: context.params.id,p_demo: null,
     })

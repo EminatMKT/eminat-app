@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     const actor = await resolveSalesActor(request)
     const parsed = filter.safeParse(Object.fromEntries(new URL(request.url).searchParams))
     if (!parsed.success) return Response.json({ code: 'INVALID_FILTER' }, { status: 400 })
-    const { data, error } = await supabaseAdmin().rpc('native_sales_timeline', {
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_timeline', {
       p_organization_id: actor.organizationId,
       p_actor_member_id: actor.memberId,
       p_resource: parsed.data.resource,

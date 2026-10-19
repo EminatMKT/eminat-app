@@ -12,7 +12,7 @@ export default async function NativeSalesPreviewPage() {
   const client = ssrClient()
   const { data: { user } } = await client.auth.getUser()
   if (!user) notFound()
-  const admin = supabaseAdmin()
+  const admin = supabaseAdmin({ noStore: true })
   const { data: profile, error: profileError } = await admin.from('usuarios')
     .select('id').eq('auth_id', user.id).eq('activo', true).maybeSingle()
   if (profileError || !profile?.id) notFound()

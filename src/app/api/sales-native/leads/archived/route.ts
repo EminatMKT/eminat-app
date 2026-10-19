@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     if (!Number.isSafeInteger(limit) || limit<1 || limit>100 ||
       !Number.isSafeInteger(offset) || offset<0 || offset>100000 || (q && q.length>200))
       return Response.json({ code:'INVALID_FILTER' },{ status:400 })
-    const { data,error } = await supabaseAdmin().rpc('native_sales_archived_leads',{
+    const { data,error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_archived_leads',{
       p_organization_id:actor.organizationId,p_actor_member_id:actor.memberId,
       p_limit:limit,p_offset:offset,p_q:q,
     })

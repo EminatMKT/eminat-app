@@ -20,7 +20,7 @@ export async function GET(request: Request) {
         !(membershipTypes as readonly string[]).includes(type) ||
         !(saleDurations as readonly string[]).includes(duration))
       return Response.json({ code: 'INVALID_MEMBERSHIP_QUOTE' }, { status: 422 })
-    const { data, error } = await supabaseAdmin().rpc('native_sales_membership_quote', {
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_membership_quote', {
       p_plan: plan, p_type: type, p_duration: duration,
     })
     if (error) return nativeSalesDatabaseError(error)

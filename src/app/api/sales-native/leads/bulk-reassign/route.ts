@@ -22,7 +22,7 @@ export async function POST(request:Request) {
       return Response.json({code:'BODY_TOO_LARGE'},{status:413})
     const parsed=input.safeParse(payload)
     if (!parsed.success) return Response.json({code:'VALIDATION_ERROR'},{status:422})
-    const {data,error}=await supabaseAdmin().rpc('native_sales_bulk_reassign_leads',{
+    const {data,error}=await supabaseAdmin({ noStore: true }).rpc('native_sales_bulk_reassign_leads',{
       p_organization_id:actor.organizationId,p_actor_member_id:actor.memberId,
       p_items:parsed.data.items,p_owner_member_id:parsed.data.ownerMemberId,
       p_team_id:parsed.data.teamId,p_request_id:randomUUID(),

@@ -30,7 +30,7 @@ export async function POST(request:Request) {
     const body=parsed.data
     const hash=createHash('sha256').update(JSON.stringify([
       body.resource,body.recordId,body.subject,body.body])).digest('hex')
-    const db=supabaseAdmin()
+    const db=supabaseAdmin({ noStore: true })
     const {data:queued,error:queueError}=await db.rpc('native_sales_queue_email',{
       p_organization_id:actor.organizationId,p_actor_member_id:actor.memberId,
       p_resource:body.resource,p_record_id:body.recordId,p_subject:body.subject,p_body:body.body,
