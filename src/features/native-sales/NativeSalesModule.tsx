@@ -2,6 +2,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import AppShell from '@/shared/components/shell/AppShell'
 import { supabase } from '@/shared/db/supabase'
+import NativeSalesCreate from './NativeSalesCreate'
+import NativeSalesRecordActions from './NativeSalesRecordActions'
 import s from './NativeSalesModule.module.css'
 
 type Tab = 'dashboard' | 'leads' | 'contacts' | 'accounts' | 'opportunities' |
@@ -12,6 +14,8 @@ type Team = { id: string; name: string }
 type Stage = { id: string; code: string; name: string; position: number; outcome: string; pipelineId: string }
 type Directory = { users: Person[]; teams: Team[]; stages: Stage[] }
 type Row = Record<string, unknown> & { id: string }
+export type NativeRequest = (path: string, options?: { method?: 'POST' | 'PATCH';
+  payload?: Record<string, unknown>; version?: number; idempotencyKey?: string }) => Promise<Record<string, unknown>>
 type TimelineEvent = { id: string; type: string; action?: string; kind?: string;
   title?: string; body?: string; actorName?: string; occurredAt?: string }
 type Summary = {
@@ -61,6 +65,9 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
   const [reportTo, setReportTo] = useState(todayUtc)
   const [rows, setRows] = useState<Row[]>([])
   const [selected, setSelected] = useState<Row | null>(null)
+  const [pipelineStage, setPipelineStage] = useState('')
+  const [draggedOpportunityId, setDraggedOpportunityId] = useState('')
+  const [createOpen, setCreateOpen] = useState(false)
   const [timeline, setTimeline] = useState<TimelineEvent[]>([])
   const [timelineError, setTimelineError] = useState(false)
   const [pdfBusy, setPdfBusy] = useState(false)
@@ -73,12 +80,17 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
   const [error, setError] = useState('')
   const [refresh, setRefresh] = useState(0)
 
-  const request = useCallback(async (path: string) => {
+  const request: NativeRequest = useCallback(async (path, options = {}) => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) throw new Error('AUTHENTICATION_REQUIRED')
-    const response = await fetch(`/api/sales-native/${path}`, { cache: 'no-store', headers: {
-      Authorization: `Bearer ${session.access_token}`, 'X-Sales-Organization-Id': organizationId,
-    } })
+    const headers: Record<string,string> = { Authorization: `Bearer ${session.access_token}`,
+      'X-Sales-Organization-Id': organizationId }
+    if (options.payload) headers['Content-Type'] = 'application/json'
+    if (options.version) headers['If-Match'] = String(options.version)
+    if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey
+    const response = await fetch(`/api/sales-native/${path}`, { cache: 'no-store',
+      method: options.method || 'GET', headers,
+      body: options.payload ? JSON.stringify(options.payload) : undefined })
     const result = await response.json().catch(() => null) as unknown
     if (!isObject(result)) throw new Error('SALES_RESPONSE_UNAVAILABLE')
     if (!response.ok) throw new Error(string(result.code) || 'SALES_UNAVAILABLE')
@@ -101,7 +113,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
     return () => { cancelled = true }
   }, [request])
 
-  useEffect(() => { setRows([]); setSelected(null); setOffset(0); setNextOffset(null) }, [tab, query, demo])
+  useEffect(() => { setRows([]); setSelected(null); setCreateOpen(false); setOffset(0); setNextOffset(null) }, [tab, query, demo])
   useEffect(() => {
     const resource = tab==='pipeline' ? 'opportunities' : tab
     if (!selected || !['leads','contacts','accounts','opportunities'].includes(resource)) {
@@ -197,11 +209,26 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
   }, [organizationId])
   const stages = useMemo(() => [...directory.stages].sort((a,b) => a.position-b.position), [directory.stages])
   const currentLabel = tabs.find(item => item.key === tab)?.label || 'Sales'
+  const moveOpportunity = useCallback(async (row: Row, target: Stage) => {
+    const source = directory.stages.find(stage => stage.id===row.stage_id)
+    if (!source || source.pipelineId!==target.pipelineId || source.id===target.id) return
+    if (target.outcome!=='OPEN') { setPipelineStage(target.code); setSelected(row); return }
+    setError('')
+    try {
+      await request(`opportunities/${row.id}/transitions`,{method:'POST',
+        payload:{stageCode:target.code},version:Number(row.version)})
+      setRefresh(value => value+1)
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'STAGE_UPDATE_FAILED') }
+  }, [directory.stages,request])
 
   return <AppShell title="Sales" actions={<span className={s.role}>{access?.role || 'Loading'}</span>}>
     <main className={s.main}>
       <div className={s.heading}><div><p className={s.eyebrow}>LILLY Sales</p><h1>{currentLabel}</h1></div>
-        <button className={s.refresh} type="button" onClick={() => setRefresh(value => value+1)} disabled={loading}>Refresh</button>
+        <div className={s.headingActions}>
+          {access?.capabilities.canWrite && ['leads','contacts','accounts','opportunities'].includes(tab) &&
+            <button className={s.refresh} type="button" onClick={() => setCreateOpen(value => !value)}>{createOpen ? 'Cancel' : 'Add new'}</button>}
+          <button className={s.refresh} type="button" onClick={() => setRefresh(value => value+1)} disabled={loading}>Refresh</button>
+        </div>
       </div>
       <nav className={s.tabs} aria-label="Sales sections">
         {tabs.map(item => <button key={item.key} type="button" aria-current={tab===item.key ? 'page' : undefined}
@@ -210,6 +237,9 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
       </nav>
       {!access?.allowed && !loading && <p role="alert" className={s.error}>{error || 'Sales access is unavailable.'}</p>}
       {access?.allowed && <>
+        {createOpen && ['leads','contacts','accounts','opportunities'].includes(tab) &&
+          <NativeSalesCreate resource={tab as 'leads'|'contacts'|'accounts'|'opportunities'} request={request}
+            onSaved={() => { setCreateOpen(false); setRefresh(value => value+1) }} />}
         {error && <p role="alert" className={s.error}>{error}</p>}
         {loading && <p role="status" className={s.empty}>Loading {currentLabel.toLowerCase()}…</p>}
         {tab==='dashboard' && summary && !loading && !error && <>
@@ -255,9 +285,15 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
         {tab==='pipeline' && !loading && <>
           <p className={s.hint}>Swipe sideways to view every stage.</p>
           <div className={s.board} tabIndex={0} aria-label="Opportunity pipeline">
-            {stages.map(stage => <section key={stage.id} className={s.column}>
+            {stages.map(stage => <section key={stage.id} className={s.column}
+              onDragOver={event => { if (access.capabilities.canWrite) event.preventDefault() }}
+              onDrop={event => { event.preventDefault(); const row=rows.find(item => item.id===draggedOpportunityId)
+                setDraggedOpportunityId(''); if (row) void moveOpportunity(row,stage) }}>
               <h2>{stage.name} <small>{rows.filter(row => row.stage_id===stage.id).length}</small></h2>
-              {rows.filter(row => row.stage_id===stage.id).map(row => <button key={row.id} type="button" className={s.pipelineCard} onClick={() => setSelected(row)}>
+              {rows.filter(row => row.stage_id===stage.id).map(row => <button key={row.id} type="button" className={s.pipelineCard}
+                draggable={access.capabilities.canWrite}
+                onDragStart={() => setDraggedOpportunityId(row.id)} onDragEnd={() => setDraggedOpportunityId('')}
+                onClick={() => { setPipelineStage(''); setSelected(row) }}>
                 <strong>{title(row)}</strong><span>{userName(row.owner_member_id)}</span>
                 <small>{string(row.currency)} {row.amount === null ? '—' : String(row.amount ?? '—')}</small>
               </button>)}
@@ -290,7 +326,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
         </div>}
         {selected && <div className={s.overlay} role="presentation" onMouseDown={event => { if (event.target===event.currentTarget) setSelected(null) }}>
           <section className={s.detail} role="dialog" aria-modal="true" aria-label={title(selected)}>
-            <div className={s.detailHeader}><h2>{title(selected)}</h2><button type="button" onClick={() => setSelected(null)} aria-label="Close details">×</button></div>
+            <div className={s.detailHeader}><h2>{title(selected)}</h2><button type="button" onClick={() => {setSelected(null);setPipelineStage('')}} aria-label="Close details">×</button></div>
             <dl><dt>Status</dt><dd>{string(selected.effectiveStatus) || string(selected.status) || stageName(selected.stage_id) || '—'}</dd>
               <dt>Owner</dt><dd>{userName(selected.owner_member_id || selected.seller_member_id)}</dd>
               <dt>Team</dt><dd>{teamName(selected.team_id) || '—'}</dd>
@@ -307,6 +343,13 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
                 <small>{event.actorName || 'System'} · {date(event.occurredAt)}</small>
                 {event.type==='activity' && event.body && <p>{event.body}</p>}</li>)}</ol></div>}
             {timelineError && <p role="alert" className={s.error}>Timeline is temporarily unavailable.</p>}
+            {['leads','contacts','accounts','opportunities','pipeline','activities'].includes(tab) &&
+              <NativeSalesRecordActions key={`${tab}-${selected.id}-${pipelineStage}`} resource={tab==='pipeline' ? 'opportunities' :
+                tab as 'leads'|'contacts'|'accounts'|'opportunities'|'activities'} row={selected}
+                canWrite={Boolean(access.capabilities.canWrite)} canReassign={Boolean(access.capabilities.canReassign)}
+                stages={directory.stages} users={directory.users} teams={directory.teams} request={request}
+                requestedStage={pipelineStage}
+                onSaved={() => { setSelected(null); setRefresh(value => value+1) }} />}
           </section>
         </div>}
       </>}
