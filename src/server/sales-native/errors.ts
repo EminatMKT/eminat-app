@@ -3,6 +3,8 @@ import type { PostgrestError } from '@supabase/supabase-js'
 const databaseCodes = {
   SALES_ACCESS_DENIED: 403,
   REASSIGN_FORBIDDEN: 403,
+  ARCHIVE_FORBIDDEN: 403,
+  ARCHIVE_STATE_CONFLICT: 409,
   TEAM_FORBIDDEN: 403,
   OWNER_NOT_ELIGIBLE: 422,
   OWNER_TEAM_MISMATCH: 422,
