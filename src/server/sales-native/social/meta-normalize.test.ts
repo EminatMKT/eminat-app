@@ -24,6 +24,16 @@ describe('native Meta webhook normalization', () => {
       .toEqual(['message:same-id', 'comment:same-id'])
   })
 
+  it('uses the recipient and outbound direction for Page message echoes', () => {
+    const body = Buffer.from(JSON.stringify({ object: 'page', entry: [{ id: 'page-qa', time: now,
+      messaging: [{ sender: { id: 'page-qa' }, recipient: { id: 'person-qa' },
+        message: { mid: 'echo-qa', text: 'Reply', is_echo: true } }],
+    }] }))
+    expect(normalizeMetaWebhook(body)[0].normalized).toMatchObject({
+      externalSubjectId: 'person-qa', direction: 'OUTBOUND', text: 'Reply',
+    })
+  })
+
   it('rejects malformed, oversized, and future payloads', () => {
     expect(() => normalizeMetaWebhook(Buffer.from('{'))).toThrow('META_PAYLOAD_INVALID')
     expect(() => normalizeMetaWebhook(Buffer.alloc(1024 * 1024 + 1))).toThrow('META_PAYLOAD_INVALID')

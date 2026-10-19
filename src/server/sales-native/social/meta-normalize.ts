@@ -43,7 +43,9 @@ export function normalizeMetaWebhook(raw: Buffer): SocialWebhookEvent[] {
     const before = result.length
     for (const message of item.messaging ?? []) {
       const payload = message.message
-      const sender = message.sender
+      const isEcho = payload && typeof payload === 'object' &&
+        'is_echo' in payload && payload.is_echo === true
+      const subject = isEcho ? message.recipient : message.sender
       const externalId = payload && typeof payload === 'object' && 'mid' in payload
         ? text(payload.mid, 200) : text(message.mid, 200)
       if (!externalId) continue
@@ -51,8 +53,9 @@ export function normalizeMetaWebhook(raw: Buffer): SocialWebhookEvent[] {
         externalEventId: `message:${externalId}`, kind: 'message',
         occurredAt: timestamp(message.timestamp ?? item.time),
         normalized: { channel: parsed.data.object,
-          externalSubjectId: sender && typeof sender === 'object' && 'id' in sender
-            ? text(sender.id, 200) : '',
+          direction: isEcho ? 'OUTBOUND' : 'INBOUND',
+          externalSubjectId: subject && typeof subject === 'object' && 'id' in subject
+            ? text(subject.id, 200) : '',
           text: payload && typeof payload === 'object' && 'text' in payload
             ? text(payload.text, 10000) : '' },
       })

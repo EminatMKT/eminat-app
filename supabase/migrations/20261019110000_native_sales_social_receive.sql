@@ -151,7 +151,8 @@ BEGIN
       INSERT INTO public.sales_social_messages
         (organization_id,conversation_id,external_message_id,direction,text_content,occurred_at)
         VALUES (v_asset.organization_id,v_conversation_id,p_external_event_id,
-          'INBOUND',p_normalized->>'text',p_occurred_at);
+          CASE WHEN p_normalized->>'direction'='OUTBOUND' THEN 'OUTBOUND' ELSE 'INBOUND' END,
+          p_normalized->>'text',p_occurred_at);
     END IF;
   ELSIF p_kind='comment' THEN
     INSERT INTO public.sales_social_comments

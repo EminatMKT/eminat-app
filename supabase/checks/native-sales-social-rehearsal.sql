@@ -42,6 +42,12 @@ DO $$ DECLARE r jsonb; n jsonb; BEGIN
     now(),n,repeat('b',64),gen_random_uuid(),gen_random_uuid());
   IF r->>'status'<>'PROCESSED' OR (SELECT count(*) FROM public.sales_social_messages)<>1 THEN
     RAISE EXCEPTION 'message ingestion failed'; END IF;
+  n:='{"externalSubjectId":"qa-person","channel":"page","direction":"OUTBOUND","text":"QA reply"}'::jsonb;
+  r:=public.native_sales_receive_social_event('qa-page','message:qa-echo','message',
+    now(),n,repeat('f',64),gen_random_uuid(),gen_random_uuid());
+  IF r->>'status'<>'PROCESSED' OR
+    (SELECT count(*) FROM public.sales_social_messages WHERE direction='OUTBOUND')<>1 THEN
+    RAISE EXCEPTION 'outbound echo misclassified'; END IF;
   n:='{"channel":"page","externalCommentId":"qa-comment","text":"QA comment"}'::jsonb;
   r:=public.native_sales_receive_social_event('qa-page','comment:qa-comment','comment',
     now(),n,repeat('c',64),gen_random_uuid(),gen_random_uuid());
@@ -57,7 +63,7 @@ DO $$ DECLARE r jsonb; n jsonb; BEGIN
     '{"full_name":"QA Recovered Lead","email":"qa-recovered@example.invalid"}'::jsonb);
   IF r->>'status'<>'PROCESSED' OR (SELECT count(*) FROM public.sales_leads)<>2 THEN
     RAISE EXCEPTION 'pending lead retry failed'; END IF;
-  IF (SELECT count(*) FROM public.sales_history WHERE action='meta.webhook.accepted')<>4 THEN
+  IF (SELECT count(*) FROM public.sales_history WHERE action='meta.webhook.accepted')<>5 THEN
     RAISE EXCEPTION 'social event audit incomplete or duplicated'; END IF;
   n:='{"externalLeadId":"qa-recovery-lease","pageId":"qa-page","fields":null}'::jsonb;
   r:=public.native_sales_receive_social_event('qa-page','leadgen:qa-recovery-lease','leadgen',
