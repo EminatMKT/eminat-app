@@ -28,7 +28,7 @@ def capability_sql(phase: str) -> str:
         'unrelatedWrite', EXISTS (
           SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
           WHERE n.nspname='public' AND c.relkind IN ('r','p')
-            AND c.relname NOT LIKE 'sales\\_%' ESCAPE '\\'
+            AND c.relname NOT IN (__TABLES__)
             AND (has_table_privilege(current_user,c.oid,'INSERT')
               OR has_table_privilege(current_user,c.oid,'UPDATE')
               OR has_table_privilege(current_user,c.oid,'DELETE'))),

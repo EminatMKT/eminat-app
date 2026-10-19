@@ -70,7 +70,13 @@ FROM pg_roles WHERE rolname='lilly_sales_migrator';
 SELECT count(*) AS unrelated_writable
 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
 WHERE n.nspname='public' AND c.relkind IN ('r','p')
-  AND c.relname NOT LIKE 'sales\_%' ESCAPE '\'
+  AND c.relname NOT IN (
+    'sales_organizations','sales_members','sales_teams','sales_team_members',
+    'sales_pipelines','sales_stages','sales_leads','sales_accounts',
+    'sales_contacts','sales_account_contacts','sales_opportunities',
+    'sales_opportunity_contacts','sales_lead_conversions','sales_payments',
+    'sales_memberships','sales_membership_periods','sales_household_members',
+    'sales_activities','sales_meetings','sales_history')
   AND (has_table_privilege('lilly_sales_migrator',c.oid,'INSERT')
     OR has_table_privilege('lilly_sales_migrator',c.oid,'UPDATE')
     OR has_table_privilege('lilly_sales_migrator',c.oid,'DELETE'));

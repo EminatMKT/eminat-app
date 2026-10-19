@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from check_sales_database_access import validate_capabilities
+from check_sales_database_access import capability_sql, validate_capabilities
 from sales_migration_common import TABLES, connection_environment
 
 
@@ -41,6 +41,7 @@ class NativeSalesSecurityTests(unittest.TestCase):
                 connection_environment('postgresql://limited:test@db.ruedelunbtaomhrzgelc.supabase.co/postgres')
 
     def test_data_role_must_have_exact_target_rights_without_admin_or_unrelated_write(self):
+        self.assertIn('c.relname NOT IN (', capability_sql('data'))
         state = dict(production=True, migrationHistory=True, identityRead=True,
                      superuser=False, createRole=False, createDb=False, bypassRls=False,
                      publicCreate=False, usuariosOwner=False, unrelatedWrite=False,
