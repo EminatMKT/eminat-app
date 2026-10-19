@@ -5,11 +5,8 @@ import type { Paciente } from '@/features/medical/types'
 import comparePacientes from './comparePacientes'
 import loadPaciente from './loadPaciente'
 import buildMergeValues from './buildMergeValues'
-
-function summarizePaciente({ nombre, apellido }: Paciente): string {
-  const summary = `${nombre} ${apellido}`
-  return summary
-}
+import summarizePaciente from './summarizePaciente'
+import loadSummaries from './loadSummaries'
 
 /** Medical's wrapper over the shared duplicate-review screen: loads a patient by id, shows
  *  `nombre apellido` as the pair's summary, and compares every clinical field `fusionar()`
@@ -17,12 +14,13 @@ function summarizePaciente({ nombre, apellido }: Paciente): string {
 export default function MedicalDuplicatesTab() {
   const { t } = useT()
   return (
-    <DuplicatesTab
+    <DuplicatesTab<Paciente>
       entidad="pacientes"
       cargarItem={loadPaciente}
       renderResumen={summarizePaciente}
       renderComparacion={(a, b, controls) => comparePacientes(a, b, controls, t)}
       construirValoresFinales={buildMergeValues}
+      loadSummaries={loadSummaries}
     />
   )
 }

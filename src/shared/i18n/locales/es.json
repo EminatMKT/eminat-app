@@ -1347,7 +1347,6 @@
   "dedup.emptyState": "No hay duplicados pendientes.",
   "dedup.levelExact": "Coincidencia exacta",
   "dedup.levelPartial": "Coincidencia parcial",
-  "dedup.openAria": "Abrir comparación de duplicado",
   "dedup.mergeFailed": "No se pudo fusionar el par. Puede haber cambiado desde que lo abriste: cerralo y volvé a buscar.",
   "dedup.discardFailed": "No se pudo guardar tu decisión sobre este par. Probá de nuevo.",
   "dedup.listFailed": "No se pudieron cargar ni buscar los duplicados pendientes. Revisá tu conexión y volvé a buscar.",
@@ -1362,5 +1361,8 @@
   "dedup.loserLabel": "Se elimina tras fusionar",
   "dedup.discardChoicesTitle": "¿Descartar lo elegido?",
   "dedup.discardChoicesMessage": "Se pierde todo lo elegido en este par.",
-  "dedup.discardChoicesConfirm": "Descartar"
+  "dedup.discardChoicesConfirm": "Descartar",
+  "dedup.nameLoading": "Cargando nombre…",
+  "dedup.nameUnavailable": "Nombre no disponible",
+  "dedup.openPairAria": "Comparar {a} frente a {b}"
 }

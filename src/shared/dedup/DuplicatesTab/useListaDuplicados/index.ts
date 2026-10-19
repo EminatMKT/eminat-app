@@ -1,27 +1,32 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import listPendientes from '@/shared/dedup/data/listPendientes'
 import escanear from '@/shared/dedup/data/escanear'
 import ordenarPendientes from '@/shared/dedup/ordenarPendientes'
-import type { Pendiente } from '@/shared/dedup/types'
+import loadNames from './loadNames'
+import type { LoadSummaries } from './loadNames/types'
+import { INICIAL, NO_REQUEST_YET } from './constants'
+import type { EstadoLista } from './types'
 
-type EstadoLista = {
-  pendientes: Pendiente[]
-  ocupado: boolean
-  error: boolean
-}
-
-const INICIAL: EstadoLista = { pendientes: [], ocupado: false, error: false }
-
-/** The pending-pair queue for one entity, and the scan that refills it. */
-export default function useListaDuplicados(entidad: string) {
+/** The pending-pair queue for one entity, its display names, and the scan that refills it. */
+export default function useListaDuplicados(entidad: string, loadSummaries: LoadSummaries) {
   const [estado, setEstado] = useState<EstadoLista>(INICIAL)
-  const { pendientes, ocupado, error } = estado
+  const request = useRef<number>(NO_REQUEST_YET)
 
+  // Only the newest reload writes: an older one answering late would put back a stale queue.
   const recargar = async () => {
+    const mine = ++request.current
     const { data, error: fallo } = await listPendientes(entidad)
+    if (request.current !== mine) return
     if (fallo) return setEstado(p => ({ ...p, error: true }))
-    setEstado(p => ({ ...p, pendientes: ordenarPendientes(data ?? []), error: false }))
+    const queue = ordenarPendientes(data ?? [])
+    const listed = { pendientes: queue, namesLoading: true, error: false }
+    setEstado(p => ({ ...p, ...listed }))
+    const showNames = (names: Record<string, string>) => {
+      if (request.current !== mine) return
+      setEstado(p => ({ ...p, summaries: names, namesLoading: false }))
+    }
+    void loadNames(queue, loadSummaries).then(showNames)
   }
 
   useEffect(() => { void recargar() }, [entidad])
@@ -34,15 +39,9 @@ export default function useListaDuplicados(entidad: string) {
     setEstado(p => ({ ...p, ocupado: false }))
   }
 
-  const resultado = {
-    pendientes,
-    ocupado,
-    error,
-    escanearPendientes,
-    recargar,
-  }
+  const resultado = { ...estado, escanearPendientes, recargar }
   return resultado
 }
 
-// Owns the pending-pair queue for `DuplicatesTab`: what is waiting, and the scan that looks for
-// more. Separated from the open-pair state so each stays small enough to read in one sitting.
+// Owns the pending-pair queue for `DuplicatesTab`. Pairs show as soon as they load; their names
+// follow from `loadNames` without ever holding the list or the scan back.

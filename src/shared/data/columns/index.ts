@@ -40,6 +40,7 @@ const TABLE_COLUMNS = {
   actividadResponsables: {
     usuarioId: 'usuario_id',
   },
+  pacientes: { ...identified },
 } as const
 
 export default TABLE_COLUMNS

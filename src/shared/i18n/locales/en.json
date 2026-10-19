@@ -1347,7 +1347,6 @@
   "dedup.emptyState": "No pending duplicates.",
   "dedup.levelExact": "Exact match",
   "dedup.levelPartial": "Partial match",
-  "dedup.openAria": "Open duplicate comparison",
   "dedup.mergeFailed": "Could not merge this pair. It may have changed since you opened it: close it and scan again.",
   "dedup.discardFailed": "Could not save your decision on this pair. Try again.",
   "dedup.listFailed": "Could not load or scan the pending duplicates. Check your connection and scan again.",
@@ -1362,5 +1361,8 @@
   "dedup.loserLabel": "Merged in, then removed",
   "dedup.discardChoicesTitle": "Discard your choices?",
   "dedup.discardChoicesMessage": "Every pick and unchecked value on this pair is lost.",
-  "dedup.discardChoicesConfirm": "Discard"
+  "dedup.discardChoicesConfirm": "Discard",
+  "dedup.nameLoading": "Loading name…",
+  "dedup.nameUnavailable": "Name unavailable",
+  "dedup.openPairAria": "Compare {a} with {b}"
 }

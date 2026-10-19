@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { Pendiente } from '../types'
+import type { LoadSummaries } from './useListaDuplicados/loadNames/types'
 
 /** What a caller plugs in: `DuplicatesTab` never reads the entity's own columns directly. */
 export type Props<T> = {
@@ -18,6 +19,8 @@ export type Props<T> = {
     elecciones: Record<string, string>,
     excludedIds: string[],
   ) => Record<string, unknown>
+  /** One batched read of every pending id's display name, for the list rows. */
+  loadSummaries: LoadSummaries
 }
 
 /** What a caller's comparison grid reads and changes: the reviewer's left/right picks, and the

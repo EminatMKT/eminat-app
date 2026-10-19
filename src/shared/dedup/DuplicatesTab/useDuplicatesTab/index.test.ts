@@ -18,6 +18,7 @@ const props = {
   renderResumen: (item: Item) => item.id,
   renderComparacion: () => null,
   construirValoresFinales: () => ({}),
+  loadSummaries: async () => ({}),
 }
 
 describe('useDuplicatesTab', () => {

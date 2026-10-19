@@ -1,4 +1,4 @@
-import { getPaciente } from '@/features/medical/data/pacientes'
+import { getPaciente } from '@/features/medical/data'
 import type { Paciente } from '@/features/medical/types'
 
 /** One patient by id for the duplicate review, or a rejection when the read fails. */
