@@ -7,7 +7,7 @@ export const saleDurations = ['MONTHLY', '3M', '6M', '12M'] as const
 export type Plan = (typeof plans)[number]
 export type MembershipType = (typeof membershipTypes)[number]
 export type SaleDuration = (typeof saleDurations)[number]
-export type HistoricalDuration = SaleDuration | '2M'
+export type HistoricalDuration = SaleDuration | '2M' | 'LEGACY_UNSPECIFIED'
 
 type FixedPrice = { individual: number; family: number; visits: number }
 type Rates = {

@@ -4,9 +4,9 @@ export type MembershipPdfData = {
   code: string
   firstName: string
   lastName: string
-  plan: 'ESSENTIAL' | 'PLUS' | 'MAX'
-  membershipType: 'INDIVIDUAL' | 'FAMILY'
-  duration: 'MONTHLY' | '2M' | '3M' | '6M' | '12M'
+  plan: 'ESSENTIAL' | 'PLUS' | 'MAX' | 'LEGACY_UNSPECIFIED'
+  membershipType: 'INDIVIDUAL' | 'FAMILY' | 'LEGACY_UNSPECIFIED'
+  duration: 'MONTHLY' | '2M' | '3M' | '6M' | '12M' | 'LEGACY_UNSPECIFIED'
   issuedAt: string
   expiresAt: string
   status: string
@@ -18,9 +18,10 @@ const pale = rgb(0.99, 0.95, 0.97)
 const safe = (value: string) => value.normalize('NFC').replace(/\s+/g, ' ')
   .replace(/[^\u0020-\u007e\u00a0-\u00ff]/g, '?')
 const durationLabel = (value: MembershipPdfData['duration']) => value === 'MONTHLY' ? 'Mes a mes' :
-  value === '2M' ? 'Plazo histórico' : `${value.slice(0,-1)} meses`
+  value === '2M' ? 'Plazo histórico de 2 meses' :
+  value === 'LEGACY_UNSPECIFIED' ? 'Plazo histórico sin especificar' : `${value.slice(0,-1)} meses`
 const typeLabel = (value: MembershipPdfData['membershipType']) =>
-  value === 'FAMILY' ? 'Familiar' : 'Individual'
+  value === 'FAMILY' ? 'Familiar' : value === 'INDIVIDUAL' ? 'Individual' : 'Tipo histórico sin especificar'
 const statusLabel = (value: string) => ({ ACTIVE: 'Activa', EXPIRED: 'Vencida',
   CANCELLED: 'Cancelada', PENDING: 'Pendiente' })[value as 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'PENDING'] || value
 
@@ -53,7 +54,7 @@ export async function createMembershipPdf(data: MembershipPdfData): Promise<Uint
   page.drawRectangle({ x:35,y:123,width:442,height:377,color:pale })
   const fields = [
     ['CÓDIGO DE MEMBRESÍA',data.code],
-    ['PLAN',data.plan],
+    ['PLAN',data.plan==='LEGACY_UNSPECIFIED' ? 'Plan histórico sin especificar' : data.plan],
     ['TIPO',typeLabel(data.membershipType)],
     ['MODALIDAD',durationLabel(data.duration)],
     ['FECHA DE INICIO',data.issuedAt],

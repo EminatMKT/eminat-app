@@ -113,13 +113,17 @@ CREATE TABLE public.sales_memberships (
   phone text,
   email text,
   address text,
-  membership_type text NOT NULL CHECK (membership_type IN ('INDIVIDUAL','FAMILY')),
-  plan text NOT NULL CHECK (plan IN ('ESSENTIAL','PLUS','MAX')),
-  duration text NOT NULL CHECK (duration IN ('MONTHLY','2M','3M','6M','12M')),
-  monthly_price_cents integer NOT NULL CHECK (monthly_price_cents >= 0),
-  total_price_cents integer NOT NULL CHECK (total_price_cents >= 0),
-  visit_fee_cents integer NOT NULL CHECK (visit_fee_cents >= 0),
-  included_visits integer NOT NULL CHECK (included_visits >= 0),
+  membership_type text NOT NULL CHECK (membership_type IN ('INDIVIDUAL','FAMILY','LEGACY_UNSPECIFIED')),
+  plan text NOT NULL CHECK (plan IN ('ESSENTIAL','PLUS','MAX','LEGACY_UNSPECIFIED')),
+  duration text NOT NULL CHECK (duration IN ('MONTHLY','2M','3M','6M','12M','LEGACY_UNSPECIFIED')),
+  legacy_membership_type_label text,
+  legacy_plan_label text,
+  legacy_duration_label text,
+  legacy_modality_label text,
+  monthly_price_cents integer CHECK (monthly_price_cents >= 0),
+  total_price_cents integer CHECK (total_price_cents >= 0),
+  visit_fee_cents integer CHECK (visit_fee_cents >= 0),
+  included_visits integer CHECK (included_visits >= 0),
   issued_at date NOT NULL,
   expires_at date NOT NULL,
   status text NOT NULL CHECK (status IN ('ACTIVE','EXPIRED','CANCELLED','PENDING')),
@@ -141,8 +145,11 @@ CREATE TABLE public.sales_memberships (
   version integer NOT NULL DEFAULT 1 CHECK (version > 0),
   legacy_annie_id uuid,
   CHECK (expires_at > issued_at),
-  -- 2M is historical data only. A migrated ANNIE ID is mandatory for it.
-  CHECK (duration <> '2M' OR legacy_annie_id IS NOT NULL),
+  -- Unknown historical values remain explicit; new issuance cannot use them.
+  CHECK (legacy_annie_id IS NOT NULL OR (plan<>'LEGACY_UNSPECIFIED'
+    AND membership_type<>'LEGACY_UNSPECIFIED' AND duration NOT IN ('2M','LEGACY_UNSPECIFIED')
+    AND monthly_price_cents IS NOT NULL AND total_price_cents IS NOT NULL
+    AND visit_fee_cents IS NOT NULL AND included_visits IS NOT NULL)),
   -- A newly issued non-demo membership needs one recorded SalesPayment.
   -- Historical ANNIE rows may have a distinct legacy payment-order reference.
   CHECK (status <> 'ACTIVE' OR is_demo OR legacy_annie_id IS NOT NULL OR sales_payment_id IS NOT NULL),
@@ -167,13 +174,17 @@ CREATE TABLE public.sales_membership_periods (
   membership_id uuid NOT NULL,
   starts_at date NOT NULL,
   expires_at date NOT NULL,
-  plan text NOT NULL CHECK (plan IN ('ESSENTIAL','PLUS','MAX')),
-  duration text NOT NULL CHECK (duration IN ('MONTHLY','2M','3M','6M','12M')),
+  plan text NOT NULL CHECK (plan IN ('ESSENTIAL','PLUS','MAX','LEGACY_UNSPECIFIED')),
+  duration text NOT NULL CHECK (duration IN ('MONTHLY','2M','3M','6M','12M','LEGACY_UNSPECIFIED')),
   amount_cents integer NOT NULL CHECK (amount_cents >= 0),
+  legacy_plan_label text,
+  legacy_duration_label text,
+  legacy_modality_label text,
   legacy_annie_id uuid,
   created_at timestamptz NOT NULL DEFAULT now(),
   CHECK (expires_at > starts_at),
-  CHECK (duration <> '2M' OR legacy_annie_id IS NOT NULL),
+  CHECK (legacy_annie_id IS NOT NULL OR (plan<>'LEGACY_UNSPECIFIED'
+    AND duration NOT IN ('2M','LEGACY_UNSPECIFIED'))),
   FOREIGN KEY (organization_id, membership_id) REFERENCES public.sales_memberships(organization_id, id) ON DELETE RESTRICT,
   UNIQUE (organization_id, id),
   UNIQUE (organization_id, legacy_annie_id)

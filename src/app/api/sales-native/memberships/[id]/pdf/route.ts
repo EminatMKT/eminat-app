@@ -8,8 +8,9 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 const membership = z.object({
   code: z.string().min(1).max(32),first_name: z.string().min(1),last_name: z.string().min(1),
-  plan: z.enum(['ESSENTIAL','PLUS','MAX']),membership_type: z.enum(['INDIVIDUAL','FAMILY']),
-  duration: z.enum(['MONTHLY','2M','3M','6M','12M']),
+  plan: z.enum(['ESSENTIAL','PLUS','MAX','LEGACY_UNSPECIFIED']),
+  membership_type: z.enum(['INDIVIDUAL','FAMILY','LEGACY_UNSPECIFIED']),
+  duration: z.enum(['MONTHLY','2M','3M','6M','12M','LEGACY_UNSPECIFIED']),
   issued_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   expires_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),status: z.string().min(1).max(40),
   effectiveStatus: z.string().min(1).max(40),
