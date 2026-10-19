@@ -1,3 +1,4 @@
+export { default as ActionStrip } from './SaveActions/ActionStrip'
 export { default as Button } from './Button'
 export { default as CatalogoSelect } from './CatalogoSelect'
 export { default as Checkbox } from './Checkbox'

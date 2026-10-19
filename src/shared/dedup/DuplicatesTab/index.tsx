@@ -1,6 +1,6 @@
 'use client'
 import { useT } from '@/shared/i18n'
-import { Button, WarningCallout } from '@/shared/components/ui'
+import { ActionStrip, Button, WarningCallout } from '@/shared/components/ui'
 import { MOTIVO_NO_ES_LA_MISMA, MOTIVO_SEPARADAS } from '@/shared/dedup/types'
 import useDuplicatesTab from './useDuplicatesTab'
 import PendingQueue from './PendingQueue'
@@ -16,7 +16,9 @@ export default function DuplicatesTab<T>(props: Props<T>) {
     <>
       {/* Scan is this screen's primary action while no pair is open — merging or discarding
           only becomes possible once a pair is, and that lives in `PairDetail` instead. */}
-      <Button kind="scan" onClick={() => void lista.escanearPendientes()} ocupado={lista.ocupado} />
+      <ActionStrip>
+        <Button kind="scan" onClick={() => void lista.escanearPendientes()} ocupado={lista.ocupado} />
+      </ActionStrip>
       {lista.error && <WarningCallout message={t('dedup.listFailed')} />}
       {par.error && <WarningCallout message={t('dedup.openFailed')} />}
 
