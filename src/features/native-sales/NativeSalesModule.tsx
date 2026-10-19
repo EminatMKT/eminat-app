@@ -12,6 +12,8 @@ type Team = { id: string; name: string }
 type Stage = { id: string; code: string; name: string; position: number; outcome: string; pipelineId: string }
 type Directory = { users: Person[]; teams: Team[]; stages: Stage[] }
 type Row = Record<string, unknown> & { id: string }
+type TimelineEvent = { id: string; type: string; action?: string; kind?: string;
+  title?: string; body?: string; actorName?: string; occurredAt?: string }
 type Summary = {
   asOf: string
   scope: string
@@ -43,6 +45,8 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
   const [summary, setSummary] = useState<Summary | null>(null)
   const [rows, setRows] = useState<Row[]>([])
   const [selected, setSelected] = useState<Row | null>(null)
+  const [timeline, setTimeline] = useState<TimelineEvent[]>([])
+  const [timelineError, setTimelineError] = useState(false)
   const [query, setQuery] = useState('')
   const [demo, setDemo] = useState('all')
   const [offset, setOffset] = useState(0)
@@ -80,6 +84,19 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
   }, [request])
 
   useEffect(() => { setRows([]); setSelected(null); setOffset(0); setNextOffset(null) }, [tab, query, demo])
+  useEffect(() => {
+    const resource = tab==='pipeline' ? 'opportunities' : tab
+    if (!selected || !['leads','contacts','accounts','opportunities'].includes(resource)) {
+      setTimeline([]); setTimelineError(false); return
+    }
+    let cancelled = false
+    setTimeline([]); setTimelineError(false)
+    void request(`timeline?${new URLSearchParams({ resource, id: selected.id, limit: '25' })}`)
+      .then(result => { if (!cancelled) setTimeline(Array.isArray(result.data)
+        ? result.data as TimelineEvent[] : []) })
+      .catch(() => { if (!cancelled) setTimelineError(true) })
+    return () => { cancelled = true }
+  }, [selected, tab, request])
   useEffect(() => {
     if (!access?.allowed || tab === 'social' || tab === 'settings') return
     let cancelled = false
@@ -198,6 +215,11 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
               {selected.email && <><dt>Email</dt><dd>{string(selected.email)}</dd></>}
               {selected.code && <><dt>Membership code</dt><dd>{string(selected.code)}</dd></>}
             </dl>
+            {timeline.length>0 && <div className={s.timeline}><h3>Timeline</h3><ol>{timeline.map(event =>
+              <li key={event.id}><strong>{event.type==='activity' ? event.title || event.kind : event.action}</strong>
+                <small>{event.actorName || 'System'} · {date(event.occurredAt)}</small>
+                {event.type==='activity' && event.body && <p>{event.body}</p>}</li>)}</ol></div>}
+            {timelineError && <p role="alert" className={s.error}>Timeline is temporarily unavailable.</p>}
           </section>
         </div>}
       </>}
