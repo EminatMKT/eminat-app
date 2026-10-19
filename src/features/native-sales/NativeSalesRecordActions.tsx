@@ -69,6 +69,15 @@ export default function NativeSalesRecordActions({ resource,row,canWrite,canReas
   }
   function prevent(event: FormEvent<HTMLFormElement>, action: () => void) { event.preventDefault(); action() }
   if (!canWrite || !validVersion) return null
+  if (resource==='leads' && row.archived_at) return canReassign ? <div className={s.recordActions}>
+    <form className={s.form} onSubmit={event => prevent(event,() => void submit(
+      `leads/${row.id}/archive`,{reason:archiveReason.trim(),restore:true},'POST'))}>
+      <h3>Restore Lead</h3>
+      <label>Reason <input required maxLength={1000} value={archiveReason} onChange={event => setArchiveReason(event.target.value)} /></label>
+      <button type="submit" disabled={busy || !archiveReason.trim()}>Restore</button>
+    </form>
+    {error && <p role="alert" className={s.error}>{error}</p>}
+  </div> : null
   return <div className={s.recordActions}>
     {['leads','contacts','accounts'].includes(resource) && <form className={s.form} onSubmit={event => prevent(event,() => {
       const payload = resource==='accounts' ? { name:name.trim(),...(email.trim()?{email:email.trim()}:{}),

@@ -74,6 +74,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
   const [pdfError, setPdfError] = useState('')
   const [query, setQuery] = useState('')
   const [demo, setDemo] = useState('all')
+  const [leadView, setLeadView] = useState<'active'|'archived'>('active')
   const [offset, setOffset] = useState(0)
   const [nextOffset, setNextOffset] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
@@ -113,7 +114,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
     return () => { cancelled = true }
   }, [request])
 
-  useEffect(() => { setRows([]); setSelected(null); setCreateOpen(false); setOffset(0); setNextOffset(null) }, [tab, query, demo])
+  useEffect(() => { setRows([]); setSelected(null); setCreateOpen(false); setOffset(0); setNextOffset(null) }, [tab, query, demo, leadView])
   useEffect(() => {
     const resource = tab==='pipeline' ? 'opportunities' : tab
     if (!selected || !['leads','contacts','accounts','opportunities'].includes(resource)) {
@@ -156,7 +157,8 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
         const params = new URLSearchParams({ limit: '25', offset: String(offset) })
         if (query && tab !== 'activities') params.set('q', query)
         if (tab === 'memberships' && demo !== 'all') params.set('demo', demo)
-        const path = tab === 'activities' ? `activities/inbox?${new URLSearchParams({ limit: '25', offset: String(offset) })}` : `${tab}?${params}`
+        const path = tab === 'activities' ? `activities/inbox?${new URLSearchParams({ limit: '25', offset: String(offset) })}` :
+          tab === 'leads' && leadView === 'archived' ? `leads/archived?${params}` : `${tab}?${params}`
         const result = await request(path)
         if (!cancelled) {
           setRows(Array.isArray(result.data) ? result.data as Row[] : [])
@@ -170,7 +172,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
     }
     void load()
     return () => { cancelled = true }
-  }, [access?.allowed, tab, query, demo, offset, refresh, reportFrom, reportTo, request])
+  }, [access?.allowed, tab, query, demo, leadView, offset, refresh, reportFrom, reportTo, request])
 
   const userName = useCallback((id: unknown) => directory.users.find(user => user.memberId === id)?.displayName || 'Unassigned', [directory.users])
   const teamName = useCallback((id: unknown) => directory.teams.find(team => team.id === id)?.name || '', [directory.teams])
@@ -226,6 +228,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
       <div className={s.heading}><div><p className={s.eyebrow}>LILLY Sales</p><h1>{currentLabel}</h1></div>
         <div className={s.headingActions}>
           {access?.capabilities.canWrite && ['leads','contacts','accounts','opportunities'].includes(tab) &&
+            !(tab==='leads' && leadView==='archived') &&
             <button className={s.refresh} type="button" onClick={() => setCreateOpen(value => !value)}>{createOpen ? 'Cancel' : 'Add new'}</button>}
           <button className={s.refresh} type="button" onClick={() => setRefresh(value => value+1)} disabled={loading}>Refresh</button>
         </div>
@@ -304,6 +307,10 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
         {listTabs.has(tab) && !loading && <>
           {tab!=='activities' && <div className={s.filters}>
             <label>Search <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Name or code" /></label>
+            {tab==='leads' && access.capabilities.canReassign && <label>Lead view <select value={leadView}
+              onChange={event => setLeadView(event.target.value as 'active'|'archived')}>
+              <option value="active">Active</option><option value="archived">Archived</option>
+            </select></label>}
             {tab==='memberships' && <label>Records <select value={demo} onChange={event => setDemo(event.target.value)}>
               <option value="all">All</option><option value="false">Commercial</option><option value="true">Demo</option>
             </select></label>}
