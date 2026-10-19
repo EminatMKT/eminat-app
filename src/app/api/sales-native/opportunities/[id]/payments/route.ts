@@ -17,6 +17,22 @@ const payment = z.object({
   reference: z.string().trim().max(200).optional(),
 }).strict()
 
+export async function GET(request: Request, context: { params: { id: string } }) {
+  try {
+    if (!uuid.safeParse(context.params.id).success)
+      return Response.json({ code: 'INVALID_ID' }, { status: 400 })
+    if (new URL(request.url).searchParams.size)
+      return Response.json({ code: 'INVALID_FILTER' }, { status: 422 })
+    const actor = await resolveSalesActor(request)
+    const { data, error } = await supabaseAdmin().rpc('native_sales_visible_payment_evidence', {
+      p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
+      p_opportunity_id: context.params.id,
+    })
+    if (error) return nativeSalesDatabaseError(error)
+    return Response.json({ data: data ?? [] }, { headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) { return nativeSalesErrorResponse(error) }
+}
+
 export async function POST(request: Request, context: { params: { id: string } }) {
   try {
     if (!uuid.safeParse(context.params.id).success)

@@ -50,7 +50,10 @@ test('disabled/incomplete worker or reconciliation cannot report success', async
 })
 test('single scheduled trigger; Tasks cron and disabled auto-deploy preserved', async () => {
   const vercel = JSON.parse(await readFile('vercel.json', 'utf8'))
-  assert.deepEqual(vercel.crons, [{ path: '/api/tasks/notifications/process', schedule: '0 3 * * *' }])
+  assert.deepEqual(vercel.crons, [
+    { path: '/api/tasks/notifications/process', schedule: '0 3 * * *' },
+    { path: '/api/sales-native/reports/process', schedule: '5 13 * * *' },
+  ])
   assert.deepEqual(vercel.git.deploymentEnabled, { '**': false, 'feature/lilly-calendar': true, main: false })
   const workflow = await readFile('.github/workflows/meetings-scheduler.yml', 'utf8')
   assert.equal((workflow.match(/- cron:/g) || []).length, 1)

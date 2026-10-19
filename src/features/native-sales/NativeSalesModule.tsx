@@ -5,6 +5,9 @@ import { supabase } from '@/shared/db/supabase'
 import NativeSalesCreate from './NativeSalesCreate'
 import NativeSalesRecordActions from './NativeSalesRecordActions'
 import NativeReportSchedules from './NativeReportSchedules'
+import NativeMembershipFamily from './NativeMembershipFamily'
+import NativeMembershipIssue from './NativeMembershipIssue'
+import NativeMembershipRenewal from './NativeMembershipRenewal'
 import s from './NativeSalesModule.module.css'
 
 type Tab = 'dashboard' | 'leads' | 'contacts' | 'accounts' | 'opportunities' |
@@ -245,7 +248,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
     <main className={s.main}>
       <div className={s.heading}><div><p className={s.eyebrow}>LILLY Sales</p><h1>{currentLabel}</h1></div>
         <div className={s.headingActions}>
-          {access?.capabilities.canWrite && ['leads','contacts','accounts','opportunities'].includes(tab) &&
+          {access?.capabilities.canWrite && ['leads','contacts','accounts','opportunities','memberships'].includes(tab) &&
             !(tab==='leads' && leadView==='archived') &&
             <button className={s.refresh} type="button" onClick={() => setCreateOpen(value => !value)}>{createOpen ? 'Cancel' : 'Add new'}</button>}
           <button className={s.refresh} type="button" onClick={() => {setSelectedLeadIds([]);setRefresh(value => value+1)}} disabled={loading}>Refresh</button>
@@ -261,6 +264,8 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
         {createOpen && ['leads','contacts','accounts','opportunities'].includes(tab) &&
           <NativeSalesCreate resource={tab as 'leads'|'contacts'|'accounts'|'opportunities'} request={request}
             onSaved={() => { setCreateOpen(false); setRefresh(value => value+1) }} />}
+        {createOpen && tab==='memberships' && <NativeMembershipIssue request={request} role={access.role}
+          onSaved={() => {setCreateOpen(false);setRefresh(value => value+1)}} />}
         {error && <p role="alert" className={s.error}>{error}</p>}
         {loading && <p role="status" className={s.empty}>Loading {currentLabel.toLowerCase()}…</p>}
         {tab==='dashboard' && summary && !loading && !error && <>
@@ -383,7 +388,18 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
             {tab==='memberships' && <><div className={s.pdfActions}>
               <button type="button" disabled={pdfBusy} onClick={() => void openMembershipPdf(selected,false)}>View / print PDF</button>
               <button type="button" disabled={pdfBusy} onClick={() => void openMembershipPdf(selected,true)}>Download PDF</button>
-            </div>{pdfError && <p role="alert" className={s.error}>{pdfError}</p>}</>}
+            </div>{pdfError && <p role="alert" className={s.error}>{pdfError}</p>}
+              <NativeMembershipFamily membershipId={selected.id} membershipType={string(selected.membership_type)}
+                household={Array.isArray(selected.household) ? selected.household as {
+                  id: string; displayName: string; relationship: string; status: string; code?: string
+                }[] : []} role={access.role} request={request}
+                onSaved={() => {void request(`memberships/${selected.id}`).then(result => {
+                  if (isObject(result.data)) setSelected(result.data as Row)
+                  setRefresh(value => value+1)
+                }).catch(() => setRefresh(value => value+1))}} />
+              <NativeMembershipRenewal membershipId={selected.id} currentPlan={string(selected.plan)}
+                currentDuration={string(selected.duration)} expiresAt={string(selected.expires_at)}
+                role={access.role} request={request} /></>}
             {timeline.length>0 && <div className={s.timeline}><h3>Timeline</h3><ol>{timeline.map(event =>
               <li key={event.id}><strong>{event.type==='activity' ? event.title || event.kind : event.action}</strong>
                 <small>{event.actorName || 'System'} · {date(event.occurredAt)}</small>

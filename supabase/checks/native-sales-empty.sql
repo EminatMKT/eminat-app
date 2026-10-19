@@ -104,4 +104,13 @@ SELECT
   AND has_function_privilege('service_role', 'public.native_sales_claim_due_reports(timestamptz,integer)', 'EXECUTE')
   AND NOT has_function_privilege('authenticated', 'public.native_sales_finish_report_delivery(uuid,uuid,text,text,text)', 'EXECUTE')
   AND has_function_privilege('service_role', 'public.native_sales_finish_report_delivery(uuid,uuid,text,text,text)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_visible_payment_evidence(uuid,uuid,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_visible_payment_evidence(uuid,uuid,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_renewal_access(uuid,uuid,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_list_renewal_requests(uuid,uuid,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_list_renewal_requests(uuid,uuid,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_request_renewal(uuid,uuid,uuid,text,text,text,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_request_renewal(uuid,uuid,uuid,text,text,text,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_review_renewal(uuid,uuid,uuid,uuid,text,text,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_review_renewal(uuid,uuid,uuid,uuid,text,text,uuid)', 'EXECUTE')
   AS safe_native_sales_schema;
