@@ -1,5 +1,5 @@
 -- Tenant and row scoped native CRM reads. Only server-role RPC callers can use it.
-CREATE FUNCTION public.native_sales_visible_crm(
+CREATE OR REPLACE FUNCTION public.native_sales_visible_crm(
   p_organization_id uuid, p_actor_member_id uuid, p_resource text,
   p_limit integer DEFAULT 25, p_offset integer DEFAULT 0,
   p_q text DEFAULT NULL, p_id uuid DEFAULT NULL
@@ -18,6 +18,7 @@ BEGIN
     RAISE EXCEPTION 'INVALID_FILTER' USING ERRCODE = '22023';
   END IF;
   CASE p_resource
+    WHEN 'leads' THEN v_table := 'sales_leads'; v_label := 'display_name'; v_entity := 'lead';
     WHEN 'contacts' THEN v_table := 'sales_contacts'; v_label := 'display_name'; v_entity := 'contact';
     WHEN 'accounts' THEN v_table := 'sales_accounts'; v_label := 'name'; v_entity := 'account';
     WHEN 'opportunities' THEN v_table := 'sales_opportunities'; v_label := 'name'; v_entity := 'opportunity';

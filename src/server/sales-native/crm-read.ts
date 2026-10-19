@@ -3,7 +3,7 @@ import { nativeSalesDatabaseError } from './errors'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import type { SalesActor } from './policy'
 
-export const nativeCrmResources = ['contacts', 'accounts', 'opportunities'] as const
+export const nativeCrmResources = ['leads', 'contacts', 'accounts', 'opportunities'] as const
 export type NativeCrmResource = (typeof nativeCrmResources)[number]
 export function isNativeCrmResource(value: string): value is NativeCrmResource {
   return (nativeCrmResources as readonly string[]).includes(value)

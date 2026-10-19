@@ -13,7 +13,8 @@ WITH native_tables AS (
     'sales_report_deliveries','sales_lead_transition_rules',
     'sales_social_providers','sales_social_integrations','sales_social_accounts',
     'sales_social_assets','sales_social_conversations','sales_social_messages',
-    'sales_social_comments','sales_social_webhook_receipts','sales_social_leads'
+    'sales_social_comments','sales_social_webhook_receipts','sales_social_leads',
+    'sales_write_operations'
   ]) AS name
 )
 SELECT
@@ -37,4 +38,10 @@ SELECT
   AND has_function_privilege('service_role', 'public.native_sales_transition_lead(uuid,uuid,uuid,integer,text,uuid)', 'EXECUTE')
   AND NOT has_function_privilege('authenticated', 'public.native_sales_visible_crm(uuid,uuid,text,integer,integer,text,uuid)', 'EXECUTE')
   AND has_function_privilege('service_role', 'public.native_sales_visible_crm(uuid,uuid,text,integer,integer,text,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_reassign_lead(uuid,uuid,uuid,integer,uuid,uuid,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_reassign_lead(uuid,uuid,uuid,integer,uuid,uuid,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_create_lead(uuid,uuid,text,text,text,text,text,uuid,uuid,text,text,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_create_lead(uuid,uuid,text,text,text,text,text,uuid,uuid,text,text,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_update_lead(uuid,uuid,uuid,integer,jsonb,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_update_lead(uuid,uuid,uuid,integer,jsonb,uuid)', 'EXECUTE')
   AS safe_native_sales_schema;
