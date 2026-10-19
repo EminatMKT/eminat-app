@@ -17,6 +17,7 @@ export default function MedicalPatientsTab(props: Props) {
   const [view, setView] = useTabPreference(MEDICAL_TABS.patientsScope, MEDICAL_TABS.patientList, MEDICAL_TABS.patientViews)
   const showDuplicates = view === MEDICAL_TABS.patientDuplicates
   const pendingPairs = usePendingDuplicateCount(view)
+  const pendingCountParams = { n: pendingPairs }
   const complianceBadge = <ColorBadge color={ESTADO_PACIENTE_META.activo.color}>🛡️ {t('med.hipaaCompliant')}</ColorBadge>
   return (
     <>
@@ -26,6 +27,7 @@ export default function MedicalPatientsTab(props: Props) {
           icon="🔗"
           label={t('dedup.medicalTab')}
           badge={pendingPairs}
+          badgeTitle={t('dedup.pendingCount', pendingCountParams)}
           active={showDuplicates}
           onClick={() => setView(MEDICAL_TABS.patientDuplicates)}
         />
