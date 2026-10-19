@@ -6,6 +6,8 @@ A second owner-triggered guarded workflow, run `39187743682`, produced an encryp
 
 Read-only LILLY Production SQL Editor verification on 2026-10-18 confirmed `public.sales_organizations` is not yet deployed. The legacy `annie_sales_user_mappings` table exists with two active, explicitly approved external Sales entitlements and three revoked company-tenant mappings. The two active LILLY profiles are one EMINAT-affiliated global admin and one STRATIX-affiliated seller. These existing entitlements are evidence for a separate native binding review; no native Sales organization, membership, or user permission was created during this check.
 
+A fresh SELECT-only check on 2026-10-19 again found no native `sales_organizations`, `sales_members`, or `sales_leads` tables. The active entitlements remain `freddy@eminat.net` (EMINAT home company, LILLY admin) and `marketing@eminat.net` (STRATIX home company, LILLY `stratix360`); both retain recorded approvals and matching Supabase Auth IDs. The three older STRATIX company-tenant user mappings are revoked and their tenant mapping remains pending. They confer no cutover authority. Native activation must use exact reviewed principal bindings; the EMINAT admin's cross-company access rests on its explicit external entitlement, not an email or company-name match. All other imported staff stay historical only.
+
 ## Source inventory
 
 | ANNIE domain | Source count | LILLY destination |
