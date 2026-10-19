@@ -6,23 +6,22 @@ import { modulePath } from '@/shared/auth/permissions'
 import { notificacionesRepo } from '@/shared/data'
 import { D } from '@/shared/components/shell/appShellConfig'
 import NotificationItem, { type Notif } from '@/shared/components/shell/NotificationItem'
+import { CountBubble } from '@/shared/components/ui'
+import s from '@/shared/components/shell/NotificationsBell/index.module.css'
 
 export default function NotificationsBell() {
   const router = useRouter()
   const { t } = useT()
   const { accent, notificaciones, notifAbiertas, setNotifAbiertas, setNotificaciones } = useApp()
   const unread = notificaciones.filter((n: Notif) => !n.leida).length
+  const hasUnread = unread > 0
 
   return (
     <div style={{ position: 'relative' }}>
       <button onClick={() => { setNotifAbiertas(!notifAbiertas); if (!notifAbiertas) { const ids = notificaciones.filter((n: Notif) => !n.leida).map((n: Notif) => n.id); if (ids.length > 0) notificacionesRepo.markReadByIds(ids).then(() => setNotificaciones(prev => prev.map(n => ({ ...n, leida: true })))) } }}
         style={{ position: 'relative', padding: '7px 9px', borderRadius: 10, border: `1px solid ${D.border}`, background: notifAbiertas ? `${accent}20` : D.s2, color: notifAbiertas ? accent : D.t2, fontSize: 16, cursor: 'pointer', lineHeight: 1 }}>
         🔔
-        {unread > 0 && (
-          <span style={{ position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: '50%', background: '#F87171', color: 'white', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${D.s1}` }}>
-            {unread > 9 ? '9+' : unread}
-          </span>
-        )}
+        {hasUnread && <span className={s.unread}><CountBubble count={unread} /></span>}
       </button>
       {notifAbiertas && (
         <div style={{ position: 'absolute', top: '110%', right: 0, width: 320, background: D.s1, border: `1px solid ${D.border}`, borderRadius: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.4)', zIndex: 50, overflow: 'hidden' }}>

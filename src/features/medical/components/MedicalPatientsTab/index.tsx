@@ -6,6 +6,7 @@ import { useTabPreference } from '@/shared/hooks'
 import MEDICAL_TABS from '@/features/medical/constants/tabs'
 import PacientesTab from '../PacientesTab'
 import MedicalDuplicatesTab from '../MedicalDuplicatesTab'
+import usePendingDuplicateCount from './usePendingDuplicateCount'
 
 type Props = ComponentProps<typeof PacientesTab>
 
@@ -14,11 +15,18 @@ export default function MedicalPatientsTab(props: Props) {
   const { t } = useT()
   const [view, setView] = useTabPreference(MEDICAL_TABS.patientsScope, MEDICAL_TABS.patientList, MEDICAL_TABS.patientViews)
   const showDuplicates = view === MEDICAL_TABS.patientDuplicates
+  const pendingPairs = usePendingDuplicateCount(view)
   return (
     <>
       <TabBar>
         <TabButton icon="👥" label={t('med.patientListTab')} active={!showDuplicates} onClick={() => setView(MEDICAL_TABS.patientList)} />
-        <TabButton icon="🔗" label={t('dedup.medicalTab')} active={showDuplicates} onClick={() => setView(MEDICAL_TABS.patientDuplicates)} />
+        <TabButton
+          icon="🔗"
+          label={t('dedup.medicalTab')}
+          badge={pendingPairs}
+          active={showDuplicates}
+          onClick={() => setView(MEDICAL_TABS.patientDuplicates)}
+        />
       </TabBar>
       {showDuplicates ? <MedicalDuplicatesTab /> : <PacientesTab {...props} />}
     </>
