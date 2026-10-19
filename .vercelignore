@@ -1,0 +1,13 @@
+# Local build output and private migration material must never enter CLI uploads.
+.next-verify/
+.local/
+.env*
+*.pem
+tsconfig.tsbuildinfo
+test-results/
+playwright-report/
+blob-report/
+.tmp/
+.todo/
+.understand-anything/
+supabase/rollback/predump-*
