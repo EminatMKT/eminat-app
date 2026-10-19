@@ -8,6 +8,7 @@ import NativeReportSchedules from './NativeReportSchedules'
 import NativeMembershipFamily from './NativeMembershipFamily'
 import NativeMembershipIssue from './NativeMembershipIssue'
 import NativeMembershipRenewal from './NativeMembershipRenewal'
+import NativeSalesEmail from './NativeSalesEmail'
 import s from './NativeSalesModule.module.css'
 
 type Tab = 'dashboard' | 'leads' | 'contacts' | 'accounts' | 'opportunities' |
@@ -412,6 +413,11 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
                 stages={directory.stages} users={directory.users} teams={directory.teams} request={request}
                 requestedStage={pipelineStage}
                 onSaved={() => { setSelected(null); setRefresh(value => value+1) }} />}
+            {['leads','contacts','accounts'].includes(tab) && access.capabilities.canWrite &&
+              Boolean(string(selected.email)) && selected.do_not_email!==true &&
+              <NativeSalesEmail resource={tab as 'leads'|'contacts'|'accounts'} recordId={selected.id}
+                recipient={string(selected.email)} request={request}
+                onSent={() => setSelected(current => current ? {...current} : current)} />}
           </section>
         </div>}
       </>}
