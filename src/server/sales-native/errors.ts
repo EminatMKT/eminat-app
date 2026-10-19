@@ -60,6 +60,9 @@ const databaseCodes = {
   INVALID_PERIOD: 422,
   INVALID_RESOURCE: 400,
   INVALID_REQUEST: 400,
+  META_EVENT_INVALID: 422,
+  META_ASSET_UNAVAILABLE: 404,
+  META_REPLAY_CONFLICT: 409,
 } as const
 
 /** Never return arbitrary PostgREST messages, SQL detail, or hint to clients. */

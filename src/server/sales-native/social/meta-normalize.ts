@@ -40,6 +40,7 @@ export function normalizeMetaWebhook(raw: Buffer): SocialWebhookEvent[] {
   if (!parsed.success) throw new Error('META_PAYLOAD_INVALID')
   const result: SocialWebhookEvent[] = []
   for (const item of parsed.data.entry) {
+    const before = result.length
     for (const message of item.messaging ?? []) {
       const payload = message.message
       const sender = message.sender
@@ -67,7 +68,7 @@ export function normalizeMetaWebhook(raw: Buffer): SocialWebhookEvent[] {
         result.push({ provider: 'META', externalAssetId: item.id,
           externalEventId: `leadgen:${externalId}`, kind: 'leadgen',
           occurredAt: timestamp(data.created_time ?? item.time),
-          normalized: { externalLeadId: externalId, pageId: item.id,
+          normalized: { channel: parsed.data.object, externalLeadId: externalId, pageId: item.id,
             formId: text(data.form_id, 200), campaignId: text(data.campaign_id, 200),
             adsetId: text(data.adgroup_id ?? data.adset_id, 200), adId: text(data.ad_id, 200),
             consent: data.consent === true, fields,
@@ -85,7 +86,7 @@ export function normalizeMetaWebhook(raw: Buffer): SocialWebhookEvent[] {
         })
       }
     }
-    if (!(item.messaging?.length || item.changes?.length)) {
+    if (result.length === before) {
       result.push({ provider: 'META', externalAssetId: item.id,
         externalEventId: `unknown:${createHash('sha256').update(JSON.stringify(item)).digest('hex')}`,
         kind: 'unknown', occurredAt: timestamp(item.time), normalized: {} })
