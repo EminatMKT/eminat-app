@@ -11,6 +11,7 @@ import NativeMembershipIssue from './NativeMembershipIssue'
 import NativeMembershipRenewal from './NativeMembershipRenewal'
 import NativeSalesEmail from './NativeSalesEmail'
 import NativeGeneralTask from './NativeGeneralTask'
+import NativeSocialStatus from './NativeSocialStatus'
 import s from './NativeSalesModule.module.css'
 
 type Tab = 'dashboard' | 'leads' | 'contacts' | 'accounts' | 'opportunities' |
@@ -385,7 +386,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
           <div className={s.pager}><button type="button" disabled={offset===0} onClick={() => {setSelectedLeadIds([]);setOffset(Math.max(0,offset-25))}}>Previous</button>
             <span>Page {Math.floor(offset/25)+1}</span><button type="button" disabled={nextOffset===null} onClick={() => {setSelectedLeadIds([]);setOffset(nextOffset ?? offset)}}>Next</button></div>
         </>}
-        {tab==='social' && <section className={s.panel}><h2>Social connections</h2><p>Live provider access is unavailable until the existing Meta owner permissions and secret rotation are complete.</p></section>}
+        {tab==='social' && <NativeSocialStatus request={request} role={access.role} />}
         {tab==='settings' && <div className={s.reportGrid}>
           <section className={s.panel}><h2>Team</h2>{directory.teams.map(team => <p key={team.id}>{team.name}</p>)}</section>
           <section className={s.panel}><h2>People</h2>{directory.users.map(user => <p key={user.memberId}>{user.displayName} · {user.role}</p>)}</section>
