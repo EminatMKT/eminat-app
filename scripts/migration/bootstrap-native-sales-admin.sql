@@ -1,6 +1,6 @@
 -- Owner-approved, exact LILLY identity binding for STRATIX Native Sales.
--- The UUID pair, existing admin role, active Supabase login, and company are
--- all mandatory. Email is a secondary check, never the binding authority.
+-- The UUID pair, existing admin role, and active company are mandatory.
+-- Email is a secondary check; the Sales auth FK validates the login ID.
 -- Apply only after the Native Sales schema exists via the protected workflow.
 DO $bootstrap$
 DECLARE
@@ -11,12 +11,10 @@ BEGIN
   SELECT u.id, u.auth_id, u.nombre_display, e.codigo, e.nombre
   INTO STRICT candidate
   FROM public.usuarios u
-  JOIN auth.users a ON a.id=u.auth_id
   CROSS JOIN public.empresas e
   WHERE u.id='2344e112-76ef-42a8-ac56-7c488084e0f5'::uuid
     AND u.auth_id='3b1d0b87-083e-46ef-b7e1-1cd662360085'::uuid
     AND lower(u.email)='freddy@eminat.net'
-    AND lower(a.email)='freddy@eminat.net'
     AND u.rol='admin' AND u.activo=true
     AND e.codigo='STRATIX' AND e.activo=true;
 

@@ -1,7 +1,8 @@
 -- Owner-approved controlled Seller for STRATIX Native Sales. No ANNIE data
 -- import or ANNIE principal mapping is required for native LILLY access.
 -- Exact LILLY/Auth UUIDs, current role, active company affiliation, and
--- matching emails are checked. Email alone never grants access.
+-- profile email are checked. Email alone never grants access; the Sales auth
+-- foreign key validates the exact login UUID.
 DO $bootstrap$
 DECLARE
   candidate record;
@@ -11,12 +12,10 @@ BEGIN
   SELECT u.id, u.auth_id, u.nombre_display, e.codigo, e.nombre
   INTO STRICT candidate
   FROM public.usuarios u
-  JOIN auth.users a ON a.id=u.auth_id
   JOIN public.empresas e ON e.id=u.empresa_id
   WHERE u.id='fc17db75-4d79-4130-9267-34187bf03c4a'::uuid
     AND u.auth_id='9d160306-7884-4b1c-9c6c-6402a15b6590'::uuid
     AND lower(u.email)='marketing@eminat.net'
-    AND lower(a.email)='marketing@eminat.net'
     AND u.rol='stratix360' AND u.activo=true
     AND e.codigo='STRATIX' AND e.activo=true;
 

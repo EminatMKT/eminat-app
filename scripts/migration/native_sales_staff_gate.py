@@ -13,12 +13,10 @@ SCRIPT = Path(__file__).with_name('bootstrap-native-sales-seller.sql')
 PREFLIGHT = """
 SELECT CASE WHEN count(*)=1 THEN 'PASS' ELSE 'FAIL' END
 FROM public.usuarios u
-JOIN auth.users a ON a.id=u.auth_id
 JOIN public.empresas e ON e.id=u.empresa_id
 WHERE u.id='fc17db75-4d79-4130-9267-34187bf03c4a'::uuid
   AND u.auth_id='9d160306-7884-4b1c-9c6c-6402a15b6590'::uuid
   AND lower(u.email)='marketing@eminat.net'
-  AND lower(a.email)='marketing@eminat.net'
   AND u.rol='stratix360' AND u.activo=true
   AND e.codigo='STRATIX' AND e.activo=true;
 """
@@ -55,7 +53,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('--phase', choices=('check', 'apply', 'verify'), required=True)
     phase = parser.parse_args().phase
-    env = connection_environment(os.environ.get('LILLY_SALES_SCHEMA_ADMIN_DB_URL', ''))
+    env = connection_environment(os.environ.get('LILLY_SALES_STAFF_DB_URL', ''))
     if run(env, sql=PREFLIGHT) != 'PASS':
         raise ValueError('NATIVE_SELLER_IDENTITY_CHANGED')
     if phase == 'apply':
