@@ -15,6 +15,7 @@ const rolePermissions: Record<SalesRole, readonly SalesPermission[]> = {
   SELLER: [
     'sales:read', 'sales:write', 'sales:reports', 'sales:email',
     'sales:payments:read', 'sales:payments:request',
+    'sales:membership:issue',
   ],
   SALES_MANAGER: [
     'sales:read', 'sales:write', 'sales:reassign', 'sales:reports', 'sales:email',

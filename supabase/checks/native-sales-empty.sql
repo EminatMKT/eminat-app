@@ -66,4 +66,6 @@ SELECT
   AND has_function_privilege('service_role', 'public.native_sales_report_summary(uuid,uuid)', 'EXECUTE')
   AND NOT has_function_privilege('authenticated', 'public.native_sales_record_payment_evidence(uuid,uuid,uuid,numeric,varchar,date,text,text,uuid)', 'EXECUTE')
   AND has_function_privilege('service_role', 'public.native_sales_record_payment_evidence(uuid,uuid,uuid,numeric,varchar,date,text,text,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_issue_membership(uuid,uuid,uuid,uuid,text,text,text,date,text,text,text,text,text,boolean,text,text,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_issue_membership(uuid,uuid,uuid,uuid,text,text,text,date,text,text,text,text,text,boolean,text,text,uuid)', 'EXECUTE')
   AS safe_native_sales_schema;

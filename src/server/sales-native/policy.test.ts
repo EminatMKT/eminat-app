@@ -10,6 +10,7 @@ describe('native Sales authorization', () => {
     expect(canReadSalesRecord(seller, 'lead', owned)).toBe(true)
     expect(canWriteSalesRecord(seller, 'lead', owned)).toBe(true)
     expect(canReassignSalesRecord(seller, 'lead', owned)).toBe(false)
+    expect(salesCan(seller, 'sales:membership:issue')).toBe(true)
   })
 
   it('denies peer and cross-tenant records before checking grants', () => {
