@@ -2,8 +2,9 @@
 BEGIN;
 SET LOCAL request.jwt.claim.role='service_role';
 INSERT INTO auth.users(id) VALUES ('10000000-0000-4000-8000-000000000001');
-INSERT INTO public.usuarios(id,auth_id) VALUES
-  ('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001');
+INSERT INTO public.usuarios(id,auth_id,email,nombre,apellido,rol,validado,activo) VALUES
+  ('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001',
+   'qa-social@example.invalid','QA','Social','admin',true,true);
 INSERT INTO public.sales_organizations(id,code,name,status,approved_by,approved_at) VALUES
   ('30000000-0000-4000-8000-000000000001','qa-social','QA Social','active',
    '20000000-0000-4000-8000-000000000001',now());

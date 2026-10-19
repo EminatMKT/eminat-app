@@ -71,6 +71,7 @@ jobs:
           set -euo pipefail
           duplicates=$(find supabase/migrations -maxdepth 1 -name '*.sql' -printf '%f\n' | cut -d_ -f1 | sort | uniq -d)
           test -z "$duplicates" || { echo "Duplicate migration versions: $duplicates"; exit 1; }
+      - run: python3 scripts/migration/test-archive-annie-membership-pdfs.py
       # `supabase start` levanta Postgres+Auth+REST locales y aplica supabase/migrations.
       - run: supabase start
       - name: Assert ANNIE Sales mappings start empty and browser roles cannot edit them
