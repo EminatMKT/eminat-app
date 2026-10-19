@@ -88,4 +88,6 @@ SELECT
   AND has_function_privilege('service_role', 'public.native_sales_timeline(uuid,uuid,text,uuid,integer,integer)', 'EXECUTE')
   AND NOT has_function_privilege('authenticated', 'public.native_sales_report_detail(uuid,uuid,date,date)', 'EXECUTE')
   AND has_function_privilege('service_role', 'public.native_sales_report_detail(uuid,uuid,date,date)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_set_activity_status(uuid,uuid,uuid,integer,text,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_set_activity_status(uuid,uuid,uuid,integer,text,uuid)', 'EXECUTE')
   AS safe_native_sales_schema;
