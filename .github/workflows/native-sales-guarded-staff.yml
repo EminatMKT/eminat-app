@@ -1,0 +1,69 @@
+name: Native Sales guarded staff binding
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: Check only or bind the approved controlled Seller
+        required: true
+        type: choice
+        default: check
+        options: [check, apply]
+      exact_commit:
+        description: Reviewed 40-character LILLY commit SHA
+        required: true
+        type: string
+      sql_sha256:
+        description: Reviewed one-person binding SQL digest
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+  deployments: read
+
+concurrency:
+  group: native-sales-production-migration
+  cancel-in-progress: false
+
+jobs:
+  staff_binding:
+    runs-on: ubuntu-latest
+    environment: Production
+    env:
+      LILLY_SALES_TARGET_ENV: production
+      LILLY_SALES_SCHEMA_ADMIN_DB_URL: ${{ secrets.LILLY_SALES_SCHEMA_ADMIN_DB_URL }}
+    steps:
+      - name: Require main, exact SHA, SQL digest, and Production approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXACT_COMMIT: ${{ inputs.exact_commit }}
+          SQL_SHA256: ${{ inputs.sql_sha256 }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF" == refs/heads/main ]]
+          [[ "$EXACT_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$SQL_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          test -n "$LILLY_SALES_SCHEMA_ADMIN_DB_URL"
+          approval=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/approvals" \
+            --jq '[.[] | select(.state == "approved") | .environments[]?.name | select(. == "Production")] | length' 2>/dev/null) || exit 1
+          test "$approval" -gt 0 || { echo PRODUCTION_APPROVAL_REQUIRED; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_commit }}
+          persist-credentials: false
+      - name: Verify exact binding source and Native Sales schema
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ inputs.exact_commit }}'
+          test "$(shasum -a 256 scripts/migration/bootstrap-native-sales-seller.sql | cut -d ' ' -f 1)" = '${{ inputs.sql_sha256 }}'
+          python3 scripts/migration/check_sales_database_access.py --phase schema
+          python3 scripts/migration/check-native-sales-migrations.py --after --phase schema
+          python3 scripts/migration/native_sales_staff_gate.py --phase check
+      - name: Bind only the approved Seller, if requested
+        if: inputs.phase == 'apply'
+        run: |
+          set -euo pipefail
+          python3 scripts/migration/native_sales_staff_gate.py --phase apply
+          python3 scripts/migration/native_sales_staff_gate.py --phase verify
