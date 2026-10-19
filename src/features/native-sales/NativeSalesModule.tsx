@@ -63,6 +63,8 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
   const [selected, setSelected] = useState<Row | null>(null)
   const [timeline, setTimeline] = useState<TimelineEvent[]>([])
   const [timelineError, setTimelineError] = useState(false)
+  const [pdfBusy, setPdfBusy] = useState(false)
+  const [pdfError, setPdfError] = useState('')
   const [query, setQuery] = useState('')
   const [demo, setDemo] = useState('all')
   const [offset, setOffset] = useState(0)
@@ -161,6 +163,38 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
   const userName = useCallback((id: unknown) => directory.users.find(user => user.memberId === id)?.displayName || 'Unassigned', [directory.users])
   const teamName = useCallback((id: unknown) => directory.teams.find(team => team.id === id)?.name || '', [directory.teams])
   const stageName = useCallback((id: unknown) => directory.stages.find(stage => stage.id === id)?.name || '', [directory.stages])
+  const openMembershipPdf = useCallback(async (row: Row, download: boolean) => {
+    const viewer = download ? null : window.open('', '_blank')
+    setPdfBusy(true); setPdfError('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('AUTHENTICATION_REQUIRED')
+      const response = await fetch(`/api/sales-native/memberships/${row.id}/pdf${download ? '?download=1' : ''}`,
+        { cache: 'no-store', headers: { Authorization: `Bearer ${session.access_token}`,
+          'X-Sales-Organization-Id': organizationId } })
+      if (!response.ok) {
+        const result = await response.json().catch(() => null) as unknown
+        throw new Error(isObject(result) ? string(result.code) || 'PDF_UNAVAILABLE' : 'PDF_UNAVAILABLE')
+      }
+      const objectUrl = URL.createObjectURL(await response.blob())
+      if (download) {
+        const anchor = document.createElement('a')
+        anchor.href = objectUrl
+        anchor.download = `corazon-salud-${string(row.code).replace(/[^A-Za-z0-9_-]/g,'_') || 'membership'}.pdf`
+        document.body.append(anchor); anchor.click(); anchor.remove()
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000)
+      } else if (viewer) {
+        viewer.location.href = objectUrl
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 300_000)
+      } else {
+        URL.revokeObjectURL(objectUrl)
+        throw new Error('POPUP_BLOCKED')
+      }
+    } catch (cause) {
+      viewer?.close()
+      setPdfError(cause instanceof Error ? cause.message : 'PDF_UNAVAILABLE')
+    } finally { setPdfBusy(false) }
+  }, [organizationId])
   const stages = useMemo(() => [...directory.stages].sort((a,b) => a.position-b.position), [directory.stages])
   const currentLabel = tabs.find(item => item.key === tab)?.label || 'Sales'
 
@@ -264,6 +298,10 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
               {selected.email && <><dt>Email</dt><dd>{string(selected.email)}</dd></>}
               {selected.code && <><dt>Membership code</dt><dd>{string(selected.code)}</dd></>}
             </dl>
+            {tab==='memberships' && <><div className={s.pdfActions}>
+              <button type="button" disabled={pdfBusy} onClick={() => void openMembershipPdf(selected,false)}>View / print PDF</button>
+              <button type="button" disabled={pdfBusy} onClick={() => void openMembershipPdf(selected,true)}>Download PDF</button>
+            </div>{pdfError && <p role="alert" className={s.error}>{pdfError}</p>}</>}
             {timeline.length>0 && <div className={s.timeline}><h3>Timeline</h3><ol>{timeline.map(event =>
               <li key={event.id}><strong>{event.type==='activity' ? event.title || event.kind : event.action}</strong>
                 <small>{event.actorName || 'System'} · {date(event.occurredAt)}</small>
