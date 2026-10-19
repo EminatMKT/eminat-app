@@ -26,7 +26,10 @@ CREATE TABLE public.sales_activities (
   version integer NOT NULL DEFAULT 1 CHECK (version > 0),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  CHECK (num_nonnulls(lead_id, contact_id, account_id, opportunity_id) >= 1),
+  -- ANNIE permits general tasks without a CRM parent. Their actor/assignee
+  -- remains the authorization boundary in the native inbox.
+  CHECK (num_nonnulls(lead_id, contact_id, account_id, opportunity_id) >= 1
+    OR kind = 'TASK'),
   FOREIGN KEY (organization_id, actor_member_id) REFERENCES public.sales_members(organization_id, id) ON DELETE RESTRICT,
   FOREIGN KEY (organization_id, assignee_member_id) REFERENCES public.sales_members(organization_id, id) ON DELETE RESTRICT,
   FOREIGN KEY (organization_id, lead_id) REFERENCES public.sales_leads(organization_id, id) ON DELETE RESTRICT,

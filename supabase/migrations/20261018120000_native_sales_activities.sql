@@ -31,8 +31,11 @@ BEGIN
   IF auth.role() IS DISTINCT FROM 'service_role' THEN
     RAISE EXCEPTION 'SALES_SERVER_ONLY' USING ERRCODE = '42501';
   END IF;
-  IF p_request_id IS NULL OR p_resource NOT IN ('leads','contacts','accounts','opportunities')
-    OR p_record_id IS NULL OR p_kind NOT IN ('NOTE','TASK','CALL_ATTEMPT','MEETING','FOLLOW_UP')
+  IF p_request_id IS NULL OR p_resource IS NULL
+    OR p_resource NOT IN ('leads','contacts','accounts','opportunities','general')
+    OR (p_resource = 'general' AND (p_record_id IS NOT NULL OR p_kind IS DISTINCT FROM 'TASK'))
+    OR (p_resource <> 'general' AND p_record_id IS NULL)
+    OR p_kind NOT IN ('NOTE','TASK','CALL_ATTEMPT','MEETING','FOLLOW_UP')
     OR p_title IS NULL OR length(btrim(p_title)) NOT BETWEEN 1 AND 240
     OR length(coalesce(p_body,'')) > 20000
     OR p_idempotency_key IS NULL OR p_idempotency_key !~ '^[A-Za-z0-9_-]{8,128}$'
@@ -46,9 +49,11 @@ BEGIN
   IF NOT FOUND OR v_actor.role NOT IN ('SELLER','SALES_MANAGER','ADMINISTRATOR','SUPERADMIN') THEN
     RAISE EXCEPTION 'SALES_ACCESS_DENIED' USING ERRCODE = '42501';
   END IF;
-  SELECT row INTO v_parent FROM public.native_sales_visible_crm(
-    p_organization_id,p_actor_member_id,p_resource,1,0,NULL,p_record_id) AS row;
-  IF v_parent IS NULL THEN RAISE EXCEPTION 'PARENT_NOT_AVAILABLE' USING ERRCODE = '42501'; END IF;
+  IF p_resource <> 'general' THEN
+    SELECT row INTO v_parent FROM public.native_sales_visible_crm(
+      p_organization_id,p_actor_member_id,p_resource,1,0,NULL,p_record_id) AS row;
+    IF v_parent IS NULL THEN RAISE EXCEPTION 'PARENT_NOT_AVAILABLE' USING ERRCODE = '42501'; END IF;
+  END IF;
   v_assignee := coalesce(p_assignee_member_id,p_actor_member_id);
   IF v_assignee <> p_actor_member_id AND v_actor.role = 'SELLER' THEN
     RAISE EXCEPTION 'REASSIGN_FORBIDDEN' USING ERRCODE = '42501';

@@ -9,6 +9,7 @@ import NativeMembershipFamily from './NativeMembershipFamily'
 import NativeMembershipIssue from './NativeMembershipIssue'
 import NativeMembershipRenewal from './NativeMembershipRenewal'
 import NativeSalesEmail from './NativeSalesEmail'
+import NativeGeneralTask from './NativeGeneralTask'
 import s from './NativeSalesModule.module.css'
 
 type Tab = 'dashboard' | 'leads' | 'contacts' | 'accounts' | 'opportunities' |
@@ -249,7 +250,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
     <main className={s.main}>
       <div className={s.heading}><div><p className={s.eyebrow}>LILLY Sales</p><h1>{currentLabel}</h1></div>
         <div className={s.headingActions}>
-          {access?.capabilities.canWrite && ['leads','contacts','accounts','opportunities','memberships'].includes(tab) &&
+          {access?.capabilities.canWrite && ['leads','contacts','accounts','opportunities','memberships','activities'].includes(tab) &&
             !(tab==='leads' && leadView==='archived') &&
             <button className={s.refresh} type="button" onClick={() => setCreateOpen(value => !value)}>{createOpen ? 'Cancel' : 'Add new'}</button>}
           <button className={s.refresh} type="button" onClick={() => {setSelectedLeadIds([]);setRefresh(value => value+1)}} disabled={loading}>Refresh</button>
@@ -266,6 +267,8 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
           <NativeSalesCreate resource={tab as 'leads'|'contacts'|'accounts'|'opportunities'} request={request}
             onSaved={() => { setCreateOpen(false); setRefresh(value => value+1) }} />}
         {createOpen && tab==='memberships' && <NativeMembershipIssue request={request} role={access.role}
+          onSaved={() => {setCreateOpen(false);setRefresh(value => value+1)}} />}
+        {createOpen && tab==='activities' && <NativeGeneralTask request={request}
           onSaved={() => {setCreateOpen(false);setRefresh(value => value+1)}} />}
         {error && <p role="alert" className={s.error}>{error}</p>}
         {loading && <p role="status" className={s.empty}>Loading {currentLabel.toLowerCase()}…</p>}

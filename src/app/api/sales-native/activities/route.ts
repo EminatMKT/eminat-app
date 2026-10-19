@@ -8,8 +8,8 @@ import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 export const dynamic = 'force-dynamic'
 const uuid = z.uuid()
 const activityCreate = z.object({
-  resource: z.enum(['leads', 'contacts', 'accounts', 'opportunities']),
-  recordId: uuid,
+  resource: z.enum(['leads', 'contacts', 'accounts', 'opportunities', 'general']),
+  recordId: uuid.nullable().optional(),
   kind: z.enum(['NOTE', 'TASK', 'CALL_ATTEMPT', 'MEETING', 'FOLLOW_UP']),
   title: z.string().trim().min(1).max(240),
   body: z.string().trim().max(20000).nullable().optional(),
@@ -56,13 +56,16 @@ export async function POST(request: Request) {
     const parsed = activityCreate.safeParse(payload)
     if (!parsed.success) return Response.json({ code: 'VALIDATION_ERROR' }, { status: 422 })
     const body = parsed.data
+    if ((body.resource === 'general' && (body.kind !== 'TASK' || body.recordId != null)) ||
+        (body.resource !== 'general' && !body.recordId))
+      return Response.json({ code: 'VALIDATION_ERROR' }, { status: 422 })
     const payloadHash = createHash('sha256').update(JSON.stringify([
       body.resource, body.recordId, body.kind, body.title, body.body ?? null,
       body.dueAt ?? null, body.assigneeMemberId ?? null,
     ])).digest('hex')
     const { data, error } = await supabaseAdmin().rpc('native_sales_create_activity', {
       p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
-      p_resource: body.resource, p_record_id: body.recordId,
+      p_resource: body.resource, p_record_id: body.recordId ?? null,
       p_kind: body.kind, p_title: body.title, p_body: body.body ?? null,
       p_due_at: body.dueAt ?? null, p_assignee_member_id: body.assigneeMemberId ?? null,
       p_idempotency_key: key, p_payload_hash: payloadHash, p_request_id: randomUUID(),

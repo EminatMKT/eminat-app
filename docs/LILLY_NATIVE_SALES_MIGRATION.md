@@ -2,6 +2,8 @@
 
 This is the migration contract for draft PR #120. No Production native Sales migration or data copy has run. The source inventory came from the owner-triggered, read-only ANNIE workflow run `39186885980` against release `2026.10.18-lilly-sales-absorption-959be75`. Counts are aggregates; the workflow emitted no customer rows.
 
+A second owner-triggered guarded workflow, run `39187743682`, produced an encrypted row snapshot from the same ANNIE release. The decrypted copy remains local, permission 600, outside Git. It confirmed the counts below and showed zero unresolved source relationships in the checked tables. It also identified two tasks and one meeting without a CRM parent; native general tasks now have a scoped activity path, while the meeting relationship must be preserved during import. No destination import or Production change has occurred.
+
 ## Source inventory
 
 | ANNIE domain | Source count | LILLY destination |
@@ -34,6 +36,13 @@ Leads by status: NEW 10, ASSIGNED 1, CONTACTED 1, QUALIFIED 3, PAYMENT_PENDING 2
 7. Two historical memberships have no `SalesPayment` reference. Preserve that absence under the legacy exception. Do not fabricate a payment, price, plan, or receipt. The new-sale one-primary-per-payment rule still applies to all LILLY-issued memberships.
 8. ANNIE MembershipPeriod plan/duration/modality `LEGACY` values must retain their original labels. Eleven period rows must reconcile independently of the eight membership rows.
 9. Meta Production credentials, QuickBooks Production credentials, Stripe configuration, provider secrets, and real payment activation are outside this transfer. MetaConnection count is zero in the verified ANNIE inventory.
+
+## Identity and transfer blockers found in the encrypted snapshot
+
+- ANNIE contains 28 staff membership records; 12 are active. The current LILLY Production Sales mapping has only two active entries. Five active ANNIE staff logins have no same-login LILLY profile, and several of the matching profiles belong to other LILLY companies. A same-login match is evidence for review, not authorization to grant STRATIX access. Never bind these users across company boundaries automatically.
+- Commercial rows reference seven distinct ANNIE staff actors. Preserve each original actor and owner reference, including inactive historical staff, without fabricating a Supabase login or assigning their records to another person. The present `sales_members` schema requires a LILLY user and Supabase identity, so a reviewed historical-actor representation or explicit owner-approved identity mapping is required before transfer.
+- All eight demo memberships have PDF bytes and two have agreement PDF bytes. Encrypted export protects transit, but a reviewed private storage transfer, content hash reconciliation, and browser view/download checks are required before claiming PDF parity. These binaries must not enter Git or logs.
+- The source has no renewal notices or membership-delivery rows. No absent record should be fabricated.
 
 ## Release gates
 

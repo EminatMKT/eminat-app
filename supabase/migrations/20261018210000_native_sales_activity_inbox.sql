@@ -22,10 +22,11 @@ BEGIN
     RAISE EXCEPTION 'SALES_ACCESS_DENIED' USING ERRCODE='42501';
   END IF;
   RETURN QUERY SELECT to_jsonb(a) || jsonb_build_object(
-    'relatedName',coalesce(l.display_name,c.display_name,ac.name,op.name),
+    'relatedName',coalesce(l.display_name,c.display_name,ac.name,op.name,'General task'),
     'relatedType',CASE WHEN a.lead_id IS NOT NULL THEN 'lead'
       WHEN a.contact_id IS NOT NULL THEN 'contact'
-      WHEN a.account_id IS NOT NULL THEN 'account' ELSE 'opportunity' END)
+      WHEN a.account_id IS NOT NULL THEN 'account'
+      WHEN a.opportunity_id IS NOT NULL THEN 'opportunity' ELSE 'general' END)
     FROM public.sales_activities a
     LEFT JOIN public.sales_leads l ON l.organization_id=a.organization_id AND l.id=a.lead_id
     LEFT JOIN public.sales_contacts c ON c.organization_id=a.organization_id AND c.id=a.contact_id
@@ -33,6 +34,8 @@ BEGIN
     LEFT JOIN public.sales_opportunities op ON op.organization_id=a.organization_id AND op.id=a.opportunity_id
     WHERE a.organization_id=p_organization_id AND (p_status IS NULL OR a.status=p_status)
       AND (v_role IN ('SUPERADMIN','ADMINISTRATOR','AUDITOR')
+        OR (a.kind='TASK' AND num_nonnulls(a.lead_id,a.contact_id,a.account_id,a.opportunity_id)=0
+          AND (a.actor_member_id=p_actor_member_id OR a.assignee_member_id=p_actor_member_id))
         OR (a.lead_id IS NOT NULL AND public.native_sales_activity_parent_visible(
           p_organization_id,p_actor_member_id,'leads',a.lead_id))
         OR (a.contact_id IS NOT NULL AND public.native_sales_activity_parent_visible(
