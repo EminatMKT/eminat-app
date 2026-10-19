@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { countPending } from '@/shared/dedup'
-import { pacienteDedupStrategy } from '@/features/medical/utils/pacienteDedupStrategy'
+import pacienteDedupStrategy from '@/features/medical/utils/pacienteDedupStrategy'
 
 const NONE = 0
 

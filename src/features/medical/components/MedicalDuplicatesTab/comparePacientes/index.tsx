@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { I18nKey } from '@/shared/i18n'
 import { CompareField, type CompareControls } from '@/shared/dedup'
-import { pacienteDedupStrategy } from '@/features/medical/utils/pacienteDedupStrategy'
+import pacienteDedupStrategy from '@/features/medical/utils/pacienteDedupStrategy'
 import FIELD_MAPS from '../fieldMaps'
 import CONTACT_FIELDS from './contactFields'
 import contactText from './contactText'

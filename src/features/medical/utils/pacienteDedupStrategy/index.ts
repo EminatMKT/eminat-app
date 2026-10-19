@@ -16,7 +16,7 @@ function omitIdentityColumns(values: Partial<Paciente>): Partial<Identificable> 
 }
 
 /** Adapts patient identity matching and merging without copying identity or audit columns. */
-export const pacienteDedupStrategy: DedupStrategy<Identificable> = {
+const pacienteDedupStrategy: DedupStrategy<Identificable> = {
   entidad: 'pacientes',
   candidatos: (item, existing) => {
     const candidates = findCandidates(item, existing)

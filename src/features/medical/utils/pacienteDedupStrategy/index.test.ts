@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pacienteDedupStrategy } from './index'
+import pacienteDedupStrategy from './index'
 import type { Paciente } from '@/features/medical/types'
 import type { Identificable } from '@/features/medical/utils/pacienteIdentity'
 
@@ -48,10 +48,9 @@ describe('pacienteDedupStrategy', () => {
     expect(result).not.toHaveProperty('mrn')
     expect(result).not.toHaveProperty('created_at')
     expect(result).not.toHaveProperty('updated_at')
-    // `id`/`mrn`/`created_at`/`updated_at` always differ between two real patients, so if
-    // they ever reached `choques`, every real pair would report a conflict the UI can't
-    // render (`FIELD_MAPS` only knows clinical fields) — and a pair with no clinical
-    // conflict at all would show a blank comparison instead of the "nothing differs" message.
+    // Identity/audit columns always differ between real patients: in `choques` they'd flag
+    // every pair with a conflict `FIELD_MAPS` can't render, and a pair with no clinical
+    // conflict would show a blank comparison instead of "nothing differs".
     expect(conflicts).not.toContain('id')
     expect(conflicts).not.toContain('mrn')
     expect(conflicts).not.toContain('created_at')

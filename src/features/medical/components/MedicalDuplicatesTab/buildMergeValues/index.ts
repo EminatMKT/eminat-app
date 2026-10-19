@@ -1,4 +1,4 @@
-import { pacienteDedupStrategy } from '@/features/medical/utils/pacienteDedupStrategy'
+import pacienteDedupStrategy from '@/features/medical/utils/pacienteDedupStrategy'
 import type { Paciente } from '@/features/medical/types'
 
 function isBlank(value: unknown): boolean {

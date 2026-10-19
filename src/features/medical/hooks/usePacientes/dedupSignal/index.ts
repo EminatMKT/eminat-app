@@ -1,4 +1,4 @@
-import { pacienteDedupStrategy } from '@/features/medical/utils/pacienteDedupStrategy'
+import pacienteDedupStrategy from '@/features/medical/utils/pacienteDedupStrategy'
 import registrar from '@/shared/dedup/data/registrar'
 import { ORIGEN_ALTA_MANUAL } from '@/shared/dedup/types'
 import type { Paciente } from '@/features/medical/types'
