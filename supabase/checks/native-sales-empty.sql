@@ -62,4 +62,6 @@ SELECT
   AND has_function_privilege('service_role', 'public.native_sales_convert_lead(uuid,uuid,uuid,integer,uuid,text,uuid,jsonb,text,text,uuid)', 'EXECUTE')
   AND NOT has_function_privilege('authenticated', 'public.native_sales_update_directory_record(uuid,uuid,text,uuid,integer,jsonb,uuid)', 'EXECUTE')
   AND has_function_privilege('service_role', 'public.native_sales_update_directory_record(uuid,uuid,text,uuid,integer,jsonb,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_report_summary(uuid,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_report_summary(uuid,uuid)', 'EXECUTE')
   AS safe_native_sales_schema;
