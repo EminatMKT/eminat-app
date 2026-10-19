@@ -17,8 +17,6 @@ def main():
     parser.add_argument("--after", action="store_true")
     parser.add_argument("--phase", choices=("schema",), default="schema")
     parser.add_argument("--print-digest", action="store_true", help="Local reviewed migration-set digest only")
-    parser.add_argument("--db-url-env", choices=("LILLY_SALES_SCHEMA_ADMIN_DB_URL", "LILLY_SALES_STAFF_DB_URL"),
-                        default="LILLY_SALES_SCHEMA_ADMIN_DB_URL")
     args = parser.parse_args()
     digest = hashlib.sha256()
     paths = sorted(Path("supabase/migrations").glob("*_native_sales_*.sql"))
@@ -29,7 +27,7 @@ def main():
     if args.print_digest:
         print(digest.hexdigest())
         return
-    env = connection_environment(os.environ.get(args.db_url_env, ""))
+    env = connection_environment(os.environ.get("LILLY_SALES_SCHEMA_ADMIN_DB_URL", ""))
     env["PGOPTIONS"] = "-c default_transaction_read_only=on -c statement_timeout=30000"
     result = subprocess.run(
         ["psql", "-X", "-q", "-t", "-A", "-v", "ON_ERROR_STOP=1", "-c",

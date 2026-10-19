@@ -37,7 +37,7 @@ jobs:
     environment: Production
     env:
       LILLY_SALES_TARGET_ENV: production
-      LILLY_SALES_STAFF_DB_URL: ${{ secrets.LILLY_SALES_STAFF_DB_URL }}
+      LILLY_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.LILLY_SUPABASE_SERVICE_ROLE_KEY }}
       LILLY_SALES_MIGRATION_SHA256: ${{ inputs.migration_sha256 }}
     steps:
       - name: Require main, exact SHA, SQL digest, and Production approval
@@ -51,7 +51,7 @@ jobs:
           [[ "$EXACT_COMMIT" =~ ^[0-9a-f]{40}$ ]]
           [[ "$SQL_SHA256" =~ ^[0-9a-f]{64}$ ]]
           [[ "$LILLY_SALES_MIGRATION_SHA256" =~ ^[0-9a-f]{64}$ ]]
-          test -n "$LILLY_SALES_STAFF_DB_URL"
+          test -n "$LILLY_SUPABASE_SERVICE_ROLE_KEY"
           approval=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/approvals" \
             --jq '[.[] | select(.state == "approved") | .environments[]?.name | select(. == "Production")] | length' 2>/dev/null) || exit 1
           test "$approval" -gt 0 || { echo PRODUCTION_APPROVAL_REQUIRED; exit 1; }
@@ -65,13 +65,12 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = '${{ inputs.exact_commit }}'
           git merge-base --is-ancestor HEAD origin/main
-          test "$(shasum -a 256 scripts/migration/bootstrap-native-sales-seller.sql | cut -d ' ' -f 1)" = '${{ inputs.sql_sha256 }}'
-          python3 scripts/migration/check_native_sales_staff_access.py
-          python3 scripts/migration/check-native-sales-migrations.py --after --phase schema --db-url-env LILLY_SALES_STAFF_DB_URL
-          python3 scripts/migration/native_sales_staff_gate.py --phase check
+          test "$(shasum -a 256 supabase/migrations/20261019150000_native_sales_controlled_bindings.sql | cut -d ' ' -f 1)" = '${{ inputs.sql_sha256 }}'
+          test "$(python3 scripts/migration/check-native-sales-migrations.py --print-digest)" = '${{ inputs.migration_sha256 }}'
+          python3 scripts/migration/native_sales_binding_rpc.py --binding seller --phase check
       - name: Bind only the approved Seller, if requested
         if: inputs.phase == 'apply'
         run: |
           set -euo pipefail
-          python3 scripts/migration/native_sales_staff_gate.py --phase apply
-          python3 scripts/migration/native_sales_staff_gate.py --phase verify
+          python3 scripts/migration/native_sales_binding_rpc.py --binding seller --phase apply
+          python3 scripts/migration/native_sales_binding_rpc.py --binding seller --phase verify
