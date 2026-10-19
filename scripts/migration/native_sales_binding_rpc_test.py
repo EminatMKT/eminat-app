@@ -26,12 +26,18 @@ class BindingRpcTest(unittest.TestCase):
             self.run_binding('NATIVE_SALES_BINDING_APPLY_PASS')
 
     def test_upstream_error_is_sanitized(self):
+        body = io.BytesIO(b'{"code":"55000","message":"sensitive upstream detail"}')
         with patch.dict(os.environ, {'LILLY_SUPABASE_SERVICE_ROLE_KEY': 'test-only-key'}), \
              patch.object(sys, 'argv', ['binding', '--binding', 'superadmin', '--phase', 'verify']), \
-             patch.object(binding.request, 'urlopen', side_effect=HTTPError(binding.URL, 403, 'sensitive upstream detail', {}, None)):
-            with self.assertRaisesRegex(ValueError, '^NATIVE_SALES_BINDING_RPC_FAILED$') as raised:
+             patch.object(binding.request, 'urlopen', side_effect=HTTPError(binding.URL, 400, 'sensitive upstream detail', {}, body)):
+            with self.assertRaisesRegex(binding.BindingFailure, '^NATIVE_SALES_BINDING_RPC_HTTP_400_CODE_55000$') as raised:
                 binding.main()
         self.assertNotIn('sensitive', str(raised.exception))
+
+    def test_untrusted_error_code_is_not_logged(self):
+        body = io.BytesIO(b'{"code":"SECRET_123","message":"sensitive upstream detail"}')
+        exc = HTTPError(binding.URL, 401, 'sensitive upstream detail', {}, body)
+        self.assertEqual(binding.http_diagnostic(exc), 'NATIVE_SALES_BINDING_RPC_HTTP_401_CODE_UNKNOWN')
 
     def test_missing_secret_fails_before_network(self):
         with patch.dict(os.environ, {'LILLY_SUPABASE_SERVICE_ROLE_KEY': ''}), \

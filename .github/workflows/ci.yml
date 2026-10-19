@@ -31,6 +31,8 @@ jobs:
       # tsc no mira CSS: una comilla suelta en un .module.css pasaba el typecheck entero.
       - run: pnpm lint:css
       - run: pnpm test
+      - name: Validate guarded binding RPC diagnostics
+        run: python3 scripts/migration/native_sales_binding_rpc_test.py
       - run: pnpm build
         env:
           # build de Next: envs públicas dummy para CI (no se conecta a Supabase real)
@@ -85,6 +87,10 @@ jobs:
           set -euo pipefail
           result=$(psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -At -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-empty.sql)
           test "$result" = t
+      - name: Rehearse first controlled binding check without persisting a member
+        run: |
+          set -euo pipefail
+          psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -q -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-binding-check.sql
       - name: Rehearse native Sales import and Social idempotency without persisting QA records
         run: |
           set -euo pipefail
