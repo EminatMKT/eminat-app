@@ -90,4 +90,10 @@ SELECT
   AND has_function_privilege('service_role', 'public.native_sales_report_detail(uuid,uuid,date,date)', 'EXECUTE')
   AND NOT has_function_privilege('authenticated', 'public.native_sales_set_activity_status(uuid,uuid,uuid,integer,text,uuid)', 'EXECUTE')
   AND has_function_privilege('service_role', 'public.native_sales_set_activity_status(uuid,uuid,uuid,integer,text,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_archived_leads(uuid,uuid,integer,integer,text)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_archived_leads(uuid,uuid,integer,integer,text)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_update_opportunity(uuid,uuid,uuid,integer,jsonb,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_update_opportunity(uuid,uuid,uuid,integer,jsonb,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_bulk_reassign_leads(uuid,uuid,jsonb,uuid,uuid,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_bulk_reassign_leads(uuid,uuid,jsonb,uuid,uuid,uuid)', 'EXECUTE')
   AS safe_native_sales_schema;
