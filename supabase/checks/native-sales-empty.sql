@@ -76,4 +76,6 @@ SELECT
   AND has_function_privilege('service_role', 'public.native_sales_review_family_member(uuid,uuid,uuid,uuid,text,uuid)', 'EXECUTE')
   AND NOT has_function_privilege('authenticated', 'public.native_sales_list_family_requests(uuid,uuid,uuid)', 'EXECUTE')
   AND has_function_privilege('service_role', 'public.native_sales_list_family_requests(uuid,uuid,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_visible_memberships(uuid,uuid,integer,integer,text,uuid,boolean)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_visible_memberships(uuid,uuid,integer,integer,text,uuid,boolean)', 'EXECUTE')
   AS safe_native_sales_schema;

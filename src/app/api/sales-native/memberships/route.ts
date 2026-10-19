@@ -25,6 +25,31 @@ const issuance = z.object({
   isDemo: z.boolean().default(false),
 }).strict()
 
+export async function GET(request: Request) {
+  try {
+    const actor = await resolveSalesActor(request)
+    const params = new URL(request.url).searchParams
+    if (Array.from(params.keys()).some(key => !['limit', 'offset', 'q', 'demo'].includes(key)))
+      return Response.json({ code: 'INVALID_FILTER' }, { status: 422 })
+    const limit = Number(params.get('limit') ?? '25')
+    const offset = Number(params.get('offset') ?? '0')
+    const q = params.get('q')
+    const demo = params.get('demo')
+    if (!Number.isSafeInteger(limit) || limit<1 || limit>100 ||
+        !Number.isSafeInteger(offset) || offset<0 || offset>100000 ||
+        (q !== null && q.length>160) || (demo !== null && !['true', 'false'].includes(demo)))
+      return Response.json({ code: 'INVALID_FILTER' }, { status: 422 })
+    const { data, error } = await supabaseAdmin().rpc('native_sales_visible_memberships', {
+      p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
+      p_limit: limit, p_offset: offset, p_q: q || null, p_id: null,
+      p_demo: demo === null ? null : demo === 'true',
+    })
+    if (error) return nativeSalesDatabaseError(error)
+    return Response.json({ data: data ?? [], nextOffset: (data?.length ?? 0)===limit ? offset+limit : null },
+      { headers: { 'Cache-Control': 'no-store' } })
+  } catch (error) { return nativeSalesErrorResponse(error) }
+}
+
 export async function POST(request: Request) {
   try {
     const actor = await resolveSalesActor(request)
