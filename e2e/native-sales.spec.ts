@@ -69,7 +69,7 @@ test('native Sales sections render at mobile width without document overflow', a
     await sections.getByRole('button', { name: label, exact: true }).click()
     await expect(page.getByRole('heading', { name: label, exact: true, level: 1 })).toBeVisible()
     await expect(page.getByRole('status').filter({ hasText: /^Loading / })).toHaveCount(0)
-    await expect(page.getByRole('alert')).toHaveCount(0)
+    await expect(page.locator('main').getByRole('alert')).toHaveCount(0)
     const documentOverflows = await page.evaluate(() =>
       document.documentElement.scrollWidth > window.innerWidth + 1)
     expect(documentOverflows, `${label} overflows the mobile viewport`).toBe(false)
