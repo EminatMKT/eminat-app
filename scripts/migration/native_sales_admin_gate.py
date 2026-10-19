@@ -28,7 +28,12 @@ JOIN public.sales_organizations o ON o.id=s.organization_id
 WHERE s.user_id='2344e112-76ef-42a8-ac56-7c488084e0f5'::uuid
   AND s.auth_id='3b1d0b87-083e-46ef-b7e1-1cd662360085'::uuid
   AND o.code='stratix' AND o.status='active'
-  AND s.role='SUPERADMIN' AND s.status='active';
+  AND s.role='SUPERADMIN' AND s.status='active'
+  AND NOT EXISTS (
+    SELECT 1 FROM public.sales_members other
+    WHERE (other.user_id=s.user_id OR other.auth_id=s.auth_id)
+      AND other.organization_id<>s.organization_id AND other.status='active'
+  );
 """
 
 

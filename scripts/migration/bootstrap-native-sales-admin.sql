@@ -29,6 +29,13 @@ BEGIN
   IF sales_org.name<>candidate.nombre OR sales_org.status<>'active' THEN
     RAISE EXCEPTION 'NATIVE_SALES_ORGANIZATION_CONFLICT';
   END IF;
+  IF EXISTS (
+    SELECT 1 FROM public.sales_members
+    WHERE (user_id=candidate.id OR auth_id=candidate.auth_id)
+      AND organization_id<>sales_org.id AND status='active'
+  ) THEN
+    RAISE EXCEPTION 'NATIVE_SALES_ADMIN_OTHER_ORGANIZATION_CONFLICT';
+  END IF;
 
   INSERT INTO public.sales_members
     (organization_id,user_id,auth_id,display_name,role,status,
