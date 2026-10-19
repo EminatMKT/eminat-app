@@ -13,6 +13,7 @@ const scopes = z.array(z.enum(['pages_messaging', 'pages_read_user_content',
 const pageSelection = z.object({ state: z.string().regex(statePattern),
   pageId: z.string().min(1).max(200) }).strict()
 const subscription = z.object({ assetId: z.uuid() }).strict()
+const revocation = z.object({ integrationId: z.uuid() }).strict()
 
 function hash(state: string): string {
   if (!statePattern.test(state)) throw new NativeSalesAuthError(422, 'META_STATE_INVALID')
@@ -209,4 +210,63 @@ export async function subscribeMetaLeadgen(actor: SalesActor, input: unknown) {
   })
   if (updateError || !updated) throw new NativeSalesAuthError(503, 'META_SUBSCRIPTION_STATE_UNAVAILABLE')
   return updated
+}
+
+export async function revokeMetaConnection(actor: SalesActor, input: unknown) {
+  requireManager(actor)
+  const parsed = revocation.safeParse(input)
+  if (!parsed.success) throw new NativeSalesAuthError(422, 'META_CONNECTION_INVALID')
+  const { data, error } = await supabaseAdmin().rpc('native_sales_revoke_meta_connection', {
+    p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
+    p_integration_id: parsed.data.integrationId,
+  })
+  if (error || !data) throw new NativeSalesAuthError(409, 'META_CONNECTION_UNAVAILABLE')
+  return data
+}
+
+export async function refreshMetaConnection(actor: SalesActor, input: unknown) {
+  requireManager(actor)
+  const parsed = revocation.safeParse(input)
+  if (!parsed.success) throw new NativeSalesAuthError(422, 'META_CONNECTION_INVALID')
+  const { client, key } = configuration()
+  const db = supabaseAdmin()
+  const { data: integration, error: integrationError } = await db.from('sales_social_integrations')
+    .select('id,status,token_ciphertext,token_expires_at')
+    .eq('organization_id', actor.organizationId).eq('id', parsed.data.integrationId)
+    .eq('provider_code', 'META').maybeSingle()
+  if (integrationError || !integration || !['CONNECTED', 'DEGRADED'].includes(integration.status) ||
+    !integration.token_ciphertext || !integration.token_expires_at ||
+    Date.parse(integration.token_expires_at) <= Date.now())
+    throw new NativeSalesAuthError(409, 'META_RECONNECT_REQUIRED')
+  const { data: accounts, error: accountError } = await db.from('sales_social_accounts')
+    .select('id').eq('organization_id', actor.organizationId)
+    .eq('integration_id', integration.id).limit(2)
+  if (accountError || accounts?.length !== 1)
+    throw new NativeSalesAuthError(409, 'META_CONNECTION_UNAVAILABLE')
+  const { data: assets, error: assetError } = await db.from('sales_social_assets')
+    .select('id,external_asset_id').eq('organization_id', actor.organizationId)
+    .eq('account_id', accounts[0].id).eq('asset_type', 'page').limit(2)
+  if (assetError || assets?.length !== 1)
+    throw new NativeSalesAuthError(409, 'META_CONNECTION_UNAVAILABLE')
+  const oldToken = openSocialToken(integration.token_ciphertext, key,
+    actor.organizationId, integration.id)
+  const grant = await client.refreshUserToken(oldToken)
+  const [pages, permissions] = await Promise.all([
+    client.discoverPages(grant.token), client.grantedPermissions(grant.token),
+  ])
+  if (!META_OAUTH_SCOPES.every(scope => permissions.includes(scope)))
+    throw new NativeSalesAuthError(409, 'META_PERMISSION_UNAVAILABLE')
+  const page = pages.find(item => item.id === assets[0].external_asset_id)
+  if (!page) throw new NativeSalesAuthError(409, 'META_PAGE_UNAVAILABLE')
+  const { data, error } = await db.rpc('native_sales_refresh_meta_connection', {
+    p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
+    p_integration_id: integration.id, p_page_id: page.id,
+    p_user_token_ciphertext: sealSocialToken(grant.token, key,
+      actor.organizationId, integration.id),
+    p_page_token_ciphertext: sealSocialToken(page.access_token, key,
+      actor.organizationId, integration.id),
+    p_expires_at: grant.expiresAt.toISOString(), p_granted_permissions: permissions,
+  })
+  if (error || !data) throw new NativeSalesAuthError(503, 'META_REFRESH_UNAVAILABLE')
+  return data
 }

@@ -153,3 +153,95 @@ REVOKE ALL ON FUNCTION public.native_sales_mark_meta_page_subscribed(uuid,uuid,u
   FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.native_sales_mark_meta_page_subscribed(uuid,uuid,uuid)
   TO service_role;
+
+-- Local revocation destroys both user and Page tokens without erasing history.
+CREATE FUNCTION public.native_sales_revoke_meta_connection(
+  p_organization_id uuid,p_actor_member_id uuid,p_integration_id uuid
+) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+SET search_path=public,pg_temp AS $$
+DECLARE v_count integer;
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'SALES_SERVER_ONLY' USING ERRCODE='42501'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.sales_members WHERE organization_id=p_organization_id
+    AND id=p_actor_member_id AND status='active') THEN
+    RAISE EXCEPTION 'SALES_ACCESS_DENIED' USING ERRCODE='42501'; END IF;
+  UPDATE public.sales_social_integrations
+    SET status='REVOKED',token_ciphertext=NULL,token_expires_at=NULL,
+      revoked_at=now(),updated_at=now(),updated_by=p_actor_member_id
+    WHERE id=p_integration_id AND organization_id=p_organization_id
+      AND provider_code='META' AND status IN ('CONNECTED','DEGRADED');
+  GET DIAGNOSTICS v_count=ROW_COUNT;
+  IF v_count<>1 THEN RAISE EXCEPTION 'META_CONNECTION_UNAVAILABLE' USING ERRCODE='42501'; END IF;
+  UPDATE public.sales_social_assets a SET status='DISABLED',
+    webhook_status='NOT_SUBSCRIBED',token_ciphertext=NULL,token_expires_at=NULL
+    FROM public.sales_social_accounts ac
+    WHERE a.account_id=ac.id AND a.organization_id=p_organization_id
+      AND ac.organization_id=p_organization_id AND ac.integration_id=p_integration_id;
+  UPDATE public.sales_social_accounts SET status='REVOKED'
+    WHERE organization_id=p_organization_id AND integration_id=p_integration_id;
+  INSERT INTO public.sales_history
+    (organization_id,entity_type,record_id,actor_member_id,action,request_id,changes)
+    VALUES (p_organization_id,'social_connection',p_integration_id,p_actor_member_id,
+      'meta.connection.revoked',gen_random_uuid(),'{"localTokensDestroyed":true}'::jsonb);
+  RETURN jsonb_build_object('integrationId',p_integration_id,'status','REVOKED');
+END;
+$$;
+REVOKE ALL ON FUNCTION public.native_sales_revoke_meta_connection(uuid,uuid,uuid)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.native_sales_revoke_meta_connection(uuid,uuid,uuid)
+  TO service_role;
+
+CREATE FUNCTION public.native_sales_refresh_meta_connection(
+  p_organization_id uuid,p_actor_member_id uuid,p_integration_id uuid,
+  p_page_id text,p_user_token_ciphertext text,p_page_token_ciphertext text,
+  p_expires_at timestamptz,p_granted_permissions jsonb
+) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+SET search_path=public,pg_temp AS $$
+DECLARE v_asset_id uuid;
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'SALES_SERVER_ONLY' USING ERRCODE='42501'; END IF;
+  IF p_organization_id IS NULL OR p_actor_member_id IS NULL OR p_integration_id IS NULL
+    OR p_page_id IS NULL OR length(p_page_id) NOT BETWEEN 1 AND 200
+    OR p_user_token_ciphertext IS NULL OR p_page_token_ciphertext IS NULL
+    OR p_expires_at IS NULL OR p_expires_at<=now()
+    OR jsonb_typeof(p_granted_permissions) IS DISTINCT FROM 'array' THEN
+    RAISE EXCEPTION 'META_REFRESH_INVALID' USING ERRCODE='22023'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.sales_members WHERE organization_id=p_organization_id
+    AND id=p_actor_member_id AND status='active') THEN
+    RAISE EXCEPTION 'SALES_ACCESS_DENIED' USING ERRCODE='42501'; END IF;
+  SELECT a.id INTO v_asset_id FROM public.sales_social_assets a
+    JOIN public.sales_social_accounts ac ON ac.id=a.account_id AND ac.organization_id=a.organization_id
+    JOIN public.sales_social_integrations i ON i.id=ac.integration_id
+      AND i.organization_id=a.organization_id
+    WHERE i.id=p_integration_id AND i.organization_id=p_organization_id
+      AND i.provider_code='META' AND i.status IN ('CONNECTED','DEGRADED')
+      AND a.asset_type='page' AND a.external_asset_id=p_page_id
+      AND a.status IN ('READY','SUBSCRIBED','ERROR')
+    FOR UPDATE OF a,i;
+  IF NOT FOUND THEN RAISE EXCEPTION 'META_CONNECTION_UNAVAILABLE' USING ERRCODE='42501'; END IF;
+  UPDATE public.sales_social_integrations SET status='CONNECTED',
+    token_ciphertext=p_user_token_ciphertext,token_expires_at=p_expires_at,
+    granted_permissions=p_granted_permissions,last_refresh_at=now(),
+    last_error_code=NULL,updated_at=now(),updated_by=p_actor_member_id
+    WHERE id=p_integration_id;
+  UPDATE public.sales_social_assets a SET token_ciphertext=p_page_token_ciphertext,
+    token_expires_at=p_expires_at,last_error_code=NULL,
+    status=CASE WHEN a.status='ERROR' THEN 'READY' ELSE a.status END
+    FROM public.sales_social_accounts ac WHERE a.account_id=ac.id
+      AND a.organization_id=p_organization_id AND ac.organization_id=p_organization_id
+      AND ac.integration_id=p_integration_id AND a.asset_type IN ('page','instagram');
+  INSERT INTO public.sales_history
+    (organization_id,entity_type,record_id,actor_member_id,action,request_id,changes)
+    VALUES (p_organization_id,'social_connection',p_integration_id,p_actor_member_id,
+      'meta.connection.refreshed',gen_random_uuid(),jsonb_build_object('assetId',v_asset_id));
+  RETURN jsonb_build_object('integrationId',p_integration_id,'status','CONNECTED');
+END;
+$$;
+REVOKE ALL ON FUNCTION public.native_sales_refresh_meta_connection(
+  uuid,uuid,uuid,text,text,text,timestamptz,jsonb)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.native_sales_refresh_meta_connection(
+  uuid,uuid,uuid,text,text,text,timestamptz,jsonb)
+  TO service_role;

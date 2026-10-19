@@ -107,6 +107,17 @@ DO $$ DECLARE r jsonb; n jsonb; BEGIN
     (SELECT count(*) FROM public.sales_history
       WHERE action='meta.page.leadgen_subscribed')<>1 THEN
     RAISE EXCEPTION 'Page subscription state or audit incomplete'; END IF;
+  r:=public.native_sales_refresh_meta_connection(
+    '30000000-0000-4000-8000-000000000001',
+    '40000000-0000-4000-8000-000000000001',
+    '90000000-0000-4000-8000-000000000001',
+    'qa-second-page','refreshed-user-ciphertext','refreshed-page-ciphertext',
+    now()+interval '30 days','["pages_show_list","pages_manage_metadata","leads_retrieval"]'::jsonb);
+  IF r->>'status'<>'CONNECTED' OR
+    (SELECT token_ciphertext FROM public.sales_social_assets
+      WHERE external_asset_id='qa-second-page')<>'refreshed-page-ciphertext' OR
+    (SELECT count(*) FROM public.sales_history WHERE action='meta.connection.refreshed')<>1 THEN
+    RAISE EXCEPTION 'Meta token refresh did not persist atomically'; END IF;
   BEGIN
     PERFORM public.native_sales_complete_meta_page(
       '80000000-0000-4000-8000-000000000001',
@@ -116,5 +127,18 @@ DO $$ DECLARE r jsonb; n jsonb; BEGIN
       'synthetic-user-ciphertext','synthetic-page-ciphertext',now()+interval '1 day');
     RAISE EXCEPTION 'OAuth grant replay accepted';
   EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
+  r:=public.native_sales_revoke_meta_connection(
+    '30000000-0000-4000-8000-000000000001',
+    '40000000-0000-4000-8000-000000000001',
+    '90000000-0000-4000-8000-000000000001');
+  IF r->>'status'<>'REVOKED' OR
+    (SELECT token_ciphertext FROM public.sales_social_integrations
+      WHERE id='90000000-0000-4000-8000-000000000001') IS NOT NULL OR
+    (SELECT token_ciphertext FROM public.sales_social_assets
+      WHERE external_asset_id='qa-second-page') IS NOT NULL OR
+    (SELECT status FROM public.sales_social_assets
+      WHERE external_asset_id='qa-second-page')<>'DISABLED' OR
+    (SELECT count(*) FROM public.sales_history WHERE action='meta.connection.revoked')<>1 THEN
+    RAISE EXCEPTION 'Meta local revocation did not destroy tokens or preserve audit'; END IF;
 END $$;
 ROLLBACK;

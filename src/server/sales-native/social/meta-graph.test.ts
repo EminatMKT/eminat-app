@@ -28,6 +28,19 @@ describe('server-only Meta Graph adapter', () => {
     expect(request).toHaveBeenCalledTimes(2)
   })
 
+  it('refreshes an existing user token without credentials in the URL', async () => {
+    const request = vi.fn(async (url: URL, init: RequestInit) => {
+      expect(url.searchParams.size).toBe(0)
+      expect(init.method).toBe('POST')
+      expect(String(init.body)).toContain('fb_exchange_token=synthetic-old-token')
+      return Response.json({ access_token: 'synthetic-new-token-12345', expires_in: 3600 })
+    })
+    const client = new MetaGraphClient(config, request as unknown as typeof fetch)
+    expect((await client.refreshUserToken('synthetic-old-token')).token)
+      .toBe('synthetic-new-token-12345')
+    expect(request).toHaveBeenCalledTimes(1)
+  })
+
   it('discovers bounded pages with server credentials and cursor paging', async () => {
     const request = vi.fn(async (url: URL, init: RequestInit) => {
       expect(init.headers).toEqual({ Authorization: 'Bearer synthetic-user-token' })

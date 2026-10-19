@@ -71,10 +71,28 @@ export class MetaGraphClient {
     }
     const short = await call(new URLSearchParams({ client_id: this.config.appId,
       client_secret: this.config.appSecret, redirect_uri: this.config.callback, code }))
-    const long = await call(new URLSearchParams({ grant_type: 'fb_exchange_token',
-      client_id: this.config.appId, client_secret: this.config.appSecret,
-      fb_exchange_token: short.access_token }))
-    return { token: long.access_token, expiresAt: new Date(Date.now() + long.expires_in * 1000) }
+    return this.refreshUserToken(short.access_token)
+  }
+
+  async refreshUserToken(userToken: string): Promise<{ token: string; expiresAt: Date }> {
+    if (!userToken || userToken.length > 16384) throw new Error('META_TOKEN_UNAVAILABLE')
+    const url = endpoint(this.config, 'oauth/access_token')
+    let response: Response
+    try { response = await this.request(url, { method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ grant_type: 'fb_exchange_token',
+        client_id: this.config.appId, client_secret: this.config.appSecret,
+        fb_exchange_token: userToken }),
+      cache: 'no-store', signal: AbortSignal.timeout(10_000) }) }
+    catch { throw new Error('META_PROVIDER_UNAVAILABLE') }
+    if (!response.ok) throw new Error('META_PROVIDER_UNAVAILABLE')
+    let decoded: unknown
+    try { decoded = await response.json() }
+    catch { throw new Error('META_EXCHANGE_INVALID') }
+    const parsed = tokenReply.safeParse(decoded)
+    if (!parsed.success) throw new Error('META_EXCHANGE_INVALID')
+    return { token: parsed.data.access_token,
+      expiresAt: new Date(Date.now() + parsed.data.expires_in * 1000) }
   }
 
   async discoverPages(userToken: string): Promise<MetaGraphPage[]> {

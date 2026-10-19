@@ -4,7 +4,9 @@ import type { NativeRequest } from './NativeSalesModule'
 import s from './NativeSalesModule.module.css'
 
 type Integration = { id: string; provider_code: string; status: string;
-  external_business_name: string | null; connected_at: string | null }
+  external_business_name: string | null; connected_at: string | null;
+  token_expires_at: string | null; last_refresh_at: string | null;
+  last_error_code: string | null }
 type Asset = { id: string; asset_type: string; display_name: string | null;
   status: string; webhook_status: string; last_event_at: string | null }
 type GrantPage = { id: string; name: string; tasks: string[];
@@ -97,6 +99,30 @@ export default function NativeSocialStatus({ request, role, users, teams }: { re
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'META_SUBSCRIPTION_FAILED') }
     finally { setBusy(false) }
   }
+  const revoke = async (integrationId: string) => {
+    if (busy || !window.confirm('Disconnect this Meta connection? Stored tokens will be removed.')) return
+    setBusy(true); setError('')
+    try {
+      await request('social/meta/revoke', { method: 'POST', payload: { integrationId } })
+      const result = await request('social/connections')
+      const data = result.data as { integrations?: Integration[]; assets?: Asset[] } | null
+      setIntegrations(Array.isArray(data?.integrations) ? data.integrations : [])
+      setAssets(Array.isArray(data?.assets) ? data.assets : [])
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'META_CONNECTION_UNAVAILABLE') }
+    finally { setBusy(false) }
+  }
+  const refresh = async (integrationId: string) => {
+    if (busy) return
+    setBusy(true); setError('')
+    try {
+      await request('social/meta/refresh', { method: 'POST', payload: { integrationId } })
+      const result = await request('social/connections')
+      const data = result.data as { integrations?: Integration[]; assets?: Asset[] } | null
+      setIntegrations(Array.isArray(data?.integrations) ? data.integrations : [])
+      setAssets(Array.isArray(data?.assets) ? data.assets : [])
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'META_REFRESH_UNAVAILABLE') }
+    finally { setBusy(false) }
+  }
   if (!canManage) return <section className={s.panel}><h2>Social</h2>
     <p>Social connection settings are available to Sales administrators.</p></section>
   return <div className={s.reportGrid}>
@@ -106,7 +132,18 @@ export default function NativeSocialStatus({ request, role, users, teams }: { re
       {!loading && !error && integrations.length === 0 && <p>No Social connection is active.</p>}
       <ul className={s.breakdown}>{integrations.map(item => <li key={item.id}>
         <span>{item.provider_code} · {item.external_business_name || 'Business not selected'}</span>
-        <strong>{item.status}</strong></li>)}</ul>
+        <strong>{item.status}</strong>
+        {item.provider_code === 'META' && item.token_expires_at &&
+          <span>Token {Date.parse(item.token_expires_at) > Date.now() ? 'expires' : 'expired'} ·
+            {' '}{new Date(item.token_expires_at).toLocaleDateString()}</span>}
+        {item.provider_code === 'META' && metaAvailable &&
+          ['CONNECTED', 'DEGRADED'].includes(item.status) && item.token_expires_at &&
+          Date.parse(item.token_expires_at) > Date.now() &&
+          <button type="button" disabled={busy} onClick={() => void refresh(item.id)}>
+            Refresh access</button>}
+        {item.provider_code === 'META' && ['CONNECTED', 'DEGRADED'].includes(item.status) &&
+          <button type="button" disabled={busy} onClick={() => void revoke(item.id)}>
+            Disconnect</button>}</li>)}</ul>
       {!metaAvailable && <p>Meta connection is awaiting private app configuration and Page permissions.</p>}
       {metaAvailable && !grantState && <div className={s.form}>
         <label>Lead owner<select value={owner} onChange={event => setOwner(event.target.value)}>

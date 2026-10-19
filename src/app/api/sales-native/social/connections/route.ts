@@ -16,7 +16,7 @@ export async function GET(request: Request) {
       .select('enabled').eq('code', 'META').maybeSingle()
     if (providerError) return nativeSalesDatabaseError(providerError)
     const { data: integrations, error } = await db.from('sales_social_integrations')
-      .select('id,provider_code,status,external_business_name,connected_at')
+      .select('id,provider_code,status,external_business_name,connected_at,token_expires_at,last_refresh_at,last_error_code')
       .eq('organization_id', actor.organizationId).order('created_at', { ascending: false }).limit(100)
     if (error) return nativeSalesDatabaseError(error)
     const { data: assets, error: assetError } = await db.from('sales_social_assets')
