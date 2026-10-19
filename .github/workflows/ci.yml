@@ -78,6 +78,11 @@ jobs:
           set -euo pipefail
           result=$(psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -At -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-empty.sql)
           test "$result" = t
+      - name: Rehearse native Sales import and Social idempotency without persisting QA records
+        run: |
+          set -euo pipefail
+          psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -q -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-import-rehearsal.sql
+          psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -q -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-social-rehearsal.sql
       # La RLS se verifica contra la base real, no contra el archivo de migración:
       # el 29/08/2026 las policies estaban escritas y RLS apagada. Ver rules/base-de-datos.md.
       - run: pnpm db:rls
