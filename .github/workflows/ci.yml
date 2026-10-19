@@ -14,6 +14,10 @@ jobs:
         with: { node-version: 22, cache: pnpm }  # 22+ trae WebSocket nativo (lo exige @supabase/realtime-js)
       - run: pnpm install --frozen-lockfile
       - run: python3 scripts/migration/test_reconcile_annie_sales.py
+      - run: python3 scripts/migration/test_native_sales_security.py
+      - run: bash -n scripts/migration/prepare-private-annie-bundle.sh
+      - name: Validate guarded workflow YAML
+        run: ruby -e "require 'yaml'; YAML.load_file('.github/workflows/native-sales-guarded-schema.yml'); YAML.load_file('.github/workflows/native-sales-guarded-import.yml')"
       # ⚠️ EL CENTINELA YA NO CORRE EN CI. El motor salió de este repo el 2026-08-31 y ahora es
       # un plugin instalado por desarrollador (WSmithDR/centinela-plugin), con sus reglas en el
       # repo de datos de cada uno. Nada de eso existe en un runner.
@@ -85,6 +89,21 @@ jobs:
           set -euo pipefail
           result=$(psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -At -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-empty.sql)
           test "$result" = t
+      - name: Verify limited Sales migration role grants and revocation on local Supabase
+        run: |
+          set -euo pipefail
+          db=postgresql://postgres:postgres@127.0.0.1:54322/postgres
+          sed 's/<MIGRATION_PASSWORD>/local-synthetic-only/g' \
+            scripts/migration/lilly-sales-migrator-role.sql | \
+            psql "$db" -X -q -v ON_ERROR_STOP=1 >/dev/null
+          trap 'psql "$db" -X -q -v ON_ERROR_STOP=1 -f scripts/migration/lilly-sales-migrator-revoke.sql >/dev/null' EXIT
+          rights=$(PGPASSWORD=local-synthetic-only psql -h 127.0.0.1 -p 54322 \
+            -U lilly_sales_migrator -d postgres -X -q -t -A -v ON_ERROR_STOP=1 \
+            -c "SELECT has_table_privilege(current_user,'public.sales_leads','INSERT')
+                AND has_table_privilege(current_user,'public.usuarios','SELECT')
+                AND NOT has_table_privilege(current_user,'public.usuarios','UPDATE')
+                AND NOT has_schema_privilege(current_user,'public','CREATE')")
+          test "$rights" = t
       - name: Rehearse native Sales import and Social idempotency without persisting QA records
         run: |
           set -euo pipefail
