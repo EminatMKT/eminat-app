@@ -603,6 +603,7 @@
   "med.statusDischarged": "Discharged",
   "med.newPatientBtn": "+ New Patient",
   "med.noPatients": "No patients found",
+  "med.patientListTab": "List",
   "med.colMrn": "MRN",
   "med.colAge": "Age",
   "med.colGender": "Gender",

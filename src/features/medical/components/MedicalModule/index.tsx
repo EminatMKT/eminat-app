@@ -8,7 +8,7 @@ import { PageTransition } from '@/shared/motion'
 import { useMedicalStyles } from '@/features/medical/hooks/useMedicalStyles'
 import { MedicalProvider } from '../MedicalContext'
 import DashboardTab from '../DashboardTab'
-import PacientesTab from '../PacientesTab'
+import MedicalPatientsTab from '../MedicalPatientsTab'
 import CitasTab from '../CitasTab'
 import HipaaTab from '../HipaaTab'
 import AuditTab from '../AuditTab'
@@ -16,10 +16,9 @@ import PacienteModal from '../PacienteModal'
 import PacientesImportModal from '../PacientesImportModal'
 import CitaModal from '../CitaModal'
 import IncidenteModal from '../IncidenteModal'
-import MedicalDuplicatesTab from '../MedicalDuplicatesTab'
-import { useUserPreference } from '@/shared/hooks/useUserPreference'
-import { oneOf } from '@/shared/hooks/usePersistedState'
-import { SUB_ITEMS } from '@/shared/components/shell/appShellConfig'
+import { useTabPreference } from '@/shared/hooks'
+import { MODULE } from '@/shared/auth/permissions'
+import MEDICAL_TABS from '@/features/medical/constants/tabs'
 
 // Las secciones (Dashboard/Pacientes/Citas/HIPAA/Audit) viven SOLO en el panel
 // vertical del shell (SUB_ITEMS.medical). Antes se repetían acá como barra
@@ -30,13 +29,13 @@ export default function MedicalModule() {
   const { modules } = useApp()
   const { t } = useT()
   const { hipaaShield } = useMedicalStyles()
-  const [tab, setTab] = useUserPreference('tab-medical', 'dashboard', oneOf(...SUB_ITEMS.medical.map(x => x.tab)))
+  const [tab, setTab] = useTabPreference<string>(MODULE.MEDICAL, MEDICAL_TABS.defaultSection, MEDICAL_TABS.sections)
   const [modalPaciente, setModalPaciente] = useState(false)
   const [modalImportPacientes, setModalImportPacientes] = useState(false)
   const [modalCita, setModalCita] = useState(false)
   const [modalIncidente, setModalIncidente] = useState(false)
 
-  if (!modules.includes('medical')) return <AccessDenied />
+  if (!modules.includes(MODULE.MEDICAL)) return <AccessDenied />
 
   return (
     <AppShell activeTab={tab} onTabChange={setTab}>
@@ -49,11 +48,10 @@ export default function MedicalModule() {
           </div>
 
           {tab === 'dashboard' && <DashboardTab />}
-          {tab === 'pacientes' && <PacientesTab onNewPatient={() => setModalPaciente(true)} onImportPatients={() => setModalImportPacientes(true)} />}
+          {tab === 'pacientes' && <MedicalPatientsTab onNewPatient={() => setModalPaciente(true)} onImportPatients={() => setModalImportPacientes(true)} />}
           {tab === 'citas' && <CitasTab onNewCita={() => setModalCita(true)} />}
           {tab === 'hipaa' && <HipaaTab onNewIncidente={() => setModalIncidente(true)} />}
           {tab === 'audit' && <AuditTab />}
-          {tab === 'duplicados' && <MedicalDuplicatesTab />}
 
           {modalPaciente && <PacienteModal onClose={() => setModalPaciente(false)} />}
           {modalImportPacientes && <PacientesImportModal onClose={() => setModalImportPacientes(false)} />}
