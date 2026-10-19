@@ -60,16 +60,19 @@ def load_bundle(directory: Path, expected_hash: str,
 
 
 def connection_environment(url: str) -> dict[str, str]:
+    if os.environ.get("LILLY_SALES_TARGET_ENV") != "production":
+        raise ValueError("PRODUCTION_ENVIRONMENT_REQUIRED")
     parsed = urlparse(url)
-    if parsed.scheme not in {"postgres", "postgresql"} or not parsed.hostname or not parsed.username:
+    if parsed.scheme not in {"postgres", "postgresql"} or not parsed.hostname or not parsed.username or not parsed.password:
         raise ValueError("PRIVATE_DATABASE_HANDOFF_INVALID")
     if parsed.hostname in {"localhost", "127.0.0.1", "::1"}:
         raise ValueError("PRODUCTION_DATABASE_REQUIRED")
     username = unquote(parsed.username)
-    direct = parsed.hostname == f"db.{PROJECT_REF}.supabase.co" and username == "postgres"
+    direct = parsed.hostname == f"db.{PROJECT_REF}.supabase.co"
     session_pooler = parsed.hostname.endswith(".pooler.supabase.com") and \
-        username == f"postgres.{PROJECT_REF}"
-    if not (direct or session_pooler) or (parsed.port or 5432) != 5432:
+        username.endswith(f".{PROJECT_REF}") and len(username) > len(PROJECT_REF) + 1
+    if not (direct or session_pooler) or (parsed.port or 5432) != 5432 or \
+            parsed.path != "/postgres" or parsed.query or parsed.fragment:
         raise ValueError("PRODUCTION_PROJECT_MISMATCH")
     env = {key: value for key, value in os.environ.items() if not key.startswith("PG")}
     env.update({"PGHOST": parsed.hostname, "PGPORT": str(parsed.port or 5432),

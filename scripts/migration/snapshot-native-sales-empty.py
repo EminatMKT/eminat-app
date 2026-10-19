@@ -23,8 +23,11 @@ def query(sql, env):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--allow-absent", action="store_true")
+    parser.add_argument("--phase", choices=("schema", "data"), default="data")
     args = parser.parse_args()
-    env = connection_environment(os.environ.get("LILLY_SALES_PRODUCTION_DB_URL", ""))
+    secret = ("LILLY_SALES_SCHEMA_ADMIN_DB_URL" if args.phase == "schema"
+              else "LILLY_SALES_PRODUCTION_DB_URL")
+    env = connection_environment(os.environ.get(secret, ""))
     env["PGOPTIONS"] = "-c default_transaction_read_only=on -c statement_timeout=30000"
     names = ",".join(f"to_regclass('public.{table}') IS NOT NULL" for table in TABLES)
     present = query(f"SELECT json_build_array({names})", env)
