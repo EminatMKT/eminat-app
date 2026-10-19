@@ -6,16 +6,23 @@ function sources(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
     const path = join(directory, entry.name)
     return entry.isDirectory() ? sources(path) :
-      entry.name.endsWith('.ts') && !entry.name.endsWith('.test.ts') ? [path] : []
+      /\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name) ? [path] : []
   })
 }
 
 describe('native Sales runtime boundary', () => {
-  it('has no ANNIE adapter import, ANNIE runtime setting, or Production hostname', () => {
-    const root = join(process.cwd(), 'src/server/sales-native')
-    for (const file of sources(root)) {
+  it('has no ANNIE adapter import, route, runtime setting, or Production hostname', () => {
+    const roots = [
+      'src/server/sales-native',
+      'src/app/api/sales-native',
+      'src/features/native-sales',
+      'src/app/(app)/sales-native',
+    ]
+    for (const file of roots.flatMap(root => sources(join(process.cwd(), root)))) {
       const source = readFileSync(file, 'utf8')
       expect(source, file).not.toMatch(/from\s*['"][^'"]*integrations\/annie/)
+      expect(source, file).not.toMatch(/from\s*['"][^'"]*features\/annie-sales/)
+      expect(source, file).not.toContain('/api/integrations/annie')
       expect(source, file).not.toMatch(/process\.env\.ANNIE_[A-Z_]+/)
       expect(source, file).not.toContain('annie.stratixsolutions.us')
     }
