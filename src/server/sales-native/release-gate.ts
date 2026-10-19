@@ -4,3 +4,8 @@ import 'server-only'
 export function nativeSalesEnabled(): boolean {
   return process.env.LILLY_NATIVE_SALES_ENABLED === 'true'
 }
+
+/** Separate cutover switch: preview may run before /sales changes owners. */
+export function nativeSalesPrimary(): boolean {
+  return nativeSalesEnabled() && process.env.LILLY_NATIVE_SALES_PRIMARY === 'true'
+}
