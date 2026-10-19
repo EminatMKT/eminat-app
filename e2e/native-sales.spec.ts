@@ -51,3 +51,28 @@ test('native Sales loads from LILLY identity with a scoped Social inbox', async 
   await expect(page.getByText('No permitted conversations yet.')).toBeVisible()
   expect(errors).toEqual([])
 })
+
+test('native Sales sections render at mobile width without document overflow', async ({ page }) => {
+  const errors: string[] = []
+  page.on('pageerror', error => errors.push(error.message))
+  await page.setViewportSize({ width: 375, height: 667 })
+  await page.addInitScript(() => localStorage.setItem('eminat-onboarding-completed', 'true'))
+  await page.goto('/login')
+  await page.getByPlaceholder('tu@eminat.net').fill(email)
+  await page.locator('input[type="password"]').fill(PASSWORD)
+  await page.locator('input[type="password"]').press('Enter')
+  await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
+  await page.goto('/sales-native')
+  const sections = page.getByRole('navigation', { name: 'Sales sections' })
+  for (const label of ['Dashboard', 'Leads', 'Contacts', 'Accounts', 'Opportunities',
+    'Pipeline', 'Activities', 'Memberships', 'Reports', 'Social', 'Sales Settings']) {
+    await sections.getByRole('button', { name: label, exact: true }).click()
+    await expect(page.getByRole('heading', { name: label, exact: true, level: 1 })).toBeVisible()
+    await expect(page.getByRole('status').filter({ hasText: /^Loading / })).toHaveCount(0)
+    await expect(page.getByRole('alert')).toHaveCount(0)
+    const documentOverflows = await page.evaluate(() =>
+      document.documentElement.scrollWidth > window.innerWidth + 1)
+    expect(documentOverflows, `${label} overflows the mobile viewport`).toBe(false)
+  }
+  expect(errors).toEqual([])
+})
