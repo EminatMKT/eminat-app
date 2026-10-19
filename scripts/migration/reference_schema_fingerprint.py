@@ -12,6 +12,10 @@ from sales_migration_common import connection_environment
 SQL = """
 SELECT json_build_object(
   'users', (SELECT count(*) FROM public.usuarios),
+  'organizations', (SELECT count(*) FROM public.empresas),
+  'teams', (SELECT count(*) FROM public.equipos),
+  'userCompanyAccess', (SELECT count(*) FROM public.usuario_empresas_acceso),
+  'salesTenantMappings', (SELECT count(*) FROM public.annie_sales_tenant_mappings),
   'unrelatedSchema', (
     SELECT md5(coalesce(string_agg(
       n.nspname||'.'||c.relname||':'||a.attname||':'||a.atttypid::text||':'||
@@ -36,7 +40,9 @@ def main() -> None:
     if result.returncode:
         raise ValueError('REFERENCE_SNAPSHOT_FAILED')
     actual = json.loads(result.stdout.strip())
-    if not isinstance(actual.get('users'), int) or not actual.get('unrelatedSchema'):
+    if not all(isinstance(actual.get(key), int) for key in
+               ('users', 'organizations', 'teams', 'userCompanyAccess', 'salesTenantMappings')) or \
+            not actual.get('unrelatedSchema'):
         raise ValueError('REFERENCE_SNAPSHOT_INVALID')
     if args.verify:
         if actual != json.loads(args.verify):
