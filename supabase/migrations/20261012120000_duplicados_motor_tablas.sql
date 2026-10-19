@@ -23,12 +23,30 @@ BEGIN
   ON CONFLICT (entidad) DO NOTHING;
 END $$;
 
+-- Named domains instead of inline CHECKs: the constraint gets a name to ALTER, and a second
+-- table reuses the type. Wrapped so a re-run of this file stays idempotent.
+DO $$
+BEGIN
+  CREATE DOMAIN public.duplicado_nivel AS text CONSTRAINT duplicado_nivel_valores CHECK (VALUE IN ('exacta','parcial'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$
+BEGIN
+  CREATE DOMAIN public.duplicado_origen AS text CONSTRAINT duplicado_origen_valores CHECK (VALUE IN ('import','alta_manual','escaneo'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+DO $$
+BEGIN
+  CREATE DOMAIN public.duplicado_descarte_motivo AS text CONSTRAINT duplicado_descarte_motivo_valores CHECK (VALUE IN ('no_son_la_misma', 'son_la_misma_separadas'));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+
 CREATE TABLE IF NOT EXISTS public.duplicados_pendientes (
   entidad       text NOT NULL REFERENCES public.duplicados_entidades(entidad),
   item_id_a     uuid NOT NULL,
   item_id_b     uuid NOT NULL,
-  nivel         text NOT NULL CHECK (nivel IN ('exacta','parcial')),
-  origen        text NOT NULL CHECK (origen IN ('import','alta_manual','escaneo')),
+  nivel         public.duplicado_nivel NOT NULL,
+  origen        public.duplicado_origen NOT NULL,
   detectado_at  timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (entidad, item_id_a, item_id_b),
   CONSTRAINT duplicados_pendientes_par_ordenado CHECK (item_id_a < item_id_b)
@@ -38,7 +56,7 @@ CREATE TABLE IF NOT EXISTS public.duplicados_descartes (
   entidad       text NOT NULL REFERENCES public.duplicados_entidades(entidad),
   item_id_a     uuid NOT NULL,
   item_id_b     uuid NOT NULL,
-  motivo        text NOT NULL CHECK (motivo IN ('no_son_la_misma', 'son_la_misma_separadas')),
+  motivo        public.duplicado_descarte_motivo NOT NULL,
   nota          text,
   decidido_por  uuid REFERENCES public.usuarios(id),
   decidido_at   timestamptz NOT NULL DEFAULT now(),

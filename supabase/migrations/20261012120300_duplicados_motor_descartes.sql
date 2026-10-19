@@ -71,7 +71,12 @@ BEGIN
     RAISE EXCEPTION 'Keeping the same item separate requires a nonblank note' USING ERRCODE = '22023';
   END IF;
 
-  -- The helper holds the pair advisory lock and both domain locks until transaction end.
+  -- Concurrency strategy: pessimistic, taken inside lock_duplicate_discard_pair above, before any
+  -- write. It does pg_advisory_xact_lock on (entidad, ordered pair) -- the same key the registrar
+  -- and fusionar_duplicado use -- then SELECT ... FOR UPDATE on both domain rows in id order.
+  -- Both are held until transaction end, so a second discard of the same pair waits and then
+  -- hits ON CONFLICT DO NOTHING, and a merge or registration of either row cannot interleave
+  -- between the DELETE and the INSERT below.
   DELETE FROM public.duplicados_pendientes
     WHERE entidad = p_entidad AND item_id_a = v_pair.first_id AND item_id_b = v_pair.second_id;
   INSERT INTO public.duplicados_descartes (entidad, item_id_a, item_id_b, motivo, nota, decidido_por)
