@@ -1,14 +1,27 @@
-import { describe, expect, it } from 'vitest'
+import {
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
+import Td from '../Td'
+import Tr from '../Tr'
+import s from './index.module.css'
 import TableWrap from './index'
 
-const draw = () => renderToStaticMarkup(<TableWrap><tbody><tr><td>Cell</td></tr></tbody></TableWrap>)
+vi.mock('./index.module.css', () => ({ default: { wrap: 'scroll-wrap', table: 'full-width' } }))
+
+const TOTAL = 9800
+
+const row = () => <Tr><Td>{TOTAL}</Td></Tr>
+const draw = () => renderToStaticMarkup(<TableWrap>{row()}</TableWrap>)
 
 describe('TableWrap', () => {
-  it('wraps children in a table without owning data states', () => {
+  it('puts the rows inside a scroll wrapper and a full-width grid', () => {
     const html = draw()
-    expect(html).toContain('<table')
-    expect(html).toContain('<tbody>')
-    expect(html).toContain('Cell')
+    expect(html).toContain(`class="${s.wrap}"`)
+    expect(html).toContain(`class="${s.table}"`)
+    expect(html).toContain(renderToStaticMarkup(row()))
   })
 })
