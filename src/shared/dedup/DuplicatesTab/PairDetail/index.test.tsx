@@ -1,53 +1,101 @@
 import {
+  beforeEach,
   describe,
   expect,
   it,
   vi,
 } from 'vitest'
+import type { ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import PairDetail from '.'
 
 vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key, intlLocale: 'en-US' }) }))
 
-type Item = { id: string }
+// What PairDetail hands the shared Modal, which owns role, focus trap, Escape and focus return
+// (tested in `Modal/useDialog`). The mock keeps the props and swallows the markup.
+type Seen = {
+  title?: string
+  onClose: () => void
+  footer?: ReactNode
+  children?: ReactNode
+}
+const seen = vi.hoisted(() => {
+  const calls: Seen[] = []
+  return calls
+})
+vi.mock('@/shared/components/ui/Modal', () => ({ default: (props: Seen) => { seen.push(props); return null } }))
 
-const itemA: Item = { id: 'a' }
-const itemB: Item = { id: 'b' }
-const renderResumen = (item: Item): string => item.id
-const renderGrid = (): string => 'grid'
+const onCancelar = vi.fn()
+const NO_CHOICES: Record<string, string> = {}
+const DEFAULT_OPEN_OPTIONS = {
+  ocupado: false,
+  errorDescarte: false,
+  errorFusion: false,
+  choices: NO_CHOICES,
+}
 
-const renderDetalle = (errorDescarte: boolean, errorFusion: boolean) => renderToStaticMarkup(
-  <PairDetail
-    itemA={itemA}
-    itemB={itemB}
-    ocupado={false}
-    errorDescarte={errorDescarte}
-    errorFusion={errorFusion}
-    renderResumen={renderResumen}
-    renderComparacion={renderGrid}
-    onElegir={vi.fn()}
-    onCancelar={vi.fn()}
-    onNotSame={vi.fn()}
-    onKeepSeparate={vi.fn()}
-    onFusionar={vi.fn()}
-  />,
-)
+const open = ({
+  ocupado = false,
+  errorDescarte = false,
+  errorFusion = false,
+  choices = NO_CHOICES,
+}: Partial<typeof DEFAULT_OPEN_OPTIONS> = DEFAULT_OPEN_OPTIONS) => {
+  seen.length = 0
+  const controls = {
+    choices,
+    onChoose: vi.fn(),
+    excludedIds: [],
+    onToggleExcluded: vi.fn(),
+  }
+  renderToStaticMarkup(
+    <PairDetail itemA={{ name: 'Ana Winner' }} itemB={{ name: 'Bea Loser' }} ocupado={ocupado}
+      errorDescarte={errorDescarte} errorFusion={errorFusion}
+      renderResumen={item => item.name} renderComparacion={() => 'the-grid'} controls={controls}
+      onCancelar={onCancelar} onNotSame={vi.fn()} onKeepSeparate={vi.fn()} onFusionar={vi.fn()} />,
+  )
+  return seen[0]
+}
+const markup = (node: ReactNode) => renderToStaticMarkup(<>{node}</>)
 
 describe('PairDetail', () => {
-  it('does not show a failure warning before any attempt', () => {
-    const html = renderDetalle(false, false)
-    expect(html).not.toContain('dedup.mergeFailed')
-    expect(html).not.toContain('dedup.discardFailed')
+  beforeEach(() => onCancelar.mockReset())
+
+  it('opens as a titled dialog that closes on ✕, Escape or backdrop when nothing is at stake', () => {
+    const dialog = open()
+    expect(dialog.title).toBe('dedup.pairTitle')
+    dialog.onClose()
+    expect(onCancelar).toHaveBeenCalledOnce()
   })
 
-  it('shows the merge-failed warning once a merge attempt failed', () => {
-    expect(renderDetalle(false, true)).toContain('dedup.mergeFailed')
+  it('does not close while a decision is in flight', () => {
+    open({ ocupado: true }).onClose()
+    expect(onCancelar).not.toHaveBeenCalled()
   })
 
-  // A failed discard used to show the merge copy, telling the reviewer to fix field choices.
-  it('shows its own warning for a failed discard, not the merge one', () => {
-    const html = renderDetalle(true, false)
-    expect(html).toContain('dedup.discardFailed')
-    expect(html).not.toContain('dedup.mergeFailed')
+  it('does not drop picks on a stray close: it asks first', () => {
+    open({ choices: { seguro: 'Cigna' } }).onClose()
+    expect(onCancelar).not.toHaveBeenCalled()
+  })
+
+  // The walkthrough bug: the decisions sat below the whole list. The fixed footer never scrolls.
+  it('keeps all four decisions in the fixed footer, all disabled mid-decision', () => {
+    expect(markup(open().footer).split('<button').length - 1).toBe(4)
+    expect(markup(open({ ocupado: true }).footer).split('disabled=""').length - 1).toBe(4)
+  })
+
+  it('says which record stays and which is merged in, in that order', () => {
+    const body = markup(open().children)
+    const order = ['dedup.winnerLabel', 'Ana Winner', 'dedup.loserLabel', 'Bea Loser', 'the-grid']
+    const positions = order.map(needle => body.indexOf(needle))
+    expect(positions.every(p => p >= 0)).toBe(true)
+    expect([...positions].sort((left, right) => left - right)).toEqual(positions)
+  })
+
+  it('shows each failure with its own copy', () => {
+    expect(markup(open().children)).not.toContain('dedup.mergeFailed')
+    expect(markup(open({ errorFusion: true }).children)).toContain('dedup.mergeFailed')
+    const discard = markup(open({ errorDescarte: true }).children)
+    expect(discard).toContain('dedup.discardFailed')
+    expect(discard).not.toContain('dedup.mergeFailed')
   })
 })

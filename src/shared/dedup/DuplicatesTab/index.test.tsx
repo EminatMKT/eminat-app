@@ -33,10 +33,18 @@ function parStub() {
     itemA: null,
     itemB: null,
     elecciones: {},
+    excludedIds: [],
+    onToggleExcluded: () => {},
     error: fallas.par,
     abrirPendiente: () => {},
     cerrarPendiente: () => {},
     onElegir: () => {},
+    controls: {
+      choices: {},
+      onChoose: () => {},
+      excludedIds: [],
+      onToggleExcluded: () => {},
+    },
   }
   return par
 }

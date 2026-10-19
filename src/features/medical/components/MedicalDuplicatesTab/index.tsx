@@ -21,7 +21,7 @@ export default function MedicalDuplicatesTab() {
       entidad="pacientes"
       cargarItem={loadPaciente}
       renderResumen={summarizePaciente}
-      renderComparacion={(a, b, onChoose) => comparePacientes(a, b, onChoose, t)}
+      renderComparacion={(a, b, controls) => comparePacientes(a, b, controls, t)}
       construirValoresFinales={buildMergeValues}
     />
   )

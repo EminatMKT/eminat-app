@@ -1356,5 +1356,11 @@
   "dedup.pendingCount": "{n} pending duplicates",
   "dedup.medicalTab": "Duplicates",
   "dedup.noFieldDiffs": "No differing fields to review.",
-  "dedup.keptOnWinner": "Already on the record that stays"
+  "dedup.keptOnWinner": "Already on the record that stays",
+  "dedup.pairTitle": "Review possible duplicate",
+  "dedup.winnerLabel": "Stays",
+  "dedup.loserLabel": "Merged in, then removed",
+  "dedup.discardChoicesTitle": "Discard your choices?",
+  "dedup.discardChoicesMessage": "Every pick and unchecked value on this pair is lost.",
+  "dedup.discardChoicesConfirm": "Discard"
 }

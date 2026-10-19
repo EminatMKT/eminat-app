@@ -41,7 +41,7 @@ export default function DuplicatesTab<T>(props: Props<T>) {
           errorFusion={decidir.errorFusion}
           renderResumen={renderResumen}
           renderComparacion={renderComparacion}
-          onElegir={par.onElegir}
+          controls={par.controls}
           onCancelar={par.cerrarPendiente}
           onNotSame={() => void decidir.descartarPendiente(MOTIVO_NO_ES_LA_MISMA, null)}
           onKeepSeparate={nota => void decidir.descartarPendiente(MOTIVO_SEPARADAS, nota)}

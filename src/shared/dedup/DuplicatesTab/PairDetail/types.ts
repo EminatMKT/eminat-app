@@ -1,18 +1,29 @@
-import type { ReactNode } from 'react'
+import type { CompareControls, Props as TabProps } from '../types'
+import type {
+  CLOSE_CONFIRM,
+  CLOSE_IGNORED,
+  CLOSE_NOW,
+  DISCARD_DIALOG,
+  NOTE_DIALOG,
+} from './constants'
 
-/** The open pair: a side-by-side summary, the caller's own comparison grid, and the four
- *  decisions available once two candidates are loaded. */
-export type Props<T> = {
+/** The open pair: both loaded items, the in-flight decision state, the caller's two renderers,
+ *  the grid's controls, and the four decisions. */
+export type Props<T> = Pick<TabProps<T>, 'renderResumen' | 'renderComparacion'> & {
   itemA: T
   itemB: T
   ocupado: boolean
   errorDescarte: boolean
   errorFusion: boolean
-  renderResumen: (item: T) => string
-  renderComparacion: (a: T, b: T, onElegir: (campo: string, valor: string) => void) => ReactNode
-  onElegir: (campo: string, valor: string) => void
+  controls: CompareControls
   onCancelar: () => void
   onNotSame: () => void
   onKeepSeparate: (nota: string) => void
   onFusionar: () => void
 }
+
+/** What a close request turns into. */
+export type CloseIntent = typeof CLOSE_IGNORED | typeof CLOSE_CONFIRM | typeof CLOSE_NOW
+
+/** Which secondary dialog sits on top of the pair, if any. */
+export type OpenDialog = typeof NOTE_DIALOG | typeof DISCARD_DIALOG | null

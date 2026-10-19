@@ -1356,5 +1356,11 @@
   "dedup.pendingCount": "{n} duplicados pendientes",
   "dedup.medicalTab": "Duplicados",
   "dedup.noFieldDiffs": "No hay campos distintos para revisar.",
-  "dedup.keptOnWinner": "Ya incluido en ficha conservada"
+  "dedup.keptOnWinner": "Ya incluido en ficha conservada",
+  "dedup.pairTitle": "Revisar posible duplicado",
+  "dedup.winnerLabel": "Se conserva",
+  "dedup.loserLabel": "Se elimina tras fusionar",
+  "dedup.discardChoicesTitle": "¿Descartar lo elegido?",
+  "dedup.discardChoicesMessage": "Se pierde todo lo elegido en este par.",
+  "dedup.discardChoicesConfirm": "Descartar"
 }
