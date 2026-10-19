@@ -44,18 +44,20 @@ def main() -> None:
     key = os.environ.get("LILLY_SUPABASE_SERVICE_ROLE_KEY", "")
     if not key:
         raise BindingFailure("MISSING_PROTECTED_SERVICE_KEY")
+    # Opaque Supabase secret keys are API keys, not JWT bearer tokens.
+    headers = {
+        "apikey": key,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+    if key.startswith("sb_secret_"):
+        pass
+    elif key.startswith("eyJ"):
+        headers["Authorization"] = f"Bearer {key}"
+    else:
+        raise BindingFailure("UNSUPPORTED_PROTECTED_SERVICE_KEY_TYPE")
     payload = json.dumps({"requested_binding": args.binding, "action": args.phase}).encode()
-    req = request.Request(
-        URL,
-        data=payload,
-        headers={
-            "apikey": key,
-            "Authorization": f"Bearer {key}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        },
-        method="POST",
-    )
+    req = request.Request(URL, data=payload, headers=headers, method="POST")
     try:
         with request.urlopen(req, timeout=30) as response:
             result = json.load(response)
