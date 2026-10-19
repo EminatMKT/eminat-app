@@ -32,6 +32,13 @@ BEGIN
               AND peer.team_id=own.team_id AND peer.member_id=m.id
             WHERE own.organization_id=p_organization_id AND own.member_id=p_actor_member_id))
     ),'[]'::jsonb),
+    -- Historical actors are display-only. They have no login and never enter
+    -- the assignable users list above.
+    'historicalUsers',coalesce((SELECT jsonb_agg(jsonb_build_object(
+      'memberId',m.id,'displayName',coalesce(m.display_name,'ANNIE historical staff'))
+      ORDER BY m.display_name,m.id)
+      FROM public.sales_members m WHERE m.organization_id=p_organization_id
+        AND m.status='historical'),'[]'::jsonb),
     'teams',coalesce((SELECT jsonb_agg(jsonb_build_object('id',t.id,'name',t.name)
       ORDER BY t.name,t.id) FROM public.sales_teams t
       WHERE t.organization_id=p_organization_id AND t.active

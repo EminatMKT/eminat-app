@@ -35,17 +35,23 @@ ALTER TABLE public.usuarios ADD CONSTRAINT usuarios_id_auth_id_sales_unique UNIQ
 CREATE TABLE public.sales_members (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id uuid NOT NULL REFERENCES public.sales_organizations(id) ON DELETE RESTRICT,
-  user_id uuid NOT NULL,
-  auth_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
+  -- Imported ANNIE actors can be preserved without creating a login. Only
+  -- explicitly bound, active members may authenticate or receive new work.
+  user_id uuid,
+  auth_id uuid REFERENCES auth.users(id) ON DELETE RESTRICT,
+  display_name text CHECK (display_name IS NULL OR length(btrim(display_name)) BETWEEN 1 AND 160),
   role text NOT NULL CHECK (role IN ('SUPERADMIN', 'ADMINISTRATOR', 'SALES_MANAGER', 'SELLER', 'FINANCE', 'AUDITOR')),
   legacy_annie_principal_id uuid,
-  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'revoked')),
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'revoked', 'historical')),
   evidence_ref text NOT NULL CHECK (length(btrim(evidence_ref)) > 0),
   approved_by uuid REFERENCES public.usuarios(id) ON DELETE RESTRICT,
   approved_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CHECK (status <> 'active' OR (approved_by IS NOT NULL AND approved_at IS NOT NULL)),
+  CHECK ((status = 'historical' AND user_id IS NULL AND auth_id IS NULL
+      AND legacy_annie_principal_id IS NOT NULL)
+    OR (status <> 'historical' AND user_id IS NOT NULL AND auth_id IS NOT NULL)),
   FOREIGN KEY (user_id, auth_id) REFERENCES public.usuarios(id, auth_id) ON DELETE RESTRICT,
   UNIQUE (organization_id, id),
   UNIQUE (organization_id, user_id),

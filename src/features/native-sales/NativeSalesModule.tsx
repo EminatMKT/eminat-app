@@ -18,7 +18,8 @@ type Access = { allowed: boolean; role: string; capabilities: { canWrite: boolea
 type Person = { memberId: string; displayName: string; role: string; teamIds: string[] }
 type Team = { id: string; name: string }
 type Stage = { id: string; code: string; name: string; position: number; outcome: string; pipelineId: string }
-type Directory = { users: Person[]; teams: Team[]; stages: Stage[] }
+type Directory = { users: Person[]; historicalUsers: Pick<Person, 'memberId' | 'displayName'>[];
+  teams: Team[]; stages: Stage[] }
 type Row = Record<string, unknown> & { id: string }
 export type NativeRequest = (path: string, options?: { method?: 'POST' | 'PATCH';
   payload?: Record<string, unknown>; version?: number; idempotencyKey?: string }) => Promise<Record<string, unknown>>
@@ -64,7 +65,7 @@ const title = (row: Row) => string(row.display_name) || string(row.name) ||
 export default function NativeSalesModule({ organizationId }: { organizationId: string }) {
   const [tab, setTab] = useState<Tab>('dashboard')
   const [access, setAccess] = useState<Access | null>(null)
-  const [directory, setDirectory] = useState<Directory>({ users: [], teams: [], stages: [] })
+  const [directory, setDirectory] = useState<Directory>({ users: [], historicalUsers: [], teams: [], stages: [] })
   const [summary, setSummary] = useState<Summary | null>(null)
   const [detailReport, setDetailReport] = useState<DetailReport | null>(null)
   const [reportFrom, setReportFrom] = useState(monthAgoUtc)
@@ -117,6 +118,8 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
       const data = lookup.data
       if (isObject(data)) setDirectory({
         users: Array.isArray(data.users) ? data.users as Person[] : [],
+        historicalUsers: Array.isArray(data.historicalUsers)
+          ? data.historicalUsers as Directory['historicalUsers'] : [],
         teams: Array.isArray(data.teams) ? data.teams as Team[] : [],
         stages: Array.isArray(data.stages) ? data.stages as Stage[] : [],
       })
@@ -186,7 +189,9 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
     return () => { cancelled = true }
   }, [access?.allowed, tab, query, demo, leadView, offset, refresh, reportFrom, reportTo, request])
 
-  const userName = useCallback((id: unknown) => directory.users.find(user => user.memberId === id)?.displayName || 'Unassigned', [directory.users])
+  const userName = useCallback((id: unknown) => directory.users.find(user => user.memberId === id)?.displayName ||
+    directory.historicalUsers.find(user => user.memberId === id)?.displayName || 'Unassigned',
+    [directory.users, directory.historicalUsers])
   const teamName = useCallback((id: unknown) => directory.teams.find(team => team.id === id)?.name || '', [directory.teams])
   const stageName = useCallback((id: unknown) => directory.stages.find(stage => stage.id === id)?.name || '', [directory.stages])
   const openMembershipPdf = useCallback(async (row: Row, download: boolean) => {

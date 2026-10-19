@@ -105,12 +105,12 @@ BEGIN
       'bySource',coalesce((SELECT jsonb_agg(jsonb_build_object('code',code,'count',count) ORDER BY count DESC,code)
         FROM lead_source_counts),'[]'::jsonb),
       'bySeller',coalesce((SELECT jsonb_agg(jsonb_build_object('memberId',s.member_id,
-        'label',coalesce(nullif(btrim(u.nombre_display),''),u.email,'Staff unavailable'),
+        'label',coalesce(nullif(btrim(u.nombre_display),''),u.email,m.display_name,'Staff unavailable'),
         'count',s.count,'converted',s.converted,
         'conversionRate',CASE WHEN s.count=0 THEN 0 ELSE round(100.0*s.converted/s.count,2) END)
-        ORDER BY s.count DESC,u.nombre_display,s.member_id)
+        ORDER BY s.count DESC,coalesce(u.nombre_display,m.display_name),s.member_id)
         FROM lead_seller_counts s JOIN public.sales_members m ON m.id=s.member_id
-        JOIN public.usuarios u ON u.id=m.user_id),'[]'::jsonb)),
+        LEFT JOIN public.usuarios u ON u.id=m.user_id),'[]'::jsonb)),
     'opportunities',jsonb_build_object(
       'total',(SELECT count(*) FROM scoped_opportunities),
       'won',(SELECT count(*) FROM scoped_opportunities WHERE outcome='WON'),
@@ -124,11 +124,11 @@ BEGIN
       'byModality',coalesce((SELECT jsonb_agg(jsonb_build_object('code',code,'count',count) ORDER BY count DESC,code)
         FROM membership_modality_counts),'[]'::jsonb),
       'salesBySeller',coalesce((SELECT jsonb_agg(jsonb_build_object('memberId',s.member_id,
-        'label',coalesce(nullif(btrim(u.nombre_display),''),u.email,'Staff unavailable'),
+        'label',coalesce(nullif(btrim(u.nombre_display),''),u.email,m.display_name,'Staff unavailable'),
         'currency',s.currency,'count',s.count,'amount',s.amount)
-        ORDER BY s.count DESC,u.nombre_display,s.member_id,s.currency)
+        ORDER BY s.count DESC,coalesce(u.nombre_display,m.display_name),s.member_id,s.currency)
         FROM membership_seller_counts s JOIN public.sales_members m ON m.id=s.member_id
-        JOIN public.usuarios u ON u.id=m.user_id),'[]'::jsonb)),
+        LEFT JOIN public.usuarios u ON u.id=m.user_id),'[]'::jsonb)),
     'activities',jsonb_build_object(
       'total',(SELECT count(*) FROM scoped_activities),
       'followUps',(SELECT count(*) FROM scoped_activities WHERE kind='FOLLOW_UP'),

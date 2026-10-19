@@ -21,7 +21,7 @@ BEGIN
   SELECT event FROM (
     SELECT h.occurred_at AS happened_at,h.id AS event_id,
       jsonb_build_object('id',h.id,'type','history','action',h.action,
-        'actorName',coalesce(nullif(btrim(u.nombre_display),''),u.email,'System'),
+        'actorName',coalesce(nullif(btrim(u.nombre_display),''),u.email,m.display_name,'System'),
         'occurredAt',h.occurred_at,'changes',h.changes) AS event
     FROM public.sales_history h
     LEFT JOIN public.sales_members m ON m.organization_id=h.organization_id AND m.id=h.actor_member_id
@@ -34,11 +34,11 @@ BEGIN
     SELECT a.created_at,a.id,
       jsonb_build_object('id',a.id,'type','activity','kind',a.kind,'title',a.title,
         'body',a.body,'status',a.status,'dueAt',a.due_at,
-        'actorName',coalesce(nullif(btrim(au.nombre_display),''),au.email),
+        'actorName',coalesce(nullif(btrim(au.nombre_display),''),au.email,am.display_name,'System'),
         'occurredAt',a.created_at)
     FROM public.sales_activities a
     JOIN public.sales_members am ON am.organization_id=a.organization_id AND am.id=a.actor_member_id
-    JOIN public.usuarios au ON au.id=am.user_id
+    LEFT JOIN public.usuarios au ON au.id=am.user_id
     WHERE a.organization_id=p_organization_id
       AND CASE p_resource WHEN 'leads' THEN a.lead_id=p_record_id
         WHEN 'contacts' THEN a.contact_id=p_record_id

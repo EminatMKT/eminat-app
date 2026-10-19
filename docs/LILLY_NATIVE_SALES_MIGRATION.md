@@ -40,9 +40,16 @@ Leads by status: NEW 10, ASSIGNED 1, CONTACTED 1, QUALIFIED 3, PAYMENT_PENDING 2
 ## Identity and transfer blockers found in the encrypted snapshot
 
 - ANNIE contains 28 staff membership records; 12 are active. The current LILLY Production Sales mapping has only two active entries. Five active ANNIE staff logins have no same-login LILLY profile, and several of the matching profiles belong to other LILLY companies. A same-login match is evidence for review, not authorization to grant STRATIX access. Never bind these users across company boundaries automatically.
-- Commercial rows reference seven distinct ANNIE staff actors. Preserve each original actor and owner reference, including inactive historical staff, without fabricating a Supabase login or assigning their records to another person. The present `sales_members` schema requires a LILLY user and Supabase identity, so a reviewed historical-actor representation or explicit owner-approved identity mapping is required before transfer.
+- Commercial rows reference seven distinct ANNIE staff actors. Preserve each original actor and owner reference, including inactive historical staff, without fabricating a Supabase login or assigning their records to another person. The native schema now supports non-login `historical` members with a legacy Principal ID and display name; they cannot authenticate or receive new work. Explicit, reviewed identity mapping is still required to activate any such member or make their records Seller-accessible.
 - All eight demo memberships have PDF bytes and two have agreement PDF bytes. Encrypted export protects transit, but a reviewed private storage transfer, content hash reconciliation, and browser view/download checks are required before claiming PDF parity. These binaries must not enter Git or logs.
 - The source has no renewal notices or membership-delivery rows. No absent record should be fabricated.
+- One source meeting has status `NO_SHOW`. The native meeting status constraint now retains it exactly; no-show meetings must not be silently relabeled as cancelled.
+
+## Private transfer rehearsal
+
+`scripts/migration/prepare-annie-sales.py` converts the encrypted export after private decryption into a permission-600 bundle under an ignored `.local` directory. It preserves ANNIE UUIDs as destination IDs and `legacy_annie_id` values; 28 staff actors are staged as non-login historical identities. The organization remains `pending`, so the bundle grants no Sales access. Ten PDF artifacts have independent content hashes. No provider credentials are included.
+
+`scripts/migration/validate-annie-sales-bundle.py` checks the bundle and emits a rollback-only SQL rehearsal. Against the disposable local PostgreSQL test database, all 334 normalized rows loaded with source references and destination constraints intact, then rolled back. The rows include 160 CRM/audit history events and 11 deferred Contact primary-account links. This validates structure, not Production cutover. Final identity activation, private PDF storage transfer, destination backup, and source/destination reconciliation still require guarded release steps.
 
 ## Release gates
 

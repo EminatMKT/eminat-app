@@ -63,7 +63,7 @@ CREATE TABLE public.sales_meetings (
   opportunity_id uuid,
   notes text,
   outcome text,
-  status text NOT NULL DEFAULT 'SCHEDULED' CHECK (status IN ('SCHEDULED','COMPLETED','CANCELLED')),
+  status text NOT NULL DEFAULT 'SCHEDULED' CHECK (status IN ('SCHEDULED','COMPLETED','CANCELLED','NO_SHOW')),
   legacy_annie_id uuid,
   version integer NOT NULL DEFAULT 1 CHECK (version > 0),
   created_at timestamptz NOT NULL DEFAULT now(),
