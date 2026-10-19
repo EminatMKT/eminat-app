@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import sys
 from urllib import error, parse, request
 
@@ -75,57 +76,109 @@ def checked_artifacts(directory, manifest):
     return organization, artifacts
 
 
+def migration_object_key(rows_sha, organization, membership, kind):
+    if not re.fullmatch(r"[0-9a-f]{64}", rows_sha):
+        fail("ARCHIVE_BUNDLE_HASH_INVALID")
+    return f"native-sales/{rows_sha}/{organization}/{membership}/{kind}.pdf"
+
+
+def cleanup_created(base, key, created):
+    """Only remove objects and metadata created by this invocation."""
+    for meta_url, object_url in reversed(created):
+        if meta_url:
+            status, _ = call(meta_url, key, "DELETE")
+            if status not in (200, 204, 404):
+                fail("ARCHIVE_CLEANUP_FAILED")
+        status, _ = call(object_url, key, "DELETE")
+        if status not in (200, 204, 404):
+            fail("ARCHIVE_CLEANUP_FAILED")
+
+
+def storage_rehearsal(base, key, rows_sha):
+    """Exercise private object create/read/delete with synthetic bytes only."""
+    object_key = f"native-sales-rehearsal/{rows_sha}/{secrets.token_hex(8)}.txt"
+    url = f"{base}/storage/v1/object/{BUCKET}/{parse.quote(object_key, safe='/')}"
+    status, _ = call(url, key, "POST", b"synthetic-storage-probe", {"Content-Type": "text/plain", "x-upsert": "false"})
+    if status not in (200, 201):
+        fail("ARCHIVE_REHEARSAL_UPLOAD_FAILED")
+    try:
+        status, body = call(url, key)
+        if status != 200 or body != b"synthetic-storage-probe":
+            fail("ARCHIVE_REHEARSAL_READ_FAILED")
+    finally:
+        status, _ = call(url, key, "DELETE")
+        if status not in (200, 204):
+            fail("ARCHIVE_REHEARSAL_CLEANUP_FAILED")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("private_bundle", type=Path)
     parser.add_argument("--commit", action="store_true")
+    parser.add_argument("--rehearse-storage", action="store_true")
     parser.add_argument("--expected-rows-sha256")
     args = parser.parse_args()
     directory = args.private_bundle.resolve()
     manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
     organization, artifacts = checked_artifacts(directory, manifest)
-    if not args.commit:
+    if args.commit and args.rehearse_storage:
+        fail("ARCHIVE_MODE_INVALID")
+    if not args.commit and not args.rehearse_storage:
         print(json.dumps({"archiveBundleVerified": True, "pdfs": len(artifacts), "uploaded": False}))
         return
     if args.expected_rows_sha256 != manifest["rowsSha256"] or \
-            os.getenv("LILLY_ARCHIVE_UPLOAD_APPROVED") != "true":
+            (args.commit and os.getenv("LILLY_ARCHIVE_UPLOAD_APPROVED") != "true"):
         fail("ARCHIVE_RELEASE_GATE_CLOSED")
     base = os.getenv("LILLY_SUPABASE_URL", "").rstrip("/")
     key = os.getenv("LILLY_SUPABASE_SERVICE_ROLE_KEY", "")
     if not base.startswith("https://") or not key:
         fail("ARCHIVE_PRIVATE_CONNECTION_REQUIRED")
+    if args.rehearse_storage:
+        storage_rehearsal(base, key, manifest["rowsSha256"])
+        print(json.dumps({"storageRehearsal": True, "cleanup": True}))
+        return
     uploaded = 0
-    for membership, kind, blob, digest in artifacts:
-        rest = f"{base}/rest/v1/sales_memberships?organization_id=eq.{organization}&id=eq.{membership}&select=id"
-        status, content = call(rest, key)
-        if status != 200 or len(json.loads(content)) != 1:
-            fail("ARCHIVE_DESTINATION_MEMBERSHIP_MISSING")
-        object_key = f"{organization}/{membership}/{kind}.pdf"
-        path = f"{base}/storage/v1/object/{BUCKET}/{parse.quote(object_key, safe='/')}"
-        status, _ = call(path, key, "POST", blob, {"Content-Type": "application/pdf", "x-upsert": "false"})
-        if status not in (200, 201, 409):
-            fail("ARCHIVE_UPLOAD_FAILED")
-        status, stored = call(path, key)
-        if status != 200 or hashlib.sha256(stored).hexdigest() != digest:
-            fail("ARCHIVE_STORED_HASH_INVALID")
-        meta_url = (f"{base}/rest/v1/sales_membership_archive_documents?organization_id=eq.{organization}"
-                    f"&membership_id=eq.{membership}&kind=eq.{kind}&select=object_key,sha256,byte_count")
-        status, content = call(meta_url, key)
-        if status != 200:
-            fail("ARCHIVE_METADATA_UNAVAILABLE")
-        existing = json.loads(content)
-        expected = {"object_key": object_key, "sha256": digest, "byte_count": len(blob)}
-        if existing:
-            if len(existing) != 1 or existing[0] != expected:
-                fail("ARCHIVE_METADATA_CONFLICT")
-        else:
-            payload = json.dumps({"organization_id": organization, "membership_id": membership,
-                                  "kind": kind, **expected}).encode()
-            status, _ = call(f"{base}/rest/v1/sales_membership_archive_documents", key,
-                             "POST", payload, {"Content-Type": "application/json", "Prefer": "return=minimal"})
-            if status not in (200, 201, 204):
-                fail("ARCHIVE_METADATA_WRITE_FAILED")
-        uploaded += 1
+    created = []
+    try:
+        for membership, kind, blob, digest in artifacts:
+            rest = f"{base}/rest/v1/sales_memberships?organization_id=eq.{organization}&id=eq.{membership}&select=id"
+            status, content = call(rest, key)
+            if status != 200 or len(json.loads(content)) != 1:
+                fail("ARCHIVE_DESTINATION_MEMBERSHIP_MISSING")
+            object_key = migration_object_key(manifest["rowsSha256"], organization, membership, kind)
+            path = f"{base}/storage/v1/object/{BUCKET}/{parse.quote(object_key, safe='/')}"
+            upload_status, _ = call(path, key, "POST", blob, {"Content-Type": "application/pdf", "x-upsert": "false"})
+            if upload_status not in (200, 201, 409):
+                fail("ARCHIVE_UPLOAD_FAILED")
+            if upload_status != 409:
+                created.append((None, path))
+            status, stored = call(path, key)
+            if status != 200 or hashlib.sha256(stored).hexdigest() != digest:
+                fail("ARCHIVE_STORED_HASH_INVALID")
+            meta_url = (f"{base}/rest/v1/sales_membership_archive_documents?organization_id=eq.{organization}"
+                        f"&membership_id=eq.{membership}&kind=eq.{kind}&select=object_key,sha256,byte_count")
+            status, content = call(meta_url, key)
+            if status != 200:
+                fail("ARCHIVE_METADATA_UNAVAILABLE")
+            existing = json.loads(content)
+            expected = {"object_key": object_key, "sha256": digest, "byte_count": len(blob)}
+            if existing:
+                if len(existing) != 1 or existing[0] != expected:
+                    fail("ARCHIVE_METADATA_CONFLICT")
+            else:
+                if upload_status == 409:
+                    fail("ARCHIVE_PREEXISTING_OBJECT_WITHOUT_METADATA")
+                payload = json.dumps({"organization_id": organization, "membership_id": membership,
+                                      "kind": kind, **expected}).encode()
+                status, _ = call(f"{base}/rest/v1/sales_membership_archive_documents", key,
+                                 "POST", payload, {"Content-Type": "application/json", "Prefer": "return=minimal"})
+                if status not in (200, 201, 204):
+                    fail("ARCHIVE_METADATA_WRITE_FAILED")
+                created[-1] = (meta_url.replace("&select=object_key,sha256,byte_count", ""), path)
+            uploaded += 1
+    except (ValueError, OSError, KeyError, TypeError, json.JSONDecodeError):
+        cleanup_created(base, key, created)
+        raise
     print(json.dumps({"archiveBundleVerified": True, "pdfs": len(artifacts), "uploaded": uploaded}))
 
 

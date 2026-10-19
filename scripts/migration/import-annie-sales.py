@@ -16,6 +16,7 @@ from pathlib import Path
 import subprocess
 import sys
 from sales_migration_common import TABLES, connection_environment, load_bundle
+from check_sales_database_access import assert_database_capabilities
 
 
 def private_csv(directory: Path, lines: list[str]) -> Path:
@@ -27,7 +28,7 @@ def private_csv(directory: Path, lines: list[str]) -> Path:
     return path
 
 
-def sql(csv_path: Path, total: int) -> str:
+def sql(csv_path: Path, total: int, commit: bool = True) -> str:
     # psql backslash commands have their own quoting rules; reject unusual paths.
     location = str(csv_path)
     if any(char in location for char in "'\n\r\\"):
@@ -37,7 +38,6 @@ def sql(csv_path: Path, total: int) -> str:
 BEGIN;
 SET LOCAL lock_timeout='5s';
 SET LOCAL statement_timeout='5min';
-SET LOCAL request.jwt.claim.role='service_role';
 DO $$ DECLARE v_table text; v_count bigint; BEGIN
   FOR v_table IN SELECT unnest(ARRAY[__TABLES__]) LOOP
     IF to_regclass(format('public.%I',v_table)) IS NULL THEN
@@ -80,8 +80,9 @@ BEGIN
     EXISTS (SELECT 1 FROM public.sales_members WHERE status<>'historical') THEN
    RAISE EXCEPTION 'NATIVE_SALES_IMPORT_ACCESS_NOT_DISABLED'; END IF;
 END $$;
-COMMIT;
-""".replace("__TABLES__", names).replace("__CSV__", location).replace("__TOTAL__", str(total))
+__FINISH__;
+""".replace("__TABLES__", names).replace("__CSV__", location).replace("__TOTAL__", str(total)).replace(
+        "__FINISH__", "COMMIT" if commit else "ROLLBACK")
 
 
 def main() -> None:
@@ -92,7 +93,9 @@ def main() -> None:
     parser.add_argument("--expected-bundle-sha", required=True)
     parser.add_argument("--expected-manifest-sha", required=True)
     parser.add_argument("--expected-source-release")
-    parser.add_argument("--execute", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--execute", action="store_true")
+    mode.add_argument("--rehearse-db", action="store_true")
     args = parser.parse_args()
     current = subprocess.run(["git", "rev-parse", "HEAD"], check=True,
                              capture_output=True, text=True).stdout.strip()
@@ -105,7 +108,7 @@ def main() -> None:
     directory = args.bundle.resolve()
     manifest, lines = load_bundle(directory, args.expected_bundle_sha,
                                   args.expected_manifest_sha)
-    if not args.execute:
+    if not (args.execute or args.rehearse_db):
         print(json.dumps({"bundleVerified": True, "rows": len(lines),
                           "destinationTables": len(TABLES), "execute": False}))
         return
@@ -121,17 +124,19 @@ def main() -> None:
         raise ValueError("FRESH_SOURCE_EXPORT_REQUIRED")
     connection = os.environ.get("LILLY_SALES_PRODUCTION_DB_URL", "")
     env = connection_environment(connection)
+    assert_database_capabilities(env, "data")
     csv_path = private_csv(directory, lines)
     try:
         result = subprocess.run(["psql", "-X", "-q", "-v", "ON_ERROR_STOP=1"],
-                                input=sql(csv_path, len(lines)), text=True,
+                                input=sql(csv_path, len(lines), commit=args.execute), text=True,
                                 capture_output=True, env=env, check=False)
     finally:
         csv_path.unlink(missing_ok=True)
     if result.returncode:
         # psql errors can contain patient/commercial values; never print stderr.
         raise ValueError("PRODUCTION_IMPORT_FAILED_CHECK_TRANSACTION_STATE_PRIVATELY")
-    print(json.dumps({"importCommitted": True, "rows": len(lines),
+    print(json.dumps({"importCommitted": args.execute, "rehearsedRollback": args.rehearse_db,
+                      "rows": len(lines),
                       "bundleSha256": manifest["rowsSha256"]}))
 
 

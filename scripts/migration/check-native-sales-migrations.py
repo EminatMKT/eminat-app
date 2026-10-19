@@ -2,6 +2,7 @@
 """Fail closed unless the only pending Production migrations are native Sales."""
 
 import argparse
+import hashlib
 import os
 from pathlib import Path
 import re
@@ -14,8 +15,11 @@ from sales_migration_common import connection_environment
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--after", action="store_true")
+    parser.add_argument("--phase", choices=("schema", "data"), default="schema")
     args = parser.parse_args()
-    env = connection_environment(os.environ.get("LILLY_SALES_PRODUCTION_DB_URL", ""))
+    secret = ("LILLY_SALES_SCHEMA_ADMIN_DB_URL" if args.phase == "schema"
+              else "LILLY_SALES_PRODUCTION_DB_URL")
+    env = connection_environment(os.environ.get(secret, ""))
     env["PGOPTIONS"] = "-c default_transaction_read_only=on -c statement_timeout=30000"
     result = subprocess.run(
         ["psql", "-X", "-q", "-t", "-A", "-v", "ON_ERROR_STOP=1", "-c",
@@ -34,6 +38,12 @@ def main():
     pending = {version: name for version, name in migrations.items() if version not in applied}
     native = {version: name for version, name in migrations.items()
               if name.startswith("native_sales_")}
+    digest = hashlib.sha256()
+    for path in sorted(Path("supabase/migrations").glob("*_native_sales_*.sql")):
+        digest.update(path.name.encode() + b"\0" + hashlib.sha256(path.read_bytes()).digest())
+    expected = os.environ.get("LILLY_SALES_MIGRATION_SHA256")
+    if not expected or digest.hexdigest() != expected:
+        raise ValueError("NATIVE_SALES_MIGRATION_CHECKSUM_MISMATCH")
     if args.after:
         if pending:
             raise ValueError("MIGRATIONS_REMAIN_PENDING")
