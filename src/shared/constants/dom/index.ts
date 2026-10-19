@@ -4,6 +4,9 @@ export const BUTTON = 'button'
 /** The ARIA role a modal declares: how assistive tech, and the e2e, know one is open. */
 export const DIALOG = 'dialog'
 
+/** The ARIA role a message takes when it must be announced the moment it appears. */
+export const ALERT = 'alert'
+
 /** The ARIA role of the page-wide `<header>`: the shell's topbar. */
 export const BANNER = 'banner'
 

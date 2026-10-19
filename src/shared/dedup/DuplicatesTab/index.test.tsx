@@ -86,8 +86,8 @@ const NO_EXTRA: Partial<Props<Item>> = {}
 const mergeValues = (a: Item, b: Item) => ({ kept: a.id, merged: b.id })
 // Echoes the pair too: multivalued survivors are read from the items, not from `values`.
 const previewOf = (a: Item, b: Item, values: Record<string, unknown>) => {
-  const echoed = { a: a.id, b: b.id, values }
-  return JSON.stringify(echoed)
+  const echoed = [a.id, b.id, ...Object.values(values)]
+  return String(echoed)
 }
 
 const renderTab = (extra = NO_EXTRA) => renderToStaticMarkup(

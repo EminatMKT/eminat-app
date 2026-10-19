@@ -44,7 +44,7 @@ export default function PairDetail<T>(props: Props<T>) {
     <Button kind="confirm" label={t('dedup.merge')} onClick={onFusionar} ocupado={ocupado} />
   </>
   // Focus is `Modal`'s job: on open `hold-focus` calls `first.focus()` past the ✕, Tab stays
-  // inside, and closing gives it back. The warnings sit above the grid so a failure is seen unscrolled.
+  // inside, and closing gives it back. A failure is an alert above the grid: heard at once, seen unscrolled.
   return (
     <>
       <Modal
@@ -55,8 +55,8 @@ export default function PairDetail<T>(props: Props<T>) {
       >
         <ColorBadge color="var(--c-t3)">{t('dedup.winnerLabel')} · {renderResumen(itemA)}</ColorBadge>
         <ColorBadge color="var(--c-t3)">{t('dedup.loserLabel')} · {renderResumen(itemB)}</ColorBadge>
-        {errorDescarte && <WarningCallout message={t('dedup.discardFailed')} />}
-        {errorFusion && <WarningCallout message={t('dedup.mergeFailed')} />}
+        {errorDescarte && <WarningCallout role="alert" message={t('dedup.discardFailed')} />}
+        {errorFusion && <WarningCallout role="alert" message={t('dedup.mergeFailed')} />}
         {renderComparacion(itemA, itemB, controls)}
         {preview}
       </Modal>

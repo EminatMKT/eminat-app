@@ -2,24 +2,20 @@
 import type { ReactNode } from 'react'
 import s from './index.module.css'
 
-// Aviso de advertencia. Si recibe `children`, se vuelve desplegable y los muestra al abrirlo.
-//
-// Nació en el Gantt de Stratix ("N tareas no se muestran…" + la tabla de cuáles son) y vive
-// acá porque nada en él sabe de tareas: recibe un texto y un detalle. Un número sin el "cuáles"
-// deja al usuario con algo que no puede accionar, y ese problema no es de Stratix — le va a
-// pasar a cualquier vista que filtre o descarte filas.
-//
-// El despliegue es <details> nativo: sin estado, sin efectos y accesible por teclado de fábrica.
+// A count with no "which ones" leaves the user nothing to act on, so the detail rides along as
+// a native <details>: no state, no effects, keyboard-accessible out of the box.
 
 type Props = {
-  /** El aviso en sí. Ya traducido: este componente no llama a t(). */
+  /** The warning itself, already translated: this component does not call t(). */
   message: string
-  /** El detalle. Si se omite, el aviso es una línea fija en vez de un desplegable. */
+  /** The detail. Without it the warning is one fixed line instead of a disclosure. */
   children?: ReactNode
+  /** `alert` for a failed action: a `status` mounted with its text is often never announced. */
+  role?: 'status' | 'alert'
 }
 
-export default function WarningCallout({ message, children }: Props) {
-  if (!children) return <div className={s.aviso} role="status">{message}</div>
+export default function WarningCallout({ message, children, role = 'status' }: Props) {
+  if (!children) return <div className={s.aviso} role={role}>{message}</div>
 
   return (
     <details className={s.caja}>
@@ -28,3 +24,5 @@ export default function WarningCallout({ message, children }: Props) {
     </details>
   )
 }
+
+// A warning line, or a warning that opens to show the rows it is about.
