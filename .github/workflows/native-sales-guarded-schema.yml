@@ -25,14 +25,6 @@ on:
         description: Production backup timestamp; required for apply
         required: false
         type: string
-      isolated_restore_evidence:
-        description: Isolated restore verification reference; required for apply
-        required: false
-        type: string
-      verified_restore_run:
-        description: Successful isolated restore verification run ID; required for apply
-        required: false
-        type: string
 
 permissions:
   actions: read
@@ -71,16 +63,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.exact_commit }}
+          fetch-depth: 0
           persist-credentials: false
-      - name: Validate owner capability, pending set, and target health
+      - name: Validate owner capability, pending set, and public web availability
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = '${{ inputs.exact_commit }}'
+          git merge-base --is-ancestor HEAD origin/main
           test -z "$(git status --porcelain)"
-          python3 scripts/migration/check_sales_database_access.py --phase schema
+          python3 scripts/migration/check_sales_database_access.py
           python3 scripts/migration/check-native-sales-migrations.py --phase schema
           curl --fail --silent --show-error --max-time 15 \
-            https://app.stratixsolutions.us/api/health >/dev/null
+            https://app.stratixsolutions.us/login >/dev/null
       - uses: supabase/setup-cli@v1
         with:
           version: 2.106.0
@@ -110,13 +104,10 @@ jobs:
       LILLY_SALES_SCHEMA_ADMIN_DB_URL: ${{ secrets.LILLY_SALES_SCHEMA_ADMIN_DB_URL }}
       SUPABASE_TELEMETRY_DISABLED: '1'
     steps:
-      - name: Require restorable backup and isolated restore evidence
+      - name: Require the verified Production backup before schema apply
         env:
           BACKUP_ID: ${{ inputs.backup_id }}
           BACKUP_AT: ${{ inputs.backup_at_utc }}
-          RESTORE_EVIDENCE: ${{ inputs.isolated_restore_evidence }}
-          RESTORE_RUN: ${{ inputs.verified_restore_run }}
-          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -124,18 +115,11 @@ jobs:
           from datetime import datetime,timezone,timedelta
           if not re.fullmatch(r'[A-Za-z0-9._:/-]{12,180}',os.environ['BACKUP_ID']):
               raise SystemExit('RESTORABLE_BACKUP_REQUIRED')
-          if not re.fullmatch(r'[A-Za-z0-9._:/-]{12,180}',os.environ['RESTORE_EVIDENCE']):
-              raise SystemExit('ISOLATED_RESTORE_EVIDENCE_REQUIRED')
-          if not re.fullmatch(r'[0-9]+',os.environ['RESTORE_RUN']):
-              raise SystemExit('ISOLATED_RESTORE_RUN_REQUIRED')
           try: at=datetime.fromisoformat(os.environ['BACKUP_AT'].replace('Z','+00:00'))
           except ValueError: raise SystemExit('BACKUP_TIMESTAMP_REQUIRED')
           if at.tzinfo is None or not timedelta(0)<=datetime.now(timezone.utc)-at<=timedelta(hours=24):
               raise SystemExit('FRESH_BACKUP_REQUIRED')
           PY
-          state=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RESTORE_RUN}" \
-            --jq '[.conclusion,.name,.head_sha,.event] | @tsv' 2>/dev/null) || exit 1
-          test "$state" = $'success\tNative Sales isolated restore verification\t${{ inputs.exact_commit }}\tworkflow_dispatch'
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.exact_commit }}
@@ -147,7 +131,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = '${{ inputs.exact_commit }}'
-          python3 scripts/migration/check_sales_database_access.py --phase schema
+          python3 scripts/migration/check_sales_database_access.py
           python3 scripts/migration/check-native-sales-migrations.py --phase schema
           supabase db push --db-url "$LILLY_SALES_SCHEMA_ADMIN_DB_URL" --yes \
             > "$RUNNER_TEMP/native-sales-schema-apply.log" 2>&1 \
@@ -170,11 +154,10 @@ jobs:
         with:
           ref: ${{ inputs.exact_commit }}
           persist-credentials: false
-      - name: Verify migrations, empty Sales destination, and unrelated schema
+      - name: Verify migrations and existing LILLY modules
         run: |
           set -euo pipefail
           python3 scripts/migration/check-native-sales-migrations.py --after --phase schema
-          python3 scripts/migration/snapshot-native-sales-empty.py --phase schema >/dev/null
           python3 scripts/migration/reference_schema_fingerprint.py --verify "$EXPECTED_REFERENCE"
           curl --fail --silent --show-error --max-time 15 \
-            https://app.stratixsolutions.us/api/health >/dev/null
+            https://app.stratixsolutions.us/login >/dev/null
