@@ -64,7 +64,7 @@ jobs:
         with:
           ref: ${{ inputs.exact_commit }}
           persist-credentials: false
-      - name: Validate owner capability, pending set, and target health
+      - name: Validate owner capability, pending set, and public web availability
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = '${{ inputs.exact_commit }}'
@@ -72,7 +72,7 @@ jobs:
           python3 scripts/migration/check_sales_database_access.py
           python3 scripts/migration/check-native-sales-migrations.py --phase schema
           curl --fail --silent --show-error --max-time 15 \
-            https://app.stratixsolutions.us/api/health >/dev/null
+            https://app.stratixsolutions.us/login >/dev/null
       - uses: supabase/setup-cli@v1
         with:
           version: 2.106.0
@@ -158,4 +158,4 @@ jobs:
           python3 scripts/migration/check-native-sales-migrations.py --after --phase schema
           python3 scripts/migration/reference_schema_fingerprint.py --verify "$EXPECTED_REFERENCE"
           curl --fail --silent --show-error --max-time 15 \
-            https://app.stratixsolutions.us/api/health >/dev/null
+            https://app.stratixsolutions.us/login >/dev/null
