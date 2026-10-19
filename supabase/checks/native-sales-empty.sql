@@ -14,7 +14,8 @@ WITH native_tables AS (
     'sales_social_providers','sales_social_integrations','sales_social_accounts',
     'sales_social_assets','sales_social_conversations','sales_social_messages',
     'sales_social_comments','sales_social_webhook_receipts','sales_social_leads',
-    'sales_write_operations'
+    'sales_write_operations','sales_opportunity_transition_rules',
+    'sales_membership_price_catalog'
   ]) AS name
 )
 SELECT
@@ -24,6 +25,7 @@ SELECT
   AND (SELECT count(*) = 0 FROM public.sales_memberships)
   AND (SELECT count(*) = 0 FROM public.sales_social_integrations)
   AND (SELECT count(*) = 1 FROM public.sales_social_providers WHERE code = 'META' AND NOT enabled)
+  AND (SELECT count(*) = 3 FROM public.sales_membership_price_catalog)
   AND (SELECT bool_and(c.relrowsecurity AND
        NOT has_table_privilege('anon', c.oid, 'SELECT') AND
        NOT has_table_privilege('authenticated', c.oid, 'SELECT') AND
@@ -44,4 +46,12 @@ SELECT
   AND has_function_privilege('service_role', 'public.native_sales_create_lead(uuid,uuid,text,text,text,text,text,uuid,uuid,text,text,uuid)', 'EXECUTE')
   AND NOT has_function_privilege('authenticated', 'public.native_sales_update_lead(uuid,uuid,uuid,integer,jsonb,uuid)', 'EXECUTE')
   AND has_function_privilege('service_role', 'public.native_sales_update_lead(uuid,uuid,uuid,integer,jsonb,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_create_directory_record(uuid,uuid,text,text,text,text,text,text,uuid,uuid,uuid,text,text,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_create_directory_record(uuid,uuid,text,text,text,text,text,text,uuid,uuid,uuid,text,text,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_create_opportunity(uuid,uuid,text,uuid,uuid,varchar,numeric,date,uuid,uuid,text,text,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_create_opportunity(uuid,uuid,text,uuid,uuid,varchar,numeric,date,uuid,uuid,text,text,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_transition_opportunity(uuid,uuid,uuid,integer,jsonb,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_transition_opportunity(uuid,uuid,uuid,integer,jsonb,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_membership_quote(text,text,text)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_membership_quote(text,text,text)', 'EXECUTE')
   AS safe_native_sales_schema;
