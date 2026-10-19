@@ -40,6 +40,21 @@ const accountPatch = z.object({
   type: z.enum(['prospect', 'customer', 'partner']).optional(),
   ...commonDirectoryPatch,
 }).strict()
+const calendarDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
+  const parsed = new Date(`${value}T00:00:00.000Z`)
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0,10)===value
+})
+const opportunityPatch = z.object({
+  name:z.string().trim().min(1).max(500).optional(),
+  amount:z.string().regex(/^\d{1,16}(\.\d{1,2})?$/).nullable().optional(),
+  currency:z.string().length(3).refine(value => Intl.supportedValuesOf('currency').includes(value)).optional(),
+  expectedCloseDate:calendarDate.optional(),
+  description:z.string().trim().max(10000).nullable().optional(),
+  source:z.string().trim().max(500).nullable().optional(),
+  product:z.string().trim().max(500).nullable().optional(),
+  primaryContactId:z.uuid().nullable().optional(),
+  nextFollowUpAt:z.iso.datetime({ offset:true }).nullable().optional(),
+}).strict()
 
 export async function GET(request: Request, context: { params: { resource: string; id: string } }) {
   try {
@@ -53,7 +68,7 @@ export async function GET(request: Request, context: { params: { resource: strin
 
 export async function PATCH(request: Request, context: { params: { resource: string; id: string } }) {
   try {
-    if (!['leads', 'contacts', 'accounts'].includes(context.params.resource))
+    if (!['leads', 'contacts', 'accounts', 'opportunities'].includes(context.params.resource))
       return Response.json({ code: 'METHOD_NOT_ALLOWED' }, { status: 405 })
     if (!uuid.test(context.params.id)) return Response.json({ code: 'INVALID_ID' }, { status: 400 })
     const actor = await resolveSalesActor(request)
@@ -70,7 +85,8 @@ export async function PATCH(request: Request, context: { params: { resource: str
     if (Buffer.byteLength(JSON.stringify(payload)) > 32768)
       return Response.json({ code: 'BODY_TOO_LARGE' }, { status: 413 })
     const parsed = (context.params.resource === 'leads' ? leadPatch :
-      context.params.resource === 'contacts' ? contactPatch : accountPatch).safeParse(payload)
+      context.params.resource === 'contacts' ? contactPatch :
+      context.params.resource === 'accounts' ? accountPatch : opportunityPatch).safeParse(payload)
     if (!parsed.success || Object.keys(parsed.data).length === 0)
       return Response.json({ code: 'VALIDATION_ERROR' }, { status: 422 })
     const { data, error } = context.params.resource === 'leads'
@@ -78,6 +94,12 @@ export async function PATCH(request: Request, context: { params: { resource: str
         p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
         p_lead_id: context.params.id, p_expected_version: expectedVersion,
         p_patch: parsed.data, p_request_id: randomUUID(),
+      })
+      : context.params.resource === 'opportunities'
+      ? await supabaseAdmin().rpc('native_sales_update_opportunity', {
+        p_organization_id: actor.organizationId,p_actor_member_id: actor.memberId,
+        p_opportunity_id: context.params.id,p_expected_version: expectedVersion,
+        p_patch: parsed.data,p_request_id: randomUUID(),
       })
       : await supabaseAdmin().rpc('native_sales_update_directory_record', {
         p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,

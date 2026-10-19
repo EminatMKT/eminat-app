@@ -1,5 +1,5 @@
 'use client'
-import { type FormEvent, useRef, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 import type { NativeRequest } from './NativeSalesModule'
 import s from './NativeSalesModule.module.css'
 
@@ -8,6 +8,7 @@ type Resource = 'leads'|'contacts'|'accounts'|'opportunities'|'activities'
 type Stage = { id:string; code:string; name:string; pipelineId:string }
 type Person = { memberId:string; displayName:string; teamIds:string[] }
 type Team = { id:string; name:string }
+type Contact = { id:string; display_name:string }
 const leadStages = ['NEW','ASSIGNED','ATTEMPTING_CONTACT','CONTACTED','QUALIFIED',
   'FOLLOW_UP','UNRESPONSIVE','NOT_INTERESTED','PROPOSAL','PAYMENT_PENDING','WON','LOST']
 const opportunityStages = new Set(['NEW','CONTACTED','QUALIFIED','PROPOSAL','PAYMENT_PENDING','WON','LOST'])
@@ -21,6 +22,7 @@ const errorText: Record<string,string> = {
   CONFIRMED_PAYMENT_REQUIRED:'Payment evidence is required before marking this Opportunity Won.',
   ACTIVE_MEMBERSHIP_REQUIRED:'An active membership is required before marking this Opportunity Won.',
   ACTIVITY_STATE_CONFLICT:'This Activity is no longer pending.',
+  AMOUNT_LOCKED:'The amount cannot change after payment or closing.',
 }
 const label = (code: string) => code.toLowerCase().replaceAll('_',' ').replace(/^./,first => first.toUpperCase())
 
@@ -33,6 +35,14 @@ export default function NativeSalesRecordActions({ resource,row,canWrite,canReas
   const [email,setEmail] = useState(String(row.email ?? ''))
   const [phone,setPhone] = useState(String(row.phone ?? ''))
   const [source,setSource] = useState(String(row.source ?? ''))
+  const [amount,setAmount] = useState(row.amount === null ? '' : String(row.amount ?? ''))
+  const [closeDate,setCloseDate] = useState(String(row.expected_close_date ?? '').slice(0,10))
+  const [product,setProduct] = useState(String(row.product ?? ''))
+  const [description,setDescription] = useState(String(row.description ?? ''))
+  const [contactId,setContactId] = useState(String(row.primary_contact_id ?? ''))
+  const [contactQuery,setContactQuery] = useState('')
+  const [contacts,setContacts] = useState<Contact[]>([])
+  const [contactError,setContactError] = useState('')
   const [stage,setStage] = useState(requestedStage || '')
   const [stageReason,setStageReason] = useState('')
   const [archiveReason,setArchiveReason] = useState('')
@@ -53,6 +63,21 @@ export default function NativeSalesRecordActions({ resource,row,canWrite,canReas
   const version = Number(row.version)
   const validVersion = Number.isSafeInteger(version) && version>0
   const currentPipelineId = stages.find(item => item.id===row.stage_id)?.pipelineId
+
+  useEffect(() => {
+    if (resource!=='opportunities') return
+    let cancelled=false
+    const params=new URLSearchParams({limit:'50'})
+    if (contactQuery.trim()) params.set('q',contactQuery.trim())
+    const current=contactId ? request(`contacts/${contactId}`).then(result => result.data as Contact).catch(() => null) : Promise.resolve(null)
+    void Promise.all([request(`contacts?${params}`),current]).then(([result,selected]) => {
+      if (cancelled) return
+      const visible=Array.isArray(result.data) ? result.data as Contact[] : []
+      setContacts(selected && !visible.some(item => item.id===selected.id) ? [selected,...visible] : visible)
+      setContactError('')
+    }).catch(() => { if (!cancelled) setContactError('Contact search is unavailable.') })
+    return () => { cancelled=true }
+  },[resource,contactQuery,contactId,request])
 
   async function submit(path: string, payload: Record<string,unknown>, method: 'POST'|'PATCH', idempotencyKey?: string) {
     setBusy(true); setError('')
@@ -79,6 +104,31 @@ export default function NativeSalesRecordActions({ resource,row,canWrite,canReas
     {error && <p role="alert" className={s.error}>{error}</p>}
   </div> : null
   return <div className={s.recordActions}>
+    {resource==='opportunities' && <form className={s.form} onSubmit={event => prevent(event,() => void submit(
+      `opportunities/${row.id}`,{
+        name:name.trim(),expectedCloseDate:closeDate,
+        ...(amount!==String(row.amount ?? '') ? {amount:amount || null} : {}),
+        source:source.trim() || null,product:product.trim() || null,
+        description:description.trim() || null,
+        ...(contactId!==String(row.primary_contact_id ?? '') ? {primaryContactId:contactId || null} : {}),
+      },'PATCH'))}>
+      <h3>Edit Opportunity</h3><div className={s.formGrid}>
+        <label>Name <input required maxLength={500} value={name} onChange={event => setName(event.target.value)} /></label>
+        <label>Expected close <input required type="date" value={closeDate} onChange={event => setCloseDate(event.target.value)} /></label>
+        <label>Amount ({String(row.currency ?? 'USD')}) <input type="number" min="0" step="0.01" value={amount} onChange={event => setAmount(event.target.value)} /></label>
+        <label>Source <input maxLength={500} value={source} onChange={event => setSource(event.target.value)} /></label>
+        <label>Product <input maxLength={500} value={product} onChange={event => setProduct(event.target.value)} /></label>
+        <label>Find Contact <input value={contactQuery} onChange={event => setContactQuery(event.target.value)} placeholder="Search by name" /></label>
+        <label>Primary Contact <select value={contactId} onChange={event => setContactId(event.target.value)}>
+          <option value="">No primary Contact</option>
+          {contactId && !contacts.some(contact => contact.id===contactId) &&
+            <option value={contactId}>Current Contact (restricted or unavailable)</option>}
+          {contacts.map(contact => <option key={contact.id} value={contact.id}>{contact.display_name}</option>)}
+        </select></label>
+      </div><label>Description <textarea maxLength={10000} value={description} onChange={event => setDescription(event.target.value)} /></label>
+      {contactError && <p role="alert" className={s.error}>{contactError}</p>}
+      <button type="submit" disabled={busy}>Save details</button>
+    </form>}
     {['leads','contacts','accounts'].includes(resource) && <form className={s.form} onSubmit={event => prevent(event,() => {
       const payload = resource==='accounts' ? { name:name.trim(),...(email.trim()?{email:email.trim()}:{}),
         ...(phone.trim()?{phone:phone.trim()}:{}),...(source.trim()?{source:source.trim()}:{}) } :
