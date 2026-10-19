@@ -29,7 +29,7 @@ class BindingRpcTest(unittest.TestCase):
 
     def test_upstream_error_is_sanitized(self):
         body = io.BytesIO(b'{"code":"55000","message":"sensitive upstream detail"}')
-        with patch.dict(os.environ, {'LILLY_SUPABASE_SERVICE_ROLE_KEY': 'test-only-key'}), \
+        with patch.dict(os.environ, {'LILLY_SUPABASE_SERVICE_ROLE_KEY': 'eyJ.test-only-key'}), \
              patch.object(sys, 'argv', ['binding', '--binding', 'superadmin', '--phase', 'verify']), \
              patch.object(binding.request, 'urlopen', side_effect=HTTPError(binding.URL, 400, 'sensitive upstream detail', {}, body)):
             with self.assertRaisesRegex(binding.BindingFailure, '^NATIVE_SALES_BINDING_RPC_HTTP_400_CODE_55000$') as raised:
@@ -40,6 +40,14 @@ class BindingRpcTest(unittest.TestCase):
         body = io.BytesIO(b'{"code":"SECRET_123","message":"sensitive upstream detail"}')
         exc = HTTPError(binding.URL, 401, 'sensitive upstream detail', {}, body)
         self.assertEqual(binding.http_diagnostic(exc), 'NATIVE_SALES_BINDING_RPC_HTTP_401_CODE_UNKNOWN')
+
+    def test_unsupported_key_type_fails_before_network(self):
+        with patch.dict(os.environ, {'LILLY_SUPABASE_SERVICE_ROLE_KEY': 'sb_publishable_test'}), \\
+             patch.object(sys, 'argv', ['binding', '--binding', 'seller', '--phase', 'check']), \\
+             patch.object(binding.request, 'urlopen') as open_url:
+            with self.assertRaisesRegex(binding.BindingFailure, 'UNSUPPORTED_PROTECTED_SERVICE_KEY_TYPE'):
+                binding.main()
+        open_url.assert_not_called()
 
     def test_missing_secret_fails_before_network(self):
         with patch.dict(os.environ, {'LILLY_SUPABASE_SERVICE_ROLE_KEY': ''}), \
