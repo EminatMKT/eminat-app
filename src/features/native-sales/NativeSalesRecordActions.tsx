@@ -9,6 +9,7 @@ type Stage = { id:string; code:string; name:string; pipelineId:string }
 type Person = { memberId:string; displayName:string; teamIds:string[] }
 type Team = { id:string; name:string }
 type Contact = { id:string; display_name:string }
+type Account = { id:string; name:string }
 const leadStages = ['NEW','ASSIGNED','ATTEMPTING_CONTACT','CONTACTED','QUALIFIED',
   'FOLLOW_UP','UNRESPONSIVE','NOT_INTERESTED','PROPOSAL','PAYMENT_PENDING','WON','LOST']
 const opportunityStages = new Set(['NEW','CONTACTED','QUALIFIED','PROPOSAL','PAYMENT_PENDING','WON','LOST'])
@@ -43,6 +44,10 @@ export default function NativeSalesRecordActions({ resource,row,canWrite,canReas
   const [contactQuery,setContactQuery] = useState('')
   const [contacts,setContacts] = useState<Contact[]>([])
   const [contactError,setContactError] = useState('')
+  const [contactAccountId,setContactAccountId] = useState(String(row.primary_account_id ?? ''))
+  const [accountQuery,setAccountQuery] = useState('')
+  const [accounts,setAccounts] = useState<Account[]>([])
+  const [accountError,setAccountError] = useState('')
   const [stage,setStage] = useState(requestedStage || '')
   const [stageReason,setStageReason] = useState('')
   const [archiveReason,setArchiveReason] = useState('')
@@ -78,6 +83,20 @@ export default function NativeSalesRecordActions({ resource,row,canWrite,canReas
     }).catch(() => { if (!cancelled) setContactError('Contact search is unavailable.') })
     return () => { cancelled=true }
   },[resource,contactQuery,contactId,request])
+  useEffect(() => {
+    if (resource!=='contacts') return
+    let cancelled=false
+    const params=new URLSearchParams({limit:'50'})
+    if (accountQuery.trim()) params.set('q',accountQuery.trim())
+    const current=contactAccountId ? request(`accounts/${contactAccountId}`).then(result => result.data as Account).catch(() => null) : Promise.resolve(null)
+    void Promise.all([request(`accounts?${params}`),current]).then(([result,selected]) => {
+      if (cancelled) return
+      const visible=Array.isArray(result.data) ? result.data as Account[] : []
+      setAccounts(selected && !visible.some(item => item.id===selected.id) ? [selected,...visible] : visible)
+      setAccountError('')
+    }).catch(() => { if (!cancelled) setAccountError('Account search is unavailable.') })
+    return () => { cancelled=true }
+  },[resource,accountQuery,contactAccountId,request])
 
   async function submit(path: string, payload: Record<string,unknown>, method: 'POST'|'PATCH', idempotencyKey?: string) {
     setBusy(true); setError('')
@@ -133,7 +152,9 @@ export default function NativeSalesRecordActions({ resource,row,canWrite,canReas
       const payload = resource==='accounts' ? { name:name.trim(),...(email.trim()?{email:email.trim()}:{}),
         ...(phone.trim()?{phone:phone.trim()}:{}),...(source.trim()?{source:source.trim()}:{}) } :
         { displayName:name.trim(),...(email.trim()?{email:email.trim()}:{}),
-          ...(phone.trim()?{phone:phone.trim()}:{}),...(source.trim()?{source:source.trim()}:{}) }
+          ...(phone.trim()?{phone:phone.trim()}:{}),...(source.trim()?{source:source.trim()}:{}),
+          ...(resource==='contacts' && contactAccountId!==String(row.primary_account_id ?? '')
+            ? {primaryAccountId:contactAccountId || null} : {}) }
       void submit(`${resource}/${row.id}`,payload,'PATCH')
     })}>
       <h3>Edit details</h3><div className={s.formGrid}>
@@ -141,7 +162,17 @@ export default function NativeSalesRecordActions({ resource,row,canWrite,canReas
         <label>Email <input type="email" value={email} onChange={event => setEmail(event.target.value)} /></label>
         <label>Phone <input value={phone} onChange={event => setPhone(event.target.value)} /></label>
         <label>Source <input value={source} onChange={event => setSource(event.target.value)} /></label>
+        {resource==='contacts' && <>
+          <label>Find Account <input value={accountQuery} onChange={event => setAccountQuery(event.target.value)} placeholder="Search by name" /></label>
+          <label>Primary Account <select value={contactAccountId} onChange={event => setContactAccountId(event.target.value)}>
+            <option value="">No primary Account</option>
+            {contactAccountId && !accounts.some(account => account.id===contactAccountId) &&
+              <option value={contactAccountId}>Current Account (restricted or unavailable)</option>}
+            {accounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}
+          </select></label>
+        </>}
       </div><button type="submit" disabled={busy}>Save details</button>
+      {accountError && <p role="alert" className={s.error}>{accountError}</p>}
     </form>}
     {(resource==='leads' || resource==='opportunities') && <form className={s.form} onSubmit={event => prevent(event,() => {
       const payload = resource==='leads' ? { toStatus:stage } :

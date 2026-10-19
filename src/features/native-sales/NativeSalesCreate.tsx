@@ -30,7 +30,7 @@ export default function NativeSalesCreate({ resource, request, onSaved }: {
   const key = useRef({ payload: '', value: '' })
 
   useEffect(() => {
-    if (resource!=='opportunities') return
+    if (resource!=='opportunities' && resource!=='contacts') return
     let cancelled = false
     setAccountError('')
     const params = new URLSearchParams({ limit:'50' })
@@ -51,7 +51,8 @@ export default function NativeSalesCreate({ resource, request, onSaved }: {
     if (resource==='leads') payload = { displayName:name.trim(),source:source.trim(),...common,
       ...(companyName.trim() ? { companyName:companyName.trim() } : {}) }
     else if (resource==='contacts') payload = { displayName:name.trim(),...common,
-      ...(source.trim() ? { source:source.trim() } : {}) }
+      ...(source.trim() ? { source:source.trim() } : {}),
+      ...(accountId ? {primaryAccountId:accountId} : {}) }
     else if (resource==='accounts') payload = { name:name.trim(),type:accountType,...common,
       ...(source.trim() ? { source:source.trim() } : {}) }
     else payload = { name:name.trim(),accountId,currency:'USD',
@@ -76,11 +77,14 @@ export default function NativeSalesCreate({ resource, request, onSaved }: {
       {resource==='accounts' && <label>Type <select value={accountType} onChange={event => setAccountType(event.target.value as typeof accountType)}>
         <option value="prospect">Prospect</option><option value="customer">Customer</option><option value="partner">Partner</option>
       </select></label>}
-      {resource==='opportunities' && <>
+      {(resource==='opportunities' || resource==='contacts') && <>
         <label>Find Account <input value={accountQuery} onChange={event => { setAccountQuery(event.target.value);setAccountId('') }} placeholder="Search by name" /></label>
-        <label>Account <select required value={accountId} onChange={event => setAccountId(event.target.value)}>
-          <option value="">Choose an Account</option>{accounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}
+        <label>Account <select required={resource==='opportunities'} value={accountId} onChange={event => setAccountId(event.target.value)}>
+          <option value="">{resource==='contacts' ? 'No primary Account' : 'Choose an Account'}</option>
+          {accounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}
         </select></label>
+      </>}
+      {resource==='opportunities' && <>
         <label>Amount (USD) <input type="number" min="0" step="0.01" value={amount} onChange={event => setAmount(event.target.value)} /></label>
         <label>Expected close <input required type="date" value={expectedCloseDate} onChange={event => setExpectedCloseDate(event.target.value)} /></label>
       </>}
