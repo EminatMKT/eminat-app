@@ -2,6 +2,7 @@ import 'server-only'
 import { createClient } from '@supabase/supabase-js'
 import { clientEnv } from '@/shared/db/env.client'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
+import { noStoreFetch } from '@/shared/db/noStoreFetch'
 import { salesRoles, type SalesActor, type SalesRole } from './policy'
 import { nativeSalesEnabled } from './release-gate'
 
@@ -19,12 +20,13 @@ export async function resolveSalesActor(request: Request): Promise<SalesActor> {
   if (!token || token.length > 8192) throw new NativeSalesAuthError(401, 'AUTHENTICATION_REQUIRED')
   const client = createClient(clientEnv.NEXT_PUBLIC_SUPABASE_URL, clientEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: noStoreFetch },
   })
   const { data: auth, error: authError } = await client.auth.getUser(token)
   if (authError || !auth.user || !uuid.test(auth.user.id))
     throw new NativeSalesAuthError(401, 'AUTHENTICATION_REQUIRED')
 
-  const admin = supabaseAdmin()
+  const admin = supabaseAdmin({ noStore: true })
   const { data: profile, error: profileError } = await admin.from('usuarios')
     .select('id').eq('auth_id', auth.user.id).eq('activo', true).maybeSingle()
   if (profileError) throw new NativeSalesAuthError(503, 'SALES_IDENTITY_UNAVAILABLE')

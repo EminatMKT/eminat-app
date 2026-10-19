@@ -49,7 +49,7 @@ export async function POST(request: Request, context: { params: { id: string } }
       body.accountId ?? null, body.accountName ?? null, body.contactId ?? null,
       body.opportunity ?? null,
     ])).digest('hex')
-    const { data, error } = await supabaseAdmin().rpc('native_sales_convert_lead', {
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_convert_lead', {
       p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
       p_lead_id: context.params.id, p_expected_version: expectedVersion,
       p_account_id: body.accountId ?? null, p_account_name: body.accountName ?? null,

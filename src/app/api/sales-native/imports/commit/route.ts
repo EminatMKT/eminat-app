@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       const key = `imp_${createHash('sha256').update(JSON.stringify([
         fileHash, resource, sheetName, row.rowNumber])).digest('hex')}`
       const payloadHash = createHash('sha256').update(JSON.stringify([row.data, 'SKIP'])).digest('hex')
-      const { data, error } = await supabaseAdmin().rpc('native_sales_import_record', {
+      const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_import_record', {
         p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
         p_resource: resource, p_data: row.data, p_idempotency_key: key,
         p_payload_hash: payloadHash, p_duplicate_mode: 'SKIP', p_request_id: randomUUID(),

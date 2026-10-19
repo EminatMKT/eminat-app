@@ -1,16 +1,19 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { supabase } from '@/shared/db/supabase'
 
 export function useSalesQaAccess() {
+  const pathname = usePathname()
+  const nativePreview = pathname.startsWith('/sales-native')
   const [allowed, setAllowed] = useState(false)
   useEffect(() => {
     let cancelled = false
     const check = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
+      if (!session) { if (!cancelled) setAllowed(false); return }
       try {
-        const response = await fetch('/api/integrations/annie/sales/access', {
+        const response = await fetch(nativePreview ? '/api/sales-native/access' : '/api/sales/access', {
           cache: 'no-store', headers: { Authorization: `Bearer ${session.access_token}` },
         })
         const body = await response.json() as { allowed?: boolean }
@@ -19,7 +22,7 @@ export function useSalesQaAccess() {
     }
     void check()
     return () => { cancelled = true }
-  }, [])
+  }, [nativePreview])
   return allowed
 }
 

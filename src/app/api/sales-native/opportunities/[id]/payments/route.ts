@@ -24,7 +24,7 @@ export async function GET(request: Request, context: { params: { id: string } })
     if (new URL(request.url).searchParams.size)
       return Response.json({ code: 'INVALID_FILTER' }, { status: 422 })
     const actor = await resolveSalesActor(request)
-    const { data, error } = await supabaseAdmin().rpc('native_sales_visible_payment_evidence', {
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_visible_payment_evidence', {
       p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
       p_opportunity_id: context.params.id,
     })
@@ -49,7 +49,7 @@ export async function POST(request: Request, context: { params: { id: string } }
       return Response.json({ code: 'BODY_TOO_LARGE' }, { status: 413 })
     const parsed = payment.safeParse(payload)
     if (!parsed.success) return Response.json({ code: 'VALIDATION_ERROR' }, { status: 422 })
-    const { data, error } = await supabaseAdmin().rpc('native_sales_record_payment_evidence', {
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_record_payment_evidence', {
       p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
       p_opportunity_id: context.params.id, p_amount: parsed.data.amount,
       p_currency: parsed.data.currency, p_paid_at: parsed.data.paidAt,

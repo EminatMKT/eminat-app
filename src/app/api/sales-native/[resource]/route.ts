@@ -81,7 +81,7 @@ export async function POST(request: Request, context: { params: { resource: stri
         body.amount ?? null, body.expectedCloseDate, body.ownerMemberId ?? null,
         body.teamId ?? null,
       ])).digest('hex')
-      const { data, error } = await supabaseAdmin().rpc('native_sales_create_opportunity', {
+      const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_create_opportunity', {
         p_organization_id: actor.organizationId,
         p_actor_member_id: actor.memberId,
         p_name: body.name,
@@ -111,7 +111,7 @@ export async function POST(request: Request, context: { params: { resource: stri
       body.source ?? null, type, primaryAccountId, body.ownerMemberId ?? null,
       body.teamId ?? null,
     ])).digest('hex')
-    const { data, error } = await supabaseAdmin().rpc('native_sales_create_directory_record', {
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_create_directory_record', {
       p_organization_id: actor.organizationId,
       p_actor_member_id: actor.memberId,
       p_resource: context.params.resource,

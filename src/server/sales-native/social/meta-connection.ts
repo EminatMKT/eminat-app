@@ -38,7 +38,7 @@ function requireManager(actor: SalesActor) {
 }
 
 export async function cleanupExpiredMetaGrants() {
-  const { error } = await supabaseAdmin().from('sales_social_oauth_states')
+  const { error } = await supabaseAdmin({ noStore: true }).from('sales_social_oauth_states')
     .update({ grant_ciphertext: null, pages_ciphertext: null })
     .lt('expires_at', new Date().toISOString())
     .neq('status', 'CONSUMED')
@@ -52,7 +52,7 @@ export async function beginMetaConnection(actor: SalesActor, input: {
     extraScopes: scopes.optional() }).strict().safeParse(input)
   if (!parsed.success) throw new NativeSalesAuthError(422, 'META_CONNECTION_INVALID')
   const { client } = configuration()
-  const db = supabaseAdmin()
+  const db = supabaseAdmin({ noStore: true })
   // Expired handoffs must not retain encrypted provider credentials indefinitely.
   await cleanupExpiredMetaGrants()
   const { data: provider, error: providerError } = await db.from('sales_social_providers')
@@ -82,7 +82,7 @@ export async function beginMetaConnection(actor: SalesActor, input: {
 
 async function authorizedState(state: string, actor: SalesActor, status: 'PENDING' | 'EXCHANGED') {
   requireManager(actor)
-  const { data, error } = await supabaseAdmin().from('sales_social_oauth_states')
+  const { data, error } = await supabaseAdmin({ noStore: true }).from('sales_social_oauth_states')
     .select('id,organization_id,requester_member_id,status,expires_at,grant_ciphertext,pages_ciphertext,grant_expires_at,granted_scopes')
     .eq('state_hash', hash(state)).maybeSingle()
   if (error || !data || data.organization_id !== actor.organizationId ||
@@ -94,7 +94,7 @@ async function authorizedState(state: string, actor: SalesActor, status: 'PENDIN
 
 /** Callback requires the same LILLY browser identity that began the grant. */
 export async function exchangeMetaConnection(state: string, code: string, accessToken: string) {
-  const db = supabaseAdmin()
+  const db = supabaseAdmin({ noStore: true })
   const pending = await db.from('sales_social_oauth_states')
     .select('organization_id').eq('state_hash', hash(state)).maybeSingle()
   if (pending.error || !pending.data)
@@ -161,7 +161,7 @@ export async function completeMetaConnection(actor: SalesActor, input: unknown) 
   if (!page?.access_token) throw new NativeSalesAuthError(422, 'META_PAGE_INVALID')
   const integrationId = randomUUID()
   const userToken = openSocialToken(row.grant_ciphertext, key, actor.organizationId, row.id)
-  const { data, error } = await supabaseAdmin().rpc('native_sales_complete_meta_page', {
+  const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_complete_meta_page', {
     p_state_id: row.id, p_organization_id: actor.organizationId,
     p_actor_member_id: actor.memberId, p_integration_id: integrationId,
     p_page_id: page.id, p_page_name: page.name,
@@ -185,7 +185,7 @@ export async function subscribeMetaLeadgen(actor: SalesActor, input: unknown) {
   if (!process.env.LILLY_META_VERIFY_TOKEN || process.env.LILLY_META_VERIFY_TOKEN.length < 16)
     throw new NativeSalesAuthError(503, 'META_WEBHOOK_NOT_CONFIGURED')
   const { client, key } = configuration()
-  const db = supabaseAdmin()
+  const db = supabaseAdmin({ noStore: true })
   const { data: asset, error: assetError } = await db.from('sales_social_assets')
     .select('id,organization_id,account_id,external_asset_id,asset_type,status,token_ciphertext,token_expires_at')
     .eq('organization_id', actor.organizationId).eq('id', parsed.data.assetId).maybeSingle()
@@ -220,7 +220,7 @@ export async function revokeMetaConnection(actor: SalesActor, input: unknown) {
   requireManager(actor)
   const parsed = revocation.safeParse(input)
   if (!parsed.success) throw new NativeSalesAuthError(422, 'META_CONNECTION_INVALID')
-  const { data, error } = await supabaseAdmin().rpc('native_sales_revoke_meta_connection', {
+  const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_revoke_meta_connection', {
     p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
     p_integration_id: parsed.data.integrationId,
   })
@@ -233,7 +233,7 @@ export async function refreshMetaConnection(actor: SalesActor, input: unknown) {
   const parsed = revocation.safeParse(input)
   if (!parsed.success) throw new NativeSalesAuthError(422, 'META_CONNECTION_INVALID')
   const { client, key } = configuration()
-  const db = supabaseAdmin()
+  const db = supabaseAdmin({ noStore: true })
   const { data: integration, error: integrationError } = await db.from('sales_social_integrations')
     .select('id,status,token_ciphertext,token_expires_at')
     .eq('organization_id', actor.organizationId).eq('id', parsed.data.integrationId)

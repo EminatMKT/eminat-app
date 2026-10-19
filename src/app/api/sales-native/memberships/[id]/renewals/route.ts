@@ -15,7 +15,7 @@ export async function GET(request: Request, context: { params: { id: string } })
     if (new URL(request.url).searchParams.size)
       return Response.json({ code: 'INVALID_FILTER' }, { status: 422 })
     const actor = await resolveSalesActor(request)
-    const {data,error} = await supabaseAdmin().rpc('native_sales_list_renewal_requests', {
+    const {data,error} = await supabaseAdmin({ noStore: true }).rpc('native_sales_list_renewal_requests', {
       p_organization_id: actor.organizationId,p_actor_member_id: actor.memberId,
       p_membership_id: context.params.id,
     })
@@ -40,7 +40,7 @@ export async function POST(request: Request, context: { params: { id: string } }
     const parsed=schema.safeParse(payload)
     if (!parsed.success) return Response.json({code:'VALIDATION_ERROR'},{status:422})
     const actor=await resolveSalesActor(request)
-    const {data,error}=await supabaseAdmin().rpc('native_sales_request_renewal', {
+    const {data,error}=await supabaseAdmin({ noStore: true }).rpc('native_sales_request_renewal', {
       p_organization_id:actor.organizationId,p_actor_member_id:actor.memberId,
       p_membership_id:context.params.id,p_plan:parsed.data.plan,
       p_duration:parsed.data.duration,p_idempotency_key:key,p_request_id:randomUUID(),

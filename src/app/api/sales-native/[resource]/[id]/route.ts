@@ -123,18 +123,18 @@ export async function PATCH(request: Request, context: { params: { resource: str
     if (!parsed.success || Object.keys(parsed.data).length === 0)
       return Response.json({ code: 'VALIDATION_ERROR' }, { status: 422 })
     const { data, error } = context.params.resource === 'leads'
-      ? await supabaseAdmin().rpc('native_sales_update_lead', {
+      ? await supabaseAdmin({ noStore: true }).rpc('native_sales_update_lead', {
         p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
         p_lead_id: context.params.id, p_expected_version: expectedVersion,
         p_patch: parsed.data, p_request_id: randomUUID(),
       })
       : context.params.resource === 'opportunities'
-      ? await supabaseAdmin().rpc('native_sales_update_opportunity', {
+      ? await supabaseAdmin({ noStore: true }).rpc('native_sales_update_opportunity', {
         p_organization_id: actor.organizationId,p_actor_member_id: actor.memberId,
         p_opportunity_id: context.params.id,p_expected_version: expectedVersion,
         p_patch: parsed.data,p_request_id: randomUUID(),
       })
-      : await supabaseAdmin().rpc('native_sales_update_directory_record', {
+      : await supabaseAdmin({ noStore: true }).rpc('native_sales_update_directory_record', {
         p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
         p_resource: context.params.resource, p_record_id: context.params.id,
         p_expected_version: expectedVersion, p_patch: parsed.data,

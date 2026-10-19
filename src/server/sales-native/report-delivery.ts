@@ -36,7 +36,7 @@ export async function processNativeSalesReports(options:{
   if (!policy.enabled) return {processed:0,sent:0,failed:0,reason:'DELIVERY_DISABLED'}
   const apiKey=process.env.RESEND_API_KEY
   if (!options.provider && !apiKey) return {processed:0,sent:0,failed:0,reason:'PROVIDER_UNAVAILABLE'}
-  const db=options.db ?? supabaseAdmin()
+  const db=options.db ?? supabaseAdmin({ noStore: true })
   const provider=options.provider ?? new Resend(apiKey!)
   const {data:rawJobs,error:claimError}=await db.rpc('native_sales_claim_due_reports',{
     p_now:(options.now ?? new Date()).toISOString(),p_limit:25,

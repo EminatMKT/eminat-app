@@ -17,7 +17,7 @@ export async function GET(request:Request) {
     if (new URL(request.url).searchParams.size)
       return Response.json({code:'INVALID_FILTER'},{status:422})
     const actor=await resolveSalesActor(request)
-    const {data,error}=await supabaseAdmin().rpc('native_sales_report_schedules',{
+    const {data,error}=await supabaseAdmin({ noStore: true }).rpc('native_sales_report_schedules',{
       p_organization_id:actor.organizationId,p_actor_member_id:actor.memberId,
     })
     if (error) return nativeSalesDatabaseError(error)
@@ -37,7 +37,7 @@ async function save(request:Request,edit:boolean) {
     const parsed=(edit?update:setting).safeParse(payload)
     if (!parsed.success) return Response.json({code:'VALIDATION_ERROR'},{status:422})
     const body=parsed.data
-    const {data,error}=await supabaseAdmin().rpc('native_sales_save_report_schedule',{
+    const {data,error}=await supabaseAdmin({ noStore: true }).rpc('native_sales_save_report_schedule',{
       p_organization_id:actor.organizationId,p_actor_member_id:actor.memberId,
       p_schedule_id:'id' in body ? body.id : null,
       p_expected_version:'version' in body ? body.version : null,

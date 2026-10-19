@@ -21,7 +21,7 @@ export async function POST(request:Request,context:{params:{id:string;requestId:
     const parsed=schema.safeParse(payload)
     if (!parsed.success) return Response.json({code:'VALIDATION_ERROR'},{status:422})
     const actor=await resolveSalesActor(request)
-    const {data,error}=await supabaseAdmin().rpc('native_sales_review_renewal',{
+    const {data,error}=await supabaseAdmin({ noStore: true }).rpc('native_sales_review_renewal',{
       p_organization_id:actor.organizationId,p_actor_member_id:actor.memberId,
       p_membership_id:context.params.id,p_renewal_request_id:context.params.requestId,
       p_decision:parsed.data.status,p_note:parsed.data.note ?? null,p_request_id:randomUUID(),

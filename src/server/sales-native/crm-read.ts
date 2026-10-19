@@ -12,7 +12,7 @@ export function isNativeCrmResource(value: string): value is NativeCrmResource {
 export async function scopedCrmRead(actor: SalesActor, resource: NativeCrmResource,
   options: { limit?: number; offset?: number; q?: string | null; id?: string | null }): Promise<Response> {
   const limit = options.limit ?? 25
-  const { data, error } = await supabaseAdmin().rpc('native_sales_visible_crm', {
+  const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_visible_crm', {
     p_organization_id: actor.organizationId,
     p_actor_member_id: actor.memberId,
     p_resource: resource,

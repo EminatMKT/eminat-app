@@ -68,7 +68,7 @@ export async function recoverNativeMetaLeads(options: {
   const vaultKey = env.LILLY_SOCIAL_TOKEN_KEY
   if (!version || !vaultKey) return { processed: 0, recovered: 0, failed: 0,
     reason: 'META_RECOVERY_NOT_CONFIGURED' }
-  const db = options.db ?? supabaseAdmin()
+  const db = options.db ?? supabaseAdmin({ noStore: true })
   const { data, error } = await db.rpc('native_sales_claim_social_leads', { p_limit: 10 })
   if (error) throw new Error('META_RETRY_CLAIM_FAILED')
   let recovered = 0; let failed = 0; let deferred = 0
