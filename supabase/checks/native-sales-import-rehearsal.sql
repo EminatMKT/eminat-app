@@ -1,9 +1,6 @@
 \set ON_ERROR_STOP on
 BEGIN;
 SET LOCAL request.jwt.claim.role='service_role';
-\ir ../migrations/20261018070000_native_sales_lead_edit.sql
-\ir ../migrations/20261018140000_native_sales_directory_edit.sql
-\ir ../migrations/20261018160000_native_sales_import_record.sql
 INSERT INTO auth.users(id) VALUES ('10000000-0000-4000-8000-000000000001');
 INSERT INTO public.usuarios(id,auth_id) VALUES
   ('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001');
