@@ -1,11 +1,17 @@
-import SalesModule from '@/features/annie-sales/SalesModule'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import ssrClient from '@/shared/db/requireAccess/ssrClient'
-import { salesQaAllowed } from '@/server/integrations/annie/qa-gate'
+import { nativeSalesPrimary } from '@/server/sales-native/release-gate'
 
 export const dynamic = 'force-dynamic'
 
 export default async function SalesPage() {
+  if (nativeSalesPrimary()) redirect('/sales-native')
+  // Keep legacy imports behind the cutover decision: native /sales never
+  // loads the ANNIE adapter or its UI bundle.
+  const [{ default: SalesModule }, { salesQaAllowed }] = await Promise.all([
+    import('@/features/annie-sales/SalesModule'),
+    import('@/server/integrations/annie/qa-gate'),
+  ])
   const client = ssrClient()
   const { data: { user } } = await client.auth.getUser()
   if (!user) notFound()

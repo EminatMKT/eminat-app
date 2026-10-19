@@ -14,7 +14,7 @@ jobs:
         with: { node-version: 22, cache: pnpm }  # 22+ trae WebSocket nativo (lo exige @supabase/realtime-js)
       - run: pnpm install --frozen-lockfile
       - name: Validate guarded workflow YAML
-        run: ruby -e "require 'yaml'; YAML.load_file('.github/workflows/native-sales-guarded-schema.yml')"
+        run: ruby -e "require 'yaml'; YAML.load_file('.github/workflows/native-sales-guarded-schema.yml'); YAML.load_file('.github/workflows/native-sales-guarded-staff.yml')"
       # ⚠️ EL CENTINELA YA NO CORRE EN CI. El motor salió de este repo el 2026-08-31 y ahora es
       # un plugin instalado por desarrollador (WSmithDR/centinela-plugin), con sus reglas en el
       # repo de datos de cada uno. Nada de eso existe en un runner.
@@ -117,6 +117,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
           SUPABASE_SECRET_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
           NEXT_PUBLIC_APP_ENV: local
+          LILLY_NATIVE_SALES_ENABLED: 'true'
           RESEND_API_KEY: re_dummy_key
       - uses: actions/upload-artifact@v4
         if: failure()
