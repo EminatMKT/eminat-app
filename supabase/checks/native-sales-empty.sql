@@ -54,4 +54,8 @@ SELECT
   AND has_function_privilege('service_role', 'public.native_sales_transition_opportunity(uuid,uuid,uuid,integer,jsonb,uuid)', 'EXECUTE')
   AND NOT has_function_privilege('authenticated', 'public.native_sales_membership_quote(text,text,text)', 'EXECUTE')
   AND has_function_privilege('service_role', 'public.native_sales_membership_quote(text,text,text)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_create_activity(uuid,uuid,text,uuid,text,text,text,timestamptz,uuid,text,text,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_create_activity(uuid,uuid,text,uuid,text,text,text,timestamptz,uuid,text,text,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_list_activities(uuid,uuid,text,uuid,integer,integer)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_list_activities(uuid,uuid,text,uuid,integer,integer)', 'EXECUTE')
   AS safe_native_sales_schema;
