@@ -15,9 +15,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: python3 scripts/migration/test_reconcile_annie_sales.py
       - run: python3 scripts/migration/test_native_sales_security.py
+      - run: python3 scripts/migration/test_verify_isolated_restore.py
       - run: bash -n scripts/migration/prepare-private-annie-bundle.sh
       - name: Validate guarded workflow YAML
-        run: ruby -e "require 'yaml'; YAML.load_file('.github/workflows/native-sales-guarded-schema.yml'); YAML.load_file('.github/workflows/native-sales-guarded-import.yml')"
+        run: ruby -e "require 'yaml'; YAML.load_file('.github/workflows/native-sales-guarded-schema.yml'); YAML.load_file('.github/workflows/native-sales-guarded-import.yml'); YAML.load_file('.github/workflows/native-sales-isolated-restore-verification.yml')"
       # ⚠️ EL CENTINELA YA NO CORRE EN CI. El motor salió de este repo el 2026-08-31 y ahora es
       # un plugin instalado por desarrollador (WSmithDR/centinela-plugin), con sus reglas en el
       # repo de datos de cada uno. Nada de eso existe en un runner.

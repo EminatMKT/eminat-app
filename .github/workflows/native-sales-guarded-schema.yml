@@ -133,9 +133,9 @@ jobs:
           if at.tzinfo is None or not timedelta(0)<=datetime.now(timezone.utc)-at<=timedelta(hours=24):
               raise SystemExit('FRESH_BACKUP_REQUIRED')
           PY
-          state=$(gh run view "$RESTORE_RUN" --repo "$GITHUB_REPOSITORY" \
-            --json conclusion,workflowName --jq '[.conclusion,.workflowName] | @tsv' 2>/dev/null) || exit 1
-          test "$state" = $'success\tNative Sales isolated restore verification'
+          state=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RESTORE_RUN}" \
+            --jq '[.conclusion,.name,.head_sha,.event] | @tsv' 2>/dev/null) || exit 1
+          test "$state" = $'success\tNative Sales isolated restore verification\t${{ inputs.exact_commit }}\tworkflow_dispatch'
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.exact_commit }}
