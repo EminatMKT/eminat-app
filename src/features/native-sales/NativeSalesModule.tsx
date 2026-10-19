@@ -75,6 +75,11 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
   const [query, setQuery] = useState('')
   const [demo, setDemo] = useState('all')
   const [leadView, setLeadView] = useState<'active'|'archived'>('active')
+  const [selectedLeadIds,setSelectedLeadIds] = useState<string[]>([])
+  const [bulkOwner,setBulkOwner] = useState('')
+  const [bulkTeam,setBulkTeam] = useState('')
+  const [bulkBusy,setBulkBusy] = useState(false)
+  const [bulkError,setBulkError] = useState('')
   const [offset, setOffset] = useState(0)
   const [nextOffset, setNextOffset] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
@@ -114,7 +119,8 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
     return () => { cancelled = true }
   }, [request])
 
-  useEffect(() => { setRows([]); setSelected(null); setCreateOpen(false); setOffset(0); setNextOffset(null) }, [tab, query, demo, leadView])
+  useEffect(() => { setRows([]); setSelected(null); setCreateOpen(false); setOffset(0);
+    setNextOffset(null);setSelectedLeadIds([]);setBulkError('') }, [tab, query, demo, leadView])
   useEffect(() => {
     const resource = tab==='pipeline' ? 'opportunities' : tab
     if (!selected || !['leads','contacts','accounts','opportunities'].includes(resource)) {
@@ -222,6 +228,17 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
       setRefresh(value => value+1)
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'STAGE_UPDATE_FAILED') }
   }, [directory.stages,request])
+  const bulkReassign = useCallback(async () => {
+    const items=rows.filter(row => selectedLeadIds.includes(row.id)).map(row =>
+      ({id:row.id,version:Number(row.version)}))
+    if (!items.length || !bulkOwner || items.some(item => !Number.isSafeInteger(item.version) || item.version<1)) return
+    setBulkBusy(true);setBulkError('')
+    try {
+      await request('leads/bulk-reassign',{method:'POST',payload:{items,ownerMemberId:bulkOwner,teamId:bulkTeam || null}})
+      setSelectedLeadIds([]);setRefresh(value => value+1)
+    } catch (cause) { setBulkError(cause instanceof Error ? cause.message : 'REASSIGN_FAILED') }
+    finally { setBulkBusy(false) }
+  },[rows,selectedLeadIds,bulkOwner,bulkTeam,request])
 
   return <AppShell title="Sales" actions={<span className={s.role}>{access?.role || 'Loading'}</span>}>
     <main className={s.main}>
@@ -230,7 +247,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
           {access?.capabilities.canWrite && ['leads','contacts','accounts','opportunities'].includes(tab) &&
             !(tab==='leads' && leadView==='archived') &&
             <button className={s.refresh} type="button" onClick={() => setCreateOpen(value => !value)}>{createOpen ? 'Cancel' : 'Add new'}</button>}
-          <button className={s.refresh} type="button" onClick={() => setRefresh(value => value+1)} disabled={loading}>Refresh</button>
+          <button className={s.refresh} type="button" onClick={() => {setSelectedLeadIds([]);setRefresh(value => value+1)}} disabled={loading}>Refresh</button>
         </div>
       </div>
       <nav className={s.tabs} aria-label="Sales sections">
@@ -315,16 +332,36 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
               <option value="all">All</option><option value="false">Commercial</option><option value="true">Demo</option>
             </select></label>}
           </div>}
-          {rows.length ? <div className={s.list}>{rows.map(row => <button key={row.id} type="button" className={s.item} onClick={() => setSelected(row)}>
+          {tab==='leads' && leadView==='active' && access.capabilities.canReassign && selectedLeadIds.length>0 &&
+            <form className={`${s.panel} ${s.form}`} onSubmit={event => {event.preventDefault();void bulkReassign()}}>
+              <h2>Assign {selectedLeadIds.length} selected Lead{selectedLeadIds.length===1 ? '' : 's'}</h2>
+              <div className={s.formGrid}>
+                <label>Owner <select required value={bulkOwner} onChange={event => {setBulkOwner(event.target.value);setBulkTeam('')}}>
+                  <option value="">Choose a person</option>{directory.users.map(user =>
+                    <option key={user.memberId} value={user.memberId}>{user.displayName}</option>)}
+                </select></label>
+                <label>Team <select required={access.role==='SALES_MANAGER'} value={bulkTeam} onChange={event => setBulkTeam(event.target.value)}>
+                  <option value="">No team</option>{directory.teams.filter(team =>
+                    directory.users.find(user => user.memberId===bulkOwner)?.teamIds.includes(team.id)).map(team =>
+                    <option key={team.id} value={team.id}>{team.name}</option>)}
+                </select></label>
+              </div><button type="submit" disabled={bulkBusy || !bulkOwner}>Assign selected</button>
+              {bulkError && <p role="alert" className={s.error}>{bulkError}</p>}
+            </form>}
+          {rows.length ? <div className={s.list}>{rows.map(row => <div key={row.id} className={s.itemRow}>
+            {tab==='leads' && leadView==='active' && access.capabilities.canReassign &&
+              <input type="checkbox" aria-label={`Select ${title(row)}`} checked={selectedLeadIds.includes(row.id)}
+                onChange={event => setSelectedLeadIds(ids => event.target.checked ? [...ids,row.id] : ids.filter(id => id!==row.id))} />}
+            <button type="button" className={s.item} onClick={() => {setPipelineStage('');setSelected(row)}}>
             <span><strong>{title(row)}</strong><small>{tab==='opportunities' ? stageName(row.stage_id) :
               tab==='activities' ? `${string(row.kind)} · ${string(row.relatedName)}` :
               tab==='memberships' ? `${string(row.plan)} · ${string(row.duration)}` :
               string(row.status) || string(row.type) || string(row.source)}</small></span>
             <span className={s.meta}>{tab==='activities' ? date(row.due_at) :
               tab==='memberships' ? string(row.effectiveStatus) : userName(row.owner_member_id)}</span>
-          </button>)}</div> : <p className={s.empty}>No records in this view.</p>}
-          <div className={s.pager}><button type="button" disabled={offset===0} onClick={() => setOffset(Math.max(0,offset-25))}>Previous</button>
-            <span>Page {Math.floor(offset/25)+1}</span><button type="button" disabled={nextOffset===null} onClick={() => setOffset(nextOffset ?? offset)}>Next</button></div>
+            </button></div>)}</div> : <p className={s.empty}>No records in this view.</p>}
+          <div className={s.pager}><button type="button" disabled={offset===0} onClick={() => {setSelectedLeadIds([]);setOffset(Math.max(0,offset-25))}}>Previous</button>
+            <span>Page {Math.floor(offset/25)+1}</span><button type="button" disabled={nextOffset===null} onClick={() => {setSelectedLeadIds([]);setOffset(nextOffset ?? offset)}}>Next</button></div>
         </>}
         {tab==='social' && <section className={s.panel}><h2>Social connections</h2><p>Live provider access is unavailable until the existing Meta owner permissions and secret rotation are complete.</p></section>}
         {tab==='settings' && <div className={s.reportGrid}>
