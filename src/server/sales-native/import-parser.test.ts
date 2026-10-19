@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import * as XLSX from 'xlsx'
-import { parseImportFile } from './import-parser'
+import { MAX_IMPORT_BYTES, parseImportFile } from './import-parser'
 
 describe('native Sales import parser', () => {
   it('detects a semicolon CSV and retains quoted delimiters and newlines', () => {
@@ -25,7 +25,8 @@ describe('native Sales import parser', () => {
   it('rejects malformed files and oversized uploads before parsing', () => {
     expect(() => parseImportFile('qa.xlsx', 'application/zip', Buffer.from('not a zip')))
       .toThrow('INVALID_XLSX')
-    expect(() => parseImportFile('qa.csv', 'text/csv', Buffer.alloc(10 * 1024 * 1024 + 1)))
+    expect(MAX_IMPORT_BYTES).toBe(4 * 1024 * 1024)
+    expect(() => parseImportFile('qa.csv', 'text/csv', Buffer.alloc(MAX_IMPORT_BYTES + 1)))
       .toThrow('FILE_SIZE_INVALID')
   })
 

@@ -54,6 +54,7 @@ Leads by status: NEW 10, ASSIGNED 1, CONTACTED 1, QUALIFIED 3, PAYMENT_PENDING 2
 
 ## Release gates
 
+- Native CSV/XLSX imports use a 4 MB file ceiling and a 5,000-row ceiling. The 4 MB cap leaves room for multipart metadata under Vercel's 4.5 MB function request limit. Larger files require an explicitly reviewed private-storage upload path; the UI must never claim that a 10 MB serverless upload will work.
 - Export only through reviewed, owner-triggered ANNIE guarded access. Encrypt private row data before transfer; never print rows, credentials, or provider tokens to GitHub logs. Verify source release SHA and export hash.
 - Stage and validate in LILLY infrastructure before enabling native `/sales`. Keep ANNIE intact and current LILLY Production `/sales` on its existing path until reconciliation passes.
 - Compare record counts, Lead stages, Opportunity outcomes, seller/team attribution, archived rows, links, membership codes/modalities, periods, tasks, meetings, and Social state. Every mismatch requires an explanation and reviewed disposition.

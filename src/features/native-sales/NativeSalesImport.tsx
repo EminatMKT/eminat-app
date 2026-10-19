@@ -80,10 +80,14 @@ export default function NativeSalesImport({ resource, organizationId, onComplete
 
   return <section className={`${s.panel} ${s.form}`} aria-label={`Import ${resource}`}>
     <h2>Import {resource === 'leads' ? 'Leads' : 'Contacts'}</h2>
-    <p className={s.hint}>CSV or XLSX, up to 10 MB and 5,000 rows. Existing email or phone matches are skipped. Assignment comes from your Sales session.</p>
+    <p className={s.hint}>CSV or XLSX, up to 4 MB and 5,000 rows. Existing email or phone matches are skipped. Assignment comes from your Sales session.</p>
     <form className={s.form} onSubmit={event => void showPreview(event)}>
       <label>File <input required type="file" accept=".csv,.xlsx" onChange={event => {
-        setFile(event.target.files?.[0] ?? null); setSheetName(''); setMapping(null); setPreview(null); setDone(false)
+        const selected = event.target.files?.[0] ?? null
+        setFile(selected && selected.size <= 4 * 1024 * 1024 ? selected : null)
+        setError(selected && selected.size > 4 * 1024 * 1024 ? 'FILE_SIZE_INVALID' : '')
+        if (selected && selected.size > 4 * 1024 * 1024) event.target.value = ''
+        setSheetName(''); setMapping(null); setPreview(null); setDone(false)
       }} /></label>
       {resource === 'leads' && <label>Default source <input maxLength={500} value={defaultSource}
         onChange={event => { setDefaultSource(event.target.value); setMappingDirty(true) }} placeholder="Used when the file has no source" /></label>}

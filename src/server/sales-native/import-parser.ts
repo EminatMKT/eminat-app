@@ -2,7 +2,8 @@ import 'server-only'
 import { TextDecoder } from 'node:util'
 import * as XLSX from 'xlsx'
 
-export const MAX_IMPORT_BYTES = 10 * 1024 * 1024
+// Keep multipart requests below Vercel's 4.5 MB function-body ceiling.
+export const MAX_IMPORT_BYTES = 4 * 1024 * 1024
 export const MAX_IMPORT_ROWS = 5000
 export const MAX_IMPORT_COLUMNS = 100
 export type ParsedRow = { rowNumber: number; values: string[] }
