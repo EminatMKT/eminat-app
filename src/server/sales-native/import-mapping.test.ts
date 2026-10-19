@@ -31,4 +31,12 @@ describe('native Sales import mapping', () => {
     expect(() => mapImportRow(['QA'], [{ column: 0, field: 'organizationId' }], 'leads'))
       .toThrow('INVALID_MAPPING')
   })
+
+  it('rejects unsafe URLs and oversized mapped fields before import', () => {
+    const mapping = autoMapImportColumns(['Name', 'Source', 'Website'], 'leads')
+    expect(() => mapImportRow(['QA', 'Web', 'javascript:alert(1)'], mapping, 'leads'))
+      .toThrow('INVALID_URL')
+    expect(() => mapImportRow(['QA', 'Web', 'x'.repeat(2001)], mapping, 'leads'))
+      .toThrow('FIELD_TOO_LONG')
+  })
 })

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import AppShell from '@/shared/components/shell/AppShell'
 import { supabase } from '@/shared/db/supabase'
 import NativeSalesCreate from './NativeSalesCreate'
+import NativeSalesImport from './NativeSalesImport'
 import NativeSalesRecordActions from './NativeSalesRecordActions'
 import NativeReportSchedules from './NativeReportSchedules'
 import NativeMembershipFamily from './NativeMembershipFamily'
@@ -75,6 +76,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
   const [pipelineStage, setPipelineStage] = useState('')
   const [draggedOpportunityId, setDraggedOpportunityId] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [timeline, setTimeline] = useState<TimelineEvent[]>([])
   const [timelineError, setTimelineError] = useState(false)
   const [pdfBusy, setPdfBusy] = useState(false)
@@ -128,7 +130,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
     return () => { cancelled = true }
   }, [request])
 
-  useEffect(() => { setRows([]); setSelected(null); setCreateOpen(false); setOffset(0);
+  useEffect(() => { setRows([]); setSelected(null); setCreateOpen(false); setImportOpen(false); setOffset(0);
     setNextOffset(null);setSelectedLeadIds([]);setBulkError('') }, [tab, query, demo, leadView])
   useEffect(() => {
     const resource = tab==='pipeline' ? 'opportunities' : tab
@@ -258,6 +260,8 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
           {access?.capabilities.canWrite && ['leads','contacts','accounts','opportunities','memberships','activities'].includes(tab) &&
             !(tab==='leads' && leadView==='archived') &&
             <button className={s.refresh} type="button" onClick={() => setCreateOpen(value => !value)}>{createOpen ? 'Cancel' : 'Add new'}</button>}
+          {access?.capabilities.canWrite && (tab==='leads' && leadView==='active' || tab==='contacts') &&
+            <button className={s.refresh} type="button" onClick={() => setImportOpen(value => !value)}>{importOpen ? 'Close import' : 'Import'}</button>}
           <button className={s.refresh} type="button" onClick={() => {setSelectedLeadIds([]);setRefresh(value => value+1)}} disabled={loading}>Refresh</button>
         </div>
       </div>
@@ -268,6 +272,9 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
       </nav>
       {!access?.allowed && !loading && <p role="alert" className={s.error}>{error || 'Sales access is unavailable.'}</p>}
       {access?.allowed && <>
+        {importOpen && (tab==='leads' || tab==='contacts') &&
+          <NativeSalesImport key={tab} resource={tab} organizationId={organizationId}
+            onComplete={() => { setImportOpen(false); setRefresh(value => value + 1) }} />}
         {createOpen && ['leads','contacts','accounts','opportunities'].includes(tab) &&
           <NativeSalesCreate resource={tab as 'leads'|'contacts'|'accounts'|'opportunities'} request={request}
             onSaved={() => { setCreateOpen(false); setRefresh(value => value+1) }} />}

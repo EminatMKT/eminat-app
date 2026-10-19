@@ -1,6 +1,6 @@
 -- Versioned native Contact/Account edits. Owner, team, and explicit record
 -- grants are checked inside the same transaction as the mutation.
-CREATE FUNCTION public.native_sales_update_directory_record(
+CREATE OR REPLACE FUNCTION public.native_sales_update_directory_record(
   p_organization_id uuid, p_actor_member_id uuid, p_resource text,
   p_record_id uuid, p_expected_version integer, p_patch jsonb, p_request_id uuid
 ) RETURNS jsonb

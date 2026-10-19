@@ -1,6 +1,6 @@
 -- Native Lead edits are versioned, owner scoped, and atomic with history.
 -- Stage and reassignment mutations use their dedicated guarded functions.
-CREATE FUNCTION public.native_sales_update_lead(
+CREATE OR REPLACE FUNCTION public.native_sales_update_lead(
   p_organization_id uuid, p_actor_member_id uuid, p_lead_id uuid,
   p_expected_version integer, p_patch jsonb, p_request_id uuid
 ) RETURNS public.sales_leads
@@ -18,12 +18,15 @@ BEGIN
       SELECT 1 FROM jsonb_object_keys(p_patch) AS key
       WHERE key NOT IN ('displayName','firstName','lastName','companyName','title',
         'email','phone','website','industry','description','source','sourceDetail',
-        'doNotCall','doNotEmail','nextAction','nextFollowUpAt')
+        'doNotCall','doNotEmail','nextAction','nextFollowUpAt','address',
+        'dateOfBirth','insurance','corazonSalud','plan','product')
     ) THEN RAISE EXCEPTION 'INVALID_REQUEST' USING ERRCODE = '22023'; END IF;
   IF (p_patch ? 'displayName' AND length(btrim(coalesce(p_patch->>'displayName',''))) NOT BETWEEN 1 AND 500)
     OR (p_patch ? 'source' AND length(btrim(coalesce(p_patch->>'source',''))) NOT BETWEEN 1 AND 500)
     OR length(coalesce(p_patch->>'email','')) > 320
-    OR length(coalesce(p_patch->>'phone','')) > 80 THEN
+    OR length(coalesce(p_patch->>'phone','')) > 80
+    OR (p_patch ? 'address' AND jsonb_typeof(p_patch->'address') NOT IN ('object','null'))
+    OR length(coalesce(p_patch->>'description','')) > 10000 THEN
     RAISE EXCEPTION 'INVALID_REQUEST' USING ERRCODE = '22023';
   END IF;
   SELECT m.* INTO v_actor FROM public.sales_members m
@@ -63,6 +66,7 @@ BEGIN
     phone = CASE WHEN p_patch ? 'phone' THEN p_patch->>'phone' ELSE phone END,
     website = CASE WHEN p_patch ? 'website' THEN p_patch->>'website' ELSE website END,
     industry = CASE WHEN p_patch ? 'industry' THEN p_patch->>'industry' ELSE industry END,
+    address = CASE WHEN p_patch ? 'address' THEN nullif(p_patch->'address','null'::jsonb) ELSE address END,
     description = CASE WHEN p_patch ? 'description' THEN p_patch->>'description' ELSE description END,
     source = CASE WHEN p_patch ? 'source' THEN btrim(p_patch->>'source') ELSE source END,
     source_detail = CASE WHEN p_patch ? 'sourceDetail' THEN p_patch->>'sourceDetail' ELSE source_detail END,
@@ -70,6 +74,11 @@ BEGIN
     do_not_email = CASE WHEN p_patch ? 'doNotEmail' THEN (p_patch->>'doNotEmail')::boolean ELSE do_not_email END,
     next_action = CASE WHEN p_patch ? 'nextAction' THEN p_patch->>'nextAction' ELSE next_action END,
     next_follow_up_at = CASE WHEN p_patch ? 'nextFollowUpAt' THEN (p_patch->>'nextFollowUpAt')::timestamptz ELSE next_follow_up_at END,
+    date_of_birth = CASE WHEN p_patch ? 'dateOfBirth' THEN (p_patch->>'dateOfBirth')::date ELSE date_of_birth END,
+    insurance = CASE WHEN p_patch ? 'insurance' THEN p_patch->>'insurance' ELSE insurance END,
+    corazon_salud = CASE WHEN p_patch ? 'corazonSalud' THEN (p_patch->>'corazonSalud')::boolean ELSE corazon_salud END,
+    plan = CASE WHEN p_patch ? 'plan' THEN p_patch->>'plan' ELSE plan END,
+    product = CASE WHEN p_patch ? 'product' THEN p_patch->>'product' ELSE product END,
     version = version + 1, updated_by = p_actor_member_id, updated_at = now()
     WHERE id = p_lead_id AND organization_id = p_organization_id RETURNING * INTO v_after;
   INSERT INTO public.sales_history (organization_id, entity_type, record_id, actor_member_id,

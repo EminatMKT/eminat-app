@@ -33,6 +33,16 @@ const allowed: Record<ImportResource, Set<string>> = {
   leads: new Set([...common, 'companyName', 'website', 'industry', 'source']),
   contacts: new Set(common),
 }
+const maxTextLength: Record<string, number> = {
+  displayName: 500, firstName: 500, lastName: 500, title: 500, email: 320,
+  phone: 80, 'address.street': 500, 'address.city': 200,
+  'address.state': 200, 'address.postalCode': 40, 'address.country': 200,
+  description: 10000, nextAction: 500, insurance: 500, plan: 500,
+  product: 500, companyName: 500, website: 2000, industry: 500, source: 500,
+}
+export function importFields(resource: ImportResource): string[] {
+  return Array.from(allowed[resource])
+}
 
 function normalize(value: string) {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -79,6 +89,11 @@ export function mapImportRow(values: string[], mapping: ColumnMapping[], resourc
     const raw = String(values[column] ?? '').trim()
     if (!raw) continue
     if (raw === '__ANNIE_FORMULA_CELL__') throw new Error('FORMULA_CELL')
+    if (maxTextLength[field] && raw.length > maxTextLength[field]) throw new Error('FIELD_TOO_LONG')
+    if (field === 'website') {
+      try { if (!['http:', 'https:'].includes(new URL(raw).protocol)) throw new Error() }
+      catch { throw new Error('INVALID_URL') }
+    }
     if (field.startsWith('address.')) { address[field.slice(8)] = raw; continue }
     if (field === 'email') result[field] = raw.toLowerCase()
     else if (field === 'dateOfBirth') result[field] = dateValue(raw)

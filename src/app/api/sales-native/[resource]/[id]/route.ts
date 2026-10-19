@@ -17,6 +17,10 @@ const leadPatch = z.object({
   phone: z.string().trim().max(80).nullable().optional(),
   website: z.url().max(2000).refine(value => ['http:', 'https:'].includes(new URL(value).protocol)).nullable().optional(),
   industry: z.string().trim().max(500).nullable().optional(),
+  address: z.object({ street: z.string().trim().max(500).optional(),
+    city: z.string().trim().max(200).optional(), state: z.string().trim().max(200).optional(),
+    postalCode: z.string().trim().max(40).optional(),
+    country: z.string().trim().max(200).optional() }).strict().nullable().optional(),
   description: z.string().trim().max(10000).nullable().optional(),
   source: z.string().trim().min(1).max(500).optional(),
   sourceDetail: z.string().trim().max(500).nullable().optional(),
@@ -24,6 +28,11 @@ const leadPatch = z.object({
   doNotEmail: z.boolean().optional(),
   nextAction: z.string().trim().max(500).nullable().optional(),
   nextFollowUpAt: z.iso.datetime({ offset: true }).nullable().optional(),
+  dateOfBirth: z.iso.date().nullable().optional(),
+  insurance: z.string().trim().max(500).nullable().optional(),
+  corazonSalud: z.boolean().nullable().optional(),
+  plan: z.string().trim().max(500).nullable().optional(),
+  product: z.string().trim().max(500).nullable().optional(),
 }).strict()
 const commonDirectoryPatch = {
   email: z.email().max(320).nullable().optional(),
