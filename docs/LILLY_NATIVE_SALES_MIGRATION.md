@@ -4,6 +4,8 @@ This is the migration contract for draft PR #120. No Production native Sales mig
 
 A second owner-triggered guarded workflow, run `39187743682`, produced an encrypted row snapshot from the same ANNIE release. The decrypted copy remains local, permission 600, outside Git. It confirmed the counts below and showed zero unresolved source relationships in the checked tables. It also identified two tasks and one meeting without a CRM parent; native general tasks now have a scoped activity path, while the meeting relationship must be preserved during import. No destination import or Production change has occurred.
 
+Read-only LILLY Production SQL Editor verification on 2026-10-18 confirmed `public.sales_organizations` is not yet deployed. The legacy `annie_sales_user_mappings` table exists with two active, explicitly approved external Sales entitlements and three revoked company-tenant mappings. The two active LILLY profiles are one EMINAT-affiliated global admin and one STRATIX-affiliated seller. These existing entitlements are evidence for a separate native binding review; no native Sales organization, membership, or user permission was created during this check.
+
 ## Source inventory
 
 | ANNIE domain | Source count | LILLY destination |

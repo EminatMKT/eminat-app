@@ -17,7 +17,7 @@ export default async function NativeSalesPreviewPage() {
   const { data: memberships, error } = await admin.from('sales_members')
     .select('organization_id,sales_organizations!inner(status)')
     .eq('auth_id', user.id).eq('user_id', profile.id).eq('status', 'active')
-    .eq('sales_organizations.status', 'active').limit(10)
-  if (error || !memberships?.length) notFound()
+    .eq('sales_organizations.status', 'active').limit(2)
+  if (error || memberships?.length !== 1) notFound()
   return <NativeSalesModule organizationId={memberships[0].organization_id} />
 }
