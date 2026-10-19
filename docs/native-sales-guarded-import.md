@@ -18,6 +18,8 @@ The Production environment still requires an authorized administrator to provisi
 
 The dispatch commit must be the current `main` SHA. `check-native-sales-migrations.py` verifies the SHA-256 digest of the ordered Native Sales migration filenames and contents, migration IDs, the pending set, and the applied set after schema application. No unrelated migration may be pending. The private ANNIE export is downloaded only on the runner from a successful authorized run. Its encrypted artifact, normalized rows, manifest, and PDFs are hash checked; 334 normalized target rows must be present. The importer requires the source snapshot to be at most four hours old. No customer rows, PDFs, object keys, or secrets are workflow inputs or logs.
 
+The reviewer obtains the migration-set digest locally with `python3 scripts/migration/check-native-sales-migrations.py --print-digest` and compares it to the reviewed commit. The command reads repository migration files only.
+
 The 334 count is **normalized destination rows**, not a count of unique people or raw ANNIE source records. The private manifest has exact per-table `destinationCounts`; emit only those aggregate counts for the release reviewer. The reviewed earlier source inventory contains 17 Leads, 18 Contacts, 12 Accounts, 6 Account–Contact links, 13 Opportunities, 8 memberships, 11 periods, 160 history events, 28 historical staff actors, and 11 deferred Contact primary-account links. Do not reconstruct the complete 334 breakdown from this partial inventory; obtain it from the fresh manifest before a real import.
 
 ## Backup and recovery gates
