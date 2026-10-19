@@ -15,7 +15,7 @@ WITH native_tables AS (
     'sales_social_assets','sales_social_conversations','sales_social_messages',
     'sales_social_comments','sales_social_webhook_receipts','sales_social_leads',
     'sales_write_operations','sales_opportunity_transition_rules',
-    'sales_membership_price_catalog'
+    'sales_membership_price_catalog','sales_membership_code_registry'
   ]) AS name
 )
 SELECT
@@ -68,4 +68,12 @@ SELECT
   AND has_function_privilege('service_role', 'public.native_sales_record_payment_evidence(uuid,uuid,uuid,numeric,varchar,date,text,text,uuid)', 'EXECUTE')
   AND NOT has_function_privilege('authenticated', 'public.native_sales_issue_membership(uuid,uuid,uuid,uuid,text,text,text,date,text,text,text,text,text,boolean,text,text,uuid)', 'EXECUTE')
   AND has_function_privilege('service_role', 'public.native_sales_issue_membership(uuid,uuid,uuid,uuid,text,text,text,date,text,text,text,text,text,boolean,text,text,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_next_membership_code()', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_family_access(uuid,uuid,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_request_family_member(uuid,uuid,uuid,uuid,text,text,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_request_family_member(uuid,uuid,uuid,uuid,text,text,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_review_family_member(uuid,uuid,uuid,uuid,text,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_review_family_member(uuid,uuid,uuid,uuid,text,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_list_family_requests(uuid,uuid,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_list_family_requests(uuid,uuid,uuid)', 'EXECUTE')
   AS safe_native_sales_schema;

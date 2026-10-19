@@ -1,6 +1,54 @@
 -- Global membership-code uniqueness preserves the ANNIE 1725-nnnn format.
 -- Imported historical codes must reconcile before paid issuance is enabled.
 CREATE UNIQUE INDEX sales_memberships_global_code ON public.sales_memberships (code);
+ALTER TABLE public.sales_household_members ADD COLUMN code text;
+ALTER TABLE public.sales_household_members ADD COLUMN code_number bigint;
+CREATE UNIQUE INDEX sales_household_global_code ON public.sales_household_members (code) WHERE code IS NOT NULL;
+
+CREATE TABLE public.sales_membership_code_registry (
+  code text PRIMARY KEY,
+  code_number bigint UNIQUE,
+  organization_id uuid NOT NULL REFERENCES public.sales_organizations(id) ON DELETE RESTRICT,
+  membership_id uuid,
+  household_member_id uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CHECK (num_nonnulls(membership_id,household_member_id)=1),
+  FOREIGN KEY (organization_id,membership_id)
+    REFERENCES public.sales_memberships(organization_id,id) ON DELETE RESTRICT,
+  FOREIGN KEY (organization_id,household_member_id)
+    REFERENCES public.sales_household_members(organization_id,id) ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX sales_membership_code_registry_membership ON public.sales_membership_code_registry(membership_id)
+  WHERE membership_id IS NOT NULL;
+CREATE UNIQUE INDEX sales_membership_code_registry_household ON public.sales_membership_code_registry(household_member_id)
+  WHERE household_member_id IS NOT NULL;
+ALTER TABLE public.sales_membership_code_registry ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.sales_membership_code_registry FROM PUBLIC,anon,authenticated,service_role;
+GRANT ALL ON public.sales_membership_code_registry TO service_role;
+
+CREATE FUNCTION public.native_sales_next_membership_code()
+RETURNS TABLE(allocated_code_number bigint,allocated_code text)
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = public, pg_temp AS $$
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'SALES_SERVER_ONLY' USING ERRCODE='42501';
+  END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended('lilly-sales-membership-code',0));
+  SELECT greatest(
+    coalesce((SELECT max(r.code_number) FROM public.sales_membership_code_registry r),0),
+    coalesce((SELECT max(m.code_number) FROM public.sales_memberships m),0),
+    coalesce((SELECT max(h.code_number) FROM public.sales_household_members h),0)) + 1
+    INTO allocated_code_number;
+  allocated_code := '1725-' || lpad(allocated_code_number::text,4,'0');
+  WHILE EXISTS (SELECT 1 FROM public.sales_membership_code_registry r WHERE r.code=allocated_code)
+    OR EXISTS (SELECT 1 FROM public.sales_memberships m WHERE m.code=allocated_code)
+    OR EXISTS (SELECT 1 FROM public.sales_household_members h WHERE h.code=allocated_code) LOOP
+    allocated_code_number:=allocated_code_number+1;
+    allocated_code:='1725-' || lpad(allocated_code_number::text,4,'0');
+  END LOOP;
+  RETURN NEXT;
+END;
+$$;
 
 CREATE FUNCTION public.native_sales_add_membership_months(p_start date,p_months integer)
 RETURNS date LANGUAGE plpgsql IMMUTABLE SET search_path = public, pg_temp AS $$
@@ -115,13 +163,8 @@ BEGIN
     WHERE organization_id=p_organization_id AND sales_payment_id=p_payment_id) THEN
     RAISE EXCEPTION 'PAYMENT_ALREADY_USED_FOR_PRIMARY_MEMBERSHIP' USING ERRCODE='23505';
   END IF;
-  PERFORM pg_advisory_xact_lock(hashtextextended('lilly-sales-membership-code',0));
-  SELECT coalesce(max(code_number),0)+1 INTO v_code_number FROM public.sales_memberships;
-  v_code := '1725-' || lpad(v_code_number::text,4,'0');
-  WHILE EXISTS (SELECT 1 FROM public.sales_memberships WHERE code=v_code) LOOP
-    v_code_number:=v_code_number+1;
-    v_code:='1725-' || lpad(v_code_number::text,4,'0');
-  END LOOP;
+  SELECT next_code.allocated_code_number,next_code.allocated_code INTO v_code_number,v_code
+    FROM public.native_sales_next_membership_code() AS next_code;
   INSERT INTO public.sales_memberships
     (organization_id,code,code_number,primary_contact_id,opportunity_id,sales_payment_id,
      first_name,last_name,phone,email,address,membership_type,plan,duration,
@@ -135,6 +178,9 @@ BEGIN
       v_payment.owner_member_id,v_payment.team_id,v_payment.paid_at,v_payment.amount,
       v_payment.currency,v_payment.reference,now(),p_is_demo,p_actor_member_id)
     RETURNING * INTO v_membership;
+  INSERT INTO public.sales_membership_code_registry
+    (code,code_number,organization_id,membership_id)
+    VALUES (v_code,v_code_number,p_organization_id,v_membership.id);
   INSERT INTO public.sales_membership_periods
     (organization_id,membership_id,starts_at,expires_at,plan,duration,amount_cents)
     VALUES (p_organization_id,v_membership.id,p_issued_at,v_expires_at,p_plan,p_duration,
@@ -155,6 +201,8 @@ $$;
 REVOKE ALL ON FUNCTION public.native_sales_add_membership_months(date,integer)
   FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.native_sales_add_membership_months(date,integer) TO service_role;
+REVOKE ALL ON FUNCTION public.native_sales_next_membership_code() FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.native_sales_next_membership_code() TO service_role;
 REVOKE ALL ON FUNCTION public.native_sales_issue_membership(uuid,uuid,uuid,uuid,text,text,text,date,text,text,text,text,text,boolean,text,text,uuid)
   FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.native_sales_issue_membership(uuid,uuid,uuid,uuid,text,text,text,date,text,text,text,text,text,boolean,text,text,uuid)
