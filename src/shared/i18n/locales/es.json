@@ -760,6 +760,8 @@
   "med.field.alergias": "Alergias",
   "med.field.condiciones": "Condiciones",
   "med.field.notas": "Notas",
+  "med.field.telefono": "Teléfono",
+  "med.field.email": "Correo",
   "med.importPatientsBtn": "Importar pacientes",
   "med.import.title": "Importar pacientes",
   "med.import.selectFile": "Elegí el .xlsx del registro (eClinicalWorks / eClinPro / eMedicalPractice)",

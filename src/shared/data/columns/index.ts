@@ -41,6 +41,10 @@ const TABLE_COLUMNS = {
     usuarioId: 'usuario_id',
   },
   pacientes: { ...identified },
+  pacienteContactos: {
+    ...identified,
+    pacienteId: 'paciente_id',
+  },
 } as const
 
 export default TABLE_COLUMNS
