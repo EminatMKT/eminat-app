@@ -15,7 +15,7 @@ from sales_migration_common import connection_environment
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--after", action="store_true")
-    parser.add_argument("--phase", choices=("schema", "data"), default="schema")
+    parser.add_argument("--phase", choices=("schema",), default="schema")
     parser.add_argument("--print-digest", action="store_true", help="Local reviewed migration-set digest only")
     args = parser.parse_args()
     digest = hashlib.sha256()
@@ -27,9 +27,7 @@ def main():
     if args.print_digest:
         print(digest.hexdigest())
         return
-    secret = ("LILLY_SALES_SCHEMA_ADMIN_DB_URL" if args.phase == "schema"
-              else "LILLY_SALES_PRODUCTION_DB_URL")
-    env = connection_environment(os.environ.get(secret, ""))
+    env = connection_environment(os.environ.get("LILLY_SALES_SCHEMA_ADMIN_DB_URL", ""))
     env["PGOPTIONS"] = "-c default_transaction_read_only=on -c statement_timeout=30000"
     result = subprocess.run(
         ["psql", "-X", "-q", "-t", "-A", "-v", "ON_ERROR_STOP=1", "-c",
