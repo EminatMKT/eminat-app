@@ -12,13 +12,14 @@ import { useSalesQaAccess } from '@/features/annie-sales/useSalesQaAccess'
 type Props = {
   activeTab?: string
   onTabChange?: (tab: string) => void
+  visibleTabs?: string[]
   mobileOpen: boolean
   setMobileOpen: (v: boolean) => void
 }
 
 // Sidebar = rail de íconos (módulos del usuario) + panel secundario. Dueño de `sidebarPanel`.
 // Data-driven desde NAV + modulePath.
-export default function Sidebar({ activeTab, onTabChange, mobileOpen, setMobileOpen }: Props) {
+export default function Sidebar({ activeTab, onTabChange, visibleTabs, mobileOpen, setMobileOpen }: Props) {
   const { modules } = useApp()
   const salesQaAllowed = useSalesQaAccess()
   const router = useRouter()
@@ -53,7 +54,7 @@ export default function Sidebar({ activeTab, onTabChange, mobileOpen, setMobileO
         </div>
       </div>
 
-      <SidebarPanel open={panelOpen} panel={sidebarPanel ?? 'mkt'} activeTab={activeTab} onTabChange={onTabChange} setMobileOpen={setMobileOpen} />
+      <SidebarPanel open={panelOpen} panel={sidebarPanel ?? 'mkt'} activeTab={activeTab} onTabChange={onTabChange} visibleTabs={visibleTabs} setMobileOpen={setMobileOpen} />
     </aside>
   )
 }

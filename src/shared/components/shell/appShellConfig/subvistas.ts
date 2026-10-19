@@ -10,6 +10,9 @@ export const SUB_ITEMS: Record<PanelKey, SubItem[]> = {
     { id: 'sales-opportunities', icon: '🎯', label: 'Opportunities', tab: 'opportunities' },
     { id: 'sales-pipeline', icon: '🛤️', label: 'Pipeline', tab: 'pipeline' },
     { id: 'sales-activities', icon: '🗓️', label: 'Activities', tab: 'activities' },
+    { id: 'sales-memberships', icon: '❤️', label: 'Memberships', tab: 'memberships' },
+    { id: 'sales-reports', icon: '📈', label: 'Reports', tab: 'reports' },
+    { id: 'sales-social', icon: '💬', label: 'Social', tab: 'social' },
   ],
   // Las secciones de tareas; Projects se agrega al workspace sin alterar las vistas existentes.
   tasks: [

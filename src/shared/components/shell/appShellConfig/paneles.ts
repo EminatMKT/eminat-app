@@ -9,5 +9,5 @@ export const PANEL_META: Record<PanelKey, { title: string; sub: string; slug: Mo
   medical: { title: 'Medical', sub: 'HIPAA Compliance', slug: MODULE.MEDICAL },
   admin: { title: 'Admin', sub: 'Usuarios, roles y organización', slug: MODULE.ADMIN },
   billing: { title: 'Billing', sub: 'Payment calendar & reminders', slug: MODULE.COBRANZAS },
-  sales: { title: 'Sales', sub: 'Read-only from ANNIE', slug: MODULE.SALES },
+  sales: { title: 'Sales', sub: 'ANNIE commercial workspace', slug: MODULE.SALES },
 }
