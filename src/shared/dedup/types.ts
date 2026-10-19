@@ -1,4 +1,16 @@
-import type { NivelCandidato } from './strategy'
+export type NivelCandidato = typeof NIVEL_EXACTA | 'parcial'
+
+/** One existing record a strategy flags as a possible duplicate of an incoming one. */
+export type Candidate<T> = { nivel: NivelCandidato; item: T }
+
+/** What a strategy's merge produces: the combined record, and the fields both sides disagreed on. */
+export type MergeResult<T> = { resultado: Partial<T>; choques: string[] }
+
+export interface DedupStrategy<T> {
+  entidad: string
+  candidatos(item: T, existentes: readonly T[]): Candidate<T>[]
+  fusionar(existente: Partial<T>, entrante: Partial<T>): MergeResult<T>
+}
 
 /** A pair as returned by `duplicados_pendientes`: not yet merged or discarded. */
 export type Pendiente = {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import confirmedNote from './confirmedNote'
+import confirmedNote from '.'
 
 describe('confirmedNote', () => {
   it('is undefined outside note mode', () => {

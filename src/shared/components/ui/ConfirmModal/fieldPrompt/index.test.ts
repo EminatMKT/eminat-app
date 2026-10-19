@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import fieldPrompt from './fieldPrompt'
+import fieldPrompt from '.'
 
 const t = (key: string, vars?: Record<string, string>) => `${key}:${vars?.frase ?? ''}`
 

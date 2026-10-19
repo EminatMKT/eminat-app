@@ -1,4 +1,4 @@
-export type { NivelCandidato, DedupStrategy } from './strategy'
+export type { NivelCandidato, DedupStrategy } from './types'
 export type { CompareControls } from './DuplicatesTab/types'
 export { default as CompareField } from './CompareField'
 export { default as mergeMultiValueRows } from './CompareField/mergeMultiValueRows'

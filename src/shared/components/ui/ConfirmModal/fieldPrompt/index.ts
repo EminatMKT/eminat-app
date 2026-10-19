@@ -16,3 +16,6 @@ export default function fieldPrompt(
   }
   return notaLabel
 }
+
+// The label over ConfirmModal's single text field: the phrase prompt (custom or the translated
+// default) when the dialog asks to retype a phrase, otherwise the note's own label, if any.

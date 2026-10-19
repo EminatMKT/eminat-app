@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import ordenarPendientes from './ordenarPendientes'
-import type { Pendiente } from './types'
+import ordenarPendientes from '.'
+import type { Pendiente } from '../types'
 
 describe('ordenarPendientes', () => {
   it('puts exacta before parcial, oldest first within the same level', () => {
