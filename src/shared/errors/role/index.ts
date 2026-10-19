@@ -1,4 +1,4 @@
-const LIST_SEPARATOR = ', '
+import LIST_SEPARATOR from '@/shared/constants/list-separator'
 
 /** What role validation answers when a role name or its module list is not acceptable. */
 const ROLE_ERRORS = {

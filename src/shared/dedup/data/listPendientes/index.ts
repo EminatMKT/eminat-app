@@ -1,9 +1,9 @@
 import { supabase } from '@/shared/db/supabase'
-import { TABLES } from '@/shared/schema'
+import { TABLES, TABLE_COLUMNS } from '@/shared/schema'
 import type { Pendiente } from '@/shared/dedup/types'
 
 const SELECT_TODO = '*'
-const COLUMNA_ENTIDAD = 'entidad'
+const { entidad: COLUMNA_ENTIDAD } = TABLE_COLUMNS.duplicadosPendientes
 
 /** Every pending duplicate pair for one entity, unsorted — `ordenarPendientes` orders them. */
 export default function listPendientes(entidad: string) {

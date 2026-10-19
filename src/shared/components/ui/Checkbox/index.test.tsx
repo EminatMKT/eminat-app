@@ -5,11 +5,11 @@ import {
   vi,
 } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
+import HINT from './hintUnderTest'
 import Checkbox from '.'
 
 // No click-simulation test: this suite renders statically, so handlers are never attached here.
 const LABEL = 'label-under-test'
-const HINT = 'hint-under-test'
 const describedBy = (html: string) => html.match(/aria-describedby="([^"]+)"/)?.[1]
 
 describe('Checkbox', () => {

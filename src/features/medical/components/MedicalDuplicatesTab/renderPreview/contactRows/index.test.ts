@@ -3,10 +3,10 @@ import type { CompareControls } from '@/shared/dedup'
 import type { Paciente } from '@/features/medical/types'
 import reviewFixture from '@/features/medical/components/MedicalDuplicatesTab/reviewFixture'
 import type { PatientUnderReview } from '@/features/medical/components/MedicalDuplicatesTab/types'
+import NO_VALUE_KEY from '../noValueKey'
 import contactRows from '.'
 
 const t = (key: string) => key
-const BLANK = 'import.merge.noValue'
 const PHONE_LABEL = 'med.field.telefono'
 const EMAIL_LABEL = 'med.field.email'
 const WINNER_PHONE = { id: 'w1', valor: '555-0001' }
@@ -52,7 +52,7 @@ describe('contactRows', () => {
 
   it('says a contact type will be saved blank when nothing of it survives', () => {
     const rows = contactRows(reviewFixture(), loser, controlsWith(BOTH_LOSER_PHONES_EXCLUDED), t)
-    expect(valueOf(rows, 'telefono')).toBe(BLANK)
+    expect(valueOf(rows, 'telefono')).toBe(NO_VALUE_KEY)
   })
 
   it('labels one line per contact type, phones before emails, as the grid does', () => {

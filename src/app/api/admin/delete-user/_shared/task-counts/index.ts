@@ -1,7 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { TABLES, TABLE_COLUMNS } from '@/shared/schema'
+import { COUNT_ONLY, TABLES, TABLE_COLUMNS } from '@/shared/schema'
 
-const COUNT_ONLY = { count: 'exact', head: true } as const
 const { usuarioId } = TABLE_COLUMNS.actividadResponsables
 const { solicitanteId } = TABLE_COLUMNS.actividades
 

@@ -5,11 +5,11 @@ import {
   vi,
 } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
+import HINT from '@/shared/components/ui/Checkbox/hintUnderTest'
 import MultiValueChoice from '.'
 
 // Handlers are never attached under renderToStaticMarkup, so no click-simulation test here.
 const TEXT = 'text-under-test'
-const HINT = 'hint-under-test'
 const LOSER_IDS = ['2']
 const draw = (keptIds: string[], excludedIds: string[]) => renderToStaticMarkup(
   <MultiValueChoice

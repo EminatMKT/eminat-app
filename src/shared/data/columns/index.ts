@@ -1,4 +1,5 @@
 import CATALOG_COLUMNS from './catalogs'
+import DEDUP_COLUMNS from './dedup'
 import SHARED_COLUMNS from './shared'
 
 const { identified, created, versioned, activatable } = SHARED_COLUMNS
@@ -6,6 +7,7 @@ const { identified, created, versioned, activatable } = SHARED_COLUMNS
 /** Column names for filters and orders, by table; each map spreads only the shared groups its table has. */
 const TABLE_COLUMNS = {
   ...CATALOG_COLUMNS,
+  ...DEDUP_COLUMNS,
   actividades: {
     ...identified,
     ...created,

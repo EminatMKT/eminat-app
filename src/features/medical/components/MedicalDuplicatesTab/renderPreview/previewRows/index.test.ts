@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import FIELD_MAPS from '@/features/medical/components/MedicalDuplicatesTab/fieldMaps'
+import NO_VALUE_KEY from '../noValueKey'
 import previewRows from '.'
 
 const t = (key: string) => key
-const BLANK = 'import.merge.noValue'
 const SEGURO = { seguro: 'Cigna' }
 const BLANKS = { notas: null, alergias: '  ', direccion: undefined }
 const UNLABELLED = { id: 'p1', seguro: 'Aetna' }
@@ -16,7 +16,7 @@ describe('previewRows', () => {
 
   it('says a field will be saved blank instead of showing nothing', () => {
     const values = previewRows(BLANKS, t).map(({ value }) => value)
-    expect(values).toEqual([BLANK, BLANK, BLANK])
+    expect(values).toEqual([NO_VALUE_KEY, NO_VALUE_KEY, NO_VALUE_KEY])
   })
 
   it('shows only fields the merge writes, and never one without a label', () => {

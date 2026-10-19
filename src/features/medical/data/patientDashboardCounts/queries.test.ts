@@ -4,8 +4,16 @@ const mocks = vi.hoisted(() => ({ from: vi.fn(), rpc: vi.fn() }))
 vi.mock('@/shared/db', () => ({ supabase: { from: mocks.from, rpc: mocks.rpc } }))
 vi.mock('@/shared/db/supabase', () => ({ supabase: { from: mocks.from, rpc: mocks.rpc } }))
 
+import { COUNT_ONLY } from '@/shared/schema'
 import queries from './queries'
-import { ID_COLUMN, EMAIL_COLUMN, GENERO_COLUMN, TELEFONO_COLUMN, FECHA_NACIMIENTO_COLUMN, IS_OPERATOR, COUNT_ONLY } from './constants'
+import {
+  ID_COLUMN,
+  EMAIL_COLUMN,
+  GENERO_COLUMN,
+  TELEFONO_COLUMN,
+  FECHA_NACIMIENTO_COLUMN,
+  IS_OPERATOR,
+} from './constants'
 
 type Chain = Record<string, unknown>
 

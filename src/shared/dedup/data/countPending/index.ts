@@ -1,11 +1,9 @@
 import { supabase } from '@/shared/db/supabase'
-import { TABLES } from '@/shared/schema'
+import { COUNT_ONLY, TABLES, TABLE_COLUMNS } from '@/shared/schema'
 
 const ALL_COLUMNS = '*'
-const ENTITY_COLUMN = 'entidad'
+const { entidad: ENTITY_COLUMN } = TABLE_COLUMNS.duplicadosPendientes
 const NONE = 0
-/** `head: true` means PostgREST never returns row data, only the match count. */
-const COUNT_ONLY = { count: 'exact', head: true } as const
 
 /** How many duplicate pairs are still waiting on a decision for one entity; rejects if the read fails. */
 export default async function countPending(entidad: string): Promise<number> {
