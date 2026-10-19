@@ -1,0 +1,62 @@
+name: Native Sales isolated restore verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      exact_commit:
+        description: Reviewed 40-character LILLY commit
+        required: true
+        type: string
+      backup_at_utc:
+        description: Completed Production backup timestamp in UTC
+        required: true
+        type: string
+      restore_project_ref:
+        description: New isolated Supabase project reference
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  deployments: read
+
+concurrency:
+  group: native-sales-production-migration
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    environment: Production
+    env:
+      LILLY_SALES_SCHEMA_ADMIN_DB_URL: ${{ secrets.LILLY_SALES_SCHEMA_ADMIN_DB_URL }}
+      LILLY_SALES_RESTORE_DB_URL: ${{ secrets.LILLY_SALES_RESTORE_DB_URL }}
+      LILLY_SALES_RESTORE_PROJECT_REF: ${{ inputs.restore_project_ref }}
+      EXACT_COMMIT: ${{ inputs.exact_commit }}
+      BACKUP_AT: ${{ inputs.backup_at_utc }}
+    steps:
+      - name: Require exact default-branch commit and fresh backup
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF" == refs/heads/main ]]
+          [[ "$EXACT_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_SHA" = "$EXACT_COMMIT"
+          test -n "$LILLY_SALES_SCHEMA_ADMIN_DB_URL"
+          test -n "$LILLY_SALES_RESTORE_DB_URL"
+          python3 - <<'PY'
+          from datetime import datetime, timedelta, timezone
+          import os
+          try: at = datetime.fromisoformat(os.environ['BACKUP_AT'].replace('Z', '+00:00'))
+          except ValueError: raise SystemExit('BACKUP_TIMESTAMP_INVALID')
+          if at.tzinfo is None or not timedelta(0) <= datetime.now(timezone.utc) - at <= timedelta(hours=24):
+              raise SystemExit('FRESH_BACKUP_REQUIRED')
+          PY
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_commit }}
+          persist-credentials: false
+      - name: Compare Production and isolated restore metadata read-only
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXACT_COMMIT"
+          python3 scripts/migration/verify-isolated-restore.py

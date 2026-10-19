@@ -4,39 +4,41 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: Rehearsal is read-only; import requires a separately approved run
+        description: Rollback rehearsal or separately approved import
         required: true
         type: choice
         default: rehearsal
-        options:
-          - rehearsal
-          - import
+        options: [rehearsal, import]
       exact_commit:
-        description: Reviewed 40-character LILLY commit SHA
+        description: Reviewed 40-character LILLY commit
+        required: true
+        type: string
+      migration_sha256:
+        description: Reviewed Native Sales migration-set digest
         required: true
         type: string
       annie_export_run:
-        description: Successful private ANNIE commercial-export run ID
+        description: Fresh private ANNIE export run ID
         required: true
         type: string
       encrypted_sha256:
-        description: SHA-256 of the encrypted ANNIE artifact
+        description: SHA-256 of encrypted export
         required: true
         type: string
       rows_sha256:
-        description: SHA-256 of the normalized 334-row bundle
+        description: SHA-256 of normalized rows
         required: true
         type: string
       manifest_sha256:
-        description: SHA-256 of the normalized manifest
+        description: SHA-256 of normalized manifest
         required: true
         type: string
       source_release:
         description: Reviewed ANNIE source release
         required: true
         type: string
-      backup_completed_at_utc:
-        description: Verified restorable pre-import database backup time (ISO 8601 UTC)
+      verified_restore_run:
+        description: Successful isolated restore verification run; required for import
         required: false
         type: string
 
@@ -46,224 +48,226 @@ permissions:
   deployments: read
 
 concurrency:
-  group: native-sales-production-import
+  group: native-sales-production-migration
   cancel-in-progress: false
 
+env:
+  LILLY_SALES_TARGET_ENV: production
+  LILLY_SALES_MIGRATION_SHA256: ${{ inputs.migration_sha256 }}
+  EXPECTED_COMMIT: ${{ inputs.exact_commit }}
+  EXPORT_RUN: ${{ inputs.annie_export_run }}
+  ENCRYPTED_SHA: ${{ inputs.encrypted_sha256 }}
+  ROWS_SHA: ${{ inputs.rows_sha256 }}
+  MANIFEST_SHA: ${{ inputs.manifest_sha256 }}
+  SOURCE_RELEASE: ${{ inputs.source_release }}
+  LILLY_SUPABASE_URL: https://ruedelunbtaomhrzgelc.supabase.co
+
 jobs:
-  import:
+  schema_verify:
     runs-on: ubuntu-latest
     environment: Production
-    timeout-minutes: 45
     env:
-      LILLY_SUPABASE_URL: https://ruedelunbtaomhrzgelc.supabase.co
-      SUPABASE_TELEMETRY_DISABLED: '1'
-      EXPECTED_COMMIT: ${{ inputs.exact_commit }}
-      EXPORT_RUN: ${{ inputs.annie_export_run }}
-      ENCRYPTED_SHA: ${{ inputs.encrypted_sha256 }}
-      ROWS_SHA: ${{ inputs.rows_sha256 }}
-      MANIFEST_SHA: ${{ inputs.manifest_sha256 }}
-      SOURCE_RELEASE: ${{ inputs.source_release }}
-      BACKUP_AT: ${{ inputs.backup_completed_at_utc }}
-      IMPORT_MODE: ${{ inputs.mode }}
+      LILLY_SALES_PRODUCTION_DB_URL: ${{ secrets.LILLY_SALES_PRODUCTION_DB_URL }}
     steps:
-      - name: Verify exact release, protected environment, backup, and scoped secrets
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EXPORT_READ_TOKEN_PRESENT: ${{ secrets.ANNIE_EXPORT_READ_TOKEN }}
-          EXPORT_PRIVATE_KEY_PRESENT: ${{ secrets.ANNIE_EXPORT_PRIVATE_KEY }}
-          DB_URL_PRESENT: ${{ secrets.LILLY_SALES_PRODUCTION_DB_URL }}
-          STORAGE_KEY_PRESENT: ${{ secrets.LILLY_SUPABASE_SERVICE_ROLE_KEY }}
-        shell: bash
+      - name: Verify exact release inputs and separated limited credential
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import os, re
-          from datetime import datetime, timezone, timedelta
-          def require(ok):
-              if not ok: raise SystemExit('GUARDED_IMPORT_PRECHECK_FAILED')
-          require(re.fullmatch(r'[0-9a-f]{40}', os.environ['EXPECTED_COMMIT']) is not None)
-          require(re.fullmatch(r'[0-9]+', os.environ['EXPORT_RUN']) is not None)
-          for name in ('ENCRYPTED_SHA', 'ROWS_SHA', 'MANIFEST_SHA'):
-              require(re.fullmatch(r'[0-9a-f]{64}', os.environ[name]) is not None)
-          require(os.environ['SOURCE_RELEASE'] == '2026.10.18-lilly-sales-absorption-959be75')
-          require(os.environ['GITHUB_REF'] == 'refs/heads/main')
-          require(os.environ['IMPORT_MODE'] in ('rehearsal', 'import'))
-          require(bool(os.environ.get('DB_URL_PRESENT')))
-          require(bool(os.environ.get('STORAGE_KEY_PRESENT')))
-          if os.environ['IMPORT_MODE'] == 'import':
-              try: backup = datetime.fromisoformat(os.environ['BACKUP_AT'].replace('Z', '+00:00'))
-              except ValueError: require(False)
-              require(backup.tzinfo is not None)
-              age = datetime.now(timezone.utc) - backup.astimezone(timezone.utc)
-              require(timedelta(0) <= age <= timedelta(hours=24))
-          PY
-          test -n "$EXPORT_READ_TOKEN_PRESENT"
-          test -n "$EXPORT_PRIVATE_KEY_PRESENT"
-          approval=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/approvals" \
-            --jq '[.[] | select(.state == "approved") | .environments[]?.name | select(. == "Production")] | length' 2>/dev/null) || exit 1
-          test "$approval" -gt 0 || { echo 'PRODUCTION_RUN_APPROVAL_REQUIRED'; exit 1; }
-          echo 'GUARDED_IMPORT_PRECHECK_PASS'
-
+          [[ "$GITHUB_REF" == refs/heads/main ]]
+          [[ "$EXPECTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$LILLY_SALES_MIGRATION_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          [[ "$EXPORT_RUN" =~ ^[0-9]+$ ]]
+          for digest in "$ENCRYPTED_SHA" "$ROWS_SHA" "$MANIFEST_SHA"; do
+            [[ "$digest" =~ ^[0-9a-f]{64}$ ]]
+          done
+          test "$GITHUB_SHA" = "$EXPECTED_COMMIT"
+          test -n "$LILLY_SALES_PRODUCTION_DB_URL"
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.exact_commit }}
           persist-credentials: false
-
-      - name: Verify reviewed checkout and prepare private directory
-        shell: bash
+      - name: Verify applied schema and empty destination
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_COMMIT"
-          test -z "$(git status --porcelain)"
-          umask 077
-          mkdir -m 700 -p .local/annie-export
+          python3 scripts/migration/check_sales_database_access.py --phase data
+          python3 scripts/migration/check-native-sales-migrations.py --phase data --after
+          python3 scripts/migration/snapshot-native-sales-empty.py --phase data >/dev/null
+          curl --fail --silent --show-error --max-time 15 \
+            https://app.stratixsolutions.us/api/health >/dev/null
 
-      - name: Download exact encrypted ANNIE export privately
-        env:
-          GH_TOKEN: ${{ secrets.ANNIE_EXPORT_READ_TOKEN }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          umask 077
-          run_state=$(gh run view "$EXPORT_RUN" --repo EminatMKT/annie --json conclusion --jq .conclusion 2>/dev/null) || exit 1
-          test "$run_state" = success || { echo 'ANNIE_EXPORT_RUN_NOT_SUCCESSFUL'; exit 1; }
-          gh run download "$EXPORT_RUN" --repo EminatMKT/annie \
-            --name "annie-commercial-encrypted-$EXPORT_RUN" --dir .local/annie-export >/dev/null 2>&1 \
-            || { echo 'ANNIE_EXPORT_DOWNLOAD_FAILED'; exit 1; }
-          test "$(find .local/annie-export -type f | wc -l)" -eq 1
-          test -f .local/annie-export/commercial-export.enc
-          actual=$(sha256sum .local/annie-export/commercial-export.enc | cut -d' ' -f1)
-          test "$actual" = "$ENCRYPTED_SHA" || { echo 'ANNIE_EXPORT_CHECKSUM_MISMATCH'; exit 1; }
-
-      - name: Obtain pinned private ANNIE decryptor
-        uses: actions/checkout@v4
+  data_rehearsal:
+    needs: schema_verify
+    runs-on: ubuntu-latest
+    environment: Production
+    env:
+      LILLY_SALES_PRODUCTION_DB_URL: ${{ secrets.LILLY_SALES_PRODUCTION_DB_URL }}
+      ANNIE_EXPORT_READ_TOKEN: ${{ secrets.ANNIE_EXPORT_READ_TOKEN }}
+      ANNIE_EXPORT_PRIVATE_KEY: ${{ secrets.ANNIE_EXPORT_PRIVATE_KEY }}
+      GH_TOKEN: ${{ secrets.ANNIE_EXPORT_READ_TOKEN }}
+      PRIVATE_KEY: ${{ secrets.ANNIE_EXPORT_PRIVATE_KEY }}
+      LILLY_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.LILLY_SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_commit }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
         with:
           repository: EminatMKT/annie
           ref: 416d1648fcdf0f6cf70fcc3118a361e1dd2a968d
           path: .local/annie-source
           token: ${{ secrets.ANNIE_EXPORT_READ_TOKEN }}
           persist-credentials: false
-
-      - name: Decrypt and normalize only on the runner
-        env:
-          PRIVATE_KEY: ${{ secrets.ANNIE_EXPORT_PRIVATE_KEY }}
-        shell: bash
+      - name: Prepare verified private source
+        run: bash scripts/migration/prepare-private-annie-bundle.sh
+      - name: Rehearse all rows in a rolled-back transaction
         run: |
           set -euo pipefail
-          umask 077
-          printf '%s' "$PRIVATE_KEY" > .local/annie-export/private.pem
-          chmod 600 .local/annie-export/private.pem
-          node .local/annie-source/scripts/deploy/encrypt_commercial_export.mjs decrypt \
-            .local/annie-export/private.pem .local/annie-export/source.ndjson \
-            < .local/annie-export/commercial-export.enc >/dev/null 2>&1 \
-            || { echo 'ANNIE_EXPORT_DECRYPT_FAILED'; exit 1; }
-          unset PRIVATE_KEY
-          python3 scripts/migration/prepare-annie-sales.py \
-            .local/annie-export/source.ndjson .local/annie-export/bundle >/dev/null \
-            || { echo 'ANNIE_EXPORT_NORMALIZE_FAILED'; exit 1; }
-          test "$(sha256sum .local/annie-export/bundle/rows.ndjson | cut -d' ' -f1)" = "$ROWS_SHA"
-          test "$(sha256sum .local/annie-export/bundle/manifest.json | cut -d' ' -f1)" = "$MANIFEST_SHA"
-          test "$(wc -l < .local/annie-export/bundle/rows.ndjson)" -eq 334
           python3 scripts/migration/import-annie-sales.py .local/annie-export/bundle \
             --expected-commit "$EXPECTED_COMMIT" --expected-bundle-sha "$ROWS_SHA" \
-            --expected-manifest-sha "$MANIFEST_SHA" >/dev/null
-          python3 scripts/migration/reconcile-annie-sales.py .local/annie-export/bundle \
-            --expected-commit "$EXPECTED_COMMIT" --expected-bundle-sha "$ROWS_SHA" \
-            --expected-manifest-sha "$MANIFEST_SHA" --expected-source-release "$SOURCE_RELEASE" >/dev/null
+            --expected-manifest-sha "$MANIFEST_SHA" --expected-source-release "$SOURCE_RELEASE" \
+            --rehearse-db > "$RUNNER_TEMP/sales-rehearsal.log" 2>&1 \
+            || { echo SALES_ROLLBACK_REHEARSAL_FAILED; exit 1; }
+          python3 scripts/migration/snapshot-native-sales-empty.py --phase data >/dev/null
           python3 scripts/migration/archive-annie-membership-pdfs.py .local/annie-export/bundle \
-            >/dev/null
-          echo 'PRIVATE_BUNDLE_PREFLIGHT_PASS'
+            --rehearse-storage --expected-rows-sha256 "$ROWS_SHA" >/dev/null
+      - if: always()
+        run: rm -rf .local/annie-export .local/annie-source "$RUNNER_TEMP/sales-rehearsal.log"
 
-      - uses: supabase/setup-cli@v1
+  data_import:
+    if: inputs.mode == 'import'
+    needs: [schema_verify, data_rehearsal]
+    runs-on: ubuntu-latest
+    environment: Production
+    env:
+      LILLY_SALES_PRODUCTION_DB_URL: ${{ secrets.LILLY_SALES_PRODUCTION_DB_URL }}
+      ANNIE_EXPORT_READ_TOKEN: ${{ secrets.ANNIE_EXPORT_READ_TOKEN }}
+      ANNIE_EXPORT_PRIVATE_KEY: ${{ secrets.ANNIE_EXPORT_PRIVATE_KEY }}
+      PRIVATE_KEY: ${{ secrets.ANNIE_EXPORT_PRIVATE_KEY }}
+      RESTORE_RUN: ${{ inputs.verified_restore_run }}
+      GH_TOKEN: ${{ secrets.ANNIE_EXPORT_READ_TOKEN }}
+      WORKFLOW_TOKEN: ${{ github.token }}
+    steps:
+      - name: Require successful independent backup and isolated restore proof
+        run: |
+          set -euo pipefail
+          [[ "$RESTORE_RUN" =~ ^[0-9]+$ ]]
+          state=$(GH_TOKEN="$WORKFLOW_TOKEN" gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${RESTORE_RUN}" \
+            --jq '[.conclusion,.name,.head_sha,.event] | @tsv' 2>/dev/null) || exit 1
+          test "$state" = $'success\tNative Sales isolated restore verification\t${{ inputs.exact_commit }}\tworkflow_dispatch'
+      - uses: actions/checkout@v4
         with:
-          version: 2.106.0
-
-      - name: Verify private Storage API access without reading objects
-        env:
-          LILLY_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.LILLY_SUPABASE_SERVICE_ROLE_KEY }}
-        shell: bash
+          ref: ${{ inputs.exact_commit }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: EminatMKT/annie
+          ref: 416d1648fcdf0f6cf70fcc3118a361e1dd2a968d
+          path: .local/annie-source
+          token: ${{ secrets.ANNIE_EXPORT_READ_TOKEN }}
+          persist-credentials: false
+      - name: Prepare fresh verified source and recheck destination
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          import os
-          from urllib import request
-          key = os.environ.get('LILLY_SUPABASE_SERVICE_ROLE_KEY', '')
-          if not key:
-              raise SystemExit('STORAGE_CREDENTIAL_REQUIRED')
-          req = request.Request(
-              os.environ['LILLY_SUPABASE_URL'] + '/storage/v1/bucket',
-              headers={'apikey': key, 'Authorization': 'Bearer ' + key},
-          )
-          try:
-              with request.urlopen(req, timeout=20) as response:
-                  if response.status != 200:
-                      raise SystemExit('STORAGE_READ_ONLY_PROBE_FAILED')
-          except Exception:
-              raise SystemExit('STORAGE_READ_ONLY_PROBE_FAILED') from None
-          print('STORAGE_READ_ONLY_PROBE_PASS')
-          PY
-
-      - name: Rehearse Production connection and exact pending schema without writes
-        env:
-          LILLY_SALES_PRODUCTION_DB_URL: ${{ secrets.LILLY_SALES_PRODUCTION_DB_URL }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 scripts/migration/check-native-sales-migrations.py
-          python3 scripts/migration/snapshot-native-sales-empty.py --allow-absent \
-            > "$RUNNER_TEMP/sales-preimport-snapshot.log" 2>&1 \
-            || { echo 'SALES_PREIMPORT_SNAPSHOT_FAILED'; exit 1; }
-          supabase db push --db-url "$LILLY_SALES_PRODUCTION_DB_URL" --dry-run --yes \
-            > "$RUNNER_TEMP/sales-migration-dryrun.log" 2>&1 \
-            || { echo 'SALES_MIGRATION_DRY_RUN_FAILED'; exit 1; }
-          echo 'PRODUCTION_READ_ONLY_REHEARSAL_PASS'
-
-      - name: Apply reviewed additive native Sales schema
-        if: inputs.mode == 'import'
-        env:
-          LILLY_SALES_PRODUCTION_DB_URL: ${{ secrets.LILLY_SALES_PRODUCTION_DB_URL }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          supabase db push --db-url "$LILLY_SALES_PRODUCTION_DB_URL" --yes \
-            > "$RUNNER_TEMP/sales-migration.log" 2>&1 \
-            || { echo 'SALES_MIGRATION_FAILED'; exit 1; }
-          python3 scripts/migration/check-native-sales-migrations.py --after
-          python3 scripts/migration/snapshot-native-sales-empty.py \
-            > "$RUNNER_TEMP/sales-preimport-snapshot.log" 2>&1 \
-            || { echo 'SALES_DESTINATION_NOT_EMPTY'; exit 1; }
-          echo 'SALES_SCHEMA_APPLIED'
-
-      - name: Import, reconcile, and archive without cutover
-        if: inputs.mode == 'import'
-        env:
-          LILLY_SALES_PRODUCTION_DB_URL: ${{ secrets.LILLY_SALES_PRODUCTION_DB_URL }}
-          LILLY_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.LILLY_SUPABASE_SERVICE_ROLE_KEY }}
-          LILLY_ARCHIVE_UPLOAD_APPROVED: 'true'
-        shell: bash
+          bash scripts/migration/prepare-private-annie-bundle.sh
+          python3 scripts/migration/snapshot-native-sales-empty.py --phase data >/dev/null
+      - name: Import exactly once in one database transaction
         run: |
           set -euo pipefail
           python3 scripts/migration/import-annie-sales.py .local/annie-export/bundle \
             --expected-commit "$EXPECTED_COMMIT" --expected-bundle-sha "$ROWS_SHA" \
             --expected-manifest-sha "$MANIFEST_SHA" --expected-source-release "$SOURCE_RELEASE" \
             --execute > "$RUNNER_TEMP/sales-import.log" 2>&1 \
-            || { echo 'SALES_IMPORT_FAILED_NO_CUTOVER'; exit 1; }
+            || { echo SALES_IMPORT_FAILED_NO_CUTOVER; exit 1; }
+      - if: always()
+        run: rm -rf .local/annie-export .local/annie-source "$RUNNER_TEMP/sales-import.log"
+
+  storage_archive:
+    if: inputs.mode == 'import'
+    needs: data_import
+    runs-on: ubuntu-latest
+    environment: Production
+    env:
+      ANNIE_EXPORT_READ_TOKEN: ${{ secrets.ANNIE_EXPORT_READ_TOKEN }}
+      ANNIE_EXPORT_PRIVATE_KEY: ${{ secrets.ANNIE_EXPORT_PRIVATE_KEY }}
+      GH_TOKEN: ${{ secrets.ANNIE_EXPORT_READ_TOKEN }}
+      PRIVATE_KEY: ${{ secrets.ANNIE_EXPORT_PRIVATE_KEY }}
+      LILLY_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.LILLY_SUPABASE_SERVICE_ROLE_KEY }}
+      LILLY_ARCHIVE_UPLOAD_APPROVED: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_commit }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: EminatMKT/annie
+          ref: 416d1648fcdf0f6cf70fcc3118a361e1dd2a968d
+          path: .local/annie-source
+          token: ${{ secrets.ANNIE_EXPORT_READ_TOKEN }}
+          persist-credentials: false
+      - name: Archive only migration-owned PDF objects
+        run: |
+          set -euo pipefail
+          bash scripts/migration/prepare-private-annie-bundle.sh
+          python3 scripts/migration/archive-annie-membership-pdfs.py .local/annie-export/bundle \
+            --commit --expected-rows-sha256 "$ROWS_SHA" \
+            > "$RUNNER_TEMP/sales-archive.log" 2>&1 \
+            || { echo SALES_ARCHIVE_FAILED_NO_CUTOVER; exit 1; }
+      - if: always()
+        run: rm -rf .local/annie-export .local/annie-source "$RUNNER_TEMP/sales-archive.log"
+
+  reconciliation:
+    if: inputs.mode == 'import'
+    needs: [data_import, storage_archive]
+    runs-on: ubuntu-latest
+    environment: Production
+    env:
+      LILLY_SALES_PRODUCTION_DB_URL: ${{ secrets.LILLY_SALES_PRODUCTION_DB_URL }}
+      ANNIE_EXPORT_READ_TOKEN: ${{ secrets.ANNIE_EXPORT_READ_TOKEN }}
+      ANNIE_EXPORT_PRIVATE_KEY: ${{ secrets.ANNIE_EXPORT_PRIVATE_KEY }}
+      GH_TOKEN: ${{ secrets.ANNIE_EXPORT_READ_TOKEN }}
+      PRIVATE_KEY: ${{ secrets.ANNIE_EXPORT_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_commit }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: EminatMKT/annie
+          ref: 416d1648fcdf0f6cf70fcc3118a361e1dd2a968d
+          path: .local/annie-source
+          token: ${{ secrets.ANNIE_EXPORT_READ_TOKEN }}
+          persist-credentials: false
+      - name: Reconcile source, target, and reference integrity
+        run: |
+          set -euo pipefail
+          bash scripts/migration/prepare-private-annie-bundle.sh
           python3 scripts/migration/reconcile-annie-sales.py .local/annie-export/bundle \
             --expected-commit "$EXPECTED_COMMIT" --expected-bundle-sha "$ROWS_SHA" \
             --expected-manifest-sha "$MANIFEST_SHA" --expected-source-release "$SOURCE_RELEASE" \
             --execute > "$RUNNER_TEMP/sales-reconcile.log" 2>&1 \
-            || { echo 'SALES_RECONCILIATION_FAILED_NO_CUTOVER'; exit 1; }
-          python3 scripts/migration/archive-annie-membership-pdfs.py .local/annie-export/bundle \
-            --commit --expected-rows-sha256 "$ROWS_SHA" \
-            > "$RUNNER_TEMP/sales-archive.log" 2>&1 \
-            || { echo 'SALES_ARCHIVE_FAILED_NO_CUTOVER'; exit 1; }
-          echo 'SALES_IMPORT_RECONCILIATION_ARCHIVE_PASS_NO_CUTOVER'
+            || { echo SALES_RECONCILIATION_FAILED_NO_CUTOVER; exit 1; }
+      - if: always()
+        run: rm -rf .local/annie-export .local/annie-source "$RUNNER_TEMP/sales-reconcile.log"
 
-      - name: Remove private runner artifacts
-        if: always()
-        shell: bash
+  final_verify:
+    if: inputs.mode == 'import'
+    needs: [schema_verify, data_rehearsal, data_import, storage_archive, reconciliation]
+    runs-on: ubuntu-latest
+    environment: Production
+    env:
+      LILLY_SALES_PRODUCTION_DB_URL: ${{ secrets.LILLY_SALES_PRODUCTION_DB_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_commit }}
+          persist-credentials: false
+      - name: Verify health, migration set, and limited DB principal
         run: |
-          rm -rf .local/annie-export "$RUNNER_TEMP/sales-migration-dryrun.log" \
-            "$RUNNER_TEMP/sales-migration.log" "$RUNNER_TEMP/sales-import.log" \
-            "$RUNNER_TEMP/sales-reconcile.log" "$RUNNER_TEMP/sales-archive.log" \
-            "$RUNNER_TEMP/sales-preimport-snapshot.log"
+          set -euo pipefail
+          python3 scripts/migration/check_sales_database_access.py --phase data
+          python3 scripts/migration/check-native-sales-migrations.py --phase data --after
+          curl --fail --silent --show-error --max-time 15 \
+            https://app.stratixsolutions.us/api/health >/dev/null
