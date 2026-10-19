@@ -76,5 +76,45 @@ DO $$ DECLARE r jsonb; n jsonb; BEGIN
     RAISE EXCEPTION 'recovery failure state not durable'; END IF;
   IF (SELECT count(*) FROM public.sales_leads)<>2 THEN
     RAISE EXCEPTION 'failed recovery mutated CRM'; END IF;
+  INSERT INTO public.sales_social_oauth_states
+    (id,organization_id,requester_member_id,default_owner_member_id,state_hash,status,
+     grant_ciphertext,pages_ciphertext,grant_expires_at,granted_scopes)
+    VALUES ('80000000-0000-4000-8000-000000000001',
+      '30000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000001',
+      '40000000-0000-4000-8000-000000000001',repeat('f',64),'EXCHANGED',
+      'synthetic-sealed-grant','synthetic-sealed-pages',now()+interval '1 day',
+      '["pages_show_list","pages_manage_metadata","leads_retrieval"]'::jsonb);
+  r:=public.native_sales_complete_meta_page(
+    '80000000-0000-4000-8000-000000000001',
+    '30000000-0000-4000-8000-000000000001',
+    '40000000-0000-4000-8000-000000000001',
+    '90000000-0000-4000-8000-000000000001',
+    'qa-second-page','QA Second Page',NULL,NULL,NULL,
+    'synthetic-user-ciphertext','synthetic-page-ciphertext',now()+interval '1 day');
+  IF r->>'status'<>'READY' OR
+    (SELECT status FROM public.sales_social_oauth_states
+      WHERE id='80000000-0000-4000-8000-000000000001')<>'CONSUMED' OR
+    (SELECT grant_ciphertext FROM public.sales_social_oauth_states
+      WHERE id='80000000-0000-4000-8000-000000000001') IS NOT NULL THEN
+    RAISE EXCEPTION 'OAuth grant not consumed safely'; END IF;
+  r:=public.native_sales_mark_meta_page_subscribed(
+    '30000000-0000-4000-8000-000000000001',
+    '40000000-0000-4000-8000-000000000001',
+    (SELECT id FROM public.sales_social_assets WHERE external_asset_id='qa-second-page'));
+  IF r->>'status'<>'SUBSCRIBED' OR
+    (SELECT webhook_status FROM public.sales_social_assets
+      WHERE external_asset_id='qa-second-page')<>'SUBSCRIBED' OR
+    (SELECT count(*) FROM public.sales_history
+      WHERE action='meta.page.leadgen_subscribed')<>1 THEN
+    RAISE EXCEPTION 'Page subscription state or audit incomplete'; END IF;
+  BEGIN
+    PERFORM public.native_sales_complete_meta_page(
+      '80000000-0000-4000-8000-000000000001',
+      '30000000-0000-4000-8000-000000000001',
+      '40000000-0000-4000-8000-000000000001',
+      gen_random_uuid(),'qa-second-page','QA Second Page',NULL,NULL,NULL,
+      'synthetic-user-ciphertext','synthetic-page-ciphertext',now()+interval '1 day');
+    RAISE EXCEPTION 'OAuth grant replay accepted';
+  EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
 END $$;
 ROLLBACK;

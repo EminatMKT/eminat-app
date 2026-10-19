@@ -115,6 +115,11 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
   }, [organizationId])
 
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).has('metaState') ||
+      new URLSearchParams(window.location.search).has('metaError')) setTab('social')
+  }, [])
+
+  useEffect(() => {
     let cancelled = false
     Promise.all([request('access'), request('directory')]).then(([gate, lookup]) => {
       if (cancelled) return
@@ -387,7 +392,8 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
           <div className={s.pager}><button type="button" disabled={offset===0} onClick={() => {setSelectedLeadIds([]);setOffset(Math.max(0,offset-25))}}>Previous</button>
             <span>Page {Math.floor(offset/25)+1}</span><button type="button" disabled={nextOffset===null} onClick={() => {setSelectedLeadIds([]);setOffset(nextOffset ?? offset)}}>Next</button></div>
         </>}
-        {tab==='social' && <><NativeSocialStatus request={request} role={access.role} />
+        {tab==='social' && <><NativeSocialStatus request={request} role={access.role}
+          users={directory.users} teams={directory.teams} />
           <NativeSocialInbox request={request} /></>}
         {tab==='settings' && <div className={s.reportGrid}>
           <section className={s.panel}><h2>Team</h2>{directory.teams.map(team => <p key={team.id}>{team.name}</p>)}</section>
