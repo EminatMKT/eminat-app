@@ -184,6 +184,9 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/migration/check-native-sales-migrations.py
+          python3 scripts/migration/snapshot-native-sales-empty.py --allow-absent \
+            > "$RUNNER_TEMP/sales-preimport-snapshot.log" 2>&1 \
+            || { echo 'SALES_PREIMPORT_SNAPSHOT_FAILED'; exit 1; }
           supabase db push --db-url "$LILLY_SALES_PRODUCTION_DB_URL" --dry-run --yes \
             > "$RUNNER_TEMP/sales-migration-dryrun.log" 2>&1 \
             || { echo 'SALES_MIGRATION_DRY_RUN_FAILED'; exit 1; }
@@ -200,6 +203,9 @@ jobs:
             > "$RUNNER_TEMP/sales-migration.log" 2>&1 \
             || { echo 'SALES_MIGRATION_FAILED'; exit 1; }
           python3 scripts/migration/check-native-sales-migrations.py --after
+          python3 scripts/migration/snapshot-native-sales-empty.py \
+            > "$RUNNER_TEMP/sales-preimport-snapshot.log" 2>&1 \
+            || { echo 'SALES_DESTINATION_NOT_EMPTY'; exit 1; }
           echo 'SALES_SCHEMA_APPLIED'
 
       - name: Import, reconcile, and archive without cutover
@@ -233,4 +239,5 @@ jobs:
         run: |
           rm -rf .local/annie-export "$RUNNER_TEMP/sales-migration-dryrun.log" \
             "$RUNNER_TEMP/sales-migration.log" "$RUNNER_TEMP/sales-import.log" \
-            "$RUNNER_TEMP/sales-reconcile.log" "$RUNNER_TEMP/sales-archive.log"
+            "$RUNNER_TEMP/sales-reconcile.log" "$RUNNER_TEMP/sales-archive.log" \
+            "$RUNNER_TEMP/sales-preimport-snapshot.log"

@@ -32,8 +32,11 @@ source snapshot more than four hours old.
 
 The `rehearsal` dispatch (default) reads the Production migration history and
 tests the pending migration set with the CLI's dry-run; it performs no schema
-or customer-data writes. A separate `import` dispatch is required to apply
-the additive schema and load rows.
+or customer-data writes. It also records only aggregate existing-table and
+row counts. A separate `import` dispatch is required to apply the additive
+schema and load rows. A retry after all native Sales migrations were applied
+is permitted only while the imported destination tables remain empty; partial
+migration application or unexpected pending migrations fail closed.
 
 The workflow checks the encrypted artifact checksum before decryption; decrypts
 only on the runner; validates the 334 source rows, manifest, and PDFs; and
