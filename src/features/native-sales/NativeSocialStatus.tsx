@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import type { NativeRequest } from './NativeSalesModule'
+import { useT } from '@/shared/i18n'
 import s from './NativeSalesModule.module.css'
 
 type Integration = { id: string; provider_code: string; status: string;
@@ -15,6 +16,7 @@ type GrantPage = { id: string; name: string; tasks: string[];
 export default function NativeSocialStatus({ request, role, users, teams }: { request: NativeRequest;
   role: string; users: { memberId: string; displayName: string }[];
   teams: { id: string; name: string }[] }) {
+  const { t } = useT()
   const [integrations, setIntegrations] = useState<Integration[]>([])
   const [assets, setAssets] = useState<Asset[]>([])
   const [metaAvailable, setMetaAvailable] = useState(false)
@@ -123,13 +125,13 @@ export default function NativeSocialStatus({ request, role, users, teams }: { re
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'META_REFRESH_UNAVAILABLE') }
     finally { setBusy(false) }
   }
-  if (!canManage) return <section className={s.panel}><h2>Social</h2>
-    <p>Social connection settings are available to Sales administrators.</p></section>
+  if (!canManage) return <section className={s.panel}><h2>{t('salesNative.social')}</h2>
+    <p>{t('salesNative.socialConnectionSettingsAreAvailableToSalesAdministrators')}</p></section>
   return <div className={s.reportGrid}>
-    <section className={s.panel}><h2>Connections</h2>
-      {loading && <p role="status">Loading connections…</p>}
+    <section className={s.panel}><h2>{t('salesNative.connections')}</h2>
+      {loading && <p role="status">{t('salesNative.loadingConnections')}</p>}
       {error && <p role="alert" className={s.error}>{error}</p>}
-      {!loading && !error && integrations.length === 0 && <p>No Social connection is active.</p>}
+      {!loading && !error && integrations.length === 0 && <p>{t('salesNative.noSocialConnectionIsActive')}</p>}
       <ul className={s.breakdown}>{integrations.map(item => <li key={item.id}>
         <span>{item.provider_code} · {item.external_business_name || 'Business not selected'}</span>
         <strong>{item.status}</strong>
@@ -144,14 +146,14 @@ export default function NativeSocialStatus({ request, role, users, teams }: { re
         {item.provider_code === 'META' && ['CONNECTED', 'DEGRADED'].includes(item.status) &&
           <button type="button" disabled={busy} onClick={() => void revoke(item.id)}>
             Disconnect</button>}</li>)}</ul>
-      {!metaAvailable && <p>Meta connection is awaiting private app configuration and Page permissions.</p>}
+      {!metaAvailable && <p>{t('salesNative.metaConnectionIsAwaitingPrivateAppConfigurationAnd')}</p>}
       {metaAvailable && !grantState && <div className={s.form}>
         <label>Lead owner<select value={owner} onChange={event => setOwner(event.target.value)}>
-          <option value="">Choose an authorized Sales owner</option>
+          <option value="">{t('salesNative.chooseAnAuthorizedSalesOwner')}</option>
           {users.map(user => <option key={user.memberId} value={user.memberId}>{user.displayName}</option>)}
         </select></label>
         <label>Team<select value={team} onChange={event => setTeam(event.target.value)}>
-          <option value="">No team</option>
+          <option value="">{t('salesNative.noTeam')}</option>
           {teams.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select></label>
         <button type="button" disabled={!owner || busy} onClick={() => void start()}>
@@ -159,15 +161,15 @@ export default function NativeSocialStatus({ request, role, users, teams }: { re
       </div>}
       {grantState && <div className={s.form}>
         <label>Authorized Page<select value={selectedPage} onChange={event => setSelectedPage(event.target.value)}>
-          <option value="">Choose one Page</option>
+          <option value="">{t('salesNative.chooseOnePage')}</option>
           {pages.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select></label>
         <button type="button" disabled={!selectedPage || busy} onClick={() => void complete()}>
           Connect selected Page</button>
       </div>}
     </section>
-    <section className={s.panel}><h2>Pages and assets</h2>
-      {!loading && !error && assets.length === 0 && <p>No Page or asset is connected.</p>}
+    <section className={s.panel}><h2>{t('salesNative.pagesAndAssets')}</h2>
+      {!loading && !error && assets.length === 0 && <p>{t('salesNative.noPageOrAssetIsConnected')}</p>}
       <ul className={s.breakdown}>{assets.map(item => <li key={item.id}>
         <span>{item.display_name || item.asset_type} · {item.asset_type}</span>
         <strong>{item.status} · {item.webhook_status}</strong>

@@ -38,7 +38,10 @@ test('native Sales loads from LILLY identity with a scoped Social inbox', async 
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
   // The first-visit tour is tested separately; its mask covers Sales navigation.
-  await page.addInitScript(() => localStorage.setItem('eminat-onboarding-completed', 'true'))
+  await page.addInitScript(() => {
+    localStorage.setItem('eminat-onboarding-completed', 'true')
+    localStorage.setItem('locale', 'en')
+  })
   await page.goto('/login')
   await page.getByPlaceholder('tu@eminat.net').fill(email)
   await page.locator('input[type="password"]').fill(PASSWORD)
@@ -56,7 +59,10 @@ test('native Sales sections render at mobile width without document overflow', a
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
   await page.setViewportSize({ width: 375, height: 667 })
-  await page.addInitScript(() => localStorage.setItem('eminat-onboarding-completed', 'true'))
+  await page.addInitScript(() => {
+    localStorage.setItem('eminat-onboarding-completed', 'true')
+    localStorage.setItem('locale', 'en')
+  })
   await page.goto('/login')
   await page.getByPlaceholder('tu@eminat.net').fill(email)
   await page.locator('input[type="password"]').fill(PASSWORD)

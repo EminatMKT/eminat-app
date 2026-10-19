@@ -1,6 +1,7 @@
 'use client'
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import type { NativeRequest } from './NativeSalesModule'
+import { useT } from '@/shared/i18n'
 import s from './NativeSalesModule.module.css'
 
 type Resource = 'leads' | 'contacts' | 'accounts' | 'opportunities'
@@ -13,6 +14,7 @@ const today = () => new Date().toISOString().slice(0,10)
 export default function NativeSalesCreate({ resource, request, onSaved }: {
   resource: Resource; request: NativeRequest; onSaved: () => void
 }) {
+  const { t } = useT()
   const [name,setName] = useState('')
   const [source,setSource] = useState('manual')
   const [email,setEmail] = useState('')
@@ -75,10 +77,10 @@ export default function NativeSalesCreate({ resource, request, onSaved }: {
       {resource==='leads' && <label>Company <input maxLength={500} value={companyName} onChange={event => setCompanyName(event.target.value)} /></label>}
       {resource!=='opportunities' && <label>Source <input required={resource==='leads'} maxLength={500} value={source} onChange={event => setSource(event.target.value)} /></label>}
       {resource==='accounts' && <label>Type <select value={accountType} onChange={event => setAccountType(event.target.value as typeof accountType)}>
-        <option value="prospect">Prospect</option><option value="customer">Customer</option><option value="partner">Partner</option>
+        <option value="prospect">{t('salesNative.prospect')}</option><option value="customer">Customer</option><option value="partner">Partner</option>
       </select></label>}
       {(resource==='opportunities' || resource==='contacts') && <>
-        <label>Find Account <input value={accountQuery} onChange={event => { setAccountQuery(event.target.value);setAccountId('') }} placeholder="Search by name" /></label>
+        <label>Find Account <input value={accountQuery} onChange={event => { setAccountQuery(event.target.value);setAccountId('') }} placeholder={t('salesNative.searchByName')} /></label>
         <label>Account <select required={resource==='opportunities'} value={accountId} onChange={event => setAccountId(event.target.value)}>
           <option value="">{resource==='contacts' ? 'No primary Account' : 'Choose an Account'}</option>
           {accounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}

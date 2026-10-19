@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import type { NativeRequest } from './NativeSalesModule'
+import { useT } from '@/shared/i18n'
 import s from './NativeSalesModule.module.css'
 
 type Opportunity = { id: string; name: string; amount: string | number | null; currency: string;
@@ -16,6 +17,7 @@ const today = () => new Date().toISOString().slice(0,10)
 export default function NativeMembershipIssue({ request, role, onSaved }: {
   request: NativeRequest; role: string; onSaved: () => void
 }) {
+  const { t } = useT()
   const [opportunities,setOpportunities] = useState<Opportunity[]>([])
   const [opportunityQuery,setOpportunityQuery] = useState('')
   const [opportunityId,setOpportunityId] = useState('')
@@ -120,26 +122,26 @@ export default function NativeMembershipIssue({ request, role, onSaved }: {
     finally {setBusy(false)}
   }
 
-  return <section className={`${s.panel} ${s.form}`} aria-label="Issue membership">
-    <h2>Issue membership</h2>
-    <p>Requires previously verified payment evidence. This screen does not charge or collect money.</p>
+  return <section className={`${s.panel} ${s.form}`} aria-label={t('salesNative.issueMembership')}>
+    <h2>{t('salesNative.issueMembership')}</h2>
+    <p>{t('salesNative.requiresPreviouslyVerifiedPaymentEvidenceThisScreenDoes')}</p>
     <div className={s.formGrid}>
-      <label>Find Opportunity <input value={opportunityQuery} onChange={event => {setOpportunityQuery(event.target.value);setOpportunityId('');setPaymentId('')}} placeholder="Search by name" /></label>
+      <label>Find Opportunity <input value={opportunityQuery} onChange={event => {setOpportunityQuery(event.target.value);setOpportunityId('');setPaymentId('')}} placeholder={t('salesNative.searchByName')} /></label>
       <label>Opportunity <select required value={opportunityId} onChange={event => {setOpportunityId(event.target.value);setPaymentId('')}}>
-        <option value="">Choose an Opportunity</option>{opportunities.map(item =>
+        <option value="">{t('salesNative.chooseAnOpportunity')}</option>{opportunities.map(item =>
           <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-      <label>Find Contact <input value={contactQuery} onChange={event => {setContactQuery(event.target.value);setContactId('')}} placeholder="Search by name" /></label>
+      <label>Find Contact <input value={contactQuery} onChange={event => {setContactQuery(event.target.value);setContactId('')}} placeholder={t('salesNative.searchByName')} /></label>
       <label>Primary Contact <select required value={contactId} onChange={event => {
         const id=event.target.value;setContactId(id)
         const contact=contacts.find(item => item.id===id)
         if (contact) {const parts=contact.display_name.trim().split(/\s+/);setFirstName(parts.shift() || '');setLastName(parts.join(' '));
           setPhone(contact.phone || '');setEmail(contact.email || '')}
-      }}><option value="">Choose a Contact</option>{contacts.map(item =>
+      }}><option value="">{t('salesNative.chooseAContact')}</option>{contacts.map(item =>
         <option key={item.id} value={item.id}>{item.display_name}</option>)}</select></label>
-      <label>Plan <select value={plan} onChange={event => setPlan(event.target.value as typeof plan)}><option>ESSENTIAL</option><option>PLUS</option><option>MAX</option></select></label>
-      <label>Type <select value={membershipType} onChange={event => setMembershipType(event.target.value as typeof membershipType)}><option value="INDIVIDUAL">Individual</option><option value="FAMILY">Family</option></select></label>
+      <label>Plan <select value={plan} onChange={event => setPlan(event.target.value as typeof plan)}><option value="ESSENTIAL">{t('salesNative.essential')}</option><option value="PLUS">PLUS</option><option value="MAX">MAX</option></select></label>
+      <label>Type <select value={membershipType} onChange={event => setMembershipType(event.target.value as typeof membershipType)}><option value="INDIVIDUAL">{t('salesNative.individual')}</option><option value="FAMILY">Family</option></select></label>
       <label>Duration <select value={duration} onChange={event => setDuration(event.target.value as typeof duration)}>
-        <option value="MONTHLY">Month-to-month (two months paid up front)</option><option value="3M">3 months</option><option value="6M">6 months</option><option value="12M">12 months</option>
+        <option value="MONTHLY">{t('salesNative.monthToMonthTwoMonthsPaidUpFront')}</option><option value="3M">3 months</option><option value="6M">6 months</option><option value="12M">12 months</option>
       </select></label>
       <label>Issue date <input type="date" required value={issuedAt} onChange={event => setIssuedAt(event.target.value)} /></label>
     </div>
@@ -147,16 +149,16 @@ export default function NativeMembershipIssue({ request, role, onSaved }: {
     {selectedOpportunity && <p className={s.caption}>Opportunity amount: {selectedOpportunity.currency} {selectedOpportunity.amount ?? '—'}</p>}
     {selectedContact && <p className={s.caption}>Selected primary member: {selectedContact.display_name}</p>}
     {canConfirm && opportunityId && <form className={s.form} onSubmit={event => void recordEvidence(event)}>
-      <h3>Record verified payment evidence</h3><p>Staff attestation only; no processor or bank transaction is initiated.</p>
+      <h3>{t('salesNative.recordVerifiedPaymentEvidence')}</h3><p>Staff attestation only; no processor or bank transaction is initiated.</p>
       <div className={s.formGrid}>
         <label>Verified amount (USD) <input type="number" min="0.01" step="0.01" required value={paymentAmount} onChange={event => setPaymentAmount(event.target.value)} /></label>
         <label>Reference <input maxLength={200} value={paymentReference} onChange={event => setPaymentReference(event.target.value)} /></label>
-      </div><button type="submit" disabled={busy || !paymentAmount}>Record evidence</button>
+      </div><button type="submit" disabled={busy || !paymentAmount}>{t('salesNative.recordEvidence')}</button>
     </form>}
     <form className={s.form} onSubmit={event => void issue(event)}>
       <div className={s.formGrid}>
         <label>Payment evidence <select required value={paymentId} onChange={event => setPaymentId(event.target.value)}>
-          <option value="">Choose unused evidence</option>{payments.filter(item => !item.used).map(item =>
+          <option value="">{t('salesNative.chooseUnusedEvidence')}</option>{payments.filter(item => !item.used).map(item =>
             <option key={item.id} value={item.id}>{item.currency} {item.amount} · {item.paid_at} · {item.reference || 'No reference'}</option>)}</select></label>
         <label>First name <input required maxLength={160} value={firstName} onChange={event => setFirstName(event.target.value)} /></label>
         <label>Last name <input required maxLength={160} value={lastName} onChange={event => setLastName(event.target.value)} /></label>
@@ -164,9 +166,9 @@ export default function NativeMembershipIssue({ request, role, onSaved }: {
         <label>Email <input required type="email" maxLength={320} value={email} onChange={event => setEmail(event.target.value)} /></label>
         <label>Address <input required maxLength={1000} value={address} onChange={event => setAddress(event.target.value)} /></label>
       </div>
-      {role==='SUPERADMIN' && <label className={s.checkbox}><input type="checkbox" checked={isDemo} onChange={event => setIsDemo(event.target.checked)} />Demo QA record</label>}
+      {role==='SUPERADMIN' && <label className={s.checkbox}><input type="checkbox" checked={isDemo} onChange={event => setIsDemo(event.target.checked)} />{t('salesNative.demoQaRecord')}</label>}
       {selectedPayment && quote && !paymentMatchesQuote &&
-        <p role="alert" className={s.error}>Evidence amount does not match the membership quote.</p>}
+        <p role="alert" className={s.error}>{t('salesNative.evidenceAmountDoesNotMatchTheMembershipQuote')}</p>}
       {error && <p role="alert" className={s.error}>{error}</p>}
       <button type="submit" disabled={busy || !contactId || !paymentMatchesQuote}>{busy ? 'Saving…' : 'Issue paid membership'}</button>
     </form>

@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import type { NativeRequest } from './NativeSalesModule'
+import { useT } from '@/shared/i18n'
 import s from './NativeSalesModule.module.css'
 
 type Renewal = { id: string; status: string; plan: string; duration: string;
@@ -12,6 +13,7 @@ type Duration = 'MONTHLY'|'3M'|'6M'|'12M'
 export default function NativeMembershipRenewal({ membershipId, currentPlan, currentDuration,
   expiresAt, role, request }: { membershipId: string; currentPlan: string; currentDuration: string;
     expiresAt: string; role: string; request: NativeRequest }) {
+  const { t } = useT()
   const [requests,setRequests] = useState<Renewal[]>([])
   const [plan,setPlan] = useState<Plan>(['ESSENTIAL','PLUS','MAX'].includes(currentPlan) ? currentPlan as Plan : 'ESSENTIAL')
   const [duration,setDuration] = useState<Duration>(['MONTHLY','3M','6M','12M'].includes(currentDuration)
@@ -54,22 +56,22 @@ export default function NativeMembershipRenewal({ membershipId, currentPlan, cur
     finally {setBusy(false)}
   }
 
-  return <section className={s.recordActions} aria-label="Membership renewals">
+  return <section className={s.recordActions} aria-label={t('salesNative.membershipRenewals')}>
     <h3>Renewal · current term ends {expiresAt.slice(0,10)}</h3>
-    <p>Requests are eligible within 30 days of expiry or after expiry. Approval does not extend coverage or confirm payment.</p>
+    <p>{t('salesNative.requestsAreEligibleWithin30DaysOfExpiry')}</p>
     {requests.length>0 && <ul className={s.scheduleList}>{requests.map(item => <li key={item.id}>
       <span><strong>{item.plan} · {item.duration} · {item.status}</strong>
         <small>Requested {item.createdAt.slice(0,10)}{item.reviewedAt ? ` · Reviewed ${item.reviewedAt.slice(0,10)}` : ''}</small>
         {item.decisionNote && <small>{item.decisionNote}</small>}</span>
       {item.status==='PENDING' && canReview && <span className={s.pdfActions}>
-        <button type="button" disabled={busy} onClick={() => void decide(item.id,'APPROVED')}>Approve</button>
-        <button type="button" disabled={busy} onClick={() => void decide(item.id,'REJECTED')}>Reject</button>
+        <button type="button" disabled={busy} onClick={() => void decide(item.id,'APPROVED')}>{t('salesNative.approve')}</button>
+        <button type="button" disabled={busy} onClick={() => void decide(item.id,'REJECTED')}>{t('salesNative.reject')}</button>
       </span>}</li>)}</ul>}
     {canRequest && !requests.some(item => item.status==='PENDING') && <form className={s.form} onSubmit={event => void submit(event)}>
       <div className={s.formGrid}>
-        <label>Requested plan <select value={plan} onChange={event => setPlan(event.target.value as Plan)}><option>ESSENTIAL</option><option>PLUS</option><option>MAX</option></select></label>
+        <label>Requested plan <select value={plan} onChange={event => setPlan(event.target.value as Plan)}><option value="ESSENTIAL">{t('salesNative.essential')}</option><option value="PLUS">PLUS</option><option value="MAX">MAX</option></select></label>
         <label>Requested duration <select value={duration} onChange={event => setDuration(event.target.value as Duration)}>
-          <option value="MONTHLY">Month-to-month</option><option value="3M">3 months</option><option value="6M">6 months</option><option value="12M">12 months</option>
+          <option value="MONTHLY">{t('salesNative.monthToMonth')}</option><option value="3M">3 months</option><option value="6M">6 months</option><option value="12M">12 months</option>
         </select></label>
       </div><button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Request renewal review'}</button>
     </form>}

@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import type { NativeRequest } from './NativeSalesModule'
+import { useT } from '@/shared/i18n'
 import s from './NativeSalesModule.module.css'
 
 type HouseholdMember = { id: string; displayName: string; relationship: string; status: string; code?: string }
@@ -12,6 +13,7 @@ type Contact = { id: string; display_name: string }
 export default function NativeMembershipFamily({ membershipId, membershipType, household,
   role, request, onSaved }: { membershipId: string; membershipType: string;
     household: HouseholdMember[]; role: string; request: NativeRequest; onSaved: () => void }) {
+  const { t } = useT()
   const [requests, setRequests] = useState<FamilyRequest[]>([])
   const [contacts, setContacts] = useState<Contact[]>([])
   const [contactQuery, setContactQuery] = useState('')
@@ -75,25 +77,25 @@ export default function NativeMembershipFamily({ membershipId, membershipType, h
 
   const pending = requests.filter(item => item.status === 'PENDING').length
   const active = household.filter(item => item.status === 'ACTIVE').length
-  return <section className={s.recordActions} aria-label="Family membership">
+  return <section className={s.recordActions} aria-label={t('salesNative.familyMembership')}>
     <h3>Household · {active}/3 active · {pending} pending</h3>
     <ul className={s.scheduleList}>{household.map(member =>
       <li key={member.id}><span><strong>{member.displayName}</strong><small>{member.relationship} · {member.status} {member.code ? `· ${member.code}` : ''}</small></span></li>)}</ul>
-    {requests.length > 0 && <><h3>Family requests</h3><ul className={s.scheduleList}>{requests.map(item =>
+    {requests.length > 0 && <><h3>{t('salesNative.familyRequests')}</h3><ul className={s.scheduleList}>{requests.map(item =>
       <li key={item.id}><span><strong>{item.dependentName}</strong><small>{item.relationship} · {item.status} · {item.createdAt.slice(0,10)}</small></span>
         {item.status === 'PENDING' && canReview && <span className={s.pdfActions}>
-          <button type="button" disabled={busy} onClick={() => void decide(item.id, 'APPROVED')}>Approve</button>
-          <button type="button" disabled={busy} onClick={() => void decide(item.id, 'REJECTED')}>Reject</button>
+          <button type="button" disabled={busy} onClick={() => void decide(item.id, 'APPROVED')}>{t('salesNative.approve')}</button>
+          <button type="button" disabled={busy} onClick={() => void decide(item.id, 'REJECTED')}>{t('salesNative.reject')}</button>
         </span>}</li>)}</ul></>}
     {active + pending < 3 && <form className={s.form} onSubmit={event => void submit(event)}>
-      <h3>Request family member</h3><p>Staff approval is required. No extra charge is created.</p>
+      <h3>{t('salesNative.requestFamilyMember')}</h3><p>Staff approval is required. No extra charge is created.</p>
       <div className={s.formGrid}>
-        <label>Find Contact <input value={contactQuery} onChange={event => {setContactQuery(event.target.value); setContactId('')}} placeholder="Search by name" /></label>
+        <label>Find Contact <input value={contactQuery} onChange={event => {setContactQuery(event.target.value); setContactId('')}} placeholder={t('salesNative.searchByName')} /></label>
         <label>Contact <select required value={contactId} onChange={event => setContactId(event.target.value)}>
-          <option value="">Choose a Contact</option>{contacts.map(contact =>
+          <option value="">{t('salesNative.chooseAContact')}</option>{contacts.map(contact =>
             <option key={contact.id} value={contact.id}>{contact.display_name}</option>)}</select></label>
         <label>Relationship <select value={relationship} onChange={event => setRelationship(event.target.value as typeof relationship)}>
-          <option value="CHILD">Child</option><option value="SPOUSE">Spouse</option><option value="PARENT">Parent</option><option value="OTHER">Other</option>
+          <option value="CHILD">{t('salesNative.child')}</option><option value="SPOUSE">Spouse</option><option value="PARENT">Parent</option><option value="OTHER">Other</option>
         </select></label>
       </div><button type="submit" disabled={busy || !contactId}>{busy ? 'Saving…' : 'Request member'}</button>
     </form>}

@@ -2,6 +2,7 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '@/shared/db/supabase'
 import { importFields, type ColumnMapping, type ImportResource } from '@/server/sales-native/import-mapping'
+import { useT } from '@/shared/i18n'
 import s from './NativeSalesModule.module.css'
 
 type Preview = { sheetName: string; headers: string[]; mapping: ColumnMapping[];
@@ -14,6 +15,7 @@ type Batch = { totalReady: number; nextStart: number | null;
 export default function NativeSalesImport({ resource, organizationId, onComplete }: {
   resource: ImportResource; organizationId: string; onComplete: () => void
 }) {
+  const { t } = useT()
   const [file, setFile] = useState<File | null>(null)
   const [sheetName, setSheetName] = useState('')
   const [mapping, setMapping] = useState<ColumnMapping[] | null>(null)
@@ -80,7 +82,7 @@ export default function NativeSalesImport({ resource, organizationId, onComplete
 
   return <section className={`${s.panel} ${s.form}`} aria-label={`Import ${resource}`}>
     <h2>Import {resource === 'leads' ? 'Leads' : 'Contacts'}</h2>
-    <p className={s.hint}>CSV or XLSX, up to 4 MB and 5,000 rows. Existing email or phone matches are skipped. Assignment comes from your Sales session.</p>
+    <p className={s.hint}>{t('salesNative.csvOrXlsxUpTo4MbAnd')}</p>
     <form className={s.form} onSubmit={event => void showPreview(event)}>
       <label>File <input required type="file" accept=".csv,.xlsx" onChange={event => {
         const selected = event.target.files?.[0] ?? null
@@ -90,7 +92,7 @@ export default function NativeSalesImport({ resource, organizationId, onComplete
         setSheetName(''); setMapping(null); setPreview(null); setDone(false)
       }} /></label>
       {resource === 'leads' && <label>Default source <input maxLength={500} value={defaultSource}
-        onChange={event => { setDefaultSource(event.target.value); setMappingDirty(true) }} placeholder="Used when the file has no source" /></label>}
+        onChange={event => { setDefaultSource(event.target.value); setMappingDirty(true) }} placeholder={t('salesNative.usedWhenTheFileHasNoSource')} /></label>}
       {preview && <>
         {preview.sheets.length > 1 && <label>Sheet <select value={sheetName} onChange={event => {
           setSheetName(event.target.value); setMapping(null); setMappingDirty(true)
@@ -104,7 +106,7 @@ export default function NativeSalesImport({ resource, organizationId, onComplete
                 ...(field ? [{ column, field }] : []) ])
               setMappingDirty(true)
             }}>
-            <option value="">Ignore</option>
+            <option value="">{t('salesNative.ignore')}</option>
             {importFields(resource).map(field => <option key={field} value={field}>{field}</option>)}
           </select>
         </label>)}</div>
@@ -116,11 +118,11 @@ export default function NativeSalesImport({ resource, organizationId, onComplete
       <ul className={s.breakdown}>{preview.rows.slice(0, 20).map(row => <li key={row.rowNumber}>
         <span>Row {row.rowNumber}: {row.displayName || row.code || row.status}</span><strong>{row.status}</strong>
       </li>)}</ul>
-      {preview.rows.length > 20 && <p className={s.hint}>Showing the first 20 row results.</p>}
+      {preview.rows.length > 20 && <p className={s.hint}>{t('salesNative.showingTheFirst20RowResults')}</p>}
       <button type="button" disabled={busy || done || mappingDirty || preview.counts.ready === 0}
         onClick={() => void commit()}>{busy ? 'Importing…' : done ? 'Import complete' :
           offset ? `Resume import (${offset}/${preview.counts.ready})` : `Import ${preview.counts.ready} ready records`}</button>
-      {mappingDirty && <p className={s.hint}>Preview again to confirm the changed mapping or source.</p>}
+      {mappingDirty && <p className={s.hint}>{t('salesNative.previewAgainToConfirmTheChangedMappingOr')}</p>}
     </>}
     {(created > 0 || skipped > 0) && <p role="status">Created: {created} · Skipped existing: {skipped}</p>}
     {error && <p role="alert" className={s.error}>{error}</p>}
