@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { clientEnv } from '@/shared/db/env.client'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { salesRoles, type SalesActor, type SalesRole } from './policy'
+import { nativeSalesEnabled } from './release-gate'
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -12,6 +13,7 @@ export class NativeSalesAuthError extends Error {
 
 /** Resolves only a LILLY Supabase identity. ANNIE is never called. */
 export async function resolveSalesActor(request: Request): Promise<SalesActor> {
+  if (!nativeSalesEnabled()) throw new NativeSalesAuthError(404, 'SALES_NOT_ACTIVE')
   const authorization = request.headers.get('authorization') ?? ''
   const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : ''
   if (!token || token.length > 8192) throw new NativeSalesAuthError(401, 'AUTHENTICATION_REQUIRED')

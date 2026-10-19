@@ -1,9 +1,11 @@
 import { timingSafeEqual } from 'node:crypto'
 import { processNativeSalesReports } from '@/server/sales-native/report-delivery'
+import { nativeSalesEnabled } from '@/server/sales-native/release-gate'
 
 export const dynamic='force-dynamic'
 
 export async function GET(request:Request) {
+  if (!nativeSalesEnabled()) return Response.json({code:'NOT_FOUND'},{status:404})
   const configured=process.env.CRON_SECRET ?? ''
   const authorization=request.headers.get('authorization') ?? ''
   const token=authorization.startsWith('Bearer ') ? authorization.slice(7) : ''

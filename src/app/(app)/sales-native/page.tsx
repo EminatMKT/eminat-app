@@ -2,11 +2,13 @@ import { notFound } from 'next/navigation'
 import NativeSalesModule from '@/features/native-sales/NativeSalesModule'
 import ssrClient from '@/shared/db/requireAccess/ssrClient'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
+import { nativeSalesEnabled } from '@/server/sales-native/release-gate'
 
 export const dynamic = 'force-dynamic'
 
 /** Isolated review route. Existing /sales stays on its verified release path. */
 export default async function NativeSalesPreviewPage() {
+  if (!nativeSalesEnabled()) notFound()
   const client = ssrClient()
   const { data: { user } } = await client.auth.getUser()
   if (!user) notFound()

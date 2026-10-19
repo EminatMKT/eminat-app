@@ -15,6 +15,7 @@ describe('native Meta webhook route', () => {
   afterEach(() => { vi.unstubAllEnvs(); rpc.mockReset() })
 
   it('rejects unsigned delivery before database access', async () => {
+    vi.stubEnv('LILLY_NATIVE_SALES_ENABLED', 'true')
     vi.stubEnv('LILLY_META_APP_SECRET', secret)
     const response = await POST(new Request('https://example.invalid/api/sales-native/social/meta/webhook',
       { method: 'POST', body }))
@@ -23,6 +24,7 @@ describe('native Meta webhook route', () => {
   })
 
   it('accepts a signed synthetic Lead Ads event without returning field data', async () => {
+    vi.stubEnv('LILLY_NATIVE_SALES_ENABLED', 'true')
     vi.stubEnv('LILLY_META_APP_SECRET', secret)
     rpc.mockResolvedValue({ data: { status: 'PROCESSED', replayed: false }, error: null })
     const signature = `sha256=${createHmac('sha256', secret).update(body).digest('hex')}`
@@ -36,7 +38,16 @@ describe('native Meta webhook route', () => {
   })
 
   it('requires a configured private verification token', async () => {
+    vi.stubEnv('LILLY_NATIVE_SALES_ENABLED', 'true')
     const response = await GET(new Request('https://example.invalid/api/sales-native/social/meta/webhook?hub.mode=subscribe'))
     expect(response.status).toBe(503)
+  })
+
+  it('keeps the webhook unavailable before controlled native Sales activation', async () => {
+    vi.stubEnv('LILLY_NATIVE_SALES_ENABLED', 'false')
+    const response = await POST(new Request('https://example.invalid/api/sales-native/social/meta/webhook',
+      { method: 'POST', body }))
+    expect(response.status).toBe(404)
+    expect(rpc).not.toHaveBeenCalled()
   })
 })

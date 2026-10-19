@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { nativeSalesDatabaseError } from '@/server/sales-native/errors'
+import { nativeSalesEnabled } from '@/server/sales-native/release-gate'
 import { normalizeMetaWebhook } from '@/server/sales-native/social/meta-normalize'
 import { verifyMetaChallenge, verifyMetaWebhookSignature } from '@/server/sales-native/social/meta-verification'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
@@ -11,6 +12,7 @@ const fail = (code: string, status: number) =>
   Response.json({ code }, { status, headers: { 'Cache-Control': 'no-store' } })
 
 export async function GET(request: Request) {
+  if (!nativeSalesEnabled()) return fail('NOT_FOUND', 404)
   const token = process.env.LILLY_META_VERIFY_TOKEN
   if (!token || token.length < 16) return fail('META_NOT_CONFIGURED', 503)
   const params = new URL(request.url).searchParams
@@ -23,6 +25,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (!nativeSalesEnabled()) return fail('NOT_FOUND', 404)
   const secret = process.env.LILLY_META_APP_SECRET
   if (!secret || secret.length < 16) return fail('META_NOT_CONFIGURED', 503)
   const claimed = Number(request.headers.get('content-length'))
