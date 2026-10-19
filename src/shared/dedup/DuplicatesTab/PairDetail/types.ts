@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { CompareControls, Props as TabProps } from '../types'
 import type {
   CLOSE_CONFIRM,
@@ -16,6 +17,8 @@ export type Props<T> = Pick<TabProps<T>, 'renderResumen' | 'renderComparacion'> 
   errorDescarte: boolean
   errorFusion: boolean
   controls: CompareControls
+  /** What the merge will save, drawn by the caller below its grid; absent, nothing is drawn. */
+  preview?: ReactNode
   onCancelar: () => void
   onNotSame: () => void
   onKeepSeparate: (nota: string) => void

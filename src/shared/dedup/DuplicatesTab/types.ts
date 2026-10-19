@@ -9,16 +9,18 @@ export type Props<T> = {
   renderResumen: (item: T) => string
   /** The caller's grid for the open pair; `controls` carries every pick and uncheck back. */
   renderComparacion: (a: T, b: T, controls: CompareControls) => ReactNode
-  /** The full merge values for `a` (the winner) and `b`: every column that differs resolved,
-   *  with the reviewer's clicks in `elecciones` overriding the caller's default pick, and the
-   *  loser child rows the reviewer unchecked, so a value they dropped is never written back
-   *  through a scalar column. */
+  /** The full merge values for `a` (the winner) and `b`: every differing column resolved, the
+   *  clicks in `elecciones` over the caller's default pick, and the unchecked loser rows, so a
+   *  value the reviewer dropped is never written back through a scalar column. */
   construirValoresFinales: (
     a: T,
     b: T,
     elecciones: Record<string, string>,
     excludedIds: string[],
   ) => Record<string, unknown>
+  /** Draws what the merge will save, from the very values `construirValoresFinales` hands the
+   *  RPC, live as picks change. Optional: without it the open pair shows no preview. */
+  renderPreview?: (valoresFinales: Record<string, unknown>) => ReactNode
   /** One batched read of every pending id's display name, for the list rows. */
   loadSummaries: LoadSummaries
 }

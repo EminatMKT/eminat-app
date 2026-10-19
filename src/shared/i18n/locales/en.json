@@ -1367,5 +1367,6 @@
   "dedup.discardChoicesConfirm": "Discard",
   "dedup.nameLoading": "Loading name…",
   "dedup.nameUnavailable": "Name unavailable",
-  "dedup.openPairAria": "Compare {a} with {b}"
+  "dedup.openPairAria": "Compare {a} with {b}",
+  "dedup.willBeSaved": "Will be saved"
 }

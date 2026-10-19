@@ -27,11 +27,14 @@ vi.mock('@/shared/components/ui/Modal', () => ({ default: (props: Seen) => { see
 
 const onCancelar = vi.fn()
 const NO_CHOICES: Record<string, string> = {}
+const NO_PREVIEW: ReactNode = null
+const PREVIEW = 'the-preview'
 const DEFAULT_OPEN_OPTIONS = {
   ocupado: false,
   errorDescarte: false,
   errorFusion: false,
   choices: NO_CHOICES,
+  preview: NO_PREVIEW,
 }
 
 const open = ({
@@ -39,6 +42,7 @@ const open = ({
   errorDescarte = false,
   errorFusion = false,
   choices = NO_CHOICES,
+  preview = NO_PREVIEW,
 }: Partial<typeof DEFAULT_OPEN_OPTIONS> = DEFAULT_OPEN_OPTIONS) => {
   seen.length = 0
   const controls = {
@@ -51,7 +55,7 @@ const open = ({
     <PairDetail itemA={{ name: 'Ana Winner' }} itemB={{ name: 'Bea Loser' }} ocupado={ocupado}
       errorDescarte={errorDescarte} errorFusion={errorFusion}
       renderResumen={item => item.name} renderComparacion={() => 'the-grid'} controls={controls}
-      onCancelar={onCancelar} onNotSame={vi.fn()} onKeepSeparate={vi.fn()} onFusionar={vi.fn()} />,
+      preview={preview} onCancelar={onCancelar} onNotSame={vi.fn()} onKeepSeparate={vi.fn()} onFusionar={vi.fn()} />,
   )
   return seen[0]
 }
@@ -89,6 +93,15 @@ describe('PairDetail', () => {
     const positions = order.map(needle => body.indexOf(needle))
     expect(positions.every(p => p >= 0)).toBe(true)
     expect([...positions].sort((left, right) => left - right)).toEqual(positions)
+  })
+
+  it('shows what the merge will save right below the grid', () => {
+    const body = markup(open({ preview: PREVIEW }).children)
+    expect(body.indexOf(PREVIEW)).toBeGreaterThan(body.indexOf('the-grid'))
+  })
+
+  it('draws nothing past the grid when no preview is given', () => {
+    expect(markup(open().children).endsWith('the-grid')).toBe(true)
   })
 
   it('shows each failure with its own copy', () => {

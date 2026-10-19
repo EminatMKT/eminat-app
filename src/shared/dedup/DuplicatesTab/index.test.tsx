@@ -7,6 +7,8 @@ import {
 } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import type { Pendiente } from '@/shared/dedup/types'
+import type { Props } from './types'
+import type { Props as PairProps } from './PairDetail/types'
 import DuplicatesTab from './index'
 import pendienteFixture from './pendienteFixture'
 
@@ -23,11 +25,21 @@ const fallas = vi.hoisted(() => {
     pendientes,
     summaries,
     namesLoading: false,
+    abierto: false,
   }
   return state
 })
 vi.mock('./useListaDuplicados', () => ({ default: listaStub }))
 vi.mock('./useAbrirPendiente', () => ({ default: parStub }))
+
+// `PairDetail` has its own suite; here only the preview it is handed matters.
+const pairSeen = vi.hoisted(() => {
+  const calls: Partial<PairProps<Item>>[] = []
+  return calls
+})
+vi.mock('./PairDetail', () => ({
+  default: (props: Partial<PairProps<Item>>) => { pairSeen.push(props); return null },
+}))
 
 function listaStub() {
   const lista = {
@@ -43,10 +55,11 @@ function listaStub() {
 }
 
 function parStub() {
+  const open = fallas.abierto
   const par = {
-    abierto: null,
-    itemA: null,
-    itemB: null,
+    abierto: open ? pendienteFixture() : null,
+    itemA: open ? WINNER : null,
+    itemB: open ? LOSER : null,
     elecciones: {},
     excludedIds: [],
     onToggleExcluded: () => {},
@@ -66,18 +79,25 @@ function parStub() {
 
 type Item = { id: string }
 
+const WINNER: Item = { id: 'a' }
+const LOSER: Item = { id: 'b' }
 const anaOnly = { a: 'Ana Lopez' }
+const NO_EXTRA: Partial<Props<Item>> = {}
+const mergeValues = (a: Item, b: Item) => ({ kept: a.id, merged: b.id })
+const previewOf = (values: Record<string, unknown>) => JSON.stringify(values)
 
-const renderTab = () => renderToStaticMarkup(
+const renderTab = (extra = NO_EXTRA) => renderToStaticMarkup(
   <DuplicatesTab<Item>
     entidad="pacientes"
     cargarItem={async id => ({ id })}
     renderResumen={item => item.id}
     renderComparacion={() => null}
-    construirValoresFinales={() => ({})}
+    construirValoresFinales={mergeValues}
     loadSummaries={async () => ({})}
+    {...extra}
   />,
 )
+const PREVIEW_PROPS: Partial<Props<Item>> = { renderPreview: previewOf }
 
 describe('DuplicatesTab', () => {
   beforeEach(() => {
@@ -86,6 +106,21 @@ describe('DuplicatesTab', () => {
     fallas.pendientes = []
     fallas.summaries = {}
     fallas.namesLoading = false
+    fallas.abierto = false
+    pairSeen.length = 0
+  })
+
+  // The preview reads the same `construirValoresFinales` the merge sends, so it cannot drift.
+  it('hands the open pair a preview of exactly the values the merge would save', () => {
+    fallas.abierto = true
+    renderTab(PREVIEW_PROPS)
+    expect(pairSeen[0].preview).toBe(previewOf(mergeValues(WINNER, LOSER)))
+  })
+
+  it('hands the open pair no preview when the caller draws none', () => {
+    fallas.abierto = true
+    renderTab()
+    expect(pairSeen[0].preview).toBeNull()
   })
 
   it('shows the empty state before any pair has loaded', () => {

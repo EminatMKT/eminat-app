@@ -22,7 +22,7 @@ import type { OpenDialog, Props } from './types'
  *  the body; the four decisions stay in the fixed footer, always in view. */
 export default function PairDetail<T>(props: Props<T>) {
   const { itemA, itemB, ocupado, errorDescarte, errorFusion, renderResumen, renderComparacion } = props
-  const { controls, onCancelar, onNotSame, onKeepSeparate, onFusionar } = props
+  const { controls, preview, onCancelar, onNotSame, onKeepSeparate, onFusionar } = props
   const { t } = useT()
   const [dialog, setDialog] = useState<OpenDialog>(null)
   const dirty = Object.keys(controls.choices).length > 0 || controls.excludedIds.length > 0
@@ -58,6 +58,7 @@ export default function PairDetail<T>(props: Props<T>) {
         {errorDescarte && <WarningCallout message={t('dedup.discardFailed')} />}
         {errorFusion && <WarningCallout message={t('dedup.mergeFailed')} />}
         {renderComparacion(itemA, itemB, controls)}
+        {preview}
       </Modal>
       <PairDialogs
         dialog={dialog}

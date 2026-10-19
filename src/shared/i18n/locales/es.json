@@ -1367,5 +1367,6 @@
   "dedup.discardChoicesConfirm": "Descartar",
   "dedup.nameLoading": "Cargando nombre…",
   "dedup.nameUnavailable": "Nombre no disponible",
-  "dedup.openPairAria": "Comparar {a} frente a {b}"
+  "dedup.openPairAria": "Comparar {a} frente a {b}",
+  "dedup.willBeSaved": "Se guardará"
 }
