@@ -59,5 +59,22 @@ DO $$ DECLARE r jsonb; n jsonb; BEGIN
     RAISE EXCEPTION 'pending lead retry failed'; END IF;
   IF (SELECT count(*) FROM public.sales_history WHERE action='meta.webhook.accepted')<>4 THEN
     RAISE EXCEPTION 'social event audit incomplete or duplicated'; END IF;
+  n:='{"externalLeadId":"qa-recovery-lease","pageId":"qa-page","fields":null}'::jsonb;
+  r:=public.native_sales_receive_social_event('qa-page','leadgen:qa-recovery-lease','leadgen',
+    now(),n,repeat('e',64),gen_random_uuid(),gen_random_uuid());
+  IF r->>'status'<>'RETRY' THEN RAISE EXCEPTION 'recovery lease fixture failed'; END IF;
+  UPDATE public.sales_social_webhook_receipts SET next_retry_at=now()-interval '1 second'
+    WHERE external_event_id='leadgen:qa-recovery-lease';
+  IF (SELECT count(*) FROM public.native_sales_claim_social_leads(10))<>1 THEN
+    RAISE EXCEPTION 'recovery claim failed'; END IF;
+  IF (SELECT count(*) FROM public.native_sales_claim_social_leads(10))<>0 THEN
+    RAISE EXCEPTION 'recovery lease duplicated'; END IF;
+  IF public.native_sales_fail_social_lead(
+    (SELECT id FROM public.sales_social_webhook_receipts
+      WHERE external_event_id='leadgen:qa-recovery-lease'),
+    'META_LEAD_FETCH_FAILED')<>'RETRY' THEN
+    RAISE EXCEPTION 'recovery failure state not durable'; END IF;
+  IF (SELECT count(*) FROM public.sales_leads)<>2 THEN
+    RAISE EXCEPTION 'failed recovery mutated CRM'; END IF;
 END $$;
 ROLLBACK;

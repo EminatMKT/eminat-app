@@ -37,6 +37,8 @@ test.afterAll(async () => {
 test('native Sales loads from LILLY identity with a scoped Social inbox', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
+  // The first-visit tour is tested separately; its mask covers Sales navigation.
+  await page.addInitScript(() => localStorage.setItem('eminat-onboarding-completed', 'true'))
   await page.goto('/login')
   await page.getByPlaceholder('tu@eminat.net').fill(email)
   await page.locator('input[type="password"]').fill(PASSWORD)
