@@ -10,18 +10,20 @@ import native_sales_binding_rpc as binding
 
 
 class BindingRpcTest(unittest.TestCase):
-    def run_binding(self, response, binding_name='seller', phase='check'):
-        with patch.dict(os.environ, {'LILLY_SUPABASE_SERVICE_ROLE_KEY': 'test-only-key'}), \
+    def run_binding(self, response, binding_name='seller', phase='check', key='eyJ.test-only-key'):
+        with patch.dict(os.environ, {'LILLY_SUPABASE_SERVICE_ROLE_KEY': key}), \
              patch.object(sys, 'argv', ['binding', '--binding', binding_name, '--phase', phase]), \
              patch.object(binding.request, 'urlopen', return_value=io.BytesIO(json.dumps(response).encode())) as open_url:
             binding.main()
         req = open_url.call_args.args[0]
         self.assertEqual(req.full_url, binding.URL)
         self.assertEqual(json.loads(req.data), {'requested_binding': binding_name, 'action': phase})
-        self.assertEqual(req.get_header('Authorization'), 'Bearer test-only-key')
+        self.assertEqual(req.get_header('Apikey'), key)
+        self.assertEqual(req.get_header('Authorization'), None if key.startswith('sb_secret_') else f'Bearer {key}')
 
     def test_only_exact_result_is_accepted(self):
         self.run_binding('NATIVE_SALES_BINDING_CHECK_PASS')
+        self.run_binding('NATIVE_SALES_BINDING_CHECK_PASS', key='sb_secret_test-only-key')
         with self.assertRaisesRegex(ValueError, 'RESULT_INVALID'):
             self.run_binding('NATIVE_SALES_BINDING_APPLY_PASS')
 
