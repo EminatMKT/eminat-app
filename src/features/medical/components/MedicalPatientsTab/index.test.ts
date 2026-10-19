@@ -24,7 +24,7 @@ const stubs = vi.hoisted(() => ({
 
 vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key }) }))
 vi.mock('@/shared/hooks', () => ({ useTabPreference: () => [stubs.view.current, vi.fn()] }))
-vi.mock('@/shared/components/ui', () => ({ TabBar: (props: StubProps) => props.children, TabButton: stubs.tabButton }))
+vi.mock('@/shared/components/ui', () => ({ ColorBadge: () => null, TabBar: (props: StubProps) => props.children, TabButton: stubs.tabButton }))
 vi.mock('../PacientesTab', () => ({ default: stubs.patientList }))
 vi.mock('../MedicalDuplicatesTab', () => ({ default: stubs.duplicates }))
 vi.mock('./usePendingDuplicateCount', () => ({ default: stubs.pendingCount }))

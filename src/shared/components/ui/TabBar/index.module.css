@@ -1,8 +1,15 @@
-/* La barra de sub-vistas: la línea de pestañas bajo el encabezado. Antes cada módulo la
-   redibujaba con el mismo `display:flex; gap:4; borderBottom` (Stratix, Requests, Admin). */
+/* The sub-view bar: the tab line under the header. Every module used to redraw it with the
+   same `display:flex; gap:4; borderBottom` (Stratix, Requests, Admin). */
 .bar {
   display: flex;
-  gap: 4px;
-  margin-bottom: 18px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.125rem;
   border-bottom: 1px solid var(--c-border);
+}
+
+/* The gap lives here so it spaces the tabs only, never the tabs from the trailing slot. */
+.tabs {
+  display: flex;
+  gap: 0.25rem;
 }

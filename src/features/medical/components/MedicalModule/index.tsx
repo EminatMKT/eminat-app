@@ -1,11 +1,9 @@
 'use client'
 import { useState } from 'react'
 import { useApp } from '@/shared/context/AppContext'
-import { useT } from '@/shared/i18n'
 import AppShell from '@/shared/components/shell/AppShell'
 import AccessDenied from '@/shared/components/access/AccessDenied'
 import { PageTransition } from '@/shared/motion'
-import { useMedicalStyles } from '@/features/medical/hooks/useMedicalStyles'
 import { MedicalProvider } from '../MedicalContext'
 import DashboardTab from '../DashboardTab'
 import MedicalPatientsTab from '../MedicalPatientsTab'
@@ -27,8 +25,6 @@ import MEDICAL_TABS from '@/features/medical/constants/tabs'
 // activa. Medical no tiene sub-vistas, así que se queda sin barra horizontal.
 export default function MedicalModule() {
   const { modules } = useApp()
-  const { t } = useT()
-  const { hipaaShield } = useMedicalStyles()
   const [tab, setTab] = useTabPreference<string>(MODULE.MEDICAL, MEDICAL_TABS.defaultSection, MEDICAL_TABS.sections)
   const [modalPaciente, setModalPaciente] = useState(false)
   const [modalImportPacientes, setModalImportPacientes] = useState(false)
@@ -41,12 +37,6 @@ export default function MedicalModule() {
     <AppShell activeTab={tab} onTabChange={setTab}>
       <PageTransition>
         <MedicalProvider>
-          {/* El sello de cumplimiento no era parte de la navegación: vivía en la
-              misma fila que las tabs y se queda, ahora solo. */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 18 }}>
-            <div style={hipaaShield}>🛡️ {t('med.hipaaCompliant')}</div>
-          </div>
-
           {tab === 'dashboard' && <DashboardTab />}
           {tab === 'pacientes' && <MedicalPatientsTab onNewPatient={() => setModalPaciente(true)} onImportPatients={() => setModalImportPacientes(true)} />}
           {tab === 'citas' && <CitasTab onNewCita={() => setModalCita(true)} />}
