@@ -36,6 +36,7 @@ export default function PairDetail<T>(props: Props<T>) {
     setDialog(null)
     if (note) onKeepSeparate(note)
   }
+  const confirmDiscard = () => { setDialog(null); onCancelar() }
   const actions = <>
     <Button kind="cancel" onClick={requestClose} deshabilitado={ocupado} />
     <Button kind="notSame" onClick={onNotSame} ocupado={ocupado} />
@@ -61,7 +62,7 @@ export default function PairDetail<T>(props: Props<T>) {
       <PairDialogs
         dialog={dialog}
         onConfirmNote={confirmNote}
-        onConfirmDiscard={onCancelar}
+        onConfirmDiscard={confirmDiscard}
         onClose={() => setDialog(null)}
       />
     </>
@@ -69,4 +70,3 @@ export default function PairDetail<T>(props: Props<T>) {
 }
 
 // Composes `Modal` with `ColorBadge`/`Button`/`WarningCallout`/`PairDialogs`: no markup of its own.
-// Confirming the discard just closes the pair; unmounting resets the secondary dialog's state.
