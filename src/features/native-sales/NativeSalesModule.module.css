@@ -15,6 +15,7 @@
 .metric{padding:18px}.metric p{margin:0 0 8px;color:#527175}.metric strong{font-size:1.8rem}
 .reportGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.panel{padding:20px}.panel h2{margin:0 0 14px;font-size:1.1rem}.panel p{margin:6px 0}
 .breakdown{list-style:none;margin:0;padding:0}.breakdown li{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid #edf2f1}.breakdown li:last-child{border:0}
+.socialText{display:grid;gap:3px;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap}.socialText small{color:#587378}
 .caption,.hint{color:#587378;font-size:.85rem}.hint{margin:0 0 8px}
 .filters{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:16px}.filters label{display:grid;gap:5px;font-size:.85rem;font-weight:700}.filters input,.filters select{min-height:40px;border:1px solid #b9d4d2;border-radius:8px;padding:8px 10px;min-width:180px;max-width:100%}
 .list{display:grid;gap:8px}.item{width:100%;text-align:left;display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 16px;cursor:pointer;color:inherit}.item:hover,.pipelineCard:hover{border-color:#67aaa1;background:#f8fcfb}.item span:first-child{min-width:0}.item strong,.item small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.item small,.meta{font-size:.8rem;color:#587378}.meta{text-align:right;flex-shrink:0}
