@@ -42,8 +42,8 @@ class BindingRpcTest(unittest.TestCase):
         self.assertEqual(binding.http_diagnostic(exc), 'NATIVE_SALES_BINDING_RPC_HTTP_401_CODE_UNKNOWN')
 
     def test_unsupported_key_type_fails_before_network(self):
-        with patch.dict(os.environ, {'LILLY_SUPABASE_SERVICE_ROLE_KEY': 'sb_publishable_test'}), \\
-             patch.object(sys, 'argv', ['binding', '--binding', 'seller', '--phase', 'check']), \\
+        with patch.dict(os.environ, {'LILLY_SUPABASE_SERVICE_ROLE_KEY': 'sb_publishable_test'}), \
+             patch.object(sys, 'argv', ['binding', '--binding', 'seller', '--phase', 'check']), \
              patch.object(binding.request, 'urlopen') as open_url:
             with self.assertRaisesRegex(binding.BindingFailure, 'UNSUPPORTED_PROTECTED_SERVICE_KEY_TYPE'):
                 binding.main()
