@@ -8,7 +8,7 @@ export default defineConfig({
   // Next.js fija jsx:"preserve" en tsconfig → forzamos runtime automático para importar .tsx.
   oxc: { jsx: { runtime: 'automatic' } },
   // tsconfig usa "@/*": ["./src/*"]; replicamos el alias para Vitest.
-  resolve: { alias: { '@': `${root}/src` } },
+  resolve: { alias: { '@': `${root}/src`, 'server-only': `${root}/src/test/server-only.ts` } },
   // env.client.ts valida con zod al importar; dummies para que los módulos carguen (igual que CI).
   test: {
     // e2e/ son specs de Playwright (otro runner) — vitest no debe tocarlos.

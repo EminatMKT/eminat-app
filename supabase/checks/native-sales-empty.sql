@@ -96,4 +96,12 @@ SELECT
   AND has_function_privilege('service_role', 'public.native_sales_update_opportunity(uuid,uuid,uuid,integer,jsonb,uuid)', 'EXECUTE')
   AND NOT has_function_privilege('authenticated', 'public.native_sales_bulk_reassign_leads(uuid,uuid,jsonb,uuid,uuid,uuid)', 'EXECUTE')
   AND has_function_privilege('service_role', 'public.native_sales_bulk_reassign_leads(uuid,uuid,jsonb,uuid,uuid,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_report_schedules(uuid,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_report_schedules(uuid,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_save_report_schedule(uuid,uuid,uuid,integer,text,text[],boolean,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_save_report_schedule(uuid,uuid,uuid,integer,text,text[],boolean,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_claim_due_reports(timestamptz,integer)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_claim_due_reports(timestamptz,integer)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_finish_report_delivery(uuid,uuid,text,text,text)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_finish_report_delivery(uuid,uuid,text,text,text)', 'EXECUTE')
   AS safe_native_sales_schema;

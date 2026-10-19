@@ -16,6 +16,7 @@ export async function GET(request: Request) {
         canReadAudit: salesCan(actor, 'sales:audit'),
         canReadPayments: salesCan(actor, 'sales:payments:read'),
         canManageSocial: salesCan(actor, 'sales:social:manage'),
+        canConfigureReports: salesCan(actor, 'sales:configuration'),
       },
     }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) { return nativeSalesErrorResponse(error) }

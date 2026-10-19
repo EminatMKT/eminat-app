@@ -4,11 +4,12 @@ import AppShell from '@/shared/components/shell/AppShell'
 import { supabase } from '@/shared/db/supabase'
 import NativeSalesCreate from './NativeSalesCreate'
 import NativeSalesRecordActions from './NativeSalesRecordActions'
+import NativeReportSchedules from './NativeReportSchedules'
 import s from './NativeSalesModule.module.css'
 
 type Tab = 'dashboard' | 'leads' | 'contacts' | 'accounts' | 'opportunities' |
   'pipeline' | 'activities' | 'memberships' | 'reports' | 'social' | 'settings'
-type Access = { allowed: boolean; role: string; capabilities: { canWrite: boolean; canReassign: boolean } }
+type Access = { allowed: boolean; role: string; capabilities: { canWrite: boolean; canReassign: boolean; canConfigureReports:boolean } }
 type Person = { memberId: string; displayName: string; role: string; teamIds: string[] }
 type Team = { id: string; name: string }
 type Stage = { id: string; code: string; name: string; position: number; outcome: string; pipelineId: string }
@@ -367,6 +368,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
         {tab==='settings' && <div className={s.reportGrid}>
           <section className={s.panel}><h2>Team</h2>{directory.teams.map(team => <p key={team.id}>{team.name}</p>)}</section>
           <section className={s.panel}><h2>People</h2>{directory.users.map(user => <p key={user.memberId}>{user.displayName} · {user.role}</p>)}</section>
+          {access.capabilities.canConfigureReports && <NativeReportSchedules request={request} />}
         </div>}
         {selected && <div className={s.overlay} role="presentation" onMouseDown={event => { if (event.target===event.currentTarget) setSelected(null) }}>
           <section className={s.detail} role="dialog" aria-modal="true" aria-label={title(selected)}>
