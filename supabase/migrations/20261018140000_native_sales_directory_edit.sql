@@ -21,14 +21,25 @@ BEGIN
     OR p_expected_version IS NULL OR p_expected_version<1 OR p_request_id IS NULL
     OR p_patch IS NULL OR jsonb_typeof(p_patch)<>'object' OR p_patch='{}'::jsonb
     OR EXISTS (SELECT 1 FROM jsonb_object_keys(p_patch) AS key
-      WHERE key NOT IN ('displayName','name','email','phone','source','type','primaryAccountId'))
-    OR (p_resource='contacts' AND (p_patch ? 'name' OR p_patch ? 'type'))
-    OR (p_resource='accounts' AND (p_patch ? 'displayName' OR p_patch ? 'primaryAccountId'))
+      WHERE key NOT IN ('displayName','name','email','phone','source','type','primaryAccountId',
+        'firstName','lastName','title','address','description','doNotCall','doNotEmail',
+        'dateOfBirth','insurance','corazonSalud','plan','product','nextAction',
+        'nextFollowUpAt','tradeName','website','industry','billingAddress','shippingAddress'))
+    OR (p_resource='contacts' AND EXISTS (SELECT 1 FROM jsonb_object_keys(p_patch) AS key
+      WHERE key IN ('name','type','tradeName','website','industry','billingAddress','shippingAddress')))
+    OR (p_resource='accounts' AND EXISTS (SELECT 1 FROM jsonb_object_keys(p_patch) AS key
+      WHERE key IN ('displayName','primaryAccountId','firstName','lastName','title',
+        'address','doNotCall','doNotEmail','dateOfBirth','insurance','corazonSalud',
+        'plan','product','nextAction')))
     OR (p_patch ? 'displayName' AND length(btrim(coalesce(p_patch->>'displayName',''))) NOT BETWEEN 1 AND 500)
     OR (p_patch ? 'name' AND length(btrim(coalesce(p_patch->>'name',''))) NOT BETWEEN 1 AND 500)
     OR length(coalesce(p_patch->>'email',''))>320
     OR length(coalesce(p_patch->>'phone',''))>80
     OR length(coalesce(p_patch->>'source',''))>500
+    OR length(coalesce(p_patch->>'description',''))>10000
+    OR (p_patch ? 'address' AND jsonb_typeof(p_patch->'address') NOT IN ('object','null'))
+    OR (p_patch ? 'billingAddress' AND jsonb_typeof(p_patch->'billingAddress') NOT IN ('object','null'))
+    OR (p_patch ? 'shippingAddress' AND jsonb_typeof(p_patch->'shippingAddress') NOT IN ('object','null'))
     OR (p_patch ? 'type' AND p_patch->>'type' NOT IN ('prospect','customer','partner')) THEN
     RAISE EXCEPTION 'INVALID_REQUEST' USING ERRCODE='22023';
   END IF;
@@ -76,8 +87,22 @@ BEGIN
     END IF;
     UPDATE public.sales_contacts SET
       display_name=CASE WHEN p_patch ? 'displayName' THEN btrim(p_patch->>'displayName') ELSE display_name END,
+      first_name=CASE WHEN p_patch ? 'firstName' THEN p_patch->>'firstName' ELSE first_name END,
+      last_name=CASE WHEN p_patch ? 'lastName' THEN p_patch->>'lastName' ELSE last_name END,
+      title=CASE WHEN p_patch ? 'title' THEN p_patch->>'title' ELSE title END,
       email=CASE WHEN p_patch ? 'email' THEN p_patch->>'email' ELSE email END,
       phone=CASE WHEN p_patch ? 'phone' THEN p_patch->>'phone' ELSE phone END,
+      address=CASE WHEN p_patch ? 'address' THEN nullif(p_patch->'address','null'::jsonb) ELSE address END,
+      description=CASE WHEN p_patch ? 'description' THEN p_patch->>'description' ELSE description END,
+      do_not_call=CASE WHEN p_patch ? 'doNotCall' THEN (p_patch->>'doNotCall')::boolean ELSE do_not_call END,
+      do_not_email=CASE WHEN p_patch ? 'doNotEmail' THEN (p_patch->>'doNotEmail')::boolean ELSE do_not_email END,
+      date_of_birth=CASE WHEN p_patch ? 'dateOfBirth' THEN (p_patch->>'dateOfBirth')::date ELSE date_of_birth END,
+      insurance=CASE WHEN p_patch ? 'insurance' THEN p_patch->>'insurance' ELSE insurance END,
+      corazon_salud=CASE WHEN p_patch ? 'corazonSalud' THEN (p_patch->>'corazonSalud')::boolean ELSE corazon_salud END,
+      plan=CASE WHEN p_patch ? 'plan' THEN p_patch->>'plan' ELSE plan END,
+      product=CASE WHEN p_patch ? 'product' THEN p_patch->>'product' ELSE product END,
+      next_action=CASE WHEN p_patch ? 'nextAction' THEN p_patch->>'nextAction' ELSE next_action END,
+      next_follow_up_at=CASE WHEN p_patch ? 'nextFollowUpAt' THEN (p_patch->>'nextFollowUpAt')::timestamptz ELSE next_follow_up_at END,
       source=CASE WHEN p_patch ? 'source' THEN p_patch->>'source' ELSE source END,
       primary_account_id=CASE WHEN p_patch ? 'primaryAccountId' THEN v_account_id ELSE primary_account_id END,
       version=version+1,updated_by=p_actor_member_id,updated_at=now()
@@ -90,8 +115,15 @@ BEGIN
   ELSE
     UPDATE public.sales_accounts SET
       name=CASE WHEN p_patch ? 'name' THEN btrim(p_patch->>'name') ELSE name END,
+      trade_name=CASE WHEN p_patch ? 'tradeName' THEN p_patch->>'tradeName' ELSE trade_name END,
+      website=CASE WHEN p_patch ? 'website' THEN p_patch->>'website' ELSE website END,
+      industry=CASE WHEN p_patch ? 'industry' THEN p_patch->>'industry' ELSE industry END,
       email=CASE WHEN p_patch ? 'email' THEN p_patch->>'email' ELSE email END,
       phone=CASE WHEN p_patch ? 'phone' THEN p_patch->>'phone' ELSE phone END,
+      billing_address=CASE WHEN p_patch ? 'billingAddress' THEN nullif(p_patch->'billingAddress','null'::jsonb) ELSE billing_address END,
+      shipping_address=CASE WHEN p_patch ? 'shippingAddress' THEN nullif(p_patch->'shippingAddress','null'::jsonb) ELSE shipping_address END,
+      description=CASE WHEN p_patch ? 'description' THEN p_patch->>'description' ELSE description END,
+      next_follow_up_at=CASE WHEN p_patch ? 'nextFollowUpAt' THEN (p_patch->>'nextFollowUpAt')::timestamptz ELSE next_follow_up_at END,
       source=CASE WHEN p_patch ? 'source' THEN p_patch->>'source' ELSE source END,
       type=CASE WHEN p_patch ? 'type' THEN p_patch->>'type' ELSE type END,
       version=version+1,updated_by=p_actor_member_id,updated_at=now()

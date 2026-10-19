@@ -30,14 +30,38 @@ const commonDirectoryPatch = {
   phone: z.string().trim().max(80).nullable().optional(),
   source: z.string().trim().max(500).nullable().optional(),
 }
+const address = z.object({
+  street: z.string().trim().max(500).optional(), city: z.string().trim().max(200).optional(),
+  state: z.string().trim().max(200).optional(), postalCode: z.string().trim().max(40).optional(),
+  country: z.string().trim().max(200).optional(),
+}).strict().nullable()
 const contactPatch = z.object({
   displayName: z.string().trim().min(1).max(500).optional(),
   primaryAccountId: z.uuid().nullable().optional(),
+  firstName: z.string().trim().max(500).nullable().optional(),
+  lastName: z.string().trim().max(500).nullable().optional(),
+  title: z.string().trim().max(500).nullable().optional(),
+  address: address.optional(),
+  description: z.string().trim().max(10000).nullable().optional(),
+  doNotCall: z.boolean().optional(), doNotEmail: z.boolean().optional(),
+  dateOfBirth: z.iso.date().nullable().optional(),
+  insurance: z.string().trim().max(500).nullable().optional(),
+  corazonSalud: z.boolean().nullable().optional(),
+  plan: z.string().trim().max(500).nullable().optional(),
+  product: z.string().trim().max(500).nullable().optional(),
+  nextAction: z.string().trim().max(500).nullable().optional(),
+  nextFollowUpAt: z.iso.datetime({ offset: true }).nullable().optional(),
   ...commonDirectoryPatch,
 }).strict()
 const accountPatch = z.object({
   name: z.string().trim().min(1).max(500).optional(),
   type: z.enum(['prospect', 'customer', 'partner']).optional(),
+  tradeName: z.string().trim().max(500).nullable().optional(),
+  website: z.url().max(2000).refine(value => ['http:', 'https:'].includes(new URL(value).protocol)).nullable().optional(),
+  industry: z.string().trim().max(500).nullable().optional(),
+  billingAddress: address.optional(), shippingAddress: address.optional(),
+  description: z.string().trim().max(10000).nullable().optional(),
+  nextFollowUpAt: z.iso.datetime({ offset: true }).nullable().optional(),
   ...commonDirectoryPatch,
 }).strict()
 const calendarDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(value => {
