@@ -21,6 +21,19 @@ type Summary = {
   opportunities: { total: number; byStage: { code: string; label: string; outcome: string; count: number }[];
     won: number; lost: number; open: number; openByCurrency: { currency: string; amount: string }[] }
 }
+type CountRow = { code: string; count: number; label?: string; outcome?: string }
+type DetailReport = {
+  generatedAt: string; range: { from: string; to: string }; scope: string
+  leads: { total: number; converted: number; conversionRate: number; unresponsive: number;
+    byStage: CountRow[]; bySource: CountRow[];
+    bySeller: { memberId: string; label: string; count: number; converted: number; conversionRate: number }[] }
+  opportunities: { total: number; won: number; lost: number; byStage: CountRow[] }
+  memberships: { sold: number; byPlan: CountRow[]; byModality: CountRow[];
+    salesBySeller: { memberId: string; label: string; currency: string; count: number; amount: string }[] }
+  activities: { total: number; followUps: number; byKind: CountRow[] }
+}
+const todayUtc = () => new Date().toISOString().slice(0,10)
+const monthAgoUtc = () => { const day = new Date(); day.setUTCMonth(day.getUTCMonth()-1); return day.toISOString().slice(0,10) }
 const tabs: { key: Tab; label: string }[] = [
   { key: 'dashboard', label: 'Dashboard' }, { key: 'leads', label: 'Leads' },
   { key: 'contacts', label: 'Contacts' }, { key: 'accounts', label: 'Accounts' },
@@ -43,6 +56,9 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
   const [access, setAccess] = useState<Access | null>(null)
   const [directory, setDirectory] = useState<Directory>({ users: [], teams: [], stages: [] })
   const [summary, setSummary] = useState<Summary | null>(null)
+  const [detailReport, setDetailReport] = useState<DetailReport | null>(null)
+  const [reportFrom, setReportFrom] = useState(monthAgoUtc)
+  const [reportTo, setReportTo] = useState(todayUtc)
   const [rows, setRows] = useState<Row[]>([])
   const [selected, setSelected] = useState<Row | null>(null)
   const [timeline, setTimeline] = useState<TimelineEvent[]>([])
@@ -103,9 +119,15 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
     const load = async () => {
       setLoading(true); setError('')
       try {
-        if (tab === 'dashboard' || tab === 'reports') {
+        if (tab === 'dashboard') {
           const result = await request('reports/summary')
           if (!cancelled && isObject(result.data)) setSummary(result.data as Summary)
+          return
+        }
+        if (tab === 'reports') {
+          if (reportTo < reportFrom) throw new Error('INVALID_PERIOD')
+          const result = await request(`reports/detail?${new URLSearchParams({ from: reportFrom, to: reportTo })}`)
+          if (!cancelled && isObject(result.data)) setDetailReport(result.data as DetailReport)
           return
         }
         if (tab === 'pipeline') {
@@ -128,13 +150,13 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
         }
       } catch (cause) { if (!cancelled) {
         setError(cause instanceof Error ? cause.message : 'SALES_UNAVAILABLE')
-        setRows([]); setSummary(null)
+        setRows([]); setSummary(null); setDetailReport(null)
       } }
       finally { if (!cancelled) setLoading(false) }
     }
     void load()
     return () => { cancelled = true }
-  }, [access?.allowed, tab, query, demo, offset, refresh, request])
+  }, [access?.allowed, tab, query, demo, offset, refresh, reportFrom, reportTo, request])
 
   const userName = useCallback((id: unknown) => directory.users.find(user => user.memberId === id)?.displayName || 'Unassigned', [directory.users])
   const teamName = useCallback((id: unknown) => directory.teams.find(team => team.id === id)?.name || '', [directory.teams])
@@ -156,7 +178,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
       {access?.allowed && <>
         {error && <p role="alert" className={s.error}>{error}</p>}
         {loading && <p role="status" className={s.empty}>Loading {currentLabel.toLowerCase()}…</p>}
-        {(tab==='dashboard' || tab==='reports') && summary && !loading && !error && <>
+        {tab==='dashboard' && summary && !loading && !error && <>
           <div className={s.metrics}>
             <Metric label="Leads" value={summary.leads.total} />
             <Metric label="Open opportunities" value={summary.opportunities.open} />
@@ -168,6 +190,33 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
             <section className={s.panel}><h2>Opportunities by stage</h2><Breakdown rows={summary.opportunities.byStage} /></section>
           </div>
           <p className={s.caption}>Scope: {summary.scope === 'organization' ? 'Organization' : 'Your permitted records'} · Updated {date(summary.asOf)}</p>
+        </>}
+        {tab==='reports' && <div className={s.filters}>
+          <label>From <input type="date" value={reportFrom} onChange={event => setReportFrom(event.target.value)} /></label>
+          <label>To <input type="date" value={reportTo} onChange={event => setReportTo(event.target.value)} /></label>
+        </div>}
+        {tab==='reports' && detailReport && !loading && !error && <>
+          <div className={s.metrics}>
+            <Metric label="Leads" value={detailReport.leads.total} />
+            <Metric label="Converted" value={detailReport.leads.converted} />
+            <Metric label="Won" value={detailReport.opportunities.won} />
+            <Metric label="Lost" value={detailReport.opportunities.lost} />
+            <Metric label="Memberships sold" value={detailReport.memberships.sold} />
+            <Metric label="Activities" value={detailReport.activities.total} />
+          </div>
+          <p className={s.caption}>Lead conversion {detailReport.leads.conversionRate}% · Unresponsive {detailReport.leads.unresponsive} · Follow-ups {detailReport.activities.followUps}</p>
+          <div className={s.reportGrid}>
+            <section className={s.panel}><h2>Leads by stage</h2><Breakdown rows={detailReport.leads.byStage} /></section>
+            <section className={s.panel}><h2>Leads by source</h2><Breakdown rows={detailReport.leads.bySource} /></section>
+            <section className={s.panel}><h2>Leads by seller</h2><SellerBreakdown rows={detailReport.leads.bySeller} /></section>
+            <section className={s.panel}><h2>Opportunities by stage</h2><Breakdown rows={detailReport.opportunities.byStage} /></section>
+            <section className={s.panel}><h2>Memberships by plan</h2><Breakdown rows={detailReport.memberships.byPlan} /></section>
+            <section className={s.panel}><h2>Memberships by modality</h2><Breakdown rows={detailReport.memberships.byModality} /></section>
+            <section className={s.panel}><h2>Sales by seller</h2><ul className={s.breakdown}>{detailReport.memberships.salesBySeller.map(row =>
+              <li key={`${row.memberId}-${row.currency}`}><span>{row.label} · {row.currency}</span><strong>{row.count} · {row.amount}</strong></li>)}</ul></section>
+            <section className={s.panel}><h2>Activity by kind</h2><Breakdown rows={detailReport.activities.byKind} /></section>
+          </div>
+          <p className={s.caption}>Scope: {detailReport.scope==='organization' ? 'Organization' : 'Your permitted records'} · Updated {date(detailReport.generatedAt)}</p>
         </>}
         {tab==='pipeline' && !loading && <>
           <p className={s.hint}>Swipe sideways to view every stage.</p>
@@ -233,4 +282,9 @@ function Metric({ label, value }: { label: string; value: number }) {
 function Breakdown({ rows }: { rows: { code: string; count: number }[] }) {
   if (!rows.length) return <p className={s.empty}>No records yet.</p>
   return <ul className={s.breakdown}>{rows.map(row => <li key={row.code}><span>{row.code.replaceAll('_',' ')}</span><strong>{row.count}</strong></li>)}</ul>
+}
+function SellerBreakdown({ rows }: { rows: DetailReport['leads']['bySeller'] }) {
+  if (!rows.length) return <p className={s.empty}>No records yet.</p>
+  return <ul className={s.breakdown}>{rows.map(row =>
+    <li key={row.memberId}><span>{row.label}</span><strong>{row.count} · {row.conversionRate}%</strong></li>)}</ul>
 }
