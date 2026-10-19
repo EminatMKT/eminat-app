@@ -1,0 +1,214 @@
+'use client'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import AppShell from '@/shared/components/shell/AppShell'
+import { supabase } from '@/shared/db/supabase'
+import s from './NativeSalesModule.module.css'
+
+type Tab = 'dashboard' | 'leads' | 'contacts' | 'accounts' | 'opportunities' |
+  'pipeline' | 'activities' | 'memberships' | 'reports' | 'social' | 'settings'
+type Access = { allowed: boolean; role: string; capabilities: { canWrite: boolean; canReassign: boolean } }
+type Person = { memberId: string; displayName: string; role: string; teamIds: string[] }
+type Team = { id: string; name: string }
+type Stage = { id: string; code: string; name: string; position: number; outcome: string; pipelineId: string }
+type Directory = { users: Person[]; teams: Team[]; stages: Stage[] }
+type Row = Record<string, unknown> & { id: string }
+type Summary = {
+  asOf: string
+  scope: string
+  leads: { total: number; byStatus: { code: string; count: number }[] }
+  opportunities: { total: number; byStage: { code: string; label: string; outcome: string; count: number }[];
+    won: number; lost: number; open: number; openByCurrency: { currency: string; amount: string }[] }
+}
+const tabs: { key: Tab; label: string }[] = [
+  { key: 'dashboard', label: 'Dashboard' }, { key: 'leads', label: 'Leads' },
+  { key: 'contacts', label: 'Contacts' }, { key: 'accounts', label: 'Accounts' },
+  { key: 'opportunities', label: 'Opportunities' }, { key: 'pipeline', label: 'Pipeline' },
+  { key: 'activities', label: 'Activities' }, { key: 'memberships', label: 'Memberships' },
+  { key: 'reports', label: 'Reports' }, { key: 'social', label: 'Social' },
+  { key: 'settings', label: 'Sales Settings' },
+]
+const listTabs = new Set<Tab>(['leads', 'contacts', 'accounts', 'opportunities', 'memberships', 'activities'])
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object' && !Array.isArray(value)
+const string = (value: unknown) => typeof value === 'string' ? value : ''
+const date = (value: unknown) => typeof value === 'string' && value.length >= 10 ? value.slice(0, 10) : ''
+const title = (row: Row) => string(row.display_name) || string(row.name) ||
+  [string(row.first_name), string(row.last_name)].filter(Boolean).join(' ') ||
+  string(row.relatedName) || string(row.subject) || string(row.code) || 'Untitled'
+
+export default function NativeSalesModule({ organizationId }: { organizationId: string }) {
+  const [tab, setTab] = useState<Tab>('dashboard')
+  const [access, setAccess] = useState<Access | null>(null)
+  const [directory, setDirectory] = useState<Directory>({ users: [], teams: [], stages: [] })
+  const [summary, setSummary] = useState<Summary | null>(null)
+  const [rows, setRows] = useState<Row[]>([])
+  const [selected, setSelected] = useState<Row | null>(null)
+  const [query, setQuery] = useState('')
+  const [demo, setDemo] = useState('all')
+  const [offset, setOffset] = useState(0)
+  const [nextOffset, setNextOffset] = useState<number | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [refresh, setRefresh] = useState(0)
+
+  const request = useCallback(async (path: string) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw new Error('AUTHENTICATION_REQUIRED')
+    const response = await fetch(`/api/sales-native/${path}`, { cache: 'no-store', headers: {
+      Authorization: `Bearer ${session.access_token}`, 'X-Sales-Organization-Id': organizationId,
+    } })
+    const result = await response.json().catch(() => null) as unknown
+    if (!isObject(result)) throw new Error('SALES_RESPONSE_UNAVAILABLE')
+    if (!response.ok) throw new Error(string(result.code) || 'SALES_UNAVAILABLE')
+    return result
+  }, [organizationId])
+
+  useEffect(() => {
+    let cancelled = false
+    Promise.all([request('access'), request('directory')]).then(([gate, lookup]) => {
+      if (cancelled) return
+      setAccess(gate as Access)
+      const data = lookup.data
+      if (isObject(data)) setDirectory({
+        users: Array.isArray(data.users) ? data.users as Person[] : [],
+        teams: Array.isArray(data.teams) ? data.teams as Team[] : [],
+        stages: Array.isArray(data.stages) ? data.stages as Stage[] : [],
+      })
+    }).catch(cause => { if (!cancelled) setError(cause instanceof Error ? cause.message : 'SALES_UNAVAILABLE') })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [request])
+
+  useEffect(() => { setRows([]); setSelected(null); setOffset(0); setNextOffset(null) }, [tab, query, demo])
+  useEffect(() => {
+    if (!access?.allowed || tab === 'social' || tab === 'settings') return
+    let cancelled = false
+    const load = async () => {
+      setLoading(true); setError('')
+      try {
+        if (tab === 'dashboard' || tab === 'reports') {
+          const result = await request('reports/summary')
+          if (!cancelled && isObject(result.data)) setSummary(result.data as Summary)
+          return
+        }
+        if (tab === 'pipeline') {
+          const result = await request('opportunities?limit=100')
+          if (!cancelled) {
+            setRows(Array.isArray(result.data) ? result.data as Row[] : [])
+            setNextOffset(typeof result.nextOffset === 'number' ? result.nextOffset : null)
+          }
+          return
+        }
+        if (!listTabs.has(tab)) return
+        const params = new URLSearchParams({ limit: '25', offset: String(offset) })
+        if (query && tab !== 'activities') params.set('q', query)
+        if (tab === 'memberships' && demo !== 'all') params.set('demo', demo)
+        const path = tab === 'activities' ? `activities/inbox?${new URLSearchParams({ limit: '25', offset: String(offset) })}` : `${tab}?${params}`
+        const result = await request(path)
+        if (!cancelled) {
+          setRows(Array.isArray(result.data) ? result.data as Row[] : [])
+          setNextOffset(typeof result.nextOffset === 'number' ? result.nextOffset : null)
+        }
+      } catch (cause) { if (!cancelled) {
+        setError(cause instanceof Error ? cause.message : 'SALES_UNAVAILABLE')
+        setRows([]); setSummary(null)
+      } }
+      finally { if (!cancelled) setLoading(false) }
+    }
+    void load()
+    return () => { cancelled = true }
+  }, [access?.allowed, tab, query, demo, offset, refresh, request])
+
+  const userName = useCallback((id: unknown) => directory.users.find(user => user.memberId === id)?.displayName || 'Unassigned', [directory.users])
+  const teamName = useCallback((id: unknown) => directory.teams.find(team => team.id === id)?.name || '', [directory.teams])
+  const stageName = useCallback((id: unknown) => directory.stages.find(stage => stage.id === id)?.name || '', [directory.stages])
+  const stages = useMemo(() => [...directory.stages].sort((a,b) => a.position-b.position), [directory.stages])
+  const currentLabel = tabs.find(item => item.key === tab)?.label || 'Sales'
+
+  return <AppShell title="Sales" actions={<span className={s.role}>{access?.role || 'Loading'}</span>}>
+    <main className={s.main}>
+      <div className={s.heading}><div><p className={s.eyebrow}>LILLY Sales</p><h1>{currentLabel}</h1></div>
+        <button className={s.refresh} type="button" onClick={() => setRefresh(value => value+1)} disabled={loading}>Refresh</button>
+      </div>
+      <nav className={s.tabs} aria-label="Sales sections">
+        {tabs.map(item => <button key={item.key} type="button" aria-current={tab===item.key ? 'page' : undefined}
+          className={tab===item.key ? s.active : ''} onClick={() => { setTab(item.key); setQuery('') }}>
+          {item.label}</button>)}
+      </nav>
+      {!access?.allowed && !loading && <p role="alert" className={s.error}>{error || 'Sales access is unavailable.'}</p>}
+      {access?.allowed && <>
+        {error && <p role="alert" className={s.error}>{error}</p>}
+        {loading && <p role="status" className={s.empty}>Loading {currentLabel.toLowerCase()}…</p>}
+        {(tab==='dashboard' || tab==='reports') && summary && !loading && !error && <>
+          <div className={s.metrics}>
+            <Metric label="Leads" value={summary.leads.total} />
+            <Metric label="Open opportunities" value={summary.opportunities.open} />
+            <Metric label="Won" value={summary.opportunities.won} />
+            <Metric label="Lost" value={summary.opportunities.lost} />
+          </div>
+          <div className={s.reportGrid}>
+            <section className={s.panel}><h2>Leads by stage</h2><Breakdown rows={summary.leads.byStatus} /></section>
+            <section className={s.panel}><h2>Opportunities by stage</h2><Breakdown rows={summary.opportunities.byStage} /></section>
+          </div>
+          <p className={s.caption}>Scope: {summary.scope === 'organization' ? 'Organization' : 'Your permitted records'} · Updated {date(summary.asOf)}</p>
+        </>}
+        {tab==='pipeline' && !loading && <>
+          <p className={s.hint}>Swipe sideways to view every stage.</p>
+          <div className={s.board} tabIndex={0} aria-label="Opportunity pipeline">
+            {stages.map(stage => <section key={stage.id} className={s.column}>
+              <h2>{stage.name} <small>{rows.filter(row => row.stage_id===stage.id).length}</small></h2>
+              {rows.filter(row => row.stage_id===stage.id).map(row => <button key={row.id} type="button" className={s.pipelineCard} onClick={() => setSelected(row)}>
+                <strong>{title(row)}</strong><span>{userName(row.owner_member_id)}</span>
+                <small>{string(row.currency)} {row.amount === null ? '—' : String(row.amount ?? '—')}</small>
+              </button>)}
+            </section>)}
+          </div>
+          {nextOffset !== null && <p className={s.caption}>More opportunities exist. Use the Opportunities list to page through them.</p>}
+        </>}
+        {listTabs.has(tab) && !loading && <>
+          {tab!=='activities' && <div className={s.filters}>
+            <label>Search <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Name or code" /></label>
+            {tab==='memberships' && <label>Records <select value={demo} onChange={event => setDemo(event.target.value)}>
+              <option value="all">All</option><option value="false">Commercial</option><option value="true">Demo</option>
+            </select></label>}
+          </div>}
+          {rows.length ? <div className={s.list}>{rows.map(row => <button key={row.id} type="button" className={s.item} onClick={() => setSelected(row)}>
+            <span><strong>{title(row)}</strong><small>{tab==='opportunities' ? stageName(row.stage_id) :
+              tab==='activities' ? `${string(row.kind)} · ${string(row.relatedName)}` :
+              tab==='memberships' ? `${string(row.plan)} · ${string(row.duration)}` :
+              string(row.status) || string(row.type) || string(row.source)}</small></span>
+            <span className={s.meta}>{tab==='activities' ? date(row.due_at) :
+              tab==='memberships' ? string(row.effectiveStatus) : userName(row.owner_member_id)}</span>
+          </button>)}</div> : <p className={s.empty}>No records in this view.</p>}
+          <div className={s.pager}><button type="button" disabled={offset===0} onClick={() => setOffset(Math.max(0,offset-25))}>Previous</button>
+            <span>Page {Math.floor(offset/25)+1}</span><button type="button" disabled={nextOffset===null} onClick={() => setOffset(nextOffset ?? offset)}>Next</button></div>
+        </>}
+        {tab==='social' && <section className={s.panel}><h2>Social connections</h2><p>Live provider access is unavailable until the existing Meta owner permissions and secret rotation are complete.</p></section>}
+        {tab==='settings' && <div className={s.reportGrid}>
+          <section className={s.panel}><h2>Team</h2>{directory.teams.map(team => <p key={team.id}>{team.name}</p>)}</section>
+          <section className={s.panel}><h2>People</h2>{directory.users.map(user => <p key={user.memberId}>{user.displayName} · {user.role}</p>)}</section>
+        </div>}
+        {selected && <div className={s.overlay} role="presentation" onMouseDown={event => { if (event.target===event.currentTarget) setSelected(null) }}>
+          <section className={s.detail} role="dialog" aria-modal="true" aria-label={title(selected)}>
+            <div className={s.detailHeader}><h2>{title(selected)}</h2><button type="button" onClick={() => setSelected(null)} aria-label="Close details">×</button></div>
+            <dl><dt>Status</dt><dd>{string(selected.effectiveStatus) || string(selected.status) || stageName(selected.stage_id) || '—'}</dd>
+              <dt>Owner</dt><dd>{userName(selected.owner_member_id || selected.seller_member_id)}</dd>
+              <dt>Team</dt><dd>{teamName(selected.team_id) || '—'}</dd>
+              <dt>Created</dt><dd>{date(selected.created_at) || '—'}</dd>
+              {selected.email && <><dt>Email</dt><dd>{string(selected.email)}</dd></>}
+              {selected.code && <><dt>Membership code</dt><dd>{string(selected.code)}</dd></>}
+            </dl>
+          </section>
+        </div>}
+      </>}
+    </main>
+  </AppShell>
+}
+
+function Metric({ label, value }: { label: string; value: number }) {
+  return <section className={s.metric}><p>{label}</p><strong>{value.toLocaleString()}</strong></section>
+}
+function Breakdown({ rows }: { rows: { code: string; count: number }[] }) {
+  if (!rows.length) return <p className={s.empty}>No records yet.</p>
+  return <ul className={s.breakdown}>{rows.map(row => <li key={row.code}><span>{row.code.replaceAll('_',' ')}</span><strong>{row.count}</strong></li>)}</ul>
+}
