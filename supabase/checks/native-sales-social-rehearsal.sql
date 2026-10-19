@@ -57,5 +57,7 @@ DO $$ DECLARE r jsonb; n jsonb; BEGIN
     '{"full_name":"QA Recovered Lead","email":"qa-recovered@example.invalid"}'::jsonb);
   IF r->>'status'<>'PROCESSED' OR (SELECT count(*) FROM public.sales_leads)<>2 THEN
     RAISE EXCEPTION 'pending lead retry failed'; END IF;
+  IF (SELECT count(*) FROM public.sales_history WHERE action='meta.webhook.accepted')<>4 THEN
+    RAISE EXCEPTION 'social event audit incomplete or duplicated'; END IF;
 END $$;
 ROLLBACK;

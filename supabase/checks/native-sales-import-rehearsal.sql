@@ -47,5 +47,8 @@ BEGIN
   IF r->>'status'<>'CREATED' THEN RAISE EXCEPTION 'contact create failed'; END IF;
   IF (SELECT plan FROM public.sales_contacts WHERE id=(r->>'recordId')::uuid)<>'PLUS' THEN
     RAISE EXCEPTION 'contact detail lost'; END IF;
+  IF (SELECT count(*) FROM public.sales_history WHERE action='import.created')<>2
+    OR (SELECT count(*) FROM public.sales_history WHERE action='import.skipped_duplicate')<>1 THEN
+    RAISE EXCEPTION 'import audit incomplete or duplicated'; END IF;
 END $$;
 ROLLBACK;

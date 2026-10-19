@@ -165,6 +165,11 @@ BEGIN
     SET status='PROCESSED',attempts=attempts+1,processed_at=now(),error_code=NULL,
         next_retry_at=NULL
     WHERE id=v_receipt.id;
+  INSERT INTO public.sales_history
+    (organization_id,entity_type,record_id,actor_member_id,action,request_id,changes)
+    VALUES (v_asset.organization_id,'social_webhook',v_receipt.id,NULL,
+      'meta.webhook.accepted',p_correlation_id,
+      jsonb_build_object('kind',p_kind,'status','PROCESSED','assetId',v_asset.id));
   UPDATE public.sales_social_assets
     SET last_event_at=greatest(coalesce(last_event_at,p_occurred_at),p_occurred_at)
     WHERE id=v_asset.id;

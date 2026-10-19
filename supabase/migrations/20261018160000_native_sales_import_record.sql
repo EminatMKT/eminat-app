@@ -114,6 +114,11 @@ BEGIN
   IF coalesce(v_duplicate,false) THEN
     UPDATE public.sales_import_receipts SET outcome='SKIPPED',completed_at=now()
       WHERE id=v_receipt.id;
+    INSERT INTO public.sales_history
+      (organization_id,entity_type,record_id,actor_member_id,action,request_id,changes)
+      VALUES (p_organization_id,'import',v_receipt.id,p_actor_member_id,
+        'import.skipped_duplicate',p_request_id,
+        jsonb_build_object('resource',p_resource));
     RETURN jsonb_build_object('status','SKIPPED','recordId',NULL,'replayed',false);
   END IF;
   IF p_resource='leads' THEN
@@ -139,6 +144,10 @@ BEGIN
   END IF;
   UPDATE public.sales_import_receipts SET outcome='CREATED',record_id=v_record_id,completed_at=now()
     WHERE id=v_receipt.id;
+  INSERT INTO public.sales_history
+    (organization_id,entity_type,record_id,actor_member_id,action,request_id,changes)
+    VALUES (p_organization_id,left(p_resource,length(p_resource)-1),v_record_id,p_actor_member_id,
+      'import.created',p_request_id,jsonb_build_object('receiptId',v_receipt.id));
   RETURN jsonb_build_object('status','CREATED','recordId',v_record_id,'replayed',false);
 END;
 $$;
