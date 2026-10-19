@@ -78,4 +78,8 @@ SELECT
   AND has_function_privilege('service_role', 'public.native_sales_list_family_requests(uuid,uuid,uuid)', 'EXECUTE')
   AND NOT has_function_privilege('authenticated', 'public.native_sales_visible_memberships(uuid,uuid,integer,integer,text,uuid,boolean)', 'EXECUTE')
   AND has_function_privilege('service_role', 'public.native_sales_visible_memberships(uuid,uuid,integer,integer,text,uuid,boolean)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_directory(uuid,uuid)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_directory(uuid,uuid)', 'EXECUTE')
+  AND NOT has_function_privilege('authenticated', 'public.native_sales_activity_inbox(uuid,uuid,text,integer,integer)', 'EXECUTE')
+  AND has_function_privilege('service_role', 'public.native_sales_activity_inbox(uuid,uuid,text,integer,integer)', 'EXECUTE')
   AS safe_native_sales_schema;
