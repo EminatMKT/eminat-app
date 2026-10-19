@@ -30,12 +30,16 @@ TABLES = [
 PROJECT_REF = "ruedelunbtaomhrzgelc"
 
 
-def load_bundle(directory: Path, expected_hash: str) -> tuple[dict, list[str]]:
+def load_bundle(directory: Path, expected_hash: str,
+                expected_manifest_hash: str) -> tuple[dict, list[str]]:
     if ".local" not in directory.parts or not directory.is_dir():
         raise ValueError("PRIVATE_BUNDLE_REQUIRED")
     if directory.stat().st_mode & 0o077:
         raise ValueError("PRIVATE_BUNDLE_PERMISSIONS_INVALID")
-    manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
+    manifest_bytes = (directory / "manifest.json").read_bytes()
+    if hashlib.sha256(manifest_bytes).hexdigest() != expected_manifest_hash:
+        raise ValueError("MANIFEST_HASH_MISMATCH")
+    manifest = json.loads(manifest_bytes)
     content = (directory / "rows.ndjson").read_bytes()
     actual_hash = hashlib.sha256(content).hexdigest()
     if actual_hash != expected_hash or actual_hash != manifest.get("rowsSha256"):
@@ -51,6 +55,19 @@ def load_bundle(directory: Path, expected_hash: str) -> tuple[dict, list[str]]:
         counts[row["table"]] += 1
     if counts != manifest.get("destinationCounts"):
         raise ValueError("BUNDLE_COUNTS_MISMATCH")
+    for artifact in manifest.get("pdfArtifacts", []):
+        if not isinstance(artifact, dict) or not isinstance(artifact.get("filename"), str):
+            raise ValueError("BUNDLE_PDF_INVALID")
+        name = artifact["filename"]
+        if Path(name).name != name:
+            raise ValueError("BUNDLE_PDF_INVALID")
+        artifact_path = directory / "pdfs" / name
+        if artifact_path.is_symlink() or not artifact_path.is_file():
+            raise ValueError("BUNDLE_PDF_INVALID")
+        content = artifact_path.read_bytes()
+        if len(content) != artifact.get("bytes") or \
+                hashlib.sha256(content).hexdigest() != artifact.get("sha256"):
+            raise ValueError("BUNDLE_PDF_INVALID")
     return manifest, lines
 
 
@@ -145,6 +162,7 @@ def main() -> None:
     parser.add_argument("bundle", type=Path)
     parser.add_argument("--expected-commit", required=True)
     parser.add_argument("--expected-bundle-sha", required=True)
+    parser.add_argument("--expected-manifest-sha", required=True)
     parser.add_argument("--expected-source-release")
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
@@ -157,7 +175,8 @@ def main() -> None:
     if status:
         raise ValueError("WORKTREE_NOT_CLEAN")
     directory = args.bundle.resolve()
-    manifest, lines = load_bundle(directory, args.expected_bundle_sha)
+    manifest, lines = load_bundle(directory, args.expected_bundle_sha,
+                                  args.expected_manifest_sha)
     if not args.execute:
         print(json.dumps({"bundleVerified": True, "rows": len(lines),
                           "destinationTables": len(TABLES), "execute": False}))
@@ -196,6 +215,8 @@ if __name__ == "__main__":
         if code not in {"PRIVATE_BUNDLE_REQUIRED", "PRIVATE_BUNDLE_PERMISSIONS_INVALID",
                         "BUNDLE_HASH_MISMATCH", "BUNDLE_ALREADY_MARKED_LOADED",
                         "BUNDLE_ROW_INVALID", "BUNDLE_COUNTS_MISMATCH",
+                        "MANIFEST_HASH_MISMATCH",
+                        "BUNDLE_PDF_INVALID",
                         "PRIVATE_BUNDLE_PATH_INVALID", "PRIVATE_DATABASE_HANDOFF_INVALID",
                         "PRODUCTION_DATABASE_REQUIRED", "PRODUCTION_PROJECT_MISMATCH",
                         "EXACT_COMMIT_MISMATCH",
