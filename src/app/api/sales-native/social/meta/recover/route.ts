@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'node:crypto'
 import { nativeSalesEnabled } from '@/server/sales-native/release-gate'
+import { cleanupExpiredMetaGrants } from '@/server/sales-native/social/meta-connection'
 import { recoverNativeMetaLeads } from '@/server/sales-native/social/lead-recovery'
 
 export const dynamic = 'force-dynamic'
@@ -14,6 +15,7 @@ export async function GET(request: Request) {
   if (!expected.length || expected.length !== actual.length || !timingSafeEqual(expected, actual))
     return Response.json({ code: 'NOT_FOUND' }, { status: 404 })
   try {
+    await cleanupExpiredMetaGrants()
     const result = await recoverNativeMetaLeads()
     return Response.json(result, { headers: { 'Cache-Control': 'no-store' } })
   } catch { return Response.json({ code: 'META_RECOVERY_UNAVAILABLE' }, { status: 503 }) }

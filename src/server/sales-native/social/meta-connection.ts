@@ -37,6 +37,14 @@ function requireManager(actor: SalesActor) {
     throw new NativeSalesAuthError(403, 'SALES_ACCESS_DENIED')
 }
 
+export async function cleanupExpiredMetaGrants() {
+  const { error } = await supabaseAdmin().from('sales_social_oauth_states')
+    .update({ grant_ciphertext: null, pages_ciphertext: null })
+    .lt('expires_at', new Date().toISOString())
+    .neq('status', 'CONSUMED')
+  if (error) throw new NativeSalesAuthError(503, 'META_STATE_UNAVAILABLE')
+}
+
 export async function beginMetaConnection(actor: SalesActor, input: {
   ownerMemberId: string; teamId?: string | null; extraScopes?: string[] }) {
   requireManager(actor)
@@ -46,11 +54,7 @@ export async function beginMetaConnection(actor: SalesActor, input: {
   const { client } = configuration()
   const db = supabaseAdmin()
   // Expired handoffs must not retain encrypted provider credentials indefinitely.
-  const { error: cleanupError } = await db.from('sales_social_oauth_states')
-    .update({ grant_ciphertext: null, pages_ciphertext: null })
-    .lt('expires_at', new Date().toISOString())
-    .neq('status', 'CONSUMED')
-  if (cleanupError) throw new NativeSalesAuthError(503, 'META_STATE_UNAVAILABLE')
+  await cleanupExpiredMetaGrants()
   const { data: provider, error: providerError } = await db.from('sales_social_providers')
     .select('enabled').eq('code', 'META').maybeSingle()
   if (providerError || !provider?.enabled) throw new NativeSalesAuthError(503, 'META_PROVIDER_DISABLED')
