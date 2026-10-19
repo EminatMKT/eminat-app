@@ -1,4 +1,4 @@
-import Checkbox from '@/shared/components/ui/Checkbox'
+import { Checkbox } from '@/shared/components/ui'
 
 type Props = {
   text: string

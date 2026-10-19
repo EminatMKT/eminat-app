@@ -3,6 +3,7 @@ import { CHECKBOX } from '@/shared/constants/dom'
 import type { Props } from './types'
 import s from './index.module.css'
 
+/** Shared checkbox: draws the input and, when disabled, the hint that explains why. */
 export default function Checkbox(props: Props) {
   const { checked, onChange, className, children } = props
   const hintId = useId()
