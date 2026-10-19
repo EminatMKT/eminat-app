@@ -3,6 +3,14 @@ name: Native Sales guarded import
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: Rehearsal is read-only; import requires a separately approved run
+        required: true
+        type: choice
+        default: rehearsal
+        options:
+          - rehearsal
+          - import
       exact_commit:
         description: Reviewed 40-character LILLY commit SHA
         required: true
@@ -29,7 +37,7 @@ on:
         type: string
       backup_completed_at_utc:
         description: Verified restorable pre-import database backup time (ISO 8601 UTC)
-        required: true
+        required: false
         type: string
 
 permissions:
@@ -55,6 +63,7 @@ jobs:
       MANIFEST_SHA: ${{ inputs.manifest_sha256 }}
       SOURCE_RELEASE: ${{ inputs.source_release }}
       BACKUP_AT: ${{ inputs.backup_completed_at_utc }}
+      IMPORT_MODE: ${{ inputs.mode }}
     steps:
       - name: Verify exact release, protected environment, backup, and scoped secrets
         env:
@@ -77,12 +86,15 @@ jobs:
               require(re.fullmatch(r'[0-9a-f]{64}', os.environ[name]) is not None)
           require(os.environ['SOURCE_RELEASE'] == '2026.10.18-lilly-sales-absorption-959be75')
           require(os.environ['GITHUB_SHA'] == os.environ['EXPECTED_COMMIT'])
-          require(all(os.environ.get(name) for name in ('DB_URL_PRESENT', 'STORAGE_KEY_PRESENT')))
-          try: backup = datetime.fromisoformat(os.environ['BACKUP_AT'].replace('Z', '+00:00'))
-          except ValueError: require(False)
-          require(backup.tzinfo is not None)
-          age = datetime.now(timezone.utc) - backup.astimezone(timezone.utc)
-          require(timedelta(0) <= age <= timedelta(hours=24))
+          require(os.environ['IMPORT_MODE'] in ('rehearsal', 'import'))
+          require(bool(os.environ.get('DB_URL_PRESENT')))
+          if os.environ['IMPORT_MODE'] == 'import':
+              require(bool(os.environ.get('STORAGE_KEY_PRESENT')))
+              try: backup = datetime.fromisoformat(os.environ['BACKUP_AT'].replace('Z', '+00:00'))
+              except ValueError: require(False)
+              require(backup.tzinfo is not None)
+              age = datetime.now(timezone.utc) - backup.astimezone(timezone.utc)
+              require(timedelta(0) <= age <= timedelta(hours=24))
           PY
           test -n "$EXPORT_READ_TOKEN_PRESENT"
           test -n "$EXPORT_PRIVATE_KEY_PRESENT"
@@ -165,7 +177,7 @@ jobs:
         with:
           version: 2.106.0
 
-      - name: Apply reviewed additive native Sales schema
+      - name: Rehearse Production connection and exact pending schema without writes
         env:
           LILLY_SALES_PRODUCTION_DB_URL: ${{ secrets.LILLY_SALES_PRODUCTION_DB_URL }}
         shell: bash
@@ -175,6 +187,15 @@ jobs:
           supabase db push --db-url "$LILLY_SALES_PRODUCTION_DB_URL" --dry-run --yes \
             > "$RUNNER_TEMP/sales-migration-dryrun.log" 2>&1 \
             || { echo 'SALES_MIGRATION_DRY_RUN_FAILED'; exit 1; }
+          echo 'PRODUCTION_READ_ONLY_REHEARSAL_PASS'
+
+      - name: Apply reviewed additive native Sales schema
+        if: inputs.mode == 'import'
+        env:
+          LILLY_SALES_PRODUCTION_DB_URL: ${{ secrets.LILLY_SALES_PRODUCTION_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
           supabase db push --db-url "$LILLY_SALES_PRODUCTION_DB_URL" --yes \
             > "$RUNNER_TEMP/sales-migration.log" 2>&1 \
             || { echo 'SALES_MIGRATION_FAILED'; exit 1; }
@@ -182,6 +203,7 @@ jobs:
           echo 'SALES_SCHEMA_APPLIED'
 
       - name: Import, reconcile, and archive without cutover
+        if: inputs.mode == 'import'
         env:
           LILLY_SALES_PRODUCTION_DB_URL: ${{ secrets.LILLY_SALES_PRODUCTION_DB_URL }}
           LILLY_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.LILLY_SUPABASE_SERVICE_ROLE_KEY }}

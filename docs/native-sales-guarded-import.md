@@ -30,6 +30,11 @@ source snapshot more than four hours old.
 
 ## Execution and recovery
 
+The `rehearsal` dispatch (default) reads the Production migration history and
+tests the pending migration set with the CLI's dry-run; it performs no schema
+or customer-data writes. A separate `import` dispatch is required to apply
+the additive schema and load rows.
+
 The workflow checks the encrypted artifact checksum before decryption; decrypts
 only on the runner; validates the 334 source rows, manifest, and PDFs; and
 checks that only the reviewed native Sales migrations are pending. It then
@@ -47,6 +52,16 @@ never automatically restore the whole database, because unrelated writes may
 have occurred after the backup. Partial archive uploads are hash-checked and
 can be retried idempotently. Do not mark rollback fully prepared until its
 restoration path is reviewed for this specific run.
+
+For Storage recovery, derive the exact object keys from the private manifest,
+verify each existing object hash against that manifest, and remove only matching
+`sales-membership-archive` objects and their matching archive metadata rows.
+Do not delete an object if its hash differs or its metadata has changed. Keep
+the organization `pending` and staff `historical` throughout recovery. Record
+aggregate removed/remaining counts only; never log keys, PDFs, or customer
+identifiers. Because Storage cleanup cannot share the database transaction,
+verify all ten objects and all ten metadata rows after cleanup, and retry only
+the remaining verified items if interrupted.
 
 After a successful run, independently verify Production schema, record counts,
 membership codes, PDF hashes, disabled access state, and application health
