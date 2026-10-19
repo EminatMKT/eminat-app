@@ -13,6 +13,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }  # 22+ trae WebSocket nativo (lo exige @supabase/realtime-js)
       - run: pnpm install --frozen-lockfile
+      - run: python3 scripts/migration/test_reconcile_annie_sales.py
       # ⚠️ EL CENTINELA YA NO CORRE EN CI. El motor salió de este repo el 2026-08-31 y ahora es
       # un plugin instalado por desarrollador (WSmithDR/centinela-plugin), con sus reglas en el
       # repo de datos de cada uno. Nada de eso existe en un runner.
