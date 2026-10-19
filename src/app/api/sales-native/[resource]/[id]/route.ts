@@ -25,6 +25,21 @@ const leadPatch = z.object({
   nextAction: z.string().trim().max(500).nullable().optional(),
   nextFollowUpAt: z.iso.datetime({ offset: true }).nullable().optional(),
 }).strict()
+const commonDirectoryPatch = {
+  email: z.email().max(320).nullable().optional(),
+  phone: z.string().trim().max(80).nullable().optional(),
+  source: z.string().trim().max(500).nullable().optional(),
+}
+const contactPatch = z.object({
+  displayName: z.string().trim().min(1).max(500).optional(),
+  primaryAccountId: z.uuid().nullable().optional(),
+  ...commonDirectoryPatch,
+}).strict()
+const accountPatch = z.object({
+  name: z.string().trim().min(1).max(500).optional(),
+  type: z.enum(['prospect', 'customer', 'partner']).optional(),
+  ...commonDirectoryPatch,
+}).strict()
 
 export async function GET(request: Request, context: { params: { resource: string; id: string } }) {
   try {
@@ -38,7 +53,8 @@ export async function GET(request: Request, context: { params: { resource: strin
 
 export async function PATCH(request: Request, context: { params: { resource: string; id: string } }) {
   try {
-    if (context.params.resource !== 'leads') return Response.json({ code: 'METHOD_NOT_ALLOWED' }, { status: 405 })
+    if (!['leads', 'contacts', 'accounts'].includes(context.params.resource))
+      return Response.json({ code: 'METHOD_NOT_ALLOWED' }, { status: 405 })
     if (!uuid.test(context.params.id)) return Response.json({ code: 'INVALID_ID' }, { status: 400 })
     const actor = await resolveSalesActor(request)
     const header = request.headers.get('if-match')
@@ -53,17 +69,22 @@ export async function PATCH(request: Request, context: { params: { resource: str
     try { payload = await request.json() } catch { return Response.json({ code: 'INVALID_JSON' }, { status: 400 }) }
     if (Buffer.byteLength(JSON.stringify(payload)) > 32768)
       return Response.json({ code: 'BODY_TOO_LARGE' }, { status: 413 })
-    const parsed = leadPatch.safeParse(payload)
+    const parsed = (context.params.resource === 'leads' ? leadPatch :
+      context.params.resource === 'contacts' ? contactPatch : accountPatch).safeParse(payload)
     if (!parsed.success || Object.keys(parsed.data).length === 0)
       return Response.json({ code: 'VALIDATION_ERROR' }, { status: 422 })
-    const { data, error } = await supabaseAdmin().rpc('native_sales_update_lead', {
-      p_organization_id: actor.organizationId,
-      p_actor_member_id: actor.memberId,
-      p_lead_id: context.params.id,
-      p_expected_version: expectedVersion,
-      p_patch: parsed.data,
-      p_request_id: randomUUID(),
-    })
+    const { data, error } = context.params.resource === 'leads'
+      ? await supabaseAdmin().rpc('native_sales_update_lead', {
+        p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
+        p_lead_id: context.params.id, p_expected_version: expectedVersion,
+        p_patch: parsed.data, p_request_id: randomUUID(),
+      })
+      : await supabaseAdmin().rpc('native_sales_update_directory_record', {
+        p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
+        p_resource: context.params.resource, p_record_id: context.params.id,
+        p_expected_version: expectedVersion, p_patch: parsed.data,
+        p_request_id: randomUUID(),
+      })
     if (error) return nativeSalesDatabaseError(error)
     return Response.json({ data }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) { return nativeSalesErrorResponse(error) }
