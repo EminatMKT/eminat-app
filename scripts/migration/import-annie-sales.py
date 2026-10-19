@@ -143,11 +143,15 @@ def connection_environment(url: str) -> dict[str, str]:
         raise ValueError("PRIVATE_DATABASE_HANDOFF_INVALID")
     if parsed.hostname in {"localhost", "127.0.0.1", "::1"}:
         raise ValueError("PRODUCTION_DATABASE_REQUIRED")
-    if PROJECT_REF not in parsed.hostname and PROJECT_REF not in unquote(parsed.username):
+    username = unquote(parsed.username)
+    direct = parsed.hostname == f"db.{PROJECT_REF}.supabase.co" and username == "postgres"
+    session_pooler = parsed.hostname.endswith(".pooler.supabase.com") and \
+        username == f"postgres.{PROJECT_REF}"
+    if not (direct or session_pooler) or (parsed.port or 5432) != 5432:
         raise ValueError("PRODUCTION_PROJECT_MISMATCH")
     env = {key: value for key, value in os.environ.items() if not key.startswith("PG")}
     env.update({"PGHOST": parsed.hostname, "PGPORT": str(parsed.port or 5432),
-                "PGUSER": unquote(parsed.username), "PGPASSWORD": unquote(parsed.password or ""),
+                "PGUSER": username, "PGPASSWORD": unquote(parsed.password or ""),
                 "PGDATABASE": unquote(parsed.path.lstrip("/") or "postgres"),
                 "PGSSLMODE": "verify-full", "PGSSLROOTCERT": "system",
                 "PGCONNECT_TIMEOUT": "10"})
