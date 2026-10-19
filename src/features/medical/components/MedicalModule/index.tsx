@@ -1,8 +1,8 @@
 'use client'
-import { useState } from 'react'
+import { useState, type ComponentType, type ReactNode } from 'react'
 import { useApp } from '@/shared/context/AppContext'
-import AppShell from '@/shared/components/shell/AppShell'
-import AccessDenied from '@/shared/components/access/AccessDenied'
+import { AppShell } from '@/shared/components/shell'
+import { AccessDenied } from '@/shared/components/access'
 import { PageTransition } from '@/shared/motion'
 import { MedicalProvider } from '../MedicalContext'
 import DashboardTab from '../DashboardTab'
@@ -18,37 +18,39 @@ import { useTabPreference } from '@/shared/hooks'
 import { MODULE } from '@/shared/auth/permissions'
 import MEDICAL_TABS from '@/features/medical/constants/tabs'
 
-// Las secciones (Dashboard/Pacientes/Citas/HIPAA/Audit) viven SOLO en el panel
-// vertical del shell (SUB_ITEMS.medical). Antes se repetían acá como barra
-// horizontal: la misma navegación dos veces, que es lo que la convención del
-// shell evita — vertical = secciones, horizontal = sub-vistas de la sección
-// activa. Medical no tiene sub-vistas, así que se queda sin barra horizontal.
+/** Any of the four creation modals: each one only needs to know how to close itself. */
+type MedicalModal = ComponentType<{ onClose: () => void }>
+
+/** Medical's screen: the active section from the sidebar, plus whichever creation modal is open. */
 export default function MedicalModule() {
   const { modules } = useApp()
   const [tab, setTab] = useTabPreference<string>(MODULE.MEDICAL, MEDICAL_TABS.defaultSection, MEDICAL_TABS.sections)
-  const [modalPaciente, setModalPaciente] = useState(false)
-  const [modalImportPacientes, setModalImportPacientes] = useState(false)
-  const [modalCita, setModalCita] = useState(false)
-  const [modalIncidente, setModalIncidente] = useState(false)
+  // Only one modal is ever open, so the open one is the state, not four booleans.
+  const [OpenModal, setOpenModal] = useState<MedicalModal>()
 
   if (!modules.includes(MODULE.MEDICAL)) return <AccessDenied />
+
+  const open = (modal: MedicalModal) => () => setOpenModal(() => modal)
+  const sections: Record<string, ReactNode> = {
+    dashboard: <DashboardTab />,
+    pacientes: <MedicalPatientsTab onNewPatient={open(PacienteModal)} onImportPatients={open(PacientesImportModal)} />,
+    citas: <CitasTab onNewCita={open(CitaModal)} />,
+    hipaa: <HipaaTab onNewIncidente={open(IncidenteModal)} />,
+    audit: <AuditTab />,
+  }
 
   return (
     <AppShell activeTab={tab} onTabChange={setTab}>
       <PageTransition>
         <MedicalProvider>
-          {tab === 'dashboard' && <DashboardTab />}
-          {tab === 'pacientes' && <MedicalPatientsTab onNewPatient={() => setModalPaciente(true)} onImportPatients={() => setModalImportPacientes(true)} />}
-          {tab === 'citas' && <CitasTab onNewCita={() => setModalCita(true)} />}
-          {tab === 'hipaa' && <HipaaTab onNewIncidente={() => setModalIncidente(true)} />}
-          {tab === 'audit' && <AuditTab />}
-
-          {modalPaciente && <PacienteModal onClose={() => setModalPaciente(false)} />}
-          {modalImportPacientes && <PacientesImportModal onClose={() => setModalImportPacientes(false)} />}
-          {modalCita && <CitaModal onClose={() => setModalCita(false)} />}
-          {modalIncidente && <IncidenteModal onClose={() => setModalIncidente(false)} />}
+          {sections[tab]}
+          {OpenModal && <OpenModal onClose={() => setOpenModal(undefined)} />}
         </MedicalProvider>
       </PageTransition>
     </AppShell>
   )
 }
+
+// Mounts Medical behind its module gate. The sections live only in the shell's vertical panel
+// (SUB_ITEMS.medical); Medical has no sub-views, so there is no horizontal bar here.
+// The section map keys must match those SUB_ITEMS tabs; an unknown tab renders nothing.
