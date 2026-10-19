@@ -14,7 +14,12 @@ export default function DuplicatesTab<T>(props: Props<T>) {
   const { itemA, itemB, controls } = par
   // The same builder the merge sends to the RPC, so the preview can never show something else.
   const preview = itemA && itemB && renderPreview
-    ? renderPreview(construirValoresFinales(itemA, itemB, controls.choices, controls.excludedIds))
+    ? renderPreview(
+      itemA,
+      itemB,
+      construirValoresFinales(itemA, itemB, controls.choices, controls.excludedIds),
+      controls,
+    )
     : null
 
   return (

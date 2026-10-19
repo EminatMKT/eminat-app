@@ -4,9 +4,8 @@ import { CompareField, type CompareControls } from '@/shared/dedup'
 import { pacienteDedupStrategy } from '@/features/medical/utils/pacienteDedupStrategy'
 import FIELD_MAPS from '../fieldMaps'
 import CONTACT_FIELDS from './contactFields'
-import type { ContactView, PatientUnderReview } from '../types'
-
-const contactText = ({ valor }: ContactView) => valor
+import contactText from './contactText'
+import type { PatientUnderReview } from '../types'
 
 /** One `CompareField` per clinical field `pacienteDedupStrategy.fusionar` reports as a conflict,
  *  then one per contact type either patient holds; a message when there is nothing to show. */

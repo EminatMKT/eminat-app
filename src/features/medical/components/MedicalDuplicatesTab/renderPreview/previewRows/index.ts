@@ -1,5 +1,5 @@
 import type { I18nKey } from '@/shared/i18n'
-import PREVIEW_LABEL_KEYS from '../previewLabelKeys'
+import FIELD_MAPS from '@/features/medical/components/MedicalDuplicatesTab/fieldMaps'
 import type { PreviewRow } from './types'
 
 function shown(value: unknown, blank: string): string {
@@ -8,14 +8,14 @@ function shown(value: unknown, blank: string): string {
   return filled ? text : blank
 }
 
-/** The merge preview's lines: one per labelled field present in `valoresFinales`, in the grid's
- *  order, with a blank value spelled out instead of left empty. */
+/** The merge preview's clinical lines: one per labelled field present in `valoresFinales`, in the
+ *  grid's order, with a blank value spelled out instead of left empty. Contacts are not here. */
 export default function previewRows(
   valoresFinales: Record<string, unknown>,
   t: (key: I18nKey) => string,
 ): PreviewRow[] {
   const blank = t('import.merge.noValue')
-  const labelled = Object.entries(PREVIEW_LABEL_KEYS)
+  const labelled = Object.entries(FIELD_MAPS.labelKeys)
   const written = labelled.filter(([field]) => Object.hasOwn(valoresFinales, field))
   const rows = written.map(([field, labelKey]) => ({
     field,
@@ -25,5 +25,5 @@ export default function previewRows(
   return rows
 }
 
-// Walks the label catalog, not the values: a column the merge writes but the grid never names
-// (an id, a timestamp) stays out of the preview, and the order matches the grid's.
+// Walks the grid's clinical label catalog, not the values: an id, a timestamp, or the single
+// scalar `telefono`/`email` stays out — `contactRows` lists every surviving contact instead.

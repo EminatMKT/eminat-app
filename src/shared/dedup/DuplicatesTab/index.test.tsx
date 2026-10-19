@@ -84,7 +84,11 @@ const LOSER: Item = { id: 'b' }
 const anaOnly = { a: 'Ana Lopez' }
 const NO_EXTRA: Partial<Props<Item>> = {}
 const mergeValues = (a: Item, b: Item) => ({ kept: a.id, merged: b.id })
-const previewOf = (values: Record<string, unknown>) => JSON.stringify(values)
+// Echoes the pair too: multivalued survivors are read from the items, not from `values`.
+const previewOf = (a: Item, b: Item, values: Record<string, unknown>) => {
+  const echoed = { a: a.id, b: b.id, values }
+  return JSON.stringify(echoed)
+}
 
 const renderTab = (extra = NO_EXTRA) => renderToStaticMarkup(
   <DuplicatesTab<Item>
@@ -114,7 +118,7 @@ describe('DuplicatesTab', () => {
   it('hands the open pair a preview of exactly the values the merge would save', () => {
     fallas.abierto = true
     renderTab(PREVIEW_PROPS)
-    expect(pairSeen[0].preview).toBe(previewOf(mergeValues(WINNER, LOSER)))
+    expect(pairSeen[0].preview).toBe(previewOf(WINNER, LOSER, mergeValues(WINNER, LOSER)))
   })
 
   it('hands the open pair no preview when the caller draws none', () => {

@@ -20,7 +20,7 @@ export default function MedicalDuplicatesTab() {
       renderResumen={({ paciente }) => summarizePaciente(paciente)}
       renderComparacion={(a, b, controls) => comparePacientes(a, b, controls, t)}
       construirValoresFinales={buildReviewMergeValues}
-      renderPreview={(valoresFinales) => renderPreview(valoresFinales, t)}
+      renderPreview={(a, b, valoresFinales, controls) => renderPreview(a, b, valoresFinales, controls, t)}
     />
   )
 }

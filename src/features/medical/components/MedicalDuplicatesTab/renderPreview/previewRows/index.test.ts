@@ -1,19 +1,17 @@
 import { describe, expect, it } from 'vitest'
+import FIELD_MAPS from '@/features/medical/components/MedicalDuplicatesTab/fieldMaps'
 import previewRows from '.'
 
 const t = (key: string) => key
 const BLANK = 'import.merge.noValue'
-const SEGURO_AND_PHONE = { seguro: 'Cigna', telefono: '555-0002' }
+const SEGURO = { seguro: 'Cigna' }
 const BLANKS = { notas: null, alergias: '  ', direccion: undefined }
 const UNLABELLED = { id: 'p1', seguro: 'Aetna' }
-const OUT_OF_ORDER = { email: 'ana@x.com', nombre: 'Ana' }
+const WITH_CONTACTS = { seguro: 'Cigna', telefono: '555-0002', email: 'ana@x.com' }
 
 describe('previewRows', () => {
   it('names each written field with its label and shows its value', () => {
-    expect(previewRows(SEGURO_AND_PHONE, t)).toEqual([
-      { field: 'seguro', label: 'med.field.seguro', value: 'Cigna' },
-      { field: 'telefono', label: 'med.field.telefono', value: '555-0002' },
-    ])
+    expect(previewRows(SEGURO, t)).toEqual([{ field: 'seguro', label: 'med.field.seguro', value: 'Cigna' }])
   })
 
   it('says a field will be saved blank instead of showing nothing', () => {
@@ -26,8 +24,15 @@ describe('previewRows', () => {
     expect(fields).toEqual(['seguro'])
   })
 
-  it('lists clinical fields before contacts, as the grid does', () => {
-    const fields = previewRows(OUT_OF_ORDER, t).map(({ field }) => field)
-    expect(fields).toEqual(['nombre', 'email'])
+  // The scalar `telefono`/`email` column holds one value; the contact lines list every survivor.
+  it('leaves phone and email to the contact lines, never the single scalar column', () => {
+    const fields = previewRows(WITH_CONTACTS, t).map(({ field }) => field)
+    expect(fields).toEqual(['seguro'])
+  })
+
+  it('follows the grid’s own field order', () => {
+    const everyField = Object.fromEntries(Object.keys(FIELD_MAPS.labelKeys).map(field => [field, field]))
+    const fields = previewRows(everyField, t).map(({ field }) => field)
+    expect(fields).toEqual(Object.keys(FIELD_MAPS.labelKeys))
   })
 })

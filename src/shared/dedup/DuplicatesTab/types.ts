@@ -19,8 +19,9 @@ export type Props<T> = {
     excludedIds: string[],
   ) => Record<string, unknown>
   /** Draws what the merge will save, from the very values `construirValoresFinales` hands the
-   *  RPC, live as picks change. Optional: without it the open pair shows no preview. */
-  renderPreview?: (valoresFinales: Record<string, unknown>) => ReactNode
+   *  RPC, live as picks change. The pair and `controls` ride along for what never reaches those
+   *  values: multivalued rows, kept or dropped via `excludedIds`. Optional: no preview without it. */
+  renderPreview?: (a: T, b: T, valoresFinales: Record<string, unknown>, controls: CompareControls) => ReactNode
   /** One batched read of every pending id's display name, for the list rows. */
   loadSummaries: LoadSummaries
 }
