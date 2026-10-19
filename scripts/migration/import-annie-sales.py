@@ -9,6 +9,7 @@ activate the Sales organization or any imported historical staff login.
 
 import argparse
 import csv
+from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import os
@@ -127,7 +128,7 @@ def connection_environment(url: str) -> dict[str, str]:
         raise ValueError("PRODUCTION_DATABASE_REQUIRED")
     if PROJECT_REF not in parsed.hostname and PROJECT_REF not in unquote(parsed.username):
         raise ValueError("PRODUCTION_PROJECT_MISMATCH")
-    env = os.environ.copy()
+    env = {key: value for key, value in os.environ.items() if not key.startswith("PG")}
     env.update({"PGHOST": parsed.hostname, "PGPORT": str(parsed.port or 5432),
                 "PGUSER": unquote(parsed.username), "PGPASSWORD": unquote(parsed.password or ""),
                 "PGDATABASE": unquote(parsed.path.lstrip("/") or "postgres"),
@@ -144,6 +145,7 @@ def main() -> None:
     parser.add_argument("bundle", type=Path)
     parser.add_argument("--expected-commit", required=True)
     parser.add_argument("--expected-bundle-sha", required=True)
+    parser.add_argument("--expected-source-release")
     parser.add_argument("--execute", action="store_true")
     args = parser.parse_args()
     current = subprocess.run(["git", "rev-parse", "HEAD"], check=True,
@@ -160,6 +162,16 @@ def main() -> None:
         print(json.dumps({"bundleVerified": True, "rows": len(lines),
                           "destinationTables": len(TABLES), "execute": False}))
         return
+    if not args.expected_source_release or manifest.get("sourceRelease") != args.expected_source_release:
+        raise ValueError("ANNIE_SOURCE_RELEASE_MISMATCH")
+    try:
+        snapshot_at = datetime.fromisoformat(manifest["sourceSnapshotAt"])
+    except (KeyError, TypeError, ValueError):
+        raise ValueError("SOURCE_SNAPSHOT_INVALID") from None
+    if snapshot_at.tzinfo is None or not (
+        timedelta(0) <= datetime.now(timezone.utc) - snapshot_at <= timedelta(hours=4)
+    ):
+        raise ValueError("FRESH_SOURCE_EXPORT_REQUIRED")
     connection = os.environ.get("LILLY_SALES_PRODUCTION_DB_URL", "")
     env = connection_environment(connection)
     csv_path = private_csv(directory, lines)
@@ -188,6 +200,8 @@ if __name__ == "__main__":
                         "PRODUCTION_DATABASE_REQUIRED", "PRODUCTION_PROJECT_MISMATCH",
                         "EXACT_COMMIT_MISMATCH",
                         "WORKTREE_NOT_CLEAN",
+                        "SOURCE_SNAPSHOT_INVALID", "FRESH_SOURCE_EXPORT_REQUIRED",
+                        "ANNIE_SOURCE_RELEASE_MISMATCH",
                         "PRODUCTION_IMPORT_FAILED_CHECK_TRANSACTION_STATE_PRIVATELY"}:
             code = "PRODUCTION_IMPORT_PRECHECK_FAILED"
         print(code, file=sys.stderr)
