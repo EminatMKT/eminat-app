@@ -64,7 +64,7 @@ const string = (value: unknown) => typeof value === 'string' ? value : ''
 const date = (value: unknown) => typeof value === 'string' && value.length >= 10 ? value.slice(0, 10) : ''
 const title = (row: Row) => string(row.display_name) || string(row.name) ||
   [string(row.first_name), string(row.last_name)].filter(Boolean).join(' ') ||
-  string(row.relatedName) || string(row.subject) || string(row.code) || 'Untitled'
+  string(row.title) || string(row.relatedName) || string(row.subject) || string(row.code) || 'Untitled'
 
 export default function NativeSalesModule({ organizationId }: { organizationId: string }) {
   const { t } = useT()
