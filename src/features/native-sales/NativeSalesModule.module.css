@@ -6,10 +6,7 @@
 .role{font-size:.75rem;font-weight:700;color:#147b74}
 .refresh,.pager button{border:1px solid #b9d4d2;background:#fff;color:#125a59;border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer}
 .refresh:disabled,.pager button:disabled{opacity:.45;cursor:default}
-.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#75b3aa #e9f4f1;padding:0 0 8px;margin:0 0 20px;white-space:nowrap;overscroll-behavior-inline:contain}
-.tabs button{border:0;border-radius:10px;padding:10px 13px;background:#e9f4f1;color:#28565b;cursor:pointer;font-weight:700;flex:none}
-.tabs button.active{background:#106e68;color:#fff}
-.tabs button:focus-visible,.item:focus-visible,.pipelineCard:focus-visible,.detail button:focus-visible{outline:3px solid #e2a544;outline-offset:2px}
+.item:focus-visible,.pipelineCard:focus-visible,.detail button:focus-visible{outline:3px solid #e2a544;outline-offset:2px}
 .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
 .metric,.panel,.item,.column{background:#fff;border:1px solid #d5e5e2;border-radius:16px;box-shadow:0 2px 10px #173d4310}
 .metric{padding:18px}.metric p{margin:0 0 8px;color:#527175}.metric strong{font-size:1.8rem}
@@ -31,4 +28,5 @@
 .roleFieldset{border:1px solid #b9d4d2;border-radius:9px;padding:8px 12px}.roleFieldset legend{font-size:.85rem;font-weight:700}.roleFieldset .checkbox{font-weight:500}
 .scheduleList{list-style:none;padding:0;margin:14px 0 0}.scheduleList li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #edf2f1}.scheduleList small{display:block;color:#587378;margin-top:4px}.scheduleList button{border:1px solid #147b74;border-radius:9px;padding:8px 12px;background:#fff;color:#106e68;font-weight:700;cursor:pointer}.scheduleList button:disabled{opacity:.45}
 @media(max-width:760px){.main{padding:14px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.reportGrid,.formGrid{grid-template-columns:1fr}.item{align-items:start}.meta{max-width:35%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tabs{margin-right:-14px;padding-right:14px}.detail{padding:18px}}
+.reportPdf{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 18px}.reportPdf button{border:1px solid #147b74;border-radius:9px;padding:9px 12px;background:#fff;color:#106e68;font-weight:700;cursor:pointer}
 @media(max-width:390px){.metrics{gap:8px}.metric{padding:12px}.metric strong{font-size:1.45rem}.filters label,.filters input,.filters select{width:100%}}

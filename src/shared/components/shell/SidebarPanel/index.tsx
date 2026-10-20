@@ -6,25 +6,31 @@ import { modulePath } from '@/shared/auth/permissions'
 import { visibleTasksTabs } from '@/features/tasks/constants/tabs'
 import { D, SUB_ITEMS, PANEL_META, type PanelKey } from '@/shared/components/shell/appShellConfig'
 import PanelItem from '@/shared/components/shell/PanelItem'
+import { NATIVE_SALES_ITEMS } from '@/shared/components/shell/appShellConfig/subvistas'
 
 type Props = {
   open: boolean
   panel: PanelKey
   activeTab?: string
   onTabChange?: (tab: string) => void
+  salesRole?: string
   setMobileOpen: (v: boolean) => void
 }
 
 // Panel secundario del sidebar: título del módulo + sub-tabs. (Perfil/logout viven
 // ahora en el avatar del rail, RailProfile, accesible para todo usuario.)
 export default function SidebarPanel(props: Props) {
-  const { open, panel, activeTab, onTabChange, setMobileOpen } = props
+  const { open, panel, activeTab, onTabChange, salesRole, setMobileOpen } = props
   const router = useRouter()
   const pathname = usePathname()
   const { t } = useT()
   const { esAdmin } = useApp()
   const subItems = panel === 'tasks' && !esAdmin
-    ? SUB_ITEMS.tasks.filter(item => visibleTasksTabs(false).some(tab => tab === item.tab)) : SUB_ITEMS[panel]
+    ? SUB_ITEMS.tasks.filter(item => visibleTasksTabs(false).some(tab => tab === item.tab))
+    : panel === 'sales' && salesRole
+      ? NATIVE_SALES_ITEMS.filter(item => ['SUPERADMIN', 'ADMINISTRATOR'].includes(salesRole) ||
+          !['organization', 'users', 'settings'].includes(item.tab))
+      : SUB_ITEMS[panel]
   const { title: panelTitle, sub: panelSub } = PANEL_META[panel]
   const targetPath = modulePath(PANEL_META[panel].slug)
 
@@ -36,7 +42,7 @@ export default function SidebarPanel(props: Props) {
   }
 
   return (
-    <div style={{ width: open ? 172 : 0, background: D.s1, borderRight: open ? `1px solid ${D.border}` : 'none', overflow: 'hidden', transition: 'width .2s ease', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ width: open ? panel === 'sales' && salesRole ? 226 : 172 : 0, background: D.s1, borderRight: open ? `1px solid ${D.border}` : 'none', overflow: 'hidden', transition: 'width .2s ease', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '14px 14px 10px' }}>
         <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 13, color: D.t1, whiteSpace: 'nowrap' }}>{panelTitle}</div>
         <div style={{ fontSize: 9, color: D.t3, fontFamily: 'DM Mono', marginTop: 2, whiteSpace: 'nowrap' }}>{panelSub}</div>

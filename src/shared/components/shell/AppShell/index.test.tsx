@@ -10,7 +10,8 @@ vi.mock('@/shared/context/AppContext', () => ({ useApp: () => ({ loading: marks.
 vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: string) => key }) }))
 vi.mock('@/shared/components/shell/Topbar', () => ({ default: () => marks.topbar }))
 vi.mock('@/shared/components/shell/LoadingScreen', () => ({ default: () => marks.spinner }))
-vi.mock('@/shared/components/shell/Sidebar', () => ({ default: absent }))
+vi.mock('@/shared/components/shell/Sidebar', () => ({ default: (props: { activeTab?: string; salesRole?: string }) =>
+  <span data-sales-tab={props.activeTab} data-sales-role={props.salesRole} /> }))
 vi.mock('@/shared/components/shell/Onboarding', () => ({ default: absent }))
 
 const draw = () => renderToStaticMarkup(<AppShell>{marks.page}</AppShell>)
@@ -31,5 +32,11 @@ describe('AppShell', () => {
   it('shows only the loading screen while the session loads', () => {
     marks.loading = true
     expect(draw()).toBe(marks.spinner)
+  })
+
+  it('passes the active Sales section and role to the secondary sidebar', () => {
+    const html = renderToStaticMarkup(<AppShell activeTab="pipeline" salesRole="SELLER">{marks.page}</AppShell>)
+    expect(html).toContain('data-sales-tab="pipeline"')
+    expect(html).toContain('data-sales-role="SELLER"')
   })
 })

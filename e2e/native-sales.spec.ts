@@ -69,10 +69,11 @@ test('native Sales sections render at mobile width without document overflow', a
   await page.locator('input[type="password"]').press('Enter')
   await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
   await page.goto('/sales-native')
-  const sections = page.getByRole('navigation', { name: 'Sales sections' })
   for (const label of ['Dashboard', 'Leads', 'Contacts', 'Accounts', 'Opportunities',
-    'Pipeline', 'Activities', 'Memberships', 'Reports', 'Social', 'Sales Settings']) {
-    await sections.getByRole('button', { name: label, exact: true }).click()
+    'Pipeline', 'Activities', 'Reports', 'Memberships', 'Payments & Renewals',
+    'Communications', 'Organization', 'Users', 'Social', 'Sales Settings']) {
+    await page.getByRole('button', { name: /open menu/i }).click()
+    await page.locator('.sidebar-root').getByRole('button', { name: label, exact: true }).click()
     await expect(page.getByRole('heading', { name: label, exact: true, level: 1 })).toBeVisible()
     await expect(page.getByRole('status').filter({ hasText: /^Loading / })).toHaveCount(0)
     await expect(page.locator('main').getByRole('alert')).toHaveCount(0)
