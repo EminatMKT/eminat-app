@@ -56,3 +56,16 @@ export const SUB_ITEMS: Record<PanelKey, SubItem[]> = {
     { id: 'billing-records', icon: '📅', label: 'Records', labelKey: 'billing.tab.records', tab: 'records' },
   ],
 }
+
+/** The Native Sales panel extends the verified legacy menu without changing its rollback path. */
+export const NATIVE_SALES_ITEMS: SubItem[] = [
+  ...SUB_ITEMS.sales,
+  { id: 'sales-reports', icon: '📊', label: 'Reports', labelKey: 'salesNative.tabReports', tab: 'reports' },
+  { id: 'sales-memberships', icon: '💳', label: 'Memberships', labelKey: 'salesNative.tabMemberships', tab: 'memberships' },
+  { id: 'sales-payments', icon: '💰', label: 'Payments & Renewals', labelKey: 'salesNative.tabPayments', tab: 'payments' },
+  { id: 'sales-communications', icon: '✉️', label: 'Communications', labelKey: 'salesNative.tabCommunications', tab: 'communications' },
+  { id: 'sales-organization', icon: '🏛️', label: 'Organization', labelKey: 'salesNative.tabOrganization', tab: 'organization' },
+  { id: 'sales-users', icon: '👤', label: 'Users', labelKey: 'salesNative.tabUsers', tab: 'users' },
+  { id: 'sales-social', icon: '📱', label: 'Social', labelKey: 'salesNative.tabSocial', tab: 'social' },
+  { id: 'sales-settings', icon: '⚙️', label: 'Sales Settings', labelKey: 'salesNative.tabSettings', tab: 'settings' },
+]

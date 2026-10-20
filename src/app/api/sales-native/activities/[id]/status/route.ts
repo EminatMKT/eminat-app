@@ -12,7 +12,7 @@ export async function POST(request: Request, context: { params: { id: string } }
     const actor = await resolveSalesActor(request)
     if (!z.uuid().safeParse(context.params.id).success)
       return Response.json({ code: 'INVALID_ID' }, { status: 400 })
-    const match = request.headers.get('if-match')
+    const match = request.headers.get('x-sales-expected-version')
     if (!match || !/^(?:"[1-9]\d*"|[1-9]\d*)$/.test(match))
       return Response.json({ code: 'IF_MATCH_REQUIRED' }, { status: 428 })
     const expectedVersion = Number(match.replaceAll('"',''))

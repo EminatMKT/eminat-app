@@ -105,7 +105,7 @@ export async function PATCH(request: Request, context: { params: { resource: str
       return Response.json({ code: 'METHOD_NOT_ALLOWED' }, { status: 405 })
     if (!uuid.test(context.params.id)) return Response.json({ code: 'INVALID_ID' }, { status: 400 })
     const actor = await resolveSalesActor(request)
-    const header = request.headers.get('if-match')
+    const header = request.headers.get('x-sales-expected-version')
     if (!header || !/^(?:"[1-9]\d*"|[1-9]\d*)$/.test(header))
       return Response.json({ code: 'IF_MATCH_REQUIRED' }, { status: 428 })
     const expectedVersion = Number(header.replaceAll('"', ''))

@@ -30,7 +30,7 @@ export async function POST(request: Request, context: { params: { id: string } }
     const key = request.headers.get('idempotency-key')
     if (!key || !/^[A-Za-z0-9_-]{8,128}$/.test(key))
       return Response.json({ code: 'IDEMPOTENCY_KEY_REQUIRED' }, { status: 400 })
-    const header = request.headers.get('if-match')
+    const header = request.headers.get('x-sales-expected-version')
     if (!header || !/^(?:"[1-9]\d*"|[1-9]\d*)$/.test(header))
       return Response.json({ code: 'IF_MATCH_REQUIRED' }, { status: 428 })
     const expectedVersion = Number(header.replaceAll('"', ''))
