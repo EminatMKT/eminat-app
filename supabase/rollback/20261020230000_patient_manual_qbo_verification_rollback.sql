@@ -7,15 +7,6 @@ DO $$ BEGIN
     RAISE EXCEPTION 'ROLLBACK_REQUIRES_MANUAL_RECONCILIATION';
   END IF;
 END $$;
-DROP TRIGGER IF EXISTS sales_patient_qbo_after_membership ON public.sales_memberships;
-DROP TRIGGER IF EXISTS sales_patient_qbo_membership_guard ON public.sales_memberships;
-DROP FUNCTION IF EXISTS public.native_sales_patient_qbo_after_membership();
-DROP FUNCTION IF EXISTS public.native_sales_patient_qbo_membership_guard();
-DROP FUNCTION IF EXISTS public.native_sales_patient_qbo_update(uuid,uuid,text,text,text,text,text,integer,text,text,text,timestamptz,boolean);
-DROP FUNCTION IF EXISTS public.native_sales_patient_qbo_owner(uuid);
-DROP TABLE public.sales_patient_qbo_manual;
-ALTER TABLE public.sales_payments DROP COLUMN is_demo;
-DROP INDEX public.sales_patient_intent_organization_id_unique;
 -- Restore the exact pre-Plan-B membership issuance function from migration 20261018170000.
 CREATE OR REPLACE FUNCTION public.native_sales_issue_membership(
   p_organization_id uuid,p_actor_member_id uuid,p_payment_id uuid,p_contact_id uuid,
@@ -151,4 +142,14 @@ BEGIN
   RETURN to_jsonb(v_membership) || jsonb_build_object('replayed',false);
 END;
 $$;
+
+DROP TRIGGER IF EXISTS sales_patient_qbo_after_membership ON public.sales_memberships;
+DROP TRIGGER IF EXISTS sales_patient_qbo_membership_guard ON public.sales_memberships;
+DROP FUNCTION IF EXISTS public.native_sales_patient_qbo_after_membership();
+DROP FUNCTION IF EXISTS public.native_sales_patient_qbo_membership_guard();
+DROP FUNCTION IF EXISTS public.native_sales_patient_qbo_update(uuid,uuid,text,text,text,text,text,integer,text,text,text,timestamptz,boolean);
+DROP FUNCTION IF EXISTS public.native_sales_patient_qbo_owner(uuid);
+DROP TABLE public.sales_patient_qbo_manual;
+ALTER TABLE public.sales_payments DROP COLUMN is_demo;
+DROP INDEX public.sales_patient_intent_organization_id_unique;
 COMMIT;
