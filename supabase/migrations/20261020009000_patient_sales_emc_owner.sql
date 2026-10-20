@@ -10,12 +10,21 @@ DECLARE
   v_existing_org public.sales_organizations%ROWTYPE;
   v_existing_owner public.sales_members%ROWTYPE;
 BEGIN
+  -- Local/CI databases have no approved Production user or EMC affiliation.
+  -- Leave their Sales organizations empty; Production is prechecked separately.
   IF NOT EXISTS (SELECT 1 FROM public.empresas
     WHERE codigo = 'EMC' AND nombre = 'Eminat Medical Center' AND activo = true) OR
      NOT EXISTS (SELECT 1 FROM public.usuarios
     WHERE id = v_user AND auth_id = v_auth AND lower(email) = 'freddy@eminat.net'
-      AND rol = 'admin' AND activo = true) OR
-     NOT EXISTS (SELECT 1 FROM public.sales_members
+      AND rol = 'admin' AND activo = true) THEN
+    IF EXISTS (SELECT 1 FROM public.sales_organizations
+      WHERE code = 'emc' OR id = v_organization) OR
+       EXISTS (SELECT 1 FROM public.sales_members WHERE id = v_owner) THEN
+      RAISE EXCEPTION 'PATIENT_EMC_OWNER_PRECHECK_FAILED';
+    END IF;
+    RETURN;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.sales_members
     WHERE organization_id = '00b69cc1-d6f1-4972-9fab-d6aa02d611d7'
       AND user_id = v_user AND auth_id = v_auth AND role = 'SUPERADMIN' AND status = 'active') THEN
     RAISE EXCEPTION 'PATIENT_EMC_OWNER_PRECHECK_FAILED';
