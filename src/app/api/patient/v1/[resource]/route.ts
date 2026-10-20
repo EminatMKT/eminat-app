@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const handlePattern = /^cspt_[A-Za-z0-9_-]{40,100}$/
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const respond = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } })
 const invalid = () => respond({ code: 'INVALID_REQUEST' }, 422)
 const unavailable = () => respond({ code: 'PATIENT_API_UNAVAILABLE' }, 503)
@@ -189,4 +189,34 @@ export async function POST(request: Request, { params }: Route) {
     return error ? unavailable() : respond({ data, paymentExecution: 'PENDING' }, 201)
   }
   return respond({ code: 'NOT_FOUND' }, 404)
+}
+
+export async function PATCH(request: Request, { params }: Route) {
+  const { resource } = await params
+  if (resource !== 'profile') return respond({ code: 'NOT_FOUND' }, 404)
+  const body = await readBody(request)
+  if (!body || Object.keys(body).length !== 1 || typeof body.phone !== 'string' || body.phone.trim().length > 40)
+    return invalid()
+  const patient = await authenticate(request)
+  if (!patient) return respond({ code: 'AUTHENTICATION_REQUIRED' }, 401)
+  if (!patient.identity) return respond({ code: 'PROFILE_REQUIRED' }, 409)
+  const configured = scope()
+  if (!configured || configured.organization !== patient.identity.organization_id) return unavailable()
+  const admin = supabaseAdmin({ noStore: true })
+  const { data: current, error: readError } = await admin.from('sales_contacts')
+    .select('version,source').eq('organization_id', patient.identity.organization_id)
+    .eq('id', patient.identity.contact_id).maybeSingle()
+  if (readError || !current) return unavailable()
+  if (current.source !== 'PATIENT_PORTAL') return respond({ code: 'OWNER_REVIEW_REQUIRED' }, 409)
+  const { data, error } = await admin.from('sales_contacts').update({
+    phone: body.phone.trim() || null,
+    version: current.version + 1,
+    updated_by: configured.owner,
+    updated_at: new Date().toISOString(),
+  }).eq('organization_id', patient.identity.organization_id)
+    .eq('id', patient.identity.contact_id).eq('version', current.version)
+    .select('id,first_name,last_name,email,phone,created_at').maybeSingle()
+  if (error) return unavailable()
+  if (!data) return respond({ code: 'PROFILE_CONFLICT' }, 409)
+  return respond({ data })
 }
