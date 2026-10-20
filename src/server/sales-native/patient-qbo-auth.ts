@@ -36,4 +36,3 @@ export async function patientQboActor(request: Request) {
     return { memberId: sales.memberId, verifier: sales.role === 'FINANCE' }
   } catch { return null }
 }
-
