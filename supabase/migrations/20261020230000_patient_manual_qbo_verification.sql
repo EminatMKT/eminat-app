@@ -226,7 +226,13 @@ BEGIN
   IF NEW.status <> 'ACTIVE' THEN RETURN NEW; END IF;
   SELECT * INTO v_intent FROM public.sales_patient_enrollment_intents
     WHERE organization_id=NEW.organization_id AND opportunity_id=NEW.opportunity_id;
-  IF NOT FOUND THEN RETURN NEW; END IF;
+  IF NOT FOUND THEN
+    IF EXISTS (SELECT 1 FROM public.sales_patient_identities i
+      WHERE i.organization_id=NEW.organization_id AND i.contact_id=NEW.primary_contact_id) THEN
+      RAISE EXCEPTION 'PATIENT_QBO_INTENT_REQUIRED' USING ERRCODE='42501';
+    END IF;
+    RETURN NEW;
+  END IF;
   SELECT * INTO v_qbo FROM public.sales_patient_qbo_manual
     WHERE organization_id=NEW.organization_id AND enrollment_intent_id=v_intent.id;
   IF NOT FOUND OR v_qbo.verification_state <> 'PAYMENT_VERIFIED'
