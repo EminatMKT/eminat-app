@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { NativeRequest } from './NativeSalesModule'
 import NativePaymentHistory from './NativePaymentHistory'
 import NativeMembershipRenewal from './NativeMembershipRenewal'
+import NativePatientQbo from './NativePatientQbo'
 import { useT } from '@/shared/i18n'
 import s from './NativeSalesModule.module.css'
 
@@ -10,8 +11,8 @@ type Opportunity = { id: string; name: string; currency: string; amount: string 
 type Membership = { id: string; code: string; plan: string; duration: string;
   expires_at: string; effectiveStatus: string; opportunity_id: string | null }
 
-export default function NativePaymentsRenewals({ request, role }: {
-  request: NativeRequest; role: string
+export default function NativePaymentsRenewals({ request, role, showPatientQbo }: {
+  request: NativeRequest; role: string; showPatientQbo: boolean
 }) {
   const { t } = useT()
   const [opportunities, setOpportunities] = useState<Opportunity[]>([])
@@ -34,6 +35,7 @@ export default function NativePaymentsRenewals({ request, role }: {
   useEffect(() => { void load() }, [load])
   const selected = memberships.find(item => item.id === membershipId)
   return <div className={s.reportGrid}>
+    {showPatientQbo && <NativePatientQbo request={request} />}
     <section className={s.panel}>
       <h2>{t('salesNative.recordedPayments')}</h2>
       <p className={s.caption}>{t('salesNative.paymentsNotice')}</p>

@@ -1,0 +1,19 @@
+{
+  "project_ref": "ruedelunbtaomhrzgelc",
+  "checked_at_utc": "2026-10-20T22:58:17.340864+00:00",
+  "scheduled_physical_backup_at_utc": "2026-10-20T05:27:03+00:00",
+  "point_in_time_recovery_enabled": false,
+  "new_names_conflict": 0,
+  "sales_payments_is_demo_exists_before": false,
+  "intent_required_columns_found": 6,
+  "opportunity_composite_key": true,
+  "payment_composite_key": true,
+  "member_composite_key": true,
+  "membership_existing_user_triggers": 0,
+  "patient_intents_with_membership": 0,
+  "membership_issue_function_md5_before": "98f07189255b816695382f47b1da4c1a",
+  "intent_count_before": 2,
+  "payment_count_before": 2,
+  "membership_count_before": 2,
+  "rollback_script": "20261020230000_patient_manual_qbo_verification_rollback.sql"
+}
