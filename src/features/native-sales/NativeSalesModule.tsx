@@ -76,8 +76,8 @@ const title = (row: Row) => string(row.display_name) || string(row.name) ||
   [string(row.first_name), string(row.last_name)].filter(Boolean).join(' ') ||
   string(row.title) || string(row.relatedName) || string(row.subject) || string(row.code) || 'Untitled'
 
-export default function NativeSalesModule({ organizationId, initialUserId }: {
-  organizationId: string; initialUserId: string
+export default function NativeSalesModule({ organizationId, initialUserId, profileId }: {
+  organizationId: string; initialUserId: string; profileId: string
 }) {
   const { t } = useT()
   const [tab, setTab] = useState<Tab>('dashboard')
@@ -383,7 +383,9 @@ export default function NativeSalesModule({ organizationId, initialUserId }: {
           </div>
           <h3>{t('salesNative.recentCommunications')}</h3>
         </section>}
-        {tab==='payments' && <NativePaymentsRenewals request={request} role={access.role} />}
+        {tab==='payments' && <NativePaymentsRenewals request={request} role={access.role}
+          showPatientQbo={organizationId==='9efab353-46a0-43d1-9901-e3f185dc5d30' ||
+            profileId==='2344e112-76ef-42a8-ac56-7c488084e0f5'} />}
         {tab==='pipeline' && !loading && <>
           <p className={s.hint}>{t('salesNative.swipeSidewaysToViewEveryStage')}</p>
           <div className={s.board} tabIndex={0} aria-label={t('salesNative.opportunityPipeline')}>
