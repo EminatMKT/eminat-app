@@ -1,0 +1,1405 @@
+# Ambient Duplicate-Detection Engine (Medical/pacientes) — Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Build the generic deduplication engine (`src/shared/dedup/`) and wire it into Medical/pacientes — a pending-pair queue, discard memory, transactional merge/revert, and a new tab in `/medical`.
+
+**Architecture:** Four generic Postgres tables (discriminated by `entidad`) plus six `SECURITY DEFINER` functions, all already decided at the requirements level (see spec). The TS contract `DedupStrategy<T>` lives in `src/shared/dedup/`, following the pattern already proven by `src/shared/import/identity.ts`; Medical implements the adapter by wrapping `pacienteIdentity`. Every SQL function is built with TDD: a verification script (`supabase/checks/`) that fails before the function exists and passes after — the mechanism that, unlike the spec's 6 adversarial review rounds, catches these bugs in minutes.
+
+**Tech Stack:** Next.js 14 · TypeScript · Supabase (Postgres 17) · vitest · SheetJS (already in use, no changes)
+
+**Spec:** `docs/superpowers/specs/2026-10-12-motor-duplicados-ambiente-design.md` — read it in full before Task 1. This plan translates its requirements into code; it does not repeat the reasoning behind each requirement (that's in the spec, along with the history of the 6 review rounds that produced it).
+
+## Global Constraints
+
+Copied from the spec and this repo's centinela rules. Apply to **every** task.
+
+- **`any` is forbidden** (ESLint `no-explicit-any: error`).
+- **No `../../`** — import with `@/features/…` or `@/shared/…`.
+- **A component is a folder**: `index.tsx` + `index.module.css` + `index.test.tsx`.
+- **The `style` attribute is forbidden**, except to pass a data value as a CSS variable.
+- **i18n**: every visible string goes through `useT()`/`t()`, with a key in both `es.json` and `en.json`.
+- **`src/shared/` never imports from `src/features/`.**
+- **Vitest runs without a DOM**: every component test targets a pure function; never mount a component.
+- **Never `pnpm supabase db reset`.** Locally: `pnpm supabase migration up`.
+- **The module slug lives in a variable and the migration aborts if it doesn't exist** (centinela rule `base-de-datos.md`) — already applied in the spec for `'medical'`; repeat the pattern if another slug is ever added.
+- **A migration that distributes permissions lists the explicit role, never copies it with a `SELECT`.**
+- **No policy authorizes just for having a session** (`qual: true` is forbidden).
+- **Audit actor IDs reference `usuarios.id`, not `usuarios.auth_id`.** Use `public.usuario_actual_id()` for `decidido_por` and `revertido_por`; test with different application and authentication IDs.
+- **Commits by explicit path**: `git commit path/one.ts path/two.ts -m "…"`. Never `git add -A`.
+- **Verification**: `pnpm typecheck && pnpm test` before every TS/UI commit. For SQL checks: the `rls.sh`-style pattern (`psql ... -f file.sql`, skips if the local stack isn't up).
+
+## Review Focus
+
+Cases the spec implies but no task covers unless named here explicitly:
+
+1. **NULL `fecha_nacimiento` in blocking** — `pacienteIdentity.candidatos()` already says "no DOB, no candidates"; `pacientes_candidatos_escaneo()` has to exclude those rows from the self-join, or it builds one giant `NULL` bucket. Test in Task 8.
+2. **Two calls to `addPaciente`/import with the same name+DOB before any patient exists yet** — the first registration has nothing to compare against; the second does. Test in Task 4 (adapter) and Task 14 (wiring).
+3. **Empty `p_valores_finales` (`{}`)** — trivially passes rules 1/2/3 but fails rule 4 if any column differs; confirms the completeness rule can't be dodged by sending an empty payload. Test in Task 9.
+4. **Reusing the same `pg_advisory_xact_lock` across two different entities whose ids happen to collide** — the lock key has to include `p_entidad`, not just the ids. Test in Task 5.
+5. **`escanear_duplicados` over an empty patient table (0 rows)** — has to finish cleanly, no division by zero, no "no buckets" exception. Test in Task 8.
+
+---
+
+## File Structure
+
+```
+supabase/migrations/
+  20261012120000_duplicados_motor_tablas.sql
+  20261012120100_duplicados_motor_blocking.sql
+  20261012120200_duplicados_motor_registrar.sql
+  20261012120300_duplicados_motor_descartes.sql
+  20261012120400_duplicados_motor_escaneo.sql
+  20261012120500_duplicados_motor_fusionar.sql
+  20261012120600_duplicados_motor_revertir.sql
+
+supabase/checks/
+  duplicados-motor-tablas.sql
+  duplicados-motor-nysiis.sql
+  duplicados-motor-registrar.sql
+  duplicados-motor-descartes.sql
+  duplicados-motor-escaneo.sql
+  duplicados-motor-fusionar.sql
+  duplicados-motor-revertir.sql
+
+src/shared/dedup/
+  strategy.ts                 (create)
+  index.ts                    (create — barrel)
+  ordenarPendientes.ts         (create — pure sort function, kept outside the component)
+  DuplicatesTab/
+    index.tsx                 (create)
+    index.module.css          (create)
+
+src/features/medical/utils/pacienteDedupStrategy/
+  index.ts                    (create)
+  index.test.ts               (create)
+
+src/features/medical/components/PacientesDuplicatesTab/
+  index.tsx                   (create)
+
+src/shared/import/MergeFieldRow/
+  index.tsx                   (modify — add `onChooseValue`/`selectedIndex` props)
+  index.module.css             (modify)
+
+src/features/medical/hooks/useMedicalData.ts           (modify — incremental hook in addPaciente)
+src/features/medical/utils/pacienteImportPlan/index.ts  (modify — incremental hook in the import)
+src/features/medical/components/MedicalModule.tsx       (modify — mount the new tab)
+src/shared/components/shell/appShellConfig/subvistas.ts (modify — 'duplicados' entry)
+src/shared/i18n/locales/es.json, en.json                (modify — new keys)
+```
+
+Table names, column names, and RPC names stay exactly as the spec defines them, matching the rest of the existing schema's naming. Only the prose, comments, and error messages that are new content from this point forward go in English, per the rule this plan itself now follows.
+
+---
+
+## Task 1: Migration — base tables + minimal RLS/GRANT + seed
+
+**Files:**
+- Create: `supabase/migrations/20261012120000_duplicados_motor_tablas.sql`
+- Create: `supabase/checks/duplicados-motor-tablas.sql`
+
+**Interfaces:**
+- Produces: tables `duplicados_entidades`, `duplicados_pendientes`, `duplicados_descartes`, `duplicados_fusiones` — every later task depends on this exact shape existing.
+
+- [ ] **Step 1: Write the failing check**
+
+```sql
+-- supabase/checks/duplicados-motor-tablas.sql
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'duplicados_entidades') THEN
+    RAISE EXCEPTION 'duplicados_entidades is missing';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.duplicados_entidades WHERE entidad = 'pacientes' AND tabla = 'pacientes' AND modulo = 'medical') THEN
+    RAISE EXCEPTION 'seed row for pacientes is missing in duplicados_entidades';
+  END IF;
+  IF (SELECT hijos FROM public.duplicados_entidades WHERE entidad = 'pacientes') <>
+     '[{"tabla":"paciente_fuentes","columna":"paciente_id"},{"tabla":"paciente_contactos","columna":"paciente_id"}]'::jsonb THEN
+    RAISE EXCEPTION 'hijos of the pacientes seed row does not match';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public' AND c.relname IN
+      ('duplicados_entidades','duplicados_pendientes','duplicados_descartes','duplicados_fusiones')
+      AND NOT c.relrowsecurity
+  ) THEN
+    RAISE EXCEPTION 'some table of the dedup engine does not have RLS enabled';
+  END IF;
+  IF has_table_privilege('authenticated', 'public.duplicados_entidades', 'INSERT') THEN
+    RAISE EXCEPTION 'authenticated should not be able to INSERT into duplicados_entidades';
+  END IF;
+  IF NOT has_table_privilege('authenticated', 'public.duplicados_pendientes', 'SELECT') THEN
+    RAISE EXCEPTION 'authenticated should be able to SELECT from duplicados_pendientes';
+  END IF;
+END $$;
+```
+
+- [ ] **Step 2: Run the check and confirm it fails**
+
+```bash
+pnpm supabase start
+psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/checks/duplicados-motor-tablas.sql
+```
+Expected: `ERROR: duplicados_entidades is missing`.
+
+- [ ] **Step 3: Write the migration**
+
+```sql
+-- supabase/migrations/20261012120000_duplicados_motor_tablas.sql
+CREATE TABLE IF NOT EXISTS public.duplicados_entidades (
+  entidad            text PRIMARY KEY,
+  tabla              text NOT NULL,
+  modulo             text NOT NULL,
+  hijos              jsonb NOT NULL DEFAULT '[]'::jsonb,
+  funcion_candidatos text NOT NULL
+);
+
+DO $$
+DECLARE
+  slug text := 'medical';
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.role_modules WHERE module_slug = slug) THEN
+    RAISE EXCEPTION 'module slug % has no role assigned to it: either it is a typo, or an '
+                    'admin removed the module from every role. Check before continuing.', slug;
+  END IF;
+
+  INSERT INTO public.duplicados_entidades (entidad, tabla, modulo, hijos, funcion_candidatos) VALUES
+    ('pacientes', 'pacientes', slug,
+     '[{"tabla":"paciente_fuentes","columna":"paciente_id"},
+       {"tabla":"paciente_contactos","columna":"paciente_id"}]'::jsonb,
+     'pacientes_candidatos_escaneo')
+  ON CONFLICT (entidad) DO NOTHING;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.duplicados_pendientes (
+  entidad       text NOT NULL REFERENCES public.duplicados_entidades(entidad),
+  item_id_a     uuid NOT NULL,
+  item_id_b     uuid NOT NULL,
+  nivel         text NOT NULL CHECK (nivel IN ('exacta','parcial')),
+  origen        text NOT NULL CHECK (origen IN ('import','alta_manual','escaneo')),
+  detectado_at  timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (entidad, item_id_a, item_id_b),
+  CONSTRAINT duplicados_pendientes_par_ordenado CHECK (item_id_a < item_id_b)
+);
+
+CREATE TABLE IF NOT EXISTS public.duplicados_descartes (
+  entidad       text NOT NULL REFERENCES public.duplicados_entidades(entidad),
+  item_id_a     uuid NOT NULL,
+  item_id_b     uuid NOT NULL,
+  motivo        text NOT NULL CHECK (motivo IN ('no_son_la_misma', 'son_la_misma_separadas')),
+  nota          text,
+  decidido_por  uuid REFERENCES public.usuarios(id),
+  decidido_at   timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (entidad, item_id_a, item_id_b),
+  CONSTRAINT duplicados_descartes_par_ordenado CHECK (item_id_a < item_id_b),
+  CONSTRAINT duplicados_descartes_nota_si_separadas
+    CHECK (motivo <> 'son_la_misma_separadas' OR nota IS NOT NULL)
+);
+
+CREATE TABLE IF NOT EXISTS public.duplicados_fusiones (
+  id                      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  entidad                 text NOT NULL REFERENCES public.duplicados_entidades(entidad),
+  ganador_id              uuid NOT NULL,
+  perdedor_id             uuid NOT NULL,
+  perdedor_snapshot       jsonb NOT NULL,
+  ganador_snapshot_previo jsonb NOT NULL,
+  hijos_movidos           jsonb NOT NULL,
+  decidido_por            uuid REFERENCES public.usuarios(id),
+  decidido_at             timestamptz NOT NULL DEFAULT now(),
+  revertido_por           uuid REFERENCES public.usuarios(id),
+  revertido_at            timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS duplicados_fusiones_ganador_id_idx ON public.duplicados_fusiones (ganador_id);
+CREATE INDEX IF NOT EXISTS duplicados_fusiones_perdedor_id_idx ON public.duplicados_fusiones (perdedor_id);
+
+GRANT SELECT ON public.duplicados_entidades TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.duplicados_entidades TO service_role;
+
+GRANT SELECT
+  ON public.duplicados_pendientes, public.duplicados_descartes, public.duplicados_fusiones
+  TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE
+  ON public.duplicados_pendientes, public.duplicados_descartes, public.duplicados_fusiones
+  TO service_role;
+
+ALTER TABLE public.duplicados_entidades  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.duplicados_pendientes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.duplicados_descartes  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.duplicados_fusiones   ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "select_por_modulo" ON public.duplicados_entidades
+  FOR SELECT USING ((SELECT public.has_module(modulo)));
+
+CREATE POLICY "select_por_modulo" ON public.duplicados_pendientes
+  FOR SELECT USING ((SELECT public.has_module(de.modulo)
+                      FROM public.duplicados_entidades de
+                      WHERE de.entidad = duplicados_pendientes.entidad));
+
+CREATE POLICY "select_por_modulo" ON public.duplicados_descartes
+  FOR SELECT USING ((SELECT public.has_module(de.modulo)
+                      FROM public.duplicados_entidades de
+                      WHERE de.entidad = duplicados_descartes.entidad));
+
+CREATE POLICY "select_por_modulo" ON public.duplicados_fusiones
+  FOR SELECT USING ((SELECT public.has_module(de.modulo)
+                      FROM public.duplicados_entidades de
+                      WHERE de.entidad = duplicados_fusiones.entidad));
+```
+
+- [ ] **Step 4: Apply and re-run the check**
+
+```bash
+pnpm supabase migration up
+psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/checks/duplicados-motor-tablas.sql
+```
+Expected: no output.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git commit supabase/migrations/20261012120000_duplicados_motor_tablas.sql supabase/checks/duplicados-motor-tablas.sql -m "feat(db): base tables for the ambient dedup engine"
+```
+
+---
+
+## Task 2: Migration — `nysiis()` + blocking indexes
+
+**Files:**
+- Create: `supabase/migrations/20261012120100_duplicados_motor_blocking.sql`
+- Create: `supabase/checks/duplicados-motor-nysiis.sql`
+
+**Interfaces:**
+- Consumes: the `pacientes` table (already exists).
+- Produces: `public.nysiis(text) RETURNS text`, indexes `pacientes_blocking_dmetaphone_idx`/`pacientes_blocking_nysiis_idx` — consumed by Task 8 (`pacientes_candidatos_escaneo()`).
+
+- [ ] **Step 1: Write the failing check (NYSIIS reference vectors, Taft 1970)**
+
+```sql
+-- supabase/checks/duplicados-motor-nysiis.sql
+DO $$
+DECLARE
+  casos text[][] := ARRAY[
+    ARRAY['HERNANDEZ', 'HARNANAD'],
+    ARRAY['GARCIA', 'GARC'],
+    ARRAY['KNIGHT', 'NAGT'],
+    ARRAY['PFEIFFER', 'FAFFAR'],
+    ARRAY['MACDONALD', 'MCANALD']
+  ];
+  fila text[];
+  obtenido text;
+BEGIN
+  FOREACH fila SLICE 1 IN ARRAY casos LOOP
+    obtenido := public.nysiis(fila[1]);
+    IF obtenido IS DISTINCT FROM fila[2] THEN
+      RAISE EXCEPTION 'nysiis(%) returned % instead of %', fila[1], obtenido, fila[2];
+    END IF;
+  END LOOP;
+END $$;
+```
+
+- [ ] **Step 2: Run and confirm it fails**
+
+```bash
+psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/checks/duplicados-motor-nysiis.sql
+```
+Expected: `function public.nysiis(unknown) does not exist`.
+
+- [ ] **Step 3: Implement `nysiis()` and the indexes**
+
+```sql
+-- supabase/migrations/20261012120100_duplicados_motor_blocking.sql
+CREATE EXTENSION IF NOT EXISTS fuzzystrmatch;
+
+CREATE OR REPLACE FUNCTION public.nysiis(texto text)
+RETURNS text
+LANGUAGE plpgsql
+IMMUTABLE
+AS $$
+DECLARE
+  s text := upper(trim(texto));
+  resultado text;
+BEGIN
+  IF s = '' OR s IS NULL THEN
+    RETURN '';
+  END IF;
+
+  s := regexp_replace(s, '^MAC', 'MCC');
+  s := regexp_replace(s, '^KN', 'NN');
+  s := regexp_replace(s, '^K', 'C');
+  s := regexp_replace(s, '^(PH|PF)', 'FF');
+  s := regexp_replace(s, '^SCH', 'SSS');
+
+  s := regexp_replace(s, '(EE|IE)$', 'Y');
+  s := regexp_replace(s, '(DT|RT|RD|NT|ND)$', 'D');
+
+  resultado := substr(s, 1, 1);
+  s := substr(s, 2);
+
+  s := regexp_replace(s, 'EV', 'AF', 'g');
+  s := regexp_replace(s, '[AEIOU]', 'A', 'g');
+  s := regexp_replace(s, 'Q', 'G', 'g');
+  s := regexp_replace(s, 'Z', 'S', 'g');
+  s := regexp_replace(s, 'M', 'N', 'g');
+  s := regexp_replace(s, 'KN', 'N', 'g');
+  s := regexp_replace(s, 'K', 'C', 'g');
+  s := regexp_replace(s, 'SCH', 'SSS', 'g');
+  s := regexp_replace(s, 'PH', 'FF', 'g');
+  s := regexp_replace(s, 'H', '', 'g');
+  s := regexp_replace(s, 'W', 'A', 'g');
+
+  resultado := resultado || s;
+  resultado := regexp_replace(resultado, '(.)\1+', '\1', 'g');
+  resultado := regexp_replace(resultado, 'A$', '');
+  resultado := regexp_replace(resultado, 'S$', '');
+
+  RETURN left(resultado, 6);
+END;
+$$;
+
+CREATE INDEX IF NOT EXISTS pacientes_blocking_dmetaphone_idx
+  ON public.pacientes (dmetaphone(apellido), extract(year FROM fecha_nacimiento), left(nombre, 1));
+
+CREATE INDEX IF NOT EXISTS pacientes_blocking_nysiis_idx
+  ON public.pacientes (public.nysiis(apellido), extract(year FROM fecha_nacimiento), left(nombre, 1));
+```
+
+Note for the implementer: if any of the 5 vectors from Step 1 doesn't match this implementation, adjust the function until all 5 pass — the vectors are the contract, not this particular implementation.
+
+- [ ] **Step 4: Apply and re-run the check**
+
+```bash
+pnpm supabase migration up
+psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/checks/duplicados-motor-nysiis.sql
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git commit supabase/migrations/20261012120100_duplicados_motor_blocking.sql supabase/checks/duplicados-motor-nysiis.sql -m "feat(db): nysiis() and blocking indexes for the dedup engine"
+```
+
+---
+
+## Task 3: TS — `DedupStrategy<T>` contract
+
+**Files:**
+- Create: `src/shared/dedup/strategy.ts`
+- Create: `src/shared/dedup/index.ts`
+
+**Interfaces:**
+- Produces: `NivelCandidato`, `DedupStrategy<T>` — consumed by Task 4 (Medical adapter) and Task 13 (`DuplicatesTab`).
+
+This file is pure type declarations — no runtime logic, nothing a test could exercise beyond what `pnpm typecheck` already verifies. No test file for it (same reasoning this repo's own `suite_before_module` check already applies to const-only modules).
+
+- [ ] **Step 1: Implement**
+
+```ts
+// src/shared/dedup/strategy.ts
+export type NivelCandidato = 'exacta' | 'parcial'
+
+export interface DedupStrategy<T> {
+  entidad: string
+  candidatos(item: T, existentes: readonly T[]): { nivel: NivelCandidato; item: T }[]
+  fusionar(existente: Partial<T>, entrante: Partial<T>): { resultado: Partial<T>; choques: string[] }
+}
+```
+
+```ts
+// src/shared/dedup/index.ts
+export type { NivelCandidato, DedupStrategy } from './strategy'
+```
+
+- [ ] **Step 2: `pnpm typecheck`**
+
+- [ ] **Step 3: Commit**
+
+```bash
+git commit src/shared/dedup/strategy.ts src/shared/dedup/index.ts -m "feat(dedup): DedupStrategy<T> contract"
+```
+
+---
+
+## Task 4: TS — Medical adapter (`pacienteDedupStrategy`)
+
+**Files:**
+- Create: `src/features/medical/utils/pacienteDedupStrategy/index.ts`
+- Create: `src/features/medical/utils/pacienteDedupStrategy/index.test.ts`
+
+**Interfaces:**
+- Consumes: `pacienteIdentity.candidatos`/`fusionar`, `DedupStrategy<T>` (Task 3).
+- Produces: `pacienteDedupStrategy: DedupStrategy<Identificable>`.
+
+This one DOES get a test: `fusionar()` has real logic (the column exclusion), not just a type shape — exactly the kind of behavior `suite_before_module` exists to pin down before writing it.
+
+- [ ] **Step 1: Write the test that requires excluding the identity/audit columns**
+
+```ts
+import { describe, it, expect } from 'vitest'
+import { pacienteDedupStrategy } from './index'
+
+describe('pacienteDedupStrategy.fusionar', () => {
+  it('excludes id/mrn/created_at/updated_at from the result', () => {
+    const existente = { id: 'a', mrn: 'MRN-1', created_at: '2026-01-01', updated_at: '2026-01-01', nombre: 'Ana' }
+    const entrante = { id: 'b', mrn: 'MRN-2', created_at: '2026-02-01', updated_at: '2026-02-01', apellido: 'Gomez' }
+    const { resultado } = pacienteDedupStrategy.fusionar(existente, entrante)
+    expect(resultado).not.toHaveProperty('id')
+  })
+})
+```
+
+- [ ] **Step 2: Run and confirm it fails.**
+
+- [ ] **Step 3: Implement**
+
+```ts
+import { candidatos, fusionar, type Identificable } from '@/features/medical/utils/pacienteIdentity'
+import type { DedupStrategy } from '@/shared/dedup'
+import type { Paciente } from '@/features/medical/types'
+
+const COLUMNAS_EXCLUIDAS = ['id', 'mrn', 'created_at', 'updated_at'] as const
+
+function sinColumnasExcluidas(valores: Partial<Paciente>): Partial<Paciente> {
+  const copia = { ...valores }
+  for (const campo of COLUMNAS_EXCLUIDAS) delete copia[campo]
+  return copia
+}
+
+export const pacienteDedupStrategy: DedupStrategy<Identificable> = {
+  entidad: 'pacientes',
+  candidatos: (item, existentes) =>
+    candidatos(item, existentes).map(({ nivel, paciente }) => ({ nivel, item: paciente })),
+  fusionar: (existente, entrante) => {
+    const { paciente, choques } = fusionar(existente, entrante)
+    return { resultado: sinColumnasExcluidas(paciente), choques }
+  },
+}
+```
+
+- [ ] **Step 4: Run and confirm it passes.**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git commit src/features/medical/utils/pacienteDedupStrategy/index.ts src/features/medical/utils/pacienteDedupStrategy/index.test.ts -m "feat(medical): DedupStrategy adapter for pacientes"
+```
+
+---
+
+## Task 5: RPC `registrar_candidato_duplicado`
+
+**Files:**
+- Create: `supabase/migrations/20261012120200_duplicados_motor_registrar.sql`
+- Create: `supabase/checks/duplicados-motor-registrar.sql`
+
+**Interfaces:**
+- Consumes: `duplicados_entidades`, `duplicados_pendientes`, `duplicados_descartes`, `has_module(text)`.
+- Produces: `public.registrar_candidato_duplicado(p_entidad text, p_item_id_a uuid, p_item_id_b uuid, p_nivel text, p_origen text)` — called by Task 8 and Task 14.
+
+- [ ] **Step 1: Write the failing check**
+
+```sql
+DO $$
+DECLARE
+  id_a uuid; id_b uuid; id_c uuid;
+BEGIN
+  INSERT INTO public.pacientes (nombre, apellido) VALUES ('Test', 'UnoDup') RETURNING id INTO id_a;
+  INSERT INTO public.pacientes (nombre, apellido) VALUES ('Test', 'DosDup') RETURNING id INTO id_b;
+  INSERT INTO public.pacientes (nombre, apellido) VALUES ('Test', 'TresDup') RETURNING id INTO id_c;
+
+  PERFORM public.registrar_candidato_duplicado('pacientes', id_a, id_b, 'exacta', 'alta_manual');
+  IF NOT EXISTS (SELECT 1 FROM public.duplicados_pendientes WHERE entidad = 'pacientes'
+                 AND item_id_a = least(id_a, id_b) AND item_id_b = greatest(id_a, id_b)) THEN
+    RAISE EXCEPTION '(1) did not insert the pair';
+  END IF;
+
+  PERFORM public.registrar_candidato_duplicado('pacientes', id_b, id_a, 'exacta', 'escaneo');
+  IF (SELECT count(*) FROM public.duplicados_pendientes WHERE entidad = 'pacientes'
+      AND item_id_a = least(id_a, id_b) AND item_id_b = greatest(id_a, id_b)) <> 1 THEN
+    RAISE EXCEPTION '(2) re-detection duplicated the row';
+  END IF;
+
+  BEGIN
+    PERFORM public.registrar_candidato_duplicado('pacientes', id_a, id_a, 'exacta', 'alta_manual');
+    RAISE EXCEPTION '(3) should have rejected equal ids';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM NOT LIKE '%cannot be its own candidate%' THEN RAISE; END IF;
+  END;
+
+  INSERT INTO public.duplicados_descartes (entidad, item_id_a, item_id_b, motivo)
+    VALUES ('pacientes', least(id_a, id_c), greatest(id_a, id_c), 'no_son_la_misma');
+  BEGIN
+    PERFORM public.registrar_candidato_duplicado('pacientes', id_a, id_c, 'parcial', 'escaneo');
+    RAISE EXCEPTION '(4) should have rejected an already-discarded pair';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM NOT LIKE '%already discarded%' THEN RAISE; END IF;
+  END;
+
+  BEGIN
+    PERFORM public.registrar_candidato_duplicado('pacientes', id_a, gen_random_uuid(), 'parcial', 'escaneo');
+    RAISE EXCEPTION '(5) should have rejected a nonexistent id';
+  EXCEPTION WHEN OTHERS THEN
+    NULL;
+  END;
+
+  DELETE FROM public.duplicados_pendientes WHERE entidad = 'pacientes' AND (item_id_a IN (id_a,id_b,id_c) OR item_id_b IN (id_a,id_b,id_c));
+  DELETE FROM public.duplicados_descartes WHERE entidad = 'pacientes' AND (item_id_a IN (id_a,id_b,id_c) OR item_id_b IN (id_a,id_b,id_c));
+  DELETE FROM public.pacientes WHERE id IN (id_a, id_b, id_c);
+END $$;
+```
+
+- [ ] **Step 2: Run and confirm it fails.**
+
+- [ ] **Step 3: Implement**
+
+```sql
+CREATE OR REPLACE FUNCTION public.registrar_candidato_duplicado(
+  p_entidad text, p_item_id_a uuid, p_item_id_b uuid, p_nivel text, p_origen text
+) RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_tabla  text;
+  v_modulo text;
+  v_existe boolean;
+BEGIN
+  SELECT tabla, modulo INTO v_tabla, v_modulo FROM public.duplicados_entidades WHERE entidad = p_entidad;
+  IF v_tabla IS NULL THEN
+    RAISE EXCEPTION 'entidad % is not registered in duplicados_entidades', p_entidad;
+  END IF;
+  IF NOT public.has_module(v_modulo) THEN
+    RAISE EXCEPTION 'missing module % to operate on %', v_modulo, p_entidad;
+  END IF;
+
+  IF p_item_id_a = p_item_id_b THEN
+    RAISE EXCEPTION 'an item cannot be its own candidate';
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(hashtext(
+    p_entidad || '|' || least(p_item_id_a, p_item_id_b)::text || '|' || greatest(p_item_id_a, p_item_id_b)::text
+  ));
+
+  EXECUTE format('SELECT EXISTS (SELECT 1 FROM %I WHERE id = $1 FOR UPDATE)', v_tabla) INTO v_existe USING least(p_item_id_a, p_item_id_b);
+  IF NOT v_existe THEN RAISE EXCEPTION 'one of the two items no longer exists'; END IF;
+  EXECUTE format('SELECT EXISTS (SELECT 1 FROM %I WHERE id = $1 FOR UPDATE)', v_tabla) INTO v_existe USING greatest(p_item_id_a, p_item_id_b);
+  IF NOT v_existe THEN RAISE EXCEPTION 'one of the two items no longer exists'; END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM public.duplicados_descartes
+    WHERE entidad = p_entidad AND item_id_a = least(p_item_id_a, p_item_id_b) AND item_id_b = greatest(p_item_id_a, p_item_id_b)
+  ) THEN
+    RAISE EXCEPTION 'this pair was already discarded';
+  END IF;
+
+  INSERT INTO public.duplicados_pendientes (entidad, item_id_a, item_id_b, nivel, origen)
+  VALUES (p_entidad, least(p_item_id_a, p_item_id_b), greatest(p_item_id_a, p_item_id_b), p_nivel, p_origen)
+  ON CONFLICT (entidad, item_id_a, item_id_b) DO NOTHING;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.registrar_candidato_duplicado(text, uuid, uuid, text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.registrar_candidato_duplicado(text, uuid, uuid, text, text) TO authenticated;
+```
+
+- [ ] **Step 4: Apply and re-run the check.**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git commit supabase/migrations/20261012120200_duplicados_motor_registrar.sql supabase/checks/duplicados-motor-registrar.sql -m "feat(db): registrar_candidato_duplicado RPC"
+```
+
+---
+
+## Task 6: RPC `decidir_descarte_duplicado`
+
+**Files:**
+- Create: `supabase/migrations/20261012120300_duplicados_motor_descartes.sql` (also contains `deshacer_descarte_duplicado`, see Task 7 — same file, committed together since they're the two halves of the same UI flow)
+- Create: `supabase/checks/duplicados-motor-descartes.sql`
+
+**Interfaces:**
+- Produces: `public.decidir_descarte_duplicado(p_entidad text, p_item_id_a uuid, p_item_id_b uuid, p_motivo text, p_nota text)` — called by Task 14.
+
+- [ ] **Step 1: Write the failing check**
+
+```sql
+DO $$
+DECLARE id_a uuid; id_b uuid;
+BEGIN
+  INSERT INTO public.pacientes (nombre, apellido) VALUES ('Test', 'DescA') RETURNING id INTO id_a;
+  INSERT INTO public.pacientes (nombre, apellido) VALUES ('Test', 'DescB') RETURNING id INTO id_b;
+  PERFORM public.registrar_candidato_duplicado('pacientes', id_a, id_b, 'exacta', 'alta_manual');
+
+  PERFORM public.decidir_descarte_duplicado('pacientes', id_b, id_a, 'no_son_la_misma', NULL);
+  IF EXISTS (SELECT 1 FROM public.duplicados_pendientes WHERE entidad = 'pacientes' AND item_id_a = least(id_a,id_b) AND item_id_b = greatest(id_a,id_b)) THEN
+    RAISE EXCEPTION '(1) did not remove the pending row';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.duplicados_descartes WHERE entidad = 'pacientes' AND item_id_a = least(id_a,id_b) AND item_id_b = greatest(id_a,id_b) AND motivo = 'no_son_la_misma') THEN
+    RAISE EXCEPTION '(1) did not insert the discard';
+  END IF;
+
+  PERFORM public.decidir_descarte_duplicado('pacientes', id_a, id_b, 'no_son_la_misma', NULL);
+
+  DELETE FROM public.duplicados_descartes WHERE entidad = 'pacientes' AND item_id_a = least(id_a,id_b) AND item_id_b = greatest(id_a,id_b);
+
+  BEGIN
+    PERFORM public.decidir_descarte_duplicado('pacientes', id_a, id_b, 'son_la_misma_separadas', NULL);
+    RAISE EXCEPTION '(3) should have rejected "separadas" without a note';
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+
+  DELETE FROM public.duplicados_pendientes WHERE entidad = 'pacientes' AND (item_id_a IN (id_a,id_b) OR item_id_b IN (id_a,id_b));
+  DELETE FROM public.duplicados_descartes WHERE entidad = 'pacientes' AND (item_id_a IN (id_a,id_b) OR item_id_b IN (id_a,id_b));
+  DELETE FROM public.pacientes WHERE id IN (id_a, id_b);
+END $$;
+```
+
+- [ ] **Step 2: Run and confirm it fails.**
+
+- [ ] **Step 3: Implement** (in the same file as Task 7, see below).
+
+```sql
+CREATE OR REPLACE FUNCTION public.decidir_descarte_duplicado(
+  p_entidad text, p_item_id_a uuid, p_item_id_b uuid, p_motivo text, p_nota text
+) RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_tabla  text;
+  v_modulo text;
+  v_existe boolean;
+BEGIN
+  SELECT tabla, modulo INTO v_tabla, v_modulo FROM public.duplicados_entidades WHERE entidad = p_entidad;
+  IF v_tabla IS NULL THEN RAISE EXCEPTION 'entidad % is not registered', p_entidad; END IF;
+  IF NOT public.has_module(v_modulo) THEN RAISE EXCEPTION 'missing module % for %', v_modulo, p_entidad; END IF;
+
+  PERFORM pg_advisory_xact_lock(hashtext(
+    p_entidad || '|' || least(p_item_id_a, p_item_id_b)::text || '|' || greatest(p_item_id_a, p_item_id_b)::text
+  ));
+
+  EXECUTE format('SELECT EXISTS (SELECT 1 FROM %I WHERE id = $1 FOR UPDATE)', v_tabla) INTO v_existe USING least(p_item_id_a, p_item_id_b);
+  IF NOT v_existe THEN RAISE EXCEPTION 'one of the two items was merged away'; END IF;
+  EXECUTE format('SELECT EXISTS (SELECT 1 FROM %I WHERE id = $1 FOR UPDATE)', v_tabla) INTO v_existe USING greatest(p_item_id_a, p_item_id_b);
+  IF NOT v_existe THEN RAISE EXCEPTION 'one of the two items was merged away'; END IF;
+
+  DELETE FROM public.duplicados_pendientes
+  WHERE entidad = p_entidad AND item_id_a = least(p_item_id_a, p_item_id_b) AND item_id_b = greatest(p_item_id_a, p_item_id_b);
+
+  INSERT INTO public.duplicados_descartes (entidad, item_id_a, item_id_b, motivo, nota, decidido_por)
+  VALUES (p_entidad, least(p_item_id_a, p_item_id_b), greatest(p_item_id_a, p_item_id_b), p_motivo, p_nota, public.usuario_actual_id())
+  ON CONFLICT (entidad, item_id_a, item_id_b) DO NOTHING;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.decidir_descarte_duplicado(text, uuid, uuid, text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.decidir_descarte_duplicado(text, uuid, uuid, text, text) TO authenticated;
+```
+
+- [ ] **Step 4: Apply and re-run (shared with Task 7).**
+
+- [ ] **Step 5: Commit** — deferred to the end of Task 7 (same file).
+
+---
+
+## Task 7: RPC `deshacer_descarte_duplicado`
+
+**Files:**
+- Modify: `supabase/migrations/20261012120300_duplicados_motor_descartes.sql`
+- Modify: `supabase/checks/duplicados-motor-descartes.sql`
+
+**Interfaces:**
+- Produces: `public.deshacer_descarte_duplicado(p_entidad text, p_item_id_a uuid, p_item_id_b uuid)` — called by Task 14.
+
+- [ ] **Step 1: Append to the check**
+
+```sql
+INSERT INTO public.pacientes (nombre, apellido) VALUES ('Test', 'DeshA') RETURNING id INTO id_a;
+INSERT INTO public.pacientes (nombre, apellido) VALUES ('Test', 'DeshB') RETURNING id INTO id_b;
+INSERT INTO public.duplicados_descartes (entidad, item_id_a, item_id_b, motivo)
+  VALUES ('pacientes', least(id_a,id_b), greatest(id_a,id_b), 'no_son_la_misma');
+
+PERFORM public.deshacer_descarte_duplicado('pacientes', id_a, id_b);
+IF EXISTS (SELECT 1 FROM public.duplicados_descartes WHERE entidad='pacientes' AND item_id_a=least(id_a,id_b) AND item_id_b=greatest(id_a,id_b)) THEN
+  RAISE EXCEPTION '(4) did not undo the discard';
+END IF;
+
+BEGIN
+  PERFORM public.deshacer_descarte_duplicado('pacientes', id_a, id_b);
+  RAISE EXCEPTION '(5) should have rejected an undo with nothing to undo';
+EXCEPTION WHEN OTHERS THEN
+  IF SQLERRM NOT LIKE '%was not discarded%' THEN RAISE; END IF;
+END;
+
+DELETE FROM public.pacientes WHERE id IN (id_a, id_b);
+```
+
+- [ ] **Step 2: Run and confirm this part fails.**
+
+- [ ] **Step 3: Implement**
+
+```sql
+CREATE OR REPLACE FUNCTION public.deshacer_descarte_duplicado(
+  p_entidad text, p_item_id_a uuid, p_item_id_b uuid
+) RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_modulo text;
+  v_filas  int;
+BEGIN
+  SELECT modulo INTO v_modulo FROM public.duplicados_entidades WHERE entidad = p_entidad;
+  IF v_modulo IS NULL THEN RAISE EXCEPTION 'entidad % is not registered', p_entidad; END IF;
+  IF NOT public.has_module(v_modulo) THEN RAISE EXCEPTION 'missing module % for %', v_modulo, p_entidad; END IF;
+
+  DELETE FROM public.duplicados_descartes
+  WHERE entidad = p_entidad AND item_id_a = least(p_item_id_a, p_item_id_b) AND item_id_b = greatest(p_item_id_a, p_item_id_b);
+  GET DIAGNOSTICS v_filas = ROW_COUNT;
+  IF v_filas = 0 THEN
+    RAISE EXCEPTION 'this pair was not discarded';
+  END IF;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.deshacer_descarte_duplicado(text, uuid, uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.deshacer_descarte_duplicado(text, uuid, uuid) TO authenticated;
+```
+
+- [ ] **Step 4: Apply and run the complete check (Tasks 6+7 together).**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git commit supabase/migrations/20261012120300_duplicados_motor_descartes.sql supabase/checks/duplicados-motor-descartes.sql -m "feat(db): decidir_descarte_duplicado and deshacer_descarte_duplicado RPCs"
+```
+
+---
+
+## Task 8: RPC `escanear_duplicados` + `pacientes_candidatos_escaneo()`
+
+**Files:**
+- `supabase/migrations/20261012120400_duplicados_motor_escaneo.sql`
+- `supabase/checks/duplicados-motor-escaneo.sql`
+
+**Interfaces:**
+- Consumes `registrar_candidato_duplicado` (Task 5) and the entity registry.
+- Produces `public.escanear_duplicados(p_entidad text)` — called by Task 14.
+
+**Approved classifier correction (2026-10-13):** the user explicitly chose the same
+classification as `pacienteIdentity.candidatos`, not the earlier phonetic-all-partial sketch.
+The migration is the implementation reference; do not restore the superseded sketch.
+
+- Repair mojibake, apply NFD accent removal, lowercase ASCII tokens of length ≥2, and preserve
+  multiplicity in sorted name cores. Equal cores and DOB are exact unless both nonempty phones
+  and both nonempty emails disagree; containment is partial.
+- Both DOBs must exist. Different DOBs qualify only with equal cores and the same nonempty phone,
+  always partial. Phonetic similarity alone does not qualify.
+- Generate ordered UUID pairs through two disjoint equality joins: same DOB, or different DOB
+  with equal core and shared phone. Combine with `UNION ALL`; classify afterward. Year, initial
+  and phonetic indexes from Task 2 cannot safely narrow these canonical matches.
+- Authorize through the registry module, qualify and quote dynamic function identifiers, keep
+  helpers internal, and expose only the hardened scanner to authenticated callers.
+- Prefilter pending/discarded pairs and delegate pair advisory/row locks to registration.
+  Contain only its known missing-row/discarded-pair rejections by SQLSTATE and exact message;
+  propagate unexpected failures.
+
+**Verification:**
+- [x] Observe missing scanner RED before implementation.
+- [x] Apply incrementally on local Supabase and pass rollback SQL checks covering classification,
+  authorization, helper ACLs, repeat scans, discarded pairs, NULL DOB and safe blocking.
+- [x] Independently compare actual TS classifier with SQL helpers: 4,656 pairs, zero differences.
+- [ ] Complete quality re-review after replacing the broad OR join with disjoint equality joins.
+- [ ] Queue final changes through pending-commits; commit only after human approval.
+
+```bash
+psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/checks/duplicados-motor-escaneo.sql
+```
+
+---
+
+## Task 9: RPC `fusionar_duplicado`
+
+The highest-risk operation. **Read spec § Las seis RPC del motor → `fusionar_duplicado` before writing this function** — the four `p_valores_finales` rules have to share the same exclusion list (rules 1 and 4); that is the exact bug that broke the spec in Round 5.
+
+**Files:**
+- Create: `supabase/migrations/20261012120500_duplicados_motor_fusionar.sql`
+- Create: `supabase/checks/duplicados-motor-fusionar.sql`
+
+**Interfaces:**
+- Produces: `public.fusionar_duplicado(p_entidad text, p_ganador_id uuid, p_perdedor_id uuid, p_valores_finales jsonb)` — called by Task 14.
+
+- [ ] **Step 1: Write the failing check (covers spec scenarios e, g, h, i, j, k, l, t)**
+
+```sql
+DO $$
+DECLARE
+  id_a uuid; id_b uuid; id_c uuid;
+BEGIN
+  INSERT INTO public.pacientes (nombre, apellido, telefono) VALUES ('Fus', 'Ganador', '3051112222') RETURNING id INTO id_a;
+  INSERT INTO public.pacientes (nombre, apellido, direccion) VALUES ('Fus', 'Perdedor', 'Calle 1') RETURNING id INTO id_b;
+  INSERT INTO public.pacientes (nombre, apellido) VALUES ('Fus', 'Tercero') RETURNING id INTO id_c;
+
+  BEGIN
+    PERFORM public.fusionar_duplicado('pacientes', id_a, id_a, '{}'::jsonb);
+    RAISE EXCEPTION '(e) should have rejected ganador=perdedor';
+  EXCEPTION WHEN OTHERS THEN IF SQLERRM NOT LIKE '%cannot be the same item%' THEN RAISE; END IF;
+  END;
+
+  BEGIN
+    PERFORM public.fusionar_duplicado('pacientes', id_a, id_b, '{}'::jsonb);
+    RAISE EXCEPTION 'should have rejected a pair the system never suggested';
+  EXCEPTION WHEN OTHERS THEN IF SQLERRM NOT LIKE '%was not suggested%' THEN RAISE; END IF;
+  END;
+
+  PERFORM public.registrar_candidato_duplicado('pacientes', id_a, id_b, 'exacta', 'alta_manual');
+  PERFORM public.registrar_candidato_duplicado('pacientes', id_b, id_c, 'parcial', 'alta_manual');
+
+  BEGIN
+    PERFORM public.fusionar_duplicado('pacientes', id_a, id_b, '{"columna_fantasma": "x"}'::jsonb);
+    RAISE EXCEPTION '(h) should have rejected a nonexistent column';
+  EXCEPTION WHEN OTHERS THEN IF SQLERRM NOT LIKE '%does not exist%' THEN RAISE; END IF;
+  END;
+
+  BEGIN
+    PERFORM public.fusionar_duplicado('pacientes', id_a, id_b, '{"telefono": "0000000000"}'::jsonb);
+    RAISE EXCEPTION '(h) should have rejected a made-up value';
+  EXCEPTION WHEN OTHERS THEN IF SQLERRM NOT LIKE '%neither of the two%' THEN RAISE; END IF;
+  END;
+
+  BEGIN
+    PERFORM public.fusionar_duplicado('pacientes', id_a, id_b, jsonb_build_object('id', id_b));
+    RAISE EXCEPTION '(j) should have rejected id as a key';
+  EXCEPTION WHEN OTHERS THEN IF SQLERRM NOT LIKE '%identity column%' THEN RAISE; END IF;
+  END;
+
+  BEGIN
+    PERFORM public.fusionar_duplicado('pacientes', id_a, id_b, '{"telefono": "3051112222"}'::jsonb);
+    RAISE EXCEPTION '(i) should have rejected for incompleteness (direccion is missing)';
+  EXCEPTION WHEN OTHERS THEN IF SQLERRM NOT LIKE '%does not decide column%' THEN RAISE; END IF;
+  END;
+
+  PERFORM public.fusionar_duplicado('pacientes', id_a, id_b, jsonb_build_object('telefono', '3051112222', 'direccion', 'Calle 1'));
+
+  IF EXISTS (SELECT 1 FROM public.pacientes WHERE id = id_b) THEN RAISE EXCEPTION 'the loser row should have been deleted'; END IF;
+  IF (SELECT direccion FROM public.pacientes WHERE id = id_a) <> 'Calle 1' THEN RAISE EXCEPTION 'did not apply the chosen value'; END IF;
+
+  IF EXISTS (SELECT 1 FROM public.duplicados_pendientes WHERE entidad='pacientes' AND (item_id_a=id_b OR item_id_b=id_b)) THEN
+    RAISE EXCEPTION '(d) a pending row referencing the loser was left dangling';
+  END IF;
+
+  BEGIN
+    PERFORM public.fusionar_duplicado('pacientes', id_a, id_b, '{}'::jsonb);
+    RAISE EXCEPTION 'should have rejected merging an already-resolved pair';
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+
+  DELETE FROM public.duplicados_fusiones WHERE entidad='pacientes' AND ganador_id=id_a;
+  DELETE FROM public.duplicados_pendientes WHERE entidad='pacientes' AND (item_id_a IN (id_a,id_c) OR item_id_b IN (id_a,id_c));
+  DELETE FROM public.pacientes WHERE id IN (id_a, id_c);
+END $$;
+```
+
+- [ ] **Step 2: Run and confirm it fails.**
+
+- [ ] **Step 3: Implement**
+
+```sql
+CREATE OR REPLACE FUNCTION public.fusionar_duplicado(
+  p_entidad text, p_ganador_id uuid, p_perdedor_id uuid, p_valores_finales jsonb
+) RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_tabla  text;
+  v_modulo text;
+  v_hijos  jsonb;
+  v_hijo   jsonb;
+  v_ganador_snapshot jsonb;
+  v_perdedor_snapshot jsonb;
+  v_clave  text;
+  v_valor  text;
+  v_columnas_excluidas text[] := ARRAY['id', 'mrn', 'created_at', 'updated_at'];
+  v_hijos_movidos jsonb := '[]'::jsonb;
+BEGIN
+  SELECT tabla, modulo, hijos INTO v_tabla, v_modulo, v_hijos FROM public.duplicados_entidades WHERE entidad = p_entidad;
+  IF v_tabla IS NULL THEN RAISE EXCEPTION 'entidad % is not registered', p_entidad; END IF;
+  IF NOT public.has_module(v_modulo) THEN RAISE EXCEPTION 'missing module % for %', v_modulo, p_entidad; END IF;
+
+  IF p_ganador_id = p_perdedor_id THEN
+    RAISE EXCEPTION 'ganador and perdedor cannot be the same item';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.duplicados_pendientes
+    WHERE entidad = p_entidad AND item_id_a = least(p_ganador_id, p_perdedor_id) AND item_id_b = greatest(p_ganador_id, p_perdedor_id)
+  ) THEN
+    RAISE EXCEPTION 'this pair was not suggested by the system';
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(hashtext(
+    p_entidad || '|' || least(p_ganador_id, p_perdedor_id)::text || '|' || greatest(p_ganador_id, p_perdedor_id)::text
+  ));
+
+  EXECUTE format('SELECT 1 FROM %I WHERE id = $1 FOR UPDATE', v_tabla) USING least(p_ganador_id, p_perdedor_id);
+  EXECUTE format('SELECT 1 FROM %I WHERE id = $2 FOR UPDATE', v_tabla) USING p_ganador_id, greatest(p_ganador_id, p_perdedor_id);
+
+  EXECUTE format('SELECT to_jsonb(t) FROM %I t WHERE id = $1', v_tabla) INTO v_ganador_snapshot USING p_ganador_id;
+  EXECUTE format('SELECT to_jsonb(t) FROM %I t WHERE id = $1', v_tabla) INTO v_perdedor_snapshot USING p_perdedor_id;
+
+  IF v_ganador_snapshot IS NULL OR v_perdedor_snapshot IS NULL THEN
+    RAISE EXCEPTION 'one of the two items no longer exists';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.duplicados_pendientes
+    WHERE entidad = p_entidad AND item_id_a = least(p_ganador_id, p_perdedor_id) AND item_id_b = greatest(p_ganador_id, p_perdedor_id)
+  ) THEN
+    RAISE EXCEPTION 'this pair was not suggested by the system';
+  END IF;
+
+  FOR v_clave IN SELECT jsonb_object_keys(p_valores_finales) LOOP
+    IF v_clave = ANY (v_columnas_excluidas) THEN
+      RAISE EXCEPTION 'valores_finales cannot touch an identity column (%)', v_clave;
+    END IF;
+  END LOOP;
+
+  FOR v_clave IN SELECT jsonb_object_keys(p_valores_finales) LOOP
+    IF NOT EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = v_tabla AND column_name = v_clave
+    ) THEN
+      RAISE EXCEPTION 'valores_finales references a column that does not exist in %: %', v_tabla, v_clave;
+    END IF;
+  END LOOP;
+
+  FOR v_clave IN SELECT jsonb_object_keys(p_valores_finales) LOOP
+    v_valor := p_valores_finales ->> v_clave;
+    IF NOT (
+      v_valor IS NOT DISTINCT FROM (v_ganador_snapshot ->> v_clave) OR
+      v_valor IS NOT DISTINCT FROM (v_perdedor_snapshot ->> v_clave)
+    ) THEN
+      RAISE EXCEPTION 'valores_finales has a value that comes from neither of the two records (%)', v_clave;
+    END IF;
+  END LOOP;
+
+  FOR v_clave IN SELECT key FROM jsonb_each_text(v_ganador_snapshot) LOOP
+    IF v_clave = ANY (v_columnas_excluidas) THEN CONTINUE; END IF;
+    IF (v_ganador_snapshot ->> v_clave) IS DISTINCT FROM (v_perdedor_snapshot ->> v_clave) THEN
+      IF NOT (p_valores_finales ? v_clave) THEN
+        RAISE EXCEPTION 'valores_finales does not decide column %, which differs between ganador and perdedor', v_clave;
+      END IF;
+    END IF;
+  END LOOP;
+
+  EXECUTE format('UPDATE %I SET %s WHERE id = $1', v_tabla,
+    (SELECT string_agg(format('%I = %L', key, value), ', ')
+     FROM jsonb_each_text(p_valores_finales))
+  ) USING p_ganador_id;
+
+  FOR v_hijo IN SELECT * FROM jsonb_array_elements(v_hijos) LOOP
+    EXECUTE format('UPDATE %I SET %I = $1 WHERE %I = $2', v_hijo->>'tabla', v_hijo->>'columna', v_hijo->>'columna')
+      USING p_ganador_id, p_perdedor_id;
+    v_hijos_movidos := v_hijos_movidos || jsonb_build_object('tabla', v_hijo->>'tabla');
+  END LOOP;
+
+  EXECUTE format('DELETE FROM %I WHERE id = $1', v_tabla) USING p_perdedor_id;
+
+  DELETE FROM public.duplicados_pendientes dp
+  WHERE dp.entidad = p_entidad AND (dp.item_id_a = p_perdedor_id OR dp.item_id_b = p_perdedor_id);
+  DELETE FROM public.duplicados_descartes dd
+  WHERE dd.entidad = p_entidad AND (dd.item_id_a = p_perdedor_id OR dd.item_id_b = p_perdedor_id);
+
+  INSERT INTO public.duplicados_fusiones
+    (entidad, ganador_id, perdedor_id, perdedor_snapshot, ganador_snapshot_previo, hijos_movidos, decidido_por)
+  VALUES
+    (p_entidad, p_ganador_id, p_perdedor_id, v_perdedor_snapshot, v_ganador_snapshot, v_hijos_movidos, public.usuario_actual_id());
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION public.fusionar_duplicado(text, uuid, uuid, jsonb) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.fusionar_duplicado(text, uuid, uuid, jsonb) TO authenticated;
+```
+
+Note for the implementer: the two `FOR UPDATE` statements right after the advisory lock take the row lock in the stable `least`/`greatest` order (spec, Principle 10) — do not collapse them into one dynamic call that loses that explicit order, and do not skip re-reading the snapshots by role right after: the lock order and the role the snapshot is stored under are two different things.
+
+- [ ] **Step 4: Apply and re-run the check.**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git commit supabase/migrations/20261012120500_duplicados_motor_fusionar.sql supabase/checks/duplicados-motor-fusionar.sql -m "feat(db): fusionar_duplicado RPC"
+```
+
+---
+
+## Task 10: RPC `revertir_fusion_duplicado`
+
+**Files:**
+- `supabase/migrations/20261012120600_duplicados_motor_revertir.sql`
+- `supabase/checks/duplicados-motor-revertir.sql`
+
+**Interfaces:**
+- Produces: `public.revertir_fusion_duplicado(p_fusion_id uuid)` — called by Task 14.
+
+**Addendum corrections applied (2026-10-14):** a review before implementation found the Step
+1/Step 3 sketch above unsafe; it was superseded and is kept only as historical context — do not
+restore it. The migration file is the implementation reference. Corrections actually applied:
+- Child rows are restored only from the exact `hijos_movidos[].claves` recorded at merge time, via
+  `jsonb_to_recordset` typed per primary-key column — never "every row the winner currently owns."
+- `v_hijo->>'columna'` is used throughout; no hardcoded `paciente_id` literal.
+- The "merged again later" guard is scoped by `entidad = v_entidad`.
+- `SET search_path = pg_catalog, pg_temp` is set, with every reference fully `public.`-qualified.
+- Grants: `REVOKE ALL ... FROM PUBLIC, anon` + `GRANT EXECUTE ... TO authenticated`, matching
+  `fusionar_duplicado`.
+- The child table's primary-key column names and types are read in one combined catalog query
+  (avoids writing the `pg_index`/`pg_attribute` lookup twice, which Centinela flags).
+
+Two genuine bugs were also found and fixed, with explicit approval, in the check fixture itself
+during implementation (not in the migration): a missing `telefono` column in an INSERT's column
+list, and a statement-ordering issue where an RLS-gated fusion-id lookup ran after the session's
+JWT claim had already switched to a permission-denied test user — fixed with psql's `\gset` to
+capture the id before the switch, the same pattern the file already used later for
+`v_fusion_1`/`v_fusion_2`.
+
+**Verification:**
+- [x] Observed missing-function RED before implementation.
+- [x] Applied locally (`pnpm supabase migration up`) and the check reached the final `PASS:` line.
+- [x] Queued through pending-commits (`032-dedup-task10-revertir`); commit only after human approval.
+
+```bash
+psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f supabase/checks/duplicados-motor-revertir.sql
+```
+
+---
+
+## Task 11: Manual verification of real concurrency (scenarios n, r, t)
+
+Not automatable with a single script — it genuinely needs two interleaved sessions.
+
+**Files:** none — manual procedure, documented so it leaves a record.
+
+- [x] **Step 1:** Open two psql sessions against local. Session 1: begin a transaction and take `pg_advisory_xact_lock` on a given pair without committing. Session 2, same pair: try `decidir_descarte_duplicado` — it has to block until session 1 commits.
+- [x] **Step 2:** Repeat with `registrar_candidato_duplicado` on a pair sharing one id with an in-flight, uncommitted `fusionar_duplicado` on an unrelated pair — confirm session 2 also blocks (scenario t of the spec).
+- [x] **Step 3:** Record the outcome in this task's PR before merging.
+
+**Addendum — results (2026-10-14):** executed per the Addendum's concrete procedure against local
+Supabase (`127.0.0.1:54322`), with two concurrent `psql` processes (one backgrounded, holding a
+lock open behind a `pg_sleep(5)`; one foregrounded and timed with `time`) instead of literal human
+sessions. Throwaway fixtures (a `dedup_lock_test` role/user with the `medical` module, five
+`pacientes` rows) were inserted and committed before each scenario, then deleted afterward; a
+residue check confirmed 0 rows left in any touched table.
+
+- **Scenario n/r** (raw `pg_advisory_xact_lock` on a pair held open 5s vs. `decidir_descarte_duplicado`
+  on the same pair): Session 2 measured **`real 0m4.764s`** — blocked on the shared advisory lock
+  key until Session 1 committed. PASS.
+- **Scenario t** (`fusionar_duplicado('pacientes', X, Y, '{}'::jsonb)` held open 5s vs.
+  `registrar_candidato_duplicado('pacientes', X, Z, ...)` — a different pair sharing only id X):
+  Session 2 measured **`real 0m4.800s`** — blocked not on the advisory lock (different pair key)
+  but on X's row-level `SELECT ... FOR UPDATE`, confirming that mechanism is what actually
+  serializes overlapping pairs. PASS.
+- Queued through pending-commits (`034-dedup-task11-concurrency-results`); commit only after human
+  approval. No migration files were touched — both scenarios confirmed the already-reviewed lock
+  protocol behaves as designed.
+
+---
+
+## Task 12: UI — `FieldCompare`, a shared primitive with a per-cell choice control — DONE (2026-10-14)
+
+Superseded its own original shape three times. Addendum 1 (compose `PillToggle` inside the old
+`MergeFieldRow` as-is) got blocked 6 times by `markup_dibujado` and was abandoned. Addendum 2 moved
+the actual markup to a new `src/shared/components/ui/FieldCompare` primitive, with a separate
+per-value `Cell` subcomponent — `Cell` itself stayed permanently blocked on `markup_dibujado` with
+no accepted path forward other than an exemption the user declined to sign. Addendum 3 eliminated
+`Cell` entirely by extending `PillToggle` itself to cover both the interactive and the plain-value
+display case, so `FieldCompare`'s `.map()` calls `PillToggle` directly. Full history across all
+three attempts: `.superpowers/sdd/2026-10-12-motor-duplicados-ambiente/task-12-report.md`,
+`task-12-report-v2.md`, `task-12-report-v3.md` (this one, the landed shape).
+
+**Files, as actually touched:**
+- Create: `src/shared/components/ui/FieldCompare/index.tsx`, `index.module.css`, `index.test.tsx`
+  — the row: field label + one `PillToggle` per value, plus the empty-values branch. No `Cell`
+  subcomponent — that path was abandoned in favor of extending `PillToggle` (see below).
+- Modify: `src/shared/components/ui/PillToggle/index.tsx`, `index.module.css`,
+  `index.test.tsx` — `onClick` became optional and a cosmetic `diff` prop was added. Without
+  `onClick` it renders as a plain, non-interactive value display (same element, same classes,
+  just a different tag and no handler/`aria-pressed`) instead of a button.
+- Modify: `src/shared/components/ui/index.ts` — barrel-exports `FieldCompare`.
+- Delete: `src/shared/import/MergeFieldRow/` (both files) — a new repo rule (`ts/componentes.md`,
+  "A component that only returns another isn't a component") forbids keeping it as a pass-through
+  wrapper once all its markup moved out; its sole caller now imports `FieldCompare` directly.
+- Modify: `src/shared/import/MergeCandidateRow/index.tsx` — imports `FieldCompare` from
+  `@/shared/components/ui` instead of the deleted `MergeFieldRow`; the call site now reads
+  `<FieldCompare key={f.column} {...({ labelKey: f.labelKey, values: valores, diff: distinta })} />`
+  (grouped-object spread, not inline attributes — the file is already over `archivo_extenso`'s
+  soft limit and may not grow by even one line).
+
+**Interfaces — changed from the original plan:**
+- `onChooseValue?: (value: string) => void` + `selectedValue?: string`, **keyed by value, not
+  index** (forced by `react_key_index`/`import_preview_positional_identity`, confirmed correct
+  in the first attempt: two textually-identical values are the same merge choice regardless of
+  column position). Task 14's Step 2 sketch below already matches this.
+- Consumed via the barrel: `import { FieldCompare } from '@/shared/components/ui'`, not a
+  default import from `@/shared/import/MergeFieldRow` (that module no longer exists).
+- `PillToggle`'s own contract grew, backward-compatibly: `onClick?: () => void` (was required —
+  every one of its 6 pre-existing call sites already passed it, so this is a pure widening) plus
+  `diff?: boolean` (cosmetic, independent of `active`/`color`/`size`).
+
+**Why `Cell` was abandoned, and how `PillToggle` avoided the same trap:** `ts/componentes.md`'s
+`markup_dibujado` stops any `.tsx` that draws ≥1 of its own elements (a bare `div`/`span`/`button`)
+until it either becomes pure composition or signs a `bloques-similares` mark attesting a search for
+an existing equivalent happened. `Cell` would have drawn its own wrapping `<div>` — a brand-new
+file crossing that one-element threshold with no accepted unify-elsewhere option, since it was the
+unification point itself. The rule was later revised (v6→v7) to also mechanically exempt extending
+an *already-shared* file (2+ real non-test/non-barrel importers) **as long as the edit doesn't grow
+the file's own-drawn element count** — `PillToggle`, with 6 real callers, qualifies, but only once
+its two render paths (control vs. display) were written as **one JSX element with a dynamic tag**
+(`const Tag = onClick ? 'button' : 'span'`) instead of two separate `<button>`/`<span>` literals.
+Two literals would have added a new element node to the file and still blocked; one dynamic-tag
+node, varying only at runtime, does not. (A `<button>` without `type="button"` would auto-submit
+inside a `<form>`; since `<span>` doesn't accept a `type` attribute at all, the fix is a
+`preventDefault()` in the shared click handler instead of the `type` attribute — harmless on a
+`<span>`, since it has no default action to prevent.)
+
+- [x] **Step 1: Implement** — final shape is `FieldCompare` (composition-only, calls `PillToggle`
+  directly) + the `PillToggle` extension above; content differs substantially from this plan's
+  original sketch (which described the abandoned hand-rolled `<div role="button">` approach).
+- [x] **Step 2: Confirm existing call sites keep working** — `MergeCandidateRow` (the sole
+  `FieldCompare` caller) was migrated in place since the old `MergeFieldRow` import path was
+  deleted; its visual output and props are unchanged. `PillToggle`'s 6 pre-existing callers pass
+  `onClick` today and need no changes — confirmed via `grep -rn 'PillToggle' src` before touching
+  its type.
+- [x] **Step 3: `pnpm typecheck`** — clean across the whole repo.
+- [x] **Step 4: Queue the commit** — queued via `pending-commits add`, not yet `apply`d (needs the
+  user's separate explicit approval, same as every other task).
+
+---
+
+## Task 13: UI — generic `DuplicatesTab` component
+
+**Files:**
+- Create: `src/shared/dedup/ordenarPendientes.ts`
+- Create: `src/shared/dedup/ordenarPendientes.test.ts`
+- Create: `src/shared/dedup/DuplicatesTab/index.tsx`
+- Create: `src/shared/dedup/DuplicatesTab/index.module.css`
+
+**Interfaces:**
+- Consumes: `DedupStrategy<T>` (Task 3), `MergeCandidateRow` (which itself composes the shared
+  `FieldCompare` primitive from Task 12 — not `MergeFieldRow`, deleted in Task 12's final shape),
+  the Supabase client.
+- Produces: `<DuplicatesTab entidad={string} ... />` — mounted by Task 14.
+
+- [ ] **Step 1: Test the pure ordering function**
+
+```ts
+import { describe, it, expect } from 'vitest'
+import { ordenarPendientes } from './ordenarPendientes'
+
+describe('ordenarPendientes', () => {
+  it('puts exacta before parcial, oldest first within the same level', () => {
+    const pares = [
+      { item_id_a: 'a', item_id_b: 'b', nivel: 'parcial' as const, detectado_at: '2026-01-02' },
+      { item_id_a: 'c', item_id_b: 'd', nivel: 'exacta' as const, detectado_at: '2026-01-03' },
+      { item_id_a: 'e', item_id_b: 'f', nivel: 'exacta' as const, detectado_at: '2026-01-01' },
+    ]
+    const resultado = ordenarPendientes(pares)
+    expect(resultado.map(p => p.item_id_a)).toEqual(['e', 'c', 'a'])
+  })
+})
+```
+
+- [ ] **Step 2: Run and confirm it fails.**
+
+- [ ] **Step 3: Implement**
+
+```ts
+type Pendiente = { item_id_a: string; item_id_b: string; nivel: 'exacta' | 'parcial'; detectado_at: string }
+
+export function ordenarPendientes<T extends Pendiente>(pares: readonly T[]): T[] {
+  return [...pares].sort((a, b) => {
+    if (a.nivel !== b.nivel) return a.nivel === 'exacta' ? -1 : 1
+    return a.detectado_at.localeCompare(b.detectado_at)
+  })
+}
+```
+
+- [ ] **Step 4: Run and confirm it passes.**
+
+- [ ] **Step 5: Implement the component (visual verification, no unit test — plain render)**
+
+```tsx
+'use client'
+import { useEffect, useState } from 'react'
+import { useT } from '@/shared/i18n'
+import { supabase } from '@/shared/db/supabase'
+import MergeCandidateRow from '@/shared/import/MergeCandidateRow'
+import { ordenarPendientes } from '../ordenarPendientes'
+import s from './index.module.css'
+
+type Pendiente = { item_id_a: string; item_id_b: string; nivel: 'exacta' | 'parcial'; detectado_at: string }
+
+type Props<T> = {
+  entidad: string
+  cargarItem: (id: string) => Promise<T>
+  renderResumen: (item: T) => string
+  renderComparacion: (a: T, b: T, onElegir: (campo: string, valor: string) => void) => React.ReactNode
+}
+
+export default function DuplicatesTab<T>({ entidad, cargarItem, renderResumen, renderComparacion }: Props<T>) {
+  const { t } = useT()
+  const [pendientes, setPendientes] = useState<Pendiente[]>([])
+  const [abierto, setAbierto] = useState<Pendiente | null>(null)
+
+  const recargar = async () => {
+    const { data } = await supabase.from('duplicados_pendientes').select('*').eq('entidad', entidad)
+    setPendientes(ordenarPendientes(data ?? []))
+  }
+
+  useEffect(() => { recargar() }, [entidad])
+
+  const escanear = async () => {
+    await supabase.rpc('escanear_duplicados', { p_entidad: entidad })
+    recargar()
+  }
+
+  const descartar = async (par: Pendiente, motivo: 'no_son_la_misma' | 'son_la_misma_separadas', nota: string | null) => {
+    await supabase.rpc('decidir_descarte_duplicado', {
+      p_entidad: entidad, p_item_id_a: par.item_id_a, p_item_id_b: par.item_id_b, p_motivo: motivo, p_nota: nota,
+    })
+    setAbierto(null)
+    recargar()
+  }
+
+  return (
+    <div className={s.contenedor}>
+      <div className={s.cabecera}>
+        <span className={s.badge}>{pendientes.length}</span>
+        <button onClick={escanear}>{t('dedup.scanButton')}</button>
+      </div>
+      {pendientes.map(par => (
+        <MergeCandidateRow key={`${par.item_id_a}-${par.item_id_b}`} onOpen={() => setAbierto(par)} resumen={par.nivel} />
+      ))}
+      {abierto && (
+        <div className={s.detalle}>
+          <button onClick={() => descartar(abierto, 'no_son_la_misma', null)}>{t('dedup.notSame')}</button>
+          <button onClick={() => { const nota = prompt(t('dedup.separatedNotePrompt')); if (nota) descartar(abierto, 'son_la_misma_separadas', nota) }}>
+            {t('dedup.sameSeparated')}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+```
+
+Note for the implementer: `renderResumen`/`renderComparacion`/`cargarItem` are typed here, but the body of "Fusionar" (which reads both items, builds the per-cell choice UI with `MergeFieldRow`, and eventually calls `fusionar_duplicado`) gets completed in Task 14, where `pacienteDedupStrategy.fusionar` already exists to build `p_valores_finales` — this generic component cannot know the shape of a `Paciente`.
+
+- [ ] **Step 6: Commit**
+
+---
+
+## Task 14: Wiring into Medical
+
+**Files:**
+- Modify: `src/shared/components/shell/appShellConfig/subvistas.ts`
+- Modify: `src/features/medical/components/MedicalModule.tsx`
+- Modify: `src/features/medical/hooks/useMedicalData.ts`
+- Modify: `src/features/medical/utils/pacienteImportPlan/index.ts`
+- Create: `src/features/medical/components/PacientesDuplicatesTab/index.tsx`
+
+**Interfaces:**
+- Consumes: `DuplicatesTab` (Task 13), `pacienteDedupStrategy` (Task 4), RPCs from Tasks 5 and 9.
+
+- [ ] **Step 1: Add the tab to the vertical menu**
+
+```ts
+{ id: 'med-duplicates', icon: '🔗', label: 'Duplicates', tab: 'duplicados' },
+```
+
+- [ ] **Step 2: Mount Medical's wrapper**
+
+```tsx
+'use client'
+import DuplicatesTab from '@/shared/dedup/DuplicatesTab'
+import { FieldCompare } from '@/shared/components/ui'
+import { pacienteDedupStrategy } from '@/features/medical/utils/pacienteDedupStrategy'
+import { supabase } from '@/shared/db/supabase'
+import type { Paciente } from '@/features/medical/types'
+
+// `FieldCompare` replaced `MergeFieldRow` in Task 12 (deleted — a pass-through wrapper over it
+// was banned by a new repo rule) and its choice callback is value-based, not index-based: the
+// two displayed values are compared by content, so `onChooseValue` already receives the winning
+// string directly — no `i === 0 ? a[...] : b[...]` indirection needed here.
+export default function PacientesDuplicatesTab() {
+  return (
+    <DuplicatesTab<Paciente>
+      entidad="pacientes"
+      cargarItem={async (id) => {
+        const { data } = await supabase.from('pacientes').select('*').eq('id', id).single()
+        return data as Paciente
+      }}
+      renderResumen={(p) => `${p.nombre} ${p.apellido}`}
+      renderComparacion={(a, b, onElegir) => {
+        const { resultado, choques } = pacienteDedupStrategy.fusionar(a, b)
+        return (
+          <>
+            {choques.map(campo => (
+              <FieldCompare
+                key={campo}
+                labelKey={`med.field.${campo}` as never}
+                values={[String(a[campo as keyof Paciente] ?? ''), String(b[campo as keyof Paciente] ?? '')]}
+                diff
+                onChooseValue={(valor) => onElegir(campo, valor)}
+              />
+            ))}
+          </>
+        )
+      }}
+    />
+  )
+}
+```
+
+- [ ] **Step 3: Mount in `MedicalModule`** — add the import and the render line, conditioned on the new tab id.
+
+- [ ] **Step 4: Incremental hook on manual registration** — inside `addPaciente` (in `useMedicalData.ts`), right after the new patient's id is known, compare it against the existing patient list with `candidatos()` and call `registrar_candidato_duplicado` for each match found, with origin `alta_manual`.
+
+- [ ] **Step 5: Incremental hook on import** — in `pacienteImportPlan/index.ts`, at the point where the import already calls `candidatos()` per row to build the plan, add the same RPC call there with origin `import` — do not duplicate the detection logic.
+
+- [ ] **Step 6: `pnpm typecheck && pnpm test`**
+
+- [ ] **Step 7: Visual verification in the browser** — run `pnpm dev`, open `/medical`, open the new tab, run the scan button, open a pair, choose fields, merge, confirm the pair disappears and the losing patient is gone from the Patients list.
+
+- [ ] **Step 8: Commit**
+
+---
+
+## Task 15: i18n
+
+**Files:**
+- Modify: `src/shared/i18n/locales/es.json`
+- Modify: `src/shared/i18n/locales/en.json`
+
+- [ ] **Step 1: Add four new keys to `en.json`, under a `dedup` section**
+
+Keys to add: a label for the scan button, a label for "not the same person", a label for "same person, kept separate", and a prompt asking why the two records should stay separate.
+
+- [ ] **Step 2: Add the matching four keys to `es.json`**
+
+Write the natural Spanish copy directly into that file — it is the file whose entire purpose is holding Spanish strings, so write it there, not quoted in this plan.
+
+- [ ] **Step 3: `pnpm typecheck`** — confirms neither locale file is missing a key the other one has.
+
+- [ ] **Step 4: Commit**
+
+---
+
+## Task 16: Final verification
+
+- [ ] **Step 1:** `pnpm typecheck`
+- [ ] **Step 2:** `pnpm test`
+- [ ] **Step 3:** `pnpm build:check` (never `next build` with the dev server up)
+- [ ] **Step 4:** Run all 7 `supabase/checks/duplicados-motor-*.sql` scripts together, end to end, against a freshly-migrated local stack.
+- [ ] **Step 5:** Pushing to production is not part of this plan — done by hand, after this plan is merged and reviewed, following the backup and precheck centinela requires.

@@ -1,7 +1,7 @@
 import { useId, type CSSProperties } from 'react'
 import { useT, type I18nKey } from '@/shared/i18n'
+import { Checkbox, FieldCompare } from '@/shared/components/ui'
 import type { NivelCandidato } from '../identity'
-import MergeFieldRow from '../MergeFieldRow'
 import s from './index.module.css'
 
 // Una fila del paso "Duplicados" (paso 5): la fila entrante del archivo, enfrentada a uno o
@@ -60,11 +60,10 @@ export default function MergeCandidateRow({ fields, entrante, candidatos, select
           {t(nivel === 'exacta' ? 'import.merge.levelExact' : 'import.merge.levelPartial')}
         </span>
         {candidatos.length === 1 ? (
-          <label className={s.toggle}>
-            <input type="checkbox" checked={selectedId === candidatos[0].id}
-              onChange={e => onSelect(e.target.checked ? candidatos[0].id : null)} />
+          <Checkbox className={s.toggle} checked={selectedId === candidatos[0].id}
+            onChange={checked => onSelect(checked ? candidatos[0].id : null)}>
             {t('import.merge.mergeWith')}
-          </label>
+          </Checkbox>
         ) : (
           <div className={s.radios}>
             {candidatos.map(c => (
@@ -88,7 +87,7 @@ export default function MergeCandidateRow({ fields, entrante, candidatos, select
           const entranteVal = fmt(entrante[f.column])
           const valores = [entranteVal, ...candidatos.map(c => fmt(c.values[f.column]))]
           const distinta = candidatos.some(c => !haySolape(c.values[f.column], entrante[f.column]))
-          return <MergeFieldRow key={f.column} labelKey={f.labelKey} values={valores} diff={distinta} />
+          return <FieldCompare key={f.column} {...({ labelKey: f.labelKey, values: valores, diff: distinta })} />
         })}
       </div>
     </div>

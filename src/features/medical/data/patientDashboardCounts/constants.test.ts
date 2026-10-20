@@ -8,7 +8,6 @@ import {
   IS_OPERATOR,
   GENERO_FEMALE,
   GENERO_MALE,
-  COUNT_ONLY,
   KNOWN_AREA_CODES,
   AREA_CODE_OTHER,
   LABEL_OTHER,
@@ -27,11 +26,6 @@ it('names the pacientes columns the count queries filter on', () => {
   expect(IS_OPERATOR).toBe('is')
   expect(GENERO_FEMALE).toBe('F')
   expect(GENERO_MALE).toBe('M')
-})
-
-it('asks PostgREST for a match count only, never row data', () => {
-  expect(COUNT_ONLY.count).toBe('exact')
-  expect(COUNT_ONLY.head).toBe(true)
 })
 
 it('groups the five known Florida area codes by county, with one trailing other bucket', () => {

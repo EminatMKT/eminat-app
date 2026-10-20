@@ -25,4 +25,19 @@ describe('PillToggle', () => {
   it('carries no id outside a Field', () => {
     expect(renderToStaticMarkup(<PillToggle label={STATE} active={false} onClick={ignore} />)).not.toContain('id=')
   })
+
+  // Without `onClick` there's nothing to choose: a value display, not a control.
+  it('shows a value, not a control, when nothing can choose it', () => {
+    const html = renderToStaticMarkup(<PillToggle label={STATE} active={false} />)
+    expect(html).toContain(STATE)
+    expect(html).not.toContain('<button')
+    expect(html).not.toContain('aria-pressed')
+  })
+
+  // `diff` is cosmetic only — it must not turn a value display into a control.
+  it('highlights the value as different without becoming a control', () => {
+    const html = renderToStaticMarkup(<PillToggle label={STATE} active={false} diff />)
+    expect(html).toContain(STATE)
+    expect(html).not.toContain('<button')
+  })
 })

@@ -6,6 +6,10 @@ const RPCS = {
   updateMeetActivity: 'update_meet_activity',
   saveRole: 'save_role',
   patientBirthdayMonths: 'patient_birthday_months',
+  escanearDuplicados: 'escanear_duplicados',
+  decidirDescarteDuplicado: 'decidir_descarte_duplicado',
+  fusionarDuplicado: 'fusionar_duplicado',
+  registrarCandidatoDuplicado: 'registrar_candidato_duplicado',
 } as const
 
 export default RPCS

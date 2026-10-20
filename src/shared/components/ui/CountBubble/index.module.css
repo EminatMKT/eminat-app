@@ -1,0 +1,17 @@
+/* Only the circle and its number: where it sits (inline after a label, or pinned to a corner)
+   is the caller's wrapper, so the same bubble serves the bell and a tab. */
+.badge {
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 .25rem;
+  border-radius: .5625rem;
+  background: var(--c-danger);
+  color: var(--c-sobre-solido);
+  font-size: .625rem;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}

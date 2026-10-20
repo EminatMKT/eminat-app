@@ -1,7 +1,7 @@
 import type { I18nKey } from '@/shared/i18n'
 
 /** The closed action catalog rejects misspelled kinds instead of rendering unstyled controls. */
-export type ButtonKind = 'new' | 'edit' | 'delete' | 'cancel' | 'confirm' | 'print' | 'clear' | 'star' | 'retry' | 'menu' | 'duplicate'
+export type ButtonKind = 'new' | 'edit' | 'delete' | 'cancel' | 'confirm' | 'print' | 'clear' | 'star' | 'retry' | 'menu' | 'duplicate' | 'scan' | 'notSame' | 'keepSeparate'
 
 /** Tone belongs to the action metadata, not to callers that could disguise a destructive action. */
 export type ButtonTono = 'primario' | 'secundario' | 'peligro'

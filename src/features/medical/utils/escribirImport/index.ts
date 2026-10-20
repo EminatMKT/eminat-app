@@ -1,15 +1,19 @@
-// Escritura por lotes del plan de import de pacientes. No decide identidad ni matcheo -eso es
-// `pacienteIdentity/` y `@/shared/import`-, solo escribe lo que ya se decidió: en lotes de
-// ~500, `pacientes` antes que `paciente_fuentes`, con el id que generó el cliente. Ver
-// "## Escritura" en docs/superpowers/specs/2026-08-21-pacientes-import-design.md.
+// Escritura por lotes del plan de import de pacientes: en lotes de ~500, `pacientes` antes que
+// `paciente_fuentes`, con el id que generó el cliente. Ver "## Escritura" en
+// docs/superpowers/specs/2026-08-21-pacientes-import-design.md.
+// No decide identidad ni matcheo contra el padrón existente -eso sigue siendo `pacienteIdentity/`
+// y `@/shared/import`-, ni decide fusiones: solo escribe lo que ya se decidió. La única excepción
+// es ambiental, no de identidad: después de escribir un lote, `flagSiblingCollisions` compara
+// entre sí las filas 'nueva' de ESE lote (ids recién asignados, nunca contra el padrón existente)
+// y señala con `registrar` cualquier colisión entre hermanas del mismo archivo.
 import { upsertPacientes, upsertPacienteFuentes, upsertPacienteContactos } from '@/features/medical/data/pacientes'
 import { fusionar } from '@/features/medical/utils/pacienteIdentity'
 import { ESTADO_PACIENTE_DEFAULT } from '@/features/medical/constants'
 import type { ContactoEntrante } from '@/features/medical/utils/pacienteImportPlan'
-import type { Paciente, PacienteFuente, PacienteContacto } from '@/features/medical/types'
+import type { Paciente, PacienteFuente } from '@/features/medical/types'
 
 const TAMANO_LOTE = 500
-
+const TIPO_NUEVA_ESCRITURA = 'nueva'
 // Columnas que trae el archivo y que SÍ se fusionan. `id`, `mrn`, `created_at` y `updated_at`
 // los pone esta escritura, nunca la fusión: si `fusionar()` los viera (recorre
 // `Object.keys(existente) ∪ Object.keys(entrante)`, no una lista declarada) un `mrn` distinto
@@ -209,44 +213,8 @@ function contarChoques(listas: readonly FilaLista[]): { campo: string; n: number
   return Array.from(conteo.entries()).map(([campo, n]) => ({ campo, n }))
 }
 
-// Misma forma que espera `upsertPacienteContactos`: la fila de `paciente_contactos` sin las
-// columnas que pone la base (`id`, `created_at`). Con nombre propio para no repetir el `Omit`
-// en cada firma de acá abajo.
-type ContactoPayload = Omit<PacienteContacto, 'id' | 'created_at'>
-
-// Los contactos de un paciente ya agrupado: uno por cada (tipo, valor) que trajo cada miembro,
-// con la fuente de ESE miembro -no la del paciente fusionado, que no significa nada para un
-// contacto individual.
-function payloadContactos(id: string, miembros: FilaLista['miembros']): ContactoPayload[] {
-  return miembros.flatMap((m) =>
-    m.contactos.map((c) => ({
-      paciente_id: id,
-      tipo: c.tipo,
-      valor: c.valor,
-      fuente: m.fuente.fuente,
-      clave_origen: m.fuente.clave_origen,
-    })),
-  )
-}
-
-// Dedup por la MISMA clave que el UNIQUE de la base.
-//
-// Ojo con el porqué, porque es fácil escribirlo mal: con `ignoreDuplicates: true` (DO NOTHING)
-// el lote NO aborta aunque vayan dos filas iguales — verificado contra Postgres. O sea que esto
-// no es lo que evita el crash; lo que lo evita es esa opción en `data/pacientes.ts`.
-// Se dedupea igual por dos razones concretas: que `contactosEscritos` cuente lo que de verdad
-// se escribió y no lo que se mandó, y que el día que alguien cambie a DO UPDATE el lote no
-// empiece a abortar en silencio.
-function dedupeContactos(rows: ContactoPayload[]): ContactoPayload[] {
-  const vistos = new Set<string>()
-  return rows.filter((r) => {
-    const k = `${r.paciente_id}|${r.tipo}|${r.valor}|${r.fuente}`
-    if (vistos.has(k)) return false
-    vistos.add(k)
-    return true
-  })
-}
-
+import payloadContactos from './contactPayloads'
+import flagSiblingCollisions from './flagSiblingCollisions'
 // Límite de confianza: acá entran datos de un archivo. `pacientes_nombre_no_vacio` y
 // `pacientes_apellido_no_vacio` rechazan la fila en la base, pero rechazan el LOTE entero -500
 // filas adentro, con un mensaje de constraint que no dice cuál fue-. El saneamiento de la
@@ -259,13 +227,13 @@ function dedupeContactos(rows: ContactoPayload[]): ContactoPayload[] {
 // UN paciente, y si ese paciente fusionado queda sin nombre no hay "mitad" que escribir -las
 // DOS filas de origen se rechazan, cada una con su propio índice y su propia clave_origen, para
 // que ninguna de las dos desaparezca del resumen en silencio.
-function prepararFilas(filas: readonly FilaEscritura[]): { listas: FilaLista[]; rechazadas: FilaRechazada[] } {
+function prepararFilas(filas: readonly FilaEscritura[]): { listas: FilaLista[]; rechazadas: FilaRechazada[]; idsNuevos: Set<string> } {
   const resueltas = filas.map((fila, indice) => resolverId(fila, indice))
   const grupos = agruparPorId(resueltas)
+  const idsNuevos = new Set(resueltas.filter((r, i) => filas[i].tipo === TIPO_NUEVA_ESCRITURA).map((r) => r.id))
 
   const listas: FilaLista[] = []
   const rechazadas: FilaRechazada[] = []
-
   grupos.forEach((grupo) => {
     const sinNombre = vacio(grupo.paciente.nombre)
     const motivo = sinNombre ? 'sin_nombre' : vacio(grupo.paciente.apellido) ? 'sin_apellido' : null
@@ -276,7 +244,7 @@ function prepararFilas(filas: readonly FilaEscritura[]): { listas: FilaLista[]; 
     listas.push(grupo)
   })
 
-  return { listas, rechazadas }
+  return { listas, rechazadas, idsNuevos }
 }
 
 export interface ResultadoEscritura {
@@ -302,7 +270,7 @@ export interface ResultadoEscritura {
 // El orden dentro de un lote es SIEMPRE pacientes → paciente_fuentes → paciente_contactos: un
 // contacto sin paciente viola la FK.
 export async function escribirImport(filas: readonly FilaEscritura[]): Promise<ResultadoEscritura> {
-  const { listas, rechazadas } = prepararFilas(filas)
+  const { listas, rechazadas, idsNuevos } = prepararFilas(filas)
   const choques = contarChoques(listas)
   const gruposDeFilas = lotes(listas, TAMANO_LOTE)
 
@@ -314,7 +282,7 @@ export async function escribirImport(filas: readonly FilaEscritura[]): Promise<R
     // flatMap: casi siempre un miembro por paciente, salvo el colapso de `agruparPorId` -ahí
     // un solo `id` de `pacientes` se corresponde con DOS filas de `paciente_fuentes`.
     const loteFuentes = grupo.flatMap((f) => f.miembros.map((m) => payloadFuente(f.id, m.fuente)))
-    const loteContactos = dedupeContactos(grupo.flatMap((f) => payloadContactos(f.id, f.miembros)))
+    const loteContactos = payloadContactos.dedupe(grupo.flatMap((f) => payloadContactos(f.id, f.miembros)))
 
     const { error: errorPacientes } = await upsertPacientes(lotePacientes)
     if (errorPacientes) {
@@ -324,7 +292,7 @@ export async function escribirImport(filas: readonly FilaEscritura[]): Promise<R
         error: { mensaje: errorPacientes.message, paso: 'pacientes', lote: i },
       }
     }
-
+    await flagSiblingCollisions(grupo.filter((f) => idsNuevos.has(f.id)))
     const { error: errorFuentes } = await upsertPacienteFuentes(loteFuentes)
     if (errorFuentes) {
       // Los pacientes de ESTE lote sí quedaron escritos -solo falló la identidad de origen-,

@@ -1,5 +1,6 @@
-import { test, expect, Page } from '@playwright/test'
-import { PASSWORD, ensureUser } from './seed'
+import { test, expect } from '@playwright/test'
+import { ensureUser } from './seed'
+import loginAs from '@e2e/roles/login-as'
 import { NAV } from '../src/shared/components/shell/appShellConfig'
 import { modulePath } from '../src/shared/auth/permissions'
 
@@ -14,20 +15,6 @@ const FREDDY = 'freddy@eminat.net'
 // Derivado de NAV (fuente única del rail): [data-tour key, ruta]. Auto-cubre módulos
 // nuevos. finanzas no está en NAV (sin ícono de rail) → no se recorre, como antes.
 const MODULES = NAV.filter(n => n.slug !== 'sales').map(n => [n.key, modulePath(n.slug)] as const)
-
-// Mismo helper que roles.spec.ts (duplicado a propósito: mantiene este spec autónomo).
-async function loginAs(page: Page, email: string) {
-  await page.context().clearCookies()
-  await page.goto('/login')
-  try { await page.evaluate(() => localStorage.clear()) } catch {}
-  await page.goto('/login')
-  await page.getByPlaceholder('tu@eminat.net').fill(email)
-  const pw = page.locator('input[type="password"]')
-  await pw.fill(PASSWORD)
-  await pw.press('Enter')
-  await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
-  await expect(page.getByText('Home', { exact: true })).toBeVisible({ timeout: 20000 })
-}
 
 // freddy debe ser admin (otros specs lo degradan); lo reaseguramos para correr en cualquier orden.
 test.beforeAll(async () => { await ensureUser(FREDDY, 'admin', 'Freddy', 'Admin') })

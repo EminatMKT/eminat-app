@@ -3,13 +3,11 @@ import { lotes, escribirImport, type FilaEscritura } from './index'
 import { upsertPacientes, upsertPacienteFuentes, upsertPacienteContactos } from '@/features/medical/data/pacientes'
 import { ESTADO_PACIENTE_DEFAULT } from '@/features/medical/constants'
 import type { ContactoEntrante } from '@/features/medical/utils/pacienteImportPlan'
-
 vi.mock('@/features/medical/data/pacientes', () => ({
   upsertPacientes: vi.fn(),
   upsertPacienteFuentes: vi.fn(),
   upsertPacienteContactos: vi.fn(),
 }))
-
 const upsertPacientesMock = vi.mocked(upsertPacientes)
 const upsertPacienteFuentesMock = vi.mocked(upsertPacienteFuentes)
 const upsertPacienteContactosMock = vi.mocked(upsertPacienteContactos)

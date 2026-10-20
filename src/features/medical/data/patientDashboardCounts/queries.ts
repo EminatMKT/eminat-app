@@ -1,8 +1,15 @@
 import { supabase } from '@/shared/db'
 import { TABLES } from '@/shared/data'
-import { RPCS } from '@/shared/schema'
+import { COUNT_ONLY, RPCS } from '@/shared/schema'
 import type { CountResult, BirthdayMonthCount } from './types'
-import { ID_COLUMN, EMAIL_COLUMN, GENERO_COLUMN, TELEFONO_COLUMN, FECHA_NACIMIENTO_COLUMN, IS_OPERATOR, COUNT_ONLY } from './constants'
+import {
+  ID_COLUMN,
+  EMAIL_COLUMN,
+  GENERO_COLUMN,
+  TELEFONO_COLUMN,
+  FECHA_NACIMIENTO_COLUMN,
+  IS_OPERATOR,
+} from './constants'
 
 function readCount({ count, error }: CountResult): number {
   if (error) throw error

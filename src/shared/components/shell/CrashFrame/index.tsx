@@ -1,9 +1,8 @@
 import type { ReactNode } from 'react'
-import { HEADING } from '@/shared/constants/dom'
+import { ALERT, HEADING } from '@/shared/constants/dom'
 import s from './index.module.css'
 
 const SCREEN = 'screen'
-const ALERT = 'alert'
 
 type Props = {
   /** Which piece of the crash screen this frame is. */

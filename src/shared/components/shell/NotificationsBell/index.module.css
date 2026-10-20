@@ -1,0 +1,10 @@
+/* Pins the shared count bubble to the bell's corner. The ring in the shell's own surface color
+   cuts the bubble out of the button edge it overlaps. */
+.unread {
+  position: absolute;
+  top: -.25rem;
+  right: -.25rem;
+  display: flex;
+  border-radius: 1rem;
+  border: .125rem solid var(--s1);
+}

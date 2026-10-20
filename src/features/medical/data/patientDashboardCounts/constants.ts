@@ -10,9 +10,6 @@ export const IS_OPERATOR = 'is'
 export const GENERO_FEMALE = 'F'
 export const GENERO_MALE = 'M'
 
-/** `head: true` means PostgREST never returns row data, only the match count. */
-export const COUNT_ONLY = { count: 'exact', head: true } as const
-
 /** Known Florida area codes the registry concentrates in, grouped by county. `telefono` is
  *  stored pre-formatted as `(XXX) XXX-XXXX`, so the match pattern built from these codes
  *  targets that shape — a bare-digit prefix would silently match zero rows. */
