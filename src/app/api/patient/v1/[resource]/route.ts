@@ -153,11 +153,29 @@ export async function GET(request: Request, { params }: Route) {
   }
   if (resource === 'enrollment') {
     if (!patient.identity) return respond({ data: [] })
-    const { data, error } = await supabaseAdmin({ noStore: true }).from('sales_patient_enrollment_intents')
+    const admin = supabaseAdmin({ noStore: true })
+    const { data, error } = await admin.from('sales_patient_enrollment_intents')
       .select('id,plan,membership_type,duration,initial_months,amount_cents,status,created_at')
       .eq('organization_id', patient.identity.organization_id).eq('patient_identity_id', patient.identity.id)
       .order('created_at', { ascending: false }).limit(10)
-    return error ? unavailable() : respond({ data })
+    if (error) return unavailable()
+    const ids = (data ?? []).map(row => row.id)
+    if (!ids.length) return respond({ data: [] })
+    const { data: invoices, error: invoiceError } = await admin.from('sales_patient_qbo_manual')
+      .select('enrollment_intent_id,verification_state,qbo_invoice_number,qbo_hosted_payment_url,qa_synthetic')
+      .eq('organization_id', patient.identity.organization_id).in('enrollment_intent_id', ids)
+    if (invoiceError) return unavailable()
+    const byIntent = new Map((invoices ?? []).map(row => [row.enrollment_intent_id, row]))
+    return respond({ data: (data ?? []).map(row => {
+      const invoice = byIntent.get(row.id)
+      const paymentUrl = invoice?.qbo_hosted_payment_url
+      return { ...row, payment_state: invoice?.verification_state ?? 'PENDING_INVOICE',
+        qbo_invoice_number: invoice?.qbo_invoice_number ?? null,
+        // Only a recorded QBO-hosted URL for this authenticated patient's intent is exposed.
+        qbo_hosted_payment_url: !invoice?.qa_synthetic && paymentUrl &&
+          /^https:\/\/connect\.intuit\.com\/t\/[^\s]+$/.test(paymentUrl)
+          ? paymentUrl : null }
+    }) })
   }
   return respond({ code: 'NOT_FOUND' }, 404)
 }
