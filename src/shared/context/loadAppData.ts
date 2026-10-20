@@ -24,6 +24,8 @@ export interface Usuario {
   nombre?: string
   apellido?: string
   color?: string
+  avatar_key?: string | null
+  directorio_visible?: boolean | null
   ubicacion?: string
   email?: string
   empresa_id?: string | null
@@ -267,7 +269,7 @@ export function startAppData(s: Setters): () => void {
           s.setUsuario(row)
           // Si quedó parado en un módulo que ya no tiene, mandarlo a Home.
           const slug = moduleForPath(window.location.pathname)
-          if (slug && !getModulesForRole(map, normalizeRole(row.rol)).includes(slug)) {
+          if (slug && slug !== 'sales' && !getModulesForRole(map, normalizeRole(row.rol)).includes(slug)) {
             window.location.href = ROUTES.home
           }
         })

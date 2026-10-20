@@ -1,0 +1,58 @@
+-- Public avatar choice and private birth date for real Directory users.
+-- A retired user may still hold an unexpired Auth session. Make membership and
+-- module checks require an active usuarios row, so RLS also revokes data access.
+CREATE OR REPLACE FUNCTION public.es_personal() RETURNS boolean
+  LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $$
+  SELECT EXISTS (SELECT 1 FROM public.usuarios u
+    WHERE u.auth_id = auth.uid() AND u.activo = true);
+$$;
+
+CREATE OR REPLACE FUNCTION public.has_module(p_slug text) RETURNS boolean
+  LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $$
+  SELECT public.is_admin() OR EXISTS (
+    SELECT 1 FROM public.usuarios u
+    JOIN public.role_modules rm ON rm.role_key = u.rol
+    WHERE u.auth_id = auth.uid() AND u.activo = true AND rm.module_slug = p_slug
+  );
+$$;
+
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS avatar_key text;
+-- Existing rows remain NULL: Directory resolves their legacy visibility without
+-- touching usuarios or firing its updated_at trigger. New rows default to hidden
+-- until an admin explicitly makes them visible.
+ALTER TABLE public.usuarios ADD COLUMN IF NOT EXISTS directorio_visible boolean;
+ALTER TABLE public.usuarios ALTER COLUMN directorio_visible SET DEFAULT false;
+ALTER TABLE public.usuarios DROP CONSTRAINT IF EXISTS usuarios_avatar_key_check;
+ALTER TABLE public.usuarios ADD CONSTRAINT usuarios_avatar_key_check
+  CHECK (avatar_key IS NULL OR avatar_key IN ('dog', 'cat', 'capybara', 'bird', 'lizard', 'bear', 'seal'));
+
+-- Existing own-row UPDATE policy remains in force. Column grants prevent a
+-- signed-in user from changing name, email, role, company, active state, etc.
+REVOKE UPDATE ON public.usuarios FROM anon, authenticated;
+GRANT UPDATE (avatar_key, online_at, ubicacion) ON public.usuarios TO authenticated;
+-- Defensive cleanup in case an older installation retained the legacy
+-- all-operations policy. Admin writes use service_role routes.
+DROP POLICY IF EXISTS "superadmin_all_users" ON public.usuarios;
+DROP POLICY IF EXISTS "usuario_update_propio" ON public.usuarios;
+CREATE POLICY "usuario_update_propio" ON public.usuarios FOR UPDATE TO authenticated
+  USING (auth_id = auth.uid() AND activo = true)
+  WITH CHECK (auth_id = auth.uid() AND activo = true);
+
+CREATE TABLE IF NOT EXISTS public.usuario_perfil_privado (
+  usuario_id uuid PRIMARY KEY REFERENCES public.usuarios(id) ON DELETE CASCADE,
+  fecha_nacimiento date,
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT usuario_perfil_privado_birth_date_check
+    CHECK (fecha_nacimiento IS NULL OR fecha_nacimiento <= CURRENT_DATE)
+);
+ALTER TABLE public.usuario_perfil_privado ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.usuario_perfil_privado FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.usuario_perfil_privado TO authenticated;
+GRANT ALL ON public.usuario_perfil_privado TO service_role;
+
+CREATE POLICY usuario_perfil_privado_read_self ON public.usuario_perfil_privado
+  FOR SELECT TO authenticated
+  USING (EXISTS (
+    SELECT 1 FROM public.usuarios u
+    WHERE u.id = usuario_id AND u.auth_id = auth.uid() AND u.activo = true
+  ));

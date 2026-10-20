@@ -23,6 +23,7 @@ export interface AppContextType extends Theme {
   dark: boolean
   setDark: (v: boolean) => void
   usuario: Usuario | null
+  setUsuario: React.Dispatch<React.SetStateAction<Usuario | null>>
   actividades: Actividad[]
   equipo: Equipo[]
   usuarios: Usuario[]

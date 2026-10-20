@@ -1,0 +1,150 @@
+\set ON_ERROR_STOP on
+BEGIN;
+SET LOCAL request.jwt.claim.role='service_role';
+INSERT INTO auth.users(id) VALUES ('10000000-0000-4000-8000-000000000001');
+INSERT INTO public.usuarios(id,auth_id,email,nombre,apellido,rol,validado,activo) VALUES
+  ('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001',
+   'qa-social@example.invalid','QA','Social','admin',true,true);
+INSERT INTO public.sales_organizations(id,code,name,status,approved_by,approved_at) VALUES
+  ('30000000-0000-4000-8000-000000000001','qa-social','QA Social','active',
+   '20000000-0000-4000-8000-000000000001',now());
+INSERT INTO public.sales_members(id,organization_id,user_id,auth_id,role,status,evidence_ref,approved_by,approved_at) VALUES
+  ('40000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001',
+   '20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001',
+   'ADMINISTRATOR','active','synthetic','20000000-0000-4000-8000-000000000001',now());
+UPDATE public.sales_social_providers SET enabled=true WHERE code='META';
+INSERT INTO public.sales_social_integrations
+  (id,organization_id,provider_code,status,created_by,updated_by)
+  VALUES ('50000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001',
+    'META','CONNECTED','40000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000001');
+INSERT INTO public.sales_social_accounts
+  (id,organization_id,integration_id,external_account_id,account_type)
+  VALUES ('60000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001',
+    '50000000-0000-4000-8000-000000000001','qa-business','business');
+INSERT INTO public.sales_social_assets
+  (id,organization_id,account_id,external_asset_id,asset_type,status,default_owner_member_id)
+  VALUES ('70000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000001',
+    '60000000-0000-4000-8000-000000000001','qa-page','page','SUBSCRIBED',
+    '40000000-0000-4000-8000-000000000001');
+DO $$ DECLARE r jsonb; n jsonb; BEGIN
+  n:='{"externalLeadId":"qa-leadgen-1","pageId":"qa-page","formId":"qa-form","campaignId":"qa-campaign","adsetId":"qa-adset","adId":"qa-ad","fields":{"full_name":"QA Social Lead","email":"qa-social@example.invalid"}}'::jsonb;
+  r:=public.native_sales_receive_social_event('qa-page','leadgen:qa-leadgen-1','leadgen',
+    now(),n,repeat('a',64),gen_random_uuid(),gen_random_uuid());
+  IF r->>'status'<>'PROCESSED' OR r->>'replayed'<>'false' THEN RAISE EXCEPTION 'lead acceptance failed'; END IF;
+  r:=public.native_sales_receive_social_event('qa-page','leadgen:qa-leadgen-1','leadgen',
+    now(),n,repeat('a',64),gen_random_uuid(),gen_random_uuid());
+  IF r->>'replayed'<>'true' THEN RAISE EXCEPTION 'lead replay failed'; END IF;
+  IF (SELECT count(*) FROM public.sales_leads WHERE organization_id='30000000-0000-4000-8000-000000000001')<>1
+    OR (SELECT count(*) FROM public.sales_social_leads WHERE campaign_id='qa-campaign')<>1 THEN
+    RAISE EXCEPTION 'lead duplicated or attribution lost'; END IF;
+  n:='{"externalSubjectId":"qa-person","channel":"page","text":"QA message"}'::jsonb;
+  r:=public.native_sales_receive_social_event('qa-page','message:qa-mid','message',
+    now(),n,repeat('b',64),gen_random_uuid(),gen_random_uuid());
+  IF r->>'status'<>'PROCESSED' OR (SELECT count(*) FROM public.sales_social_messages)<>1 THEN
+    RAISE EXCEPTION 'message ingestion failed'; END IF;
+  n:='{"externalSubjectId":"qa-person","channel":"page","direction":"OUTBOUND","text":"QA reply"}'::jsonb;
+  r:=public.native_sales_receive_social_event('qa-page','message:qa-echo','message',
+    now(),n,repeat('f',64),gen_random_uuid(),gen_random_uuid());
+  IF r->>'status'<>'PROCESSED' OR
+    (SELECT count(*) FROM public.sales_social_messages WHERE direction='OUTBOUND')<>1 THEN
+    RAISE EXCEPTION 'outbound echo misclassified'; END IF;
+  n:='{"channel":"page","externalCommentId":"qa-comment","text":"QA comment"}'::jsonb;
+  r:=public.native_sales_receive_social_event('qa-page','comment:qa-comment','comment',
+    now(),n,repeat('c',64),gen_random_uuid(),gen_random_uuid());
+  IF r->>'status'<>'PROCESSED' OR (SELECT count(*) FROM public.sales_social_comments)<>1 THEN
+    RAISE EXCEPTION 'comment ingestion failed'; END IF;
+  n:='{"externalLeadId":"qa-pending","pageId":"qa-page","fields":null}'::jsonb;
+  r:=public.native_sales_receive_social_event('qa-page','leadgen:qa-pending','leadgen',
+    now(),n,repeat('d',64),gen_random_uuid(),gen_random_uuid());
+  IF r->>'status'<>'RETRY' OR (SELECT count(*) FROM public.sales_leads)<>1 THEN
+    RAISE EXCEPTION 'pending lead did not queue safely'; END IF;
+  r:=public.native_sales_retry_social_lead(
+    (SELECT id FROM public.sales_social_webhook_receipts WHERE external_event_id='leadgen:qa-pending'),
+    '{"full_name":"QA Recovered Lead","email":"qa-recovered@example.invalid"}'::jsonb);
+  IF r->>'status'<>'PROCESSED' OR (SELECT count(*) FROM public.sales_leads)<>2 THEN
+    RAISE EXCEPTION 'pending lead retry failed'; END IF;
+  IF (SELECT count(*) FROM public.sales_history WHERE action='meta.webhook.accepted')<>5 THEN
+    RAISE EXCEPTION 'social event audit incomplete or duplicated'; END IF;
+  n:='{"externalLeadId":"qa-recovery-lease","pageId":"qa-page","fields":null}'::jsonb;
+  r:=public.native_sales_receive_social_event('qa-page','leadgen:qa-recovery-lease','leadgen',
+    now(),n,repeat('e',64),gen_random_uuid(),gen_random_uuid());
+  IF r->>'status'<>'RETRY' THEN RAISE EXCEPTION 'recovery lease fixture failed'; END IF;
+  UPDATE public.sales_social_webhook_receipts SET next_retry_at=now()-interval '1 second'
+    WHERE external_event_id='leadgen:qa-recovery-lease';
+  IF (SELECT count(*) FROM public.native_sales_claim_social_leads(10))<>1 THEN
+    RAISE EXCEPTION 'recovery claim failed'; END IF;
+  IF (SELECT count(*) FROM public.native_sales_claim_social_leads(10))<>0 THEN
+    RAISE EXCEPTION 'recovery lease duplicated'; END IF;
+  IF public.native_sales_fail_social_lead(
+    (SELECT id FROM public.sales_social_webhook_receipts
+      WHERE external_event_id='leadgen:qa-recovery-lease'),
+    'META_LEAD_FETCH_FAILED')<>'RETRY' THEN
+    RAISE EXCEPTION 'recovery failure state not durable'; END IF;
+  IF (SELECT count(*) FROM public.sales_leads)<>2 THEN
+    RAISE EXCEPTION 'failed recovery mutated CRM'; END IF;
+  INSERT INTO public.sales_social_oauth_states
+    (id,organization_id,requester_member_id,default_owner_member_id,state_hash,status,
+     grant_ciphertext,pages_ciphertext,grant_expires_at,granted_scopes)
+    VALUES ('80000000-0000-4000-8000-000000000001',
+      '30000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000001',
+      '40000000-0000-4000-8000-000000000001',repeat('f',64),'EXCHANGED',
+      'synthetic-sealed-grant','synthetic-sealed-pages',now()+interval '1 day',
+      '["pages_show_list","pages_manage_metadata","leads_retrieval"]'::jsonb);
+  r:=public.native_sales_complete_meta_page(
+    '80000000-0000-4000-8000-000000000001',
+    '30000000-0000-4000-8000-000000000001',
+    '40000000-0000-4000-8000-000000000001',
+    '90000000-0000-4000-8000-000000000001',
+    'qa-second-page','QA Second Page',NULL,NULL,NULL,
+    'synthetic-user-ciphertext','synthetic-page-ciphertext',now()+interval '1 day');
+  IF r->>'status'<>'READY' OR
+    (SELECT status FROM public.sales_social_oauth_states
+      WHERE id='80000000-0000-4000-8000-000000000001')<>'CONSUMED' OR
+    (SELECT grant_ciphertext FROM public.sales_social_oauth_states
+      WHERE id='80000000-0000-4000-8000-000000000001') IS NOT NULL THEN
+    RAISE EXCEPTION 'OAuth grant not consumed safely'; END IF;
+  r:=public.native_sales_mark_meta_page_subscribed(
+    '30000000-0000-4000-8000-000000000001',
+    '40000000-0000-4000-8000-000000000001',
+    (SELECT id FROM public.sales_social_assets WHERE external_asset_id='qa-second-page'));
+  IF r->>'status'<>'SUBSCRIBED' OR
+    (SELECT webhook_status FROM public.sales_social_assets
+      WHERE external_asset_id='qa-second-page')<>'SUBSCRIBED' OR
+    (SELECT count(*) FROM public.sales_history
+      WHERE action='meta.page.leadgen_subscribed')<>1 THEN
+    RAISE EXCEPTION 'Page subscription state or audit incomplete'; END IF;
+  r:=public.native_sales_refresh_meta_connection(
+    '30000000-0000-4000-8000-000000000001',
+    '40000000-0000-4000-8000-000000000001',
+    '90000000-0000-4000-8000-000000000001',
+    'qa-second-page','refreshed-user-ciphertext','refreshed-page-ciphertext',
+    now()+interval '30 days','["pages_show_list","pages_manage_metadata","leads_retrieval"]'::jsonb);
+  IF r->>'status'<>'CONNECTED' OR
+    (SELECT token_ciphertext FROM public.sales_social_assets
+      WHERE external_asset_id='qa-second-page')<>'refreshed-page-ciphertext' OR
+    (SELECT count(*) FROM public.sales_history WHERE action='meta.connection.refreshed')<>1 THEN
+    RAISE EXCEPTION 'Meta token refresh did not persist atomically'; END IF;
+  BEGIN
+    PERFORM public.native_sales_complete_meta_page(
+      '80000000-0000-4000-8000-000000000001',
+      '30000000-0000-4000-8000-000000000001',
+      '40000000-0000-4000-8000-000000000001',
+      gen_random_uuid(),'qa-second-page','QA Second Page',NULL,NULL,NULL,
+      'synthetic-user-ciphertext','synthetic-page-ciphertext',now()+interval '1 day');
+    RAISE EXCEPTION 'OAuth grant replay accepted';
+  EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
+  r:=public.native_sales_revoke_meta_connection(
+    '30000000-0000-4000-8000-000000000001',
+    '40000000-0000-4000-8000-000000000001',
+    '90000000-0000-4000-8000-000000000001');
+  IF r->>'status'<>'REVOKED' OR
+    (SELECT token_ciphertext FROM public.sales_social_integrations
+      WHERE id='90000000-0000-4000-8000-000000000001') IS NOT NULL OR
+    (SELECT token_ciphertext FROM public.sales_social_assets
+      WHERE external_asset_id='qa-second-page') IS NOT NULL OR
+    (SELECT status FROM public.sales_social_assets
+      WHERE external_asset_id='qa-second-page')<>'DISABLED' OR
+    (SELECT count(*) FROM public.sales_history WHERE action='meta.connection.revoked')<>1 THEN
+    RAISE EXCEPTION 'Meta local revocation did not destroy tokens or preserve audit'; END IF;
+END $$;
+ROLLBACK;

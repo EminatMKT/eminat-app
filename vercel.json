@@ -13,8 +13,12 @@
       "schedule": "0 3 * * *"
     },
     {
-      "path": "/api/meetings/notifications/process",
-      "schedule": "*/5 * * * *"
+      "path": "/api/sales-native/reports/process",
+      "schedule": "5 13 * * *"
+    },
+    {
+      "path": "/api/sales-native/social/meta/recover",
+      "schedule": "10 14 * * *"
     }
   ]
 }

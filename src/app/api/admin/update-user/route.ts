@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
       cargoIds,
       activo,
       validado,
+      directorio_visible,
     } = body
 
     if (!id || typeof id !== 'string') {
@@ -75,6 +76,10 @@ export async function POST(req: NextRequest) {
     if (equipo_id !== undefined) updatePayload.equipo_id = equipo_id || null
     if (activo !== undefined) updatePayload.activo = activo
     if (validado !== undefined) updatePayload.validado = validado
+    if (directorio_visible !== undefined) {
+      if (typeof directorio_visible !== 'boolean') return NextResponse.json({ error: 'Visibilidad no válida' }, { status: 400 })
+      updatePayload.directorio_visible = directorio_visible
+    }
 
     // Los cargos NO son columna de `usuarios` (N:N en usuario_cargos), así que
     // van aparte — pero cuentan como "algo para actualizar".

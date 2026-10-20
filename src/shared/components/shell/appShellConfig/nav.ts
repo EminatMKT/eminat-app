@@ -12,6 +12,7 @@ export const NAV: { slug: ModuleSlug; key: string; icon: string; label: string; 
   { slug: MODULE.RESEARCH, key: 'research', icon: '🔬', label: 'Research', panel: 'research' },
   { slug: MODULE.DIRECTORIO, key: 'directorio', icon: '🏢', label: 'Directory' },
   { slug: MODULE.REUNIONES, key: 'reuniones', icon: '🗓️', label: 'Meetings' },
+  { slug: MODULE.SALES, key: 'sales', icon: '📈', label: 'Sales', panel: 'sales' },
   { slug: MODULE.ADMIN, key: 'admin', icon: '🔐', label: 'Admin', panel: 'admin' },
 ]
 
@@ -25,5 +26,6 @@ export const AUTO_TITLE: Partial<Record<ModuleSlug, string>> = {
   [MODULE.MEDICAL]: 'Eminat Medical Center — HIPAA',
   [MODULE.DIRECTORIO]: 'Team Directory',
   [MODULE.REUNIONES]: 'Meetings — Actas y pendientes',
+  [MODULE.SALES]: 'Sales',
   [MODULE.ADMIN]: 'Admin Panel',
 }

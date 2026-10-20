@@ -34,10 +34,6 @@ export const listAll = () =>
 export const equipoHoy = () =>
   supabase.from(TABLES.equipoHoy).select('*')
 
-// Valida + activa a un usuario.
-export const validar = (id: string) =>
-  supabase.from(TABLES.usuarios).update({ validado: true, activo: true }).eq('id', id)
-
 // Login: busca id + marca_hora por email.
 export const findByEmail = (email: string | undefined) =>
   supabase.from(TABLES.usuarios).select('id, marca_hora').eq('email', email).single()

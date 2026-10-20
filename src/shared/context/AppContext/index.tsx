@@ -23,7 +23,6 @@ export {
   COLUMNAS_KANBAN, COLORES_AVATAR,
   getIniciales,
 } from '@/shared/constants/domain'
-export { CARGOS_DIR, DIRECTORIO_DATA, DEPS_DIR } from '@/shared/constants/directorio'
 
 // ── Context ────────────────────────────────────────────────────────────
 // AppContextType lives in ./types — the rest of this module is AppProvider/useApp.

@@ -1,0 +1,163 @@
+name: Native Sales guarded schema
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: Check only or apply reviewed Native Sales schema
+        required: true
+        type: choice
+        default: check
+        options: [check, apply]
+      exact_commit:
+        description: Reviewed 40-character LILLY commit SHA
+        required: true
+        type: string
+      migration_sha256:
+        description: Reviewed Native Sales migration-set digest
+        required: true
+        type: string
+      backup_id:
+        description: Verified restorable Production backup identifier; required for apply
+        required: false
+        type: string
+      backup_at_utc:
+        description: Production backup timestamp; required for apply
+        required: false
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+  deployments: read
+
+concurrency:
+  group: native-sales-production-migration
+  cancel-in-progress: false
+
+jobs:
+  schema_check:
+    runs-on: ubuntu-latest
+    environment: Production
+    outputs:
+      reference: ${{ steps.fingerprint.outputs.reference }}
+    env:
+      LILLY_SALES_TARGET_ENV: production
+      LILLY_SALES_MIGRATION_SHA256: ${{ inputs.migration_sha256 }}
+      LILLY_SALES_SCHEMA_ADMIN_DB_URL: ${{ secrets.LILLY_SALES_SCHEMA_ADMIN_DB_URL }}
+      SUPABASE_TELEMETRY_DISABLED: '1'
+    steps:
+      - name: Require main dispatch, exact SHA, checksum, and protected approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXACT_COMMIT: ${{ inputs.exact_commit }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF" == refs/heads/main ]]
+          [[ "$EXACT_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$LILLY_SALES_MIGRATION_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          test -n "$LILLY_SALES_SCHEMA_ADMIN_DB_URL"
+          approval=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/approvals" \
+            --jq '[.[] | select(.state == "approved") | .environments[]?.name | select(. == "Production")] | length' 2>/dev/null) || exit 1
+          test "$approval" -gt 0 || { echo PRODUCTION_APPROVAL_REQUIRED; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_commit }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate owner capability, pending set, and public web availability
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ inputs.exact_commit }}'
+          git merge-base --is-ancestor HEAD origin/main
+          test -z "$(git status --porcelain)"
+          python3 scripts/migration/check_sales_database_access.py
+          python3 scripts/migration/check-native-sales-migrations.py --phase schema
+          curl --fail --silent --show-error --max-time 15 \
+            https://app.stratixsolutions.us/login >/dev/null
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.106.0
+      - name: Verify exact pending schema without mutation
+        run: |
+          set -euo pipefail
+          supabase db push --db-url "$LILLY_SALES_SCHEMA_ADMIN_DB_URL" --dry-run --yes \
+            > "$RUNNER_TEMP/native-sales-schema-dryrun.log" 2>&1 \
+            || { echo NATIVE_SALES_SCHEMA_DRYRUN_FAILED; exit 1; }
+      - id: fingerprint
+        name: Capture reference counts and unrelated schema fingerprint
+        run: |
+          set -euo pipefail
+          reference=$(python3 scripts/migration/reference_schema_fingerprint.py)
+          echo "reference=$reference" >> "$GITHUB_OUTPUT"
+      - if: always()
+        run: rm -f "$RUNNER_TEMP/native-sales-schema-dryrun.log"
+
+  schema_apply:
+    if: inputs.phase == 'apply'
+    needs: schema_check
+    runs-on: ubuntu-latest
+    environment: Production
+    env:
+      LILLY_SALES_TARGET_ENV: production
+      LILLY_SALES_MIGRATION_SHA256: ${{ inputs.migration_sha256 }}
+      LILLY_SALES_SCHEMA_ADMIN_DB_URL: ${{ secrets.LILLY_SALES_SCHEMA_ADMIN_DB_URL }}
+      SUPABASE_TELEMETRY_DISABLED: '1'
+    steps:
+      - name: Require the verified Production backup before schema apply
+        env:
+          BACKUP_ID: ${{ inputs.backup_id }}
+          BACKUP_AT: ${{ inputs.backup_at_utc }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,re
+          from datetime import datetime,timezone,timedelta
+          if not re.fullmatch(r'[A-Za-z0-9._:/-]{12,180}',os.environ['BACKUP_ID']):
+              raise SystemExit('RESTORABLE_BACKUP_REQUIRED')
+          try: at=datetime.fromisoformat(os.environ['BACKUP_AT'].replace('Z','+00:00'))
+          except ValueError: raise SystemExit('BACKUP_TIMESTAMP_REQUIRED')
+          if at.tzinfo is None or not timedelta(0)<=datetime.now(timezone.utc)-at<=timedelta(hours=24):
+              raise SystemExit('FRESH_BACKUP_REQUIRED')
+          PY
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_commit }}
+          persist-credentials: false
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.106.0
+      - name: Apply only the reviewed Native Sales pending set
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ inputs.exact_commit }}'
+          python3 scripts/migration/check_sales_database_access.py
+          python3 scripts/migration/check-native-sales-migrations.py --phase schema
+          supabase db push --db-url "$LILLY_SALES_SCHEMA_ADMIN_DB_URL" --yes \
+            > "$RUNNER_TEMP/native-sales-schema-apply.log" 2>&1 \
+            || { echo NATIVE_SALES_SCHEMA_APPLY_FAILED; exit 1; }
+      - if: always()
+        run: rm -f "$RUNNER_TEMP/native-sales-schema-apply.log"
+
+  schema_verify:
+    if: inputs.phase == 'apply'
+    needs: [schema_check, schema_apply]
+    runs-on: ubuntu-latest
+    environment: Production
+    env:
+      LILLY_SALES_TARGET_ENV: production
+      LILLY_SALES_MIGRATION_SHA256: ${{ inputs.migration_sha256 }}
+      LILLY_SALES_SCHEMA_ADMIN_DB_URL: ${{ secrets.LILLY_SALES_SCHEMA_ADMIN_DB_URL }}
+      EXPECTED_REFERENCE: ${{ needs.schema_check.outputs.reference }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_commit }}
+          persist-credentials: false
+      - name: Verify migrations and existing LILLY modules
+        run: |
+          set -euo pipefail
+          python3 scripts/migration/check-native-sales-migrations.py --after --phase schema
+          python3 scripts/migration/reference_schema_fingerprint.py --verify "$EXPECTED_REFERENCE"
+          curl --fail --silent --show-error --max-time 15 \
+            https://app.stratixsolutions.us/login >/dev/null

@@ -18,6 +18,7 @@ const teamMember = {
 
 const baseApp = {
   usuario: { id: 'u1', rol: 'admin' },
+  setUsuario: vi.fn(),
   actividades: [],
   setActividades: vi.fn(),
   equipo: [],

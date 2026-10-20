@@ -10,6 +10,7 @@ export type UserRow = {
   ubicacion: string
   activo: boolean
   validado: boolean
+  directorio_visible?: boolean
   empresa_id?: string | null
   jornada_id?: string | null
   vinculacion_id?: string | null

@@ -6,6 +6,8 @@ import { moduleForPath } from '@/shared/auth/permissions'
 import { writeUserPreference, LAST_MODULE_KEY } from '@/shared/hooks'
 import AccessDenied from '@/shared/components/access/AccessDenied'
 import { useT } from '@/shared/i18n'
+import { useSalesQaAccess } from '@/features/annie-sales/useSalesQaAccess'
+import SalesDenied from '@/features/annie-sales/SalesDenied'
 
 // Gate central por módulo: una sola fuente de verdad (antes cada módulo lo hacía suelto y se
 // olvidaron stratix-mkt/accounting/directorio/th-hr). Home (slug null) siempre pasa.
@@ -13,19 +15,21 @@ export default function ModuleGate({ children }: { children: React.ReactNode }) 
   const { modules, loading, usuario } = useApp()
   const { t } = useT()
   const slug = moduleForPath(usePathname())
+  const salesQaAllowed = useSalesQaAccess()
 
   // Último módulo visitado, para el atajo del Launchpad. Se anota acá porque es el único punto
   // que ya resuelve el slug para TODAS las rutas protegidas; ponerlo en cada módulo sería
   // repetirlo siete veces y olvidarlo en el octavo. Solo se anota lo que el usuario pudo ver:
   // si no tiene acceso, el gate corta y no se guarda.
-  const allowed = !!slug && modules.includes(slug)
+  const allowed = !!slug && (slug === 'sales' ? salesQaAllowed : modules.includes(slug))
   const userId: string | undefined = usuario?.id
   useEffect(() => {
     if (!allowed || !slug || !userId) return
     writeUserPreference(userId, LAST_MODULE_KEY, slug)
   }, [allowed, slug, userId])
 
-  if (!loading && slug && !modules.includes(slug)) {
+  if (!loading && slug && !allowed) {
+    if (slug === 'sales') return <SalesDenied />
     return <AccessDenied message={t('shell.noModuleAccess')} />
   }
   return <>{children}</>

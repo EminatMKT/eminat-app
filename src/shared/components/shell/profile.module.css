@@ -1,0 +1,33 @@
+.railAnchor { position: relative; display: grid; place-items: center; width: 100%; padding: .7rem 0; border-top: 1px solid rgba(255,255,255,.1); }
+.avatarButton { position: relative; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 11px; background: transparent; cursor: pointer; }
+.avatarButton:focus-visible { outline: 2px solid #9083ff; outline-offset: 3px; }
+.initials { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; color: white; font-size: .7rem; font-weight: 700; }
+.onlineDot { position: absolute; right: 0; bottom: 0; width: 10px; height: 10px; border-radius: 50%; background: #34d399; border: 2px solid #111118; }
+.railShortName { max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff; font-size: .6rem; font-weight: 700; }
+.railPopover { position: absolute; left: 100%; bottom: 0; z-index: 70; display: grid; gap: .35rem; width: 225px; padding: .85rem; border: 1px solid rgba(255,255,255,.12); border-radius: .75rem; background: #111118; box-shadow: 0 12px 32px rgba(0,0,0,.45); color: #fff; }
+.railName { color: #fff; font-size: .82rem; line-height: 1.3; overflow-wrap: anywhere; }
+.railRole { color: rgba(255,255,255,.72); font-size: .7rem; }
+.railCargo { color: rgba(255,255,255,.55); font-size: .67rem; }
+.railLocation { color: rgba(255,255,255,.72); font-size: .67rem; margin: .2rem 0 .35rem; overflow-wrap: anywhere; }
+.railAction, .railSignout { width: 100%; padding: .48rem .55rem; border-radius: .5rem; text-align: left; font-size: .72rem; cursor: pointer; }
+.railAction { border: 1px solid rgba(255,255,255,.18); background: #222230; color: #fff; font-weight: 700; }
+.railSignout { border: 0; background: transparent; color: rgba(255,255,255,.7); }
+.railAction:hover, .railSignout:hover { background: rgba(255,255,255,.12); }
+.summary { display: flex; align-items: center; gap: 1.25rem; padding: .5rem 0 1.2rem; border-bottom: 1px solid var(--c-border); }
+.summary h2 { margin: 0 0 .35rem; font-size: 1.2rem; color: var(--c-t1); }
+.summary p { margin: .2rem 0; font-size: .82rem; color: var(--c-t2); }
+.preview { width: 88px; height: 88px; display: grid; place-items: center; border-radius: 22px; background: var(--c-s2); color: var(--c-t1); font-weight: 800; font-size: 1.7rem; }
+.sectionTitle { color: var(--c-t1); font-size: .93rem; margin: 1.2rem 0 .75rem; }
+.gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(6.7rem, 1fr)); gap: .7rem; }
+.avatarChoice { display: grid; justify-items: center; gap: .5rem; padding: .65rem; background: var(--c-s2); border: 2px solid var(--c-border); border-radius: 1rem; color: var(--c-t2); font-size: .76rem; cursor: pointer; }
+.avatarChoice:hover { transform: translateY(-2px); }
+.selected { border-color: var(--c-accent); color: var(--c-t1); box-shadow: 0 0 0 2px color-mix(in srgb, var(--c-accent) 20%, transparent); }
+.privateField { display: flex; align-items: baseline; flex-wrap: wrap; gap: .5rem; margin-top: 1.2rem; padding: .85rem; border-radius: .7rem; background: var(--c-s2); color: var(--c-t2); font-size: .78rem; }
+.privateField small { flex-basis: 100%; color: var(--c-t3); }
+.footer { display: flex; justify-content: end; gap: .6rem; }
+.footer button { padding: .6rem .95rem; border-radius: .6rem; cursor: pointer; }
+.cancel { border: 1px solid var(--c-border); background: transparent; color: var(--c-t2); }
+.save { border: none; background: var(--c-accent); color: white; font-weight: 700; }
+.save:disabled { opacity: .5; cursor: not-allowed; }
+.error { color: #ef6666; font-size: .8rem; }
+.success { color: #45bf8a; font-size: .8rem; }

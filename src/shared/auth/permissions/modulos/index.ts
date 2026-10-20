@@ -69,6 +69,12 @@ export const MODULE_META: Record<ModuleSlug, ModuleMeta> = {
     description: 'Actas, participantes y pendientes de las reuniones del grupo.',
     leader: null,
   },
+  [MODULE.SALES]: {
+    slug: MODULE.SALES,
+    name: 'Sales',
+    description: 'Lectura comercial desde ANNIE por identidad y organización explícitas.',
+    leader: null,
+  },
   [MODULE.ADMIN]: {
     slug: MODULE.ADMIN,
     name: 'Administración',
