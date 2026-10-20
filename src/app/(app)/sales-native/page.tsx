@@ -21,5 +21,5 @@ export default async function NativeSalesPreviewPage() {
     .eq('auth_id', user.id).eq('user_id', profile.id).eq('status', 'active')
     .eq('sales_organizations.status', 'active').limit(2)
   if (error || memberships?.length !== 1) notFound()
-  return <NativeSalesModule organizationId={memberships[0].organization_id} />
+  return <NativeSalesModule organizationId={memberships[0].organization_id} initialUserId={user.id} />
 }

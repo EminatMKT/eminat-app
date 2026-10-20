@@ -76,7 +76,9 @@ const title = (row: Row) => string(row.display_name) || string(row.name) ||
   [string(row.first_name), string(row.last_name)].filter(Boolean).join(' ') ||
   string(row.title) || string(row.relatedName) || string(row.subject) || string(row.code) || 'Untitled'
 
-export default function NativeSalesModule({ organizationId }: { organizationId: string }) {
+export default function NativeSalesModule({ organizationId, initialUserId }: {
+  organizationId: string; initialUserId: string
+}) {
   const { t } = useT()
   const [tab, setTab] = useState<Tab>('dashboard')
   const [access, setAccess] = useState<Access | null>(null)
@@ -116,7 +118,8 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
     const headers: Record<string,string> = { Authorization: `Bearer ${session.access_token}`,
       'X-Sales-Organization-Id': organizationId }
     if (options.payload) headers['Content-Type'] = 'application/json'
-    if (options.version) headers['If-Match'] = String(options.version)
+    // Browser-facing If-Match can be consumed by the edge before our API responds.
+    if (options.version) headers['X-Sales-Expected-Version'] = String(options.version)
     if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey
     const response = await fetch(`/api/sales-native/${path}`, { cache: 'no-store',
       method: options.method || 'GET', headers,
@@ -126,6 +129,14 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
     if (!response.ok) throw new Error(string(result.code) || 'SALES_UNAVAILABLE')
     return result
   }, [organizationId])
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      // A different login in another tab must not leave the former role's controls visible.
+      if (session?.user.id !== initialUserId) window.location.reload()
+    })
+    return () => subscription.unsubscribe()
+  }, [initialUserId])
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).has('metaState') ||

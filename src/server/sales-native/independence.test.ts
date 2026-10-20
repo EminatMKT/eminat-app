@@ -33,4 +33,14 @@ describe('native Sales runtime boundary', () => {
     expect(accessHook).toContain("pathname.startsWith('/sales-native')")
     expect(accessHook).toContain("nativePreview ? '/api/sales-native/access' : '/api/sales/access'")
   })
+
+  it('keeps optimistic versions off the browser If-Match precondition header', () => {
+    const client = readFileSync(join(process.cwd(), 'src/features/native-sales/NativeSalesModule.tsx'), 'utf8')
+    expect(client).toContain("headers['X-Sales-Expected-Version']")
+    expect(client).not.toMatch(/headers\[['"]If-Match['"]\]/)
+    for (const file of sources(join(process.cwd(), 'src/app/api/sales-native'))) {
+      const source = readFileSync(file, 'utf8')
+      expect(source, file).not.toContain("headers.get('if-match')")
+    }
+  })
 })
