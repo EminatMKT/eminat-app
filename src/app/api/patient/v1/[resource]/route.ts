@@ -4,8 +4,10 @@ import { clientEnv } from '@/shared/db/env.client'
 import { noStoreFetch } from '@/shared/db/noStoreFetch'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { membershipTypes, plans, saleDurations } from '@/server/sales-native/pricing'
+import { createMembershipPdf } from '@/server/sales-native/membership-pdf'
 
 export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const handlePattern = /^cspt_[A-Za-z0-9_-]{40,100}$/
@@ -81,12 +83,73 @@ export async function GET(request: Request, { params }: Route) {
   }
   if (resource === 'membership') {
     if (!patient.identity) return respond({ data: null })
-    const { data, error } = await supabaseAdmin({ noStore: true }).from('sales_memberships')
+    const admin = supabaseAdmin({ noStore: true })
+    const { data, error } = await admin.from('sales_memberships')
       .select('id,plan,membership_type,duration,status,issued_at,expires_at,code')
       .eq('organization_id', patient.identity.organization_id)
       .eq('primary_contact_id', patient.identity.contact_id).eq('is_demo', false)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
-    return error ? unavailable() : respond({ data })
+    if (error || !data) return error ? unavailable() : respond({ data: null })
+    const { data: members, error: membersError } = await admin.from('sales_household_members')
+      .select('id').eq('organization_id', patient.identity.organization_id)
+      .eq('membership_id', data.id).eq('status', 'ACTIVE')
+    if (membersError || !members) return unavailable()
+    return respond({ data: { ...data, covered_members: members.length } })
+  }
+  if (resource === 'household') {
+    if (!patient.identity) return respond({ data: [] })
+    const admin = supabaseAdmin({ noStore: true })
+    const { data: membership, error: membershipError } = await admin.from('sales_memberships')
+      .select('id').eq('organization_id', patient.identity.organization_id)
+      .eq('primary_contact_id', patient.identity.contact_id).eq('is_demo', false)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    if (membershipError) return unavailable()
+    if (!membership) return respond({ data: [] })
+    const { data: members, error: memberError } = await admin.from('sales_household_members')
+      .select('id,contact_id,relationship,status,member_index')
+      .eq('organization_id', patient.identity.organization_id).eq('membership_id', membership.id)
+      .order('member_index', { ascending: true })
+    if (memberError || !members) return unavailable()
+    if (!members.length) return respond({ data: [] })
+    const { data: contacts, error: contactError } = await admin.from('sales_contacts')
+      .select('id,first_name,last_name').eq('organization_id', patient.identity.organization_id)
+      .in('id', members.map(member => member.contact_id))
+    if (contactError || !contacts) return unavailable()
+    const byId = new Map(contacts.map(contact => [contact.id, contact]))
+    if (members.some(member => !byId.has(member.contact_id))) return unavailable()
+    return respond({ data: members.map(member => {
+      const contact = byId.get(member.contact_id)
+      return { id: member.id, first_name: contact?.first_name,
+        last_name: contact?.last_name, relationship: member.relationship,
+        status: member.status, is_primary: member.relationship === 'PRIMARY' }
+    }) })
+  }
+  if (resource === 'membershippdf') {
+    if (!patient.identity) return respond({ code: 'MEMBERSHIP_NOT_FOUND' }, 404)
+    const params = new URL(request.url).searchParams
+    if (Array.from(params.keys()).some(key => key !== 'download') ||
+        (params.has('download') && params.get('download') !== '1')) return invalid()
+    const { data, error } = await supabaseAdmin({ noStore: true }).from('sales_memberships')
+      .select('code,first_name,last_name,plan,membership_type,duration,issued_at,expires_at,status')
+      .eq('organization_id', patient.identity.organization_id)
+      .eq('primary_contact_id', patient.identity.contact_id).eq('is_demo', false)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    if (error) return unavailable()
+    if (!data?.code) return respond({ code: 'MEMBERSHIP_NOT_FOUND' }, 404)
+    const pdf = await createMembershipPdf({
+      code: data.code, firstName: data.first_name, lastName: data.last_name,
+      plan: data.plan, membershipType: data.membership_type, duration: data.duration,
+      issuedAt: data.issued_at, expiresAt: data.expires_at,
+      status: data.status === 'ACTIVE' && data.expires_at < new Date().toISOString().slice(0, 10)
+        ? 'EXPIRED' : data.status,
+    })
+    const file = data.code.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 32) || 'membership'
+    return new Response(pdf as BodyInit, { headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `${params.get('download') === '1' ? 'attachment' : 'inline'}; filename="corazon-salud-${file}.pdf"`,
+      'Cache-Control': 'private, no-store', 'Vary': 'Authorization',
+      'X-Content-Type-Options': 'nosniff',
+    } })
   }
   if (resource === 'enrollment') {
     if (!patient.identity) return respond({ data: [] })
