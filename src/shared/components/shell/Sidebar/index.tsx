@@ -12,13 +12,14 @@ import { useSalesQaAccess } from '@/features/annie-sales/useSalesQaAccess'
 type Props = {
   activeTab?: string
   onTabChange?: (tab: string) => void
+  salesRole?: string
   mobileOpen: boolean
   setMobileOpen: (v: boolean) => void
 }
 
 // Sidebar = rail de íconos (módulos del usuario) + panel secundario. Dueño de `sidebarPanel`.
 // Data-driven desde NAV + modulePath.
-export default function Sidebar({ activeTab, onTabChange, mobileOpen, setMobileOpen }: Props) {
+export default function Sidebar({ activeTab, onTabChange, salesRole, mobileOpen, setMobileOpen }: Props) {
   const { modules } = useApp()
   const salesQaAllowed = useSalesQaAccess()
   const router = useRouter()
@@ -27,17 +28,21 @@ export default function Sidebar({ activeTab, onTabChange, mobileOpen, setMobileO
   const activeNav = NAV.find(i => pathname.startsWith(modulePath(i.slug)))
   const [sidebarPanel, setSidebarPanel] = useState<PanelKey | null>(activeNav?.panel ?? null)
   const activeIconKey = activeNav?.key ?? 'home'
+  // Native Sales has its own server-validated role. The legacy ANNIE QA allowlist
+  // must not hide its navigation after that role has been resolved.
+  const salesNavigationAllowed = salesQaAllowed ||
+    (pathname.startsWith('/sales-native') && Boolean(salesRole))
 
   const navAction = (slug: ModuleSlug, panel?: PanelKey) => panel
-    ? () => { setSidebarPanel(p => p === panel ? null : panel); if (!pathname.startsWith(modulePath(slug))) router.push(modulePath(slug)) }
+    ? () => { setSidebarPanel(p => panel === 'sales' ? 'sales' : p === panel ? null : panel); if (!pathname.startsWith(modulePath(slug))) router.push(modulePath(slug)) }
     : () => { router.push(modulePath(slug)); setSidebarPanel(null) }
   const sidebarIcons = [
     { key: 'home', icon: '🏠', label: 'Home', action: () => { router.push(ROUTES.home); setSidebarPanel(null) } },
-    ...NAV.filter(i => i.slug === 'sales' ? salesQaAllowed : modules.includes(i.slug)).map(i => ({ key: i.key, icon: i.icon, label: i.label, action: navAction(i.slug, i.panel) })),
+    ...NAV.filter(i => i.slug === 'sales' ? salesNavigationAllowed : modules.includes(i.slug)).map(i => ({ key: i.key, icon: i.icon, label: i.label, action: navAction(i.slug, i.panel) })),
   ]
 
   // El panel secundario solo abre si el usuario tiene el módulo (sin_asignar no ve el submenú).
-  const panelOpen = !!sidebarPanel && (PANEL_META[sidebarPanel].slug === 'sales' ? salesQaAllowed : modules.includes(PANEL_META[sidebarPanel].slug))
+  const panelOpen = !!sidebarPanel && (PANEL_META[sidebarPanel].slug === 'sales' ? salesNavigationAllowed : modules.includes(PANEL_META[sidebarPanel].slug))
 
   return (
     <aside className={`sidebar-root${mobileOpen ? ' open' : ''}`} style={{ display: 'flex', flexShrink: 0, height: '100vh', position: 'relative', zIndex: 50 }}>
@@ -53,7 +58,7 @@ export default function Sidebar({ activeTab, onTabChange, mobileOpen, setMobileO
         </div>
       </div>
 
-      <SidebarPanel open={panelOpen} panel={sidebarPanel ?? 'mkt'} activeTab={activeTab} onTabChange={onTabChange} setMobileOpen={setMobileOpen} />
+      <SidebarPanel open={panelOpen} panel={sidebarPanel ?? 'mkt'} activeTab={activeTab} onTabChange={onTabChange} salesRole={salesRole} setMobileOpen={setMobileOpen} />
     </aside>
   )
 }
