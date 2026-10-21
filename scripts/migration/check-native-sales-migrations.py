@@ -52,7 +52,7 @@ def main():
     if args.after:
         if pending:
             raise ValueError("MIGRATIONS_REMAIN_PENDING")
-    elif not native or pending not in (native, {}):
+    elif not native or any(version not in native for version in pending):
         raise ValueError("UNREVIEWED_PRODUCTION_MIGRATION_SET")
     print("NATIVE_SALES_MIGRATION_SET_PASS")
 
