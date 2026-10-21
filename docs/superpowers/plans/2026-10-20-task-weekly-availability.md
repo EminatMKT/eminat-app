@@ -57,6 +57,7 @@ Every commit below is a reviewable work unit and keeps its tests with the behavi
 
 ### New files
 
+- `docs/superpowers/research/2026-10-21-task-availability-references.md` — bounded Mobbin reference review completed before UI implementation.
 - `supabase/migrations/20261021010000_task_weekly_availability.sql` — table, constraints, indexes, visibility helper, RLS policies, read RPC, and atomic replace-own RPC.
 - `e2e/task-availability-rls.spec.ts` — direct database authorization and constraint coverage.
 - `src/features/tasks/data/availability/types.ts` — transport contracts shared by the API and client.
@@ -98,6 +99,110 @@ rg -n "HourSlot|ActiveTaskLine|slotOcupado|HORAS_SEMANALES|cargaDe" src
 ```
 
 Delete only symbols/files with no consumer outside the synthetic Availability path.
+
+---
+
+### Task 0: Review Real Scheduling Interfaces through Mobbin MCP
+
+**Files:**
+- Create: `docs/superpowers/research/2026-10-21-task-availability-references.md`
+- Read: `docs/superpowers/specs/2026-10-09-task-availability-design.md`
+- Read: `.interface-design/system.md` if it exists when implementation begins
+
+This is a bounded reference pass, not an additional product-design phase. It must not expand Delivery 1.
+
+- [ ] **Step 1: Confirm Mobbin is connected in Pi**
+
+Run `/mcp` or inspect the `mobbin` server. Confirm the six Mobbin tools are available before spending implementation time:
+
+```text
+mobbin_search_screens
+mobbin_search_flows
+mobbin_search_sections
+mobbin_read_mobbin_screen_search_results
+mobbin_read_mobbin_flow_search_results
+mobbin_read_mobbin_section_search_results
+```
+
+If authentication has expired, reconnect `mobbin` and complete OAuth. Do not place credentials in the repository.
+
+- [ ] **Step 2: Run three narrow screen searches**
+
+Search desktop/web references in three distinct angles rather than one broad query:
+
+```text
+1. Workforce scheduling interfaces where an employee edits recurring weekly availability.
+2. Weekly schedule editors that support multiple time ranges or split shifts on the same day.
+3. Team availability views that show working ranges, range notes, and read-only coworkers.
+```
+
+Request no more than 12 results per search. Prefer shipped workforce, calendar, staff-planning, and collaborative productivity products. Do not search marketing landing pages.
+
+- [ ] **Step 3: Select five useful references**
+
+For each selected reference, record:
+
+```markdown
+### Product — screen or flow name
+
+- Mobbin URL:
+- Platform and captured state:
+- Visible pattern:
+- Why it helps this Delivery 1 problem:
+- What to adopt conceptually:
+- What to reject or avoid:
+- Accessibility concern to verify independently:
+```
+
+A Mobbin example proves that a product used a pattern; it does not prove that the pattern improved usability. Do not copy branding, text, assets, or an entire composition.
+
+- [ ] **Step 4: Write the bounded reference brief**
+
+Create `docs/superpowers/research/2026-10-21-task-availability-references.md` with:
+
+```markdown
+# Tasks Weekly Availability — UI Reference Brief
+
+## Delivery 1 constraints
+
+## Search queries
+
+## Selected references
+
+## Patterns worth adapting
+
+## Patterns explicitly rejected
+
+## Resulting implementation guidance
+```
+
+The resulting guidance must stay inside the approved scope:
+
+- seven-day recurring editor;
+- multiple ranges per day;
+- optional note per range;
+- daily jornada comparison;
+- weekly declared total only;
+- self-edit only;
+- teammate/admin read-only cards;
+- no live state, task overlays, approvals, exceptions, or balances.
+
+- [ ] **Step 5: Review the brief from a smartphone-friendly perspective**
+
+Keep the brief skimmable:
+
+- five references maximum;
+- one screenshot/link and a short observation per reference;
+- a compact adopt/reject summary;
+- no pasted gallery dumps;
+- no large unfiltered MCP output committed to Git.
+
+- [ ] **Step 6: Commit the research work unit**
+
+```bash
+git add docs/superpowers/research/2026-10-21-task-availability-references.md
+git commit -m "docs(tasks): capture availability UI references"
+```
 
 ---
 
@@ -1376,4 +1481,4 @@ The status must still show the user's pre-existing `.gitignore`/`.pi` changes un
 - **Extensibility:** Recurring ranges remain separate from future dated overrides and actual-time ledgers.
 - **Atomicity:** Full-schedule replacement occurs in one PostgreSQL RPC transaction.
 - **Accessibility:** Labels, error associations, non-color status, focus, keyboard controls, and narrow screens are included.
-- **Reviewability:** Work is split into seven behavior commits and two recommended chained PRs.
+- **Reviewability:** Work starts with one bounded reference-research commit, then seven behavior commits across two recommended chained PRs.
