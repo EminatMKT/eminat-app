@@ -102,26 +102,40 @@ export async function GET(request: Request, { params }: Route) {
   if (resource === 'membership') {
     if (!patient.identity) return respond({ data: null })
     const admin = supabaseAdmin({ noStore: true })
-    const { data, error } = await admin.from('sales_memberships')
+    const { data: real, error } = await admin.from('sales_memberships')
       .select('id,plan,membership_type,duration,status,issued_at,expires_at,code')
       .eq('organization_id', patient.identity.organization_id)
       .eq('primary_contact_id', patient.identity.contact_id).eq('is_demo', false)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
-    if (error || !data) return error ? unavailable() : respond({ data: null })
+    if (error) return unavailable()
+    const fallback = real ? null : await admin.from('sales_memberships')
+      .select('id,plan,membership_type,duration,status,issued_at,expires_at,code')
+      .eq('organization_id', patient.identity.organization_id)
+      .eq('primary_contact_id', patient.identity.contact_id).eq('is_demo', true)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    const data = real ?? fallback?.data
+    if (fallback?.error) return unavailable()
+    if (!data) return respond({ data: null })
     const { data: members, error: membersError } = await admin.from('sales_household_members')
       .select('id').eq('organization_id', patient.identity.organization_id)
       .eq('membership_id', data.id).eq('status', 'ACTIVE')
     if (membersError || !members) return unavailable()
-    return respond({ data: { ...data, covered_members: members.length } })
+    return respond({ data: { ...data, covered_members: members.length, qa_synthetic: !real } })
   }
   if (resource === 'household') {
     if (!patient.identity) return respond({ data: [] })
     const admin = supabaseAdmin({ noStore: true })
-    const { data: membership, error: membershipError } = await admin.from('sales_memberships')
+    const { data: real, error: membershipError } = await admin.from('sales_memberships')
       .select('id').eq('organization_id', patient.identity.organization_id)
       .eq('primary_contact_id', patient.identity.contact_id).eq('is_demo', false)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (membershipError) return unavailable()
+    const fallback = real ? null : await admin.from('sales_memberships')
+      .select('id').eq('organization_id', patient.identity.organization_id)
+      .eq('primary_contact_id', patient.identity.contact_id).eq('is_demo', true)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    if (fallback?.error) return unavailable()
+    const membership = real ?? fallback?.data
     if (!membership) return respond({ data: [] })
     const { data: members, error: memberError } = await admin.from('sales_household_members')
       .select('id,contact_id,relationship,status,member_index')
@@ -147,17 +161,26 @@ export async function GET(request: Request, { params }: Route) {
     const params = new URL(request.url).searchParams
     if (Array.from(params.keys()).some(key => key !== 'download') ||
         (params.has('download') && params.get('download') !== '1')) return invalid()
-    const { data, error } = await supabaseAdmin({ noStore: true }).from('sales_memberships')
+    const admin = supabaseAdmin({ noStore: true })
+    const { data: real, error } = await admin.from('sales_memberships')
       .select('code,first_name,last_name,plan,membership_type,duration,issued_at,expires_at,status')
       .eq('organization_id', patient.identity.organization_id)
       .eq('primary_contact_id', patient.identity.contact_id).eq('is_demo', false)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (error) return unavailable()
+    const fallback = real ? null : await admin.from('sales_memberships')
+      .select('code,first_name,last_name,plan,membership_type,duration,issued_at,expires_at,status')
+      .eq('organization_id', patient.identity.organization_id)
+      .eq('primary_contact_id', patient.identity.contact_id).eq('is_demo', true)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    if (fallback?.error) return unavailable()
+    const data = real ?? fallback?.data
     if (!data?.code) return respond({ code: 'MEMBERSHIP_NOT_FOUND' }, 404)
     const pdf = await createMembershipPdf({
       code: data.code, firstName: data.first_name, lastName: data.last_name,
       plan: data.plan, membershipType: data.membership_type, duration: data.duration,
       issuedAt: data.issued_at, expiresAt: data.expires_at,
+      qaSynthetic: !real,
       status: data.status === 'ACTIVE' && data.expires_at < new Date().toISOString().slice(0, 10)
         ? 'EXPIRED' : data.status,
     })

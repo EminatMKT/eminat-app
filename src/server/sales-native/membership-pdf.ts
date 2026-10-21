@@ -12,6 +12,7 @@ export type MembershipPdfData = {
   issuedAt: string
   expiresAt: string
   status: string
+  qaSynthetic?: boolean
 }
 
 const navy = rgb(0.07, 0.16, 0.24)
@@ -57,6 +58,8 @@ export async function createMembershipPdf(data: MembershipPdfData): Promise<Uint
   page.drawImage(emcLogo, { x:384,y:694,width:86,height:35 })
   page.drawText('Corazón Salud es un programa de Eminat Medical Center.',
     { x:43,y:625,size:11,font:bold,color:navy })
+  if (data.qaSynthetic) page.drawText('QA SINTÉTICA · SIN PAGO REAL',
+    { x:43,y:600,size:10,font:bold,color:coral })
   page.drawText('MIEMBRO', { x:43,y:574,size:10,font:bold,color:coral })
   const member = fitted(`${data.firstName} ${data.lastName}`, bold, 27, 424)
   page.drawText(member.text, { x:43,y:539,size:member.size,font:bold,color:navy })

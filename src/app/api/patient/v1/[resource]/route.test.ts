@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const fixtures = vi.hoisted(() => {
   process.env.PATIENT_SALES_ORGANIZATION_ID = '99999999-9999-4999-8999-999999999999'
   process.env.PATIENT_SALES_OWNER_MEMBER_ID = '88888888-8888-4888-8888-888888888888'
-  return { queries: [] as Array<{ table: string; filters: Record<string, unknown>; update?: Record<string, unknown> }> }
+  return { queries: [] as Array<{ table: string; filters: Record<string, unknown>; update?: Record<string, unknown> }>, synthetic: false }
 })
 
 const patients = [
@@ -52,7 +52,8 @@ vi.mock('@/shared/db/supabaseAdmin', () => ({
           return Promise.resolve({ data, error: null }).then(resolve)
         },
         maybeSingle: async () => {
-          if (table === 'sales_memberships') return { data: memberships.find(item => item.primary_contact_id === filters.primary_contact_id) ?? null, error: null }
+          if (table === 'sales_memberships') return { data: filters.is_demo === fixtures.synthetic
+            ? memberships.find(item => item.primary_contact_id === filters.primary_contact_id) ?? null : null, error: null }
           const patient = table === 'sales_patient_sessions'
             ? patients.find(item => createHash('sha256').update(item.handle).digest('hex') === filters.handle_hash)
             : patients.find(item => item.authId === filters.auth_id || item.contactId === filters.id)
@@ -74,7 +75,7 @@ vi.mock('@/shared/db/noStoreFetch', () => ({ noStoreFetch: fetch }))
 import { GET, PATCH, POST } from './route'
 
 describe('patient API isolation', () => {
-  beforeEach(() => { fixtures.queries.length = 0 })
+  beforeEach(() => { fixtures.queries.length = 0; fixtures.synthetic = false })
 
   it('requires a patient session for profile reads', async () => {
     const response = await GET(new Request('https://app.test/api/patient/v1/profile'), { params: Promise.resolve({ resource: 'profile' }) })
@@ -186,5 +187,31 @@ describe('patient API isolation', () => {
     expect(Buffer.from(await own.arrayBuffer()).subarray(0, 4).toString()).toBe('%PDF')
     expect(fixtures.queries.find(query => query.table === 'sales_memberships')?.filters)
       .toMatchObject({ organization_id: organization, primary_contact_id: patients[0].contactId, is_demo: false })
+  })
+
+  it('shows a synthetic QA membership only to its bound patient when no real membership exists', async () => {
+    fixtures.synthetic = true
+    const own = await GET(new Request('https://app.test/api/patient/v1/membership', {
+      headers: { Authorization: `Patient ${patients[0].handle}` },
+    }), { params: Promise.resolve({ resource: 'membership' }) })
+    expect(own.status).toBe(200)
+    expect((await own.json()).data).toMatchObject({ code: 'QA-1', qa_synthetic: true })
+    const queries = fixtures.queries.filter(query => query.table === 'sales_memberships')
+    expect(queries).toHaveLength(2)
+    expect(queries[0].filters).toMatchObject({ primary_contact_id: patients[0].contactId, is_demo: false })
+    expect(queries[1].filters).toMatchObject({ primary_contact_id: patients[0].contactId, is_demo: true })
+    fixtures.queries.length = 0
+    const other = await GET(new Request('https://app.test/api/patient/v1/membership', {
+      headers: { Authorization: `Patient ${patients[1].handle}` },
+    }), { params: Promise.resolve({ resource: 'membership' }) })
+    expect((await other.json()).data.code).toBe('QA-2')
+    expect(fixtures.queries.filter(query => query.table === 'sales_memberships')
+      .every(query => query.filters.primary_contact_id === patients[1].contactId)).toBe(true)
+    const pdf = await GET(new Request('https://app.test/api/patient/v1/membershippdf', {
+      headers: { Authorization: `Patient ${patients[0].handle}` },
+    }), { params: Promise.resolve({ resource: 'membershippdf' }) })
+    expect(pdf.status).toBe(200)
+    const pdfText = Buffer.from(await pdf.arrayBuffer()).toString('latin1')
+    expect(pdfText).not.toContain('100 Test St')
   })
 })
