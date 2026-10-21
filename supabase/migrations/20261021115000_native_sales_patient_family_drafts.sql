@@ -258,7 +258,7 @@ BEGIN
     OR NEW.membership_id IS NULL OR OLD.status='FULFILLED' THEN RETURN NEW; END IF;
   SELECT * INTO v_membership FROM public.sales_memberships
     WHERE organization_id=NEW.organization_id AND id=NEW.membership_id
-      AND status='ACTIVE' AND sales_payment_id IS NOT NULL
+      AND status='ACTIVE' AND is_demo=false AND sales_payment_id IS NOT NULL
       AND payment_confirmed_at IS NOT NULL;
   IF NOT FOUND THEN RAISE EXCEPTION 'PATIENT_FAMILY_ACTIVATION_UNVERIFIED' USING ERRCODE='42501'; END IF;
   INSERT INTO public.sales_family_requests
