@@ -59,7 +59,7 @@ vi.mock('@/shared/db/supabaseAdmin', () => ({
           if (!patient) return { data: null, error: null }
           if (table === 'sales_patient_sessions') return { data: { auth_id: patient.authId, expires_at: '2099-01-01T00:00:00.000Z', revoked_at: null }, error: null }
           if (table === 'sales_patient_identities') return { data: { id: patient.identityId, contact_id: patient.contactId, organization_id: organization }, error: null }
-          if (table === 'sales_contacts') return { data: { id: patient.contactId, first_name: patient.firstName, last_name: 'Patient', email: patient.email, phone: query.update?.phone ?? null, created_at: '2026-10-20T00:00:00.000Z', source: 'PATIENT_PORTAL', version: 1 }, error: null }
+          if (table === 'sales_contacts') return { data: { id: patient.contactId, first_name: patient.firstName, last_name: 'Patient', email: patient.email, phone: query.update?.phone ?? null, address: query.update?.address ?? null, created_at: '2026-10-20T00:00:00.000Z', source: 'PATIENT_PORTAL', version: 1 }, error: null }
           return { data: null, error: null }
         },
       }
@@ -121,6 +121,29 @@ describe('patient API isolation', () => {
       body: JSON.stringify({ phone: '555-0100', email: 'different@example.test' }),
     }), { params: Promise.resolve({ resource: 'profile' }) })
     expect(rejected.status).toBe(422)
+  })
+
+  it('saves a validated address only on the authenticated patient contact', async () => {
+    const address = { street: '100 Test St', line2: '', city: 'Test City', state: 'FL', postalCode: '33301', country: 'United States' }
+    const response = await PATCH(new Request(`https://app.test/api/patient/v1/profile?contactId=${patients[1].contactId}`, {
+      method: 'PATCH', headers: { Authorization: `Patient ${patients[0].handle}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address }),
+    }), { params: Promise.resolve({ resource: 'profile' }) })
+    expect(response.status).toBe(200)
+    const updated = fixtures.queries.find(query => query.table === 'sales_contacts' && query.update)
+    expect(updated?.filters).toMatchObject({ id: patients[0].contactId, organization_id: organization, version: 1 })
+    expect(updated?.update).toMatchObject({ address, version: 2 })
+    expect(updated?.update).not.toHaveProperty('phone')
+    fixtures.queries.length = 0
+    for (const invalidAddress of [{ ...address, street: '' }, { ...address, city: '' },
+      { ...address, country: '' }, { ...address, admin: 'true' }, { ...address, postalCode: 'x'.repeat(41) }]) {
+      const rejected = await PATCH(new Request('https://app.test/api/patient/v1/profile', {
+        method: 'PATCH', headers: { Authorization: `Patient ${patients[0].handle}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: invalidAddress }),
+      }), { params: Promise.resolve({ resource: 'profile' }) })
+      expect(rejected.status).toBe(422)
+    }
+    expect(fixtures.queries.some(query => query.table === 'sales_contacts')).toBe(false)
   })
 
   it('reads household only through the authenticated primary contact and tenant', async () => {

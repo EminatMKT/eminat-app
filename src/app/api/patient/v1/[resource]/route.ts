@@ -12,6 +12,24 @@ export const runtime = 'nodejs'
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const handlePattern = /^cspt_[A-Za-z0-9_-]{40,100}$/
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const addressKeys = ['street','line2','city','state','postalCode','country'] as const
+type PatientAddress = Record<(typeof addressKeys)[number], string>
+const addressLimits: Record<keyof PatientAddress, number> = {
+  street: 500, line2: 200, city: 200, state: 200, postalCode: 40, country: 200,
+}
+function validatedAddress(value: unknown): PatientAddress | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  const fields = value as Record<string, unknown>
+  if (Object.keys(fields).some(key => !addressKeys.includes(key as keyof PatientAddress))) return null
+  const address = {} as PatientAddress
+  for (const key of addressKeys) {
+    if (typeof fields[key] !== 'string') return null
+    const part = fields[key].trim()
+    if (part.length > addressLimits[key] || /[\u0000-\u001f\u007f]/.test(part)) return null
+    address[key] = part
+  }
+  return address.street && address.city && address.country ? address : null
+}
 const respond = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } })
 const invalid = () => respond({ code: 'INVALID_REQUEST' }, 422)
 const unavailable = () => respond({ code: 'PATIENT_API_UNAVAILABLE' }, 503)
@@ -77,7 +95,7 @@ export async function GET(request: Request, { params }: Route) {
   if (resource === 'profile') {
     if (!patient.identity) return respond({ code: 'PROFILE_REQUIRED' }, 404)
     const { data, error } = await supabaseAdmin({ noStore: true }).from('sales_contacts')
-      .select('id,first_name,last_name,email,phone,created_at')
+      .select('id,first_name,last_name,email,phone,address,created_at')
       .eq('organization_id', patient.identity.organization_id).eq('id', patient.identity.contact_id).maybeSingle()
     return error || !data ? unavailable() : respond({ data })
   }
@@ -276,7 +294,10 @@ export async function PATCH(request: Request, { params }: Route) {
   const { resource } = await params
   if (resource !== 'profile') return respond({ code: 'NOT_FOUND' }, 404)
   const body = await readBody(request)
-  if (!body || Object.keys(body).length !== 1 || typeof body.phone !== 'string' || body.phone.trim().length > 40)
+  if (!body || Object.keys(body).length !== 1) return invalid()
+  const updatingPhone = Object.hasOwn(body, 'phone')
+  const address = Object.hasOwn(body, 'address') ? validatedAddress(body.address) : null
+  if (updatingPhone ? typeof body.phone !== 'string' || body.phone.trim().length > 40 : !address)
     return invalid()
   const patient = await authenticate(request)
   if (!patient) return respond({ code: 'AUTHENTICATION_REQUIRED' }, 401)
@@ -288,15 +309,15 @@ export async function PATCH(request: Request, { params }: Route) {
     .select('version,source').eq('organization_id', patient.identity.organization_id)
     .eq('id', patient.identity.contact_id).maybeSingle()
   if (readError || !current) return unavailable()
-  if (current.source !== 'PATIENT_PORTAL') return respond({ code: 'OWNER_REVIEW_REQUIRED' }, 409)
+  if (updatingPhone && current.source !== 'PATIENT_PORTAL') return respond({ code: 'OWNER_REVIEW_REQUIRED' }, 409)
   const { data, error } = await admin.from('sales_contacts').update({
-    phone: body.phone.trim() || null,
+    ...(updatingPhone ? { phone: (body.phone as string).trim() || null } : { address }),
     version: current.version + 1,
     updated_by: configured.owner,
     updated_at: new Date().toISOString(),
   }).eq('organization_id', patient.identity.organization_id)
     .eq('id', patient.identity.contact_id).eq('version', current.version)
-    .select('id,first_name,last_name,email,phone,created_at').maybeSingle()
+    .select('id,first_name,last_name,email,phone,address,created_at').maybeSingle()
   if (error) return unavailable()
   if (!data) return respond({ code: 'PROFILE_CONFLICT' }, 409)
   return respond({ data })
