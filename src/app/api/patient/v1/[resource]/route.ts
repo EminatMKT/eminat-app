@@ -124,6 +124,33 @@ export async function GET(request: Request, { params }: Route) {
     return respond({ data: { ...data, primary_member_code: primary?.member_code ?? data.code,
       covered_members: members.length, qa_synthetic: !real } })
   }
+  if (resource === 'familydraft') {
+    if (!patient.identity) return respond({ data: null })
+    const configured = scope()
+    if (!configured || configured.organization !== patient.identity.organization_id) return unavailable()
+    const admin = supabaseAdmin({ noStore: true })
+    const { data: intent, error: intentError } = await admin.from('sales_patient_enrollment_intents')
+      .select('id,opportunity_id').eq('organization_id', patient.identity.organization_id)
+      .eq('patient_identity_id', patient.identity.id).eq('membership_type', 'FAMILY')
+      .in('status', ['PAYMENT_UNAVAILABLE','PAYMENT_PENDING'])
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    if (intentError) return unavailable()
+    if (!intent || !intent.opportunity_id) return respond({ data: null })
+    const { data: members, error: membersError } = await admin.from('sales_patient_family_draft_members')
+      .select('id,first_name,last_name,date_of_birth,relationship,status,created_at')
+      .eq('organization_id', patient.identity.organization_id)
+      .eq('patient_identity_id', patient.identity.id).eq('enrollment_intent_id', intent.id)
+      .eq('status', 'DRAFT').order('created_at', { ascending: true })
+    if (membersError) return unavailable()
+    const { data: invoice, error: invoiceError } = await admin.from('sales_patient_qbo_manual')
+      .select('qbo_invoice_number,verification_state')
+      .eq('organization_id', patient.identity.organization_id)
+      .eq('enrollment_intent_id', intent.id).maybeSingle()
+    if (invoiceError) return unavailable()
+    return respond({ data: { intentId: intent.id, members: members ?? [],
+      capacityUsed: (members?.length ?? 0) + 1,
+      locked: !!invoice && (invoice.qbo_invoice_number !== null || invoice.verification_state !== 'PENDING_INVOICE') } })
+  }
   if (resource === 'household') {
     if (!patient.identity) return respond({ data: [] })
     const admin = supabaseAdmin({ noStore: true })
@@ -320,37 +347,14 @@ export async function POST(request: Request, { params }: Route) {
     if (!(plans as readonly unknown[]).includes(plan) ||
         !(membershipTypes as readonly unknown[]).includes(type) ||
         !(saleDurations as readonly unknown[]).includes(duration) || !uuidPattern.test(key)) return invalid()
-    const admin = supabaseAdmin({ noStore: true })
-    const { data: existingMembership, error: membershipError } = await admin.from('sales_memberships')
-      .select('id').eq('organization_id', patient.identity.organization_id)
-      .eq('primary_contact_id', patient.identity.contact_id).eq('status', 'ACTIVE').limit(1)
-    if (membershipError) return unavailable()
-    if (existingMembership?.length) return respond({ code: 'MEMBERSHIP_ALREADY_ACTIVE' }, 409)
-    const { data: quote, error: quoteError } = await admin.rpc('native_sales_membership_quote', {
-      p_plan: plan, p_type: type, p_duration: duration,
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_patient_enroll', {
+      p_identity_id: patient.identity.id, p_plan: plan, p_type: type,
+      p_duration: duration, p_request_key: key,
     })
-    if (quoteError || !quote?.[0]) return unavailable()
-    const { data: repeated, error: repeatedError } = await admin.from('sales_patient_enrollment_intents')
-      .select('id,plan,membership_type,duration,status,amount_cents,initial_months')
-      .eq('patient_identity_id', patient.identity.id).eq('idempotency_key', key).maybeSingle()
-    if (repeatedError) return unavailable()
-    if (repeated) return repeated.plan === plan && repeated.membership_type === type && repeated.duration === duration
-      ? respond({ data: repeated, paymentExecution: 'PENDING' })
-      : respond({ code: 'IDEMPOTENCY_CONFLICT' }, 409)
-    const { data: openIntent, error: openError } = await admin.from('sales_patient_enrollment_intents')
-      .select('id').eq('patient_identity_id', patient.identity.id)
-      .in('status', ['PAYMENT_UNAVAILABLE','PAYMENT_PENDING','CHANGE_REQUESTED','CANCELLATION_REQUESTED'])
-      .limit(1)
-    if (openError) return unavailable()
-    if (openIntent?.length) return respond({ code: 'SELECTION_ALREADY_EXISTS' }, 409)
-    const { data, error } = await admin.from('sales_patient_enrollment_intents').insert({
-      organization_id: patient.identity.organization_id,
-      patient_identity_id: patient.identity.id,
-      plan, membership_type: type, duration, initial_months: quote[0].initial_months,
-      amount_cents: quote[0].total_cents, idempotency_key: key,
-      status: 'PAYMENT_UNAVAILABLE',
-    })
-      .select('id,status,amount_cents,initial_months').single()
+    if (error?.message.includes('PATIENT_SELECTION_ALREADY_EXISTS') ||
+      error?.message.includes('PATIENT_IDEMPOTENCY_CONFLICT') ||
+      error?.message.includes('PATIENT_MEMBERSHIP_ACTIVE'))
+      return respond({ code: 'SELECTION_ALREADY_EXISTS' }, 409)
     return error ? unavailable() : respond({ data, paymentExecution: 'PENDING' }, 201)
   }
   if (resource === 'selection') {
@@ -372,6 +376,43 @@ export async function POST(request: Request, { params }: Route) {
         error?.message.includes('PATIENT_PAYMENT_LOCKED'))
       return respond({ code: 'SELECTION_REVIEW_REQUIRED' }, 409)
     return error ? unavailable() : respond({ data })
+  }
+  if (resource === 'familydraft') {
+    if (!patient.identity) return respond({ code: 'PROFILE_REQUIRED' }, 409)
+    const configured = scope()
+    if (!configured || configured.organization !== patient.identity.organization_id) return unavailable()
+    const action = body.action
+    const memberId = body.memberId
+    const key = body.idempotencyKey
+    if (!['ADD','EDIT','REMOVE'].includes(String(action)) || typeof key !== 'string' || !uuidPattern.test(key)
+      || (action === 'ADD' ? memberId !== undefined : typeof memberId !== 'string' || !uuidPattern.test(memberId))) return invalid()
+    const removing = action === 'REMOVE'
+    const allowed = removing ? ['action','memberId','idempotencyKey'] :
+      [...(action === 'EDIT' ? ['memberId'] : []),'action','idempotencyKey',
+        'firstName','lastName','dateOfBirth','relationship']
+    if (Object.keys(body).some(field => !allowed.includes(field))) return invalid()
+    const firstName = removing ? null : typeof body.firstName === 'string' ? body.firstName.trim() : null
+    const lastName = removing ? null : typeof body.lastName === 'string' ? body.lastName.trim() : null
+    const relationship = removing ? null : body.relationship
+    const dob = removing ? null : body.dateOfBirth
+    const parsedDate = typeof dob === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dob)
+      ? new Date(`${dob}T00:00:00Z`) : null
+    if (!removing && (!firstName || firstName.length > 80 || !lastName || lastName.length > 80
+      || !['SPOUSE','CHILD','PARENT','OTHER'].includes(String(relationship))
+      || !parsedDate || Number.isNaN(parsedDate.valueOf()) || parsedDate.toISOString().slice(0,10) !== dob
+      || dob > new Date().toISOString().slice(0,10) || dob < '1900-01-01')) return invalid()
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_patient_family_draft_action', {
+      p_identity_id: patient.identity.id, p_action: action,
+      p_member_id: action === 'ADD' ? null : memberId,
+      p_first_name: firstName, p_last_name: lastName,
+      p_date_of_birth: dob, p_relationship: relationship,
+      p_request_key: key,
+    })
+    if (error?.message.includes('HOUSEHOLD_LIMIT_REACHED') ||
+      error?.message.includes('PATIENT_FAMILY_DRAFT_INVOICE_LOCKED') ||
+      error?.message.includes('PATIENT_FAMILY_DRAFT_NOT_ELIGIBLE'))
+      return respond({ code: 'FAMILY_DRAFT_CONFLICT' }, 409)
+    return error ? unavailable() : respond({ data }, action === 'ADD' ? 201 : 200)
   }
   if (resource === 'householdrequest') {
     if (!patient.identity) return respond({ code: 'PROFILE_REQUIRED' }, 409)

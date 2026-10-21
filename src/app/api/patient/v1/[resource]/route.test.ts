@@ -5,7 +5,8 @@ const fixtures = vi.hoisted(() => {
   process.env.PATIENT_SALES_ORGANIZATION_ID = '99999999-9999-4999-8999-999999999999'
   process.env.PATIENT_SALES_OWNER_MEMBER_ID = '88888888-8888-4888-8888-888888888888'
   return { queries: [] as Array<{ table: string; filters: Record<string, unknown>; update?: Record<string, unknown> }>,
-    rpcCalls: [] as Array<{ name: string; args: Record<string, unknown> }>, synthetic: false }
+    rpcCalls: [] as Array<{ name: string; args: Record<string, unknown> }>, synthetic: false,
+    draftsEnabled: false }
 })
 
 const patients = [
@@ -46,7 +47,11 @@ vi.mock('@/shared/db/supabaseAdmin', () => ({
         order: () => chain,
         limit: () => chain,
         then: (resolve: (value: unknown) => unknown) => {
-          const data = table === 'sales_household_members' ? [
+          const data = table === 'sales_patient_family_draft_members' ?
+            [{ id: '33333333-3333-4333-8333-333333333333', first_name: 'QA',
+              last_name: 'Child', date_of_birth: '2015-01-02', relationship: 'CHILD', status: 'DRAFT' }]
+              .filter(() => fixtures.draftsEnabled && filters.patient_identity_id === patients[0].identityId) :
+            table === 'sales_household_members' ? [
             { id: '12121212-1212-4212-8212-121212121212', contact_id: patients[0].contactId,
               relationship: 'PRIMARY', status: 'ACTIVE', member_index: 1 },
             { id: '13131313-1313-4313-8313-131313131313', contact_id: dependant.id,
@@ -57,6 +62,11 @@ vi.mock('@/shared/db/supabaseAdmin', () => ({
           return Promise.resolve({ data, error: null }).then(resolve)
         },
         maybeSingle: async () => {
+          if (table === 'sales_patient_enrollment_intents' && fixtures.draftsEnabled)
+            return { data: { id: '44444444-4444-4444-8444-444444444444',
+              opportunity_id: '55555555-5555-4555-8555-555555555555' }, error: null }
+          if (table === 'sales_patient_qbo_manual' && fixtures.draftsEnabled)
+            return { data: null, error: null }
           if (table === 'sales_memberships') return { data: filters.is_demo === fixtures.synthetic
             ? memberships.find(item => item.primary_contact_id === filters.primary_contact_id) ?? null : null, error: null }
           const patient = table === 'sales_patient_sessions'
@@ -80,7 +90,8 @@ vi.mock('@/shared/db/noStoreFetch', () => ({ noStoreFetch: fetch }))
 import { GET, PATCH, POST } from './route'
 
 describe('patient API isolation', () => {
-  beforeEach(() => { fixtures.queries.length = 0; fixtures.rpcCalls.length = 0; fixtures.synthetic = false })
+  beforeEach(() => { fixtures.queries.length = 0; fixtures.rpcCalls.length = 0;
+    fixtures.synthetic = false; fixtures.draftsEnabled = false })
 
   it('requires a patient session for profile reads', async () => {
     const response = await GET(new Request('https://app.test/api/patient/v1/profile'), { params: Promise.resolve({ resource: 'profile' }) })
@@ -108,6 +119,21 @@ describe('patient API isolation', () => {
     }), { params: Promise.resolve({ resource: 'enrollment' }) })
     expect(response.status).toBe(422)
     expect(fixtures.queries.some(query => ['sales_patient_enrollment_intents', 'sales_payments', 'sales_memberships'].includes(query.table))).toBe(false)
+  })
+
+  it('creates an enrollment only through the atomic identity-scoped Opportunity RPC', async () => {
+    const response = await POST(new Request('https://app.test/api/patient/v1/enrollment', {
+      method: 'POST', headers: { Authorization: `Patient ${patients[0].handle}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plan: 'ESSENTIAL', type: 'FAMILY', duration: 'MONTHLY',
+        idempotencyKey: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' }),
+    }), { params: Promise.resolve({ resource: 'enrollment' }) })
+    expect(response.status).toBe(201)
+    expect(fixtures.rpcCalls).toEqual([{ name: 'native_sales_patient_enroll', args: {
+      p_identity_id: patients[0].identityId, p_plan: 'ESSENTIAL',
+      p_type: 'FAMILY', p_duration: 'MONTHLY',
+      p_request_key: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+    } }])
+    expect(fixtures.queries.some(query => query.table === 'sales_patient_enrollment_intents')).toBe(false)
   })
 
   it('updates only the bound patient contact and rejects administrative fields', async () => {
@@ -251,6 +277,47 @@ describe('patient API isolation', () => {
     }), { params: Promise.resolve({ resource: 'householdremove' }) })
     expect(extraFields.status).toBe(422)
     expect(fixtures.rpcCalls).toHaveLength(0)
+  })
+
+  it('prepares a dependant only for the authenticated identity and rejects caller identity overrides', async () => {
+    const url = 'https://app.test/api/patient/v1/familydraft'
+    const payload = { action: 'ADD', firstName: 'QA', lastName: 'Dependant',
+      dateOfBirth: '2015-01-02', relationship: 'CHILD',
+      idempotencyKey: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' }
+    const anonymous = await POST(new Request(url, { method: 'POST',
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }),
+    { params: Promise.resolve({ resource: 'familydraft' }) })
+    expect(anonymous.status).toBe(401)
+    expect(fixtures.rpcCalls).toHaveLength(0)
+    const forbidden = await POST(new Request(url, { method: 'POST',
+      headers: { Authorization: `Patient ${patients[0].handle}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...payload, patientIdentityId: patients[1].identityId }) }),
+    { params: Promise.resolve({ resource: 'familydraft' }) })
+    expect(forbidden.status).toBe(422)
+    expect(fixtures.rpcCalls).toHaveLength(0)
+    const own = await POST(new Request(url, { method: 'POST',
+      headers: { Authorization: `Patient ${patients[0].handle}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload) }),
+    { params: Promise.resolve({ resource: 'familydraft' }) })
+    expect(own.status).toBe(201)
+    expect(fixtures.rpcCalls[0]).toMatchObject({ name: 'native_sales_patient_family_draft_action',
+      args: { p_identity_id: patients[0].identityId, p_action: 'ADD', p_relationship: 'CHILD' } })
+  })
+
+  it('reads prepared family members only for the bound identity', async () => {
+    fixtures.draftsEnabled = true
+    const response = await GET(new Request('https://app.test/api/patient/v1/familydraft', {
+      headers: { Authorization: `Patient ${patients[0].handle}` },
+    }), { params: Promise.resolve({ resource: 'familydraft' }) })
+    expect(response.status).toBe(200)
+    expect((await response.json()).data).toMatchObject({ capacityUsed: 2, locked: false,
+      members: [{ first_name: 'QA', relationship: 'CHILD' }] })
+    expect(fixtures.queries.find(query => query.table === 'sales_patient_enrollment_intents')?.filters)
+      .toMatchObject({ organization_id: organization, patient_identity_id: patients[0].identityId,
+        membership_type: 'FAMILY' })
+    expect(fixtures.queries.find(query => query.table === 'sales_patient_family_draft_members')?.filters)
+      .toMatchObject({ organization_id: organization, patient_identity_id: patients[0].identityId,
+        enrollment_intent_id: '44444444-4444-4444-8444-444444444444', status: 'DRAFT' })
   })
 
   it('shows a synthetic QA membership only to its bound patient when no real membership exists', async () => {
