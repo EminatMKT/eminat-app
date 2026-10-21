@@ -103,13 +103,13 @@ export async function GET(request: Request, { params }: Route) {
     if (!patient.identity) return respond({ data: null })
     const admin = supabaseAdmin({ noStore: true })
     const { data: real, error } = await admin.from('sales_memberships')
-      .select('id,plan,membership_type,duration,status,issued_at,expires_at,code')
+      .select('id,plan,membership_type,duration,status,issued_at,expires_at,code,visit_fee_cents')
       .eq('organization_id', patient.identity.organization_id)
       .eq('primary_contact_id', patient.identity.contact_id).eq('is_demo', false)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (error) return unavailable()
     const fallback = real ? null : await admin.from('sales_memberships')
-      .select('id,plan,membership_type,duration,status,issued_at,expires_at,code')
+      .select('id,plan,membership_type,duration,status,issued_at,expires_at,code,visit_fee_cents')
       .eq('organization_id', patient.identity.organization_id)
       .eq('primary_contact_id', patient.identity.contact_id).eq('is_demo', true)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
@@ -117,28 +117,30 @@ export async function GET(request: Request, { params }: Route) {
     if (fallback?.error) return unavailable()
     if (!data) return respond({ data: null })
     const { data: members, error: membersError } = await admin.from('sales_household_members')
-      .select('id').eq('organization_id', patient.identity.organization_id)
+      .select('id,relationship,member_code').eq('organization_id', patient.identity.organization_id)
       .eq('membership_id', data.id).eq('status', 'ACTIVE')
     if (membersError || !members) return unavailable()
-    return respond({ data: { ...data, covered_members: members.length, qa_synthetic: !real } })
+    const primary = members.find(member => member.relationship === 'PRIMARY')
+    return respond({ data: { ...data, primary_member_code: primary?.member_code ?? data.code,
+      covered_members: members.length, qa_synthetic: !real } })
   }
   if (resource === 'household') {
     if (!patient.identity) return respond({ data: [] })
     const admin = supabaseAdmin({ noStore: true })
     const { data: real, error: membershipError } = await admin.from('sales_memberships')
-      .select('id').eq('organization_id', patient.identity.organization_id)
+      .select('id,code,issued_at,expires_at,membership_type,status').eq('organization_id', patient.identity.organization_id)
       .eq('primary_contact_id', patient.identity.contact_id).eq('is_demo', false)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (membershipError) return unavailable()
     const fallback = real ? null : await admin.from('sales_memberships')
-      .select('id').eq('organization_id', patient.identity.organization_id)
+      .select('id,code,issued_at,expires_at,membership_type,status').eq('organization_id', patient.identity.organization_id)
       .eq('primary_contact_id', patient.identity.contact_id).eq('is_demo', true)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (fallback?.error) return unavailable()
     const membership = real ?? fallback?.data
     if (!membership) return respond({ data: [] })
     const { data: members, error: memberError } = await admin.from('sales_household_members')
-      .select('id,contact_id,relationship,status,member_index')
+      .select('id,contact_id,relationship,status,member_index,code,member_code')
       .eq('organization_id', patient.identity.organization_id).eq('membership_id', membership.id)
       .order('member_index', { ascending: true })
     if (memberError || !members) return unavailable()
@@ -153,38 +155,71 @@ export async function GET(request: Request, { params }: Route) {
       const contact = byId.get(member.contact_id)
       return { id: member.id, first_name: contact?.first_name,
         last_name: contact?.last_name, relationship: member.relationship,
-        status: member.status, is_primary: member.relationship === 'PRIMARY' }
+        status: member.status, is_primary: member.relationship === 'PRIMARY',
+        member_code: member.member_code ?? (member.relationship === 'PRIMARY'
+          ? `${membership.code} A` : member.code),
+        effective_date: membership.issued_at, expires_at: membership.expires_at }
     }) })
+  }
+  if (resource === 'householdrequests') {
+    if (!patient.identity) return respond({ data: [] })
+    const { data, error } = await supabaseAdmin({ noStore: true }).from('sales_family_requests')
+      .select('id,first_name,last_name,relationship,status,additional_fee_review,created_at')
+      .eq('organization_id', patient.identity.organization_id)
+      .eq('patient_identity_id', patient.identity.id)
+      .order('created_at', { ascending: false }).limit(20)
+    return error ? unavailable() : respond({ data: data ?? [] })
   }
   if (resource === 'membershippdf') {
     if (!patient.identity) return respond({ code: 'MEMBERSHIP_NOT_FOUND' }, 404)
     const params = new URL(request.url).searchParams
-    if (Array.from(params.keys()).some(key => key !== 'download') ||
-        (params.has('download') && params.get('download') !== '1')) return invalid()
+    if (Array.from(params.keys()).some(key => key !== 'download' && key !== 'memberId') ||
+        (params.has('download') && params.get('download') !== '1') ||
+        (params.has('memberId') && !uuidPattern.test(params.get('memberId') ?? ''))) return invalid()
     const admin = supabaseAdmin({ noStore: true })
     const { data: real, error } = await admin.from('sales_memberships')
-      .select('code,first_name,last_name,plan,membership_type,duration,issued_at,expires_at,status')
+      .select('id,code,first_name,last_name,plan,membership_type,duration,issued_at,expires_at,status')
       .eq('organization_id', patient.identity.organization_id)
       .eq('primary_contact_id', patient.identity.contact_id).eq('is_demo', false)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (error) return unavailable()
     const fallback = real ? null : await admin.from('sales_memberships')
-      .select('code,first_name,last_name,plan,membership_type,duration,issued_at,expires_at,status')
+      .select('id,code,first_name,last_name,plan,membership_type,duration,issued_at,expires_at,status')
       .eq('organization_id', patient.identity.organization_id)
       .eq('primary_contact_id', patient.identity.contact_id).eq('is_demo', true)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (fallback?.error) return unavailable()
     const data = real ?? fallback?.data
     if (!data?.code) return respond({ code: 'MEMBERSHIP_NOT_FOUND' }, 404)
+    const memberId = params.get('memberId')
+    const memberQuery = admin.from('sales_household_members')
+      .select('id,contact_id,relationship,code,member_code')
+      .eq('organization_id', patient.identity.organization_id)
+      .eq('membership_id', data.id).eq('status', 'ACTIVE')
+    const { data: member, error: memberError } = await (memberId
+      ? memberQuery.eq('id', memberId) : memberQuery.eq('relationship', 'PRIMARY')).maybeSingle()
+    if (memberError) return unavailable()
+    if (memberId && !member) return respond({ code: 'MEMBER_NOT_FOUND' }, 404)
+    let memberFirstName = data.first_name
+    let memberLastName = data.last_name
+    if (member && member.relationship !== 'PRIMARY') {
+      const { data: contact, error: contactError } = await admin.from('sales_contacts')
+        .select('first_name,last_name').eq('organization_id', patient.identity.organization_id)
+        .eq('id', member.contact_id).maybeSingle()
+      if (contactError || !contact) return unavailable()
+      memberFirstName = contact.first_name
+      memberLastName = contact.last_name
+    }
+    const code = member ? member.member_code ?? member.code ?? data.code : data.code
     const pdf = await createMembershipPdf({
-      code: data.code, firstName: data.first_name, lastName: data.last_name,
+      code, firstName: memberFirstName, lastName: memberLastName,
       plan: data.plan, membershipType: data.membership_type, duration: data.duration,
       issuedAt: data.issued_at, expiresAt: data.expires_at,
       qaSynthetic: !real,
       status: data.status === 'ACTIVE' && data.expires_at < new Date().toISOString().slice(0, 10)
         ? 'EXPIRED' : data.status,
     })
-    const file = data.code.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 32) || 'membership'
+    const file = code.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 32) || 'membership'
     return new Response(pdf as BodyInit, { headers: {
       'Content-Type': 'application/pdf',
       'Content-Disposition': `${params.get('download') === '1' ? 'attachment' : 'inline'}; filename="corazon-salud-${file}.pdf"`,
@@ -203,17 +238,19 @@ export async function GET(request: Request, { params }: Route) {
     const ids = (data ?? []).map(row => row.id)
     if (!ids.length) return respond({ data: [] })
     const { data: invoices, error: invoiceError } = await admin.from('sales_patient_qbo_manual')
-      .select('enrollment_intent_id,verification_state,qbo_invoice_number,qbo_hosted_payment_url,qa_synthetic')
+      .select('enrollment_intent_id,verification_state,qbo_invoice_number,qbo_invoice_status,qbo_hosted_payment_url,qa_synthetic')
       .eq('organization_id', patient.identity.organization_id).in('enrollment_intent_id', ids)
     if (invoiceError) return unavailable()
     const byIntent = new Map((invoices ?? []).map(row => [row.enrollment_intent_id, row]))
     return respond({ data: (data ?? []).map(row => {
       const invoice = byIntent.get(row.id)
       const paymentUrl = invoice?.qbo_hosted_payment_url
-      return { ...row, payment_state: invoice?.verification_state ?? 'PENDING_INVOICE',
+      const reviewRequested = row.status === 'CHANGE_REQUESTED' || row.status === 'CANCELLATION_REQUESTED'
+      return { ...row, payment_state: reviewRequested ? row.status : invoice?.verification_state ?? 'PENDING_INVOICE',
         qbo_invoice_number: invoice?.qbo_invoice_number ?? null,
+        qbo_invoice_status: invoice?.qbo_invoice_status ?? null,
         // Only a recorded QBO-hosted URL for this authenticated patient's intent is exposed.
-        qbo_hosted_payment_url: !invoice?.qa_synthetic && paymentUrl &&
+        qbo_hosted_payment_url: !reviewRequested && invoice?.qbo_invoice_status !== 'VOID' && !invoice?.qa_synthetic && paymentUrl &&
           /^https:\/\/connect\.intuit\.com\/t\/[^\s]+$/.test(paymentUrl)
           ? paymentUrl : null }
     }) })
@@ -300,6 +337,12 @@ export async function POST(request: Request, { params }: Route) {
     if (repeated) return repeated.plan === plan && repeated.membership_type === type && repeated.duration === duration
       ? respond({ data: repeated, paymentExecution: 'PENDING' })
       : respond({ code: 'IDEMPOTENCY_CONFLICT' }, 409)
+    const { data: openIntent, error: openError } = await admin.from('sales_patient_enrollment_intents')
+      .select('id').eq('patient_identity_id', patient.identity.id)
+      .in('status', ['PAYMENT_UNAVAILABLE','PAYMENT_PENDING','CHANGE_REQUESTED','CANCELLATION_REQUESTED'])
+      .limit(1)
+    if (openError) return unavailable()
+    if (openIntent?.length) return respond({ code: 'SELECTION_ALREADY_EXISTS' }, 409)
     const { data, error } = await admin.from('sales_patient_enrollment_intents').insert({
       organization_id: patient.identity.organization_id,
       patient_identity_id: patient.identity.id,
@@ -309,6 +352,65 @@ export async function POST(request: Request, { params }: Route) {
     })
       .select('id,status,amount_cents,initial_months').single()
     return error ? unavailable() : respond({ data, paymentExecution: 'PENDING' }, 201)
+  }
+  if (resource === 'selection') {
+    if (!patient.identity) return respond({ code: 'PROFILE_REQUIRED' }, 409)
+    const action = body.action
+    const key = typeof body.idempotencyKey === 'string' ? body.idempotencyKey : ''
+    if (!['CHANGE','CANCEL'].includes(String(action)) || !uuidPattern.test(key)) return invalid()
+    const plan = action === 'CHANGE' ? body.plan : null
+    const type = action === 'CHANGE' ? body.type : null
+    const duration = action === 'CHANGE' ? body.duration : null
+    if (action === 'CHANGE' && (!(plans as readonly unknown[]).includes(plan) ||
+      !(membershipTypes as readonly unknown[]).includes(type) ||
+      !(saleDurations as readonly unknown[]).includes(duration))) return invalid()
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_patient_selection_action', {
+      p_identity_id: patient.identity.id, p_action: action, p_plan: plan,
+      p_type: type, p_duration: duration, p_request_key: key,
+    })
+    if (error?.message.includes('PATIENT_SELECTION_REVIEW_PENDING') ||
+        error?.message.includes('PATIENT_PAYMENT_LOCKED'))
+      return respond({ code: 'SELECTION_REVIEW_REQUIRED' }, 409)
+    return error ? unavailable() : respond({ data })
+  }
+  if (resource === 'householdrequest') {
+    if (!patient.identity) return respond({ code: 'PROFILE_REQUIRED' }, 409)
+    const configured = scope()
+    if (!configured || configured.organization !== patient.identity.organization_id) return unavailable()
+    const firstName = typeof body.firstName === 'string' ? body.firstName.trim() : ''
+    const lastName = typeof body.lastName === 'string' ? body.lastName.trim() : ''
+    const relationship = typeof body.relationship === 'string' ? body.relationship : ''
+    const dob = typeof body.dateOfBirth === 'string' ? body.dateOfBirth : ''
+    const key = typeof body.idempotencyKey === 'string' ? body.idempotencyKey : ''
+    const parsedDate = /^\d{4}-\d{2}-\d{2}$/.test(dob) ? new Date(`${dob}T00:00:00Z`) : null
+    if (!firstName || firstName.length > 80 || !lastName || lastName.length > 80 ||
+        !['SPOUSE','CHILD','PARENT','OTHER'].includes(relationship) ||
+        !parsedDate || Number.isNaN(parsedDate.valueOf()) || parsedDate.toISOString().slice(0,10) !== dob ||
+        dob > new Date().toISOString().slice(0,10) || dob < '1900-01-01' ||
+        body.authorityAttested !== true || !uuidPattern.test(key)) return invalid()
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_patient_family_request', {
+      p_identity_id: patient.identity.id, p_owner_member_id: configured.owner,
+      p_first_name: firstName, p_last_name: lastName, p_date_of_birth: dob,
+      p_relationship: relationship, p_key: key,
+    })
+    return error ? unavailable() : respond({ data }, 201)
+  }
+  if (resource === 'householdremove') {
+    if (!patient.identity) return respond({ code: 'PROFILE_REQUIRED' }, 409)
+    const configured = scope()
+    if (!configured || configured.organization !== patient.identity.organization_id) return unavailable()
+    const memberId = typeof body.memberId === 'string' ? body.memberId : ''
+    const key = typeof body.idempotencyKey === 'string' ? body.idempotencyKey : ''
+    if (!uuidPattern.test(memberId) || !uuidPattern.test(key) || Object.keys(body).length !== 2)
+      return invalid()
+    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_patient_remove_family_member', {
+      p_identity_id: patient.identity.id, p_household_member_id: memberId,
+      p_owner_member_id: configured.owner, p_request_id: key,
+    })
+    if (error?.message.includes('PATIENT_FAMILY_MEMBER_NOT_FOUND') ||
+        error?.message.includes('PATIENT_FAMILY_NOT_ELIGIBLE'))
+      return respond({ code: 'FAMILY_MEMBER_NOT_ELIGIBLE' }, 409)
+    return error ? unavailable() : respond({ data })
   }
   return respond({ code: 'NOT_FOUND' }, 404)
 }

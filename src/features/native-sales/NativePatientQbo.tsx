@@ -36,6 +36,8 @@ export default function NativePatientQbo({ request }: { request: NativeRequest }
   const [phone, setPhone] = useState('')
   const [address, setAddress] = useState('')
   const [activationConfirmation, setActivationConfirmation] = useState('')
+  const [voidEvidence, setVoidEvidence] = useState('')
+  const [voidConfirmation, setVoidConfirmation] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const load = useCallback(async () => {
@@ -45,6 +47,7 @@ export default function NativePatientQbo({ request }: { request: NativeRequest }
   }, [request])
   useEffect(() => { void load().catch(() => setError(t('salesNative.qboLoadError'))) }, [load])
   const selected = rows.find(row => row.id === selectedId)
+  const selectionReview = selected?.status === 'CHANGE_REQUESTED' || selected?.status === 'CANCELLATION_REQUESTED'
   const amount = selected ? (selected.amount_cents / 100).toLocaleString('en-US',
     { style: 'currency', currency: 'USD' }) : ''
   async function act(action: 'RECORD_INVOICE'|'REPORT_PAYMENT'|'VERIFY_PAYMENT'|'REJECT_PAYMENT') {
@@ -83,6 +86,19 @@ export default function NativePatientQbo({ request }: { request: NativeRequest }
     } catch (cause) { setError(cause instanceof Error ? cause.message : t('salesNative.qboActivateError')) }
     finally { setBusy(false) }
   }
+  async function recordVoid() {
+    if (!selected || !selectionReview || voidConfirmation !== 'CONFIRM VOID IN QBO' ||
+      !selected.qbo?.qbo_invoice_number || voidEvidence.trim().length < 8) return
+    setBusy(true); setError('')
+    try {
+      await request('patient-qbo/void', { method: 'POST', payload: {
+        intentId: selected.id, invoiceNumber: selected.qbo.qbo_invoice_number,
+        evidence: voidEvidence.trim(), confirmation: voidConfirmation,
+      } })
+      setVoidEvidence(''); setVoidConfirmation(''); await load()
+    } catch (cause) { setError(cause instanceof Error ? cause.message : t('salesNative.qboSaveError')) }
+    finally { setBusy(false) }
+  }
   return <section className={s.panel} style={{ gridColumn: '1 / -1' }}>
     <h2>{t('salesNative.qboTitle')}</h2>
     <p className={s.caption}>{t('salesNative.qboNotice')}</p>
@@ -111,9 +127,16 @@ export default function NativePatientQbo({ request }: { request: NativeRequest }
       <p>{t('salesNative.qboInvoiceNumber')}: {selected.qbo?.qbo_invoice_number ?? t('salesNative.qboPending')}</p>
       <p>{t('salesNative.qboInvoiceReference')}: {selected.qbo?.qbo_invoice_reference ?? '—'} · {t('salesNative.qboCustomerReference')}: {selected.qbo?.qbo_customer_reference ?? '—'} · {t('salesNative.qboItemReference')}: {selected.qbo?.qbo_item_reference ?? '—'}</p>
       <p>{t('salesNative.qboVerifiedBy')}: {selected.qbo?.qbo_payment_verified_name ?? '—'} · {selected.qbo?.qbo_payment_verified_at ?? '—'}</p>
-      {selected.qbo?.qbo_hosted_payment_url && <a href={selected.qbo.qbo_hosted_payment_url} target="_blank" rel="noopener noreferrer">{t('salesNative.qboOpenHostedPayment')}</a>}
-      {selected.qbo?.qbo_qr_reference && <p>{t('salesNative.qboQrReference')}: {selected.qbo.qbo_qr_reference}</p>}
-      {canVerify && selected.qbo?.verification_state !== 'PAYMENT_VERIFIED' && <>
+      {selected.qbo?.qbo_hosted_payment_url && !selectionReview && <a href={selected.qbo.qbo_hosted_payment_url} target="_blank" rel="noopener noreferrer">{t('salesNative.qboOpenHostedPayment')}</a>}
+      {selected.qbo?.qbo_qr_reference && !selectionReview && <p>{t('salesNative.qboQrReference')}: {selected.qbo.qbo_qr_reference}</p>}
+      {selectionReview && <p role="status">{t('salesNative.qboSelectionReview')}</p>}
+      {canVerify && selectionReview && selected.qbo?.qbo_invoice_status === 'OPEN' && selected.qbo.qbo_payment_status === 'UNPAID' && <>
+        <label>{t('salesNative.qboVoidEvidence')}<input value={voidEvidence} onChange={event => setVoidEvidence(event.target.value)} /></label>
+        <label>{t('salesNative.qboVoidConfirmation')}<input value={voidConfirmation} onChange={event => setVoidConfirmation(event.target.value)} /></label>
+        <button type="button" disabled={busy || voidConfirmation !== 'CONFIRM VOID IN QBO' || voidEvidence.trim().length < 8}
+          onClick={() => void recordVoid()}>{t('salesNative.qboRecordVoid')}</button>
+      </>}
+      {canVerify && !selectionReview && selected.qbo?.verification_state !== 'PAYMENT_VERIFIED' && <>
         <label>{t('salesNative.qboInvoiceNumber')}<input value={invoiceNumber} onChange={event => setInvoiceNumber(event.target.value)} /></label>
         <label>{t('salesNative.qboInvoiceReference')}<input value={invoiceReference} onChange={event => setInvoiceReference(event.target.value)} /></label>
         <label>{t('salesNative.qboCustomerOptional')}<input value={customerReference} onChange={event => setCustomerReference(event.target.value)} /></label>
@@ -132,7 +155,7 @@ export default function NativePatientQbo({ request }: { request: NativeRequest }
           onClick={() => void act('VERIFY_PAYMENT')}>{t('salesNative.qboVerifyPayment')}</button>
         <button type="button" disabled={busy || !selected.qbo} onClick={() => void act('REJECT_PAYMENT')}>{t('salesNative.qboRejectPayment')}</button>
       </>}
-      {canVerify && selected.qbo?.verification_state === 'PAYMENT_VERIFIED' &&
+      {canVerify && !selectionReview && selected.qbo?.verification_state === 'PAYMENT_VERIFIED' &&
         selected.qbo.membership_activation_status !== 'ACTIVE' && <>
         <p>{t('salesNative.qboActivationNotice')}</p>
         <label>{t('salesNative.qboConfirmedPhone')}<input value={phone} onChange={event => setPhone(event.target.value)} /></label>

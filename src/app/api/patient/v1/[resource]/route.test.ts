@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const fixtures = vi.hoisted(() => {
   process.env.PATIENT_SALES_ORGANIZATION_ID = '99999999-9999-4999-8999-999999999999'
   process.env.PATIENT_SALES_OWNER_MEMBER_ID = '88888888-8888-4888-8888-888888888888'
-  return { queries: [] as Array<{ table: string; filters: Record<string, unknown>; update?: Record<string, unknown> }>, synthetic: false }
+  return { queries: [] as Array<{ table: string; filters: Record<string, unknown>; update?: Record<string, unknown> }>,
+    rpcCalls: [] as Array<{ name: string; args: Record<string, unknown> }>, synthetic: false }
 })
 
 const patients = [
@@ -25,6 +26,10 @@ const contactRows = [...patients.map(patient => ({ id: patient.contactId,
 
 vi.mock('@/shared/db/supabaseAdmin', () => ({
   supabaseAdmin: () => ({
+    rpc: async (name: string, args: Record<string, unknown>) => {
+      fixtures.rpcCalls.push({ name, args })
+      return { data: { status: 'CHANGE_REQUESTED' }, error: null }
+    },
     auth: { admin: { getUserById: async (id: string) => ({ data: { user: {
       email: patients.find(patient => patient.authId === id)?.email,
       email_confirmed_at: '2026-10-20T00:00:00.000Z',
@@ -75,7 +80,7 @@ vi.mock('@/shared/db/noStoreFetch', () => ({ noStoreFetch: fetch }))
 import { GET, PATCH, POST } from './route'
 
 describe('patient API isolation', () => {
-  beforeEach(() => { fixtures.queries.length = 0; fixtures.synthetic = false })
+  beforeEach(() => { fixtures.queries.length = 0; fixtures.rpcCalls.length = 0; fixtures.synthetic = false })
 
   it('requires a patient session for profile reads', async () => {
     const response = await GET(new Request('https://app.test/api/patient/v1/profile'), { params: Promise.resolve({ resource: 'profile' }) })
@@ -187,6 +192,65 @@ describe('patient API isolation', () => {
     expect(Buffer.from(await own.arrayBuffer()).subarray(0, 4).toString()).toBe('%PDF')
     expect(fixtures.queries.find(query => query.table === 'sales_memberships')?.filters)
       .toMatchObject({ organization_id: organization, primary_contact_id: patients[0].contactId, is_demo: false })
+  })
+
+  it('rejects a household PDF member ID outside the authenticated membership', async () => {
+    const otherMemberId = '99999999-9999-4999-8999-999999999998'
+    const response = await GET(new Request(`https://app.test/api/patient/v1/membershippdf?memberId=${otherMemberId}`, {
+      headers: { Authorization: `Patient ${patients[0].handle}` },
+    }), { params: Promise.resolve({ resource: 'membershippdf' }) })
+    expect(response.status).toBe(404)
+    expect(fixtures.queries.find(query => query.table === 'sales_household_members')?.filters)
+      .toMatchObject({ id: otherMemberId, membership_id: memberships[0].id, organization_id: organization })
+  })
+
+  it('does not accept selection changes without the bound patient session', async () => {
+    const response = await POST(new Request('https://app.test/api/patient/v1/selection', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'CANCEL', idempotencyKey: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' }),
+    }), { params: Promise.resolve({ resource: 'selection' }) })
+    expect(response.status).toBe(401)
+    expect(fixtures.queries.every(query => query.table === 'sales_patient_sessions')).toBe(true)
+    expect(fixtures.rpcCalls).toHaveLength(0)
+  })
+
+  it('uses the authenticated identity for changes and ignores caller-supplied identity IDs', async () => {
+    const response = await POST(new Request('https://app.test/api/patient/v1/selection', {
+      method: 'POST', headers: { Authorization: `Patient ${patients[0].handle}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'CHANGE', plan: 'PLUS', type: 'FAMILY', duration: '3M',
+        idempotencyKey: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+        identityId: patients[1].identityId }),
+    }), { params: Promise.resolve({ resource: 'selection' }) })
+    expect(response.status).toBe(200)
+    expect(fixtures.rpcCalls).toHaveLength(1)
+    expect(fixtures.rpcCalls[0]).toMatchObject({ name: 'native_sales_patient_selection_action',
+      args: { p_identity_id: patients[0].identityId, p_action: 'CHANGE', p_plan: 'PLUS', p_type: 'FAMILY' } })
+  })
+
+  it('removes a dependant only through the bound patient identity', async () => {
+    const body = { memberId: '13131313-1313-4313-8313-131313131313',
+      idempotencyKey: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' }
+    const unauthenticated = await POST(new Request('https://app.test/api/patient/v1/householdremove', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    }), { params: Promise.resolve({ resource: 'householdremove' }) })
+    expect(unauthenticated.status).toBe(401)
+    expect(fixtures.rpcCalls).toHaveLength(0)
+    const authenticated = await POST(new Request('https://app.test/api/patient/v1/householdremove', {
+      method: 'POST', headers: { Authorization: `Patient ${patients[0].handle}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }), { params: Promise.resolve({ resource: 'householdremove' }) })
+    expect(authenticated.status).toBe(200)
+    expect(fixtures.rpcCalls[0]).toMatchObject({ name: 'native_sales_patient_remove_family_member', args: {
+      p_identity_id: patients[0].identityId, p_household_member_id: body.memberId,
+      p_owner_member_id: '88888888-8888-4888-8888-888888888888',
+    } })
+    fixtures.rpcCalls.length = 0
+    const extraFields = await POST(new Request('https://app.test/api/patient/v1/householdremove', {
+      method: 'POST', headers: { Authorization: `Patient ${patients[0].handle}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...body, patientIdentityId: patients[1].identityId }),
+    }), { params: Promise.resolve({ resource: 'householdremove' }) })
+    expect(extraFields.status).toBe(422)
+    expect(fixtures.rpcCalls).toHaveLength(0)
   })
 
   it('shows a synthetic QA membership only to its bound patient when no real membership exists', async () => {

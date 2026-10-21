@@ -7,7 +7,8 @@ import s from './NativeSalesModule.module.css'
 
 type HouseholdMember = { id: string; displayName: string; relationship: string; status: string; code?: string }
 type FamilyRequest = { id: string; dependentName: string; relationship: string; status: string;
-  code?: string; createdAt: string }
+  code?: string; createdAt: string; patientSubmitted?: boolean;
+  dependentContactId?: string | null; additionalFeeReview?: boolean }
 type Contact = { id: string; display_name: string }
 
 export default function NativeMembershipFamily({ membershipId, membershipType, household,
@@ -75,6 +76,18 @@ export default function NativeMembershipFamily({ membershipId, membershipType, h
     finally { setBusy(false) }
   }
 
+  async function bindPatientContact(id: string) {
+    if (!contactId) return
+    setBusy(true); setError('')
+    try {
+      await request(`memberships/${membershipId}/family/requests/${id}/bind-contact`, {
+        method: 'POST', payload: { contactId },
+      })
+      setContactId(''); setContactQuery(''); setRefresh(value => value + 1)
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'FAMILY_CONTACT_REVIEW_REQUIRED') }
+    finally { setBusy(false) }
+  }
+
   const pending = requests.filter(item => item.status === 'PENDING').length
   const active = household.filter(item => item.status === 'ACTIVE').length
   return <section className={s.recordActions} aria-label={t('salesNative.familyMembership')}>
@@ -84,7 +97,15 @@ export default function NativeMembershipFamily({ membershipId, membershipType, h
     {requests.length > 0 && <><h3>{t('salesNative.familyRequests')}</h3><ul className={s.scheduleList}>{requests.map(item =>
       <li key={item.id}><span><strong>{item.dependentName}</strong><small>{item.relationship} · {item.status} · {item.createdAt.slice(0,10)}</small></span>
         {item.status === 'PENDING' && canReview && <span className={s.pdfActions}>
-          <button type="button" disabled={busy} onClick={() => void decide(item.id, 'APPROVED')}>{t('salesNative.approve')}</button>
+          {item.patientSubmitted && !item.dependentContactId && <>
+            <label>{t('salesNative.searchVerifiedContact')} <input value={contactQuery} onChange={event => { setContactQuery(event.target.value); setContactId('') }} /></label>
+            <label>{t('salesNative.linkContact')} <select value={contactId} onChange={event => setContactId(event.target.value)}>
+              <option value="">{t('salesNative.chooseAContact')}</option>{contacts.map(contact =>
+                <option key={contact.id} value={contact.id}>{contact.display_name}</option>)}</select></label>
+            <button type="button" disabled={busy || !contactId} onClick={() => void bindPatientContact(item.id)}>{t('salesNative.linkForReview')}</button>
+          </>}
+          {(!item.patientSubmitted || item.dependentContactId) && <button type="button" disabled={busy || item.additionalFeeReview}
+            onClick={() => void decide(item.id, 'APPROVED')}>{t('salesNative.approve')}</button>}
           <button type="button" disabled={busy} onClick={() => void decide(item.id, 'REJECTED')}>{t('salesNative.reject')}</button>
         </span>}</li>)}</ul></>}
     {active + pending < 3 && <form className={s.form} onSubmit={event => void submit(event)}>
