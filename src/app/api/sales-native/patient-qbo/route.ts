@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { nativeSalesErrorResponse } from '@/server/sales-native/auth'
 import { patientQboActor } from '@/server/sales-native/patient-qbo-auth'
 import { nativeSalesDatabaseError } from '@/server/sales-native/errors'
+import { sendPatientInvoice } from '@/server/sales-native/patient-email-delivery'
 
 export const dynamic = 'force-dynamic'
 const EMC = '9efab353-46a0-43d1-9901-e3f185dc5d30'
@@ -116,6 +117,21 @@ export async function POST(request: Request) {
       p_payment_confirmed_at:p.paymentConfirmedAt ?? null,p_qa_synthetic:p.qaSynthetic,
     })
     if (error) return nativeSalesDatabaseError(error)
+    if (p.action === 'RECORD_INVOICE' && p.invoiceNumber && p.hostedUrl && !p.qaSynthetic) {
+      const db = supabaseAdmin({ noStore: true })
+      const { data: intent } = await db.from('sales_patient_enrollment_intents')
+        .select('patient_identity_id').eq('organization_id', EMC).eq('id', p.intentId).maybeSingle()
+      if (intent) {
+        const { data: identity } = await db.from('sales_patient_identities')
+          .select('contact_id').eq('organization_id', EMC).eq('id', intent.patient_identity_id).maybeSingle()
+        if (identity) {
+          const { data: contact } = await db.from('sales_contacts')
+            .select('email,do_not_email').eq('organization_id', EMC).eq('id', identity.contact_id).maybeSingle()
+          if (contact?.email && !contact.do_not_email)
+            await sendPatientInvoice(p.intentId, contact.email, p.invoiceNumber)
+        }
+      }
+    }
     return Response.json({ data }, { headers: noStore })
   } catch (error) { return nativeSalesErrorResponse(error) }
 }

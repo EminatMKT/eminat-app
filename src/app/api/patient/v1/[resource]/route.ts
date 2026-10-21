@@ -5,6 +5,7 @@ import { noStoreFetch } from '@/shared/db/noStoreFetch'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { membershipTypes, plans, saleDurations } from '@/server/sales-native/pricing'
 import { createMembershipPdf } from '@/server/sales-native/membership-pdf'
+import { sendPatientWelcome } from '@/server/sales-native/patient-email-delivery'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -312,7 +313,9 @@ export async function POST(request: Request, { params }: Route) {
     const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString()
     const { error: sessionError } = await admin.from('sales_patient_sessions')
       .insert({ handle_hash: hash(handle), auth_id: data.user.id, expires_at: expiresAt })
-    return sessionError ? unavailable() : respond({ sessionHandle: handle, expiresAt })
+    if (sessionError) return unavailable()
+    await sendPatientWelcome(data.user.id, email)
+    return respond({ sessionHandle: handle, expiresAt })
   }
   const patient = await authenticate(request)
   if (!patient) return respond({ code: 'AUTHENTICATION_REQUIRED' }, 401)
@@ -338,7 +341,8 @@ export async function POST(request: Request, { params }: Route) {
     })
     if (error?.message.includes('PATIENT_CONTACT_REVIEW_REQUIRED'))
       return respond({ code: 'OWNER_REVIEW_REQUIRED' }, 409)
-    return error ? unavailable() : respond({ contactId: data }, 201)
+    if (error) return unavailable()
+    return respond({ contactId: data }, 201)
   }
   if (resource === 'enrollment') {
     if (!patient.identity) return respond({ code: 'PROFILE_REQUIRED' }, 409)
