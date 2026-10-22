@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, createHmac } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const fixtures = vi.hoisted(() => {
@@ -114,6 +114,7 @@ import { GET, PATCH, POST } from './route'
 
 describe('patient API isolation', () => {
   beforeEach(() => { fixtures.queries.length = 0; fixtures.rpcCalls.length = 0;
+    vi.stubEnv('PATIENT_EMAIL_OUTBOX_KEY', Buffer.alloc(32, 7).toString('base64'))
     fixtures.synthetic = false; fixtures.draftsEnabled = false;
     fixtures.emailConfigured = true; fixtures.registrationAdmitted = true;
     fixtures.canRecoverRegistration = false; fixtures.signupErrorCode = null;
@@ -133,7 +134,8 @@ describe('patient API isolation', () => {
     expect(fixtures.verificationEmails).toEqual([{ recipient: 'patient@example.test',
       actionUrl: 'https://ruedelunbtaomhrzgelc.supabase.co/auth/v1/verify?token=secret' }])
     expect(fixtures.rpcCalls[0]).toMatchObject({ name: 'native_sales_patient_registration_admit',
-      args: { p_email_digest: createHash('sha256').update('patient@example.test').digest('hex'),
+      args: { p_email_digest: createHmac('sha256', Buffer.alloc(32, 7))
+        .update('patient@example.test').digest('hex'),
         p_ip_digest: null } })
   })
 

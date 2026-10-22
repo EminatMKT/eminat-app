@@ -1,4 +1,4 @@
-import { randomBytes, createHash } from 'node:crypto'
+import { randomBytes, createHash, createHmac } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { clientEnv } from '@/shared/db/env.client'
 import { noStoreFetch } from '@/shared/db/noStoreFetch'
@@ -35,6 +35,8 @@ const respond = (body: unknown, status = 200) => Response.json(body, { status, h
 const invalid = () => respond({ code: 'INVALID_REQUEST' }, 422)
 const unavailable = () => respond({ code: 'PATIENT_API_UNAVAILABLE' }, 503)
 const hash = (value: string) => createHash('sha256').update(value).digest('hex')
+const registrationDigest = (value: string) => createHmac('sha256',
+  Buffer.from(process.env.PATIENT_EMAIL_OUTBOX_KEY ?? '', 'base64')).update(value).digest('hex')
 const authClient = () => createClient(clientEnv.NEXT_PUBLIC_SUPABASE_URL, clientEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: noStoreFetch },
 })
@@ -301,8 +303,8 @@ export async function POST(request: Request, { params }: Route) {
         ? request.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim() : null
       const { data: admitted, error: admissionError } = await supabaseAdmin({ noStore: true })
         .rpc('native_sales_patient_registration_admit', {
-          p_email_digest: hash(email),
-          p_ip_digest: sourceAddress ? hash(sourceAddress) : null,
+          p_email_digest: registrationDigest(email),
+          p_ip_digest: sourceAddress ? registrationDigest(sourceAddress) : null,
         })
       if (admissionError) return unavailable()
       if (!admitted) return respond({ code: 'REGISTRATION_RATE_LIMITED' }, 429)
