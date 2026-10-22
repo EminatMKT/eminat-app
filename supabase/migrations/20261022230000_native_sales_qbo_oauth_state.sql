@@ -1,5 +1,10 @@
 -- LILLY-owned, single-use Production QuickBooks OAuth handoff.
 -- This migration creates no connection, customer, invoice, payment or membership.
+-- Reconciliation accepts only one existing LILLY enrollment per QBO invoice ID.
+CREATE UNIQUE INDEX sales_patient_qbo_invoice_reference_unique
+  ON public.sales_patient_qbo_manual(organization_id,qbo_invoice_reference)
+  WHERE qbo_invoice_reference IS NOT NULL AND NOT qa_synthetic;
+
 CREATE TABLE public.sales_qbo_oauth_states (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id uuid NOT NULL REFERENCES public.sales_organizations(id) ON DELETE RESTRICT,

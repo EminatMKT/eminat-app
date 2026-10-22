@@ -47,6 +47,17 @@ BEGIN
       WHERE organization_id='30000000-0000-4000-8000-000000000089'
         AND realm_id='123456789' AND status='CONNECTED')<>1 THEN
     RAISE EXCEPTION 'connection not persisted'; END IF;
+  INSERT INTO public.sales_qbo_webhook_events
+    (organization_id,environment,realm_id,event_fingerprint,entity_type,entity_id,operation)
+  VALUES ('30000000-0000-4000-8000-000000000089','production','123456789',
+    repeat('b',64),'Invoice','1133','Update');
+  BEGIN
+    INSERT INTO public.sales_qbo_webhook_events
+      (organization_id,environment,realm_id,event_fingerprint,entity_type,entity_id,operation)
+    VALUES ('30000000-0000-4000-8000-000000000089','production','123456789',
+      repeat('b',64),'Invoice','1133','Update');
+    RAISE EXCEPTION 'duplicate webhook accepted';
+  EXCEPTION WHEN SQLSTATE '23505' THEN NULL; END;
   BEGIN
     PERFORM public.native_sales_qbo_finish_oauth_state(v_state,
       '30000000-0000-4000-8000-000000000089',

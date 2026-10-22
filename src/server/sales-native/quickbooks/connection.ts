@@ -84,8 +84,9 @@ export async function completeQboConnection(request: Request, input: {
   if (error) throw new NativeSalesAuthError(503, 'QBO_CONNECTION_UNAVAILABLE')
 }
 
-export async function readConnectedQboCompany(): Promise<{
-  realmId: string; companyName: string; legalName: string | null }> {
+/** Server-only access for read-only QBO API calls; never serialize the token. */
+export async function connectedQboReadAccess(): Promise<{
+  client: QboClient; realmId: string; accessToken: string }> {
   const { client, key } = configuration()
   const db = supabaseAdmin({ noStore: true })
   const { data: connection, error } = await db.from('sales_qbo_connections')
@@ -127,6 +128,12 @@ export async function readConnectedQboCompany(): Promise<{
     if (saveError || !saved) throw new NativeSalesAuthError(503, 'QBO_REFRESH_SAVE_FAILED')
     accessToken = refreshed.accessToken
   }
+  return { client, realmId, accessToken }
+}
+
+export async function readConnectedQboCompany(): Promise<{
+  realmId: string; companyName: string; legalName: string | null }> {
+  const { client, realmId, accessToken } = await connectedQboReadAccess()
   const company = await client.companyInfo(realmId,accessToken)
   if (![company.name,company.legalName].some(name =>
     name?.trim().toLowerCase() === 'eminat medical center llc'))

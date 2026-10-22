@@ -25,6 +25,24 @@ const companySchema = z.object({ CompanyInfo: z.object({
   Id: z.string().regex(/^[0-9]{1,80}$/),
   CompanyName: z.string().min(1), LegalName: z.string().optional(),
 }) })
+const qboRef = z.object({ value: z.string().regex(/^[0-9]{1,80}$/) })
+const linkedTxn = z.object({ TxnId: z.string().regex(/^[0-9]{1,80}$/),
+  TxnType: z.string() })
+const invoiceSchema = z.object({ Invoice: z.object({
+  Id: z.string().regex(/^[0-9]{1,80}$/), DocNumber: z.string().min(1).max(80),
+  CustomerRef: qboRef, TotalAmt: z.number().nonnegative(),
+  Balance: z.number().nonnegative(),
+  CurrencyRef: z.object({ value: z.string().length(3) }).optional(),
+  LinkedTxn: z.array(linkedTxn).optional(),
+}) })
+const paymentSchema = z.object({ Payment: z.object({
+  Id: z.string().regex(/^[0-9]{1,80}$/), CustomerRef: qboRef,
+  TotalAmt: z.number().nonnegative(), TxnDate: z.string().optional(),
+  Line: z.array(z.object({ Amount: z.number().nonnegative(),
+    LinkedTxn: z.array(linkedTxn).optional() })).optional(),
+}) })
+export type QboInvoice = z.infer<typeof invoiceSchema>['Invoice']
+export type QboPayment = z.infer<typeof paymentSchema>['Payment']
 
 /** Fixed Intuit hosts and callback; no caller-provided provider URL. */
 export class QboClient {
@@ -114,5 +132,36 @@ export class QboClient {
       throw new Error('QBO_COMPANY_INVALID')
     return { id: realmId, name: parsed.data.CompanyInfo.CompanyName,
       legalName: parsed.data.CompanyInfo.LegalName ?? null }
+  }
+
+  private async readEntity<T>(realmId: string, accessToken: string,
+    kind: 'invoice' | 'payment', id: string, schema: z.ZodType<T>): Promise<T> {
+    if (!/^[0-9]{1,80}$/.test(realmId) || !/^[0-9]{1,80}$/.test(id) || !accessToken)
+      throw new Error('QBO_ENTITY_INVALID')
+    const url = `https://quickbooks.api.intuit.com/v3/company/${realmId}/${kind}/${id}`
+    let response: Response
+    try { response = await this.request(url, { headers: {
+      Authorization: `Bearer ${accessToken}`, Accept: 'application/json',
+    }, cache: 'no-store', signal: AbortSignal.timeout(10_000) }) }
+    catch { throw new Error('QBO_ENTITY_UNAVAILABLE') }
+    if (!response.ok) throw new Error('QBO_ENTITY_UNAVAILABLE')
+    let decoded: unknown
+    try { decoded = await response.json() }
+    catch { throw new Error('QBO_ENTITY_INVALID') }
+    const parsed = schema.safeParse(decoded)
+    if (!parsed.success) throw new Error('QBO_ENTITY_INVALID')
+    return parsed.data
+  }
+
+  async invoice(realmId: string, id: string, accessToken: string): Promise<QboInvoice> {
+    const result = await this.readEntity(realmId,accessToken,'invoice',id,invoiceSchema)
+    if (result.Invoice.Id !== id) throw new Error('QBO_ENTITY_MISMATCH')
+    return result.Invoice
+  }
+
+  async payment(realmId: string, id: string, accessToken: string): Promise<QboPayment> {
+    const result = await this.readEntity(realmId,accessToken,'payment',id,paymentSchema)
+    if (result.Payment.Id !== id) throw new Error('QBO_ENTITY_MISMATCH')
+    return result.Payment
   }
 }

@@ -59,4 +59,24 @@ describe('LILLY QBO OAuth boundary', () => {
       .revoke('synthetic-refresh-token')
     expect(request).toHaveBeenCalledTimes(1)
   })
+
+  it('reads invoice and payment evidence without sending a financial write', async () => {
+    const request = vi.fn(async (url: string, init: RequestInit) => {
+      expect(init.method).toBeUndefined()
+      expect(init.cache).toBe('no-store')
+      if (url.endsWith('/invoice/1133')) return Response.json({ Invoice: {
+        Id:'1133',DocNumber:'1133',CustomerRef:{ value:'321' },
+        TotalAmt:199.98,Balance:0,LinkedTxn:[{ TxnId:'900',TxnType:'Payment' }],
+      } })
+      if (url.endsWith('/payment/900')) return Response.json({ Payment: {
+        Id:'900',CustomerRef:{ value:'321' },TotalAmt:199.98,
+        Line:[{ Amount:199.98,LinkedTxn:[{ TxnId:'1133',TxnType:'Invoice' }] }],
+      } })
+      throw new Error('unexpected request')
+    })
+    const client = new QboClient(config,request as unknown as typeof fetch)
+    expect((await client.invoice('123','1133','synthetic-access')).Balance).toBe(0)
+    expect((await client.payment('123','900','synthetic-access')).Id).toBe('900')
+    expect(request).toHaveBeenCalledTimes(2)
+  })
 })

@@ -21,6 +21,7 @@ DROP TABLE public.sales_qbo_oauth_states;
 ALTER TABLE public.sales_qbo_connections
   DROP COLUMN refresh_claim_id,
   DROP COLUMN refresh_claim_expires_at;
+DROP INDEX public.sales_patient_qbo_invoice_reference_unique;
 DELETE FROM supabase_migrations.schema_migrations
   WHERE version='20261022230000';
 COMMIT;
