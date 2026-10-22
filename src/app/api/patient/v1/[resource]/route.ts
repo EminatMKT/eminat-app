@@ -309,11 +309,28 @@ export async function POST(request: Request, { params }: Route) {
       // Supabase Auth is shared with LILLY staff. Generate only the Patient Portal's
       // verification link here so the global Auth sender and templates stay unchanged.
       const { data, error } = await supabaseAdmin({ noStore: true }).auth.admin.generateLink({
-        type: 'signup', email, password, options: { redirectTo: 'https://portal.corazonsalud.health/login' },
+        type: 'signup', email, password, options: {
+          redirectTo: 'https://portal.corazonsalud.health/login',
+          data: { corazon_patient_signup: true },
+        },
       })
       // Do not disclose whether a confirmed account already owns the address.
       // A repeated request must not create another Auth identity or CRM contact.
-      if (error?.code === 'user_already_exists') return respond({ status: 'CHECK_EMAIL' }, 202)
+      if (error?.code === 'user_already_exists') {
+        const admin = supabaseAdmin({ noStore: true })
+        const { data: canRecover, error: recoveryError } = await admin
+          .rpc('native_sales_patient_registration_can_recover', { p_email: email })
+        if (!recoveryError && canRecover) {
+          const { data: recovery, error: linkError } = await admin.auth.admin.generateLink({
+            type: 'magiclink', email,
+            options: { redirectTo: 'https://portal.corazonsalud.health/login' },
+          })
+          if (!linkError && recovery?.properties?.action_link)
+            await sendPatientVerification(randomBytes(16).toString('hex'), email,
+              recovery.properties.action_link)
+        }
+        return respond({ status: 'CHECK_EMAIL' }, 202)
+      }
       if (error || !data.properties?.action_link) return respond({ code: 'REGISTRATION_UNAVAILABLE' }, 503)
       const sent = await sendPatientVerification(randomBytes(16).toString('hex'), email, data.properties.action_link)
       return ['SENT', 'QUEUED', 'RETRY', 'UNKNOWN'].includes(sent.status)

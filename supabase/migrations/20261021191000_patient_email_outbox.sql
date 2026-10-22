@@ -65,6 +65,11 @@ BEGIN
   IF auth.role() IS DISTINCT FROM 'service_role' THEN
     RAISE EXCEPTION 'PATIENT_EMAIL_FORBIDDEN' USING ERRCODE='42501';
   END IF;
+  -- Do not send a confirmation link from a delayed daily retry after its
+  -- useful window. The patient can request a fresh branded link instead.
+  UPDATE public.sales_patient_email_outbox SET status='FAILED',updated_at=now()
+    WHERE id=p_id AND kind='verification' AND status IN ('QUEUED','RETRY')
+      AND created_at<now()-interval '2 hours';
   UPDATE public.sales_patient_email_outbox SET status='SENDING',
     attempts=attempts+1,claimed_at=now(),updated_at=now()
     WHERE id=p_id AND status IN ('QUEUED','RETRY') AND next_attempt_at<=now()
