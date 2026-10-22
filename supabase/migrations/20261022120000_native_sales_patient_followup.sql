@@ -304,7 +304,14 @@ BEGIN
     'commercialStatus',s.commercial_status,'familyCount',
       CASE WHEN s.membership_type='FAMILY' THEN 1+s.draft_dependants ELSE NULL END,
     'followUpRequired',s.commercial_status<>'MEMBERSHIP_ACTIVE',
-    'nextAction',s.next_action,'nextFollowUpAt',s.next_follow_up_at,
+    'nextAction',CASE s.commercial_status
+      WHEN 'MEMBERSHIP_ACTIVE' THEN NULL
+      WHEN 'PAYMENT_CONFIRMED' THEN 'Confirm membership activation'
+      WHEN 'PAYMENT_REPORTED' THEN 'Await finance verification'
+      WHEN 'INVOICE_ISSUED' THEN 'Follow up on unpaid invoice'
+      WHEN 'INVOICE_PENDING' THEN 'Issue invoice and follow up on selection'
+      ELSE s.next_action END,
+    'nextFollowUpAt',s.next_follow_up_at,
     'lastActivityAt',s.last_at,'lastActivity',s.last_title)
   FROM scoped s
   WHERE (p_search IS NULL OR position(lower(p_search) in lower(s.display_name))>0
