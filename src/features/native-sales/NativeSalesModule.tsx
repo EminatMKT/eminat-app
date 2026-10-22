@@ -13,10 +13,11 @@ import NativeSalesEmail from './NativeSalesEmail'
 import NativeGeneralTask from './NativeGeneralTask'
 import NativeSocialStatus from './NativeSocialStatus'
 import NativeSocialInbox from './NativeSocialInbox'
+import NativePortalLeads from './NativePortalLeads'
 import { useT, type I18nKey } from '@/shared/i18n'
 import s from './NativeSalesModule.module.css'
 
-type Tab = 'dashboard' | 'leads' | 'contacts' | 'accounts' | 'opportunities' |
+type Tab = 'dashboard' | 'leads' | 'portal-leads' | 'contacts' | 'accounts' | 'opportunities' |
   'pipeline' | 'activities' | 'memberships' | 'reports' | 'social' | 'settings'
 type Access = { allowed: boolean; role: string; capabilities: { canWrite: boolean; canReassign: boolean; canConfigureReports:boolean } }
 type Person = { memberId: string; displayName: string; role: string; teamIds: string[] }
@@ -49,8 +50,9 @@ type DetailReport = {
 }
 const todayUtc = () => new Date().toISOString().slice(0,10)
 const monthAgoUtc = () => { const day = new Date(); day.setUTCMonth(day.getUTCMonth()-1); return day.toISOString().slice(0,10) }
-const tabs: { key: Tab; labelKey: I18nKey }[] = [
+const tabs: { key: Tab; labelKey?: I18nKey; label?: string }[] = [
   { key: 'dashboard', labelKey: 'salesNative.tabDashboard' }, { key: 'leads', labelKey: 'salesNative.tabLeads' },
+  { key: 'portal-leads', label: 'Portal leads' },
   { key: 'contacts', labelKey: 'salesNative.tabContacts' }, { key: 'accounts', labelKey: 'salesNative.tabAccounts' },
   { key: 'opportunities', labelKey: 'salesNative.tabOpportunities' }, { key: 'pipeline', labelKey: 'salesNative.tabPipeline' },
   { key: 'activities', labelKey: 'salesNative.tabActivities' }, { key: 'memberships', labelKey: 'salesNative.tabMemberships' },
@@ -238,7 +240,8 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
     } finally { setPdfBusy(false) }
   }, [organizationId])
   const stages = useMemo(() => [...directory.stages].sort((a,b) => a.position-b.position), [directory.stages])
-  const currentLabel = t(tabs.find(item => item.key === tab)?.labelKey || 'salesNative.sales')
+  const currentTab = tabs.find(item => item.key === tab)
+  const currentLabel = currentTab?.label || t(currentTab?.labelKey || 'salesNative.sales')
   const moveOpportunity = useCallback(async (row: Row, target: Stage) => {
     const source = directory.stages.find(stage => stage.id===row.stage_id)
     if (!source || source.pipelineId!==target.pipelineId || source.id===target.id) return
@@ -277,10 +280,12 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
       <nav className={s.tabs} aria-label={t('salesNative.salesSections')}>
         {tabs.map(item => <button key={item.key} type="button" aria-current={tab===item.key ? 'page' : undefined}
           className={tab===item.key ? s.active : ''} onClick={() => { setTab(item.key); setQuery('') }}>
-          {t(item.labelKey)}</button>)}
+          {item.label || t(item.labelKey || 'salesNative.sales')}</button>)}
       </nav>
       {!access?.allowed && !loading && <p role="alert" className={s.error}>{error || 'Sales access is unavailable.'}</p>}
       {access?.allowed && <>
+        {tab==='portal-leads' && <NativePortalLeads request={request} users={directory.users}
+          onOpenLead={email => { setTab('leads'); setQuery(email); setSelected(null) }} />}
         {importOpen && (tab==='leads' || tab==='contacts') &&
           <NativeSalesImport key={tab} resource={tab} organizationId={organizationId}
             onComplete={() => { setImportOpen(false); setRefresh(value => value + 1) }} />}
