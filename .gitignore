@@ -33,3 +33,5 @@ supabase/rollback/predump-*
 
 # caché de los hooks de .claude
 __pycache__/
+# Local Pi runtime state
+.atl/
