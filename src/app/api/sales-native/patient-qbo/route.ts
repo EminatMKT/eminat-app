@@ -4,6 +4,7 @@ import { nativeSalesErrorResponse } from '@/server/sales-native/auth'
 import { patientQboActor } from '@/server/sales-native/patient-qbo-auth'
 import { nativeSalesDatabaseError } from '@/server/sales-native/errors'
 import { sendPatientInvoice } from '@/server/sales-native/patient-email-delivery'
+import { isSaleDuration, membershipTypes, plans } from '@/server/sales-native/pricing'
 
 export const dynamic = 'force-dynamic'
 const EMC = '9efab353-46a0-43d1-9901-e3f185dc5d30'
@@ -121,15 +122,21 @@ export async function POST(request: Request) {
     if (p.action === 'RECORD_INVOICE' && p.invoiceNumber && p.hostedUrl && !p.qaSynthetic) {
       const db = supabaseAdmin({ noStore: true })
       const { data: intent } = await db.from('sales_patient_enrollment_intents')
-        .select('patient_identity_id').eq('organization_id', EMC).eq('id', p.intentId).maybeSingle()
-      if (intent) {
+        .select('patient_identity_id,plan,membership_type,duration,amount_cents')
+        .eq('organization_id', EMC).eq('id', p.intentId).maybeSingle()
+      if (intent && plans.includes(intent.plan) && membershipTypes.includes(intent.membership_type) &&
+          isSaleDuration(intent.duration) && Number.isSafeInteger(intent.amount_cents)) {
         const { data: identity } = await db.from('sales_patient_identities')
           .select('contact_id').eq('organization_id', EMC).eq('id', intent.patient_identity_id).maybeSingle()
         if (identity) {
           const { data: contact } = await db.from('sales_contacts')
             .select('email,do_not_email').eq('organization_id', EMC).eq('id', identity.contact_id).maybeSingle()
           if (contact?.email && !contact.do_not_email)
-            emailDelivery = (await sendPatientInvoice(p.intentId, contact.email, p.invoiceNumber)).status
+            emailDelivery = (await sendPatientInvoice(p.intentId, contact.email, p.invoiceNumber, {
+              plan: intent.plan, membershipType: intent.membership_type,
+              duration: intent.duration, amountCents: intent.amount_cents,
+              hostedUrl: p.hostedUrl,
+            })).status
         }
       }
     }

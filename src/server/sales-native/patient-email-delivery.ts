@@ -2,6 +2,7 @@ import 'server-only'
 import { createHash } from 'node:crypto'
 import { Resend } from 'resend'
 import { renderPatientEmail, type PatientEmail } from './patient-email-template'
+import type { MembershipType, Plan, SaleDuration } from './pricing'
 
 type Kind = 'verification' | 'welcome' | 'invoice' | 'activation'
 export type PatientEmailRequest = {
@@ -71,14 +72,29 @@ export async function sendPatientVerification(eventId: string, recipient: string
   } })
 }
 
-export async function sendPatientInvoice(intentId: string, recipient: string, invoiceNumber: string) {
+type InvoiceEmailDetails = {
+  plan: Plan
+  membershipType: MembershipType
+  duration: SaleDuration
+  amountCents: number
+  hostedUrl: string
+}
+
+export async function sendPatientInvoice(intentId: string, recipient: string, invoiceNumber: string,
+  details: InvoiceEmailDetails) {
   const eventId = createHash('sha256').update(`${intentId}\0${invoiceNumber}`).digest('hex')
+  const plan = { ESSENTIAL: 'Essential', PLUS: 'Plus', MAX: 'Max' }[details.plan]
+  const membershipType = details.membershipType === 'FAMILY' ? 'Familiar' : 'Individual'
+  const duration = { MONTHLY: 'Mes a mes', '3M': '3 meses', '6M': '6 meses', '12M': '12 meses' }[details.duration]
   const { queuePatientEmail } = await import('./patient-email-outbox')
   return queuePatientEmail({ kind: 'invoice', eventId, recipient, content: {
     title: 'Tu factura está disponible',
-    message: 'Tu selección de Corazón Salud sigue pendiente de pago. Puedes consultar la factura y abrir el pago seguro desde tu Portal.',
-    actionLabel: 'Ver mi pago', actionUrl: 'https://portal.corazonsalud.health/pagos',
-    details: [{ label: 'Factura', value: invoiceNumber }],
+    message: 'Tu selección de Corazón Salud sigue pendiente de pago. Puedes abrir la factura segura de QuickBooks para completar el pago.',
+    actionLabel: 'Pagar con QuickBooks', actionUrl: details.hostedUrl,
+    details: [{ label: 'Factura', value: invoiceNumber },
+      { label: 'Plan', value: plan }, { label: 'Tipo', value: membershipType },
+      { label: 'Modalidad', value: duration },
+      { label: 'Importe inicial', value: `$${(details.amountCents / 100).toFixed(2)}` }],
   } })
 }
 

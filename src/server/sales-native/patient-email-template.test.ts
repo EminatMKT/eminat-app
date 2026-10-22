@@ -22,4 +22,13 @@ describe('Corazón Salud patient email', () => {
     expect(() => renderPatientEmail({ title: 'Pago', message: 'Hola', actionLabel: 'Pagar',
       actionUrl: 'https://example.com' })).toThrow('PATIENT_EMAIL_LINK_INVALID')
   })
+
+  it('accepts the official hosted invoice action and rejects a lookalike domain', () => {
+    const invoice = renderPatientEmail({ title: 'Pago', message: 'Hola', actionLabel: 'Pagar',
+      actionUrl: 'https://connect.intuit.com/t/invoice-qa-token' })
+    expect(invoice.html).toContain('https://connect.intuit.com/t/invoice-qa-token')
+    expect(() => renderPatientEmail({ title: 'Pago', message: 'Hola', actionLabel: 'Pagar',
+      actionUrl: 'https://connect.intuit.com.evil.example/t/invoice' }))
+      .toThrow('PATIENT_EMAIL_LINK_INVALID')
+  })
 })

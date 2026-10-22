@@ -21,7 +21,8 @@ vi.mock('@/shared/db/supabaseAdmin', () => ({
         select: () => chain, eq: () => chain, is: () => chain,
         maybeSingle: async () => ({ error: null, data:
           table === 'sales_patient_enrollment_intents'
-            ? { patient_identity_id: 'identity', membership_id: state.membershipId }
+            ? { patient_identity_id: 'identity', membership_id: state.membershipId,
+              plan: 'ESSENTIAL', membership_type: 'FAMILY', duration: 'MONTHLY', amount_cents: 19998 }
             : table === 'sales_patient_qbo_manual'
               ? { qbo_invoice_number: state.invoiceReady ? '1133' : null,
                 qbo_hosted_payment_url: state.invoiceReady ? 'https://connect.intuit.com/t/qa' : null,

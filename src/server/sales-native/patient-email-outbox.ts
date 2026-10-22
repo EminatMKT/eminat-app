@@ -58,7 +58,11 @@ export async function queuePatientEmail(message: PatientEmailRequest) {
     const row = data as OutboxRow
     if (row.status === 'SENT') return { status: 'SENT' as const }
     if (row.status === 'UNKNOWN' || row.status === 'FAILED') return { status: row.status }
-    return deliverPatientEmail(row.id)
+    const first = await deliverPatientEmail(row.id)
+    // Production's daily cron can run after a verification link expires. A
+    // definitive provider rejection is safe to retry once immediately. An
+    // ambiguous outcome is never retried because it may have been delivered.
+    return first.status === 'RETRY' ? deliverPatientEmail(row.id) : first
   } catch {
     // The provider was not called unless an outbox row was successfully claimed.
     // Do not allow an email infrastructure failure to corrupt the business response.

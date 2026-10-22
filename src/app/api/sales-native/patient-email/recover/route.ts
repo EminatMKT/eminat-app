@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { patientQboActor } from '@/server/sales-native/patient-qbo-auth'
 import { sendPatientActivation, sendPatientInvoice } from '@/server/sales-native/patient-email-delivery'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
+import { isSaleDuration, membershipTypes, plans } from '@/server/sales-native/pricing'
 
 export const dynamic = 'force-dynamic'
 const EMC = '9efab353-46a0-43d1-9901-e3f185dc5d30'
@@ -23,7 +24,8 @@ export async function POST(request: Request) {
     const { intentId, kind } = parsed.data
     const db = supabaseAdmin({ noStore: true })
     const { data: intent, error: intentError } = await db.from('sales_patient_enrollment_intents')
-      .select('patient_identity_id,membership_id').eq('organization_id', EMC).eq('id', intentId).maybeSingle()
+      .select('patient_identity_id,membership_id,plan,membership_type,duration,amount_cents')
+      .eq('organization_id', EMC).eq('id', intentId).maybeSingle()
     if (intentError) return Response.json({ code: 'EMAIL_RECOVERY_UNAVAILABLE' }, { status: 503, headers })
     if (!intent) return Response.json({ code: 'ENROLLMENT_NOT_FOUND' }, { status: 404, headers })
     const { data: qbo, error: qboError } = await db.from('sales_patient_qbo_manual')
@@ -31,6 +33,10 @@ export async function POST(request: Request) {
       .eq('organization_id', EMC).eq('enrollment_intent_id', intentId).maybeSingle()
     if (qboError) return Response.json({ code: 'EMAIL_RECOVERY_UNAVAILABLE' }, { status: 503, headers })
     if (!qbo || qbo.qa_synthetic || !qbo.qbo_invoice_number || !qbo.qbo_hosted_payment_url)
+      return Response.json({ code: 'EMAIL_EVENT_NOT_READY' }, { status: 409, headers })
+    if (kind === 'invoice' && (!plans.includes(intent.plan) ||
+        !membershipTypes.includes(intent.membership_type) || !isSaleDuration(intent.duration) ||
+        !Number.isSafeInteger(intent.amount_cents)))
       return Response.json({ code: 'EMAIL_EVENT_NOT_READY' }, { status: 409, headers })
     if (kind === 'activation' && (qbo.verification_state !== 'PAYMENT_VERIFIED' || !intent.membership_id))
       return Response.json({ code: 'EMAIL_EVENT_NOT_READY' }, { status: 409, headers })
@@ -54,7 +60,11 @@ export async function POST(request: Request) {
         return Response.json({ code: 'EMAIL_EVENT_NOT_READY' }, { status: 409, headers })
     }
     const delivery = kind === 'invoice'
-      ? await sendPatientInvoice(intentId, contact.email, qbo.qbo_invoice_number)
+      ? await sendPatientInvoice(intentId, contact.email, qbo.qbo_invoice_number, {
+        plan: intent.plan, membershipType: intent.membership_type,
+        duration: intent.duration, amountCents: intent.amount_cents,
+        hostedUrl: qbo.qbo_hosted_payment_url,
+      })
       : await sendPatientActivation(intent.membership_id, contact.email, contact.first_name)
     if (delivery.status === 'UNKNOWN')
       return Response.json({ code: 'EMAIL_DELIVERY_UNCERTAIN' }, { status: 409, headers })
