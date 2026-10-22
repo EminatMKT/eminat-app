@@ -1,0 +1,55 @@
+'use client'
+import { useCallback, useEffect, useState } from 'react'
+import type { NativeRequest } from './NativeSalesModule'
+
+type Status = 'loading' | 'unavailable' | 'disconnected' | 'connected'
+
+/** The server makes every authorization decision; this panel never handles tokens. */
+export default function NativeQboConnection({ request }: { request: NativeRequest }) {
+  const [status,setStatus] = useState<Status>('loading')
+  const [company,setCompany] = useState('')
+  const [busy,setBusy] = useState(false)
+  const [message,setMessage] = useState('')
+  const refresh = useCallback(async () => {
+    try {
+      const result = await request('quickbooks/connection')
+      const name = result.company && typeof result.company === 'object' &&
+        'companyName' in result.company ? String(result.company.companyName) : ''
+      setCompany(name)
+      setStatus('connected')
+    } catch (error) {
+      const code = error instanceof Error ? error.message : ''
+      setStatus(code === 'QBO_NOT_CONNECTED' ? 'disconnected' : 'unavailable')
+    }
+  },[request])
+  useEffect(() => { void refresh() },[refresh])
+  const connect = async () => {
+    setBusy(true); setMessage('')
+    try {
+      const result = await request('quickbooks/oauth/start',{ method:'POST' })
+      if (typeof result.url !== 'string' ||
+        !result.url.startsWith('https://appcenter.intuit.com/connect/oauth2?'))
+        throw new Error('QBO_AUTHORIZATION_UNAVAILABLE')
+      window.location.assign(result.url)
+    } catch { setMessage('QuickBooks connection is unavailable.'); setBusy(false) }
+  }
+  const disconnect = async () => {
+    if (!window.confirm('Disconnect the QuickBooks company from LILLY Sales?')) return
+    setBusy(true); setMessage('')
+    try {
+      await request('quickbooks/oauth/disconnect',{ method:'POST' })
+      setStatus('disconnected');setCompany('')
+    } catch { setMessage('QuickBooks disconnect could not be completed.') }
+    finally { setBusy(false) }
+  }
+  if (status === 'unavailable') return null
+  return <section aria-label="QuickBooks connection">
+    <h2>QuickBooks · Eminat Medical Center</h2>
+    {status === 'loading' ? <p>Checking connection…</p> :
+      status === 'connected' ? <><p>Connected: {company}</p>
+        <button type="button" disabled={busy} onClick={disconnect}>Disconnect QuickBooks</button></> :
+      <><p>QuickBooks is not connected.</p>
+        <button type="button" disabled={busy} onClick={connect}>Connect QuickBooks</button></>}
+    {message && <p role="alert">{message}</p>}
+  </section>
+}
