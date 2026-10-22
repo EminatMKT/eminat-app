@@ -74,16 +74,13 @@ jobs:
           set -euo pipefail
           duplicates=$(find supabase/migrations -maxdepth 1 -name '*.sql' -printf '%f\n' | cut -d_ -f1 | sort | uniq -d)
           test -z "$duplicates" || { echo "Duplicate migration versions: $duplicates"; exit 1; }
-      # setup-cli v1 uses GHCR. Authenticate to the same registry before pulling its
-      # pinned Supabase images so shared-runner anonymous pull limits do not stop E2E.
-      - name: Authenticate to GitHub Container Registry
-        run: printf '%s' "$GHCR_READ_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-        env:
-          GHCR_READ_TOKEN: ${{ github.token }}
       # `supabase start` levanta Postgres+Auth+REST locales y aplica supabase/migrations.
-      # Reintentar solo cuando GHCR limita la descarga. Los errores de migración o de
+      # El espejo oficial de Supabase evita el límite de GHCR en el runner compartido.
+      # Reintentar solo cuando el registro limita la descarga. Los errores de migración o de
       # arranque reales fallan inmediatamente y nunca se omiten los checks siguientes.
       - name: Start local Supabase
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: docker.io
         run: |
           set -euo pipefail
           for attempt in 1 2 3; do
