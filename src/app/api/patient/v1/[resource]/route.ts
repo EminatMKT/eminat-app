@@ -297,11 +297,23 @@ export async function POST(request: Request, { params }: Route) {
       return invalid()
     if (resource === 'register') {
       if (!scope() || !patientEmailConfigured()) return unavailable()
+      const sourceAddress = process.env.VERCEL === '1'
+        ? request.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim() : null
+      const { data: admitted, error: admissionError } = await supabaseAdmin({ noStore: true })
+        .rpc('native_sales_patient_registration_admit', {
+          p_email_digest: hash(email),
+          p_ip_digest: sourceAddress ? hash(sourceAddress) : null,
+        })
+      if (admissionError) return unavailable()
+      if (!admitted) return respond({ code: 'REGISTRATION_RATE_LIMITED' }, 429)
       // Supabase Auth is shared with LILLY staff. Generate only the Patient Portal's
       // verification link here so the global Auth sender and templates stay unchanged.
       const { data, error } = await supabaseAdmin({ noStore: true }).auth.admin.generateLink({
         type: 'signup', email, password, options: { redirectTo: 'https://portal.corazonsalud.health/login' },
       })
+      // Do not disclose whether a confirmed account already owns the address.
+      // A repeated request must not create another Auth identity or CRM contact.
+      if (error?.code === 'user_already_exists') return respond({ status: 'CHECK_EMAIL' }, 202)
       if (error || !data.properties?.action_link) return respond({ code: 'REGISTRATION_UNAVAILABLE' }, 503)
       const sent = await sendPatientVerification(randomBytes(16).toString('hex'), email, data.properties.action_link)
       return sent.status === 'SENT' ? respond({ status: 'CHECK_EMAIL' }, 202)
