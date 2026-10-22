@@ -74,6 +74,12 @@ jobs:
           set -euo pipefail
           duplicates=$(find supabase/migrations -maxdepth 1 -name '*.sql' -printf '%f\n' | cut -d_ -f1 | sort | uniq -d)
           test -z "$duplicates" || { echo "Duplicate migration versions: $duplicates"; exit 1; }
+      # setup-cli v1 uses GHCR. Authenticate to the same registry before pulling its
+      # pinned Supabase images so shared-runner anonymous pull limits do not stop E2E.
+      - name: Authenticate to GitHub Container Registry
+        run: printf '%s' "$GHCR_READ_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+        env:
+          GHCR_READ_TOKEN: ${{ github.token }}
       # `supabase start` levanta Postgres+Auth+REST locales y aplica supabase/migrations.
       - run: supabase start
       - name: Assert ANNIE Sales mappings start empty and browser roles cannot edit them
