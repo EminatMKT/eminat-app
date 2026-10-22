@@ -5,6 +5,7 @@ export const SUB_ITEMS: Record<PanelKey, SubItem[]> = {
   sales: [
     { id: 'sales-dashboard', icon: '📊', label: 'Dashboard', tab: 'dashboard' },
     { id: 'sales-leads', icon: '👥', label: 'Leads', tab: 'leads' },
+    { id: 'sales-portal-leads', icon: '🩺', label: 'Portal leads', tab: 'portal-leads' },
     { id: 'sales-contacts', icon: '📇', label: 'Contacts', tab: 'contacts' },
     { id: 'sales-accounts', icon: '🏢', label: 'Accounts', tab: 'accounts' },
     { id: 'sales-opportunities', icon: '🎯', label: 'Opportunities', tab: 'opportunities' },
