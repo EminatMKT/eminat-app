@@ -14,11 +14,12 @@ import NativeGeneralTask from './NativeGeneralTask'
 import NativeSocialStatus from './NativeSocialStatus'
 import NativeSocialInbox from './NativeSocialInbox'
 import NativePortalLeads from './NativePortalLeads'
+import NativePaymentsRenewals from './NativePaymentsRenewals'
 import { useT, type I18nKey } from '@/shared/i18n'
 import s from './NativeSalesModule.module.css'
 
 type Tab = 'dashboard' | 'leads' | 'portal-leads' | 'contacts' | 'accounts' | 'opportunities' |
-  'pipeline' | 'activities' | 'memberships' | 'reports' | 'social' | 'settings'
+  'pipeline' | 'activities' | 'memberships' | 'reports' | 'payments' | 'social' | 'settings'
 type Access = { allowed: boolean; role: string; capabilities: { canWrite: boolean; canReassign: boolean; canConfigureReports:boolean } }
 type Person = { memberId: string; displayName: string; role: string; teamIds: string[] }
 type Team = { id: string; name: string }
@@ -56,7 +57,9 @@ const tabs: { key: Tab; labelKey?: I18nKey; label?: string }[] = [
   { key: 'contacts', labelKey: 'salesNative.tabContacts' }, { key: 'accounts', labelKey: 'salesNative.tabAccounts' },
   { key: 'opportunities', labelKey: 'salesNative.tabOpportunities' }, { key: 'pipeline', labelKey: 'salesNative.tabPipeline' },
   { key: 'activities', labelKey: 'salesNative.tabActivities' }, { key: 'memberships', labelKey: 'salesNative.tabMemberships' },
-  { key: 'reports', labelKey: 'salesNative.tabReports' }, { key: 'social', labelKey: 'salesNative.tabSocial' },
+  { key: 'reports', labelKey: 'salesNative.tabReports' },
+  { key: 'payments', labelKey: 'salesNative.tabPayments' },
+  { key: 'social', labelKey: 'salesNative.tabSocial' },
   { key: 'settings', labelKey: 'salesNative.tabSettings' },
 ]
 const listTabs = new Set<Tab>(['leads', 'contacts', 'accounts', 'opportunities', 'memberships', 'activities'])
@@ -157,7 +160,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
     return () => { cancelled = true }
   }, [selected, tab, request])
   useEffect(() => {
-    if (!access?.allowed || tab === 'social' || tab === 'settings') return
+    if (!access?.allowed || tab === 'social' || tab === 'settings' || tab === 'payments') return
     let cancelled = false
     const load = async () => {
       setLoading(true); setError('')
@@ -289,6 +292,8 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
       </nav>
       {!access?.allowed && !loading && <p role="alert" className={s.error}>{error || 'Sales access is unavailable.'}</p>}
       {access?.allowed && <>
+        {tab==='payments' && <NativePaymentsRenewals request={request} role={access.role}
+          showPatientQbo={organizationId==='9efab353-46a0-43d1-9901-e3f185dc5d30'} />}
         {tab==='portal-leads' && <NativePortalLeads request={request} users={directory.users}
           onOpenLead={email => { setTab('leads'); setQuery(email); setSelected(null) }} />}
         {importOpen && (tab==='leads' || tab==='contacts') &&
