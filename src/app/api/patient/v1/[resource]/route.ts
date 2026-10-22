@@ -5,7 +5,7 @@ import { noStoreFetch } from '@/shared/db/noStoreFetch'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { membershipTypes, plans, saleDurations } from '@/server/sales-native/pricing'
 import { createMembershipPdf } from '@/server/sales-native/membership-pdf'
-import { sendPatientWelcome } from '@/server/sales-native/patient-email-delivery'
+import { patientEmailConfigured, sendPatientVerification, sendPatientWelcome } from '@/server/sales-native/patient-email-delivery'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -296,11 +296,16 @@ export async function POST(request: Request, { params }: Route) {
     if (!emailPattern.test(email) || email.length > 320 || password.length < 12 || password.length > 128)
       return invalid()
     if (resource === 'register') {
-      if (!scope()) return unavailable()
-      const { error } = await authClient().auth.signUp({ email, password, options: {
-        emailRedirectTo: 'https://portal.corazonsalud.health/login',
-      } })
-      return error ? respond({ code: 'REGISTRATION_UNAVAILABLE' }, 503) : respond({ status: 'CHECK_EMAIL' }, 202)
+      if (!scope() || !patientEmailConfigured()) return unavailable()
+      // Supabase Auth is shared with LILLY staff. Generate only the Patient Portal's
+      // verification link here so the global Auth sender and templates stay unchanged.
+      const { data, error } = await supabaseAdmin({ noStore: true }).auth.admin.generateLink({
+        type: 'signup', email, password, options: { redirectTo: 'https://portal.corazonsalud.health/login' },
+      })
+      if (error || !data.properties?.action_link) return respond({ code: 'REGISTRATION_UNAVAILABLE' }, 503)
+      const sent = await sendPatientVerification(randomBytes(16).toString('hex'), email, data.properties.action_link)
+      return sent.status === 'SENT' ? respond({ status: 'CHECK_EMAIL' }, 202)
+        : respond({ code: 'REGISTRATION_UNAVAILABLE' }, 503)
     }
     const { data, error } = await authClient().auth.signInWithPassword({ email, password })
     if (error || !data.user || !data.user.email_confirmed_at) return respond({ code: 'INVALID_CREDENTIALS' }, 401)

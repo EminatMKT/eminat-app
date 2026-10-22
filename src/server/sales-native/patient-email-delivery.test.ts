@@ -4,6 +4,18 @@ import { sendPatientEmail } from './patient-email-delivery'
 const env = { PATIENT_EMAIL_FROM_ADDRESS: 'notifications@stratixsolutions.us' }
 
 describe('Patient Portal transactional email', () => {
+  it('uses the patient brand for an Auth verification link without leaking it in logs', async () => {
+    const send = vi.fn().mockResolvedValue({ data: { id: 'message-2' }, error: null })
+    const result = await sendPatientEmail({ kind: 'verification', eventId: 'verification-12345678',
+      recipient: 'patient@example.test', content: { title: 'Confirma tu cuenta de Corazón Salud',
+        message: 'Confirma tu correo.', actionLabel: 'Confirmar mi cuenta',
+        actionUrl: 'https://ruedelunbtaomhrzgelc.supabase.co/auth/v1/verify?token=secret' } },
+    { provider: { emails: { send } }, env })
+    expect(result.status).toBe('SENT')
+    expect(send.mock.calls[0][0]).toMatchObject({ from: 'Corazón Salud <notifications@stratixsolutions.us>',
+      subject: 'Confirma tu cuenta de Corazón Salud' })
+  })
+
   it('uses the patient brand and a stable idempotency key for invoice mail', async () => {
     const send = vi.fn().mockResolvedValue({ data: { id: 'message-1' }, error: null })
     const provider = { emails: { send } }
