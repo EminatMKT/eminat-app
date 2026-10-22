@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { nativeSalesErrorResponse, resolveSalesActor } from '@/server/sales-native/auth'
 import { nativeSalesDatabaseError } from '@/server/sales-native/errors'
+import { withAssignmentLabels } from '@/server/sales-native/assignment-labels'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 
 export const dynamic = 'force-dynamic'
@@ -49,7 +50,8 @@ export async function GET(request: Request) {
       p_registered_to: value.to || null,
     })
     if (error) return nativeSalesDatabaseError(error)
-    return Response.json({ data: data ?? [], nextOffset: (data?.length ?? 0) === value.limit
+    const visibleRows = await withAssignmentLabels(actor.organizationId, data ?? [])
+    return Response.json({ data: visibleRows, nextOffset: visibleRows.length === value.limit
       ? value.offset + value.limit : null }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) { return nativeSalesErrorResponse(error) }
 }

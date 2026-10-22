@@ -202,9 +202,14 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
     return () => { cancelled = true }
   }, [access?.allowed, tab, query, demo, leadView, offset, refresh, reportFrom, reportTo, request])
 
-  const userName = useCallback((id: unknown) => directory.users.find(user => user.memberId === id)?.displayName ||
-    directory.historicalUsers.find(user => user.memberId === id)?.displayName || 'Unassigned',
+  const userName = useCallback((id: unknown) => !id ? 'Unassigned' : directory.users.find(user => user.memberId === id)?.displayName ||
+    directory.historicalUsers.find(user => user.memberId === id)?.displayName || 'Assigned owner',
     [directory.users, directory.historicalUsers])
+  const ownerLabel = useCallback((row: Row) =>
+    row.source === 'Patient Portal' && row.sellerAssignmentStatus === 'NEEDS_ASSIGNMENT'
+      ? 'Unassigned'
+      : string(row.assignedSellerName) || string(row.ownerDisplayName) ||
+        userName(row.owner_member_id || row.seller_member_id), [userName])
   const teamName = useCallback((id: unknown) => directory.teams.find(team => team.id === id)?.name || '', [directory.teams])
   const stageName = useCallback((id: unknown) => directory.stages.find(stage => stage.id === id)?.name || '', [directory.stages])
   const openMembershipPdf = useCallback(async (row: Row, download: boolean) => {
@@ -350,7 +355,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
                 draggable={access.capabilities.canWrite}
                 onDragStart={() => setDraggedOpportunityId(row.id)} onDragEnd={() => setDraggedOpportunityId('')}
                 onClick={() => { setPipelineStage(''); setSelected(row) }}>
-                <strong>{title(row)}</strong><span>{userName(row.owner_member_id)}</span>
+                <strong>{title(row)}</strong><span>{ownerLabel(row)}</span>
                 <small>{string(row.currency)} {row.amount === null ? '—' : String(row.amount ?? '—')}</small>
               </button>)}
             </section>)}
@@ -394,7 +399,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
               tab==='memberships' ? `${string(row.plan)} · ${string(row.duration)}` :
               string(row.status) || string(row.type) || string(row.source)}</small></span>
             <span className={s.meta}>{tab==='activities' ? date(row.due_at) :
-              tab==='memberships' ? string(row.effectiveStatus) : userName(row.owner_member_id)}</span>
+              tab==='memberships' ? string(row.effectiveStatus) : ownerLabel(row)}</span>
             </button></div>)}</div> : <p className={s.empty}>{t('salesNative.noRecordsInThisView')}</p>}
           <div className={s.pager}><button type="button" disabled={offset===0} onClick={() => {setSelectedLeadIds([]);setOffset(Math.max(0,offset-25))}}>{t('salesNative.previous')}</button>
             <span>Page {Math.floor(offset/25)+1}</span><button type="button" disabled={nextOffset===null} onClick={() => {setSelectedLeadIds([]);setOffset(nextOffset ?? offset)}}>{t('salesNative.next')}</button></div>
@@ -411,7 +416,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
           <section className={s.detail} role="dialog" aria-modal="true" aria-label={title(selected)}>
             <div className={s.detailHeader}><h2>{title(selected)}</h2><button type="button" onClick={() => {setSelected(null);setPipelineStage('')}} aria-label={t('salesNative.closeDetails')}>×</button></div>
             <dl><dt>{t('salesNative.status')}</dt><dd>{string(selected.effectiveStatus) || string(selected.status) || stageName(selected.stage_id) || '—'}</dd>
-              <dt>{t('salesNative.owner')}</dt><dd>{userName(selected.owner_member_id || selected.seller_member_id)}</dd>
+              <dt>{t('salesNative.owner')}</dt><dd>{ownerLabel(selected)}</dd>
               <dt>{t('salesNative.team')}</dt><dd>{teamName(selected.team_id) || '—'}</dd>
               <dt>{t('salesNative.created')}</dt><dd>{date(selected.created_at) || '—'}</dd>
               {selected.email && <><dt>{t('salesNative.email')}</dt><dd>{string(selected.email)}</dd></>}

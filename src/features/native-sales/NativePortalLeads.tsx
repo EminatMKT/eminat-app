@@ -7,6 +7,7 @@ type PortalLead = {
   id: string; displayName: string; email: string | null; phone: string | null
   registeredAt: string; profileComplete: boolean; source: string
   ownerMemberId: string | null; assignmentStatus: string; assignmentAt: string | null
+  assignedSellerName: string | null
   assignmentSource: string; leadStatus: string; plan: string | null
   membershipType: string | null; modality: string | null; amountCents: number | null
   intentStatus: string | null; opportunityId: string | null; opportunityStage: string | null
@@ -52,9 +53,9 @@ export default function NativePortalLeads({ request, users, onOpenLead }: {
   const change = (key: keyof Filters, entry: string) => {
     setFilters(current => ({ ...current, [key]: entry })); setOffset(0); setSelected(null)
   }
-  const userName = (id: string | null) => id
-    ? users.find(user => user.memberId === id)?.displayName || 'Assigned seller'
-    : 'Needs assignment'
+  const userName = (row: PortalLead) => row.assignmentStatus === 'NEEDS_ASSIGNMENT'
+    ? 'Unassigned'
+    : row.assignedSellerName || users.find(user => user.memberId === row.ownerMemberId)?.displayName || 'Assigned seller'
   return <>
     <section className={s.panel}>
       <h2>Patient Portal leads</h2>
@@ -100,7 +101,7 @@ export default function NativePortalLeads({ request, users, onOpenLead }: {
       {rows.length ? <div className={s.list}>{rows.map(row =>
         <button key={row.id} type="button" className={s.item} onClick={() => setSelected(row)}>
           <span><strong>{row.displayName}</strong><small>{row.email || 'No email'} · {row.commercialStatus.replaceAll('_',' ')}</small></span>
-          <span className={s.meta}>{userName(row.ownerMemberId)} · {date(row.registeredAt)}</span>
+          <span className={s.meta}>{userName(row)} · {date(row.registeredAt)}</span>
         </button>)}</div> : <p className={s.empty}>No Portal leads match these filters.</p>}
       <div className={s.pager}>
         <button type="button" disabled={offset===0} onClick={() => setOffset(Math.max(0,offset-25))}>Previous</button>
@@ -117,7 +118,7 @@ export default function NativePortalLeads({ request, users, onOpenLead }: {
         <dt>Source / registered</dt><dd>{selected.source} · {date(selected.registeredAt)}</dd>
         <dt>Contact</dt><dd>{value(selected.email)} · {value(selected.phone)}</dd>
         <dt>Profile</dt><dd>{selected.profileComplete ? 'Complete' : 'Incomplete'}</dd>
-        <dt>Seller / assignment</dt><dd>{userName(selected.ownerMemberId)} · {selected.assignmentStatus} · {date(selected.assignmentAt)}</dd>
+        <dt>Seller / assignment</dt><dd>{userName(selected)} · {selected.assignmentStatus} · {date(selected.assignmentAt)}</dd>
         <dt>Rule</dt><dd>{selected.assignmentSource.replaceAll('_',' ')}</dd>
         <dt>Lead / commercial</dt><dd>{selected.leadStatus} · {selected.commercialStatus.replaceAll('_',' ')}</dd>
         <dt>Selection</dt><dd>{value(selected.plan)} · {value(selected.membershipType)} · {value(selected.modality)}</dd>
