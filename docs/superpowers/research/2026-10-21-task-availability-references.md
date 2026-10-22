@@ -1,9 +1,10 @@
 # Tasks Weekly Availability — UI Reference Brief
 
-> Mobbin MCP was unavailable in this session (no Pro plan, and the Claude in Chrome extension
-> did not connect after three attempts). Per explicit direction from the project owner, this
-> brief substitutes public WebSearch results for Mobbin captures. None of the links below are
-> Mobbin URLs; each entry names its real source instead.
+> Mobbin MCP itself was never available in this session (no Pro plan). The first pass used
+> WebSearch as a substitute. Once the Claude in Chrome extension connected, Mobbin was browsed
+> directly as a logged-in site instead of through its MCP tools, and one direct Mobbin capture
+> was added below. A short shadcn/ui component check was added at the end per the same
+> follow-up request.
 
 ## Delivery 1 constraints
 
@@ -40,19 +41,29 @@
 - Accessibility concern to verify independently: toggle and per-range controls need distinct
   accessible names per day (e.g. "Remove Monday range 2"), not just icon buttons.
 
-### Zencal — recurring availability settings
+### Workable — "Create a work schedule" (direct Mobbin capture)
 
-- URL: https://zencal.io/help/recurring-availability
-- Platform and captured state: scheduling SaaS, help-center walkthrough.
-- Visible pattern: multiple independent time slots per day (e.g. 9:00–12:00 and 14:00–17:00)
-  added with a simple "+" control, each slot edited independently.
-- Why it helps: confirms the multi-range-per-day model is an established pattern in real
-  scheduling products, not a novel UI shape to invent from scratch.
-- What to adopt conceptually: one lightweight "add range" affordance per day, no modal.
-- What to reject or avoid: Zencal frames slots as bookable windows for others; this plan's
-  ranges are self-declared availability only — no booking semantics should leak into copy.
-- Accessibility concern to verify independently: each added slot's start/end inputs need
-  their own label pair, not a shared label for the whole day.
+- Mobbin URL: https://mobbin.com/screens/52f47ca0-63ad-4252-81da-1701bd0fa6ea
+- Platform and captured state: Workable (HR/ATS product), desktop web, "Creating a work
+  schedule" flow, captured live via Mobbin.
+- Visible pattern: a weekday chip row (Mo–Su) at the top, then one expandable section per
+  day; each expanded day shows a "Working hours" row with start/end fields, an "Add new" link
+  to append a second range on the same day, a "Copy to all" shortcut, an optional work-breaks
+  toggle, and a per-day "Total working hours: 08:00" footer line.
+- Why it helps: it is the closest direct structural match found for the whole Delivery 1
+  editor — per-day range list with its own add control and a per-day declared-hours total —
+  confirming the plan's shape against a shipped product rather than an open-source component
+  alone.
+- What to adopt conceptually: the per-day "Add new" range link; the per-day declared-hours
+  total line directly under that day's ranges (this plan computes it from
+  `declaredHoursByDay`, not a stored field).
+- What to reject or avoid: the top weekday chip row that hides/collapses a day's ranges
+  (Delivery 1 always shows all seven days so an empty day is visibly "no ranges," not
+  collapsed away) and the "Copy to all" shortcut and work-breaks toggle (out of Delivery 1
+  scope).
+- Accessibility concern to verify independently: in Workable's capture, "Add new" and "Total
+  working hours" read ambiguously outside their day's heading context; this plan's accessible
+  names must name the day explicitly (e.g. "Add Monday range"), as the plan already specifies.
 
 ### Bayzat — split-shift scheduling
 
@@ -108,8 +119,11 @@
 ## Patterns worth adapting
 
 - Day-row holds an independent list of ranges, each with its own add/remove control
-  (21st.dev, Zencal, Bayzat).
-- A visible, explicit "add another range" action per day, not an edge-case-only path (Bayzat).
+  (21st.dev, Workable, Bayzat).
+- A visible, explicit "add another range" action per day, not an edge-case-only path
+  (Workable, Bayzat).
+- A per-day declared-hours total rendered directly under that day's ranges (Workable) — this
+  plan computes it with `declaredHoursByDay`/`compareDailyHours` rather than storing it.
 - A short textual declared-vs-expected comparison placed next to the schedule, not a chart
   (Toggl Plan).
 - An explicit caveat sentence when the data shown is partial, approximate, or could be
@@ -118,11 +132,11 @@
 ## Patterns explicitly rejected
 
 - Redundant per-day on/off toggle when an empty range list already means unavailable
-  (21st.dev).
+  (21st.dev, Workable's weekday chip row that collapses unselected days).
 - Hard caps on ranges per day and leave/day-off gating — no such concepts exist in Delivery 1
   (Bayzat).
-- Booking/reservation framing for ranges — these are self-declared, not bookable slots
-  (Zencal).
+- "Copy to all days" shortcuts and work-break modeling — out of Delivery 1 scope (Workable).
+- Booking/reservation framing for ranges — these are self-declared, not bookable slots.
 - Color-only status signaling for the daily comparison — status must be legible as text
   (Toggl Plan).
 - Time-zone grouping or conversion in the team view — single time zone assumed (Vodafone).
@@ -138,3 +152,22 @@
   required by the spec instead of a fabricated number.
 - Weekly declared hours stay informational text beside the per-day rows — no weekly summary
   bar, no percentage, no derived weekly target, matching the Scope Guard.
+
+## shadcn/ui component check
+
+Searched `ui.shadcn.com` directly (Components, Blocks, and the in-site docs search) for a
+ready-made scheduling/availability block.
+
+- No dedicated weekly-availability, scheduling, or roster block exists in shadcn/ui's own
+  Blocks library (checked the Featured/Sidebar/Login/Signup block categories) or docs search
+  (`availability` and `schedule` both return unrelated registry-infrastructure docs, not
+  component results).
+- Confirms this plan's own approach is correct: Task 5 composes the editor from native
+  `<input type="time">` and `<input type="text">` elements plus the project's existing shared
+  UI, not from a shadcn block — there is no block to reach for instead.
+- `Toggle Group` (`ui.shadcn.com/docs/components/toggle-group`) is the closest primitive to
+  Workable's weekday chip row, confirming that pattern is easy to build if ever wanted — but
+  it is already rejected above, so it is not needed for Delivery 1.
+- The 21st.dev "Weekly Availability Editor" referenced above is a third-party, shadcn-based
+  community component (not part of shadcn/ui's own registry) and requires a 21st.dev API key
+  to install; it was used here only as a structural reference, not as a dependency to add.
