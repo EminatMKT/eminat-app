@@ -24,7 +24,7 @@ export function patientEmailConfigured(env: Record<string, string | undefined> =
   const address = env.PATIENT_EMAIL_FROM_ADDRESS?.trim() ?? ''
   const outboxKey = env.PATIENT_EMAIL_OUTBOX_KEY ?? ''
   return /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(address) && Boolean(env.RESEND_API_KEY) &&
-    Buffer.from(outboxKey, 'base64').length === 32
+    /^[A-Za-z0-9+/]{43}=$/.test(outboxKey) && Buffer.from(outboxKey, 'base64').length === 32
 }
 
 export async function sendPatientEmail(args: PatientEmailRequest,

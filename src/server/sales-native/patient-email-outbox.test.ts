@@ -87,4 +87,10 @@ describe('patient email outbox', () => {
     expect(await queuePatientEmail(message)).toEqual({ status: 'NOT_CONFIGURED' })
     expect(mock.queueArgs).toHaveLength(0)
   })
+
+  it('rejects malformed base64 rather than accepting a loosely decoded key', async () => {
+    vi.stubEnv('PATIENT_EMAIL_OUTBOX_KEY', `${Buffer.alloc(32, 7).toString('base64')}!`)
+    expect(await queuePatientEmail(message)).toEqual({ status: 'NOT_CONFIGURED' })
+    expect(mock.queueArgs).toHaveLength(0)
+  })
 })

@@ -14,6 +14,7 @@ type OutboxRow = {
 
 function encryptionKey() {
   const encoded = process.env.PATIENT_EMAIL_OUTBOX_KEY ?? ''
+  if (!/^[A-Za-z0-9+/]{43}=$/.test(encoded)) return null
   const key = Buffer.from(encoded, 'base64')
   return key.length === 32 ? key : null
 }
