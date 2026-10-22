@@ -218,7 +218,7 @@ BEGIN
       mb.status AS membership_status,
       coalesce(family.draft_count,0) AS draft_dependants,
       activity.last_at,activity.last_title,
-      assignment.occurred_at AS assignment_at,
+      assignment.occurred_at AS assignment_at,assignment.action AS assignment_action,
       CASE WHEN owner_member.status='active' AND owner_member.role='SELLER'
         THEN 'ASSIGNED' ELSE 'NEEDS_ASSIGNMENT' END AS assignment_status,
       CASE WHEN mb.status='ACTIVE' THEN 'MEMBERSHIP_ACTIVE'
@@ -264,9 +264,9 @@ BEGIN
       ORDER BY a.created_at DESC,a.id DESC LIMIT 1
     ) activity ON true
     LEFT JOIN LATERAL (
-      SELECT h.occurred_at FROM public.sales_history h
+      SELECT h.occurred_at,h.action FROM public.sales_history h
       WHERE h.organization_id=l.organization_id AND h.entity_type='lead'
-        AND h.record_id=l.id AND h.action IN ('patient_portal_registered','reassign')
+        AND h.record_id=l.id AND h.action IN ('patient_portal_registered','owner.assigned')
       ORDER BY h.occurred_at DESC,h.id DESC LIMIT 1
     ) assignment ON true
     WHERE l.organization_id=p_organization_id AND l.archived_at IS NULL
@@ -292,7 +292,9 @@ BEGIN
     'assignmentStatus',s.assignment_status,'assignmentAt',
       CASE WHEN s.assignment_status='ASSIGNED' THEN s.assignment_at ELSE NULL END,
     'assignmentSource',CASE WHEN s.assignment_status='NEEDS_ASSIGNMENT'
-      THEN 'pending_manager_review' ELSE 'configured_sales_rule' END,
+      THEN 'pending_manager_review'
+      WHEN s.assignment_action='owner.assigned' THEN 'manager_assignment'
+      ELSE 'configured_sales_rule' END,
     'leadStatus',s.lead_status,'plan',s.plan,'membershipType',s.membership_type,
     'modality',s.duration,'amountCents',s.amount_cents,'intentStatus',s.intent_status,
     'opportunityId',s.opportunity_id,'opportunityStage',s.opportunity_stage,
