@@ -57,7 +57,7 @@ Every commit below is a reviewable work unit and keeps its tests with the behavi
 
 ### New files
 
-- `docs/superpowers/research/2026-10-21-task-availability-references.md` — bounded Mobbin reference review completed before UI implementation.
+- `docs/superpowers/ui-references/2026-10-21-task-availability-references.md` — bounded Mobbin reference review completed before UI implementation.
 - `supabase/migrations/20261021010000_task_weekly_availability.sql` — table, constraints, indexes, visibility helper, RLS policies, read RPC, and atomic replace-own RPC.
 - `e2e/task-availability-rls.spec.ts` — direct database authorization and constraint coverage.
 - `src/features/tasks/data/availability/types.ts` — transport contracts shared by the API and client.
@@ -105,7 +105,7 @@ Delete only symbols/files with no consumer outside the synthetic Availability pa
 ### Task 0: Review Real Scheduling Interfaces through Mobbin MCP
 
 **Files:**
-- Create: `docs/superpowers/research/2026-10-21-task-availability-references.md`
+- Create: `docs/superpowers/ui-references/2026-10-21-task-availability-references.md`
 - Read: `docs/superpowers/specs/2026-10-09-task-availability-design.md`
 - Read: `.interface-design/system.md` if it exists when implementation begins
 
@@ -158,7 +158,7 @@ A Mobbin example proves that a product used a pattern; it does not prove that th
 
 - [ ] **Step 4: Write the bounded reference brief**
 
-Create `docs/superpowers/research/2026-10-21-task-availability-references.md` with:
+Create `docs/superpowers/ui-references/2026-10-21-task-availability-references.md` with:
 
 ```markdown
 # Tasks Weekly Availability — UI Reference Brief
@@ -200,7 +200,7 @@ Keep the brief skimmable:
 - [ ] **Step 6: Commit the research work unit**
 
 ```bash
-git add docs/superpowers/research/2026-10-21-task-availability-references.md
+git add docs/superpowers/ui-references/2026-10-21-task-availability-references.md
 git commit -m "docs(tasks): capture availability UI references"
 ```
 
