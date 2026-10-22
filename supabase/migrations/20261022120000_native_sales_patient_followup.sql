@@ -312,6 +312,8 @@ BEGIN
       WHEN 'PAYMENT_REPORTED' THEN 'Await finance verification'
       WHEN 'INVOICE_ISSUED' THEN 'Follow up on unpaid invoice'
       WHEN 'INVOICE_PENDING' THEN 'Issue invoice and follow up on selection'
+      WHEN 'MEMBERSHIP_NOT_SELECTED' THEN coalesce(s.next_action,
+        'Contact patient about membership selection')
       ELSE s.next_action END,
     'nextFollowUpAt',s.next_follow_up_at,
     'lastActivityAt',s.last_at,'lastActivity',s.last_title)
