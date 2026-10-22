@@ -139,13 +139,14 @@ export async function disconnectQboConnection(request: Request): Promise<boolean
   const memberId = await qboManager(request)
   const { client,key } = configuration()
   const db = supabaseAdmin({ noStore: true })
-  const { data: connection, error: readError } = await db.from('sales_qbo_connections')
-    .select('realm_id,refresh_token_ciphertext,status')
-    .eq('organization_id',EMC_ORGANIZATION_ID).eq('environment','production').maybeSingle()
-  if (readError) throw new NativeSalesAuthError(503,'QBO_DISCONNECT_UNAVAILABLE')
-  if (!connection || connection.status === 'DISCONNECTED') return false
-  if (!connection.refresh_token_ciphertext)
-    throw new NativeSalesAuthError(503,'QBO_RECONNECT_REQUIRED')
+  const { data: held, error: holdError } = await db.rpc(
+    'native_sales_qbo_hold_for_revocation', {
+      p_organization_id: EMC_ORGANIZATION_ID,p_member_id: memberId,
+    })
+  if (holdError)
+    throw new NativeSalesAuthError(503,'QBO_DISCONNECT_UNAVAILABLE')
+  const connection = Array.isArray(held) ? held[0] : null
+  if (!connection) return false
   const refreshToken = openQboToken(connection.refresh_token_ciphertext,key,
     EMC_ORGANIZATION_ID,connection.realm_id,'refresh')
   try { await client.revoke(refreshToken) }

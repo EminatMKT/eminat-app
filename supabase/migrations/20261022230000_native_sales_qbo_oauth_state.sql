@@ -145,12 +145,57 @@ BEGIN
       AND status='CONNECTED' AND refresh_claim_id=p_claim_id
       AND refresh_claim_expires_at>now()
     RETURNING organization_id INTO v_id;
+  IF v_id IS NOT NULL THEN
+    INSERT INTO public.sales_history
+      (organization_id,entity_type,record_id,action,request_id,changes)
+    VALUES (v_id,'qbo_connection',v_id,'oauth_token_refreshed',
+      gen_random_uuid(),jsonb_build_object('environment','production'));
+  END IF;
   RETURN v_id IS NOT NULL;
 END;
 $$;
 REVOKE ALL ON FUNCTION public.native_sales_qbo_finish_refresh(uuid,uuid,text,text,timestamptz,timestamptz)
   FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.native_sales_qbo_finish_refresh(uuid,uuid,text,text,timestamptz,timestamptz)
+  TO service_role;
+
+-- Revoke the local API capability before asking Intuit to revoke the grant.
+-- Keep the refresh token sealed so a failed provider call can be retried.
+CREATE FUNCTION public.native_sales_qbo_hold_for_revocation(
+  p_organization_id uuid,p_member_id uuid
+) RETURNS TABLE(realm_id text,refresh_token_ciphertext text)
+LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+SET search_path=public,pg_temp AS $$
+DECLARE v_status text; v_claim_expires_at timestamptz;
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'SALES_SERVER_ONLY' USING ERRCODE='42501'; END IF;
+  SELECT c.realm_id,c.refresh_token_ciphertext,c.status,c.refresh_claim_expires_at
+    INTO realm_id,refresh_token_ciphertext,v_status,v_claim_expires_at
+    FROM public.sales_qbo_connections c
+    WHERE c.organization_id=p_organization_id AND c.environment='production'
+    FOR UPDATE;
+  IF NOT FOUND OR v_status='DISCONNECTED' THEN RETURN; END IF;
+  IF refresh_token_ciphertext IS NULL OR
+    (v_claim_expires_at IS NOT NULL AND v_claim_expires_at>now()) THEN
+    RAISE EXCEPTION 'QBO_REFRESH_BUSY' USING ERRCODE='55P03'; END IF;
+  IF v_status='CONNECTED' THEN
+    UPDATE public.sales_qbo_connections SET
+      status='RECONNECT_REQUIRED',access_token_ciphertext=NULL,access_expires_at=NULL,
+      refresh_claim_id=NULL,refresh_claim_expires_at=NULL,updated_at=now()
+      WHERE organization_id=p_organization_id AND environment='production';
+    INSERT INTO public.sales_history
+      (organization_id,entity_type,record_id,actor_member_id,action,request_id,changes)
+    VALUES (p_organization_id,'qbo_connection',p_organization_id,p_member_id,
+      'oauth_disconnect_requested',gen_random_uuid(),
+      jsonb_build_object('environment','production'));
+  END IF;
+  RETURN NEXT;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.native_sales_qbo_hold_for_revocation(uuid,uuid)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.native_sales_qbo_hold_for_revocation(uuid,uuid)
   TO service_role;
 
 CREATE FUNCTION public.native_sales_qbo_disconnect(
@@ -166,7 +211,7 @@ BEGIN
     access_expires_at=NULL,refresh_expires_at=NULL,refresh_claim_id=NULL,
     refresh_claim_expires_at=NULL,updated_at=now()
     WHERE organization_id=p_organization_id AND environment='production'
-      AND status<>'DISCONNECTED'
+      AND status='RECONNECT_REQUIRED'
     RETURNING realm_id INTO v_realm_id;
   IF v_realm_id IS NULL THEN RETURN false; END IF;
   INSERT INTO public.sales_history
