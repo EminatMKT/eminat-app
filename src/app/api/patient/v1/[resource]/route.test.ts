@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, createHmac } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const fixtures = vi.hoisted(() => {
@@ -6,7 +6,12 @@ const fixtures = vi.hoisted(() => {
   process.env.PATIENT_SALES_OWNER_MEMBER_ID = '88888888-8888-4888-8888-888888888888'
   return { queries: [] as Array<{ table: string; filters: Record<string, unknown>; update?: Record<string, unknown> }>,
     rpcCalls: [] as Array<{ name: string; args: Record<string, unknown> }>, synthetic: false,
-    draftsEnabled: false }
+    draftsEnabled: false, emailConfigured: true, registrationAdmitted: true,
+    canRecoverRegistration: false,
+    signupErrorCode: null as string | null,
+    signupLinks: [] as Array<{ type: string; email: string; password?: string; options: {
+      redirectTo: string; data?: { corazon_patient_signup: boolean } } }>,
+    verificationEmails: [] as Array<{ recipient: string; actionUrl: string }> }
 })
 
 const patients = [
@@ -29,9 +34,19 @@ vi.mock('@/shared/db/supabaseAdmin', () => ({
   supabaseAdmin: () => ({
     rpc: async (name: string, args: Record<string, unknown>) => {
       fixtures.rpcCalls.push({ name, args })
+      if (name === 'native_sales_patient_registration_admit')
+        return { data: fixtures.registrationAdmitted, error: null }
+      if (name === 'native_sales_patient_registration_can_recover')
+        return { data: fixtures.canRecoverRegistration, error: null }
       return { data: { status: 'CHANGE_REQUESTED' }, error: null }
     },
-    auth: { admin: { getUserById: async (id: string) => ({ data: { user: {
+    auth: { admin: { generateLink: async (args: { type: string; email: string; password?: string; options: {
+      redirectTo: string; data?: { corazon_patient_signup: boolean } } }) => {
+      fixtures.signupLinks.push(args)
+      if (fixtures.signupErrorCode && args.type === 'signup') return { data: { properties: null },
+        error: { code: fixtures.signupErrorCode } }
+      return { data: { properties: { action_link: 'https://ruedelunbtaomhrzgelc.supabase.co/auth/v1/verify?token=secret' } }, error: null }
+    }, getUserById: async (id: string) => ({ data: { user: {
       email: patients.find(patient => patient.authId === id)?.email,
       email_confirmed_at: '2026-10-20T00:00:00.000Z',
     } }, error: null }) } },
@@ -86,12 +101,87 @@ vi.mock('@/shared/db/supabaseAdmin', () => ({
 
 vi.mock('@/shared/db/env.client', () => ({ clientEnv: { NEXT_PUBLIC_SUPABASE_URL: 'https://example.test', NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'test' } }))
 vi.mock('@/shared/db/noStoreFetch', () => ({ noStoreFetch: fetch }))
+vi.mock('@/server/sales-native/patient-email-delivery', () => ({
+  patientEmailConfigured: () => fixtures.emailConfigured,
+  sendPatientVerification: async (_eventId: string, recipient: string, actionUrl: string) => {
+    fixtures.verificationEmails.push({ recipient, actionUrl })
+    return { status: 'SENT' }
+  },
+  sendPatientWelcome: async () => ({ status: 'SENT' }),
+}))
 
 import { GET, PATCH, POST } from './route'
 
 describe('patient API isolation', () => {
   beforeEach(() => { fixtures.queries.length = 0; fixtures.rpcCalls.length = 0;
-    fixtures.synthetic = false; fixtures.draftsEnabled = false })
+    vi.stubEnv('PATIENT_EMAIL_OUTBOX_KEY', Buffer.alloc(32, 7).toString('base64'))
+    fixtures.synthetic = false; fixtures.draftsEnabled = false;
+    fixtures.emailConfigured = true; fixtures.registrationAdmitted = true;
+    fixtures.canRecoverRegistration = false; fixtures.signupErrorCode = null;
+    fixtures.signupLinks.length = 0; fixtures.verificationEmails.length = 0 })
+
+  it('generates a patient-only confirmation link and sends it with the patient brand', async () => {
+    const response = await POST(new Request('https://app.test/api/patient/v1/register', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'patient@example.test', password: 'an-owner-entered-password' }),
+    }), { params: Promise.resolve({ resource: 'register' }) })
+    expect(response.status).toBe(202)
+    expect(fixtures.signupLinks).toEqual([{ type: 'signup', email: 'patient@example.test',
+      password: 'an-owner-entered-password', options: {
+        redirectTo: 'https://portal.corazonsalud.health/login',
+        data: { corazon_patient_signup: true },
+      } }])
+    expect(fixtures.verificationEmails).toEqual([{ recipient: 'patient@example.test',
+      actionUrl: 'https://ruedelunbtaomhrzgelc.supabase.co/auth/v1/verify?token=secret' }])
+    expect(fixtures.rpcCalls[0]).toMatchObject({ name: 'native_sales_patient_registration_admit',
+      args: { p_email_digest: createHmac('sha256', Buffer.alloc(32, 7))
+        .update('patient@example.test').digest('hex'),
+        p_ip_digest: null } })
+  })
+
+  it('rejects a limited signup before creating an Auth account or sending mail', async () => {
+    fixtures.registrationAdmitted = false
+    const response = await POST(new Request('https://app.test/api/patient/v1/register', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'patient@example.test', password: 'an-owner-entered-password' }),
+    }), { params: Promise.resolve({ resource: 'register' }) })
+    expect(response.status).toBe(429)
+    expect(fixtures.signupLinks).toHaveLength(0)
+    expect(fixtures.verificationEmails).toHaveLength(0)
+  })
+
+  it('does not disclose an existing account or send another confirmation', async () => {
+    fixtures.signupErrorCode = 'user_already_exists'
+    const response = await POST(new Request('https://app.test/api/patient/v1/register', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'patient@example.test', password: 'an-owner-entered-password' }),
+    }), { params: Promise.resolve({ resource: 'register' }) })
+    expect(response.status).toBe(202)
+    expect(await response.json()).toEqual({ status: 'CHECK_EMAIL' })
+    expect(fixtures.verificationEmails).toHaveLength(0)
+  })
+
+  it('recovers only an existing unconfirmed Portal account with a branded link', async () => {
+    fixtures.signupErrorCode = 'user_already_exists'
+    fixtures.canRecoverRegistration = true
+    const response = await POST(new Request('https://app.test/api/patient/v1/register', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'patient@example.test', password: 'an-owner-entered-password' }),
+    }), { params: Promise.resolve({ resource: 'register' }) })
+    expect(response.status).toBe(202)
+    expect(fixtures.signupLinks.map(link => link.type)).toEqual(['signup', 'magiclink'])
+    expect(fixtures.verificationEmails).toHaveLength(1)
+  })
+
+  it('does not create an Auth account when the patient sender is unavailable', async () => {
+    fixtures.emailConfigured = false
+    const response = await POST(new Request('https://app.test/api/patient/v1/register', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'patient@example.test', password: 'an-owner-entered-password' }),
+    }), { params: Promise.resolve({ resource: 'register' }) })
+    expect(response.status).toBe(503)
+    expect(fixtures.signupLinks).toHaveLength(0)
+  })
 
   it('requires a patient session for profile reads', async () => {
     const response = await GET(new Request('https://app.test/api/patient/v1/profile'), { params: Promise.resolve({ resource: 'profile' }) })

@@ -1,10 +1,11 @@
-import { randomBytes, createHash } from 'node:crypto'
+import { randomBytes, createHash, createHmac } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { clientEnv } from '@/shared/db/env.client'
 import { noStoreFetch } from '@/shared/db/noStoreFetch'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { membershipTypes, plans, saleDurations } from '@/server/sales-native/pricing'
 import { createMembershipPdf } from '@/server/sales-native/membership-pdf'
+import { patientEmailConfigured, sendPatientVerification, sendPatientWelcome } from '@/server/sales-native/patient-email-delivery'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -34,6 +35,8 @@ const respond = (body: unknown, status = 200) => Response.json(body, { status, h
 const invalid = () => respond({ code: 'INVALID_REQUEST' }, 422)
 const unavailable = () => respond({ code: 'PATIENT_API_UNAVAILABLE' }, 503)
 const hash = (value: string) => createHash('sha256').update(value).digest('hex')
+const registrationDigest = (value: string) => createHmac('sha256',
+  Buffer.from(process.env.PATIENT_EMAIL_OUTBOX_KEY ?? '', 'base64')).update(value).digest('hex')
 const authClient = () => createClient(clientEnv.NEXT_PUBLIC_SUPABASE_URL, clientEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false }, global: { fetch: noStoreFetch },
 })
@@ -295,11 +298,46 @@ export async function POST(request: Request, { params }: Route) {
     if (!emailPattern.test(email) || email.length > 320 || password.length < 12 || password.length > 128)
       return invalid()
     if (resource === 'register') {
-      if (!scope()) return unavailable()
-      const { error } = await authClient().auth.signUp({ email, password, options: {
-        emailRedirectTo: 'https://portal.corazonsalud.health/login',
-      } })
-      return error ? respond({ code: 'REGISTRATION_UNAVAILABLE' }, 503) : respond({ status: 'CHECK_EMAIL' }, 202)
+      if (!scope() || !patientEmailConfigured()) return unavailable()
+      const sourceAddress = process.env.VERCEL === '1'
+        ? request.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim() : null
+      const { data: admitted, error: admissionError } = await supabaseAdmin({ noStore: true })
+        .rpc('native_sales_patient_registration_admit', {
+          p_email_digest: registrationDigest(email),
+          p_ip_digest: sourceAddress ? registrationDigest(sourceAddress) : null,
+        })
+      if (admissionError) return unavailable()
+      if (!admitted) return respond({ code: 'REGISTRATION_RATE_LIMITED' }, 429)
+      // Supabase Auth is shared with LILLY staff. Generate only the Patient Portal's
+      // verification link here so the global Auth sender and templates stay unchanged.
+      const { data, error } = await supabaseAdmin({ noStore: true }).auth.admin.generateLink({
+        type: 'signup', email, password, options: {
+          redirectTo: 'https://portal.corazonsalud.health/login',
+          data: { corazon_patient_signup: true },
+        },
+      })
+      // Do not disclose whether a confirmed account already owns the address.
+      // A repeated request must not create another Auth identity or CRM contact.
+      if (error?.code === 'user_already_exists') {
+        const admin = supabaseAdmin({ noStore: true })
+        const { data: canRecover, error: recoveryError } = await admin
+          .rpc('native_sales_patient_registration_can_recover', { p_email: email })
+        if (!recoveryError && canRecover) {
+          const { data: recovery, error: linkError } = await admin.auth.admin.generateLink({
+            type: 'magiclink', email,
+            options: { redirectTo: 'https://portal.corazonsalud.health/login' },
+          })
+          if (!linkError && recovery?.properties?.action_link)
+            await sendPatientVerification(randomBytes(16).toString('hex'), email,
+              recovery.properties.action_link)
+        }
+        return respond({ status: 'CHECK_EMAIL' }, 202)
+      }
+      if (error || !data.properties?.action_link) return respond({ code: 'REGISTRATION_UNAVAILABLE' }, 503)
+      const sent = await sendPatientVerification(randomBytes(16).toString('hex'), email, data.properties.action_link)
+      return ['SENT', 'QUEUED', 'RETRY', 'UNKNOWN'].includes(sent.status)
+        ? respond({ status: 'CHECK_EMAIL' }, 202)
+        : respond({ code: 'REGISTRATION_UNAVAILABLE' }, 503)
     }
     const { data, error } = await authClient().auth.signInWithPassword({ email, password })
     if (error || !data.user || !data.user.email_confirmed_at) return respond({ code: 'INVALID_CREDENTIALS' }, 401)
@@ -312,7 +350,9 @@ export async function POST(request: Request, { params }: Route) {
     const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString()
     const { error: sessionError } = await admin.from('sales_patient_sessions')
       .insert({ handle_hash: hash(handle), auth_id: data.user.id, expires_at: expiresAt })
-    return sessionError ? unavailable() : respond({ sessionHandle: handle, expiresAt })
+    if (sessionError) return unavailable()
+    await sendPatientWelcome(data.user.id, email)
+    return respond({ sessionHandle: handle, expiresAt })
   }
   const patient = await authenticate(request)
   if (!patient) return respond({ code: 'AUTHENTICATION_REQUIRED' }, 401)
@@ -338,7 +378,8 @@ export async function POST(request: Request, { params }: Route) {
     })
     if (error?.message.includes('PATIENT_CONTACT_REVIEW_REQUIRED'))
       return respond({ code: 'OWNER_REVIEW_REQUIRED' }, 409)
-    return error ? unavailable() : respond({ contactId: data }, 201)
+    if (error) return unavailable()
+    return respond({ contactId: data }, 201)
   }
   if (resource === 'enrollment') {
     if (!patient.identity) return respond({ code: 'PROFILE_REQUIRED' }, 409)

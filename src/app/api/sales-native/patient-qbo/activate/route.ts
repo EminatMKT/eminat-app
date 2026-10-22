@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { patientQboActor } from '@/server/sales-native/patient-qbo-auth'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { nativeSalesDatabaseError } from '@/server/sales-native/errors'
+import { sendPatientActivation } from '@/server/sales-native/patient-email-delivery'
 
 export const dynamic = 'force-dynamic'
 const EMC = '9efab353-46a0-43d1-9901-e3f185dc5d30'
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
   if (identityError || !identity?.contact_id)
     return Response.json({ code: 'CONTACT_NOT_FOUND' }, { status: 404, headers: noStore })
   const { data: contact, error: contactError } = await db.from('sales_contacts')
-    .select('id,first_name,last_name,email').eq('organization_id',EMC)
+    .select('id,first_name,last_name,email,do_not_email').eq('organization_id',EMC)
     .eq('id',identity.contact_id).is('archived_at',null).maybeSingle()
   if (contactError || !contact?.first_name || !contact.last_name || !contact.email)
     return Response.json({ code: 'CONTACT_INCOMPLETE' }, { status: 422, headers: noStore })
@@ -67,5 +68,12 @@ export async function POST(request: Request) {
     p_payload_hash:hash,p_request_id:randomUUID(),
   })
   if (error) return nativeSalesDatabaseError(error)
-  return Response.json({ data }, { status: 201, headers: noStore })
+  let emailDelivery: string | null = null
+  if (!evidence.qa_synthetic && !contact.do_not_email) {
+    const { data: activated } = await db.from('sales_patient_enrollment_intents')
+      .select('membership_id').eq('organization_id', EMC).eq('id', intentId).maybeSingle()
+    if (activated?.membership_id)
+      emailDelivery = (await sendPatientActivation(activated.membership_id, contact.email, contact.first_name)).status
+  }
+  return Response.json({ data, emailDelivery }, { status: 201, headers: noStore })
 }
