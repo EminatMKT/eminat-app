@@ -48,16 +48,15 @@ jobs:
   e2e-shard:
     name: e2e (${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
-    # 4 shards para 27 spec files: Playwright reparte por archivo con --shard y cada shard
-    # levanta su propia Supabase local, así no compartimos DB entre runners. La corrida completa
-    # tardó ~5.7 min en serie; 12 min por shard deja margen para install/start sin volver al
-    # default de GitHub de 6 HORAS bloqueando el merge si algo se cuelga.
-    timeout-minutes: 12
+    # Un solo runner ejecuta todos los specs y levanta Supabase una vez. Cuatro runners
+    # descargaban la misma pila en paralelo y el registry rechazaba las imágenes antes
+    # de iniciar las pruebas. --shard=1/1 conserva todos los checks de schema y E2E.
+    timeout-minutes: 18
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
-        total: [4]
+        shard: [1]
+        total: [1]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -76,7 +75,30 @@ jobs:
           duplicates=$(find supabase/migrations -maxdepth 1 -name '*.sql' -printf '%f\n' | cut -d_ -f1 | sort | uniq -d)
           test -z "$duplicates" || { echo "Duplicate migration versions: $duplicates"; exit 1; }
       # `supabase start` levanta Postgres+Auth+REST locales y aplica supabase/migrations.
-      - run: supabase start
+      # El espejo oficial de Supabase evita el límite de GHCR en el runner compartido.
+      # Reintentar solo cuando el registro limita la descarga. Los errores de migración o de
+      # arranque reales fallan inmediatamente y nunca se omiten los checks siguientes.
+      - name: Start local Supabase
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: docker.io
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if supabase start > /tmp/supabase-start.log 2>&1; then
+              echo 'Local Supabase started'
+              exit 0
+            fi
+            if ! grep -qi 'toomanyrequests' /tmp/supabase-start.log; then
+              cat /tmp/supabase-start.log
+              exit 1
+            fi
+            if [ "$attempt" = 3 ]; then
+              cat /tmp/supabase-start.log
+              exit 1
+            fi
+            echo "Registry throttled Supabase image pull (attempt $attempt); waiting 60 seconds"
+            sleep 60
+          done
       - name: Assert ANNIE Sales mappings start empty and browser roles cannot edit them
         run: |
           set -euo pipefail

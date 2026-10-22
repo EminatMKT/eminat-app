@@ -1,5 +1,6 @@
 import { nativeSalesErrorResponse, resolveSalesActor } from '@/server/sales-native/auth'
 import { nativeSalesDatabaseError } from '@/server/sales-native/errors'
+import { withAssignmentLabels } from '@/server/sales-native/assignment-labels'
 import { isLeadStatus } from '@/server/sales-native/lead-lifecycle'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 
@@ -38,7 +39,8 @@ export async function GET(request: Request) {
       p_status: status,
     })
     if (error) return nativeSalesDatabaseError(error)
-    return Response.json({ data: data ?? [], nextOffset: (data?.length ?? 0) === limit ? offset + limit : null },
+    const visibleRows = await withAssignmentLabels(actor.organizationId, data ?? [])
+    return Response.json({ data: visibleRows, nextOffset: visibleRows.length === limit ? offset + limit : null },
       { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) { return nativeSalesErrorResponse(error) }
 }
