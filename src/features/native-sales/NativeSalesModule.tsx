@@ -15,12 +15,13 @@ import NativeSocialStatus from './NativeSocialStatus'
 import NativeSocialInbox from './NativeSocialInbox'
 import NativeReportPdf from './NativeReportPdf'
 import NativePaymentsRenewals from './NativePaymentsRenewals'
+import NativePortalLeads from './NativePortalLeads'
 import { leadTransitions } from '@/server/sales-native/lead-lifecycle'
 import { serializeLeadsPage } from './lead-export'
 import { useT, type I18nKey } from '@/shared/i18n'
 import s from './NativeSalesModule.module.css'
 
-type Tab = 'dashboard' | 'leads' | 'contacts' | 'accounts' | 'opportunities' |
+type Tab = 'dashboard' | 'leads' | 'portal-leads' | 'contacts' | 'accounts' | 'opportunities' |
   'pipeline' | 'activities' | 'memberships' | 'reports' | 'payments' |
   'communications' | 'organization' | 'users' | 'social' | 'settings'
 type Access = { allowed: boolean; role: string; capabilities: { canWrite: boolean; canReassign: boolean; canConfigureReports:boolean } }
@@ -56,6 +57,7 @@ const todayUtc = () => new Date().toISOString().slice(0,10)
 const monthAgoUtc = () => { const day = new Date(); day.setUTCMonth(day.getUTCMonth()-1); return day.toISOString().slice(0,10) }
 const tabs: { key: Tab; labelKey?: I18nKey; label?: string }[] = [
   { key: 'dashboard', labelKey: 'salesNative.tabDashboard' }, { key: 'leads', labelKey: 'salesNative.tabLeads' },
+  { key: 'portal-leads', label: 'Portal leads' },
   { key: 'contacts', labelKey: 'salesNative.tabContacts' }, { key: 'accounts', labelKey: 'salesNative.tabAccounts' },
   { key: 'opportunities', labelKey: 'salesNative.tabOpportunities' }, { key: 'pipeline', labelKey: 'salesNative.tabPipeline' },
   { key: 'activities', labelKey: 'salesNative.tabActivities' }, { key: 'memberships', labelKey: 'salesNative.tabMemberships' },
@@ -320,6 +322,8 @@ export default function NativeSalesModule({ organizationId, initialUserId, profi
       </div>
       {!access?.allowed && !loading && <p role="alert" className={s.error}>{error || 'Sales access is unavailable.'}</p>}
       {access?.allowed && <>
+        {tab==='portal-leads' && <NativePortalLeads request={request} users={directory.users}
+          onOpenLead={email => { setTab('leads'); setQuery(email); setSelected(null) }} />}
         {importOpen && (tab==='leads' || tab==='contacts') &&
           <NativeSalesImport key={tab} resource={tab} organizationId={organizationId}
             onComplete={() => { setImportOpen(false); setRefresh(value => value + 1) }} />}
