@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
-import { sendPatientEmail } from './patient-email-delivery'
+const queued = vi.hoisted(() => vi.fn().mockResolvedValue({ status: 'SENT' }))
+vi.mock('./patient-email-outbox', () => ({ queuePatientEmail: queued }))
+import { sendPatientEmail, sendPatientInvoice } from './patient-email-delivery'
 
 const env = { PATIENT_EMAIL_FROM_ADDRESS: 'notifications@stratixsolutions.us' }
 
@@ -41,5 +43,21 @@ describe('Patient Portal transactional email', () => {
     { provider: { emails: { send } }, env: {} })
     expect(result.status).toBe('NOT_CONFIGURED')
     expect(send).not.toHaveBeenCalled()
+  })
+
+  it('puts canonical invoice details and the official patient payment action in mail', async () => {
+    queued.mockClear()
+    await sendPatientInvoice('11111111-1111-4111-8111-111111111111', 'patient@example.test', '1134', {
+      plan: 'ESSENTIAL', membershipType: 'FAMILY', duration: 'MONTHLY', amountCents: 19998,
+      hostedUrl: 'https://connect.intuit.com/t/controlled-invoice',
+    })
+    expect(queued).toHaveBeenCalledOnce()
+    const content = queued.mock.calls[0][0].content
+    expect(content.actionUrl).toBe('https://connect.intuit.com/t/controlled-invoice')
+    expect(content.actionLabel).toBe('Pagar con QuickBooks')
+    expect(content.details).toEqual(expect.arrayContaining([
+      { label: 'Plan', value: 'Essential' }, { label: 'Tipo', value: 'Familiar' },
+      { label: 'Modalidad', value: 'Mes a mes' }, { label: 'Importe inicial', value: '$199.98' },
+    ]))
   })
 })

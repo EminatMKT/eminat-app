@@ -20,7 +20,10 @@ export function renderPatientEmail(input: PatientEmail) {
   const message = escapeHtml(input.message)
   const actionLabel = escapeHtml(input.actionLabel)
   const actionUrl = new URL(input.actionUrl)
-  if (actionUrl.protocol !== 'https:' || !['portal.corazonsalud.health', 'ruedelunbtaomhrzgelc.supabase.co'].includes(actionUrl.hostname))
+  if (actionUrl.protocol !== 'https:' || actionUrl.username || actionUrl.password || !(
+    ['portal.corazonsalud.health', 'ruedelunbtaomhrzgelc.supabase.co'].includes(actionUrl.hostname) ||
+    (actionUrl.hostname === 'connect.intuit.com' && actionUrl.pathname.startsWith('/t/'))
+  ))
     throw new Error('PATIENT_EMAIL_LINK_INVALID')
   const rows = (input.details ?? []).map(({ label, value }) =>
     `<tr><td style="padding:7px 0;color:#59717b">${escapeHtml(label)}</td><td style="padding:7px 0;text-align:right;font-weight:700;color:#193b48">${escapeHtml(value)}</td></tr>`).join('')

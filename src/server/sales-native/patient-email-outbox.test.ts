@@ -5,6 +5,7 @@ const mock = vi.hoisted(() => ({
   queueArgs: [] as Array<Record<string, unknown>>,
   sends: [] as Array<Record<string, unknown>>,
   outcome: 'SENT' as 'SENT' | 'FAILED' | 'UNKNOWN',
+  outcomes: [] as Array<'SENT' | 'FAILED' | 'UNKNOWN'>,
 }))
 
 vi.mock('@/shared/db/supabaseAdmin', () => ({
@@ -40,7 +41,8 @@ vi.mock('@/shared/db/supabaseAdmin', () => ({
 vi.mock('./patient-email-delivery', () => ({
   sendPatientEmail: async (message: Record<string, unknown>) => {
     mock.sends.push(message)
-    return mock.outcome === 'SENT' ? { status: 'SENT', providerId: 'provider-1' } : { status: mock.outcome }
+    const outcome = mock.outcomes.shift() ?? mock.outcome
+    return outcome === 'SENT' ? { status: 'SENT', providerId: 'provider-1' } : { status: outcome }
   },
 }))
 
@@ -54,7 +56,7 @@ const message = { kind: 'verification' as const, eventId: 'verification-12345678
 
 describe('patient email outbox', () => {
   beforeEach(() => {
-    mock.rows.clear(); mock.queueArgs.length = 0; mock.sends.length = 0; mock.outcome = 'SENT'
+    mock.rows.clear(); mock.queueArgs.length = 0; mock.sends.length = 0; mock.outcome = 'SENT'; mock.outcomes.length = 0
     vi.stubEnv('PATIENT_EMAIL_OUTBOX_KEY', Buffer.alloc(32, 7).toString('base64'))
   })
 
@@ -76,10 +78,18 @@ describe('patient email outbox', () => {
     expect(mock.sends).toHaveLength(1)
   })
 
-  it('records a known provider rejection for later retry', async () => {
+  it('retries one known rejection immediately and keeps the outbox row', async () => {
     mock.outcome = 'FAILED'
     expect(await queuePatientEmail(message)).toEqual({ status: 'RETRY' })
-    expect(mock.sends).toHaveLength(1)
+    expect(mock.sends).toHaveLength(2)
+    expect(mock.rows.size).toBe(1)
+  })
+
+  it('sends successfully after one known rejection without creating another row', async () => {
+    mock.outcomes.push('FAILED', 'SENT')
+    expect(await queuePatientEmail(message)).toEqual({ status: 'SENT' })
+    expect(mock.sends).toHaveLength(2)
+    expect(mock.rows.size).toBe(1)
   })
 
   it('fails closed when its encryption key is missing', async () => {
