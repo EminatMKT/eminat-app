@@ -20,9 +20,9 @@ it('names the billing panel after the cobranzas module', () => {
 
 it('keeps all Native Sales sections in one secondary sidebar', () => {
   expect(NATIVE_SALES_ITEMS.map(item => item.tab)).toEqual([
-    'dashboard', 'leads', 'contacts', 'accounts', 'opportunities', 'pipeline',
+    'dashboard', 'leads', 'portal-leads', 'contacts', 'accounts', 'opportunities', 'pipeline',
     'activities', 'reports', 'memberships', 'payments', 'communications',
     'organization', 'users', 'social', 'settings',
   ])
-  expect(SUB_ITEMS.sales).toHaveLength(7)
+  expect(SUB_ITEMS.sales).toHaveLength(8)
 })
