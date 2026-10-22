@@ -4,6 +4,9 @@ import { Resend } from 'resend'
 import { renderPatientEmail, type PatientEmail } from './patient-email-template'
 
 type Kind = 'verification' | 'welcome' | 'invoice' | 'activation'
+export type PatientEmailRequest = {
+  kind: Kind; eventId: string; recipient: string; content: PatientEmail
+}
 type Provider = { emails: { send: (message: {
   from: string; to: string; subject: string; html: string; text: string
 }, options: { idempotencyKey: string }) => Promise<{
@@ -19,12 +22,13 @@ const subjects: Record<Kind, string> = {
 
 export function patientEmailConfigured(env: Record<string, string | undefined> = process.env) {
   const address = env.PATIENT_EMAIL_FROM_ADDRESS?.trim() ?? ''
-  return /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(address) && Boolean(env.RESEND_API_KEY)
+  const outboxKey = env.PATIENT_EMAIL_OUTBOX_KEY ?? ''
+  return /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(address) && Boolean(env.RESEND_API_KEY) &&
+    Buffer.from(outboxKey, 'base64').length === 32
 }
 
-export async function sendPatientEmail(args: {
-  kind: Kind; eventId: string; recipient: string; content: PatientEmail
-}, options: { provider?: Provider; env?: Record<string, string | undefined> } = {}) {
+export async function sendPatientEmail(args: PatientEmailRequest,
+  options: { provider?: Provider; env?: Record<string, string | undefined> } = {}) {
   const env = options.env ?? process.env
   const address = env.PATIENT_EMAIL_FROM_ADDRESS?.trim() ?? ''
   if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(address) ||
@@ -43,12 +47,15 @@ export async function sendPatientEmail(args: {
       ? { status: 'FAILED' as const }
       : { status: 'SENT' as const, providerId: result.data.id }
   } catch {
-    return { status: 'FAILED' as const }
+    // A network exception can occur after the provider accepted a message.
+    // Do not automatically resend an ambiguous outcome.
+    return { status: 'UNKNOWN' as const }
   }
 }
 
 export async function sendPatientWelcome(authId: string, recipient: string) {
-  return sendPatientEmail({ kind: 'welcome', eventId: authId, recipient, content: {
+  const { queuePatientEmail } = await import('./patient-email-outbox')
+  return queuePatientEmail({ kind: 'welcome', eventId: authId, recipient, content: {
     title: '¡Bienvenido a Corazón Salud!',
     message: 'Tu cuenta de Corazón Salud está lista. Completa tu perfil y elige la membresía que mejor se adapte a ti.',
     actionLabel: 'Ir a mi Portal', actionUrl: 'https://portal.corazonsalud.health/dashboard',
@@ -56,7 +63,8 @@ export async function sendPatientWelcome(authId: string, recipient: string) {
 }
 
 export async function sendPatientVerification(eventId: string, recipient: string, actionUrl: string) {
-  return sendPatientEmail({ kind: 'verification', eventId, recipient, content: {
+  const { queuePatientEmail } = await import('./patient-email-outbox')
+  return queuePatientEmail({ kind: 'verification', eventId, recipient, content: {
     title: 'Confirma tu cuenta de Corazón Salud',
     message: 'Confirma tu correo para entrar al Portal de Corazón Salud. Tu membresía todavía no está activa.',
     actionLabel: 'Confirmar mi cuenta', actionUrl,
@@ -65,7 +73,8 @@ export async function sendPatientVerification(eventId: string, recipient: string
 
 export async function sendPatientInvoice(intentId: string, recipient: string, invoiceNumber: string) {
   const eventId = createHash('sha256').update(`${intentId}\0${invoiceNumber}`).digest('hex')
-  return sendPatientEmail({ kind: 'invoice', eventId, recipient, content: {
+  const { queuePatientEmail } = await import('./patient-email-outbox')
+  return queuePatientEmail({ kind: 'invoice', eventId, recipient, content: {
     title: 'Tu factura está disponible',
     message: 'Tu selección de Corazón Salud sigue pendiente de pago. Puedes consultar la factura y abrir el pago seguro desde tu Portal.',
     actionLabel: 'Ver mi pago', actionUrl: 'https://portal.corazonsalud.health/pagos',
@@ -74,7 +83,8 @@ export async function sendPatientInvoice(intentId: string, recipient: string, in
 }
 
 export async function sendPatientActivation(membershipId: string, recipient: string, firstName: string) {
-  return sendPatientEmail({ kind: 'activation', eventId: membershipId, recipient, content: {
+  const { queuePatientEmail } = await import('./patient-email-outbox')
+  return queuePatientEmail({ kind: 'activation', eventId: membershipId, recipient, content: {
     title: `Tu membresía está activa, ${firstName}`,
     message: 'Ya puedes consultar los detalles de tu membresía Corazón Salud en el Portal.',
     actionLabel: 'Ver mi membresía', actionUrl: 'https://portal.corazonsalud.health/membresia',

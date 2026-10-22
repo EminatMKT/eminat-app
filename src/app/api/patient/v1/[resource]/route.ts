@@ -316,7 +316,8 @@ export async function POST(request: Request, { params }: Route) {
       if (error?.code === 'user_already_exists') return respond({ status: 'CHECK_EMAIL' }, 202)
       if (error || !data.properties?.action_link) return respond({ code: 'REGISTRATION_UNAVAILABLE' }, 503)
       const sent = await sendPatientVerification(randomBytes(16).toString('hex'), email, data.properties.action_link)
-      return sent.status === 'SENT' ? respond({ status: 'CHECK_EMAIL' }, 202)
+      return ['SENT', 'QUEUED', 'RETRY', 'UNKNOWN'].includes(sent.status)
+        ? respond({ status: 'CHECK_EMAIL' }, 202)
         : respond({ code: 'REGISTRATION_UNAVAILABLE' }, 503)
     }
     const { data, error } = await authClient().auth.signInWithPassword({ email, password })
