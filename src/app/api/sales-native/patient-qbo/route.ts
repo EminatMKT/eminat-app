@@ -117,6 +117,7 @@ export async function POST(request: Request) {
       p_payment_confirmed_at:p.paymentConfirmedAt ?? null,p_qa_synthetic:p.qaSynthetic,
     })
     if (error) return nativeSalesDatabaseError(error)
+    let emailDelivery: string | null = null
     if (p.action === 'RECORD_INVOICE' && p.invoiceNumber && p.hostedUrl && !p.qaSynthetic) {
       const db = supabaseAdmin({ noStore: true })
       const { data: intent } = await db.from('sales_patient_enrollment_intents')
@@ -128,10 +129,10 @@ export async function POST(request: Request) {
           const { data: contact } = await db.from('sales_contacts')
             .select('email,do_not_email').eq('organization_id', EMC).eq('id', identity.contact_id).maybeSingle()
           if (contact?.email && !contact.do_not_email)
-            await sendPatientInvoice(p.intentId, contact.email, p.invoiceNumber)
+            emailDelivery = (await sendPatientInvoice(p.intentId, contact.email, p.invoiceNumber)).status
         }
       }
     }
-    return Response.json({ data }, { headers: noStore })
+    return Response.json({ data, emailDelivery }, { headers: noStore })
   } catch (error) { return nativeSalesErrorResponse(error) }
 }

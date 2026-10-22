@@ -68,11 +68,12 @@ export async function POST(request: Request) {
     p_payload_hash:hash,p_request_id:randomUUID(),
   })
   if (error) return nativeSalesDatabaseError(error)
+  let emailDelivery: string | null = null
   if (!evidence.qa_synthetic && !contact.do_not_email) {
     const { data: activated } = await db.from('sales_patient_enrollment_intents')
       .select('membership_id').eq('organization_id', EMC).eq('id', intentId).maybeSingle()
     if (activated?.membership_id)
-      await sendPatientActivation(activated.membership_id, contact.email, contact.first_name)
+      emailDelivery = (await sendPatientActivation(activated.membership_id, contact.email, contact.first_name)).status
   }
-  return Response.json({ data }, { status: 201, headers: noStore })
+  return Response.json({ data, emailDelivery }, { status: 201, headers: noStore })
 }
