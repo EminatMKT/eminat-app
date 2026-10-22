@@ -1,4 +1,6 @@
 import { PDFDocument, type PDFFont, StandardFonts, rgb } from 'pdf-lib'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 
 export type MembershipPdfData = {
   code: string
@@ -10,6 +12,7 @@ export type MembershipPdfData = {
   issuedAt: string
   expiresAt: string
   status: string
+  qaSynthetic?: boolean
 }
 
 const navy = rgb(0.07, 0.16, 0.24)
@@ -41,13 +44,22 @@ export async function createMembershipPdf(data: MembershipPdfData): Promise<Uint
   const doc = await PDFDocument.create()
   const regular = await doc.embedFont(StandardFonts.Helvetica)
   const bold = await doc.embedFont(StandardFonts.HelveticaBold)
+  // These PNGs are lossless renders of the official SVG assets kept beside them.
+  const [corazonLogo, emcLogo] = await Promise.all([
+    doc.embedPng(await readFile(join(process.cwd(), 'public/brand/corazon-salud-white.png'))),
+    doc.embedPng(await readFile(join(process.cwd(), 'public/brand/emc_logo_white.png'))),
+  ])
   const page = doc.addPage([512,768])
   page.drawRectangle({ x:0,y:0,width:512,height:768,color:rgb(1,1,1) })
   page.drawRectangle({ x:0,y:652,width:512,height:116,color:coral })
-  page.drawText('CORAZÓN SALUD', { x:42,y:710,size:27,font:bold,color:rgb(1,1,1) })
-  page.drawText('PROGRAMA DE MEMBRESÍA', { x:43,y:684,size:11,font:regular,color:rgb(1,1,1) })
+  page.drawImage(corazonLogo, { x:42,y:686,width:200,height:72 })
+  page.drawText('PROGRAMA DE MEMBRESÍA', { x:43,y:667,size:10,font:regular,color:rgb(1,1,1) })
+  page.drawText('Una membresía de', { x:378,y:738,size:8,font:regular,color:rgb(1,1,1) })
+  page.drawImage(emcLogo, { x:384,y:694,width:86,height:35 })
   page.drawText('Corazón Salud es un programa de Eminat Medical Center.',
     { x:43,y:625,size:11,font:bold,color:navy })
+  if (data.qaSynthetic) page.drawText('QA SINTÉTICA · SIN PAGO REAL',
+    { x:43,y:600,size:10,font:bold,color:coral })
   page.drawText('MIEMBRO', { x:43,y:574,size:10,font:bold,color:coral })
   const member = fitted(`${data.firstName} ${data.lastName}`, bold, 27, 424)
   page.drawText(member.text, { x:43,y:539,size:member.size,font:bold,color:navy })
@@ -68,7 +80,7 @@ export async function createMembershipPdf(data: MembershipPdfData): Promise<Uint
     page.drawText(item.text,{x:52,y:y-19,size:item.size,font:regular,color:navy})
   })
   page.drawRectangle({ x:0,y:0,width:512,height:76,color:coral })
-  page.drawText('CORAZÓN SALUD NO ES UN SEGURO MÉDICO',
+  page.drawText('Corazón Salud no es un seguro médico.',
     { x:43,y:42,size:11,font:bold,color:rgb(1,1,1) })
   page.drawText('Conserve este documento para consultar su membresía.',
     { x:43,y:23,size:9,font:regular,color:rgb(1,1,1) })
