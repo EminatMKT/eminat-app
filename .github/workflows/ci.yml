@@ -120,6 +120,7 @@ jobs:
           psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -q -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-social-rehearsal.sql
           psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -q -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-seller-denial.sql
           psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -q -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-patient-reselection.sql
+          psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -q -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-seller-admin-rehearsal.sql
       # La RLS se verifica contra la base real, no contra el archivo de migración:
       # el 29/08/2026 las policies estaban escritas y RLS apagada. Ver rules/base-de-datos.md.
       - run: pnpm db:rls
