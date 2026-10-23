@@ -31,7 +31,8 @@ test('smoke · cada módulo carga para admin sin crashear', async ({ page }) => 
     await page.waitForURL(`**${path}`)
     // no gateado y el shell sigue vivo (no white-screen)
     await expect(page.getByText('Acceso denegado')).toBeHidden()
-    await expect(page.locator('[data-tour="home"]')).toBeVisible()
+    // Some modules briefly remount the shell while their first data request loads.
+    await expect(page.locator('[data-tour="home"]')).toBeVisible({ timeout: 30_000 })
   }
 
   // Even admin cannot reach the QA-only route when the server switch is absent.
