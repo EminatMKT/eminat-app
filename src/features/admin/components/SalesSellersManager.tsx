@@ -6,6 +6,8 @@ type User = { id:string;nombre:string;apellido:string;email:string;
   auth_id:string;activo:boolean;validado:boolean }
 type Member = { id:string;organization_id:string;user_id:string;role:string;status:string }
 type Directory = { organizations:Organization[];users:User[];members:Member[] }
+type AuditEvent = { id:string;at:string;action:string;actorUserId:string|null;
+  previousState:string;newState:string }
 const empty:Directory = { organizations:[],users:[],members:[] }
 
 /** Ordinary LILLY user creation stays in Users; this grants only Native Sales SELLER. */
@@ -17,6 +19,9 @@ export default function SalesSellersManager() {
   const [saving,setSaving] = useState(false)
   const [error,setError] = useState('')
   const [message,setMessage] = useState('')
+  const [history,setHistory] = useState<AuditEvent[]>([])
+  const [historyError,setHistoryError] = useState('')
+  const [historyVersion,setHistoryVersion] = useState(0)
   const reload = useCallback(async () => {
     const response = await fetch('/api/admin/sales-sellers',{ cache:'no-store' })
     const body = await response.json() as Directory & { code?:string }
@@ -35,6 +40,21 @@ export default function SalesSellersManager() {
   [directory.members,organizationId,userId])
   const eligible = !!user?.auth_id && user.activo && user.validado
   const forbiddenRole = !!member && member.role!=='SELLER'
+  useEffect(() => {
+    if (!userId || !organizationId) { setHistory([]);return }
+    setHistory([]);setHistoryError('')
+    const controller = new AbortController()
+    const params = new URLSearchParams({ organizationId,userId })
+    void fetch(`/api/admin/sales-sellers/history?${params}`,{
+      cache:'no-store',signal:controller.signal,
+    }).then(async response => {
+      const body = await response.json() as { events?:AuditEvent[];code?:string }
+      if (!response.ok) throw new Error(body.code || 'No se pudo cargar el historial.')
+      setHistory(body.events ?? []);setHistoryError('')
+    }).catch(cause => { if (!controller.signal.aborted)
+      setHistoryError(cause instanceof Error ? cause.message : 'Error de historial.') })
+    return () => controller.abort()
+  },[organizationId,userId,historyVersion])
   async function change(active:boolean) {
     if (!userId || !organizationId || saving || forbiddenRole) return
     const verb = active ? 'dar acceso SELLER' : 'revocar el acceso SELLER'
@@ -48,6 +68,7 @@ export default function SalesSellersManager() {
       const body = await response.json() as { code?:string }
       if (!response.ok) throw new Error(body.code || 'No se pudo actualizar el acceso.')
       await reload()
+      setHistoryVersion(version => version+1)
       setMessage(active ? 'Acceso SELLER activo. La distribución automática no cambió.' :
         'Acceso SELLER revocado.')
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Error de acceso.') }
@@ -82,6 +103,28 @@ export default function SalesSellersManager() {
         <button type="button" disabled={!member || forbiddenRole || member.status!=='active' || saving}
           onClick={() => void change(false)}>Revocar acceso</button>
       </div>
+      {user && <section aria-label="Historial de acceso Sales" style={{ marginTop:28 }}>
+        <h3>Historial de acceso</h3>
+        {historyError && <p role="alert">{historyError}</p>}
+        {!historyError && history.length===0 && <p>No hay eventos de acceso registrados.</p>}
+        {history.length>0 && <div style={{ overflowX:'auto' }}><table>
+          <thead><tr><th>Fecha y hora</th><th>Actor</th><th>Usuario</th>
+            <th>Organización</th><th>Acción</th><th>Estado anterior</th><th>Estado nuevo</th></tr></thead>
+          <tbody>{history.map(event => <tr key={event.id}>
+            <td>{new Date(event.at).toLocaleString('es-EC')}</td>
+            <td>{directory.users.find(row => row.id===event.actorUserId)?.nombre ?? 'No registrado'}
+              {' '}{directory.users.find(row => row.id===event.actorUserId)?.apellido ?? ''}</td>
+            <td>{user.nombre} {user.apellido}</td>
+            <td>{event.action==='validated' || event.action==='activated' ? 'LILLY global' :
+              directory.organizations.find(row => row.id===organizationId)?.name}</td>
+            <td>{event.action==='validated' ? 'Validación' :
+              event.action==='seller_access_revoked' ? 'Revocación SELLER' :
+              event.action==='seller_access_granted' ? 'Activación SELLER' : 'Activación de cuenta'}</td>
+            <td>{event.previousState==='unknown' ? 'No registrado' : event.previousState}</td>
+            <td>{event.newState==='unknown' ? 'No registrado' : event.newState}</td>
+          </tr>)}</tbody>
+        </table></div>}
+      </section>}
     </>}
   </section>
 }
