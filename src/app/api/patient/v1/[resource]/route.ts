@@ -476,6 +476,20 @@ export async function POST(request: Request, { params }: Route) {
       return respond({ code: 'SELECTION_REVIEW_REQUIRED' }, 409)
     return error ? unavailable() : respond({ data })
   }
+  if (resource === 'invoice') {
+    if (!patient.identity) return respond({ code:'PROFILE_REQUIRED' },409)
+    const intentId = typeof body.intentId === 'string' ? body.intentId : ''
+    if (!uuidPattern.test(intentId) || Object.keys(body).some(key => key !== 'intentId'))
+      return invalid()
+    try {
+      const { issuePatientQboInvoice } = await import('@/server/sales-native/quickbooks/automatic-invoice')
+      const result = await issuePatientQboInvoice(patient.identity.id,intentId,patient.email)
+      return respond(result,result.status === 'PENDING_RECONCILIATION' ? 202 : 200)
+    } catch {
+      // Do not expose provider details or automatically repeat an uncertain write.
+      return respond({ code:'INVOICE_REVIEW_REQUIRED' },503)
+    }
+  }
   if (resource === 'familydraft') {
     if (!patient.identity) return respond({ code: 'PROFILE_REQUIRED' }, 409)
     const configured = scope()

@@ -26,6 +26,13 @@ const companySchema = z.object({ CompanyInfo: z.object({
   CompanyName: z.string().min(1), LegalName: z.string().optional(),
 }) })
 const qboRef = z.object({ value: z.string().regex(/^[0-9]{1,80}$/) })
+const customerSchema = z.object({ Id: z.string().regex(/^[0-9]{1,80}$/),
+  DisplayName: z.string().min(1), Active: z.boolean().optional(),
+  PrimaryEmailAddr: z.object({ Address: z.string().email() }).optional() })
+const itemSchema = z.object({ Id: z.string().regex(/^[0-9]{1,80}$/),
+  Name: z.string().min(1), FullyQualifiedName: z.string().optional(),
+  Active: z.boolean().optional(), UnitPrice: z.number().optional(),
+  Taxable: z.boolean().optional() })
 const linkedTxn = z.object({ TxnId: z.string().regex(/^[0-9]{1,80}$/),
   TxnType: z.string() })
 const invoiceSchema = z.object({ Invoice: z.object({
@@ -38,6 +45,8 @@ const invoiceSchema = z.object({ Invoice: z.object({
     SalesItemLineDetail:z.object({ ItemRef:qboRef,
       Qty:z.number().positive().optional() }).optional() })).optional(),
   LinkedTxn: z.array(linkedTxn).optional(),
+  InvoiceLink: z.string().url().optional(),
+  TxnTaxDetail: z.object({ TotalTax: z.number().optional() }).optional(),
 }) })
 const paymentSchema = z.object({ Payment: z.object({
   Id: z.string().regex(/^[0-9]{1,80}$/), CustomerRef: qboRef,
@@ -47,6 +56,8 @@ const paymentSchema = z.object({ Payment: z.object({
 }) })
 export type QboInvoice = z.infer<typeof invoiceSchema>['Invoice']
 export type QboPayment = z.infer<typeof paymentSchema>['Payment']
+export type QboCustomer = z.infer<typeof customerSchema>
+export type QboItem = z.infer<typeof itemSchema>
 
 /** Fixed Intuit hosts and callback; no caller-provided provider URL. */
 export class QboClient {
@@ -161,6 +172,108 @@ export class QboClient {
     const result = await this.readEntity(realmId,accessToken,'invoice',id,invoiceSchema)
     if (result.Invoice.Id !== id) throw new Error('QBO_ENTITY_MISMATCH')
     return result.Invoice
+  }
+
+  private async accounting(realmId: string, accessToken: string,
+    path: string, body?: object): Promise<unknown> {
+    if (!/^[0-9]{1,80}$/.test(realmId) || !accessToken)
+      throw new Error('QBO_ENTITY_INVALID')
+    const url = `https://quickbooks.api.intuit.com/v3/company/${realmId}/${path}`
+    let response: Response
+    try { response = await this.request(url, {
+      method: body ? 'POST' : 'GET',
+      headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json',
+        ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+      cache: 'no-store', signal: AbortSignal.timeout(10_000),
+    }) } catch { throw new Error('QBO_WRITE_OUTCOME_UNKNOWN') }
+    // A failed POST can still have reached Intuit. The caller must never retry
+    // automatically until it has reconciled the provider-side outcome.
+    if (!response.ok) throw new Error(body ? 'QBO_WRITE_OUTCOME_UNKNOWN' : 'QBO_API_UNAVAILABLE')
+    try { return await response.json() }
+    catch { throw new Error(body ? 'QBO_WRITE_OUTCOME_UNKNOWN' : 'QBO_ENTITY_INVALID') }
+  }
+
+  private async query<T>(realmId: string, accessToken: string, entity: 'Customer'|'Item',
+    clause: string, schema: z.ZodType<T>): Promise<T[]> {
+    const sql = `select * from ${entity} where ${clause} maxresults 1000`
+    const payload = await this.accounting(realmId, accessToken,
+      `query?query=${encodeURIComponent(sql)}`)
+    const parsed = z.object({ QueryResponse: z.record(z.string(), z.unknown()) }).safeParse(payload)
+    if (!parsed.success) throw new Error('QBO_QUERY_INVALID')
+    const rows = parsed.data.QueryResponse[entity] ?? []
+    const result = z.array(schema).safeParse(rows)
+    if (!result.success) throw new Error('QBO_QUERY_INVALID')
+    return result.data
+  }
+
+  async customersByEmail(realmId: string, accessToken: string, email: string): Promise<QboCustomer[]> {
+    if (!/^[^\s@']+@[^\s@']+\.[^\s@']+$/.test(email) || email.length > 320)
+      throw new Error('QBO_CUSTOMER_EMAIL_INVALID')
+    const rows = await this.query(realmId,accessToken,'Customer',
+      `PrimaryEmailAddr = '${email}'`,customerSchema)
+    return rows.filter(row => row.PrimaryEmailAddr?.Address.toLowerCase() === email.toLowerCase())
+  }
+
+  async customer(realmId: string, id: string, accessToken: string): Promise<QboCustomer> {
+    if (!/^[0-9]{1,80}$/.test(id)) throw new Error('QBO_ENTITY_INVALID')
+    const payload = await this.accounting(realmId,accessToken,`customer/${id}`)
+    const parsed = z.object({ Customer:customerSchema }).safeParse(payload)
+    if (!parsed.success || parsed.data.Customer.Id !== id) throw new Error('QBO_ENTITY_INVALID')
+    return parsed.data.Customer
+  }
+
+  async itemByName(realmId: string, accessToken: string, name: string): Promise<QboItem> {
+    if (!name || name.length > 200) throw new Error('QBO_ITEM_NAME_INVALID')
+    const rows = await this.query(realmId,accessToken,'Item',
+      `Name = '${name.replaceAll("'", "\\'")}'`,itemSchema)
+    const matches = rows.filter(row => row.Name === name && row.Active !== false)
+    if (matches.length !== 1) throw new Error('QBO_ITEM_MAPPING_REQUIRED')
+    return matches[0]
+  }
+
+  async createCustomer(realmId: string, accessToken: string, input: {
+    displayName: string; firstName: string; lastName: string; email: string }): Promise<QboCustomer> {
+    const payload = await this.accounting(realmId,accessToken,'customer',{
+      DisplayName:input.displayName,GivenName:input.firstName,FamilyName:input.lastName,
+      PrimaryEmailAddr:{ Address:input.email },
+    })
+    const parsed = z.object({ Customer:customerSchema }).safeParse(payload)
+    if (!parsed.success) throw new Error('QBO_WRITE_OUTCOME_UNKNOWN')
+    return parsed.data.Customer
+  }
+
+  async createInvoice(realmId: string, accessToken: string, input: {
+    customerId: string; itemId: string; email: string; amountCents: number;
+    intentId: string }): Promise<QboInvoice> {
+    if (!/^[0-9]{1,80}$/.test(input.customerId) || !/^[0-9]{1,80}$/.test(input.itemId)
+      || !Number.isSafeInteger(input.amountCents) || input.amountCents <= 0)
+      throw new Error('QBO_INVOICE_INPUT_INVALID')
+    const amount = input.amountCents/100
+    const payload = await this.accounting(realmId,accessToken,'invoice',{
+      CustomerRef:{ value:input.customerId },BillEmail:{ Address:input.email },
+      EmailStatus:'NotSet',PrivateNote:`LILLY enrollment ${input.intentId}`,
+      AllowOnlineCreditCardPayment:true,AllowOnlineACHPayment:true,
+      Line:[{ Amount:amount,DetailType:'SalesItemLineDetail',
+        SalesItemLineDetail:{ ItemRef:{ value:input.itemId },Qty:1,UnitPrice:amount,
+          TaxCodeRef:{ value:'NON' } } }],
+    })
+    const parsed = invoiceSchema.safeParse(payload)
+    if (!parsed.success) throw new Error('QBO_WRITE_OUTCOME_UNKNOWN')
+    return parsed.data.Invoice
+  }
+
+  async invoiceWithLink(realmId: string, accessToken: string, id: string): Promise<QboInvoice> {
+    if (!/^[0-9]{1,80}$/.test(id)) throw new Error('QBO_ENTITY_INVALID')
+    const query = encodeURIComponent(`select * from Invoice where Id = '${id}'`)
+    const payload = await this.accounting(realmId,accessToken,
+      `query?query=${query}&include=invoiceLink`)
+    const parsed = z.object({ QueryResponse:z.object({ Invoice:z.array(invoiceSchema.shape.Invoice) }) })
+      .safeParse(payload)
+    if (!parsed.success || parsed.data.QueryResponse.Invoice.length !== 1 ||
+      parsed.data.QueryResponse.Invoice[0].Id !== id)
+      throw new Error('QBO_ENTITY_INVALID')
+    return parsed.data.QueryResponse.Invoice[0]
   }
 
   async payment(realmId: string, id: string, accessToken: string): Promise<QboPayment> {

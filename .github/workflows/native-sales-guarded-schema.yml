@@ -91,11 +91,16 @@ jobs:
           if ! supabase db push --db-url "$LILLY_SALES_SCHEMA_ADMIN_DB_URL" --dry-run --yes > "$log" 2>&1; then
             # Print only the known CLI error and local filename, never connection details.
             python3 - "$log" <<'PY'
-          import pathlib, re, sys
+          import pathlib, re, sys, os
           output = pathlib.Path(sys.argv[1]).read_text(errors='replace')
           message = 'Found local migration files to be inserted before the last migration on remote database.'
           files = re.findall(r'supabase/migrations/[0-9]{14}_native_sales_[A-Za-z0-9_]+\.sql', output)
-          expected = f"supabase/migrations/{__import__('os').environ['LILLY_SALES_EXPECTED_PENDING_VERSION']}_native_sales_qbo_oauth_state.sql"
+          candidates = list(pathlib.Path('supabase/migrations').glob(
+              f"{os.environ['LILLY_SALES_EXPECTED_PENDING_VERSION']}_native_sales_*.sql"))
+          if len(candidates) != 1:
+              print('NATIVE_SALES_SCHEMA_LOCAL_MIGRATION_INVALID')
+              raise SystemExit(1)
+          expected = candidates[0].as_posix()
           if message not in output or files != [expected]:
               print('NATIVE_SALES_SCHEMA_DRYRUN_UNCLASSIFIED_OR_UNEXPECTED')
               raise SystemExit(1)
