@@ -48,7 +48,7 @@ export const SUB_ITEMS: Record<PanelKey, SubItem[]> = {
   // "Production" en mkt: `tab` apunta a la primera del grupo). Roles vive DENTRO de Usuarios:
   // es una faceta de la gestión de personas, no un par de Organización.
   admin: [
-    { id: 'adm-usuarios', icon: '👥', label: 'Usuarios', tab: 'usuarios', tabs: ['usuarios', 'roles'] },
+    { id: 'adm-usuarios', icon: '👥', label: 'Usuarios', tab: 'usuarios', tabs: ['usuarios', 'roles', 'sales-sellers'] },
     { id: 'adm-org', icon: '🏛️', label: 'Organización', tab: 'empresas', tabs: ['empresas', 'departamentos', 'equipos', 'cargos', 'jornadas', 'vinculaciones'] },
   ],
   billing: [
