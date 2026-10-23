@@ -13,6 +13,7 @@ import StatsBar from '../StatsBar'
 import UsuariosToolbar from '../UsuariosToolbar'
 import UserTable from '../UserTable'
 import RolesManager from '../RolesManager'
+import SalesSellersManager from '../SalesSellersManager'
 import OrgManager from '../OrgManager'
 import CreateUserModal from '../CreateUserModal'
 import EditUserModal, { type EditUserDraft } from '../EditUserModal'
@@ -28,12 +29,12 @@ import { isVisibleInDirectory } from '@/shared/utils/directoryVisibility'
 // SECCIONES (Usuarios · Organización) y la barra horizontal solo las sub-vistas
 // de la sección activa — nada se duplica entre ejes. Por eso `vista` es plana:
 // cada sub-vista es un valor de primer nivel, igual que en Stratix.
-type Vista = 'usuarios' | 'roles' | OrgCat
+type Vista = 'usuarios' | 'roles' | 'sales-sellers' | OrgCat
 
 export default function AdminModule() {
   const { esAdmin, adminUsuarios, roles } = useApp()
   const { t } = useT()
-  const [vista, setVista] = useUserPreference<Vista>('tab-admin', 'usuarios', oneOf('usuarios', 'roles', ...ORG_CATS))
+  const [vista, setVista] = useUserPreference<Vista>('tab-admin', 'usuarios', oneOf('usuarios', 'roles', 'sales-sellers', ...ORG_CATS))
   const [filters, setFilters] = useState<FilterValues>({})
   const [modalCrear, setModalCrear] = useState(false)
   const [modalEditar, setModalEditar] = useState<EditUserDraft | null>(null)
@@ -64,6 +65,7 @@ export default function AdminModule() {
           <TabBar>
             <TabButton label={t('admin.tabUsers')} active={vista === 'usuarios'} onClick={() => setVista('usuarios')} />
             <TabButton label={t('admin.tabRoles')} active={vista === 'roles'} onClick={() => setVista('roles')} />
+            <TabButton label="Sales access" active={vista === 'sales-sellers'} onClick={() => setVista('sales-sellers')} />
           </TabBar>
         )}
         {vista === 'usuarios' && (
@@ -75,6 +77,7 @@ export default function AdminModule() {
           </>
         )}
         {vista === 'roles' && <RolesManager />}
+        {vista === 'sales-sellers' && <SalesSellersManager />}
         {isOrgCat(vista) && <OrgManager cat={vista} onCatChange={setVista} />}
 
         {modalCrear && <CreateUserModal onClose={() => setModalCrear(false)} />}
