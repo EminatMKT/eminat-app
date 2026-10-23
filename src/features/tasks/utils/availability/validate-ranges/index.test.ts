@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { WeeklyAvailabilityRange } from './types'
-import validateRanges from './validate-ranges'
+import type { WeeklyAvailabilityRange } from '../types'
+import validateRanges from '.'
 
 describe('validateRanges', () => {
   it('rejects overlaps but allows touching ranges', () => {

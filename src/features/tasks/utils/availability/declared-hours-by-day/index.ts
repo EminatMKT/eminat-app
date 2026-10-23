@@ -1,5 +1,5 @@
-import type { Weekday, WeeklyAvailabilityRange } from './types'
-import durationHours from './duration-hours'
+import type { Weekday, WeeklyAvailabilityRange } from '../types'
+import durationHours from '../duration-hours'
 
 /** Declared hours per weekday, summed across every range that falls on it. A weekday with no
  *  ranges is simply absent from the result — callers decide what an absent day means. */

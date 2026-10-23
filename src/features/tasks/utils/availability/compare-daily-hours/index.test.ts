@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import compareDailyHours from './compare-daily-hours'
+import compareDailyHours from '.'
 
 describe('compareDailyHours', () => {
   it('reports how far a day sits from its jornada reference', () => {

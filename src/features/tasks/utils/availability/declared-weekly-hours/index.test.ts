@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { WeeklyAvailabilityRange } from './types'
-import declaredWeeklyHours from './declared-weekly-hours'
+import type { WeeklyAvailabilityRange } from '../types'
+import declaredWeeklyHours from '.'
 
 describe('declaredWeeklyHours', () => {
   it('reports the weekly declared total across every day', () => {

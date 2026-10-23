@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import durationHours from './duration-hours'
+import durationHours from '.'
 
 describe('durationHours', () => {
   it('calculates duration from canonical HH:mm values', () => {

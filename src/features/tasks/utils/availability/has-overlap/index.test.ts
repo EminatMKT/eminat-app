@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { Weekday } from './types'
-import hasOverlap from './has-overlap'
+import type { Weekday } from '../types'
+import hasOverlap from '.'
 
 type OverlapCandidate = {
   weekday: Weekday

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { WeeklyAvailabilityRange } from './types'
-import sortRanges from './sort-ranges'
+import type { WeeklyAvailabilityRange } from '../types'
+import sortRanges from '.'
 
 describe('sortRanges', () => {
   it('sorts by weekday and start time without mutating the input', () => {

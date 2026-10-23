@@ -1,4 +1,4 @@
-import type { DailyHoursComparison, DailyHoursStatus } from './types'
+import type { DailyHoursComparison, DailyHoursStatus } from '../types'
 
 function decideStatus(differenceHours: number): DailyHoursStatus {
   if (differenceHours < 0) {

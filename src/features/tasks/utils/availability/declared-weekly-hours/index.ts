@@ -1,5 +1,5 @@
-import type { WeeklyAvailabilityRange } from './types'
-import declaredHoursByDay from './declared-hours-by-day'
+import type { WeeklyAvailabilityRange } from '../types'
+import declaredHoursByDay from '../declared-hours-by-day'
 
 /** Total declared hours across the whole week — the sum of every weekday's total, not a separate
  *  calculation, so the two numbers can never drift apart. */

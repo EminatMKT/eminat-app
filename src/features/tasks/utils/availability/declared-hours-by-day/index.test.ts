@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { WeeklyAvailabilityRange } from './types'
-import declaredHoursByDay from './declared-hours-by-day'
+import type { WeeklyAvailabilityRange } from '../types'
+import declaredHoursByDay from '.'
 
 describe('declaredHoursByDay', () => {
   it('adds multiple ranges on the same day and keeps other days separate', () => {

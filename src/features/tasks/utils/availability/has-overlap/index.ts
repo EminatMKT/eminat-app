@@ -1,4 +1,4 @@
-import type { Weekday } from './types'
+import type { Weekday } from '../types'
 
 type OverlapCandidate = {
   weekday: Weekday

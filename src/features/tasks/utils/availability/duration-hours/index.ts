@@ -1,5 +1,5 @@
-import type { WeeklyAvailabilityRange } from './types'
-import minutesOf from './minutes'
+import type { WeeklyAvailabilityRange } from '../types'
+import minutesOf from '../minutes'
 
 /** Hours between `startsAt` and `endsAt` for one range. A malformed, zero-duration or reversed
  *  range reports zero — rejecting those is `validateRanges`' job, this one only measures. */

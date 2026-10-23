@@ -1,6 +1,6 @@
-import type { RangeValidationError, Weekday, WeeklyAvailabilityRange } from './types'
-import minutesOf from './minutes'
-import hasOverlap from './has-overlap'
+import type { RangeValidationError, Weekday, WeeklyAvailabilityRange } from '../types'
+import minutesOf from '../minutes'
+import hasOverlap from '../has-overlap'
 
 type ParsedRange = {
   rangeIndex: number
