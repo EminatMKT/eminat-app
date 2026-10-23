@@ -1,11 +1,11 @@
 # PR #155 Production release gate
 
-PR #155 remains draft and OAuth remains disabled until Intuit explicitly unlocks Production credentials and redirect URI editing. Do not apply its migration or enable the runtime while the Intuit Compliance result is `Requires attention`.
+Intuit Compliance is Approved and Production credentials are unlocked. The previously exposed Production webhook verifier must be rotated and the replacement stored only in the protected LILLY Production secret before enabling OAuth. PR #163 carries the schema separately so the protected workflow can validate a commit on `main` before PR #155 deploys the runtime.
 
 ## Schema gate
 
 1. Confirm a current restorable Supabase Production backup and record its timestamp.
-2. Run the existing protected GitHub `schema_check` for Production. It must detect the migration secret, pass `SALES_SCHEMA_CAPABILITY_PASS`, and report only `20261022230000_native_sales_qbo_oauth_state.sql` pending.
+2. After PR #163 passes CI and merges through the protected flow, run the existing protected GitHub `schema_check` for Production against that exact `main` commit. It must detect the migration secret, pass `SALES_SCHEMA_CAPABILITY_PASS`, and report only `20261022230000_native_sales_qbo_oauth_state.sql` pending.
 3. Review the affected objects: `sales_qbo_oauth_states`; the two refresh-lease columns on `sales_qbo_connections`; the unique existing-invoice-reference index on `sales_patient_qbo_manual`; and the claim, finish, refresh, hold-for-revocation and disconnect functions. No existing business rows are backfilled, deleted or changed by the migration.
 4. Obtain separate owner approval at the protected `schema_apply` gate. Do not execute SQL manually.
 5. Confirm `schema_verify` passes and that version `20261022230000` appears exactly once in Supabase migration history.
