@@ -79,4 +79,36 @@ describe('LILLY QBO OAuth boundary', () => {
     expect((await client.payment('123','900','synthetic-access')).Id).toBe('900')
     expect(request).toHaveBeenCalledTimes(2)
   })
+
+  it('creates one non-taxable invoice for the existing customer and item without a DocNumber', async () => {
+    const request = vi.fn(async (url: string, init: RequestInit) => {
+      expect(url).toBe('https://quickbooks.api.intuit.com/v3/company/123/invoice')
+      expect(init.method).toBe('POST')
+      const body = JSON.parse(String(init.body))
+      expect(body.CustomerRef.value).toBe('321')
+      expect(body.Line[0].SalesItemLineDetail).toEqual({ ItemRef:{ value:'7' },
+        Qty:1,UnitPrice:119.98,TaxCodeRef:{ value:'NON' } })
+      expect(body).not.toHaveProperty('DocNumber')
+      expect(body.AllowOnlineCreditCardPayment).toBe(true)
+      expect(body.EmailStatus).toBe('NotSet')
+      return Response.json({ Invoice:{ Id:'1134',DocNumber:'1134',
+        CustomerRef:{value:'321'},TotalAmt:119.98,Balance:119.98,
+        Line:[{Amount:119.98,DetailType:'SalesItemLineDetail',
+          SalesItemLineDetail:{ItemRef:{value:'7'},Qty:1}}] } })
+    })
+    const invoice = await new QboClient(config,request as unknown as typeof fetch)
+      .createInvoice('123','synthetic-access',{ customerId:'321',itemId:'7',
+        email:'qa@example.com',amountCents:11998,intentId:'intent-qa' })
+    expect(invoice.Id).toBe('1134')
+    expect(request).toHaveBeenCalledTimes(1)
+  })
+
+  it('treats an ambiguous provider write as unsafe to repeat', async () => {
+    const request = vi.fn(async () => { throw new Error('network closed after write') })
+    await expect(new QboClient(config,request as unknown as typeof fetch)
+      .createCustomer('123','synthetic-access',{ displayName:'QA',firstName:'QA',
+        lastName:'Patient',email:'qa@example.com' }))
+      .rejects.toThrow('QBO_WRITE_OUTCOME_UNKNOWN')
+    expect(request).toHaveBeenCalledTimes(1)
+  })
 })
