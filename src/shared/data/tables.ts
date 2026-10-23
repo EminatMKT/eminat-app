@@ -33,6 +33,7 @@ export const TABLES = {
   actividadResponsables: 'actividad_responsables',
   taskEmailOutbox: 'task_email_outbox',
   duplicadosPendientes: 'duplicados_pendientes',
+  weeklyAvailabilityRanges: 'user_weekly_availability_ranges',
 } as const
 
 export type TableName = (typeof TABLES)[keyof typeof TABLES]
