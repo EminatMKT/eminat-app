@@ -23,10 +23,6 @@
     {
       "path": "/api/sales-native/patient-email/process",
       "schedule": "15 12 * * *"
-    },
-    {
-      "path": "/api/sales-native/quickbooks/reconcile",
-      "schedule": "*/5 * * * *"
     }
   ]
 }
