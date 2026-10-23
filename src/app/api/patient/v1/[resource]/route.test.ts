@@ -9,6 +9,7 @@ const fixtures = vi.hoisted(() => {
     draftsEnabled: false, emailConfigured: true, registrationAdmitted: true,
     canRecoverRegistration: false, canResetPassword: false,
     recoveryTokenValid: true, updatedPassword: null as string | null,
+    passwordUpdates: 0, claimedRecoveryTokens: new Set<string>(),
     signupErrorCode: null as string | null,
     signupLinks: [] as Array<{ type: string; email: string; password?: string; options: {
       redirectTo: string; data?: { corazon_patient_signup: boolean } } }>,
@@ -36,12 +37,19 @@ vi.mock('@/shared/db/supabaseAdmin', () => ({
   supabaseAdmin: () => ({
     rpc: async (name: string, args: Record<string, unknown>) => {
       fixtures.rpcCalls.push({ name, args })
-      if (name === 'native_sales_patient_registration_admit')
+      if (name === 'native_sales_patient_registration_admit' ||
+          name === 'native_sales_patient_recovery_admit')
         return { data: fixtures.registrationAdmitted, error: null }
       if (name === 'native_sales_patient_registration_can_recover')
         return { data: fixtures.canRecoverRegistration, error: null }
       if (name === 'native_sales_patient_can_reset_password')
         return { data: fixtures.canResetPassword, error: null }
+      if (name === 'native_sales_patient_claim_recovery_token') {
+        const digest = String(args.p_token_digest)
+        if (fixtures.claimedRecoveryTokens.has(digest)) return { data: false, error: null }
+        fixtures.claimedRecoveryTokens.add(digest)
+        return { data: true, error: null }
+      }
       return { data: { status: 'CHANGE_REQUESTED' }, error: null }
     },
     auth: { admin: { generateLink: async (args: { type: string; email: string; password?: string; options: {
@@ -112,7 +120,7 @@ vi.mock('@supabase/supabase-js', () => ({ createClient: () => ({ auth: {
       session: { access_token: 'test', refresh_token: 'test' } }, error: null }
     : { data: { user: null, session: null }, error: { message: 'expired' } },
   updateUser: async ({ password }: { password: string }) => {
-    fixtures.updatedPassword = password; return { error: null }
+    fixtures.updatedPassword = password; fixtures.passwordUpdates++; return { error: null }
   },
   signOut: async () => ({ error: null }),
 } }) }))
@@ -139,6 +147,7 @@ describe('patient API isolation', () => {
     fixtures.emailConfigured = true; fixtures.registrationAdmitted = true;
     fixtures.canRecoverRegistration = false; fixtures.canResetPassword = false;
     fixtures.recoveryTokenValid = true; fixtures.updatedPassword = null;
+    fixtures.passwordUpdates = 0; fixtures.claimedRecoveryTokens.clear();
     fixtures.signupErrorCode = null;
     fixtures.signupLinks.length = 0; fixtures.verificationEmails.length = 0;
     fixtures.recoveryEmails.length = 0 })
@@ -159,6 +168,19 @@ describe('patient API isolation', () => {
     expect(fixtures.recoveryEmails).toEqual([{ recipient: 'one@example.test',
       actionUrl: 'https://portal.corazonsalud.health/recuperar#token_hash=recovery_token_hash_example_1234567890' }])
     expect(fixtures.signupLinks.at(-1)?.type).toBe('recovery')
+  })
+
+  it('rejects a duplicate recovery request before generating another link or email', async () => {
+    fixtures.canResetPassword = true
+    fixtures.registrationAdmitted = false
+    const response = await POST(new Request('https://app.test/api/patient/v1/passwordrecovery', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'one@example.test' }),
+    }), { params: Promise.resolve({ resource: 'passwordrecovery' }) })
+    expect(response.status).toBe(429)
+    expect(fixtures.signupLinks).toHaveLength(0)
+    expect(fixtures.recoveryEmails).toHaveLength(0)
+    expect(fixtures.rpcCalls.map(call => call.name)).toEqual(['native_sales_patient_recovery_admit'])
   })
 
   it('rejects expired recovery tokens without updating the password', async () => {
@@ -194,6 +216,21 @@ describe('patient API isolation', () => {
     expect(fixtures.updatedPassword).toBe('owner-entered-secret-123')
     expect(fixtures.queries.find(query => query.table === 'sales_patient_sessions' && query.update))
       .toMatchObject({ filters: { auth_id: patients[0].authId, revoked_at: null } })
+  })
+
+  it('rejects a reused recovery hash before a second password or session mutation', async () => {
+    fixtures.canResetPassword = true
+    const reset = (password: string) => POST(new Request('https://app.test/api/patient/v1/passwordreset', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tokenHash: 'recovery_token_hash_example_1234567890', password }),
+    }), { params: Promise.resolve({ resource: 'passwordreset' }) })
+    expect((await reset('first-owner-password-123')).status).toBe(200)
+    expect((await reset('second-owner-password-123')).status).toBe(401)
+    expect(fixtures.updatedPassword).toBe('first-owner-password-123')
+    expect(fixtures.passwordUpdates).toBe(1)
+    expect(fixtures.queries.filter(query => query.table === 'sales_patient_sessions' && query.update)).toHaveLength(1)
+    expect(fixtures.rpcCalls.filter(call => call.name === 'native_sales_patient_claim_recovery_token'))
+      .toHaveLength(2)
   })
 
   it('generates a patient-only confirmation link and sends it with the patient brand', async () => {
