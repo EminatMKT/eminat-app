@@ -85,7 +85,7 @@ export async function completeQboConnection(request: Request, input: {
 }
 
 /** Server-only access for read-only QBO API calls; never serialize the token. */
-export async function connectedQboReadAccess(): Promise<{
+export async function connectedQboReadAccess(forceRefresh = false): Promise<{
   client: QboClient; realmId: string; accessToken: string }> {
   const { client, key } = configuration()
   const db = supabaseAdmin({ noStore: true })
@@ -100,7 +100,7 @@ export async function connectedQboReadAccess(): Promise<{
     throw new NativeSalesAuthError(503, 'QBO_RECONNECT_REQUIRED')
   const realmId = connection.realm_id
   let accessToken: string
-  if (Date.parse(connection.access_expires_at) > Date.now()+60_000) {
+  if (!forceRefresh && Date.parse(connection.access_expires_at) > Date.now()+60_000) {
     accessToken = openQboToken(connection.access_token_ciphertext,key,
       EMC_ORGANIZATION_ID,realmId,'access')
   } else {
@@ -131,9 +131,9 @@ export async function connectedQboReadAccess(): Promise<{
   return { client, realmId, accessToken }
 }
 
-export async function readConnectedQboCompany(): Promise<{
+export async function readConnectedQboCompany(forceRefresh = false): Promise<{
   realmId: string; companyName: string; legalName: string | null }> {
-  const { client, realmId, accessToken } = await connectedQboReadAccess()
+  const { client, realmId, accessToken } = await connectedQboReadAccess(forceRefresh)
   const company = await client.companyInfo(realmId,accessToken)
   if (![company.name,company.legalName].some(name =>
     name?.trim().toLowerCase() === 'eminat medical center llc'))
