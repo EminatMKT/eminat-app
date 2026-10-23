@@ -44,6 +44,10 @@ def main():
             raise ValueError("LOCAL_MIGRATION_CATALOG_INVALID")
         migrations[match.group(1)] = match.group(2)
     pending = {version: name for version, name in migrations.items() if version not in applied}
+    expected_pending = os.environ.get("LILLY_SALES_EXPECTED_PENDING_VERSION", "")
+    if expected_pending and not args.after:
+        if not re.fullmatch(r"[0-9]{14}", expected_pending) or set(pending) != {expected_pending}:
+            raise ValueError("UNEXPECTED_PRODUCTION_MIGRATION_SET")
     native = {version: name for version, name in migrations.items()
               if name.startswith("native_sales_")}
     expected = os.environ.get("LILLY_SALES_MIGRATION_SHA256")
@@ -55,6 +59,8 @@ def main():
     elif not native or any(version not in native for version in pending):
         raise ValueError("UNREVIEWED_PRODUCTION_MIGRATION_SET")
     print("NATIVE_SALES_MIGRATION_SET_PASS")
+    if not args.after:
+        print("NATIVE_SALES_PENDING_VERSIONS=" + ",".join(sorted(pending)))
 
 
 if __name__ == "__main__":

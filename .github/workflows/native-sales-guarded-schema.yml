@@ -17,6 +17,10 @@ on:
         description: Reviewed Native Sales migration-set digest
         required: true
         type: string
+      expected_pending_version:
+        description: Exact 14-digit version that must be the only pending migration
+        required: true
+        type: string
       backup_id:
         description: Verified restorable Production backup identifier; required for apply
         required: false
@@ -44,6 +48,7 @@ jobs:
     env:
       LILLY_SALES_TARGET_ENV: production
       LILLY_SALES_MIGRATION_SHA256: ${{ inputs.migration_sha256 }}
+      LILLY_SALES_EXPECTED_PENDING_VERSION: ${{ inputs.expected_pending_version }}
       LILLY_SALES_SCHEMA_ADMIN_DB_URL: ${{ secrets.LILLY_SALES_SCHEMA_ADMIN_DB_URL }}
       SUPABASE_TELEMETRY_DISABLED: '1'
     steps:
@@ -56,6 +61,7 @@ jobs:
           [[ "$GITHUB_REF" == refs/heads/main ]]
           [[ "$EXACT_COMMIT" =~ ^[0-9a-f]{40}$ ]]
           [[ "$LILLY_SALES_MIGRATION_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          [[ "$LILLY_SALES_EXPECTED_PENDING_VERSION" =~ ^[0-9]{14}$ ]]
           test -n "$LILLY_SALES_SCHEMA_ADMIN_DB_URL"
           approval=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/approvals" \
             --jq '[.[] | select(.state == "approved") | .environments[]?.name | select(. == "Production")] | length' 2>/dev/null) || exit 1
@@ -81,9 +87,26 @@ jobs:
       - name: Verify exact pending schema without mutation
         run: |
           set -euo pipefail
-          supabase db push --db-url "$LILLY_SALES_SCHEMA_ADMIN_DB_URL" --dry-run --yes \
-            > "$RUNNER_TEMP/native-sales-schema-dryrun.log" 2>&1 \
-            || { echo NATIVE_SALES_SCHEMA_DRYRUN_FAILED; exit 1; }
+          log="$RUNNER_TEMP/native-sales-schema-dryrun.log"
+          if ! supabase db push --db-url "$LILLY_SALES_SCHEMA_ADMIN_DB_URL" --dry-run --yes > "$log" 2>&1; then
+            # Print only the known CLI error and local filename, never connection details.
+            python3 - "$log" <<'PY'
+          import pathlib, re, sys
+          output = pathlib.Path(sys.argv[1]).read_text(errors='replace')
+          message = 'Found local migration files to be inserted before the last migration on remote database.'
+          files = re.findall(r'supabase/migrations/[0-9]{14}_native_sales_[A-Za-z0-9_]+\.sql', output)
+          expected = f"supabase/migrations/{__import__('os').environ['LILLY_SALES_EXPECTED_PENDING_VERSION']}_native_sales_qbo_oauth_state.sql"
+          if message not in output or files != [expected]:
+              print('NATIVE_SALES_SCHEMA_DRYRUN_UNCLASSIFIED_OR_UNEXPECTED')
+              raise SystemExit(1)
+          print(message)
+          print('Rerun the command with --include-all flag to apply these migrations:')
+          print(expected)
+          PY
+            supabase db push --db-url "$LILLY_SALES_SCHEMA_ADMIN_DB_URL" --dry-run --include-all --yes > "$log" 2>&1 \
+              || { echo NATIVE_SALES_SCHEMA_INCLUDE_ALL_DRYRUN_FAILED; exit 1; }
+          fi
+          echo NATIVE_SALES_SCHEMA_DRYRUN_PASS
       - id: fingerprint
         name: Capture reference counts and unrelated schema fingerprint
         run: |
@@ -101,6 +124,7 @@ jobs:
     env:
       LILLY_SALES_TARGET_ENV: production
       LILLY_SALES_MIGRATION_SHA256: ${{ inputs.migration_sha256 }}
+      LILLY_SALES_EXPECTED_PENDING_VERSION: ${{ inputs.expected_pending_version }}
       LILLY_SALES_SCHEMA_ADMIN_DB_URL: ${{ secrets.LILLY_SALES_SCHEMA_ADMIN_DB_URL }}
       SUPABASE_TELEMETRY_DISABLED: '1'
     steps:
@@ -133,7 +157,7 @@ jobs:
           test "$(git rev-parse HEAD)" = '${{ inputs.exact_commit }}'
           python3 scripts/migration/check_sales_database_access.py
           python3 scripts/migration/check-native-sales-migrations.py --phase schema
-          supabase db push --db-url "$LILLY_SALES_SCHEMA_ADMIN_DB_URL" --yes \
+          supabase db push --db-url "$LILLY_SALES_SCHEMA_ADMIN_DB_URL" --include-all --yes \
             > "$RUNNER_TEMP/native-sales-schema-apply.log" 2>&1 \
             || { echo NATIVE_SALES_SCHEMA_APPLY_FAILED; exit 1; }
       - if: always()
