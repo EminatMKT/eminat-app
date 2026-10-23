@@ -2,14 +2,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { ADMIN_ERRORS } from '@/shared/errors'
 
-const { requireAdmin, users, update } = vi.hoisted(() => ({
+const { requireAdmin, users, update, rpc } = vi.hoisted(() => ({
   requireAdmin: vi.fn(),
   users: { rows: new Array<{ id: string; rol: string }>() },
   update: vi.fn(),
+  rpc: vi.fn(),
 }))
 vi.mock('@/shared/db/requireAdmin', () => ({ default: requireAdmin }))
 vi.mock('@/shared/db/supabaseAdmin', () => ({
   supabaseAdmin: () => ({
+    rpc,
     from: () => ({
       select: () => Object.assign(Promise.resolve({ data: users.rows }), {
         eq: () => ({ single: async () => ({ data: { id: 'saved' } }) }),
@@ -24,7 +26,7 @@ import { POST } from '../route'
 const URL = 'https://app.stratixsolutions.us/api/admin/update-user'
 const init = (payload: unknown) => ({ method: 'POST', body: JSON.stringify(payload) })
 const request = (payload: unknown) => new NextRequest(URL, init(payload))
-const admin = { ok: true, status: 200 }
+const admin = { ok: true, status: 200, userId:'actor-1' }
 const demote = (id: string) => ({ id, rol: 'sin_asignar' })
 const written = { eq: async () => ({ error: null, count: 1 }) }
 
@@ -34,6 +36,7 @@ describe('POST /api/admin/update-user — last-admin guard', () => {
     vi.spyOn(console, 'log').mockImplementation(() => undefined)
     requireAdmin.mockResolvedValue(admin)
     update.mockReturnValue(written)
+    rpc.mockResolvedValue({ error:null })
   })
 
   it('demoting the only admin is 400 lastAdminDemote, and nothing is written', async () => {
@@ -55,5 +58,14 @@ describe('POST /api/admin/update-user — last-admin guard', () => {
     users.rows = [{ id: 'a-1', rol: 'admin' }]
     const response = await POST(request({ id: 'a-1', rol: 'admin' }))
     expect(response.status).toBe(200)
+  })
+
+  it('validates through the atomic audited RPC without an unaudited table update',async () => {
+    const response = await POST(request({ id:'qa-user',validado:true,activo:true }))
+    expect(response.status).toBe(200)
+    expect(rpc).toHaveBeenCalledWith('native_sales_admin_validate_user',{
+      p_actor_user_id:'actor-1',p_target_user_id:'qa-user',
+    })
+    expect(update).not.toHaveBeenCalled()
   })
 })
