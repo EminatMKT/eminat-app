@@ -15,6 +15,7 @@ import NativeSocialStatus from './NativeSocialStatus'
 import NativeSocialInbox from './NativeSocialInbox'
 import NativePortalLeads from './NativePortalLeads'
 import NativePaymentsRenewals from './NativePaymentsRenewals'
+import NativeQboConnection from './NativeQboConnection'
 import { useT, type I18nKey } from '@/shared/i18n'
 import s from './NativeSalesModule.module.css'
 
@@ -124,6 +125,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).has('metaState') ||
       new URLSearchParams(window.location.search).has('metaError')) setTab('social')
+    if (new URLSearchParams(window.location.search).has('qboConnection')) setTab('settings')
   }, [])
 
   useEffect(() => {
@@ -413,6 +415,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
           users={directory.users} teams={directory.teams} />
           <NativeSocialInbox request={request} /></>}
         {tab==='settings' && <div className={s.reportGrid}>
+          <NativeQboConnection request={request} />
           <section className={s.panel}><h2>{t('salesNative.team')}</h2>{directory.teams.map(team => <p key={team.id}>{team.name}</p>)}</section>
           <section className={s.panel}><h2>{t('salesNative.people')}</h2>{directory.users.map(user => <p key={user.memberId}>{user.displayName} · {user.role}</p>)}</section>
           {access.capabilities.canConfigureReports && <NativeReportSchedules request={request} />}
