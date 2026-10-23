@@ -33,6 +33,10 @@ const invoiceSchema = z.object({ Invoice: z.object({
   CustomerRef: qboRef, TotalAmt: z.number().nonnegative(),
   Balance: z.number().nonnegative(),
   CurrencyRef: z.object({ value: z.string().length(3) }).optional(),
+  Line: z.array(z.object({ Amount:z.number().nonnegative(),
+    DetailType:z.string().optional(),
+    SalesItemLineDetail:z.object({ ItemRef:qboRef,
+      Qty:z.number().positive().optional() }).optional() })).optional(),
   LinkedTxn: z.array(linkedTxn).optional(),
 }) })
 const paymentSchema = z.object({ Payment: z.object({

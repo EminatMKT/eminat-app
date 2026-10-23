@@ -86,7 +86,7 @@ async function reconcileInvoice(event: Event, invoice: QboInvoice,
   access: Awaited<ReturnType<typeof connectedQboReadAccess>>): Promise<'PROCESSED' | 'RETRY' | 'IGNORED'> {
   const client = db()
   const { data: matches, error: matchError } = await client.from('sales_patient_qbo_manual')
-    .select('id,organization_id,enrollment_intent_id,opportunity_id,sales_payment_id,base_invoice_amount_cents,qa_synthetic,qbo_invoice_number,qbo_invoice_reference,qbo_customer_reference,qbo_invoice_status,verification_state,membership_activation_status')
+    .select('id,organization_id,enrollment_intent_id,opportunity_id,sales_payment_id,base_invoice_amount_cents,qa_synthetic,qbo_invoice_number,qbo_invoice_reference,qbo_customer_reference,qbo_item_reference,qbo_invoice_status,verification_state,membership_activation_status')
     .eq('organization_id',event.organization_id).eq('qbo_invoice_reference',invoice.Id)
     .eq('qa_synthetic',false).limit(2)
   if (matchError) throw new Error('QBO_MAPPING_UNAVAILABLE')
@@ -100,7 +100,8 @@ async function reconcileInvoice(event: Event, invoice: QboInvoice,
     return 'IGNORED'
   }
   const mapping = matches[0]
-  if (!mapping.qbo_customer_reference || !['OPEN','PAID'].includes(mapping.qbo_invoice_status)) {
+  if (!mapping.qbo_customer_reference || !mapping.qbo_item_reference ||
+    !['OPEN','PAID'].includes(mapping.qbo_invoice_status)) {
     await history(event.organization_id,event.id,'qbo_customer_mapping_missing',{ invoiceId:invoice.Id })
     return 'IGNORED'
   }
@@ -129,6 +130,7 @@ async function reconcileInvoice(event: Event, invoice: QboInvoice,
     access.client.payment(access.realmId,id,access.accessToken)))
   const decision = decideQboPayment({ invoice,payments,invoiceId:invoice.Id,
     invoiceNumber:mapping.qbo_invoice_number,customerId:mapping.qbo_customer_reference,
+    itemId:mapping.qbo_item_reference,
     amountCents:mapping.base_invoice_amount_cents,
     alreadyActive:!!intent.membership_id || mapping.membership_activation_status === 'ACTIVE' })
   if (decision.status !== 'PAID') {
@@ -171,7 +173,8 @@ async function reconcileInvoice(event: Event, invoice: QboInvoice,
     .map(id => access.client.payment(access.realmId,id,access.accessToken)))
   const latest = decideQboPayment({ invoice:latestInvoice,payments:latestPayments,
     invoiceId:invoice.Id,invoiceNumber:mapping.qbo_invoice_number,
-    customerId:mapping.qbo_customer_reference,amountCents:mapping.base_invoice_amount_cents,
+    customerId:mapping.qbo_customer_reference,itemId:mapping.qbo_item_reference,
+    amountCents:mapping.base_invoice_amount_cents,
     alreadyActive:false })
   if (latest.status !== 'PAID') {
     await history(event.organization_id,event.id,'qbo_activation_held',

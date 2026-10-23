@@ -40,7 +40,7 @@ function cents(value: number): number | null {
 /** Webhooks are hints. Only current, provider-read invoice and payment objects count. */
 export function decideQboPayment(input: {
   invoice: QboInvoice; payments: QboPayment[]; invoiceId: string;
-  invoiceNumber: string; customerId: string; amountCents: number;
+  invoiceNumber: string; customerId: string; itemId: string; amountCents: number;
   alreadyActive: boolean
 }): ReconciliationDecision {
   const { invoice, payments } = input
@@ -49,6 +49,12 @@ export function decideQboPayment(input: {
     invoice.CurrencyRef?.value !== undefined && invoice.CurrencyRef.value !== 'USD' ||
     cents(invoice.TotalAmt) !== input.amountCents)
     return { status: 'REVIEW', reason: 'INVOICE_MAPPING_MISMATCH' }
+  const itemLines = (invoice.Line ?? []).filter(line => line.SalesItemLineDetail)
+  if (itemLines.length !== 1 ||
+    itemLines[0].SalesItemLineDetail?.ItemRef.value !== input.itemId ||
+    itemLines[0].SalesItemLineDetail?.Qty !== 1 ||
+    cents(itemLines[0].Amount) !== input.amountCents)
+    return { status: 'REVIEW', reason: 'INVOICE_ITEM_MISMATCH' }
   const balance = cents(invoice.Balance)
   if (balance === null || balance > input.amountCents)
     return { status: 'REVIEW', reason: 'INVOICE_BALANCE_INVALID' }
@@ -78,9 +84,9 @@ export function decideQboPayment(input: {
   if (applied > input.amountCents)
     return { status: 'REVIEW', reason: 'PAYMENT_OVERAPPLIED' }
   if (input.alreadyActive) return { status: 'REVIEW', reason: 'ALREADY_ACTIVE' }
-  const latest = payments.map(payment => payment.TxnDate ?? '').sort().at(-1)
-  const paidAt = latest && /^\d{4}-\d{2}-\d{2}$/.test(latest)
-    ? `${latest}T12:00:00.000Z` : new Date().toISOString()
+  // QBO TxnDate is a date, not a confirmation timestamp. Record when the
+  // provider evidence was observed so the DB's no-future proof guard holds.
+  const paidAt = new Date().toISOString()
   const reference = `QBO-${input.invoiceId}-${createHash('sha256')
     .update(linkedIds.join(',')).digest('hex').slice(0,32)}`
   return { status: 'PAID', reference, paymentIds: linkedIds, paidAt }

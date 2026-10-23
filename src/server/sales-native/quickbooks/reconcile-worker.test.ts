@@ -6,7 +6,8 @@ const state = vi.hoisted(() => ({
   mapping: { id:'mapping',organization_id:'emc',enrollment_intent_id:'intent',
     opportunity_id:'opportunity',sales_payment_id:null as string | null,
     base_invoice_amount_cents:19998,qa_synthetic:false,qbo_invoice_number:'1133',
-    qbo_invoice_reference:'1133',qbo_customer_reference:'321',qbo_invoice_status:'OPEN',
+    qbo_invoice_reference:'1133',qbo_customer_reference:'321',qbo_item_reference:'7',
+    qbo_invoice_status:'OPEN',
     qbo_payment_status:'UNPAID',finance_verification_status:'PENDING',
     verification_state:'PAYMENT_PENDING',membership_activation_status:'NOT_ACTIVE' },
   intent: { id:'intent',organization_id:'emc',patient_identity_id:'identity',
@@ -20,6 +21,8 @@ const state = vi.hoisted(() => ({
       postalCode:'33101',country:'US' },do_not_email:false },
   invoice: { Id:'1133',DocNumber:'1133',CustomerRef:{ value:'321' },
     TotalAmt:199.98,Balance:0,CurrencyRef:{ value:'USD' },
+    Line:[{ Amount:199.98,DetailType:'SalesItemLineDetail',
+      SalesItemLineDetail:{ ItemRef:{ value:'7' },Qty:1 } }],
     LinkedTxn:[{ TxnId:'900',TxnType:'Payment' }] },
   payment: { Id:'900',CustomerRef:{ value:'321' },TotalAmt:199.98,
     TxnDate:'2026-10-22',Line:[{ Amount:199.98,
@@ -134,6 +137,17 @@ describe('read-only QBO event processing boundary',() => {
     state.event.realm_id='999'
     expect((await reconcileQboEvents()).ignored).toBe(1)
     expect(state.history).toContain('qbo_realm_mismatch')
+  })
+  it('does not verify a mismatched organization or canonical item',async () => {
+    state.mapping.organization_id='other-org'
+    expect((await reconcileQboEvents()).ignored).toBe(1)
+    expect(state.rpcCalls).toEqual([])
+    state.mapping.organization_id='emc';state.history=[]
+    state.mapping.qbo_item_reference='99'
+    expect((await reconcileQboEvents()).processed).toBe(1)
+    expect(state.rpcCalls).toEqual([])
+    expect(state.history).toContain('qbo_review')
+    state.mapping.qbo_item_reference='7'
   })
   it('does not process an event another worker already claimed',async () => {
     state.claimable=false

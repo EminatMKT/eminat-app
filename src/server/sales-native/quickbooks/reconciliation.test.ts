@@ -5,6 +5,8 @@ import { decideQboPayment,invoiceIdsForPayment,patientInvoiceMappingValid } from
 const invoice = (overrides: Partial<QboInvoice> = {}): QboInvoice => ({
   Id:'1133',DocNumber:'1133',CustomerRef:{ value:'321' },
   TotalAmt:199.98,Balance:0,CurrencyRef:{ value:'USD' },
+  Line:[{ Amount:199.98,DetailType:'SalesItemLineDetail',
+    SalesItemLineDetail:{ ItemRef:{ value:'7' },Qty:1 } }],
   LinkedTxn:[{ TxnId:'900',TxnType:'Payment' }],...overrides,
 })
 const payment = (overrides: Partial<QboPayment> = {}): QboPayment => ({
@@ -14,7 +16,8 @@ const payment = (overrides: Partial<QboPayment> = {}): QboPayment => ({
 })
 const decide = (overrides: Partial<Parameters<typeof decideQboPayment>[0]> = {}) =>
   decideQboPayment({ invoice:invoice(),payments:[payment()],invoiceId:'1133',
-    invoiceNumber:'1133',customerId:'321',amountCents:19998,alreadyActive:false,
+    invoiceNumber:'1133',customerId:'321',itemId:'7',
+    amountCents:19998,alreadyActive:false,
     ...overrides })
 
 describe('provider-read QBO reconciliation decision',() => {
@@ -29,6 +32,13 @@ describe('provider-read QBO reconciliation decision',() => {
     expect(decide({ invoice:invoice({ Id:'999' }) }).status).toBe('REVIEW')
     expect(decide({ invoice:invoice({ CustomerRef:{ value:'other' } }) }).status).toBe('REVIEW')
     expect(decide({ invoice:invoice({ CurrencyRef:{ value:'CAD' } }) }).status).toBe('REVIEW')
+    expect(decide({ itemId:'different-item' })).toMatchObject({
+      status:'REVIEW',reason:'INVOICE_ITEM_MISMATCH' })
+    expect(decide({ invoice:invoice({ Line:[] }) })).toMatchObject({
+      status:'REVIEW',reason:'INVOICE_ITEM_MISMATCH' })
+    expect(decide({ invoice:invoice({ Line:[{ Amount:199.98,
+      DetailType:'SalesItemLineDetail',SalesItemLineDetail:{ ItemRef:{ value:'7' },Qty:2 } }] }) }))
+      .toMatchObject({ status:'REVIEW',reason:'INVOICE_ITEM_MISMATCH' })
   })
   it('rejects a payment applied to another patient invoice',() => {
     expect(decide({ payments:[payment({ CustomerRef:{ value:'other' } })] }).status).toBe('REVIEW')
