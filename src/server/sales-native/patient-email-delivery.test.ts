@@ -33,6 +33,24 @@ describe('Patient Portal transactional email', () => {
     expect(options.idempotencyKey).toBe('patient-invoice-invoice-1133')
   })
 
+  it('sends recovery through the patient brand without exposing staff branding', async () => {
+    const send = vi.fn().mockResolvedValue({ data: { id: 'message-recovery' }, error: null })
+    const result = await sendPatientEmail({ kind: 'recovery', eventId: 'recovery-12345678',
+      recipient: 'patient@example.test', content: { title: 'Restablece tu contraseña',
+        message: 'Solicitaste recuperar tu acceso.', actionLabel: 'Restablecer contraseña',
+        actionUrl: 'https://portal.corazonsalud.health/recuperar#token_hash=secret' } },
+    { provider: { emails: { send } }, env })
+    expect(result.status).toBe('SENT')
+    const [payload, options] = send.mock.calls[0]
+    expect(payload.from).toBe('Corazón Salud <notifications@stratixsolutions.us>')
+    expect(payload.subject).toBe('Restablece tu contraseña de Corazón Salud')
+    expect(payload.html).toContain('cori-official.png')
+    expect(payload.html).toContain('Eminat Medical Center')
+    expect(payload.html).toContain('Corazón Salud no es un seguro médico.')
+    expect(payload.html).not.toMatch(/Stratix Meet|LILLY|CRM|Supabase/)
+    expect(options.idempotencyKey).toBe('patient-recovery-recovery-12345678')
+  })
+
   it('does not send when no approved sender is configured', async () => {
     const send = vi.fn()
     const result = await sendPatientEmail({ kind: 'welcome', eventId: 'patient-12345678',

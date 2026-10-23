@@ -172,6 +172,17 @@ describe('patient API isolation', () => {
     expect(fixtures.updatedPassword).toBeNull()
   })
 
+  it('never changes a staff password through the patient reset endpoint', async () => {
+    const response = await POST(new Request('https://app.test/api/patient/v1/passwordreset', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tokenHash: 'recovery_token_hash_example_1234567890',
+        password: 'owner-entered-secret-123' }),
+    }), { params: Promise.resolve({ resource: 'passwordreset' }) })
+    expect(response.status).toBe(401)
+    expect(fixtures.updatedPassword).toBeNull()
+    expect(fixtures.queries.some(query => query.table === 'sales_patient_sessions' && query.update)).toBe(false)
+  })
+
   it('resets only a Portal patient and revokes previous opaque sessions', async () => {
     fixtures.canResetPassword = true
     const response = await POST(new Request('https://app.test/api/patient/v1/passwordreset', {
