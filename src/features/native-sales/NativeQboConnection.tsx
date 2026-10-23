@@ -42,11 +42,23 @@ export default function NativeQboConnection({ request }: { request: NativeReques
     } catch { setMessage('QuickBooks disconnect could not be completed.') }
     finally { setBusy(false) }
   }
+  const verifyRefresh = async () => {
+    setBusy(true); setMessage('')
+    try {
+      const result = await request('quickbooks/connection',{ method:'POST' })
+      const name = result.company && typeof result.company === 'object' &&
+        'companyName' in result.company ? String(result.company.companyName) : ''
+      setCompany(name)
+      setMessage('Token refreshed. QuickBooks company verified.')
+    } catch { setMessage('QuickBooks token refresh could not be verified.') }
+    finally { setBusy(false) }
+  }
   if (status === 'unavailable') return null
   return <section aria-label="QuickBooks connection">
     <h2>QuickBooks · Eminat Medical Center</h2>
     {status === 'loading' ? <p>Checking connection…</p> :
       status === 'connected' ? <><p>Connected: {company}</p>
+        <button type="button" disabled={busy} onClick={verifyRefresh}>Verify token refresh</button>
         <button type="button" disabled={busy} onClick={disconnect}>Disconnect QuickBooks</button></> :
       <><p>QuickBooks is not connected.</p>
         <button type="button" disabled={busy} onClick={connect}>Connect QuickBooks</button></>}
