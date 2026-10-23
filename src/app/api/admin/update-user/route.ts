@@ -61,6 +61,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: ADMIN_ERRORS.idRequired }, { status: 400 })
     }
 
+    // Keep validation and its audit entry in one database transaction. A retry
+    // against an already validated, active identity is a no-op in the RPC.
+    if (Object.keys(body).sort().join(',') === 'activo,id,validado' &&
+        validado === true && activo === true) {
+      const { error: validationError } = await db.rpc('native_sales_admin_validate_user', {
+        p_actor_user_id: authz.userId,
+        p_target_user_id: id,
+      })
+      if (validationError) return NextResponse.json(
+        { error: validationError.message }, { status: 400 },
+      )
+      const { data: userData, error: readError } = await db.from('usuarios')
+        .select('*, usuario_cargos(cargo_id, cargos(codigo, nombre))').eq('id', id).single()
+      if (readError) return NextResponse.json({ error: readError.message }, { status: 500 })
+      return NextResponse.json({ user: userData })
+    }
+
     // Only include keys that were explicitly sent. undefined → skip.
     const updatePayload: Record<string, unknown> = {}
     if (email !== undefined) updatePayload.email = email
