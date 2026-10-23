@@ -55,7 +55,6 @@ test('single Meetings trigger; Tasks and gated Native Sales crons preserved', as
     { path: '/api/sales-native/reports/process', schedule: '5 13 * * *' },
     { path: '/api/sales-native/social/meta/recover', schedule: '10 14 * * *' },
     { path: '/api/sales-native/patient-email/process', schedule: '15 12 * * *' },
-    { path: '/api/sales-native/quickbooks/reconcile', schedule: '*/5 * * * *' },
   ])
   assert.deepEqual(vercel.git.deploymentEnabled, { '**': false, 'feature/lilly-calendar': true, main: false })
   const workflow = await readFile('.github/workflows/meetings-scheduler.yml', 'utf8')
