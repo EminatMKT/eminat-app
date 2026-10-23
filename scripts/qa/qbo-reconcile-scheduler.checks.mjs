@@ -65,7 +65,7 @@ test('incomplete response cannot report success', async () => {
 
 test('Hobby cron configuration and protected GitHub scheduler contract', async () => {
   const vercel = JSON.parse(await readFile('vercel.json', 'utf8'))
-  assert.ok(vercel.crons.every(item => item.schedule.split(' ')[0].match(/^\\d+$/)))
+  assert.ok(vercel.crons.every(item => item.schedule.split(' ')[0].match(/^\d+$/)))
   assert.ok(!vercel.crons.some(item => item.path === '/api/sales-native/quickbooks/reconcile'))
   const workflow = await readFile('.github/workflows/qbo-reconcile-scheduler.yml', 'utf8')
   assert.ok(workflow.includes("'3-59/5 * * * *'"))
