@@ -1,57 +1,79 @@
-import { describe, it, expect } from 'vitest'
-import { actividadesActivasDe, cargaDe, slotOcupado, HORAS_SEMANALES } from './index'
-import { ESTADO } from '@/shared/constants/domain'
+import { describe, expect, it } from 'vitest'
+import {
+  compareDailyHours,
+  declaredHoursByDay,
+  declaredWeeklyHours,
+  durationHours,
+  sortRanges,
+  validateRanges,
+  type Weekday,
+  type WeeklyAvailabilityRange,
+} from '.'
 
-describe('cargaDe', () => {
-  it('suma las horas y saca el resto de la semana', () => {
-    const c = cargaDe([{ horas: 6 }, { horas: '4' }, { horas: null }])
-    expect(c.horasOcupadas).toBe(10)
-    expect(c.horasLibres).toBe(HORAS_SEMANALES - 10)
-    expect(c.pctOcupado).toBe(25)
-    expect(c.disponible).toBe(true)
+const range = (
+  weekday: Weekday,
+  startsAt: string,
+  endsAt: string,
+  note: string | null = null,
+): WeeklyAvailabilityRange => ({ weekday, startsAt, endsAt, note })
+
+describe('weekly availability domain', () => {
+  it('calculates duration from canonical HH:mm values', () => {
+    expect(durationHours(range(1, '09:00', '13:30'))).toBe(4.5)
   })
 
-  it('no deja pasar del 100% ni deja horas libres negativas', () => {
-    const c = cargaDe([{ horas: 60 }])
-    expect(c.pctOcupado).toBe(100)
-    expect(c.horasLibres).toBe(0)
-    expect(c.disponible).toBe(false)
+  it('adds multiple ranges on the same day and reports the weekly declared total', () => {
+    const ranges = [
+      range(1, '09:00', '13:00'),
+      range(1, '14:00', '18:00', 'Not available for meetings'),
+      range(2, '11:00', '15:00'),
+    ]
+
+    expect(declaredHoursByDay(ranges)).toEqual({ 1: 8, 2: 4 })
+    expect(declaredWeeklyHours(ranges)).toBe(12)
   })
 
-  it('sin tareas, disponible y la semana entera libre', () => {
-    expect(cargaDe([])).toEqual({ horasOcupadas: 0, horasLibres: HORAS_SEMANALES, pctOcupado: 0, disponible: true })
-  })
-})
-
-describe('slotOcupado', () => {
-  it('muy cargada: el día entero', () => {
-    expect(slotOcupado(90, 9)).toBe(true)
-    expect(slotOcupado(90, 17)).toBe(true)
+  it('sorts by weekday and start time without mutating the input', () => {
+    const ranges = [range(2, '14:00', '18:00'), range(1, '09:00', '13:00')]
+    const [original] = ranges
+    expect(sortRanges(ranges).map(item => item.weekday)).toEqual([1, 2])
+    expect(original?.weekday).toBe(2)
   })
 
-  it('medianamente cargada: solo el centro del día', () => {
-    expect(slotOcupado(70, 9)).toBe(false)
-    expect(slotOcupado(70, 12)).toBe(true)
-    expect(slotOcupado(70, 15)).toBe(false)
+  it('rejects overlaps but allows touching ranges', () => {
+    expect(validateRanges([
+      range(1, '09:00', '13:00'),
+      range(1, '12:30', '14:00'),
+    ])).toContainEqual({ code: 'overlap', rangeIndex: 1, conflictingRangeIndex: 0 })
+
+    expect(validateRanges([
+      range(1, '09:00', '13:00'),
+      range(1, '13:00', '17:00'),
+    ])).toEqual([])
   })
 
-  it('poco cargada: ningún slot ocupado', () => {
-    expect(slotOcupado(30, 12)).toBe(false)
+  it('rejects malformed, zero-duration, and reversed ranges', () => {
+    const [malformed] = validateRanges([range(1, 'nine', '13:00')])
+    const [zeroLength] = validateRanges([range(1, '09:00', '09:00')])
+    const [reversed] = validateRanges([range(1, '10:00', '09:00')])
+    expect(malformed?.code).toBe('invalid-time')
+    expect(zeroLength?.code).toBe('end-not-after-start')
+    expect(reversed?.code).toBe('end-not-after-start')
   })
-})
 
-describe('actividadesActivasDe', () => {
-  const actividades = [
-    { id: 'a', estado: ESTADO.EN_PROCESO, responsables: [{ usuario_id: 'u1', es_lider: true }] },
-    { id: 'b', estado: ESTADO.PENDIENTE, responsables: [
-      { usuario_id: 'u1', es_lider: true },
-      { usuario_id: 'u2', es_lider: false },
-    ] },
-    { id: 'c', estado: ESTADO.COMPLETADO, responsables: [{ usuario_id: 'u2', es_lider: true }] },
-  ]
+  it('ignores notes when calculating hours', () => {
+    expect(durationHours(range(1, '09:00', '13:00', 'Class in the afternoon'))).toBe(4)
+  })
 
-  it('incluye tareas activas compartidas para ambos responsables', () => {
-    expect(actividadesActivasDe(actividades, 'u1').map(a => a.id)).toEqual(['a', 'b'])
-    expect(actividadesActivasDe(actividades, 'u2').map(a => a.id)).toEqual(['b'])
+  it('compares only a declared day with the daily jornada reference', () => {
+    expect(compareDailyHours(6, 8)).toEqual({
+      declaredHours: 6,
+      expectedHours: 8,
+      differenceHours: -2,
+      status: 'below',
+    })
+    expect(compareDailyHours(8, 8).status).toBe('complete')
+    expect(compareDailyHours(10, 8).status).toBe('above')
+    expect(compareDailyHours(6, null).status).toBe('unavailable')
   })
 })
