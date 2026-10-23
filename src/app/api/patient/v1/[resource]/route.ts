@@ -299,7 +299,7 @@ export async function POST(request: Request, { params }: Route) {
     const admin = supabaseAdmin({ noStore: true })
     const sourceAddress = process.env.VERCEL === '1'
       ? request.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim() : null
-    const { data: admitted, error: admissionError } = await admin.rpc('native_sales_patient_registration_admit', {
+    const { data: admitted, error: admissionError } = await admin.rpc('native_sales_patient_recovery_admit', {
       p_email_digest: registrationDigest(`recovery:${email}`),
       p_ip_digest: sourceAddress ? registrationDigest(sourceAddress) : null,
     })

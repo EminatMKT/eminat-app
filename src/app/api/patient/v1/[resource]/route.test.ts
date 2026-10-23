@@ -37,7 +37,8 @@ vi.mock('@/shared/db/supabaseAdmin', () => ({
   supabaseAdmin: () => ({
     rpc: async (name: string, args: Record<string, unknown>) => {
       fixtures.rpcCalls.push({ name, args })
-      if (name === 'native_sales_patient_registration_admit')
+      if (name === 'native_sales_patient_registration_admit' ||
+          name === 'native_sales_patient_recovery_admit')
         return { data: fixtures.registrationAdmitted, error: null }
       if (name === 'native_sales_patient_registration_can_recover')
         return { data: fixtures.canRecoverRegistration, error: null }
@@ -167,6 +168,19 @@ describe('patient API isolation', () => {
     expect(fixtures.recoveryEmails).toEqual([{ recipient: 'one@example.test',
       actionUrl: 'https://portal.corazonsalud.health/recuperar#token_hash=recovery_token_hash_example_1234567890' }])
     expect(fixtures.signupLinks.at(-1)?.type).toBe('recovery')
+  })
+
+  it('rejects a duplicate recovery request before generating another link or email', async () => {
+    fixtures.canResetPassword = true
+    fixtures.registrationAdmitted = false
+    const response = await POST(new Request('https://app.test/api/patient/v1/passwordrecovery', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'one@example.test' }),
+    }), { params: Promise.resolve({ resource: 'passwordrecovery' }) })
+    expect(response.status).toBe(429)
+    expect(fixtures.signupLinks).toHaveLength(0)
+    expect(fixtures.recoveryEmails).toHaveLength(0)
+    expect(fixtures.rpcCalls.map(call => call.name)).toEqual(['native_sales_patient_recovery_admit'])
   })
 
   it('rejects expired recovery tokens without updating the password', async () => {
