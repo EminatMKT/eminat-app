@@ -42,8 +42,8 @@ REVOKE ALL ON FUNCTION public.native_sales_patient_email_queue(text,text,text,te
 GRANT EXECUTE ON FUNCTION public.native_sales_patient_email_queue(text,text,text,text,text)
   TO service_role;
 
--- A patient Auth identity is deliberately marked during Portal signup. Staff
--- identities are excluded, even if they use the same email domain.
+-- New Portal Auth identities carry the signup marker; older explicitly bound
+-- patient identities are also eligible. Staff identities are always excluded.
 CREATE FUNCTION public.native_sales_patient_can_reset_password(p_email text)
 RETURNS boolean
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $$
@@ -58,7 +58,9 @@ BEGIN
     SELECT 1 FROM auth.users AS u
     WHERE lower(u.email)=lower(btrim(p_email))
       AND u.email_confirmed_at IS NOT NULL
-      AND u.raw_user_meta_data @> '{"corazon_patient_signup": true}'::jsonb
+      AND (u.raw_user_meta_data @> '{"corazon_patient_signup": true}'::jsonb
+        OR EXISTS (SELECT 1 FROM public.sales_patient_identities patient
+          WHERE patient.auth_id=u.id))
       AND NOT EXISTS (SELECT 1 FROM public.usuarios staff WHERE staff.auth_id=u.id)
   );
 END;
