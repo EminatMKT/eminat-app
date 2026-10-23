@@ -132,7 +132,7 @@ export class QboClient {
     try { decoded = await response.json() }
     catch { throw new Error('QBO_COMPANY_INVALID') }
     const parsed = companySchema.safeParse(decoded)
-    if (!parsed.success || parsed.data.CompanyInfo.Id !== realmId)
+    if (!parsed.success)
       throw new Error('QBO_COMPANY_INVALID')
     return { id: realmId, name: parsed.data.CompanyInfo.CompanyName,
       legalName: parsed.data.CompanyInfo.LegalName ?? null }
