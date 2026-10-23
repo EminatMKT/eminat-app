@@ -37,14 +37,14 @@ describe('LILLY QBO OAuth boundary', () => {
       if (url.includes('/tokens/bearer')) return Response.json(reply)
       expect(url).toMatch(/^https:\/\/quickbooks\.api\.intuit\.com\/v3\/company\/\d+\/companyinfo\/\d+$/)
       expect(init.method).toBeUndefined()
-      return Response.json({ CompanyInfo: { Id: '123',
+      return Response.json({ CompanyInfo: { Id: '1',
         CompanyName: 'Eminat Medical Center LLC' } })
     })
     const client = new QboClient(config,request as unknown as typeof fetch)
     expect((await client.refresh('old-refresh-token')).refreshToken).toBe(reply.refresh_token)
     expect((await client.companyInfo('123',reply.access_token)).name)
       .toBe('Eminat Medical Center LLC')
-    await expect(client.companyInfo('456',reply.access_token)).rejects
+    await expect(client.companyInfo('not-a-realm',reply.access_token)).rejects
       .toThrow('QBO_COMPANY_INVALID')
   })
 
