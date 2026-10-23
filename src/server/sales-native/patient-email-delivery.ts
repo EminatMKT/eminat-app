@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto'
 import { Resend } from 'resend'
 import { renderPatientEmail, type PatientEmail } from './patient-email-template'
 
-type Kind = 'verification' | 'welcome' | 'invoice' | 'activation'
+type Kind = 'verification' | 'welcome' | 'invoice' | 'activation' | 'recovery'
 export type PatientEmailRequest = {
   kind: Kind; eventId: string; recipient: string; content: PatientEmail
 }
@@ -18,6 +18,7 @@ const subjects: Record<Kind, string> = {
   welcome: '¡Bienvenido a Corazón Salud!',
   invoice: 'Tu pago de Corazón Salud está disponible',
   activation: 'Tu membresía Corazón Salud ya está activa',
+  recovery: 'Restablece tu contraseña de Corazón Salud',
 }
 
 export function patientEmailConfigured(env: Record<string, string | undefined> = process.env) {
@@ -68,6 +69,15 @@ export async function sendPatientVerification(eventId: string, recipient: string
     title: 'Confirma tu cuenta de Corazón Salud',
     message: 'Confirma tu correo para entrar al Portal de Corazón Salud. Tu membresía todavía no está activa.',
     actionLabel: 'Confirmar mi cuenta', actionUrl,
+  } })
+}
+
+export async function sendPatientRecovery(eventId: string, recipient: string, actionUrl: string) {
+  const { queuePatientEmail } = await import('./patient-email-outbox')
+  return queuePatientEmail({ kind: 'recovery', eventId, recipient, content: {
+    title: 'Restablece tu contraseña',
+    message: 'Solicitaste recuperar el acceso a tu cuenta de Corazón Salud. Si no fuiste tú, puedes ignorar este mensaje.',
+    actionLabel: 'Restablecer contraseña', actionUrl,
   } })
 }
 

@@ -5,7 +5,7 @@ import { noStoreFetch } from '@/shared/db/noStoreFetch'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { membershipTypes, plans, saleDurations } from '@/server/sales-native/pricing'
 import { createMembershipPdf } from '@/server/sales-native/membership-pdf'
-import { patientEmailConfigured, sendPatientVerification, sendPatientWelcome } from '@/server/sales-native/patient-email-delivery'
+import { patientEmailConfigured, sendPatientRecovery, sendPatientVerification, sendPatientWelcome } from '@/server/sales-native/patient-email-delivery'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -292,6 +292,64 @@ export async function POST(request: Request, { params }: Route) {
   const { resource } = await params
   const body = await readBody(request)
   if (!body) return invalid()
+  if (resource === 'passwordrecovery') {
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
+    if (!emailPattern.test(email) || email.length > 320) return invalid()
+    if (!patientEmailConfigured()) return unavailable()
+    const admin = supabaseAdmin({ noStore: true })
+    const sourceAddress = process.env.VERCEL === '1'
+      ? request.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim() : null
+    const { data: admitted, error: admissionError } = await admin.rpc('native_sales_patient_recovery_admit', {
+      p_email_digest: registrationDigest(`recovery:${email}`),
+      p_ip_digest: sourceAddress ? registrationDigest(sourceAddress) : null,
+    })
+    if (admissionError) return unavailable()
+    if (!admitted) return respond({ code: 'RECOVERY_RATE_LIMITED' }, 429)
+    const { data: eligible, error: eligibilityError } = await admin
+      .rpc('native_sales_patient_can_reset_password', { p_email: email })
+    if (eligibilityError) return unavailable()
+    // Identical response for unknown, staff, and confirmed patient addresses.
+    if (!eligible) return respond({ status: 'CHECK_EMAIL' }, 202)
+    const { data, error } = await admin.auth.admin.generateLink({ type: 'recovery', email })
+    const token = data?.properties?.hashed_token
+    if (!error && token && /^[A-Za-z0-9_-]{12,512}$/.test(token)) {
+      // A fragment never reaches the Portal web server or ordinary URL logs.
+      const actionUrl = new URL('https://portal.corazonsalud.health/recuperar')
+      actionUrl.hash = new URLSearchParams({ token_hash: token }).toString()
+      await sendPatientRecovery(randomBytes(16).toString('hex'), email, actionUrl.toString())
+    }
+    return respond({ status: 'CHECK_EMAIL' }, 202)
+  }
+  if (resource === 'passwordreset') {
+    const token = typeof body.tokenHash === 'string' ? body.tokenHash : ''
+    const password = typeof body.password === 'string' ? body.password : ''
+    if (!/^[A-Za-z0-9_-]{12,512}$/.test(token) ||
+        password.length < 12 || password.length > 128) return invalid()
+    const auth = authClient()
+    const { data, error } = await auth.auth.verifyOtp({ token_hash: token, type: 'recovery' })
+    if (error || !data.user?.email || !data.session) return respond({ code: 'RECOVERY_LINK_INVALID' }, 401)
+    const admin = supabaseAdmin({ noStore: true })
+    const { data: eligible, error: eligibilityError } = await admin.rpc(
+      'native_sales_patient_can_reset_password', { p_email: data.user.email })
+    if (eligibilityError || !eligible) return respond({ code: 'RECOVERY_LINK_INVALID' }, 401)
+    // GoTrue can issue a session again for an already-used recovery hash. Claim
+    // the token atomically before any password or session mutation.
+    const { data: claimed, error: claimError } = await admin.rpc(
+      'native_sales_patient_claim_recovery_token', {
+        p_token_digest: hash(token), p_auth_id: data.user.id,
+      })
+    if (claimError || !claimed) {
+      await auth.auth.signOut()
+      return claimError ? unavailable() : respond({ code: 'RECOVERY_LINK_INVALID' }, 401)
+    }
+    const { error: revokeError } = await admin.from('sales_patient_sessions')
+      .update({ revoked_at: new Date().toISOString() }).eq('auth_id', data.user.id)
+      .is('revoked_at', null)
+    if (revokeError) return unavailable()
+    const { error: updateError } = await auth.auth.updateUser({ password })
+    await auth.auth.signOut()
+    return updateError ? unavailable() : respond({ status: 'PASSWORD_UPDATED' })
+  }
   if (resource === 'register' || resource === 'login') {
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
     const password = typeof body.password === 'string' ? body.password : ''
