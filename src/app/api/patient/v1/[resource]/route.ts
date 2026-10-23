@@ -332,6 +332,16 @@ export async function POST(request: Request, { params }: Route) {
     const { data: eligible, error: eligibilityError } = await admin.rpc(
       'native_sales_patient_can_reset_password', { p_email: data.user.email })
     if (eligibilityError || !eligible) return respond({ code: 'RECOVERY_LINK_INVALID' }, 401)
+    // GoTrue can issue a session again for an already-used recovery hash. Claim
+    // the token atomically before any password or session mutation.
+    const { data: claimed, error: claimError } = await admin.rpc(
+      'native_sales_patient_claim_recovery_token', {
+        p_token_digest: hash(token), p_auth_id: data.user.id,
+      })
+    if (claimError || !claimed) {
+      await auth.auth.signOut()
+      return claimError ? unavailable() : respond({ code: 'RECOVERY_LINK_INVALID' }, 401)
+    }
     const { error: revokeError } = await admin.from('sales_patient_sessions')
       .update({ revoked_at: new Date().toISOString() }).eq('auth_id', data.user.id)
       .is('revoked_at', null)
