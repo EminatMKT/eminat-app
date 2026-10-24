@@ -5,6 +5,7 @@ import { quoteMembership, type MembershipType, type Plan,
   type SaleDuration } from '@/server/sales-native/pricing'
 import { connectedQboReadAccess, EMC_ORGANIZATION_ID } from './connection'
 import type { QboInvoice, QboRecoveryInvoice } from './client'
+import { patientProfileReadyForPayment } from './patient-profile'
 
 type Job = {
   id: string; organization_id: string; enrollment_intent_id: string;
@@ -43,6 +44,26 @@ function verifyInvoice(invoice: QboInvoice | QboRecoveryInvoice, job: Job,
 export async function issuePatientQboInvoice(identityId: string, intentId: string,
   authenticatedEmail: string) {
   const db = supabaseAdmin({ noStore:true })
+  // Do not create a durable invoice job (which locks selection edits) for an
+  // incomplete profile. Existing jobs must still be recoverable after deploy.
+  const { data: existingJob, error: existingJobError } = await db
+    .from('sales_qbo_invoice_jobs').select('id')
+    .eq('organization_id',EMC_ORGANIZATION_ID).eq('patient_identity_id',identityId)
+    .eq('enrollment_intent_id',intentId).maybeSingle()
+  if (existingJobError) throw new Error('QBO_INVOICE_JOB_UNAVAILABLE')
+  if (!existingJob) {
+    const { data: identity, error: identityError } = await db.from('sales_patient_identities')
+      .select('contact_id').eq('organization_id',EMC_ORGANIZATION_ID)
+      .eq('id',identityId).maybeSingle()
+    if (identityError || !identity?.contact_id) throw new Error('QBO_IDENTITY_UNAVAILABLE')
+    const { data: profile, error: profileError } = await db.from('sales_contacts')
+      .select('first_name,last_name,email,phone,address').eq('organization_id',EMC_ORGANIZATION_ID)
+      .eq('id',identity.contact_id).maybeSingle()
+    if (profileError || !profile || profile.email?.toLowerCase() !== authenticatedEmail.toLowerCase())
+      throw new Error('QBO_CONTACT_MISMATCH')
+    if (!patientProfileReadyForPayment(profile))
+      throw new Error('PATIENT_PROFILE_COMPLETION_REQUIRED')
+  }
   const { data: claimed, error: claimError } = await db.rpc('native_sales_qbo_claim_invoice', {
     p_identity_id:identityId,p_intent_id:intentId,
   })
@@ -55,18 +76,20 @@ export async function issuePatientQboInvoice(identityId: string, intentId: strin
     return { status:'PENDING_RECONCILIATION' as const }
   const quote = quoteMembership(job.plan,job.membership_type,job.duration)
   if (quote.totalCents !== job.amount_cents) throw new Error('QBO_INVOICE_AMOUNT_MISMATCH')
+  const { data: contact, error: contactError } = await db.from('sales_contacts')
+    .select('id,first_name,last_name,display_name,email,phone,address,do_not_email')
+    .eq('organization_id',EMC_ORGANIZATION_ID).eq('id',job.contact_id).maybeSingle()
+  if (contactError || !contact || !contact.email ||
+    contact.email.toLowerCase() !== authenticatedEmail.toLowerCase() ||
+    !contact.first_name || !contact.last_name) throw new Error('QBO_CONTACT_MISMATCH')
+  if (job.state === 'CLAIMED' && !patientProfileReadyForPayment(contact))
+    throw new Error('PATIENT_PROFILE_COMPLETION_REQUIRED')
   if (job.state === 'CLAIMED') {
     const { data: locked, error: lockError } = await db.from('sales_qbo_invoice_jobs')
       .update({ state:'PRECHECKING',updated_at:new Date().toISOString() })
       .eq('id',job.id).eq('state','CLAIMED').select('id').maybeSingle()
     if (lockError || !locked) return { status:'PENDING_RECONCILIATION' as const }
   }
-  const { data: contact, error: contactError } = await db.from('sales_contacts')
-    .select('id,first_name,last_name,display_name,email,do_not_email')
-    .eq('organization_id',EMC_ORGANIZATION_ID).eq('id',job.contact_id).maybeSingle()
-  if (contactError || !contact || !contact.email ||
-    contact.email.toLowerCase() !== authenticatedEmail.toLowerCase() ||
-    !contact.first_name || !contact.last_name) throw new Error('QBO_CONTACT_MISMATCH')
 
   const { client,realmId,accessToken } = await connectedQboReadAccess()
   const company = await client.companyInfo(realmId,accessToken)

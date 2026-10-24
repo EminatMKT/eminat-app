@@ -37,7 +37,11 @@ const qaInvoice = {Id:'808',DocNumber:'CS-TEST',PrivateNote:'LILLY enrollment in
     SalesItemLineDetail:{ItemRef:{value:'7'},Qty:1}}],
   InvoiceLink:'https://connect.intuit.com/t/qa-link'}
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  mocks.from.mockImplementation((table: string) => table === 'sales_qbo_invoice_jobs'
+    ? query({data:{id:'job'},error:null}) : query({data:null,error:null}))
+})
 
 describe('automatic QBO invoice safety', () => {
   it('uses the exact existing QBO product name', () => {
@@ -51,6 +55,19 @@ describe('automatic QBO invoice safety', () => {
     expect(result).toEqual({ status:'INVOICE_CREATED',invoiceNumber:'1134' })
     expect(mocks.access).not.toHaveBeenCalled()
     expect(mocks.email).not.toHaveBeenCalled()
+  })
+
+  it('does not begin a provider write when the patient lacks activation details', async () => {
+    mocks.from.mockImplementation((table: string) => {
+      if (table === 'sales_qbo_invoice_jobs') return query({data:null,error:null})
+      if (table === 'sales_patient_identities') return query({data:{contact_id:'contact'},error:null})
+      return query({data:{email:'qa@example.com',first_name:'QA',last_name:'Patient',
+        phone:null,address:null},error:null})
+    })
+    await expect(issuePatientQboInvoice('patient','intent','qa@example.com'))
+      .rejects.toThrow('PATIENT_PROFILE_COMPLETION_REQUIRED')
+    expect(mocks.access).not.toHaveBeenCalled()
+    expect(mocks.claim).not.toHaveBeenCalled()
   })
 
   it('holds an uncertain invoice write when no signed create event has arrived', async () => {
