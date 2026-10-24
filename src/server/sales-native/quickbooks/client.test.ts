@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { QboClient, QBO_CALLBACK, QBO_ACCOUNTING_SCOPE } from './client'
+import { QboClient, QBO_CALLBACK, QBO_ACCOUNTING_SCOPE, patientInvoiceNumber } from './client'
 
 const config = { clientId: 'synthetic-client-1234',
   clientSecret: 'synthetic-secret-1234', redirectUri: QBO_CALLBACK as typeof QBO_CALLBACK }
@@ -80,7 +80,7 @@ describe('LILLY QBO OAuth boundary', () => {
     expect(request).toHaveBeenCalledTimes(2)
   })
 
-  it('creates one non-taxable invoice for the existing customer and item without a DocNumber', async () => {
+  it('creates one non-taxable invoice with a stable number for custom-number companies', async () => {
     const request = vi.fn(async (url: string, init: RequestInit) => {
       expect(url).toBe('https://quickbooks.api.intuit.com/v3/company/123/invoice')
       expect(init.method).toBe('POST')
@@ -88,10 +88,10 @@ describe('LILLY QBO OAuth boundary', () => {
       expect(body.CustomerRef.value).toBe('321')
       expect(body.Line[0].SalesItemLineDetail).toEqual({ ItemRef:{ value:'7' },
         Qty:1,UnitPrice:119.98,TaxCodeRef:{ value:'NON' } })
-      expect(body).not.toHaveProperty('DocNumber')
+      expect(body.DocNumber).toBe(patientInvoiceNumber('intent-qa'))
       expect(body.AllowOnlineCreditCardPayment).toBe(true)
       expect(body.EmailStatus).toBe('NotSet')
-      return Response.json({ Invoice:{ Id:'1134',DocNumber:'1134',
+      return Response.json({ Invoice:{ Id:'1134',DocNumber:body.DocNumber,
         CustomerRef:{value:'321'},TotalAmt:119.98,Balance:119.98,
         Line:[{Amount:119.98,DetailType:'SalesItemLineDetail',
           SalesItemLineDetail:{ItemRef:{value:'7'},Qty:1}}] } })
@@ -101,6 +101,29 @@ describe('LILLY QBO OAuth boundary', () => {
         email:'qa@example.com',amountCents:11998,intentId:'intent-qa' })
     expect(invoice.Id).toBe('1134')
     expect(request).toHaveBeenCalledTimes(1)
+  })
+
+  it('numbers one already-created invoice without creating another', async () => {
+    const request = vi.fn(async (url: string, init: RequestInit) => {
+      if (init.method === 'GET') return Response.json({ Invoice:{
+        Id:'808',DocNumber:null,SyncToken:'0',PrivateNote:'LILLY enrollment intent-qa',
+        CustomerRef:{value:'321'},TotalAmt:159.98,Balance:159.98,
+        Line:[{Amount:159.98,DetailType:'SalesItemLineDetail',
+          SalesItemLineDetail:{ItemRef:{value:'7'},Qty:1}}],
+      } })
+      const body = JSON.parse(String(init.body))
+      expect(body).toEqual({sparse:true,Id:'808',SyncToken:'0',
+        DocNumber:patientInvoiceNumber('intent-qa')})
+      return Response.json({Invoice:{Id:'808',DocNumber:body.DocNumber,
+        CustomerRef:{value:'321'},TotalAmt:159.98,Balance:159.98,
+        Line:[{Amount:159.98,DetailType:'SalesItemLineDetail',
+          SalesItemLineDetail:{ItemRef:{value:'7'},Qty:1}}]}})
+    })
+    const client = new QboClient(config,request as unknown as typeof fetch)
+    const existing = await client.invoiceForRecovery('123','synthetic-access','808')
+    const recovered = await client.numberExistingInvoice('123','synthetic-access',existing,'intent-qa')
+    expect(recovered.DocNumber).toBe(patientInvoiceNumber('intent-qa'))
+    expect(request).toHaveBeenCalledTimes(2)
   })
 
   it('treats an ambiguous provider write as unsafe to repeat', async () => {
