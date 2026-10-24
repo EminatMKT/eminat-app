@@ -26,7 +26,15 @@ describe('provider-read QBO reconciliation decision',() => {
     expect(invoiceIdsForPayment(payment())).toEqual(['1133'])
   })
   it('handles repeat observations with the same stable payment reference',() => {
-    expect(decide()).toEqual(decide())
+    const first = decide()
+    const repeated = decide()
+    expect(first.status).toBe('PAID')
+    expect(repeated.status).toBe('PAID')
+    if (first.status !== 'PAID' || repeated.status !== 'PAID') return
+    expect(repeated.reference).toBe(first.reference)
+    expect(repeated.paymentIds).toEqual(first.paymentIds)
+    expect(new Date(repeated.paidAt).getTime()).toBeGreaterThanOrEqual(
+      new Date(first.paidAt).getTime())
   })
   it('rejects a wrong invoice, customer or currency mapping',() => {
     expect(decide({ invoice:invoice({ Id:'999' }) }).status).toBe('REVIEW')
