@@ -1,0 +1,21 @@
+# INACTIVE TEMPLATE. Do not include in nginx until the dependency gate in README.md passes.
+# Replace only this hostname's vhost after approval; keep all application infrastructure.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name annie.stratixsolutions.us;
+    location /.well-known/acme-challenge/ { root /var/www/html; }
+    location / { return 301 https://app.stratixsolutions.us/login; }
+}
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name annie.stratixsolutions.us;
+    ssl_certificate /etc/letsencrypt/live/annie.stratixsolutions.us/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/annie.stratixsolutions.us/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    # Fixed destination intentionally discards old paths and query strings.
+    return 301 https://app.stratixsolutions.us/login;
+}
