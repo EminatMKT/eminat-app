@@ -29,11 +29,15 @@ const state = vi.hoisted(() => ({
       LinkedTxn:[{ TxnId:'1133',TxnType:'Invoice' }] }] },
   hasMapping:true,claimable:true,history:[] as string[],rpcCalls:[] as string[],
   finalStatus:'',invoiceReads:0,paymentReads:0,
+  issuedAt:'',emailStatus:'QUEUED',emailCalls:0,
 }))
 
 vi.mock('server-only',() => ({}))
 vi.mock('@/server/sales-native/patient-email-delivery',() => ({
-  sendPatientActivation:vi.fn(async () => ({ status:'queued' })),
+  sendPatientActivation:vi.fn(async () => {
+    state.emailCalls++
+    return { status:state.emailStatus }
+  }),
 }))
 vi.mock('./connection',() => ({
   EMC_ORGANIZATION_ID:'emc',connectedQboReadAccess:vi.fn(async () => ({
@@ -44,7 +48,7 @@ vi.mock('./connection',() => ({
   })),
 }))
 vi.mock('@/shared/db/supabaseAdmin',() => ({ supabaseAdmin:() => ({
-  rpc:async (name:string) => {
+  rpc:async (name:string,args?:Record<string,unknown>) => {
     state.rpcCalls.push(name)
     if (name === 'native_sales_patient_qbo_update') {
       state.mapping.verification_state='PAYMENT_VERIFIED'
@@ -52,7 +56,10 @@ vi.mock('@/shared/db/supabaseAdmin',() => ({ supabaseAdmin:() => ({
       state.mapping.finance_verification_status='VERIFIED'
       state.mapping.qbo_payment_status='VERIFIED'
     }
-    if (name === 'native_sales_issue_membership') state.intent.membership_id='membership'
+    if (name === 'native_sales_issue_membership') {
+      state.issuedAt=String(args?.p_issued_at)
+      state.intent.membership_id='membership'
+    }
     return { data:true,error:null }
   },
   from:(table:string) => {
@@ -83,7 +90,8 @@ vi.mock('@/shared/db/supabaseAdmin',() => ({ supabaseAdmin:() => ({
           sales_opportunities:state.opportunity,
           sales_patient_identities:state.identity,
           sales_contacts:state.contact,
-          sales_payments:{ reference:'QBO-1133-bdc5d8a48c23897906b09a9a3680bd2e' },
+          sales_payments:{ reference:'QBO-1133-bdc5d8a48c23897906b09a9a3680bd2e',
+            paid_at:'2026-10-22' },
         }
         return { data:rows[table] ?? null,error:null }
       },
@@ -106,6 +114,7 @@ beforeEach(() => {
   state.intent.membership_id=null;state.identity.contact_id='contact'
   state.hasMapping=true;state.claimable=true;state.history=[];state.rpcCalls=[]
   state.finalStatus='';state.invoiceReads=0;state.paymentReads=0
+  state.issuedAt='';state.emailStatus='QUEUED';state.emailCalls=0
 })
 
 describe('read-only QBO event processing boundary',() => {
@@ -116,6 +125,7 @@ describe('read-only QBO event processing boundary',() => {
       'native_sales_issue_membership'])
     expect(state.history).toContain('qbo_provider_payment_verified')
     expect(state.history).toContain('qbo_automatic_membership_activated')
+    expect(state.issuedAt).toBe('2026-10-22')
   })
   it('routes a Payment event through its linked invoice',async () => {
     state.event.entity_type='Payment';state.event.entity_id='900'
@@ -166,6 +176,18 @@ describe('read-only QBO event processing boundary',() => {
     state.intent.membership_id='membership'
     expect((await reconcileQboEvents()).processed).toBe(1)
     expect(state.rpcCalls).toEqual([])
-    expect(state.history).toContain('qbo_review')
+    expect(state.history).toContain('qbo_already_active')
+    expect(state.emailCalls).toBe(1)
+  })
+  it('retries activation email after a committed membership without issuing it again',async () => {
+    state.emailStatus='FAILED'
+    expect((await reconcileQboEvents()).retry).toBe(1)
+    expect(state.rpcCalls).toContain('native_sales_issue_membership')
+    state.rpcCalls=[]
+    state.emailStatus='SENT'
+    expect((await reconcileQboEvents()).processed).toBe(1)
+    expect(state.rpcCalls).toEqual([])
+    expect(state.emailCalls).toBe(2)
+    expect(state.history).toContain('qbo_already_active')
   })
 })
