@@ -10,6 +10,8 @@ const RPCS = {
   decidirDescarteDuplicado: 'decidir_descarte_duplicado',
   fusionarDuplicado: 'fusionar_duplicado',
   registrarCandidatoDuplicado: 'registrar_candidato_duplicado',
+  replaceOwnWeeklyAvailability: 'replace_own_weekly_availability',
+  getVisibleWeeklyAvailability: 'get_visible_weekly_availability',
 } as const
 
 export default RPCS
