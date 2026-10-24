@@ -48,7 +48,13 @@ async function activateVerifiedIntent(intentId: string): Promise<'ACTIVE' | 'PEN
   if (contactError || !contact) throw new Error('QBO_CONTACT_UNAVAILABLE')
   const address = patientAddressText(contact.address)
   if (!patientProfileReadyForPayment(contact) || !address) return 'PENDING_PROFILE'
-  const issuedAt = new Date().toISOString().slice(0,10)
+  // The provider-confirmed payment date is stable across retries and midnight.
+  // A fresh clock date would change the membership idempotency payload.
+  const { data: payment, error: paymentError } = await client.from('sales_payments')
+    .select('paid_at').eq('organization_id',EMC_ORGANIZATION_ID)
+    .eq('id',evidence.sales_payment_id).maybeSingle()
+  if (paymentError || !payment?.paid_at) throw new Error('QBO_PAYMENT_DATE_UNAVAILABLE')
+  const issuedAt = payment.paid_at
   const fields = [evidence.sales_payment_id,contact.id,intent.plan,intent.membership_type,
     intent.duration,issuedAt,contact.first_name,contact.last_name,contact.phone,contact.email,address,false]
   const hash = createHash('sha256').update(JSON.stringify(fields)).digest('hex')
@@ -66,8 +72,11 @@ async function activateVerifiedIntent(intentId: string): Promise<'ACTIVE' | 'PEN
   if (!activated?.membership_id) throw new Error('QBO_ACTIVATION_UNCONFIRMED')
   await history(EMC_ORGANIZATION_ID,intentId,'qbo_automatic_membership_activated',
     { membershipId:activated.membership_id })
-  if (!contact.do_not_email)
-    await sendPatientActivation(activated.membership_id,contact.email,contact.first_name)
+  if (!contact.do_not_email) {
+    const email = await sendPatientActivation(activated.membership_id,contact.email,contact.first_name)
+    if (email.status === 'FAILED' || email.status === 'NOT_CONFIGURED')
+      throw new Error('QBO_ACTIVATION_EMAIL_RETRY_REQUIRED')
+  }
   return 'ACTIVE'
 }
 
@@ -122,6 +131,27 @@ async function reconcileInvoice(event: Event, invoice: QboInvoice,
     itemId:mapping.qbo_item_reference,
     amountCents:mapping.base_invoice_amount_cents,
     alreadyActive:!!intent.membership_id || mapping.membership_activation_status === 'ACTIVE' })
+  if (decision.status === 'REVIEW' && decision.reason === 'ALREADY_ACTIVE' && intent.membership_id) {
+    // Activation may have committed before email queuing or audit failed. The
+    // outbox uses membershipId as its idempotency key, so this cannot resend a
+    // previously accepted activation email or issue another membership.
+    const { data: contact, error: contactError } = await client.from('sales_contacts')
+      .select('first_name,email,do_not_email').eq('organization_id',event.organization_id)
+      .eq('id',identity.contact_id).maybeSingle()
+    if (contactError || !contact?.first_name || !contact.email)
+      throw new Error('QBO_ACTIVATION_CONTACT_UNAVAILABLE')
+    if (!contact.do_not_email) {
+      const email = await sendPatientActivation(intent.membership_id,contact.email,contact.first_name)
+      if (email.status === 'FAILED' || email.status === 'NOT_CONFIGURED') {
+        await history(event.organization_id,event.id,'qbo_activation_email_retry',
+          { invoiceId:invoice.Id,membershipId:intent.membership_id })
+        return 'RETRY'
+      }
+    }
+    await history(event.organization_id,event.id,'qbo_already_active',
+      { invoiceId:invoice.Id,membershipId:intent.membership_id })
+    return 'PROCESSED'
+  }
   if (decision.status !== 'PAID') {
     await history(event.organization_id,event.id,`qbo_${decision.status.toLowerCase()}`,
       { invoiceId:invoice.Id, reason:decision.reason })
