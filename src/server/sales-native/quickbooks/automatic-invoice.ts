@@ -47,11 +47,27 @@ export async function issuePatientQboInvoice(identityId: string, intentId: strin
   // Do not create a durable invoice job (which locks selection edits) for an
   // incomplete profile. Existing jobs must still be recoverable after deploy.
   const { data: existingJob, error: existingJobError } = await db
-    .from('sales_qbo_invoice_jobs').select('id')
+    .from('sales_qbo_invoice_jobs').select('id,state,qbo_invoice_id')
     .eq('organization_id',EMC_ORGANIZATION_ID).eq('patient_identity_id',identityId)
     .eq('enrollment_intent_id',intentId).maybeSingle()
   if (existingJobError) throw new Error('QBO_INVOICE_JOB_UNAVAILABLE')
-  if (!existingJob) {
+  // A pre-v5 job that already began an uncertain provider write must remain
+  // recoverable. A job that has not reached QBO still requires acceptance.
+  if (!existingJob || (!existingJob.qbo_invoice_id &&
+      existingJob.state !== 'INVOICE_WRITE_STARTED')) {
+    const { data: intent, error: intentError } = await db.from('sales_patient_enrollment_intents')
+      .select('id,organization_id,patient_identity_id,opportunity_id,plan,membership_type,duration,amount_cents')
+      .eq('organization_id',EMC_ORGANIZATION_ID).eq('id',intentId)
+      .eq('patient_identity_id',identityId).maybeSingle()
+    if (intentError || !intent?.opportunity_id) throw new Error('QBO_INTENT_UNAVAILABLE')
+    const { data: acceptance, error: acceptanceError } = await db
+      .from('sales_patient_agreement_acceptances').select('id')
+      .eq('organization_id',EMC_ORGANIZATION_ID).eq('patient_identity_id',identityId)
+      .eq('enrollment_intent_id',intentId).eq('opportunity_id',intent.opportunity_id)
+      .eq('agreement_version','v5').eq('plan',intent.plan)
+      .eq('membership_type',intent.membership_type).eq('duration',intent.duration)
+      .eq('amount_cents',intent.amount_cents).maybeSingle()
+    if (acceptanceError || !acceptance) throw new Error('PATIENT_AGREEMENT_REQUIRED')
     const { data: identity, error: identityError } = await db.from('sales_patient_identities')
       .select('contact_id').eq('organization_id',EMC_ORGANIZATION_ID)
       .eq('id',identityId).maybeSingle()
