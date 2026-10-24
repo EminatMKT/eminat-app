@@ -18,6 +18,7 @@ type PatientAddress = Record<(typeof addressKeys)[number], string>
 const addressLimits: Record<keyof PatientAddress, number> = {
   street: 500, line2: 200, city: 200, state: 200, postalCode: 40, country: 200,
 }
+const usStates = new Set(('AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY').split(' '))
 function validatedAddress(value: unknown): PatientAddress | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const fields = value as Record<string, unknown>
@@ -29,7 +30,12 @@ function validatedAddress(value: unknown): PatientAddress | null {
     if (part.length > addressLimits[key] || /[\u0000-\u001f\u007f]/.test(part)) return null
     address[key] = part
   }
-  return address.street && address.city && address.country ? address : null
+  if (!address.street || !address.city || !usStates.has(address.state.toUpperCase()) ||
+      !['US','USA','UNITED STATES','UNITED STATES OF AMERICA','ESTADOS UNIDOS']
+        .includes(address.country.toUpperCase())) return null
+  address.state = address.state.toUpperCase()
+  address.country = 'US'
+  return address
 }
 const respond = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } })
 const invalid = () => respond({ code: 'INVALID_REQUEST' }, 422)
@@ -203,8 +209,9 @@ export async function GET(request: Request, { params }: Route) {
   if (resource === 'membershippdf') {
     if (!patient.identity) return respond({ code: 'MEMBERSHIP_NOT_FOUND' }, 404)
     const params = new URL(request.url).searchParams
-    if (Array.from(params.keys()).some(key => key !== 'download' && key !== 'memberId') ||
+    if (Array.from(params.keys()).some(key => key !== 'download' && key !== 'memberId' && key !== 'language') ||
         (params.has('download') && params.get('download') !== '1') ||
+        (params.has('language') && !['es','en'].includes(params.get('language') ?? '')) ||
         (params.has('memberId') && !uuidPattern.test(params.get('memberId') ?? ''))) return invalid()
     const admin = supabaseAdmin({ noStore: true })
     const { data: real, error } = await admin.from('sales_memberships')
@@ -220,7 +227,8 @@ export async function GET(request: Request, { params }: Route) {
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (fallback?.error) return unavailable()
     const data = real ?? fallback?.data
-    if (!data?.code) return respond({ code: 'MEMBERSHIP_NOT_FOUND' }, 404)
+    if (!data?.code || data.status !== 'ACTIVE')
+      return respond({ code: 'MEMBERSHIP_NOT_FOUND' }, 404)
     const memberId = params.get('memberId')
     const memberQuery = admin.from('sales_household_members')
       .select('id,contact_id,relationship,code,member_code')
@@ -242,8 +250,9 @@ export async function GET(request: Request, { params }: Route) {
     }
     const code = member ? member.member_code ?? member.code ?? data.code : data.code
     const pdf = await createMembershipPdf({
-      code, firstName: memberFirstName, lastName: memberLastName,
+      code:data.code, memberCode:code, firstName: memberFirstName, lastName: memberLastName,
       plan: data.plan, membershipType: data.membership_type, duration: data.duration,
+      locale:params.get('language') === 'en' ? 'en' : 'es',
       issuedAt: data.issued_at, expiresAt: data.expires_at,
       qaSynthetic: !real,
       status: data.status === 'ACTIVE' && data.expires_at < new Date().toISOString().slice(0, 10)
@@ -476,6 +485,21 @@ export async function POST(request: Request, { params }: Route) {
       return respond({ code: 'SELECTION_REVIEW_REQUIRED' }, 409)
     return error ? unavailable() : respond({ data })
   }
+  if (resource === 'agreement') {
+    if (!patient.identity) return respond({ code:'PROFILE_REQUIRED' },409)
+    const intentId = typeof body.intentId === 'string' ? body.intentId : ''
+    const language = body.language
+    if (!uuidPattern.test(intentId) || !['es','en'].includes(String(language)) ||
+        body.accepted !== true || Object.keys(body).some(key =>
+          !['intentId','language','accepted'].includes(key))) return invalid()
+    const { data, error } = await supabaseAdmin({ noStore:true })
+      .rpc('native_sales_patient_accept_agreement', {
+        p_identity_id:patient.identity.id,p_auth_id:patient.authId,
+        p_intent_id:intentId,p_language:language,
+      })
+    if (error || !data) return respond({ code:'AGREEMENT_REVIEW_REQUIRED' },409)
+    return respond({ status:'ACCEPTED',version:'v5' })
+  }
   if (resource === 'invoice') {
     if (!patient.identity) return respond({ code:'PROFILE_REQUIRED' },409)
     const intentId = typeof body.intentId === 'string' ? body.intentId : ''
@@ -488,6 +512,8 @@ export async function POST(request: Request, { params }: Route) {
     } catch (error) {
       if (error instanceof Error && error.message === 'PATIENT_PROFILE_COMPLETION_REQUIRED')
         return respond({ code:'PROFILE_COMPLETION_REQUIRED' },409)
+      if (error instanceof Error && error.message === 'PATIENT_AGREEMENT_REQUIRED')
+        return respond({ code:'AGREEMENT_REQUIRED' },409)
       // Do not expose provider details or automatically repeat an uncertain write.
       return respond({ code:'INVOICE_REVIEW_REQUIRED' },503)
     }
