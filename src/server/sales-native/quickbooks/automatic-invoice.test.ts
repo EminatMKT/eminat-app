@@ -40,7 +40,7 @@ const qaInvoice = {Id:'808',DocNumber:'CS-TEST',PrivateNote:'LILLY enrollment in
 beforeEach(() => {
   vi.clearAllMocks()
   mocks.from.mockImplementation((table: string) => table === 'sales_qbo_invoice_jobs'
-    ? query({data:{id:'job'},error:null}) : query({data:null,error:null}))
+    ? query({data:{id:'job',state:'LINKED',qbo_invoice_id:'1134'},error:null}) : query({data:null,error:null}))
 })
 
 describe('automatic QBO invoice safety', () => {
@@ -60,6 +60,10 @@ describe('automatic QBO invoice safety', () => {
   it('does not begin a provider write when the patient lacks activation details', async () => {
     mocks.from.mockImplementation((table: string) => {
       if (table === 'sales_qbo_invoice_jobs') return query({data:null,error:null})
+      if (table === 'sales_patient_enrollment_intents') return query({data:{
+        opportunity_id:'opportunity',plan:'ESSENTIAL',membership_type:'FAMILY',
+        duration:'MONTHLY',amount_cents:19998},error:null})
+      if (table === 'sales_patient_agreement_acceptances') return query({data:{id:'acceptance'},error:null})
       if (table === 'sales_patient_identities') return query({data:{contact_id:'contact'},error:null})
       return query({data:{email:'qa@example.com',first_name:'QA',last_name:'Patient',
         phone:null,address:null},error:null})
@@ -70,9 +74,40 @@ describe('automatic QBO invoice safety', () => {
     expect(mocks.claim).not.toHaveBeenCalled()
   })
 
+  it('blocks a new invoice before provider access without v5 agreement acceptance', async () => {
+    mocks.from.mockImplementation((table: string) => {
+      if (table === 'sales_qbo_invoice_jobs') return query({data:null,error:null})
+      if (table === 'sales_patient_enrollment_intents') return query({data:{
+        opportunity_id:'opportunity',plan:'ESSENTIAL',membership_type:'FAMILY',
+        duration:'MONTHLY',amount_cents:19998},error:null})
+      return query({data:null,error:null})
+    })
+    await expect(issuePatientQboInvoice('patient','intent','qa@example.com'))
+      .rejects.toThrow('PATIENT_AGREEMENT_REQUIRED')
+    expect(mocks.claim).not.toHaveBeenCalled()
+    expect(mocks.access).not.toHaveBeenCalled()
+  })
+
+  it('blocks a pre-v5 claimed job before its first provider write', async () => {
+    mocks.from.mockImplementation((table: string) => {
+      if (table === 'sales_qbo_invoice_jobs') return query({
+        data:{id:'job',state:'CLAIMED',qbo_invoice_id:null},error:null})
+      if (table === 'sales_patient_enrollment_intents') return query({data:{
+        opportunity_id:'opportunity',plan:'ESSENTIAL',membership_type:'FAMILY',
+        duration:'MONTHLY',amount_cents:19998},error:null})
+      return query({data:null,error:null})
+    })
+    await expect(issuePatientQboInvoice('patient','intent','qa@example.com'))
+      .rejects.toThrow('PATIENT_AGREEMENT_REQUIRED')
+    expect(mocks.claim).not.toHaveBeenCalled()
+    expect(mocks.access).not.toHaveBeenCalled()
+  })
+
   it('holds an uncertain invoice write when no signed create event has arrived', async () => {
     mocks.claim.mockResolvedValueOnce({ data:[{ ...job,state:'INVOICE_WRITE_STARTED' }],error:null })
-    mocks.from.mockImplementation((table: string) => table === 'sales_contacts'
+    mocks.from.mockImplementation((table: string) => table === 'sales_qbo_invoice_jobs'
+      ? query({data:{id:'job',state:'INVOICE_WRITE_STARTED',qbo_invoice_id:null},error:null})
+      : table === 'sales_contacts'
       ? query({data:{email:'qa@example.com',first_name:'QA',last_name:'Patient',
         do_not_email:false},error:null})
       : query({data:[],error:null}))
@@ -91,6 +126,7 @@ describe('automatic QBO invoice safety', () => {
       qbo_invoice_id:null,qbo_invoice_number:null }],error:null })
       .mockResolvedValueOnce({data:{},error:null})
     mocks.from.mockImplementation((table: string) => {
+      if (table === 'sales_qbo_invoice_jobs') return query({data:{id:'job',state:'INVOICE_WRITE_STARTED',qbo_invoice_id:null},error:null})
       if (table === 'sales_contacts') return query({data:{email:'qa@example.com',
         first_name:'QA',last_name:'Patient',do_not_email:false},error:null})
       if (table === 'sales_qbo_webhook_events') return query({data:[{entity_id:'808'}],error:null})
@@ -113,7 +149,9 @@ describe('automatic QBO invoice safety', () => {
   it('never links an invoice whose private enrollment reference belongs elsewhere', async () => {
     mocks.claim.mockResolvedValueOnce({data:[{...job,state:'INVOICE_WRITE_STARTED',
       qbo_invoice_id:null,qbo_invoice_number:null}],error:null})
-    mocks.from.mockImplementation((table: string) => table === 'sales_contacts'
+    mocks.from.mockImplementation((table: string) => table === 'sales_qbo_invoice_jobs'
+      ? query({data:{id:'job',state:'INVOICE_WRITE_STARTED',qbo_invoice_id:null},error:null})
+      : table === 'sales_contacts'
       ? query({data:{email:'qa@example.com',first_name:'QA',last_name:'Patient',
         do_not_email:false},error:null})
       : query({data:[{entity_id:'808'}],error:null}))
