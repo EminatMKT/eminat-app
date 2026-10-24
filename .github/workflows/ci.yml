@@ -15,6 +15,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Validate guarded workflow YAML
         run: ruby -e "require 'yaml'; YAML.load_file('.github/workflows/native-sales-guarded-schema.yml'); YAML.load_file('.github/workflows/native-sales-guarded-staff.yml')"
+      - name: Validate Production backup gate
+        run: python3 scripts/migration/check_restorable_backup_test.py
       # ⚠️ EL CENTINELA YA NO CORRE EN CI. El motor salió de este repo el 2026-08-31 y ahora es
       # un plugin instalado por desarrollador (WSmithDR/centinela-plugin), con sus reglas en el
       # repo de datos de cada uno. Nada de eso existe en un runner.
