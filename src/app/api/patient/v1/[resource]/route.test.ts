@@ -367,11 +367,12 @@ describe('patient API isolation', () => {
     expect(response.status).toBe(200)
     const updated = fixtures.queries.find(query => query.table === 'sales_contacts' && query.update)
     expect(updated?.filters).toMatchObject({ id: patients[0].contactId, organization_id: organization, version: 1 })
-    expect(updated?.update).toMatchObject({ address, version: 2 })
+    expect(updated?.update).toMatchObject({ address: { ...address, country: 'US' }, version: 2 })
     expect(updated?.update).not.toHaveProperty('phone')
     fixtures.queries.length = 0
     for (const invalidAddress of [{ ...address, street: '' }, { ...address, city: '' },
-      { ...address, country: '' }, { ...address, admin: 'true' }, { ...address, postalCode: 'x'.repeat(41) }]) {
+      { ...address, country: '' }, { ...address, state: 'Not a state' },
+      { ...address, admin: 'true' }, { ...address, postalCode: 'x'.repeat(41) }]) {
       const rejected = await PATCH(new Request('https://app.test/api/patient/v1/profile', {
         method: 'PATCH', headers: { Authorization: `Patient ${patients[0].handle}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ address: invalidAddress }),
