@@ -1,4 +1,5 @@
 import 'server-only'
+import { createHash } from 'node:crypto'
 import { z } from 'zod'
 
 export const QBO_CALLBACK =
@@ -48,6 +49,11 @@ const invoiceSchema = z.object({ Invoice: z.object({
   InvoiceLink: z.string().url().optional(),
   TxnTaxDetail: z.object({ TotalTax: z.number().optional() }).optional(),
 }) })
+const recoveryInvoiceSchema = z.object({ Invoice: invoiceSchema.shape.Invoice.extend({
+  DocNumber: z.string().max(80).nullish(),
+  SyncToken: z.string().min(1),
+  PrivateNote: z.string().optional(),
+}) })
 const paymentSchema = z.object({ Payment: z.object({
   Id: z.string().regex(/^[0-9]{1,80}$/), CustomerRef: qboRef,
   TotalAmt: z.number().nonnegative(), TxnDate: z.string().optional(),
@@ -55,9 +61,16 @@ const paymentSchema = z.object({ Payment: z.object({
     LinkedTxn: z.array(linkedTxn).optional() })).optional(),
 }) })
 export type QboInvoice = z.infer<typeof invoiceSchema>['Invoice']
+export type QboRecoveryInvoice = z.infer<typeof recoveryInvoiceSchema>['Invoice']
 export type QboPayment = z.infer<typeof paymentSchema>['Payment']
 export type QboCustomer = z.infer<typeof customerSchema>
 export type QboItem = z.infer<typeof itemSchema>
+
+/** QuickBooks companies with custom transaction numbers leave DocNumber blank
+ * unless the application supplies one. Keep this stable across retries. */
+export function patientInvoiceNumber(intentId: string): string {
+  return `CS-${createHash('sha256').update(intentId).digest('hex').slice(0,16).toUpperCase()}`
+}
 
 /** Fixed Intuit hosts and callback; no caller-provided provider URL. */
 export class QboClient {
@@ -253,6 +266,7 @@ export class QboClient {
     const payload = await this.accounting(realmId,accessToken,'invoice',{
       CustomerRef:{ value:input.customerId },BillEmail:{ Address:input.email },
       EmailStatus:'NotSet',PrivateNote:`LILLY enrollment ${input.intentId}`,
+      DocNumber:patientInvoiceNumber(input.intentId),
       AllowOnlineCreditCardPayment:true,AllowOnlineACHPayment:true,
       Line:[{ Amount:amount,DetailType:'SalesItemLineDetail',
         SalesItemLineDetail:{ ItemRef:{ value:input.itemId },Qty:1,UnitPrice:amount,
@@ -260,6 +274,28 @@ export class QboClient {
     })
     const parsed = invoiceSchema.safeParse(payload)
     if (!parsed.success) throw new Error('QBO_WRITE_OUTCOME_UNKNOWN')
+    return parsed.data.Invoice
+  }
+
+  async invoiceForRecovery(realmId: string, accessToken: string, id: string): Promise<QboRecoveryInvoice> {
+    if (!/^[0-9]{1,80}$/.test(id)) throw new Error('QBO_ENTITY_INVALID')
+    const payload = await this.accounting(realmId,accessToken,`invoice/${id}`)
+    const parsed = recoveryInvoiceSchema.safeParse(payload)
+    if (!parsed.success || parsed.data.Invoice.Id !== id) throw new Error('QBO_ENTITY_INVALID')
+    return parsed.data.Invoice
+  }
+
+  async numberExistingInvoice(realmId: string, accessToken: string,
+    invoice: QboRecoveryInvoice, intentId: string): Promise<QboInvoice> {
+    const number = patientInvoiceNumber(intentId)
+    if (invoice.DocNumber && invoice.DocNumber !== number) throw new Error('QBO_INVOICE_NUMBER_CONFLICT')
+    if (invoice.DocNumber) return invoice as QboInvoice
+    const payload = await this.accounting(realmId,accessToken,'invoice',{
+      sparse:true,Id:invoice.Id,SyncToken:invoice.SyncToken,DocNumber:number,
+    })
+    const parsed = invoiceSchema.safeParse(payload)
+    if (!parsed.success || parsed.data.Invoice.Id !== invoice.Id ||
+      parsed.data.Invoice.DocNumber !== number) throw new Error('QBO_INVOICE_UPDATE_UNCERTAIN')
     return parsed.data.Invoice
   }
 

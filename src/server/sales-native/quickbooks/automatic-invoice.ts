@@ -4,7 +4,7 @@ import { sendPatientInvoice } from '@/server/sales-native/patient-email-delivery
 import { quoteMembership, type MembershipType, type Plan,
   type SaleDuration } from '@/server/sales-native/pricing'
 import { connectedQboReadAccess, EMC_ORGANIZATION_ID } from './connection'
-import type { QboInvoice } from './client'
+import type { QboInvoice, QboRecoveryInvoice } from './client'
 
 type Job = {
   id: string; organization_id: string; enrollment_intent_id: string;
@@ -12,6 +12,7 @@ type Job = {
   plan: Plan; membership_type: MembershipType; duration: SaleDuration;
   amount_cents: number; state: string; qbo_customer_id: string | null;
   qbo_invoice_id: string | null; qbo_invoice_number: string | null;
+  created_at: string;
 }
 const invoiceLink = (value: unknown): value is string => typeof value === 'string' &&
   /^https:\/\/connect\.intuit\.com\/t\/[^\s]+$/.test(value) && value.length <= 2048
@@ -24,7 +25,8 @@ export function qboProductName(job: Pick<Job,'plan'|'membership_type'|'duration'
   return `Corazón Salud - ${job.plan[0]}${job.plan.slice(1).toLowerCase()} - ${type} - ${duration}`
 }
 
-function verifyInvoice(invoice: QboInvoice, job: Job, customerId: string, itemId: string) {
+function verifyInvoice(invoice: QboInvoice | QboRecoveryInvoice, job: Job,
+  customerId: string, itemId: string) {
   if (invoice.CustomerRef.value !== customerId ||
     Math.round(invoice.TotalAmt*100) !== job.amount_cents ||
     Math.round(invoice.Balance*100) !== job.amount_cents ||
@@ -49,7 +51,7 @@ export async function issuePatientQboInvoice(identityId: string, intentId: strin
     job.patient_identity_id !== identityId) throw new Error('QBO_INVOICE_CLAIM_FAILED')
   if (job.state === 'LINKED') return { status:'INVOICE_CREATED' as const,
     invoiceNumber:job.qbo_invoice_number }
-  if (!['CLAIMED','INVOICE_CREATED'].includes(job.state))
+  if (!['CLAIMED','INVOICE_CREATED','INVOICE_WRITE_STARTED'].includes(job.state))
     return { status:'PENDING_RECONCILIATION' as const }
   const quote = quoteMembership(job.plan,job.membership_type,job.duration)
   if (quote.totalCents !== job.amount_cents) throw new Error('QBO_INVOICE_AMOUNT_MISMATCH')
@@ -73,6 +75,37 @@ export async function issuePatientQboInvoice(identityId: string, intentId: strin
     throw new Error('QBO_COMPANY_MISMATCH')
   const item = await client.itemByName(realmId,accessToken,qboProductName(job))
   if (item.Taxable === true) throw new Error('QBO_ITEM_TAX_MISMATCH')
+  if (job.state === 'INVOICE_WRITE_STARTED') {
+    if (!job.qbo_customer_id) throw new Error('QBO_INVOICE_RECOVERY_REQUIRED')
+    const { data: events, error: eventsError } = await db.from('sales_qbo_webhook_events')
+      .select('entity_id').eq('organization_id',EMC_ORGANIZATION_ID)
+      .eq('environment','production').eq('realm_id',realmId)
+      .eq('entity_type','Invoice').eq('operation','Create')
+      .gte('created_at',job.created_at).order('created_at',{ ascending:true }).limit(100)
+    if (eventsError) throw new Error('QBO_INVOICE_RECOVERY_EVENTS_UNAVAILABLE')
+    const matches: QboRecoveryInvoice[] = []
+    for (const event of events ?? []) {
+      const invoice = await client.invoiceForRecovery(realmId,accessToken,event.entity_id)
+      if (invoice.PrivateNote !== `LILLY enrollment ${job.enrollment_intent_id}`) continue
+      verifyInvoice(invoice,job,job.qbo_customer_id,item.Id)
+      matches.push(invoice)
+      if (matches.length > 1) break
+    }
+    if (!matches.length) return { status:'PENDING_RECONCILIATION' as const }
+    if (matches.length !== 1) throw new Error('QBO_INVOICE_RECOVERY_AMBIGUOUS')
+    const recovered = await client.numberExistingInvoice(realmId,accessToken,
+      matches[0],job.enrollment_intent_id)
+    verifyInvoice(recovered,job,job.qbo_customer_id,item.Id)
+    const { data: recoveredJob, error: recoveryError } = await db
+      .from('sales_qbo_invoice_jobs').update({ state:'INVOICE_CREATED',
+        qbo_invoice_id:recovered.Id,qbo_invoice_number:recovered.DocNumber,
+        updated_at:new Date().toISOString() })
+      .eq('id',job.id).eq('state','INVOICE_WRITE_STARTED').select('id').maybeSingle()
+    if (recoveryError || !recoveredJob) throw new Error('QBO_INVOICE_RECOVERY_STATE_CONFLICT')
+    job.state = 'INVOICE_CREATED'
+    job.qbo_invoice_id = recovered.Id
+    job.qbo_invoice_number = recovered.DocNumber
+  }
   if (job.state === 'INVOICE_CREATED') {
     if (!job.qbo_customer_id || !job.qbo_invoice_id || !job.qbo_invoice_number)
       throw new Error('QBO_INVOICE_RECOVERY_REQUIRED')
