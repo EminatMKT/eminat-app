@@ -485,7 +485,9 @@ export async function POST(request: Request, { params }: Route) {
       const { issuePatientQboInvoice } = await import('@/server/sales-native/quickbooks/automatic-invoice')
       const result = await issuePatientQboInvoice(patient.identity.id,intentId,patient.email)
       return respond(result,result.status === 'PENDING_RECONCILIATION' ? 202 : 200)
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message === 'PATIENT_PROFILE_COMPLETION_REQUIRED')
+        return respond({ code:'PROFILE_COMPLETION_REQUIRED' },409)
       // Do not expose provider details or automatically repeat an uncertain write.
       return respond({ code:'INVOICE_REVIEW_REQUIRED' },503)
     }

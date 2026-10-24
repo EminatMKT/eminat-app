@@ -6,6 +6,7 @@ import { connectedQboReadAccess, EMC_ORGANIZATION_ID } from './connection'
 import { decideQboPayment, invoiceIdsForPayment,
   patientInvoiceMappingValid } from './reconciliation'
 import type { QboInvoice } from './client'
+import { patientAddressText, patientProfileReadyForPayment } from './patient-profile'
 
 const FALLBACK_MEMBER_ID = 'c67e9779-9e87-48b0-9f6c-bf6a0c8cebad'
 const db = () => supabaseAdmin({ noStore: true })
@@ -20,17 +21,6 @@ async function history(organizationId: string, recordId: string, action: string,
     record_id: recordId, action, request_id: randomUUID(), changes,
   })
   if (error) throw new Error('QBO_AUDIT_UNAVAILABLE')
-}
-
-function addressText(value: unknown): string | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
-  const fields = value as Record<string, unknown>
-  const required = ['street','city','state','postalCode','country']
-  if (required.some(key => typeof fields[key] !== 'string' || !fields[key].trim())) return null
-  const parts = ['street','line2','city','state','postalCode','country']
-    .map(key => fields[key]).filter((item): item is string => typeof item === 'string' && !!item.trim())
-  const result = parts.join(', ')
-  return result.length <= 1000 ? result : null
 }
 
 async function activateVerifiedIntent(intentId: string): Promise<'ACTIVE' | 'PENDING_PROFILE' | 'ALREADY_ACTIVE'> {
@@ -56,9 +46,8 @@ async function activateVerifiedIntent(intentId: string): Promise<'ACTIVE' | 'PEN
     .eq('organization_id',EMC_ORGANIZATION_ID).eq('id',identity.contact_id)
     .is('archived_at',null).maybeSingle()
   if (contactError || !contact) throw new Error('QBO_CONTACT_UNAVAILABLE')
-  const address = addressText(contact.address)
-  if (!contact.first_name?.trim() || !contact.last_name?.trim() || !contact.email?.trim() ||
-    !contact.phone?.trim() || !address) return 'PENDING_PROFILE'
+  const address = patientAddressText(contact.address)
+  if (!patientProfileReadyForPayment(contact) || !address) return 'PENDING_PROFILE'
   const issuedAt = new Date().toISOString().slice(0,10)
   const fields = [evidence.sales_payment_id,contact.id,intent.plan,intent.membership_type,
     intent.duration,issuedAt,contact.first_name,contact.last_name,contact.phone,contact.email,address,false]
