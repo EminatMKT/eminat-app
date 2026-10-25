@@ -16,7 +16,14 @@ for (const [locale, copy] of Object.entries({ en, es })) {
       await page.goto('/login')
       await expect(page.getByRole('heading', { level: 1 })).toContainText(copy['login.headlineLead'])
       await expect(page.getByRole('heading', { level: 2 })).toHaveText(copy['login.signIn'])
-      expect(await page.locator('body').innerText()).not.toContain('ANNIE')
+      expect(await page.locator('body').innerText()).not.toMatch(/ANNIE|Freddy/i)
+      const tablet = page.getByTestId('login-tablet')
+      await expect(tablet).toBeVisible()
+      await expect(tablet.locator('h2')).toHaveText(copy['launchpad.greeting'].replace('{name}', 'Fred'))
+      await expect(tablet.locator('h3')).toHaveText(['Tasks', 'Marketing', 'Billing', 'Research', 'Medical', 'Accounting', 'Hr', 'Directory'].map(area => copy[`login.tablet${area}` as keyof typeof copy]))
+      await expect(tablet).toContainText(copy['launchpad.seeAll'])
+      await expect(tablet.locator('aside')).toContainText('Sales')
+      expect(await tablet.locator(':scope > div').evaluate(screen => screen.scrollHeight <= screen.clientHeight + 1)).toBe(true)
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
       await expect(page.locator('img[src*="lilly-orbital-astronaut"]')).toBeVisible()
       await expect(page.locator('img[src*="laika"], img[src*="felicette"]')).toHaveCount(0)
@@ -55,7 +62,7 @@ for (const reducedMotion of ['no-preference', 'reduce'] as const) {
     await page.emulateMedia({ reducedMotion })
     await page.goto('/login')
     const hero = page.locator('section[aria-labelledby="lilly-headline"]')
-    const layers = [page.locator('img[src*="lilly-orbital-astronaut"]').locator('..'), hero.locator('header').locator('../..')]
+    const layers = [page.locator('img[src*="lilly-orbital-astronaut"]').locator('..'), hero.getByTestId('login-tablet')]
     const transforms = await Promise.all(layers.map(layer => layer.evaluate(element => getComputedStyle(element).transform)))
     const bounds = (await hero.boundingBox())!
     await page.mouse.move(bounds.x + bounds.width * .9, bounds.y + bounds.height * .65)

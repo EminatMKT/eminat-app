@@ -2,9 +2,10 @@
 
 import { useEffect, useRef } from 'react'
 import Image from 'next/image'
-import { BarChart3, Check, Circle, LayoutDashboard, ListTodo, Orbit, Search, Users, Zap } from 'lucide-react'
+import { BarChart3, ListTodo, Orbit, Users, Zap } from 'lucide-react'
 import { useT } from '@/shared/i18n'
 import styles from './login.module.css'
+import LaunchpadTablet from './LaunchpadTablet'
 
 const features = [
   { icon: ListTodo, key: 'login.benefitTasks' },
@@ -79,26 +80,7 @@ export default function LoginHero() {
         <div className={`${styles.kpi} ${styles.teamKpi}`}><Users size={23} /><div><span>{t('login.benefitTeam')}</span><strong>+24% <span className={styles.miniBars}><i /><i /><i /><i /><i /></span></strong></div></div>
         <div className={styles.missionCard}><Orbit size={24} /><span>{t('login.missionLabel')}<strong>{t('login.missionText')}</strong></span><ArrowMark /></div>
 
-        <div className={styles.laptop}>
-          <div className={styles.laptopScreen}>
-            <header><b>LILLY<span>.</span></b><span className={styles.previewSearch}><Search size={9} />{t('login.previewSearch')}</span><span className={styles.previewAvatar}>FC</span></header>{/* i18n-ignore: decorative brand and initials */}
-            <div className={styles.laptopWorkspace}>
-              <aside><span><LayoutDashboard />{t('login.previewHome')}</span><span className={styles.previewSelected}><ListTodo />{t('login.previewMyTasks')}</span><span><Circle />{t('login.previewProjects')}</span><span><Users />{t('login.previewTeam')}</span><span><BarChart3 />{t('login.previewReports')}</span></aside>
-              <div className={styles.previewContent}>
-                <h2>{t('login.previewMyTasks')}<span>＋</span></h2>
-                <div className={styles.previewPills}><span>{t('login.previewPending')} <b>12</b></span><span>{t('login.previewProgress')} <b>6</b></span><span>{t('login.previewDone')} <b>24</b></span></div>
-                <div className={styles.previewBoard}>
-                  {[
-                    { label: 'login.previewPending', tasks: ['login.previewTaskOne', 'login.previewTaskTwo', 'login.previewTaskSeven'] },
-                    { label: 'login.previewProgress', tasks: ['login.previewTaskThree', 'login.previewTaskFour', 'login.previewTaskEight'] },
-                    { label: 'login.previewDone', tasks: ['login.previewTaskFive', 'login.previewTaskSix', 'login.previewTaskNine'] },
-                  ].map((column, index) => <div key={column.label}><h3>{t(column.label as 'login.previewPending')}</h3>{column.tasks.map((task, row) => <div className={styles.previewTask} key={task}><span>{t(task as 'login.previewTaskOne')}</span>{index === 2 ? <Check size={12} /> : <small data-priority={row === 0 ? 'high' : 'normal'}>{t(row === 0 ? 'login.previewPriorityHigh' : 'login.previewPriorityMedium')}</small>}</div>)}</div>)}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className={styles.laptopBase} />
-        </div>
+        <LaunchpadTablet />
       </div>
       <div className={styles.storyFooter}>
         <div><small>{t('login.integralSystem')}</small><strong>Eminat Group</strong></div>

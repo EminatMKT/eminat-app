@@ -139,7 +139,7 @@ export default function LoginPage() {
                   {error && <div className={styles.error} role="alert">{error}</div>}
                   <button className={styles.submit} type="submit" disabled={loading}>{loading ? t('common.processing') : mode === 'login' ? t('login.signIn') : t('login.sendResetLink')}{!loading && <ArrowRight size={19} aria-hidden="true" />}</button>
                 </form>
-                {mode === 'reset' ? <button className={styles.backButton} type="button" onClick={() => { setMode('login'); setError('') }}>← {t('login.backToSignIn')}</button> : <p className={styles.requestAccess}>{t('login.noAccount')} <a href={`mailto:${MARKETING_COORDINATOR_EMAIL}`}>{MARKETING_COORDINATOR_EMAIL}</a></p>}
+                {mode === 'reset' ? <button className={styles.backButton} type="button" onClick={() => { setMode('login'); setError('') }}>← {t('login.backToSignIn')}</button> : <p className={styles.requestAccess}>{t('login.noAccount')} <a href={`mailto:${MARKETING_COORDINATOR_EMAIL}`}>{t('login.requestAccess')}</a></p>}
               </>
             )}
           </div>
