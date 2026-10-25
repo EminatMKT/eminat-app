@@ -4,7 +4,7 @@ import ssrClient from '@/shared/db/requireAccess/ssrClient'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { nativeSalesEnabled } from '@/server/sales-native/release-gate'
 import { readSalesOrganizations } from '@/server/sales-native/auth'
-import NativeSalesOrganizationContext from '@/features/native-sales/NativeSalesOrganizationContext'
+import { authorizedCommercialWorkspaces } from '@/features/native-sales/commercial-workspaces'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,13 +20,11 @@ export default async function NativeSalesPreviewPage({ searchParams = {} }: {
     .select('id').eq('auth_id', user.id).eq('activo', true).maybeSingle()
   if (profileError || !profile?.id) notFound()
   const organizations = await readSalesOrganizations(admin, user.id, profile.id)
-  if (!organizations.length) notFound()
+  const workspaces = authorizedCommercialWorkspaces(organizations)
   const requested = searchParams.organization
-  const selected = requested === undefined && organizations.length === 1
-    ? organizations[0] : organizations.find(option => option.organizationId === requested)
-  if (requested !== undefined && !selected) notFound()
-  return <NativeSalesOrganizationContext organizations={organizations}
-    selectedId={selected?.organizationId}>
-    {selected ? <NativeSalesModule key={selected.organizationId} organizationId={selected.organizationId} /> : null}
-  </NativeSalesOrganizationContext>
+  const selected = requested === undefined ? workspaces[0]
+    : workspaces.find(workspace => workspace.organizationId === requested)
+  if (!selected) notFound()
+  return <NativeSalesModule key={selected.organizationId} organizationId={selected.organizationId}
+    workspaceLabelKey={selected.labelKey} />
 }

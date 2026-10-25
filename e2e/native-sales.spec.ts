@@ -19,8 +19,8 @@ test.beforeAll(async () => {
   const authId = await ensureUser(email, 'admin', 'QA', 'Sales')
   const profile = await getUsuario(email)
   if (!profile?.id || authId !== await authIdByEmail(email)) throw new Error('LOCAL_SALES_IDENTITY_MISSING')
-  await write('sales_organizations', 'POST', { id: organizationId, code: `qa-${organizationId}`,
-    name: 'Local Sales QA', status: 'active', approved_by: profile.id,
+  await write('sales_organizations', 'POST', { id: organizationId, code: 'emc',
+    name: 'Local EMC Commercial QA', status: 'active', approved_by: profile.id,
     approved_at: new Date().toISOString() })
   await write('sales_members', 'POST', { id: memberId, organization_id: organizationId,
     user_id: profile.id, auth_id: authId, role: 'SUPERADMIN', status: 'active',
@@ -83,7 +83,7 @@ test('native Sales sections render at mobile width without document overflow', a
   expect(errors).toEqual([])
 })
 
-test('multiple authorized organizations require selection and never share records', async ({ page }) => {
+test('Sales defaults to its commercial workspace without exposing corporate memberships', async ({ page }) => {
   if (!['localhost','127.0.0.1'].includes(new URL(base).hostname))
     throw new Error('ORGANIZATION_REHEARSAL_REQUIRES_LOCAL_DATABASE')
   const secondOrg = randomUUID(), pendingOrg = randomUUID()
@@ -114,28 +114,23 @@ test('multiple authorized organizations require selection and never share record
     await page.locator('input[type="password"]').press('Enter')
     await page.waitForURL('http://localhost:3000/',{ timeout:40000 })
     await page.goto('/sales-native')
-    await expect(page.getByRole('heading',{ name:'Select a Sales organization',exact:true })).toBeVisible()
-    await expect(page.getByRole('navigation',{ name:'Sales sections' })).toHaveCount(0)
-    await expect(page.getByRole('option',{ name:/Local Context Pending/ })).toHaveCount(0)
-    const choose = async (id: string) => {
-      await page.getByLabel('Sales organization',{ exact:true }).selectOption(id)
-      await page.getByRole('button',{ name:'Open organization',exact:true }).click()
-      await page.waitForURL(`**/sales-native?organization=${id}`)
-      await expect(page.getByRole('heading',{ name:'Dashboard',exact:true })).toBeVisible()
-      await page.getByRole('navigation',{ name:'Sales sections' })
-        .getByRole('button',{ name:'Leads',exact:true }).click()
-    }
-    await choose(secondOrg)
-    await expect(page.getByRole('button',{ name:/Context Second Lead/ })).toBeVisible()
-    await expect(page.getByRole('button',{ name:/Context First Lead/ })).toHaveCount(0)
-    await choose(organizationId)
+    await expect(page.getByRole('heading',{ name:'Dashboard',exact:true })).toBeVisible()
+    await expect(page.getByText('Corazón Salud / EMC Sales',{ exact:true })).toBeVisible()
+    await expect(page.getByRole('button',{ name:'Open organization',exact:true })).toHaveCount(0)
+    await expect(page.getByRole('combobox',{ name:'Sales organization',exact:true })).toHaveCount(0)
+    await expect(page.getByRole('heading',{ name:'Select a Sales organization',exact:true })).toHaveCount(0)
+    await expect(page.getByText('Local Context Second',{ exact:true })).toHaveCount(0)
+    await page.getByRole('navigation',{ name:'Sales sections' })
+      .getByRole('button',{ name:'Leads',exact:true }).click()
     await expect(page.getByRole('button',{ name:/Context First Lead/ })).toBeVisible()
     await expect(page.getByRole('button',{ name:/Context Second Lead/ })).toHaveCount(0)
     await page.setViewportSize({ width:375,height:667 })
     expect(await page.evaluate(() => document.documentElement.scrollWidth>window.innerWidth+1)).toBe(false)
-    await page.goto(`/sales-native?organization=${pendingOrg}`)
-    await expect(page.getByRole('navigation',{ name:'Sales sections' })).toHaveCount(0)
-    await expect(page.getByText('This page could not be found.',{ exact:true })).toBeVisible()
+    for (const id of [secondOrg, pendingOrg]) {
+      await page.goto(`/sales-native?organization=${id}`)
+      await expect(page.getByRole('navigation',{ name:'Sales sections' })).toHaveCount(0)
+      await expect(page.getByText('This page could not be found.',{ exact:true })).toBeVisible()
+    }
   } finally {
     await write('sales_leads','DELETE',undefined,`?id=in.(${firstLead},${secondLead})`)
     await write('sales_members','DELETE',undefined,`?id=in.(${secondMember},${pendingMember})`)

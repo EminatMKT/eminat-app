@@ -1,11 +1,5 @@
 {
-  "sales.organization.context": "Contexto de organización de Ventas",
-  "sales.organization.label": "Organización de Ventas",
-  "sales.organization.choose": "Selecciona una organización autorizada",
-  "sales.organization.open": "Abrir organización",
-  "sales.organization.activeOnly": "Solo están disponibles tus membresías activas de Ventas.",
-  "sales.organization.chooseTitle": "Selecciona una organización de Ventas",
-  "sales.organization.chooseDescription": "Elige una organización autorizada para ver sus registros de Ventas.",
+  "sales.workspace.emc": "Ventas Corazón Salud / EMC",
   "accounting.title": "Accounting",
   "accounting.subtitle": "Eminat Research · Ventas, cuentas por cobrar y bancos — Marzo",
   "accounting.stats.totalSales": "Ventas totales",
