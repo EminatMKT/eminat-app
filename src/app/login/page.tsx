@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import * as auth from '@/shared/db/auth'
 import { usuariosRepo } from '@/shared/data'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, BarChart3, CheckCircle2, ChevronDown, Eye, EyeOff, Globe2, ListTodo, LockKeyhole, Mail, Users, Zap } from 'lucide-react'
+import { ArrowRight, BarChart3, ChevronDown, Eye, EyeOff, Globe2, ListTodo, LockKeyhole, Mail, Orbit, Users, Zap } from 'lucide-react'
 import { useT } from '@/shared/i18n'
 import { ROUTES } from '@/shared/auth/permissions'
 import { DOMINIOS_VALIDOS } from '@/shared/constants/domain'
@@ -28,43 +29,6 @@ const benefits = [
   { icon: BarChart3, key: 'login.benefitProgress' },
   { icon: Zap, key: 'login.benefitProjects' },
 ] as const
-
-function TasksPreview() {
-  const { t } = useT()
-  return (
-    <div className={styles.previewWrap} aria-label={t('login.previewAlt')}>
-      <div className={styles.previewScreen}>
-        <div className={styles.previewTop}><strong>{t('login.brand')}</strong><span className={styles.previewSearch}>⌕ &nbsp; {t('login.previewSearch')}</span><span className={styles.previewAvatar}>FC</span></div>
-        <div className={styles.previewBody}>
-          <aside className={styles.previewSidebar}>
-            <span>⌂ &nbsp; {t('login.previewWorkspace')}</span>
-            <span>⌑ &nbsp; {t('login.previewHome')}</span>
-            <span className={styles.activeNav}>▦ &nbsp; {t('login.previewMyTasks')}</span>
-            <span>▧ &nbsp; {t('login.previewProjects')}</span>
-            <span>◷ &nbsp; {t('login.previewCalendar')}</span>
-            <span>♧ &nbsp; {t('login.previewTeam')}</span>
-            <span>▤ &nbsp; {t('login.previewReports')}</span>
-          </aside>
-          <div className={styles.previewContent}>
-            <div className={styles.previewHeading}><strong>{t('login.previewMyTasks')}</strong><span>＋</span></div>
-            <div className={styles.previewPills}>
-              <span>{t('login.previewPending')} <b>12</b></span>
-              <span>{t('login.previewProgress')} <b>6</b></span>
-              <span>{t('login.previewDone')} <b>24</b></span>
-            </div>
-            <div className={styles.previewBoard}>
-              <div><h3>{t('login.previewPending')}</h3><div className={styles.previewTask}><span>{t('login.previewTaskOne')}</span><small>Eminat Medical Center</small><em>{t('login.previewPriorityHigh')}</em></div><div className={styles.previewTask}><span>{t('login.previewTaskTwo')}</span><small>Corazón Salud</small><em>{t('login.previewPriorityMedium')}</em></div><div className={styles.previewTask}><span>{t('login.previewTaskSeven')}</span><small>Vivi Negrete Foundation</small><em>{t('login.previewPriorityMedium')}</em></div></div>
-              <div><h3>{t('login.previewProgress')}</h3><div className={styles.previewTask}><span>{t('login.previewTaskThree')}</span><small>Premier Specialty Group</small><em>{t('login.previewPriorityHigh')}</em></div><div className={styles.previewTask}><span>{t('login.previewTaskFour')}</span><small>Eminat Group</small><em>{t('login.previewPriorityMedium')}</em></div><div className={styles.previewTask}><span>{t('login.previewTaskEight')}</span><small>Eminat Group</small><em>{t('login.previewPriorityMedium')}</em></div></div>
-              <div><h3>{t('login.previewDone')}</h3><div className={styles.previewTask}><CheckCircle2 size={10} /><span>{t('login.previewTaskFive')}</span><small>Eminat Group</small></div><div className={styles.previewTask}><CheckCircle2 size={10} /><span>{t('login.previewTaskSix')}</span><small>Stratix Communications</small></div><div className={styles.previewTask}><CheckCircle2 size={10} /><span>{t('login.previewTaskNine')}</span><small>Eminat Medical Center</small></div></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className={styles.previewBase} />
-      <div className={styles.deskMug}><span>Good<br />Ideas<br />Better<br />Results<span className={styles.mugDot}>.</span></span></div>{/* i18n-ignore: decorative wording in reference */}
-    </div>
-  )
-}
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -139,13 +103,19 @@ export default function LoginPage() {
         <div className={styles.storyIntro}>
           <div className={styles.brand}>LILLY<span>.</span></div>{/* i18n-ignore: product name */}
           <p className={styles.claim}>{t('login.claim')}</p>
+          <p className={styles.category}>{t('login.category')}</p>
           <h1 id="lilly-headline">{t('login.headlineLead')}<br /><span>{t('login.headlineAccent')}</span> {t('login.headlineEnd')}</h1>
           <p className={styles.description}>{t('login.productDescription')}</p>
-          <div className={styles.benefits}>
-            {benefits.map(({ icon: Icon, key }) => <div className={styles.benefit} key={key}><Icon size={19} strokeWidth={1.8} /><span>{t(key)}</span></div>)}
-          </div>
         </div>
-        <TasksPreview />
+        <div className={styles.spaceVisual} aria-hidden="true">
+          <div className={styles.orbit} /><div className={styles.orbitInner} />
+          <span className={styles.orbitPoint} />
+          <Image className={styles.astronaut} src="/lilly-orbital-astronaut.png" alt="" width={1376} height={1152} priority sizes="(max-width: 850px) 320px, 540px" />
+          <div className={styles.missionCard}><Orbit size={20} /><span>{t('login.missionLabel')}<strong>{t('login.missionText')}</strong></span><span className={styles.statusDot} /></div>
+        </div>
+        <div className={styles.benefits}>
+          {benefits.map(({ icon: Icon, key }) => <div className={styles.benefit} key={key}><Icon size={18} strokeWidth={1.6} aria-hidden="true" /><span>{t(key)}</span></div>)}
+        </div>
         <div className={styles.storyFooter}>
           <div><small>{t('login.integralSystem')}</small><strong>Eminat Group</strong></div>
           <div><small>{t('login.developedBy')}</small><strong>Stratix Communications</strong></div>

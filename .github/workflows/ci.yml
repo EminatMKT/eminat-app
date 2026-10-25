@@ -45,6 +45,8 @@ jobs:
           SUPABASE_SECRET_KEY: dummy-service-role-key
           RESEND_API_KEY: re_dummy_key
       - run: pnpm exec playwright install chromium
+      - name: Verify LILLY login and Admin menu layouts and keyboard behavior
+        run: pnpm exec playwright test --config=playwright.login.config.ts
       - run: pnpm exec playwright test --config=playwright.meetings.config.ts
 
   e2e-shard:
