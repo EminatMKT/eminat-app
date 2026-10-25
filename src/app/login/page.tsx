@@ -1,16 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import * as auth from '@/shared/db/auth'
 import { usuariosRepo } from '@/shared/data'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, BarChart3, ChevronDown, Eye, EyeOff, Globe2, ListTodo, LockKeyhole, Mail, Orbit, Users, Zap } from 'lucide-react'
+import { ArrowRight, BarChart3, ChevronDown, Eye, EyeOff, Globe2, ListTodo, LockKeyhole, Mail, Users, Zap } from 'lucide-react'
 import { useT } from '@/shared/i18n'
 import { ROUTES } from '@/shared/auth/permissions'
 import { DOMINIOS_VALIDOS } from '@/shared/constants/domain'
 import { MARKETING_COORDINATOR_EMAIL } from '@/shared/constants/contacts'
 import styles from './login.module.css'
+import LoginHero from './LoginHero'
 
 async function obtenerUbicacion(): Promise<string> {
   try {
@@ -99,28 +99,7 @@ export default function LoginPage() {
 
   return (
     <main className={styles.page}>
-      <section className={styles.story} aria-labelledby="lilly-headline">
-        <div className={styles.storyIntro}>
-          <div className={styles.brand}>LILLY<span>.</span></div>{/* i18n-ignore: product name */}
-          <p className={styles.claim}>{t('login.claim')}</p>
-          <p className={styles.category}>{t('login.category')}</p>
-          <h1 id="lilly-headline">{t('login.headlineLead')}<br /><span>{t('login.headlineAccent')}</span> {t('login.headlineEnd')}</h1>
-          <p className={styles.description}>{t('login.productDescription')}</p>
-        </div>
-        <div className={styles.spaceVisual} aria-hidden="true">
-          <div className={styles.orbit} /><div className={styles.orbitInner} />
-          <span className={styles.orbitPoint} />
-          <Image className={styles.astronaut} src="/lilly-orbital-astronaut.png" alt="" width={1376} height={1152} priority sizes="(max-width: 850px) 320px, 540px" />
-          <div className={styles.missionCard}><Orbit size={20} /><span>{t('login.missionLabel')}<strong>{t('login.missionText')}</strong></span><span className={styles.statusDot} /></div>
-        </div>
-        <div className={styles.benefits}>
-          {benefits.map(({ icon: Icon, key }) => <div className={styles.benefit} key={key}><Icon size={18} strokeWidth={1.6} aria-hidden="true" /><span>{t(key)}</span></div>)}
-        </div>
-        <div className={styles.storyFooter}>
-          <div><small>{t('login.integralSystem')}</small><strong>Eminat Group</strong></div>
-          <div><small>{t('login.developedBy')}</small><strong>Stratix Communications</strong></div>
-        </div>
-      </section>
+      <LoginHero />
 
       <section className={styles.access} aria-labelledby="access-heading">
         <div className={styles.accessInner}>
