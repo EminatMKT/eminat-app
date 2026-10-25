@@ -49,7 +49,7 @@ Native runtime roots (`src/server/sales-native`, `src/app/api/sales-native`, `sr
 | Agreement enforcement | Existing Patient API and enrollment/activation enforcement remain unchanged, with their existing tests. No agreements were accepted or modified. |
 | Payment reconciliation | Existing native QuickBooks reconciliation/worker code and tests. No reconciliation, activation, invoice, payment, or renewal action was invoked. |
 
-Read-only Production navigation confirmed the native `/sales-native` Dashboard and section surfaces for Contacts, Leads, Opportunities, Portal leads, Memberships, and Payments & Renewals. These are route/surface observations, not live invoice/reconciliation transaction tests. Targeted existing native Sales and Patient API unit tests plus new entry-route tests pass locally (42 files, 172 tests at the initial targeted run).
+Read-only Production navigation confirmed the native `/sales-native` Dashboard and section surfaces for Contacts, Leads, Opportunities, Portal leads, Memberships, and Payments & Renewals. These are route/surface observations, not live invoice/reconciliation transaction tests. Some section reads remained in a loading state in the existing Chrome session; a normal page refresh restored the Dashboard. This audit does not claim successful completion of every live data read. Repeat those checks after a separately approved release; no native code changes are included for that observation. Local HTTP checks confirm 16 retired GET/POST requests return 404 and the native-disabled `/sales` entry returns a real 404. Targeted existing native Sales and Patient API unit tests plus new entry-route tests pass locally (42 files, 172 tests at the initial targeted run; an additional native-disabled middleware case was added afterward).
 
 The active Patient Portal Nginx upstream is the LILLY-backed container on port 3321, whose data mode is `lilly` and API hostname is `app.stratixsolutions.us`. An old ANNIE-backed container remains retained outside the public route; no container or portal config is changed. Native QBO callback/provider configuration uses LILLY, not the legacy ANNIE origin.
 
@@ -61,7 +61,7 @@ Remaining ANNIE names in native import compatibility markers (for example spread
 - Keep the shared access-hook behavior and denial presentation; move them out of the retired feature directory without changing native access decisions.
 - Keep `/sales` redirecting to `/sales-native` when native Sales is primary. When native primary is disabled, fail closed instead of falling back to ANNIE.
 - Keep `/api/sales/access` delegating to the unchanged native access handler when native primary is enabled. Otherwise return a no-store denial with 404; never revive the old bridge.
-- Remove only the obsolete ANNIE QA middleware block. The existing session-cookie/login middleware logic is byte-identical.
+- Replace only the obsolete ANNIE QA middleware check with the existing native-primary decision. This preserves a real pre-streaming 404 when native Sales is disabled, without consulting any ANNIE setting. The session-cookie/login middleware logic is byte-identical.
 - Retain and extend independence tests so a legacy origin, route, import, or environment read cannot return to the active entry paths.
 
 ## Controlled release and later redirect gates

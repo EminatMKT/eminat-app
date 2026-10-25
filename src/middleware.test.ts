@@ -1,7 +1,11 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { middleware } from './middleware'
 
+beforeEach(() => {
+  vi.stubEnv('LILLY_NATIVE_SALES_ENABLED', 'true')
+  vi.stubEnv('LILLY_NATIVE_SALES_PRIMARY', 'true')
+})
 afterEach(() => vi.unstubAllEnvs())
 const request = (path: string, authenticated = false) => new NextRequest(`https://lilly.example${path}`, {
   headers: authenticated ? { cookie: 'sb-local-auth-token=synthetic' } : {},
@@ -13,6 +17,13 @@ describe('Sales entry without retired QA gate', () => {
     const response = middleware(request('/sales', true))
     expect(response.status).toBe(200)
     expect(response.headers.get('x-middleware-next')).toBe('1')
+  })
+
+  it('fails closed before streaming when native Sales is not primary', () => {
+    vi.stubEnv('LILLY_NATIVE_SALES_PRIMARY', 'false')
+    vi.stubEnv('ANNIE_SALES_QA_ENABLED', 'true')
+    expect(middleware(request('/sales', true)).status).toBe(404)
+    expect(middleware(request('/sales')).status).toBe(404)
   })
 
   it('preserves existing authentication redirects for Sales and other modules', () => {
