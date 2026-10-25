@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: 'login-visual.spec.ts',
+  testMatch: ['login-visual.spec.ts', 'admin-row-menu.spec.ts'],
   timeout: 30000,
   use: { baseURL: process.env.LOGIN_PREVIEW_URL || 'http://localhost:3107', trace: 'retain-on-failure' },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],

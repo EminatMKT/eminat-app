@@ -1,0 +1,2 @@
+.item:focus-visible{outline:2px solid currentColor;outline-offset:-3px;background:var(--s2)!important}
+.item:hover{background:var(--s2)!important}
