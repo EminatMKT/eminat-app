@@ -7,7 +7,7 @@ import { D, NAV, PANEL_META, type PanelKey } from '@/shared/components/shell/app
 import SidebarPanel from '@/shared/components/shell/SidebarPanel'
 import RailButton from '@/shared/components/shell/RailButton'
 import RailProfile from '@/shared/components/shell/RailProfile'
-import { useSalesQaAccess } from '@/features/annie-sales/useSalesQaAccess'
+import { useSalesAccess } from '@/shared/components/access/useSalesAccess'
 
 type Props = {
   activeTab?: string
@@ -20,7 +20,7 @@ type Props = {
 // Data-driven desde NAV + modulePath.
 export default function Sidebar({ activeTab, onTabChange, mobileOpen, setMobileOpen }: Props) {
   const { modules } = useApp()
-  const salesQaAllowed = useSalesQaAccess()
+  const salesAllowed = useSalesAccess()
   const router = useRouter()
   const pathname = usePathname()
 
@@ -33,11 +33,11 @@ export default function Sidebar({ activeTab, onTabChange, mobileOpen, setMobileO
     : () => { router.push(modulePath(slug)); setSidebarPanel(null) }
   const sidebarIcons = [
     { key: 'home', icon: '🏠', label: 'Home', action: () => { router.push(ROUTES.home); setSidebarPanel(null) } },
-    ...NAV.filter(i => i.slug === 'sales' ? salesQaAllowed : modules.includes(i.slug)).map(i => ({ key: i.key, icon: i.icon, label: i.label, action: navAction(i.slug, i.panel) })),
+    ...NAV.filter(i => i.slug === 'sales' ? salesAllowed : modules.includes(i.slug)).map(i => ({ key: i.key, icon: i.icon, label: i.label, action: navAction(i.slug, i.panel) })),
   ]
 
   // El panel secundario solo abre si el usuario tiene el módulo (sin_asignar no ve el submenú).
-  const panelOpen = !!sidebarPanel && (PANEL_META[sidebarPanel].slug === 'sales' ? salesQaAllowed : modules.includes(PANEL_META[sidebarPanel].slug))
+  const panelOpen = !!sidebarPanel && (PANEL_META[sidebarPanel].slug === 'sales' ? salesAllowed : modules.includes(PANEL_META[sidebarPanel].slug))
 
   return (
     <aside className={`sidebar-root${mobileOpen ? ' open' : ''}`} style={{ display: 'flex', flexShrink: 0, height: '100vh', position: 'relative', zIndex: 50 }}>
