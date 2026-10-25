@@ -1,4 +1,11 @@
 .main{width:100%;max-width:1440px;margin:0 auto;padding:clamp(16px,3vw,32px);color:#173d43}
+.organizationContext{max-width:1440px;margin:0 auto;padding:16px clamp(16px,3vw,32px) 0;color:#173d43}
+.organizationContext form{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.organizationContext label{font-weight:700}
+.organizationContext select,.organizationContext button{min-height:40px;max-width:100%;border:1px solid #b9d4d2;border-radius:8px;padding:8px 12px;background:#fff;color:#173d43}
+.organizationContext button{cursor:pointer;font-weight:700}
+.organizationContext p{margin:8px 0;color:#587378;font-size:.85rem}
+.organizationContext select:focus-visible,.organizationContext button:focus-visible{outline:3px solid #e2a544;outline-offset:2px}
 .heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}
 .headingActions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
 .heading h1{font-size:clamp(1.6rem,3vw,2.3rem);margin:0;line-height:1.2}

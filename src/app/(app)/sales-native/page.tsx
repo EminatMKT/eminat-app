@@ -3,11 +3,14 @@ import NativeSalesModule from '@/features/native-sales/NativeSalesModule'
 import ssrClient from '@/shared/db/requireAccess/ssrClient'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { nativeSalesEnabled } from '@/server/sales-native/release-gate'
+import { readSalesOrganizations } from '@/server/sales-native/auth'
+import NativeSalesOrganizationContext from '@/features/native-sales/NativeSalesOrganizationContext'
 
 export const dynamic = 'force-dynamic'
 
-/** Isolated review route. Existing /sales stays on its verified release path. */
-export default async function NativeSalesPreviewPage() {
+export default async function NativeSalesPreviewPage({ searchParams = {} }: {
+  searchParams?: { organization?: string | string[] }
+} = {}) {
   if (!nativeSalesEnabled()) notFound()
   const client = ssrClient()
   const { data: { user } } = await client.auth.getUser()
@@ -16,10 +19,14 @@ export default async function NativeSalesPreviewPage() {
   const { data: profile, error: profileError } = await admin.from('usuarios')
     .select('id').eq('auth_id', user.id).eq('activo', true).maybeSingle()
   if (profileError || !profile?.id) notFound()
-  const { data: memberships, error } = await admin.from('sales_members')
-    .select('organization_id,sales_organizations!inner(status)')
-    .eq('auth_id', user.id).eq('user_id', profile.id).eq('status', 'active')
-    .eq('sales_organizations.status', 'active').limit(2)
-  if (error || memberships?.length !== 1) notFound()
-  return <NativeSalesModule organizationId={memberships[0].organization_id} />
+  const organizations = await readSalesOrganizations(admin, user.id, profile.id)
+  if (!organizations.length) notFound()
+  const requested = searchParams.organization
+  const selected = requested === undefined && organizations.length === 1
+    ? organizations[0] : organizations.find(option => option.organizationId === requested)
+  if (requested !== undefined && !selected) notFound()
+  return <NativeSalesOrganizationContext organizations={organizations}
+    selectedId={selected?.organizationId}>
+    {selected ? <NativeSalesModule key={selected.organizationId} organizationId={selected.organizationId} /> : null}
+  </NativeSalesOrganizationContext>
 }

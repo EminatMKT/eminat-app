@@ -82,3 +82,63 @@ test('native Sales sections render at mobile width without document overflow', a
   }
   expect(errors).toEqual([])
 })
+
+test('multiple authorized organizations require selection and never share records', async ({ page }) => {
+  if (!['localhost','127.0.0.1'].includes(new URL(base).hostname))
+    throw new Error('ORGANIZATION_REHEARSAL_REQUIRES_LOCAL_DATABASE')
+  const secondOrg = randomUUID(), pendingOrg = randomUUID()
+  const secondMember = randomUUID(), pendingMember = randomUUID()
+  const firstLead = randomUUID(), secondLead = randomUUID()
+  const profile = await getUsuario(email)
+  const authId = await authIdByEmail(email)
+  if (!profile?.id || !authId) throw new Error('LOCAL_SALES_IDENTITY_MISSING')
+  try {
+    for (const [id,name] of [[secondOrg,'Local Context Second'],[pendingOrg,'Local Context Pending']])
+      await write('sales_organizations','POST',{ id,code:`qa-${id}`,name,status:'active',
+        approved_by:profile.id,approved_at:new Date().toISOString() })
+    for (const [id,org,status] of [[secondMember,secondOrg,'active'],[pendingMember,pendingOrg,'pending']])
+      await write('sales_members','POST',{ id,organization_id:org,user_id:profile.id,auth_id:authId,
+        role:'ADMINISTRATOR',status,evidence_ref:'local organization browser rehearsal',
+        approved_by:profile.id,approved_at:new Date().toISOString() })
+    for (const [id,org,owner,name] of [[firstLead,organizationId,memberId,'Context First Lead'],
+      [secondLead,secondOrg,secondMember,'Context Second Lead']])
+      await write('sales_leads','POST',{ id,organization_id:org,owner_member_id:owner,
+        display_name:name,source:'Local QA',created_by:owner,updated_by:owner })
+    await page.addInitScript(() => {
+      localStorage.setItem('eminat-onboarding-completed','true')
+      localStorage.setItem('locale','en')
+    })
+    await page.goto('/login')
+    await page.getByPlaceholder('tu@eminat.net').fill(email)
+    await page.locator('input[type="password"]').fill(PASSWORD)
+    await page.locator('input[type="password"]').press('Enter')
+    await page.waitForURL('http://localhost:3000/',{ timeout:40000 })
+    await page.goto('/sales-native')
+    await expect(page.getByRole('heading',{ name:'Select a Sales organization',exact:true })).toBeVisible()
+    await expect(page.getByRole('navigation',{ name:'Sales sections' })).toHaveCount(0)
+    await expect(page.getByRole('option',{ name:/Local Context Pending/ })).toHaveCount(0)
+    const choose = async (id: string) => {
+      await page.getByLabel('Sales organization',{ exact:true }).selectOption(id)
+      await page.getByRole('button',{ name:'Open organization',exact:true }).click()
+      await page.waitForURL(`**/sales-native?organization=${id}`)
+      await expect(page.getByRole('heading',{ name:'Dashboard',exact:true })).toBeVisible()
+      await page.getByRole('navigation',{ name:'Sales sections' })
+        .getByRole('button',{ name:'Leads',exact:true }).click()
+    }
+    await choose(secondOrg)
+    await expect(page.getByRole('button',{ name:/Context Second Lead/ })).toBeVisible()
+    await expect(page.getByRole('button',{ name:/Context First Lead/ })).toHaveCount(0)
+    await choose(organizationId)
+    await expect(page.getByRole('button',{ name:/Context First Lead/ })).toBeVisible()
+    await expect(page.getByRole('button',{ name:/Context Second Lead/ })).toHaveCount(0)
+    await page.setViewportSize({ width:375,height:667 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth>window.innerWidth+1)).toBe(false)
+    await page.goto(`/sales-native?organization=${pendingOrg}`)
+    await expect(page.getByRole('navigation',{ name:'Sales sections' })).toHaveCount(0)
+    await expect(page.getByText('This page could not be found.',{ exact:true })).toBeVisible()
+  } finally {
+    await write('sales_leads','DELETE',undefined,`?id=in.(${firstLead},${secondLead})`)
+    await write('sales_members','DELETE',undefined,`?id=in.(${secondMember},${pendingMember})`)
+    await write('sales_organizations','DELETE',undefined,`?id=in.(${secondOrg},${pendingOrg})`)
+  }
+})

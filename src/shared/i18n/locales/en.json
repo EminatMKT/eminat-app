@@ -1,4 +1,11 @@
 {
+  "sales.organization.context": "Sales organization context",
+  "sales.organization.label": "Sales organization",
+  "sales.organization.choose": "Select an authorized organization",
+  "sales.organization.open": "Open organization",
+  "sales.organization.activeOnly": "Only your active Sales memberships are available.",
+  "sales.organization.chooseTitle": "Select a Sales organization",
+  "sales.organization.chooseDescription": "Choose an authorized organization to view its Sales records.",
   "accounting.title": "Accounting",
   "accounting.subtitle": "Eminat Research · Sales, receivables & banking — March",
   "accounting.stats.totalSales": "Total Sales",
