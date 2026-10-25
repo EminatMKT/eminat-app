@@ -10,6 +10,8 @@ const FREDDY_MEMBER = 'c67e9779-9e87-48b0-9f6c-bf6a0c8cebad'
 const FREDDY_USER = '2344e112-76ef-42a8-ac56-7c488084e0f5'
 
 export async function patientQboActor(request: Request) {
+  const requestedOrganization = request.headers.get('x-sales-organization-id')
+  if (requestedOrganization && requestedOrganization !== EMC) return null
   const authorization = request.headers.get('authorization') ?? ''
   const token = authorization.startsWith('Bearer ') ? authorization.slice(7) : ''
   if (!token || token.length > 8192) return null
@@ -22,6 +24,8 @@ export async function patientQboActor(request: Request) {
   const { data: profile, error: profileError } = await admin.from('usuarios')
     .select('id').eq('auth_id',auth.user.id).eq('activo',true).maybeSingle()
   if (profileError || !profile) return null
+  // Preserve only the exact owner-approved pending compatibility identity.
+  // Active EMC SUPERADMIN access uses the normal membership resolver below.
   if (profile.id === FREDDY_USER) {
     const { data: fallback, error: fallbackError } = await admin.from('sales_members')
       .select('id').eq('id',FREDDY_MEMBER).eq('organization_id',EMC)
@@ -32,7 +36,7 @@ export async function patientQboActor(request: Request) {
   }
   try {
     const sales = await resolveSalesActor(request)
-    if (sales.organizationId !== EMC || !['SELLER','SALES_MANAGER','FINANCE'].includes(sales.role)) return null
-    return { memberId: sales.memberId, verifier: sales.role === 'FINANCE' }
+    if (sales.organizationId !== EMC || !['SELLER','SALES_MANAGER','FINANCE','SUPERADMIN'].includes(sales.role)) return null
+    return { memberId: sales.memberId, verifier: ['FINANCE','SUPERADMIN'].includes(sales.role) }
   } catch { return null }
 }
