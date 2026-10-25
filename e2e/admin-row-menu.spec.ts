@@ -9,7 +9,7 @@ const rows = Array.from({ length: 40 }, (_, i) => ({ id: i ? `10000000-0000-4000
 for (const [name, viewport] of Object.entries({ desktop: { width: 1440, height: 900 }, laptop: { width: 1280, height: 720 }, 'laptop-125-percent-effective-viewport': { width: 1024, height: 576 }, narrow: { width: 390, height: 844 } })) {
   test(`${name}: Admin row menus stay usable at every table position`, async ({ page, context }) => {
     await page.setViewportSize(viewport)
-    await page.addInitScript(() => localStorage.setItem('locale', 'en'))
+    await page.addInitScript(() => { localStorage.setItem('locale', 'en'); localStorage.setItem('eminat-onboarding-completed', 'true') })
     const expires = Math.floor(Date.now() / 1000) + 3600
     const jwt = `${Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url')}.${Buffer.from(JSON.stringify({ sub: authId, aud: 'authenticated', role: 'authenticated', exp: expires })).toString('base64url')}.synthetic`
     const session = { access_token: jwt, refresh_token: 'synthetic', expires_at: expires, expires_in: 3600, token_type: 'bearer', user }
@@ -63,6 +63,7 @@ for (const [name, viewport] of Object.entries({ desktop: { width: 1440, height: 
     if (visible.length) await assertMenu(visible.at(-1)!)
     await assertMenu(20)
     await assertMenu(39)
+    await triggers.last().evaluate(el => el.scrollIntoView({ block: 'end', inline: 'nearest' }))
     await triggers.last().click()
     await expect(page.getByRole('menu')).toHaveAttribute('data-placement', 'top')
     const last = page.getByRole('menuitem').last()
