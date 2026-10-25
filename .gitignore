@@ -33,4 +33,3 @@ supabase/rollback/predump-*
 
 # caché de los hooks de .claude
 __pycache__/
-.vercel
