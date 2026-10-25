@@ -72,7 +72,9 @@ const title = (row: Row) => string(row.display_name) || string(row.name) ||
   [string(row.first_name), string(row.last_name)].filter(Boolean).join(' ') ||
   string(row.title) || string(row.relatedName) || string(row.subject) || string(row.code) || 'Untitled'
 
-export default function NativeSalesModule({ organizationId }: { organizationId: string }) {
+export default function NativeSalesModule({ organizationId, workspaceLabelKey }: {
+  organizationId: string; workspaceLabelKey?: I18nKey
+}) {
   const { t } = useT()
   const [tab, setTab] = useState<Tab>('dashboard')
   const [access, setAccess] = useState<Access | null>(null)
@@ -277,7 +279,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
 
   return <AppShell title={t('salesNative.sales')} actions={<span className={s.role}>{access?.role || 'Loading'}</span>}>
     <main className={s.main}>
-      <div className={s.heading}><div><p className={s.eyebrow}>{t('salesNative.lillySales')}</p><h1>{currentLabel}</h1></div>
+      <div className={s.heading}><div><p className={s.eyebrow}>{t(workspaceLabelKey || 'salesNative.lillySales')}</p><h1>{currentLabel}</h1></div>
         <div className={s.headingActions}>
           {access?.capabilities.canWrite && ['leads','contacts','accounts','opportunities','memberships','activities'].includes(tab) &&
             !(tab==='leads' && leadView==='archived') &&

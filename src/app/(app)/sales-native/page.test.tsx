@@ -11,8 +11,8 @@ vi.mock('@/shared/db/requireAccess/ssrClient', () => ({ default: () => ({ auth: 
 vi.mock('@/shared/db/supabaseAdmin', () => ({ supabaseAdmin: mocks.admin }))
 vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: (key: keyof typeof en) => en[key] }) }))
 vi.mock('@/features/native-sales/NativeSalesModule', () => ({
-  default: ({ organizationId }: { organizationId: string }) =>
-    <div data-testid="native-records" data-organization-id={organizationId} />,
+  default: ({ organizationId, workspaceLabelKey }: { organizationId: string; workspaceLabelKey?: string }) =>
+    <div data-testid="native-records" data-organization-id={organizationId}>{workspaceLabelKey}</div>,
 }))
 import Page from './page'
 
@@ -29,12 +29,15 @@ beforeEach(() => {
   mocks.organizations.mockResolvedValue([stratix, emc])
 })
 
-describe('Sales organization context', () => {
-  it('requires explicit selection for multiple memberships and renders no organization records', async () => {
+describe('Sales commercial workspace', () => {
+  it('opens the default authorized EMC dashboard immediately despite other corporate memberships', async () => {
     const html = renderToStaticMarkup(await Page())
-    expect(html).toContain('Select a Sales organization')
-    expect(html).toContain('EMC')
-    expect(html).not.toContain('data-testid="native-records"')
+    expect(html).toContain(`data-organization-id="${emc.organizationId}"`)
+    expect(html).toContain('sales.workspace.emc')
+    expect(html).not.toContain('Select a Sales organization')
+    expect(html).not.toContain('Open organization')
+    expect(html).not.toContain('Stratix')
+    expect(html).not.toContain('<form')
     expect(mocks.organizations).toHaveBeenCalledWith(expect.anything(), 'auth-id', 'profile-id')
   })
   it('renders only the explicitly selected authorized organization', async () => {
@@ -42,11 +45,17 @@ describe('Sales organization context', () => {
     expect(html).toContain(`data-organization-id="${emc.organizationId}"`)
     expect(html).not.toContain(`data-organization-id="${stratix.organizationId}"`)
   })
-  it('preserves the single-organization experience and excludes pending organizations', async () => {
-    mocks.organizations.mockResolvedValue([stratix])
+  it('opens directly for an authorized EMC seller without changing their role', async () => {
+    mocks.organizations.mockResolvedValue([{ ...emc, role: 'SELLER' }])
     const html = renderToStaticMarkup(await Page())
-    expect(html).toContain(`data-organization-id="${stratix.organizationId}"`)
-    expect(html).not.toContain('EMC')
+    expect(html).toContain(`data-organization-id="${emc.organizationId}"`)
+  })
+  it('does not publish unrelated corporate memberships as commercial workspaces', async () => {
+    mocks.organizations.mockResolvedValue([stratix])
+    await expect(Page()).rejects.toThrow('NOT_FOUND')
+  })
+  it('rejects a corporate organization query even for its authorized superadmin', async () => {
+    await expect(Page({ searchParams: { organization: stratix.organizationId } })).rejects.toThrow('NOT_FOUND')
   })
   it.each(['33333333-3333-4333-8333-333333333333', ['a','b'], ''])
     ('rejects an unauthorized or malformed organization selection', async organization => {
