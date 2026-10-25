@@ -17,8 +17,13 @@ describe('native Sales runtime boundary', () => {
       'src/app/api/sales-native',
       'src/features/native-sales',
       'src/app/(app)/sales-native',
+      'src/shared/components/access',
+      'src/shared/components/shell',
+      'src/app/(app)/sales',
+      'src/app/api/sales',
     ]
-    for (const file of roots.flatMap(root => sources(join(process.cwd(), root)))) {
+    const files = [...roots.flatMap(root => sources(join(process.cwd(), root))), join(process.cwd(), 'src/middleware.ts')]
+    for (const file of files) {
       const source = readFileSync(file, 'utf8')
       expect(source, file).not.toMatch(/from\s*['"][^'"]*integrations\/annie/)
       expect(source, file).not.toMatch(/from\s*['"][^'"]*features\/annie-sales/)
@@ -28,9 +33,10 @@ describe('native Sales runtime boundary', () => {
     }
   })
 
-  it('keeps the shared shell on the native access route during native preview', () => {
-    const accessHook = readFileSync(join(process.cwd(), 'src/features/annie-sales/useSalesQaAccess.ts'), 'utf8')
+  it('keeps the shared shell on the native access route on the native access route', () => {
+    const accessHook = readFileSync(join(process.cwd(), 'src/shared/components/access/useSalesAccess.ts'), 'utf8')
+    expect(accessHook).not.toMatch(/ANNIE_|integrations\/annie|annie-sales/)
     expect(accessHook).toContain("pathname.startsWith('/sales-native')")
-    expect(accessHook).toContain("nativePreview ? '/api/sales-native/access' : '/api/sales/access'")
+    expect(accessHook).toContain("nativeRoute ? '/api/sales-native/access' : '/api/sales/access'")
   })
 })

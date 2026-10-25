@@ -8,6 +8,5 @@ export async function GET(request: Request) {
     const native = await import('@/app/api/sales-native/access/route')
     return native.GET(request)
   }
-  const legacy = await import('@/app/api/integrations/annie/sales/access/route')
-  return legacy.GET(request)
+  return Response.json({ allowed: false }, { status: 404, headers: { 'Cache-Control': 'no-store' } })
 }

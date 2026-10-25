@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { nativeSalesPrimary } from '@/server/sales-native/release-gate'
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  // Return a real 404 before streaming any Sales route while QA is off.
-  // The page and adapter separately verify the exact user/Auth ID allowlist.
+  // Preserve a real, pre-streaming 404 when the active Sales runtime is disabled.
   if ((pathname === '/sales' || pathname.startsWith('/sales/')) &&
-      process.env.ANNIE_SALES_QA_ENABLED !== 'true') return new NextResponse(null, { status: 404 })
+      !nativeSalesPrimary()) return new NextResponse(null, { status: 404 })
   const hasSession = request.cookies.getAll().some(c => c.name.startsWith('sb-') && c.name.includes('-auth-token'))
   if (!hasSession && pathname !== '/login') return NextResponse.redirect(new URL('/login', request.url))
   if (hasSession && pathname === '/login') return NextResponse.redirect(new URL('/', request.url))

@@ -35,7 +35,7 @@ test('smoke · cada módulo carga para admin sin crashear', async ({ page }) => 
     await expect(page.locator('[data-tour="home"]')).toBeVisible({ timeout: 30_000 })
   }
 
-  // Even admin cannot reach the QA-only route when the server switch is absent.
+  // Even admin cannot reach /sales when the native-primary switch is absent.
   const denied = await page.goto('/sales')
   expect(denied?.status()).toBe(404)
 
