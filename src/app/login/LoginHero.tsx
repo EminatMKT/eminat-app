@@ -75,8 +75,6 @@ export default function LoginHero() {
         <div className={styles.orbit}><i /><i /></div>
         <div className={styles.orbitInner}><i /></div>
         <div className={styles.astronaut}><Image src="/lilly-orbital-astronaut.png" alt="" width={1376} height={1152} priority sizes="(max-width: 850px) 310px, 37vw" draggable={false} /></div>
-        <div className={styles.dog}><Image src="/login-space/laika.png" alt="" width={1024} height={1536} sizes="(max-width: 850px) 100px, 13vw" draggable={false} /></div>
-        <div className={styles.cat}><Image src="/login-space/felicette.png" alt="" width={1024} height={1536} sizes="(max-width: 850px) 90px, 12vw" draggable={false} /></div>
         <div className={`${styles.kpi} ${styles.tasksKpi}`}><BarChart3 size={24} /><div><span>{t('login.previewDone')}</span><strong>+32% <svg viewBox="0 0 80 25"><path d="m1 23 12-8 12 3 13-12 11 4 12-6 10 2 8-5" /></svg></strong></div></div>
         <div className={`${styles.kpi} ${styles.teamKpi}`}><Users size={23} /><div><span>{t('login.benefitTeam')}</span><strong>+24% <span className={styles.miniBars}><i /><i /><i /><i /><i /></span></strong></div></div>
         <div className={styles.missionCard}><Orbit size={24} /><span>{t('login.missionLabel')}<strong>{t('login.missionText')}</strong></span><ArrowMark /></div>
