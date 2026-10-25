@@ -71,7 +71,7 @@ CREATE FUNCTION public.native_sales_controlled_emc_admin(p_action text)
 RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
 DECLARE v_member public.sales_members%ROWTYPE;
 BEGIN
-  IF p_action IS NULL OR p_action NOT IN ('check','apply','verify') THEN
+  IF p_action IS NULL OR p_action NOT IN ('check','apply','verify','rollback') THEN
     RAISE EXCEPTION 'EMC_ADMIN_ACTION_INVALID' USING ERRCODE='22023';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.usuarios u JOIN auth.users a ON a.id=u.auth_id
@@ -113,6 +113,15 @@ BEGIN
   END IF;
   IF p_action='verify' AND v_member.status<>'active' THEN
     RAISE EXCEPTION 'EMC_ADMIN_NOT_ACTIVE';
+  END IF;
+  IF p_action='rollback' AND v_member.status='active' THEN
+    UPDATE public.sales_members SET status='pending',updated_at=now() WHERE id=v_member.id;
+    INSERT INTO public.sales_history
+      (organization_id,entity_type,record_id,actor_member_id,action,request_id,changes)
+    VALUES (v_member.organization_id,'sales_member',v_member.id,v_member.id,
+      'emc_superadmin_access_rolled_back',gen_random_uuid(),
+      jsonb_build_object('previousStatus','active','status','pending','role','SUPERADMIN',
+        'fallbackEvidencePreserved',true));
   END IF;
   RETURN 'EMC_ADMIN_'||upper(p_action)||'_PASS';
 END;

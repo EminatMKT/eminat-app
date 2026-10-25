@@ -78,6 +78,13 @@ BEGIN
     OR EXISTS(SELECT 1 FROM public.sales_patient_enrollment_intents) THEN
     RAISE EXCEPTION 'ORGANIZATION_ACCESS_TOUCHED_COMMERCIAL_DATA';
   END IF;
+  PERFORM public.native_sales_controlled_emc_admin('rollback');
+  PERFORM public.native_sales_controlled_emc_admin('rollback');
+  IF (SELECT status FROM public.sales_members WHERE id='c67e9779-9e87-48b0-9f6c-bf6a0c8cebad')<>'pending'
+    OR (SELECT count(*) FROM public.sales_history WHERE action='emc_superadmin_access_rolled_back')<>1
+    OR (SELECT count(*) FROM public.sales_leads)<>2 THEN
+    RAISE EXCEPTION 'EMC_ACCESS_ROLLBACK_NOT_SCOPED_OR_IDEMPOTENT';
+  END IF;
   UPDATE public.sales_members SET evidence_ref='not-approved'
     WHERE id='c67e9779-9e87-48b0-9f6c-bf6a0c8cebad';
   BEGIN
