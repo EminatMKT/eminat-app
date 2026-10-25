@@ -6,6 +6,7 @@ import { modulePath } from '@/shared/auth/permissions'
 import { visibleTasksTabs } from '@/features/tasks/constants/tabs'
 import { D, SUB_ITEMS, PANEL_META, type PanelKey } from '@/shared/components/shell/appShellConfig'
 import PanelItem from '@/shared/components/shell/PanelItem'
+import NativeSalesNavigation from '@/features/native-sales/NativeSalesNavigation'
 
 type Props = {
   open: boolean
@@ -41,6 +42,8 @@ export default function SidebarPanel(props: Props) {
         <div style={{ fontFamily: 'Syne', fontWeight: 800, fontSize: 13, color: D.t1, whiteSpace: 'nowrap' }}>{panelTitle}</div>
         <div style={{ fontSize: 9, color: D.t3, fontFamily: 'DM Mono', marginTop: 2, whiteSpace: 'nowrap' }}>{panelSub}</div>
       </div>
+      {panel === 'sales' && pathname.startsWith('/sales-native') ?
+        <NativeSalesNavigation onSelect={tab => { onTabChange?.(tab); setMobileOpen(false) }} /> :
       <nav style={{ flex: 1, padding: '0 8px', overflowY: 'auto' }}>
         {subItems.map(item => (
           <div key={item.id}>
@@ -48,7 +51,7 @@ export default function SidebarPanel(props: Props) {
             <PanelItem icon={item.icon} label={item.labelKey ? t(item.labelKey) : item.label} active={item.tabs ? item.tabs.includes(activeTab ?? '') : activeTab === item.tab} onClick={() => selectTab(item.tab)} />
           </div>
         ))}
-      </nav>
+      </nav>}
     </div>
   )
 }

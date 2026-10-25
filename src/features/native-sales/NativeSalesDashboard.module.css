@@ -1,0 +1,13 @@
+.dashboard{display:grid;gap:22px;min-width:0;color:#25344b}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.metric{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px;border:1px solid #e4e7ef;border-top:3px solid;border-radius:14px;background:#fff;box-shadow:0 4px 18px #24334a05}
+.metric p{margin:0 0 12px;color:#66738a;font-size:.82rem}.metric strong{font-family:Syne,sans-serif;font-size:2.1rem;line-height:1;letter-spacing:-.04em;font-variant-numeric:tabular-nums}.metric svg{color:#8577bd;flex:none}
+.grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px}
+.panel{min-width:0;padding:22px;border:1px solid #e4e7ef;border-radius:16px;background:#fff;box-shadow:0 5px 24px #24334a05}
+.panel header{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-bottom:16px}.panel h2{margin:0;font-size:1rem;font-weight:700;letter-spacing:-.02em}.panel header>span{color:#6f618f;font-size:.8rem;font-variant-numeric:tabular-nums}
+.chart{width:100%;min-width:0}.wide{grid-column:1/-1}
+.legend{list-style:none;display:flex;flex-wrap:wrap;gap:10px 22px;margin:8px 0 0;padding:0;font-size:.8rem}.legend li{display:flex;align-items:center;gap:7px}.legend i{width:8px;height:8px;border-radius:50%}.legend strong{font-variant-numeric:tabular-nums}
+.data{margin-top:14px;border-top:1px solid #edf0f5;padding-top:12px;font-size:.78rem;color:#647089}.data summary{cursor:pointer;width:fit-content}.data summary:focus-visible{outline:2px solid #7865d9;outline-offset:4px}.data table{width:100%;margin-top:12px;border-collapse:collapse;text-align:left}.data th,.data td{padding:7px;border-bottom:1px solid #edf0f5}.data td{text-align:right}
+.empty{min-height:240px;display:grid;place-items:center;color:#647089;font-size:.9rem}.caption{margin:0;color:#69758b;font-size:.78rem}
+@media(max-width:1050px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.grid{grid-template-columns:minmax(0,1fr)}.wide{grid-column:auto}}
+@media(max-width:480px){.metrics{gap:10px}.metric{padding:14px}.metric svg{display:none}.metric strong{font-size:1.8rem}.panel{padding:15px}.grid{gap:14px}}
