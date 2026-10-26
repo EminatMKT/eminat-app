@@ -227,7 +227,7 @@ test('all Sales sections keep coherent dark surfaces, readable controls and resp
 })
 
 for (const language of ['en','es'] as const) test(`renewal selectors include later pages and localized pending status (${language})`,async({page})=>{
-  const text:Record<string,string> = JSON.parse(readFileSync(new URL(`../src/shared/i18n/locales/${language}.json`,import.meta.url),'utf8'))
+  const text:Record<string,string> = JSON.parse(readFileSync(`${process.cwd()}/src/shared/i18n/locales/${language}.json`,'utf8'))
   const memberIdAt = (index:number) => `20000000-0000-4000-8000-${String(index).padStart(12,'0')}`
   const offsets:Record<string,number[]> = {memberships:[],opportunities:[]}
   for (const resource of ['memberships','opportunities']) await page.route(`**/api/sales-native/${resource}?*`,async route=>{
