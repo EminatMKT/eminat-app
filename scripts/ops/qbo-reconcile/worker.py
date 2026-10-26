@@ -35,8 +35,9 @@ def request(path, secret, payload=None):
 
 def read_state(path):
     try:
-        return json.loads(path.read_text())
-    except FileNotFoundError:
+        value = json.loads(path.read_text())
+        return value if isinstance(value, dict) else {}
+    except (OSError, ValueError, UnicodeError):
         return {}
 
 
@@ -65,6 +66,8 @@ def tick(directory, secret, call=request, clock=time.time):
 
 def health(directory, clock=time.time):
     last = read_state(directory / 'heartbeat.json').get('last_success', 0)
+    if type(last) is not int or last < 0:
+        last = 0
     age = int(clock()) - last
     return {'last_success': last, 'age_seconds': age,
             'stale': not last or age < 0 or age > STALE_SECONDS}

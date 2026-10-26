@@ -62,6 +62,11 @@ class WorkerTest(unittest.TestCase):
             worker.watch(self.directory, 'synthetic', lambda *a: {'sent': False})
         self.assertFalse((self.directory / 'monitor.json').exists())
 
+    def test_corrupt_missing_or_future_heartbeat_is_stale(self):
+        for value in ['not-json', '[]', '{"last_success":"bad"}', '{"last_success":2000}']:
+            (self.directory / 'heartbeat.json').write_text(value)
+            self.assertTrue(worker.health(self.directory, lambda: 1000)['stale'])
+
     def test_no_redirects_and_explicit_timer_contract(self):
         self.assertIsNone(worker.NoRedirect().redirect_request(None, None, 302, '', {}, 'https://other.test'))
         root = Path(__file__).parent
