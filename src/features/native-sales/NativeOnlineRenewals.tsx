@@ -21,7 +21,7 @@ export default function NativeOnlineRenewals({membershipId,request}:{membershipI
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   },[membershipId,request])
-  return <section className={s.recordActions}><h3>{t('salesNative.onlineRenewals')}</h3>
+  return <section className={`${s.recordActions} ${s.renewalStatus}`}><h3>{t('salesNative.onlineRenewals')}</h3>
     {error && <p role="alert">{t('salesNative.onlineRenewalsUnavailable')}</p>}
     {loading && <p role="status">{t('salesNative.loadingMemberships')}</p>}
     {!rows.length && !error && !loading && <p>{t('salesNative.noOnlineRenewals')}</p>}

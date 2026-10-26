@@ -1,0 +1,373 @@
+diff --git a/package.json b/package.json
+index c99c80e..c52883f 100644
+--- a/package.json
++++ b/package.json
+@@ -10,6 +10,7 @@
+     "typecheck": "next typegen && tsc --noEmit",
+     "test": "vitest run",
+     "testE2e": "playwright test",
++    "test:renewal": "playwright test --config playwright.renewal.config.ts",
+     "verifyBundle": "node scripts/verify-production-bundle.mjs"
+   },
+   "dependencies": {
+diff --git a/playwright.config.ts b/playwright.config.ts
+index 18473ad..e552db7 100644
+--- a/playwright.config.ts
++++ b/playwright.config.ts
+@@ -6,6 +6,7 @@ const baseURL = `http://127.0.0.1:${port}`;
+ export default defineConfig({
+   testDir: "./tests/e2e",
+   testMatch: "**/*.e2e.ts",
++  testIgnore: "**/renewal.e2e.ts",
+   timeout: 30_000,
+   use: { baseURL, browserName: "chromium", channel: "chrome", headless: true },
+   webServer: {
+diff --git a/playwright.renewal.config.ts b/playwright.renewal.config.ts
+new file mode 100644
+index 0000000..570ea5a
+--- /dev/null
++++ b/playwright.renewal.config.ts
+@@ -0,0 +1,9 @@
++import {defineConfig} from '@playwright/test';
++export default defineConfig({
++  testDir:'./tests/e2e',testMatch:'renewal.e2e.ts',workers:1,timeout:30000,
++  use:{baseURL:'http://127.0.0.1:3191',browserName:'chromium',channel:'chrome',headless:true},
++  webServer:[
++    {command:'node tests/fixtures/renewal-api.mjs',url:'http://127.0.0.1:3192/__scenario',env:{NODE_ENV:'test'},reuseExistingServer:false},
++    {command:'pnpm dev --port 3191',url:'http://127.0.0.1:3191/login',env:{PORTAL_DATA_MODE:'lilly',LILLY_PATIENT_API_BASE_URL:'http://127.0.0.1:3192/api/patient/v1/'},reuseExistingServer:false},
++  ],
++});
+diff --git a/src/app/(portal)/renovacion/online-renewal.tsx b/src/app/(portal)/renovacion/online-renewal.tsx
+new file mode 100644
+index 0000000..b8298cf
+--- /dev/null
++++ b/src/app/(portal)/renovacion/online-renewal.tsx
+@@ -0,0 +1,46 @@
++import { randomUUID } from "node:crypto";
++import Link from "next/link";
++import { Card, PageHeading, SectionTitle } from "@/components/ui";
++import type { PortalLocale } from "@/lib/portal-locale";
++import { formatDate } from "@/lib/presentation";
++import { readOnlineRenewal, type OnlineRenewalData } from "./renewal-data";
++import { RenewalControls } from "./renewal-controls";
++
++export async function OnlineRenewal({locale}:{locale:PortalLocale}) {
++  const t = (es:string,en:string) => locale === "en" ? en : es;
++  const heading = <PageHeading eyebrow={t("PLANIFICA CON TRANQUILIDAD","PLAN WITH CONFIDENCE")} title={t("Renovación","Renewal")}
++    description={t("Continúa tu membresía de Corazón Salud. La cobertura se extiende solo después del pago verificado.","Continue your Corazón Salud membership. Coverage extends only after verified payment.")}/>;
++  let data:OnlineRenewalData|null = null;
++  try { data = await readOnlineRenewal(); } catch { /* Keep failed API reads separate from rendering. */ }
++  if (!data) return <>{heading}<Card><p role="alert">{t("No pudimos consultar la renovación. Inténtalo más tarde. No se ha iniciado ningún cobro.","We couldn't load your renewal. Try again later. No charge has been initiated.")}</p></Card></>;
++
++    const membership = data.membership;
++    if (!membership) return <>{heading}<Card><p>{t("Aún no tienes una membresía pagada para renovar.","You don't have a paid membership to renew yet.")}</p><Link href="/membresia">{t("Ver membresía","View membership")}</Link></Card></>;
++    const pending = data.renewals.some(item => !["FULFILLED","CANCELLED"].includes(item.status));
++    const statuses:Record<string,string> = {
++      PAYMENT_UNAVAILABLE:t("Pendiente de factura","Awaiting invoice"), PAYMENT_PENDING:t("Pendiente de pago verificado","Awaiting verified payment"),
++      FULFILLED:t("Renovación completada","Renewal completed"), CANCELLED:t("Cancelada","Canceled"),
++      CANCELLATION_REQUESTED:t("Cancelación en revisión; factura pendiente de anulación","Cancellation under review; invoice awaiting void confirmation"),
++    };
++    return <>{heading}<Card><SectionTitle title={t("Vigencia actual","Current membership term")}/>
++      <div className="detail-grid"><div><span>{t("Código","Code")}</span><strong>{membership.code}</strong></div>
++        <div><span>Plan</span><strong>{membership.plan} · {membership.membership_type === "FAMILY" ? t("Familiar","Family") : t("Individual","Individual")}</strong></div>
++        <div><span>{t("Inicio","Started")}</span><strong>{formatDate(membership.issued_at,locale)}</strong></div>
++        <div><span>{t("Vigente hasta","Valid through")}</span><strong>{formatDate(membership.expires_at,locale)}</strong></div></div>
++      <p className="inline-note">{t("La renovación conserva tu código, titular y familiares cubiertos. No modifica la vigencia mientras el pago esté pendiente.","Renewal keeps your member code, primary member, and covered family. Pending payment does not change your current term.")}</p>
++      {!pending && (data.eligible ? <RenewalControls locale={locale} create idempotencyKey={randomUUID()}/> : <p>{t("La renovación estará disponible desde","Renewal will be available starting")} {data.eligibleFrom ? formatDate(data.eligibleFrom,locale) : "—"}.</p>)}
++    </Card>{data.renewals.map(item => {
++      const open = !["FULFILLED","CANCELLED","CANCELLATION_REQUESTED"].includes(item.status);
++      const url = item.qbo?.qbo_hosted_payment_url;
++      const pay = open && item.qbo?.qbo_invoice_status === "OPEN" && url && /^https:\/\/connect\.intuit\.com\/t\/[^\s]+$/.test(url);
++      return <Card key={item.id}><SectionTitle title={statuses[item.status] ?? t("En revisión","Under review")}/>
++        <p>{t("Importe de renovación","Renewal amount")}: {new Intl.NumberFormat(locale === "en" ? "en-US" : "es-US",{style:"currency",currency:"USD"}).format(item.amount_cents/100)}</p>
++        <p>{t("Factura","Invoice")}: {item.qbo?.qbo_invoice_number ?? t("Sin emitir","Not issued")}</p>
++        <p>{t("Conciliación","Reconciliation")}: {item.renewed_at ? t("Pago verificado","Payment verified") : t("Sin pago verificado","No verified payment")}</p>
++        {item.status === "FULFILLED" && item.renewed_at && item.renewal_starts_at && item.renewal_expires_at &&
++          <p>{t("Período renovado","Renewed term")}: {formatDate(item.renewal_starts_at,locale)} — {formatDate(item.renewal_expires_at,locale)}</p>}
++        {pay && <a className="button button-primary" href={url} target="_blank" rel="noopener noreferrer">{t("Pagar renovación de forma segura","Pay renewal securely")}</a>}
++        {open && <RenewalControls locale={locale} intentId={item.id} agreementSatisfied={item.agreementSatisfied} invoiceLocked={Boolean(item.invoiceJobState || item.qbo?.qbo_invoice_number)} canRecover={Boolean(item.invoiceJobState && item.invoiceJobState !== "LINKED" && !item.qbo?.qbo_invoice_number)}/>}
++      </Card>;
++    })}<Link className="text-action" href="/membresia">{t("Volver a mi membresía","Back to my membership")} →</Link></>;
++}
+diff --git a/src/app/(portal)/renovacion/page.tsx b/src/app/(portal)/renovacion/page.tsx
+index d5f6dcc..b788fdf 100644
+--- a/src/app/(portal)/renovacion/page.tsx
++++ b/src/app/(portal)/renovacion/page.tsx
+@@ -1,3 +1,4 @@
++import { OnlineRenewal } from "./online-renewal";
+ import Link from "next/link";
+ import { ApiErrorState } from "@/components/api-error";
+ import { RenewalRequestForm } from "@/components/renewal-request-form";
+@@ -12,11 +13,7 @@ export default async function RenewalPage() {
+   const english = locale === "en";
+   const t = (es: string, en: string) => english ? en : es;
+   if (getDataMode() === "lilly-production" || getDataMode() === "lilly-local") {
+-    const membership = await loadPatientData(service => service.getMembership());
+-    const heading = <PageHeading eyebrow={english ? "PLAN WITH CONFIDENCE" : "PLANIFICA CON TRANQUILIDAD"} title={english ? "Renewal" : "Renovación"} description={english ? "Check your Corazón Salud membership term." : "Consulta la vigencia de tu membresía de Corazón Salud."}/>;
+-    if (!membership.ok && membership.error.code !== "not_found")
+-      return <>{heading}<Card><ApiErrorState error={membership.error}/></Card></>;
+-    return <>{heading}<Card>{membership.ok ? <><SectionTitle title={english ? "Membership term" : "Vigencia de tu membresía"}/><div className="detail-grid"><div><span>Plan</span><strong>{membership.data.planName}</strong></div><div><span>{english ? "Status" : "Estado"}</span><strong>{english ? ({active:"Active",pending:"Pending",expired:"Expired",cancelled:"Canceled"})[membership.data.status] : membershipStatusView(membership.data.status).label}</strong></div><div><span>{english ? "Valid through" : "Vigente hasta"}</span><strong>{formatDate(membership.data.renewalDate, locale)}</strong></div></div><p className="inline-note">{english ? "Online renewal will be available when renewal payments are enabled." : "La renovación en línea estará disponible cuando se habiliten los pagos."}</p></> : <ComingSoonState locale={locale} title={english ? "No active membership yet" : "Aún no hay una membresía activa"} description={english ? "Your selection is saved. Your renewal date will appear once payment is confirmed and your membership is activated." : "Tu selección está guardada. La fecha de renovación aparecerá cuando el pago se confirme y se active la membresía."}/>}</Card></>;
++    return <OnlineRenewal locale={locale}/>;
+   }
+   const [renewal, membership, { renewalRequest }] = await Promise.all([loadPatientData(service => service.getRenewal()), loadPatientData(service => service.getMembership()), getPortalCapabilities()]);
+   const heading = <PageHeading eyebrow={t("PLANIFICA CON TRANQUILIDAD", "PLAN WITH CONFIDENCE")} title={t("Renovación", "Renewal")} description={t("Conoce la fecha prevista para continuar cuidando a tu familia.", "See when your membership renews.")}/>;
+diff --git a/src/app/(portal)/renovacion/renewal-action.test.ts b/src/app/(portal)/renovacion/renewal-action.test.ts
+new file mode 100644
+index 0000000..916c5a4
+--- /dev/null
++++ b/src/app/(portal)/renovacion/renewal-action.test.ts
+@@ -0,0 +1,46 @@
++import {beforeEach,describe,expect,it,vi} from "vitest";
++const mocks=vi.hoisted(()=>({origin:vi.fn(),request:vi.fn(),read:vi.fn(),revalidate:vi.fn(),locale:"en"}));
++vi.mock("@/lib/auth/origin",()=>({requirePortalOrigin:mocks.origin}));
++vi.mock("@/lib/api/lilly",()=>({lillyPatientRequest:mocks.request}));
++vi.mock("@/lib/portal-locale",()=>({getPortalLocale:async()=>mocks.locale}));
++vi.mock("next/cache",()=>({revalidatePath:mocks.revalidate}));
++vi.mock("./renewal-data",()=>({readOnlineRenewal:mocks.read}));
++import {renewalAction} from "./renewal-action";
++const id="12345678-1234-4234-8234-123456789012";
++const key="23456789-2345-4345-8345-234567890123";
++function form(operation:string,fields:Record<string,string>={}) { const data=new FormData();data.set("operation",operation);for(const [k,v] of Object.entries(fields))data.set(k,v);return data; }
++beforeEach(()=>{vi.clearAllMocks();mocks.locale="en";mocks.request.mockResolvedValue({status:"INVOICE_CREATED"});
++  mocks.read.mockResolvedValue({membership:{id},eligible:true,renewals:[{id,status:"PAYMENT_PENDING",agreementSatisfied:true}]});});
++describe("Portal renewal server actions",()=>{
++  it("requires the Portal origin and uses only the authenticated membership",async()=>{
++    await renewalAction({message:""},form("create",{idempotencyKey:key,membershipId:"foreign"}));
++    expect(mocks.origin).toHaveBeenCalledOnce();expect(mocks.request).toHaveBeenCalledWith("renewal",{method:"POST",authenticated:true,body:{action:"CREATE",membershipId:id,idempotencyKey:key}});
++  });
++  it("does not invoice someone else's intent",async()=>{
++    await renewalAction({message:""},form("invoice",{intentId:key}));expect(mocks.request).not.toHaveBeenCalled();
++  });
++  it("reuses existing consent without fabricating a second acceptance",async()=>{
++    await renewalAction({message:""},form("invoice",{intentId:id}));
++    expect(mocks.request).toHaveBeenCalledOnce();expect(mocks.request.mock.calls[0][0]).toBe("invoice");
++  });
++  it("requires explicit acceptance when the server says reacceptance is required",async()=>{
++    mocks.read.mockResolvedValue({membership:{id},eligible:true,renewals:[{id,status:"PAYMENT_PENDING",agreementSatisfied:false}]});
++    await renewalAction({message:""},form("invoice",{intentId:id,agreementSatisfied:"true"}));expect(mocks.request).not.toHaveBeenCalled();
++    await renewalAction({message:""},form("invoice",{intentId:id,accepted:"yes"}));
++    expect(mocks.request.mock.calls.map(call=>call[0])).toEqual(["agreement","invoice"]);
++  });
++  it("requests cancellation through the supported API, never a QBO write",async()=>{
++    await renewalAction({message:""},form("cancel",{intentId:id}));
++    expect(mocks.request).toHaveBeenCalledWith("renewal",{method:"POST",authenticated:true,body:{action:"CANCEL",intentId:id}});
++  });
++  it("does not claim a renewal or payment succeeded after an uncertain invoice response",async()=>{
++    mocks.request.mockResolvedValue({status:"PENDING_RECONCILIATION"});
++    const result=await renewalAction({message:""},form("invoice",{intentId:id}));
++    expect(result.message).toContain("second invoice will not be issued");
++  });
++  it("provides Spanish feedback without English fallback",async()=>{
++    mocks.locale="es";mocks.request.mockRejectedValue(new Error("private provider details"));
++    const result=await renewalAction({message:""},form("invoice",{intentId:id}));
++    expect(result.message).toContain("No pudimos");expect(result.message).not.toContain("private provider");
++  });
++});
+diff --git a/src/app/(portal)/renovacion/renewal-action.ts b/src/app/(portal)/renovacion/renewal-action.ts
+new file mode 100644
+index 0000000..b84cab8
+--- /dev/null
++++ b/src/app/(portal)/renovacion/renewal-action.ts
+@@ -0,0 +1,46 @@
++"use server";
++import { revalidatePath } from "next/cache";
++import { lillyPatientRequest } from "@/lib/api/lilly";
++import { requirePortalOrigin } from "@/lib/auth/origin";
++import { getPortalLocale } from "@/lib/portal-locale";
++import { readOnlineRenewal } from "./renewal-data";
++
++const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
++export async function renewalAction(_state: { message: string }, form: FormData) {
++  await requirePortalOrigin();
++  const locale = await getPortalLocale();
++  const t = (es: string, en: string) => locale === "en" ? en : es;
++  try {
++    const current = await readOnlineRenewal();
++    const operation = form.get("operation");
++    if (operation === "create") {
++      const key = form.get("idempotencyKey");
++      if (!current.membership || !current.eligible || typeof key !== "string" || !uuid.test(key))
++        return { message:t("La renovación aún no está disponible.", "Renewal is not available yet.") };
++      await lillyPatientRequest("renewal", { method:"POST",authenticated:true,
++        body:{ action:"CREATE",membershipId:current.membership.id,idempotencyKey:key } });
++    } else {
++      const intentId = form.get("intentId");
++      const intent = current.renewals.find(item => item.id === intentId);
++      if (!intent || ["CANCELLED","FULFILLED"].includes(intent.status))
++        return { message:t("Actualiza la página para consultar el estado actual.", "Refresh the page to see the current status.") };
++      if (operation === "cancel") {
++        await lillyPatientRequest("renewal", { method:"POST",authenticated:true,body:{action:"CANCEL",intentId:intent.id} });
++      } else if (operation === "invoice") {
++        if (!intent.agreementSatisfied) {
++          if (form.get("accepted") !== "yes") return { message:t("Lee y acepta el acuerdo antes de continuar.", "Read and accept the agreement before continuing.") };
++          await lillyPatientRequest("agreement", { method:"POST",authenticated:true,body:{intentId:intent.id,language:locale,accepted:true} });
++        }
++        const result = await lillyPatientRequest("invoice", { method:"POST",authenticated:true,body:{intentId:intent.id} });
++        if (result.status !== "INVOICE_CREATED") {
++          revalidatePath("/renovacion");
++          return { message:t("Estamos verificando la factura. No se emitirá una segunda factura durante la revisión.", "We're verifying your invoice. A second invoice will not be issued during review.") };
++        }
++      } else return { message:t("Acción no válida.", "Invalid action.") };
++    }
++    revalidatePath("/renovacion"); revalidatePath("/pagos"); revalidatePath("/membresia");
++    return { message:t("Solicitud actualizada. Consulta el estado abajo. Tu vigencia solo cambia después del pago verificado.", "Request updated. Check its status below. Your term changes only after verified payment.") };
++  } catch {
++    return { message:t("No pudimos completar la solicitud. Actualiza el estado antes de reintentar o contacta al equipo para revisar la factura. No se ha confirmado una extensión.", "We couldn't complete the request. Refresh its status before retrying or contact the team to review the invoice. No extension has been confirmed.") };
++  }
++}
+diff --git a/src/app/(portal)/renovacion/renewal-controls.tsx b/src/app/(portal)/renovacion/renewal-controls.tsx
+new file mode 100644
+index 0000000..a246c61
+--- /dev/null
++++ b/src/app/(portal)/renovacion/renewal-controls.tsx
+@@ -0,0 +1,33 @@
++"use client";
++import { useActionState, useState } from "react";
++import { renewalAction } from "./renewal-action";
++import type { PortalLocale } from "@/lib/portal-locale";
++
++export function RenewalControls({locale,intentId,idempotencyKey,agreementSatisfied,invoiceLocked,canRecover,create}: {
++  locale:PortalLocale;intentId?:string;idempotencyKey?:string;agreementSatisfied?:boolean;invoiceLocked?:boolean;canRecover?:boolean;create?:boolean;
++}) {
++  const [state,action,pending] = useActionState(renewalAction,{message:""});
++  const [accepted,setAccepted] = useState(false);
++  const t = (es:string,en:string) => locale === "en" ? en : es;
++  return <form action={action} className="agreement-acceptance">
++    {intentId && <input type="hidden" name="intentId" value={intentId}/>}
++    {idempotencyKey && <input type="hidden" name="idempotencyKey" value={idempotencyKey}/>}
++    {create ? <button className="button button-primary" type="submit" name="operation" value="create" disabled={pending}>
++      {t("Preparar renovación", "Prepare renewal")}</button> : <>
++      {!invoiceLocked && <>
++        {agreementSatisfied ? <p className="inline-note">{t("Tu aceptación vigente del acuerdo v5 cubre esta renovación sin cambios de plan.", "Your current v5 agreement acceptance covers this renewal with the same plan.")}</p> : <>
++          <a href={`/acuerdo/${locale}`} target="_blank" rel="noopener noreferrer">{t("Ver Acuerdo de Membresía", "View Membership Agreement")}</a>
++          <label className="agreement-checkbox"><input type="checkbox" name="accepted" value="yes" checked={accepted} onChange={event => setAccepted(event.target.checked)}/>
++            <span>{t("He leído y acepto el Acuerdo de Membresía del Paciente y sus términos y condiciones.", "I have read and accept the Patient Membership Agreement and its terms and conditions.")}</span></label>
++        </>}
++        <button className="button button-primary" type="submit" name="operation" value="invoice" disabled={pending || (!agreementSatisfied && !accepted)}>
++          {pending ? t("Preparando factura…", "Preparing invoice…") : t("Emitir factura de renovación", "Issue renewal invoice")}</button>
++      </>}
++      {invoiceLocked && canRecover && <button className="button button-primary" type="submit" name="operation" value="invoice" disabled={pending}>
++        {t("Consultar factura en revisión", "Check invoice under review")}</button>}
++      <button className="button button-secondary" type="submit" name="operation" value="cancel" disabled={pending}>
++        {invoiceLocked ? t("Solicitar cancelación y revisión de factura", "Request cancellation and invoice review") : t("Cancelar renovación", "Cancel renewal")}</button>
++    </>}
++    {state.message && <p role="status">{state.message}</p>}
++  </form>;
++}
+diff --git a/src/app/(portal)/renovacion/renewal-data.ts b/src/app/(portal)/renovacion/renewal-data.ts
+new file mode 100644
+index 0000000..8c4a073
+--- /dev/null
++++ b/src/app/(portal)/renovacion/renewal-data.ts
+@@ -0,0 +1,18 @@
++import "server-only";
++import { lillyPatientRequest } from "@/lib/api/lilly";
++
++export type OnlineRenewal = { id:string;status:string;amount_cents:number;duration:string;created_at:string;
++  renewed_at:string|null;renewal_starts_at:string|null;renewal_expires_at:string|null;
++  agreementSatisfied:boolean;invoiceJobState:string|null;
++  qbo:{qbo_invoice_number:string|null;qbo_hosted_payment_url:string|null;qbo_invoice_status:string;
++    qbo_payment_status:string;verification_state:string}|null };
++export type OnlineRenewalData = { membership:{id:string;code:string;plan:string;membership_type:string;
++  duration:string;status:string;issued_at:string;expires_at:string}|null;eligible:boolean;eligibleFrom:string|null;renewals:OnlineRenewal[] };
++export async function readOnlineRenewal(): Promise<OnlineRenewalData> {
++  const response = await lillyPatientRequest("renewal", {authenticated:true});
++  const data = response.data as OnlineRenewalData | undefined;
++  if (!data || typeof data.eligible !== "boolean" || !Array.isArray(data.renewals) ||
++      data.renewals.some(item => typeof item.id !== "string" || !Number.isSafeInteger(item.amount_cents) || item.amount_cents <= 0))
++    throw new Error("RENEWAL_UNAVAILABLE");
++  return data;
++}
+diff --git a/tests/e2e/renewal.e2e.ts b/tests/e2e/renewal.e2e.ts
+new file mode 100644
+index 0000000..5aaf647
+--- /dev/null
++++ b/tests/e2e/renewal.e2e.ts
+@@ -0,0 +1,43 @@
++import {test,expect} from '@playwright/test';
++const host='http://127.0.0.1:3191';
++test.beforeEach(async({context,request})=>{
++  await request.post('http://127.0.0.1:3192/__scenario',{data:{scenario:'eligible'}});
++  await context.addCookies([{name:'__Host-corazon_patient',value:`cspt_${'Q'.repeat(48)}.${Date.now()+3600000}`,url:'https://127.0.0.1:3191/',secure:true,httpOnly:true,sameSite:'Lax'},
++    {name:'cs_locale',value:'en',url:host}]);
++});
++test('one-month Family renewal prepares an invoice without changing active coverage or navigating to payment',async({page,request})=>{
++  const external:string[]=[];page.on('request',req=>{if(/^https?:/.test(req.url())&&new URL(req.url()).hostname!=='127.0.0.1')external.push(req.url());});
++  await page.goto('/renovacion');
++  await expect(page.getByRole('heading',{name:'Current membership term'})).toBeVisible();
++  await page.getByRole('button',{name:'Prepare renewal',exact:true}).click();
++  await expect(page.getByText('Renewal amount: $99.99')).toBeVisible();
++  await expect(page.getByText(/current v5 agreement acceptance/)).toBeVisible();
++  await expect(page.getByRole('checkbox')).toHaveCount(0);
++  await page.getByRole('button',{name:'Issue renewal invoice',exact:true}).click();
++  await expect(page.getByRole('link',{name:'Pay renewal securely'})).toHaveAttribute('href','https://connect.intuit.com/t/local-test-not-real');
++  await expect(page.getByText('No verified payment',{exact:false})).toBeVisible();
++  await expect(page.getByText('Renewed term:',{exact:false})).toHaveCount(0);
++  await page.reload();
++  expect((await(await request.get('http://127.0.0.1:3192/__scenario')).json()).invoiceCount).toBe(1);
++  expect(external).toEqual([]);
++});
++test('requires explicit reacceptance when evidence is missing',async({page,request})=>{
++  await request.post('http://127.0.0.1:3192/__scenario',{data:{scenario:'agreement'}});await page.goto('/renovacion');
++  const issue=page.getByRole('button',{name:'Issue renewal invoice',exact:true});await expect(issue).toBeDisabled();
++  await page.getByRole('checkbox').check();await expect(issue).toBeEnabled();
++});
++test('shows a new period only after verified reconciliation',async({page,request})=>{
++  await request.post('http://127.0.0.1:3192/__scenario',{data:{scenario:'paid'}});await page.goto('/renovacion');
++  await expect(page.getByRole('heading',{name:'Renewal completed'})).toBeVisible();
++  await expect(page.getByText(/Renewed term:/)).toBeVisible();await expect(page.getByRole('link',{name:'Pay renewal securely'})).toHaveCount(0);
++});
++test('Spanish mobile renewal is readable and cancellation stays unpaid',async({page,context})=>{
++  await context.addCookies([{name:'cs_locale',value:'es',url:host}]);await page.setViewportSize({width:375,height:812});await page.goto('/renovacion');
++  await page.getByRole('button',{name:'Preparar renovación',exact:true}).click();await expect(page.getByText('Importe de renovación: $99.99')).toBeVisible();
++  await page.getByRole('button',{name:'Cancelar renovación',exact:true}).click();await expect(page.getByRole('heading',{name:'Cancelada',exact:true})).toBeVisible();
++  expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth)).toBe(false);
++});
++test('early renewal exposes neither an intent action nor a hosted payment link',async({page,request})=>{
++  await request.post('http://127.0.0.1:3192/__scenario',{data:{scenario:'early'}});await page.goto('/renovacion');
++  await expect(page.getByText(/Renewal will be available starting/)).toBeVisible();await expect(page.getByRole('button',{name:'Prepare renewal',exact:true})).toHaveCount(0);
++});
+diff --git a/tests/fixtures/renewal-api.mjs b/tests/fixtures/renewal-api.mjs
+new file mode 100644
+index 0000000..687cc2b
+--- /dev/null
++++ b/tests/fixtures/renewal-api.mjs
+@@ -0,0 +1,38 @@
++// Loopback-only synthetic Patient API for browser regression. Never deployed.
++import {createServer} from 'node:http';
++if (process.env.NODE_ENV === 'production') throw new Error('SYNTHETIC_API_FORBIDDEN_IN_PRODUCTION');
++const id='12345678-1234-4234-8234-123456789012';
++const intentId='23456789-2345-4345-8345-234567890123';
++const member={id,code:'QA-LOCAL-RENEWAL',plan:'ESSENTIAL',membership_type:'FAMILY',duration:'MONTHLY',status:'ACTIVE',issued_at:'2026-09-05',expires_at:'2026-11-05'};
++let scenario='eligible',intents=[],invoiceCount=0;
++const initialIntent=()=>({id:intentId,status:'PAYMENT_UNAVAILABLE',amount_cents:9999,duration:'MONTHLY',created_at:'2026-10-26T00:00:00Z',renewed_at:null,renewal_starts_at:null,renewal_expires_at:null,agreementSatisfied:true,invoiceJobState:null,qbo:null});
++const server=createServer(async(req,res)=>{
++  const url=new URL(req.url,'http://127.0.0.1');
++  let body={};if(req.method==='POST'){let text='';for await(const chunk of req)text+=chunk;if(text)body=JSON.parse(text);}
++  const send=(data,status=200)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
++  if(url.pathname==='/__scenario'){
++    if(req.method==='POST'){scenario=body.scenario;intents=[];invoiceCount=0;
++      if(['pending','paid','agreement','cancelled'].includes(scenario))intents=[initialIntent()];
++      if(scenario==='agreement')intents[0].agreementSatisfied=false;
++      if(scenario==='cancelled')intents[0].status='CANCELLED';
++      if(scenario==='paid')Object.assign(intents[0],{status:'FULFILLED',renewed_at:'2026-10-26T00:00:00Z',renewal_starts_at:'2026-11-05',renewal_expires_at:'2026-12-05'});
++    }return send({scenario,invoiceCount,intents});
++  }
++  if(!req.headers.authorization?.startsWith('Patient cspt_'))return send({code:'AUTHENTICATION_REQUIRED'},401);
++  const resource=url.pathname.split('/').at(-1);
++  if(resource==='session')return send({data:{authId:id,email:'local-renewal@example.invalid',contactId:id}});
++  if(resource==='profile')return send({data:{id,first_name:'LOCAL QA',last_name:'Renewal',email:'local-renewal@example.invalid',phone:'555-0100',address:{street:'Synthetic only',line2:'',city:'Miami',state:'FL',postalCode:'33101',country:'US'},created_at:'2026-09-05T00:00:00Z'}});
++  if(resource==='renewal'){
++    if(req.method==='POST'&&body.action==='CREATE'&&!intents.some(i=>!['FULFILLED','CANCELLED'].includes(i.status)))intents.unshift(initialIntent());
++    if(req.method==='POST'&&body.action==='CANCEL')intents[0].status=intents[0].qbo?'CANCELLATION_REQUESTED':'CANCELLED';
++    return send({data:{membership:{...member,expires_at:scenario==='paid'?'2026-12-05':member.expires_at},eligible:scenario!=='early',eligibleFrom:'2026-10-06',renewals:intents}});
++  }
++  if(resource==='agreement'){intents[0].agreementSatisfied=true;return send({status:'ACCEPTED',version:'v5'});}
++  if(resource==='invoice'){
++    if(!intents[0].qbo){invoiceCount++;Object.assign(intents[0],{status:'PAYMENT_PENDING',invoiceJobState:'LINKED',qbo:{qbo_invoice_number:'LOCAL-NOT-REAL',qbo_hosted_payment_url:'https://connect.intuit.com/t/local-test-not-real',qbo_invoice_status:'OPEN',qbo_payment_status:'UNPAID',verification_state:'PAYMENT_PENDING'}});}
++    return send({status:'INVOICE_CREATED'});
++  }
++  if(resource==='membership')return send({data:{...member,qa_synthetic:true}});
++  return send({data:[]});
++});
++server.listen(Number(process.env.RENEWAL_FIXTURE_PORT||3192),'127.0.0.1',()=>process.stdout.write('Loopback synthetic renewal API ready\n'));

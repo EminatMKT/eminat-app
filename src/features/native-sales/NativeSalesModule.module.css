@@ -150,3 +150,5 @@ html[class~="dark"] .main section[aria-label="QuickBooks connection"] button:hov
   border-color: #a496ed;
 }
 html[class~="dark"] .main section[aria-label="QuickBooks connection"] button:disabled { opacity: .5; cursor: default; }
+
+.renewalStatus{min-width:0;overflow-wrap:anywhere}
