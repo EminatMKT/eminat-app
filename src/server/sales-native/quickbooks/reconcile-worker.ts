@@ -1,7 +1,7 @@
 import 'server-only'
 import { createHash, randomUUID } from 'node:crypto'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
-import { sendPatientActivation } from '@/server/sales-native/patient-email-delivery'
+import { sendPatientActivation, sendPatientRenewal } from '@/server/sales-native/patient-email-delivery'
 import { connectedQboReadAccess, EMC_ORGANIZATION_ID } from './connection'
 import { decideQboPayment, invoiceIdsForPayment,
   patientInvoiceMappingValid } from './reconciliation'
@@ -23,12 +23,38 @@ async function history(organizationId: string, recordId: string, action: string,
   if (error) throw new Error('QBO_AUDIT_UNAVAILABLE')
 }
 
+async function sendRenewalConfirmation(intentId: string): Promise<void> {
+  const client = db()
+  const { data: intent, error } = await client.from('sales_patient_enrollment_intents')
+    .select('patient_identity_id,renewal_expires_at,status').eq('organization_id',EMC_ORGANIZATION_ID)
+    .eq('id',intentId).eq('purpose','RENEWAL').maybeSingle()
+  if (error || !intent?.renewal_expires_at || intent.status !== 'FULFILLED')
+    throw new Error('QBO_RENEWAL_UNCONFIRMED')
+  const { data: identity, error: identityError } = await client.from('sales_patient_identities')
+    .select('contact_id').eq('organization_id',EMC_ORGANIZATION_ID).eq('id',intent.patient_identity_id).maybeSingle()
+  if (identityError || !identity?.contact_id) throw new Error('QBO_IDENTITY_UNAVAILABLE')
+  const { data: contact, error: contactError } = await client.from('sales_contacts')
+    .select('email,do_not_email').eq('organization_id',EMC_ORGANIZATION_ID).eq('id',identity.contact_id).maybeSingle()
+  if (contactError || !contact?.email) throw new Error('QBO_CONTACT_UNAVAILABLE')
+  if (!contact.do_not_email) {
+    const result = await sendPatientRenewal(intentId,contact.email,intent.renewal_expires_at)
+    if (result.status === 'FAILED' || result.status === 'NOT_CONFIGURED')
+      throw new Error('QBO_RENEWAL_EMAIL_RETRY_REQUIRED')
+  }
+}
+
 async function activateVerifiedIntent(intentId: string): Promise<'ACTIVE' | 'PENDING_PROFILE' | 'ALREADY_ACTIVE'> {
   const client = db()
   const { data: intent, error: intentError } = await client.from('sales_patient_enrollment_intents')
-    .select('id,organization_id,patient_identity_id,opportunity_id,plan,membership_type,duration,membership_id')
+    .select('id,organization_id,patient_identity_id,opportunity_id,plan,membership_type,duration,membership_id,purpose')
     .eq('organization_id',EMC_ORGANIZATION_ID).eq('id',intentId).maybeSingle()
   if (intentError || !intent) throw new Error('QBO_INTENT_UNAVAILABLE')
+  if (intent.purpose === 'RENEWAL') {
+    const { error } = await client.rpc('native_sales_patient_complete_renewal', { p_intent_id:intentId })
+    if (error) throw new Error('QBO_RENEWAL_ACTIVATION_UNAVAILABLE')
+    await sendRenewalConfirmation(intentId)
+    return intent.membership_id ? 'ALREADY_ACTIVE' : 'ACTIVE'
+  }
   if (intent.membership_id) return 'ALREADY_ACTIVE'
   const { data: evidence, error: evidenceError } = await client.from('sales_patient_qbo_manual')
     .select('sales_payment_id,verification_state,finance_verification_status,qbo_payment_status,qa_synthetic')
@@ -104,7 +130,7 @@ async function reconcileInvoice(event: Event, invoice: QboInvoice,
     return 'IGNORED'
   }
   const { data: intent, error: intentError } = await client.from('sales_patient_enrollment_intents')
-    .select('id,organization_id,patient_identity_id,opportunity_id,amount_cents,membership_id')
+    .select('id,organization_id,patient_identity_id,opportunity_id,amount_cents,membership_id,purpose')
     .eq('organization_id',event.organization_id).eq('id',mapping.enrollment_intent_id).maybeSingle()
   const { data: opportunity, error: opportunityError } = await client.from('sales_opportunities')
     .select('id,organization_id,primary_contact_id,amount,currency')
@@ -132,6 +158,10 @@ async function reconcileInvoice(event: Event, invoice: QboInvoice,
     amountCents:mapping.base_invoice_amount_cents,
     alreadyActive:!!intent.membership_id || mapping.membership_activation_status === 'ACTIVE' })
   if (decision.status === 'REVIEW' && decision.reason === 'ALREADY_ACTIVE' && intent.membership_id) {
+    if (intent.purpose === 'RENEWAL') {
+      await sendRenewalConfirmation(intent.id)
+      return 'PROCESSED'
+    }
     // Activation may have committed before email queuing or audit failed. The
     // outbox uses membershipId as its idempotency key, so this cannot resend a
     // previously accepted activation email or issue another membership.

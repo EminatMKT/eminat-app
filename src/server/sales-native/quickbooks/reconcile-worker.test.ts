@@ -12,7 +12,8 @@ const state = vi.hoisted(() => ({
     verification_state:'PAYMENT_PENDING',membership_activation_status:'NOT_ACTIVE' },
   intent: { id:'intent',organization_id:'emc',patient_identity_id:'identity',
     opportunity_id:'opportunity',amount_cents:19998,membership_id:null as string | null,
-    plan:'ESSENTIAL',membership_type:'FAMILY',duration:'MONTHLY' },
+    plan:'ESSENTIAL',membership_type:'FAMILY',duration:'MONTHLY',purpose:'ENROLLMENT',
+    status:'PAYMENT_PENDING',renewal_expires_at:null as string|null },
   opportunity: { id:'opportunity',organization_id:'emc',primary_contact_id:'contact',
     amount:199.98,currency:'USD' },
   identity: { id:'identity',organization_id:'emc',contact_id:'contact' },
@@ -34,6 +35,7 @@ const state = vi.hoisted(() => ({
 
 vi.mock('server-only',() => ({}))
 vi.mock('@/server/sales-native/patient-email-delivery',() => ({
+  sendPatientRenewal:vi.fn(async () => { state.emailCalls++;return {status:state.emailStatus} }),
   sendPatientActivation:vi.fn(async () => {
     state.emailCalls++
     return { status:state.emailStatus }
@@ -55,6 +57,10 @@ vi.mock('@/shared/db/supabaseAdmin',() => ({ supabaseAdmin:() => ({
       state.mapping.sales_payment_id='payment-row'
       state.mapping.finance_verification_status='VERIFIED'
       state.mapping.qbo_payment_status='VERIFIED'
+    }
+    if (name === 'native_sales_patient_complete_renewal') {
+      state.intent.membership_id='membership';state.intent.status='FULFILLED'
+      state.intent.renewal_expires_at='2026-12-22'
     }
     if (name === 'native_sales_issue_membership') {
       state.issuedAt=String(args?.p_issued_at)
@@ -111,6 +117,7 @@ beforeEach(() => {
   state.event.entity_type='Invoice';state.event.realm_id='123';state.event.operation='Update'
   state.mapping.verification_state='PAYMENT_PENDING';state.mapping.sales_payment_id=null
   state.mapping.finance_verification_status='PENDING';state.mapping.qbo_payment_status='UNPAID'
+  state.intent.purpose='ENROLLMENT';state.intent.status='PAYMENT_PENDING';state.intent.renewal_expires_at=null
   state.intent.membership_id=null;state.identity.contact_id='contact'
   state.hasMapping=true;state.claimable=true;state.history=[];state.rpcCalls=[]
   state.finalStatus='';state.invoiceReads=0;state.paymentReads=0
@@ -119,6 +126,30 @@ beforeEach(() => {
 })
 
 describe('read-only QBO event processing boundary',() => {
+  it('extends a renewal only after provider proof, and replay never issues another membership',async () => {
+    state.intent.purpose='RENEWAL'
+    expect((await reconcileQboEvents()).processed).toBe(1)
+    expect(state.invoiceReads).toBe(2)
+    expect(state.rpcCalls).toEqual(['native_sales_patient_qbo_update','native_sales_patient_complete_renewal'])
+    state.rpcCalls=[]
+    expect((await reconcileQboEvents()).processed).toBe(1)
+    expect(state.rpcCalls).toEqual([])
+    expect(state.emailCalls).toBe(2) // same durable renewal event is replayed by the outbox
+  })
+  it('never extends an unpaid renewal',async () => {
+    state.intent.purpose='RENEWAL';state.invoice.Balance=199.98
+    try {
+      expect((await reconcileQboEvents()).retry).toBe(1)
+      expect(state.rpcCalls).toEqual([])
+    } finally {state.invoice.Balance=0}
+  })
+  it('keeps a paid opted-out renewal active while suppressing its confirmation email',async () => {
+    state.intent.purpose='RENEWAL';state.contact.do_not_email=true
+    expect((await reconcileQboEvents()).processed).toBe(1)
+    expect(state.rpcCalls).toContain('native_sales_patient_complete_renewal')
+    expect(state.rpcCalls).not.toContain('native_sales_issue_membership')
+    expect(state.emailCalls).toBe(0)
+  })
   it('activates an opted-out patient once and suppresses email on initial processing and replay',async () => {
     state.contact.do_not_email=true
     expect((await reconcileQboEvents()).processed).toBe(1)

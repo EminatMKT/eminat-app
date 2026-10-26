@@ -1,0 +1,8 @@
+{
+  "application": "corazon-salud-patient-portal",
+  "baseCommit": "1b91d09a796562dd81e1d9a730f1392d505272a2",
+  "releaseCommit": "794e647a823c2f3601457630504c48cbe5b30267",
+  "patchSha256": "d9b2455881f947a5d1476248e53000f888067e627715381b8a283b8f4fe83e94",
+  "scope": "Renewal flow, related payment navigation and scoped history transport/tests only",
+  "productionPaymentTest": false
+}

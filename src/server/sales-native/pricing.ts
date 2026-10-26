@@ -80,3 +80,12 @@ export function addMembershipMonths(day: string, months: number): string {
 export function isSaleDuration(value: unknown): value is SaleDuration {
   return typeof value === 'string' && (saleDurations as readonly string[]).includes(value)
 }
+
+/** Renewal keeps the commercial monthly rate but does not repeat the initial advance. */
+export function quoteRenewal(plan: Plan, type: MembershipType, duration: SaleDuration) {
+  const quote = quoteMembership(plan, type, duration)
+  return { ...quote,
+    initialMonths: duration === 'MONTHLY' ? 1 : quote.initialMonths,
+    totalCents: duration === 'MONTHLY' ? quote.monthlyCents : quote.totalCents,
+  }
+}

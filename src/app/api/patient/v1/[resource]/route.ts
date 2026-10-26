@@ -108,6 +108,16 @@ export async function GET(request: Request, { params }: Route) {
       .eq('organization_id', patient.identity.organization_id).eq('id', patient.identity.contact_id).maybeSingle()
     return error || !data ? unavailable() : respond({ data })
   }
+  if (resource === 'renewal') {
+    if (!patient.identity) return respond({ code:'PROFILE_REQUIRED' },409)
+    try {
+      const { readPatientRenewals } = await import('@/server/sales-native/patient-renewal')
+      const params = new URL(request.url).searchParams
+      const offset = Number(params.get('offset') ?? 0)
+      if (Array.from(params.keys()).some(key => key !== 'offset') || !Number.isSafeInteger(offset) || offset<0 || offset>100000) return invalid()
+      return respond({ data:await readPatientRenewals(patient.identity,offset) })
+    } catch { return unavailable() }
+  }
   if (resource === 'membership') {
     if (!patient.identity) return respond({ data: null })
     const admin = supabaseAdmin({ noStore: true })
@@ -140,7 +150,7 @@ export async function GET(request: Request, { params }: Route) {
     const admin = supabaseAdmin({ noStore: true })
     const { data: intent, error: intentError } = await admin.from('sales_patient_enrollment_intents')
       .select('id,opportunity_id').eq('organization_id', patient.identity.organization_id)
-      .eq('patient_identity_id', patient.identity.id).eq('membership_type', 'FAMILY')
+      .eq('patient_identity_id', patient.identity.id).eq('membership_type', 'FAMILY').eq('purpose','ENROLLMENT')
       .in('status', ['PAYMENT_UNAVAILABLE','PAYMENT_PENDING'])
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (intentError) return unavailable()
@@ -271,7 +281,7 @@ export async function GET(request: Request, { params }: Route) {
     const admin = supabaseAdmin({ noStore: true })
     const { data, error } = await admin.from('sales_patient_enrollment_intents')
       .select('id,plan,membership_type,duration,initial_months,amount_cents,status,created_at')
-      .eq('organization_id', patient.identity.organization_id).eq('patient_identity_id', patient.identity.id)
+      .eq('organization_id', patient.identity.organization_id).eq('patient_identity_id', patient.identity.id).eq('purpose','ENROLLMENT')
       .order('created_at', { ascending: false }).limit(10)
     if (error) return unavailable()
     const ids = (data ?? []).map(row => row.id)
@@ -447,6 +457,29 @@ export async function POST(request: Request, { params }: Route) {
       return respond({ code: 'OWNER_REVIEW_REQUIRED' }, 409)
     if (error) return unavailable()
     return respond({ contactId: data }, 201)
+  }
+  if (resource === 'renewal') {
+    if (!patient.identity) return respond({ code:'PROFILE_REQUIRED' },409)
+    const action = body.action
+    if (action === 'CREATE') {
+      if (typeof body.membershipId !== 'string' || !uuidPattern.test(body.membershipId) ||
+          typeof body.idempotencyKey !== 'string' || !uuidPattern.test(body.idempotencyKey) ||
+          Object.keys(body).some(key => !['action','membershipId','idempotencyKey'].includes(key))) return invalid()
+      const { data,error } = await supabaseAdmin({ noStore:true }).rpc('native_sales_patient_request_online_renewal',{
+        p_identity_id:patient.identity.id,p_membership_id:body.membershipId,p_key:body.idempotencyKey,
+      })
+      if (error) return respond({ code:error.message.includes('RENEWAL_NOT_ELIGIBLE') ? 'RENEWAL_NOT_ELIGIBLE' : 'RENEWAL_REVIEW_REQUIRED' },409)
+      return respond({ data },201)
+    }
+    if (action === 'CANCEL') {
+      if (typeof body.intentId !== 'string' || !uuidPattern.test(body.intentId) ||
+          Object.keys(body).some(key => !['action','intentId'].includes(key))) return invalid()
+      const { data,error } = await supabaseAdmin({ noStore:true }).rpc('native_sales_patient_cancel_renewal',{
+        p_identity_id:patient.identity.id,p_intent_id:body.intentId,
+      })
+      return error ? respond({ code:'RENEWAL_INVOICE_REVIEW_REQUIRED' },409) : respond({ data })
+    }
+    return invalid()
   }
   if (resource === 'enrollment') {
     if (!patient.identity) return respond({ code: 'PROFILE_REQUIRED' }, 409)

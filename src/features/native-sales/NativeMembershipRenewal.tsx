@@ -3,6 +3,7 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import type { NativeRequest } from './NativeSalesModule'
 import { useT } from '@/shared/i18n'
+import NativeOnlineRenewals from './NativeOnlineRenewals'
 import s from './NativeSalesModule.module.css'
 
 type Renewal = { id: string; status: string; plan: string; duration: string;
@@ -57,11 +58,12 @@ export default function NativeMembershipRenewal({ membershipId, currentPlan, cur
   }
 
   return <section className={s.recordActions} aria-label={t('salesNative.membershipRenewals')}>
-    <h3>Renewal · current term ends {expiresAt.slice(0,10)}</h3>
+    <NativeOnlineRenewals membershipId={membershipId} request={request}/>
+    <h3>{t('salesNative.renewals')} · {t('salesNative.currentTermEnds')} {expiresAt.slice(0,10)}</h3>
     <p>{t('salesNative.requestsAreEligibleWithin30DaysOfExpiry')}</p>
     {requests.length>0 && <ul className={s.scheduleList}>{requests.map(item => <li key={item.id}>
-      <span><strong>{item.plan} · {item.duration} · {item.status}</strong>
-        <small>Requested {item.createdAt.slice(0,10)}{item.reviewedAt ? ` · Reviewed ${item.reviewedAt.slice(0,10)}` : ''}</small>
+      <span><strong>{item.plan} · {item.duration === 'MONTHLY' ? t('salesNative.monthToMonth') : item.duration === '3M' ? t('salesNative.renewalThreeMonths') : item.duration === '6M' ? t('salesNative.renewalSixMonths') : t('salesNative.renewalTwelveMonths')} · {item.status === 'PENDING' ? t('salesNative.renewalPending') : item.status === 'APPROVED' ? t('salesNative.renewalApproved') : t('salesNative.renewalRejected')}</strong>
+        <small>{t('salesNative.renewalRequested')} {item.createdAt.slice(0,10)}{item.reviewedAt ? ` · ${t('salesNative.renewalReviewed')} ${item.reviewedAt.slice(0,10)}` : ''}</small>
         {item.decisionNote && <small>{item.decisionNote}</small>}</span>
       {item.status==='PENDING' && canReview && <span className={s.pdfActions}>
         <button type="button" disabled={busy} onClick={() => void decide(item.id,'APPROVED')}>{t('salesNative.approve')}</button>
@@ -69,11 +71,11 @@ export default function NativeMembershipRenewal({ membershipId, currentPlan, cur
       </span>}</li>)}</ul>}
     {canRequest && !requests.some(item => item.status==='PENDING') && <form className={s.form} onSubmit={event => void submit(event)}>
       <div className={s.formGrid}>
-        <label>Requested plan <select value={plan} onChange={event => setPlan(event.target.value as Plan)}><option value="ESSENTIAL">{t('salesNative.essential')}</option><option value="PLUS">PLUS</option><option value="MAX">MAX</option></select></label>
-        <label>Requested duration <select value={duration} onChange={event => setDuration(event.target.value as Duration)}>
-          <option value="MONTHLY">{t('salesNative.monthToMonth')}</option><option value="3M">3 months</option><option value="6M">6 months</option><option value="12M">12 months</option>
+        <label>{t('salesNative.requestedPlan')} <select value={plan} onChange={event => setPlan(event.target.value as Plan)}><option value="ESSENTIAL">{t('salesNative.essential')}</option><option value="PLUS">PLUS</option><option value="MAX">MAX</option></select></label>
+        <label>{t('salesNative.requestedDuration')} <select value={duration} onChange={event => setDuration(event.target.value as Duration)}>
+          <option value="MONTHLY">{t('salesNative.monthToMonth')}</option><option value="3M">{t('salesNative.renewalThreeMonths')}</option><option value="6M">{t('salesNative.renewalSixMonths')}</option><option value="12M">{t('salesNative.renewalTwelveMonths')}</option>
         </select></label>
-      </div><button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Request renewal review'}</button>
+      </div><button type="submit" disabled={busy}>{busy ? t('salesNative.renewalSaving') : t('salesNative.requestRenewalReview')}</button>
     </form>}
     {error && <p role="alert" className={s.error}>{error}</p>}
   </section>

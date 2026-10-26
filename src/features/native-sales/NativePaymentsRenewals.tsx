@@ -1,10 +1,12 @@
 'use client'
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { NativeRequest } from './NativeSalesModule'
 import NativePaymentHistory from './NativePaymentHistory'
 import NativeMembershipRenewal from './NativeMembershipRenewal'
 import NativePatientQbo from './NativePatientQbo'
+import { allSalesPages } from './pagination'
 import { useT } from '@/shared/i18n'
+import { salesDisplayValue } from './display-value'
 import s from './NativeSalesModule.module.css'
 
 type Opportunity = { id: string; name: string; currency: string; amount: string | null }
@@ -21,18 +23,23 @@ export default function NativePaymentsRenewals({ request, role, showPatientQbo }
   const [membershipId, setMembershipId] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const load = useCallback(async () => {
+  useEffect(() => {
+    let cancelled = false
     setLoading(true); setError('')
-    try {
-      const [opportunityResult, membershipResult] = await Promise.all([
-        request('opportunities?limit=100'), request('memberships?limit=100'),
-      ])
-      setOpportunities(Array.isArray(opportunityResult.data) ? opportunityResult.data as Opportunity[] : [])
-      setMemberships(Array.isArray(membershipResult.data) ? membershipResult.data as Membership[] : [])
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'PAYMENTS_UNAVAILABLE') }
-    finally { setLoading(false) }
-  }, [request])
-  useEffect(() => { void load() }, [load])
+    const load = async () => {
+      try {
+        const [opportunities,memberships] = await Promise.all([
+          allSalesPages<Opportunity>(request,'opportunities',() => cancelled),
+          allSalesPages<Membership>(request,'memberships',() => cancelled),
+        ])
+        if (!cancelled) { setOpportunities(opportunities); setMemberships(memberships) }
+      } catch(cause) {
+        if (!cancelled) setError(cause instanceof Error ? cause.message : 'PAYMENTS_UNAVAILABLE')
+      } finally { if (!cancelled) setLoading(false) }
+    }
+    void load()
+    return () => { cancelled = true }
+  },[request])
   const selected = memberships.find(item => item.id === membershipId)
   return <div className={s.reportGrid}>
     {showPatientQbo && <NativePatientQbo request={request} />}
@@ -57,7 +64,7 @@ export default function NativePaymentsRenewals({ request, role, showPatientQbo }
           <select value={membershipId} onChange={event => setMembershipId(event.target.value)}>
             <option value="">{t('salesNative.choosePermittedMembership')}</option>
             {memberships.map(item => <option key={item.id} value={item.id}>
-              {item.code} · {item.effectiveStatus} · {t('salesNative.expires')} {item.expires_at}
+              {item.code} · {salesDisplayValue(item.effectiveStatus,t)} · {t('salesNative.expires')} {item.expires_at}
             </option>)}
           </select>
         </label>

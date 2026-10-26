@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useT } from '@/shared/i18n'
 import type { NativeRequest } from './NativeSalesModule'
+import { salesDisplayValue } from './display-value'
 import s from './NativeSalesModule.module.css'
 
 type Qbo = {
@@ -121,8 +122,8 @@ export default function NativePatientQbo({ request }: { request: NativeRequest }
     {selected && <div className={s.form}>
       <p><strong>{selected.contact_name}</strong> · {selected.plan} · {selected.membership_type} · {selected.duration} · {amount}</p>
       <p>{t('salesNative.qboOpportunity')}: {selected.opportunity_id}</p>
-      <p>{t('salesNative.qboFlow')}: {selected.qbo?.verification_state ?? 'PENDING_INVOICE'} · {t('salesNative.qboInvoice')}: {selected.qbo?.qbo_invoice_status ?? 'NOT_CREATED'} · {t('salesNative.qboPayment')}: {selected.qbo?.qbo_payment_status ?? 'UNPAID'}</p>
-      <p>{t('salesNative.qboFinanceVerification')}: {selected.qbo?.finance_verification_status ?? 'PENDING'} · {t('salesNative.qboMembership')}: {selected.qbo?.membership_activation_status ?? 'NOT_ACTIVE'}</p>
+      <p>{t('salesNative.qboFlow')}: {salesDisplayValue(selected.qbo?.verification_state ?? 'PENDING_INVOICE',t)} · {t('salesNative.qboInvoice')}: {salesDisplayValue(selected.qbo?.qbo_invoice_status ?? 'NOT_CREATED',t)} · {t('salesNative.qboPayment')}: {salesDisplayValue(selected.qbo?.qbo_payment_status ?? 'UNPAID',t)}</p>
+      <p>{t('salesNative.qboFinanceVerification')}: {salesDisplayValue(selected.qbo?.finance_verification_status ?? 'PENDING',t)} · {t('salesNative.qboMembership')}: {salesDisplayValue(selected.qbo?.membership_activation_status ?? 'NOT_ACTIVE',t)}</p>
       {selected.qbo?.qa_synthetic && <p><strong>{t('salesNative.qboSyntheticBadge')}</strong></p>}
       <p>{t('salesNative.qboInvoiceNumber')}: {selected.qbo?.qbo_invoice_number ?? t('salesNative.qboPending')}</p>
       <p>{t('salesNative.qboInvoiceReference')}: {selected.qbo?.qbo_invoice_reference ?? '—'} · {t('salesNative.qboCustomerReference')}: {selected.qbo?.qbo_customer_reference ?? '—'} · {t('salesNative.qboItemReference')}: {selected.qbo?.qbo_item_reference ?? '—'}</p>

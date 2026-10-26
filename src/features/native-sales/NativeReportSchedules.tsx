@@ -44,8 +44,8 @@ export default function NativeReportSchedules({request}:{request:NativeRequest})
     <p className={s.caption}>{t('salesNative.schedulesUseAmericaGuayaquilTimeDeliveryRemainsOff')}</p>
     <form className={s.form} onSubmit={event => void create(event)}>
       <div className={s.formGrid}>
-        <label>Cadence <select value={cadence} onChange={event => setCadence(event.target.value as 'DAILY'|'WEEKLY')}>
-          <option value="DAILY">{t('salesNative.daily')}</option><option value="WEEKLY">Weekly</option>
+        <label>{t('salesNative.auditCadence')} <select value={cadence} onChange={event => setCadence(event.target.value as 'DAILY'|'WEEKLY')}>
+          <option value="DAILY">{t('salesNative.daily')}</option><option value="WEEKLY">{t('salesNative.auditWeekly')}</option>
         </select></label>
         <fieldset className={s.roleFieldset}><legend>{t('salesNative.recipientRoles')}</legend>{roles.map(role =>
           <label key={role} className={s.checkbox}><input type="checkbox" checked={recipientRoles.includes(role)}
@@ -54,10 +54,10 @@ export default function NativeReportSchedules({request}:{request:NativeRequest})
       </div><button type="submit" disabled={busy || recipientRoles.length===0}>{t('salesNative.createDisabledSchedule')}</button>
     </form>
     {rows.length ? <ul className={s.scheduleList}>{rows.map(row => <li key={row.id}>
-      <div><strong>{row.cadence==='DAILY'?'Daily':'Weekly'} Sales summary</strong>
-        <small>{row.recipient_roles.map(role => role.replaceAll('_',' ')).join(', ')} · {row.enabled?'Enabled':'Disabled'}
-          {row.last_status ? ` · Last: ${row.last_status}` : ''}</small></div>
-      <button type="button" disabled={busy} onClick={() => void toggle(row)}>{row.enabled?'Disable':'Enable'}</button>
+      <div><strong>{row.cadence==='DAILY'?t('salesNative.daily'):t('salesNative.weekly')} {t('salesNative.salesSummary')}</strong>
+        <small>{row.recipient_roles.map(role => role.replaceAll('_',' ')).join(', ')} · {row.enabled?t('salesNative.enabled'):t('salesNative.disabled')}
+          {row.last_status ? ` · ${t('salesNative.lastRun')}: ${row.last_status}` : ''}</small></div>
+      <button type="button" disabled={busy} onClick={() => void toggle(row)}>{row.enabled?t('salesNative.disable'):t('salesNative.enable')}</button>
     </li>)}</ul> : <p className={s.empty}>{t('salesNative.noSchedulesConfigured')}</p>}
     {error && <p role="alert" className={s.error}>{error}</p>}
   </section>

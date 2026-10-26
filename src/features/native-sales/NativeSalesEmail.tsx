@@ -36,9 +36,9 @@ export default function NativeSalesEmail({resource,recordId,recipient,request,on
     <h3>{t('salesNative.email')}</h3>
     <p>Recipient: {recipient}. Delivery is controlled by the configured Sales email gate.</p>
     <form className={s.form} onSubmit={event => void submit(event)}>
-      <label>Subject <input required maxLength={240} value={subject} onChange={event => setSubject(event.target.value)} /></label>
-      <label>Message <textarea required maxLength={20000} value={body} onChange={event => setBody(event.target.value)} /></label>
-      <button type="submit" disabled={busy || !subject.trim() || !body.trim()}>{busy ? 'Sending…' : 'Send email'}</button>
+      <label>{t('salesNative.auditSubject')} <input required maxLength={240} value={subject} onChange={event => setSubject(event.target.value)} /></label>
+      <label>{t('salesNative.auditMessage')} <textarea required maxLength={20000} value={body} onChange={event => setBody(event.target.value)} /></label>
+      <button type="submit" disabled={busy || !subject.trim() || !body.trim()}>{busy ? t('salesNative.sending') : t('salesNative.sendEmail')}</button>
     </form>
     {success && <p role="status">{t('salesNative.emailAcceptedByTheDeliveryProviderAndRecorded')}</p>}
     {error && <p role="alert" className={s.error}>{error}</p>}

@@ -81,13 +81,16 @@ export async function sendPatientRecovery(eventId: string, recipient: string, ac
   } })
 }
 
-export async function sendPatientInvoice(intentId: string, recipient: string, invoiceNumber: string) {
+export async function sendPatientInvoice(intentId: string, recipient: string, invoiceNumber: string, purpose: 'ENROLLMENT'|'RENEWAL' = 'ENROLLMENT') {
   const eventId = createHash('sha256').update(`${intentId}\0${invoiceNumber}`).digest('hex')
   const { queuePatientEmail } = await import('./patient-email-outbox')
   return queuePatientEmail({ kind: 'invoice', eventId, recipient, content: {
-    title: 'Tu factura está disponible',
-    message: 'Tu selección de Corazón Salud sigue pendiente de pago. Puedes consultar la factura y abrir el pago seguro desde tu Portal.',
-    actionLabel: 'Ver mi pago', actionUrl: 'https://portal.corazonsalud.health/pagos',
+    title: purpose === 'RENEWAL' ? 'Tu factura de renovación está disponible' : 'Tu factura está disponible',
+    message: purpose === 'RENEWAL'
+      ? 'Tu renovación sigue pendiente de pago. Tu vigencia actual no cambia hasta que se verifique el pago. Consulta la factura y el pago seguro en Renovación.'
+      : 'Tu selección de Corazón Salud sigue pendiente de pago. Puedes consultar la factura y abrir el pago seguro desde tu Portal.',
+    actionLabel: 'Ver mi pago', actionUrl: purpose === 'RENEWAL'
+      ? 'https://portal.corazonsalud.health/renovacion' : 'https://portal.corazonsalud.health/pagos',
     details: [{ label: 'Factura', value: invoiceNumber }],
   } })
 }
@@ -98,5 +101,15 @@ export async function sendPatientActivation(membershipId: string, recipient: str
     title: `Tu membresía está activa, ${firstName}`,
     message: 'Ya puedes consultar los detalles de tu membresía Corazón Salud en el Portal.',
     actionLabel: 'Ver mi membresía', actionUrl: 'https://portal.corazonsalud.health/membresia',
+  } })
+}
+
+export async function sendPatientRenewal(intentId: string, recipient: string, expiresAt: string) {
+  const { queuePatientEmail } = await import('./patient-email-outbox')
+  return queuePatientEmail({ kind:'activation', eventId:`renewal-${intentId}`, recipient, content:{
+    title:'Tu membresía ha sido renovada',
+    message:'Tu pago de renovación fue verificado y el nuevo período ya está disponible en el Portal.',
+    actionLabel:'Ver mi membresía', actionUrl:'https://portal.corazonsalud.health/membresia',
+    details:[{ label:'Vigencia hasta',value:expiresAt }],
   } })
 }

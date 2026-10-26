@@ -2,7 +2,9 @@
 
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import type { NativeRequest } from './NativeSalesModule'
+import { allSalesPages } from './pagination'
 import { useT } from '@/shared/i18n'
+import { salesDisplayValue } from './display-value'
 import s from './NativeSalesModule.module.css'
 
 type HouseholdMember = { id: string; displayName: string; relationship: string; status: string; code?: string }
@@ -39,8 +41,8 @@ export default function NativeMembershipFamily({ membershipId, membershipType, h
     let cancelled = false
     const params = new URLSearchParams({ limit: '50' })
     if (contactQuery.trim()) params.set('q', contactQuery.trim())
-    void request(`contacts?${params}`).then(result => {
-      if (!cancelled) setContacts(Array.isArray(result.data) ? result.data as Contact[] : [])
+    void allSalesPages<Contact>(request,`contacts?${params}`,() => cancelled).then(result => {
+      if (!cancelled) setContacts(result)
     }).catch(() => { if (!cancelled) setContacts([]) })
     return () => { cancelled = true }
   }, [contactQuery, membershipType, request])
@@ -78,26 +80,26 @@ export default function NativeMembershipFamily({ membershipId, membershipType, h
   const pending = requests.filter(item => item.status === 'PENDING').length
   const active = household.filter(item => item.status === 'ACTIVE').length
   return <section className={s.recordActions} aria-label={t('salesNative.familyMembership')}>
-    <h3>Household · {active}/3 active · {pending} pending</h3>
+    <h3>{t('salesNative.householdSummary',{active,pending})}</h3>
     <ul className={s.scheduleList}>{household.map(member =>
-      <li key={member.id}><span><strong>{member.displayName}</strong><small>{member.relationship} · {member.status} {member.code ? `· ${member.code}` : ''}</small></span></li>)}</ul>
+      <li key={member.id}><span><strong>{member.displayName}</strong><small>{salesDisplayValue(member.relationship,t)} · {salesDisplayValue(member.status,t)} {member.code ? `· ${member.code}` : ''}</small></span></li>)}</ul>
     {requests.length > 0 && <><h3>{t('salesNative.familyRequests')}</h3><ul className={s.scheduleList}>{requests.map(item =>
-      <li key={item.id}><span><strong>{item.dependentName}</strong><small>{item.relationship} · {item.status} · {item.createdAt.slice(0,10)}</small></span>
+      <li key={item.id}><span><strong>{item.dependentName}</strong><small>{salesDisplayValue(item.relationship,t)} · {salesDisplayValue(item.status,t)} · {item.createdAt.slice(0,10)}</small></span>
         {item.status === 'PENDING' && canReview && <span className={s.pdfActions}>
           <button type="button" disabled={busy} onClick={() => void decide(item.id, 'APPROVED')}>{t('salesNative.approve')}</button>
           <button type="button" disabled={busy} onClick={() => void decide(item.id, 'REJECTED')}>{t('salesNative.reject')}</button>
         </span>}</li>)}</ul></>}
     {active + pending < 3 && <form className={s.form} onSubmit={event => void submit(event)}>
-      <h3>{t('salesNative.requestFamilyMember')}</h3><p>Staff approval is required. No extra charge is created.</p>
+      <h3>{t('salesNative.requestFamilyMember')}</h3><p>{t('salesNative.auditStaffApprovalIsRequiredNoExtraChargeIsCreated')}</p>
       <div className={s.formGrid}>
-        <label>Find Contact <input value={contactQuery} onChange={event => {setContactQuery(event.target.value); setContactId('')}} placeholder={t('salesNative.searchByName')} /></label>
-        <label>Contact <select required value={contactId} onChange={event => setContactId(event.target.value)}>
+        <label>{t('salesNative.auditFindContact')} <input value={contactQuery} onChange={event => {setContactQuery(event.target.value); setContactId('')}} placeholder={t('salesNative.searchByName')} /></label>
+        <label>{t('salesNative.auditContact')} <select required value={contactId} onChange={event => setContactId(event.target.value)}>
           <option value="">{t('salesNative.chooseAContact')}</option>{contacts.map(contact =>
             <option key={contact.id} value={contact.id}>{contact.display_name}</option>)}</select></label>
-        <label>Relationship <select value={relationship} onChange={event => setRelationship(event.target.value as typeof relationship)}>
-          <option value="CHILD">{t('salesNative.child')}</option><option value="SPOUSE">Spouse</option><option value="PARENT">Parent</option><option value="OTHER">Other</option>
+        <label>{t('salesNative.auditRelationship')} <select value={relationship} onChange={event => setRelationship(event.target.value as typeof relationship)}>
+          <option value="CHILD">{t('salesNative.child')}</option><option value="SPOUSE">{t('salesNative.auditSpouse')}</option><option value="PARENT">{t('salesNative.auditParent')}</option><option value="OTHER">{t('salesNative.auditOther')}</option>
         </select></label>
-      </div><button type="submit" disabled={busy || !contactId}>{busy ? 'Saving…' : 'Request member'}</button>
+      </div><button type="submit" disabled={busy || !contactId}>{busy ? t('salesNative.renewalSaving') : t('salesNative.requestMember')}</button>
     </form>}
     {error && <p role="alert" className={s.error}>{error}</p>}
   </section>
