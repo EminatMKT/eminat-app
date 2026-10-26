@@ -259,6 +259,12 @@ for (const language of ['en','es'] as const) test(`renewal selectors include lat
   await expect(page.getByText(/QA-LOCAL-NOT-REAL/)).toBeVisible()
   await expect(page.getByText(text['salesNative.verifiedRenewalPeriod'],{exact:false})).toHaveCount(0)
   await expect(page.getByText('PAYMENT_PENDING',{exact:false})).toHaveCount(0)
-  expect(offsets.memberships).toEqual([0,100,200]);expect(offsets.opportunities).toEqual([0,100,200])
+  // Development Strict Mode may restart the first-page effect. The completed
+  // selector must still follow every cursor once and contain no duplicate options.
+  for (const resource of ['memberships','opportunities']) {
+    expect(Array.from(new Set(offsets[resource]))).toEqual([0,100,200])
+    expect(offsets[resource].filter(offset=>offset===100)).toHaveLength(1)
+    expect(offsets[resource].filter(offset=>offset===200)).toHaveLength(1)
+  }
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1)).toBe(false)
 })
