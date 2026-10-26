@@ -1852,5 +1852,17 @@
   "salesNative.tokenExpires": "Access expires",
   "salesNative.tokenExpired": "Access expired",
   "salesNative.refreshAccess": "Refresh access",
-  "salesNative.disconnect": "Disconnect"
+  "salesNative.disconnect": "Disconnect",
+  "salesNative.qboConnectionUnavailable": "QuickBooks connection is unavailable.",
+  "salesNative.qboDisconnectConfirm": "Disconnect the QuickBooks company from LILLY Sales?",
+  "salesNative.qboDisconnectFailed": "QuickBooks disconnect could not be completed.",
+  "salesNative.qboRefreshVerified": "Token refreshed. QuickBooks company verified.",
+  "salesNative.qboRefreshFailed": "QuickBooks token refresh could not be verified.",
+  "salesNative.qboConnectionLabel": "QuickBooks connection",
+  "salesNative.qboCheckingConnection": "Checking connection…",
+  "salesNative.qboConnectedLabel": "Connected:",
+  "salesNative.qboVerifyRefresh": "Verify token refresh",
+  "salesNative.qboDisconnect": "Disconnect QuickBooks",
+  "salesNative.qboNotConnected": "QuickBooks is not connected.",
+  "salesNative.qboConnect": "Connect QuickBooks"
 }

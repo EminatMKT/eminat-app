@@ -267,4 +267,10 @@ for (const language of ['en','es'] as const) test(`renewal selectors include lat
     expect(offsets[resource].filter(offset=>offset===200)).toHaveLength(1)
   }
   expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1)).toBe(false)
+  await page.route('**/api/sales-native/quickbooks/connection',route=>route.fulfill({json:{connected:true,company:{companyName:'QA LOCAL COMPANY'}}}))
+  await page.goto('/sales-native?section=settings')
+  await expect(page.getByRole('heading',{name:'QuickBooks · Eminat Medical Center',exact:true})).toBeVisible()
+  await expect(page.getByText(`${text['salesNative.qboConnectedLabel']} QA LOCAL COMPANY`,{exact:true})).toBeVisible()
+  await expect(page.getByRole('button',{name:text['salesNative.qboVerifyRefresh'],exact:true})).toBeVisible()
+  await expect(page.getByRole('button',{name:text['salesNative.qboDisconnect'],exact:true})).toBeVisible()
 })
