@@ -2,6 +2,7 @@
 
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import type { NativeRequest } from './NativeSalesModule'
+import { allSalesPages } from './pagination'
 import { useT } from '@/shared/i18n'
 import s from './NativeSalesModule.module.css'
 
@@ -50,8 +51,8 @@ export default function NativeMembershipIssue({ request, role, onSaved }: {
     let cancelled = false
     const params = new URLSearchParams({limit:'50'})
     if (opportunityQuery.trim()) params.set('q',opportunityQuery.trim())
-    void request(`opportunities?${params}`).then(result => {
-      if (!cancelled) setOpportunities(Array.isArray(result.data) ? result.data as Opportunity[] : [])
+    void allSalesPages<Opportunity>(request, `opportunities?${params}`, () => cancelled).then(result => {
+      if (!cancelled) setOpportunities(result)
     }).catch(() => {if (!cancelled) setOpportunities([])})
     return () => {cancelled=true}
   },[opportunityQuery,request])
@@ -59,8 +60,8 @@ export default function NativeMembershipIssue({ request, role, onSaved }: {
     let cancelled = false
     const params = new URLSearchParams({limit:'50'})
     if (contactQuery.trim()) params.set('q',contactQuery.trim())
-    void request(`contacts?${params}`).then(result => {
-      if (!cancelled) setContacts(Array.isArray(result.data) ? result.data as Contact[] : [])
+    void allSalesPages<Contact>(request, `contacts?${params}`, () => cancelled).then(result => {
+      if (!cancelled) setContacts(result)
     }).catch(() => {if (!cancelled) setContacts([])})
     return () => {cancelled=true}
   },[contactQuery,request])

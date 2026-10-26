@@ -4,6 +4,7 @@ import type { NativeRequest } from './NativeSalesModule'
 import NativePaymentHistory from './NativePaymentHistory'
 import NativeMembershipRenewal from './NativeMembershipRenewal'
 import NativePatientQbo from './NativePatientQbo'
+import { allSalesPages } from './pagination'
 import { useT } from '@/shared/i18n'
 import s from './NativeSalesModule.module.css'
 
@@ -25,10 +26,10 @@ export default function NativePaymentsRenewals({ request, role, showPatientQbo }
     setLoading(true); setError('')
     try {
       const [opportunityResult, membershipResult] = await Promise.all([
-        request('opportunities?limit=100'), request('memberships?limit=100'),
+        allSalesPages<Opportunity>(request, 'opportunities'), allSalesPages<Membership>(request, 'memberships'),
       ])
-      setOpportunities(Array.isArray(opportunityResult.data) ? opportunityResult.data as Opportunity[] : [])
-      setMemberships(Array.isArray(membershipResult.data) ? membershipResult.data as Membership[] : [])
+      setOpportunities(opportunityResult)
+      setMemberships(membershipResult)
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'PAYMENTS_UNAVAILABLE') }
     finally { setLoading(false) }
   }, [request])
