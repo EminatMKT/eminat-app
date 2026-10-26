@@ -127,45 +127,45 @@ export default function NativeMembershipIssue({ request, role, onSaved }: {
     <h2>{t('salesNative.issueMembership')}</h2>
     <p>{t('salesNative.requiresPreviouslyVerifiedPaymentEvidenceThisScreenDoes')}</p>
     <div className={s.formGrid}>
-      <label>Find Opportunity <input value={opportunityQuery} onChange={event => {setOpportunityQuery(event.target.value);setOpportunityId('');setPaymentId('')}} placeholder={t('salesNative.searchByName')} /></label>
-      <label>Opportunity <select required value={opportunityId} onChange={event => {setOpportunityId(event.target.value);setPaymentId('')}}>
+      <label>{t('salesNative.auditFindOpportunity')} <input value={opportunityQuery} onChange={event => {setOpportunityQuery(event.target.value);setOpportunityId('');setPaymentId('')}} placeholder={t('salesNative.searchByName')} /></label>
+      <label>{t('salesNative.qboOpportunity')} <select required value={opportunityId} onChange={event => {setOpportunityId(event.target.value);setPaymentId('')}}>
         <option value="">{t('salesNative.chooseAnOpportunity')}</option>{opportunities.map(item =>
           <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-      <label>Find Contact <input value={contactQuery} onChange={event => {setContactQuery(event.target.value);setContactId('')}} placeholder={t('salesNative.searchByName')} /></label>
-      <label>Primary Contact <select required value={contactId} onChange={event => {
+      <label>{t('salesNative.auditFindContact')} <input value={contactQuery} onChange={event => {setContactQuery(event.target.value);setContactId('')}} placeholder={t('salesNative.searchByName')} /></label>
+      <label>{t('salesNative.auditPrimaryContact')} <select required value={contactId} onChange={event => {
         const id=event.target.value;setContactId(id)
         const contact=contacts.find(item => item.id===id)
         if (contact) {const parts=contact.display_name.trim().split(/\s+/);setFirstName(parts.shift() || '');setLastName(parts.join(' '));
           setPhone(contact.phone || '');setEmail(contact.email || '')}
       }}><option value="">{t('salesNative.chooseAContact')}</option>{contacts.map(item =>
         <option key={item.id} value={item.id}>{item.display_name}</option>)}</select></label>
-      <label>Plan <select value={plan} onChange={event => setPlan(event.target.value as typeof plan)}><option value="ESSENTIAL">{t('salesNative.essential')}</option><option value="PLUS">PLUS</option><option value="MAX">MAX</option></select></label>
-      <label>Type <select value={membershipType} onChange={event => setMembershipType(event.target.value as typeof membershipType)}><option value="INDIVIDUAL">{t('salesNative.individual')}</option><option value="FAMILY">Family</option></select></label>
-      <label>Duration <select value={duration} onChange={event => setDuration(event.target.value as typeof duration)}>
-        <option value="MONTHLY">{t('salesNative.monthToMonthTwoMonthsPaidUpFront')}</option><option value="3M">3 months</option><option value="6M">6 months</option><option value="12M">12 months</option>
+      <label>{t('salesNative.auditPlan')} <select value={plan} onChange={event => setPlan(event.target.value as typeof plan)}><option value="ESSENTIAL">{t('salesNative.essential')}</option><option value="PLUS">PLUS</option><option value="MAX">MAX</option></select></label>
+      <label>{t('salesNative.auditType')} <select value={membershipType} onChange={event => setMembershipType(event.target.value as typeof membershipType)}><option value="INDIVIDUAL">{t('salesNative.individual')}</option><option value="FAMILY">{t('salesNative.auditFamily')}</option></select></label>
+      <label>{t('salesNative.auditDuration')} <select value={duration} onChange={event => setDuration(event.target.value as typeof duration)}>
+        <option value="MONTHLY">{t('salesNative.monthToMonthTwoMonthsPaidUpFront')}</option><option value="3M">{t('salesNative.renewalThreeMonths')}</option><option value="6M">{t('salesNative.renewalSixMonths')}</option><option value="12M">{t('salesNative.renewalTwelveMonths')}</option>
       </select></label>
-      <label>Issue date <input type="date" required value={issuedAt} onChange={event => setIssuedAt(event.target.value)} /></label>
+      <label>{t('salesNative.auditIssueDate')} <input type="date" required value={issuedAt} onChange={event => setIssuedAt(event.target.value)} /></label>
     </div>
     {quote && <p className={s.caption}>Initial term: {quote.initial_months} months · Total: {money(quote.total_cents)} · Monthly rate: {money(quote.monthly_cents)} · Included visits: {quote.included_visits}</p>}
     {selectedOpportunity && <p className={s.caption}>Opportunity amount: {selectedOpportunity.currency} {selectedOpportunity.amount ?? '—'}</p>}
     {selectedContact && <p className={s.caption}>Selected primary member: {selectedContact.display_name}</p>}
     {canConfirm && opportunityId && <form className={s.form} onSubmit={event => void recordEvidence(event)}>
-      <h3>{t('salesNative.recordVerifiedPaymentEvidence')}</h3><p>Staff attestation only; no processor or bank transaction is initiated.</p>
+      <h3>{t('salesNative.recordVerifiedPaymentEvidence')}</h3><p>{t('salesNative.auditStaffAttestationOnlyNoProcessorOrBankTransactionIsInitiated')}</p>
       <div className={s.formGrid}>
-        <label>Verified amount (USD) <input type="number" min="0.01" step="0.01" required value={paymentAmount} onChange={event => setPaymentAmount(event.target.value)} /></label>
-        <label>Reference <input maxLength={200} value={paymentReference} onChange={event => setPaymentReference(event.target.value)} /></label>
+        <label>{t('salesNative.auditVerifiedAmountUsd')} <input type="number" min="0.01" step="0.01" required value={paymentAmount} onChange={event => setPaymentAmount(event.target.value)} /></label>
+        <label>{t('salesNative.auditReference')} <input maxLength={200} value={paymentReference} onChange={event => setPaymentReference(event.target.value)} /></label>
       </div><button type="submit" disabled={busy || !paymentAmount}>{t('salesNative.recordEvidence')}</button>
     </form>}
     <form className={s.form} onSubmit={event => void issue(event)}>
       <div className={s.formGrid}>
-        <label>Payment evidence <select required value={paymentId} onChange={event => setPaymentId(event.target.value)}>
+        <label>{t('salesNative.auditPaymentEvidence')} <select required value={paymentId} onChange={event => setPaymentId(event.target.value)}>
           <option value="">{t('salesNative.chooseUnusedEvidence')}</option>{payments.filter(item => !item.used).map(item =>
             <option key={item.id} value={item.id}>{item.currency} {item.amount} · {item.paid_at} · {item.reference || 'No reference'}</option>)}</select></label>
-        <label>First name <input required maxLength={160} value={firstName} onChange={event => setFirstName(event.target.value)} /></label>
-        <label>Last name <input required maxLength={160} value={lastName} onChange={event => setLastName(event.target.value)} /></label>
-        <label>Phone <input required maxLength={80} value={phone} onChange={event => setPhone(event.target.value)} /></label>
-        <label>Email <input required type="email" maxLength={320} value={email} onChange={event => setEmail(event.target.value)} /></label>
-        <label>Address <input required maxLength={1000} value={address} onChange={event => setAddress(event.target.value)} /></label>
+        <label>{t('salesNative.auditFirstName')} <input required maxLength={160} value={firstName} onChange={event => setFirstName(event.target.value)} /></label>
+        <label>{t('salesNative.auditLastName')} <input required maxLength={160} value={lastName} onChange={event => setLastName(event.target.value)} /></label>
+        <label>{t('salesNative.auditPhone')} <input required maxLength={80} value={phone} onChange={event => setPhone(event.target.value)} /></label>
+        <label>{t('salesNative.email')} <input required type="email" maxLength={320} value={email} onChange={event => setEmail(event.target.value)} /></label>
+        <label>{t('salesNative.auditAddress')} <input required maxLength={1000} value={address} onChange={event => setAddress(event.target.value)} /></label>
       </div>
       {role==='SUPERADMIN' && <label className={s.checkbox}><input type="checkbox" checked={isDemo} onChange={event => setIsDemo(event.target.checked)} />{t('salesNative.demoQaRecord')}</label>}
       {selectedPayment && quote && !paymentMatchesQuote &&

@@ -88,14 +88,14 @@ export default function NativeMembershipFamily({ membershipId, membershipType, h
           <button type="button" disabled={busy} onClick={() => void decide(item.id, 'REJECTED')}>{t('salesNative.reject')}</button>
         </span>}</li>)}</ul></>}
     {active + pending < 3 && <form className={s.form} onSubmit={event => void submit(event)}>
-      <h3>{t('salesNative.requestFamilyMember')}</h3><p>Staff approval is required. No extra charge is created.</p>
+      <h3>{t('salesNative.requestFamilyMember')}</h3><p>{t('salesNative.auditStaffApprovalIsRequiredNoExtraChargeIsCreated')}</p>
       <div className={s.formGrid}>
-        <label>Find Contact <input value={contactQuery} onChange={event => {setContactQuery(event.target.value); setContactId('')}} placeholder={t('salesNative.searchByName')} /></label>
-        <label>Contact <select required value={contactId} onChange={event => setContactId(event.target.value)}>
+        <label>{t('salesNative.auditFindContact')} <input value={contactQuery} onChange={event => {setContactQuery(event.target.value); setContactId('')}} placeholder={t('salesNative.searchByName')} /></label>
+        <label>{t('salesNative.auditContact')} <select required value={contactId} onChange={event => setContactId(event.target.value)}>
           <option value="">{t('salesNative.chooseAContact')}</option>{contacts.map(contact =>
             <option key={contact.id} value={contact.id}>{contact.display_name}</option>)}</select></label>
-        <label>Relationship <select value={relationship} onChange={event => setRelationship(event.target.value as typeof relationship)}>
-          <option value="CHILD">{t('salesNative.child')}</option><option value="SPOUSE">Spouse</option><option value="PARENT">Parent</option><option value="OTHER">Other</option>
+        <label>{t('salesNative.auditRelationship')} <select value={relationship} onChange={event => setRelationship(event.target.value as typeof relationship)}>
+          <option value="CHILD">{t('salesNative.child')}</option><option value="SPOUSE">{t('salesNative.auditSpouse')}</option><option value="PARENT">{t('salesNative.auditParent')}</option><option value="OTHER">{t('salesNative.auditOther')}</option>
         </select></label>
       </div><button type="submit" disabled={busy || !contactId}>{busy ? 'Saving…' : 'Request member'}</button>
     </form>}

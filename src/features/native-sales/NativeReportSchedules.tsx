@@ -44,8 +44,8 @@ export default function NativeReportSchedules({request}:{request:NativeRequest})
     <p className={s.caption}>{t('salesNative.schedulesUseAmericaGuayaquilTimeDeliveryRemainsOff')}</p>
     <form className={s.form} onSubmit={event => void create(event)}>
       <div className={s.formGrid}>
-        <label>Cadence <select value={cadence} onChange={event => setCadence(event.target.value as 'DAILY'|'WEEKLY')}>
-          <option value="DAILY">{t('salesNative.daily')}</option><option value="WEEKLY">Weekly</option>
+        <label>{t('salesNative.auditCadence')} <select value={cadence} onChange={event => setCadence(event.target.value as 'DAILY'|'WEEKLY')}>
+          <option value="DAILY">{t('salesNative.daily')}</option><option value="WEEKLY">{t('salesNative.auditWeekly')}</option>
         </select></label>
         <fieldset className={s.roleFieldset}><legend>{t('salesNative.recipientRoles')}</legend>{roles.map(role =>
           <label key={role} className={s.checkbox}><input type="checkbox" checked={recipientRoles.includes(role)}

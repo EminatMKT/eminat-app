@@ -43,6 +43,7 @@ type DetailReport = {
   opportunities: { total: number; won: number; lost: number; byStage: CountRow[] }
   memberships: { sold: number; byPlan: CountRow[]; byModality: CountRow[];
     salesBySeller: { memberId: string; label: string; currency: string; count: number; amount: string }[] }
+  renewals?: { completed:number; paidCents:number; currency:string }
   activities: { total: number; followUps: number; byKind: CountRow[] }
 }
 const todayUtc = () => new Date().toISOString().slice(0,10)
@@ -291,18 +292,19 @@ export default function NativeSalesModule({ organizationId, workspaceLabelKey }:
         {loading && <p role="status" className={s.empty}>Loading {currentLabel.toLowerCase()}…</p>}
         {tab==='dashboard' && summary && !loading && !error && <NativeSalesDashboard summary={summary} />}
         {tab==='reports' && <div className={s.filters}>
-          <label>From <input type="date" value={reportFrom} onChange={event => setReportFrom(event.target.value)} /></label>
-          <label>To <input type="date" value={reportTo} onChange={event => setReportTo(event.target.value)} /></label>
+          <label>{t('salesNative.auditFrom')} <input type="date" value={reportFrom} onChange={event => setReportFrom(event.target.value)} /></label>
+          <label>{t('salesNative.auditTo')} <input type="date" value={reportTo} onChange={event => setReportTo(event.target.value)} /></label>
         </div>}
         {tab==='reports' && detailReport && !loading && !error && <>
           <div className={s.metrics}>
-            <Metric label="Leads" value={detailReport.leads.total} />
-            <Metric label="Converted" value={detailReport.leads.converted} />
-            <Metric label="Won" value={detailReport.opportunities.won} />
-            <Metric label="Lost" value={detailReport.opportunities.lost} />
-            <Metric label="Memberships sold" value={detailReport.memberships.sold} />
-            <Metric label="Activities" value={detailReport.activities.total} />
+            <Metric label={t('salesNative.tabLeads')} value={detailReport.leads.total} />
+            <Metric label={t('salesNative.auditConverted')} value={detailReport.leads.converted} />
+            <Metric label={t('salesNative.auditWon')} value={detailReport.opportunities.won} />
+            <Metric label={t('salesNative.auditLost')} value={detailReport.opportunities.lost} />
+            <Metric label={t('salesNative.auditMembershipsSold')} value={detailReport.memberships.sold} />
+            <Metric label={t('salesNative.tabActivities')} value={detailReport.activities.total} />
           </div>
+          {detailReport.renewals && <p className={s.caption}>{t('salesNative.verifiedRenewals')}: {detailReport.renewals.completed} · {t('salesNative.renewalPayments')}: {new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(detailReport.renewals.paidCents/100)}</p>}
           <p className={s.caption}>Lead conversion {detailReport.leads.conversionRate}% · Unresponsive {detailReport.leads.unresponsive} · Follow-ups {detailReport.activities.followUps}</p>
           <div className={s.reportGrid}>
             <section className={s.panel}><h2>{t('salesNative.leadsByStage')}</h2><Breakdown rows={detailReport.leads.byStage} /></section>
@@ -338,24 +340,24 @@ export default function NativeSalesModule({ organizationId, workspaceLabelKey }:
         </>}
         {listTabs.has(tab) && !loading && <>
           {tab!=='activities' && <div className={s.filters}>
-            <label>Search <input value={query} onChange={event => setQuery(event.target.value)} placeholder={t('salesNative.nameOrCode')} /></label>
-            {tab==='leads' && access.capabilities.canReassign && <label>Lead view <select value={leadView}
+            <label>{t('salesNative.auditSearch')} <input value={query} onChange={event => setQuery(event.target.value)} placeholder={t('salesNative.nameOrCode')} /></label>
+            {tab==='leads' && access.capabilities.canReassign && <label>{t('salesNative.auditLeadView')} <select value={leadView}
               onChange={event => setLeadView(event.target.value as 'active'|'archived')}>
-              <option value="active">{t('salesNative.active')}</option><option value="archived">Archived</option>
+              <option value="active">{t('salesNative.active')}</option><option value="archived">{t('salesNative.auditArchived')}</option>
             </select></label>}
-            {tab==='memberships' && <label>Records <select value={demo} onChange={event => setDemo(event.target.value)}>
-              <option value="all">{t('salesNative.all')}</option><option value="false">Commercial</option><option value="true">Demo</option>
+            {tab==='memberships' && <label>{t('salesNative.auditRecords')} <select value={demo} onChange={event => setDemo(event.target.value)}>
+              <option value="all">{t('salesNative.all')}</option><option value="false">{t('salesNative.auditCommercial')}</option><option value="true">{t('salesNative.auditDemo')}</option>
             </select></label>}
           </div>}
           {tab==='leads' && leadView==='active' && access.capabilities.canReassign && selectedLeadIds.length>0 &&
             <form className={`${s.panel} ${s.form}`} onSubmit={event => {event.preventDefault();void bulkReassign()}}>
               <h2>Assign {selectedLeadIds.length} selected Lead{selectedLeadIds.length===1 ? '' : 's'}</h2>
               <div className={s.formGrid}>
-                <label>Owner <select required value={bulkOwner} onChange={event => {setBulkOwner(event.target.value);setBulkTeam('')}}>
+                <label>{t('salesNative.owner')} <select required value={bulkOwner} onChange={event => {setBulkOwner(event.target.value);setBulkTeam('')}}>
                   <option value="">{t('salesNative.chooseAPerson')}</option>{directory.users.map(user =>
                     <option key={user.memberId} value={user.memberId}>{user.displayName}</option>)}
                 </select></label>
-                <label>Team <select required={access.role==='SALES_MANAGER'} value={bulkTeam} onChange={event => setBulkTeam(event.target.value)}>
+                <label>{t('salesNative.team')} <select required={access.role==='SALES_MANAGER'} value={bulkTeam} onChange={event => setBulkTeam(event.target.value)}>
                   <option value="">{t('salesNative.noTeam')}</option>{directory.teams.filter(team =>
                     directory.users.find(user => user.memberId===bulkOwner)?.teamIds.includes(team.id)).map(team =>
                     <option key={team.id} value={team.id}>{team.name}</option>)}

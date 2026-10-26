@@ -148,11 +148,11 @@ export default function NativeSocialStatus({ request, role, users, teams }: { re
             Disconnect</button>}</li>)}</ul>
       {!metaAvailable && <p>{t('salesNative.metaConnectionIsAwaitingPrivateAppConfigurationAnd')}</p>}
       {metaAvailable && !grantState && <div className={s.form}>
-        <label>Lead owner<select value={owner} onChange={event => setOwner(event.target.value)}>
+        <label>{t('salesNative.auditLeadOwner')}<select value={owner} onChange={event => setOwner(event.target.value)}>
           <option value="">{t('salesNative.chooseAnAuthorizedSalesOwner')}</option>
           {users.map(user => <option key={user.memberId} value={user.memberId}>{user.displayName}</option>)}
         </select></label>
-        <label>Team<select value={team} onChange={event => setTeam(event.target.value)}>
+        <label>{t('salesNative.team')}<select value={team} onChange={event => setTeam(event.target.value)}>
           <option value="">{t('salesNative.noTeam')}</option>
           {teams.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select></label>
@@ -160,7 +160,7 @@ export default function NativeSocialStatus({ request, role, users, teams }: { re
           Connect existing Meta Page</button>
       </div>}
       {grantState && <div className={s.form}>
-        <label>Authorized Page<select value={selectedPage} onChange={event => setSelectedPage(event.target.value)}>
+        <label>{t('salesNative.auditAuthorizedPage')}<select value={selectedPage} onChange={event => setSelectedPage(event.target.value)}>
           <option value="">{t('salesNative.chooseOnePage')}</option>
           {pages.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select></label>

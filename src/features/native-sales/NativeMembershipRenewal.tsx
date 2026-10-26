@@ -3,6 +3,7 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import type { NativeRequest } from './NativeSalesModule'
 import { useT } from '@/shared/i18n'
+import NativeOnlineRenewals from './NativeOnlineRenewals'
 import s from './NativeSalesModule.module.css'
 
 type Renewal = { id: string; status: string; plan: string; duration: string;
@@ -57,6 +58,7 @@ export default function NativeMembershipRenewal({ membershipId, currentPlan, cur
   }
 
   return <section className={s.recordActions} aria-label={t('salesNative.membershipRenewals')}>
+    <NativeOnlineRenewals membershipId={membershipId} request={request}/>
     <h3>{t('salesNative.renewals')} · {t('salesNative.currentTermEnds')} {expiresAt.slice(0,10)}</h3>
     <p>{t('salesNative.requestsAreEligibleWithin30DaysOfExpiry')}</p>
     {requests.length>0 && <ul className={s.scheduleList}>{requests.map(item => <li key={item.id}>

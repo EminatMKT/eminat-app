@@ -1,7 +1,7 @@
 import 'server-only'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { sendPatientInvoice } from '@/server/sales-native/patient-email-delivery'
-import { quoteMembership, type MembershipType, type Plan,
+import { quoteMembership, quoteRenewal, type MembershipType, type Plan,
   type SaleDuration } from '@/server/sales-native/pricing'
 import { connectedQboReadAccess, EMC_ORGANIZATION_ID } from './connection'
 import type { QboInvoice, QboRecoveryInvoice } from './client'
@@ -13,7 +13,7 @@ type Job = {
   plan: Plan; membership_type: MembershipType; duration: SaleDuration;
   amount_cents: number; state: string; qbo_customer_id: string | null;
   qbo_invoice_id: string | null; qbo_invoice_number: string | null;
-  created_at: string;
+  created_at: string; purpose?: 'ENROLLMENT' | 'RENEWAL';
 }
 const invoiceLink = (value: unknown): value is string => typeof value === 'string' &&
   /^https:\/\/connect\.intuit\.com\/t\/[^\s]+$/.test(value) && value.length <= 2048
@@ -56,18 +56,24 @@ export async function issuePatientQboInvoice(identityId: string, intentId: strin
   if (!existingJob || (!existingJob.qbo_invoice_id &&
       existingJob.state !== 'INVOICE_WRITE_STARTED')) {
     const { data: intent, error: intentError } = await db.from('sales_patient_enrollment_intents')
-      .select('id,organization_id,patient_identity_id,opportunity_id,plan,membership_type,duration,amount_cents')
+      .select('id,organization_id,patient_identity_id,opportunity_id,plan,membership_type,duration,amount_cents,purpose')
       .eq('organization_id',EMC_ORGANIZATION_ID).eq('id',intentId)
       .eq('patient_identity_id',identityId).maybeSingle()
     if (intentError || !intent?.opportunity_id) throw new Error('QBO_INTENT_UNAVAILABLE')
-    const { data: acceptance, error: acceptanceError } = await db
-      .from('sales_patient_agreement_acceptances').select('id')
-      .eq('organization_id',EMC_ORGANIZATION_ID).eq('patient_identity_id',identityId)
-      .eq('enrollment_intent_id',intentId).eq('opportunity_id',intent.opportunity_id)
-      .eq('agreement_version','v5').eq('plan',intent.plan)
-      .eq('membership_type',intent.membership_type).eq('duration',intent.duration)
-      .eq('amount_cents',intent.amount_cents).maybeSingle()
-    if (acceptanceError || !acceptance) throw new Error('PATIENT_AGREEMENT_REQUIRED')
+    if (intent.purpose === 'RENEWAL') {
+      const { data: accepted, error: acceptanceError } = await db
+        .rpc('native_sales_patient_invoice_agreement_valid', { p_intent_id:intentId })
+      if (acceptanceError || accepted !== true) throw new Error('PATIENT_AGREEMENT_REQUIRED')
+    } else {
+      const { data: acceptance, error: acceptanceError } = await db
+        .from('sales_patient_agreement_acceptances').select('id')
+        .eq('organization_id',EMC_ORGANIZATION_ID).eq('patient_identity_id',identityId)
+        .eq('enrollment_intent_id',intentId).eq('opportunity_id',intent.opportunity_id)
+        .eq('agreement_version','v5').eq('plan',intent.plan)
+        .eq('membership_type',intent.membership_type).eq('duration',intent.duration)
+        .eq('amount_cents',intent.amount_cents).maybeSingle()
+      if (acceptanceError || !acceptance) throw new Error('PATIENT_AGREEMENT_REQUIRED')
+    }
     const { data: identity, error: identityError } = await db.from('sales_patient_identities')
       .select('contact_id').eq('organization_id',EMC_ORGANIZATION_ID)
       .eq('id',identityId).maybeSingle()
@@ -90,7 +96,7 @@ export async function issuePatientQboInvoice(identityId: string, intentId: strin
     invoiceNumber:job.qbo_invoice_number }
   if (!['CLAIMED','INVOICE_CREATED','INVOICE_WRITE_STARTED'].includes(job.state))
     return { status:'PENDING_RECONCILIATION' as const }
-  const quote = quoteMembership(job.plan,job.membership_type,job.duration)
+  const quote = (job.purpose === 'RENEWAL' ? quoteRenewal : quoteMembership)(job.plan,job.membership_type,job.duration)
   if (quote.totalCents !== job.amount_cents) throw new Error('QBO_INVOICE_AMOUNT_MISMATCH')
   const { data: contact, error: contactError } = await db.from('sales_contacts')
     .select('id,first_name,last_name,display_name,email,phone,address,do_not_email')

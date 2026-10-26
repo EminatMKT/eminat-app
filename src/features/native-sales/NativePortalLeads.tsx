@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import type { NativeRequest } from './NativeSalesModule'
+import { useT } from '@/shared/i18n'
 import s from './NativeSalesModule.module.css'
 
 type PortalLead = {
@@ -29,6 +30,7 @@ export default function NativePortalLeads({ request, users, onOpenLead }: {
   users: { memberId: string; displayName: string }[]
   onOpenLead: (email: string) => void
 }) {
+  const { t } = useT()
   const [filters, setFilters] = useState<Filters>(initial)
   const [offset, setOffset] = useState(0)
   const [refresh, setRefresh] = useState(0)
@@ -54,84 +56,84 @@ export default function NativePortalLeads({ request, users, onOpenLead }: {
     setFilters(current => ({ ...current, [key]: entry })); setOffset(0); setSelected(null)
   }
   const userName = (row: PortalLead) => row.assignmentStatus === 'NEEDS_ASSIGNMENT'
-    ? 'Unassigned'
-    : row.assignedSellerName || users.find(user => user.memberId === row.ownerMemberId)?.displayName || 'Assigned seller'
+    ? t('salesNative.auditUnassigned')
+    : row.assignedSellerName || users.find(user => user.memberId === row.ownerMemberId)?.displayName || t('salesNative.auditAssignedSeller')
   return <>
     <section className={s.panel}>
-      <h2>Patient Portal leads</h2>
-      <p>Registrations, enrollment, invoice state and follow-up in one Sales view.</p>
+      <h2>{t('salesNative.auditPatientPortalLeads')}</h2>
+      <p>{t('salesNative.auditRegistrationsEnrollmentInvoiceStateAndFollowUpInOneSalesView')}</p>
       <div className={s.filters}>
-        <label>Search <input value={filters.q} onChange={event => change('q',event.target.value)} /></label>
-        <label>Seller <select value={filters.owner} onChange={event => change('owner',event.target.value)}>
-          <option value="">All sellers</option>{users.map(user => <option key={user.memberId} value={user.memberId}>{user.displayName}</option>)}
+        <label>{t('salesNative.auditSearch')} <input value={filters.q} onChange={event => change('q',event.target.value)} /></label>
+        <label>{t('salesNative.auditSeller')} <select value={filters.owner} onChange={event => change('owner',event.target.value)}>
+          <option value="">{t('salesNative.auditAllSellers')}</option>{users.map(user => <option key={user.memberId} value={user.memberId}>{user.displayName}</option>)}
         </select></label>
-        <label>Assignment <select value={filters.assignment} onChange={event => change('assignment',event.target.value)}>
-          <option value="">All</option><option value="ASSIGNED">Assigned</option>
-          <option value="NEEDS_ASSIGNMENT">Needs assignment</option>
+        <label>{t('salesNative.auditAssignment')} <select value={filters.assignment} onChange={event => change('assignment',event.target.value)}>
+          <option value="">{t('salesNative.all')}</option><option value="ASSIGNED">{t('salesNative.auditAssigned')}</option>
+          <option value="NEEDS_ASSIGNMENT">{t('salesNative.auditNeedsAssignment')}</option>
         </select></label>
-        <label>Plan <select value={filters.plan} onChange={event => change('plan',event.target.value)}>
-          <option value="">All plans</option>{['ESSENTIAL','PLUS','MAX'].map(plan => <option key={plan}>{plan}</option>)}
+        <label>{t('salesNative.auditPlan')} <select value={filters.plan} onChange={event => change('plan',event.target.value)}>
+          <option value="">{t('salesNative.auditAllPlans')}</option>{['ESSENTIAL','PLUS','MAX'].map(plan => <option key={plan}>{plan}</option>)}
         </select></label>
-        <label>Type <select value={filters.type} onChange={event => change('type',event.target.value)}>
-          <option value="">All types</option><option>INDIVIDUAL</option><option>FAMILY</option>
+        <label>{t('salesNative.auditType')} <select value={filters.type} onChange={event => change('type',event.target.value)}>
+          <option value="">{t('salesNative.auditAllTypes')}</option><option value="INDIVIDUAL">{t('salesNative.auditIndividual')}</option><option value="FAMILY">{t('salesNative.auditFamily')}</option>
         </select></label>
-        <label>Opportunity <select value={filters.stage} onChange={event => change('stage',event.target.value)}>
-          <option value="">All stages</option><option>PAYMENT_PENDING</option><option>WON</option><option>LOST</option>
+        <label>{t('salesNative.qboOpportunity')} <select value={filters.stage} onChange={event => change('stage',event.target.value)}>
+          <option value="">{t('salesNative.auditAllStages')}</option><option value="PAYMENT_PENDING">{t('salesNative.auditPaymentPending')}</option><option value="WON">{t('salesNative.auditWon')}</option><option value="LOST">{t('salesNative.auditLost')}</option>
         </select></label>
-        <label>Invoice <select value={filters.invoice} onChange={event => change('invoice',event.target.value)}>
-          <option value="">All invoice states</option><option>NOT_CREATED</option><option>OPEN</option><option>PAID</option><option>VOID</option>
+        <label>{t('salesNative.qboInvoice')} <select value={filters.invoice} onChange={event => change('invoice',event.target.value)}>
+          <option value="">{t('salesNative.auditAllInvoiceStates')}</option><option value="NOT_CREATED">{t('salesNative.auditNotCreated')}</option><option value="OPEN">{t('salesNative.auditOpen')}</option><option value="PAID">{t('salesNative.auditPaid')}</option><option value="VOID">{t('salesNative.auditVoid')}</option>
         </select></label>
-        <label>Payment <select value={filters.payment} onChange={event => change('payment',event.target.value)}>
-          <option value="">All payment states</option><option>UNPAID</option><option>REPORTED</option><option>PAID</option><option>VERIFIED</option><option>REJECTED</option>
+        <label>{t('salesNative.qboPayment')} <select value={filters.payment} onChange={event => change('payment',event.target.value)}>
+          <option value="">{t('salesNative.auditAllPaymentStates')}</option><option value="UNPAID">{t('salesNative.auditUnpaid')}</option><option value="REPORTED">{t('salesNative.auditReported')}</option><option value="PAID">{t('salesNative.auditPaid')}</option><option value="VERIFIED">{t('salesNative.auditVerified')}</option><option value="REJECTED">{t('salesNative.auditRejected')}</option>
         </select></label>
-        <label>Membership <select value={filters.membership} onChange={event => change('membership',event.target.value)}>
-          <option value="">All memberships</option><option>NOT_ACTIVE</option><option>ACTIVE</option><option>PENDING</option><option>EXPIRED</option><option>CANCELLED</option>
+        <label>{t('salesNative.qboMembership')} <select value={filters.membership} onChange={event => change('membership',event.target.value)}>
+          <option value="">{t('salesNative.auditAllMemberships')}</option><option value="NOT_ACTIVE">{t('salesNative.auditNotActive')}</option><option value="ACTIVE">{t('salesNative.auditActive')}</option><option value="PENDING">{t('salesNative.auditPending')}</option><option value="EXPIRED">{t('salesNative.auditExpired')}</option><option value="CANCELLED">{t('salesNative.auditCancelled')}</option>
         </select></label>
-        <label>Follow-up <select value={filters.followUp} onChange={event => change('followUp',event.target.value)}>
-          <option value="">All</option><option value="true">Required</option><option value="false">Not required</option>
+        <label>{t('salesNative.auditFollowUp')} <select value={filters.followUp} onChange={event => change('followUp',event.target.value)}>
+          <option value="">{t('salesNative.all')}</option><option value="true">{t('salesNative.auditRequired')}</option><option value="false">{t('salesNative.auditNotRequired')}</option>
         </select></label>
-        <label>Registered from <input type="date" value={filters.from} onChange={event => change('from',event.target.value)} /></label>
-        <label>Registered to <input type="date" value={filters.to} onChange={event => change('to',event.target.value)} /></label>
+        <label>{t('salesNative.auditRegisteredFrom')} <input type="date" value={filters.from} onChange={event => change('from',event.target.value)} /></label>
+        <label>{t('salesNative.auditRegisteredTo')} <input type="date" value={filters.to} onChange={event => change('to',event.target.value)} /></label>
       </div>
-      <button type="button" onClick={() => setRefresh(count => count+1)}>Refresh</button>
+      <button type="button" onClick={() => setRefresh(count => count+1)}>{t('salesNative.refresh')}</button>
     </section>
-    {loading && <p role="status">Loading Portal leads…</p>}
+    {loading && <p role="status">{t('salesNative.auditLoadingPortalLeads')}</p>}
     {error && <p role="alert" className={s.error}>{error}</p>}
     {!loading && !error && <>
       {rows.length ? <div className={s.list}>{rows.map(row =>
         <button key={row.id} type="button" className={s.item} onClick={() => setSelected(row)}>
-          <span><strong>{row.displayName}</strong><small>{row.email || 'No email'} · {row.commercialStatus.replaceAll('_',' ')}</small></span>
+          <span><strong>{row.displayName}</strong><small>{row.email || t('salesNative.auditNoEmail')} · {row.commercialStatus.replaceAll('_',' ')}</small></span>
           <span className={s.meta}>{userName(row)} · {date(row.registeredAt)}</span>
-        </button>)}</div> : <p className={s.empty}>No Portal leads match these filters.</p>}
+        </button>)}</div> : <p className={s.empty}>{t('salesNative.auditNoPortalLeadsMatchTheseFilters')}</p>}
       <div className={s.pager}>
-        <button type="button" disabled={offset===0} onClick={() => setOffset(Math.max(0,offset-25))}>Previous</button>
-        <span>Page {Math.floor(offset/25)+1}</span>
-        <button type="button" disabled={nextOffset===null} onClick={() => setOffset(nextOffset ?? offset)}>Next</button>
+        <button type="button" disabled={offset===0} onClick={() => setOffset(Math.max(0,offset-25))}>{t('salesNative.previous')}</button>
+        <span>{t('salesNative.auditPage')} {Math.floor(offset/25)+1}</span>
+        <button type="button" disabled={nextOffset===null} onClick={() => setOffset(nextOffset ?? offset)}>{t('salesNative.next')}</button>
       </div>
     </>}
     {selected && <div className={s.overlay} role="presentation" onMouseDown={event => {
       if (event.target===event.currentTarget) setSelected(null)
     }}><section className={s.detail} role="dialog" aria-modal="true" aria-label={selected.displayName}>
       <div className={s.detailHeader}><h2>{selected.displayName}</h2>
-        <button type="button" onClick={() => setSelected(null)} aria-label="Close details">×</button></div>
+        <button type="button" onClick={() => setSelected(null)} aria-label={t('salesNative.closeDetails')}>×</button></div>
       <dl>
-        <dt>Source / registered</dt><dd>{selected.source} · {date(selected.registeredAt)}</dd>
-        <dt>Contact</dt><dd>{value(selected.email)} · {value(selected.phone)}</dd>
-        <dt>Profile</dt><dd>{selected.profileComplete ? 'Complete' : 'Incomplete'}</dd>
-        <dt>Seller / assignment</dt><dd>{userName(selected)} · {selected.assignmentStatus} · {date(selected.assignmentAt)}</dd>
-        <dt>Rule</dt><dd>{selected.assignmentSource.replaceAll('_',' ')}</dd>
-        <dt>Lead / commercial</dt><dd>{selected.leadStatus} · {selected.commercialStatus.replaceAll('_',' ')}</dd>
-        <dt>Selection</dt><dd>{value(selected.plan)} · {value(selected.membershipType)} · {value(selected.modality)}</dd>
-        <dt>Amount</dt><dd>{selected.amountCents===null ? '—' : `$${(selected.amountCents/100).toFixed(2)}`}</dd>
-        <dt>Opportunity</dt><dd>{value(selected.opportunityStage)} · {value(selected.opportunityId)}</dd>
-        <dt>Invoice</dt><dd>{selected.invoiceStatus} · {value(selected.invoiceNumber)}</dd>
-        <dt>Payment / membership</dt><dd>{selected.paymentStatus} · {selected.membershipStatus}</dd>
-        <dt>Family capacity</dt><dd>{selected.familyCount===null ? 'Individual' : `${selected.familyCount}/3`}</dd>
-        <dt>Next action</dt><dd>{value(selected.nextAction)}</dd>
-        <dt>Follow-up due</dt><dd>{date(selected.nextFollowUpAt)}{selected.nextFollowUpAt && new Date(selected.nextFollowUpAt)<new Date() ? ' · Overdue' : ''}</dd>
-        <dt>Last activity</dt><dd>{value(selected.lastActivity)} · {date(selected.lastActivityAt)}</dd>
+        <dt>{t('salesNative.auditSourceRegistered')}</dt><dd>{selected.source} · {date(selected.registeredAt)}</dd>
+        <dt>{t('salesNative.auditContact')}</dt><dd>{value(selected.email)} · {value(selected.phone)}</dd>
+        <dt>{t('salesNative.auditProfile')}</dt><dd>{selected.profileComplete ? t('salesNative.complete') : t('salesNative.auditIncomplete')}</dd>
+        <dt>{t('salesNative.auditSellerAssignment')}</dt><dd>{userName(selected)} · {selected.assignmentStatus} · {date(selected.assignmentAt)}</dd>
+        <dt>{t('salesNative.auditRule')}</dt><dd>{selected.assignmentSource.replaceAll('_',' ')}</dd>
+        <dt>{t('salesNative.auditLeadCommercial')}</dt><dd>{selected.leadStatus} · {selected.commercialStatus.replaceAll('_',' ')}</dd>
+        <dt>{t('salesNative.auditSelection')}</dt><dd>{value(selected.plan)} · {value(selected.membershipType)} · {value(selected.modality)}</dd>
+        <dt>{t('salesNative.auditAmount')}</dt><dd>{selected.amountCents===null ? '—' : `$${(selected.amountCents/100).toFixed(2)}`}</dd>
+        <dt>{t('salesNative.qboOpportunity')}</dt><dd>{value(selected.opportunityStage)} · {value(selected.opportunityId)}</dd>
+        <dt>{t('salesNative.qboInvoice')}</dt><dd>{selected.invoiceStatus} · {value(selected.invoiceNumber)}</dd>
+        <dt>{t('salesNative.auditPaymentMembership')}</dt><dd>{selected.paymentStatus} · {selected.membershipStatus}</dd>
+        <dt>{t('salesNative.auditFamilyCapacity')}</dt><dd>{selected.familyCount===null ? t('salesNative.individual') : `${selected.familyCount}/3`}</dd>
+        <dt>{t('salesNative.auditNextAction')}</dt><dd>{value(selected.nextAction)}</dd>
+        <dt>{t('salesNative.auditFollowUpDue')}</dt><dd>{date(selected.nextFollowUpAt)}{selected.nextFollowUpAt && new Date(selected.nextFollowUpAt)<new Date() ? ` · ${t('salesNative.auditOverdue')}` : ''}</dd>
+        <dt>{t('salesNative.auditLastActivity')}</dt><dd>{value(selected.lastActivity)} · {date(selected.lastActivityAt)}</dd>
       </dl>
-      {selected.email && <button type="button" onClick={() => onOpenLead(selected.email as string)}>Open Lead and activities</button>}
+      {selected.email && <button type="button" onClick={() => onOpenLead(selected.email as string)}>{t('salesNative.auditOpenLeadAndActivities')}</button>}
     </section></div>}
   </>
 }

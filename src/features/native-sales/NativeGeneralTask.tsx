@@ -41,9 +41,9 @@ export default function NativeGeneralTask({ request, onSaved }: {
   return <form className={`${s.panel} ${s.form}`} onSubmit={event => void submit(event)}>
     <h2>{t('salesNative.newGeneralTask')}</h2>
     <p className={s.hint}>{t('salesNative.thisTaskIsAssignedToYouAndDoes')}</p>
-    <label>Title <input required maxLength={240} value={title} onChange={event => setTitle(event.target.value)} /></label>
-    <label>Details <textarea maxLength={20000} value={body} onChange={event => setBody(event.target.value)} /></label>
-    <label>Due date and time <input type="datetime-local" value={dueAt} onChange={event => setDueAt(event.target.value)} /></label>
+    <label>{t('salesNative.auditTitle')} <input required maxLength={240} value={title} onChange={event => setTitle(event.target.value)} /></label>
+    <label>{t('salesNative.auditDetails')} <textarea maxLength={20000} value={body} onChange={event => setBody(event.target.value)} /></label>
+    <label>{t('salesNative.auditDueDateAndTime')} <input type="datetime-local" value={dueAt} onChange={event => setDueAt(event.target.value)} /></label>
     {error && <p role="alert" className={s.error}>{error}</p>}
     <button type="submit" disabled={busy || !title.trim()}>{busy ? 'Saving…' : 'Save task'}</button>
   </form>

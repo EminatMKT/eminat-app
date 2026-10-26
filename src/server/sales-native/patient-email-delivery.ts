@@ -100,3 +100,13 @@ export async function sendPatientActivation(membershipId: string, recipient: str
     actionLabel: 'Ver mi membresía', actionUrl: 'https://portal.corazonsalud.health/membresia',
   } })
 }
+
+export async function sendPatientRenewal(intentId: string, recipient: string, expiresAt: string) {
+  const { queuePatientEmail } = await import('./patient-email-outbox')
+  return queuePatientEmail({ kind:'activation', eventId:`renewal-${intentId}`, recipient, content:{
+    title:'Tu membresía ha sido renovada',
+    message:'Tu pago de renovación fue verificado y el nuevo período ya está disponible en el Portal.',
+    actionLabel:'Ver mi membresía', actionUrl:'https://portal.corazonsalud.health/membresia',
+    details:[{ label:'Vigencia hasta',value:expiresAt }],
+  } })
+}
