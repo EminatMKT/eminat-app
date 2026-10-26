@@ -3,7 +3,7 @@
 ## Portal
 
 - New loopback-only renewal browser rehearsal: 5/5 pass (English desktop, Spanish mobile, v5 reuse/reacceptance, pending versus reconciled period, one invoice on retry, cancellation, early renewal). No external requests or real provider operations.
-- Unit suite: 106/106 pass.
+- Unit suite: 112/112 pass.
 - TypeScript and lint for all changed renewal files: pass.
 - Optimized production build and synthetic-fixture/official-Agreement bundle check: pass.
 - Manual visual review in the existing Chrome profile: Spanish and English renewal screens show the unchanged current period, correct Family monthly quote, v5 reuse and no premature renewed period. Test identity/code explicitly identify LOCAL QA.

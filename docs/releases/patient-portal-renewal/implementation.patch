@@ -37,12 +37,50 @@ index 0000000..570ea5a
 +    {command:'pnpm dev --port 3191',url:'http://127.0.0.1:3191/login',env:{PORTAL_DATA_MODE:'lilly',LILLY_PATIENT_API_BASE_URL:'http://127.0.0.1:3192/api/patient/v1/'},reuseExistingServer:false},
 +  ],
 +});
+diff --git a/src/app/(portal)/pagos/current-payment.test.ts b/src/app/(portal)/pagos/current-payment.test.ts
+index e524bc7..0bdf275 100644
+--- a/src/app/(portal)/pagos/current-payment.test.ts
++++ b/src/app/(portal)/pagos/current-payment.test.ts
+@@ -28,7 +28,7 @@ describe("current LILLY payment card", () => {
+     expect(output).toContain("PAGO PENDIENTE");
+     expect(output).toContain("Essential");
+     expect(output).toContain("Individual");
+-    expect(output).toContain("Month-to-Month");
++    expect(output).toContain("Mes a mes");
+     expect(output).toContain("$119.98");
+     expect(output).toContain("Factura pendiente de emisión");
+     expect(output).toContain("Continuar y emitir factura");
+diff --git a/src/app/(portal)/pagos/current-payment.tsx b/src/app/(portal)/pagos/current-payment.tsx
+index ea930a5..fd6a1b2 100644
+--- a/src/app/(portal)/pagos/current-payment.tsx
++++ b/src/app/(portal)/pagos/current-payment.tsx
+@@ -1,3 +1,4 @@
++import Link from "next/link";
+ import { Card, EmptyState, PageHeading, SectionTitle, StatusPill } from "@/components/ui";
+ import { loadPatientData } from "@/lib/api";
+ import { lillyPatientRequest } from "@/lib/api/lilly";
+@@ -64,7 +65,7 @@ function paymentStatus(state: string, active: boolean, hasInvoice: boolean, engl
+ }
+ 
+ const planLabel = (plan: string) => ({ ESSENTIAL: "Essential", PLUS: "Plus", MAX: "Max" })[plan as "ESSENTIAL" | "PLUS" | "MAX"] ?? plan;
+-const durationLabel = (duration: string, english = false) => ({ MONTHLY: "Month-to-Month", "3M": english ? "3 Months" : "3 meses", "6M": english ? "6 Months" : "6 meses", "12M": english ? "12 Months" : "12 meses" })[duration as "MONTHLY" | "3M" | "6M" | "12M"] ?? duration;
++const durationLabel = (duration: string, english = false) => ({ MONTHLY: english ? "Month-to-Month" : "Mes a mes", "3M": english ? "3 Months" : "3 meses", "6M": english ? "6 Months" : "6 meses", "12M": english ? "12 Months" : "12 meses" })[duration as "MONTHLY" | "3M" | "6M" | "12M"] ?? duration;
+ 
+ export async function CurrentPayment({ locale = "es" }: { locale?: PortalLocale } = {}) {
+   const [enrollment, membership] = await Promise.allSettled([
+@@ -102,5 +103,5 @@ export async function CurrentPayment({ locale = "es" }: { locale?: PortalLocale
+           {!invoiceNumber && !active && <p className="current-payment-footnote">{english ? "Invoice pending issuance" : "Factura pendiente de emisión"}</p>}
+         </> : <EmptyState title={membershipActive ? (english ? "Membership active" : "Membresía activa") : (english ? "No pending payment" : "Sin pago pendiente")} description={membershipActive ? (english ? "Your membership is active. There is no current payment to display." : "Tu membresía está activa. No hay un pago actual pendiente de mostrar.") : (english ? "Your membership selection will appear here once saved." : "Tu selección de membresía aparecerá aquí cuando esté registrada.")}/>}
+     </Card>
+-    <Card><SectionTitle title={english ? "Payment history" : "Historial de pagos"}/><EmptyState title={english ? "No payment history" : "Sin historial de pagos"} description={english ? "Invoices and recorded payments will appear here when available." : "Las facturas y los pagos registrados aparecerán aquí cuando estén disponibles."}/></Card></>;
++    <Card><SectionTitle title={english ? "Renewal payments and history" : "Pagos e historial de renovación"}/><p>{english ? "Your initial payment status appears above. View renewal invoices, payment verification, and completed renewal periods in Renewal." : "El estado del pago inicial aparece arriba. Consulta las facturas de renovación, la verificación del pago y los períodos renovados en Renovación."}</p><Link className="text-action" href="/renovacion">{english ? "View renewal payments and status" : "Ver pagos y estado de renovación"} →</Link></Card></>;
+ }
 diff --git a/src/app/(portal)/renovacion/online-renewal.tsx b/src/app/(portal)/renovacion/online-renewal.tsx
 new file mode 100644
-index 0000000..b8298cf
+index 0000000..959a67d
 --- /dev/null
 +++ b/src/app/(portal)/renovacion/online-renewal.tsx
-@@ -0,0 +1,46 @@
+@@ -0,0 +1,49 @@
 +import { randomUUID } from "node:crypto";
 +import Link from "next/link";
 +import { Card, PageHeading, SectionTitle } from "@/components/ui";
@@ -51,17 +89,17 @@ index 0000000..b8298cf
 +import { readOnlineRenewal, type OnlineRenewalData } from "./renewal-data";
 +import { RenewalControls } from "./renewal-controls";
 +
-+export async function OnlineRenewal({locale}:{locale:PortalLocale}) {
++export async function OnlineRenewal({locale,offset=0}:{locale:PortalLocale;offset?:number}) {
 +  const t = (es:string,en:string) => locale === "en" ? en : es;
 +  const heading = <PageHeading eyebrow={t("PLANIFICA CON TRANQUILIDAD","PLAN WITH CONFIDENCE")} title={t("Renovación","Renewal")}
 +    description={t("Continúa tu membresía de Corazón Salud. La cobertura se extiende solo después del pago verificado.","Continue your Corazón Salud membership. Coverage extends only after verified payment.")}/>;
 +  let data:OnlineRenewalData|null = null;
-+  try { data = await readOnlineRenewal(); } catch { /* Keep failed API reads separate from rendering. */ }
++  try { data = await readOnlineRenewal(offset); } catch { /* Keep failed API reads separate from rendering. */ }
 +  if (!data) return <>{heading}<Card><p role="alert">{t("No pudimos consultar la renovación. Inténtalo más tarde. No se ha iniciado ningún cobro.","We couldn't load your renewal. Try again later. No charge has been initiated.")}</p></Card></>;
 +
 +    const membership = data.membership;
 +    if (!membership) return <>{heading}<Card><p>{t("Aún no tienes una membresía pagada para renovar.","You don't have a paid membership to renew yet.")}</p><Link href="/membresia">{t("Ver membresía","View membership")}</Link></Card></>;
-+    const pending = data.renewals.some(item => !["FULFILLED","CANCELLED"].includes(item.status));
++    const pending = data.hasPending;
 +    const statuses:Record<string,string> = {
 +      PAYMENT_UNAVAILABLE:t("Pendiente de factura","Awaiting invoice"), PAYMENT_PENDING:t("Pendiente de pago verificado","Awaiting verified payment"),
 +      FULFILLED:t("Renovación completada","Renewal completed"), CANCELLED:t("Cancelada","Canceled"),
@@ -73,7 +111,7 @@ index 0000000..b8298cf
 +        <div><span>{t("Inicio","Started")}</span><strong>{formatDate(membership.issued_at,locale)}</strong></div>
 +        <div><span>{t("Vigente hasta","Valid through")}</span><strong>{formatDate(membership.expires_at,locale)}</strong></div></div>
 +      <p className="inline-note">{t("La renovación conserva tu código, titular y familiares cubiertos. No modifica la vigencia mientras el pago esté pendiente.","Renewal keeps your member code, primary member, and covered family. Pending payment does not change your current term.")}</p>
-+      {!pending && (data.eligible ? <RenewalControls locale={locale} create idempotencyKey={randomUUID()}/> : <p>{t("La renovación estará disponible desde","Renewal will be available starting")} {data.eligibleFrom ? formatDate(data.eligibleFrom,locale) : "—"}.</p>)}
++      {!pending && offset===0 && (data.eligible ? <RenewalControls locale={locale} create idempotencyKey={randomUUID()}/> : <p>{t("La renovación estará disponible desde","Renewal will be available starting")} {data.eligibleFrom ? formatDate(data.eligibleFrom,locale) : "—"}.</p>)}
 +    </Card>{data.renewals.map(item => {
 +      const open = !["FULFILLED","CANCELLED","CANCELLATION_REQUESTED"].includes(item.status);
 +      const url = item.qbo?.qbo_hosted_payment_url;
@@ -87,10 +125,13 @@ index 0000000..b8298cf
 +        {pay && <a className="button button-primary" href={url} target="_blank" rel="noopener noreferrer">{t("Pagar renovación de forma segura","Pay renewal securely")}</a>}
 +        {open && <RenewalControls locale={locale} intentId={item.id} agreementSatisfied={item.agreementSatisfied} invoiceLocked={Boolean(item.invoiceJobState || item.qbo?.qbo_invoice_number)} canRecover={Boolean(item.invoiceJobState && item.invoiceJobState !== "LINKED" && !item.qbo?.qbo_invoice_number)}/>}
 +      </Card>;
-+    })}<Link className="text-action" href="/membresia">{t("Volver a mi membresía","Back to my membership")} →</Link></>;
++    })}<nav aria-label={t("Historial de renovaciones","Renewal history")}>
++      {offset>0 && <Link className="text-action" href={`/renovacion?offset=${Math.max(0,offset-25)}`}>{t("Renovaciones más recientes","Newer renewals")} →</Link>}
++      {data.nextOffset !== null && <Link className="text-action" href={`/renovacion?offset=${data.nextOffset}`}>{t("Renovaciones anteriores","Older renewals")} →</Link>}
++    </nav><Link className="text-action" href="/membresia">{t("Volver a mi membresía","Back to my membership")} →</Link></>;
 +}
 diff --git a/src/app/(portal)/renovacion/page.tsx b/src/app/(portal)/renovacion/page.tsx
-index d5f6dcc..b788fdf 100644
+index d5f6dcc..f146d7a 100644
 --- a/src/app/(portal)/renovacion/page.tsx
 +++ b/src/app/(portal)/renovacion/page.tsx
 @@ -1,3 +1,4 @@
@@ -98,7 +139,13 @@ index d5f6dcc..b788fdf 100644
  import Link from "next/link";
  import { ApiErrorState } from "@/components/api-error";
  import { RenewalRequestForm } from "@/components/renewal-request-form";
-@@ -12,11 +13,7 @@ export default async function RenewalPage() {
+@@ -7,16 +8,14 @@ import { getDataMode } from "@/lib/api/environment";
+ import { formatDate, formatMoney, membershipStatusView, renewalStatusView } from "@/lib/presentation";
+ import { getPortalLocale } from "@/lib/portal-locale";
+ 
+-export default async function RenewalPage() {
++export default async function RenewalPage({searchParams}:{searchParams:Promise<{offset?:string}>}) {
+   const locale = await getPortalLocale();
    const english = locale === "en";
    const t = (es: string, en: string) => english ? en : es;
    if (getDataMode() === "lilly-production" || getDataMode() === "lilly-local") {
@@ -107,7 +154,9 @@ index d5f6dcc..b788fdf 100644
 -    if (!membership.ok && membership.error.code !== "not_found")
 -      return <>{heading}<Card><ApiErrorState error={membership.error}/></Card></>;
 -    return <>{heading}<Card>{membership.ok ? <><SectionTitle title={english ? "Membership term" : "Vigencia de tu membresía"}/><div className="detail-grid"><div><span>Plan</span><strong>{membership.data.planName}</strong></div><div><span>{english ? "Status" : "Estado"}</span><strong>{english ? ({active:"Active",pending:"Pending",expired:"Expired",cancelled:"Canceled"})[membership.data.status] : membershipStatusView(membership.data.status).label}</strong></div><div><span>{english ? "Valid through" : "Vigente hasta"}</span><strong>{formatDate(membership.data.renewalDate, locale)}</strong></div></div><p className="inline-note">{english ? "Online renewal will be available when renewal payments are enabled." : "La renovación en línea estará disponible cuando se habiliten los pagos."}</p></> : <ComingSoonState locale={locale} title={english ? "No active membership yet" : "Aún no hay una membresía activa"} description={english ? "Your selection is saved. Your renewal date will appear once payment is confirmed and your membership is activated." : "Tu selección está guardada. La fecha de renovación aparecerá cuando el pago se confirme y se active la membresía."}/>}</Card></>;
-+    return <OnlineRenewal locale={locale}/>;
++    const params = await searchParams;
++    const offset = params.offset === undefined ? 0 : /^\d{1,6}$/.test(params.offset) ? Number(params.offset) : NaN;
++    return <OnlineRenewal locale={locale} offset={offset}/>;
    }
    const [renewal, membership, { renewalRequest }] = await Promise.all([loadPatientData(service => service.getRenewal()), loadPatientData(service => service.getMembership()), getPortalCapabilities()]);
    const heading = <PageHeading eyebrow={t("PLANIFICA CON TRANQUILIDAD", "PLAN WITH CONFIDENCE")} title={t("Renovación", "Renewal")} description={t("Conoce la fecha prevista para continuar cuidando a tu familia.", "See when your membership renews.")}/>;
@@ -256,10 +305,10 @@ index 0000000..a246c61
 +}
 diff --git a/src/app/(portal)/renovacion/renewal-data.ts b/src/app/(portal)/renovacion/renewal-data.ts
 new file mode 100644
-index 0000000..8c4a073
+index 0000000..ac07414
 --- /dev/null
 +++ b/src/app/(portal)/renovacion/renewal-data.ts
-@@ -0,0 +1,18 @@
+@@ -0,0 +1,20 @@
 +import "server-only";
 +import { lillyPatientRequest } from "@/lib/api/lilly";
 +
@@ -269,15 +318,85 @@ index 0000000..8c4a073
 +  qbo:{qbo_invoice_number:string|null;qbo_hosted_payment_url:string|null;qbo_invoice_status:string;
 +    qbo_payment_status:string;verification_state:string}|null };
 +export type OnlineRenewalData = { membership:{id:string;code:string;plan:string;membership_type:string;
-+  duration:string;status:string;issued_at:string;expires_at:string}|null;eligible:boolean;eligibleFrom:string|null;renewals:OnlineRenewal[] };
-+export async function readOnlineRenewal(): Promise<OnlineRenewalData> {
-+  const response = await lillyPatientRequest("renewal", {authenticated:true});
++  duration:string;status:string;issued_at:string;expires_at:string}|null;eligible:boolean;eligibleFrom:string|null;hasPending:boolean;nextOffset:number|null;renewals:OnlineRenewal[] };
++export async function readOnlineRenewal(offset=0): Promise<OnlineRenewalData> {
++  if (!Number.isSafeInteger(offset) || offset<0 || offset>100000) throw new Error("INVALID_RENEWAL_PAGE");
++  const response = await lillyPatientRequest("renewal", {authenticated:true,offset});
 +  const data = response.data as OnlineRenewalData | undefined;
-+  if (!data || typeof data.eligible !== "boolean" || !Array.isArray(data.renewals) ||
++  if (!data || typeof data.eligible !== "boolean" || typeof data.hasPending !== "boolean" ||
++      (data.nextOffset !== null && (!Number.isSafeInteger(data.nextOffset) || data.nextOffset <= offset || data.nextOffset>100000)) || !Array.isArray(data.renewals) ||
 +      data.renewals.some(item => typeof item.id !== "string" || !Number.isSafeInteger(item.amount_cents) || item.amount_cents <= 0))
 +    throw new Error("RENEWAL_UNAVAILABLE");
 +  return data;
 +}
+diff --git a/src/app/(portal)/renovacion/renewal-transport.test.ts b/src/app/(portal)/renovacion/renewal-transport.test.ts
+new file mode 100644
+index 0000000..ff89a4a
+--- /dev/null
++++ b/src/app/(portal)/renovacion/renewal-transport.test.ts
+@@ -0,0 +1,20 @@
++import {beforeEach,describe,expect,it,vi} from 'vitest';
++import {lillyRequest} from '@/lib/api/adapters/lilly';
++const fetchMock=vi.fn();
++beforeEach(()=>{vi.clearAllMocks();vi.stubGlobal('fetch',fetchMock);fetchMock.mockResolvedValue(new Response(JSON.stringify({data:{renewals:[]}}),{status:200}));});
++describe('renewal history transport',()=>{
++  it('adds only the encoded history cursor on the existing authenticated API boundary',async()=>{
++    const transport={kind:'patient-cookie' as const,read:vi.fn(),clear:vi.fn(),establish:vi.fn(),authorize:vi.fn(async(headers:Headers)=>{headers.set('Authorization','Patient synthetic-fixture-only');return true;})};
++    await lillyRequest('https://app.stratixsolutions.us/api/patient/v1/','renewal',{offset:125,transport});
++    expect(String(fetchMock.mock.calls[0][0])).toBe('https://app.stratixsolutions.us/api/patient/v1/renewal?offset=125');
++    expect(fetchMock.mock.calls[0][1]).toMatchObject({redirect:'error',cache:'no-store'});
++    expect(transport.authorize).toHaveBeenCalledOnce();
++  });
++  it.each([-1,100001,NaN,1.5])('rejects invalid history cursors without network access: %s',async offset=>{
++    await expect(lillyRequest('http://127.0.0.1/api/','renewal',{offset})).rejects.toMatchObject({code:'validation_failed'});expect(fetchMock).not.toHaveBeenCalled();
++  });
++  it('cannot apply history paging to invoice writes or other resources',async()=>{
++    await expect(lillyRequest('http://127.0.0.1/api/','invoice',{offset:25,method:'POST'})).rejects.toMatchObject({code:'validation_failed'});
++    await expect(lillyRequest('http://127.0.0.1/api/','renewal',{offset:25,method:'POST'})).rejects.toMatchObject({code:'validation_failed'});expect(fetchMock).not.toHaveBeenCalled();
++  });
++});
+diff --git a/src/lib/api/adapters/lilly/index.ts b/src/lib/api/adapters/lilly/index.ts
+index 7a95e5c..3fbbadc 100644
+--- a/src/lib/api/adapters/lilly/index.ts
++++ b/src/lib/api/adapters/lilly/index.ts
+@@ -8,14 +8,18 @@ const errors: Record<number, "unauthenticated" | "forbidden" | "not_found" | "va
+   401: "unauthenticated", 403: "forbidden", 404: "not_found", 409: "conflict", 422: "validation_failed", 429: "rate_limited", 503: "server_error",
+ };
+ 
+-export async function lillyRequest(baseUrl: string, resource: string, options: { method?: "GET" | "POST" | "PATCH"; body?: Json; transport?: SessionTransport } = {}): Promise<Json> {
++export async function lillyRequest(baseUrl: string, resource: string, options: { method?: "GET" | "POST" | "PATCH"; body?: Json; transport?: SessionTransport; offset?: number } = {}): Promise<Json> {
+   if (!/^[a-z]+$/.test(resource)) throw new PatientApiError("validation_failed");
++  if (options.offset !== undefined && (resource !== "renewal" || (options.method ?? "GET") !== "GET" ||
++      !Number.isSafeInteger(options.offset) || options.offset < 0 || options.offset > 100000)) throw new PatientApiError("validation_failed");
++  const url = new URL(resource, baseUrl);
++  if (options.offset !== undefined) url.searchParams.set("offset", String(options.offset));
+   const headers = new Headers({ Accept: "application/json" });
+   if (options.body) headers.set("Content-Type", "application/json");
+   if (options.transport && !(await options.transport.authorize(headers))) throw new PatientApiError("unauthenticated");
+   let response: Response;
+   try {
+-    response = await fetch(new URL(resource, baseUrl), {
++    response = await fetch(url, {
+       method: options.method ?? "GET", headers, body: options.body ? JSON.stringify(options.body) : undefined,
+       cache: "no-store", redirect: "error", signal: AbortSignal.timeout(10000),
+     });
+diff --git a/src/lib/api/lilly.ts b/src/lib/api/lilly.ts
+index 2b0485a..5203dcb 100644
+--- a/src/lib/api/lilly.ts
++++ b/src/lib/api/lilly.ts
+@@ -4,10 +4,10 @@ import { getDataMode } from "./environment";
+ import { lillyRequest } from "./adapters/lilly";
+ import { PatientApiError } from "./contracts";
+ 
+-export function lillyPatientRequest(resource: string, options: { method?: "GET" | "POST" | "PATCH"; body?: Record<string, unknown>; authenticated?: boolean } = {}) {
++export function lillyPatientRequest(resource: string, options: { method?: "GET" | "POST" | "PATCH"; body?: Record<string, unknown>; authenticated?: boolean; offset?: number } = {}) {
+   if (!["lilly-local", "lilly-production"].includes(getDataMode())) throw new PatientApiError("not_connected");
+   return lillyRequest(process.env.LILLY_PATIENT_API_BASE_URL ?? "", resource, {
+-    method: options.method, body: options.body,
++    method: options.method, body: options.body, offset: options.offset,
+     transport: options.authenticated ? getSessionTransport() : undefined,
+   });
+ }
 diff --git a/tests/e2e/renewal.e2e.ts b/tests/e2e/renewal.e2e.ts
 new file mode 100644
 index 0000000..5aaf647
@@ -329,7 +448,7 @@ index 0000000..5aaf647
 +});
 diff --git a/tests/fixtures/renewal-api.mjs b/tests/fixtures/renewal-api.mjs
 new file mode 100644
-index 0000000..687cc2b
+index 0000000..47d733f
 --- /dev/null
 +++ b/tests/fixtures/renewal-api.mjs
 @@ -0,0 +1,38 @@
@@ -360,7 +479,7 @@ index 0000000..687cc2b
 +  if(resource==='renewal'){
 +    if(req.method==='POST'&&body.action==='CREATE'&&!intents.some(i=>!['FULFILLED','CANCELLED'].includes(i.status)))intents.unshift(initialIntent());
 +    if(req.method==='POST'&&body.action==='CANCEL')intents[0].status=intents[0].qbo?'CANCELLATION_REQUESTED':'CANCELLED';
-+    return send({data:{membership:{...member,expires_at:scenario==='paid'?'2026-12-05':member.expires_at},eligible:scenario!=='early',eligibleFrom:'2026-10-06',renewals:intents}});
++    return send({data:{membership:{...member,expires_at:scenario==='paid'?'2026-12-05':member.expires_at},eligible:scenario!=='early',eligibleFrom:'2026-10-06',hasPending:intents.some(i=>!['FULFILLED','CANCELLED'].includes(i.status)),nextOffset:null,renewals:intents}});
 +  }
 +  if(resource==='agreement'){intents[0].agreementSatisfied=true;return send({status:'ACCEPTED',version:'v5'});}
 +  if(resource==='invoice'){

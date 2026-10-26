@@ -224,3 +224,41 @@ test('all Sales sections keep coherent dark surfaces, readable controls and resp
     }
   }
 })
+
+for (const language of ['en','es'] as const) test(`renewal selectors include later pages and localized pending status (${language})`,async({page})=>{
+  const messages = language === 'es' ? await import('../src/shared/i18n/locales/es.json') : await import('../src/shared/i18n/locales/en.json')
+  const text = messages.default
+  const memberIdAt = (index:number) => `20000000-0000-4000-8000-${String(index).padStart(12,'0')}`
+  const offsets:Record<string,number[]> = {memberships:[],opportunities:[]}
+  for (const resource of ['memberships','opportunities']) await page.route(`**/api/sales-native/${resource}?*`,async route=>{
+    const params=new URL(route.request().url()).searchParams, offset=Number(params.get('offset')??0)
+    offsets[resource].push(offset)
+    const data=Array.from({length:Math.max(0,Math.min(100,203-offset))},(_,n)=>resource==='memberships'
+      ? {id:memberIdAt(offset+n),code:`QA-PAGINATION-${offset+n}`,plan:'ESSENTIAL',duration:'MONTHLY',expires_at:'2026-11-05',effectiveStatus:'ACTIVE',opportunity_id:null}
+      : {id:`30000000-0000-4000-8000-${String(offset+n).padStart(12,'0')}`,name:`QA opportunity ${offset+n}`,currency:'USD',amount:'99.99'})
+    await route.fulfill({json:{data,nextOffset:offset+data.length<203?offset+100:null}})
+  })
+  await page.route('**/api/sales-native/memberships/*/renewals',route=>route.fulfill({json:{data:[]}}))
+  await page.route('**/api/sales-native/memberships/*/online-renewals?*',route=>route.fulfill({json:{data:[{
+    id:'40000000-0000-4000-8000-000000000001',status:'PAYMENT_PENDING',amountCents:9999,
+    invoiceState:'OPEN',invoiceNumber:'QA-LOCAL-NOT-REAL',paymentState:'UNPAID',reconciliationState:'PAYMENT_PENDING',
+    startsAt:null,expiresAt:null,renewedAt:null,
+  }],nextOffset:null}}))
+  await page.addInitScript(locale=>{localStorage.setItem('eminat-onboarding-completed','true');localStorage.setItem('locale',locale)},language)
+  await page.goto('/login')
+  await page.getByPlaceholder('tu@eminat.net').fill(email)
+  await page.locator('input[type="password"]').fill(PASSWORD)
+  await page.locator('input[type="password"]').press('Enter')
+  await page.waitForURL('http://localhost:3000/',{timeout:40000})
+  if(language==='es')await page.setViewportSize({width:375,height:812})
+  await page.goto('/sales-native?section=payments')
+  const membershipSelector=page.getByRole('combobox',{name:text['salesNative.tabMemberships'],exact:true})
+  await expect(membershipSelector.locator('option')).toHaveCount(204)
+  await membershipSelector.selectOption(memberIdAt(202))
+  await expect(page.getByRole('heading',{name:text['salesNative.onlineRenewals'],exact:true})).toBeVisible()
+  await expect(page.getByText(/QA-LOCAL-NOT-REAL/)).toBeVisible()
+  await expect(page.getByText(text['salesNative.verifiedRenewalPeriod'],{exact:false})).toHaveCount(0)
+  await expect(page.getByText('PAYMENT_PENDING',{exact:false})).toHaveCount(0)
+  expect(offsets.memberships).toEqual([0,100,200]);expect(offsets.opportunities).toEqual([0,100,200])
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1)).toBe(false)
+})

@@ -296,7 +296,8 @@ BEGIN
     RETURN to_jsonb(existing)||jsonb_build_object('replayed',true);
   END IF;
   IF m.is_demo OR m.status NOT IN ('ACTIVE','EXPIRED') OR m.expires_at>today+30
-    OR m.duration NOT IN ('MONTHLY','3M','6M','12M') OR m.plan NOT IN ('ESSENTIAL','PLUS','MAX') THEN
+    OR m.duration NOT IN ('MONTHLY','3M','6M','12M') OR m.plan NOT IN ('ESSENTIAL','PLUS','MAX')
+    OR m.membership_type NOT IN ('INDIVIDUAL','FAMILY') THEN
     RAISE EXCEPTION 'RENEWAL_NOT_ELIGIBLE' USING ERRCODE='22023'; END IF;
   SELECT * INTO existing FROM public.sales_patient_enrollment_intents WHERE organization_id=m.organization_id
     AND renewal_membership_id=m.id AND purpose='RENEWAL' AND status NOT IN ('CANCELLED','FULFILLED');
@@ -560,7 +561,7 @@ BEGIN
     VALUES(i.organization_id,m.id,starts,ends,i.plan,i.duration,i.amount_cents,i.id,payment.id);
   UPDATE public.sales_patient_enrollment_intents SET membership_id=m.id,status='FULFILLED',
     renewal_starts_at=starts,renewal_expires_at=ends,renewed_at=now() WHERE id=i.id;
-  UPDATE public.sales_memberships SET expires_at=ends,status='ACTIVE' WHERE id=m.id AND organization_id=i.organization_id;
+  UPDATE public.sales_memberships SET expires_at=ends,status='ACTIVE',updated_at=now(),version=version+1 WHERE id=m.id AND organization_id=i.organization_id;
   UPDATE public.sales_patient_qbo_manual SET membership_activation_status='ACTIVE',updated_at=now() WHERE id=q.id;
   UPDATE public.sales_opportunities SET stage_id=won,probability=100,actual_close_date=payment.paid_at,
     updated_at=now(),version=version+1 WHERE organization_id=i.organization_id AND id=i.opportunity_id;
@@ -611,6 +612,14 @@ DECLARE v_hours integer;
 DECLARE v_action text;
 BEGIN
   IF NEW.purpose='RENEWAL' THEN
+    IF NEW.status='CANCELLED' THEN
+      UPDATE public.sales_opportunities SET stage_id=(SELECT s.id FROM public.sales_stages s
+        JOIN public.sales_pipelines p ON p.organization_id=s.organization_id AND p.id=s.pipeline_id
+        WHERE s.organization_id=NEW.organization_id AND p.code='PATIENT_ENROLLMENT' AND p.active AND s.code='LOST'),
+        probability=0,lost_reason='Patient canceled renewal',actual_close_date=current_date,
+        updated_at=now(),updated_by=owner_member_id,version=version+1
+        WHERE organization_id=NEW.organization_id AND id=NEW.opportunity_id;
+    END IF;
     IF NEW.status IN ('FULFILLED','CANCELLED') THEN
       UPDATE public.sales_activities SET status=CASE WHEN NEW.status='FULFILLED' THEN 'COMPLETED' ELSE 'CANCELLED' END,
         completed_at=CASE WHEN NEW.status='FULFILLED' THEN now() ELSE NULL END,updated_at=now()
@@ -1349,3 +1358,91 @@ BEGIN
   RETURN NEW;
 END;
 $$;
+
+-- One scoped read for Portal status/history, including pending work outside the
+-- selected history page. Avoid per-row server/API requests and hidden page caps.
+CREATE FUNCTION public.native_sales_patient_renewal_summary(p_identity_id uuid,p_limit integer,p_offset integer)
+RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE identity public.sales_patient_identities%ROWTYPE;
+DECLARE m public.sales_memberships%ROWTYPE; result jsonb;
+DECLARE today date:=(now() AT TIME ZONE 'America/New_York')::date;
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'PATIENT_SERVER_ONLY' USING ERRCODE='42501'; END IF;
+  IF p_limit IS NULL OR p_offset IS NULL OR p_limit NOT BETWEEN 1 AND 100 OR p_offset NOT BETWEEN 0 AND 100000 THEN
+    RAISE EXCEPTION 'INVALID_FILTER' USING ERRCODE='22023'; END IF;
+  SELECT pi.* INTO identity FROM public.sales_patient_identities pi
+    JOIN public.sales_organizations org ON org.id=pi.organization_id AND org.status='active'
+    JOIN public.sales_contacts contact ON contact.organization_id=pi.organization_id AND contact.id=pi.contact_id AND contact.archived_at IS NULL
+    JOIN auth.users u ON u.id=pi.auth_id AND u.email_confirmed_at IS NOT NULL
+    WHERE pi.id=p_identity_id AND pi.organization_id='9efab353-46a0-43d1-9901-e3f185dc5d30';
+  IF NOT FOUND THEN RAISE EXCEPTION 'PATIENT_IDENTITY_NOT_FOUND' USING ERRCODE='42501'; END IF;
+  SELECT * INTO m FROM public.sales_memberships WHERE organization_id=identity.organization_id
+    AND primary_contact_id=identity.contact_id AND NOT is_demo ORDER BY created_at DESC,id DESC LIMIT 1;
+  IF NOT FOUND THEN RETURN jsonb_build_object('membership',NULL,'eligible',false,'eligibleFrom',NULL,'hasPending',false,'renewals','[]'::jsonb,'nextOffset',NULL); END IF;
+  SELECT coalesce(jsonb_agg(page.row ORDER BY page.created_at DESC,page.id DESC),'[]'::jsonb) INTO result FROM (
+    SELECT i.id,i.created_at,jsonb_build_object(
+      'id',i.id,'plan',i.plan,'membership_type',i.membership_type,'duration',i.duration,
+      'amount_cents',i.amount_cents,'status',i.status,'initial_months',i.initial_months,
+      'renewal_base_expires_at',i.renewal_base_expires_at,'renewal_starts_at',i.renewal_starts_at,
+      'renewal_expires_at',i.renewal_expires_at,'renewed_at',i.renewed_at,'created_at',i.created_at,
+      'agreementSatisfied',public.native_sales_patient_invoice_agreement_valid(i.id),
+      'invoiceJobState',job.state,'qbo',CASE WHEN q.id IS NULL THEN NULL ELSE jsonb_build_object(
+        'qbo_invoice_number',q.qbo_invoice_number,'qbo_hosted_payment_url',q.qbo_hosted_payment_url,
+        'qbo_invoice_status',q.qbo_invoice_status,'qbo_payment_status',q.qbo_payment_status,
+        'verification_state',q.verification_state,'membership_activation_status',q.membership_activation_status) END) AS row
+    FROM public.sales_patient_enrollment_intents i
+    LEFT JOIN public.sales_patient_qbo_manual q ON q.organization_id=i.organization_id AND q.enrollment_intent_id=i.id
+    LEFT JOIN public.sales_qbo_invoice_jobs job ON job.organization_id=i.organization_id AND job.enrollment_intent_id=i.id
+    WHERE i.organization_id=identity.organization_id AND i.patient_identity_id=identity.id
+      AND i.purpose='RENEWAL' AND i.renewal_membership_id=m.id
+    ORDER BY i.created_at DESC,i.id DESC LIMIT p_limit OFFSET p_offset
+  ) page;
+  RETURN jsonb_build_object('membership',jsonb_build_object('id',m.id,'code',m.code,'plan',m.plan,
+      'membership_type',m.membership_type,'duration',m.duration,'status',m.status,'issued_at',m.issued_at,'expires_at',m.expires_at),
+    'eligible',m.status IN ('ACTIVE','EXPIRED') AND m.plan IN ('ESSENTIAL','PLUS','MAX') AND m.membership_type IN ('INDIVIDUAL','FAMILY')
+      AND m.duration IN ('MONTHLY','3M','6M','12M') AND m.expires_at<=today+30,
+    'eligibleFrom',m.expires_at-30,'hasPending',EXISTS(SELECT 1 FROM public.sales_patient_enrollment_intents i
+      WHERE i.organization_id=identity.organization_id AND i.patient_identity_id=identity.id
+        AND i.purpose='RENEWAL' AND i.renewal_membership_id=m.id AND i.status NOT IN ('CANCELLED','FULFILLED')),
+    'renewals',result,'nextOffset',CASE WHEN EXISTS(SELECT 1 FROM public.sales_patient_enrollment_intents i
+      WHERE i.organization_id=identity.organization_id AND i.patient_identity_id=identity.id
+        AND i.purpose='RENEWAL' AND i.renewal_membership_id=m.id
+      ORDER BY i.created_at DESC,i.id DESC LIMIT 1 OFFSET p_offset+p_limit) THEN p_offset+p_limit ELSE NULL END);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.native_sales_patient_renewal_summary(uuid,integer,integer) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.native_sales_patient_renewal_summary(uuid,integer,integer) TO service_role;
+
+-- Verified renewal payments are applied to a period on the existing membership.
+-- Keep the same opportunity/organization authorization and payment list limit.
+CREATE OR REPLACE FUNCTION public.native_sales_visible_payment_evidence(
+  p_organization_id uuid,p_actor_member_id uuid,p_opportunity_id uuid
+) RETURNS SETOF jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public, pg_temp AS $$
+DECLARE v_role text;
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'SALES_SERVER_ONLY' USING ERRCODE='42501';
+  END IF;
+  SELECT role INTO v_role FROM public.sales_members
+    WHERE organization_id=p_organization_id AND id=p_actor_member_id AND status='active';
+  IF v_role IS NULL OR v_role NOT IN ('SUPERADMIN','ADMINISTRATOR','SALES_MANAGER','SELLER','AUDITOR')
+    OR p_opportunity_id IS NULL OR NOT EXISTS (
+      SELECT 1 FROM public.native_sales_visible_crm(
+        p_organization_id,p_actor_member_id,'opportunities',1,0,NULL,p_opportunity_id)) THEN
+    RAISE EXCEPTION 'OPPORTUNITY_NOT_FOUND' USING ERRCODE='P0002';
+  END IF;
+  RETURN QUERY SELECT to_jsonb(p) || jsonb_build_object('used',EXISTS (
+    SELECT 1 FROM public.sales_memberships m WHERE m.organization_id=p_organization_id
+      AND m.sales_payment_id=p.id) OR EXISTS (
+    SELECT 1 FROM public.sales_membership_periods period WHERE period.organization_id=p_organization_id
+      AND period.sales_payment_id=p.id))
+    FROM public.sales_payments p
+    WHERE p.organization_id=p_organization_id AND p.opportunity_id=p_opportunity_id
+    ORDER BY p.created_at DESC,p.id DESC LIMIT 100;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.native_sales_visible_payment_evidence(uuid,uuid,uuid)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.native_sales_visible_payment_evidence(uuid,uuid,uuid)
+  TO service_role;

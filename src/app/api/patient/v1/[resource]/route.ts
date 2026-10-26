@@ -112,7 +112,10 @@ export async function GET(request: Request, { params }: Route) {
     if (!patient.identity) return respond({ code:'PROFILE_REQUIRED' },409)
     try {
       const { readPatientRenewals } = await import('@/server/sales-native/patient-renewal')
-      return respond({ data:await readPatientRenewals(patient.identity) })
+      const params = new URL(request.url).searchParams
+      const offset = Number(params.get('offset') ?? 0)
+      if (Array.from(params.keys()).some(key => key !== 'offset') || !Number.isSafeInteger(offset) || offset<0 || offset>100000) return invalid()
+      return respond({ data:await readPatientRenewals(patient.identity,offset) })
     } catch { return unavailable() }
   }
   if (resource === 'membership') {

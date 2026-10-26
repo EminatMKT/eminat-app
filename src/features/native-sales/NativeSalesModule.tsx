@@ -20,6 +20,7 @@ import NativePortalLeads from './NativePortalLeads'
 import NativePaymentsRenewals from './NativePaymentsRenewals'
 import NativeQboConnection from './NativeQboConnection'
 import { useT, type I18nKey } from '@/shared/i18n'
+import { salesDisplayValue } from './display-value'
 import s from './NativeSalesModule.module.css'
 
 type Tab = SalesSection
@@ -371,11 +372,11 @@ export default function NativeSalesModule({ organizationId, workspaceLabelKey }:
                 onChange={event => setSelectedLeadIds(ids => event.target.checked ? [...ids,row.id] : ids.filter(id => id!==row.id))} />}
             <button type="button" className={s.item} onClick={() => {setPipelineStage('');setSelected(row)}}>
             <span><strong>{title(row)}</strong><small>{tab==='opportunities' ? stageName(row.stage_id) :
-              tab==='activities' ? `${string(row.kind)} · ${string(row.relatedName)}` :
-              tab==='memberships' ? `${string(row.plan)} · ${string(row.duration)}` :
-              string(row.status) || string(row.type) || string(row.source)}</small></span>
+              tab==='activities' ? `${salesDisplayValue(string(row.kind),t)} · ${salesDisplayValue(string(row.relatedName),t)}` :
+              tab==='memberships' ? `${string(row.plan)} · ${salesDisplayValue(string(row.duration),t)}` :
+              salesDisplayValue(string(row.status) || string(row.type) || string(row.source),t)}</small></span>
             <span className={s.meta}>{tab==='activities' ? date(row.due_at) :
-              tab==='memberships' ? string(row.effectiveStatus) : ownerLabel(row)}</span>
+              tab==='memberships' ? salesDisplayValue(string(row.effectiveStatus),t) : ownerLabel(row)}</span>
             </button></div>)}</div> : <p className={s.empty}>{t('salesNative.noRecordsInThisView')}</p>}
           <div className={s.pager}><button type="button" disabled={offset===0} onClick={() => {setSelectedLeadIds([]);setOffset(Math.max(0,offset-25))}}>{t('salesNative.previous')}</button>
             <span>{t('salesNative.pageNumber',{page:Math.floor(offset/25)+1})}</span><button type="button" disabled={nextOffset===null} onClick={() => {setSelectedLeadIds([]);setOffset(nextOffset ?? offset)}}>{t('salesNative.next')}</button></div>
@@ -392,7 +393,7 @@ export default function NativeSalesModule({ organizationId, workspaceLabelKey }:
         {selected && <div className={s.overlay} role="presentation" onMouseDown={event => { if (event.target===event.currentTarget) setSelected(null) }}>
           <section className={s.detail} role="dialog" aria-modal="true" aria-label={title(selected)}>
             <div className={s.detailHeader}><h2>{title(selected)}</h2><button type="button" onClick={() => {setSelected(null);setPipelineStage('')}} aria-label={t('salesNative.closeDetails')}>×</button></div>
-            <dl><dt>{t('salesNative.status')}</dt><dd>{string(selected.effectiveStatus) || string(selected.status) || stageName(selected.stage_id) || '—'}</dd>
+            <dl><dt>{t('salesNative.status')}</dt><dd>{salesDisplayValue(string(selected.effectiveStatus) || string(selected.status) || stageName(selected.stage_id) || '—',t)}</dd>
               <dt>{t('salesNative.owner')}</dt><dd>{ownerLabel(selected)}</dd>
               <dt>{t('salesNative.team')}</dt><dd>{teamName(selected.team_id) || '—'}</dd>
               <dt>{t('salesNative.created')}</dt><dd>{date(selected.created_at) || '—'}</dd>
@@ -444,7 +445,7 @@ function Metric({ label, value }: { label: string; value: number }) {
 function Breakdown({ rows }: { rows: { code: string; count: number }[] }) {
   const { t } = useT()
   if (!rows.length) return <p className={s.empty}>{t('salesNative.noRecordsYet')}</p>
-  return <ul className={s.breakdown}>{rows.map(row => <li key={row.code}><span>{row.code.replaceAll('_',' ')}</span><strong>{row.count}</strong></li>)}</ul>
+  return <ul className={s.breakdown}>{rows.map(row => <li key={row.code}><span>{salesDisplayValue(row.code,t).replaceAll('_',' ')}</span><strong>{row.count}</strong></li>)}</ul>
 }
 function SellerBreakdown({ rows }: { rows: DetailReport['leads']['bySeller'] }) {
   const { t } = useT()

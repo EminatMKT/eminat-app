@@ -2,6 +2,9 @@ import type { I18nKey } from '@/shared/i18n'
 
 // Translate known system values only. User-entered names and notes remain untouched.
 const labels: Record<string,I18nKey> = {
+  "prospect":"salesNative.prospect", "customer":"salesNative.auditCustomer", "partner":"salesNative.auditPartner",
+  "CHILD":"salesNative.child", "SPOUSE":"salesNative.auditSpouse", "PARENT":"salesNative.auditParent", "OTHER":"salesNative.auditOther",
+
   "PAYMENT_UNAVAILABLE": "salesNative.statePaymentUnavailable",
   "PAYMENT_PENDING": "salesNative.statePaymentPending",
   "FULFILLED": "salesNative.stateFulfilled",

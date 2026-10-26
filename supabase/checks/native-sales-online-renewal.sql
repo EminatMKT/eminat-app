@@ -9,7 +9,7 @@ DECLARE admin_user uuid:='2344e112-76ef-42a8-ac56-7c488084e0f5';
 DECLARE admin_auth uuid:=gen_random_uuid();
 DECLARE admin_member uuid:='c67e9779-9e87-48b0-9f6c-bf6a0c8cebad';
 DECLARE seller_auth uuid:=gen_random_uuid(); seller_user uuid:=gen_random_uuid(); seller uuid:=gen_random_uuid();
-DECLARE patient uuid; identity uuid; contact uuid; child uuid; pipeline uuid:=gen_random_uuid();
+DECLARE patient uuid; identity uuid; other_identity uuid; contact uuid; child uuid; pipeline uuid:=gen_random_uuid();
 DECLARE initial_intent uuid; membership uuid; request_key uuid; renewal uuid; cancelled uuid;
 DECLARE result jsonb; replay jsonb; initial_quote record; renewal_quote record;
 DECLARE q public.sales_patient_qbo_manual%ROWTYPE; job public.sales_qbo_invoice_jobs%ROWTYPE;
@@ -17,6 +17,10 @@ DECLARE old_expiry date; old_code text; household_before jsonb; household_after 
 DECLARE term_type text; issued date:=(current_date-interval '2 months'+interval '5 days')::date;
 DECLARE before_contacts bigint; before_leads bigint; expected_paid integer:=0; report jsonb;
 BEGIN
+  IF has_function_privilege('authenticated','public.native_sales_patient_complete_renewal(uuid)','EXECUTE')
+    OR has_function_privilege('anon','public.native_sales_patient_request_online_renewal(uuid,uuid,uuid)','EXECUTE')
+    OR has_function_privilege('authenticated','public.native_sales_online_renewal_status(uuid,uuid,uuid,integer,integer)','EXECUTE') THEN
+    RAISE EXCEPTION 'RENEWAL_BROWSER_EXECUTE_ALLOWED'; END IF;
   INSERT INTO auth.users(id) VALUES(admin_auth),(seller_auth);
   INSERT INTO public.usuarios(id,auth_id,email,nombre,apellido,rol,validado,activo) VALUES
     (admin_user,admin_auth,'qa-renewal-admin@example.invalid','QA','Admin','admin',true,true),
@@ -32,6 +36,7 @@ BEGIN
   INSERT INTO public.sales_stages(organization_id,pipeline_id,code,name,position,probability,outcome) VALUES
     (org,pipeline,'PAYMENT_PENDING','Pending',0,20,'OPEN'),(org,pipeline,'WON','Paid',1,100,'WON'),(org,pipeline,'LOST','Lost',2,0,'LOST');
   FOREACH term_type IN ARRAY ARRAY['INDIVIDUAL','FAMILY'] LOOP
+    other_identity:=identity;
     patient:=gen_random_uuid();
     INSERT INTO auth.users(id,email,email_confirmed_at) VALUES(patient,'qa-renewal-'||lower(term_type)||'@example.invalid',now());
     contact:=public.native_sales_patient_claim_contact(patient,'qa-renewal-'||lower(term_type)||'@example.invalid','QA','Renewal','555-0100',org,admin_member);
@@ -51,6 +56,12 @@ BEGIN
       'qa-renewal-initial-'||initial_intent::text,repeat('d',64),gen_random_uuid());
     membership:=(result->>'id')::uuid;
     SELECT expires_at,code INTO old_expiry,old_code FROM public.sales_memberships WHERE id=membership;
+    IF other_identity IS NOT NULL THEN
+      BEGIN
+        PERFORM public.native_sales_patient_request_online_renewal(other_identity,membership,gen_random_uuid());
+        RAISE EXCEPTION 'ANOTHER_PATIENT_MEMBERSHIP_ALLOWED';
+      EXCEPTION WHEN SQLSTATE 'P0002' THEN NULL; END;
+    END IF;
     IF term_type='FAMILY' THEN
       INSERT INTO public.sales_contacts(organization_id,owner_member_id,display_name,first_name,last_name,phone,date_of_birth,address,created_by,updated_by)
         VALUES(org,seller,'QA Child','QA','Child','+15550100002',DATE '2015-01-01',
@@ -73,6 +84,10 @@ BEGIN
     request_key:=gen_random_uuid();
     result:=public.native_sales_patient_request_online_renewal(identity,membership,request_key);
     renewal:=(result->>'id')::uuid;
+    replay:=public.native_sales_patient_renewal_summary(identity,1,0);
+    IF replay->>'hasPending'<>'true' OR (replay#>>'{membership,expires_at}')::date<>old_expiry
+      OR NOT (replay#>>'{renewals,0,agreementSatisfied}')::boolean THEN RAISE EXCEPTION 'PORTAL_RENEWAL_SUMMARY_INVALID'; END IF;
+
     replay:=public.native_sales_patient_request_online_renewal(identity,membership,request_key);
     IF replay->>'id'<>renewal::text OR replay->>'replayed'<>'true' THEN RAISE EXCEPTION 'RENEWAL_RETRY_DUPLICATED'; END IF;
     replay:=public.native_sales_patient_request_online_renewal(identity,membership,gen_random_uuid());
@@ -87,6 +102,12 @@ BEGIN
       PERFORM public.native_sales_patient_complete_renewal(renewal);
       RAISE EXCEPTION 'UNPAID_RENEWAL_EXTENDED';
     EXCEPTION WHEN SQLSTATE '42501' THEN IF SQLERRM<>'RENEWAL_PAYMENT_NOT_VERIFIED' THEN RAISE; END IF; END;
+    BEGIN
+      INSERT INTO public.sales_qbo_invoice_jobs(organization_id,enrollment_intent_id,patient_identity_id,contact_id,opportunity_id,plan,membership_type,duration,amount_cents,purpose)
+        SELECT organization_id,id,patient_identity_id,contact,opportunity_id,plan,i.membership_type,duration,amount_cents+1,'RENEWAL'
+        FROM public.sales_patient_enrollment_intents i WHERE id=renewal;
+      RAISE EXCEPTION 'MISMATCHED_INVOICE_SNAPSHOT_ACCEPTED';
+    EXCEPTION WHEN SQLSTATE '23514' THEN IF SQLERRM<>'PATIENT_AGREEMENT_REQUIRED' THEN RAISE; END IF; END;
     SELECT * INTO job FROM public.native_sales_qbo_claim_invoice(identity,renewal);
     PERFORM public.native_sales_qbo_claim_invoice(identity,renewal);
     IF (SELECT count(*) FROM public.sales_qbo_invoice_jobs WHERE enrollment_intent_id=renewal)<>1 THEN RAISE EXCEPTION 'DUPLICATE_INVOICE_JOB'; END IF;
@@ -113,6 +134,9 @@ BEGIN
         'qa-invalid-second-member-'||renewal::text,repeat('e',64),gen_random_uuid());
       RAISE EXCEPTION 'RENEWAL_PAYMENT_CREATED_SECOND_MEMBERSHIP';
     EXCEPTION WHEN SQLSTATE '42501' THEN IF SQLERRM<>'RENEWAL_USE_VERIFIED_EXTENSION' THEN RAISE; END IF; END;
+    IF NOT EXISTS(SELECT 1 FROM public.native_sales_visible_payment_evidence(org,admin_member,
+      (SELECT opportunity_id FROM public.sales_patient_enrollment_intents WHERE id=renewal)) evidence
+      WHERE (evidence->>'used')::boolean) THEN RAISE EXCEPTION 'RENEWAL_PAYMENT_NOT_SHOWN_APPLIED'; END IF;
     expected_paid:=expected_paid+renewal_quote.total_cents;
     report:=public.native_sales_report_detail(org,admin_member,current_date,current_date);
     IF (report#>>'{renewals,paidCents}')::integer<>expected_paid THEN RAISE EXCEPTION 'RENEWAL_REPORT_NOT_COUNTED'; END IF;
@@ -122,6 +146,10 @@ BEGIN
     cancelled:=(result->>'id')::uuid;
     PERFORM public.native_sales_patient_cancel_renewal(identity,cancelled);
     PERFORM public.native_sales_patient_cancel_renewal(identity,cancelled);
+    IF NOT EXISTS(SELECT 1 FROM public.sales_patient_enrollment_intents i
+      JOIN public.sales_opportunities op ON op.organization_id=i.organization_id AND op.id=i.opportunity_id
+      JOIN public.sales_stages stage ON stage.organization_id=op.organization_id AND stage.id=op.stage_id
+      WHERE i.id=cancelled AND stage.outcome='LOST') THEN RAISE EXCEPTION 'CANCELLED_RENEWAL_STILL_OPEN'; END IF;
     IF (SELECT status FROM public.sales_patient_enrollment_intents WHERE id=cancelled)<>'CANCELLED'
       OR (SELECT expires_at FROM public.sales_memberships WHERE id=membership)<>current_date-10 THEN RAISE EXCEPTION 'UNBILLED_CANCELLATION_CHANGED_COVERAGE'; END IF;
     -- An invoiced unpaid renewal enters review; only supported void confirmation releases it.
@@ -162,6 +190,9 @@ BEGIN
     IF (result->>'startsAt')::date<>current_date OR (result->>'expiresAt')::date<>public.native_sales_add_membership_months(current_date,1)
       OR (SELECT status FROM public.sales_memberships WHERE id=membership)<>'ACTIVE'
       OR (SELECT code FROM public.sales_memberships WHERE id=membership)<>old_code THEN RAISE EXCEPTION 'EXPIRED_RENEWAL_PERIOD_WRONG'; END IF;
+    IF NOT EXISTS(SELECT 1 FROM public.native_sales_visible_payment_evidence(org,admin_member,
+      (SELECT opportunity_id FROM public.sales_patient_enrollment_intents WHERE id=renewal)) evidence
+      WHERE (evidence->>'used')::boolean) THEN RAISE EXCEPTION 'RENEWAL_PAYMENT_NOT_SHOWN_APPLIED'; END IF;
     expected_paid:=expected_paid+renewal_quote.total_cents;
     BEGIN
       PERFORM public.native_sales_patient_request_online_renewal(gen_random_uuid(),membership,gen_random_uuid());

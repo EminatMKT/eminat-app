@@ -164,7 +164,7 @@ export async function issuePatientQboInvoice(identityId: string, intentId: strin
     })
     if (error) throw new Error('QBO_INVOICE_LINK_FAILED')
     if (!contact.do_not_email)
-      await sendPatientInvoice(job.enrollment_intent_id,authenticatedEmail,job.qbo_invoice_number)
+      await sendPatientInvoice(job.enrollment_intent_id,authenticatedEmail,job.qbo_invoice_number,job.purpose ?? 'ENROLLMENT')
     return { status:'INVOICE_CREATED' as const,invoiceNumber:job.qbo_invoice_number }
   }
   const { data: existingBinding, error: bindingError } = await db
@@ -234,6 +234,6 @@ export async function issuePatientQboInvoice(identityId: string, intentId: strin
   })
   if (finishError) throw new Error('QBO_INVOICE_LINK_FAILED')
   if (!contact.do_not_email)
-    await sendPatientInvoice(job.enrollment_intent_id,authenticatedEmail,createdInvoice.DocNumber)
+    await sendPatientInvoice(job.enrollment_intent_id,authenticatedEmail,createdInvoice.DocNumber,job.purpose ?? 'ENROLLMENT')
   return { status:'INVOICE_CREATED' as const,invoiceNumber:createdInvoice.DocNumber }
 }

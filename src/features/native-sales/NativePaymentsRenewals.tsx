@@ -6,6 +6,7 @@ import NativeMembershipRenewal from './NativeMembershipRenewal'
 import NativePatientQbo from './NativePatientQbo'
 import { allSalesPages } from './pagination'
 import { useT } from '@/shared/i18n'
+import { salesDisplayValue } from './display-value'
 import s from './NativeSalesModule.module.css'
 
 type Opportunity = { id: string; name: string; currency: string; amount: string | null }
@@ -63,7 +64,7 @@ export default function NativePaymentsRenewals({ request, role, showPatientQbo }
           <select value={membershipId} onChange={event => setMembershipId(event.target.value)}>
             <option value="">{t('salesNative.choosePermittedMembership')}</option>
             {memberships.map(item => <option key={item.id} value={item.id}>
-              {item.code} · {item.effectiveStatus} · {t('salesNative.expires')} {item.expires_at}
+              {item.code} · {salesDisplayValue(item.effectiveStatus,t)} · {t('salesNative.expires')} {item.expires_at}
             </option>)}
           </select>
         </label>

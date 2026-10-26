@@ -2,7 +2,9 @@
 
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import type { NativeRequest } from './NativeSalesModule'
+import { allSalesPages } from './pagination'
 import { useT } from '@/shared/i18n'
+import { salesDisplayValue } from './display-value'
 import s from './NativeSalesModule.module.css'
 
 type HouseholdMember = { id: string; displayName: string; relationship: string; status: string; code?: string }
@@ -39,8 +41,8 @@ export default function NativeMembershipFamily({ membershipId, membershipType, h
     let cancelled = false
     const params = new URLSearchParams({ limit: '50' })
     if (contactQuery.trim()) params.set('q', contactQuery.trim())
-    void request(`contacts?${params}`).then(result => {
-      if (!cancelled) setContacts(Array.isArray(result.data) ? result.data as Contact[] : [])
+    void allSalesPages<Contact>(request,`contacts?${params}`,() => cancelled).then(result => {
+      if (!cancelled) setContacts(result)
     }).catch(() => { if (!cancelled) setContacts([]) })
     return () => { cancelled = true }
   }, [contactQuery, membershipType, request])
@@ -80,9 +82,9 @@ export default function NativeMembershipFamily({ membershipId, membershipType, h
   return <section className={s.recordActions} aria-label={t('salesNative.familyMembership')}>
     <h3>{t('salesNative.householdSummary',{active,pending})}</h3>
     <ul className={s.scheduleList}>{household.map(member =>
-      <li key={member.id}><span><strong>{member.displayName}</strong><small>{member.relationship} · {member.status} {member.code ? `· ${member.code}` : ''}</small></span></li>)}</ul>
+      <li key={member.id}><span><strong>{member.displayName}</strong><small>{salesDisplayValue(member.relationship,t)} · {salesDisplayValue(member.status,t)} {member.code ? `· ${member.code}` : ''}</small></span></li>)}</ul>
     {requests.length > 0 && <><h3>{t('salesNative.familyRequests')}</h3><ul className={s.scheduleList}>{requests.map(item =>
-      <li key={item.id}><span><strong>{item.dependentName}</strong><small>{item.relationship} · {item.status} · {item.createdAt.slice(0,10)}</small></span>
+      <li key={item.id}><span><strong>{item.dependentName}</strong><small>{salesDisplayValue(item.relationship,t)} · {salesDisplayValue(item.status,t)} · {item.createdAt.slice(0,10)}</small></span>
         {item.status === 'PENDING' && canReview && <span className={s.pdfActions}>
           <button type="button" disabled={busy} onClick={() => void decide(item.id, 'APPROVED')}>{t('salesNative.approve')}</button>
           <button type="button" disabled={busy} onClick={() => void decide(item.id, 'REJECTED')}>{t('salesNative.reject')}</button>
