@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto'
+import { workerAuthorized } from '@/server/sales-native/quickbooks/worker-auth'
 import { Resend } from 'resend'
 import { z } from 'zod'
 
@@ -11,9 +11,7 @@ const payload = z.object({
 
 /** Operational notifications only. No provider tokens, patient data or financial writes. */
 export async function POST(request: Request) {
-  const expected = Buffer.from(process.env.CRON_SECRET ?? '')
-  const supplied = Buffer.from(request.headers.get('authorization')?.replace(/^Bearer /, '') ?? '')
-  if (!expected.length || expected.length !== supplied.length || !timingSafeEqual(expected, supplied))
+  if (!workerAuthorized(request))
     return Response.json({ code: 'UNAUTHORIZED' }, { status: 401 })
   if (Number(request.headers.get('content-length') ?? 0) > 1024)
     return Response.json({ code: 'INVALID_REQUEST' }, { status: 422 })

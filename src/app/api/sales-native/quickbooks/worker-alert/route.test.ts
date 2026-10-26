@@ -5,17 +5,19 @@ import { POST } from './route'
 
 beforeEach(() => {
   vi.stubEnv('CRON_SECRET', 'synthetic-cron-secret')
+  vi.stubEnv('LILLY_QBO_RECONCILE_WORKER_SECRET', 'synthetic-worker-secret')
   vi.stubEnv('RESEND_API_KEY', 'synthetic-mail-key')
   vi.stubEnv('PATIENT_EMAIL_FROM_ADDRESS', 'sender@example.invalid')
   vi.stubEnv('LILLY_QBO_RECONCILE_ALERT_TO', 'operator@example.invalid')
   send.mockReset().mockResolvedValue({ data: { id: 'synthetic' }, error: null })
 })
-const request = (body: unknown, token = 'synthetic-cron-secret') => new Request('https://example.invalid/api', {
+const request = (body: unknown, token = 'synthetic-worker-secret') => new Request('https://example.invalid/api', {
   method: 'POST', headers: { authorization: `Bearer ${token}` }, body: JSON.stringify(body),
 })
 describe('QBO operational alert boundary', () => {
   it('denies unauthenticated calls before any notification', async () => {
     expect((await POST(request({ state: 'STALE', incident: 100 }, 'wrong'))).status).toBe(401)
+    expect((await POST(request({ state: 'STALE', incident: 100 }, 'synthetic-cron-secret'))).status).toBe(401)
     expect(send).not.toHaveBeenCalled()
   })
   it('uses only configured recipients, fixed content and stable incident deduplication', async () => {

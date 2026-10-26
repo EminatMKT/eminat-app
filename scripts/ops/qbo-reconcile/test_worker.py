@@ -72,7 +72,7 @@ class WorkerTest(unittest.TestCase):
         root = Path(__file__).parent
         self.assertIn('OnCalendar=*-*-* *:00/5:00 UTC', (root / 'lilly-qbo-reconcile.timer').read_text())
         self.assertIn('OnCalendar=*-*-* *:*:30 UTC', (root / 'lilly-qbo-watchdog.timer').read_text())
-        self.assertIn('LoadCredential=cron_secret:', (root / 'lilly-qbo-reconcile.service').read_text())
+        self.assertIn('LoadCredential=worker_secret:', (root / 'lilly-qbo-reconcile.service').read_text())
 
 
 if __name__ == '__main__':

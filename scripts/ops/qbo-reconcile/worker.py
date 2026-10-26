@@ -101,7 +101,7 @@ def main():
     if mode == 'status':
         print(json.dumps(health(directory)))
         return
-    secret = (Path(os.environ['CREDENTIALS_DIRECTORY']) / 'cron_secret').read_text().strip()
+    secret = (Path(os.environ['CREDENTIALS_DIRECTORY']) / 'worker_secret').read_text().strip()
     if not secret or '\n' in secret:
         raise ValueError('INVALID_CREDENTIAL')
     if mode == 'tick':
