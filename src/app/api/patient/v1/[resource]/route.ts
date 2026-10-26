@@ -147,7 +147,7 @@ export async function GET(request: Request, { params }: Route) {
     const admin = supabaseAdmin({ noStore: true })
     const { data: intent, error: intentError } = await admin.from('sales_patient_enrollment_intents')
       .select('id,opportunity_id').eq('organization_id', patient.identity.organization_id)
-      .eq('patient_identity_id', patient.identity.id).eq('membership_type', 'FAMILY')
+      .eq('patient_identity_id', patient.identity.id).eq('membership_type', 'FAMILY').eq('purpose','ENROLLMENT')
       .in('status', ['PAYMENT_UNAVAILABLE','PAYMENT_PENDING'])
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (intentError) return unavailable()

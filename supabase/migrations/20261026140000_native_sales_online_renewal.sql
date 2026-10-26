@@ -282,7 +282,9 @@ BEGIN
   IF p_key IS NULL OR p_membership_id IS NULL THEN RAISE EXCEPTION 'INVALID_REQUEST' USING ERRCODE='22023'; END IF;
   SELECT * INTO identity FROM public.sales_patient_identities WHERE id=p_identity_id
     AND organization_id='9efab353-46a0-43d1-9901-e3f185dc5d30' FOR UPDATE;
-  IF NOT FOUND OR NOT EXISTS(SELECT 1 FROM auth.users WHERE id=identity.auth_id AND email_confirmed_at IS NOT NULL) THEN
+  IF NOT FOUND OR NOT EXISTS(SELECT 1 FROM auth.users WHERE id=identity.auth_id AND email_confirmed_at IS NOT NULL)
+    OR NOT EXISTS(SELECT 1 FROM public.sales_organizations WHERE id=identity.organization_id AND status='active')
+    OR NOT EXISTS(SELECT 1 FROM public.sales_contacts WHERE organization_id=identity.organization_id AND id=identity.contact_id AND archived_at IS NULL) THEN
     RAISE EXCEPTION 'PATIENT_IDENTITY_NOT_FOUND' USING ERRCODE='42501'; END IF;
   SELECT * INTO m FROM public.sales_memberships WHERE organization_id=identity.organization_id
     AND id=p_membership_id AND primary_contact_id=identity.contact_id FOR UPDATE;
@@ -492,7 +494,13 @@ BEGIN
   IF TG_OP='INSERT' AND EXISTS (SELECT 1 FROM public.sales_qbo_invoice_jobs j
       WHERE j.organization_id=NEW.organization_id
         AND j.enrollment_intent_id=NEW.enrollment_intent_id) THEN RETURN NEW; END IF;
-  IF NOT public.native_sales_patient_invoice_agreement_valid(NEW.enrollment_intent_id) THEN
+  IF NOT public.native_sales_patient_invoice_agreement_valid(NEW.enrollment_intent_id)
+    OR NOT EXISTS(SELECT 1 FROM public.sales_patient_enrollment_intents i
+      JOIN public.sales_patient_identities identity ON identity.organization_id=i.organization_id AND identity.id=i.patient_identity_id
+      WHERE i.id=NEW.enrollment_intent_id AND i.organization_id=NEW.organization_id
+        AND i.patient_identity_id=NEW.patient_identity_id AND identity.contact_id=NEW.contact_id
+        AND i.opportunity_id=NEW.opportunity_id AND i.plan=NEW.plan AND i.membership_type=NEW.membership_type
+        AND i.duration=NEW.duration AND i.amount_cents=NEW.amount_cents AND i.purpose=NEW.purpose) THEN
     RAISE EXCEPTION 'PATIENT_AGREEMENT_REQUIRED' USING ERRCODE='23514';
   END IF;
   RETURN NEW;
@@ -569,7 +577,8 @@ DECLARE i public.sales_patient_enrollment_intents%ROWTYPE;
 BEGIN
   IF auth.role() IS DISTINCT FROM 'service_role' THEN RAISE EXCEPTION 'PATIENT_SERVER_ONLY' USING ERRCODE='42501'; END IF;
   SELECT * INTO i FROM public.sales_patient_enrollment_intents WHERE id=p_intent_id
-    AND patient_identity_id=p_identity_id AND purpose='RENEWAL' FOR UPDATE;
+    AND patient_identity_id=p_identity_id AND purpose='RENEWAL'
+    AND organization_id='9efab353-46a0-43d1-9901-e3f185dc5d30' FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'RENEWAL_NOT_FOUND' USING ERRCODE='P0002'; END IF;
   IF i.status IN ('CANCELLED','CANCELLATION_REQUESTED') THEN RETURN to_jsonb(i); END IF;
   IF i.status='FULFILLED' OR EXISTS(SELECT 1 FROM public.sales_patient_qbo_manual
@@ -1203,3 +1212,140 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.native_sales_online_renewal_status(uuid,uuid,uuid,integer,integer) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.native_sales_online_renewal_status(uuid,uuid,uuid,integer,integer) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.native_sales_patient_family_draft_action(
+  p_identity_id uuid,p_action text,p_member_id uuid,p_first_name text,
+  p_last_name text,p_date_of_birth date,p_relationship text,p_request_key uuid
+) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+SET search_path=public,pg_temp AS $$
+DECLARE v_identity public.sales_patient_identities%ROWTYPE;
+DECLARE v_intent public.sales_patient_enrollment_intents%ROWTYPE;
+DECLARE v_member public.sales_patient_family_draft_members%ROWTYPE;
+DECLARE v_before jsonb;
+DECLARE v_after jsonb;
+DECLARE v_result jsonb;
+DECLARE v_count integer;
+DECLARE v_id uuid;
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'PATIENT_SERVER_ONLY' USING ERRCODE='42501';
+  END IF;
+  IF p_identity_id IS NULL OR p_request_key IS NULL
+    OR p_action IS NULL OR p_action NOT IN ('ADD','EDIT','REMOVE')
+    OR (p_action='ADD' AND p_member_id IS NOT NULL)
+    OR (p_action IN ('EDIT','REMOVE') AND p_member_id IS NULL) THEN
+    RAISE EXCEPTION 'PATIENT_FAMILY_DRAFT_INVALID' USING ERRCODE='22023';
+  END IF;
+  IF p_action IN ('ADD','EDIT') AND (
+    p_first_name IS NULL OR length(btrim(p_first_name)) NOT BETWEEN 1 AND 80
+    OR p_last_name IS NULL OR length(btrim(p_last_name)) NOT BETWEEN 1 AND 80
+    OR p_relationship IS NULL OR p_relationship NOT IN ('SPOUSE','CHILD','PARENT','OTHER')
+    OR p_date_of_birth IS NULL OR p_date_of_birth<date '1900-01-01'
+    OR p_date_of_birth>current_date) THEN
+    RAISE EXCEPTION 'PATIENT_FAMILY_DRAFT_INVALID' USING ERRCODE='22023';
+  END IF;
+  SELECT * INTO v_identity FROM public.sales_patient_identities
+    WHERE id=p_identity_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'PATIENT_IDENTITY_NOT_FOUND' USING ERRCODE='P0002'; END IF;
+  SELECT result INTO v_result FROM public.sales_patient_family_draft_events
+    WHERE patient_identity_id=p_identity_id AND request_key=p_request_key;
+  IF FOUND THEN RETURN v_result; END IF;
+  IF EXISTS (SELECT 1 FROM public.sales_memberships
+    WHERE organization_id=v_identity.organization_id
+      AND primary_contact_id=v_identity.contact_id AND status='ACTIVE') THEN
+    RAISE EXCEPTION 'PATIENT_MEMBERSHIP_ACTIVE' USING ERRCODE='22023';
+  END IF;
+  SELECT * INTO v_intent FROM public.sales_patient_enrollment_intents
+    WHERE organization_id=v_identity.organization_id AND patient_identity_id=p_identity_id
+      AND status IN ('PAYMENT_UNAVAILABLE','PAYMENT_PENDING')
+    ORDER BY created_at DESC,id DESC LIMIT 1 FOR UPDATE;
+  IF NOT FOUND OR v_intent.purpose<>'ENROLLMENT' OR v_intent.membership_type<>'FAMILY' OR v_intent.opportunity_id IS NULL THEN
+    RAISE EXCEPTION 'PATIENT_FAMILY_DRAFT_NOT_ELIGIBLE' USING ERRCODE='22023';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.sales_patient_qbo_manual
+    WHERE organization_id=v_intent.organization_id
+      AND enrollment_intent_id=v_intent.id
+      AND (qbo_invoice_number IS NOT NULL OR verification_state<>'PENDING_INVOICE')) THEN
+    RAISE EXCEPTION 'PATIENT_FAMILY_DRAFT_INVOICE_LOCKED' USING ERRCODE='22023';
+  END IF;
+  IF p_action='ADD' THEN
+    SELECT count(*) INTO v_count FROM public.sales_patient_family_draft_members
+      WHERE organization_id=v_intent.organization_id
+        AND enrollment_intent_id=v_intent.id AND status='DRAFT';
+    IF v_count>=2 THEN RAISE EXCEPTION 'HOUSEHOLD_LIMIT_REACHED' USING ERRCODE='22023'; END IF;
+    INSERT INTO public.sales_patient_family_draft_members
+      (organization_id,patient_identity_id,enrollment_intent_id,
+       first_name,last_name,date_of_birth,relationship)
+    VALUES (v_intent.organization_id,p_identity_id,v_intent.id,btrim(p_first_name),
+      btrim(p_last_name),p_date_of_birth,p_relationship)
+    RETURNING id INTO v_id;
+    SELECT to_jsonb(m) INTO v_after FROM public.sales_patient_family_draft_members m
+      WHERE m.id=v_id;
+  ELSE
+    SELECT * INTO v_member FROM public.sales_patient_family_draft_members
+      WHERE organization_id=v_intent.organization_id AND patient_identity_id=p_identity_id
+        AND enrollment_intent_id=v_intent.id AND id=p_member_id AND status='DRAFT'
+      FOR UPDATE;
+    IF NOT FOUND THEN RAISE EXCEPTION 'PATIENT_FAMILY_DRAFT_NOT_FOUND' USING ERRCODE='P0002'; END IF;
+    v_id:=v_member.id;
+    v_before:=to_jsonb(v_member);
+    IF p_action='EDIT' THEN
+      UPDATE public.sales_patient_family_draft_members SET
+        first_name=btrim(p_first_name),last_name=btrim(p_last_name),
+        date_of_birth=p_date_of_birth,relationship=p_relationship,updated_at=now()
+        WHERE id=v_id;
+    ELSE
+      UPDATE public.sales_patient_family_draft_members SET status='REMOVED',updated_at=now()
+        WHERE id=v_id;
+    END IF;
+    SELECT to_jsonb(m) INTO v_after FROM public.sales_patient_family_draft_members m
+      WHERE m.id=v_id;
+  END IF;
+  SELECT count(*) INTO v_count FROM public.sales_patient_family_draft_members
+    WHERE organization_id=v_intent.organization_id
+      AND enrollment_intent_id=v_intent.id AND status='DRAFT';
+  v_result:=jsonb_build_object('memberId',v_id,'capacityUsed',v_count+1,
+    'status',CASE WHEN p_action='REMOVE' THEN 'REMOVED' ELSE 'DRAFT' END);
+  INSERT INTO public.sales_patient_family_draft_events
+    (organization_id,patient_identity_id,enrollment_intent_id,member_id,
+     request_key,action,before_member,after_member,result)
+  VALUES (v_intent.organization_id,p_identity_id,v_intent.id,v_id,
+    p_request_key,p_action,v_before,v_after,v_result);
+  RETURN v_result;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.native_sales_patient_family_draft_action(
+  uuid,text,uuid,text,text,date,text,uuid) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.native_sales_patient_family_draft_action(
+  uuid,text,uuid,text,text,date,text,uuid) TO service_role;
+
+-- A paid activation moves prepared dependants into the existing EMC review
+-- queue. It does not create Contacts, approve coverage, or issue member codes.
+
+CREATE OR REPLACE FUNCTION public.native_sales_patient_family_drafts_after_activation()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE v_membership public.sales_memberships%ROWTYPE;
+BEGIN
+  IF NEW.purpose='RENEWAL' THEN RETURN NEW; END IF;
+  IF NEW.status<>'FULFILLED' OR NEW.membership_type<>'FAMILY'
+    OR NEW.membership_id IS NULL OR OLD.status='FULFILLED' THEN RETURN NEW; END IF;
+  SELECT * INTO v_membership FROM public.sales_memberships
+    WHERE organization_id=NEW.organization_id AND id=NEW.membership_id
+      AND status='ACTIVE' AND is_demo=false AND sales_payment_id IS NOT NULL
+      AND payment_confirmed_at IS NOT NULL;
+  IF NOT FOUND THEN RAISE EXCEPTION 'PATIENT_FAMILY_ACTIVATION_UNVERIFIED' USING ERRCODE='42501'; END IF;
+  INSERT INTO public.sales_family_requests
+    (organization_id,membership_id,requested_by,patient_identity_id,
+     first_name,last_name,date_of_birth,relationship,idempotency_key,
+     additional_fee_review)
+  SELECT d.organization_id,NEW.membership_id,v_membership.created_by,
+    d.patient_identity_id,d.first_name,d.last_name,d.date_of_birth,
+    d.relationship,'family-draft-'||d.id::text,false
+  FROM public.sales_patient_family_draft_members d
+  WHERE d.organization_id=NEW.organization_id
+    AND d.patient_identity_id=NEW.patient_identity_id
+    AND d.enrollment_intent_id=NEW.id AND d.status='DRAFT'
+  ON CONFLICT DO NOTHING;
+  RETURN NEW;
+END;
+$$;

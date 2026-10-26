@@ -52,10 +52,8 @@ BEGIN
     membership:=(result->>'id')::uuid;
     SELECT expires_at,code INTO old_expiry,old_code FROM public.sales_memberships WHERE id=membership;
     IF term_type='FAMILY' THEN
-      INSERT INTO public.sales_contacts(organization_id,owner_member_id,display_name,first_name,last_name,created_by,updated_by)
-        VALUES(org,seller,'QA Child','QA','Child',admin_member,admin_member) RETURNING id INTO child;
-      INSERT INTO public.sales_household_members(organization_id,membership_id,contact_id,relationship,status,member_index,approved_by,approved_at)
-        VALUES(org,membership,child,'CHILD','ACTIVE',2,admin_member,now());
+      result:=public.native_sales_patient_family_request(identity,admin_member,'QA','Child',DATE '2015-01-01','CHILD',gen_random_uuid());
+      PERFORM public.native_sales_review_family_member(org,admin_member,membership,(result->>'id')::uuid,'APPROVED',gen_random_uuid());
     END IF;
     SELECT jsonb_agg(to_jsonb(h) ORDER BY h.id) INTO household_before FROM public.sales_household_members h WHERE h.membership_id=membership;
     -- Early renewal is rejected without creating any intent/invoice.
