@@ -1,73 +1,65 @@
 'use client'
-import type { CSSProperties } from 'react'
-import { useApp } from '@/shared/context/AppContext'
+import { useMemo } from 'react'
+import type { AvailabilityMemberDto } from '@/features/tasks/data/availability/types'
+import {
+  compareDailyHours,
+  declaredHoursByDay,
+  declaredWeeklyHours,
+  sortRanges,
+} from '@/features/tasks/utils/availability'
 import { useT } from '@/shared/i18n'
-import { actividadesActivasDe, cargaDe, slotOcupado, HORAS_SEMANALES } from '@/features/tasks/utils/availability'
-import HourSlot from '../HourSlot'
-import ActiveTaskLine from '../ActiveTaskLine'
+import { Button, ListaRotulada } from '@/shared/components/ui'
+import { AVAILABILITY_DAYS, STATUS_COPY_KEYS, STATUS_SYMBOLS } from './constants'
 import s from './index.module.css'
 
-const SLOTS = [9, 10, 11, 12, 13, 14, 15, 16, 17]
-const ONLINE_WINDOW_MS = 5 * 60 * 1000
-const MAX_TAREAS_VISIBLES = 2
-
 type Props = {
-  userId: string
-  nombre: string
+  member: AvailabilityMemberDto
+  onEdit?: () => void
 }
 
-export default function MemberAvailabilityCard({ userId, nombre }: Props) {
-  const { usuarios, actividades } = useApp()
+export default function MemberAvailabilityCard({ member, onEdit }: Props) {
   const { t } = useT()
-  const activas = actividadesActivasDe(actividades, userId)
-  const { horasOcupadas, horasLibres, pctOcupado, disponible } = cargaDe(activas)
-  const userInfo = usuarios.find(u => u.id === userId)
-  const isOnline = userInfo?.online_at ? new Date(userInfo.online_at) > new Date(Date.now() - ONLINE_WINDOW_MS) : false
+  const ranges = useMemo(() => sortRanges(member.ranges), [member.ranges])
+  const hoursByDay = declaredHoursByDay(ranges)
+  const weeklyHours = declaredWeeklyHours(ranges)
 
   return (
-    <div className={`${s.card} ${disponible ? '' : s.ocupada}`}
-      style={{ '--swatch': userInfo?.color, '--pct': `${pctOcupado}%` } as CSSProperties}>
+    <article className={s.card}>
       <div className={s.head}>
         <div className={s.persona}>
-          <div className={s.avatarWrap}>
-            <div className={s.avatar}>{nombre[0]}</div>
-            <div className={`${s.dot} ${isOnline ? s.online : ''}`} />
-          </div>
+          <div className={s.avatar}>{member.name.at(0) ?? '?'}</div>
           <div>
-            <div className={s.nombre}>{nombre}</div>
-            <div className={s.resumen}>{t('stratix.avail.tasks', { n: activas.length, h: horasOcupadas })}</div>
+            <h2 className={s.nombre}>{member.name}</h2>
+            {member.team && <p className={s.resumen}>{member.team.name}</p>}
           </div>
         </div>
-        <span className={s.estado}>{disponible ? `✓ ${t('stratix.avail.free')}` : `✕ ${t('stratix.avail.busy')}`}</span>
+        {member.canEdit && onEdit && <Button kind="edit" iconOnly onClick={onEdit} />}
       </div>
-
-      <div className={s.capacidad}>
-        <div className={s.capHead}>
-          <span>{t('stratix.avail.capacity', { h: HORAS_SEMANALES })}</span>
-          <span className={s.libres}>{t('stratix.avail.hoursFree', { h: horasLibres })}</span>
-        </div>
-        <div className={s.track}><div className={s.fill} /></div>
-        <div className={s.usado}>{t('stratix.avail.used', { n: Math.round(pctOcupado) })}</div>
-      </div>
-
-      <div>
-        <div className={s.rotulo}>{t('stratix.avail.schedule')}</div>
-        <div className={s.slots}>
-          {SLOTS.map(h => <HourSlot key={h} hora={h} ocupado={slotOcupado(pctOcupado, h)} />)}
-        </div>
-      </div>
-
-      {activas.length > 0 && (
-        <div className={s.enCurso}>
-          <div className={s.enCursoTitulo}>{t('stratix.avail.inProgress')}</div>
-          {activas.slice(0, MAX_TAREAS_VISIBLES).map(a => (
-            <ActiveTaskLine key={a.id} empresa={a.empresa} titulo={a.titulo} />
-          ))}
-          {activas.length > MAX_TAREAS_VISIBLES && (
-            <div className={s.mas}>{t('stratix.avail.more', { n: activas.length - MAX_TAREAS_VISIBLES })}</div>
-          )}
-        </div>
-      )}
-    </div>
+      {ranges.length === 0 ? <p className={s.empty}>{t('tasks.availability.notConfigured')}</p> : <>
+        <p className={s.total}>{t('tasks.availability.weekDeclared', { hours: weeklyHours })}</p>
+        <div className={s.days}>{AVAILABILITY_DAYS.map(day => {
+          const dayRanges = ranges.filter(range => range.weekday === day.weekday)
+          const comparison = compareDailyHours(hoursByDay[day.weekday] ?? 0, member.workday?.hoursPerDay ?? null)
+          const label = t('tasks.availability.dayLabel', { day: t(day.labelKey) })
+          return <section className={s.day} key={day.weekday}>
+            <h3>{label}</h3>
+            {dayRanges.length === 0 ? <p className={s.emptyDay}>{t('tasks.availability.emptyDay')}</p> : <>
+              <ListaRotulada label={label}>{dayRanges.map(range => <li key={range.id} className={s.range}>
+                <span>{range.startsAt}–{range.endsAt}</span>
+                {range.note && <small>{range.note}</small>}
+              </li>)}</ListaRotulada>
+              <p className={`${s.comparison} ${s[comparison.status]}`}>
+                <span aria-hidden="true">{STATUS_SYMBOLS[comparison.status]}</span>
+                {t(STATUS_COPY_KEYS[comparison.status], {
+                  declared: comparison.declaredHours,
+                  expected: comparison.expectedHours ?? 0,
+                  difference: Math.abs(comparison.differenceHours ?? 0),
+                })}
+              </p>
+            </>}
+          </section>
+        })}</div>
+      </>}
+    </article>
   )
 }
