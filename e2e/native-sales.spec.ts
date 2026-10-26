@@ -213,7 +213,7 @@ test('all Sales sections keep coherent dark surfaces, readable controls and resp
       await expect(page.getByRole('status').filter({ hasText: /^Loading / })).toHaveCount(0)
       await expect(page.locator('main').getByRole('alert')).toHaveCount(0)
       await expect(page.locator('main').last()).toHaveCSS('color', 'rgb(238, 237, 247)')
-      await expect(page.getByRole('button', { name: 'Refresh', exact: true })).toHaveCSS('background-color', 'rgb(36, 35, 50)')
+      await expect(page.getByRole('button', { name: 'Refresh', exact: true }).first()).toHaveCSS('background-color', 'rgb(36, 35, 50)')
       const surfaces = await page.locator('main').last().evaluate(main => {
         const cards = main.querySelectorAll('section, article, button, input, select, textarea')
         return Array.from(cards).filter(el => el.getBoundingClientRect().width > 0)
