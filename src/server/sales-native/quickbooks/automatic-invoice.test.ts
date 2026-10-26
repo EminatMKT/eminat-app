@@ -167,6 +167,25 @@ describe('automatic QBO invoice safety', () => {
     expect(client.createInvoice).not.toHaveBeenCalled()
   })
 
+  it('recovers a one-month renewal invoice without repeating the initial two-month charge or create', async () => {
+    mocks.claim.mockResolvedValueOnce({data:[{...job,purpose:'RENEWAL',amount_cents:9999,
+      state:'INVOICE_WRITE_STARTED',qbo_invoice_id:null,qbo_invoice_number:null}],error:null})
+      .mockResolvedValueOnce({data:{},error:null})
+    mocks.from.mockImplementation((table:string) => {
+      if (table==='sales_qbo_invoice_jobs') return query({data:{id:'job',state:'INVOICE_WRITE_STARTED',qbo_invoice_id:null},error:null})
+      if (table==='sales_contacts') return query({data:{email:'qa@example.com',first_name:'QA',last_name:'Patient',do_not_email:false},error:null})
+      if (table==='sales_qbo_webhook_events') return query({data:[{entity_id:'808'}],error:null})
+      return query({data:{id:'job'},error:null})
+    })
+    const renewalInvoice={...qaInvoice,TotalAmt:99.99,Balance:99.99,Line:[{...qaInvoice.Line[0],Amount:99.99}]}
+    const client={companyInfo:vi.fn(async()=>({name:'Eminat Medical Center LLC'})),
+      itemByName:vi.fn(async()=>({Id:'7',Taxable:false})),
+      invoiceForRecovery:vi.fn(async()=>({...renewalInvoice,DocNumber:undefined})),
+      numberExistingInvoice:vi.fn(async()=>renewalInvoice),invoiceWithLink:vi.fn(async()=>renewalInvoice),createInvoice:vi.fn()}
+    mocks.access.mockResolvedValueOnce({client,realmId:'123',accessToken:'synthetic'})
+    expect(await issuePatientQboInvoice('patient','intent','qa@example.com')).toEqual({status:'INVOICE_CREATED',invoiceNumber:'CS-TEST'})
+    expect(client.createInvoice).not.toHaveBeenCalled()
+  })
   it('refuses to link a job owned by another patient', async () => {
     mocks.claim.mockResolvedValueOnce({ data:[{ ...job,patient_identity_id:'other' }],error:null })
     await expect(issuePatientQboInvoice('patient','intent','qa@example.com'))

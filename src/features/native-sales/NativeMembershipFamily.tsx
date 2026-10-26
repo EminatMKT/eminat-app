@@ -78,7 +78,7 @@ export default function NativeMembershipFamily({ membershipId, membershipType, h
   const pending = requests.filter(item => item.status === 'PENDING').length
   const active = household.filter(item => item.status === 'ACTIVE').length
   return <section className={s.recordActions} aria-label={t('salesNative.familyMembership')}>
-    <h3>Household · {active}/3 active · {pending} pending</h3>
+    <h3>{t('salesNative.householdSummary',{active,pending})}</h3>
     <ul className={s.scheduleList}>{household.map(member =>
       <li key={member.id}><span><strong>{member.displayName}</strong><small>{member.relationship} · {member.status} {member.code ? `· ${member.code}` : ''}</small></span></li>)}</ul>
     {requests.length > 0 && <><h3>{t('salesNative.familyRequests')}</h3><ul className={s.scheduleList}>{requests.map(item =>
@@ -97,7 +97,7 @@ export default function NativeMembershipFamily({ membershipId, membershipType, h
         <label>{t('salesNative.auditRelationship')} <select value={relationship} onChange={event => setRelationship(event.target.value as typeof relationship)}>
           <option value="CHILD">{t('salesNative.child')}</option><option value="SPOUSE">{t('salesNative.auditSpouse')}</option><option value="PARENT">{t('salesNative.auditParent')}</option><option value="OTHER">{t('salesNative.auditOther')}</option>
         </select></label>
-      </div><button type="submit" disabled={busy || !contactId}>{busy ? 'Saving…' : 'Request member'}</button>
+      </div><button type="submit" disabled={busy || !contactId}>{busy ? t('salesNative.renewalSaving') : t('salesNative.requestMember')}</button>
     </form>}
     {error && <p role="alert" className={s.error}>{error}</p>}
   </section>

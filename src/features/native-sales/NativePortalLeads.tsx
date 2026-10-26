@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import type { NativeRequest } from './NativeSalesModule'
 import { useT } from '@/shared/i18n'
+import { salesDisplayValue } from './display-value'
 import s from './NativeSalesModule.module.css'
 
 type PortalLead = {
@@ -102,7 +103,7 @@ export default function NativePortalLeads({ request, users, onOpenLead }: {
     {!loading && !error && <>
       {rows.length ? <div className={s.list}>{rows.map(row =>
         <button key={row.id} type="button" className={s.item} onClick={() => setSelected(row)}>
-          <span><strong>{row.displayName}</strong><small>{row.email || t('salesNative.auditNoEmail')} · {row.commercialStatus.replaceAll('_',' ')}</small></span>
+          <span><strong>{row.displayName}</strong><small>{row.email || t('salesNative.auditNoEmail')} · {salesDisplayValue(row.commercialStatus,t)}</small></span>
           <span className={s.meta}>{userName(row)} · {date(row.registeredAt)}</span>
         </button>)}</div> : <p className={s.empty}>{t('salesNative.auditNoPortalLeadsMatchTheseFilters')}</p>}
       <div className={s.pager}>
@@ -117,21 +118,21 @@ export default function NativePortalLeads({ request, users, onOpenLead }: {
       <div className={s.detailHeader}><h2>{selected.displayName}</h2>
         <button type="button" onClick={() => setSelected(null)} aria-label={t('salesNative.closeDetails')}>×</button></div>
       <dl>
-        <dt>{t('salesNative.auditSourceRegistered')}</dt><dd>{selected.source} · {date(selected.registeredAt)}</dd>
+        <dt>{t('salesNative.auditSourceRegistered')}</dt><dd>{salesDisplayValue(selected.source,t)} · {date(selected.registeredAt)}</dd>
         <dt>{t('salesNative.auditContact')}</dt><dd>{value(selected.email)} · {value(selected.phone)}</dd>
         <dt>{t('salesNative.auditProfile')}</dt><dd>{selected.profileComplete ? t('salesNative.complete') : t('salesNative.auditIncomplete')}</dd>
-        <dt>{t('salesNative.auditSellerAssignment')}</dt><dd>{userName(selected)} · {selected.assignmentStatus} · {date(selected.assignmentAt)}</dd>
-        <dt>{t('salesNative.auditRule')}</dt><dd>{selected.assignmentSource.replaceAll('_',' ')}</dd>
-        <dt>{t('salesNative.auditLeadCommercial')}</dt><dd>{selected.leadStatus} · {selected.commercialStatus.replaceAll('_',' ')}</dd>
-        <dt>{t('salesNative.auditSelection')}</dt><dd>{value(selected.plan)} · {value(selected.membershipType)} · {value(selected.modality)}</dd>
+        <dt>{t('salesNative.auditSellerAssignment')}</dt><dd>{userName(selected)} · {salesDisplayValue(selected.assignmentStatus,t)} · {date(selected.assignmentAt)}</dd>
+        <dt>{t('salesNative.auditRule')}</dt><dd>{salesDisplayValue(selected.assignmentSource,t)}</dd>
+        <dt>{t('salesNative.auditLeadCommercial')}</dt><dd>{salesDisplayValue(selected.leadStatus,t)} · {salesDisplayValue(selected.commercialStatus,t)}</dd>
+        <dt>{t('salesNative.auditSelection')}</dt><dd>{salesDisplayValue(value(selected.plan),t)} · {salesDisplayValue(value(selected.membershipType),t)} · {salesDisplayValue(value(selected.modality),t)}</dd>
         <dt>{t('salesNative.auditAmount')}</dt><dd>{selected.amountCents===null ? '—' : `$${(selected.amountCents/100).toFixed(2)}`}</dd>
-        <dt>{t('salesNative.qboOpportunity')}</dt><dd>{value(selected.opportunityStage)} · {value(selected.opportunityId)}</dd>
-        <dt>{t('salesNative.qboInvoice')}</dt><dd>{selected.invoiceStatus} · {value(selected.invoiceNumber)}</dd>
-        <dt>{t('salesNative.auditPaymentMembership')}</dt><dd>{selected.paymentStatus} · {selected.membershipStatus}</dd>
+        <dt>{t('salesNative.qboOpportunity')}</dt><dd>{salesDisplayValue(value(selected.opportunityStage),t)} · {value(selected.opportunityId)}</dd>
+        <dt>{t('salesNative.qboInvoice')}</dt><dd>{salesDisplayValue(selected.invoiceStatus,t)} · {value(selected.invoiceNumber)}</dd>
+        <dt>{t('salesNative.auditPaymentMembership')}</dt><dd>{salesDisplayValue(selected.paymentStatus,t)} · {salesDisplayValue(selected.membershipStatus,t)}</dd>
         <dt>{t('salesNative.auditFamilyCapacity')}</dt><dd>{selected.familyCount===null ? t('salesNative.individual') : `${selected.familyCount}/3`}</dd>
-        <dt>{t('salesNative.auditNextAction')}</dt><dd>{value(selected.nextAction)}</dd>
+        <dt>{t('salesNative.auditNextAction')}</dt><dd>{salesDisplayValue(value(selected.nextAction),t)}</dd>
         <dt>{t('salesNative.auditFollowUpDue')}</dt><dd>{date(selected.nextFollowUpAt)}{selected.nextFollowUpAt && new Date(selected.nextFollowUpAt)<new Date() ? ` · ${t('salesNative.auditOverdue')}` : ''}</dd>
-        <dt>{t('salesNative.auditLastActivity')}</dt><dd>{value(selected.lastActivity)} · {date(selected.lastActivityAt)}</dd>
+        <dt>{t('salesNative.auditLastActivity')}</dt><dd>{salesDisplayValue(value(selected.lastActivity),t)} · {date(selected.lastActivityAt)}</dd>
       </dl>
       {selected.email && <button type="button" onClick={() => onOpenLead(selected.email as string)}>{t('salesNative.auditOpenLeadAndActivities')}</button>}
     </section></div>}

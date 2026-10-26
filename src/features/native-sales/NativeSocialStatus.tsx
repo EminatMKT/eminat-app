@@ -133,19 +133,19 @@ export default function NativeSocialStatus({ request, role, users, teams }: { re
       {error && <p role="alert" className={s.error}>{error}</p>}
       {!loading && !error && integrations.length === 0 && <p>{t('salesNative.noSocialConnectionIsActive')}</p>}
       <ul className={s.breakdown}>{integrations.map(item => <li key={item.id}>
-        <span>{item.provider_code} · {item.external_business_name || 'Business not selected'}</span>
+        <span>{item.provider_code} · {item.external_business_name || t('salesNative.businessNotSelected')}</span>
         <strong>{item.status}</strong>
         {item.provider_code === 'META' && item.token_expires_at &&
-          <span>Token {Date.parse(item.token_expires_at) > Date.now() ? 'expires' : 'expired'} ·
+          <span>{Date.parse(item.token_expires_at) > Date.now() ? t('salesNative.tokenExpires') : t('salesNative.tokenExpired')} ·
             {' '}{new Date(item.token_expires_at).toLocaleDateString()}</span>}
         {item.provider_code === 'META' && metaAvailable &&
           ['CONNECTED', 'DEGRADED'].includes(item.status) && item.token_expires_at &&
           Date.parse(item.token_expires_at) > Date.now() &&
           <button type="button" disabled={busy} onClick={() => void refresh(item.id)}>
-            Refresh access</button>}
+            {t('salesNative.refreshAccess')}</button>}
         {item.provider_code === 'META' && ['CONNECTED', 'DEGRADED'].includes(item.status) &&
           <button type="button" disabled={busy} onClick={() => void revoke(item.id)}>
-            Disconnect</button>}</li>)}</ul>
+            {t('salesNative.disconnect')}</button>}</li>)}</ul>
       {!metaAvailable && <p>{t('salesNative.metaConnectionIsAwaitingPrivateAppConfigurationAnd')}</p>}
       {metaAvailable && !grantState && <div className={s.form}>
         <label>{t('salesNative.auditLeadOwner')}<select value={owner} onChange={event => setOwner(event.target.value)}>

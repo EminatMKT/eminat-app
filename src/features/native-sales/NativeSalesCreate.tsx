@@ -6,15 +6,13 @@ import s from './NativeSalesModule.module.css'
 
 type Resource = 'leads' | 'contacts' | 'accounts' | 'opportunities'
 type Account = { id: string; name: string }
-const titles: Record<Resource,string> = {
-  leads:'Lead',contacts:'Contact',accounts:'Account',opportunities:'Opportunity',
-}
 const today = () => new Date().toISOString().slice(0,10)
 
 export default function NativeSalesCreate({ resource, request, onSaved }: {
   resource: Resource; request: NativeRequest; onSaved: () => void
 }) {
   const { t } = useT()
+  const titles = {leads:t('salesNative.recordLead'),contacts:t('salesNative.recordContact'),accounts:t('salesNative.recordAccount'),opportunities:t('salesNative.recordOpportunity')}
   const [name,setName] = useState('')
   const [source,setSource] = useState('manual')
   const [email,setEmail] = useState('')
@@ -82,7 +80,7 @@ export default function NativeSalesCreate({ resource, request, onSaved }: {
       {(resource==='opportunities' || resource==='contacts') && <>
         <label>{t('salesNative.auditFindAccount')} <input value={accountQuery} onChange={event => { setAccountQuery(event.target.value);setAccountId('') }} placeholder={t('salesNative.searchByName')} /></label>
         <label>{t('salesNative.auditAccount')} <select required={resource==='opportunities'} value={accountId} onChange={event => setAccountId(event.target.value)}>
-          <option value="">{resource==='contacts' ? 'No primary Account' : 'Choose an Account'}</option>
+          <option value="">{resource==='contacts' ? t('salesNative.noPrimaryAccount') : t('salesNative.chooseAccount')}</option>
           {accounts.map(account => <option key={account.id} value={account.id}>{account.name}</option>)}
         </select></label>
       </>}
@@ -93,6 +91,6 @@ export default function NativeSalesCreate({ resource, request, onSaved }: {
     </div>
     {accountError && <p role="alert" className={s.error}>{accountError}</p>}
     {error && <p role="alert" className={s.error}>{error}</p>}
-    <button type="submit" disabled={busy || (resource==='opportunities' && !accountId)}>{busy ? 'Saving…' : `Save ${titles[resource]}`}</button>
+    <button type="submit" disabled={busy || (resource==='opportunities' && !accountId)}>{busy ? t('salesNative.renewalSaving') : t('salesNative.saveRecord',{record:titles[resource]})}</button>
   </form>
 }

@@ -152,6 +152,35 @@ describe('patient API isolation', () => {
     fixtures.signupLinks.length = 0; fixtures.verificationEmails.length = 0;
     fixtures.recoveryEmails.length = 0 })
 
+  it('creates renewal only for the authenticated identity and rejects injected scope', async () => {
+    const payload = {action:'CREATE',membershipId:memberships[0].id,idempotencyKey:'12345678-1234-4234-8234-123456789012'}
+    const send = (body:Record<string,unknown>,handle=patients[0].handle) => POST(new Request('https://app.test/api/patient/v1/renewal',{
+      method:'POST',headers:{'Content-Type':'application/json',Authorization:`Patient ${handle}`},body:JSON.stringify(body),
+    }),{params:Promise.resolve({resource:'renewal'})})
+    expect((await send(payload)).status).toBe(201)
+    expect(fixtures.rpcCalls.at(-1)).toEqual({name:'native_sales_patient_request_online_renewal',args:{
+      p_identity_id:patients[0].identityId,p_membership_id:memberships[0].id,p_key:payload.idempotencyKey,
+    }})
+    fixtures.rpcCalls.length=0
+    expect((await send({...payload,identityId:patients[1].identityId})).status).toBe(422)
+    expect(fixtures.rpcCalls).toHaveLength(0)
+    expect((await send(payload,'invalid')).status).toBe(401)
+    expect(fixtures.rpcCalls).toHaveLength(0)
+  })
+
+  it('routes cancellation through the identity-bound renewal path without record writes', async () => {
+    const intentId='12345678-1234-4234-8234-123456789012'
+    const response=await POST(new Request('https://app.test/api/patient/v1/renewal',{
+      method:'POST',headers:{'Content-Type':'application/json',Authorization:`Patient ${patients[1].handle}`},
+      body:JSON.stringify({action:'CANCEL',intentId}),
+    }),{params:Promise.resolve({resource:'renewal'})})
+    expect(response.status).toBe(200)
+    expect(fixtures.rpcCalls.at(-1)).toEqual({name:'native_sales_patient_cancel_renewal',args:{
+      p_identity_id:patients[1].identityId,p_intent_id:intentId,
+    }})
+    expect(fixtures.queries.some(query=>query.update)).toBe(false)
+  })
+
   it('keeps recovery responses identical for unknown and eligible patient addresses, without staff mail', async () => {
     const request = () => new Request('https://app.test/api/patient/v1/passwordrecovery', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

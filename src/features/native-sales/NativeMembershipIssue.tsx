@@ -146,9 +146,9 @@ export default function NativeMembershipIssue({ request, role, onSaved }: {
       </select></label>
       <label>{t('salesNative.auditIssueDate')} <input type="date" required value={issuedAt} onChange={event => setIssuedAt(event.target.value)} /></label>
     </div>
-    {quote && <p className={s.caption}>Initial term: {quote.initial_months} months · Total: {money(quote.total_cents)} · Monthly rate: {money(quote.monthly_cents)} · Included visits: {quote.included_visits}</p>}
-    {selectedOpportunity && <p className={s.caption}>Opportunity amount: {selectedOpportunity.currency} {selectedOpportunity.amount ?? '—'}</p>}
-    {selectedContact && <p className={s.caption}>Selected primary member: {selectedContact.display_name}</p>}
+    {quote && <p className={s.caption}>{t('salesNative.initialTermQuote',{months:quote.initial_months,total:money(quote.total_cents),monthly:money(quote.monthly_cents),visits:quote.included_visits})}</p>}
+    {selectedOpportunity && <p className={s.caption}>{t('salesNative.opportunityAmount')}: {selectedOpportunity.currency} {selectedOpportunity.amount ?? '—'}</p>}
+    {selectedContact && <p className={s.caption}>{t('salesNative.selectedPrimaryMember')}: {selectedContact.display_name}</p>}
     {canConfirm && opportunityId && <form className={s.form} onSubmit={event => void recordEvidence(event)}>
       <h3>{t('salesNative.recordVerifiedPaymentEvidence')}</h3><p>{t('salesNative.auditStaffAttestationOnlyNoProcessorOrBankTransactionIsInitiated')}</p>
       <div className={s.formGrid}>
@@ -160,7 +160,7 @@ export default function NativeMembershipIssue({ request, role, onSaved }: {
       <div className={s.formGrid}>
         <label>{t('salesNative.auditPaymentEvidence')} <select required value={paymentId} onChange={event => setPaymentId(event.target.value)}>
           <option value="">{t('salesNative.chooseUnusedEvidence')}</option>{payments.filter(item => !item.used).map(item =>
-            <option key={item.id} value={item.id}>{item.currency} {item.amount} · {item.paid_at} · {item.reference || 'No reference'}</option>)}</select></label>
+            <option key={item.id} value={item.id}>{item.currency} {item.amount} · {item.paid_at} · {item.reference || t('salesNative.noReference')}</option>)}</select></label>
         <label>{t('salesNative.auditFirstName')} <input required maxLength={160} value={firstName} onChange={event => setFirstName(event.target.value)} /></label>
         <label>{t('salesNative.auditLastName')} <input required maxLength={160} value={lastName} onChange={event => setLastName(event.target.value)} /></label>
         <label>{t('salesNative.auditPhone')} <input required maxLength={80} value={phone} onChange={event => setPhone(event.target.value)} /></label>
@@ -171,7 +171,7 @@ export default function NativeMembershipIssue({ request, role, onSaved }: {
       {selectedPayment && quote && !paymentMatchesQuote &&
         <p role="alert" className={s.error}>{t('salesNative.evidenceAmountDoesNotMatchTheMembershipQuote')}</p>}
       {error && <p role="alert" className={s.error}>{error}</p>}
-      <button type="submit" disabled={busy || !contactId || !paymentMatchesQuote}>{busy ? 'Saving…' : 'Issue paid membership'}</button>
+      <button type="submit" disabled={busy || !contactId || !paymentMatchesQuote}>{busy ? t('salesNative.renewalSaving') : t('salesNative.issuePaidMembership')}</button>
     </form>
   </section>
 }

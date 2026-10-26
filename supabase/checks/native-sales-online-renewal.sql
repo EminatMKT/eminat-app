@@ -14,7 +14,7 @@ DECLARE initial_intent uuid; membership uuid; request_key uuid; renewal uuid; ca
 DECLARE result jsonb; replay jsonb; initial_quote record; renewal_quote record;
 DECLARE q public.sales_patient_qbo_manual%ROWTYPE; job public.sales_qbo_invoice_jobs%ROWTYPE;
 DECLARE old_expiry date; old_code text; household_before jsonb; household_after jsonb;
-DECLARE membership_type text; issued date:=(current_date-interval '2 months'+interval '5 days')::date;
+DECLARE term_type text; issued date:=(current_date-interval '2 months'+interval '5 days')::date;
 DECLARE before_contacts bigint; before_leads bigint; expected_paid integer:=0; report jsonb;
 BEGIN
   INSERT INTO auth.users(id) VALUES(admin_auth),(seller_auth);
@@ -31,27 +31,27 @@ BEGIN
   INSERT INTO public.sales_pipelines(id,organization_id,code,name) VALUES(pipeline,org,'PATIENT_ENROLLMENT','QA Enrollment');
   INSERT INTO public.sales_stages(organization_id,pipeline_id,code,name,position,probability,outcome) VALUES
     (org,pipeline,'PAYMENT_PENDING','Pending',0,20,'OPEN'),(org,pipeline,'WON','Paid',1,100,'WON'),(org,pipeline,'LOST','Lost',2,0,'LOST');
-  FOREACH membership_type IN ARRAY ARRAY['INDIVIDUAL','FAMILY'] LOOP
+  FOREACH term_type IN ARRAY ARRAY['INDIVIDUAL','FAMILY'] LOOP
     patient:=gen_random_uuid();
-    INSERT INTO auth.users(id,email,email_confirmed_at) VALUES(patient,'qa-renewal-'||lower(membership_type)||'@example.invalid',now());
-    contact:=public.native_sales_patient_claim_contact(patient,'qa-renewal-'||lower(membership_type)||'@example.invalid','QA','Renewal','555-0100',org,admin_member);
+    INSERT INTO auth.users(id,email,email_confirmed_at) VALUES(patient,'qa-renewal-'||lower(term_type)||'@example.invalid',now());
+    contact:=public.native_sales_patient_claim_contact(patient,'qa-renewal-'||lower(term_type)||'@example.invalid','QA','Renewal','555-0100',org,admin_member);
     SELECT id INTO identity FROM public.sales_patient_identities WHERE auth_id=patient;
     UPDATE public.sales_contacts SET owner_member_id=seller,do_not_email=true WHERE id=contact;
-    result:=public.native_sales_patient_enroll(identity,'ESSENTIAL',membership_type,'MONTHLY',gen_random_uuid());
+    result:=public.native_sales_patient_enroll(identity,'ESSENTIAL',term_type,'MONTHLY',gen_random_uuid());
     initial_intent:=(result->>'id')::uuid;
     PERFORM public.native_sales_patient_accept_agreement(identity,patient,initial_intent,'es');
-    SELECT * INTO initial_quote FROM public.native_sales_membership_quote('ESSENTIAL',membership_type,'MONTHLY');
+    SELECT * INTO initial_quote FROM public.native_sales_membership_quote('ESSENTIAL',term_type,'MONTHLY');
     PERFORM public.native_sales_patient_qbo_update(initial_intent,admin_member,'RECORD_INVOICE',
-      p_invoice_number:='CS-LOCAL-'||initial_intent::text,p_invoice_reference:=CASE membership_type WHEN 'FAMILY' THEN '1002' ELSE '1001' END,p_customer_reference:='201',p_item_reference:='301',
+      p_invoice_number:='CS-LOCAL-'||initial_intent::text,p_invoice_reference:=CASE term_type WHEN 'FAMILY' THEN '1002' ELSE '1001' END,p_customer_reference:='201',p_item_reference:='301',
       p_invoice_amount_cents:=initial_quote.total_cents,p_hosted_url:='https://connect.intuit.com/t/local-not-real');
     q:=public.native_sales_patient_qbo_update(initial_intent,admin_member,'VERIFY_PAYMENT',
       p_payment_reference:='LOCAL-SIMULATED-'||initial_intent::text,p_payment_confirmed_at:=issued::timestamptz);
-    result:=public.native_sales_issue_membership(org,admin_member,q.sales_payment_id,contact,'ESSENTIAL',membership_type,'MONTHLY',issued,
-      'QA','Renewal','555-0100','qa-renewal-'||lower(membership_type)||'@example.invalid','QA address',false,
+    result:=public.native_sales_issue_membership(org,admin_member,q.sales_payment_id,contact,'ESSENTIAL',term_type,'MONTHLY',issued,
+      'QA','Renewal','555-0100','qa-renewal-'||lower(term_type)||'@example.invalid','QA address',false,
       'qa-renewal-initial-'||initial_intent::text,repeat('d',64),gen_random_uuid());
     membership:=(result->>'id')::uuid;
     SELECT expires_at,code INTO old_expiry,old_code FROM public.sales_memberships WHERE id=membership;
-    IF membership_type='FAMILY' THEN
+    IF term_type='FAMILY' THEN
       INSERT INTO public.sales_contacts(organization_id,owner_member_id,display_name,first_name,last_name,created_by,updated_by)
         VALUES(org,seller,'QA Child','QA','Child',admin_member,admin_member) RETURNING id INTO child;
       INSERT INTO public.sales_household_members(organization_id,membership_id,contact_id,relationship,status,member_index,approved_by,approved_at)
@@ -75,7 +75,7 @@ BEGIN
     replay:=public.native_sales_patient_request_online_renewal(identity,membership,gen_random_uuid());
     IF replay->>'id'<>renewal::text OR (SELECT count(*) FROM public.sales_contacts WHERE organization_id=org)<>before_contacts
       OR (SELECT count(*) FROM public.sales_leads WHERE organization_id=org)<>before_leads THEN RAISE EXCEPTION 'RENEWAL_RECREATED_IDENTITY'; END IF;
-    SELECT * INTO renewal_quote FROM public.native_sales_renewal_quote('ESSENTIAL',membership_type,'MONTHLY');
+    SELECT * INTO renewal_quote FROM public.native_sales_renewal_quote('ESSENTIAL',term_type,'MONTHLY');
     IF renewal_quote.months<>1 OR renewal_quote.total_cents<>initial_quote.monthly_cents OR
       NOT public.native_sales_patient_invoice_agreement_valid(renewal) OR
       (SELECT count(*) FROM public.sales_patient_agreement_acceptances WHERE patient_identity_id=identity)<>1 THEN
@@ -87,12 +87,12 @@ BEGIN
     SELECT * INTO job FROM public.native_sales_qbo_claim_invoice(identity,renewal);
     PERFORM public.native_sales_qbo_claim_invoice(identity,renewal);
     IF (SELECT count(*) FROM public.sales_qbo_invoice_jobs WHERE enrollment_intent_id=renewal)<>1 THEN RAISE EXCEPTION 'DUPLICATE_INVOICE_JOB'; END IF;
-    INSERT INTO public.sales_qbo_customer_bindings(organization_id,contact_id,qbo_customer_id) VALUES(org,contact,CASE membership_type WHEN 'FAMILY' THEN '202' ELSE '201' END);
+    INSERT INTO public.sales_qbo_customer_bindings(organization_id,contact_id,qbo_customer_id) VALUES(org,contact,CASE term_type WHEN 'FAMILY' THEN '202' ELSE '201' END);
     -- Simulated provider response in this isolated transaction; never calls QBO.
-    UPDATE public.sales_qbo_invoice_jobs SET state='INVOICE_CREATED',qbo_customer_id=CASE membership_type WHEN 'FAMILY' THEN '202' ELSE '201' END,
-      qbo_invoice_id=CASE membership_type WHEN 'FAMILY' THEN '102' ELSE '101' END,qbo_invoice_number='CS-LOCAL-'||renewal::text WHERE id=job.id;
-    q:=public.native_sales_qbo_finish_invoice(job.id,CASE membership_type WHEN 'FAMILY' THEN '202' ELSE '201' END,'301',
-      CASE membership_type WHEN 'FAMILY' THEN '102' ELSE '101' END,'CS-LOCAL-'||renewal::text,'https://connect.intuit.com/t/local-renewal-not-real');
+    UPDATE public.sales_qbo_invoice_jobs SET state='INVOICE_CREATED',qbo_customer_id=CASE term_type WHEN 'FAMILY' THEN '202' ELSE '201' END,
+      qbo_invoice_id=CASE term_type WHEN 'FAMILY' THEN '102' ELSE '101' END,qbo_invoice_number='CS-LOCAL-'||renewal::text WHERE id=job.id;
+    q:=public.native_sales_qbo_finish_invoice(job.id,CASE term_type WHEN 'FAMILY' THEN '202' ELSE '201' END,'301',
+      CASE term_type WHEN 'FAMILY' THEN '102' ELSE '101' END,'CS-LOCAL-'||renewal::text,'https://connect.intuit.com/t/local-renewal-not-real');
     IF (SELECT expires_at FROM public.sales_memberships WHERE id=membership)<>old_expiry THEN RAISE EXCEPTION 'PENDING_INVOICE_EXTENDED_COVERAGE'; END IF;
     q:=public.native_sales_patient_qbo_update(renewal,admin_member,'VERIFY_PAYMENT',
       p_payment_reference:='LOCAL-SIMULATED-'||renewal::text,p_payment_confirmed_at:=now());
@@ -105,8 +105,8 @@ BEGIN
       OR (SELECT seller_member_id FROM public.sales_memberships WHERE id=membership)<>seller
       OR household_before IS DISTINCT FROM household_after THEN RAISE EXCEPTION 'RENEWAL_IDENTITY_PERIOD_FAMILY_OR_REPLAY_REGRESSION'; END IF;
     BEGIN
-      PERFORM public.native_sales_issue_membership(org,admin_member,q.sales_payment_id,contact,'ESSENTIAL',membership_type,'MONTHLY',current_date,
-        'QA','Renewal','555-0100','qa-renewal-'||lower(membership_type)||'@example.invalid','QA address',false,
+      PERFORM public.native_sales_issue_membership(org,admin_member,q.sales_payment_id,contact,'ESSENTIAL',term_type,'MONTHLY',current_date,
+        'QA','Renewal','555-0100','qa-renewal-'||lower(term_type)||'@example.invalid','QA address',false,
         'qa-invalid-second-member-'||renewal::text,repeat('e',64),gen_random_uuid());
       RAISE EXCEPTION 'RENEWAL_PAYMENT_CREATED_SECOND_MEMBERSHIP';
     EXCEPTION WHEN SQLSTATE '42501' THEN IF SQLERRM<>'RENEWAL_USE_VERIFIED_EXTENSION' THEN RAISE; END IF; END;
@@ -121,6 +121,45 @@ BEGIN
     PERFORM public.native_sales_patient_cancel_renewal(identity,cancelled);
     IF (SELECT status FROM public.sales_patient_enrollment_intents WHERE id=cancelled)<>'CANCELLED'
       OR (SELECT expires_at FROM public.sales_memberships WHERE id=membership)<>current_date-10 THEN RAISE EXCEPTION 'UNBILLED_CANCELLATION_CHANGED_COVERAGE'; END IF;
+    -- An invoiced unpaid renewal enters review; only supported void confirmation releases it.
+    result:=public.native_sales_patient_request_online_renewal(identity,membership,gen_random_uuid());
+    cancelled:=(result->>'id')::uuid;
+    SELECT * INTO job FROM public.native_sales_qbo_claim_invoice(identity,cancelled);
+    UPDATE public.sales_qbo_invoice_jobs SET state='INVOICE_CREATED',
+      qbo_customer_id=CASE term_type WHEN 'FAMILY' THEN '202' ELSE '201' END,
+      qbo_invoice_id=CASE term_type WHEN 'FAMILY' THEN '104' ELSE '103' END,
+      qbo_invoice_number='CS-LOCAL-'||cancelled::text WHERE id=job.id;
+    PERFORM public.native_sales_qbo_finish_invoice(job.id,CASE term_type WHEN 'FAMILY' THEN '202' ELSE '201' END,'301',
+      CASE term_type WHEN 'FAMILY' THEN '104' ELSE '103' END,'CS-LOCAL-'||cancelled::text,'https://connect.intuit.com/t/local-cancel-not-real');
+    result:=public.native_sales_patient_cancel_renewal(identity,cancelled);
+    IF result->>'status'<>'CANCELLATION_REQUESTED' THEN RAISE EXCEPTION 'INVOICED_RENEWAL_NOT_HELD_FOR_VOID'; END IF;
+    BEGIN
+      PERFORM public.native_sales_patient_complete_renewal(cancelled);
+      RAISE EXCEPTION 'CANCELLATION_REVIEW_EXTENDED_COVERAGE';
+    EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
+    PERFORM public.native_sales_patient_confirm_invoice_void(cancelled,admin_member,'CS-LOCAL-'||cancelled::text,
+      'ISOLATED SIMULATED VOID EVIDENCE, NO PROVIDER CALL',gen_random_uuid());
+    IF (SELECT status FROM public.sales_patient_enrollment_intents WHERE id=cancelled)<>'CANCELLED'
+      OR (SELECT expires_at FROM public.sales_memberships WHERE id=membership)<>current_date-10 THEN
+      RAISE EXCEPTION 'VOID_CANCELLATION_CHANGED_COVERAGE'; END IF;
+    -- A later verified renewal on an expired member starts on payment date.
+    UPDATE public.sales_memberships SET status='EXPIRED' WHERE id=membership;
+    result:=public.native_sales_patient_request_online_renewal(identity,membership,gen_random_uuid());
+    renewal:=(result->>'id')::uuid;
+    SELECT * INTO job FROM public.native_sales_qbo_claim_invoice(identity,renewal);
+    UPDATE public.sales_qbo_invoice_jobs SET state='INVOICE_CREATED',
+      qbo_customer_id=CASE term_type WHEN 'FAMILY' THEN '202' ELSE '201' END,
+      qbo_invoice_id=CASE term_type WHEN 'FAMILY' THEN '106' ELSE '105' END,
+      qbo_invoice_number='CS-LOCAL-'||renewal::text WHERE id=job.id;
+    PERFORM public.native_sales_qbo_finish_invoice(job.id,CASE term_type WHEN 'FAMILY' THEN '202' ELSE '201' END,'301',
+      CASE term_type WHEN 'FAMILY' THEN '106' ELSE '105' END,'CS-LOCAL-'||renewal::text,'https://connect.intuit.com/t/local-expired-not-real');
+    PERFORM public.native_sales_patient_qbo_update(renewal,admin_member,'VERIFY_PAYMENT',
+      p_payment_reference:='LOCAL-SIMULATED-'||renewal::text,p_payment_confirmed_at:=now());
+    result:=public.native_sales_patient_complete_renewal(renewal);
+    IF (result->>'startsAt')::date<>current_date OR (result->>'expiresAt')::date<>public.native_sales_add_membership_months(current_date,1)
+      OR (SELECT status FROM public.sales_memberships WHERE id=membership)<>'ACTIVE'
+      OR (SELECT code FROM public.sales_memberships WHERE id=membership)<>old_code THEN RAISE EXCEPTION 'EXPIRED_RENEWAL_PERIOD_WRONG'; END IF;
+    expected_paid:=expected_paid+renewal_quote.total_cents;
     BEGIN
       PERFORM public.native_sales_patient_request_online_renewal(gen_random_uuid(),membership,gen_random_uuid());
       RAISE EXCEPTION 'FOREIGN_PATIENT_RENEWAL_ALLOWED';

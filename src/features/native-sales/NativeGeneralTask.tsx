@@ -45,6 +45,6 @@ export default function NativeGeneralTask({ request, onSaved }: {
     <label>{t('salesNative.auditDetails')} <textarea maxLength={20000} value={body} onChange={event => setBody(event.target.value)} /></label>
     <label>{t('salesNative.auditDueDateAndTime')} <input type="datetime-local" value={dueAt} onChange={event => setDueAt(event.target.value)} /></label>
     {error && <p role="alert" className={s.error}>{error}</p>}
-    <button type="submit" disabled={busy || !title.trim()}>{busy ? 'Saving…' : 'Save task'}</button>
+    <button type="submit" disabled={busy || !title.trim()}>{busy ? t('salesNative.renewalSaving') : t('salesNative.saveTask')}</button>
   </form>
 }

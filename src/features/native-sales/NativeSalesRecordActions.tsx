@@ -136,7 +136,7 @@ export default function NativeSalesRecordActions({ resource,row,canWrite,canReas
       <h3>{t('salesNative.editOpportunity')}</h3><div className={s.formGrid}>
         <label>{t('salesNative.auditName')} <input required maxLength={500} value={name} onChange={event => setName(event.target.value)} /></label>
         <label>{t('salesNative.auditExpectedClose')} <input required type="date" value={closeDate} onChange={event => setCloseDate(event.target.value)} /></label>
-        <label>Amount ({String(row.currency ?? 'USD')}) <input type="number" min="0" step="0.01" value={amount} onChange={event => setAmount(event.target.value)} /></label>
+        <label>{t('salesNative.auditAmount')} ({String(row.currency ?? 'USD')}) <input type="number" min="0" step="0.01" value={amount} onChange={event => setAmount(event.target.value)} /></label>
         <label>{t('salesNative.auditSource')} <input maxLength={500} value={source} onChange={event => setSource(event.target.value)} /></label>
         <label>{t('salesNative.auditProduct')} <input maxLength={500} value={product} onChange={event => setProduct(event.target.value)} /></label>
         <label>{t('salesNative.auditFindContact')} <input value={contactQuery} onChange={event => setContactQuery(event.target.value)} placeholder={t('salesNative.searchByName')} /></label>
@@ -190,7 +190,7 @@ export default function NativeSalesRecordActions({ resource,row,canWrite,canReas
           stages.filter(item => opportunityStages.has(item.code) && item.pipelineId===currentPipelineId)).map(item =>
           <option key={item.code} value={item.code}>{item.name}</option>)}
       </select></label>
-      {resource==='opportunities' && <label>{stage==='LOST' ? 'Loss reason' : 'Reason (for reopen)'}
+      {resource==='opportunities' && <label>{stage==='LOST' ? t('salesNative.lossReason') : t('salesNative.reopenReason')}
         <input required={stage==='LOST'} maxLength={500} value={stageReason} onChange={event => setStageReason(event.target.value)} /></label>}
       <button type="submit" disabled={busy || !stage}>{t('salesNative.saveStage')}</button>
     </form>}
