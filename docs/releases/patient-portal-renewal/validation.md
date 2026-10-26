@@ -17,6 +17,8 @@ Neither failing surface is changed in this release. The tests are not skipped, w
 
 ## LILLY
 
+Local final validation: 559 test files / 2,330 unit tests, TypeScript, lint and CSS checks pass. The final renewal SQL and Activities SQL checks passed in CI run 40345202460; browser tests remain a required release gate.
+
 The initial audit correction CI passed in full. The complete renewal database transaction now passes in isolated CI, including Individual/Family, active/expired, pending/retry, consent, duplicate invoice/payment-period prevention, supported cancellation/void and identity/owner preservation. Final-head full CI and protected hosted Preview must still pass before readiness/merge/deployment; this document is not a release approval.
 
 No Production business record has been manually changed. No invoice or payment has been created in Production during verification.
