@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import { H, PASSWORD, authIdByEmail, deleteUser, ensureUser, getUsuario } from './seed'
 
 const base = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'
@@ -34,6 +34,13 @@ test.afterAll(async () => {
   await deleteUser(email)
 })
 
+async function selectSales(page: Page, name: string) {
+  if ((page.viewportSize()?.width ?? 1280) <= 768)
+    await page.getByRole('button', { name: 'Open menu', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Sales sections' })
+    .getByRole('link', { name, exact: true }).click()
+}
+
 test('native Sales loads from LILLY identity with a scoped Social inbox', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', error => errors.push(error.message))
@@ -49,9 +56,19 @@ test('native Sales loads from LILLY identity with a scoped Social inbox', async 
   await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
   await page.goto('/sales-native')
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 30000 })
-  await page.getByRole('button', { name: 'Social', exact: true }).click()
+  await selectSales(page, 'Social')
   await expect(page.getByRole('heading', { name: 'Conversations' })).toBeVisible()
   await expect(page.getByText('No permitted conversations yet.')).toBeVisible()
+  await selectSales(page, 'Contacts')
+  await expect(page).toHaveURL(/section=contacts/)
+  await expect(page.getByRole('link', { name: 'Contacts', exact: true })).toHaveAttribute('aria-current', 'page')
+  await page.goBack()
+  await expect(page.getByRole('heading', { name: 'Social', exact: true })).toBeVisible()
+  await page.goForward()
+  await expect(page.getByRole('heading', { name: 'Contacts', exact: true })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Contacts', exact: true })).toBeVisible()
+  await expect(page.locator('main nav')).toHaveCount(0)
   expect(errors).toEqual([])
 })
 
@@ -69,10 +86,9 @@ test('native Sales sections render at mobile width without document overflow', a
   await page.locator('input[type="password"]').press('Enter')
   await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
   await page.goto('/sales-native')
-  const sections = page.getByRole('navigation', { name: 'Sales sections' })
-  for (const label of ['Dashboard', 'Leads', 'Contacts', 'Accounts', 'Opportunities',
-    'Pipeline', 'Activities', 'Memberships', 'Reports', 'Social', 'Sales Settings']) {
-    await sections.getByRole('button', { name: label, exact: true }).click()
+  for (const label of ['Dashboard', 'Leads', 'Portal Leads', 'Contacts', 'Accounts', 'Opportunities',
+    'Pipeline', 'Activities', 'Memberships', 'Reports', 'Payments & Renewals', 'Social', 'Sales Settings']) {
+    await selectSales(page, label)
     await expect(page.getByRole('heading', { name: label, exact: true, level: 1 })).toBeVisible()
     await expect(page.getByRole('status').filter({ hasText: /^Loading / })).toHaveCount(0)
     await expect(page.locator('main').getByRole('alert')).toHaveCount(0)
@@ -120,8 +136,7 @@ test('Sales defaults to its commercial workspace without exposing corporate memb
     await expect(page.getByRole('combobox',{ name:'Sales organization',exact:true })).toHaveCount(0)
     await expect(page.getByRole('heading',{ name:'Select a Sales organization',exact:true })).toHaveCount(0)
     await expect(page.getByText('Local Context Second',{ exact:true })).toHaveCount(0)
-    await page.getByRole('navigation',{ name:'Sales sections' })
-      .getByRole('button',{ name:'Leads',exact:true }).click()
+    await selectSales(page, 'Leads')
     await expect(page.getByRole('button',{ name:/Context First Lead/ })).toBeVisible()
     await expect(page.getByRole('button',{ name:/Context Second Lead/ })).toHaveCount(0)
     await page.setViewportSize({ width:375,height:667 })
@@ -136,4 +151,37 @@ test('Sales defaults to its commercial workspace without exposing corporate memb
     await write('sales_members','DELETE',undefined,`?id=in.(${secondMember},${pendingMember})`)
     await write('sales_organizations','DELETE',undefined,`?id=in.(${secondOrg},${pendingOrg})`)
   }
+})
+
+// Synthetic summary is confined to this local browser fixture; no Production data is fabricated.
+test('Sales dashboard charts expose real response values, hover details and accessible data', async ({ page }) => {
+  await page.route('**/api/sales-native/reports/summary', async route => {
+    expect(route.request().headers()['x-sales-organization-id']).toBe(organizationId)
+    await route.fulfill({ json: { data: {
+      asOf: '2026-10-25', scope: 'organization',
+      leads: { total: 3, byStatus: [{ code: 'NEW', count: 2 }, { code: 'ASSIGNED', count: 1 }] },
+      opportunities: { total: 6, open: 3, won: 1, lost: 2, openByCurrency: [],
+        byStage: [{ code: 'OPEN', label: 'Open', outcome: 'OPEN', count: 3 },
+          { code: 'WON', label: 'Won', outcome: 'WON', count: 1 },
+          { code: 'LOST', label: 'Lost', outcome: 'LOST', count: 2 }] },
+    } } })
+  })
+  await page.addInitScript(() => {
+    localStorage.setItem('eminat-onboarding-completed', 'true')
+    localStorage.setItem('locale', 'en')
+  })
+  await page.goto('/login')
+  await page.getByPlaceholder('tu@eminat.net').fill(email)
+  await page.locator('input[type="password"]').fill(PASSWORD)
+  await page.locator('input[type="password"]').press('Enter')
+  await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
+  await page.goto('/sales-native?section=dashboard')
+  await expect(page.locator('.recharts-responsive-container')).toHaveCount(3)
+  await page.locator('.recharts-bar-rectangle').first().hover()
+  await expect(page.locator('.recharts-tooltip-wrapper').filter({ hasText: 'Records' }).first()).toBeVisible()
+  await page.getByText('View chart data', { exact: true }).first().click()
+  await expect(page.getByRole('row', { name: 'New 2', exact: true })).toBeVisible()
+  await expect(page.getByRole('row', { name: 'Assigned 1', exact: true })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Sales sections' }).getByRole('link')).toHaveCount(13)
+  await expect(page.locator('main nav')).toHaveCount(0)
 })
