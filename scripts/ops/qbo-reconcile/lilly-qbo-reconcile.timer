@@ -1,0 +1,12 @@
+[Unit]
+Description=Run LILLY QBO reconciliation every five minutes
+
+[Timer]
+OnCalendar=*-*-* *:00/5:00 UTC
+Persistent=true
+AccuracySec=1s
+RandomizedDelaySec=0
+Unit=lilly-qbo-reconcile.service
+
+[Install]
+WantedBy=timers.target

@@ -117,6 +117,8 @@ jobs:
         run: psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -q -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-qbo-oauth-rehearsal.sql
       - name: Verify automatic invoice constraints and service-only access
         run: psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -q -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-qbo-automatic-invoice.sql
+      - name: Rehearse paid membership opt-out and idempotent replay locally
+        run: psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -q -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-membership-email-preference.sql
       - name: Rehearse first controlled binding check without persisting a member
         run: |
           set -euo pipefail

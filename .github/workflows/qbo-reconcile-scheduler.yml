@@ -1,13 +1,12 @@
 name: QuickBooks reconciliation scheduler
 on:
-  schedule:
-    # GitHub schedules are best effort. The LILLY queue remains durable.
-    - cron: '3-59/5 * * * *'
+  # Production cadence belongs to the dedicated VPS timer. Manual rollback only.
   workflow_dispatch:
   pull_request:
     paths:
       - '.github/workflows/qbo-reconcile-scheduler.yml'
       - 'scripts/qa/qbo-reconcile-scheduler*.mjs'
+      - 'scripts/ops/qbo-reconcile/**'
       - 'vercel.json'
 permissions:
   contents: read
@@ -24,6 +23,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - run: node --test scripts/qa/qbo-reconcile-scheduler.checks.mjs
+      - run: python3 scripts/ops/qbo-reconcile/test_worker.py
   tick:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.LILLY_QBO_RECONCILE_SCHEDULER_ENABLED == 'true'
     needs: scheduler-contract

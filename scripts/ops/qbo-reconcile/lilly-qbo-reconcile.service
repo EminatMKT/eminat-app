@@ -1,0 +1,20 @@
+[Unit]
+Description=LILLY QBO reconciliation trigger
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=lilly-qbo-reconcile
+Group=lilly-qbo-reconcile
+StateDirectory=lilly-qbo-reconcile
+StateDirectoryMode=0700
+LoadCredential=cron_secret:/etc/lilly-qbo-reconcile/cron_secret
+ExecStart=/usr/bin/python3 /opt/lilly-qbo-reconcile/worker.py tick
+TimeoutStartSec=70
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0077

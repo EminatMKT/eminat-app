@@ -1,0 +1,12 @@
+[Unit]
+Description=Check LILLY QBO worker freshness every minute
+
+[Timer]
+OnCalendar=*-*-* *:*:30 UTC
+Persistent=true
+AccuracySec=1s
+RandomizedDelaySec=0
+Unit=lilly-qbo-watchdog.service
+
+[Install]
+WantedBy=timers.target
