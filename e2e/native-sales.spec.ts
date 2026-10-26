@@ -154,7 +154,8 @@ test('Sales defaults to its commercial workspace without exposing corporate memb
 })
 
 // Synthetic summary is confined to this local browser fixture; no Production data is fabricated.
-test('Sales dashboard charts expose real response values, hover details and accessible data', async ({ page }) => {
+for (const theme of ['light', 'dark']) {
+test(`Sales dashboard charts expose real response values, hover details and accessible data in ${theme}`, async ({ page }) => {
   await page.route('**/api/sales-native/reports/summary', async route => {
     expect(route.request().headers()['x-sales-organization-id']).toBe(organizationId)
     await route.fulfill({ json: { data: {
@@ -166,10 +167,11 @@ test('Sales dashboard charts expose real response values, hover details and acce
           { code: 'LOST', label: 'Lost', outcome: 'LOST', count: 2 }] },
     } } })
   })
-  await page.addInitScript(() => {
+  await page.addInitScript(theme => {
     localStorage.setItem('eminat-onboarding-completed', 'true')
     localStorage.setItem('locale', 'en')
-  })
+    localStorage.setItem('eminat-theme', JSON.stringify(theme))
+  }, theme)
   await page.goto('/login')
   await page.getByPlaceholder('tu@eminat.net').fill(email)
   await page.locator('input[type="password"]').fill(PASSWORD)
@@ -179,9 +181,46 @@ test('Sales dashboard charts expose real response values, hover details and acce
   await expect(page.locator('.recharts-responsive-container')).toHaveCount(3)
   await page.locator('.recharts-bar-rectangle').first().hover()
   await expect(page.locator('.recharts-tooltip-wrapper').filter({ hasText: 'Records' }).first()).toBeVisible()
+  const tooltip = page.locator('.recharts-tooltip-wrapper').filter({ hasText: 'Records' }).first()
+  await expect(tooltip.locator('.recharts-default-tooltip')).toHaveCSS('background-color',
+    theme === 'dark' ? 'rgb(38, 35, 51)' : 'rgb(255, 255, 255)')
   await page.getByText('View chart data', { exact: true }).first().click()
   await expect(page.getByRole('row', { name: 'New 2', exact: true })).toBeVisible()
   await expect(page.getByRole('row', { name: 'Assigned 1', exact: true })).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Sales sections' }).getByRole('link')).toHaveCount(13)
   await expect(page.locator('main nav')).toHaveCount(0)
+})
+}
+
+test('all Sales sections keep coherent dark surfaces, readable controls and responsive navigation', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('eminat-onboarding-completed', 'true')
+    localStorage.setItem('locale', 'en')
+    localStorage.setItem('eminat-theme', JSON.stringify('dark'))
+  })
+  await page.goto('/login')
+  await page.getByPlaceholder('tu@eminat.net').fill(email)
+  await page.locator('input[type="password"]').fill(PASSWORD)
+  await page.locator('input[type="password"]').press('Enter')
+  await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
+  await page.goto('/sales-native')
+  for (const width of [1280, 375]) {
+    await page.setViewportSize({ width, height: 800 })
+    for (const label of ['Dashboard', 'Leads', 'Portal Leads', 'Contacts', 'Accounts', 'Opportunities',
+      'Pipeline', 'Activities', 'Memberships', 'Reports', 'Payments & Renewals', 'Social', 'Sales Settings']) {
+      await selectSales(page, label)
+      await expect(page.getByRole('heading', { name: label, exact: true, level: 1 })).toBeVisible()
+      await expect(page.getByRole('status').filter({ hasText: /^Loading / })).toHaveCount(0)
+      await expect(page.locator('main').getByRole('alert')).toHaveCount(0)
+      await expect(page.locator('main').last()).toHaveCSS('color', 'rgb(238, 237, 247)')
+      await expect(page.getByRole('button', { name: 'Refresh', exact: true }).first()).toHaveCSS('background-color', 'rgb(36, 35, 50)')
+      const surfaces = await page.locator('main').last().evaluate(main => {
+        const cards = main.querySelectorAll('section, article, button, input, select, textarea')
+        return Array.from(cards).filter(el => el.getBoundingClientRect().width > 0)
+          .every(el => getComputedStyle(el).backgroundColor !== 'rgb(255, 255, 255)')
+      })
+      expect(surfaces, `${label} has no disconnected white surfaces`).toBe(true)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false)
+    }
+  }
 })

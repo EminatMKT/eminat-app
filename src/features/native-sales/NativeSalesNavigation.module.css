@@ -5,3 +5,11 @@
 .item[aria-current=page]{background:#7060dd22;color:#c7bdff;box-shadow:inset 2px 0 #9b87ff}
 .item:focus-visible{outline:2px solid #c7bdff;outline-offset:-2px}
 @media(prefers-reduced-motion:reduce){.item{transition:none}}
+
+html[class~="dark"] .item { color: #b9b5ca; }
+html[class~="dark"] .item:hover { background: #ffffff0d; color: #f3efff; }
+html[class~="dark"] .item[aria-current=page] {
+  background: #8d76e526;
+  color: #d3c6ff;
+  box-shadow: inset 2px 0 #b6a0ff;
+}

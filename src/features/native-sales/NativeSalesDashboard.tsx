@@ -10,8 +10,10 @@ export type SalesSummary = {
   opportunities: { total: number; byStage: { code: string; label: string; outcome: string; count: number }[];
     won: number; lost: number; open: number; openByCurrency: { currency: string; amount: string }[] }
 }
-const palette = ['#7865d9', '#167d8d', '#dc7c63', '#40557b', '#bd8c35']
-const tooltip = { background: '#fff', border: '1px solid #deddea', borderRadius: 10, color: '#24334a', fontSize: 13 }
+const palette = ['var(--sales-chart-1, #7865d9)', 'var(--sales-chart-2, #167d8d)',
+  'var(--sales-chart-3, #dc7c63)', 'var(--sales-chart-4, #40557b)', 'var(--sales-chart-5, #bd8c35)']
+const tooltip = { background: 'var(--sales-tooltip-bg, #fff)', border: '1px solid var(--sales-tooltip-border, #deddea)',
+  borderRadius: 10, color: 'var(--sales-tooltip-text, #24334a)', fontSize: 13 }
 const label = (value: string) => value.replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
 
 /** Presentation only: every chart uses the same authorized summary as the KPI cards. */
@@ -38,10 +40,10 @@ export default function NativeSalesDashboard({ summary }: { summary: SalesSummar
   const bars = (rows: { name: string; value: number }[]) => <div className={s.chart}>
     <ResponsiveContainer width="100%" height={Math.max(240, rows.length * 42)}>
       <BarChart data={rows} layout="vertical" margin={{ top: 8, right: 22, left: 0, bottom: 8 }} accessibilityLayer>
-        <CartesianGrid stroke="#edf0f5" horizontal={false} />
-        <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#647089', fontSize: 11 }} />
-        <YAxis type="category" dataKey="name" width={118} axisLine={false} tickLine={false} tick={{ fill: '#49546c', fontSize: 11 }} />
-        <Tooltip contentStyle={tooltip} cursor={{ fill: '#7865d90c' }} />
+        <CartesianGrid stroke="var(--sales-chart-grid, #edf0f5)" horizontal={false} />
+        <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: 'var(--sales-chart-tick, #647089)', fontSize: 11 }} />
+        <YAxis type="category" dataKey="name" width={118} axisLine={false} tickLine={false} tick={{ fill: 'var(--sales-chart-label, #49546c)', fontSize: 11 }} />
+        <Tooltip contentStyle={tooltip} itemStyle={{ color: 'var(--sales-tooltip-text, #24334a)' }} cursor={{ fill: 'var(--sales-chart-hover, #7865d90c)' }} />
         <Bar dataKey="value" name={t('sales.dashboard.count')} radius={[0, 5, 5, 0]} maxBarSize={24} isAnimationActive={false}>
           {rows.map((row, index) => <Cell key={row.name} fill={palette[index % palette.length]} />)}
         </Bar>
@@ -66,7 +68,7 @@ export default function NativeSalesDashboard({ summary }: { summary: SalesSummar
             <PieChart accessibilityLayer><Pie data={outcomes} dataKey="value" nameKey="name" innerRadius="56%" outerRadius="82%"
               paddingAngle={3} isAnimationActive={false}>
               {outcomes.map((row, index) => <Cell key={row.name} fill={palette[index]} />)}
-            </Pie><Tooltip contentStyle={tooltip} /></PieChart>
+            </Pie><Tooltip contentStyle={tooltip} itemStyle={{ color: 'var(--sales-tooltip-text, #24334a)' }} /></PieChart>
           </ResponsiveContainer>
         </div> : <p className={s.empty}>{t('sales.dashboard.empty')}</p>}
         <ul className={s.legend}>{outcomes.map((row, index) => <li key={row.name}>

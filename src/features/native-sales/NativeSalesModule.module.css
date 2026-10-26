@@ -32,3 +32,121 @@
 .scheduleList{list-style:none;padding:0;margin:14px 0 0}.scheduleList li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid #edf2f1}.scheduleList small{display:block;color:#587378;margin-top:4px}.scheduleList button{border:1px solid #147b74;border-radius:9px;padding:8px 12px;background:#fff;color:#106e68;font-weight:700;cursor:pointer}.scheduleList button:disabled{opacity:.45}
 @media(max-width:760px){.main{padding:14px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.reportGrid,.formGrid{grid-template-columns:1fr}.item{align-items:start}.meta{max-width:35%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tabs{margin-right:-14px;padding-right:14px}.detail{padding:18px}}
 @media(max-width:390px){.metrics{gap:8px}.metric{padding:12px}.metric strong{font-size:1.45rem}.filters label,.filters input,.filters select{width:100%}}
+
+/* Sales-only dark surfaces. Light mode and the shared shell keep their existing styles. */
+html[class~="dark"] .main {
+  color: #eeedf7;
+  color-scheme: dark;
+}
+html[class~="dark"] .eyebrow,
+html[class~="dark"] .role { color: #b8aaff; }
+html[class~="dark"] .heading h1 { letter-spacing: -.025em; }
+html[class~="dark"] .metric,
+html[class~="dark"] .panel,
+html[class~="dark"] .item,
+html[class~="dark"] .column {
+  background: #191923;
+  border-color: #353443;
+  box-shadow: 0 4px 18px #0000001f;
+}
+html[class~="dark"] .metric p,
+html[class~="dark"] .caption,
+html[class~="dark"] .hint,
+html[class~="dark"] .empty,
+html[class~="dark"] .socialText small,
+html[class~="dark"] .item small,
+html[class~="dark"] .meta,
+html[class~="dark"] .column small,
+html[class~="dark"] .pipelineCard span,
+html[class~="dark"] .pipelineCard small,
+html[class~="dark"] .timeline small,
+html[class~="dark"] .scheduleList small,
+html[class~="dark"] .detail dd { color: #b4b2c6; }
+html[class~="dark"] .refresh,
+html[class~="dark"] .pager button,
+html[class~="dark"] .pdfActions button,
+html[class~="dark"] .scheduleList button,
+html[class~="dark"] .panel button:not([class]) {
+  background: #242332;
+  border: 1px solid #4d4864;
+  color: #e0d9ff;
+  border-radius: 9px;
+  padding: 9px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+html[class~="dark"] .refresh:hover:not(:disabled),
+html[class~="dark"] .pager button:hover:not(:disabled),
+html[class~="dark"] .pdfActions button:hover:not(:disabled),
+html[class~="dark"] .scheduleList button:hover:not(:disabled),
+html[class~="dark"] .panel button:not([class]):hover:not(:disabled) {
+  background: #302c45;
+  border-color: #a496ed;
+}
+html[class~="dark"] .panel button:not([class]):disabled { opacity: .5; cursor: default; }
+html[class~="dark"] .item:hover,
+html[class~="dark"] .pipelineCard:hover { background: #242232; border-color: #8071bd; }
+html[class~="dark"] .pipelineCard { background: #20202d; border-color: #403e51; }
+html[class~="dark"] .filters input,
+html[class~="dark"] .filters select,
+html[class~="dark"] .form input,
+html[class~="dark"] .form select,
+html[class~="dark"] .form textarea {
+  background: #14141e;
+  color: #eeedf7;
+  border-color: #555166;
+  accent-color: #ad9bff;
+}
+html[class~="dark"] .main input::placeholder,
+html[class~="dark"] .main textarea::placeholder { color: #a4a0b9; opacity: 1; }
+html[class~="dark"] .form button[type=submit] { background: #6355e8; color: #fff; }
+html[class~="dark"] .form button[type=submit]:hover:not(:disabled) { background: #7466ef; }
+html[class~="dark"] .main a { color: #c4b8ff; text-underline-offset: 3px; }
+html[class~="dark"] .main :is(button, input, select, textarea, a, [tabindex]):focus-visible {
+  outline: 2px solid #bdadff;
+  outline-offset: 3px;
+}
+html[class~="dark"] .itemRow>input { accent-color: #ad9bff; }
+html[class~="dark"] .breakdown li,
+html[class~="dark"] .timeline,
+html[class~="dark"] .timeline li,
+html[class~="dark"] .recordActions,
+html[class~="dark"] .roleFieldset,
+html[class~="dark"] .scheduleList li { border-color: #393646; }
+html[class~="dark"] .board,
+html[class~="dark"] .tabs { scrollbar-color: #62557f #191923; }
+html[class~="dark"] .tabs button { background: #242332; color: #c4bfd7; }
+html[class~="dark"] .tabs button.active { background: #6355e8; color: #fff; }
+html[class~="dark"] .error { background: #38212c; border: 1px solid #784456; color: #ffb7c2; }
+html[class~="dark"] .overlay { background: #08080fc9; }
+html[class~="dark"] .detail {
+  color: #eeedf7;
+  color-scheme: dark;
+  background: #1c1b28;
+  border: 1px solid #464158;
+  box-shadow: 0 24px 80px #00000066;
+}
+html[class~="dark"] .detailHeader button { color: #c8c1dd; }
+html[class~="dark"] .main section[aria-label="QuickBooks connection"] {
+  background: #191923;
+  border: 1px solid #353443;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 18px #0000001f;
+}
+html[class~="dark"] .main section[aria-label="QuickBooks connection"] h2 { margin-bottom: 14px; font-size: 1.1rem; }
+html[class~="dark"] .main section[aria-label="QuickBooks connection"] p { margin: 8px 0; color: #b4b2c6; }
+html[class~="dark"] .main section[aria-label="QuickBooks connection"] button {
+  background: #242332;
+  color: #e0d9ff;
+  border: 1px solid #4d4864;
+  border-radius: 9px;
+  padding: 9px 14px;
+  margin: 6px 8px 0 0;
+  cursor: pointer;
+}
+html[class~="dark"] .main section[aria-label="QuickBooks connection"] button:hover:not(:disabled) {
+  background: #302c45;
+  border-color: #a496ed;
+}
+html[class~="dark"] .main section[aria-label="QuickBooks connection"] button:disabled { opacity: .5; cursor: default; }

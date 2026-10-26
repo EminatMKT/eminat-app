@@ -11,3 +11,36 @@
 .empty{min-height:240px;display:grid;place-items:center;color:#647089;font-size:.9rem}.caption{margin:0;color:#69758b;font-size:.78rem}
 @media(max-width:1050px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.grid{grid-template-columns:minmax(0,1fr)}.wide{grid-column:auto}}
 @media(max-width:480px){.metrics{gap:10px}.metric{padding:14px}.metric svg{display:none}.metric strong{font-size:1.8rem}.panel{padding:15px}.grid{gap:14px}}
+
+html[class~="dark"] .dashboard {
+  --sales-chart-1: #aa98f5;
+  --sales-chart-2: #75bdd0;
+  --sales-chart-3: #efa38c;
+  --sales-chart-4: #a4b2dd;
+  --sales-chart-5: #e3be75;
+  --sales-chart-grid: #343241;
+  --sales-chart-tick: #bab6ce;
+  --sales-chart-label: #d3cfe2;
+  --sales-tooltip-bg: #262333;
+  --sales-tooltip-border: #75668f;
+  --sales-tooltip-text: #f3efff;
+  --sales-chart-hover: #b4a2ff14;
+  color: #eeedf7;
+}
+html[class~="dark"] .metric,
+html[class~="dark"] .panel {
+  background: #191923;
+  border-color: #353443;
+  box-shadow: 0 6px 24px #00000024;
+}
+html[class~="dark"] .metric p,
+html[class~="dark"] .caption,
+html[class~="dark"] .data,
+html[class~="dark"] .empty { color: #b4b2c6; }
+html[class~="dark"] .metric svg,
+html[class~="dark"] .panel header>span { color: #bdadf5; }
+html[class~="dark"] .data,
+html[class~="dark"] .data th,
+html[class~="dark"] .data td { border-color: #393646; }
+html[class~="dark"] .data summary:hover { color: #dfd5ff; }
+html[class~="dark"] .data summary:focus-visible { outline-color: #bdadff; }
