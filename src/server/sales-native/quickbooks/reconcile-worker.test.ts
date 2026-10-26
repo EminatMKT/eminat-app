@@ -115,9 +115,23 @@ beforeEach(() => {
   state.hasMapping=true;state.claimable=true;state.history=[];state.rpcCalls=[]
   state.finalStatus='';state.invoiceReads=0;state.paymentReads=0
   state.issuedAt='';state.emailStatus='QUEUED';state.emailCalls=0
+  state.contact.do_not_email=false
 })
 
 describe('read-only QBO event processing boundary',() => {
+  it('activates an opted-out patient once and suppresses email on initial processing and replay',async () => {
+    state.contact.do_not_email=true
+    expect((await reconcileQboEvents()).processed).toBe(1)
+    expect(state.rpcCalls).toContain('native_sales_issue_membership')
+    expect(state.history).toContain('qbo_automatic_membership_activated')
+    expect(state.emailCalls).toBe(0)
+    state.rpcCalls=[]
+    state.mapping.membership_activation_status='ACTIVE'
+    expect((await reconcileQboEvents()).processed).toBe(1)
+    expect(state.rpcCalls).not.toContain('native_sales_issue_membership')
+    expect(state.emailCalls).toBe(0)
+    state.mapping.membership_activation_status='NOT_ACTIVE'
+  })
   it('uses provider-read Invoice and Payment evidence before one verification and activation',async () => {
     const result = await reconcileQboEvents()
     expect(result.processed,JSON.stringify({ history:state.history,rpcCalls:state.rpcCalls })).toBe(1)
