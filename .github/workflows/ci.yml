@@ -121,6 +121,8 @@ jobs:
         run: psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -q -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-qbo-automatic-invoice.sql
       - name: Rehearse idempotent online renewal and simulated verified payment locally
         run: psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -q -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-online-renewal.sql
+      - name: Verify staff patient onboarding without changing employee identity
+        run: psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -q -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-patient-staff-onboarding.sql
       - name: Rehearse approved Family expansion and simulated payment locally
         run: psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -q -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-family-expansion.sql
       - name: Verify activity reporting date, parent scope and isolation
