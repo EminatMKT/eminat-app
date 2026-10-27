@@ -388,7 +388,7 @@ export async function POST(request: Request, { params }: Route) {
   if (resource === 'register' || resource === 'login') {
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
     const password = typeof body.password === 'string' ? body.password : ''
-    if (!emailPattern.test(email) || email.length > 320 || password.length < 12 || password.length > 128)
+    if (!emailPattern.test(email) || email.length > 320 || password.length < (resource === 'register' ? 12 : 1) || password.length > 128)
       return invalid()
     if (resource === 'register') {
       if (!scope() || !patientEmailConfigured()) return unavailable()
@@ -411,7 +411,7 @@ export async function POST(request: Request, { params }: Route) {
       })
       // Do not disclose whether a confirmed account already owns the address.
       // A repeated request must not create another Auth identity or CRM contact.
-      if (error?.code === 'user_already_exists') {
+      if (error?.code === 'user_already_exists' || error?.code === 'email_exists') {
         const admin = supabaseAdmin({ noStore: true })
         const { data: canRecover, error: recoveryError } = await admin
           .rpc('native_sales_patient_registration_can_recover', { p_email: email })
@@ -435,10 +435,9 @@ export async function POST(request: Request, { params }: Route) {
     const { data, error } = await authClient().auth.signInWithPassword({ email, password })
     if (error || !data.user || !data.user.email_confirmed_at) return respond({ code: 'INVALID_CREDENTIALS' }, 401)
     const admin = supabaseAdmin({ noStore: true })
-    const { data: staff, error: staffError } = await admin.from('usuarios')
-      .select('id').eq('auth_id', data.user.id).maybeSingle()
-    if (staffError) return unavailable()
-    if (staff) return respond({ code: 'PATIENT_ACCESS_DENIED' }, 403)
+    // Staff and patient roles may share Auth. A verified password grants only a
+    // Patient session; profile completion must still claim an explicit patient
+    // identity. Never infer a patient Contact or permissions from staff records.
     const handle = `cspt_${randomBytes(36).toString('base64url')}`
     const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString()
     const { error: sessionError } = await admin.from('sales_patient_sessions')

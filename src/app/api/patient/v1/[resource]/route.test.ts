@@ -5,6 +5,8 @@ const fixtures = vi.hoisted(() => {
   process.env.PATIENT_SALES_ORGANIZATION_ID = '99999999-9999-4999-8999-999999999999'
   process.env.PATIENT_SALES_OWNER_MEMBER_ID = '88888888-8888-4888-8888-888888888888'
   return { queries: [] as Array<{ table: string; filters: Record<string, unknown>; update?: Record<string, unknown> }>,
+    staffAccount: false, missingIdentity: false, loginVerified: true, loginValid: true,
+    sessionInserts: [] as Array<Record<string, unknown>>,
     rpcCalls: [] as Array<{ name: string; args: Record<string, unknown> }>, synthetic: false,
     draftsEnabled: false, emailConfigured: true, registrationAdmitted: true,
     canRecoverRegistration: false, canResetPassword: false,
@@ -69,6 +71,10 @@ vi.mock('@/shared/db/supabaseAdmin', () => ({
       fixtures.queries.push(query)
       const chain = {
         select: () => chain,
+        insert: async (value: Record<string, unknown>) => {
+          if (table === 'sales_patient_sessions') fixtures.sessionInserts.push(value)
+          return { error: null }
+        },
         update: (value: Record<string, unknown>) => { query.update = value; return chain },
         eq: (key: string, value: unknown) => { filters[key] = value; return chain },
         in: (key: string, value: unknown[]) => { filters[key] = value; return chain },
@@ -91,6 +97,8 @@ vi.mock('@/shared/db/supabaseAdmin', () => ({
           return Promise.resolve({ data, error: null }).then(resolve)
         },
         maybeSingle: async () => {
+          if (table === 'usuarios') return {data:fixtures.staffAccount ? {id:'staff-record'} : null,error:null}
+          if (table === 'sales_patient_identities' && fixtures.missingIdentity) return {data:null,error:null}
           if (table === 'sales_patient_enrollment_intents' && fixtures.draftsEnabled)
             return { data: { id: '44444444-4444-4444-8444-444444444444',
               opportunity_id: '55555555-5555-4555-8555-555555555555' }, error: null }
@@ -115,6 +123,10 @@ vi.mock('@/shared/db/supabaseAdmin', () => ({
 
 vi.mock('@/shared/db/env.client', () => ({ clientEnv: { NEXT_PUBLIC_SUPABASE_URL: 'https://example.test', NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: 'test' } }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: () => ({ auth: {
+  signInWithPassword: async () => fixtures.loginValid
+    ? {data:{user:{id:patients[0].authId,email:patients[0].email,
+      email_confirmed_at:fixtures.loginVerified ? '2026-10-20' : null}},error:null}
+    : {data:{user:null},error:{code:'invalid_credentials'}},
   verifyOtp: async () => fixtures.recoveryTokenValid
     ? { data: { user: { id: patients[0].authId, email: patients[0].email },
       session: { access_token: 'test', refresh_token: 'test' } }, error: null }
@@ -143,6 +155,7 @@ import { GET, PATCH, POST } from './route'
 describe('patient API isolation', () => {
   beforeEach(() => { fixtures.queries.length = 0; fixtures.rpcCalls.length = 0;
     vi.stubEnv('PATIENT_EMAIL_OUTBOX_KEY', Buffer.alloc(32, 7).toString('base64'))
+    fixtures.staffAccount=false; fixtures.missingIdentity=false; fixtures.loginVerified=true; fixtures.loginValid=true; fixtures.sessionInserts.length=0;
     fixtures.synthetic = false; fixtures.draftsEnabled = false;
     fixtures.emailConfigured = true; fixtures.registrationAdmitted = true;
     fixtures.canRecoverRegistration = false; fixtures.canResetPassword = false;
@@ -303,7 +316,7 @@ describe('patient API isolation', () => {
     expect(fixtures.verificationEmails).toHaveLength(0)
   })
 
-  it('recovers only an existing unconfirmed Portal account with a branded link', async () => {
+  it('recovers an eligible existing Auth account with an ownership link and no password mutation', async () => {
     fixtures.signupErrorCode = 'user_already_exists'
     fixtures.canRecoverRegistration = true
     const response = await POST(new Request('https://app.test/api/patient/v1/register', {
@@ -313,6 +326,68 @@ describe('patient API isolation', () => {
     expect(response.status).toBe(202)
     expect(fixtures.signupLinks.map(link => link.type)).toEqual(['signup', 'magiclink'])
     expect(fixtures.verificationEmails).toHaveLength(1)
+  })
+
+  it.each(['new@gmail.com','new@emc.health','new@eminat.net'])('preserves normal signup for %s',async email=>{
+    const response=await POST(new Request('https://app.test/api/patient/v1/register',{
+      method:'POST',body:JSON.stringify({email,password:'owner-selected-password'}),
+    }),{params:Promise.resolve({resource:'register'})})
+    expect(response.status).toBe(202)
+    expect(fixtures.signupLinks).toHaveLength(1)
+    expect(fixtures.signupLinks[0]).toMatchObject({type:'signup',email})
+  })
+
+  it.each(['user_already_exists','email_exists'])('reuses confirmed staff Auth on %s without accepting a replacement password',async code=>{
+    fixtures.signupErrorCode=code;fixtures.canRecoverRegistration=true
+    const response=await POST(new Request('https://app.test/api/patient/v1/register',{
+      method:'POST',body:JSON.stringify({email:'staff@emc.health',password:'untrusted-new-password'}),
+    }),{params:Promise.resolve({resource:'register'})})
+    expect(response.status).toBe(202)
+    expect(fixtures.signupLinks.at(-1)).toEqual({type:'magiclink',email:'staff@emc.health',
+      options:{redirectTo:'https://portal.corazonsalud.health/login'}})
+    expect(fixtures.passwordUpdates).toBe(0)
+    expect(fixtures.sessionInserts).toHaveLength(0)
+    expect(fixtures.queries).toHaveLength(0)
+  })
+
+  it('lets a verified staff owner explicitly sign in for profile onboarding without reading employee data',async()=>{
+    fixtures.staffAccount=true;fixtures.missingIdentity=true
+    const response=await POST(new Request('https://app.test/api/patient/v1/login',{
+      method:'POST',body:JSON.stringify({email:patients[0].email,password:'existing'}),
+    }),{params:Promise.resolve({resource:'login'})})
+    expect(response.status).toBe(200)
+    expect((await response.json()).sessionHandle).toMatch(/^cspt_/)
+    expect(fixtures.sessionInserts).toEqual([expect.objectContaining({auth_id:patients[0].authId})])
+    const read=await GET(new Request('https://app.test/api/patient/v1/profile',{
+      headers:{Authorization:`Patient ${patients[0].handle}`},
+    }),{params:Promise.resolve({resource:'profile'})})
+    expect(read.status).toBe(404)
+    expect(fixtures.queries.every(q=>['sales_patient_sessions','sales_patient_identities'].includes(q.table))).toBe(true)
+    expect(fixtures.rpcCalls).toHaveLength(0)
+  })
+
+  it.each(['unverified','wrong password'])('denies staff %s without a patient session',async failure=>{
+    fixtures.staffAccount=true;fixtures.loginVerified=failure!=='unverified';fixtures.loginValid=failure!=='wrong password'
+    const response=await POST(new Request('https://app.test/api/patient/v1/login',{
+      method:'POST',body:JSON.stringify({email:patients[0].email,password:'existing'}),
+    }),{params:Promise.resolve({resource:'login'})})
+    expect(response.status).toBe(401)
+    expect(fixtures.sessionInserts).toHaveLength(0)
+  })
+
+  it('never claims another identity from a supplied profile email or staff ID',async()=>{
+    fixtures.staffAccount=true;fixtures.missingIdentity=true
+    const response=await POST(new Request('https://app.test/api/patient/v1/profile',{
+      method:'POST',headers:{Authorization:`Patient ${patients[0].handle}`},
+      body:JSON.stringify({firstName:'Staff',lastName:'Patient',email:patients[1].email,
+        authId:patients[1].authId,organizationId:'other-organization'}),
+    }),{params:Promise.resolve({resource:'profile'})})
+    expect(response.status).toBe(201)
+    expect(fixtures.rpcCalls.at(-1)).toEqual({name:'native_sales_patient_claim_contact',args:{
+      p_auth_id:patients[0].authId,p_email:patients[0].email,p_first_name:'Staff',p_last_name:'Patient',
+      p_phone:null,p_organization_id:organization,p_owner_member_id:'88888888-8888-4888-8888-888888888888',
+    }})
+    expect(fixtures.queries.some(q=>q.table==='usuarios'||q.update)).toBe(false)
   })
 
   it('does not create an Auth account when the patient sender is unavailable', async () => {
