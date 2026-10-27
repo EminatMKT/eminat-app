@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useT } from '@/shared/i18n'
 import type { NativeRequest } from './NativeSalesModule'
 import { salesDisplayValue } from './display-value'
+import NativeFamilyPreparation from './NativeFamilyPreparation'
 import s from './NativeSalesModule.module.css'
 
 type Qbo = {
@@ -121,6 +122,7 @@ export default function NativePatientQbo({ request }: { request: NativeRequest }
     </label>
     {selected && <div className={s.form}>
       <p><strong>{selected.contact_name}</strong> · {selected.plan} · {selected.membership_type} · {selected.duration} · {amount}</p>
+      {selected.membership_type==='FAMILY'&&<NativeFamilyPreparation opportunityId={selected.opportunity_id} request={request}/>}
       <p>{t('salesNative.qboOpportunity')}: {selected.opportunity_id}</p>
       <p>{t('salesNative.qboFlow')}: {salesDisplayValue(selected.qbo?.verification_state ?? 'PENDING_INVOICE',t)} · {t('salesNative.qboInvoice')}: {salesDisplayValue(selected.qbo?.qbo_invoice_status ?? 'NOT_CREATED',t)} · {t('salesNative.qboPayment')}: {salesDisplayValue(selected.qbo?.qbo_payment_status ?? 'UNPAID',t)}</p>
       <p>{t('salesNative.qboFinanceVerification')}: {salesDisplayValue(selected.qbo?.finance_verification_status ?? 'PENDING',t)} · {t('salesNative.qboMembership')}: {salesDisplayValue(selected.qbo?.membership_activation_status ?? 'NOT_ACTIVE',t)}</p>

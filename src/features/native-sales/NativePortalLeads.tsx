@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import type { NativeRequest } from './NativeSalesModule'
 import { useT } from '@/shared/i18n'
 import { salesDisplayValue } from './display-value'
+import NativeFamilyPreparation from './NativeFamilyPreparation'
 import s from './NativeSalesModule.module.css'
 
 type PortalLead = {
@@ -129,11 +130,12 @@ export default function NativePortalLeads({ request, users, onOpenLead }: {
         <dt>{t('salesNative.qboOpportunity')}</dt><dd>{salesDisplayValue(value(selected.opportunityStage),t)} · {value(selected.opportunityId)}</dd>
         <dt>{t('salesNative.qboInvoice')}</dt><dd>{salesDisplayValue(selected.invoiceStatus,t)} · {value(selected.invoiceNumber)}</dd>
         <dt>{t('salesNative.auditPaymentMembership')}</dt><dd>{salesDisplayValue(selected.paymentStatus,t)} · {salesDisplayValue(selected.membershipStatus,t)}</dd>
-        <dt>{t('salesNative.auditFamilyCapacity')}</dt><dd>{selected.familyCount===null ? t('salesNative.individual') : `${selected.familyCount}/3`}</dd>
+        <dt>{t('salesNative.auditFamilyCapacity')}</dt><dd>{selected.familyCount===null ? t('salesNative.individual') : String(selected.familyCount)}</dd>
         <dt>{t('salesNative.auditNextAction')}</dt><dd>{salesDisplayValue(value(selected.nextAction),t)}</dd>
         <dt>{t('salesNative.auditFollowUpDue')}</dt><dd>{date(selected.nextFollowUpAt)}{selected.nextFollowUpAt && new Date(selected.nextFollowUpAt)<new Date() ? ` · ${t('salesNative.auditOverdue')}` : ''}</dd>
         <dt>{t('salesNative.auditLastActivity')}</dt><dd>{salesDisplayValue(value(selected.lastActivity),t)} · {date(selected.lastActivityAt)}</dd>
       </dl>
+      {selected.membershipType==='FAMILY'&&selected.opportunityId&&<NativeFamilyPreparation opportunityId={selected.opportunityId} request={request}/>}
       {selected.email && <button type="button" onClick={() => onOpenLead(selected.email as string)}>{t('salesNative.auditOpenLeadAndActivities')}</button>}
     </section></div>}
   </>

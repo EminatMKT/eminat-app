@@ -1,4 +1,5 @@
 import 'server-only'
+import {familyInvoiceLines} from './family-invoice-lines'
 import { createHash, randomUUID } from 'node:crypto'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { sendPatientActivation, sendPatientRenewal } from '@/server/sales-native/patient-email-delivery'
@@ -49,6 +50,11 @@ async function activateVerifiedIntent(intentId: string): Promise<'ACTIVE' | 'PEN
     .select('id,organization_id,patient_identity_id,opportunity_id,plan,membership_type,duration,membership_id,purpose')
     .eq('organization_id',EMC_ORGANIZATION_ID).eq('id',intentId).maybeSingle()
   if (intentError || !intent) throw new Error('QBO_INTENT_UNAVAILABLE')
+  if (intent.purpose === 'FAMILY_ADDITION') {
+    const {error}=await client.rpc('native_sales_patient_complete_family_addition',{p_intent_id:intentId})
+    if(error)throw new Error('QBO_FAMILY_ADDITION_ACTIVATION_UNAVAILABLE')
+    return intent.membership_id ? 'ALREADY_ACTIVE' : 'ACTIVE'
+  }
   if (intent.purpose === 'RENEWAL') {
     const { error } = await client.rpc('native_sales_patient_complete_renewal', { p_intent_id:intentId })
     if (error) throw new Error('QBO_RENEWAL_ACTIVATION_UNAVAILABLE')
@@ -130,7 +136,7 @@ async function reconcileInvoice(event: Event, invoice: QboInvoice,
     return 'IGNORED'
   }
   const { data: intent, error: intentError } = await client.from('sales_patient_enrollment_intents')
-    .select('id,organization_id,patient_identity_id,opportunity_id,amount_cents,membership_id,purpose')
+    .select('id,organization_id,patient_identity_id,opportunity_id,amount_cents,membership_id,purpose,plan,membership_type,duration,additional_member_count,family_policy_version,family_base_amount_cents,family_additional_unit_cents,family_pricing_snapshot')
     .eq('organization_id',event.organization_id).eq('id',mapping.enrollment_intent_id).maybeSingle()
   const { data: opportunity, error: opportunityError } = await client.from('sales_opportunities')
     .select('id,organization_id,primary_contact_id,amount,currency')
@@ -152,12 +158,14 @@ async function reconcileInvoice(event: Event, invoice: QboInvoice,
     .filter(link => link.TxnType === 'Payment').map(link => link.TxnId)))
   const payments = await Promise.all(paymentIds.map(id =>
     access.client.payment(access.realmId,id,access.accessToken)))
+  const familyLines=familyInvoiceLines(intent)
   const decision = decideQboPayment({ invoice,payments,invoiceId:invoice.Id,
     invoiceNumber:mapping.qbo_invoice_number,customerId:mapping.qbo_customer_reference,
     itemId:mapping.qbo_item_reference,
-    amountCents:mapping.base_invoice_amount_cents,
+    amountCents:mapping.base_invoice_amount_cents,...(familyLines?{familyLines}:{}),
     alreadyActive:!!intent.membership_id || mapping.membership_activation_status === 'ACTIVE' })
   if (decision.status === 'REVIEW' && decision.reason === 'ALREADY_ACTIVE' && intent.membership_id) {
+    if(intent.purpose === 'FAMILY_ADDITION')return 'PROCESSED'
     if (intent.purpose === 'RENEWAL') {
       await sendRenewalConfirmation(intent.id)
       return 'PROCESSED'
@@ -223,7 +231,7 @@ async function reconcileInvoice(event: Event, invoice: QboInvoice,
   const latest = decideQboPayment({ invoice:latestInvoice,payments:latestPayments,
     invoiceId:invoice.Id,invoiceNumber:mapping.qbo_invoice_number,
     customerId:mapping.qbo_customer_reference,itemId:mapping.qbo_item_reference,
-    amountCents:mapping.base_invoice_amount_cents,
+    amountCents:mapping.base_invoice_amount_cents,...(familyLines?{familyLines}:{}),
     alreadyActive:false })
   if (latest.status !== 'PAID') {
     await history(event.organization_id,event.id,'qbo_activation_held',

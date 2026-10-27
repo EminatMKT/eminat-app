@@ -1,4 +1,5 @@
 import 'server-only'
+import {familyInvoiceLines,familyInvoiceItemsMatch,type FamilyInvoiceSnapshot} from './family-invoice-lines'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { sendPatientInvoice } from '@/server/sales-native/patient-email-delivery'
 import { quoteMembership, quoteRenewal, type MembershipType, type Plan,
@@ -7,13 +8,13 @@ import { connectedQboReadAccess, EMC_ORGANIZATION_ID } from './connection'
 import type { QboInvoice, QboRecoveryInvoice } from './client'
 import { patientProfileReadyForPayment } from './patient-profile'
 
-type Job = {
+type Job = FamilyInvoiceSnapshot & {
   id: string; organization_id: string; enrollment_intent_id: string;
   patient_identity_id: string; contact_id: string; opportunity_id: string;
   plan: Plan; membership_type: MembershipType; duration: SaleDuration;
   amount_cents: number; state: string; qbo_customer_id: string | null;
   qbo_invoice_id: string | null; qbo_invoice_number: string | null;
-  created_at: string; purpose?: 'ENROLLMENT' | 'RENEWAL';
+  created_at: string; purpose?: 'ENROLLMENT' | 'RENEWAL' | 'FAMILY_ADDITION';
 }
 const invoiceLink = (value: unknown): value is string => typeof value === 'string' &&
   /^https:\/\/connect\.intuit\.com\/t\/[^\s]+$/.test(value) && value.length <= 2048
@@ -28,14 +29,15 @@ export function qboProductName(job: Pick<Job,'plan'|'membership_type'|'duration'
 
 function verifyInvoice(invoice: QboInvoice | QboRecoveryInvoice, job: Job,
   customerId: string, itemId: string) {
+  const familyLines=familyInvoiceLines(job)
   if (invoice.CustomerRef.value !== customerId ||
     Math.round(invoice.TotalAmt*100) !== job.amount_cents ||
     Math.round(invoice.Balance*100) !== job.amount_cents ||
     (invoice.TxnTaxDetail?.TotalTax ?? 0) !== 0 ||
-    !invoice.Line?.some(line => line.DetailType === 'SalesItemLineDetail' &&
+    (familyLines ? !familyInvoiceItemsMatch(invoice.Line,itemId,familyLines) : !invoice.Line?.some(line => line.DetailType === 'SalesItemLineDetail' &&
       line.SalesItemLineDetail?.ItemRef.value === itemId &&
       line.SalesItemLineDetail.Qty === 1 &&
-      Math.round(line.Amount*100) === job.amount_cents))
+      Math.round(line.Amount*100) === job.amount_cents)))
     throw new Error('QBO_INVOICE_MISMATCH')
 }
 
@@ -60,7 +62,7 @@ export async function issuePatientQboInvoice(identityId: string, intentId: strin
       .eq('organization_id',EMC_ORGANIZATION_ID).eq('id',intentId)
       .eq('patient_identity_id',identityId).maybeSingle()
     if (intentError || !intent?.opportunity_id) throw new Error('QBO_INTENT_UNAVAILABLE')
-    if (intent.purpose === 'RENEWAL') {
+    if (intent.purpose === 'RENEWAL' || intent.purpose === 'FAMILY_ADDITION') {
       const { data: accepted, error: acceptanceError } = await db
         .rpc('native_sales_patient_invoice_agreement_valid', { p_intent_id:intentId })
       if (acceptanceError || accepted !== true) throw new Error('PATIENT_AGREEMENT_REQUIRED')
@@ -89,6 +91,7 @@ export async function issuePatientQboInvoice(identityId: string, intentId: strin
   const { data: claimed, error: claimError } = await db.rpc('native_sales_qbo_claim_invoice', {
     p_identity_id:identityId,p_intent_id:intentId,
   })
+  if(claimError?.message.includes('FAMILY_PREPARATION_REVIEW_REQUIRED'))throw new Error('FAMILY_PREPARATION_REVIEW_REQUIRED')
   const job = (Array.isArray(claimed) ? claimed[0] : null) as Job | null
   if (claimError || !job || job.organization_id !== EMC_ORGANIZATION_ID ||
     job.patient_identity_id !== identityId) throw new Error('QBO_INVOICE_CLAIM_FAILED')
@@ -96,8 +99,9 @@ export async function issuePatientQboInvoice(identityId: string, intentId: strin
     invoiceNumber:job.qbo_invoice_number }
   if (!['CLAIMED','INVOICE_CREATED','INVOICE_WRITE_STARTED'].includes(job.state))
     return { status:'PENDING_RECONCILIATION' as const }
+  const familyLines=familyInvoiceLines(job)
   const quote = (job.purpose === 'RENEWAL' ? quoteRenewal : quoteMembership)(job.plan,job.membership_type,job.duration)
-  if (quote.totalCents !== job.amount_cents) throw new Error('QBO_INVOICE_AMOUNT_MISMATCH')
+  if (job.family_policy_version == null && quote.totalCents !== job.amount_cents) throw new Error('QBO_INVOICE_AMOUNT_MISMATCH')
   const { data: contact, error: contactError } = await db.from('sales_contacts')
     .select('id,first_name,last_name,display_name,email,phone,address,do_not_email')
     .eq('organization_id',EMC_ORGANIZATION_ID).eq('id',job.contact_id).maybeSingle()
@@ -164,7 +168,7 @@ export async function issuePatientQboInvoice(identityId: string, intentId: strin
     })
     if (error) throw new Error('QBO_INVOICE_LINK_FAILED')
     if (!contact.do_not_email)
-      await sendPatientInvoice(job.enrollment_intent_id,authenticatedEmail,job.qbo_invoice_number,job.purpose ?? 'ENROLLMENT')
+      await sendPatientInvoice(job.enrollment_intent_id,authenticatedEmail,job.qbo_invoice_number,job.purpose === 'RENEWAL' ? 'RENEWAL' : 'ENROLLMENT')
     return { status:'INVOICE_CREATED' as const,invoiceNumber:job.qbo_invoice_number }
   }
   const { data: existingBinding, error: bindingError } = await db
@@ -215,7 +219,7 @@ export async function issuePatientQboInvoice(identityId: string, intentId: strin
   if (invoiceLockError || !invoiceLocked) throw new Error('QBO_INVOICE_WRITE_LOCK_FAILED')
   const createdInvoice = await client.createInvoice(realmId,accessToken,{
     customerId,itemId:item.Id,email:authenticatedEmail,amountCents:job.amount_cents,
-    intentId:job.enrollment_intent_id,
+    intentId:job.enrollment_intent_id,...(familyLines?{familyLines}:{}),
   })
   verifyInvoice(createdInvoice,job,customerId,item.Id)
   const { error: invoiceStateError } = await db.from('sales_qbo_invoice_jobs')
@@ -234,6 +238,6 @@ export async function issuePatientQboInvoice(identityId: string, intentId: strin
   })
   if (finishError) throw new Error('QBO_INVOICE_LINK_FAILED')
   if (!contact.do_not_email)
-    await sendPatientInvoice(job.enrollment_intent_id,authenticatedEmail,createdInvoice.DocNumber,job.purpose ?? 'ENROLLMENT')
+    await sendPatientInvoice(job.enrollment_intent_id,authenticatedEmail,createdInvoice.DocNumber,job.purpose === 'RENEWAL' ? 'RENEWAL' : 'ENROLLMENT')
   return { status:'INVOICE_CREATED' as const,invoiceNumber:createdInvoice.DocNumber }
 }
