@@ -28,6 +28,14 @@ test.afterAll(async () => {
 })
 
 test('verified existing staff Auth logs into patient onboarding without employee data or duplicate Auth', async ({ request }) => {
+  // Exercise GoTrue's real duplicate-signup code; no mail is sent by generate_link.
+  // A confirmed staff password must survive even when registration supplies another.
+  const duplicate = await request.post(`${base}/auth/v1/admin/generate_link`, {
+    headers:H, data:{type:'signup',email,password:'untrusted-replacement-password'},
+  })
+  expect(duplicate.status()).toBe(422)
+  const duplicateError = await duplicate.json()
+  expect(['email_exists','user_already_exists']).toContain(duplicateError.error_code)
   // The existing valid password predates the new-account 12-character rule.
   const login = await request.post('/api/patient/v1/login', { data: { email, password: PASSWORD } })
   expect(login.status()).toBe(200)

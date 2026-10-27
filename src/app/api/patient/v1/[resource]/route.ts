@@ -411,7 +411,7 @@ export async function POST(request: Request, { params }: Route) {
       })
       // Do not disclose whether a confirmed account already owns the address.
       // A repeated request must not create another Auth identity or CRM contact.
-      if (error?.code === 'user_already_exists') {
+      if (error?.code === 'user_already_exists' || error?.code === 'email_exists') {
         const admin = supabaseAdmin({ noStore: true })
         const { data: canRecover, error: recoveryError } = await admin
           .rpc('native_sales_patient_registration_can_recover', { p_email: email })

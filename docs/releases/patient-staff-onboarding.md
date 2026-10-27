@@ -7,6 +7,9 @@ completion still invokes the unchanged service-only verified-Auth claim RPC.
 No staff table, organization membership, permission, or staff metadata is written
 or copied. Patient reads remain bound to the explicit identity and EMC Contact.
 
+Signup-link duplicate errors `email_exists` and `user_already_exists` both use the
+existing-account path; other Auth failures remain fail-closed.
+
 Registration keeps its non-enumerating 202 response and rate limits. On an existing
 eligible non-patient account it sends an inbox ownership link without the submitted
 replacement password. It cannot reset the existing corporate password. Existing

@@ -337,8 +337,8 @@ describe('patient API isolation', () => {
     expect(fixtures.signupLinks[0]).toMatchObject({type:'signup',email})
   })
 
-  it('reuses confirmed staff Auth via ownership email without accepting a replacement password',async()=>{
-    fixtures.signupErrorCode='user_already_exists';fixtures.canRecoverRegistration=true
+  it.each(['user_already_exists','email_exists'])('reuses confirmed staff Auth on %s without accepting a replacement password',async code=>{
+    fixtures.signupErrorCode=code;fixtures.canRecoverRegistration=true
     const response=await POST(new Request('https://app.test/api/patient/v1/register',{
       method:'POST',body:JSON.stringify({email:'staff@emc.health',password:'untrusted-new-password'}),
     }),{params:Promise.resolve({resource:'register'})})
