@@ -118,6 +118,17 @@ BEGIN
 
     IF count_extra=0 THEN
       SELECT expires_at,code INTO old_expiry,old_code FROM public.sales_memberships WHERE id=membership;
+
+      -- A second tab's create key remains bound to the same operation even if
+      -- its original unbilled request is later canceled.
+      result:=public.native_sales_patient_family_addition_action(identity,membership,'CREATE',1,gen_random_uuid());
+      cancelled:=(result->>'id')::uuid;request_key:=gen_random_uuid();
+      replay:=public.native_sales_patient_family_addition_action(identity,membership,'CREATE',1,request_key);
+      IF replay->>'id'<>cancelled::text THEN RAISE EXCEPTION 'CONCURRENT_FAMILY_CREATE_DUPLICATED'; END IF;
+      PERFORM public.native_sales_patient_family_addition_action(identity,membership,'CANCEL',1,gen_random_uuid(),cancelled);
+      replay:=public.native_sales_patient_family_addition_action(identity,membership,'CREATE',1,request_key);
+      IF replay->>'id'<>cancelled::text OR EXISTS(SELECT 1 FROM public.sales_patient_enrollment_intents WHERE family_membership_id=membership AND status NOT IN ('CANCELLED','FULFILLED')) THEN
+        RAISE EXCEPTION 'RETRIED_CANCELED_CREATE_MADE_NEW_OPERATION'; END IF;
       result:=public.native_sales_patient_family_addition_action(identity,membership,'CREATE',2,gen_random_uuid());
       renewal:=(result->>'id')::uuid;
       IF (SELECT amount_cents FROM public.sales_patient_enrollment_intents WHERE id=renewal)<>4999*2*2 THEN RAISE EXCEPTION 'FAMILY_PRORATED_TOTAL_INVALID'; END IF;

@@ -737,7 +737,10 @@ BEGIN
     AND purpose='FAMILY_ADDITION' AND family_membership_id=m.id AND status NOT IN ('CANCELLED','FULFILLED') FOR UPDATE;
   IF p_action='CREATE' AND FOUND THEN
     IF i.additional_member_count<>p_count THEN RAISE EXCEPTION 'FAMILY_ADDITION_ALREADY_PENDING' USING ERRCODE='23505'; END IF;
-    RETURN to_jsonb(i)||jsonb_build_object('replayed',true);
+    result:=to_jsonb(i)||jsonb_build_object('replayed',true);
+    INSERT INTO public.sales_patient_selection_events(organization_id,patient_identity_id,enrollment_intent_id,request_key,action,before_selection,after_selection,result)
+    VALUES(i.organization_id,identity.id,i.id,p_key,'CHANGE',to_jsonb(i),jsonb_build_object('operation','CREATE','membershipId',m.id,'count',p_count),result);
+    RETURN result;
   END IF;
   IF p_action<>'CREATE' AND i.id IS NULL THEN RAISE EXCEPTION 'FAMILY_ADDITION_NOT_FOUND' USING ERRCODE='P0002'; END IF;
   IF p_action<>'CREATE' AND p_expected_intent IS NOT NULL AND p_expected_intent IS DISTINCT FROM i.id THEN RAISE EXCEPTION 'FAMILY_ADDITION_CHANGED' USING ERRCODE='40001'; END IF;
