@@ -1,0 +1,66 @@
+[
+  {
+    "url": "https://corazonsalud.health/",
+    "status": 200,
+    "final": "https://corazonsalud.health/",
+    "headers": {
+      "content-security-policy": "upgrade-insecure-requests"
+    }
+  },
+  {
+    "url": "http://corazonsalud.health/",
+    "status": 200,
+    "final": "https://corazonsalud.health/",
+    "headers": {
+      "content-security-policy": "upgrade-insecure-requests"
+    }
+  },
+  {
+    "url": "https://corazonsalud.health/privacy/",
+    "status": 200,
+    "final": "https://corazonsalud.health/privacy/",
+    "headers": {
+      "content-security-policy": "upgrade-insecure-requests"
+    }
+  },
+  {
+    "url": "https://corazonsalud.health/terms/",
+    "status": 200,
+    "final": "https://corazonsalud.health/terms/",
+    "headers": {
+      "content-security-policy": "upgrade-insecure-requests"
+    }
+  },
+  {
+    "url": "https://corazonsalud.health/robots.txt",
+    "error": "HTTP Error 404: Not Found"
+  },
+  {
+    "url": "https://corazonsalud.health/sitemap.xml",
+    "error": "HTTP Error 404: Not Found"
+  },
+  {
+    "url": "https://portal.corazonsalud.health/login",
+    "status": 200,
+    "final": "https://portal.corazonsalud.health/login",
+    "headers": {
+      "Strict-Transport-Security": "max-age=31536000",
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "strict-origin-when-cross-origin"
+    }
+  },
+  {
+    "url": "http://portal.corazonsalud.health/",
+    "status": 200,
+    "final": "https://portal.corazonsalud.health/login",
+    "headers": {
+      "Strict-Transport-Security": "max-age=31536000",
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "strict-origin-when-cross-origin"
+    }
+  },
+  {
+    "url": "https://portal.corazonsalud.health/robots.txt",
+    "error": "HTTP Error 404: Not Found"
+  }
+]
