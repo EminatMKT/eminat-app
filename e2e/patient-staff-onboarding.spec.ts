@@ -22,7 +22,7 @@ test.afterAll(async () => {
     const result = await fetch(`${base}/rest/v1/sales_patient_sessions?auth_id=eq.${authId}`, {
       method: 'DELETE', headers: H,
     })
-    expect(result.ok()).toBe(true)
+    expect(result.ok).toBe(true)
   }
   await deleteUser(email)
 })
