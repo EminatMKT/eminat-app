@@ -1,6 +1,7 @@
 import 'server-only'
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
+import type {FamilyInvoiceLine} from './family-invoice-lines'
 
 export const QBO_CALLBACK =
   'https://app.stratixsolutions.us/api/sales-native/quickbooks/oauth/callback'
@@ -44,7 +45,7 @@ const invoiceSchema = z.object({ Invoice: z.object({
   Line: z.array(z.object({ Amount:z.number().nonnegative(),
     DetailType:z.string().optional(),
     SalesItemLineDetail:z.object({ ItemRef:qboRef,
-      Qty:z.number().positive().optional() }).optional() })).optional(),
+      Qty:z.number().positive().optional(),UnitPrice:z.number().nonnegative().optional() }).optional() })).optional(),
   LinkedTxn: z.array(linkedTxn).optional(),
   InvoiceLink: z.string().url().optional(),
   TxnTaxDetail: z.object({ TotalTax: z.number().optional() }).optional(),
@@ -258,17 +259,22 @@ export class QboClient {
 
   async createInvoice(realmId: string, accessToken: string, input: {
     customerId: string; itemId: string; email: string; amountCents: number;
-    intentId: string }): Promise<QboInvoice> {
+    intentId: string;familyLines?:FamilyInvoiceLine[] }): Promise<QboInvoice> {
     if (!/^[0-9]{1,80}$/.test(input.customerId) || !/^[0-9]{1,80}$/.test(input.itemId)
       || !Number.isSafeInteger(input.amountCents) || input.amountCents <= 0)
       throw new Error('QBO_INVOICE_INPUT_INVALID')
     const amount = input.amountCents/100
+    if(input.familyLines && (!input.familyLines.length || input.familyLines.length>2 || input.familyLines.some(line=>
+      !Number.isSafeInteger(line.quantity) || line.quantity<1 || line.quantity>9 || !Number.isSafeInteger(line.unitCents) || line.unitCents<=0 ||
+      !line.description || line.description.length>240) || input.familyLines.reduce((sum,line)=>sum+line.quantity*line.unitCents,0)!==input.amountCents))
+      throw new Error('QBO_INVOICE_INPUT_INVALID')
     const payload = await this.accounting(realmId,accessToken,'invoice',{
       CustomerRef:{ value:input.customerId },BillEmail:{ Address:input.email },
       EmailStatus:'NotSet',PrivateNote:`LILLY enrollment ${input.intentId}`,
       DocNumber:patientInvoiceNumber(input.intentId),
       AllowOnlineCreditCardPayment:true,AllowOnlineACHPayment:true,
-      Line:[{ Amount:amount,DetailType:'SalesItemLineDetail',
+      Line:input.familyLines ? input.familyLines.map(line=>({Amount:line.quantity*line.unitCents/100,Description:line.description,DetailType:'SalesItemLineDetail',
+        SalesItemLineDetail:{ItemRef:{value:input.itemId},Qty:line.quantity,UnitPrice:line.unitCents/100,TaxCodeRef:{value:'NON'}}})) : [{ Amount:amount,DetailType:'SalesItemLineDetail',
         SalesItemLineDetail:{ ItemRef:{ value:input.itemId },Qty:1,UnitPrice:amount,
           TaxCodeRef:{ value:'NON' } } }],
     })

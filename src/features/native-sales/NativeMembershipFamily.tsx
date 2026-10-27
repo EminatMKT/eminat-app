@@ -5,9 +5,10 @@ import type { NativeRequest } from './NativeSalesModule'
 import { allSalesPages } from './pagination'
 import { useT } from '@/shared/i18n'
 import { salesDisplayValue } from './display-value'
+import NativeFamilyPreparation from './NativeFamilyPreparation'
 import s from './NativeSalesModule.module.css'
 
-type HouseholdMember = { id: string; displayName: string; relationship: string; status: string; code?: string }
+type HouseholdMember = { id: string; displayName: string; relationship: string; status: string; code?: string;isAdditional?:boolean;includedVisits?:number;coverageStartsAt?:string;expiresAt?:string }
 type FamilyRequest = { id: string; dependentName: string; relationship: string; status: string;
   code?: string; createdAt: string }
 type Contact = { id: string; display_name: string }
@@ -80,9 +81,11 @@ export default function NativeMembershipFamily({ membershipId, membershipType, h
   const pending = requests.filter(item => item.status === 'PENDING').length
   const active = household.filter(item => item.status === 'ACTIVE').length
   return <section className={s.recordActions} aria-label={t('salesNative.familyMembership')}>
+    <NativeFamilyPreparation membershipId={membershipId} request={request} onSaved={onSaved}/>
     <h3>{t('salesNative.householdSummary',{active,pending})}</h3>
+    <p>{t('salesNative.familyCoverageSummary',{additional:household.filter(member=>member.status==='ACTIVE'&&member.isAdditional).length,active})}</p>
     <ul className={s.scheduleList}>{household.map(member =>
-      <li key={member.id}><span><strong>{member.displayName}</strong><small>{salesDisplayValue(member.relationship,t)} · {salesDisplayValue(member.status,t)} {member.code ? `· ${member.code}` : ''}</small></span></li>)}</ul>
+      <li key={member.id}><span><strong>{member.displayName}</strong><small>{salesDisplayValue(member.relationship,t)} · {salesDisplayValue(member.status,t)} {member.code ? `· ${member.code}` : ''} {member.includedVisits!==undefined ? `· ${t('salesNative.familyPersonVisits',{visits:member.includedVisits})}` : ''} {member.coverageStartsAt ? `· ${member.coverageStartsAt} → ${member.expiresAt ?? '—'}` : ''}</small></span></li>)}</ul>
     {requests.length > 0 && <><h3>{t('salesNative.familyRequests')}</h3><ul className={s.scheduleList}>{requests.map(item =>
       <li key={item.id}><span><strong>{item.dependentName}</strong><small>{salesDisplayValue(item.relationship,t)} · {salesDisplayValue(item.status,t)} · {item.createdAt.slice(0,10)}</small></span>
         {item.status === 'PENDING' && canReview && <span className={s.pdfActions}>

@@ -48,6 +48,8 @@ jobs:
       - name: Verify LILLY login and Admin menu layouts and keyboard behavior
         run: pnpm exec playwright test --config=playwright.login.config.ts
       - run: pnpm exec playwright test --config=playwright.meetings.config.ts
+      - name: Verify Family staff approval in English desktop and Spanish mobile
+        run: pnpm exec playwright test --config=playwright.family.config.ts
 
   e2e-shard:
     name: e2e (${{ matrix.shard }}/${{ matrix.total }})
@@ -119,6 +121,8 @@ jobs:
         run: psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -q -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-qbo-automatic-invoice.sql
       - name: Rehearse idempotent online renewal and simulated verified payment locally
         run: psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -q -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-online-renewal.sql
+      - name: Rehearse approved Family expansion and simulated payment locally
+        run: psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -q -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-family-expansion.sql
       - name: Verify activity reporting date, parent scope and isolation
         run: psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -q -v ON_ERROR_STOP=1 -f supabase/checks/native-sales-report-activities.sql
       - name: Rehearse paid membership opt-out and idempotent replay locally

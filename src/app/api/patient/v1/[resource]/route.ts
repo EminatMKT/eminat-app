@@ -143,32 +143,47 @@ export async function GET(request: Request, { params }: Route) {
     return respond({ data: { ...data, primary_member_code: primary?.member_code ?? data.code,
       covered_members: members.length, qa_synthetic: !real } })
   }
+  if (resource === 'familyaddition') {
+    if (!patient.identity) return respond({ data:null })
+    const {data,error}=await supabaseAdmin({noStore:true}).rpc('native_sales_patient_family_addition_summary',{p_identity_id:patient.identity.id})
+    return error ? unavailable() : respond({data})
+  }
   if (resource === 'familydraft') {
     if (!patient.identity) return respond({ data: null })
     const configured = scope()
     if (!configured || configured.organization !== patient.identity.organization_id) return unavailable()
     const admin = supabaseAdmin({ noStore: true })
     const { data: intent, error: intentError } = await admin.from('sales_patient_enrollment_intents')
-      .select('id,opportunity_id').eq('organization_id', patient.identity.organization_id)
+      .select('id,opportunity_id,additional_member_count,family_policy_version').eq('organization_id', patient.identity.organization_id)
       .eq('patient_identity_id', patient.identity.id).eq('membership_type', 'FAMILY').eq('purpose','ENROLLMENT')
       .in('status', ['PAYMENT_UNAVAILABLE','PAYMENT_PENDING'])
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (intentError) return unavailable()
     if (!intent || !intent.opportunity_id) return respond({ data: null })
     const { data: members, error: membersError } = await admin.from('sales_patient_family_draft_members')
-      .select('id,first_name,last_name,date_of_birth,relationship,status,created_at')
+      .select('id,first_name,last_name,date_of_birth,relationship,status,created_at,review_status')
       .eq('organization_id', patient.identity.organization_id)
       .eq('patient_identity_id', patient.identity.id).eq('enrollment_intent_id', intent.id)
-      .eq('status', 'DRAFT').order('created_at', { ascending: true })
+      .eq('status', 'DRAFT').order('created_at', { ascending: true }).order('id',{ascending:true})
     if (membersError) return unavailable()
     const { data: invoice, error: invoiceError } = await admin.from('sales_patient_qbo_manual')
       .select('qbo_invoice_number,verification_state')
       .eq('organization_id', patient.identity.organization_id)
       .eq('enrollment_intent_id', intent.id).maybeSingle()
     if (invoiceError) return unavailable()
+    let approvalReady=true,jobLocked=false
+    if(intent.family_policy_version==='FAMILY_EXPANSION_V1'){
+      const [{data:ready,error:readyError},{data:job,error:jobError}]=await Promise.all([
+        admin.rpc('native_sales_family_preparation_ready',{p_intent:intent.id}),
+        admin.from('sales_qbo_invoice_jobs').select('id').eq('organization_id',patient.identity.organization_id).eq('enrollment_intent_id',intent.id).maybeSingle(),
+      ])
+      if(readyError||jobError)return unavailable()
+      approvalReady=ready===true;jobLocked=!!job
+    }
     return respond({ data: { intentId: intent.id, members: members ?? [],
-      capacityUsed: (members?.length ?? 0) + 1,
-      locked: !!invoice && (invoice.qbo_invoice_number !== null || invoice.verification_state !== 'PENDING_INVOICE') } })
+      capacityUsed: (members?.length ?? 0) + 1, additionalMembers:intent.additional_member_count,
+      staffApprovalRequired:intent.family_policy_version==='FAMILY_EXPANSION_V1',approvalReady,
+      locked: jobLocked || !!invoice && (invoice.qbo_invoice_number !== null || invoice.verification_state !== 'PENDING_INVOICE') } })
   }
   if (resource === 'household') {
     if (!patient.identity) return respond({ data: [] })
@@ -186,7 +201,7 @@ export async function GET(request: Request, { params }: Route) {
     const membership = real ?? fallback?.data
     if (!membership) return respond({ data: [] })
     const { data: members, error: memberError } = await admin.from('sales_household_members')
-      .select('id,contact_id,relationship,status,member_index,code,member_code')
+      .select('id,contact_id,relationship,status,member_index,code,member_code,is_additional,coverage_starts_at,included_visits')
       .eq('organization_id', patient.identity.organization_id).eq('membership_id', membership.id)
       .order('member_index', { ascending: true })
     if (memberError || !members) return unavailable()
@@ -204,7 +219,8 @@ export async function GET(request: Request, { params }: Route) {
         status: member.status, is_primary: member.relationship === 'PRIMARY',
         member_code: member.member_code ?? (member.relationship === 'PRIMARY'
           ? `${membership.code} A` : member.code),
-        effective_date: membership.issued_at, expires_at: membership.expires_at }
+        effective_date: member.coverage_starts_at ?? membership.issued_at, expires_at: membership.expires_at,
+        is_additional:member.is_additional,included_visits:member.included_visits }
     }) })
   }
   if (resource === 'householdrequests') {
@@ -280,7 +296,7 @@ export async function GET(request: Request, { params }: Route) {
     if (!patient.identity) return respond({ data: [] })
     const admin = supabaseAdmin({ noStore: true })
     const { data, error } = await admin.from('sales_patient_enrollment_intents')
-      .select('id,plan,membership_type,duration,initial_months,amount_cents,status,created_at')
+      .select('id,plan,membership_type,duration,initial_months,amount_cents,status,created_at,additional_member_count,family_base_amount_cents,family_additional_unit_cents,family_pricing_snapshot')
       .eq('organization_id', patient.identity.organization_id).eq('patient_identity_id', patient.identity.id).eq('purpose','ENROLLMENT')
       .order('created_at', { ascending: false }).limit(10)
     if (error) return unavailable()
@@ -481,6 +497,18 @@ export async function POST(request: Request, { params }: Route) {
     }
     return invalid()
   }
+  if (resource === 'familyaddition') {
+    if(!patient.identity)return respond({code:'PROFILE_REQUIRED'},409)
+    const action=body.action, membershipId=body.membershipId, count=body.count, key=body.idempotencyKey
+    if(!['CREATE','UPDATE','REFRESH','CANCEL'].includes(String(action)) || typeof membershipId!=='string' || !uuidPattern.test(membershipId) ||
+      typeof key!=='string' || !uuidPattern.test(key) || !Number.isInteger(count) || Number(count)<1 || Number(count)>9 ||
+      (action!=='CREATE'&&(typeof body.intentId!=='string'||!uuidPattern.test(body.intentId))) ||
+      Object.keys(body).some(field=>!['action','membershipId','intentId','count','idempotencyKey'].includes(field)))return invalid()
+    const {data,error}=await supabaseAdmin({noStore:true}).rpc('native_sales_patient_family_addition_action',{
+      p_identity_id:patient.identity.id,p_membership_id:membershipId,p_action:action,p_count:count,p_key:key,p_expected_intent:action==='CREATE'?null:body.intentId,
+    })
+    return error ? respond({code:'FAMILY_ADDITION_REVIEW_REQUIRED'},409) : respond({data})
+  }
   if (resource === 'enrollment') {
     if (!patient.identity) return respond({ code: 'PROFILE_REQUIRED' }, 409)
     const plan = body.plan, type = body.type, duration = body.duration
@@ -488,9 +516,11 @@ export async function POST(request: Request, { params }: Route) {
     if (!(plans as readonly unknown[]).includes(plan) ||
         !(membershipTypes as readonly unknown[]).includes(type) ||
         !(saleDurations as readonly unknown[]).includes(duration) || !uuidPattern.test(key)) return invalid()
+    const additional=body.additionalMembers === undefined ? 0 : body.additionalMembers
+    if(!Number.isInteger(additional) || Number(additional)<0 || Number(additional)>9 || (type!=='FAMILY' && additional!==0))return invalid()
     const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_patient_enroll', {
       p_identity_id: patient.identity.id, p_plan: plan, p_type: type,
-      p_duration: duration, p_request_key: key,
+      p_duration: duration, p_request_key: key,...(type==='FAMILY'&&body.additionalMembers!==undefined?{p_additional_members:additional}:{}),
     })
     if (error?.message.includes('PATIENT_SELECTION_ALREADY_EXISTS') ||
       error?.message.includes('PATIENT_IDEMPOTENCY_CONFLICT') ||
@@ -509,9 +539,11 @@ export async function POST(request: Request, { params }: Route) {
     if (action === 'CHANGE' && (!(plans as readonly unknown[]).includes(plan) ||
       !(membershipTypes as readonly unknown[]).includes(type) ||
       !(saleDurations as readonly unknown[]).includes(duration))) return invalid()
+    const additional=body.additionalMembers === undefined ? 0 : body.additionalMembers
+    if(!Number.isInteger(additional) || Number(additional)<0 || Number(additional)>9 || (type!=='FAMILY' && additional!==0))return invalid()
     const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_patient_selection_action', {
       p_identity_id: patient.identity.id, p_action: action, p_plan: plan,
-      p_type: type, p_duration: duration, p_request_key: key,
+      p_type: type, p_duration: duration, p_request_key: key,...(action==='CHANGE'&&body.additionalMembers!==undefined?{p_additional_members:additional}:{}),
     })
     if (error?.message.includes('PATIENT_SELECTION_REVIEW_PENDING') ||
         error?.message.includes('PATIENT_PAYMENT_LOCKED'))
@@ -547,6 +579,8 @@ export async function POST(request: Request, { params }: Route) {
         return respond({ code:'PROFILE_COMPLETION_REQUIRED' },409)
       if (error instanceof Error && error.message === 'PATIENT_AGREEMENT_REQUIRED')
         return respond({ code:'AGREEMENT_REQUIRED' },409)
+      if(error instanceof Error && error.message==='FAMILY_PREPARATION_REVIEW_REQUIRED')
+        return respond({code:'FAMILY_PREPARATION_REVIEW_REQUIRED'},409)
       // Do not expose provider details or automatically repeat an uncertain write.
       return respond({ code:'INVOICE_REVIEW_REQUIRED' },503)
     }
@@ -563,7 +597,7 @@ export async function POST(request: Request, { params }: Route) {
     const removing = action === 'REMOVE'
     const allowed = removing ? ['action','memberId','idempotencyKey'] :
       [...(action === 'EDIT' ? ['memberId'] : []),'action','idempotencyKey',
-        'firstName','lastName','dateOfBirth','relationship']
+        'firstName','lastName','dateOfBirth','relationship','authorityAttested']
     if (Object.keys(body).some(field => !allowed.includes(field))) return invalid()
     const firstName = removing ? null : typeof body.firstName === 'string' ? body.firstName.trim() : null
     const lastName = removing ? null : typeof body.lastName === 'string' ? body.lastName.trim() : null
@@ -580,7 +614,7 @@ export async function POST(request: Request, { params }: Route) {
       p_member_id: action === 'ADD' ? null : memberId,
       p_first_name: firstName, p_last_name: lastName,
       p_date_of_birth: dob, p_relationship: relationship,
-      p_request_key: key,
+      p_request_key: key,...(body.authorityAttested===true?{p_authority_attested:true}:{}),
     })
     if (error?.message.includes('HOUSEHOLD_LIMIT_REACHED') ||
       error?.message.includes('PATIENT_FAMILY_DRAFT_INVOICE_LOCKED') ||

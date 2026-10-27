@@ -368,6 +368,23 @@ describe('patient API isolation', () => {
     expect(fixtures.queries.some(query => query.table === 'sales_patient_enrollment_intents')).toBe(false)
   })
 
+  it.each([0,1,2,3,5,9])('quotes Family +%i only through the scoped server RPC',async additionalMembers=>{
+    const response=await POST(new Request('https://app.test/api/patient/v1/enrollment',{
+      method:'POST',headers:{Authorization:`Patient ${patients[0].handle}`,'Content-Type':'application/json'},
+      body:JSON.stringify({plan:'ESSENTIAL',type:'FAMILY',duration:'MONTHLY',additionalMembers,idempotencyKey:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'}),
+    }),{params:Promise.resolve({resource:'enrollment'})})
+    expect(response.status).toBe(201)
+    expect(fixtures.rpcCalls.at(-1)).toMatchObject({name:'native_sales_patient_enroll',args:{p_identity_id:patients[0].identityId,p_additional_members:additionalMembers}})
+  })
+  it.each([-1,10,1.5,'2',null])('rejects an invalid additional quantity %j',async additionalMembers=>{
+    const response=await POST(new Request('https://app.test/api/patient/v1/enrollment',{
+      method:'POST',headers:{Authorization:`Patient ${patients[0].handle}`,'Content-Type':'application/json'},
+      body:JSON.stringify({plan:'ESSENTIAL',type:'FAMILY',duration:'MONTHLY',additionalMembers,idempotencyKey:'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee'}),
+    }),{params:Promise.resolve({resource:'enrollment'})})
+    expect(response.status).toBe(422)
+    expect(fixtures.rpcCalls).toHaveLength(0)
+  })
+
   it('updates only the bound patient contact and rejects administrative fields', async () => {
     const otherContactId = patients[1].contactId
     const request = new Request(`https://app.test/api/patient/v1/profile?contactId=${otherContactId}`, {

@@ -1,4 +1,5 @@
 import 'server-only'
+import {familyInvoiceItemsMatch,type FamilyInvoiceLine} from './family-invoice-lines'
 import { createHash } from 'node:crypto'
 import type { QboInvoice, QboPayment } from './client'
 
@@ -41,7 +42,7 @@ function cents(value: number): number | null {
 export function decideQboPayment(input: {
   invoice: QboInvoice; payments: QboPayment[]; invoiceId: string;
   invoiceNumber: string; customerId: string; itemId: string; amountCents: number;
-  alreadyActive: boolean
+  alreadyActive: boolean; familyLines?:FamilyInvoiceLine[]
 }): ReconciliationDecision {
   const { invoice, payments } = input
   if (invoice.Id !== input.invoiceId || invoice.DocNumber !== input.invoiceNumber ||
@@ -50,10 +51,10 @@ export function decideQboPayment(input: {
     cents(invoice.TotalAmt) !== input.amountCents)
     return { status: 'REVIEW', reason: 'INVOICE_MAPPING_MISMATCH' }
   const itemLines = (invoice.Line ?? []).filter(line => line.SalesItemLineDetail)
-  if (itemLines.length !== 1 ||
+  if (input.familyLines ? !familyInvoiceItemsMatch(invoice.Line,input.itemId,input.familyLines) || (invoice.TxnTaxDetail?.TotalTax ?? 0)!==0 : (itemLines.length !== 1 ||
     itemLines[0].SalesItemLineDetail?.ItemRef.value !== input.itemId ||
     itemLines[0].SalesItemLineDetail?.Qty !== 1 ||
-    cents(itemLines[0].Amount) !== input.amountCents)
+    cents(itemLines[0].Amount) !== input.amountCents))
     return { status: 'REVIEW', reason: 'INVOICE_ITEM_MISMATCH' }
   const balance = cents(invoice.Balance)
   if (balance === null || balance > input.amountCents)
