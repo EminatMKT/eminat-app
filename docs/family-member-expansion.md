@@ -39,3 +39,5 @@ Portal changed-file lint passes. Full Portal lint retains the pre-existing out-o
 The hosted Preview is for build/review; schema-dependent transactions are rehearsed against isolated data. No Production credential is copied to a new Preview and no real invoice/payment is used for validation.
 
 Rollback: retain LILLY `dpl_9PjLmZjE7wo8XAY6v6KkaKBiCejU` / `2cba906427c365cd4c9078d3f023606d65db8796` and Portal image/container `corazon-portal:renewal-794e647` / `corazon-portal-renewal-794e647`. Do not down-migrate or delete financial evidence. If any new family invoice exists, restore only the Portal entry surface while keeping a family-compatible reconciliation runtime until its financial operations are complete; do not strand those jobs by reverting to an incompatible worker.
+
+Older Portal clients that omit `additionalMembers` retain the original five-argument enrollment and six-argument selection RPC contracts. The new Portal always sends an explicit count, including zero, to opt into the reviewed expansion policy. Existing unpaid/in-flight legacy selections are not silently upgraded merely by calling the old contract.

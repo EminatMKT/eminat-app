@@ -1,6 +1,7 @@
 'use client'
 import {useEffect,useRef,useState} from 'react'
 import {useT} from '@/shared/i18n'
+import {salesDisplayValue} from './display-value'
 import type {NativeRequest} from './NativeSalesModule'
 import s from './NativeSalesModule.module.css'
 type Prepared={id:string;firstName:string;lastName:string;dateOfBirth:string;relationship:string;reviewStatus:string;updatedAt:string;authorityAttested:boolean}
@@ -38,7 +39,7 @@ export default function NativeFamilyPreparation({opportunityId,membershipId,requ
    <p>{t('salesNative.familyBase')}: {money(data.baseCents)} · {t('salesNative.familyPerAdditionalPersonForThisPeriod')}: {money(data.additionalUnitCents)} · <strong>{t('salesNative.familyInvoiceTotal')}: {money(data.amountCents)}</strong></p>
    <p>{t('salesNative.familyApprovalAuthorizesInvoicingCoverageAndCodesRequire')}</p>
    <p role="status">{data.locked?t('salesNative.familyDetailsLockedByInvoiceProcessing'):data.approvalReady?t('salesNative.familyPreparationApprovedForInvoicing'):t('salesNative.familyAwaitingCompleteDetailsAndStaffApproval')}</p>
-   <ul className={s.scheduleList}>{data.members.map(member=><li key={member.id}><span><strong>{member.firstName} {member.lastName}</strong><small>{member.dateOfBirth} · {member.reviewStatus==='APPROVED'?t('salesNative.familyApproved'):member.reviewStatus==='REJECTED'?t('salesNative.familyRejected'):t('salesNative.familyAwaitingApproval')}</small></span>
+   <ul className={s.scheduleList}>{data.members.map(member=><li key={member.id}><span><strong>{member.firstName} {member.lastName}</strong><small>{member.dateOfBirth} · {salesDisplayValue(member.relationship,t)} · {member.reviewStatus==='APPROVED'?t('salesNative.familyApproved'):member.reviewStatus==='REJECTED'?t('salesNative.familyRejected'):t('salesNative.familyAwaitingApproval')}</small></span>
     {data.canReview&&!data.locked&&<span className={s.pdfActions}>
      <button type="button" disabled={busy||!member.authorityAttested||member.reviewStatus==='APPROVED'} onClick={()=>void review(member,'APPROVED')}>{t('salesNative.familyApproveDetails')}</button>
      <button type="button" disabled={busy||member.reviewStatus==='REJECTED'} onClick={()=>void review(member,'REJECTED')}>{t('salesNative.familyReject')}</button>
@@ -47,7 +48,7 @@ export default function NativeFamilyPreparation({opportunityId,membershipId,requ
   </>}
   {history.length>0&&<><h3>{t('salesNative.familyFamilyInvoicesAndPeriods')}</h3><ul className={s.scheduleList}>{history.map(item=><li key={item.id}><span><strong>{item.purpose==='FAMILY_ADDITION'?t('salesNative.familyAdditionalFamilyMembers'):item.purpose==='RENEWAL'?t('salesNative.familyFamilyRenewal'):t('salesNative.familyInitialFamilyMembership')}</strong>
    <small>{t('salesNative.familyAdditional')}: {item.additionalCount} · {t('salesNative.familyBase')}: {money(item.baseCents)} · {t('salesNative.familyPerPerson')}: {money(item.additionalUnitCents)} · {t('salesNative.familyTotal')}: {money(item.amountCents)}</small>
-   <small>{item.invoiceNumber??'—'} · {item.invoiceStatus??'—'} · {item.paymentStatus??'—'}</small></span></li>)}</ul></>}
+   <small>{item.invoiceNumber??'—'} · {salesDisplayValue(item.invoiceStatus??'—',t)} · {salesDisplayValue(item.paymentStatus??'—',t)}</small></span></li>)}</ul></>}
   {error&&<p role="alert" className={s.error}>{error==='LOAD'?t('salesNative.familyFamilyPreparationCouldNotBeLoaded'):error}</p>}
  </section>
 }

@@ -520,7 +520,7 @@ export async function POST(request: Request, { params }: Route) {
     if(!Number.isInteger(additional) || Number(additional)<0 || Number(additional)>9 || (type!=='FAMILY' && additional!==0))return invalid()
     const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_patient_enroll', {
       p_identity_id: patient.identity.id, p_plan: plan, p_type: type,
-      p_duration: duration, p_request_key: key,...(type==='FAMILY'?{p_additional_members:additional}:{}),
+      p_duration: duration, p_request_key: key,...(type==='FAMILY'&&body.additionalMembers!==undefined?{p_additional_members:additional}:{}),
     })
     if (error?.message.includes('PATIENT_SELECTION_ALREADY_EXISTS') ||
       error?.message.includes('PATIENT_IDEMPOTENCY_CONFLICT') ||
@@ -543,7 +543,7 @@ export async function POST(request: Request, { params }: Route) {
     if(!Number.isInteger(additional) || Number(additional)<0 || Number(additional)>9 || (type!=='FAMILY' && additional!==0))return invalid()
     const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_patient_selection_action', {
       p_identity_id: patient.identity.id, p_action: action, p_plan: plan,
-      p_type: type, p_duration: duration, p_request_key: key,...(action==='CHANGE'?{p_additional_members:additional}:{}),
+      p_type: type, p_duration: duration, p_request_key: key,...(action==='CHANGE'&&body.additionalMembers!==undefined?{p_additional_members:additional}:{}),
     })
     if (error?.message.includes('PATIENT_SELECTION_REVIEW_PENDING') ||
         error?.message.includes('PATIENT_PAYMENT_LOCKED'))
