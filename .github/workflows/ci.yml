@@ -57,7 +57,9 @@ jobs:
     # Un solo runner ejecuta todos los specs y levanta Supabase una vez. Cuatro runners
     # descargaban la misma pila en paralelo y el registry rechazaba las imágenes antes
     # de iniciar las pruebas. --shard=1/1 conserva todos los checks de schema y E2E.
-    timeout-minutes: 18
+    # Supabase cold starts plus the sequential browser suite exceeded 18 minutes
+    # in the Sales bootstrap regression run. Keep every test and its own timeout.
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:

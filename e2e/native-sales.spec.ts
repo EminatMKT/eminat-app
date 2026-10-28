@@ -157,9 +157,12 @@ test('Sales defaults to its commercial workspace without exposing corporate memb
 // Synthetic summary is confined to this local browser fixture; no Production data is fabricated.
 for (const theme of ['light', 'dark']) {
 test(`Sales dashboard charts expose real response values, hover details and accessible data in ${theme}`, async ({ page }) => {
-  await page.route('**/api/sales-native/reports/summary', async route => {
+  await page.route('**/api/sales-native/bootstrap?dashboard=1', async route => {
     expect(route.request().headers()['x-sales-organization-id']).toBe(organizationId)
-    await route.fulfill({ json: { data: {
+    const response = await route.fetch()
+    expect(response.ok()).toBe(true)
+    const bootstrap = await response.json()
+    await route.fulfill({ response, json: { ...bootstrap, summary: {
       asOf: '2026-10-25', scope: 'organization',
       leads: { total: 3, byStatus: [{ code: 'NEW', count: 2 }, { code: 'ASSIGNED', count: 1 }] },
       opportunities: { total: 6, open: 3, won: 1, lost: 2, openByCurrency: [],
@@ -273,4 +276,81 @@ for (const language of ['en','es'] as const) test(`renewal selectors include lat
   await expect(page.getByText(`${text['salesNative.qboConnectedLabel']} QA LOCAL COMPANY`,{exact:true})).toBeVisible()
   await expect(page.getByRole('button',{name:text['salesNative.qboVerifyRefresh'],exact:true})).toBeVisible()
   await expect(page.getByRole('button',{name:text['salesNative.qboDisconnect'],exact:true})).toBeVisible()
+})
+
+
+test('Sales consolidates initial requests but refresh and later Dashboard visits stay fresh', async ({ page }) => {
+  const counts = { bootstrap: 0, access: 0, directory: 0, summary: 0 }
+  page.on('request', request => {
+    if (request.headers()['x-sales-organization-id'] !== organizationId) return
+    const path = new URL(request.url()).pathname
+    if (path === '/api/sales-native/bootstrap') counts.bootstrap++
+    if (path === '/api/sales-native/access') counts.access++
+    if (path === '/api/sales-native/directory') counts.directory++
+    if (path === '/api/sales-native/reports/summary') counts.summary++
+  })
+  await page.addInitScript(() => {
+    localStorage.setItem('eminat-onboarding-completed', 'true')
+    localStorage.setItem('locale', 'en')
+  })
+  await page.goto('/login')
+  await page.getByPlaceholder('tu@eminat.net').fill(email)
+  await page.locator('input[type="password"]').fill(PASSWORD)
+  await page.locator('input[type="password"]').press('Enter')
+  await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
+  await page.goto('/sales-native')
+  await expect(page.getByRole('heading', { name: 'Leads by stage', exact: true })).toBeVisible()
+  // The development shell/Strict Mode can replay mounts. Assert every mount
+  // uses only bootstrap; the exact Production count is measured in Preview.
+  const initialBootstrapRequests = counts.bootstrap
+  expect(initialBootstrapRequests).toBeGreaterThan(0)
+  expect({ ...counts, bootstrap: 0 }).toEqual({ bootstrap: 0, access: 0, directory: 0, summary: 0 })
+  await Promise.all([
+    page.waitForResponse(response => new URL(response.url()).pathname === '/api/sales-native/reports/summary'),
+    page.getByRole('button', { name: 'Refresh', exact: true }).first().click(),
+  ])
+  await expect(page.getByRole('heading', { name: 'Leads by stage', exact: true })).toBeVisible()
+  expect(counts.summary).toBe(1)
+  await selectSales(page, 'Leads')
+  await expect(page.getByRole('heading', { name: 'Leads', exact: true, level: 1 })).toBeVisible()
+  await Promise.all([
+    page.waitForResponse(response => new URL(response.url()).pathname === '/api/sales-native/reports/summary'),
+    selectSales(page, 'Dashboard'),
+  ])
+  await expect(page.getByRole('heading', { name: 'Leads by stage', exact: true })).toBeVisible()
+  expect(counts.summary).toBe(2)
+  expect(counts.bootstrap).toBe(initialBootstrapRequests)
+})
+
+test('navigation during bootstrap never reuses a stale initial Dashboard on return', async ({ page }) => {
+  let release!: () => void
+  const held = new Promise<void>(resolve => { release = resolve })
+  await page.route('**/api/sales-native/bootstrap?dashboard=1', async route => {
+    const response = await route.fetch()
+    await held
+    await route.fulfill({ response })
+  })
+  await page.addInitScript(() => {
+    localStorage.setItem('eminat-onboarding-completed', 'true')
+    localStorage.setItem('locale', 'en')
+  })
+  await page.goto('/login')
+  await page.getByPlaceholder('tu@eminat.net').fill(email)
+  await page.locator('input[type="password"]').fill(PASSWORD)
+  await page.locator('input[type="password"]').press('Enter')
+  await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
+  await page.goto('/sales-native')
+  await expect(page.getByRole('heading', { name: 'Dashboard', exact: true, level: 1 })).toBeVisible()
+  await selectSales(page, 'Leads')
+  await expect(page.getByRole('heading', { name: 'Leads', exact: true, level: 1 })).toBeVisible()
+  await Promise.all([
+    page.waitForResponse(response => new URL(response.url()).pathname === '/api/sales-native/leads'),
+    Promise.resolve().then(() => release()),
+  ])
+  await expect(page.getByRole('status').filter({ hasText: /^Loading / })).toHaveCount(0)
+  await Promise.all([
+    page.waitForResponse(response => new URL(response.url()).pathname === '/api/sales-native/reports/summary'),
+    selectSales(page, 'Dashboard'),
+  ])
+  await expect(page.getByRole('heading', { name: 'Leads by stage', exact: true })).toBeVisible()
 })
