@@ -41,3 +41,24 @@ The HHS provider model was reviewed February 13, 2026. Applicable surviving NPP 
 - [HHS current reproductive-health rule status](https://www.hhs.gov/hipaa/for-professionals/special-topics/reproductive-health/index.html)
 
 Approval owner, approval record, effective date and publication authorization: **PENDING**.
+
+## Complete review text and operational placeholders
+**DRAFT FOR LEGAL/COMPLIANCE REVIEW — NOT AN ADOPTED NOTICE**
+
+Legal covered entity name(s): [VERIFY LEGAL NAME AND SCOPE]. Effective date: [ADOPTION DATE — UNASSIGNED]. Privacy contact/title, postal address, telephone, email and accessible request channels: [OWNER TO COMPLETE]. Locations/organized arrangements covered: [VERIFY].
+
+### Uses and disclosures
+Describe treatment and coordination with providers; payment, billing and collection; and healthcare operations such as quality and administration, with accurate examples and applicable limits. Counsel must approve actual practices and more protective laws. Describe disclosures required by law and permitted public-health, oversight, abuse reporting, judicial/administrative, law-enforcement, deceased-person, organ-donation, serious-threat, workers' compensation and other applicable categories. Do not imply every category is routinely used or remove legal conditions.
+
+Other uses require valid authorization unless law permits otherwise. Explain authorization and prospective revocation procedures and limits. Specifically address marketing, sale of PHI, psychotherapy notes and exceptions only as applicable. Fundraising, if conducted: explain the choice to stop communications and that treatment/payment is not conditioned on that choice. Responsible workflows: [CONFIRM ACTUAL USES AND AUTHORIZATION PROCESS].
+
+### Patient rights and representatives
+Explain access, inspection and copies, including applicable electronic formats, lawful fees, response timelines, exceptions and review rights; amendment requests and disagreement process; accounting of qualifying disclosures; requested restrictions, including the qualifying paid-in-full restriction on health-plan payment/operations disclosures; reasonable confidential communications; and a paper copy even after electronic receipt. Identify request channels and applicable limits accurately. Personal representatives may exercise rights as authorized by law, subject to relevant exceptions; verify authority rather than assuming household or billing access confers medical-record access. [COUNSEL TO APPROVE PROCEDURES, TIMELINES AND CONTACTS].
+
+### Duties, complaints and notice administration
+Explain the entity's duties to protect privacy, provide the notice, follow its effective terms, and notify affected people following a breach of unsecured PHI when required. Provide internal complaint instructions and HHS OCR complaint rights, with no retaliation. [INSERT VERIFIED PRIVACY CONTACT AND HHS COMPLAINT CHANNEL]. Explain obtaining paper/electronic copies, website and location availability, notice revisions, availability/effective dates of revised terms, and lawful application to retained information. [APPROVE DELIVERY, ACKNOWLEDGEMENT, POSTING AND CHANGE PROCEDURES].
+
+### Conditional Part 2 module — applicability not verified
+Counsel must assess whether Part 2 program or recipient obligations apply, then insert current required descriptions of restrictions on use/disclosure of SUD records or testimony in proceedings against a patient, required consent/court conditions, and any applicable fundraising and other current model provisions. Do not imply HIPAA treatment/payment/operations permissions override Part 2. Remove or tailor this module only after documented determination. Review against the HHS February 2026 model and surviving current requirements; do not reinstate vacated reproductive-rule clauses.
+
+Legal/compliance approval record: [PENDING]. ES/EN accessible final text: [PENDING]. Publication authorization and patient distribution evidence: [PENDING]. No adopted notice is delivered by this file.

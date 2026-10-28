@@ -1,34 +1,37 @@
-# Corazón Salud HIPAA technical readiness
+# HIPAA technical readiness — evidence update
+2026-10-28. Overall **PARTIAL**. This is not a HIPAA compliance declaration. Actual Production project `ruedelunbtaomhrzgelc` was inspected read-only; no patient records or secret values were displayed. Release baseline PR193 / `7f311822882650f671ad6a1eea8259d61fffc21c`.
 
-Status: **PARTIAL — no overall HIPAA compliance claim**. This targeted remediation is based on main 1804a72d, preserving PR #192. Local tests and release artifacts must not be reported as Production controls until the exact release and live behavior are verified.
+| 45 CFR 164.312 area | Status | Evidence and limit |
+| --- | --- | --- |
+| Access Control | PARTIAL | 61 Patient/Sales tables RLS enabled and browser grants denied; service-scoped RPCs, patient/organization/role checks, private archive Storage and no Sales/Patient Realtime exposure verified. Legacy attendance definers permit unauthenticated arbitrary-subject calls: protected correction required. Workforce lifecycle, emergency access and periodic review not verified. |
+| Audit Controls | PARTIAL | Sales history includes actor/org/action/resource/request/time/changes; write idempotency and dedicated patient/family/invoice events exist. Added sanitized profile/user-update and authorization-denial metadata at application layer. Durable comprehensive privileged-change audit, retention, review and alert ownership not verified. |
+| Integrity | PARTIAL | Controlled RPCs, request/idempotency constraints and immutable Agreement acceptance verified. Actual daily backups verified; isolated restore not performed due cost approval rejection. Storage-object backup and organization-wide integrity controls not verified. |
+| Person or Entity Authentication | PARTIAL | Provider Auth, user binding and active-staff checks; synthetic unbound/anonymous negative tests deny patient/staff access. Auth rate configuration inspected. Legacy attendance actor binding defect remains until protected fix applied; MFA/lifecycle evidence incomplete. |
+| Transmission Security | PARTIAL | HTTPS and PR193 headers preserved across public site, Portal and LILLY. Vendor data-flow/BAA suitability and encrypted endpoint coverage require organizational confirmation. |
 
-## Technical and organizational controls
+## Production evidence scope
+All 136 relevant Native Sales/patient routine ACL/search-path entries inspected; 11 key deployed security-function definitions match reviewed source fingerprints. Do not infer all function bodies match from that subset. Production read-only negative checks deny anonymous direct Sales access and legacy patient access; an unbound synthetic Auth UUID gains neither staff/medical access nor records, and service-scoped CRM RPCs reject a missing organization actor. Public schema CREATE denied browser roles. No writes or real patient identifiers used.
 
-| 45 CFR 164.312 standard | Technical evidence | Classification | Organizational/legal dependency |
-| --- | --- | --- | --- |
-| Access Control | Verified-user Sales actor resolution; organization/member/role scoped RPCs; patient session and document scope checks; negative test coverage | PARTIAL | Live grants/RLS and complete synthetic-role checks; emergency access procedure; workforce authorization review |
-| Audit Controls | Existing SQL event tables and restricted grants, actor/resource/time metadata across Sales and Patient workflows | PARTIAL | Effective schema, complete event coverage, review cadence, log integrity and retention not verified |
-| Integrity | Existing RPC constraints/idempotency; authenticated QBO webhook and token encryption; bounded patient JSON input | PARTIAL | Deployed configuration, change-control evidence, recovery and record-integrity procedures |
-| Person or Entity Authentication | Existing Supabase server verification and opaque patient sessions retained; recovery-token single-use control in source | PARTIAL | Live Auth configuration, operational access review, approved staff-as-patient identity workflow validation |
-| Transmission Security | HTTPS observed; explicit CSP/header hardening prepared; secrets stay server-side in tested paths | PARTIAL | All service/email paths, provider agreements and configuration evidence |
+Legacy `registrar_entrada(uuid,text)` and `registrar_salida(uuid,text)` are SECURITY DEFINER, have no explicit search_path and allow anon/authenticated EXECUTE without actor binding. No exploit executed. Review proposal and exact rollback are retained in release artifacts; do not apply outside schema_check → approval → schema_apply → approval → schema_verify.
 
-Sources: [45 CFR 164.312](https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-C/part-164/subpart-C/section-164.312) and [HHS Security Rule](https://www.hhs.gov/hipaa/for-professionals/security/laws-regulations/index.html). Administrative (164.308), physical (164.310), organizational (164.314) and policies/documentation (164.316) controls remain separate evidence requirements. Addressable specifications require a documented assessment; they are not automatically optional.
+## Effective rate evidence
+Supabase Auth dashboard: signups/signins 30 per 5 minutes/IP; token verification 30 per 5 minutes/IP; token refresh 150 per 5 minutes/IP. Minimum email interval 60 seconds when custom SMTP applies. No brute-force test. Application registration admission is atomic/database-backed: 3/email/hour, 5/email/day and 20/source-IP/hour with HMAC digests, plus recovery cooldown of two minutes and separate admission namespace. Vercel forwarded-IP header is trusted only on Vercel. Proxy/shared-IP limits require operational monitoring. Unknown/staff/existing email responses retain non-enumerating behavior. Public static website has outbound links, no observed sensitive form submission endpoint.
 
-## Safe changes in this branch
+## Audit event coverage
+| Flow | Evidence | Status |
+| --- | --- | --- |
+| Registration / identity / contact / lead / assignment | Admission digests, patient intent/link events, controlled RPC history | PASS within reviewed flows |
+| Opportunities / stages / seller reassignment | Sales history and write operation actor/org/request references | PASS within reviewed flows |
+| Agreement | Acceptance record plus immutable acceptance trigger | PASS |
+| Invoices / reconciliation / payment verification | Invoice job events, webhook fingerprints and state history | PASS; no real payment tested |
+| Activation / renewal / Family / cancellation/void | Membership history, selection/family draft events and controlled transitions | PASS within reviewed flows |
+| Profile update | New application metadata event, field names only | PARTIAL pending deployment and retention evidence |
+| Privileged configuration / roles / permissions | Some controlled RPC history; new user-update metadata event | PARTIAL; durable complete coverage/review not established |
+| Authorization failures | New sanitized request-correlated denied event | PARTIAL pending deployment and log operations |
 
-- Remove obsolete ANNIE and disconnected-QBO claims from the website/portal Privacy policy, retaining its purpose and existing contact/request text.
-- Explicit public script hashes and resource origins; preserve homepage design/prices and existing HTTPS redirects.
-- Portal and LILLY CSP, denied external framing, nosniff, Referrer-Policy, Permissions-Policy and existing HSTS duration.
-- Sensitive API/HTML cache controls without disabling immutable public asset caching.
-- Enforce the existing Patient JSON size allowance against actual streamed bytes, including absent/false Content-Length.
-- Preserve Agreement v5, verified Auth, sales authorization, staff/patient rules, family/renewal/pricing, QBO and PR #192 application code.
+Application logging accepts metadata only, sanitizes identifiers and field names and excludes values, full request bodies, credentials, card data and unnecessary PHI. Existing event tables may contain necessary before/after snapshots: retention and minimum-necessary review remain organizational work.
 
-## Evidence limits and release gates
+## Dependencies and remaining blockers
+Administrative and physical safeguards require evidence in hipaa-organizational-readiness.md. Covered Entity and Part 2 applicability remain NOT VERIFIED. NPP is complete for legal review with unresolved owner inputs, not adopted/published. No executed BAA evidence found; Resend/Hostinger product limitations and QBO suitability need resolution before regulated use can be called ready. Restore drill, Storage backup, audit retention/review and legacy attendance protected fix remain open. Preview cleanup and this release require final evidence; prepared changes are not represented as deployed.
 
-The review records before/after public headers, local production-mode browser/CSP checks, unit/integration coverage, builds, CI and protected Preview status in the release validation file. Production schema/catalog, RLS/grants/SECURITY DEFINER search_path, backups/PITR, signed BAAs and live audit coverage require independent read-only evidence. Source migrations are not proof that they were applied.
-
-Protected Preview dpl_7uWazUptkrWwzWGYo2Z1bcAa8Czw was created with dummy Supabase/mail credentials only. Login and language/recovery UI rendered; anonymous profile, membership PDF, Sales bootstrap and QBO connection each returned 401 with no-store. Runtime files match the tested Preview; subsequent changes concern release artifacts and catalog verification. No new Preview may contain Production service/database/QBO/email credentials. Header-only Preview uses dummy/local configuration. Existing project/deployment secret metadata must be checked without exposing values. Do not delete unrelated Preview artifacts or rotate credentials speculatively.
-
-Production backup evidence, inspected read-only in the Supabase dashboard on October 27, 2026 (America/Guayaquil): seven physical scheduled backups were listed for October 21–27. The latest listed snapshot was October 27, 2026 at 05:28:43 UTC (00:28:43 Guayaquil). Scheduled backup configuration: **PASS**. PITR: **NOT ENABLED**; the dashboard offers it as an add-on. No setting was changed, no backup was downloaded and no restore was run. Database backups exclude Storage objects; separate object recovery remains unverified. Exact operational restore procedure/ownership and restore-test execution: **NOT VERIFIED**. Existing guarded migration workflow checks backup evidence and preserves rollback SQL, but that does not prove an actual recoverable backup or restore test. Do not invent RPO/RTO or change backups. Recovery ownership requires organization confirmation.
-
-NPP, covered-entity and Part 2 applicability, approved contact/effective date, policies/training, physical safeguards, vendor contracts and incident response remain organizational/legal blockers to full readiness. They do not prohibit safe tested header hardening.
+Sources: [HHS safeguards](https://www.hhs.gov/hipaa/for-professionals/security/laws-regulations/index.html), [45 CFR 164.312](https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-C/part-164/subpart-C/section-164.312), [Supabase Auth limits](https://supabase.com/docs/guides/auth/rate-limits).

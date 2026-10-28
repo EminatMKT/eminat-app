@@ -6,6 +6,7 @@ import { noStoreFetch } from '@/shared/db/noStoreFetch'
 import { salesRoles, type SalesActor, type SalesRole } from './policy'
 import { nativeSalesEnabled } from './release-gate'
 import { measureSalesStage, type SalesStageObserver } from './performance-audit'
+import { recordSecurityEvent } from '@/server/security-audit'
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -113,5 +114,9 @@ export async function resolveSalesActor(request: Request, observe?: SalesStageOb
 
 export function nativeSalesErrorResponse(error: unknown): Response {
   const known = error instanceof NativeSalesAuthError ? error : new NativeSalesAuthError(503, 'SALES_UNAVAILABLE')
-  return Response.json({ code: known.code }, { status: known.status, headers: { 'Cache-Control': 'no-store' } })
+  const headers: Record<string, string> = { 'Cache-Control': 'no-store' }
+  if ([401, 403].includes(known.status)) headers['X-Request-ID'] = recordSecurityEvent({
+    action: 'sales.access.denied', outcome: 'DENIED',
+  })
+  return Response.json({ code: known.code }, { status: known.status, headers })
 }

@@ -4,6 +4,7 @@ import requireAdmin from '@/shared/db/requireAdmin'
 import isOnlyAdminLeft from '@/shared/auth/roleValidation/isOnlyAdminLeft'
 import { syncUsuarioCargos } from '@/shared/db/usuarioCargos'
 import { ADMIN_ERRORS } from '@/shared/errors'
+import { recordSecurityEvent } from '@/server/security-audit'
 
 /**
  * Server-side admin endpoint — partial user update.
@@ -105,8 +106,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: ADMIN_ERRORS.noFieldsToUpdate }, { status: 400 })
     }
 
-    console.log(`${TAG} start`, { id, fields: Object.keys(updatePayload) })
-
     // Guard: no permitir degradar al último admin (rol pasa a algo != admin
     // sobre un usuario que ES admin). Read-then-write a nivel app (no TOCTOU-safe).
     if (rol !== undefined && rol !== 'admin') {
@@ -124,13 +123,12 @@ export async function POST(req: NextRequest) {
     // 1) Update Auth email if (and only if) the request is changing email
     //    and both old + new were provided.
     if (emailChanged) {
-      console.log(`${TAG} auth email change`, { id, from: currentEmail, to: email })
       const { error: authError } = await db.auth.admin.updateUserById(id, {
         email,
         email_confirm: true,
       })
       if (authError) {
-        console.error(`${TAG} auth email update failed`, { id, error: authError.message })
+        console.error(`${TAG} auth email update failed`)
         return NextResponse.json({ error: ADMIN_ERRORS.authFailed(authError.message) }, { status: 400 })
       }
     }
@@ -149,9 +147,6 @@ export async function POST(req: NextRequest) {
     if (dbError) {
       const dbErrorCode = dbError.code
       console.error(`${TAG} usuarios update failed`, {
-        id,
-        error: dbError.message,
-        code: dbErrorCode,
         fields: Object.keys(updatePayload),
       })
       // Revert Auth email if we touched it earlier.
@@ -175,7 +170,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (count === 0) {
-      console.error(`${TAG} usuarios update affected 0 rows`, { id })
+      console.error(`${TAG} usuarios update affected 0 rows`)
       return NextResponse.json({ error: ADMIN_ERRORS.rowNotUpdated }, { status: 404 })
     }
 
@@ -190,11 +185,12 @@ export async function POST(req: NextRequest) {
     const { data: userData } = await db.from('usuarios')
       .select('*, usuario_cargos(cargo_id, cargos(codigo, nombre))').eq('id', id).single()
 
-    console.log(`${TAG} success`, { id, fields: Object.keys(updatePayload), cargos: syncCargos })
+    recordSecurityEvent({ action: 'workforce.user.updated', actorId: authz.userId,
+      resourceId: id, outcome: 'SUCCESS', changedFields: [...Object.keys(updatePayload), ...(syncCargos ? ['cargoIds'] : [])] })
     return NextResponse.json({ user: userData })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : ''
-    console.error(`${TAG} unexpected`, { message })
+    console.error(`${TAG} unexpected`)
     return NextResponse.json({ error: message || ADMIN_ERRORS.unexpectedUpdate }, { status: 500 })
   }
 }
