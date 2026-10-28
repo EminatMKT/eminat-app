@@ -1,3 +1,27 @@
+diff --git a/.dockerignore b/.dockerignore
+index 4922906..5902b11 100644
+--- a/.dockerignore
++++ b/.dockerignore
+@@ -3,6 +3,7 @@
+ !package.json
+ !pnpm-lock.yaml
+ !next.config.ts
++!security-headers.mjs
+ !.next
+ !.next/**
+ !public
+diff --git a/Dockerfile b/Dockerfile
+index a1bbe6a..60560c2 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -7,6 +7,7 @@ COPY --chown=node:node .next ./.next
+ COPY --chown=node:node public ./public
+ COPY --chown=node:node private/agreements ./private/agreements
+ COPY --chown=node:node next.config.ts ./next.config.ts
++COPY --chown=node:node security-headers.mjs ./security-headers.mjs
+ ENV NODE_ENV=production PORTAL_DATA_MODE=unavailable
+ USER node
+ EXPOSE 3000
 diff --git a/next.config.ts b/next.config.ts
 index e9ffa30..f731c82 100644
 --- a/next.config.ts

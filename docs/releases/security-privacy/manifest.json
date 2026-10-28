@@ -1,10 +1,11 @@
 {
   "baseCommit": "1804a72d3c9b0f3e34f02b82f54c50da59b9c8d8",
   "portalBaseCommit": "c265310bac3fe854f4a7d8aa897ea8e82e7c2ab8",
-  "portalSourceCommit": "134546ec7e4de3fbcd72c62fac1c460e7cc79083",
-  "portalPatchSha256": "4a9bb9c33c14dfac76cf082711e4b7beb68de8c62da6cb954595421b59e382e0",
+  "portalSourceCommit": "be99d08a00ff419b74ca07c109d5906bb805c774",
+  "portalPatchSha256": "a71ac35b3d175bd98810c83fc6c708c364c5cd2ad1aaa69efb9affc1a90d454d",
   "portalAgreementV5Unchanged": true,
   "databaseMigration": false,
   "qboBehaviorChanged": false,
-  "productionDeployed": false
+  "productionDeployed": false,
+  "portalRuntimeModulePackaged": true
 }
