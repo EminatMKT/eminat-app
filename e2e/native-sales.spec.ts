@@ -300,7 +300,9 @@ test('Sales consolidates initial requests but refresh and later Dashboard visits
   await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
   await page.goto('/sales-native')
   await expect(page.getByRole('heading', { name: 'Leads by stage', exact: true })).toBeVisible()
-  expect(counts).toEqual({ bootstrap: 1, access: 0, directory: 0, summary: 0 })
+  // next dev + reactStrictMode replays mount effects twice. Each replay must
+  // issue only bootstrap; the protected Production-mode Preview measures one.
+  expect(counts).toEqual({ bootstrap: 2, access: 0, directory: 0, summary: 0 })
   await Promise.all([
     page.waitForResponse(response => new URL(response.url()).pathname === '/api/sales-native/reports/summary'),
     page.getByRole('button', { name: 'Refresh', exact: true }).first().click(),
@@ -315,7 +317,7 @@ test('Sales consolidates initial requests but refresh and later Dashboard visits
   ])
   await expect(page.getByRole('heading', { name: 'Leads by stage', exact: true })).toBeVisible()
   expect(counts.summary).toBe(2)
-  expect(counts.bootstrap).toBe(1)
+  expect(counts.bootstrap).toBe(2)
 })
 
 test('navigation during bootstrap never reuses a stale initial Dashboard on return', async ({ page }) => {
