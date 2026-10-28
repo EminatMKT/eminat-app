@@ -1,4 +1,7 @@
 -- Catalog-only verification; no patient/business rows and no schema changes.
+-- Trigger pseudo-types are not callable RPCs. Check their SECURITY DEFINER paths,
+-- but assess invocation through the protected target table rather than EXECUTE ACL.
+-- native_sales_guard_converted_lead is an invoker trigger on service-only sales_leads.
 BEGIN READ ONLY;
 DO $$
 DECLARE problem text;
@@ -15,8 +18,9 @@ BEGIN
   SELECT string_agg(p.oid::regprocedure::text, ', ' ORDER BY p.proname) INTO problem
   FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
   WHERE n.nspname='public' AND p.proname LIKE 'native\_sales\_%' ESCAPE '\'
-    AND (has_function_privilege('anon',p.oid,'EXECUTE')
-      OR has_function_privilege('authenticated',p.oid,'EXECUTE')
+    AND ((p.prorettype NOT IN ('trigger'::regtype,'event_trigger'::regtype) AND
+      (has_function_privilege('anon',p.oid,'EXECUTE')
+       OR has_function_privilege('authenticated',p.oid,'EXECUTE')))
       OR (p.prosecdef AND NOT EXISTS (
         SELECT 1 FROM unnest(p.proconfig) setting
         -- Existing controlled binding uses an empty path and schema-qualified tables.
