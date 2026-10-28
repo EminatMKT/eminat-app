@@ -1,5 +1,6 @@
 \set ON_ERROR_STOP on
-DROP SCHEMA public CASCADE; CREATE SCHEMA public; DROP SCHEMA auth CASCADE; DROP ROLE anon; DROP ROLE authenticated; DROP ROLE service_role;
+-- Synthetic fixture only. Requires an empty local database; never run against Production.
+DO $$ BEGIN IF inet_server_addr() IS NOT NULL OR current_database() <> 'corazon_attendance_synthetic' THEN RAISE EXCEPTION 'ISOLATED_LOCAL_FIXTURE_REQUIRED'; END IF; END $$;
 CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
 CREATE SCHEMA auth;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
