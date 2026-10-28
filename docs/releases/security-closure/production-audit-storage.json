@@ -1,0 +1,354 @@
+{
+  "roles": [
+    {
+      "role": "authenticated",
+      "superuser": false,
+      "bypass_rls": false
+    },
+    {
+      "role": "anon",
+      "superuser": false,
+      "bypass_rls": false
+    },
+    {
+      "role": "service_role",
+      "superuser": false,
+      "bypass_rls": true
+    }
+  ],
+  "sales_views": null,
+  "audit_columns": {
+    "sales_history": [
+      "id",
+      "organization_id",
+      "entity_type",
+      "record_id",
+      "actor_member_id",
+      "action",
+      "request_id",
+      "occurred_at",
+      "changes",
+      "legacy_annie_id"
+    ],
+    "sales_write_operations": [
+      "id",
+      "organization_id",
+      "actor_member_id",
+      "operation",
+      "idempotency_key",
+      "payload_hash",
+      "record_id",
+      "created_at"
+    ],
+    "sales_qbo_webhook_events": [
+      "id",
+      "organization_id",
+      "environment",
+      "realm_id",
+      "event_fingerprint",
+      "entity_type",
+      "entity_id",
+      "operation",
+      "status",
+      "attempts",
+      "next_attempt_at",
+      "processed_at",
+      "created_at"
+    ],
+    "sales_qbo_invoice_job_events": [
+      "id",
+      "organization_id",
+      "job_id",
+      "previous_state",
+      "next_state",
+      "occurred_at"
+    ],
+    "sales_patient_selection_events": [
+      "id",
+      "organization_id",
+      "patient_identity_id",
+      "enrollment_intent_id",
+      "request_key",
+      "action",
+      "before_selection",
+      "after_selection",
+      "result",
+      "created_at"
+    ],
+    "sales_patient_family_draft_events": [
+      "id",
+      "organization_id",
+      "patient_identity_id",
+      "enrollment_intent_id",
+      "member_id",
+      "request_key",
+      "action",
+      "before_member",
+      "after_member",
+      "result",
+      "created_at"
+    ],
+    "sales_patient_registration_attempts": [
+      "id",
+      "email_digest",
+      "ip_digest",
+      "created_at"
+    ]
+  },
+  "realtime_related": [
+    {
+      "table": "usuarios",
+      "publication": "supabase_realtime"
+    }
+  ],
+  "native_function_names": 132,
+  "audit_writing_functions": [
+    "native_sales_admin_set_seller",
+    "native_sales_archive_lead",
+    "native_sales_complete_meta_page",
+    "native_sales_controlled_emc_admin",
+    "native_sales_convert_lead",
+    "native_sales_create_activity",
+    "native_sales_create_directory_record",
+    "native_sales_create_lead",
+    "native_sales_create_opportunity",
+    "native_sales_finish_email",
+    "native_sales_finish_report_delivery",
+    "native_sales_import_record",
+    "native_sales_issue_membership",
+    "native_sales_mark_meta_page_subscribed",
+    "native_sales_patient_bind_family_contact",
+    "native_sales_patient_cancel_renewal",
+    "native_sales_patient_claim_contact",
+    "native_sales_patient_complete_family_addition",
+    "native_sales_patient_complete_renewal",
+    "native_sales_patient_confirm_invoice_void",
+    "native_sales_patient_ensure_lead",
+    "native_sales_patient_family_addition_action",
+    "native_sales_patient_family_addition_opportunity",
+    "native_sales_patient_intent_opportunity",
+    "native_sales_patient_qbo_update",
+    "native_sales_patient_remove_family_member",
+    "native_sales_patient_renewal_opportunity",
+    "native_sales_portal_leads",
+    "native_sales_qbo_disconnect",
+    "native_sales_qbo_finish_invoice",
+    "native_sales_qbo_finish_oauth_state",
+    "native_sales_qbo_finish_refresh",
+    "native_sales_qbo_hold_for_revocation",
+    "native_sales_queue_email",
+    "native_sales_reassign_lead",
+    "native_sales_receive_social_event",
+    "native_sales_record_payment_evidence",
+    "native_sales_refresh_meta_connection",
+    "native_sales_request_family_member",
+    "native_sales_request_renewal",
+    "native_sales_review_family_member",
+    "native_sales_review_family_preparation",
+    "native_sales_review_renewal",
+    "native_sales_revoke_meta_connection",
+    "native_sales_save_report_schedule",
+    "native_sales_set_activity_status",
+    "native_sales_timeline",
+    "native_sales_transition_lead",
+    "native_sales_transition_opportunity",
+    "native_sales_update_directory_record",
+    "native_sales_update_lead",
+    "native_sales_update_opportunity"
+  ],
+  "storage_bucket_metadata": [
+    {
+      "id": "sales-membership-archive",
+      "public": false,
+      "size_limit": null
+    }
+  ],
+  "additional_patient_staff_tables": [
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "usuario_perfil_privado",
+      "authenticated": true
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "usuario_cumpleanos_envios",
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,authenticated=ardDxtm/postgres,service_role=arwdDxtm/postgres,stratix_audit=r/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "usuarios",
+      "authenticated": true
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "usuario_cargos",
+      "authenticated": true
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": true,
+      "name": "pacientes",
+      "authenticated": true
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": true,
+      "name": "paciente_fuentes",
+      "authenticated": true
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": true,
+      "name": "paciente_contactos",
+      "authenticated": true
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres,authenticated=r/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "usuario_empresas_acceso",
+      "authenticated": true
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,anon=arwdDxtm/postgres,authenticated=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": true,
+      "name": "project_members",
+      "authenticated": true
+    }
+  ],
+  "native_function_body_fingerprint": "d0e9e66f426b0ccc4c830bab9ce68403",
+  "additional_patient_staff_policies": [
+    {
+      "name": "mod_access",
+      "check": null,
+      "roles": [
+        "public"
+      ],
+      "table": "pacientes",
+      "using": "( SELECT has_module('medical'::text) AS has_module)",
+      "command": "ALL"
+    },
+    {
+      "name": "mod_access",
+      "check": null,
+      "roles": [
+        "public"
+      ],
+      "table": "paciente_fuentes",
+      "using": "( SELECT has_module('medical'::text) AS has_module)",
+      "command": "ALL"
+    },
+    {
+      "name": "mod_access",
+      "check": null,
+      "roles": [
+        "public"
+      ],
+      "table": "paciente_contactos",
+      "using": "( SELECT has_module('medical'::text) AS has_module)",
+      "command": "ALL"
+    },
+    {
+      "name": "usuario_update_propio",
+      "check": "((auth_id = auth.uid()) AND (activo = true))",
+      "roles": [
+        "authenticated"
+      ],
+      "table": "usuarios",
+      "using": "((auth_id = auth.uid()) AND (activo = true))",
+      "command": "UPDATE"
+    },
+    {
+      "name": "usuario_perfil_privado_read_self",
+      "check": null,
+      "roles": [
+        "authenticated"
+      ],
+      "table": "usuario_perfil_privado",
+      "using": "(EXISTS ( SELECT 1\n FROM usuarios u\n WHERE ((u.id = usuario_perfil_privado.usuario_id) AND (u.auth_id = auth.uid()) AND (u.activo = true))))",
+      "command": "SELECT"
+    },
+    {
+      "name": "project_members_update",
+      "check": "(is_admin() AND has_module('tasks'::text))",
+      "roles": [
+        "authenticated"
+      ],
+      "table": "project_members",
+      "using": "(is_admin() AND has_module('tasks'::text))",
+      "command": "UPDATE"
+    },
+    {
+      "name": "project_members_delete",
+      "check": null,
+      "roles": [
+        "authenticated"
+      ],
+      "table": "project_members",
+      "using": "(is_admin() AND has_module('tasks'::text))",
+      "command": "DELETE"
+    },
+    {
+      "name": "project_members_insert",
+      "check": "(is_admin() AND has_module('tasks'::text))",
+      "roles": [
+        "authenticated"
+      ],
+      "table": "project_members",
+      "using": null,
+      "command": "INSERT"
+    },
+    {
+      "name": "usuario_empresas_acceso_read",
+      "check": null,
+      "roles": [
+        "authenticated"
+      ],
+      "table": "usuario_empresas_acceso",
+      "using": "(is_admin() OR (usuario_id = ( SELECT usuarios.id\n FROM usuarios\n WHERE (usuarios.auth_id = auth.uid()))))",
+      "command": "SELECT"
+    },
+    {
+      "name": "lilly_users_read",
+      "check": null,
+      "roles": [
+        "authenticated"
+      ],
+      "table": "usuarios",
+      "using": "(es_personal() AND ((NOT lilly_access_enforced()) OR lilly_can_see_user(id)))",
+      "command": "SELECT"
+    },
+    {
+      "name": "lilly_user_roles_read",
+      "check": null,
+      "roles": [
+        "authenticated"
+      ],
+      "table": "usuario_cargos",
+      "using": "(es_personal() AND ((NOT lilly_access_enforced()) OR lilly_can_see_user(usuario_id)))",
+      "command": "SELECT"
+    },
+    {
+      "name": "lilly_project_members_read",
+      "check": null,
+      "roles": [
+        "authenticated"
+      ],
+      "table": "project_members",
+      "using": "can_access_project(project_id)",
+      "command": "SELECT"
+    }
+  ]
+}

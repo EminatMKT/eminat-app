@@ -1,4 +1,6 @@
 const { securityHeaders } = require('./security-headers.cjs')
+const { assertDeploymentIsolation } = require('./deployment-isolation.cjs')
+assertDeploymentIsolation(process.env)
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,

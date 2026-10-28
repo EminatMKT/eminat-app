@@ -1,0 +1,588 @@
+{
+  "tables": [
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_account_contacts",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_accounts",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_activities",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_contacts",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_family_requests",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_history",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_household_members",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_import_receipts",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_lead_conversions",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_lead_transition_rules",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_leads",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_meetings",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_members",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_membership_archive_documents",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_membership_code_registry",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_membership_periods",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_membership_price_catalog",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_memberships",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_opportunities",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_opportunity_contacts",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_opportunity_transition_rules",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_organizations",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_patient_agreement_acceptances",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_patient_assignment_order",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_patient_assignment_state",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_patient_email_outbox",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_patient_enrollment_intents",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_patient_family_draft_events",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_patient_family_draft_members",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_patient_identities",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_patient_qbo_manual",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_patient_recovery_token_claims",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_patient_registration_attempts",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_patient_selection_events",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_patient_sessions",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_payments",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_pipelines",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_qbo_connections",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=ar/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_qbo_customer_bindings",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_qbo_invoice_job_events",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=rw/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_qbo_invoice_jobs",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=ar/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_qbo_oauth_states",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_qbo_webhook_events",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_record_grants",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_renewal_requests",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_report_deliveries",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_report_schedules",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_social_accounts",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_social_assets",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_social_comments",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_social_conversations",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_social_integrations",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_social_leads",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_social_messages",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_social_oauth_states",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_social_providers",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_social_webhook_receipts",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_stages",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_team_members",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_teams",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=arwdDxtm/postgres}",
+      "rls": true,
+      "anon": false,
+      "name": "sales_write_operations",
+      "force_rls": false,
+      "service_role": true,
+      "authenticated": false
+    }
+  ],
+  "database": "postgres",
+  "policies": [],
+  "read_only": "on",
+  "definer_paths": [
+    [
+      "search_path=\"\""
+    ],
+    [
+      "search_path=public, pg_temp"
+    ]
+  ],
+  "routines_total": 136,
+  "realtime_tables": [],
+  "storage_policies": [
+    {
+      "name": "sales_membership_archive_server_only",
+      "check": "(bucket_id <> 'sales-membership-archive'::text)",
+      "roles": [
+        "anon",
+        "authenticated"
+      ],
+      "table": "objects",
+      "using": "(bucket_id <> 'sales-membership-archive'::text)",
+      "command": "ALL"
+    }
+  ],
+  "browser_callable_routines": [
+    {
+      "anon": false,
+      "name": "patient_birthday_months()",
+      "definer": false,
+      "settings": null,
+      "authenticated": true
+    }
+  ]
+}

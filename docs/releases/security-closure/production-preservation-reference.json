@@ -1,0 +1,249 @@
+{
+  "deployment": "dpl_H5uAbq4cy6r5GU6wzsBZQicvuXir",
+  "sha": "7f311822882650f671ad6a1eea8259d61fffc21c",
+  "envMetadata": [
+    {
+      "id": "h8gZoTflgyMZQNA7",
+      "key": "NEXT_PUBLIC_SUPABASE_URL",
+      "target": [
+        "production"
+      ],
+      "type": "sensitive",
+      "gitBranch": null,
+      "updatedAt": 1782517341039,
+      "configurationId": null
+    },
+    {
+      "id": "rWB2nbtsZjFzYLUN",
+      "key": "RESEND_API_KEY",
+      "target": [
+        "production"
+      ],
+      "type": "sensitive",
+      "gitBranch": null,
+      "updatedAt": 1782517341039,
+      "configurationId": null
+    },
+    {
+      "id": "bt1gcRvv1Sayk4kO",
+      "key": "NEXT_PUBLIC_APP_ENV",
+      "target": [
+        "production"
+      ],
+      "type": "encrypted",
+      "gitBranch": null,
+      "updatedAt": 1782775386789,
+      "configurationId": null
+    },
+    {
+      "id": "vTrhYfNU6Uza8gC6",
+      "key": "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+      "target": [
+        "production"
+      ],
+      "type": "encrypted",
+      "gitBranch": null,
+      "updatedAt": 1791055576664,
+      "configurationId": null
+    },
+    {
+      "id": "Ql3BjghWKQ6D0LpJ",
+      "key": "SUPABASE_SECRET_KEY",
+      "target": [
+        "production"
+      ],
+      "type": "encrypted",
+      "gitBranch": null,
+      "updatedAt": 1791055886537,
+      "configurationId": null
+    },
+    {
+      "id": "26Ntae1KP6q7tdfv",
+      "key": "CRON_SECRET",
+      "target": [
+        "production"
+      ],
+      "type": "sensitive",
+      "gitBranch": null,
+      "updatedAt": 1791837421699,
+      "configurationId": null
+    },
+    {
+      "id": "aY5lAkzzvB5ZhRpq",
+      "key": "MEETINGS_MAIL_MODE",
+      "target": [
+        "production"
+      ],
+      "type": "encrypted",
+      "gitBranch": null,
+      "updatedAt": 1791844657129,
+      "configurationId": null
+    },
+    {
+      "id": "DDgIfy4nAPytNzH4",
+      "key": "MEETINGS_MAIL_RECONCILE",
+      "target": [
+        "production"
+      ],
+      "type": "sensitive",
+      "gitBranch": null,
+      "updatedAt": 1791846955389,
+      "configurationId": null
+    },
+    {
+      "id": "BYHOWP4h54ld12pK",
+      "key": "LILLY_NATIVE_SALES_ENABLED",
+      "target": [
+        "production"
+      ],
+      "type": "encrypted",
+      "gitBranch": null,
+      "updatedAt": 1792450470424,
+      "configurationId": null
+    },
+    {
+      "id": "ei0zQEZp3tWFaLPN",
+      "key": "LILLY_NATIVE_SALES_PRIMARY",
+      "target": [
+        "production"
+      ],
+      "type": "encrypted",
+      "gitBranch": null,
+      "updatedAt": 1792455934541,
+      "configurationId": null
+    },
+    {
+      "id": "weWR7XoeS9IE7lCf",
+      "key": "LILLY_QBO_PRODUCTION_WEBHOOK_VERIFIER",
+      "target": [
+        "production"
+      ],
+      "type": "sensitive",
+      "gitBranch": null,
+      "updatedAt": 1792766299287,
+      "configurationId": null
+    },
+    {
+      "id": "o378L8ZWfNCrKdfS",
+      "key": "PATIENT_SALES_ORGANIZATION_ID",
+      "target": [
+        "production"
+      ],
+      "type": "encrypted",
+      "gitBranch": null,
+      "updatedAt": 1792515571605,
+      "configurationId": null
+    },
+    {
+      "id": "1oQbMhQjn2T3K22M",
+      "key": "PATIENT_SALES_OWNER_MEMBER_ID",
+      "target": [
+        "production"
+      ],
+      "type": "encrypted",
+      "gitBranch": null,
+      "updatedAt": 1792515571606,
+      "configurationId": null
+    },
+    {
+      "id": "nGRziqd3GVuenNtE",
+      "key": "PATIENT_EMAIL_FROM_ADDRESS",
+      "target": [
+        "production"
+      ],
+      "type": "encrypted",
+      "gitBranch": null,
+      "updatedAt": 1792627850577,
+      "configurationId": null
+    },
+    {
+      "id": "hSUFxfSijnnHKoTu",
+      "key": "PATIENT_EMAIL_OUTBOX_KEY",
+      "target": [
+        "production"
+      ],
+      "type": "sensitive",
+      "gitBranch": null,
+      "updatedAt": 1792630626705,
+      "configurationId": null
+    },
+    {
+      "id": "Gverhq7NQwdvqAhp",
+      "key": "LILLY_QBO_CLIENT_ID",
+      "target": [
+        "production"
+      ],
+      "type": "sensitive",
+      "gitBranch": null,
+      "updatedAt": 1792766492243,
+      "configurationId": null
+    },
+    {
+      "id": "gafqX8CiqeOClbw8",
+      "key": "LILLY_QBO_CLIENT_SECRET",
+      "target": [
+        "production"
+      ],
+      "type": "sensitive",
+      "gitBranch": null,
+      "updatedAt": 1792766523301,
+      "configurationId": null
+    },
+    {
+      "id": "76ZM66lTmm4FYcmJ",
+      "key": "LILLY_QBO_TOKEN_KEY",
+      "target": [
+        "production"
+      ],
+      "type": "sensitive",
+      "gitBranch": null,
+      "updatedAt": 1792766632921,
+      "configurationId": null
+    },
+    {
+      "id": "PsYFEMgv2XFRbQyE",
+      "key": "LILLY_QBO_REDIRECT_URI",
+      "target": [
+        "production"
+      ],
+      "type": "encrypted",
+      "gitBranch": null,
+      "updatedAt": 1792766687678,
+      "configurationId": null
+    },
+    {
+      "id": "gEnD78pt866sJP9o",
+      "key": "LILLY_QBO_OAUTH_ENABLED",
+      "target": [
+        "production"
+      ],
+      "type": "encrypted",
+      "gitBranch": null,
+      "updatedAt": 1792777299490,
+      "configurationId": null
+    },
+    {
+      "id": "cYbN3Po7eZSUwsu8",
+      "key": "LILLY_QBO_RECONCILE_WORKER_SECRET",
+      "target": [
+        "production"
+      ],
+      "type": "sensitive",
+      "gitBranch": null,
+      "updatedAt": 1793010831037,
+      "configurationId": null
+    },
+    {
+      "id": "oVwFqamG5MJXDgrM",
+      "key": "LILLY_QBO_RECONCILE_ALERT_TO",
+      "target": [
+        "production"
+      ],
+      "type": "plain",
+      "gitBranch": null,
+      "updatedAt": 1793010832014,
+      "configurationId": null
+    }
+  ],
+  "ignoredBuildStep": "exit 0"
+}

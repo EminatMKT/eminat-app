@@ -1,4 +1,5 @@
 import { readJsonObject } from '@/server/read-json-object'
+import { recordSecurityEvent } from '@/server/security-audit'
 import { randomBytes, createHash, createHmac } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { clientEnv } from '@/shared/db/env.client'
@@ -688,5 +689,8 @@ export async function PATCH(request: Request, { params }: Route) {
     .select('id,first_name,last_name,email,phone,address,created_at').maybeSingle()
   if (error) return unavailable()
   if (!data) return respond({ code: 'PROFILE_CONFLICT' }, 409)
+  recordSecurityEvent({ action: 'patient.profile.updated', actorId: patient.authId,
+    organizationId: patient.identity.organization_id, resourceId: patient.identity.contact_id,
+    outcome: 'SUCCESS', changedFields: [updatingPhone ? 'phone' : 'address'] })
   return respond({ data })
 }
