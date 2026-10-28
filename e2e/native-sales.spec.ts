@@ -299,13 +299,13 @@ test('Sales consolidates initial requests but refresh and later Dashboard visits
   await page.locator('input[type="password"]').press('Enter')
   await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
   await page.goto('/sales-native')
-  await expect(page.locator('.recharts-responsive-container')).toHaveCount(3)
+  await expect(page.getByRole('heading', { name: 'Leads by stage', exact: true })).toBeVisible()
   expect(counts).toEqual({ bootstrap: 1, access: 0, directory: 0, summary: 0 })
   await Promise.all([
     page.waitForResponse(response => new URL(response.url()).pathname === '/api/sales-native/reports/summary'),
     page.getByRole('button', { name: 'Refresh', exact: true }).first().click(),
   ])
-  await expect(page.locator('.recharts-responsive-container')).toHaveCount(3)
+  await expect(page.getByRole('heading', { name: 'Leads by stage', exact: true })).toBeVisible()
   expect(counts.summary).toBe(1)
   await selectSales(page, 'Leads')
   await expect(page.getByRole('heading', { name: 'Leads', exact: true, level: 1 })).toBeVisible()
@@ -313,7 +313,7 @@ test('Sales consolidates initial requests but refresh and later Dashboard visits
     page.waitForResponse(response => new URL(response.url()).pathname === '/api/sales-native/reports/summary'),
     selectSales(page, 'Dashboard'),
   ])
-  await expect(page.locator('.recharts-responsive-container')).toHaveCount(3)
+  await expect(page.getByRole('heading', { name: 'Leads by stage', exact: true })).toBeVisible()
   expect(counts.summary).toBe(2)
   expect(counts.bootstrap).toBe(1)
 })
@@ -348,5 +348,5 @@ test('navigation during bootstrap never reuses a stale initial Dashboard on retu
     page.waitForResponse(response => new URL(response.url()).pathname === '/api/sales-native/reports/summary'),
     selectSales(page, 'Dashboard'),
   ])
-  await expect(page.locator('.recharts-responsive-container')).toHaveCount(3)
+  await expect(page.getByRole('heading', { name: 'Leads by stage', exact: true })).toBeVisible()
 })

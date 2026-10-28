@@ -20,6 +20,7 @@ for(const locale of ['en','es'] as const)test(`staff Family approval uses the ex
    members.find(member=>member.id===body.memberId)!.reviewStatus=body.decision
    return route.fulfill({json:{data:{coverageActive:false}}})
   }
+  if(path==='bootstrap')return route.fulfill({json:{access:{allowed:true,role:'SUPERADMIN',organizationId:'9efab353-46a0-43d1-9901-e3f185dc5d30',capabilities:{canWrite:true,canReassign:true,canReadAudit:true,canReadPayments:true}},directory:{users:[],historicalUsers:[],teams:[],stages:[]}}})
   if(path==='access')return route.fulfill({json:{allowed:true,role:'SUPERADMIN',organizationId:'9efab353-46a0-43d1-9901-e3f185dc5d30',capabilities:{canWrite:true,canReassign:true,canReadAudit:true,canReadPayments:true}}})
   if(path==='directory')return route.fulfill({json:{data:{users:[],historicalUsers:[],teams:[],stages:[]}}})
   if(path==='memberships')return route.fulfill({json:{data:[root],nextOffset:null}})
