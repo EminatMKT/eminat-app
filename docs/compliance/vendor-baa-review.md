@@ -1,31 +1,34 @@
-# Vendor and BAA evidence review
-Reviewed 2026-10-28. Availability is not execution. No agreements signed, no vendor/account settings changed. PHI classification is conditional on entity status and context; linked identity and healthcare billing can qualify without diagnoses. Searches of connected evidence found no executed in-scope BAA; that is not proof none exists.
+# Vendor suitability and BAA decision register
+Reviewed 2026-10-28 using current official sources and reviewed source flows. Availability is not execution. No agreement was signed or accepted. **Every executed BAA below remains NOT VERIFIED**; absence in available searches is not proof none exists. PHI exposure depends on entity/activity context and may exist without a diagnosis.
 
-| Vendor/service | Information potentially received | PHI/ePHI | BAA potentially required | BAA available | Executed evidence | Action |
-| --- | --- | --- | --- | --- | --- | --- |
-| Supabase Auth/Postgres/private Storage/backups | Identity, membership, patient/contact records, files, logs and backups | POSSIBLE | LEGAL REVIEW | YES | NOT VERIFIED | Obtain executed agreement and High Compliance configuration/scope evidence. |
-| Vercel LILLY/API and runtime logs | Requests, session context, application records and sanitized audit metadata | POSSIBLE | LEGAL REVIEW | YES | NOT VERIFIED | Verify eligible coverage, executed agreement, retention and access. |
-| Intuit/QBO | Customer names/email/internal identifiers, membership invoices/payment metadata | POSSIBLE | LEGAL REVIEW | UNKNOWN | NOT VERIFIED | Official QBO guidance warns against identifiable health data; resolve suitability and flow with counsel. |
-| Resend email API | Recipient, branded verification/recovery links, membership/invoice email content | POSSIBLE | LEGAL REVIEW | NO | NOT VERIFIED | Vendor states not HIPAA compliant and cannot sign BAA; resolve regulated messaging flow before readiness. |
-| Hostinger public hosting and Portal VPS | Static-site request metadata; Portal identity/session/member context and server logs | POSSIBLE | LEGAL REVIEW | UNKNOWN | NOT VERIFIED | Official guidance says service not intended as HIPAA environment; assess Portal hosting, contracts and migration alternatives through separate approved work. |
-| Google Workspace/Cloud where used | Business correspondence/documents; precise deployed service scope unverified | POSSIBLE | LEGAL REVIEW | YES for eligible covered services | NOT VERIFIED | Verify actual product, admin acceptance and covered functionality. Workspace BAA does not cover every Google service. |
-| Google Fonts | IP/referrer and public-page request metadata | POSSIBLE | LEGAL REVIEW | UNKNOWN for this service | NOT VERIFIED | No medical content in URLs; assess self-hosting and metadata exposure. |
-| Google Maps outbound link | User-initiated destination/query and request metadata | POSSIBLE | LEGAL REVIEW | UNKNOWN for this service | NOT VERIFIED | Distinguish outbound link from embedded collection; keep PHI out of URLs. |
-| Meta/WhatsApp and Social integration | Generic public contact links; social lead/message data depending on enabled integration | POSSIBLE | LEGAL REVIEW | UNKNOWN | NOT VERIFIED | Establish actual product scope and prohibit regulated health data until reviewed; do not assume advertising or WhatsApp terms provide a BAA. |
-| Metricool | Business use/data scope NOT VERIFIED in reviewed deployment | POSSIBLE | LEGAL REVIEW | UNKNOWN | NOT VERIFIED | Confirm use; terms restrict sensitive categories; do not send patient data. |
-| emc.health public logo host/operator | Public image request metadata | POSSIBLE | LEGAL REVIEW | UNKNOWN | NOT VERIFIED | Identify operator/log retention and assess cross-site metadata. |
-| Logging/monitoring | Observed Vercel, Supabase and Hostinger logs; no additional external monitoring SDK established in scope | POSSIBLE | LEGAL REVIEW | Per providers above | NOT VERIFIED | Verify retention, access, reviews and subprocessor inventory. |
-| Backup/storage | Supabase database backups/private bucket; independent Storage-object backup not verified | POSSIBLE | LEGAL REVIEW | Supabase eligible agreement | NOT VERIFIED | Verify contractual coverage and object recovery separately. |
+| Vendor / actual service | PHI/ePHI exposure | BAA availability | Executed evidence | Current suitability | Exact business action |
+| --- | --- | --- | --- | --- | --- |
+| Supabase Auth/Postgres/private archive/backups | POSSIBLE | AVAILABLE, eligible HIPAA arrangement | NOT VERIFIED | REQUIRES REVIEW | Obtain executed BAA, confirm HIPAA add-on and High Compliance scope/configuration, region, SSL/network/logging/PITR controls; approve any cost separately. |
+| Vercel LILLY API/hosting/runtime logs | POSSIBLE | AVAILABLE, eligible Pro/Enterprise arrangement | NOT VERIFIED | REQUIRES REVIEW | Obtain account-specific executed agreement and covered project/services; confirm logs/retention/access and required configuration. |
+| Hostinger public website / Portal host | POSSIBLE; static public content itself contains no patient records, Portal handles identity/member sessions | UNKNOWN | NOT VERIFIED | NOT SUITABLE FOR PHI under published hosting suitability statement | Owner/legal must resolve the authenticated Portal hosting scope and contract or approve an alternative in separate work; do not assume public-site hosting security authorizes PHI. |
+| Resend patient verification, welcome, recovery, invoice, activation/renewal messaging | POSSIBLE; content confirms named/identified recipient's health-program billing/membership context | NOT AVAILABLE | NOT VERIFIED | NOT SUITABLE FOR PHI | Resolve PHI classification and move regulated messages to an eligible contracted provider, or approve and enforce a genuinely non-PHI redesign; changing branding alone is insufficient. No messaging behavior changed here. |
+| Google Workspace Gmail/Drive/Docs used internally | POSSIBLE | AVAILABLE for covered functionality | NOT VERIFIED | REQUIRES REVIEW | Workspace administrator must produce accepted BAA/covered-domain evidence, current covered-functionality scope, access/sharing/retention controls. Do not infer Workspace coverage for consumer accounts. |
+| Google Cloud services, if any beyond Workspace | POSSIBLE; exact deployment not verified | AVAILABLE for eligible services | NOT VERIFIED | REQUIRES REVIEW | Inventory actual GCP product/project and agreement separately. Workspace terms do not cover unrelated Cloud products automatically. |
+| Google Fonts / outbound Maps links | POSSIBLE request metadata; no clinical payload observed | UNKNOWN for these services | NOT VERIFIED | REQUIRES REVIEW | Confirm actual products and patient-page metadata exposure; prohibit health information in URLs; assess asset self-hosting separately. |
+| Intuit QuickBooks Online Accounting/OAuth/webhooks | POSSIBLE identified customer + membership billing | UNKNOWN; no QBO HIPAA BAA established | NOT VERIFIED | NOT SUITABLE FOR PHI under official QBO privacy guidance | Counsel/accounting must resolve whether this flow is PHI, necessity of identifiers/service descriptions and suitable accounting workflow; preserve billing until approved safe correction. |
+| Meta Social lead/message integration and outbound WhatsApp links | POSSIBLE if people submit health details; precise content not inspected | UNKNOWN | NOT VERIFIED | REQUIRES REVIEW; no PHI suitability established | Confirm product scope/contracts, restrict campaigns/forms/messages to permitted non-sensitive intake, route clinical content to approved channels. No patient data sent for testing. |
+| Metricool marketing use | POSSIBLE; connection to patient systems not verified | UNKNOWN | NOT VERIFIED | NOT SUITABLE FOR PHI under sensitive-data restrictions | Verify whether used in scope; keep patient data/exports out, document authorized non-sensitive campaign-only scope. |
+| emc.health public logo image host | POSSIBLE browser request metadata; operator/contract scope not verified | UNKNOWN | NOT VERIFIED | REQUIRES REVIEW | Identify host/operator, access/log retention and whether patient-page referrers reveal sensitive context. |
+| Monitoring/logging: Vercel, Supabase, Hostinger | POSSIBLE; UUIDs/metadata may remain sensitive | Per vendor above | NOT VERIFIED | REQUIRES REVIEW | Approve retention/access/review/export handling and redact free-form errors. No additional external monitoring SDK was established in reviewed source; not proof of absence account-wide. |
+| Backup/object provider: Supabase | POSSIBLE database/auth content; current object bucket empty | AVAILABLE through eligible Supabase arrangement | NOT VERIFIED | REQUIRES REVIEW | Include backups/support/subprocessors in contractual scope. Independent file-backup destination remains unselected; no new vendor/resource created. |
 
-## Official sources
-- [Supabase HIPAA](https://supabase.com/docs/guides/security/hipaa-compliance)
-- [Vercel HIPAA](https://vercel.com/kb/guide/hipaa-compliance-guide-vercel)
-- [Intuit QBO HIPAA guidance](https://quickbooks.intuit.com/learn-support/en-us/help-article/insurance-medical-benefits/quickbooks-online-hipaa-compliant/L9HSimAH5_US_en_US)
-- [Resend security and HIPAA statement](https://resend.com/security)
-- [Hostinger security guidance](https://www.hostinger.com/support/1583287-what-security-measures-does-hostinger-use/)
-- [Hostinger allowed uses](https://www.hostinger.com/support/which-types-of-content-and-websites-are-allowed-at-hostinger/)
-- [Workspace HIPAA and covered functionality](https://knowledge.workspace.google.com/admin/compliance/hipaa-compliance-with-google-workspace-and-cloud-identity)
-- [Google Cloud HIPAA](https://docs.cloud.google.com/docs/security/compliance/hipaa)
-- [Metricool terms](https://metricool.com/legal-terms/)
+## Resend: actual payload boundary
+Source `patient-email-delivery.ts` sends recipient email, Corazón Salud branding and action links. Activation adds firstName; invoice notices add invoiceNumber; renewal adds expiresAt and verified-payment/renewal status. Verification/recovery links contain security-sensitive action data. No diagnosis, clinical notes, DOB, card/ACH data or patient PDF attachment is constructed in these patient-email functions, but the recipient plus health-program membership/payment context **cannot be certified as non-PHI**. Therefore the Resend issue remains a conditional regulated-use blocker, not closed by a claim that messages are generic.
 
-No legal certification, contractual exception or executed BAA is inferred from product security marketing. QBO remains unchanged. See qbo-privacy-data-flow.md and hipaa-organizational-readiness.md.
+Proposed minimum-necessary restrictions for owner/legal approval: no diagnoses, treatment detail, DOB, membership code, family identities, full invoice/Agreement/PDF attachment, or free-form clinical text in email; display details after authenticated access. Recipient and a branded healthcare relationship may still be PHI. Do not treat this proposed restriction as an already enforced PHI prevention boundary. No PHI or live email was sent in testing.
+
+## Official evidence
+- [Supabase HIPAA projects and required configuration](https://supabase.com/docs/guides/platform/hipaa-projects)
+- [Vercel Pro BAA availability](https://vercel.com/changelog/hipaa-baas-are-now-available-to-pro-teams), [Vercel HIPAA guide](https://vercel.com/kb/guide/hipaa-compliance-guide-vercel)
+- [Hostinger service suitability](https://www.hostinger.com/support/1583287-what-security-measures-does-hostinger-use/)
+- [Resend security / no BAA](https://resend.com/security)
+- [Workspace HIPAA](https://knowledge.workspace.google.com/admin/compliance/hipaa-compliance-with-google-workspace-and-cloud-identity), [current covered functionality](https://workspace.google.com/intl/en/terms/2015/1/hipaa_functionality/)
+- [Intuit QBO HIPAA limitation](https://quickbooks.intuit.com/learn-support/en-us/help-article/insurance-medical-benefits/quickbooks-online-hipaa-compliant/L9HSimAH5_US_en_US)
+- [Metricool sensitive-data restrictions](https://metricool.com/legal-terms/)
+
+Meta BAA availability remains UNKNOWN: no authoritative executed or available in-scope BAA was established. This review does not generalize terms of one Meta product to another. Track decisions and agreement evidence in baa-tracking-register.md.

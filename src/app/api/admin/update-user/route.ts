@@ -1,3 +1,4 @@
+import { recordPrivilegedAction } from '@/server/privileged-audit'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import requireAdmin from '@/shared/db/requireAdmin'
@@ -185,6 +186,8 @@ export async function POST(req: NextRequest) {
     const { data: userData } = await db.from('usuarios')
       .select('*, usuario_cargos(cargo_id, cargos(codigo, nombre))').eq('id', id).single()
 
+    await recordPrivilegedAction(db, { action: 'admin.user.updated', actorId: authz.userId,
+      resourceId: id, changedFields: [...Object.keys(updatePayload), ...(syncCargos ? ['cargoIds'] : [])] })
     recordSecurityEvent({ action: 'workforce.user.updated', actorId: authz.userId,
       resourceId: id, outcome: 'SUCCESS', changedFields: [...Object.keys(updatePayload), ...(syncCargos ? ['cargoIds'] : [])] })
     return NextResponse.json({ user: userData })

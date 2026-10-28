@@ -1,22 +1,33 @@
-# QBO field-level privacy review
-Reviewed source only, 2026-10-28. No real patient values inspected. QBO configuration, payloads, OAuth, reconciliation, payment and business behavior unchanged.
+# QBO field inventory and minimum necessary
+Reviewed 2026-10-28 against `quickbooks/client.ts`, `automatic-invoice.ts` and `family-invoice-lines.ts`. **LEGAL REVIEW REQUIRED**. Field names only; no real values, provider calls, invoices or payments used. QBO OAuth/webhook/reconciliation/invoice behavior unchanged.
 
-Source: `src/server/sales-native/quickbooks/client.ts` and invoice description builders.
-
-| Transmission | Field names/content categories | Purpose and classification |
+| Sent field / use | Classification | Necessity / exposure assessment |
 | --- | --- | --- |
-| Customer creation | DisplayName (first_name, last_name, contact_id prefix); GivenName; FamilyName; PrimaryEmailAddr.Address | Customer identification/delivery; direct identifiers and internal identifier. POSSIBLE PHI in care/payment context. |
-| Customer search | PrimaryEmailAddr email query | Duplicate/customer matching; direct identifier. |
-| Invoice | CustomerRef.value; BillEmail.Address; DocNumber; PrivateNote containing enrollment_intent_id; EmailStatus | Billing identity, delivery, reconciliation and internal correlation. POSSIBLE PHI. |
-| Invoice lines | Amount; DetailType; Description (membership/family and proration/expiry/month context); ItemRef; Qty; UnitPrice; TaxCodeRef | Billing itemization; can reveal healthcare membership/payment relationship. POSSIBLE PHI. |
-| Payment settings | AllowOnlineCreditCardPayment; AllowOnlineACHPayment | Hosted payment availability; configuration, not card data. |
-| Sparse update | Id; SyncToken; DocNumber | Invoice concurrency and number alignment. |
-| OAuth/webhooks/reconciliation | realm/account identifiers, OAuth credentials server-side; invoice IDs/status/balance/payment metadata | Account authorization and reconciliation; secrets must remain server-side, invoice metadata can be PHI. |
+| Customer.DisplayName ← first_name, last_name, contact_id prefix | Identity + operational | Customer display/disambiguation; contact prefix is a reduction candidate, but customer uniqueness/accounting matching effects require regression and owner approval |
+| Customer.GivenName / FamilyName | Identity | Direct identifiers for the accounting customer; linked healthcare billing may be PHI |
+| Customer.PrimaryEmailAddr.Address | Contact | Customer matching/delivery; same address used in lookup query |
+| Query.PrimaryEmailAddr | Contact | Existing-customer matching; avoid printing query values in logs |
+| Invoice.CustomerRef.value | Billing / identity linkage | Stable accounting-customer reference needed for billing/reconciliation |
+| Invoice.BillEmail.Address | Contact | Hosted billing delivery context, possible PHI |
+| Invoice.DocNumber | Operational / billing | Deterministic number derived from enrollment_intent_id hash; used in recovery/matching |
+| Invoice.PrivateNote ← enrollment_intent_id | Operational | Internal correlation and uncertain-write recovery; potential reduction needs end-to-end accounting/recovery proof |
+| Invoice.EmailStatus | Operational | Provider delivery flag; no diagnosis |
+| Invoice.AllowOnlineCreditCardPayment / AllowOnlineACHPayment | Billing configuration | Hosted payment availability, not card/account details |
+| Invoice.Line.Amount | Billing | Monetary calculation/reconciliation |
+| Invoice.Line.DetailType | Operational | Provider line structure |
+| Invoice.Line.Description (Family lines only) | Membership | Family membership, additional-person count/month/proration date context can reveal a health-program relationship; no names of family members constructed in these descriptions |
+| Invoice.Line.SalesItemLineDetail.ItemRef.value | Membership / billing | References product selected by plan/membership_type/duration via mapped product name; provider catalog itself may reveal health context even without Description |
+| Invoice.Line.SalesItemLineDetail.Qty / UnitPrice | Billing / membership | Family quantities/prices and duration can convey membership composition; required to reconcile current quote |
+| Invoice.Line.SalesItemLineDetail.TaxCodeRef.value | Billing | Tax classification |
+| Sparse update.sparse / Id / SyncToken / DocNumber | Operational / billing | Provider concurrency and deterministic numbering |
+| OAuth.client_id / response_type / scope / state / client_secret / code / redirect_uri / grant_type / refresh_token; revocation.token; Authorization header | Operational / credentials | OAuth only; server-side, never audit payload or browser exposure |
+| API company path.realmId; query criteria.PrimaryEmailAddr/Item.Name/Invoice.Id; query.maxresults/include=invoiceLink; customer/invoice/payment path IDs; access token Authorization header | Operational / identity linkage | Provider account and resource targeting; tokens excluded from logs |
 
-Reviewed creation payloads do not transmit diagnosis, DOB, clinical notes, telephone, address or card/ACH details. Customer/invoice names, email and service context may nevertheless constitute PHI when a regulated relationship applies. Hosted payment URLs are restricted to the authenticated patient's own intent and the allowed Intuit host.
+No diagnosis, clinical note, allergy, condition, DOB, phone/address or card/ACH account value is constructed in the reviewed customer/invoice creation payloads. Clinical fields in the local `pacientes` table are not selected into these creation builders. This is a source/data-flow conclusion, not an account-wide inspection of manually entered QBO records.
 
-Minimum necessary: **LEGAL REVIEW**, not established merely because fields serve billing. Names, email, accounting customer references and monetary line items have documented operational purposes. Internal contact prefix, intent UUID in PrivateNote, and detailed membership/proration descriptions merit reduction review; necessity/avoidability is not established without accounting and legal acceptance of replacement identifiers/descriptions. No fields were removed speculatively.
+Product names are derived from plan, membership type and duration. Family descriptions expose membership/service and coverage-period context. The absence of diagnosis therefore does not establish non-PHI. Intuit's official QBO guidance advises against identifiable health information and does not establish a suitable HIPAA accounting contract here.
 
-Intuit states QuickBooks Online does not meet HIPAA privacy standards and advises against individually identifiable health information. If this flow is regulated PHI, counsel must resolve product suitability and permissible data flow before declaring readiness; a generic security claim or payment-processing exception does not settle the full customer/invoice flow.
+## Removal decision
+No unnecessary field was proven safely removable now. The contact prefix, internal intent note and verbose membership/proration descriptors are concrete reduction candidates. Existing customer disambiguation, uncertain-write recovery, product mapping and reconciliation depend on identifiers/line structure; changing them speculatively risks billing. Counsel/accounting must classify the healthcare relationship, approve minimum necessary fields/neutral descriptors and accept a tested replacement. No payload field, description, OAuth behavior or invoice/payment logic was changed.
 
-Source: [Intuit official guidance](https://quickbooks.intuit.com/learn-support/en-us/help-article/insurance-medical-benefits/quickbooks-online-hipaa-compliant/L9HSimAH5_US_en_US).
+Source: [Intuit QBO privacy suitability guidance](https://quickbooks.intuit.com/learn-support/en-us/help-article/insurance-medical-benefits/quickbooks-online-hipaa-compliant/L9HSimAH5_US_en_US).

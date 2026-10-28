@@ -14,7 +14,7 @@ jobs:
         with: { node-version: 22, cache: pnpm }  # 22+ trae WebSocket nativo (lo exige @supabase/realtime-js)
       - run: pnpm install --frozen-lockfile
       - name: Validate guarded workflow YAML
-        run: ruby -e "require 'yaml'; YAML.load_file('.github/workflows/native-sales-guarded-schema.yml'); YAML.load_file('.github/workflows/native-sales-guarded-staff.yml')"
+        run: ruby -e "require 'yaml'; YAML.load_file('.github/workflows/native-sales-guarded-schema.yml'); YAML.load_file('.github/workflows/native-sales-guarded-staff.yml'); YAML.load_file('.github/workflows/privileged-audit-guarded.yml')"
       - name: Validate byte-preserving attendance catalog evidence
         run: python3 scripts/migration/check_attendance_catalog_test.py
       - name: Validate Production backup gate
@@ -109,6 +109,10 @@ jobs:
             echo "Registry throttled Supabase image pull (attempt $attempt); waiting 60 seconds"
             sleep 60
           done
+      - name: Verify private privileged audit and non-destructive rollback in isolated database
+        run: |
+          createdb --maintenance-db=postgresql://postgres:postgres@127.0.0.1:54322/postgres corazon_privileged_audit_synthetic
+          psql postgresql://postgres:postgres@127.0.0.1:54322/corazon_privileged_audit_synthetic -X -v ON_ERROR_STOP=1 -f docs/releases/security-operations/privileged-audit-isolated-test.sql
       - name: Assert ANNIE Sales mappings start empty and browser roles cannot edit them
         run: |
           set -euo pipefail

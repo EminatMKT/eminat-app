@@ -1,3 +1,4 @@
+vi.mock('@/server/privileged-audit', () => ({ recordPrivilegedAction: vi.fn().mockResolvedValue({ persisted: true }) }))
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
