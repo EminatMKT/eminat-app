@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import NativeSalesDashboard, { type SalesSummary } from './NativeSalesDashboard'
 import { salesSection, salesSectionHref, salesSections, type SalesSection } from './navigation'
@@ -67,6 +67,8 @@ export default function NativeSalesModule({ organizationId, workspaceLabelKey }:
   const router = useRouter()
   const search = useSearchParams()
   const tab = salesSection(search)
+  const initialTab = useRef(tab)
+  const initialDashboard = useRef<{ error: string } | null>(null)
   const setTab = (section: Tab) => router.push(salesSectionHref(search.toString(), section))
   const [access, setAccess] = useState<Access | null>(null)
   const [directory, setDirectory] = useState<Directory>({ users: [], historicalUsers: [], teams: [], stages: [] })
@@ -119,10 +121,15 @@ export default function NativeSalesModule({ organizationId, workspaceLabelKey }:
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([request('access'), request('directory')]).then(([gate, lookup]) => {
+    request(initialTab.current === 'dashboard' ? 'bootstrap?dashboard=1' : 'bootstrap').then(result => {
       if (cancelled) return
-      setAccess(gate as Access)
-      const data = lookup.data
+      if (initialTab.current === 'dashboard') {
+        if (isObject(result.summary)) setSummary(result.summary as SalesSummary)
+        initialDashboard.current = { error: isObject(result.summaryError)
+          ? string(result.summaryError.code) || 'SALES_UNAVAILABLE' : '' }
+      }
+      setAccess(result.access as Access)
+      const data = result.directory
       if (isObject(data)) setDirectory({
         users: Array.isArray(data.users) ? data.users as Person[] : [],
         historicalUsers: Array.isArray(data.historicalUsers)
@@ -151,7 +158,16 @@ export default function NativeSalesModule({ organizationId, workspaceLabelKey }:
     return () => { cancelled = true }
   }, [selected, tab, request])
   useEffect(() => {
-    if (!access?.allowed || tab === 'social' || tab === 'settings' || tab === 'payments') return
+    if (!access?.allowed) return
+    // Consume this once, even if navigation/refresh changed during bootstrap.
+    // Later Dashboard visits and refreshes always request a fresh summary.
+    const ready = initialDashboard.current
+    initialDashboard.current = null
+    if (ready && tab === 'dashboard' && refresh === 0) {
+      setError(ready.error)
+      return
+    }
+    if (tab === 'social' || tab === 'settings' || tab === 'payments') return
     let cancelled = false
     const load = async () => {
       setLoading(true); setError('')

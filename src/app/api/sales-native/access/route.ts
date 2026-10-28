@@ -1,7 +1,7 @@
 import { salesPerformanceAudit, measureSalesStage } from '@/server/sales-native/performance-audit'
 import { NativeSalesAuthError, nativeSalesErrorResponse, resolveSalesActor,
   resolveSalesOrganizations } from '@/server/sales-native/auth'
-import { salesCan } from '@/server/sales-native/policy'
+import { salesAccess } from '@/server/sales-native/access'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,19 +9,7 @@ export async function GET(request: Request) {
   const timing = salesPerformanceAudit()
   try {
     const actor = await measureSalesStage(timing.observe, 'actor_total', () => resolveSalesActor(request, timing.observe))
-    return Response.json({
-      allowed: true,
-      role: actor.role,
-      organizationId: actor.organizationId,
-      capabilities: {
-        canWrite: salesCan(actor, 'sales:write'),
-        canReassign: salesCan(actor, 'sales:reassign'),
-        canReadAudit: salesCan(actor, 'sales:audit'),
-        canReadPayments: salesCan(actor, 'sales:payments:read'),
-        canManageSocial: salesCan(actor, 'sales:social:manage'),
-        canConfigureReports: salesCan(actor, 'sales:configuration'),
-      },
-    }, { headers: timing.headers() })
+    return Response.json(salesAccess(actor), { headers: timing.headers() })
   } catch (error) {
     // Keep Sales navigation available for an authorized multi-organization login.
     // No role or capabilities are combined across organizations.
