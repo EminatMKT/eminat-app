@@ -16,7 +16,7 @@ it('keeps every current public inline script covered by its exact hash', () => {
   const headers = JSON.parse(readFileSync(root + 'public-security-headers.json', 'utf8'))
   for (const file of ['homepage-unchanged.html', 'public/privacy/index.html']) {
     const html = readFileSync(root + file, 'utf8')
-    for (const [, attrs, body] of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)) {
+    for (const [, attrs, body] of Array.from(html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi))) {
       if (/\bsrc\s*=/i.test(attrs)) continue
       const hash = createHash('sha256').update(body).digest('base64')
       expect(headers['Content-Security-Policy']).toContain(`'sha256-${hash}'`)
