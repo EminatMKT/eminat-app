@@ -1,0 +1,10 @@
+{
+  "baseCommit": "1804a72d3c9b0f3e34f02b82f54c50da59b9c8d8",
+  "portalBaseCommit": "c265310bac3fe854f4a7d8aa897ea8e82e7c2ab8",
+  "portalSourceCommit": "134546ec7e4de3fbcd72c62fac1c460e7cc79083",
+  "portalPatchSha256": "4a9bb9c33c14dfac76cf082711e4b7beb68de8c62da6cb954595421b59e382e0",
+  "portalAgreementV5Unchanged": true,
+  "databaseMigration": false,
+  "qboBehaviorChanged": false,
+  "productionDeployed": false
+}

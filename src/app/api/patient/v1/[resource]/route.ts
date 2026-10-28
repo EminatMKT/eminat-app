@@ -1,3 +1,4 @@
+import { readJsonObject } from '@/server/read-json-object'
 import { randomBytes, createHash, createHmac } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { clientEnv } from '@/shared/db/env.client'
@@ -73,13 +74,7 @@ async function authenticate(request: Request): Promise<Authenticated | null> {
   return { authId: session.auth_id, email: user.user.email, identity }
 }
 
-async function readBody(request: Request): Promise<Record<string, unknown> | null> {
-  try {
-    if (Number(request.headers.get('content-length') ?? '0') > 8192) return null
-    const value: unknown = await request.json()
-    return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null
-  } catch { return null }
-}
+const readBody = (request: Request) => readJsonObject(request, 8192)
 
 export async function GET(request: Request, { params }: Route) {
   const { resource } = await params
