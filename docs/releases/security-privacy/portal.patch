@@ -1,0 +1,76 @@
+diff --git a/.dockerignore b/.dockerignore
+index 4922906..5902b11 100644
+--- a/.dockerignore
++++ b/.dockerignore
+@@ -3,6 +3,7 @@
+ !package.json
+ !pnpm-lock.yaml
+ !next.config.ts
++!security-headers.mjs
+ !.next
+ !.next/**
+ !public
+diff --git a/Dockerfile b/Dockerfile
+index a1bbe6a..60560c2 100644
+--- a/Dockerfile
++++ b/Dockerfile
+@@ -7,6 +7,7 @@ COPY --chown=node:node .next ./.next
+ COPY --chown=node:node public ./public
+ COPY --chown=node:node private/agreements ./private/agreements
+ COPY --chown=node:node next.config.ts ./next.config.ts
++COPY --chown=node:node security-headers.mjs ./security-headers.mjs
+ ENV NODE_ENV=production PORTAL_DATA_MODE=unavailable
+ USER node
+ EXPOSE 3000
+diff --git a/next.config.ts b/next.config.ts
+index e9ffa30..f731c82 100644
+--- a/next.config.ts
++++ b/next.config.ts
+@@ -1,7 +1,15 @@
+ import type { NextConfig } from "next";
++import { portalSecurityHeaders } from "./security-headers.mjs";
+ 
+ const nextConfig: NextConfig = {
+-  /* config options here */
++  poweredByHeader: false,
++  async headers() {
++    const sensitive = ["dashboard", "perfil", "membresia", "familia", "pagos", "renovacion", "acuerdo"];
++    return [
++      { source: "/:path*", headers: portalSecurityHeaders() },
++      ...sensitive.map(path => ({ source: `/${path}/:path*`, headers: [{ key: "Cache-Control", value: "private, no-store" }] })),
++    ];
++  },
+ };
+ 
+ export default nextConfig;
+diff --git a/security-headers.d.mts b/security-headers.d.mts
+new file mode 100644
+index 0000000..9e572fb
+--- /dev/null
++++ b/security-headers.d.mts
+@@ -0,0 +1 @@
++export function portalSecurityHeaders(production?: boolean): { key: string; value: string }[];
+diff --git a/security-headers.mjs b/security-headers.mjs
+new file mode 100644
+index 0000000..12457a1
+--- /dev/null
++++ b/security-headers.mjs
+@@ -0,0 +1,18 @@
++// Portal assets and browser requests are same-origin; upstream LILLY calls are server-only.
++export function portalSecurityHeaders(production = process.env.NODE_ENV === "production") {
++  const csp = ["default-src 'self'",
++    `script-src 'self' 'unsafe-inline'${production ? '' : " 'unsafe-eval'"}`,
++    "style-src 'self' 'unsafe-inline'", "img-src 'self' data: blob:", "font-src 'self'",
++    "connect-src 'self'", "frame-src 'self' blob:", "frame-ancestors 'none'",
++    "form-action 'self'", "base-uri 'self'", "object-src 'none'",
++    ...(production ? ['upgrade-insecure-requests'] : []),
++  ].join('; ');
++  return [
++    { key: 'Strict-Transport-Security', value: 'max-age=31536000' },
++    { key: 'X-Content-Type-Options', value: 'nosniff' },
++    { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
++    { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
++    { key: 'X-Frame-Options', value: 'DENY' },
++    { key: 'Content-Security-Policy', value: csp },
++  ];
++}

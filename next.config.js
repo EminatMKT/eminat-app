@@ -1,6 +1,14 @@
+const { securityHeaders } = require('./security-headers.cjs')
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
+  async headers() {
+    return [
+      { source: '/:path*', headers: securityHeaders },
+      { source: '/api/:path*', headers: [{ key: 'Cache-Control', value: 'private, no-store' }] },
+    ]
+  },
   // `next build` y `next dev` comparten .next/ y se pisan: un build corrido con el server
   // levantado deja al dev sirviendo 503 en sus propios chunks, y la app queda en "Cargando…"
   // para siempre (pasó el 20/08/2026). Con esto, `pnpm build:check` escribe aparte y verifica

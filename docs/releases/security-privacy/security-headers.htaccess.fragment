@@ -1,0 +1,9 @@
+# Merge into existing public_html/.htaccess; preserve existing redirects and other rules.
+<IfModule mod_headers.c>
+Header always set Strict-Transport-Security "max-age=31536000"
+Header always set X-Content-Type-Options "nosniff"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+Header always set X-Frame-Options "DENY"
+Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'sha256-7dI0Jgf0xA1231XPNJpsaJKCEjMDNBYPn2+HJ+WH8YY=' 'sha256-I/8rvxBCzSsTDr+ne5Ji6gFbhbJb8sRPw/1d44uIjk0='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://emc.health; font-src 'self' https://fonts.gstatic.com; connect-src 'self'; frame-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; object-src 'none'; upgrade-insecure-requests"
+</IfModule>
