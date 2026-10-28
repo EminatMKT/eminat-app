@@ -22,6 +22,7 @@ import NativeQboConnection from './NativeQboConnection'
 import { useT, type I18nKey } from '@/shared/i18n'
 import { salesDisplayValue } from './display-value'
 import s from './NativeSalesModule.module.css'
+import { auditSalesInitialRequest } from './performance-audit'
 
 type Tab = SalesSection
 type Access = { allowed: boolean; role: string; capabilities: { canWrite: boolean; canReassign: boolean; canConfigureReports:boolean } }
@@ -98,6 +99,7 @@ export default function NativeSalesModule({ organizationId, workspaceLabelKey }:
   const [refresh, setRefresh] = useState(0)
 
   const request: NativeRequest = useCallback(async (path, options = {}) => {
+    const auditStarted = performance.now()
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) throw new Error('AUTHENTICATION_REQUIRED')
     const headers: Record<string,string> = { Authorization: `Bearer ${session.access_token}`,
@@ -109,6 +111,7 @@ export default function NativeSalesModule({ organizationId, workspaceLabelKey }:
       method: options.method || 'GET', headers,
       body: options.payload ? JSON.stringify(options.payload) : undefined })
     const result = await response.json().catch(() => null) as unknown
+    auditSalesInitialRequest(path, response, result, auditStarted)
     if (!isObject(result)) throw new Error('SALES_RESPONSE_UNAVAILABLE')
     if (!response.ok) throw new Error(string(result.code) || 'SALES_UNAVAILABLE')
     return result
