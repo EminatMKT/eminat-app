@@ -17,6 +17,10 @@ No agreement is signed or accepted by this change. Provider capabilities are not
 | emc.health | Remote public logo image | POSSIBLE; request metadata | LEGAL REVIEW | NOT VERIFIED | Confirm logging/operator and data flow |
 | Storage, monitoring, logs and backups | Supabase and hosting capabilities; complete external inventory pending | POSSIBLE | LEGAL REVIEW | NOT VERIFIED | Confirm actual vendors/subprocessors, retention, access and signed coverage |
 
+## Intuit issue requiring counsel
+
+Intuit's current QuickBooks Online help article states that the product does not meet HIPAA privacy standards and advises health professionals against entering individually identifiable health information. This is a specific unresolved vendor/data-flow concern, not evidence that any particular invoice here contains PHI and not authority to change QBO behavior in this task. Counsel must assess the actual transmitted fields and approved workflow. Do not infer contractual coverage from generic online-security claims.
+
 ## Official references
 
 - [HHS cloud computing](https://www.hhs.gov/hipaa/for-professionals/special-topics/health-information-technology/cloud-computing/index.html)

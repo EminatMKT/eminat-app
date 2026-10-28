@@ -1,0 +1,4 @@
+{
+  "scope": "compiled browser assets from final local builds; runtime and historical deployments require separate verification",
+  "findings": []
+}

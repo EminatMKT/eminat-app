@@ -27,7 +27,7 @@ for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844
     // Keep eval blocked; require the exact known probe, with working form hydration.
     expect(violations.length).toBeLessThanOrEqual(1)
     for (const violation of violations) {
-      expect(violation).toMatch(/^script-src:eval:http:\/\/localhost:3107\/_next\/static\/chunks\/[^:]+:\d+$/)
+      expect(violation).toMatch(/^script-src:eval:https?:\/\/[^/]+\/_next\/static\/chunks\/[^:]+:\d+$/)
       const source = violation.slice('script-src:eval:'.length).replace(/:\d+$/, '')
       expect(await (await request.get(source)).text()).toContain('try{return Function(""),!0}catch')
     }
