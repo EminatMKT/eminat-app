@@ -1,3 +1,4 @@
+vi.mock('@/server/privileged-audit', () => ({ recordPrivilegedAction: vi.fn().mockResolvedValue({ persisted: true }) }))
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { requireAdmin, rpc, existing } = vi.hoisted(() => ({
@@ -14,6 +15,7 @@ vi.mock('@/server/db', () => ({
 }))
 
 import { POST } from '../route'
+import { recordPrivilegedAction } from '@/server/privileged-audit'
 
 const URL = 'https://app.stratixsolutions.us/api/admin/roles'
 const init = (payload: unknown) => ({ method: 'POST', body: JSON.stringify(payload) })
@@ -74,4 +76,19 @@ describe('POST /api/admin/roles', () => {
     expect(response.status).toBe(400)
     expect(await response.json()).toEqual({ error: 'A role with that key or label already exists.' })
   })
+  it('attributes a successful audit to the authenticated operator rather than a body actor', async () => {
+    const actor = '00000000-0000-4000-8000-000000000001'
+    requireAdmin.mockResolvedValue({ ok: true, userId: actor })
+    const response = await POST(request({ label: 'Soporte', actorId: 'forged' }))
+    expect(response.status).toBe(201)
+    expect(recordPrivilegedAction).toHaveBeenCalledWith(expect.anything(), {
+      action: 'admin.role.created', actorId: actor, roleKey: 'soporte', changedFields: ['label', 'modules'],
+    })
+  })
+  it('does not record a successful action when the guarded mutation fails', async () => {
+    rpc.mockResolvedValue(duplicate)
+    expect((await POST(request(soporte))).status).toBe(400)
+    expect(recordPrivilegedAction).not.toHaveBeenCalled()
+  })
+
 })

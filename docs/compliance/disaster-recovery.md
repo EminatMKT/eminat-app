@@ -1,28 +1,30 @@
-# Corazón Salud disaster recovery
-Evidence inspected 2026-10-28 in actual Production project `ruedelunbtaomhrzgelc`. No restoration to Production is authorized by this plan.
+# Disaster recovery: database and files
+Reviewed 2026-10-28. Procedure DOCUMENTED; actual restore drill **NOT VERIFIED**. Reason: the provider's isolated physical restore requires paid compute. **No paid resource created, no money spent, PITR not enabled.** No Production restore/cutover is authorized by this document.
 
-## Verified configuration
-Daily physical scheduled backups; Pro retention window seven days. Eight completed timestamps were visible across the retention boundary, October 21–28. Latest completed backup: **2026-10-28 05:28:43 UTC**. PITR disabled. Storage object bytes are not included in database backups. A separate Storage backup/restore process is NOT VERIFIED.
+## DATABASE BACKUP — verified
+Production Supabase project `ruedelunbtaomhrzgelc`, Pro plan. Provider-managed daily physical backups, approximately midnight in the project region. Seven-day retention window; eight completed backups visible at the boundary (October 21–28). Latest completed: **2026-10-28 05:28:43 UTC**. Rechecked in Scheduled backups without selecting Restore. Preserve the backup inventory and check for failed/missing days before any recovery.
 
-RPO: **NOT DEFINED**. RTO: **NOT DEFINED**. Daily scheduling is not an approved RPO or tested recovery time. Responsible incident commander, database operator, backup owner and business recovery approver: **OWNER ASSIGNMENT REQUIRED**.
+Supabase operates the backup infrastructure. The organization's accountable backup owner, incident commander, restore operator and recovery approver remain **UNASSIGNED / NOT VERIFIED**. Provider ownership does not replace customer responsibility for monitoring and testing.
 
-## Isolated drill and cost gate
-Use Supabase Restore to a new project, same organization and us-east-1 region, temporary Nano project. Source physical backup selected above. Quote: US$9.68/month compute, US$0/month disk. Owner authorized up to US$1 total. Automatic approval review rejected creation because the quoted monthly amount exceeds that cap and no enforced cap was demonstrated. **No clone created; no restore drill performed.** Never activate paid PITR or exceed the cap based on estimated prorating.
+PITR remains disabled. Pro supports a paid add-on with minimum Small compute. Physical project restore copies database/auth data and sensitive configuration; it does not reproduce every service setting. Recovery depends on provider availability, roles/passwords, Auth configuration, DNS/application deployment, server-only secrets, private file restoration and reconciliation. Never print these secrets in evidence.
 
-Source read-only preflight found no active cron jobs, pending HTTP requests or configured external extensions in the reviewed set. Recheck immediately before cloning. Clones contain sensitive Auth and application data; keep private, restrict operators, do not configure mail, webhooks or public application access. Disable any newly detected jobs/integrations on the isolated destination before enabling connectivity. Never reuse Production API keys in an application Preview.
+## STORAGE OBJECT BACKUP — separate
+Database backups contain Storage metadata, **not object bytes**. They cannot recover files deleted after the database backup. Restore-to-new-project excludes Storage objects/settings, which require separate configuration and recovery. Current live inspection: one private `sales-membership-archive` bucket, **0 objects**, and **0 archive-document rows**. Current membership cards are generated on demand; persisted agreement/selection data is in Postgres. No patient file was downloaded. See storage-recovery.md for scope and the future-object strategy.
 
-## Restore steps
-1. Incident commander approves scope, destination, budget and isolation; preserve original Production project and current application deployment.
-2. Verify backup completed status and timestamp, source identity, storage backup availability and external-job preflight. Record non-sensitive evidence.
-3. Create the isolated clone using provider-supported physical restore. Do not select in-place Production restore.
-4. Verify destination project identity differs from Production. Inspect schema, RLS, permissions, invalid indexes, unvalidated constraints and representative aggregate row counts using `docs/releases/security-closure/restore-drill-validation.sql`. Do not print patient rows, secrets or Auth records. Count differences require explanation against the backup timestamp, not assumed corruption.
-5. Verify Auth, Storage bytes, Edge Functions, configuration, Realtime and external service dependencies separately; provider clone does not copy all project settings/services. Test only controlled synthetic workflows without email or payment delivery.
-6. Record elapsed recovery time, checks and limitations; obtain business acceptance before defining RPO/RTO.
-7. Remove the temporary project after validation using the required deletion confirmation; verify removal and billing. Keep sanitized evidence, never patient exports.
+No independent object backup is verified. Its absence currently affects no objects in this project; this must be reassessed before importing/uploading files or enabling a new store. Other hosts' full file inventories are outside this verified Storage inventory.
 
-## Recovery and rollback
-A drill never changes Production routing, credentials or schema; stop and remove the isolated destination if validation fails. An actual incident requires a separate approved cutover, reconciliation window, data-integrity checks and communication plan. Preserve the original project and pre-cutover deployment as rollback; do not overwrite newer data blindly. Any schema correction uses schema_check → approval → schema_apply → approval → schema_verify, with reviewed rollback.
+## Recovery procedure — documented, not exercised
+1. Incident commander records incident, approved destination, scope, freeze/reconciliation point and operator. Owner verifies backup completion, timestamp, retention and object inventory. Approve any cost separately; this task authorizes **zero spending**.
+2. Preserve the existing project, deployment, secret store and non-sensitive configuration manifest. Do not select in-place Production Restore or change DNS during a drill.
+3. When separately funded/authorized, use provider Restore to a new private project in the approved region. Confirm destination identity differs from Production; keep external mail, QBO, webhooks, schedulers and public applications disconnected. Recheck scheduled jobs/extensions before enabling connectivity.
+4. Validate schema, RLS, grants, definer paths, constraints and aggregate counts against the backup timestamp using `docs/releases/security-closure/restore-drill-validation.sql`. Do not display rows, emails, Auth hashes or file names. Explain legitimate post-backup differences.
+5. Restore object bytes and bucket policies separately if objects exist. Reconnect file pointers only after hash/count verification; test with a synthetic canary. Validate Auth/redirect configuration, API denials and application health without sending mail, executing QBO mutations or making payments.
+6. Record start/end time, measured data gap, failures and sanitized integrity results. Business owner accepts recovery and separately approves a Production cutover, if actually needed.
+7. A separately authorized temporary project must be retired through the normal deletion confirmation and billing verification. No such project exists from this task.
 
-PITR recommendation: assess paid PITR against approved loss tolerance and incident scenarios; it can reduce the daily-backup recovery gap but does not replace Storage backups or restore testing. Obtain price/plan approval first.
+## Rollback and retention
+A failed drill leaves Production untouched. For an actual approved cutover, retain the original project and application deployment; document post-cutover writes before reversing routing to avoid losing newer records. Application rollback is separate from database restore. Protected schema additions use check → formal approval → apply → formal approval → verify and reviewed non-destructive rollback. The new audit rollback revokes append access and retains event rows.
 
-Sources: [Supabase backups](https://supabase.com/docs/guides/platform/backups), [project cloning and exclusions](https://supabase.com/docs/guides/platform/clone-project).
+Actual RPO/RTO remain **NOT APPROVED / NOT MEASURED**. Proposed values and their limitations are in recovery-objectives.md. Do not present a tabletop review or synthetic schema test as a backup restore.
+
+Sources: [Supabase backups](https://supabase.com/docs/guides/platform/backups), [restore exclusions](https://supabase.com/docs/guides/platform/clone-project), [HIPAA project requirements](https://supabase.com/docs/guides/platform/hipaa-projects).

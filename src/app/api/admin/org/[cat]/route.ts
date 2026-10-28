@@ -1,3 +1,4 @@
+import { recordPrivilegedAction } from '@/server/privileged-audit'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import requireAdmin from '@/shared/db/requireAdmin'
@@ -26,8 +27,11 @@ export async function POST(req: NextRequest, { params }: { params: { cat: string
 
   // `codigo` solo es editable donde el catálogo lo declara como campo (empresas:
   // se muestra como chip). En el resto se deriva del nombre.
-  const { data, error } = await supabaseAdmin()
+  const db = supabaseAdmin()
+  const { data, error } = await db
     .from(params.cat).insert({ ...row, nombre, codigo: row.codigo?.trim() || codigoFrom(nombre) }).select().single()
   if (error) return NextResponse.json({ error: dupError(error) }, { status: 400 })
+  await recordPrivilegedAction(db, { action: 'admin.catalog.created', actorId: authz.userId,
+    resourceId: data?.id, changedFields: Object.keys(row) })
   return NextResponse.json({ row: data }, { status: 201 })
 }

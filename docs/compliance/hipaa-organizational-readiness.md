@@ -11,8 +11,8 @@ Reviewed 2026-10-28. Evidence status is not HIPAA certification. Code alone cann
 | Awareness and training | NOT VERIFIED | Obtain role-specific training and completion records. |
 | Incident response | NOT VERIFIED | Adopt escalation, containment, investigation and evidence procedures. |
 | Breach response | NOT VERIFIED | Assign assessment and notification ownership; obtain approved procedure. |
-| Contingency planning | PARTIAL | Daily database backups and draft DR plan verified; exercise, emergency operations and owners pending. |
-| Disaster recovery | PARTIAL | See disaster-recovery.md; cost gate prevents restore drill. |
+| Contingency planning | PARTIAL | Daily database backups, DR procedure and proposed recovery objectives documented; exercise, emergency operations and accountable owners pending. |
+| Disaster recovery | PARTIAL | See disaster-recovery.md; no paid resources permitted and isolated physical restore remains NOT VERIFIED. |
 | Emergency mode operations | NOT VERIFIED | Define essential operations, access and recovery priorities. |
 | Risk analysis cadence | PARTIAL | Technical review exists; organization-wide risk analysis, cadence and sign-off not verified. |
 | Risk management | PARTIAL | Technical fixes and open findings tracked; accepted risks and ownership pending. |
@@ -32,3 +32,13 @@ Covered Entity: **NOT VERIFIED**. No verified claims, eligibility, remittance or
 Part 2: **NOT VERIFIED**. No verified federally assisted SUD program status or receipt/maintenance of Part 2 records was found. Assess both program criteria and recipient/lawful-holder obligations; do not infer non-applicability from missing evidence.
 
 Sources: [HHS covered entities](https://www.hhs.gov/hipaa/for-professionals/covered-entities/index.html), [HHS Part 2](https://www.hhs.gov/hipaa/part-2/index.html), [HHS Security Rule](https://www.hhs.gov/hipaa/for-professionals/security/laws-regulations/index.html).
+
+## Actionable readiness package — 2026-10-28
+Templates: organizational-control-templates.md (officer appointments, workforce review/offboarding/training, incident/breach handling, vendor/BAA management, risk cadence, sanctions, devices, facilities and contingency). Register: baa-tracking-register.md. Recovery objectives are **PROPOSED — REQUIRES BUSINESS APPROVAL**. No officer, policy, agreement, training completion or physical control is approved by creating these artifacts.
+
+## Additional focused internal evidence review
+Connected Drive/Gmail were searched for provider BAAs, officer designations, standard transaction/clearinghouse identifiers and Part 2 references. No executed in-scope BAA or affirmative transaction/program evidence was established. The available EMINAT ORGANIZATION CHART lists operational/HR/medical leadership but contains no verified Security Officer/Privacy Officer designation; a leadership title is not substituted for an appointment. It does not establish training, periodic reviews, incidents or physical/device controls. Source: https://drive.google.com/file/d/1Bcc8YkVV2mI8sV3nSfdpfGfdlDDt8ZMI/view . Search coverage is limited to accessible connected records; absence is not proof of nonexistence.
+
+Covered Entity remains **NOT VERIFIED**; counsel must obtain entity-specific evidence of covered electronic transactions or a defensible non-applicability basis. Generic card/QBO payments and provider status do not settle it. Part 2 remains **NOT VERIFIED**; the reviewed services/organization chart do not establish a federally assisted SUD program or receipt of Part 2-protected records. Leave NPP provisions conditional for legal review.
+
+Privileged administrative write logging is being improved through a separately gated schema addition; complete durable coverage and human review/retention still remain PARTIAL. The current private Supabase bucket has zero objects, verified using aggregate counts; a future object-backup process requires ownership before critical uploads.

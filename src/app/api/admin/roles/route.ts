@@ -1,3 +1,4 @@
+import { recordPrivilegedAction } from '@/server/privileged-audit'
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/server/db'
 import requireAdmin from '@/shared/db/requireAdmin'
@@ -37,7 +38,11 @@ export async function POST(req: Request) {
   }
   const { error } = await db.rpc(RPCS.saveRole, saveParams)
   const created = { key: v.key }
-  if (!error) return NextResponse.json(created, ROLE_HTTP.created)
+  if (!error) {
+    await recordPrivilegedAction(db, { action: 'admin.role.created', actorId: authz.userId,
+      roleKey: v.key, changedFields: ['label', 'modules'] })
+    return NextResponse.json(created, ROLE_HTTP.created)
+  }
   const { status, error: message } = roleFailure(error)
   const failed = { status }
   const failure = { error: message }
