@@ -1,0 +1,13 @@
+{
+  "portal_base_commit": "6841c01667d163692f645fd6ecc25ee49b70dcaa",
+  "portal_source_commit": "c265310bac3fe854f4a7d8aa897ea8e82e7c2ab8",
+  "portal_build_id": "hKNWiph86iaTeR0RTzqRx",
+  "portal_patch_sha256": "862b784097beb4871bbb5c250f3f10b6676233f4fef2c8e2e0d0aae78b40fe7c",
+  "lilly_runtime_changed": false,
+  "auth_rules_changed": false,
+  "backend_changed": false,
+  "public_homepage_changed": false,
+  "tests": 201,
+  "typecheck": "PASS",
+  "build": "PASS"
+}
