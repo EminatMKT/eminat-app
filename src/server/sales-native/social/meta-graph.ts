@@ -125,7 +125,7 @@ export class MetaGraphClient {
     try { return await collect('id,name,access_token,tasks,instagram_business_account,business{id,name}') }
     catch (error) {
       if (!(error instanceof Error) || error.message !== 'META_BUSINESS_FIELD_UNAVAILABLE') throw error
-      return collect('id,name,access_token,tasks,instagram_business_account')
+      return collect('id,name,access_token,tasks')
     }
   }
 

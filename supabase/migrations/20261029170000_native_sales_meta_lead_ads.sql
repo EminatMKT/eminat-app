@@ -1,5 +1,11 @@
 -- EMC Lead Ads only; no table/data backfill, Portal/Medical/Auth/RLS changes.
 -- Reuse Social receipts/mappings and the existing EMC assignment order AND cursor.
+DO $$ BEGIN
+  IF EXISTS(SELECT 1 FROM public.sales_social_integrations WHERE provider_code='META'
+    AND organization_id<>'9efab353-46a0-43d1-9901-e3f185dc5d30'
+    AND status IN ('CONNECTED','DEGRADED')) THEN
+    RAISE EXCEPTION 'META_UNRELATED_ACTIVE_CONNECTION'; END IF;
+END $$;
 CREATE OR REPLACE FUNCTION public.native_sales_receive_social_event(
   p_external_asset_id text,p_external_event_id text,p_kind text,
   p_occurred_at timestamptz,p_normalized jsonb,p_payload_hash text,
@@ -170,7 +176,7 @@ BEGIN
          source,source_detail,description,status,corazon_salud,origin_contact_id,next_action,next_follow_up_at,created_by,updated_by)
         VALUES(v_org,v_owner,v_team,v_name,v_fields->>'first_name',v_fields->>'last_name',v_email,v_phone,
           'Meta',CASE WHEN NOT v_assigned THEN 'Needs Assignment' WHEN v_fields->>'_platform'='ig'
-            THEN 'Instagram Lead Ad' ELSE 'Facebook Lead Ad' END,
+            THEN 'Instagram Lead Ad' WHEN v_fields->>'_platform'='fb' THEN 'Facebook Lead Ad' ELSE 'Meta Lead Ad' END,
           CASE WHEN v_fields->>'preferred_language' IN ('en','es') THEN 'Preferred language: '||(v_fields->>'preferred_language') ELSE NULL END,
           CASE WHEN v_assigned THEN 'ASSIGNED' ELSE 'NEW' END,true,v_contact,
           CASE WHEN v_assigned THEN 'Respond to general information request' ELSE 'Assign an active EMC seller' END,
@@ -198,6 +204,7 @@ BEGIN
             THEN 'existing_contact' WHEN v_assigned
             THEN 'configured_round_robin' ELSE 'needs_assignment' END,
           'assignedMemberId',CASE WHEN v_assigned THEN v_owner ELSE NULL END,
+          'platform',CASE WHEN v_fields->>'_platform' IN ('fb','ig') THEN v_fields->>'_platform' ELSE NULL END,
           'fieldsBlocked',v_fields->>'_fields_blocked'='true'));
   END IF;
   -- Retain only signed source IDs; no answers in durable retry receipts after success.

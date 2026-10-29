@@ -19,10 +19,10 @@ export function allowMetaLeadFields(fields: Record<string, string>): Record<stri
   const result: Record<string, string> = {}
   for (const name of ['first_name', 'last_name', 'full_name'] as const) {
     const value = fields[name]?.trim()
-    if (value && value.length <= 200 && !/[\r\n<>]/.test(value)) result[name] = value
+    if (value && value.length <= 200 && !/[\u0000-\u001f\u007f<>]/.test(value)) result[name] = value
   }
   const email = fields.email?.trim().toLowerCase()
-  if (email && email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) result.email = email
+  if (email && email.length <= 254 && !/[\u0000-\u001f\u007f]/.test(email) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) result.email = email
   const phone = fields.phone_number?.replace(/[ ()\-.]/g, '')
   if (phone && /^\+?[0-9]{7,15}$/.test(phone)) result.phone_number = phone
   const language = fields.preferred_language?.trim().toLowerCase()

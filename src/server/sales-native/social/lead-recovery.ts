@@ -36,8 +36,16 @@ export async function fetchMetaLeadFields(id: string, token: string, version: st
   let response: Response
   try {
     response = await request(url, { headers: { Authorization: `Bearer ${token}` },
-      cache: 'no-store', signal: AbortSignal.timeout(10_000) })
+      cache: 'no-store', signal: AbortSignal.timeout(8_000) })
   } catch { throw new Error('META_LEAD_FETCH_FAILED') }
+  // Campaign/Instagram attribution is optional; permissions for it must not block a contact lead.
+  if ([400, 403].includes(response.status)) {
+    await response.body?.cancel().catch(() => {})
+    url.searchParams.set('fields', 'id,form_id,created_time,field_data')
+    try { response = await request(url, { headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store', signal: AbortSignal.timeout(8_000) }) }
+    catch { throw new Error('META_LEAD_FETCH_FAILED') }
+  }
   if (!response.ok) throw new Error('META_LEAD_FETCH_FAILED')
   const size = Number(response.headers.get('content-length'))
   if (Number.isFinite(size) && size > 256 * 1024) throw new Error('META_LEAD_INVALID')

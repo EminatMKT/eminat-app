@@ -76,3 +76,19 @@ describe('Graph form verification and minimization', () => {
     expect(rpc).toHaveBeenCalledWith('native_sales_fail_social_lead', { p_receipt_id: receipt, p_error_code: 'META_LEAD_INVALID' })
   })
 })
+
+describe('optional attribution', () => {
+  it('retries the minimal verified fields when Meta denies optional attribution', async () => {
+    const requested: string[] = []
+    const request = vi.fn(async (url: URL) => {
+      requested.push(url.searchParams.get('fields') ?? '')
+      return requested.length === 1 ? Response.json({ error: 'synthetic permission error' }, { status: 400 })
+        : Response.json({ id: '123456', form_id: '612660371798285',
+          field_data: [{ name: 'email', values: ['qa@example.invalid'] }] })
+    })
+    expect(await fetchMetaLeadFields('123456', 'token', 'v26.0', request as never)).toEqual({
+      email: 'qa@example.invalid', _form_id: '612660371798285' })
+    expect(requested[1]).toBe('id,form_id,created_time,field_data')
+    expect(request).toHaveBeenCalledTimes(2)
+  })
+})

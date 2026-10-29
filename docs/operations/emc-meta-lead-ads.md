@@ -20,7 +20,7 @@ The TypeScript policy and SQL admission guard must agree; the SQL integration re
 
 ## Processing and privacy
 
-The signed webhook retains IDs and event time only, never supplied `field_data`. Graph reread verifies the lead ID and form ID. A bounded server-side sanitizer admits name, email, phone, constrained language and numeric campaign/ad/adset IDs. Inquiry and activity text are fixed generic strings. Unknown answers are discarded; only a boolean field-blocking flag is audited. Processed/failed receipts do not retain answers. Tokens remain encrypted server-side and errors are fixed codes.
+The signed webhook retains IDs and event time only, never supplied `field_data`. Graph reread verifies the lead ID and form ID. Optional attribution denial falls back to a bounded minimal-fields read; absent platform is labelled Meta rather than guessing Facebook. A release precheck refuses unrelated active Meta connections. A bounded server-side sanitizer admits name, email, phone, constrained language and numeric campaign/ad/adset IDs. Inquiry and activity text are fixed generic strings. Unknown answers are discarded; only a boolean field-blocking flag is audited. Processed/failed receipts do not retain answers. Tokens remain encrypted server-side and errors are fixed codes.
 
 A 1 MiB request cap, 100-event cap, 120 new receipts/minute per Page, bounded Graph responses/timeouts, three inline recovery jobs and leased retry processing limit resource use. A dedicated gated GitHub Actions tick invokes the same recovery endpoint every five minutes using the existing CRON_SECRET binding; Vercel’s daily cron remains an idempotent backstop. No hosting-plan or unrelated scheduler changes. HMAC is checked before database work. Existing receipt hashes and external IDs prevent replay and duplicate tasks.
 
@@ -28,7 +28,7 @@ Reconciliation uses exact normalized email/phone and existing Contact lineage, n
 
 ## Validation and release
 
-- Unit/security suite, TypeScript and synthetic SQL rehearsal are required.
+- Unit/security suite, TypeScript and synthetic SQL rehearsal are required. Local rollback rehearsal restored the three original RPC definitions/ACL and preserved every synthetic lead/activity/receipt/mapping/history count.
 - Full migration-chain and browser Sales/security regressions remain mandatory CI gates.
 - Preview protection stays enabled; Preview receives only isolated/synthetic configuration.
 - Do not grant messaging/comment scopes or import Metricool messages.
@@ -39,3 +39,5 @@ Reconciliation uses exact normalized email/phone and existing Contact lineage, n
 ## Rollback
 
 First disable the EMC Page asset/OAuth activation, preserving acquired leads and audit. Restore the prior exact Vercel deployment. The reviewed protected rollback script restores previous Social RPC definitions and removes only the new external-ID index; it does not delete business rows. Never reactivate the old broad receiver while the Page is subscribed. Keep the new field/DM filter in place during a partial rollback.
+
+Provider field reference: [Meta Business SDK Lead object](https://github.com/facebook/facebook-python-business-sdk/blob/main/facebook_business/adobjects/lead.py).
