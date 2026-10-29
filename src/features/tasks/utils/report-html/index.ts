@@ -1,4 +1,7 @@
-import { ESTADO_COLORS } from '@/shared/constants/domain'
+import { estadoLabel } from '@/shared/constants/domain'
+import { STRATIX_LOGO_DATA } from './logo'
+import type { ReportMetrics } from '@/server/tasks/reports/read'
+import { PRODUCTION_REPORT_DISCLAIMER, PRODUCTION_REPORT_SLOGAN } from './disclaimer'
 import { escapeHtml } from '@/shared/utils'
 import { periodoLargo } from '@/features/tasks/utils/periodo'
 import responsibleNames from '@/features/tasks/utils/responsables/label'
@@ -10,31 +13,27 @@ type Datos = {
   nombre: string
   mes: string
   intlLocale: string
-  completadas: number
   nombrePorId: Record<string, string>
   t: (k: I18nKey) => string
+  completadas?: number // Compatibility with the existing, unused report hook.
+  metrics?: ReportMetrics
   hoy: Date
 }
 
 // Printable task list. Free-text fields are escaped; no productivity or payment data enters it.
-export function reportHtml({ acts, nombre, mes, intlLocale, completadas, nombrePorId, t, hoy }: Datos): string {
-  const estadoColor = (e: string | undefined) => ESTADO_COLORS[e ?? ''] || '#999'
+export function reportHtml({ acts, nombre, mes, intlLocale, nombrePorId, t, hoy, metrics }: Datos): string {
   const celda = 'padding:8px 10px;border-bottom:1px solid #e5e7eb'
   const filas = acts.map(a => `<tr>
-      <td style="${celda};color:#111;font-weight:500">${escapeHtml(a.titulo || '')}</td>
+      <td style="${celda};color:#111;font-weight:500">${escapeHtml(a.titulo || '')}${a.descripcion ? `<div style="white-space:pre-wrap;font-weight:400;margin-top:4px">${escapeHtml(a.descripcion)}</div>` : ''}</td>
       <td style="${celda};color:#555">${escapeHtml(a.empresa || '')}</td>
       <td style="${celda};color:#555">${escapeHtml(responsibleNames(a, nombrePorId))}</td>
-      <td style="${celda};text-align:center"><span style="font-size:11px;padding:2px 10px;border-radius:20px;background:${estadoColor(a.estado)}20;color:${estadoColor(a.estado)};font-weight:600">${escapeHtml(a.estado || '')}</span></td>
+      <td style="${celda}">${escapeHtml(a.fecha_inicio || '—')}</td>
+      <td style="${celda}">${escapeHtml(a.fecha_entrega || '—')}</td>
+      <td style="${celda}">${escapeHtml(estadoLabel(a.estado, t))}</td>
+      ${metrics ? `<td style="${celda}">${escapeHtml(String(a.horas ?? 0))}</td>` : ''}
     </tr>`).join('')
-  const kpis = [
-    { label: t('stratix.report.totalTasks'), value: String(acts.length), color: '#7C6FF7' },
-    { label: t('stratix.report.completed'), value: String(completadas), color: '#34D399' },
-  ].map(k => `<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px;text-align:center">
-        <div style="font-size:24px;font-weight:800;color:${k.color}">${escapeHtml(k.value)}</div>
-        <div style="font-size:10px;color:#888;margin-top:4px;text-transform:uppercase;letter-spacing:.05em">${escapeHtml(k.label)}</div>
-      </div>`).join('')
   const encabezados = [t('stratix.report.colTask'), t('stratix.report.colArea'),
-    t('stratix.report.colAssignee'), t('stratix.report.colStatus')]
+    t('stratix.report.colAssignee'), t('stratix.new.start'), t('tasks.report.deadline'), t('stratix.report.colStatus'), ...(metrics ? [t('stratix.new.hours')] : [])]
     .map(h => `<th style="padding:10px;text-align:left;font-size:10px;color:#888;font-family:monospace;text-transform:uppercase;border-bottom:2px solid #e5e7eb;font-weight:400">${escapeHtml(h)}</th>`).join('')
   const fecha = hoy.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
   const imprimir = escapeHtml(t('common.print'))
@@ -42,11 +41,13 @@ export function reportHtml({ acts, nombre, mes, intlLocale, completadas, nombreP
     <style>
       * { margin:0; padding:0; box-sizing:border-box; }
       body { font-family: 'Segoe UI', Arial, sans-serif; background:#fff; color:#111; padding:40px 50px; font-size:13px; }
+      td { overflow-wrap:anywhere; } table { table-layout:fixed; } thead { display:table-header-group; }
       @media print { .no-print { display:none !important; } body { padding:20px 30px; } }
     </style></head><body>
     <div style="text-align:center;margin-bottom:28px;padding-bottom:18px;border-bottom:2px solid #222">
-      <div style="font-size:24px;font-weight:800;letter-spacing:.5px">${escapeHtml(t('tasks.report.brand'))}</div>
-      <div style="font-size:12px;margin-top:4px;color:#555">${escapeHtml(t('tasks.report.title'))}</div>
+<img src="${STRATIX_LOGO_DATA}" alt="Stratix Communications" width="176" height="59" style="object-fit:contain;height:auto;margin-bottom:12px" />
+      <div style="font-size:12px;margin-top:4px;color:#555">${PRODUCTION_REPORT_SLOGAN}</div>
+      <p style="font-size:12px;margin-top:10px;color:#111">${PRODUCTION_REPORT_DISCLAIMER}</p>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid #e5e7eb">
       <div><div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px">${escapeHtml(t('stratix.report.teamMember'))}</div>
@@ -55,8 +56,9 @@ export function reportHtml({ acts, nombre, mes, intlLocale, completadas, nombreP
       <div style="text-align:right"><div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px">${escapeHtml(t('stratix.report.period'))}</div>
         <div style="font-size:16px;font-weight:700">${escapeHtml(periodoLargo(`${mes}-01`, intlLocale))}</div></div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px">${kpis}</div>
+    ${metrics ? `<div style="display:flex;gap:24px;margin:0 0 20px;font-size:12px">${escapeHtml(t('stratix.report.totalTasks'))}: ${metrics.totalTasks} · ${escapeHtml(t('stratix.report.completed'))}: ${metrics.completedTasks} · ${escapeHtml(t('stratix.dash.totalHours'))}: ${metrics.totalHours} · ${escapeHtml(t('tasks.report.completionRate'))}: ${metrics.completionRate}%</div>` : ''}
     <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
+      ${metrics ? '' : '<colgroup><col style="width:34%"/><col style="width:7%"/><col style="width:18%"/><col style="width:13%"/><col style="width:13%"/><col style="width:15%"/></colgroup>'}
       <thead><tr style="background:#f8f8fa">${encabezados}</tr></thead><tbody>${filas}</tbody>
     </table>
     ${acts.length === 0 ? `<div style="text-align:center;padding:40px;color:#999">${escapeHtml(t('stratix.report.empty'))}</div>` : ''}

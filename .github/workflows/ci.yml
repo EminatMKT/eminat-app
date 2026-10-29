@@ -54,6 +54,10 @@ jobs:
       - run: pnpm exec playwright test --config=playwright.meetings.config.ts
       - name: Verify Family staff approval in English desktop and Spanish mobile
         run: pnpm exec playwright test --config=playwright.family.config.ts
+      - name: Verify Tasks Reports with isolated role fixtures
+        run: |
+          npm install --prefix .tmp/report-sql --no-save --ignore-scripts --no-package-lock @electric-sql/pglite@0.5.13
+          pnpm exec playwright test --config=playwright.report-only.config.ts
 
   e2e-shard:
     name: e2e (${{ matrix.shard }}/${{ matrix.total }})

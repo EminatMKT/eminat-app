@@ -12,7 +12,7 @@
   font-family: 'Syne', sans-serif;
   font-size: 22px;
   font-weight: 800;
-  color: #111;
+  color: var(--c-t1);
 }
 
 .printTitulo {
@@ -106,6 +106,9 @@
 }
 
 .imprimirCabeza {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   align-self: center;
 }
 
@@ -146,4 +149,19 @@
   padding: 9px 12px;
   color: var(--c-t1);
   border-bottom: 1px solid var(--c-border);
+}
+
+.disclaimer {
+  margin: 10px 0;
+  color: var(--c-t1);
+  font-size: 12px;
+}
+
+.tableScroll { overflow-x: auto; }
+.tabla td { overflow-wrap: anywhere; }
+
+@media (max-width: 640px) {
+  .hoja { padding: 16px; }
+  .head, .acciones { flex-wrap: wrap; gap: 12px; }
+  .tabla { min-width: 560px; }
 }
