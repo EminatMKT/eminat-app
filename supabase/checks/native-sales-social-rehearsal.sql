@@ -90,6 +90,8 @@ DO $$ DECLARE r jsonb; n jsonb; lead_a uuid; lead_b uuid; contact uuid; before_c
  IF EXISTS(SELECT 1 FROM public.sales_social_webhook_receipts WHERE normalized ? 'fields') OR EXISTS(SELECT 1 FROM public.sales_social_messages) THEN RAISE EXCEPTION 'answers/DMs retained'; END IF;
  IF has_function_privilege('authenticated','public.native_sales_receive_social_event(text,text,text,timestamptz,jsonb,text,uuid,uuid)','EXECUTE') THEN RAISE EXCEPTION 'browser can ingest'; END IF;
  IF (SELECT count(*) FROM public.native_sales_visible_leads('9efab353-46a0-43d1-9901-e3f185dc5d30','40000000-0000-4000-8000-000000000001',100,0,NULL,NULL))<>6 THEN RAISE EXCEPTION 'supervisor visibility failed'; END IF;
+ IF (public.native_sales_report_summary('9efab353-46a0-43d1-9901-e3f185dc5d30','40000000-0000-4000-8000-000000000001')#>>'{leads,total}')::integer<>6 THEN RAISE EXCEPTION 'dashboard/report total missing Meta leads'; END IF;
+ IF (public.native_sales_report_summary('9efab353-46a0-43d1-9901-e3f185dc5d30','40000000-0000-4000-8000-000000000002')#>>'{leads,total}')::integer<>2 THEN RAISE EXCEPTION 'seller dashboard/report scope expanded'; END IF;
  IF EXISTS(SELECT 1 FROM public.native_sales_visible_leads('9efab353-46a0-43d1-9901-e3f185dc5d30','40000000-0000-4000-8000-000000000002',100,0,NULL,NULL) WHERE owner_member_id<>'40000000-0000-4000-8000-000000000002') THEN RAISE EXCEPTION 'seller scope expanded'; END IF;
  BEGIN PERFORM * FROM public.native_sales_visible_leads('30000000-0000-4000-8000-000000000002','40000000-0000-4000-8000-000000000001',100,0,NULL,NULL); RAISE EXCEPTION 'wrong organization accepted'; EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
   UPDATE public.sales_social_assets SET status='DISABLED' WHERE external_asset_id='405695562628937';
