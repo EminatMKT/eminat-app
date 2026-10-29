@@ -1,6 +1,7 @@
 export type {
   DailyHoursComparison,
   DailyHoursStatus,
+  OverlapError,
   RangeValidationError,
   Weekday,
   WeeklyAvailabilityRange,

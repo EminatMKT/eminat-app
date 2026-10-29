@@ -1,0 +1,66 @@
+import { renderToStaticMarkup } from 'react-dom/server'
+import {
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
+import EDITOR_COPY from '../constants'
+import EditorActions from './index'
+
+vi.mock('@/shared/i18n', () => ({
+  useT: () => ({ t: (key: string) => key }),
+}))
+
+const SUCCESS_MESSAGE = 'Availability saved successfully.'
+const ERROR_MESSAGE = 'Could not save availability. Try again.'
+const ignoreAction = () => undefined
+
+describe('EditorActions', () => {
+  it('renders shared cancel and save controls with a pending guard', () => {
+    const html = renderToStaticMarkup(
+      <EditorActions
+        status={EDITOR_COPY.savingStatus}
+        message={null}
+        onCancel={ignoreAction}
+        onSave={ignoreAction}
+      />,
+    )
+
+    expect(html).toContain(EDITOR_COPY.cancel)
+    expect(html).toContain(EDITOR_COPY.saving)
+    expect(html).toContain('disabled=""')
+    expect(html).toContain('aria-busy="true"')
+    expect(html).toContain('type="button"')
+  })
+
+  it('announces successful completion in a live status region', () => {
+    const html = renderToStaticMarkup(
+      <EditorActions
+        status={EDITOR_COPY.savedStatus}
+        message={SUCCESS_MESSAGE}
+        onCancel={ignoreAction}
+        onSave={ignoreAction}
+      />,
+    )
+
+    expect(html).toContain(`role="${EDITOR_COPY.statusRole}"`)
+    expect(html).toContain(SUCCESS_MESSAGE)
+  })
+
+  it('announces a recoverable save error in an alert region', () => {
+    const html = renderToStaticMarkup(
+      <EditorActions
+        status={EDITOR_COPY.errorStatus}
+        message={ERROR_MESSAGE}
+        onCancel={ignoreAction}
+        onSave={ignoreAction}
+      />,
+    )
+
+    expect(html).toContain(`role="${EDITOR_COPY.alertRole}"`)
+    expect(html).toContain(ERROR_MESSAGE)
+  })
+})
+
+// EditorActions keeps save/cancel controls and operation feedback separate from editor state.
