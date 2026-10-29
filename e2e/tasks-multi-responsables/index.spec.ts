@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { ADMIN_ROLE, MODULE, modulePath } from '@/shared/auth/permissions'
 import { BUTTON, DIALOG, ESCAPE } from '@/shared/constants/dom'
 import translate from '@/shared/i18n/translate'
-import { deleteUser, ensureUser } from '@e2e/seed'
+import { deleteUser, ensureUser, getUsuario, H } from '@e2e/seed'
 import { MULTI_ADMIN_EMAIL } from '@e2e/constants'
 import harness from '@e2e/billing-v2/session'
 
@@ -27,8 +27,23 @@ const taskTitle = `Multi-responsibles e2e ${Date.now()}`
 // Its own admin, not freddy@: e2e/roles demotes and deletes admins on purpose, and this spec must
 // not depend on which ran first. Deleted afterwards so the last-admin check never counts it.
 test.beforeAll(async () => {
+  const fixtureUrl = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321')
+  if (!['localhost', '127.0.0.1', '[::1]'].includes(fixtureUrl.hostname) || fixtureUrl.port !== '54321') {
+    throw new Error('Multi-assignee Report fixtures require the local Supabase test database')
+  }
   for (const p of PEOPLE) await ensureUser(p.email, TASKS_ROLE, p.first, SURNAME)
   await ensureUser(MULTI_ADMIN_EMAIL, ADMIN_ROLE, 'Admin', SURNAME)
+  // Report requires explicit scope. Configure only this disposable integration fixture;
+  // no company/project access is inferred from the ADMIN role.
+  for (const email of [...PEOPLE.map(person => person.email), MULTI_ADMIN_EMAIL]) {
+    const person = await getUsuario(email)
+    if (!person?.id) throw new Error('Missing controlled Report fixture profile')
+    const grant = await fetch(`${fixtureUrl.origin}/rest/v1/usuario_empresas_acceso?on_conflict=usuario_id,empresa_codigo`, {
+      method: 'POST', headers: { ...H, Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ usuario_id: person.id, empresa_codigo: BRAND }),
+    })
+    if (!grant.ok) throw new Error(`Report fixture scope could not be configured: ${grant.status}`)
+  }
 })
 test.afterAll(async () => { await deleteUser(MULTI_ADMIN_EMAIL) })
 
