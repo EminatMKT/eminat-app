@@ -9,7 +9,9 @@ type Integration = { id: string; provider_code: string; status: string;
   token_expires_at: string | null; last_refresh_at: string | null;
   last_error_code: string | null }
 type Asset = { id: string; asset_type: string; display_name: string | null;
-  status: string; webhook_status: string; last_event_at: string | null }
+  status: string; webhook_status: string; last_event_at: string | null; last_error_code?: string | null }
+type LeadAdsPolicy = { pageId: string; approvedFormIds: string[]; excludedFormIds: string[];
+  receipts: { id: string; status: string; error_code: string | null; received_at: string; processed_at: string | null }[] }
 type GrantPage = { id: string; name: string; tasks: string[];
   business: { id: string; name?: string } | null; instagramAccountId: string | null }
 
@@ -19,6 +21,7 @@ export default function NativeSocialStatus({ request, role, users, teams }: { re
   const { t } = useT()
   const [integrations, setIntegrations] = useState<Integration[]>([])
   const [assets, setAssets] = useState<Asset[]>([])
+  const [leadAdsPolicy, setLeadAdsPolicy] = useState<LeadAdsPolicy | null>(null)
   const [metaAvailable, setMetaAvailable] = useState(false)
   const [owner, setOwner] = useState('')
   const [team, setTeam] = useState('')
@@ -35,10 +38,11 @@ export default function NativeSocialStatus({ request, role, users, teams }: { re
     void request('social/connections').then(result => {
       if (cancelled) return
       const data = result.data as { integrations?: Integration[]; assets?: Asset[];
-        metaAvailable?: boolean } | null
+        metaAvailable?: boolean; leadAdsPolicy?: LeadAdsPolicy | null } | null
       setIntegrations(Array.isArray(data?.integrations) ? data.integrations : [])
       setAssets(Array.isArray(data?.assets) ? data.assets : [])
       setMetaAvailable(data?.metaAvailable === true)
+      setLeadAdsPolicy(data?.leadAdsPolicy ?? null)
     }).catch(cause => { if (!cancelled) setError(cause instanceof Error ? cause.message : 'SOCIAL_UNAVAILABLE') })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
@@ -173,9 +177,21 @@ export default function NativeSocialStatus({ request, role, users, teams }: { re
       <ul className={s.breakdown}>{assets.map(item => <li key={item.id}>
         <span>{item.display_name || item.asset_type} · {item.asset_type}</span>
         <strong>{item.status} · {item.webhook_status}</strong>
+        {item.last_event_at && <span>{t('salesNative.metaLastSuccessfulLead')} · {new Date(item.last_event_at).toLocaleString()}</span>}
+        {item.last_error_code && <span>{item.last_error_code}</span>}
         {metaAvailable && item.asset_type === 'page' && item.status === 'READY' &&
           <button type="button" disabled={busy} onClick={() => void subscribe(item.id)}>
             Subscribe Lead Ads</button>}</li>)}</ul>
     </section>
+    {leadAdsPolicy && <section className={s.panel}><h2>{t('salesNative.metaLeadAds')}</h2>
+      <p>{t('salesNative.metaLeadBoundary')}</p>
+      <p>{t('salesNative.metaApprovedForms')} · {leadAdsPolicy.approvedFormIds.join(', ')}</p>
+      <p>{t('salesNative.metaExcludedForms')} · {leadAdsPolicy.excludedFormIds.join(', ')}</p>
+      {!leadAdsPolicy.receipts.length && <p>{t('salesNative.metaNoReceipts')}</p>}
+      <ul className={s.breakdown}>{leadAdsPolicy.receipts.map(receipt => <li key={receipt.id}>
+        <span>{new Date(receipt.received_at).toLocaleString()}</span>
+        <strong>{receipt.status}</strong>{receipt.error_code && <span>{receipt.error_code}</span>}
+      </li>)}</ul>
+    </section>}
   </div>
 }

@@ -40,8 +40,7 @@ export class MetaGraphClient {
   authorizationUrl(state: string, extraScopes: readonly string[] = []): string {
     if (!/^[A-Za-z0-9_-]{40,100}$/.test(state)) throw new Error('META_STATE_INVALID')
     const supported = new Set<string>([...META_OAUTH_SCOPES,
-      'pages_messaging', 'pages_read_user_content', 'instagram_basic',
-      'instagram_manage_messages', 'instagram_manage_comments'])
+      'instagram_basic'])
     if (extraScopes.some(scope => !supported.has(scope))) throw new Error('META_SCOPE_INVALID')
     const url = new URL('https://www.facebook.com/dialog/oauth')
     url.searchParams.set('client_id', this.config.appId)
@@ -148,7 +147,7 @@ export class MetaGraphClient {
 
   async subscribePage(pageId: string, pageToken: string, fields: readonly string[]): Promise<void> {
     if (!/^[A-Za-z0-9_-]{1,200}$/.test(pageId) || !pageToken || !fields.length ||
-      fields.some(field => !['leadgen', 'messages', 'feed'].includes(field)))
+      fields.some(field => field !== 'leadgen'))
       throw new Error('META_SUBSCRIPTION_INVALID')
     const url = endpoint(this.config, `${encodeURIComponent(pageId)}/subscribed_apps`)
     let response: Response
