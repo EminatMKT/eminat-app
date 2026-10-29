@@ -14,9 +14,11 @@ jobs:
         with: { node-version: 22, cache: pnpm }  # 22+ trae WebSocket nativo (lo exige @supabase/realtime-js)
       - run: pnpm install --frozen-lockfile
       - name: Validate guarded workflow YAML
-        run: ruby -e "require 'yaml'; YAML.load_file('.github/workflows/native-sales-guarded-schema.yml'); YAML.load_file('.github/workflows/native-sales-guarded-staff.yml'); YAML.load_file('.github/workflows/privileged-audit-guarded.yml')"
+        run: ruby -e "require 'yaml'; YAML.load_file('.github/workflows/native-sales-guarded-schema.yml'); YAML.load_file('.github/workflows/native-sales-guarded-staff.yml'); YAML.load_file('.github/workflows/privileged-audit-guarded.yml'); YAML.load_file('.github/workflows/medical-guarded-grants.yml')"
       - name: Validate byte-preserving attendance catalog evidence
         run: python3 scripts/migration/check_attendance_catalog_test.py
+      - name: Validate Medical grant gate
+        run: python3 scripts/migration/check_medical_grants_test.py
       - name: Validate Production backup gate
         run: python3 scripts/migration/check_restorable_backup_test.py
       # ⚠️ EL CENTINELA YA NO CORRE EN CI. El motor salió de este repo el 2026-08-31 y ahora es
