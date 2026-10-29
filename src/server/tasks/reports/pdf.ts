@@ -50,7 +50,8 @@ export async function productionReportPdf(report: ReportData) {
   if (report.metrics) {
     const m = report.metrics
     draw(`Tareas totales: ${m.totalTasks}   Completadas: ${m.completedTasks}   Horas: ${m.totalHours}   Avance: ${m.completionRate}%`, margin, y, 10, bold)
-    y -= 28
+    y -= 18
+    draw(`Días de producción: ${m.productionDays ?? 0}`, margin, y, 10, bold); y -= 28
   }
   if (!report.tasks.length) { draw('Sin tareas en este período', margin, y); y -= 20 }
   for (const task of report.tasks) {
@@ -59,8 +60,9 @@ export async function productionReportPdf(report: ReportData) {
     const items = [
       ...heading.map(text => ({ text, face: bold, size: 11 })),
       ...description.filter(Boolean).map(text => ({ text, face: font, size: 10 })),
+      ...lines(`Responsables: ${(task.assignedEmployees ?? []).map(person => person.name).join(', ') || '—'}`, width - 2 * margin, 9).map(text => ({ text, face: font, size: 9 })),
       { text: `Estado: ${task.estado || '—'}`, face: font, size: 9 },
-      ...(report.metrics ? [{ text: `Horas: ${task.horas ?? 0}`, face: font, size: 9 }] : []),
+      ...(report.metrics ? [{ text: `Horas: ${task.horas ?? 0}  |  Días de producción: ${task.dias_produccion ?? 0}`, face: font, size: 9 }] : []),
       { text: `${task.empresa || '—'}  |  Inicio: ${task.fecha_inicio || '—'}  |  Entrega: ${task.fecha_entrega || '—'}`, face: font, size: 9 },
     ]
     for (const item of items) {

@@ -28,7 +28,7 @@ for (const module of ['tasks']) for (const role of ['superadmin','admin','employ
     expect(data.tasks.map((task: {estado: string}) => task.estado)).toEqual(expect.arrayContaining(['Completado','En proceso']))
     await expect(preview.getByRole('cell',{name:'Completado',exact:true})).toBeVisible()
     if(role==='superadmin') {
-      expect(data.metrics).toEqual({totalTasks:2,completedTasks:1,totalHours:9.5,completionRate:50})
+      expect(data.metrics).toEqual({totalTasks:2,completedTasks:1,totalHours:9.5,completionRate:50,productionDays:2})
       await expect(preview.getByText(/Tareas totales/)).toBeVisible()
       await expect(preview.getByText(/Completadas/)).toBeVisible()
     } else {
@@ -59,9 +59,41 @@ for (const module of ['tasks']) for (const role of ['superadmin','admin','employ
       await expect(preview.getByRole('cell',{name:'Ada Employee QA',exact:true}).first()).toBeVisible()
       await expect(preview.getByText(/Tareas totales|Completadas/)).toHaveCount(0)
     }
-    await preview.getByLabel('Período',{exact:true}).fill('2026-09')
+    await preview.getByLabel('Período',{exact:true}).fill('2026-07')
     await expect(preview.getByText('Sin tareas en este período',{exact:true})).toBeVisible()
     await expect(preview.getByRole('button',{name:'Imprimir',exact:true})).toBeEnabled()
     await expect(preview.getByRole('button',{name:'Descargar PDF',exact:true})).toBeEnabled()
   })
 }
+
+for (const role of ['superadmin','employee']) test(`September historical structure ${role}: complete multi-page report and correct metric ownership`, async ({page}) => {
+  const host=role==='superadmin'?'[::1]':'127.0.0.1', base=`http://${host}:3138`
+  await page.goto(`${base}/__qa/${role}`)
+  const preview=page.locator('#reporte-content')
+  await expect(preview.getByRole('button',{name:'Imprimir',exact:true})).toBeEnabled()
+  await preview.getByLabel('Período',{exact:true}).fill('2026-09')
+  await expect(preview.getByText('September structure QA work 02',{exact:false})).toBeVisible()
+  const response=await page.request.get(`${base}/api/tasks/report?month=2026-09`)
+  expect(response.status()).toBe(200)
+  const data=await response.json()
+  if(role==='superadmin') {
+    expect(data.tasks).toHaveLength(83)
+    expect(data.metrics).toMatchObject({totalTasks:83,completedTasks:56,totalHours:10,productionDays:6})
+    expect(data.tasks.find((task:{titulo:string})=>task.titulo.endsWith('01')).assignedEmployees[0].name).toBe('Alex Admin QA')
+    await expect(preview.getByRole('cell',{name:'Alex Admin QA',exact:true})).toBeVisible()
+    await expect(preview.getByRole('cell',{name:'Ada Employee QA',exact:true}).first()).toBeVisible()
+  } else {
+    expect(data.tasks).toHaveLength(76)
+    expect(data).not.toHaveProperty('metrics')
+    for(const task of data.tasks) {expect(task).not.toHaveProperty('horas');expect(task).not.toHaveProperty('dias_produccion')}
+    await expect(preview.getByText(/Tareas totales|Completadas|Días de producción|Horas totales/)).toHaveCount(0)
+    expect(data.tasks.every((task:{assignedEmployees:{id:string}[]})=>task.assignedEmployees.some(person=>person.id==='dddddddd-dddd-4ddd-8ddd-dddddddddddd'))).toBe(true)
+  }
+  expect(data.tasks.map((task:{estado:string})=>task.estado)).toEqual(expect.arrayContaining(['Completado','Pendiente','En proceso']))
+  const [popup]=await Promise.all([page.waitForEvent('popup'),preview.getByRole('button',{name:'Imprimir',exact:true}).click()])
+  await popup.pdf({path:`test-results/september-print-${role}.pdf`,format:'A4',printBackground:true})
+  await popup.close()
+  const [download]=await Promise.all([page.waitForEvent('download'),preview.getByRole('button',{name:'Descargar PDF',exact:true}).click()])
+  await download.saveAs(`test-results/september-download-${role}.pdf`)
+  await page.screenshot({path:`test-results/september-${role}.png`,fullPage:true})
+})

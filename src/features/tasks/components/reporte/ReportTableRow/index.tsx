@@ -20,7 +20,7 @@ export default function ReportTableRow({ a, responsable, showMetrics = false }: 
       <td className={s.td}>{a.fecha_inicio || '—'}</td>
       <td className={s.td}>{a.fecha_entrega || '—'}</td>
       <td className={s.td}>{estadoLabel(a.estado, t)}</td>
-      {showMetrics && <td className={s.td}>{a.horas ?? 0}</td>}
+      {showMetrics && <><td className={s.td}>{a.horas ?? 0}</td><td className={s.td}>{a.dias_produccion ?? 0}</td></>}
     </tr>
   )
 }

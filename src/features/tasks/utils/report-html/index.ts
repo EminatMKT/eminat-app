@@ -30,10 +30,10 @@ export function reportHtml({ acts, nombre, mes, intlLocale, nombrePorId, t, hoy,
       <td style="${celda}">${escapeHtml(a.fecha_inicio || '—')}</td>
       <td style="${celda}">${escapeHtml(a.fecha_entrega || '—')}</td>
       <td style="${celda}">${escapeHtml(estadoLabel(a.estado, t))}</td>
-      ${metrics ? `<td style="${celda}">${escapeHtml(String(a.horas ?? 0))}</td>` : ''}
+      ${metrics ? `<td style="${celda}">${escapeHtml(String(a.horas ?? 0))}</td><td style="${celda}">${escapeHtml(String(a.dias_produccion ?? 0))}</td>` : ''}
     </tr>`).join('')
   const encabezados = [t('stratix.report.colTask'), t('stratix.report.colArea'),
-    t('stratix.report.colAssignee'), t('stratix.new.start'), t('tasks.report.deadline'), t('stratix.report.colStatus'), ...(metrics ? [t('stratix.new.hours')] : [])]
+    t('stratix.report.colAssignee'), t('stratix.new.start'), t('tasks.report.deadline'), t('stratix.report.colStatus'), ...(metrics ? [t('stratix.col.hours'), t('stratix.report.colProdDays')] : [])]
     .map(h => `<th style="padding:10px;text-align:left;font-size:10px;color:#888;font-family:monospace;text-transform:uppercase;border-bottom:2px solid #e5e7eb;font-weight:400">${escapeHtml(h)}</th>`).join('')
   const fecha = hoy.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
   const imprimir = escapeHtml(t('common.print'))
@@ -56,9 +56,9 @@ export function reportHtml({ acts, nombre, mes, intlLocale, nombrePorId, t, hoy,
       <div style="text-align:right"><div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px">${escapeHtml(t('stratix.report.period'))}</div>
         <div style="font-size:16px;font-weight:700">${escapeHtml(periodoLargo(`${mes}-01`, intlLocale))}</div></div>
     </div>
-    ${metrics ? `<div style="display:flex;gap:24px;margin:0 0 20px;font-size:12px">${escapeHtml(t('stratix.report.totalTasks'))}: ${metrics.totalTasks} · ${escapeHtml(t('stratix.report.completed'))}: ${metrics.completedTasks} · ${escapeHtml(t('stratix.dash.totalHours'))}: ${metrics.totalHours} · ${escapeHtml(t('tasks.report.completionRate'))}: ${metrics.completionRate}%</div>` : ''}
-    <table style="width:100%;border-collapse:collapse;margin-bottom:10px">
-      ${metrics ? '' : '<colgroup><col style="width:34%"/><col style="width:7%"/><col style="width:18%"/><col style="width:13%"/><col style="width:13%"/><col style="width:15%"/></colgroup>'}
+    ${metrics ? `<div style="display:flex;gap:24px;margin:0 0 20px;font-size:12px">${escapeHtml(t('stratix.report.totalTasks'))}: ${metrics.totalTasks} · ${escapeHtml(t('stratix.report.completed'))}: ${metrics.completedTasks} · ${escapeHtml(t('stratix.dash.totalHours'))}: ${metrics.totalHours} · ${escapeHtml(t('tasks.report.completionRate'))}: ${metrics.completionRate}% · ${escapeHtml(t('stratix.detail.prodDays'))}: ${metrics.productionDays ?? 0}</div>` : ''}
+    <table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:${metrics ? '11px' : '13px'}">
+      ${metrics ? '<colgroup><col style="width:29%"/><col style="width:6%"/><col style="width:15%"/><col style="width:12%"/><col style="width:12%"/><col style="width:12%"/><col style="width:7%"/><col style="width:7%"/></colgroup>' : '<colgroup><col style="width:34%"/><col style="width:7%"/><col style="width:18%"/><col style="width:13%"/><col style="width:13%"/><col style="width:15%"/></colgroup>'}
       <thead><tr style="background:#f8f8fa">${encabezados}</tr></thead><tbody>${filas}</tbody>
     </table>
     ${acts.length === 0 ? `<div style="text-align:center;padding:40px;color:#999">${escapeHtml(t('stratix.report.empty'))}</div>` : ''}

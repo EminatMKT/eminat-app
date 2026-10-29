@@ -93,6 +93,8 @@ const fixtures = http.createServer(async (req, res) => {
       for(const task of data) task.actividad_responsables=(await fixture.asUser(person.auth_id,'SELECT usuario_id,es_lider FROM actividad_responsables WHERE actividad_id=$1',[task.id])).rows
     }
     for(const row of data) for(const key of ['fecha_inicio','fecha_entrega','fecha_requerida','fecha_aprobacion']) if(row[key] instanceof Date)row[key]=row[key].toISOString().slice(0,10)
+    const offset=Number(url.searchParams.get('offset')||0), limit=Number(url.searchParams.get('limit')||1000)
+    data=data.slice(offset,offset+limit)
     res.setHeader('Content-Range',`0-${Math.max(0,data.length-1)}/${data.length}`)
     return json(res,req.headers.accept?.includes('vnd.pgrst.object')?data[0]||null:data)
   } catch(error) { return json(res,{code:error.code||'FIXTURE_ERROR',message:error.message},error.code==='42501'?403:400) }
