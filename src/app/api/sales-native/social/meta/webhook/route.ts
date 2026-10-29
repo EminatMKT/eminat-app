@@ -1,12 +1,15 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { nativeSalesDatabaseError } from '@/server/sales-native/errors'
 import { nativeSalesEnabled } from '@/server/sales-native/release-gate'
+import { recoverNativeMetaLeads } from '@/server/sales-native/social/lead-recovery'
+import { approvedMetaLead } from '@/server/sales-native/social/meta-lead-policy'
 import { normalizeMetaWebhook } from '@/server/sales-native/social/meta-normalize'
 import { verifyMetaChallenge, verifyMetaWebhookSignature } from '@/server/sales-native/social/meta-verification'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 const fail = (code: string, status: number) =>
   Response.json({ code }, { status, headers: { 'Cache-Control': 'no-store' } })
@@ -52,6 +55,7 @@ export async function POST(request: Request) {
   catch { return fail('META_PAYLOAD_INVALID', 422) }
   let accepted = 0; let replayed = 0; let pending = 0; let failed = 0
   for (const event of events) {
+    if (!approvedMetaLead(event.externalAssetId, event.normalized.formId)) { failed++; continue }
     const hash = createHash('sha256').update(JSON.stringify(event.normalized)).digest('hex')
     const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_receive_social_event', {
       p_external_asset_id: event.externalAssetId,
@@ -69,6 +73,10 @@ export async function POST(request: Request) {
     else if (data?.status === 'FAILED') failed++
     else if (data?.status === 'PROCESSED') accepted++
     else return fail('META_RECEIPT_INVALID', 503)
+  }
+  if (pending || replayed) {
+    // Durable receipt already committed. Provider outages retry through the existing worker.
+    try { await recoverNativeMetaLeads({ limit: 3 }) } catch { /* cron retries the durable queue */ }
   }
   return Response.json({ accepted, replayed, pending, failed },
     { headers: { 'Cache-Control': 'no-store' } })

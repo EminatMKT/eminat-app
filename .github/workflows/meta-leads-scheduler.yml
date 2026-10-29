@@ -1,0 +1,38 @@
+name: Meta Lead Ads recovery scheduler
+on:
+  schedule:
+    - cron: '4-59/5 * * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/meta-leads-scheduler.yml'
+      - 'scripts/qa/meta-leads-scheduler*.mjs'
+permissions:
+  contents: read
+concurrency:
+  group: meta-leads-recovery-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'production' }}
+  cancel-in-progress: false
+jobs:
+  scheduler-contract:
+    if: github.event_name == 'pull_request' || (github.ref == 'refs/heads/main' && vars.LILLY_META_SCHEDULER_ENABLED == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node --test scripts/qa/meta-leads-scheduler.checks.mjs
+  tick:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.LILLY_META_SCHEDULER_ENABLED == 'true'
+    needs: scheduler-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Invoke existing Meta recovery worker once
+        env:
+          LILLY_META_SCHEDULER_ENABLED: ${{ vars.LILLY_META_SCHEDULER_ENABLED }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: node scripts/qa/meta-leads-scheduler.mjs
