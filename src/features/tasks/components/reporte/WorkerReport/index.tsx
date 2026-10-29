@@ -43,9 +43,10 @@ export default function WorkerReport() {
   function print() {
     if (!report || error) return
     const popup = window.open('', '_blank', 'width=1000,height=760'); if (!popup) return
-    const acts = report.tasks.map(task => ({ ...task, responsables: [{ usuario_id: report.memberId, es_lider: true }] }))
+    const acts = report.tasks.map(task => ({ ...task, responsables: (task.assignedEmployees ?? []).map(person => ({ usuario_id: person.id, es_lider: person.leader })) }))
+    const names = Object.fromEntries(report.tasks.flatMap(task => (task.assignedEmployees ?? []).map(person => [person.id, person.name])))
     popup.document.write(reportHtml({ acts, nombre: report.name, mes: report.month, intlLocale,
-      nombrePorId: { [report.memberId]: report.name }, t, hoy: new Date(), metrics: report.metrics }))
+      nombrePorId: names, t, hoy: new Date(), metrics: report.metrics }))
     popup.document.close()
   }
   async function download() {
@@ -81,11 +82,12 @@ export default function WorkerReport() {
         <div>{t('stratix.report.completed')}: <strong>{report.metrics.completedTasks}</strong></div>
         <div>{t('stratix.dash.totalHours')}: <strong>{report.metrics.totalHours}</strong></div>
         <div>{t('tasks.report.completionRate')}: <strong>{report.metrics.completionRate}%</strong></div>
+        <div>{t('stratix.detail.prodDays')}: <strong>{report.metrics.productionDays ?? 0}</strong></div>
       </div>}
       <div className={s.tableScroll}><table className={s.tabla}><thead><tr className={s.encabezado}>
         {(['stratix.report.colTask','stratix.report.colArea','stratix.report.colAssignee','stratix.new.start','tasks.report.deadline','stratix.report.colStatus'] as const).map(label => <th key={label} className={s.th}>{t(label)}</th>)}
-        {report?.metrics && <th className={s.th}>{t('stratix.new.hours')}</th>}
-      </tr></thead><tbody>{report?.tasks.map(task => <ReportTableRow key={task.id} a={task} responsable={report.name} showMetrics={!!report.metrics} />)}</tbody></table></div>
+        {report?.metrics && <><th className={s.th}>{t('stratix.new.hours')}</th><th className={s.th}>{t('stratix.report.colProdDays')}</th></>}
+      </tr></thead><tbody>{report?.tasks.map(task => <ReportTableRow key={task.id} a={task} responsable={(task.assignedEmployees ?? []).map(person => person.name).join(', ') || '—'} showMetrics={!!report.metrics} />)}</tbody></table></div>
       {report && !report.tasks.length && !error && <div className={s.vacio}>{t('stratix.report.empty')}</div>}
     </div>
   </div>

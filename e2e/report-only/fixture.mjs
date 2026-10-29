@@ -72,6 +72,20 @@ export async function createTaskReportFixture() {
       await db.query('INSERT INTO actividad_responsables VALUES ($1,$2,true)',[id,person.id])
     }
   }
+  // Synthetic September reference structure: 83 visible tasks / 56 completed,
+  // with only six personally executed rows (10 hours and six production days).
+  await db.query("INSERT INTO empresas(id,codigo,nombre,color) VALUES ('55555555-5555-4555-8555-555555555555','OPS','Operations QA','#5046e5')")
+  for (let i=0;i<83;i++) {
+    const id=`90000000-0000-4000-8000-${String(i).padStart(12,'0')}`
+    const own=i>=77, assignee=own?ids.superadmin:i===0?ids.admin:ids.employee
+    await db.query('INSERT INTO actividades(id,titulo,descripcion,empresa,responsable_id,solicitante_id,created_by_id,horas,dias_produccion,fecha_inicio,fecha_entrega,estado) VALUES ($1,$2,$3,$4,$5,$6,$6,$7,$8,$9,$10,$11)',[
+      id,`September structure QA work ${String(i+1).padStart(2,'0')}`,
+      'Work description preserved in full.\nPlanning, coordination and delivery of authorized materials.',
+      i===0?'OPS':'S',assignee,ids.superadmin,own?(i===77?0:2):8,own?1:2,'2026-09-10','2026-09-25',i<56?'Completado':i%2?'Pendiente':'En proceso',
+    ])
+    // Keep the six personal tasks as legacy primary assignments without join rows.
+    if(!own) await db.query('INSERT INTO actividad_responsables VALUES ($1,$2,true)',[id,assignee])
+  }
   // Execute the existing production-baseline read policies, never the excluded migration.
   const foundation = await readFile('supabase/migrations/20261005090000_lilly_access_foundation.sql','utf8')
   await db.exec(`CREATE TABLE lilly_access_control(singleton boolean,enforced boolean); INSERT INTO lilly_access_control VALUES(true,true);`)

@@ -1269,6 +1269,7 @@
   "tasks.report.mineTitle": "My tasks",
   "tasks.report.mineSub": "Tasks assigned in LILLY",
   "tasks.report.deadline": "Deadline",
+  "stratix.report.colProdDays": "Prod. days",
   "tasks.report.downloadPdf": "Download PDF",
   "tasks.report.choosePeriod": "Select a valid period.",
   "tasks.report.completionRate": "Completion rate",
