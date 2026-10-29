@@ -11,7 +11,8 @@ export default function buildEditorFeedback(input: EditorFeedbackInput): EditorF
   const { translate, declaredHours, hasValidationErrors, status, message, onCancel, onSave } = input
   const weeklyHoursVars = { hours: declaredHours }
   const weeklySummary = createElement(PARAGRAPH_TAG, NO_PARAGRAPH_PROPS, translate(EDITOR_COPY.weeklyHoursKey, weeklyHoursVars))
-  const validationMessage = hasValidationErrors ? EDITOR_COPY.validationError : null
+  const validationCopy = translate(EDITOR_COPY.validationError)
+  const validationMessage = hasValidationErrors ? validationCopy : null
   const handleSave = () => void onSave()
   const actionsProps = {
     status,

@@ -1,4 +1,5 @@
 import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
+import type { Translator } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/types'
 import buildAvailabilityRangeItemFields from './fields'
 import confirmRemoval from '../confirm-removal'
 import AVAILABILITY_RANGE_ITEM_CONSTANTS from '../constants'
@@ -7,14 +8,10 @@ import type {
   AvailabilityRangeItemViewModel,
 } from '../types'
 
-function buildRemoveLabel(dayLabel: string, rangeNumber: number) {
-  const numberText = String(rangeNumber)
-  const dayLabelCopy = EDITOR_COPY.removeRange.replace(EDITOR_COPY.dayToken, dayLabel)
-  const removeLabel = dayLabelCopy.replace(EDITOR_COPY.numberToken, numberText)
-  return removeLabel
-}
-
-export default function buildAvailabilityRangeItemViewModel(props: AvailabilityRangeItemProps): AvailabilityRangeItemViewModel {
+export default function buildAvailabilityRangeItemViewModel(
+  props: AvailabilityRangeItemProps,
+  translate: Translator,
+): AvailabilityRangeItemViewModel {
   const {
     range,
     number,
@@ -23,9 +20,10 @@ export default function buildAvailabilityRangeItemViewModel(props: AvailabilityR
     confirmationMessage: providedConfirmationMessage,
     onRemove,
   } = props
-  const fields = buildAvailabilityRangeItemFields(props)
-  const removeLabel = providedRemoveLabel ?? buildRemoveLabel(dayLabel, number)
-  const confirmationMessage = providedConfirmationMessage ?? EDITOR_COPY.removeConfirm
+  const fields = buildAvailabilityRangeItemFields(props, translate)
+  const removeVars = { day: dayLabel, number }
+  const removeLabel = providedRemoveLabel ?? translate(EDITOR_COPY.removeRange, removeVars)
+  const confirmationMessage = providedConfirmationMessage ?? translate(EDITOR_COPY.removeConfirm)
   const removeRange = () => onRemove(range.clientId)
   const requestRemoval = () => confirmRemoval(confirmationMessage, removeRange)
   const removeButton = {

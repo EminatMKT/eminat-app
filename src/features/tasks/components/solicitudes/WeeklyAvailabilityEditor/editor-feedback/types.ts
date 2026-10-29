@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react'
+import type { I18nKey } from '@/shared/i18n'
 import type { EditorStatus, Translator } from '../types'
 
 /** Everything buildEditorFeedback needs to translate the summary and wire the save/cancel actions. */
@@ -7,7 +8,7 @@ export type EditorFeedbackInput = {
   declaredHours: number
   hasValidationErrors: boolean
   status: EditorStatus
-  message: string | null
+  message: I18nKey | null
   onCancel: () => void
   onSave: () => Promise<void>
 }

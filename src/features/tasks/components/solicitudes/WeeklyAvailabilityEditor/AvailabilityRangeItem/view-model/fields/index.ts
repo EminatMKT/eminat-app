@@ -2,12 +2,13 @@ import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabil
 import AVAILABILITY_RANGE_ITEM_CONSTANTS from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/AvailabilityRangeItem/constants'
 import RANGE_FIELD_CONSTANTS from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField/constants'
 import type { RangeFieldProps } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField/types'
+import type { Translator } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/types'
 import type {
   AvailabilityRangeItemFields,
   AvailabilityRangeItemProps,
 } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/AvailabilityRangeItem/types'
 
-export default function buildAvailabilityRangeItemFields(props: AvailabilityRangeItemProps): AvailabilityRangeItemFields {
+export default function buildAvailabilityRangeItemFields(props: AvailabilityRangeItemProps, translate: Translator): AvailabilityRangeItemFields {
   const {
     range,
     rangeIndex,
@@ -16,13 +17,13 @@ export default function buildAvailabilityRangeItemFields(props: AvailabilityRang
     onChange,
   } = props
   const hasRangeError = errors.some(error => error.rangeIndex === rangeIndex)
-  const timeError = hasRangeError ? EDITOR_COPY.validationError : undefined
+  const timeError = hasRangeError ? translate(EDITOR_COPY.validationError) : undefined
   const startId = `${range.clientId}${AVAILABILITY_RANGE_ITEM_CONSTANTS.startIdSuffix}`
   const endId = `${range.clientId}${AVAILABILITY_RANGE_ITEM_CONSTANTS.endIdSuffix}`
   const noteId = `${range.clientId}${AVAILABILITY_RANGE_ITEM_CONSTANTS.noteIdSuffix}`
-  const startLabel = [dayLabel, EDITOR_COPY.startTime].join(AVAILABILITY_RANGE_ITEM_CONSTANTS.labelSeparator)
-  const endLabel = [dayLabel, EDITOR_COPY.endTime].join(AVAILABILITY_RANGE_ITEM_CONSTANTS.labelSeparator)
-  const noteLabel = [dayLabel, EDITOR_COPY.note].join(AVAILABILITY_RANGE_ITEM_CONSTANTS.labelSeparator)
+  const startLabel = [dayLabel, translate(EDITOR_COPY.startTime)].join(AVAILABILITY_RANGE_ITEM_CONSTANTS.labelSeparator)
+  const endLabel = [dayLabel, translate(EDITOR_COPY.endTime)].join(AVAILABILITY_RANGE_ITEM_CONSTANTS.labelSeparator)
+  const noteLabel = [dayLabel, translate(EDITOR_COPY.note)].join(AVAILABILITY_RANGE_ITEM_CONSTANTS.labelSeparator)
   const changeStart = (value: string) => onChange(range.clientId, EDITOR_COPY.startsAtField, value)
   const changeEnd = (value: string) => onChange(range.clientId, EDITOR_COPY.endsAtField, value)
   const changeNote = (value: string) => onChange(range.clientId, EDITOR_COPY.noteField, value)

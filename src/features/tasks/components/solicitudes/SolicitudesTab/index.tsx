@@ -3,7 +3,6 @@ import { useT, type I18nKey } from '@/shared/i18n'
 import TabButton from '@/shared/components/ui/TabButton'
 import TabBar from '@/shared/components/ui/TabBar'
 import { useTasks } from '@/features/tasks/components/TasksContext'
-import { useApp } from '@/shared/context/AppContext'
 import SolicitudesListView from '../SolicitudesListView'
 import SolicitudesAvailabilityView from '../SolicitudesAvailabilityView'
 
@@ -11,6 +10,7 @@ const SUB_TABS: { key: string; icon: string; labelKey: I18nKey }[] = [
   { key: 'lista', icon: '📋', labelKey: 'stratix.sol.tabList' },
   { key: 'disponibilidad', icon: '🗓', labelKey: 'stratix.sol.tabAvailability' },
 ]
+const [listTab, availabilityTab] = SUB_TABS
 
 const views: Record<string, JSX.Element> = {
   lista: <SolicitudesListView />,
@@ -20,17 +20,23 @@ const views: Record<string, JSX.Element> = {
 export default function SolicitudesTab() {
   const { t } = useT()
   const { solTab, setSolTab } = useTasks()
-  const { esAdmin } = useApp()
-  const visibleTabs = esAdmin ? SUB_TABS : SUB_TABS.filter(tab => tab.key === 'lista')
   return (
-    <div>
+    <>
       <TabBar>
-          {visibleTabs.map(tab => (
-          <TabButton key={tab.key} label={`${tab.icon} ${t(tab.labelKey)}`}
-            active={solTab === tab.key} onClick={() => setSolTab(tab.key)} />
-        ))}
+        <TabButton
+          icon={listTab.icon}
+          label={t(listTab.labelKey)}
+          active={solTab === listTab.key}
+          onClick={() => setSolTab(listTab.key)}
+        />
+        <TabButton
+          icon={availabilityTab.icon}
+          label={t(availabilityTab.labelKey)}
+          active={solTab === availabilityTab.key}
+          onClick={() => setSolTab(availabilityTab.key)}
+        />
       </TabBar>
-      {views[esAdmin ? solTab : 'lista']}
-    </div>
+      {views[solTab]}
+    </>
   )
 }

@@ -12,6 +12,7 @@ export { default as validateRanges } from './validate-ranges'
 export { default as declaredHoursByDay } from './declared-hours-by-day'
 export { default as declaredWeeklyHours } from './declared-weekly-hours'
 export { default as compareDailyHours } from './compare-daily-hours'
+export { default as comparisonCopyVars } from './comparison-copy-vars'
 
 // Barrel for the recurring weekly availability domain: each function lives in its own file
 // (one per file, `export default`), this index only re-exports them.

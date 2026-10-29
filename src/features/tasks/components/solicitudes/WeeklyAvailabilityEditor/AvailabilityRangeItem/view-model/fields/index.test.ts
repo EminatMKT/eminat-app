@@ -6,6 +6,7 @@ import {
 import type { RangeValidationError } from '@/features/tasks/utils/availability'
 import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
 import type { AvailabilityRangeItemProps } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/AvailabilityRangeItem/types'
+import type { Translator } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/types'
 import buildAvailabilityRangeItemFields from './index'
 
 const CLIENT_ID = 'range-client-1'
@@ -19,6 +20,7 @@ const RANGE: EditableRange = {
 const ERRORS: RangeValidationError[] = []
 const ignoreChange = () => undefined
 const ignoreRemove = () => undefined
+const translate: Translator = key => key
 const PROPS: AvailabilityRangeItemProps = {
   range: RANGE,
   rangeIndex: 0,
@@ -31,7 +33,7 @@ const PROPS: AvailabilityRangeItemProps = {
 
 describe('buildAvailabilityRangeItemFields', () => {
   it('uses the stable client identity for all field IDs', () => {
-    const fields = buildAvailabilityRangeItemFields(PROPS)
+    const fields = buildAvailabilityRangeItemFields(PROPS, translate)
 
     expect(fields.startField.id).toContain(CLIENT_ID)
     expect(fields.endField.id).toContain(CLIENT_ID)

@@ -68,7 +68,7 @@ describe('DaySection', () => {
     expect(html).toContain('<section')
     expect(html).toContain(DAY_LABEL)
     expect(html).toContain(EDITOR_COPY.emptyDay)
-    expect(html).toContain(EDITOR_COPY.addRange.replace(EDITOR_COPY.dayToken, DAY_LABEL))
+    expect(html).toContain(EDITOR_COPY.addRange)
     expect(html).toContain('type="button"')
   })
 

@@ -1,35 +1,24 @@
-import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import RangeField from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField'
 import { Button } from '@/shared/components/ui'
-import confirmRemoval from './confirm-removal'
+import { useT } from '@/shared/i18n'
 import buildAvailabilityRangeItemViewModel from './view-model'
 import type { AvailabilityRangeItemProps } from './types'
 
 const ItemAction = Button
 
 export default function AvailabilityRangeItem(props: AvailabilityRangeItemProps) {
-  const {
-    range,
-    confirmationMessage,
-    onRemove,
-  } = props
-  const viewModel = buildAvailabilityRangeItemViewModel(props)
-  const removalCopy = confirmationMessage ?? EDITOR_COPY.removeConfirm
-  const removeRange = () => onRemove(range.clientId)
-  const requestRemoval = () => confirmRemoval(removalCopy, removeRange)
-  const removeButtonProps = {
-    ...viewModel.removeButton,
-    onClick: requestRemoval,
-  }
+  const { t } = useT()
+  const viewModel = buildAvailabilityRangeItemViewModel(props, t)
 
   return (
     <>
       <RangeField {...viewModel.startField} />
       <RangeField {...viewModel.endField} />
       <RangeField {...viewModel.noteField} />
-      <ItemAction {...removeButtonProps} />
+      <ItemAction {...viewModel.removeButton} />
     </>
   )
 }
 
-// AvailabilityRangeItem composes one editable availability range with its guarded action.
+// AvailabilityRangeItem composes one editable availability range with its guarded action: the
+// view model already wires the remove button through the translated confirmation prompt.

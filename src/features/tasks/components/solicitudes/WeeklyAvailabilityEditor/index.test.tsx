@@ -8,7 +8,8 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import type { AvailabilityMemberDto } from '@/features/tasks/data/availability/types'
 import WeeklyAvailabilityEditor from './index'
 
-const DAY_NAMES: Record<string, string> = {
+/** English copy for the plain (no-variable) keys this editor renders, by the key's last segment. */
+const PLAIN_COPY: Record<string, string> = {
   monday: 'Monday',
   tuesday: 'Tuesday',
   wednesday: 'Wednesday',
@@ -16,13 +17,17 @@ const DAY_NAMES: Record<string, string> = {
   friday: 'Friday',
   saturday: 'Saturday',
   sunday: 'Sunday',
+  startTime: 'start time',
+  endTime: 'end time',
+  note: 'note',
+  save: 'Save availability',
 }
 
 vi.mock('@/shared/i18n', () => ({
   useT: () => ({
     t: (key: string, vars?: Record<string, string | number>) => {
       const dayKey = key.split('.').at(-1) ?? key
-      if (DAY_NAMES[dayKey]) return DAY_NAMES[dayKey]
+      if (PLAIN_COPY[dayKey]) return PLAIN_COPY[dayKey]
       if (key.endsWith('addRange')) return `Add ${vars?.day ?? ''} range`
       if (key.endsWith('removeRange')) {
         return `Remove ${vars?.day ?? ''} range ${vars?.number ?? ''}`

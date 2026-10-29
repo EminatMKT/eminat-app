@@ -40,7 +40,7 @@ export type EditorStatus = 'idle' | 'saving' | 'saved' | 'error'
 export type EditorState = {
   ranges: WeeklyAvailabilityRange[]
   status: EditorStatus
-  message: string | null
+  message: I18nKey | null
 }
 
 export type LabelValues = {

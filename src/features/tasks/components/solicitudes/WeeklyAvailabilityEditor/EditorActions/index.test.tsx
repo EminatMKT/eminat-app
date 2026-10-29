@@ -12,8 +12,8 @@ vi.mock('@/shared/i18n', () => ({
   useT: () => ({ t: (key: string) => key }),
 }))
 
-const SUCCESS_MESSAGE = 'Availability saved successfully.'
-const ERROR_MESSAGE = 'Could not save availability. Try again.'
+const SUCCESS_MESSAGE = EDITOR_COPY.saved
+const ERROR_MESSAGE = EDITOR_COPY.saveError
 const ignoreAction = () => undefined
 
 describe('EditorActions', () => {

@@ -5,6 +5,7 @@ import {
 } from 'vitest'
 import type { RangeValidationError } from '@/features/tasks/utils/availability'
 import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type { Translator } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/types'
 import type { AvailabilityRangeItemProps } from '../types'
 import buildAvailabilityRangeItemViewModel from './index'
 
@@ -29,6 +30,7 @@ const RANGE: EditableRange = {
 const ERRORS: RangeValidationError[] = [{ code: ERROR_CODE, rangeIndex: RANGE_INDEX }]
 const ignoreChange = () => undefined
 const ignoreRemove = () => undefined
+const translate: Translator = key => key
 
 const PROPS: AvailabilityRangeItemProps = {
   range: RANGE,
@@ -43,7 +45,7 @@ const PROPS: AvailabilityRangeItemProps = {
 
 describe('buildAvailabilityRangeItemViewModel', () => {
   it('builds three independently identified field props', () => {
-    const viewModel = buildAvailabilityRangeItemViewModel(PROPS)
+    const viewModel = buildAvailabilityRangeItemViewModel(PROPS, translate)
 
     expect(viewModel.startField.id).toContain(CLIENT_ID)
     expect(viewModel.endField.id).toContain(CLIENT_ID)
@@ -54,7 +56,7 @@ describe('buildAvailabilityRangeItemViewModel', () => {
   })
 
   it('assigns validation feedback to both time fields', () => {
-    const viewModel = buildAvailabilityRangeItemViewModel(PROPS)
+    const viewModel = buildAvailabilityRangeItemViewModel(PROPS, translate)
 
     expect(viewModel.startField.error).toBeDefined()
     expect(viewModel.endField.error).toBeDefined()
@@ -62,7 +64,7 @@ describe('buildAvailabilityRangeItemViewModel', () => {
   })
 
   it('keeps the caller-provided accessible removal label', () => {
-    const viewModel = buildAvailabilityRangeItemViewModel(PROPS)
+    const viewModel = buildAvailabilityRangeItemViewModel(PROPS, translate)
 
     expect(viewModel.removeButton.label).toBe(REMOVE_LABEL)
   })

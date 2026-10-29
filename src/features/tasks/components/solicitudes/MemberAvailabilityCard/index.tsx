@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import type { AvailabilityMemberDto } from '@/features/tasks/data/availability/types'
 import {
   compareDailyHours,
+  comparisonCopyVars,
   declaredHoursByDay,
   declaredWeeklyHours,
   sortRanges,
@@ -50,11 +51,7 @@ export default function MemberAvailabilityCard({ member, onEdit }: Props) {
               </li>)}</ListaRotulada>
               <p className={`${s.comparison} ${s[comparison.status]}`}>
                 <span aria-hidden="true">{STATUS_SYMBOLS[comparison.status]}</span>
-                {t(STATUS_COPY_KEYS[comparison.status], {
-                  declared: comparison.declaredHours,
-                  expected: comparison.expectedHours ?? 0,
-                  difference: Math.abs(comparison.differenceHours ?? 0),
-                })}
+                {t(STATUS_COPY_KEYS[comparison.status], comparisonCopyVars(comparison))}
               </p>
             </>}
           </section>

@@ -6,3 +6,6 @@ export const TIME_SEPARATOR = ':'
 
 /** Converts between minutes-since-midnight and hours. */
 export const MINUTES_PER_HOUR = 60
+
+/** Hour figure printed when a day has no jornada reference to compare against. */
+export const NO_HOURS = 0
