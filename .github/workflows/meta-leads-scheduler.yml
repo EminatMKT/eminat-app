@@ -14,6 +14,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   scheduler-contract:
+    if: github.event_name == 'pull_request' || (github.ref == 'refs/heads/main' && vars.LILLY_META_SCHEDULER_ENABLED == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
