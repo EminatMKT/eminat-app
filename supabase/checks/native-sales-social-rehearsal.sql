@@ -40,7 +40,7 @@ DECLARE r jsonb; receipt uuid; BEGIN
   jsonb_build_object('externalLeadId',p_id,'pageId','405695562628937','formId','612660371798285'),
   md5(p_id)||md5(p_id),gen_random_uuid(),gen_random_uuid());
  IF r->>'replayed'='true' THEN RETURN r; END IF;
- SELECT id INTO receipt FROM public.sales_social_webhook_receipts WHERE external_event_id='leadgen:'||p_id;
+ SELECT id INTO receipt FROM public.sales_social_webhook_receipts WHERE external_event_id='leadgen:'||p_id AND status='RETRY';
  RETURN public.native_sales_retry_social_lead(receipt,p_fields||'{"_form_id":"612660371798285"}'::jsonb);
 END $$;
 DO $$ DECLARE r jsonb; n jsonb; lead_a uuid; lead_b uuid; contact uuid; before_count integer; BEGIN
@@ -94,6 +94,19 @@ DO $$ DECLARE r jsonb; n jsonb; lead_a uuid; lead_b uuid; contact uuid; before_c
  IF (public.native_sales_report_summary('9efab353-46a0-43d1-9901-e3f185dc5d30','40000000-0000-4000-8000-000000000002')#>>'{leads,total}')::integer<>2 THEN RAISE EXCEPTION 'seller dashboard/report scope expanded'; END IF;
  IF EXISTS(SELECT 1 FROM public.native_sales_visible_leads('9efab353-46a0-43d1-9901-e3f185dc5d30','40000000-0000-4000-8000-000000000002',100,0,NULL,NULL) WHERE owner_member_id<>'40000000-0000-4000-8000-000000000002') THEN RAISE EXCEPTION 'seller scope expanded'; END IF;
  BEGIN PERFORM * FROM public.native_sales_visible_leads('30000000-0000-4000-8000-000000000002','40000000-0000-4000-8000-000000000001',100,0,NULL,NULL); RAISE EXCEPTION 'wrong organization accepted'; EXCEPTION WHEN SQLSTATE '42501' THEN NULL; END;
+ -- Reconnecting the same approved Page must preserve the canonical external identity.
+ UPDATE public.sales_social_assets SET status='DISABLED' WHERE external_asset_id='405695562628937';
+ INSERT INTO public.sales_social_integrations(id,organization_id,provider_code,status,app_id,external_business_id,created_by,updated_by)
+ VALUES('50000000-0000-4000-8000-000000000002','9efab353-46a0-43d1-9901-e3f185dc5d30','META','CONNECTED','919434760646769','1865633431087642','40000000-0000-4000-8000-000000000001','40000000-0000-4000-8000-000000000001');
+ INSERT INTO public.sales_social_accounts(id,organization_id,integration_id,external_account_id,account_type)
+ VALUES('60000000-0000-4000-8000-000000000002','9efab353-46a0-43d1-9901-e3f185dc5d30','50000000-0000-4000-8000-000000000002','1865633431087642','business');
+ INSERT INTO public.sales_social_assets(id,organization_id,account_id,external_asset_id,asset_type,status,default_owner_member_id)
+ VALUES('70000000-0000-4000-8000-000000000002','9efab353-46a0-43d1-9901-e3f185dc5d30','60000000-0000-4000-8000-000000000002','405695562628937','page','SUBSCRIBED','40000000-0000-4000-8000-000000000001');
+ r:=pg_temp.meta_delivery('1001','{"email":"qa-a@example.invalid"}');
+ IF r->>'status'<>'PROCESSED' OR (SELECT count(*) FROM public.sales_leads)<>6 OR
+   (SELECT count(*) FROM public.sales_social_leads WHERE external_lead_id='1001')<>1 OR
+   (SELECT count(*) FROM public.sales_activities WHERE lead_id=lead_a)<>1 THEN
+   RAISE EXCEPTION 'Page reconnect duplicated or rejected canonical external identity'; END IF;
   UPDATE public.sales_social_assets SET status='DISABLED' WHERE external_asset_id='405695562628937';
   INSERT INTO public.sales_social_oauth_states
     (id,organization_id,requester_member_id,default_owner_member_id,state_hash,status,

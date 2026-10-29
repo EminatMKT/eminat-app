@@ -99,7 +99,8 @@ BEGIN
   SELECT * INTO v_mapping FROM public.sales_social_leads
     WHERE organization_id=v_org AND external_lead_id=p_normalized->>'externalLeadId';
   IF FOUND THEN
-    IF v_mapping.asset_id<>v_asset.id OR v_mapping.form_id IS DISTINCT FROM p_normalized->>'formId' THEN
+    IF v_mapping.page_id IS DISTINCT FROM p_external_asset_id
+      OR v_mapping.form_id IS DISTINCT FROM p_normalized->>'formId' THEN
       RAISE EXCEPTION 'META_REPLAY_CONFLICT' USING ERRCODE='23505'; END IF;
     v_lead:=v_mapping.lead_id;
   ELSE
