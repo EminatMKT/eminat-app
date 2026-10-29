@@ -19,7 +19,7 @@ export const SUB_ITEMS: Record<PanelKey, SubItem[]> = {
     { id: 'tasks-projects', icon: '📁', label: 'Projects', labelKey: 'projects.title', tab: 'projects' },
     { id: 'tasks-calendar', icon: '📅', label: 'Calendar', labelKey: 'calendar.title', tab: 'calendar' },
     { id: 'tasks-team', icon: '👥', label: 'Team', labelKey: 'team.title', tab: 'team' },
-    { id: 'tasks-rep', icon: '💰', label: 'Report', tab: 'reporte' },
+    { id: 'tasks-rep', icon: '📄', label: 'Reports', labelKey: 'tasks.report.navigation', tab: 'reporte' },
   ],
   // Lo que le queda a Stratix con las tareas afuera: marketing propiamente dicho. Las cuatro
   // secciones que faltan —Dashboard, Production, Requests, Report— viven en `tasks`.

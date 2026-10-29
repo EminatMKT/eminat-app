@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { PRODUCTION_REPORT_DISCLAIMER } from './disclaimer'
 import { reportHtml } from './index'
 import type { I18nKey } from '@/shared/i18n'
 import type { Actividad } from '@/features/tasks/types'
@@ -11,7 +12,7 @@ const t = (k: I18nKey) => k
 const acts: Actividad[] = [{ titulo: 'Post', fecha_inicio: '2026-08-17' }]
 const datos = (intlLocale: string) => ({
   acts, nombre: 'Ada', mes: '2026-08', intlLocale,
-  completadas: 1, nombrePorId: {}, t, hoy: new Date(2027, 0, 15),
+  nombrePorId: {}, t, hoy: new Date(2027, 0, 15),
 })
 
 describe('reportHtml — el período', () => {
@@ -21,17 +22,17 @@ describe('reportHtml — el período', () => {
   })
 
   it('no imprime la clave cruda: `2026-08` es lo que se leía antes en la cabecera', () => {
-    expect(reportHtml(datos('es-EC'))).not.toContain('2026-08')
+    expect(reportHtml(datos('es-EC'))).not.toContain('>2026-08<')
   })
 
   it('el año sale del período, no del reloj: en 2027 la hoja de agosto sigue diciendo 2026', () => {
     expect(reportHtml(datos('en-US'))).not.toMatch(/August 2027/i)
   })
 
-  it('muestra únicamente KPIs y columnas operativas', () => {
+  it('omite resúmenes y estados sin borrar el trabajo', () => {
     const html = reportHtml(datos('es-EC'))
-    expect(html).toContain('stratix.report.totalTasks')
-    expect(html).toContain('stratix.report.completed')
+    expect(html).not.toContain('stratix.report.totalTasks')
+    expect(html).not.toContain('stratix.report.completed')
     expect(html).toContain('stratix.report.colTask')
     expect(html).toContain('stratix.report.colArea')
     expect(html).toContain('stratix.report.colAssignee')
@@ -58,4 +59,26 @@ describe('reportHtml — el período', () => {
     expect(html).toContain('common.print')
     expect(html).not.toContain('>Print</button>')
   })
+})
+
+it('prints the exact disclaimer once immediately under the heading in every locale and empty report', () => {
+  for (const locale of ['es-EC', 'en-US']) for (const rows of [acts, []]) {
+    const html = reportHtml({ ...datos(locale), acts: rows })
+    expect(html.split(PRODUCTION_REPORT_DISCLAIMER)).toHaveLength(2)
+    expect(html).toMatch(/Full-service agency · Integrated marketing<\/div>\s*<p[^>]*>El beneficiario/)
+  }
+})
+it('preserves titles, descriptions, assignees and dates, escaping HTML; never renders status or effort', () => {
+  const html = reportHtml({ ...datos('en-US'), acts: [{
+    titulo: 'Completed design review', descripcion: '<script>bad()</script>\nWork description',
+    estado: 'Completado', horas: 999, dias_produccion: 888,
+    fecha_inicio: '2026-08-10', fecha_entrega: '2026-08-20',
+  }] })
+  expect(html).toContain('Completed design review')
+  expect(html).toContain('&lt;script&gt;bad()&lt;/script&gt;')
+  expect(html).toContain('Work description')
+  expect(html).toContain('2026-08-10')
+  expect(html).toContain('2026-08-20')
+  expect(html).toContain('stratix.estado.completado')
+  expect(html).not.toMatch(/>999<|>888<|totalTasks|report.completed/)
 })
