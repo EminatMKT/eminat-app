@@ -111,7 +111,14 @@ Delete only symbols/files with no consumer outside the synthetic Availability pa
 
 This is a bounded reference pass, not an additional product-design phase. It must not expand Delivery 1.
 
-- [ ] **Step 1: Confirm Mobbin is connected in Pi**
+**Status (audited 2026-10-30):** Done. `docs/superpowers/ui-references/2026-10-21-task-availability-references.md`
+exists with every required heading (`Delivery 1 constraints`, `Search queries`, `Selected
+references`, `Patterns worth adapting`, `Patterns explicitly rejected`, `Resulting implementation
+guidance`), plus two extra sections (`Resolved UI ambiguities`, `shadcn/ui component check`) added
+by later commits (`3b4255ae`, `782244e4`). It carries 12 references, not the "five maximum" Step 5
+asks for — a real deviation from the plan's own skimmability guidance, not a missing deliverable.
+
+- [x] **Step 1: Confirm Mobbin is connected in Pi**
 
 Run `/mcp` or inspect the `mobbin` server. Confirm the six Mobbin tools are available before spending implementation time:
 
@@ -126,7 +133,7 @@ mobbin_read_mobbin_section_search_results
 
 If authentication has expired, reconnect `mobbin` and complete OAuth. Do not place credentials in the repository.
 
-- [ ] **Step 2: Run three narrow screen searches**
+- [x] **Step 2: Run three narrow screen searches**
 
 Search desktop/web references in three distinct angles rather than one broad query:
 
@@ -138,7 +145,7 @@ Search desktop/web references in three distinct angles rather than one broad que
 
 Request no more than 12 results per search. Prefer shipped workforce, calendar, staff-planning, and collaborative productivity products. Do not search marketing landing pages.
 
-- [ ] **Step 3: Select five useful references**
+- [x] **Step 3: Select five useful references**
 
 For each selected reference, record:
 
@@ -156,7 +163,7 @@ For each selected reference, record:
 
 A Mobbin example proves that a product used a pattern; it does not prove that the pattern improved usability. Do not copy branding, text, assets, or an entire composition.
 
-- [ ] **Step 4: Write the bounded reference brief**
+- [x] **Step 4: Write the bounded reference brief**
 
 Create `docs/superpowers/ui-references/2026-10-21-task-availability-references.md` with:
 
@@ -187,7 +194,7 @@ The resulting guidance must stay inside the approved scope:
 - teammate/admin read-only cards;
 - no live state, task overlays, approvals, exceptions, or balances.
 
-- [ ] **Step 5: Review the brief from a smartphone-friendly perspective**
+- [x] **Step 5: Review the brief from a smartphone-friendly perspective** (reference count exceeds the stated cap — see Status above)
 
 Keep the brief skimmable:
 
@@ -197,7 +204,7 @@ Keep the brief skimmable:
 - no pasted gallery dumps;
 - no large unfiltered MCP output committed to Git.
 
-- [ ] **Step 6: Commit the research work unit**
+- [x] **Step 6: Commit the research work unit**
 
 ```bash
 git add docs/superpowers/ui-references/2026-10-21-task-availability-references.md
@@ -212,7 +219,21 @@ git commit -m "docs(tasks): capture availability UI references"
 - Modify: `src/features/tasks/utils/availability/index.ts`
 - Modify: `src/features/tasks/utils/availability/index.test.ts`
 
-- [ ] **Step 1: Replace the synthetic tests with failing recurring-range tests**
+**Status (audited 2026-10-30):** Done. The domain was split one-function-per-file (repo
+convention) under `src/features/tasks/utils/availability/{duration-hours,sort-ranges,
+validate-ranges,declared-hours-by-day,declared-weekly-hours,compare-daily-hours,has-overlap}/`,
+each with its own test, plus `index.ts` as a pure re-export barrel and `types.ts` for the shared
+types. Every public contract named in the plan (`durationHours`, `sortRanges`, `validateRanges`,
+`declaredHoursByDay`, `declaredWeeklyHours`, `compareDailyHours`, `Weekday`,
+`WeeklyAvailabilityRange`) exists with the exact signatures specified, verified by reading
+`index.ts` and `types.ts` directly. All Step 4 boundary cases are present, just distributed across
+the per-function test files instead of the central one: `00:00–00:30`/`23:00–23:59` in
+`duration-hours/index.test.ts:15-16`, Sunday ordering in `sort-ranges/index.test.ts`, and
+reverse-order touching ranges in `validate-ranges/index.test.ts` ("allows two touching ranges even
+when the later one comes first in the input"). `pnpm test` (full suite, 2315/2315) and
+`pnpm typecheck` both pass.
+
+- [x] **Step 1: Replace the synthetic tests with failing recurring-range tests**
 
 Write tests around these public contracts:
 
@@ -293,7 +314,7 @@ describe('weekly availability domain', () => {
 })
 ```
 
-- [ ] **Step 2: Run the focused test and confirm RED**
+- [x] **Step 2: Run the focused test and confirm RED**
 
 Run:
 
@@ -303,7 +324,7 @@ pnpm test -- src/features/tasks/utils/availability/index.test.ts
 
 Expected: FAIL because the recurring-range types/functions do not exist yet.
 
-- [ ] **Step 3: Implement minute-based pure functions**
+- [x] **Step 3: Implement minute-based pure functions**
 
 Replace the synthetic 40-hour/slot API with:
 
@@ -416,7 +437,7 @@ export function compareDailyHours(
 
 Do not add a weekly expected-hours function.
 
-- [ ] **Step 4: Run GREEN and triangulate boundary cases**
+- [x] **Step 4: Run GREEN and triangulate boundary cases**
 
 Run:
 
@@ -428,7 +449,7 @@ Expected: PASS.
 
 Add explicit tests for `00:00–00:30`, `23:00–23:59`, Sunday, and two touching ranges in reverse input order. Run the same command and keep it GREEN.
 
-- [ ] **Step 5: Commit the domain work unit**
+- [x] **Step 5: Commit the domain work unit**
 
 ```bash
 git add src/features/tasks/utils/availability/index.ts \
@@ -446,7 +467,28 @@ git commit -m "feat(tasks): define recurring availability domain"
 - Modify: `e2e/seed.ts`
 - Modify: `src/shared/data/tables.ts`
 
-- [ ] **Step 1: Extend E2E fixtures for team, jornada, and cleanup**
+**Status (audited 2026-10-30):** Done, and extended by a later fix migration. The table, RLS
+policies, `replace_own_weekly_availability`, and `get_visible_weekly_availability` all exist
+exactly as specified in
+`supabase/migrations/20261021010000_task_weekly_availability.sql`. A second migration,
+`supabase/migrations/20261030001822_fix_admin_own_weekly_availability.sql` (not in the original
+plan), widens `can_read_weekly_availability`'s owner-side check with `owner.rol = 'admin'`
+because admin carries no `role_modules` rows by design (per CLAUDE.md), which silently hid an
+admin's own row from themselves. `src/shared/data/tables.ts:36` registers
+`weeklyAvailabilityRanges: 'user_weekly_availability_ranges'`. The Step 1 fixtures were not added
+to `e2e/seed.ts` in place; they live as separate one-function-per-file modules in
+`e2e/availability-seed/` (`assign-organization.ts`, `clear-weekly-availability.ts`,
+`first-departamento-id.ts`) per this repo's file-size convention — a deliberate deviation from the
+plan's literal file list, not a gap. `e2e/task-availability-rls/index.spec.ts` covers every case
+Step 2 lists, plus the admin-self-read case the fix migration exists for. Ran live against the
+local stack: all 8 tests pass (`pnpm exec playwright test e2e/task-availability-rls` → 8 passed).
+`pnpm db:rls` passes clean. `pnpm db:migraciones-fresca` fails, but on an unrelated, pre-existing
+migration from `main` (`20261019120000_native_sales_membership_archive.sql`, referencing
+`storage.buckets`, which the disposable bare-Postgres image this check uses doesn't provision) —
+confirmed via `git log main -- <that file>`; it aborts before ever reaching either availability
+migration, so it is not evidence against this task.
+
+- [x] **Step 1: Extend E2E fixtures for team, jornada, and cleanup**
 
 Add focused helpers to `e2e/seed.ts` rather than changing unrelated fixture defaults:
 
@@ -473,7 +515,7 @@ export async function clearWeeklyAvailability(userIds: string[]) {
 
 Keep test-created users, teams, and jornadas deterministic and clean them in `afterAll`/`afterEach` following existing E2E fixture conventions.
 
-- [ ] **Step 2: Write failing direct-RLS tests**
+- [x] **Step 2: Write failing direct-RLS tests**
 
 Create `e2e/task-availability-rls.spec.ts` with these identities:
 
@@ -507,7 +549,7 @@ Also assert:
 - `replace_own_weekly_availability` replaces only the caller's rows atomically;
 - RPC JSON containing `user_id` is rejected as malformed rather than trusted.
 
-- [ ] **Step 3: Run the RLS spec and confirm RED**
+- [x] **Step 3: Run the RLS spec and confirm RED**
 
 Run:
 
@@ -517,7 +559,7 @@ pnpm exec playwright test e2e/task-availability-rls.spec.ts
 
 Expected: FAIL because the table and RPC do not exist.
 
-- [ ] **Step 4: Create the complete migration**
+- [x] **Step 4: Create the complete migration**
 
 Implement `supabase/migrations/20261021010000_task_weekly_availability.sql` with this structure:
 
@@ -784,7 +826,7 @@ Register the table in `src/shared/data/tables.ts`:
 weeklyAvailabilityRanges: 'user_weekly_availability_ranges',
 ```
 
-- [ ] **Step 5: Validate the migration and prove GREEN**
+- [x] **Step 5: Validate the migration and prove GREEN** (`db:migraciones-fresca` blocked by an unrelated pre-existing migration — see Status above; `db:rls` and the RLS e2e spec both pass live)
 
 Run:
 
@@ -796,7 +838,7 @@ pnpm exec playwright test e2e/task-availability-rls.spec.ts
 
 Expected: all commands PASS. Confirm explicitly that admin update/delete of another owner's rows fails.
 
-- [ ] **Step 6: Commit the database work unit**
+- [x] **Step 6: Commit the database work unit**
 
 ```bash
 git add supabase/migrations/20261021010000_task_weekly_availability.sql \
@@ -817,7 +859,26 @@ git commit -m "feat(tasks): persist self-managed weekly availability"
 - Create: `src/app/api/tasks/availability/route.ts`
 - Create: `src/app/api/tasks/availability/route.test.ts`
 
-- [ ] **Step 1: Define shared transport contracts**
+**Status (audited 2026-10-30):** Done, and more decomposed than the plan sketched. `route.ts`
+(`src/app/api/tasks/availability/route.ts`) only exports `GET`/`PUT`, delegating to
+`helpers/{schema,respond,normalize}` and `repository/{authorize-viewer,respond-with-availability,
+load-viewer,load-response,save-rpc}`, each its own file. `authorize-viewer/index.ts` calls
+`requireModule(MODULE.TASKS)` then resolves the caller's `usuarios.id` — matching the plan's
+`access.ok`/`requireModule('tasks')` guard. `helpers/schema/index.ts`'s `saveSchema` is `.strict()`
+on both the range and the envelope, `weekday` is a `1`-`7` literal union (not a loose
+`z.number()`), and there is structurally nowhere to put a `userId` — stronger than the plan's
+sketch, not weaker. `save-rpc/index.ts` maps the exclusion-violation SQLSTATE to 409 and anything
+else to 400, and calls `replace_own_weekly_availability` with only `weekday`/`starts_at`/`ends_at`/
+`note`. No `supabaseAdmin()` import anywhere in this route tree (confirmed by reading every file).
+`src/features/tasks/data/availability/{fetch-visible,save-own}/index.ts` match the plan's adapter
+functions exactly, including the `TASK_AVAILABILITY_LOAD_FAILED`/`TASK_AVAILABILITY_SAVE_FAILED`
+error strings. `route.test.ts` covers every case Step 2 lists except the three team-scoping GET
+cases (same-team/teamless/admin-read-all) — those are pushed down to
+`get_visible_weekly_availability()` and proven instead by the Task 2 RLS e2e spec, a reasonable
+split since the route itself only serializes the RPC's rows. `pnpm typecheck` passes; the full
+`pnpm test` run (2315/2315) includes this route's and the adapter's tests.
+
+- [x] **Step 1: Define shared transport contracts**
 
 Create `src/features/tasks/data/availability/types.ts`:
 
@@ -856,7 +917,7 @@ export type SaveOwnAvailabilityRequest = {
 }
 ```
 
-- [ ] **Step 2: Write failing route tests**
+- [x] **Step 2: Write failing route tests**
 
 Follow the mock pattern in `src/app/api/tasks/calendar/route.test.ts` and `src/app/api/tasks/save/route.ts`.
 
@@ -893,7 +954,7 @@ const saveSchema = z.object({ ranges: z.array(rangeSchema).max(70) }).strict()
 
 The 70-range cap is a defensive transport limit: ten ranges for each of seven days. It is not a product quota and can be revised with evidence.
 
-- [ ] **Step 3: Run route tests and confirm RED**
+- [x] **Step 3: Run route tests and confirm RED**
 
 ```bash
 pnpm test -- src/app/api/tasks/availability/route.test.ts
@@ -901,7 +962,7 @@ pnpm test -- src/app/api/tasks/availability/route.test.ts
 
 Expected: FAIL because the route does not exist.
 
-- [ ] **Step 4: Implement GET and self-only PUT**
+- [x] **Step 4: Implement GET and self-only PUT**
 
 Implement `src/app/api/tasks/availability/route.ts` using:
 
@@ -951,7 +1012,7 @@ await db.rpc('replace_own_weekly_availability', {
 
 Do not use `supabaseAdmin()` and do not accept `userId` in the PUT payload.
 
-- [ ] **Step 5: Write the browser adapter tests and implementation**
+- [x] **Step 5: Write the browser adapter tests and implementation**
 
 Test exact behavior:
 
@@ -984,7 +1045,7 @@ export async function saveOwnAvailability(
 }
 ```
 
-- [ ] **Step 6: Run GREEN and typecheck the seam**
+- [x] **Step 6: Run GREEN and typecheck the seam**
 
 ```bash
 pnpm test -- \
@@ -995,7 +1056,7 @@ pnpm typecheck
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit the API work unit**
+- [x] **Step 7: Commit the API work unit**
 
 ```bash
 git add src/features/tasks/data/availability \
@@ -1016,7 +1077,20 @@ git commit -m "feat(tasks): expose weekly availability API"
 - Delete after import check: `src/features/tasks/components/solicitudes/HourSlot/`
 - Delete after import check: `src/features/tasks/components/solicitudes/ActiveTaskLine/`
 
-- [ ] **Step 1: State the interface intent before writing the component**
+**Status (audited 2026-10-30):** Mostly done; one real gap. `MemberAvailabilityCard/index.tsx`
+renders persisted ranges chronologically (`sortRanges`), the weekly declared total, the
+empty-day/no-schedule distinction, and `HoursStatus` (symbol + text, never color alone) per day —
+verified directly against `index.test.ts`'s five cases, all passing. `SolicitudesAvailabilityView`
+fetches once via `fetchVisibleAvailability()` in a mount `useEffect` (`index.tsx:29-31`) and swaps
+a card for `WeeklyAvailabilityEditor` only when `canEdit` — one aggregate request, not a
+per-card waterfall, matching the plan and acceptance item 15. The real gap is Step 6: `rg -n
+"HourSlot|ActiveTaskLine|slotOcupado|HORAS_SEMANALES|cargaDe" src` still returns matches, and
+both are only their own definitions — `HourSlot/index.tsx` and `ActiveTaskLine/index.tsx` have
+zero consumers anywhere in `src/`, confirmed by that exact grep. They were never deleted. This is
+dead code, not a functional defect (nothing wires them into the new Availability screen), but it
+is exactly the Step 6 instruction left undone.
+
+- [x] **Step 1: State the interface intent before writing the component**
 
 Record this intent in the task notes or component test description; do not introduce a separate design system:
 
@@ -1030,7 +1104,7 @@ Typography/spacing: reuse existing Tasks tokens and component rhythm.
 Signature: each day is a compact schedule row whose ranges and daily comparison read together.
 ```
 
-- [ ] **Step 2: Write failing card tests**
+- [x] **Step 2: Write failing card tests**
 
 Cover:
 
@@ -1054,7 +1128,7 @@ Also test:
 - team name is visible when available;
 - range note stays inside the same semantic list item as its time.
 
-- [ ] **Step 3: Run card tests and confirm RED**
+- [x] **Step 3: Run card tests and confirm RED**
 
 ```bash
 pnpm test -- src/features/tasks/components/solicitudes/MemberAvailabilityCard/index.test.tsx
@@ -1062,7 +1136,7 @@ pnpm test -- src/features/tasks/components/solicitudes/MemberAvailabilityCard/in
 
 Expected: FAIL against the synthetic card.
 
-- [ ] **Step 4: Implement the persisted schedule card**
+- [x] **Step 4: Implement the persisted schedule card**
 
 Change props to:
 
@@ -1084,7 +1158,7 @@ Render seven labeled days from a stable weekday constant. For each non-empty day
 
 Use semantic headings and lists. Keep color supplementary.
 
-- [ ] **Step 5: Make the view lazy and aggregate**
+- [x] **Step 5: Make the view lazy and aggregate**
 
 Update `SolicitudesAvailabilityView` to:
 
@@ -1097,7 +1171,9 @@ Update `SolicitudesAvailabilityView` to:
 
 Do not issue one request per card.
 
-- [ ] **Step 6: Remove synthetic imports and dead components**
+- [ ] **Step 6: Remove synthetic imports and dead components** — NOT DONE. `HourSlot/` and
+`ActiveTaskLine/` (both `.tsx` and `.module.css`) are still in the tree with zero consumers; see
+Status above and the Remaining Work section.
 
 Run:
 
@@ -1107,7 +1183,7 @@ rg -n "HourSlot|ActiveTaskLine|slotOcupado|HORAS_SEMANALES|cargaDe" src
 
 Delete the synthetic-only components/styles and any now-unused exports. Preserve unrelated task workload helpers only if another consumer remains.
 
-- [ ] **Step 7: Run component, type, and CSS checks**
+- [x] **Step 7: Run component, type, and CSS checks**
 
 ```bash
 pnpm test -- src/features/tasks/components/solicitudes/MemberAvailabilityCard/index.test.tsx
@@ -1117,7 +1193,7 @@ pnpm lint:css
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit the truthful read-view work unit**
+- [x] **Step 8: Commit the truthful read-view work unit**
 
 ```bash
 git add src/features/tasks/components/solicitudes \
@@ -1135,7 +1211,28 @@ git commit -m "feat(tasks): show persisted team availability"
 - Create: `src/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/index.test.tsx`
 - Modify: `src/features/tasks/components/solicitudes/SolicitudesAvailabilityView/index.tsx`
 
-- [ ] **Step 1: Write failing editor interaction tests**
+**Status (audited 2026-10-30):** Done, with one dangling piece of visual polish. The editor is
+far more decomposed than the plan sketched: `controller/`, `editor-state/`, `save-flow/`,
+`DaySection/`, `AvailabilityRangeItem/` (with its own `view-model/`, `confirm-removal/`, and
+`AvailabilityRangeItemFrame/`), each boxed with its own test, following this repo's
+one-function-per-file convention. Confirmed directly: `EditableRange` keys off `clientId`
+(`range-index`/`controller` tree), never an array index; removal runs through
+`confirm-removal/index.ts` (`globalThis.confirm`) before calling `onRemove`; the remove button's
+accessible label is built from `EDITOR_COPY.removeRange` with `{day, number}` vars — the "Remove
+Monday range 2" shape the plan asks for; `RangeField/index.tsx` wires `aria-invalid` and
+`aria-describedby` to a `role="alert"` message exactly as specified; `index.test.tsx:99` proves a
+daily mismatch shows as text without disabling Save. `cf1d9ff3`/`0cc72ca8` (the Box→
+`AvailabilityRangeItemFrame` refactor) is complete and wired, not left mid-refactor. The one real
+gap, traced to the `fa18ebbd "wip(tasks): RangeField counter props (in progress)"` commit: the
+note field's character counter (`noteCounterProps`, `AvailabilityRangeItem/view-model/fields/
+note-counter/index.ts`) computes `counterNearLimit` and `Counter/index.tsx` renders it as
+`data-near-limit="true/false"` on the `<p>` — but no CSS file anywhere in
+`WeeklyAvailabilityEditor/` (`find ... -name "*.module.css"` → 4 files, grepped, zero hits for
+`near-limit`) consumes that attribute. The near-limit state is wired in markup and tested at the
+data-attribute level, but has no visual treatment — a real loose end from that WIP commit, not a
+functional break (the always-visible counter text itself still works).
+
+- [x] **Step 1: Write failing editor interaction tests**
 
 Use stable test IDs or accessible names based on day and row identity. Cover:
 
@@ -1176,7 +1273,7 @@ await user.type(ends[1], '18:00')
 expect(screen.getByText(/8 of 8 hours/i)).toBeInTheDocument()
 ```
 
-- [ ] **Step 2: Run editor tests and confirm RED**
+- [x] **Step 2: Run editor tests and confirm RED**
 
 ```bash
 pnpm test -- src/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/index.test.tsx
@@ -1184,7 +1281,7 @@ pnpm test -- src/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/
 
 Expected: FAIL because the editor does not exist.
 
-- [ ] **Step 3: Implement stable editor state**
+- [x] **Step 3: Implement stable editor state**
 
 Use a local editor-only key:
 
@@ -1214,7 +1311,7 @@ For each error:
 
 The weekly mismatch must never disable Save. Only structural validation or an active request disables it.
 
-- [ ] **Step 4: Wire explicit save and persisted refresh**
+- [x] **Step 4: Wire explicit save and persisted refresh**
 
 On Save:
 
@@ -1226,7 +1323,7 @@ On Save:
 
 The admin can open their own editor only. No prop or request path may target another user.
 
-- [ ] **Step 5: Run GREEN, accessibility checks, and narrow-layout assertions**
+- [x] **Step 5: Run GREEN, accessibility checks, and narrow-layout assertions** (DOM-level accessibility assertions only; real narrow-viewport rendering is unverified — see Task 7 and Remaining Work)
 
 ```bash
 pnpm test -- src/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/index.test.tsx
@@ -1244,7 +1341,7 @@ Confirm manually in the component test DOM that:
 - controls remain at least 24×24 CSS pixels, preferably 44×44 on narrow screens;
 - warning meaning is available as text.
 
-- [ ] **Step 6: Commit the editor work unit**
+- [x] **Step 6: Commit the editor work unit**
 
 ```bash
 git add src/features/tasks/components/solicitudes/WeeklyAvailabilityEditor \
@@ -1262,7 +1359,22 @@ git commit -m "feat(tasks): let users edit their weekly availability"
 - Modify: `src/shared/i18n/locales/en.json`
 - Test: existing i18n tests under `src/shared/i18n/__tests__/`
 
-- [ ] **Step 1: Add a failing tab-visibility assertion**
+**Status (audited 2026-10-30):** Mostly done; one real leftover of synthetic copy. The admin-only
+gate is fully removed: `SolicitudesTab/index.tsx` builds `views[solTab]` unconditionally from
+`SUB_TABS` for every Tasks user — there is no `esAdmin` filter anywhere in the file. Both locales
+carry 40 `tasks.availability.*` keys, a superset of the plan's required list (e.g. `loadError` was
+named `loadFailed`, plus extra keys for `saving`/`saved`/`removeConfirm`/`validationSummary` the
+later editor work needed), and `dayBelow`/`dayComplete`/`dayAbove` carry the `{declared}`/
+`{expected}`/`{difference}` placeholders Spanish and English both need. The leftover: the
+Availability header still renders `stratix.avail.title`/`stratix.avail.sub` in
+`SolicitudesAvailabilityView/index.tsx:55-56`, and `stratix.avail.sub` is still the OLD synthetic
+copy from before this delivery — `"Lunes a viernes · 9:00 — 18:00 · hora de Guayaquil"` / `"Monday
+to Friday · 9:00 AM — 6:00 PM · Guayaquil time"` (`es.json:947`, `en.json:947`). This directly
+contradicts the spec's own principle ("remove the synthetic schedule instead of presenting it as
+factual availability") — it is a real, user-visible trace of the fixed-hours assumption Delivery 1
+exists to remove, not just unused dead code.
+
+- [x] **Step 1: Add a failing tab-visibility assertion**
 
 Extract only if needed for a clean unit test:
 
@@ -1272,7 +1384,7 @@ export const visibleSolicitudesTabs = () => SUB_TABS
 
 Assert that Availability is present regardless of administrator status once the caller is already inside Tasks. Do not create new role-dependent visibility logic.
 
-- [ ] **Step 2: Run the focused test and confirm RED**
+- [x] **Step 2: Run the focused test and confirm RED**
 
 Run the new/updated tab test plus i18n contract tests:
 
@@ -1285,7 +1397,7 @@ pnpm test -- \
 
 Expected: tab assertion FAIL before removing the admin filter.
 
-- [ ] **Step 3: Remove the admin-only subtab gate**
+- [x] **Step 3: Remove the admin-only subtab gate**
 
 Replace:
 
@@ -1301,7 +1413,9 @@ const visibleTabs = SUB_TABS
 
 Render `views[solTab]` for every Tasks user. Keep module authorization at the existing module boundary and at the new API/RLS boundaries.
 
-- [ ] **Step 4: Replace old synthetic translations in both locales**
+- [ ] **Step 4: Replace old synthetic translations in both locales** — NOT fully done. `tasks.availability.*`
+is comprehensive, but `stratix.avail.sub`'s fixed 9-to-18 copy was never replaced; see Status above
+and Remaining Work.
 
 Add matching keys for:
 
@@ -1338,7 +1452,7 @@ Spanish copy must communicate daily comparison, for example:
 
 English copy must carry identical placeholders and semantics. Remove keys that described synthetic occupied/free slots only after confirming no consumers remain.
 
-- [ ] **Step 5: Run GREEN and the complete locale checks**
+- [x] **Step 5: Run GREEN and the complete locale checks**
 
 ```bash
 pnpm test -- \
@@ -1350,7 +1464,7 @@ pnpm typecheck
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit the access/copy work unit**
+- [x] **Step 6: Commit the access/copy work unit**
 
 ```bash
 git add src/features/tasks/components/solicitudes/SolicitudesTab \
@@ -1367,7 +1481,27 @@ git commit -m "feat(tasks): open availability to team members"
 - Create: `e2e/task-availability.spec.ts`
 - Modify if needed: `e2e/seed.ts`
 
-- [ ] **Step 1: Write the failing browser journey**
+**Status (audited 2026-10-30):** Partially done — this is where Delivery 1 is genuinely
+incomplete. Confirmed by running the actual gates, not by reading code:
+
+- `pnpm test` (full suite): **2315/2315 pass**, 585 files.
+- `pnpm typecheck`: **clean**.
+- `pnpm lint:css`: **clean**.
+- `pnpm db:rls`: **passes** (pre-existing RLS debt warnings on unrelated tables only).
+- `pnpm db:migraciones-fresca`: **fails**, but on a pre-existing, unrelated migration from `main`
+  (`20261019120000_native_sales_membership_archive.sql` needs `storage.buckets`, which the
+  disposable bare-Postgres image this check runs against never provisions) — confirmed via
+  `git log main -- supabase/migrations/20261019120000_native_sales_membership_archive.sql`; it
+  aborts before either availability migration runs, so this is not a Delivery 1 regression.
+- `pnpm exec playwright test e2e/task-availability-rls`: **8/8 pass**, run live against the
+  started local stack.
+- `pnpm exec playwright test e2e/task-availability.spec.ts`: **the file does not exist.**
+  `find e2e -iname "*task-availability*" ! -path "*rls*"` returns nothing; running Playwright
+  against that exact path returns `Error: No tests found.` Step 1's complete browser journey —
+  edit→save→reload-persists→teammate-read-only→admin-scope→narrow-viewport — was never written.
+  This is the single largest remaining gap in Delivery 1.
+
+- [ ] **Step 1: Write the failing browser journey** — NOT DONE. See Status above and Remaining Work.
 
 Build one serialized Playwright flow:
 
@@ -1386,7 +1520,7 @@ Build one serialized Playwright flow:
 
 Do not assert colors. Assert visible text, roles, labels, and authorization outcomes.
 
-- [ ] **Step 2: Run the journey and confirm RED before final wiring**
+- [ ] **Step 2: Run the journey and confirm RED before final wiring** — blocked on Step 1.
 
 ```bash
 pnpm exec playwright test e2e/task-availability.spec.ts
@@ -1394,11 +1528,11 @@ pnpm exec playwright test e2e/task-availability.spec.ts
 
 Expected: FAIL until all UI/API integration is complete.
 
-- [ ] **Step 3: Make the smallest integration fixes**
+- [ ] **Step 3: Make the smallest integration fixes** — nothing to fix found yet; depends on Step 1/2 actually running first.
 
 Fix only failures required by the approved Delivery 1 spec. Do not add approvals, history, live state, task overlays, or balances.
 
-- [ ] **Step 4: Run focused unit and component tests**
+- [x] **Step 4: Run focused unit and component tests** (ran as part of the full `pnpm test` pass — all green)
 
 ```bash
 pnpm test -- \
@@ -1412,7 +1546,7 @@ pnpm test -- \
 
 Expected: PASS.
 
-- [ ] **Step 5: Run static and database gates**
+- [x] **Step 5: Run static and database gates** (`typecheck`/`lint:css`/`db:rls` pass; `db:migraciones-fresca` blocked by an unrelated pre-existing migration — see Status above)
 
 ```bash
 pnpm typecheck
@@ -1423,7 +1557,8 @@ pnpm db:rls
 
 Expected: PASS.
 
-- [ ] **Step 6: Run focused RLS and browser E2E**
+- [ ] **Step 6: Run focused RLS and browser E2E** — RLS half passes 8/8 live; the browser-E2E half
+cannot run because `e2e/task-availability.spec.ts` does not exist.
 
 ```bash
 pnpm exec playwright test \
@@ -1433,7 +1568,7 @@ pnpm exec playwright test \
 
 Expected: PASS.
 
-- [ ] **Step 7: Run the repository test suite**
+- [x] **Step 7: Run the repository test suite** — `pnpm test`: 2315/2315 pass, no regressions observed.
 
 ```bash
 pnpm test
@@ -1441,7 +1576,7 @@ pnpm test
 
 Expected: PASS with no regression in Tasks or organizational catalogs.
 
-- [ ] **Step 8: Inspect the review workload and commit the final journey**
+- [ ] **Step 8: Inspect the review workload and commit the final journey** — blocked on Step 1.
 
 ```bash
 git diff --stat HEAD~6..HEAD
@@ -1454,24 +1589,124 @@ The status must still show the user's pre-existing `.gitignore`/`.pi` changes un
 
 ---
 
+## Remaining Work
+
+Audited 2026-10-30 against the real code, not commit messages. Three concrete items remain
+before Delivery 1 is actually complete. None requires new product scope — all three close gaps
+inside the plan's own Tasks 4, 5, 6, and 7.
+
+### Remaining 1: Write the complete browser journey (closes Task 7, Step 1)
+
+**Files:**
+- Create: `e2e/task-availability.spec.ts`
+- Modify if needed: `e2e/availability-seed/` (reuse `assign-organization.ts`,
+  `clear-weekly-availability.ts`, `first-departamento-id.ts` — do not duplicate their logic)
+
+This is the one genuinely missing deliverable. `e2e/task-availability-rls/index.spec.ts` proves
+authorization and constraints at the database boundary; nothing proves the UI journey a real user
+takes.
+
+1. Seed one team of two active `stratix360`-role users (owner + teammate) and one `admin` user,
+   following the exact pattern `e2e/task-availability-rls/index.spec.ts:84-121` already
+   established (`ensureUser`, `ensureTeam`, `assignOrganization`, cleanup in `afterAll`). Assign
+   the owner an active jornada via `assignOrganization({ userId, equipoId, jornadaId })` — the RLS
+   spec passes `jornadaId: null` throughout; this journey needs a real one so `8 of 8 hours` has
+   something to compare against.
+2. Authenticate as the owner (reuse this repo's existing Playwright login helper — check
+   `e2e/roles/` or `e2e/lilly-access.spec.ts` for the current UI-login pattern rather than
+   reinventing one), open `/tasks`, select Requests → Availability.
+3. Enter edit mode on the owner's own card, add `09:00–13:00` and `14:00–17:00` on Monday, add the
+   note `Not available for meetings` to the second range, assert `7 of 8 hours` renders as text
+   (not color-only) with the one-hour-below symbol, then Save — assert Save is not disabled by
+   the warning.
+4. Reload the page and assert both ranges and the note persisted (proves the full round trip
+   through `PUT`/`GET` and the `replace_own_weekly_availability` RPC, not just component state).
+5. Assert the teammate's card renders with no edit affordance (`canEdit: false` end to end).
+6. Authenticate as admin, assert the admin's card is visible among "all relevant" schedules, and
+   that the admin can open only their own card's editor — not the owner's or teammate's.
+7. Resize to a narrow viewport (the project's existing mobile breakpoint — check
+   `e2e/constants.ts` or an existing responsive spec for the viewport size already used elsewhere
+   rather than inventing a new one) and assert no horizontal page overflow and every control
+   stays reachable. This is the only remaining unverified half of Final Acceptance Checklist item
+   14 — accessibility *roles and labels* are already proven at the unit level
+   (`WeeklyAvailabilityEditor/index.test.tsx`, `RangeField/index.test.tsx`); real rendered
+   narrow-viewport behavior is not.
+8. Run:
+
+```bash
+pnpm exec playwright test e2e/task-availability-rls e2e/task-availability.spec.ts
+```
+
+Expected: both pass. Then re-run the full Task 7 gate list (`pnpm test`, `pnpm typecheck`,
+`pnpm lint:css`, `pnpm db:rls`) once more to confirm nothing regressed, and commit per Task 7
+Step 8's original instructions.
+
+### Remaining 2: Delete the dead synthetic components (closes Task 4, Step 6)
+
+**Files:**
+- Delete: `src/features/tasks/components/solicitudes/HourSlot/index.tsx`,
+  `src/features/tasks/components/solicitudes/HourSlot/index.module.css`
+- Delete: `src/features/tasks/components/solicitudes/ActiveTaskLine/index.tsx`,
+  `src/features/tasks/components/solicitudes/ActiveTaskLine/index.module.css`
+
+1. Re-run the plan's own check to confirm nothing has started importing them since this audit:
+
+```bash
+rg -n "HourSlot|ActiveTaskLine|slotOcupado|HORAS_SEMANALES|cargaDe" src
+```
+
+2. If the only matches are each component's own definition (as of this audit, they are), delete
+   both folders.
+3. Run `pnpm typecheck` and `pnpm test` to confirm nothing else referenced them.
+4. Commit as its own reviewable unit — this is pure dead-code removal, unrelated to any other
+   pending change.
+
+### Remaining 3: Finish replacing synthetic copy, and wire the near-limit counter style (closes Task 6, Step 4 and the Task 5 RangeField-counter WIP thread)
+
+**Files:**
+- Modify: `src/features/tasks/components/solicitudes/SolicitudesAvailabilityView/index.tsx`
+- Modify: `src/shared/i18n/locales/es.json`, `src/shared/i18n/locales/en.json`
+- Modify: `src/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField/Counter/`
+  (add `index.module.css`) or the existing
+  `WeeklyAvailabilityEditor/AvailabilityRangeItem/index.module.css`
+
+1. `SolicitudesAvailabilityView/index.tsx:55-56` still renders `stratix.avail.title`/
+   `stratix.avail.sub`. `stratix.avail.sub`'s copy (`es.json:947`, `en.json:947`) is the old fixed
+   9-to-18 schedule claim this delivery exists to remove. Replace both keys with
+   `tasks.availability.*`-namespaced copy that describes the real screen (a recurring,
+   self-declared weekly schedule — no fixed hours claim), or drop the subtitle entirely if the
+   header reads fine without one. Either way, remove `stratix.avail.sub` from both locale files
+   once nothing references it — confirm with
+   `rg -n "stratix\.avail\." src`.
+2. Add a CSS rule that actually uses the `data-near-limit` attribute
+   `RangeField/Counter/index.tsx:4` already sets. `Counter` currently has no `index.module.css` of
+   its own (verified: its folder holds only `index.tsx`, `index.test.tsx`, `types.ts`). Give it
+   one with a `[data-near-limit='true']` rule (color from a `var(--c-...)` token, per this repo's
+   CSS rules — no raw literals), import it in `Counter/index.tsx`, and apply the module class
+   alongside the existing `data-near-limit` attribute so the near-limit state is visible, not just
+   present in the DOM.
+3. Run `pnpm lint:css` and the `Counter`/`RangeField` component tests; add a test asserting the
+   near-limit class/attribute combination renders if one does not already cover the visual class.
+4. Commit as its own reviewable unit.
+
 ## Final Acceptance Checklist
 
-- [ ] Multiple ranges can be saved on the same day.
-- [ ] Notes belong to one exact range and do not affect duration.
-- [ ] Touching ranges are valid; overlapping ranges are rejected in UI, API, and database.
-- [ ] Every non-empty day compares its sum with `jornada.horas_dia`.
-- [ ] Empty days do not produce warnings.
-- [ ] Weekly declared hours are informational only; no weekly target exists.
-- [ ] A daily mismatch warns but does not block Save.
-- [ ] Missing/inactive jornada produces no fabricated target.
-- [ ] Users edit only their own schedule.
-- [ ] Administrators read all relevant schedules but cannot edit another user's schedule.
-- [ ] Regular users read same-team schedules; teamless users receive no broad access.
-- [ ] The UI no longer presents task estimates as occupied schedule slots.
-- [ ] Loading, error, empty, invalid, and save-failure states are explicit.
-- [ ] The experience is keyboard-accessible and usable on narrow screens.
-- [ ] Availability loads lazily in one aggregate request, not in global startup context or per-card waterfalls.
-- [ ] Delivery 2/3 behavior has not leaked into Delivery 1.
+- [x] Multiple ranges can be saved on the same day. (`declaredHoursByDay` test, RLS e2e touching/overlap test)
+- [x] Notes belong to one exact range and do not affect duration. (`durationHours` ignores `note`, per `index.test.ts`)
+- [x] Touching ranges are valid; overlapping ranges are rejected in UI, API, and database. (verified at all three layers: `validateRanges`, `route.test.ts`, the `EXCLUDE USING gist` constraint)
+- [x] Every non-empty day compares its sum with `jornada.horas_dia`. (`MemberAvailabilityCard` renders `compareDailyHours` per non-empty day only)
+- [x] Empty days do not produce warnings. (`MemberAvailabilityCard/index.test.tsx`: "distinguishes an empty day...")
+- [x] Weekly declared hours are informational only; no weekly target exists. (no weekly-expected function exists anywhere in `utils/availability/`)
+- [x] A daily mismatch warns but does not block Save. (`WeeklyAvailabilityEditor/index.test.tsx:99`)
+- [x] Missing/inactive jornada produces no fabricated target. (migration's `CASE WHEN workday.activo = true`; `compareDailyHours(_, null)` → `'unavailable'`)
+- [x] Users edit only their own schedule. (RLS self-only policies + RPC, proven live by the e2e RLS spec)
+- [x] Administrators read all relevant schedules but cannot edit another user's schedule. (RLS e2e: admin's own PATCH on another's row succeeds as a request but touches nothing)
+- [x] Regular users read same-team schedules; teamless users receive no broad access. (RLS e2e: teamless user's cross-user read returns `[]`)
+- [ ] The UI no longer presents task estimates as occupied schedule slots. **Partially true**: `HourSlot`/`ActiveTaskLine` are unwired dead code (not rendered by the new screen), but `SolicitudesAvailabilityView`'s header subtitle still states the old fixed `9:00–18:00` schedule as fact — see Remaining Work items 2 and 3.
+- [x] Loading, error, empty, invalid, and save-failure states are explicit. (`AVAILABILITY_VIEW_STATUS`, `editor-state/transitions`, both tested)
+- [ ] The experience is keyboard-accessible and usable on narrow screens. **Partially verified**: labels, `aria-invalid`/`aria-describedby`, and native controls are proven at the unit/DOM level; no real browser check of narrow-viewport rendering exists yet — see Remaining Work item 1, step 7.
+- [x] Availability loads lazily in one aggregate request, not in global startup context or per-card waterfalls. (`SolicitudesAvailabilityView` fetches once in a mount `useEffect`; never added to `AppContext`)
+- [x] Delivery 2/3 behavior has not leaked into Delivery 1. (the Delivery 2 planned-schedules exploration was kept out of the repo entirely — commit `bd1fc99e` moved it to `.todo`; nothing in the Task 1-7 code implements exceptions, history, approvals, or balances)
 
 ## Plan Self-Review
 
