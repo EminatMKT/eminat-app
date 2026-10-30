@@ -80,4 +80,14 @@ describe('RangeField', () => {
     expect(html).toContain(`type="${TEXT_INPUT}"`)
     expect(html).toContain(`maxLength="${NOTE_MAX_LENGTH}"`)
   })
+
+  it('links a counter to the input through the described-by region', () => {
+    const counterText = '20 characters remaining'
+    const html = draw({ ...noteProps, counterText, counterNearLimit: true })
+    const describedBy = html.match(/aria-describedby="([^"]+)"/)?.[1]
+
+    expect(describedBy).toBeDefined()
+    expect(html).toContain(counterText)
+    expect(html).toContain('data-near-limit="true"')
+  })
 })

@@ -1,4 +1,5 @@
 import type { ChangeEvent } from 'react'
+import Counter from './Counter'
 import RANGE_FIELD_CONSTANTS from './constants'
 import type { RangeFieldProps } from './types'
 
@@ -12,9 +13,17 @@ export default function RangeField(props: RangeFieldProps) {
     label,
     value,
     error,
+    counterText,
+    counterNearLimit,
     onChange,
   } = props
+  const isDefined = (candidate: string | undefined): candidate is string => candidate !== undefined
   const errorId = error ? `${id}${RANGE_FIELD_CONSTANTS.errorSuffix}` : undefined
+  const counterId = counterText ? `${id}${RANGE_FIELD_CONSTANTS.counterSuffix}` : undefined
+  const describedByIds = [errorId, counterId].filter(isDefined)
+  const describedBy = describedByIds.length > 0
+    ? describedByIds.join(RANGE_FIELD_CONSTANTS.describedBySeparator)
+    : undefined
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => onChange(inputValue(event))
   const isTimeInput = inputType === RANGE_FIELD_CONSTANTS.timeInputType
   const inputStep = isTimeInput ? RANGE_FIELD_CONSTANTS.timeStep : undefined
@@ -30,11 +39,14 @@ export default function RangeField(props: RangeFieldProps) {
         step={inputStep}
         maxLength={inputMaxLength}
         aria-invalid={error ? true : undefined}
-        aria-describedby={errorId}
+        aria-describedby={describedBy}
         aria-label={label}
         onChange={handleChange}
       />
       {error && <p id={errorId} role={RANGE_FIELD_CONSTANTS.alertRole}>{error}</p>}
+      {counterText && (
+        <Counter id={counterId ?? ''} text={counterText} nearLimit={counterNearLimit} />
+      )}
     </>
   )
 }

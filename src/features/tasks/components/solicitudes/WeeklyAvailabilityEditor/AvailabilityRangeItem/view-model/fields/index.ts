@@ -8,6 +8,7 @@ import type {
   AvailabilityRangeItemProps,
 } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/AvailabilityRangeItem/types'
 import resolveRangeErrorCopy from '../range-error-copy'
+import noteCounterProps from './note-counter'
 
 export default function buildAvailabilityRangeItemFields(props: AvailabilityRangeItemProps, translate: Translator): AvailabilityRangeItemFields {
   const {
@@ -50,6 +51,7 @@ export default function buildAvailabilityRangeItemFields(props: AvailabilityRang
     inputType: RANGE_FIELD_CONSTANTS.textInputType,
     label: noteLabel,
     value: noteValue,
+    ...noteCounterProps(noteValue, translate),
     onChange: changeNote,
   }
   const fields: AvailabilityRangeItemFields = { startField, endField, noteField }
