@@ -7,6 +7,7 @@ export type {
   WeeklyAvailabilityRange,
 } from './types'
 export { default as durationHours } from './duration-hours'
+export { default as countInvalidRanges } from './count-invalid-ranges'
 export { default as sortRanges } from './sort-ranges'
 export { default as validateRanges } from './validate-ranges'
 export { default as declaredHoursByDay } from './declared-hours-by-day'

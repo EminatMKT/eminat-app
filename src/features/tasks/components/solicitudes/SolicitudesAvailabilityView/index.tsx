@@ -9,36 +9,45 @@ import {
 import type { AvailabilityMemberDto } from '@/features/tasks/data/availability/types'
 import fetchVisibleAvailability from '@/features/tasks/data/availability/fetch-visible'
 import MemberAvailabilityCard from '../MemberAvailabilityCard'
+import WeeklyAvailabilityEditor from '../WeeklyAvailabilityEditor'
 import loadAvailability from './availability'
+import buildScreenActions from './member-editing'
 import {
   AVAILABILITY_VIEW_STATUS,
-  INITIAL_AVAILABILITY_STATE,
+  INITIAL_SCREEN_STATE,
 } from './constants'
-import type { AvailabilityViewState } from './types'
+import type { ScreenState } from './types'
 import s from './index.module.css'
 
 export default function SolicitudesAvailabilityView() {
   const { t } = useT()
-  const [state, setState] = useState<AvailabilityViewState>(INITIAL_AVAILABILITY_STATE)
-  const { status, members, error } = state
+  const [screen, setScreen] = useState<ScreenState>(INITIAL_SCREEN_STATE)
+  const { availability, editingMemberId } = screen
+  const { status, members, error } = availability
+  const { startEdit, cancelEdit, handleSaved } = buildScreenActions(setScreen)
 
   useEffect(() => {
-    void loadAvailability(setState, fetchVisibleAvailability)
+    void loadAvailability(setScreen, fetchVisibleAvailability)
   }, [])
 
-  const renderMemberCard = (member: AvailabilityMemberDto) => (
-    <li key={member.id}>
-      <MemberAvailabilityCard member={member} />
-    </li>
-  )
+  const renderMemberCard = (member: AvailabilityMemberDto) => {
+    const { id } = member
+    const row = id === editingMemberId
+      ? <WeeklyAvailabilityEditor member={member} onCancel={cancelEdit} onSaved={handleSaved} />
+      : <MemberAvailabilityCard member={member} onEdit={() => startEdit(id)} />
+
+    return <li key={id}>{row}</li>
+  }
 
   if (status === AVAILABILITY_VIEW_STATUS.loading) return <LoadingView />
+
   if (status === AVAILABILITY_VIEW_STATUS.error) return <ErrorList errores={[error]} />
 
   const memberListLabel = t('tasks.availability.membersLabel')
   const emptyLabel = t('tasks.availability.noMembers')
   const isEmpty = status === AVAILABILITY_VIEW_STATUS.empty
   const listEmptyLabel = isEmpty ? emptyLabel : undefined
+
   return (
     <div>
       <div className={s.head}>
@@ -55,3 +64,6 @@ export default function SolicitudesAvailabilityView() {
     </div>
   )
 }
+
+// Loads the viewer's visible members, then lets a `canEdit` row swap its card for the weekly
+// availability editor and absorb a save back into the list.

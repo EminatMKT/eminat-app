@@ -39,4 +39,15 @@ describe('buildAvailabilityRangeItemFields', () => {
     expect(fields.endField.id).toContain(CLIENT_ID)
     expect(fields.noteField.id).toContain(CLIENT_ID)
   })
+
+  it('attaches the specific error copy to both time fields, never the note', () => {
+    const errors: RangeValidationError[] = [{ code: 'overlap', rangeIndex: 0, conflictingRangeIndex: 1 }]
+    const propsWithError: AvailabilityRangeItemProps = { ...PROPS, errors }
+
+    const fields = buildAvailabilityRangeItemFields(propsWithError, translate)
+
+    expect(fields.startField.error).toBe('tasks.availability.overlap')
+    expect(fields.endField.error).toBe('tasks.availability.overlap')
+    expect(fields.noteField.error).toBeUndefined()
+  })
 })

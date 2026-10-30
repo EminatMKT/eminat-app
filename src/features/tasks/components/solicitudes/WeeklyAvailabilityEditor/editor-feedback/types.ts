@@ -1,12 +1,14 @@
 import type { ReactElement } from 'react'
 import type { I18nKey } from '@/shared/i18n'
+import type { RangeValidationError } from '@/features/tasks/utils/availability'
 import type { EditorStatus, Translator } from '../types'
 
-/** Everything buildEditorFeedback needs to translate the summary and wire the save/cancel actions. */
+/** Everything buildEditorFeedback needs to translate the summary and wire the save/cancel actions.
+ *  `errors` (not a precomputed boolean) lets the banner report HOW MANY ranges are invalid. */
 export type EditorFeedbackInput = {
   translate: Translator
   declaredHours: number
-  hasValidationErrors: boolean
+  errors: RangeValidationError[]
   status: EditorStatus
   message: I18nKey | null
   onCancel: () => void

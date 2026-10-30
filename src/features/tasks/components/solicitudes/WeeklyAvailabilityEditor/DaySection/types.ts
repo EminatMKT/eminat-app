@@ -32,7 +32,7 @@ export type DaySectionContentProps = {
   headingId: string
   label: string
   isEmpty: boolean
-  hasErrors: boolean
+  invalidRangeCount: number
   renderedRanges: ReactNode[]
   comparisonText: string
   addButtonProps: AddRangeButtonProps

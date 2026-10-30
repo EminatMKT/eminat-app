@@ -7,6 +7,7 @@ import type {
   AvailabilityRangeItemFields,
   AvailabilityRangeItemProps,
 } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/AvailabilityRangeItem/types'
+import resolveRangeErrorCopy from '../range-error-copy'
 
 export default function buildAvailabilityRangeItemFields(props: AvailabilityRangeItemProps, translate: Translator): AvailabilityRangeItemFields {
   const {
@@ -16,8 +17,8 @@ export default function buildAvailabilityRangeItemFields(props: AvailabilityRang
     errors,
     onChange,
   } = props
-  const hasRangeError = errors.some(error => error.rangeIndex === rangeIndex)
-  const timeError = hasRangeError ? translate(EDITOR_COPY.validationError) : undefined
+  const rangeErrorInput = { errors, rangeIndex, translate }
+  const timeError = resolveRangeErrorCopy(rangeErrorInput)
   const startId = `${range.clientId}${AVAILABILITY_RANGE_ITEM_CONSTANTS.startIdSuffix}`
   const endId = `${range.clientId}${AVAILABILITY_RANGE_ITEM_CONSTANTS.endIdSuffix}`
   const noteId = `${range.clientId}${AVAILABILITY_RANGE_ITEM_CONSTANTS.noteIdSuffix}`

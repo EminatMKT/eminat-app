@@ -1,6 +1,11 @@
 import { createElement } from 'react'
 import { useT } from '@/shared/i18n'
-import { compareDailyHours, comparisonCopyVars, declaredHoursByDay } from '@/features/tasks/utils/availability'
+import {
+  compareDailyHours,
+  comparisonCopyVars,
+  countInvalidRanges,
+  declaredHoursByDay,
+} from '@/features/tasks/utils/availability'
 import { STATUS_COPY_KEYS } from '@/features/tasks/components/solicitudes/MemberAvailabilityCard/constants'
 import type { DaySectionProps } from '../component-types'
 import EDITOR_COPY from '../constants'
@@ -39,14 +44,14 @@ export default function DaySection(props: DaySectionProps) {
   const addVars = { day: label }
   const addButtonProps = { label: t(EDITOR_COPY.addRange, addVars), onAdd: addRange }
   const isEmpty = ranges.length === EDITOR_COPY.zeroHours
-  const hasErrors = errors.length > EDITOR_COPY.zeroHours
+  const invalidRangeCount = countInvalidRanges(errors)
   const comparisonVars = comparisonCopyVars(comparison)
   const comparisonText = t(STATUS_COPY_KEYS[comparison.status], comparisonVars)
   const contentProps: DaySectionContentProps = {
     headingId,
     label,
     isEmpty,
-    hasErrors,
+    invalidRangeCount,
     renderedRanges,
     comparisonText,
     addButtonProps,

@@ -2,7 +2,6 @@
 import { createElement, useEffect, useRef } from 'react'
 import type { ReactElement } from 'react'
 import { useT } from '@/shared/i18n'
-import EDITOR_COPY from './constants'
 import useWeeklyAvailabilityEditorController from './controller'
 import buildDayElements from './day-elements'
 import type { DayElementsInput } from './day-elements/types'
@@ -35,7 +34,7 @@ export default function WeeklyAvailabilityEditor(props: EditorProps): ReactEleme
   const feedbackInput: EditorFeedbackInput = {
     translate: t,
     declaredHours: viewModel.weeklySummary.declaredHours,
-    hasValidationErrors: errors.length > EDITOR_COPY.zeroHours,
+    errors,
     status: state.status,
     message: state.message,
     onCancel,

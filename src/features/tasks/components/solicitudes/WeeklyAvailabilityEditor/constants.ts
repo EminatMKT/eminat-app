@@ -6,6 +6,7 @@ const EDITOR_COPY = {
   startTime: 'tasks.availability.startTime',
   endTime: 'tasks.availability.endTime',
   note: 'tasks.availability.note',
+  noteCharactersRemaining: 'tasks.availability.noteCharactersRemaining',
   emptyDay: 'tasks.availability.emptyDay',
   saved: 'tasks.availability.saved',
   saving: 'tasks.availability.saving',

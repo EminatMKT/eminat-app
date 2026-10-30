@@ -41,6 +41,13 @@ const MEMBER: AvailabilityMemberDto = {
   canEdit: true,
 }
 
+const changeFirstRangeNote = (value: string): EditorAction => ({
+  kind: CHANGE_ACTION_KIND,
+  rangeIndex: FIRST_INDEX,
+  field: EDITOR_COPY.noteField,
+  value,
+})
+
 describe('WeeklyAvailabilityEditor editor state', () => {
   it('initializes stable client ids and copies persisted ranges', () => {
     const state = createEditorState(MEMBER)
@@ -50,12 +57,7 @@ describe('WeeklyAvailabilityEditor editor state', () => {
 
   it('changes, adds, and removes ranges independently', () => {
     const state = createEditorState(MEMBER)
-    const change: EditorAction = {
-      kind: CHANGE_ACTION_KIND,
-      rangeIndex: FIRST_INDEX,
-      field: EDITOR_COPY.noteField,
-      value: 'call',
-    }
+    const change = changeFirstRangeNote('call')
     const add: EditorAction = { kind: ADD_ACTION_KIND, weekday: MONDAY }
     const remove: EditorAction = { kind: REMOVE_ACTION_KIND, rangeIndex: SECOND_INDEX }
     const changed = applyEditorAction(state, change)
@@ -91,5 +93,30 @@ describe('WeeklyAvailabilityEditor editor state', () => {
       },
     ]
     expect(toSaveRanges(changed)).toEqual(expectedRanges)
+  })
+
+  it('clears a stale saved/error message when the person edits, adds, or removes a range', () => {
+    const settledState = {
+      ...createEditorState(MEMBER),
+      status: EDITOR_COPY.savedStatus,
+      message: EDITOR_COPY.saved,
+    }
+    const add: EditorAction = { kind: ADD_ACTION_KIND, weekday: MONDAY }
+    const remove: EditorAction = { kind: REMOVE_ACTION_KIND, rangeIndex: SECOND_INDEX }
+    const settlingActions = [changeFirstRangeNote('call'), add, remove]
+    const settledStates = settlingActions.map(action => applyEditorAction(settledState, action))
+
+    settledStates.forEach(nextState => {
+      expect(nextState.status).toBe(EDITOR_COPY.idleStatus)
+      expect(nextState.message).toBeNull()
+    })
+  })
+
+  it('leaves an in-flight save untouched when a range edit races it', () => {
+    const savingState = { ...createEditorState(MEMBER), status: EDITOR_COPY.savingStatus }
+
+    const changed = applyEditorAction(savingState, changeFirstRangeNote('call'))
+
+    expect(changed.status).toBe(EDITOR_COPY.savingStatus)
   })
 })

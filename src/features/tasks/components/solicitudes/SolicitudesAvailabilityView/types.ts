@@ -32,3 +32,10 @@ export type AvailabilityViewState =
   | ErrorAvailabilityState
   | EmptyAvailabilityState
   | LoadedAvailabilityState
+
+/** The view's load status plus which member's row is open for editing: two independent
+ *  concerns — what the fetch returned, and what a click selected — kept in one hook. */
+export type ScreenState = {
+  availability: AvailabilityViewState
+  editingMemberId: string | null
+}
