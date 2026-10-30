@@ -1593,53 +1593,269 @@ The status must still show the user's pre-existing `.gitignore`/`.pi` changes un
 
 Audited 2026-10-30 against the real code, not commit messages. Three concrete items remain
 before Delivery 1 is actually complete. None requires new product scope — all three close gaps
-inside the plan's own Tasks 4, 5, 6, and 7.
+inside the plan's own Tasks 4, 5, 6, and 7. Every file path, signature, and i18n key below was
+re-read directly from the current tree while writing this section (not carried over from the
+audit's line numbers unchecked).
 
 ### Remaining 1: Write the complete browser journey (closes Task 7, Step 1)
 
 **Files:**
+- Create: `e2e/availability-seed/first-active-jornada.ts` — fixture helper; the two existing RLS
+  fixtures (`assign-organization.ts`, `clear-weekly-availability.ts`) stay untouched, and
+  `first-departamento-id.ts` is reused verbatim, not duplicated.
 - Create: `e2e/task-availability.spec.ts`
-- Modify if needed: `e2e/availability-seed/` (reuse `assign-organization.ts`,
-  `clear-weekly-availability.ts`, `first-departamento-id.ts` — do not duplicate their logic)
 
-This is the one genuinely missing deliverable. `e2e/task-availability-rls/index.spec.ts` proves
-authorization and constraints at the database boundary; nothing proves the UI journey a real user
-takes.
+**Context confirmed before writing this task:**
+- `e2e/task-availability-rls/index.spec.ts` authenticates through raw PostgREST (`rest.token`),
+  never the browser — it proves RLS, not the UI. `e2e/lilly-access.spec.ts:158-162` and
+  `e2e/native-sales.spec.ts:45-49` are this repo's real UI-login pattern (plain `page.goto`,
+  no shared helper): `page.goto('/login')` →
+  `page.getByPlaceholder('tu@eminat.net').fill(email)` →
+  `page.locator('input[type="password"]').fill(PASSWORD)` → `.press('Enter')` →
+  `page.waitForURL('http://localhost:3000/', { timeout: 40000 })`. (`e2e/roles/login-as/index.ts`
+  is a different, more elaborate helper scoped to the `roles`/`billing-v2` suites — it clears
+  cookies/CDP storage and imports `@e2e/billing-v2/constants`; reusing it here would pull in that
+  coupling for no benefit, so this task uses the plain pattern instead.)
+- The sidebar label for the Tasks "Requests" section is literally `'Requests'`
+  (`src/shared/components/shell/appShellConfig/subvistas.ts:18`, rendered as a native `<button>`
+  by `PanelItem`); the sub-tab is literally `'Availability'`
+  (`stratix.sol.tabAvailability` in both locales, rendered as a native `<button>` by `TabButton`
+  — `src/features/tasks/components/solicitudes/SolicitudesTab/index.tsx:11`).
+- Each card's edit affordance is `<Button kind="edit" iconOnly>`
+  (`MemberAvailabilityCard/index.tsx:37`), whose accessible name is the generic `common.edit` →
+  `"Edit"` (`Button/meta.ts:11`, `en.json` `"common.edit": "Edit"`) — not the unwired
+  `tasks.availability.editMine` key. It renders only when `member.canEdit` is true, so at most one
+  "Edit" button exists on screen at a time for any viewer.
+- Range row labels are built as `"{Day} {field}"` with a single-space separator
+  (`AvailabilityRangeItem/view-model/fields/index.ts:26-28`,
+  `AvailabilityRangeItem/constants.ts:6`): `"Monday start time"`, `"Monday end time"`,
+  `"Monday note"`. The add-range button's accessible name is the full i18n string
+  `"Add a {day} range"` → `"Add a Monday range"` (`tasks.availability.addRange`), not the
+  shorthand `/add monday range/i` Task 5's illustrative test used. The Save button's name is
+  `"Save availability"` (`tasks.availability.save`).
+- `MemberAvailabilityCard` is an `<article>` whose first line of text is the member's name
+  (`index.tsx:28-33`), so a card can be scoped with
+  `page.locator('article').filter({ hasText: <name> })`.
+- No fixture anywhere assigns a real `jornada_id`; `assignOrganization`
+  (`e2e/availability-seed/assign-organization.ts`) already accepts `{ userId, equipoId,
+  jornadaId }` and the RLS spec always passes `jornadaId: null`. The seeded catalog always has a
+  full-time jornada (`supabase/migrations/20260808190614_jornadas_catalogo.sql:42-44`:
+  `('COMPLETA', 'Jornada completa', 8)`, idempotent via `ON CONFLICT (codigo) DO NOTHING`), so a
+  new fixture can fetch it deterministically instead of guessing an id.
+- The repo has no single exported narrow-viewport constant. The value `{ width: 390, height: 844
+  }` is what's actually reused across the suite today — `e2e/billing-v2/phone.spec.ts:12`'s local
+  `const PHONE` and `e2e/meetings-synthetic.spec.ts:102`'s inline literal both use it — so this
+  task reuses that exact value as its own local constant rather than inventing a new one.
+  `e2e/native-sales.spec.ts:61,79-81` is the existing no-overflow assertion pattern:
+  `document.documentElement.scrollWidth > window.innerWidth + 1`.
 
-1. Seed one team of two active `stratix360`-role users (owner + teammate) and one `admin` user,
-   following the exact pattern `e2e/task-availability-rls/index.spec.ts:84-121` already
-   established (`ensureUser`, `ensureTeam`, `assignOrganization`, cleanup in `afterAll`). Assign
-   the owner an active jornada via `assignOrganization({ userId, equipoId, jornadaId })` — the RLS
-   spec passes `jornadaId: null` throughout; this journey needs a real one so `8 of 8 hours` has
-   something to compare against.
-2. Authenticate as the owner (reuse this repo's existing Playwright login helper — check
-   `e2e/roles/` or `e2e/lilly-access.spec.ts` for the current UI-login pattern rather than
-   reinventing one), open `/tasks`, select Requests → Availability.
-3. Enter edit mode on the owner's own card, add `09:00–13:00` and `14:00–17:00` on Monday, add the
-   note `Not available for meetings` to the second range, assert `7 of 8 hours` renders as text
-   (not color-only) with the one-hour-below symbol, then Save — assert Save is not disabled by
-   the warning.
-4. Reload the page and assert both ranges and the note persisted (proves the full round trip
-   through `PUT`/`GET` and the `replace_own_weekly_availability` RPC, not just component state).
-5. Assert the teammate's card renders with no edit affordance (`canEdit: false` end to end).
-6. Authenticate as admin, assert the admin's card is visible among "all relevant" schedules, and
-   that the admin can open only their own card's editor — not the owner's or teammate's.
-7. Resize to a narrow viewport (the project's existing mobile breakpoint — check
-   `e2e/constants.ts` or an existing responsive spec for the viewport size already used elsewhere
-   rather than inventing a new one) and assert no horizontal page overflow and every control
-   stays reachable. This is the only remaining unverified half of Final Acceptance Checklist item
-   14 — accessibility *roles and labels* are already proven at the unit level
-   (`WeeklyAvailabilityEditor/index.test.tsx`, `RangeField/index.test.tsx`); real rendered
-   narrow-viewport behavior is not.
-8. Run:
+- [ ] **Step 1: Add the jornada fixture helper**
+
+Create `e2e/availability-seed/first-active-jornada.ts`, mirroring
+`e2e/availability-seed/first-departamento-id.ts`'s shape exactly:
+
+```ts
+import { URL } from '../constants'
+import { H } from '../seed'
+
+export type ActiveJornada = { id: string; horasDia: number }
+
+/** Reads the seeded full-time jornada (`codigo = 'COMPLETA'`, 8 hours/day) with service_role,
+ *  so the availability journey spec has a deterministic non-null workday to compare against. */
+export default async function firstActiveJornada(): Promise<ActiveJornada> {
+  const selectUrl = `${URL}/rest/v1/jornadas?codigo=eq.COMPLETA&select=id,horas_dia&limit=1`
+  const selectInit = { headers: H }
+  const response = await fetch(selectUrl, selectInit)
+  const rows = await response.json()
+  return { id: rows[0].id, horasDia: rows[0].horas_dia }
+}
+```
+
+This has no RED/GREEN cycle of its own — it is a data fixture with no branching behavior, the
+same treatment this plan's own Task 2 Step 1 gave `assignOrganization`/`clearWeeklyAvailability`.
+
+- [ ] **Step 2: Write the failing complete browser journey**
+
+Create `e2e/task-availability.spec.ts`:
+
+```ts
+import { test, expect } from '@playwright/test'
+import type { Page } from '@playwright/test'
+import { ADMIN_ROLE } from '@/shared/auth/permissions'
+import { PASSWORD, ensureUser, getUsuario, deleteUser, H } from '../seed'
+import { URL } from '../constants'
+import assignOrganization from '../availability-seed/assign-organization'
+import clearWeeklyAvailability from '../availability-seed/clear-weekly-availability'
+import firstDepartamentoId from '../availability-seed/first-departamento-id'
+import firstActiveJornada from '../availability-seed/first-active-jornada'
+
+const TASKS_ROLE = 'stratix360'
+const SURNAME = 'AvailJourneye2e'
+const OWNER_EMAIL = 'owner.availability.journey.e2e@eminat.net'
+const TEAMMATE_EMAIL = 'teammate.availability.journey.e2e@eminat.net'
+const ADMIN_EMAIL = 'admin.availability.journey.e2e@eminat.net'
+const TEAM_CODE = 'E2E_AVAIL_JOURNEY_TEAM'
+const HOME_URL = 'http://localhost:3000/'
+const LOGIN_WAIT = { timeout: 40000 }
+// Reused verbatim from e2e/billing-v2/phone.spec.ts's PHONE / e2e/meetings-synthetic.spec.ts;
+// this repo has no single exported narrow-viewport constant to import instead.
+const NARROW_VIEWPORT = { width: 390, height: 844 }
+
+async function ensureTeam(codigo: string, nombre: string, departamentoId: string): Promise<string> {
+  const insertUrl = `${URL}/rest/v1/equipos?on_conflict=codigo`
+  const teamBody = { codigo, nombre, departamento_id: departamentoId }
+  const response = await fetch(insertUrl, {
+    method: 'POST',
+    headers: { ...H, Prefer: 'resolution=merge-duplicates,return=representation' },
+    body: JSON.stringify(teamBody),
+  })
+  if (!response.ok) throw new Error(`ensureTeam ${codigo}: ${response.status} ${await response.text()}`)
+  const rows = await response.json()
+  return rows[0].id
+}
+
+async function deleteTeam(codigo: string): Promise<void> {
+  await fetch(`${URL}/rest/v1/equipos?codigo=eq.${codigo}`, { method: 'DELETE', headers: H })
+}
+
+async function login(page: Page, email: string): Promise<void> {
+  await page.goto('/login')
+  await page.getByPlaceholder('tu@eminat.net').fill(email)
+  const password = page.locator('input[type="password"]')
+  await password.fill(PASSWORD)
+  await password.press('Enter')
+  await page.waitForURL(HOME_URL, LOGIN_WAIT)
+}
+
+async function openAvailability(page: Page): Promise<void> {
+  await page.goto('/tasks')
+  await page.getByRole('button', { name: 'Requests', exact: true }).click()
+  await page.getByRole('button', { name: 'Availability', exact: true }).click()
+}
+
+const cardFor = (page: Page, name: string) => page.locator('article').filter({ hasText: name })
+
+let ownerId: string
+let teammateId: string
+let adminId: string
+
+test.beforeAll(async () => {
+  const departamentoId = await firstDepartamentoId()
+  const teamId = await ensureTeam(TEAM_CODE, 'E2E Availability Journey Team', departamentoId)
+  const jornada = await firstActiveJornada()
+
+  await ensureUser(OWNER_EMAIL, TASKS_ROLE, 'Owner', SURNAME)
+  await ensureUser(TEAMMATE_EMAIL, TASKS_ROLE, 'Teammate', SURNAME)
+  await ensureUser(ADMIN_EMAIL, ADMIN_ROLE, 'Admin', SURNAME)
+
+  ownerId = (await getUsuario(OWNER_EMAIL)).id
+  teammateId = (await getUsuario(TEAMMATE_EMAIL)).id
+  adminId = (await getUsuario(ADMIN_EMAIL)).id
+
+  await assignOrganization({ userId: ownerId, equipoId: teamId, jornadaId: jornada.id })
+  await assignOrganization({ userId: teammateId, equipoId: teamId, jornadaId: jornada.id })
+})
+
+test.afterAll(async () => {
+  await clearWeeklyAvailability([ownerId, teammateId, adminId])
+  await deleteUser(OWNER_EMAIL)
+  await deleteUser(TEAMMATE_EMAIL)
+  await deleteUser(ADMIN_EMAIL)
+  await deleteTeam(TEAM_CODE)
+})
+
+test('owner edits and saves Monday availability, it persists, a teammate stays read-only, ' +
+  'an admin can edit only their own card, and the layout holds at a narrow viewport', async ({ page }) => {
+  await login(page, OWNER_EMAIL)
+  await openAvailability(page)
+
+  await cardFor(page, 'Owner').getByRole('button', { name: 'Edit', exact: true }).click()
+  const addMondayRange = page.getByRole('button', { name: 'Add a Monday range' })
+  await addMondayRange.click()
+  await addMondayRange.click()
+
+  const starts = page.getByLabel('Monday start time')
+  const ends = page.getByLabel('Monday end time')
+  await starts.nth(0).fill('09:00')
+  await ends.nth(0).fill('13:00')
+  await starts.nth(1).fill('14:00')
+  await ends.nth(1).fill('17:00')
+  await page.getByLabel('Monday note').nth(1).fill('Not available for meetings')
+
+  await expect(page.getByText(/7 of 8 hours/i)).toBeVisible()
+  const saveButton = page.getByRole('button', { name: 'Save availability' })
+  await expect(saveButton).toBeEnabled()
+  await saveButton.click()
+  await expect(page.getByText(/7 of 8 hours/i)).toBeVisible()
+
+  await page.reload()
+  await openAvailability(page)
+  await expect(page.getByText('09:00–13:00')).toBeVisible()
+  await expect(page.getByText('14:00–17:00')).toBeVisible()
+  await expect(page.getByText('Not available for meetings')).toBeVisible()
+  await expect(cardFor(page, 'Teammate').getByRole('button', { name: 'Edit' })).toHaveCount(0)
+
+  await login(page, ADMIN_EMAIL)
+  await openAvailability(page)
+  await expect(cardFor(page, 'Owner')).toBeVisible()
+  await expect(cardFor(page, 'Teammate')).toBeVisible()
+  await expect(cardFor(page, 'Admin')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(1)
+  await expect(cardFor(page, 'Owner').getByRole('button', { name: 'Edit' })).toHaveCount(0)
+  await expect(cardFor(page, 'Teammate').getByRole('button', { name: 'Edit' })).toHaveCount(0)
+  await expect(cardFor(page, 'Admin').getByRole('button', { name: 'Edit' })).toHaveCount(1)
+
+  await page.setViewportSize(NARROW_VIEWPORT)
+  await openAvailability(page)
+  const overflows = await page.evaluate(() =>
+    document.documentElement.scrollWidth > window.innerWidth + 1)
+  expect(overflows, 'availability screen overflows the narrow viewport').toBe(false)
+})
+```
+
+- [ ] **Step 3: Run the journey and confirm RED**
+
+```bash
+pnpm exec playwright test e2e/task-availability.spec.ts
+```
+
+Expected: FAIL — the file does not exist yet before Step 1/2 land, and `find e2e -iname
+"*task-availability*" ! -path "*rls*"` currently returns nothing.
+
+- [ ] **Step 4: Make the smallest integration fixes, if any**
+
+The UI and API this spec drives were already implemented and unit-tested by Tasks 4–6; this step
+exists only in case the real browser surfaces something the unit tests' mocks hid (for example a
+selector text mismatch). Fix only what the approved Delivery 1 spec requires — no approvals,
+history, live state, task overlays, or balances.
+
+- [ ] **Step 5: Run GREEN**
 
 ```bash
 pnpm exec playwright test e2e/task-availability-rls e2e/task-availability.spec.ts
 ```
 
-Expected: both pass. Then re-run the full Task 7 gate list (`pnpm test`, `pnpm typecheck`,
-`pnpm lint:css`, `pnpm db:rls`) once more to confirm nothing regressed, and commit per Task 7
-Step 8's original instructions.
+Expected: both pass.
+
+- [ ] **Step 6: Re-run the full Task 7 gate list**
+
+```bash
+pnpm test
+pnpm typecheck
+pnpm lint:css
+pnpm db:rls
+```
+
+Expected: all PASS, confirming nothing regressed. (`pnpm db:migraciones-fresca` is expected to
+keep failing on the unrelated pre-existing `20261019120000_native_sales_membership_archive.sql`
+migration documented in Task 7's Status — not a signal to re-check here.)
+
+- [ ] **Step 7: Commit the journey work unit**
+
+```bash
+git add e2e/task-availability.spec.ts e2e/availability-seed/first-active-jornada.ts
+git commit -m "test(tasks): cover weekly availability journey"
+```
 
 ### Remaining 2: Delete the dead synthetic components (closes Task 4, Step 6)
 
@@ -1649,45 +1865,178 @@ Step 8's original instructions.
 - Delete: `src/features/tasks/components/solicitudes/ActiveTaskLine/index.tsx`,
   `src/features/tasks/components/solicitudes/ActiveTaskLine/index.module.css`
 
-1. Re-run the plan's own check to confirm nothing has started importing them since this audit:
+No RED/GREEN cycle applies — this is pure deletion, the same treatment this plan's own Task 4
+Step 6 already gives it.
+
+1. Re-run the plan's own check to confirm nothing has started importing them since the audit.
+   Re-verified while writing this section (2026-10-30): still true — the only two matches are
+   each component's own definition line.
 
 ```bash
 rg -n "HourSlot|ActiveTaskLine|slotOcupado|HORAS_SEMANALES|cargaDe" src
 ```
 
-2. If the only matches are each component's own definition (as of this audit, they are), delete
-   both folders.
+2. If the only matches are each component's own definition, delete both folders.
 3. Run `pnpm typecheck` and `pnpm test` to confirm nothing else referenced them.
-4. Commit as its own reviewable unit — this is pure dead-code removal, unrelated to any other
-   pending change.
+4. Commit as its own reviewable unit — unrelated to any other pending change.
+
+```bash
+git add src/features/tasks/components/solicitudes/HourSlot \
+  src/features/tasks/components/solicitudes/ActiveTaskLine
+git commit -m "chore(tasks): remove the dead synthetic availability components"
+```
 
 ### Remaining 3: Finish replacing synthetic copy, and wire the near-limit counter style (closes Task 6, Step 4 and the Task 5 RangeField-counter WIP thread)
 
 **Files:**
+- Create: `src/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField/Counter/index.module.css`
+- Modify: `src/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField/Counter/index.tsx`
+- Modify: `src/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField/Counter/index.test.tsx`
 - Modify: `src/features/tasks/components/solicitudes/SolicitudesAvailabilityView/index.tsx`
 - Modify: `src/shared/i18n/locales/es.json`, `src/shared/i18n/locales/en.json`
-- Modify: `src/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField/Counter/`
-  (add `index.module.css`) or the existing
-  `WeeklyAvailabilityEditor/AvailabilityRangeItem/index.module.css`
 
-1. `SolicitudesAvailabilityView/index.tsx:55-56` still renders `stratix.avail.title`/
-   `stratix.avail.sub`. `stratix.avail.sub`'s copy (`es.json:947`, `en.json:947`) is the old fixed
-   9-to-18 schedule claim this delivery exists to remove. Replace both keys with
-   `tasks.availability.*`-namespaced copy that describes the real screen (a recurring,
-   self-declared weekly schedule — no fixed hours claim), or drop the subtitle entirely if the
-   header reads fine without one. Either way, remove `stratix.avail.sub` from both locale files
-   once nothing references it — confirm with
-   `rg -n "stratix\.avail\." src`.
-2. Add a CSS rule that actually uses the `data-near-limit` attribute
-   `RangeField/Counter/index.tsx:4` already sets. `Counter` currently has no `index.module.css` of
-   its own (verified: its folder holds only `index.tsx`, `index.test.tsx`, `types.ts`). Give it
-   one with a `[data-near-limit='true']` rule (color from a `var(--c-...)` token, per this repo's
-   CSS rules — no raw literals), import it in `Counter/index.tsx`, and apply the module class
-   alongside the existing `data-near-limit` attribute so the near-limit state is visible, not just
-   present in the DOM.
-3. Run `pnpm lint:css` and the `Counter`/`RangeField` component tests; add a test asserting the
-   near-limit class/attribute combination renders if one does not already cover the visual class.
-4. Commit as its own reviewable unit.
+**Re-verified while writing this section (2026-10-30), both still accurate:**
+- `SolicitudesAvailabilityView/index.tsx:55-56` still renders `{t('stratix.avail.title')}` /
+  `{t('stratix.avail.sub')}`. `stratix.avail.sub` is still the old fixed-hours claim
+  (`es.json:947`: `"Lunes a viernes · 9:00 — 18:00 · hora de Guayaquil"`; `en.json:947`:
+  `"Monday to Friday · 9:00 AM — 6:00 PM · Guayaquil time"`). A truthful, unwired replacement
+  title key already exists and only needs to be consumed:
+  `"tasks.availability.title"` = `"Disponibilidad semanal"` / `"Weekly availability"`
+  (`es.json:966`, `en.json:966`) — `rg -n "tasks\.availability\.title" src` shows zero consumers
+  today.
+- `Counter/index.tsx` sets `data-near-limit={nearLimit}` on the `<p>` but imports no CSS module;
+  its folder holds only `index.tsx`, `index.test.tsx`, `types.ts` — confirmed again by listing it.
+  `Counter/index.test.tsx` currently asserts only the raw `data-near-limit="true"` attribute
+  (`it('flags the near-limit state as a data attribute', ...)`), never a visual class — the RED
+  test below is new, not a duplicate.
+- This codebase's CSS Modules resolve to their literal, unhashed local names under Vitest/SSR —
+  confirmed directly against `src/shared/components/views/CalendarView/DayNumber/index.tsx`
+  (`className={today ? \`${s.number} ${s.today}\` : s.number}`) and its test
+  (`expect(draw(open).className).toBe('entry')`-style assertions in the sibling `DayEntry` test).
+  So `s.counter` renders as the literal string `"counter"` in a test, not a content hash.
+- `src/app/globals.css` defines `--c-warn-solid: #B45309` (an amber warning token, distinct from
+  `--c-danger-solid`, which this repo's "Red means destruction" rule reserves for destructive
+  actions) — the correct token for an approaching-but-not-yet-exceeded character limit.
+
+- [ ] **Step 1: Write the failing near-limit style test**
+
+Add to `Counter/index.test.tsx`:
+
+```tsx
+it('carries the counter class that the near-limit CSS rule styles', () => {
+  const html = renderToStaticMarkup(<Counter id="note-counter" text="close" nearLimit />)
+
+  expect(html).toContain('class="counter"')
+  expect(html).toContain('data-near-limit="true"')
+})
+```
+
+- [ ] **Step 2: Run the test and confirm RED**
+
+```bash
+pnpm test -- src/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField/Counter/index.test.tsx
+```
+
+Expected: FAIL — `Counter` renders no `class` attribute at all yet.
+
+- [ ] **Step 3: Apply the module class and the near-limit CSS rule**
+
+Create `Counter/index.module.css`:
+
+```css
+.counter[data-near-limit='true'] {
+  color: var(--c-warn-solid);
+}
+```
+
+Update `Counter/index.tsx` to import it and apply the class unconditionally — the attribute
+selector above is what makes the color conditional, not a second toggled class:
+
+```tsx
+import type { CounterProps } from './types'
+import s from './index.module.css'
+
+export default function Counter({ id, text, nearLimit }: CounterProps) {
+  return <p id={id} data-near-limit={nearLimit} className={s.counter}>{text}</p>
+}
+```
+
+- [ ] **Step 4: Replace the synthetic header copy**
+
+In `SolicitudesAvailabilityView/index.tsx:55-56`, replace:
+
+```tsx
+<div className={s.title}>{t('stratix.avail.title')}</div>
+<div className={s.sub}>{t('stratix.avail.sub')}</div>
+```
+
+with:
+
+```tsx
+<div className={s.title}>{t('tasks.availability.title')}</div>
+<div className={s.sub}>{t('tasks.availability.sub')}</div>
+```
+
+Add `tasks.availability.sub` next to the existing `tasks.availability.title` key (`es.json:966`,
+`en.json:966`) in both locale files, describing the real screen with no fixed-hours claim:
+
+```text
+es: "tasks.availability.sub": "Disponibilidad semanal declarada por cada persona."
+en: "tasks.availability.sub": "Weekly availability as declared by each person."
+```
+
+Remove the now-unused `stratix.avail.title` and `stratix.avail.sub` keys from both locale files.
+Confirm with:
+
+```bash
+rg -n "stratix\.avail\." src
+```
+
+Expected: no matches.
+
+- [ ] **Step 5: Run GREEN and the locale/CSS gates**
+
+```bash
+pnpm test -- \
+  src/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField/Counter/index.test.tsx \
+  src/shared/i18n/__tests__/constants.test.ts \
+  src/shared/i18n/__tests__/types.test.ts
+pnpm lint:css
+pnpm typecheck
+```
+
+Expected: all PASS.
+
+- [ ] **Step 6: Commit the copy/style work unit**
+
+```bash
+git add src/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField/Counter \
+  src/features/tasks/components/solicitudes/SolicitudesAvailabilityView/index.tsx \
+  src/shared/i18n/locales/es.json \
+  src/shared/i18n/locales/en.json
+git commit -m "fix(tasks): remove the fixed-hours copy and style the near-limit counter"
+```
+
+### What follows: Delivery 2
+
+Once the three items above close Delivery 1, the next phase — planned, date-bound schedules and
+reusable templates — already has a finalized design. By explicit product-owner decision that
+design is kept out of this repository's git history as draft/unapproved scope: the design doc
+(with its own §7 Reuse analysis and §8 Delivery mapping) and its two prototype HTML files live at
+`~/.local/share/todo/eminat-app/attachments/2026-10-30-delivery-2-planned-schedules/`
+(`design-doc.md`; `weekly-availability-grid-prototype.html` is the canonical prototype,
+`my-availability-plans-prototype.html` is an earlier, now-superseded exploration).
+
+That design doc's own §7 Reuse analysis already identifies the single biggest piece of net-new
+work a future Delivery 2 plan will have to tackle first: **no reusable grid/canvas component
+exists anywhere in this codebase.** Both existing calendar-shaped components
+(`CalendarTab`, `CalendarView`) are date-cell month/week calendars with no hour axis and no
+drag support. A day-columns × hour-rows grid with click/drag-to-create, drag-to-resize, and a
+confirm popover has no precedent in `src/` and will need to be built from scratch.
+
+Delivery 2 is **not approved scope**. This subsection is a pointer for continuity across
+sessions, not authorization to start building it — do not write its implementation plan from
+this pointer alone.
 
 ## Final Acceptance Checklist
 
