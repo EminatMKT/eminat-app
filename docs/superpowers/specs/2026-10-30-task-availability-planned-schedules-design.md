@@ -100,7 +100,19 @@ Each item below was verified against the actual prototype code, not assumed. Two
 
 9. ~~Neither prototype demonstrates a regular (non-admin) member's restricted, same-team-only view of teammates.~~ **Moot — resolved by §3's decision.** There is no restricted view left to demonstrate: reads are org-wide for every user now, so this stopped being a gap the moment the underlying restriction was removed, not because it was fixed.
 
-## 7. Delivery mapping
+## 7. Reuse analysis: what exists in the codebase already
+
+Checked directly against the real codebase (not assumed) before treating the grid-canvas work as net-new.
+
+**No reusable grid/canvas component exists.** Two existing calendar-shaped components were ruled out:
+- `src/features/tasks/components/calendar/CalendarTab/index.tsx` (the "Calendario" tab) — a day-*cell* month/week calendar for date-only items (`Task.fecha_entrega`, `Marker.start_date`/`target_date`). No hour axis, no drag, read-only apart from navigation and selection.
+- `src/shared/components/views/CalendarView/` (the shared calendar primitive; its only consumer is `BillingCalendar`) — same shape: `CalendarItem.date` is documented as a date-only ISO string, `CalendarMode` only supports `'month'`, and its prop contract has no create/drag callbacks at all.
+
+**The real reuse opportunity is the data layer, not a UI component.** `WeeklyAvailabilityEditor` — already shipped in Delivery 1, `src/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/` — has exactly the right domain model: weekday + start/end time + overlap validation (`src/features/tasks/utils/availability/`), the transport types (`src/features/tasks/data/availability/types.ts`), and the API route (`src/app/api/tasks/availability/route.ts`). But it's a plain form — native `<input type="time">` pairs in a vertical list via `RangeField`/`DaySection` — not a visual grid. That data/API/validation layer is directly reusable for the grid-canvas feature; the grid itself (day columns × hour rows, click/drag-to-create, drag-to-resize, confirm popover) has no precedent anywhere in `src/` and would need to be built from scratch, including the pixel↔time math, snapping, and drag/resize pointer handling already validated in the throwaway prototypes.
+
+One dead-code find worth a note so it isn't rediscovered later: `HourSlot` (`src/features/tasks/components/solicitudes/HourSlot/index.tsx`) sounds relevant by name but has zero imports anywhere in the codebase — orphaned, not a usable building block.
+
+## 8. Delivery mapping
 
 **Maps to the original spec's Delivery 2 scope** ("plan a different schedule for a specific week," "distinguish the recurring template from an override," "return to the recurring schedule when no override applies"):
 - Planned schedules (date-bound, auto-activating, auto-reverting)
