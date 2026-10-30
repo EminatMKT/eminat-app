@@ -11,6 +11,7 @@ import { URL } from '../constants'
 import rest from '../rest'
 import assignOrganization from '../availability-seed/assign-organization'
 import clearWeeklyAvailability from '../availability-seed/clear-weekly-availability'
+import firstDepartamentoId from '../availability-seed/first-departamento-id'
 
 // Weekly availability RLS: self-write, same-team read, admin read-all. A SELECT only filters
 // (200 either way), so negative cases use a WRITE -- a real rejection, or for UPDATE/DELETE
@@ -49,14 +50,6 @@ const rangeRow = (
   note,
 })
 
-async function firstDepartamentoId(): Promise<string> {
-  const selectUrl = `${URL}/rest/v1/departamentos?select=id&limit=1`
-  const selectInit = { headers: H }
-  const response = await fetch(selectUrl, selectInit)
-  const rows = await response.json()
-  return rows[0].id
-}
-
 async function ensureTeam(codigo: string, nombre: string, departamentoId: string): Promise<string> {
   const insertUrl = `${URL}/rest/v1/equipos?on_conflict=codigo`
   const teamBody = { codigo, nombre, departamento_id: departamentoId }
@@ -86,6 +79,7 @@ let teammateId: string
 let outsiderId: string
 let teamlessId: string
 let noModuleId: string
+let adminId: string
 
 test.beforeAll(async () => {
   const departamentoId = await firstDepartamentoId()
@@ -104,6 +98,7 @@ test.beforeAll(async () => {
   outsiderId = (await getUsuario(OUTSIDER_EMAIL)).id
   teamlessId = (await getUsuario(TEAMLESS_EMAIL)).id
   noModuleId = (await getUsuario(NO_MODULE_EMAIL)).id
+  adminId = (await getUsuario(ADMIN_EMAIL)).id
 
   const ownerOrg = { userId: ownerId, equipoId: ownerTeamId, jornadaId: null }
   const teammateOrg = { userId: teammateId, equipoId: ownerTeamId, jornadaId: null }
@@ -114,7 +109,7 @@ test.beforeAll(async () => {
 })
 
 test.afterAll(async () => {
-  await clearWeeklyAvailability([ownerId, teammateId, outsiderId, teamlessId, noModuleId])
+  await clearWeeklyAvailability([ownerId, teammateId, outsiderId, teamlessId, noModuleId, adminId])
   await deleteUser(OWNER_EMAIL)
   await deleteUser(TEAMMATE_EMAIL)
   await deleteUser(OUTSIDER_EMAIL)
@@ -161,6 +156,16 @@ test('an admin reads every relevant schedule but cannot write another user\'s ro
   const stillOriginal = await request.get(rangesUrl(`user_id=eq.${ownerId}&select=note`), authHeaders(ownerJwt))
   const tamperedRows = (await stillOriginal.json()).filter((row: { note: string | null }) => row.note === ADMIN_TAMPER_NOTE)
   expect(tamperedRows.length, 'admin\'s write never actually touched the owner\'s row').toBe(0)
+})
+
+test('an admin can read their own row, not just other people\'s', async ({ request }) => {
+  const adminJwt = await rest.token(request, ADMIN_EMAIL, PASSWORD)
+  const adminOwnRange = rangeRow(adminId, 1, '09:00', '12:00')
+  const insertResponse = await request.post(rangesUrl(''), writeRequest(adminJwt, adminOwnRange))
+  expect(insertResponse.ok(), 'the admin writes their own row (write path never depended on role_modules)').toBe(true)
+
+  const adminSelfRead = await request.get(rangesUrl(`user_id=eq.${adminId}&select=id`), authHeaders(adminJwt))
+  expect((await adminSelfRead.json()).length, 'the admin\'s own row is visible to themselves').toBeGreaterThan(0)
 })
 
 test('a teammate cannot delete the owner\'s row', async ({ request }) => {
