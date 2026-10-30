@@ -82,3 +82,17 @@ it('preserves titles, descriptions, assignees and dates, escaping HTML; never re
   expect(html).toContain('stratix.estado.completado')
   expect(html).not.toMatch(/>999<|>888<|totalTasks|report.completed/)
 })
+
+it('restores the historical approver and dynamic subject signatures after tasks, keeping the block intact in print', () => {
+  for (const nombre of ['Bryan QA', 'Naomi QA', 'Tasha QA', 'Joselyne QA', 'Freddy Crespín', '<script>subject</script>']) {
+    const html = reportHtml({ ...datos('es-EC'), nombre })
+    const footer = html.slice(html.indexOf('class="report-signatures"'))
+    expect(html.indexOf('class="report-signatures"')).toBeGreaterThan(html.indexOf('</table>'))
+    expect(footer).toContain(nombre.replaceAll('<','&lt;').replaceAll('>','&gt;'))
+    expect(footer).toContain('Miembro del equipo')
+    expect(footer).toContain('Freddy Crespín')
+    expect(footer).toContain('Marketing Director — Approved by')
+    expect(footer).not.toContain('Marketing Coordinator')
+    expect(footer).toContain('break-inside:avoid;page-break-inside:avoid')
+  }
+})
