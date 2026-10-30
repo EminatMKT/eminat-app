@@ -27,17 +27,17 @@ This is **not** an approved specification. It is a snapshot of a prototype for r
 
 ## 3. Actors
 
-Two actors use this feature. **Administrador is not a separate, more restricted role** — an admin gets every self-service capability a regular team member gets for their own schedule, plus one additional capability: read-only oversight of teammates' schedules.
+**As of this session, there is only one actor for this feature.** Earlier drafts of this document distinguished Administrador from Miembro del equipo (admin reads all relevant teammates, a regular member reads only same-team). Wagner reversed that explicitly during this session: reads are now **org-wide for every user**, not team-scoped, and he confirmed directly (asked as an explicit either/or) that Administrador should become **fully identical** to Miembro del equipo in this feature — no distinguishing capability left, by his own choice, not an oversight.
 
-- **Miembro del equipo** (regular team member): manages only their own habitual schedule, planned schedules, and templates.
-- **Administrador**: everything above, for their own schedule, *plus* read-only viewing of every relevant teammate's current schedule.
+- **Usuario** (any team member, admin or not): manages their own habitual schedule, planned schedules, and templates, and can view every relevant person's current schedule read-only. Role plays no part in what this feature allows.
+
+This reverses §4.5 ("Permissions") of the originally approved Delivery 1 spec, which recorded same-team read for regular members and read-all for admin as a deliberate decision (see that spec's own §15 Decision Record: "Team visibility | Team members may read their team; administrators may read all relevant schedules..."). That reversal is intentional and owner-approved, made live in this session — not a drift to carry forward silently. Whoever reconciles this document with the approved spec should treat §4.5/§15 there as superseded by this decision, not simply out of sync with it.
 
 ## 4. Use-case diagram
 
 ```mermaid
 flowchart LR
-    Member["Miembro del equipo"]
-    Admin["Administrador"]
+    User["Usuario\n(Administrador y Miembro del equipo\nson el mismo actor en esta feature)"]
 
     subgraph Habitual["Horario habitual"]
         UC1["Editar el horario habitual\n(grilla semanal, Lun–Dom)"]
@@ -63,27 +63,26 @@ flowchart LR
         UC12["Eliminar un rango individual\n(sin confirmación)"]
     end
 
-    UC13["Ver el horario de un compañero (solo lectura)\nMiembro: mismo equipo · Admin: todos los relevantes"]
+    UC13["Ver el horario de cualquier persona relevante\n(solo lectura, sin restricción por equipo)"]
 
-    Member --> UC1 & UC2 & UC3 & UC4 & UC5 & UC6 & UC7 & UC8 & UC9 & UC10 & UC11 & UC12 & UC13
-    Admin --> UC1 & UC2 & UC3 & UC4 & UC5 & UC6 & UC7 & UC8 & UC9 & UC10 & UC11 & UC12 & UC13
+    User --> UC1 & UC2 & UC3 & UC4 & UC5 & UC6 & UC7 & UC8 & UC9 & UC10 & UC11 & UC12 & UC13
 ```
 
-Shared use cases (UC1–UC13) belong to both actors identically — an admin's own schedule works exactly like a regular member's, and both actors can view a teammate's schedule read-only. UC13's only difference by role is scope, not access: a regular member sees same-team teammates, an admin sees every relevant user org-wide.
+All thirteen use cases belong to the single Usuario actor identically — there is no role-based split left to show. UC13 has no scope distinction anymore: reads are org-wide for everyone, not same-team-only for a regular member.
 
 ## 5. Interaction architecture: modal-only, unified for self and teammate viewing
 
 This repo's own codebase was checked directly, not assumed. Dynamic page routes (`src/app/.../[id]`) are the rare exception — exactly one exists in the whole app, `src/app/(app)/meetings/[id]` — while modal components for "view or edit one record's detail" are the dominant, established pattern across several features: `PacientesImportModal` (medical), `CampaignViewModal`/`LeadFormModal`/`LeadImportModal`/`EmailCountModal`/`TitleMatchModal` (research), `ActivityDetailModal`/`NewActivityModal` (tasks). Meanwhile, the currently-shipped real app (Delivery 1, already in production) uses a *third* pattern for this one feature: inline expand/collapse in the team list — click your own card's pencil, the editor mounts in place, replacing your card in the list. That inline pattern is reasonable for small content (a handful of fields) but doesn't fit the now much larger self-service content (habitual + planned schedules + templates, each with their own grid editor): every other card in the list reflows awkwardly when it opens, and it can't give the focused-task feel a modal gives.
 
-**Decision:** standardize on one interaction for viewing or editing any person's schedule. Click their card; a modal opens with the same content component. It's editable only if it's your own schedule — a teammate's or (for an admin) any other relevant user's schedule opens the identical modal and component, always read-only, never a second code path. This replaces the real app's current inline-expand pattern (a real migration of already-shipped Delivery 1 UI, not just new work on top of it) and avoids introducing a second new pattern (a dynamic route) that would create exactly the kind of inconsistency this repo already has in `meetings/[id]`.
+**Decision:** standardize on one interaction for viewing or editing any person's schedule. Click their card; a modal opens with the same content component. It's editable only if it's your own schedule — anyone else's opens the identical modal and component, always read-only, never a second code path. This replaces the real app's current inline-expand pattern (a real migration of already-shipped Delivery 1 UI, not just new work on top of it) and avoids introducing a second new pattern (a dynamic route) that would create exactly the kind of inconsistency this repo already has in `meetings/[id]`.
 
-**Non-admin scoping is orthogonal to this decision.** The modal-click mechanism is identical for every actor; the only thing that differs by role is *which cards are visible/clickable* in the team list, never how opening one behaves. A regular team member's card list is restricted to their own team (per §4.5 of the approved Delivery 1 spec: read same-team, edit only self); an admin's card list includes every relevant user org-wide (read-all, edit only self). **Neither prototype file currently demonstrates the restricted, same-team-only list a regular member would see** — `weekly-availability-grid-prototype.html`'s team strip is a fixed four-member array with no team-membership filtering at all (confirmed: no `equipo`/team-scoping logic anywhere in the file), and `my-availability-plans-prototype.html` never shows a team list at all, only the logged-in user's own schedule. This is a real gap in the prototypes, not a decided behavior — see gap 6 below.
+**There is no role-based card filtering anymore.** An earlier draft of this document described a restricted, same-team-only card list for a regular member versus an org-wide list for admin. That restriction no longer exists (§3): every user's card list shows every relevant person, full stop. The modal-click mechanism was already identical for every actor; now the visible card set is identical too, so there is nothing left that varies by role in this feature.
 
 ## 6. Gaps and open questions
 
 Each item below was verified against the actual prototype code, not assumed. Two items from an earlier pass of this document turned out to be stale — the features had since landed — and are corrected below, with the line references that confirm it.
 
-1. **The admin's teammate viewer does not know about plans or templates — now resolved by the architecture decision above, but not yet reflected in the prototype.** `memberRanges(memberId)` for any teammate other than the logged-in user still returns a flat `saved`/`draft` ranges array (`weekly-availability-grid-prototype.html`, `memberSchedules` + `memberRanges`), with no concept of that teammate's own active plan overriding their habitual schedule. Per §5's decision, the real fix isn't a separate teammate-viewer code path at all — it's the *same* self-service component, opened read-only. The prototype's current admin-viewer predates that decision and still needs to be rebuilt on top of it rather than patched in place.
+1. **The teammate viewer does not know about plans or templates — now resolved by the architecture decision above, but not yet reflected in the prototype.** `memberRanges(memberId)` for any person other than the logged-in user still returns a flat `saved`/`draft` ranges array (`weekly-availability-grid-prototype.html`, `memberSchedules` + `memberRanges`), with no concept of that person's own active plan overriding their habitual schedule. Per §5's decision, the real fix isn't a separate viewer code path at all — it's the *same* self-service component, opened read-only, for anyone looking at anyone. The prototype's current viewer predates that decision (and predates org-wide reads — it was still admin-gated) and still needs to be rebuilt on top of both, rather than patched in place.
 
 2. **"Planned schedules use real calendar dates instead of repeating weekday columns" — implemented, confirmed by reading the code.** Both files generate real per-date columns for a plan's editor specifically: `calendarDays(start, end)` (`weekly-availability-grid-prototype.html:868`, `my-availability-plans-prototype.html:447`) walks every calendar day from `startDate` to `endDate` inclusive (or, with no end date, defaults to a 7-day span) and returns one entry per real date, each carrying its own ISO date, formatted label, and weekday name — not a repeating weekday pattern. `isCalendarEditor()` (`weekly-availability-grid-prototype.html:804`, `my-availability-plans-prototype.html:721`) gates this to plans only (habitual and templates keep the generic 7-column Monday–Sunday grid), and `editorDays()` / `editorDateChanged()` re-render the grid live as the start/end date fields change. A two-week plan does correctly let week 1 and week 2 differ — confirmed, not just claimed.
 
@@ -99,9 +98,9 @@ Each item below was verified against the actual prototype code, not assumed. Two
 
 8. **Overlap detection only looks at plans, never at the habitual schedule itself** — which is correct, since the habitual schedule has no date range to overlap with, but means a user could create two plans whose ranges overlap *each other's dates* without warning if the second one is created through "+ Planificar un horario puntual" directly rather than through "Usar" on a template (`overlappingPlans()` is only called from the template-use flow, `updateTemplateUseState()`, not from the direct new-plan path, `newPlanBtn`'s handler). Worth deciding whether direct plan creation should get the same overlap check.
 
-9. **Neither prototype demonstrates a regular (non-admin) member's restricted, same-team-only view of teammates.** Confirmed by reading both files: `weekly-availability-grid-prototype.html`'s team strip renders a fixed four-member array with no team-membership check anywhere in the file, and `my-availability-plans-prototype.html` never renders any other user's card at all — it's purely the logged-in user's own view. §5 above names this as the open gap it is; it needs its own prototype pass (or explicit deferral) before the modal-unification decision can be called fully demonstrated for the non-admin case, not just the admin case.
+9. ~~Neither prototype demonstrates a regular (non-admin) member's restricted, same-team-only view of teammates.~~ **Moot — resolved by §3's decision.** There is no restricted view left to demonstrate: reads are org-wide for every user now, so this stopped being a gap the moment the underlying restriction was removed, not because it was fixed.
 
-## 6. Delivery mapping
+## 7. Delivery mapping
 
 **Maps to the original spec's Delivery 2 scope** ("plan a different schedule for a specific week," "distinguish the recurring template from an override," "return to the recurring schedule when no override applies"):
 - Planned schedules (date-bound, auto-activating, auto-reverting)
@@ -114,5 +113,6 @@ Each item below was verified against the actual prototype code, not assumed. Two
 - Indefinite/open-ended plan end dates with implicit supersession by a later plan
 - Weekend (Saturday/Sunday) columns in the grid — the real domain model already allowed this (ISO weekdays 1–7), but the original spec's examples and UI sketch were Mon–Fri only
 - Modal-only interaction, unified for self and teammate viewing, replacing Delivery 1's shipped inline-expand editor (§5) — a real migration of existing production UI, not additive work
+- Org-wide read access for every user, replacing same-team-only reads for regular members (§3) — a direct reversal of §4.5/§15 of the originally approved Delivery 1 spec, which recorded same-team read as a deliberate decision, not a default. **Already signed off** — Wagner confirmed this explicitly in this session, including the follow-up question of whether admin should keep any distinguishing capability (answer: no, fully identical). Still flagged here because it contradicts a previously *recorded* decision in the approved spec, and that spec itself hasn't been amended to match — whoever reconciles this document with it needs to update §4.5/§15 there, not just treat this document as the newer source of truth by default.
 
-Everything in the second list should get the product owner's explicit go-ahead before being treated as scope for any delivery, rather than carried forward by prototyping momentum alone.
+Everything in the second list should get the product owner's explicit go-ahead before being treated as scope for any delivery, rather than carried forward by prototyping momentum alone. The org-wide-reads item already has that go-ahead; the rest do not yet.
