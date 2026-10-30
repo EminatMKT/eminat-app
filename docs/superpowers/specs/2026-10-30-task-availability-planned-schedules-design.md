@@ -63,16 +63,13 @@ flowchart LR
         UC12["Eliminar un rango individual\n(sin confirmación)"]
     end
 
-    subgraph AdminOnly["Solo administrador"]
-        UC13["Ver el horario de un\ncompañero (solo lectura)"]
-    end
+    UC13["Ver el horario de un compañero (solo lectura)\nMiembro: mismo equipo · Admin: todos los relevantes"]
 
-    Member --> UC1 & UC2 & UC3 & UC4 & UC5 & UC6 & UC7 & UC8 & UC9 & UC10 & UC11 & UC12
-    Admin --> UC1 & UC2 & UC3 & UC4 & UC5 & UC6 & UC7 & UC8 & UC9 & UC10 & UC11 & UC12
-    Admin --> UC13
+    Member --> UC1 & UC2 & UC3 & UC4 & UC5 & UC6 & UC7 & UC8 & UC9 & UC10 & UC11 & UC12 & UC13
+    Admin --> UC1 & UC2 & UC3 & UC4 & UC5 & UC6 & UC7 & UC8 & UC9 & UC10 & UC11 & UC12 & UC13
 ```
 
-Shared use cases (UC1–UC12) belong to both actors identically — an admin's own schedule works exactly like a regular member's. UC13 is admin-only, additive, and read-only.
+Shared use cases (UC1–UC13) belong to both actors identically — an admin's own schedule works exactly like a regular member's, and both actors can view a teammate's schedule read-only. UC13's only difference by role is scope, not access: a regular member sees same-team teammates, an admin sees every relevant user org-wide.
 
 ## 5. Interaction architecture: modal-only, unified for self and teammate viewing
 
