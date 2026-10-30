@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
+import RANGE_FIELD_CONSTANTS from './constants'
 import type { RangeFieldProps } from './types'
 import RangeField from './index'
 
@@ -12,8 +13,8 @@ const NOTE_VALUE = 'Focus'
 const ERROR = 'Start time must be before the end time'
 const FIELD_ID = 'range-start'
 const NOTE_ID = 'range-note'
-const TIME_STEP = 300
-const NOTE_MAX_LENGTH = 280
+const TIME_STEP = RANGE_FIELD_CONSTANTS.timeStep
+const NOTE_MAX_LENGTH = RANGE_FIELD_CONSTANTS.noteMaxLength
 
 const ignoreChange = () => undefined
 
