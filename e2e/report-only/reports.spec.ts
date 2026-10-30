@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { writeFile } from 'node:fs/promises'
 
 // No route mocks: actual final Next endpoints query a disposable baseline-policy fixture.
 // No excluded migration, production accounts or production network access.
@@ -14,6 +15,8 @@ for (const module of ['tasks']) for (const role of ['superadmin','admin','employ
     await page.locator('#reporte-content').getByText('Diseño de piezas para campaña',{exact:false}).waitFor()
     if(module==='tasks') await page.goto(`${base}/tasks`)
     const preview=page.locator('#reporte-content')
+    await expect(preview.getByRole('button',{name:'Descargar PDF',exact:true})).toHaveCount(0)
+    await expect(preview.getByRole('button',{name:'Imprimir',exact:true})).toHaveCount(1)
     await expect(preview.getByText('Diseño de piezas para campaña',{exact:false})).toBeVisible()
     if(mobile) await page.getByRole('button',{name:'Abrir menú',exact:true}).click()
     await expect(page.getByRole('button',{name:'📄 Reportes',exact:true})).toBeVisible()
@@ -47,11 +50,12 @@ for (const module of ['tasks']) for (const role of ['superadmin','admin','employ
     await expect(popup.getByRole('img',{name:'Stratix Communications',exact:true})).toBeVisible()
     await expect(popup.getByText(disclaimer,{exact:true})).toHaveCount(1)
     const label=`${module}-${role}-${mobile?'mobile':'desktop'}`
+    await verifySignatures(popup,data.name,data.tasks.length)
     await popup.pdf({path:`test-results/print-${label}.pdf`,format:'A4',printBackground:true})
     await popup.close()
-    const [download]=await Promise.all([page.waitForEvent('download'),preview.getByRole('button',{name:'Descargar PDF',exact:true}).click()])
-    expect(download.suggestedFilename()).toBe('LILLY-production-2026-10.pdf')
-    await download.saveAs(`test-results/download-${label}.pdf`)
+    const download=await page.request.get(`${base}/api/tasks/report/pdf?month=2026-10`)
+    expect(download.status()).toBe(200)
+    await writeFile(`test-results/download-${label}.pdf`,await download.body())
     await page.screenshot({path:`test-results/reports-${label}.png`,fullPage:true})
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
     if(role==='admin') {
@@ -62,7 +66,7 @@ for (const module of ['tasks']) for (const role of ['superadmin','admin','employ
     await preview.getByLabel('Período',{exact:true}).fill('2026-07')
     await expect(preview.getByText('Sin tareas en este período',{exact:true})).toBeVisible()
     await expect(preview.getByRole('button',{name:'Imprimir',exact:true})).toBeEnabled()
-    await expect(preview.getByRole('button',{name:'Descargar PDF',exact:true})).toBeEnabled()
+    await expect(preview.getByRole('button',{name:'Descargar PDF',exact:true})).toHaveCount(0)
   })
 }
 
@@ -91,10 +95,12 @@ for (const role of ['superadmin','employee']) test(`September historical structu
   }
   expect(data.tasks.map((task:{estado:string})=>task.estado)).toEqual(expect.arrayContaining(['Completado','Pendiente','En proceso']))
   const [popup]=await Promise.all([page.waitForEvent('popup'),preview.getByRole('button',{name:'Imprimir',exact:true}).click()])
+  await verifySignatures(popup,data.name,data.tasks.length)
   await popup.pdf({path:`test-results/september-print-${role}.pdf`,format:'A4',printBackground:true})
   await popup.close()
-  const [download]=await Promise.all([page.waitForEvent('download'),preview.getByRole('button',{name:'Descargar PDF',exact:true}).click()])
-  await download.saveAs(`test-results/september-download-${role}.pdf`)
+  const download=await page.request.get(`${base}/api/tasks/report/pdf?month=2026-09`)
+  expect(download.status()).toBe(200)
+  await writeFile(`test-results/september-download-${role}.pdf`,await download.body())
   await page.screenshot({path:`test-results/september-${role}.png`,fullPage:true})
 })
 
@@ -120,11 +126,28 @@ for(const role of ['employee','employee-two']) for(const mobile of [false,true])
   const [popup]=await Promise.all([page.waitForEvent('popup'),preview.getByRole('button',{name:'Imprimir',exact:true}).click()])
   await expect(popup.getByText(disclaimer,{exact:true})).toHaveCount(1)
   const label=`client-${role}-${mobile?'mobile':'desktop'}`
+  await verifySignatures(popup,report.name,report.tasks.length)
   await popup.pdf({path:`test-results/print-${label}.pdf`,format:'A4',printBackground:true});await popup.close()
-  const [download]=await Promise.all([page.waitForEvent('download'),preview.getByRole('button',{name:'Descargar PDF',exact:true}).click()])
-  await download.saveAs(`test-results/download-${label}.pdf`)
+  const download=await page.request.get(`${base}/api/tasks/report/pdf?month=2026-08`)
+  expect(download.status()).toBe(200)
+  await writeFile(`test-results/download-${label}.pdf`,await download.body())
   await preview.getByLabel('Período',{exact:true}).fill('2026-06')
   await expect(preview.getByText(`Client-assignment QA ${role==='employee'?6:7}`,{exact:false})).toBeVisible()
   const june=await(await page.request.get(`${base}/api/tasks/report?month=2026-06`)).json()
   expect(june.tasks.map((task:{titulo:string})=>task.titulo)).toEqual([`Client-assignment QA ${role==='employee'?6:7}`])
 })
+
+async function verifySignatures(popup: import('@playwright/test').Page, subject: string, taskCount: number) {
+  const signatures=popup.locator('.report-signatures')
+  await expect(signatures).toHaveCount(1)
+  await expect(signatures.locator(':scope > div').first().getByText(subject,{exact:true})).toBeVisible()
+  await expect(signatures.getByText('Miembro del equipo',{exact:true})).toBeVisible()
+  await expect(signatures.getByText('Freddy Crespín',{exact:true})).toBeVisible()
+  await expect(signatures.getByText('Marketing Director — Approved by',{exact:true})).toBeVisible()
+  expect(await popup.locator('tbody tr').count()).toBe(taskCount)
+  expect(await signatures.evaluate(node=>!!(node.compareDocumentPosition(document.querySelector('table')!) & Node.DOCUMENT_POSITION_PRECEDING))).toBe(true)
+  expect(await signatures.evaluate(node=>getComputedStyle(node).breakInside)).toBe('avoid')
+  await popup.evaluate(()=>{window.print=()=>{document.body.dataset.printCalled='true'}})
+  await popup.getByRole('button',{name:'Imprimir',exact:true}).click()
+  await expect(popup.locator('body')).toHaveAttribute('data-print-called','true')
+}

@@ -62,6 +62,16 @@ export function reportHtml({ acts, nombre, mes, intlLocale, nombrePorId, t, hoy,
       <thead><tr style="background:#f8f8fa">${encabezados}</tr></thead><tbody>${filas}</tbody>
     </table>
     ${acts.length === 0 ? `<div style="text-align:center;padding:40px;color:#999">${escapeHtml(t('stratix.report.empty'))}</div>` : ''}
+    <div class="report-signatures" style="margin-top:60px;padding-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:80px;break-inside:avoid;page-break-inside:avoid">
+      <div style="text-align:center">
+        <div style="border-top:1px solid #333;padding-top:10px;font-size:12px;font-weight:600">${escapeHtml(nombre)}</div>
+        <div style="font-size:10px;color:#888;margin-top:2px">Miembro del equipo</div>
+      </div>
+      <div style="text-align:center">
+        <div style="border-top:1px solid #333;padding-top:10px;font-size:12px;font-weight:600">Freddy Crespín</div>
+        <div style="font-size:10px;color:#888;margin-top:2px">Marketing Director — Approved by</div>
+      </div>
+    </div>
     <div style="margin-top:40px;padding-top:14px;border-top:1px solid #e5e7eb;display:flex;justify-content:space-between;font-size:10px;color:#aaa">
       <span>${escapeHtml(fecha)}</span><span>${escapeHtml(t('tasks.report.brand'))}</span>
     </div>

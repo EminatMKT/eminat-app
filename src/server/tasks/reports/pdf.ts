@@ -73,6 +73,22 @@ export async function productionReportPdf(report: ReportData) {
     page.drawLine({ start: { x: margin, y: y + 4 }, end: { x: width - margin, y: y + 4 }, color: rgb(.9,.91,.93), thickness: .5 })
     y -= 16
   }
+  // Keep both signature blocks together after the final task, including long reports.
+  const blockWidth = (width - 2 * margin - 60) / 2
+  const signatures = [
+    { name: report.name, role: 'Miembro del equipo' },
+    { name: 'Freddy Crespín', role: 'Marketing Director — Approved by' },
+  ].map(signature => ({ name: lines(signature.name, blockWidth, 12, bold), role: lines(signature.role, blockWidth, 10) }))
+  const signatureHeight = Math.max(...signatures.map(signature => signature.name.length * 16 + signature.role.length * 14)) + 48
+  if (y - signatureHeight < 50) newPage()
+  y -= 40
+  signatures.forEach((signature, index) => {
+    const x = margin + index * (blockWidth + 60)
+    page.drawLine({ start: { x, y }, end: { x: x + blockWidth, y }, color: rgb(.2,.2,.2), thickness: .7 })
+    let top = y - 22
+    for (const text of signature.name) { draw(text, x + (blockWidth - bold.widthOfTextAtSize(text, 12)) / 2, top, 12, bold); top -= 16 }
+    for (const text of signature.role) { draw(text, x + (blockWidth - font.widthOfTextAtSize(text, 10)) / 2, top, 10); top -= 14 }
+  })
   doc.getPages().forEach((sheet, index) => {
     sheet.drawText(`LILLY  |  ${index + 1} / ${doc.getPageCount()}`, { x: margin, y: 20, size: 8, font, color: rgb(.5,.5,.55) })
   })
