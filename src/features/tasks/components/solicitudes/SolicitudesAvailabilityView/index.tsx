@@ -32,11 +32,12 @@ export default function SolicitudesAvailabilityView() {
 
   const renderMemberCard = (member: AvailabilityMemberDto) => {
     const { id } = member
-    const row = id === editingMemberId
+    const isEditing = id === editingMemberId
+    const row = isEditing
       ? <WeeklyAvailabilityEditor member={member} onCancel={cancelEdit} onSaved={handleSaved} />
       : <MemberAvailabilityCard member={member} onEdit={() => startEdit(id)} />
 
-    return <li key={id}>{row}</li>
+    return <li key={id} className={isEditing ? s.editingItem : undefined}>{row}</li>
   }
 
   if (status === AVAILABILITY_VIEW_STATUS.loading) return <LoadingView />

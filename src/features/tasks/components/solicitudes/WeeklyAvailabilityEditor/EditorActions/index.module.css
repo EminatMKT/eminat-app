@@ -1,0 +1,17 @@
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.feedback {
+  font-size: 0.875rem;
+}
+
+.feedbackError {
+  color: var(--c-danger-solid);
+}
+
+.feedbackSuccess {
+  color: var(--c-t1);
+}

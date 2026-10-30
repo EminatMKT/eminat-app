@@ -1,8 +1,7 @@
 import { Children } from 'react'
 import COMPOSITION_CONSTANTS from './constants'
 import type { WeeklyAvailabilityEditorCompositionProps } from './types'
-
-const VALIDATION_CLASS = 'weekly-availability-editor-validation'
+import s from './index.module.css'
 
 /** Composes the seven domain-specific day views, summary, validation, and actions. */
 export default function WeeklyAvailabilityEditorComposition(
@@ -18,7 +17,7 @@ export default function WeeklyAvailabilityEditorComposition(
     ? null
     : (
       <div
-        className={VALIDATION_CLASS}
+        className={s.validation}
         id={COMPOSITION_CONSTANTS.validationId}
         ref={validationFocusRef}
         role={COMPOSITION_CONSTANTS.validationRole}
@@ -30,12 +29,12 @@ export default function WeeklyAvailabilityEditorComposition(
     )
 
   return (
-    <>
-      <div>{dayViews}</div>
+    <div className={s.editor}>
+      <div className={s.days}>{dayViews}</div>
       {weeklySummary}
       {validation}
       {actions}
-    </>
+    </div>
   )
 }
 

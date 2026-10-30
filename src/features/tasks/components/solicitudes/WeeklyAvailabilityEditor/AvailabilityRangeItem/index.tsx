@@ -1,6 +1,8 @@
 import RangeField from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField'
 import { Button } from '@/shared/components/ui'
 import { useT } from '@/shared/i18n'
+import Box from './Box'
+import s from './index.module.css'
 import buildAvailabilityRangeItemViewModel from './view-model'
 import type { AvailabilityRangeItemProps } from './types'
 
@@ -11,12 +13,16 @@ export default function AvailabilityRangeItem(props: AvailabilityRangeItemProps)
   const viewModel = buildAvailabilityRangeItemViewModel(props, t)
 
   return (
-    <>
-      <RangeField {...viewModel.startField} />
-      <RangeField {...viewModel.endField} />
+    <Box as="li" className={s.item}>
+      <Box className={s.times}>
+        <RangeField {...viewModel.startField} />
+        <RangeField {...viewModel.endField} />
+      </Box>
       <RangeField {...viewModel.noteField} />
-      <ItemAction {...viewModel.removeButton} />
-    </>
+      <Box className={s.removeWrap}>
+        <ItemAction {...viewModel.removeButton} />
+      </Box>
+    </Box>
   )
 }
 

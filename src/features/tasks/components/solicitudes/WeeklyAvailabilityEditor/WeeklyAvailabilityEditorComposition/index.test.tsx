@@ -30,7 +30,7 @@ describe('WeeklyAvailabilityEditorComposition', () => {
 
     expect(html).toContain('weekly summary')
     expect(html).toContain('actions')
-    expect(html.match(/day/g)).toHaveLength(7)
+    expect(html.match(/<span>day<\/span>/g)).toHaveLength(7)
   })
 
   it('renders focusable assertive validation feedback when supplied', () => {

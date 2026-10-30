@@ -4,6 +4,7 @@ import { Button } from '@/shared/components/ui'
 import { useT, type I18nKey } from '@/shared/i18n'
 import EDITOR_COPY from '../constants'
 import type { EditorStatus } from '../types'
+import s from './index.module.css'
 
 type EditorActionsProps = {
   status: EditorStatus
@@ -14,7 +15,6 @@ type EditorActionsProps = {
 
 const CONTAINER_TAG = 'div'
 const FEEDBACK_TAG = 'p'
-const NO_PROPS = null
 
 /** Renders the editor's cancel/save controls and announces the latest operation result. */
 export default function EditorActions(props: EditorActionsProps) {
@@ -43,11 +43,14 @@ export default function EditorActions(props: EditorActionsProps) {
   } satisfies ComponentProps<typeof Button>
   const cancelButton = createElement(Button, cancelButtonProps)
   const saveButton = createElement(Button, saveButtonProps)
-  const feedbackProps = { role: feedbackRole }
+  const errorTone = status === EDITOR_COPY.errorStatus ? s.feedbackError : ''
+  const savedTone = status === EDITOR_COPY.savedStatus ? s.feedbackSuccess : ''
+  const feedbackProps = { role: feedbackRole, className: `${s.feedback} ${errorTone}${savedTone}` }
+  const containerProps = { className: s.actions }
   const feedback = message == null
     ? null
     : createElement(FEEDBACK_TAG, feedbackProps, t(message))
-  const actionBar = createElement(CONTAINER_TAG, NO_PROPS, cancelButton, saveButton, feedback)
+  const actionBar = createElement(CONTAINER_TAG, containerProps, cancelButton, saveButton, feedback)
 
   return actionBar
 }
