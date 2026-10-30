@@ -56,7 +56,8 @@ export async function readProductionReport(req: NextRequest): Promise<ReadResult
     if (grants.error || projects.error || company.error) return failure(503, 'No se pudo verificar el alcance del reporte.')
     const codes: string[] = Array.from(new Set([...(grants.data ?? []).map(row => row.empresa_codigo), ...(company.data?.codigo ? [company.data.codigo] : [])]))
     const projectIds: string[] = Array.from(new Set((projects.data ?? []).map(row => row.project_id)))
-    if (!showMetrics && !codes.length && !projectIds.length) return failure(403, 'El reporte requiere un alcance de empresa o proyecto autorizado.')
+    const personalAssignmentReport = !showMetrics && memberId === actor.id
+    if (!showMetrics && !personalAssignmentReport && !codes.length && !projectIds.length) return failure(403, 'El reporte requiere un alcance de empresa o proyecto autorizado.')
 
     // Resolve assignee names with the same authenticated client, including historical
     // inactive employees. Only active authorized profiles remain selectable.
@@ -102,7 +103,9 @@ export async function readProductionReport(req: NextRequest): Promise<ReadResult
     // Historical SUPERADMIN report: the work I execute OR the work I requested.
     // This restores delegated team work without granting any new database access.
     if (showMetrics) selections.push({ column: 'solicitante_id', values: [memberId], many: false })
-    const scopes: { column: string; values: string[] }[] = showMetrics ? [{ column: '', values: [] }] :
+    // Personal reports are bounded by authenticated ownership and existing RLS,
+    // not by employment affiliation: assigned work can belong to client areas.
+    const scopes: { column: string; values: string[] }[] = showMetrics || personalAssignmentReport ? [{ column: '', values: [] }] :
       [{ column: 'empresa', values: codes }, { column: 'project_id', values: projectIds }].filter(scope => scope.values.length)
     const rows = new Map<string, Row>()
     const creditedTo = new Map<string, string | undefined>()

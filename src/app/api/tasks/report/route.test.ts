@@ -7,8 +7,8 @@ interface Query {
   then(resolve: (result: { data: Row | Row[] | null; error: { message: string } | null }) => unknown): Promise<unknown>
 }
 const fixture = vi.hoisted(() => ({ session: { ok: true, userId: 'auth-employee' } as Session, role: 'employee', status: 'active', org: 'stratix', orgStatus: 'active', identity: 'auth-employee', errorTable: '', inactive: false, scoped: true, activities: null as Row[] | null, assignments: null as Row[] | null, calls: [] as { table: string; privileged: boolean; fields: string; filters: [string, string, unknown][] }[] }))
-const ids = { employee: '11111111-1111-4111-8111-111111111111', admin: '22222222-2222-4222-8222-222222222222', superadmin: '33333333-3333-4333-8333-333333333333', foreign: '44444444-4444-4444-8444-444444444444' }
-const profile = (role: string) => ({ id: ids[role as keyof typeof ids], auth_id: `auth-${role}`, rol: role === 'employee' ? 'stratix360' : 'admin', activo: !fixture.inactive, empresa_id: role === 'foreign' ? 'other' : 'stratix-company', nombre: role, apellido: 'QA' })
+const ids = { employee: '11111111-1111-4111-8111-111111111111', admin: '22222222-2222-4222-8222-222222222222', superadmin: '33333333-3333-4333-8333-333333333333', foreign: '44444444-4444-4444-8444-444444444444', employeeTwo: '55555555-5555-4555-8555-555555555555' }
+const profile = (role: string) => ({ id: ids[role as keyof typeof ids], auth_id: `auth-${role}`, rol: role.startsWith('employee') ? 'stratix360' : 'admin', activo: !fixture.inactive, empresa_id: role === 'foreign' ? 'other' : 'stratix-company', nombre: role, apellido: 'QA' })
 function query(table: string, privileged = false) {
   const filters: [string, string, unknown][] = []; let fields = '', single = false, from = 0, to = Infinity
   const orders: [string, boolean][] = []
@@ -23,7 +23,7 @@ function query(table: string, privileged = false) {
       fixture.calls.push({ table, privileged, fields, filters })
       if (privileged && table !== 'sales_members') throw Error('Privileged operational read prohibited')
       let rows: Row[] = []
-      if (table === 'usuarios') rows = ['employee','admin','superadmin','foreign'].map(profile)
+      if (table === 'usuarios') rows = [...['employee','admin','superadmin','foreign'], ...(fixture.role === 'employeeTwo' ? ['employeeTwo'] : [])].map(profile)
       if (table === 'sales_members') rows = [{ user_id: ids[fixture.role as keyof typeof ids], auth_id: fixture.identity,
         role: fixture.role === 'superadmin' ? 'SUPERADMIN' : 'ADMIN', status: fixture.status,
         sales_organizations: { code: fixture.org, status: fixture.orgStatus } }]
@@ -87,9 +87,8 @@ it.each([401,403])('rejects session/module denial %s before queries', async stat
 it.each(['?month=2026-13','?month=0000-01','?user=bad'])('rejects malformed input %s', async params => {
   expect((await GET(request(params))).status).toBe(400); expect(fixture.calls).toEqual([])
 })
-it('rejects inactive profiles and absent company/project scope', async () => {
+it('rejects inactive profiles', async () => {
   fixture.inactive = true; expect((await GET(request())).status).toBe(403)
-  fixture.inactive = false; fixture.scoped = false; expect((await GET(request())).status).toBe(403)
 })
 it.each(['usuarios','sales_members','usuario_empresas_acceso','project_members','empresas','actividades','actividad_responsables'])('fails closed on %s read failure', async table => {
   fixture.errorTable = table; const response = await GET(request()); expect(response.status).toBe(503)
@@ -135,4 +134,43 @@ it('paginates supervised work and deduplicates primary, collaborator, and reques
   const report = await (await GET(request('?month=2026-08'))).json()
   expect(report.tasks).toHaveLength(503); expect(report.metrics.totalHours).toBe(2)
   expect((await (await GET(request('?month=2026-09'))).json()).tasks).toEqual([])
+})
+
+it('preserves the approved SUPERADMIN response and authenticated query plan', async () => {
+  as('superadmin')
+  const response = await GET(request('?month=2026-10'))
+  const data = await response.json()
+  const { createHash } = await import('node:crypto')
+  const fingerprint = createHash('sha256').update(JSON.stringify({ data, calls: fixture.calls })).digest('hex')
+  expect(fingerprint).toBe('e99a619238889f956e02d53528146edbffab793b3251d7aec080541f4e9c8150')
+})
+
+it.each(['employee','employeeTwo','admin'])('%s sees RLS-authorized client-area assignments outside employment affiliation, across months and statuses', async role => {
+  as(role)
+  const member = ids[role as keyof typeof ids]
+  const statuses = ['Pendiente','En proceso','Completado','Por aprobar','Cancelado']
+  fixture.activities = statuses.map((estado,i) => ({id:`client-${i}`,titulo:`Client work ${i}`,descripcion:'Authorized assigned work',empresa:'CLIENT',
+    responsable_id:i===4?ids.superadmin:member,estado,fecha_inicio:'2026-10-10',fecha_entrega:'2026-10-20',horas:99,dias_produccion:9}))
+  fixture.activities.push({...fixture.activities[0],id:'previous-month',fecha_inicio:'2026-09-10'},
+    {...fixture.activities[0],id:'previous-year',fecha_inicio:'2025-10-10'},
+    {...fixture.activities[0],id:'other-employee',responsable_id:ids.foreign},
+    {...fixture.activities[0],id:'rls-denied',rlsDenied:true})
+  fixture.assignments = [{actividad_id:'client-4',usuario_id:member,es_lider:false},{actividad_id:'client-4',usuario_id:ids.superadmin,es_lider:true}]
+  const response = await GET(request('?month=2026-10'))
+  expect(response.status).toBe(200)
+  const report = await response.json()
+  expect(report.tasks.map((task:{id:string})=>task.id).sort()).toEqual(['client-0','client-1','client-2','client-3','client-4'])
+  expect(report.tasks.map((task:{estado:string})=>task.estado)).toEqual(expect.arrayContaining(statuses))
+  expect(report).not.toHaveProperty('metrics')
+  for(const task of report.tasks){expect(task).not.toHaveProperty('horas');expect(task).not.toHaveProperty('dias_produccion')}
+  expect(fixture.calls.filter(call=>call.table==='actividades').every(call=>!call.privileged)).toBe(true)
+  const previous=await (await GET(request('?month=2026-09'))).json()
+  expect(previous.tasks.map((task:{id:string})=>task.id)).toEqual(['previous-month'])
+})
+it('allows a personal assigned report without adding company/project grants and still rejects another member', async () => {
+  fixture.scoped=false
+  const response=await GET(request())
+  expect(response.status).toBe(200)
+  expect((await response.json()).tasks).toHaveLength(1)
+  expect((await GET(request(`?month=2026-10&user=${ids.admin}`))).status).toBe(403)
 })

@@ -7,10 +7,11 @@ export const ids = {
   company: '99999999-9999-4999-8999-999999999999', foreignCompany: '88888888-8888-4888-8888-888888888888',
   admin: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', adminAuth: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   employee: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', employeeAuth: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+  employeeTwo: '12121212-1212-4212-8212-121212121212', employeeTwoAuth: '13131313-1313-4313-8313-131313131313',
   superadmin: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', superadminAuth: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
   outsider: '77777777-7777-4777-8777-777777777777', outsiderAuth: '66666666-6666-4666-8666-666666666666',
 }
-export async function createTaskReportFixture() {
+export async function createTaskReportFixture({ accessEnforced = true } = {}) {
   const { PGlite } = await import(pathToFileURL(path.resolve(process.env.QA_PGLITE_PATH || '.tmp/report-sql/node_modules/@electric-sql/pglite/dist/index.js')).href)
   const db = new PGlite()
   await db.exec(`
@@ -54,6 +55,7 @@ export async function createTaskReportFixture() {
     { id: ids.admin, auth_id: ids.adminAuth, nombre: 'Alex', apellido: 'Admin QA', email: 'admin-review@example.invalid', rol: 'admin', company: ids.company },
     { id: ids.employee, auth_id: ids.employeeAuth, nombre: 'Ada', apellido: 'Employee QA', email: 'employee-review@example.invalid', rol: 'stratix360', company: ids.company },
     { id: ids.outsider, auth_id: ids.outsiderAuth, nombre: 'Foreign', apellido: 'Employee QA', email: 'foreign-review@example.invalid', rol: 'stratix360', company: ids.foreignCompany },
+    { id: ids.employeeTwo, auth_id: ids.employeeTwoAuth, nombre: 'Second', apellido: 'Employee QA', email: 'employee-two-review@example.invalid', rol: 'stratix360', company: ids.company },
   ]
   await db.query('INSERT INTO empresas(id,codigo,nombre,color) VALUES ($1,\'S\',\'Stratix QA\',\'#5046e5\'),($2,\'EMC\',\'Foreign QA\',\'#888888\')',[ids.company,ids.foreignCompany])
   await db.exec("INSERT INTO roles VALUES ('admin','ADMIN · QA',true),('stratix360','Stratix employee · QA',false); INSERT INTO role_modules VALUES ('stratix360','tasks'),('stratix360','stratix-mkt');")
@@ -86,9 +88,28 @@ export async function createTaskReportFixture() {
     // Keep the six personal tasks as legacy primary assignments without join rows.
     if(!own) await db.query('INSERT INTO actividad_responsables VALUES ($1,$2,true)',[id,assignee])
   }
+  // Assigned client-area work is intentionally outside employment company S.
+  // This models Reports dropping otherwise RLS-visible assignments, not new grants.
+  for (let i=0;i<8;i++) {
+    const id=`81000000-0000-4000-8000-${String(i).padStart(12,'0')}`
+    const primary=i===1||i===7?ids.admin:i===2||i===6?ids.employeeTwo:ids.employee
+    const month=i===5||i===6?'2026-06':i===7?'2025-08':'2026-08'
+    const status=['Pendiente','En proceso','Completado','Por aprobar','Cancelado'][i%5]
+    await db.query('INSERT INTO actividades(id,titulo,descripcion,empresa,responsable_id,solicitante_id,created_by_id,horas,dias_produccion,fecha_inicio,fecha_entrega,estado) VALUES ($1,$2,$3,$4,$5,$6,$6,$7,$8,$9,$10,$11)',[
+      id,`Client-assignment QA ${i+1}`,'Authorized assigned client work; preserve descriptions and individual status.',
+      'OPS',primary,ids.superadmin,4,0.5,`${month}-10`,`${month}-20`,status,
+    ])
+    if(i!==3) await db.query('INSERT INTO actividad_responsables VALUES ($1,$2,true)',[id,primary])
+    if(i===1||i===2) await db.query('INSERT INTO actividad_responsables VALUES ($1,$2,false)',[id,ids.employee])
+    if(i===1) await db.query('INSERT INTO actividad_responsables VALUES ($1,$2,false)',[id,ids.employeeTwo])
+  }
+  // An unrelated colleague's task must stay absent despite sharing the client area.
+  await db.query("INSERT INTO actividades(id,titulo,descripcion,empresa,responsable_id,solicitante_id,fecha_inicio,fecha_entrega,estado) VALUES ('82000000-0000-4000-8000-000000000001','Unrelated colleague QA work','Must not appear in personal employee reports','OPS',$1,$2,'2026-08-10','2026-08-20','Pendiente')",[ids.admin,ids.superadmin])
+  await db.query("INSERT INTO actividad_responsables VALUES ('82000000-0000-4000-8000-000000000001',$1,true)",[ids.admin])
   // Execute the existing production-baseline read policies, never the excluded migration.
   const foundation = await readFile('supabase/migrations/20261005090000_lilly_access_foundation.sql','utf8')
-  await db.exec(`CREATE TABLE lilly_access_control(singleton boolean,enforced boolean); INSERT INTO lilly_access_control VALUES(true,true);`)
+  await db.exec('CREATE TABLE lilly_access_control(singleton boolean,enforced boolean)')
+  await db.query('INSERT INTO lilly_access_control VALUES(true,$1)',[accessEnforced])
   for (const functionName of ['lilly_access_enforced','lilly_has_company','lilly_project_member','lilly_can_see_activity','lilly_can_see_user']) {
     const start=foundation.indexOf('CREATE FUNCTION public.'+functionName+'(')
     const end=foundation.indexOf('$$;', start)+3
