@@ -11,8 +11,10 @@ const root = process.cwd()
 const fixturePort = 3140, appPort = 3139, reviewPort = 3138
 const fixtureDir = path.join(root, '.tmp/local-report-review')
 await mkdir(fixtureDir, { recursive: true })
-const fixture = await createTaskReportFixture()
-const people = [ids.admin, ids.employee, ids.superadmin].map(id => fixture.people.find(person => person.id === id))
+// Exercise a controlled pre-enforcement RLS scenario without adding grants.
+// The production enforcement mode has not been verified.
+const fixture = await createTaskReportFixture({ accessEnforced: false })
+const people = [ids.admin, ids.employee, ids.superadmin, ids.employeeTwo].map(id => fixture.people.find(person => person.id === id))
 function authUser(person) { return { id: person.auth_id, email: person.email, aud: 'authenticated', role: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00Z' } }
 function session(person) {
   const expires = Math.floor(Date.now() / 1000) + 86400
@@ -107,8 +109,8 @@ const landing = `<!doctype html><meta charset="utf-8"><title>Local Report QA</ti
 const handleReview = async (req, res) => {
   const url = new URL(req.url, `http://localhost:${reviewPort}`)
   if (url.pathname === '/' || url.pathname === '/__qa') { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }); return res.end(landing) }
-  if (['/__qa/admin','/__qa/employee','/__qa/superadmin'].includes(url.pathname)) {
-    const person = people[url.pathname.endsWith('/superadmin') ? 2 : url.pathname.endsWith('/admin') ? 0 : 1]
+  if (['/__qa/admin','/__qa/employee','/__qa/superadmin','/__qa/employee-two'].includes(url.pathname)) {
+    const person = people[url.pathname.endsWith('/employee-two') ? 3 : url.pathname.endsWith('/superadmin') ? 2 : url.pathname.endsWith('/admin') ? 0 : 1]
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Set-Cookie': `sb-127-auth-token=${encodeURIComponent(JSON.stringify(session(person)))}; Path=/; SameSite=Lax` })
     return res.end(`<!doctype html><meta charset="utf-8"><title>Opening local QA Reports</title><script>localStorage.setItem('locale','es');localStorage.setItem('eminat-onboarding-completed','true');localStorage.setItem('eminat:${person.id}:tab-stratix',JSON.stringify('reporte'));localStorage.setItem('eminat:${person.id}:tab-tasks',JSON.stringify('reporte'));location.replace('/tasks');</script><p>Opening local QA Reports…</p>`)
   }

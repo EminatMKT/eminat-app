@@ -97,3 +97,34 @@ for (const role of ['superadmin','employee']) test(`September historical structu
   await download.saveAs(`test-results/september-download-${role}.pdf`)
   await page.screenshot({path:`test-results/september-${role}.png`,fullPage:true})
 })
+
+for(const role of ['employee','employee-two']) for(const mobile of [false,true]) test(`personal client-area assignments ${role} ${mobile?'mobile':'desktop'}: ownership, month, preview, print and PDF`,async({page})=>{
+  const base='http://127.0.0.1:3138', own=role==='employee'?'dddddddd-dddd-4ddd-8ddd-dddddddddddd':'12121212-1212-4212-8212-121212121212'
+  await page.setViewportSize(mobile?{width:390,height:844}:{width:1440,height:1000})
+  await page.goto(`${base}/__qa/${role}`)
+  const preview=page.locator('#reporte-content')
+  await expect(preview.getByRole('button',{name:'Imprimir',exact:true})).toBeEnabled()
+  await preview.getByLabel('Período',{exact:true}).fill('2026-08')
+  await expect(preview.getByText('Client-assignment QA 2',{exact:false})).toBeVisible()
+  const response=await page.request.get(`${base}/api/tasks/report?month=2026-08`)
+  expect(response.status()).toBe(200)
+  const report=await response.json(), expected=role==='employee'?[1,2,3,4,5]:[2,3]
+  expect(report.memberId).toBe(own)
+  expect(report.tasks.map((task:{titulo:string})=>task.titulo).sort()).toEqual(expected.map(i=>`Client-assignment QA ${i}`))
+  expect(report).not.toHaveProperty('metrics')
+  for(const task of report.tasks){expect(task).not.toHaveProperty('horas');expect(task).not.toHaveProperty('dias_produccion')}
+  await expect(preview.getByText(/Unrelated colleague|Client-assignment QA 8/)).toHaveCount(0)
+  await expect(preview.getByText(/Tareas totales|Completadas|Días de producción|Horas totales/)).toHaveCount(0)
+  if(role==='employee') expect(report.tasks.map((task:{estado:string})=>task.estado)).toEqual(expect.arrayContaining(['Pendiente','En proceso','Completado','Por aprobar','Cancelado']))
+  expect((await page.request.get(`${base}/api/tasks/report?month=2026-08&user=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb`)).status()).toBe(403)
+  const [popup]=await Promise.all([page.waitForEvent('popup'),preview.getByRole('button',{name:'Imprimir',exact:true}).click()])
+  await expect(popup.getByText(disclaimer,{exact:true})).toHaveCount(1)
+  const label=`client-${role}-${mobile?'mobile':'desktop'}`
+  await popup.pdf({path:`test-results/print-${label}.pdf`,format:'A4',printBackground:true});await popup.close()
+  const [download]=await Promise.all([page.waitForEvent('download'),preview.getByRole('button',{name:'Descargar PDF',exact:true}).click()])
+  await download.saveAs(`test-results/download-${label}.pdf`)
+  await preview.getByLabel('Período',{exact:true}).fill('2026-06')
+  await expect(preview.getByText(`Client-assignment QA ${role==='employee'?6:7}`,{exact:false})).toBeVisible()
+  const june=await(await page.request.get(`${base}/api/tasks/report?month=2026-06`)).json()
+  expect(june.tasks.map((task:{titulo:string})=>task.titulo)).toEqual([`Client-assignment QA ${role==='employee'?6:7}`])
+})
