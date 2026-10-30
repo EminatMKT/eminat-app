@@ -9,7 +9,7 @@ import {
   sortRanges,
 } from '@/features/tasks/utils/availability'
 import { useT } from '@/shared/i18n'
-import { Button, ListaRotulada } from '@/shared/components/ui'
+import { Button, HoursStatus, ListaRotulada } from '@/shared/components/ui'
 import { AVAILABILITY_DAYS, STATUS_COPY_KEYS, STATUS_SYMBOLS } from './constants'
 import s from './index.module.css'
 
@@ -49,10 +49,8 @@ export default function MemberAvailabilityCard({ member, onEdit }: Props) {
                 <span>{range.startsAt}–{range.endsAt}</span>
                 {range.note && <small>{range.note}</small>}
               </li>)}</ListaRotulada>
-              <p className={`${s.comparison} ${s[comparison.status]}`}>
-                <span aria-hidden="true">{STATUS_SYMBOLS[comparison.status]}</span>
-                {t(STATUS_COPY_KEYS[comparison.status], comparisonCopyVars(comparison))}
-              </p>
+              <HoursStatus symbol={STATUS_SYMBOLS[comparison.status]} tone={comparison.status}
+                text={t(STATUS_COPY_KEYS[comparison.status], comparisonCopyVars(comparison))} />
             </>}
           </section>
         })}</div>

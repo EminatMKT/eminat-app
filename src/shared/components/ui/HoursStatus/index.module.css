@@ -1,0 +1,21 @@
+.root {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.root[data-tone='below'] {
+  color: var(--c-danger-solid);
+}
+
+.root[data-tone='above'] {
+  color: var(--c-warn-solid);
+}
+
+.root[data-tone='unavailable'] {
+  color: var(--c-t3);
+}
+
+.root[data-tone='complete'] {
+  color: var(--c-t1);
+}
