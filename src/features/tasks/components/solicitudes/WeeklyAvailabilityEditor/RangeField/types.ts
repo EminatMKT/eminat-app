@@ -12,5 +12,7 @@ export type RangeFieldProps = {
   label: string
   value: string
   error?: string
+  counterText?: string
+  counterNearLimit?: boolean
   onChange: (value: string) => void
 }
