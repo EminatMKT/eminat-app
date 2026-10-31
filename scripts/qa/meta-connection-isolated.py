@@ -25,7 +25,7 @@ try:
     CREATE SCHEMA auth; CREATE TABLE auth.users(id uuid PRIMARY KEY);
     CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$ SELECT current_setting('request.jwt.claim.role',true) $$;
     CREATE TABLE public.usuarios(id uuid PRIMARY KEY,auth_id uuid,email text,nombre text,apellido text,rol text,validado boolean,activo boolean);
-    CREATE TABLE public.empresas(codigo text PRIMARY KEY,nombre text,activo boolean);
+    CREATE TABLE public.empresas(codigo text PRIMARY KEY,nombre text,color text NOT NULL,activo boolean);
     """
     migrations=ROOT/'supabase/migrations'
     names=['20261018000000_native_sales_core.sql','20261018010000_native_sales_operations.sql',

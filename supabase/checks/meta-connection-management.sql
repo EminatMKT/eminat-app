@@ -13,7 +13,7 @@ END $$;
 INSERT INTO auth.users(id) SELECT pg_temp.meta_id(n) FROM generate_series(1,4) n;
 INSERT INTO public.usuarios(id,auth_id,email,nombre,apellido,rol,validado,activo)
  SELECT pg_temp.meta_id(n),pg_temp.meta_id(n),'meta-phase1-'||n||'@example.invalid','Synthetic','Meta','admin',true,true FROM generate_series(1,4) n;
-INSERT INTO public.empresas(codigo,nombre,activo) VALUES('META_QA_A','Synthetic A',true),('META_QA_B','Synthetic B',true),('META_QA_C','Synthetic C',true);
+INSERT INTO public.empresas(codigo,nombre,color,activo) VALUES('META_QA_A','Synthetic A','#7C6FF7',true),('META_QA_B','Synthetic B','#7C6FF7',true),('META_QA_C','Synthetic C','#7C6FF7',true);
 INSERT INTO public.usuario_empresas_acceso(usuario_id,empresa_codigo) VALUES
  (pg_temp.meta_id(1),'META_QA_A'),(pg_temp.meta_id(1),'META_QA_B'),
  (pg_temp.meta_id(2),'META_QA_A'),(pg_temp.meta_id(2),'META_QA_B'),
