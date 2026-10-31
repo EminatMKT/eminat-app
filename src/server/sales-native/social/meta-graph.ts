@@ -30,6 +30,20 @@ function endpoint(config: MetaGraphConfig, path: string): URL {
   return new URL(`https://graph.facebook.com/${config.version}/${path}`)
 }
 
+async function readMetaResponse(response: Response): Promise<unknown> {
+  const reader = response.body?.getReader()
+  if (!reader) throw new Error('META_RESPONSE_INVALID')
+  const chunks: Uint8Array[] = []; let size = 0
+  while (true) {
+    const { value, done } = await reader.read()
+    if (done) break
+    size += value.byteLength
+    if (size > 4 * 1024 * 1024) { await reader.cancel(); throw new Error('META_RESPONSE_INVALID') }
+    chunks.push(value)
+  }
+  return JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown
+}
+
 /** Server-only Graph exchange. No code, token, secret or provider body is logged. */
 export class MetaGraphClient {
   private readonly config: MetaGraphConfig
@@ -52,6 +66,40 @@ export class MetaGraphClient {
     return url.toString()
   }
 
+  connectionAuthorizationUrl(state: string, includeInstagram = false): string {
+    const url = new URL(this.authorizationUrl(state))
+    url.searchParams.set('scope', includeInstagram
+      ? 'pages_show_list,pages_read_engagement,instagram_basic' : 'pages_show_list')
+    url.searchParams.set('auth_type', 'rerequest')
+    return url.toString()
+  }
+
+  async connectionHealth(token: string): Promise<{ status: 'ACTIVE' | 'ACCESS_REVOKED' | 'PERMISSION_MISSING' | 'PROVIDER_UNAVAILABLE'; permissions: string[] }> {
+    const url = endpoint(this.config, 'me/permissions')
+    try {
+      const response = await this.request(url, { headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store', signal: AbortSignal.timeout(10_000) })
+      const body = await readMetaResponse(response)
+      if (!response.ok) {
+        const error = z.object({ error: z.object({ code: z.number() }) }).safeParse(body)
+        return { status: error.success && [102,190].includes(error.data.error.code) ? 'ACCESS_REVOKED' : 'PROVIDER_UNAVAILABLE', permissions: [] }
+      }
+      const permissions = permissionsReply.parse(body).data.filter(p => p.status === 'granted').map(p => p.permission)
+      return { status: permissions.includes('pages_show_list') ? 'ACTIVE' : 'PERMISSION_MISSING', permissions }
+    } catch { return { status: 'PROVIDER_UNAVAILABLE', permissions: [] } }
+  }
+
+  async authorizingUserId(token: string): Promise<string> {
+    const url = endpoint(this.config, 'me')
+    url.searchParams.set('fields', 'id')
+    try {
+      const response = await this.request(url, { headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store', signal: AbortSignal.timeout(10_000) })
+      if (!response.ok) throw new Error()
+      return z.object({ id: z.string().min(1).max(200) }).parse(await readMetaResponse(response)).id
+    } catch { throw new Error('META_PRINCIPAL_UNAVAILABLE') }
+  }
+
   async exchange(code: string): Promise<{ token: string; expiresAt: Date }> {
     if (!code || code.length > 4096) throw new Error('META_CODE_INVALID')
     const url = endpoint(this.config, 'oauth/access_token')
@@ -63,7 +111,7 @@ export class MetaGraphClient {
       catch { throw new Error('META_PROVIDER_UNAVAILABLE') }
       if (!response.ok) throw new Error('META_PROVIDER_UNAVAILABLE')
       let decoded: unknown
-      try { decoded = await response.json() }
+      try { decoded = await readMetaResponse(response) }
       catch { throw new Error('META_EXCHANGE_INVALID') }
       const parsed = tokenReply.safeParse(decoded)
       if (!parsed.success) throw new Error('META_EXCHANGE_INVALID')
@@ -87,7 +135,7 @@ export class MetaGraphClient {
     catch { throw new Error('META_PROVIDER_UNAVAILABLE') }
     if (!response.ok) throw new Error('META_PROVIDER_UNAVAILABLE')
     let decoded: unknown
-    try { decoded = await response.json() }
+    try { decoded = await readMetaResponse(response) }
     catch { throw new Error('META_EXCHANGE_INVALID') }
     const parsed = tokenReply.safeParse(decoded)
     if (!parsed.success) throw new Error('META_EXCHANGE_INVALID')
@@ -95,7 +143,7 @@ export class MetaGraphClient {
       expiresAt: new Date(Date.now() + parsed.data.expires_in * 1000) }
   }
 
-  async discoverPages(userToken: string): Promise<MetaGraphPage[]> {
+  async discoverPages(userToken: string, includeInstagram = true): Promise<MetaGraphPage[]> {
     if (!userToken) throw new Error('META_TOKEN_UNAVAILABLE')
     const collect = async (fields: string) => {
       const result: MetaGraphPage[] = []; let after: string | undefined
@@ -112,7 +160,7 @@ export class MetaGraphClient {
           throw new Error('META_BUSINESS_FIELD_UNAVAILABLE')
         if (!response.ok) throw new Error('META_PROVIDER_UNAVAILABLE')
         let decoded: unknown
-        try { decoded = await response.json() }
+        try { decoded = await readMetaResponse(response) }
         catch { throw new Error('META_PAGES_INVALID') }
         const parsed = pagesReply.safeParse(decoded)
         if (!parsed.success) throw new Error('META_PAGES_INVALID')
@@ -123,10 +171,11 @@ export class MetaGraphClient {
       }
       throw new Error('META_PAGES_INCOMPLETE')
     }
-    try { return await collect('id,name,access_token,tasks,instagram_business_account,business{id,name}') }
+    const fields = `id,name,access_token,tasks${includeInstagram ? ',instagram_business_account' : ''}`
+    try { return await collect(`${fields},business{id,name}`) }
     catch (error) {
       if (!(error instanceof Error) || error.message !== 'META_BUSINESS_FIELD_UNAVAILABLE') throw error
-      return collect('id,name,access_token,tasks,instagram_business_account')
+      return collect(fields)
     }
   }
 
@@ -139,7 +188,7 @@ export class MetaGraphClient {
     catch { throw new Error('META_PROVIDER_UNAVAILABLE') }
     if (!response.ok) throw new Error('META_PROVIDER_UNAVAILABLE')
     let decoded: unknown
-    try { decoded = await response.json() }
+    try { decoded = await readMetaResponse(response) }
     catch { throw new Error('META_PERMISSIONS_INVALID') }
     const parsed = permissionsReply.safeParse(decoded)
     if (!parsed.success) throw new Error('META_PERMISSIONS_INVALID')
@@ -160,7 +209,7 @@ export class MetaGraphClient {
     catch { throw new Error('META_SUBSCRIPTION_FAILED') }
     if (!response.ok) throw new Error('META_SUBSCRIPTION_FAILED')
     let decoded: unknown
-    try { decoded = await response.json() }
+    try { decoded = await readMetaResponse(response) }
     catch { throw new Error('META_SUBSCRIPTION_FAILED') }
     if (!z.object({ success: z.literal(true) }).safeParse(decoded).success)
       throw new Error('META_SUBSCRIPTION_FAILED')
