@@ -1,10 +1,14 @@
 import 'server-only'
+import { resolveMetaDeployment } from '../../../../meta-qa-isolation.cjs'
 import { z } from 'zod'
 
 const credentials = z.object({
   appId: z.string().min(5).max(200), appSecret: z.string().min(16).max(2000),
   version: z.string().regex(/^v\d{1,2}\.\d{1,2}$/),
-  callback: z.literal('https://app.stratixsolutions.us/api/sales-native/social/meta/callback'),
+  // Both service and adapter reject callbacks outside the approved deployment.
+  callback: z.string().refine(value => {
+    try { return value === resolveMetaDeployment(process.env).callback } catch { return false }
+  }),
 })
 export type MetaGraphConfig = z.infer<typeof credentials>
 const tokenReply = z.object({ access_token: z.string().min(10).max(16384),

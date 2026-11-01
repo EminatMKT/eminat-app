@@ -43,6 +43,32 @@ describe('Meta tenant/company service boundary',()=>{
   expect(result).not.toHaveProperty('token')
   expect(mocks.rpc).toHaveBeenCalledWith('native_meta_begin',expect.objectContaining({p_org:org,p_member:member,p_company:'COMPANY_A'}))
  })
+ it('rejects redirect overrides in connection input without creating state',async()=>{
+  await expect(beginMetaConnection(actor,{companyCode:'COMPANY_A',redirect_uri:'https://evil.example'})).rejects.toThrow('META_CONNECTION_INVALID')
+  expect(mocks.rpc).not.toHaveBeenCalled()
+ })
+ it('cannot look up or exchange a state after changing deployment context',async()=>{
+  const result=await beginMetaConnection(actor,{companyCode:'COMPANY_A'})
+  const actualState=new URL(result.url).searchParams.get('state')!
+  const savedHash=mocks.rpc.mock.calls.find(call=>call[0]==='native_meta_begin')![1].p_hash
+  // Simulate the real database's equality lookup, even if a state row was copied.
+  mocks.from.mockImplementation(()=>{
+   const q=query(row)
+   q.eq.mockImplementation((column,value)=>{
+    if(column==='state_hash' && value!==savedHash)q.maybeSingle.mockResolvedValue({data:null,error:null})
+    return q
+   });return q
+  })
+  vi.stubEnv('VERCEL_ENV','production');vi.stubEnv('NEXT_PUBLIC_APP_ENV','production')
+  vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL','https://ruedelunbtaomhrzgelc.supabase.co')
+  mocks.rpc.mockClear()
+  const exchange=vi.spyOn(MetaGraphClient.prototype,'exchange')
+  await expect(metaCallbackContext(actualState,'synthetic-session')).rejects.toThrow('META_GRANT_UNAVAILABLE')
+  await expect(exchangeMetaConnection(actualState,'synthetic-code','synthetic-session')).rejects.toThrow('META_GRANT_UNAVAILABLE')
+  await expect(listMetaGrantPages(actor,actualState)).rejects.toThrow('META_GRANT_UNAVAILABLE')
+  await expect(completeMetaConnection(actor,{state:actualState,assetIds:[assetId],relationship:'OWNER_ASSERTED'})).rejects.toThrow('META_GRANT_UNAVAILABLE')
+  expect(exchange).not.toHaveBeenCalled();expect(mocks.rpc).not.toHaveBeenCalled()
+ })
  it('rejects company denial before any Graph operation or state creation',async()=>{
   mocks.rpc.mockResolvedValue({data:null,error:{message:'denied'}})
   await expect(beginMetaConnection(actor,{companyCode:'FOREIGN'})).rejects.toThrow('META_COMPANY_ACCESS_DENIED')
@@ -71,6 +97,31 @@ describe('Meta tenant/company service boundary',()=>{
   expect(JSON.stringify(finish.p_assets)).not.toContain('synthetic-page-token')
   expect(finish).not.toHaveProperty('p_pages_ciphertext')
   expect(result).toEqual({state,returnPath:`/sales-native/integrations/meta?organization=${org}&company=COMPANY_A`})
+ })
+ it('rejects a deployment change during the atomic claim before any provider exchange',async()=>{
+  vi.stubEnv('VERCEL_ENV','production');vi.stubEnv('NEXT_PUBLIC_APP_ENV','production')
+  vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL','https://ruedelunbtaomhrzgelc.supabase.co')
+  mocks.rpc.mockImplementation(async(name)=>{
+   if(name==='native_meta_exchange_claim')vi.stubEnv('LILLY_SOCIAL_TOKEN_KEY',Buffer.alloc(32,8).toString('base64url'))
+   return {data:{id:stateId,company:'COMPANY_A',appId:'synthetic-app'},error:null}
+  })
+  const exchange=vi.spyOn(MetaGraphClient.prototype,'exchange')
+  await expect(exchangeMetaConnection(state,'synthetic-code','synthetic-session')).rejects.toThrow('META_GRANT_UNAVAILABLE')
+  expect(exchange).not.toHaveBeenCalled()
+ })
+ it('revalidates deployment context before persisting provider results',async()=>{
+  vi.stubEnv('VERCEL_ENV','production');vi.stubEnv('NEXT_PUBLIC_APP_ENV','production')
+  vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL','https://ruedelunbtaomhrzgelc.supabase.co')
+  mocks.rpc.mockImplementation(async(name)=>({data:name==='native_meta_exchange_claim'?{id:stateId,company:'COMPANY_A',appId:'synthetic-app'}:{},error:null}))
+  vi.spyOn(MetaGraphClient.prototype,'exchange').mockResolvedValue({token:'synthetic-user-token',expiresAt:new Date(Date.now()+3600000)})
+  vi.spyOn(MetaGraphClient.prototype,'grantedPermissions').mockResolvedValue(['pages_show_list'])
+  vi.spyOn(MetaGraphClient.prototype,'authorizingUserId').mockResolvedValue('meta-principal-1')
+  vi.spyOn(MetaGraphClient.prototype,'discoverPages').mockImplementation(async()=>{
+   vi.stubEnv('LILLY_SOCIAL_TOKEN_KEY',Buffer.alloc(32,8).toString('base64url'))
+   return [{id:'page-1',name:'Page 1',access_token:'synthetic-page-token'}]
+  })
+  await expect(exchangeMetaConnection(state,'synthetic-code','synthetic-session')).rejects.toThrow('META_AUTHORIZATION_FAILED')
+  expect(mocks.rpc.mock.calls.some(call=>call[0]==='native_meta_exchange_finish')).toBe(false)
  })
  it('rewraps selected credentials with integration context and returns only the RPC metadata',async()=>{
   const result=await completeMetaConnection(actor,{state,assetIds:[assetId],relationship:'AGENCY_DELEGATED'})

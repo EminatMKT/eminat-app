@@ -27,7 +27,7 @@ Composite foreign keys protect company→grant→connection→account→asset an
 
 ## OAuth, storage and health
 
-The 32-byte state is hashed in storage. It binds requester, organization, company, app, return context and optional reconnect target. A ten-minute handoff is atomically claimed before exchanging a provider code; a replay cannot exchange again. Completion locks and consumes the handoff transactionally. Denial and successful callbacks preserve the authorized workspace. Redirects use a fixed local path, URL-encoded context, no-store and no-referrer. Tokens and authorization codes are never returned to the UI or logged.
+The 32-byte state is hashed in storage with a versioned deployment domain: environment, exact approved callback and configuration context. The raw state alone cannot find a handoff in another deployment, even if its row was copied. Lookup, atomic exchange claim, candidate selection and completion all use this domain; the exchange rechecks it before persisting discovery. Changing the approval or credential set invalidates outstanding handoffs; restart authorization rather than migrate them. It binds requester, organization, company, app, return context and optional reconnect target. A ten-minute handoff is atomically claimed before exchanging a provider code; a replay cannot exchange again. Completion locks and consumes the handoff transactionally. Denial and successful callbacks preserve the authorized workspace. Redirects use a fixed local path, URL-encoded context, no-store and no-referrer. Tokens and authorization codes are never returned to the UI or logged.
 
 Discovery stores each candidate's token separately under the existing AES-GCM vault, bound to organization plus candidate UUID. The former 16 KiB aggregate blob is unused. Bounds remain: 10 Graph pages of 100 results, at most 2,000 Page/linked-Instagram candidates, 4 MiB per Graph response, 100 selected assets, 16 KiB inbound selection body and the unchanged per-token vault limit. Selected tokens are rewrapped to their final grant/integration contexts. Completion/expiry removes discovery credentials.
 
@@ -82,3 +82,60 @@ Controlled QA after that approval:
 ## External blockers retained
 
 The October 31 audit last observed the existing Meta app in Development, business unverified, relevant Standard Access without demonstrated review, ANNIE callback/domain/legal URLs, and missing Page/Instagram webhook callbacks. This implementation does not alter or reverify live Meta settings. Reuse must be confirmed against the required discovery permissions and current app eligibility. LILLY callback/domain/legal configuration, applicable Advanced Access/App Review/business verification for unrelated customers, approved tenant-company mappings and existing server secret bindings remain separate release prerequisites. No new app, secret or credential should be created by default. No webhooks/subscriptions are needed to validate connection management.
+
+
+## November 1 isolated-QA safeguards and operator prerequisites
+
+PR #203 remains draft. No deployment, remote migration, environment edit, Meta authorization, provider operation, new credential, company access or mapping is authorized or performed by this update. The original SQL migration and rollback are unchanged; deployment binding uses the existing 64-character `state_hash`, so no new migration is needed. Pre-v2 pending handoffs become unusable and expire normally.
+
+### Callback and environment contract
+
+`meta-qa-isolation.cjs` is the shared server/build policy. Production requires Vercel's `production` environment, `NEXT_PUBLIC_APP_ENV=production` and the exact Production database URL. Its sole callback remains `https://app.stratixsolutions.us/api/sales-native/social/meta/callback`.
+
+Real QA is supported only in Vercel `preview`, using one unexpired record in the review-owned `docs/operations/meta-qa-approvals.json`. **That file is deliberately empty. There is no approved real QA deployment or database.** A binding alone cannot add an approval. No `development`, custom environment, wildcard hostname, incoming Host/forwarded-host, redirect query, or arbitrary callback binding can select a callback. `LILLY_META_REDIRECT_URI` and `LILLY_META_CALLBACK_URL` are rejected. Connect and callback requests must use the approved origin; a supplied Origin header must agree. Success, denial and authentication-error redirects use that origin, never the request origin or Production fallback. An unapproved callback request fails without a redirect or provider call.
+
+The exact QA callback will be `<reviewed HTTPS origin>/api/sales-native/social/meta/callback`. Its hostname/URL is **not yet known or approved**. Do not register a guessed URL. The Graph adapter independently validates its callback against the same policy before exchanging a code. OAuth state is deployment-bound through its hash domain; SQL's requester/company/expiry/single-claim checks remain unchanged. The approval context pins database and credential provenance in addition to callback and environment.
+
+Synthetic unit tests use the fixed `synthetic-app` / synthetic secret and localhost callback only under `NODE_ENV=test` without a Vercel environment. Browser fixtures retain loopback Supabase and dummy keys, with Social/provider endpoints mocked. These fixtures are not eligible for live Meta authorization.
+
+### Required existing bindings (presence and scope only)
+
+Before a separately approved QA deployment, the operator must verify these **existing** bindings, without exposing their values in logs, PRs, UI or reports:
+
+| Binding | Required QA scope and check |
+| --- | --- |
+| `LILLY_ISOLATED_QA_APPROVAL_ID` | Preview only; exactly one reviewed, unexpired allowlist record. Currently missing by design. |
+| `VERCEL_ENV`, `VERCEL_TARGET_ENV` when set | System scope; must be `preview`. Never relabel Preview as Production. |
+| `VERCEL_PROJECT_ID`, `VERCEL_ORG_ID`, `VERCEL_GIT_COMMIT_REF` | Must match the approved existing hosting project, team and exact branch. Check availability at build **and** runtime. |
+| `NEXT_PUBLIC_APP_ENV` | `local` for QA. This public tier never authorizes database access. |
+| `NEXT_PUBLIC_SUPABASE_URL` | Exact canonical HTTPS URL of the approved isolated project; no custom domain, credentials, port, query or alternate path. |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Existing key for that isolated project; only this public client key may enter the browser. SHA-256 must match the reviewed record. |
+| `SUPABASE_SECRET_KEY` | Existing isolated project's server key; exact reviewed SHA-256. This is the name used by `supabaseAdmin`. |
+| `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Prefer absent. If retained, each must independently match an approved fingerprint and project/role checks. They do not replace the two required names above. |
+| `LILLY_META_APP_ID`, `LILLY_META_APP_SECRET`, `LILLY_META_GRAPH_VERSION` | Existing Meta app, approved ID/version and server-secret fingerprint; no new app or credentials. |
+| `LILLY_SOCIAL_TOKEN_KEY` | Existing **separate QA** 32-byte base64url key; reviewed SHA-256 of the decoded 32 key bytes must differ from the verified current Production key fingerprint. Missing separate key blocks QA; never copy Production's key. |
+| `LILLY_META_OAUTH_ENABLED` | Keep disabled until separate authorization for controlled live QA; connection operations require `true`. |
+| `LILLY_NATIVE_SALES_ENABLED`, `LILLY_NATIVE_SALES_PRIMARY` | Existing native Sales gates; verify intended QA scope. |
+
+`LILLY_META_VERIFY_TOKEN` is not required for connection-only QA. `CRON_SECRET`, mail, accounting, database connection strings and other privileged worker bindings remain prohibited in Preview; the database exception does not relax those guards. Recovery/cron and webhook subscription configuration are unnecessary for this QA. Ingestion remains fenced at HTTP, worker and SQL boundaries.
+
+### Review-owned approval record and isolation evidence
+
+A future separately reviewed record must contain: `id`, `environment` (`preview` only), `evidence`, `expiresAt` (UTC), `vercelProjectId`, `vercelOrgId`, `branch`, exact HTTPS `origin`, `forbiddenProductionOrigins` (include `https://app.stratixsolutions.us`, `https://hub.eminat.net` and every current Production alias), `supabaseProjectRef`, `databaseKeySha256` keyed by each configured database binding name, `vaultKeySha256`, `productionVaultKeySha256`, `metaAppId`, `metaAppSecretSha256` and `graphVersion`. Store only SHA-256 fingerprints, never raw credentials. Database and Meta app secret fingerprints hash the exact binding strings. Both vault fingerprints hash the decoded 32 key bytes, so alternate encodings cannot disguise reuse; the QA binding must use canonical unpadded base64url. The approval is server-side; do not expose it through an API or import it into client components.
+
+The reviewer must establish that the isolated database is a distinct existing non-Production project, has no Production restore/customer data, has separate Auth users and credentials, and has no production replication/import path. Evidence must also identify all Production aliases and verify the current Production vault fingerprint through an authorized secret-audit procedure. The policy cannot determine the destination of an opaque key offline: the reviewed fingerprint is the provenance attestation for the exact URL/key pair. For legacy JWT keys it additionally rejects a mismatched `ref`, wrong `anon`/`service_role` role or expired token. Fingerprinting is not a substitute for independently establishing project ownership and isolation.
+
+At build and before each server database client is created, reject the Production project `ruedelunbtaomhrzgelc`, any other/unapproved URL, mismatched or additional credential, expired approval, wrong hosting team/project/branch/environment, missing vault provenance or Production vault reuse. Runtime checks use the actual parsed database URL/server key and public build key. A skipped build check cannot enable the server database client. Guard errors contain fixed codes only. These checks do not certify database contents: the separate evidence above is mandatory.
+
+### Controlled sequence after blockers are resolved
+
+1. Review the exact code/approval record and retain draft status. Identify an existing protected Preview origin and isolated database; if either or any required credential does not exist, stop. Do not create infrastructure or credentials as part of this phase.
+2. Independently verify isolation/provenance, current public customer onboarding versus app-role restrictions, and exact authorizer/company access. Obtain separate authorization before adding a real approval record, changing configuration, deploying, applying even an isolated migration, or starting Meta consent. None is performed by this PR update.
+3. On the separately approved isolated target, rehearse the unchanged full migration chain with synthetic identities only, the guarded empty rollback and reapply. Do not restore Production data. Require the exact resulting head's CI and deployment evidence, not PR #198 or an older Preview.
+4. Run synthetic authorization denials, state replay/expiry/environment mismatch, multiple companies/assets, duplicate ownership, lifecycle/health failures, local disconnect and delayed-event isolation. Inspect only sanitized responses/logs; assert zero ingestion and provider writes. The existing app-role live QA sequence above remains separately gated.
+5. Only after explicit live-QA authorization, register the reviewed QA callback on the existing app and verify its effective settings. Authorize only approved app-role people/assets. No subscription, ingestion, publication or provider cleanup. Public customer onboarding still requires its own applicable Meta verification/review/live-mode gates.
+
+November 1 preflight blockers remain: ANNIE callback/domain/legal settings, no exact-commit Preview, no approved isolated project/credential evidence or separate QA vault key, no company access assignments/reviewed mappings, and no second verified eligible authorizer. The linked EMC Instagram account's access request is pending. Do not infer these have been resolved by code tests. **Ready for real isolated QA: NO.**
+
+
+Validation of the November 1 code update: 123 targeted isolation/Social/OAuth/webhook/worker tests pass; English desktop and Spanish mobile synthetic Meta browser tests pass (2/2); TypeScript, changed-file lint and a local optimized build with dummy database bindings pass (existing unrelated lint warnings only). No live provider or remote database was used. SQL files were unchanged; the prior isolated migration/rollback results remain baseline evidence. Exact new-head CI status must be checked separately after push.

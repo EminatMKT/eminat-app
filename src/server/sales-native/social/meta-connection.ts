@@ -1,4 +1,5 @@
 import 'server-only'
+import { resolveMetaDeployment, requireMetaRequest } from '../../../../meta-qa-isolation.cjs'
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { NativeSalesAuthError, resolveSalesActor } from '../auth'
 import type { SalesActor } from '../policy'
@@ -9,13 +10,22 @@ import { canManageMeta, connectionInput, disconnectInput, metaReturnPath, select
 
 function hash(state: string) {
   if (!/^[A-Za-z0-9_-]{40,100}$/.test(state)) throw new NativeSalesAuthError(422, 'META_STATE_INVALID')
-  return createHash('sha256').update(state).digest('hex')
+  const deployment = metaDeployment()
+  return createHash('sha256').update(JSON.stringify(['lilly-meta-state-v2', deployment.environment,
+    deployment.callback, deployment.context, state])).digest('hex')
 }
 function failure(code: string, status = 403): never { throw new NativeSalesAuthError(status, code) }
 function databaseFailure(error: { code: string; message: string } | null, code: string): never {
   if (error && ['META_ASSET_ALREADY_RESERVED','META_COMPANY_ACCESS_DENIED','META_GRANT_UNAVAILABLE'].includes(error.message))
     failure(error.message, error.message === 'META_COMPANY_ACCESS_DENIED' ? 403 : 409)
   failure(code, 503)
+}
+export function metaDeployment(request?: Request) {
+  try {
+    const deployment = resolveMetaDeployment(process.env)
+    if (request) requireMetaRequest(request, deployment)
+    return deployment
+  } catch { failure('META_DEPLOYMENT_ISOLATION_REQUIRED', 503) }
 }
 export function metaConfiguration() {
   const env = process.env
@@ -24,7 +34,7 @@ export function metaConfiguration() {
   return { appId: env.LILLY_META_APP_ID, key: env.LILLY_SOCIAL_TOKEN_KEY,
     client: new MetaGraphClient({ appId: env.LILLY_META_APP_ID, appSecret: env.LILLY_META_APP_SECRET,
       version: env.LILLY_META_GRAPH_VERSION,
-      callback: 'https://app.stratixsolutions.us/api/sales-native/social/meta/callback' }) }
+      callback: metaDeployment().callback }) }
 }
 export async function requireMetaCompany(actor: SalesActor, company: string) {
   if (!canManageMeta(actor)) failure('SALES_ACCESS_DENIED')
@@ -66,22 +76,23 @@ export async function metaCallbackContext(state: string, accessToken: string) {
     .eq('state_hash', hash(state)).maybeSingle()
   if (error || !data || !data.company_code || data.status !== 'PENDING' || Date.parse(data.expires_at) <= Date.now())
     failure('META_GRANT_UNAVAILABLE')
-  const actor = await resolveSalesActor(new Request('https://app.stratixsolutions.us', { headers: {
+  const actor = await resolveSalesActor(new Request(metaDeployment().origin, { headers: {
     Authorization: `Bearer ${accessToken}`, 'X-Sales-Organization-Id': data.organization_id } }))
   if (actor.memberId !== data.requester_member_id || actor.organizationId !== data.organization_id) failure('META_GRANT_UNAVAILABLE')
   await requireMetaCompany(actor, data.company_code)
   return metaReturnPath(actor.organizationId, data.company_code)
 }
 export async function exchangeMetaConnection(state: string, code: string, accessToken: string) {
+  const stateHash = hash(state)
   const db = supabaseAdmin({ noStore: true })
   const { data: pending, error } = await db.from('sales_social_oauth_states').select('organization_id')
     .eq('state_hash', hash(state)).maybeSingle()
   if (error || !pending) failure('META_GRANT_UNAVAILABLE')
-  const actor = await resolveSalesActor(new Request('https://app.stratixsolutions.us', { headers: {
+  const actor = await resolveSalesActor(new Request(metaDeployment().origin, { headers: {
     Authorization: `Bearer ${accessToken}`, 'X-Sales-Organization-Id': pending.organization_id } }))
   const { data: claimed, error: claimError } = await db.rpc('native_meta_exchange_claim', {
-    p_hash: hash(state), p_org: actor.organizationId, p_member: actor.memberId })
-  if (claimError || !claimed) failure('META_GRANT_UNAVAILABLE')
+    p_hash: stateHash, p_org: actor.organizationId, p_member: actor.memberId })
+  if (claimError || !claimed || hash(state) !== stateHash) failure('META_GRANT_UNAVAILABLE')
   const { client, key, appId } = metaConfiguration()
   if (claimed.appId !== appId) failure('META_GRANT_UNAVAILABLE')
   try {
@@ -100,6 +111,7 @@ export async function exchangeMetaConnection(state: string, code: string, access
       return [seal('page', page.id, page.name, null), ...(page.instagram_business_account
         ? [seal('instagram', page.instagram_business_account.id, `${page.name} · Instagram`, page.id)] : [])]
     })
+    if (hash(state) !== stateHash) failure('META_GRANT_UNAVAILABLE')
     const { error: finishError } = await db.rpc('native_meta_exchange_finish', {
       p_state: claimed.id, p_org: actor.organizationId, p_member: actor.memberId,
       p_meta_user: metaUserId, p_user_ciphertext: sealSocialToken(grant.token, key, actor.organizationId, claimed.id),

@@ -1,10 +1,11 @@
 import { nativeSalesErrorResponse, resolveSalesActor } from '@/server/sales-native/auth'
-import { beginMetaConnection } from '@/server/sales-native/social/meta-connection'
+import { beginMetaConnection, metaDeployment } from '@/server/sales-native/social/meta-connection'
 import { readMetaInput } from '@/server/sales-native/social/input'
 export const dynamic='force-dynamic'
 export const runtime='nodejs'
 export async function POST(request:Request){
  try{
+  metaDeployment(request)
   const actor=await resolveSalesActor(request)
   const input=await readMetaInput(request)
   const data=await beginMetaConnection(actor,input)

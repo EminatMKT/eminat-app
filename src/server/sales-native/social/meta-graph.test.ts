@@ -1,11 +1,22 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MetaGraphClient } from './meta-graph'
 
 const config = { appId: 'app-qa-id', appSecret: 'synthetic-secret-only-123456',
   version: 'v24.0' as const,
   callback: 'https://app.stratixsolutions.us/api/sales-native/social/meta/callback' as const }
 
+beforeEach(() => {
+  vi.stubEnv('VERCEL_ENV', 'production'); vi.stubEnv('NEXT_PUBLIC_APP_ENV', 'production')
+  vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://ruedelunbtaomhrzgelc.supabase.co')
+})
+afterEach(() => vi.unstubAllEnvs())
+
 describe('server-only Meta Graph adapter', () => {
+  it('rejects arbitrary callbacks and Production fallback from an unapproved Preview', () => {
+    expect(() => new MetaGraphClient({ ...config, callback: 'https://evil.example/api/sales-native/social/meta/callback' })).toThrow()
+    vi.stubEnv('VERCEL_ENV', 'preview')
+    expect(() => new MetaGraphClient(config)).toThrow()
+  })
   it('binds OAuth to one callback and only reviewed scopes', () => {
     const client = new MetaGraphClient(config)
     const url = new URL(client.authorizationUrl('a'.repeat(43), ['pages_messaging']))

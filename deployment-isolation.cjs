@@ -1,3 +1,4 @@
+const { approvedQa } = require('./meta-qa-isolation.cjs')
 const PRODUCTION_PROJECT = 'ruedelunbtaomhrzgelc'
 const SUPABASE_PREVIEW_KEYS = ['SUPABASE_SECRET_KEY', 'SUPABASE_SERVICE_ROLE_KEY',
   'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY']
@@ -14,7 +15,10 @@ function dummy(value) {
 }
 
 /** A caller-controlled application tier cannot authorize a Vercel Preview to use Production. */
-function assertDeploymentIsolation(env) {
+function assertDeploymentIsolation(env, records) {
+  if (env.VERCEL_ENV && !['production', 'preview', 'development'].includes(env.VERCEL_ENV))
+    throw new Error('NON_PRODUCTION_CREDENTIAL_ISOLATION_REQUIRED')
+  const approval = approvedQa(env, records)
   if (!['preview', 'development'].includes(env.VERCEL_ENV)) return
   const reject = () => { throw new Error('NON_PRODUCTION_CREDENTIAL_ISOLATION_REQUIRED') }
   if (env.NEXT_PUBLIC_APP_ENV === 'production') reject()
@@ -23,9 +27,10 @@ function assertDeploymentIsolation(env) {
   if (host.includes(PRODUCTION_PROJECT)) reject()
   for (const key of SUPABASE_PREVIEW_KEYS) {
     const value = env[key]
-    if (value && !dummy(value)) reject()
+    if (value && !dummy(value) && !approval) reject()
   }
-  // Preview uses synthetic fixtures, never a mail, accounting or database worker credential.
+  // Only the reviewed database exception is relaxed; unrelated worker guards stay intact.
+  if (!approval && ['LILLY_META_APP_SECRET', 'LILLY_SOCIAL_TOKEN_KEY'].some(key => env[key])) reject()
   for (const key of [...PRODUCTION_ONLY, 'RESEND_API_KEY']) {
     if (env[key] && !dummy(env[key])) reject()
   }
