@@ -52,6 +52,8 @@ jobs:
       - name: Verify LILLY login and Admin menu layouts and keyboard behavior
         run: pnpm exec playwright test --config=playwright.login.config.ts
       - run: pnpm exec playwright test --config=playwright.meetings.config.ts
+      - name: Verify Meta connection management with synthetic identities only
+        run: pnpm exec playwright test --config=playwright.meta.config.ts
       - name: Verify Family staff approval in English desktop and Spanish mobile
         run: pnpm exec playwright test --config=playwright.family.config.ts
 
