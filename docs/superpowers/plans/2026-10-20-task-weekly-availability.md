@@ -26,9 +26,7 @@ Included:
 - weekly declared total as informational data only;
 - non-blocking below/above-day warnings;
 - self-edit only, including for administrators;
-- same-team read access for regular users;
-- read-all for administrators, restricted to active users with Tasks access;
-- self-only read/edit for an active Tasks user whose team is missing;
+- org-wide read access for any active user with Tasks access, regardless of team or role;
 - explicit missing-schedule and missing/inactive-jornada states.
 
 Excluded:
@@ -486,7 +484,13 @@ local stack: all 8 tests pass (`pnpm exec playwright test e2e/task-availability-
 migration from `main` (`20261019120000_native_sales_membership_archive.sql`, referencing
 `storage.buckets`, which the disposable bare-Postgres image this check uses doesn't provision) —
 confirmed via `git log main -- <that file>`; it aborts before ever reaching either availability
-migration, so it is not evidence against this task.
+migration, so it is not evidence against this task. A third migration,
+`supabase/migrations/20261102164954_widen_weekly_availability_org_wide.sql`, replaces
+`can_read_weekly_availability()` again: it drops the `caller.equipo_id = owner.equipo_id`
+team-matching branch entirely, leaving "owner has `tasks` module access" (via `role_modules` or
+the admin short-circuit) as the only read gate — self-read keeps working because it is no longer
+identity-based, it just falls out of the owner also having `tasks` access. Write stays
+self-only, untouched.
 
 - [x] **Step 1: Extend E2E fixtures for team, jornada, and cleanup**
 
@@ -2034,6 +2038,15 @@ exists anywhere in this codebase.** Both existing calendar-shaped components
 drag support. A day-columns × hour-rows grid with click/drag-to-create, drag-to-resize, and a
 confirm popover has no precedent in `src/` and will need to be built from scratch.
 
+That design doc's own §4.5/§15 reconciliation note flagged one item as already signed off and
+in need of being pulled out of Delivery 2 and reconciled back into this (Delivery 1) plan: the
+reversal of same-team/admin-read-all into org-wide read access for every user with Tasks access.
+That reconciliation happened directly in this session —
+`supabase/migrations/20261102164954_widen_weekly_availability_org_wide.sql` (see Task 2's
+Status note and the Final Acceptance Checklist above) implements it in Delivery 1 itself, not as
+Delivery 2 scope. Whoever next reconciles the design doc against this plan should treat that
+read-visibility reversal as closed here, not as something still owed by Delivery 2.
+
 Delivery 2 is **not approved scope**. This subsection is a pointer for continuity across
 sessions, not authorization to start building it — do not write its implementation plan from
 this pointer alone.
@@ -2050,7 +2063,11 @@ this pointer alone.
 - [x] Missing/inactive jornada produces no fabricated target. (migration's `CASE WHEN workday.activo = true`; `compareDailyHours(_, null)` → `'unavailable'`)
 - [x] Users edit only their own schedule. (RLS self-only policies + RPC, proven live by the e2e RLS spec)
 - [x] Administrators read all relevant schedules but cannot edit another user's schedule. (RLS e2e: admin's own PATCH on another's row succeeds as a request but touches nothing)
-- [x] Regular users read same-team schedules; teamless users receive no broad access. (RLS e2e: teamless user's cross-user read returns `[]`)
+- [x] Any active user with Tasks access reads schedules org-wide, regardless of team; a
+      no-module user gets no access at all. (`supabase/migrations/20261102164954_widen_weekly_availability_org_wide.sql`
+      dropped the team-matching branch of `can_read_weekly_availability()`; RLS e2e: a
+      different-team read and a teamless user's cross-user read both now return rows, while a
+      no-module user's read still returns `[]`)
 - [ ] The UI no longer presents task estimates as occupied schedule slots. **Partially true**: `HourSlot`/`ActiveTaskLine` are unwired dead code (not rendered by the new screen), but `SolicitudesAvailabilityView`'s header subtitle still states the old fixed `9:00–18:00` schedule as fact — see Remaining Work items 2 and 3.
 - [x] Loading, error, empty, invalid, and save-failure states are explicit. (`AVAILABILITY_VIEW_STATUS`, `editor-state/transitions`, both tested)
 - [ ] The experience is keyboard-accessible and usable on narrow screens. **Partially verified**: labels, `aria-invalid`/`aria-describedby`, and native controls are proven at the unit/DOM level; no real browser check of narrow-viewport rendering exists yet — see Remaining Work item 1, step 7.

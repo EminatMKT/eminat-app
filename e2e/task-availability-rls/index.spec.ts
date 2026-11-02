@@ -13,9 +13,10 @@ import assignOrganization from '../availability-seed/assign-organization'
 import clearWeeklyAvailability from '../availability-seed/clear-weekly-availability'
 import firstDepartamentoId from '../availability-seed/first-departamento-id'
 
-// Weekly availability RLS: self-write, same-team read, admin read-all. A SELECT only filters
-// (200 either way), so negative cases use a WRITE -- a real rejection, or for UPDATE/DELETE
-// across ownership (which RLS silently voids, not errors) a follow-up read proving nothing moved.
+// Weekly availability RLS: self-write, org-wide read for anyone with the `tasks` module. A
+// SELECT only filters (200 either way), so negative cases use a WRITE -- a real rejection, or for
+// UPDATE/DELETE across ownership (which RLS silently voids, not errors) a follow-up read proving
+// nothing moved.
 const TASKS_ROLE = 'stratix360'
 const SURNAME = 'Availabilitye2e'
 const OWNER_EMAIL = 'owner.availability.e2e@eminat.net'
@@ -120,7 +121,7 @@ test.afterAll(async () => {
   await deleteTeam(OUTSIDER_TEAM_CODE)
 })
 
-test('the owner can insert their own range; a teammate reads it, an outsider cannot', async ({ request }) => {
+test('the owner can insert their own range; a teammate and a different team both read it', async ({ request }) => {
   const ownerJwt = await rest.token(request, OWNER_EMAIL, PASSWORD)
   const ownerRange = rangeRow(ownerId, 1, '09:00', '13:00')
   const insertResponse = await request.post(rangesUrl(''), writeRequest(ownerJwt, ownerRange))
@@ -132,7 +133,7 @@ test('the owner can insert their own range; a teammate reads it, an outsider can
 
   const outsiderJwt = await rest.token(request, OUTSIDER_EMAIL, PASSWORD)
   const outsiderRead = await request.get(rangesUrl(`user_id=eq.${ownerId}&select=id`), authHeaders(outsiderJwt))
-  expect(await outsiderRead.json(), 'a different team sees nothing').toEqual([])
+  expect((await outsiderRead.json()).length, 'a different team can also read it (org-wide)').toBeGreaterThan(0)
 })
 
 test('a teammate cannot insert a range in the owner\'s name', async ({ request }) => {
@@ -181,10 +182,10 @@ test('a teammate cannot delete the owner\'s row', async ({ request }) => {
   expect((await after.json()).length, 'the owner\'s rows survive the teammate\'s delete attempt').toBe(rowCountBefore)
 })
 
-test('a teamless user has no broad read access and a no-module user sees nothing', async ({ request }) => {
+test('a teamless user still reads org-wide and a no-module user sees nothing', async ({ request }) => {
   const teamlessJwt = await rest.token(request, TEAMLESS_EMAIL, PASSWORD)
   const teamlessRead = await request.get(rangesUrl(`user_id=neq.${teamlessId}&select=id`), authHeaders(teamlessJwt))
-  expect(await teamlessRead.json(), 'no team means no same-team peers to read').toEqual([])
+  expect((await teamlessRead.json()).length, 'org-wide read does not depend on having a team').toBeGreaterThan(0)
 
   const noModuleJwt = await rest.token(request, NO_MODULE_EMAIL, PASSWORD)
   const noModuleRead = await request.get(rangesUrl('select=id'), authHeaders(noModuleJwt))
