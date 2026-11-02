@@ -35,3 +35,5 @@ supabase/rollback/predump-*
 __pycache__/
 # Local Pi runtime state
 .atl/
+# Isolated SDD worktrees (superpowers:using-git-worktrees)
+.worktrees/
