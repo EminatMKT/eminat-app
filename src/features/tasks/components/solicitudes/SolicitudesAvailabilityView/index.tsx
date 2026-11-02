@@ -52,8 +52,8 @@ export default function SolicitudesAvailabilityView() {
   return (
     <div>
       <div className={s.head}>
-        <div className={s.title}>{t('stratix.avail.title')}</div>
-        <div className={s.sub}>{t('stratix.avail.sub')}</div>
+        <div className={s.title}>{t('tasks.availability.title')}</div>
+        <div className={s.sub}>{t('tasks.availability.sub')}</div>
       </div>
       <ListaRotulada
         label={memberListLabel}
