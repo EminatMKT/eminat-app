@@ -13,8 +13,8 @@ export const INITIAL_AVAILABILITY_STATE: AvailabilityViewState = {
   error: null,
 }
 
-/** Initial screen state: availability still loading, no row open for editing. */
+/** Initial screen state: availability still loading, no member's modal open. */
 export const INITIAL_SCREEN_STATE: ScreenState = {
   availability: INITIAL_AVAILABILITY_STATE,
-  editingMemberId: null,
+  openMemberId: null,
 }

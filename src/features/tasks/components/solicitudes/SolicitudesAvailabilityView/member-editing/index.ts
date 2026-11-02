@@ -4,21 +4,21 @@ import { AVAILABILITY_VIEW_STATUS } from '../constants'
 import type { AvailabilityViewState, ScreenState } from '../types'
 
 type ScreenActions = {
-  startEdit: (memberId: string) => void
-  cancelEdit: () => void
+  openMember: (memberId: string) => void
+  closeMember: () => void
   handleSaved: (response: AvailabilityResponse) => void
 }
 
-/** Builds the three screen-level actions a member row needs: open its editor, close it, and
+/** Builds the three screen-level actions a member card needs: open its modal, close it, and
  *  absorb a successful save back into the loaded list. A self-replace save response always
  *  carries the caller's full member list, so the result is always `loaded`, never `empty`. */
 export default function buildScreenActions(
   setScreen: Dispatch<SetStateAction<ScreenState>>,
 ): ScreenActions {
-  const startEdit = (memberId: string) => {
-    setScreen(prev => ({ ...prev, editingMemberId: memberId }))
+  const openMember = (memberId: string) => {
+    setScreen(prev => ({ ...prev, openMemberId: memberId }))
   }
-  const cancelEdit = () => setScreen(prev => ({ ...prev, editingMemberId: null }))
+  const closeMember = () => setScreen(prev => ({ ...prev, openMemberId: null }))
 
   const handleSaved = (response: AvailabilityResponse) => {
     const loadedAvailability: AvailabilityViewState = {
@@ -26,14 +26,14 @@ export default function buildScreenActions(
       members: response.members,
       error: null,
     }
-    const loadedScreen: ScreenState = { availability: loadedAvailability, editingMemberId: null }
+    const loadedScreen: ScreenState = { availability: loadedAvailability, openMemberId: null }
 
     setScreen(loadedScreen)
   }
 
-  const actions: ScreenActions = { startEdit, cancelEdit, handleSaved }
+  const actions: ScreenActions = { openMember, closeMember, handleSaved }
 
   return actions
 }
 
-// Builds the three screen-level actions wired into SolicitudesAvailabilityView's member rows.
+// Builds the three screen-level actions wired into SolicitudesAvailabilityView's member cards.

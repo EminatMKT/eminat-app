@@ -93,10 +93,13 @@ async function openAvailability(page: Page): Promise<void> {
   await page.getByRole('button', availabilityTabMatcher).click()
 }
 
+// Each card is now the single full-card press target (`Pressable`), named "Open {name}'s weekly
+// schedule" -- the modal is what used to be the inline "Edit" swap, so opening a card is the new
+// entry point for both reading and editing a schedule.
 function cardFor(page: Page, name: string) {
-  const nameFilter = { hasText: name }
+  const nameFilter = { name: new RegExp(`Open ${name}`) }
 
-  return page.locator('article').filter(nameFilter)
+  return page.getByRole('button', nameFilter)
 }
 
 let ownerId: string
@@ -140,8 +143,10 @@ test('owner edits and saves Monday availability, it persists, a teammate stays r
   const ownerCardName = `Owner ${SURNAME}`
   const teammateCardName = `Teammate ${SURNAME}`
   const adminCardName = `Admin ${SURNAME}`
+  const dialog = page.getByRole('dialog')
 
-  await cardFor(page, ownerCardName).getByRole('button', { name: 'Edit', exact: true }).click()
+  await cardFor(page, ownerCardName).click()
+  await expect(dialog.getByText(ownerCardName)).toBeVisible()
 
   const addMondayRange = page.getByRole('button', { name: 'Add a Monday range' })
 
@@ -172,26 +177,48 @@ test('owner edits and saves Monday availability, it persists, a teammate stays r
   ])
 
   // 'N of M hours' also renders live while editing, so it proves nothing about the save. The
-  // editor only unmounts back to the read-only card from `onSaved`, called once its PUT
-  // resolves -- waiting for that avoids reloading out from under an in-flight request.
-  await expect(saveButton).toBeHidden()
+  // modal only closes from `onSaved`, called once its PUT resolves -- waiting for that avoids
+  // reloading out from under an in-flight request.
+  await expect(dialog).toBeHidden()
 
   await page.reload()
   await openAvailability(page)
-  await expect(page.getByText('09:00–13:00')).toBeVisible()
-  await expect(page.getByText('14:00–17:00')).toBeVisible()
-  await expect(page.getByText('Not available for meetings')).toBeVisible()
-  await expect(cardFor(page, teammateCardName).getByRole('button', { name: 'Edit' })).toHaveCount(0)
+  await cardFor(page, ownerCardName).click()
+  await expect(page.getByLabel('Monday start time').nth(0)).toHaveValue('09:00')
+  await expect(page.getByLabel('Monday end time').nth(0)).toHaveValue('13:00')
+  await expect(page.getByLabel('Monday start time').nth(1)).toHaveValue('14:00')
+  await expect(page.getByLabel('Monday end time').nth(1)).toHaveValue('17:00')
+  await expect(page.getByLabel('Monday note').nth(1)).toHaveValue('Not available for meetings')
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+
+  // The owner can't edit a teammate's data -- opening that card shows the read-only schedule,
+  // never the editor, even though both go through the same modal shell.
+  await cardFor(page, teammateCardName).click()
+  await expect(page.getByRole('button', { name: 'Save availability' })).toHaveCount(0)
+  await page.keyboard.press('Escape')
 
   await login(page, ADMIN_EMAIL)
   await openAvailability(page)
   await expect(cardFor(page, ownerCardName)).toBeVisible()
   await expect(cardFor(page, teammateCardName)).toBeVisible()
   await expect(cardFor(page, adminCardName)).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(1)
-  await expect(cardFor(page, ownerCardName).getByRole('button', { name: 'Edit' })).toHaveCount(0)
-  await expect(cardFor(page, teammateCardName).getByRole('button', { name: 'Edit' })).toHaveCount(0)
-  await expect(cardFor(page, adminCardName).getByRole('button', { name: 'Edit' })).toHaveCount(1)
+
+  await cardFor(page, ownerCardName).click()
+  await expect(page.getByRole('button', { name: 'Save availability' })).toHaveCount(0)
+  await expect(page.getByText('09:00–13:00')).toBeVisible()
+  await page.keyboard.press('Escape')
+
+  await cardFor(page, teammateCardName).click()
+  await expect(page.getByRole('button', { name: 'Save availability' })).toHaveCount(0)
+  await page.keyboard.press('Escape')
+
+  // An admin can read every card but edit only their own -- opening it is the only one that
+  // shows the editor instead of the read-only schedule.
+  await cardFor(page, adminCardName).click()
+  await expect(page.getByRole('button', { name: 'Save availability' })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
 
   // Already on the Availability screen from the admin flow above -- resizing in place, not
   // re-navigating, since the sidebar's own narrow-width behavior is a separate, pre-existing

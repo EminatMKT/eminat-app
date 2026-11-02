@@ -33,9 +33,10 @@ export type AvailabilityViewState =
   | EmptyAvailabilityState
   | LoadedAvailabilityState
 
-/** The view's load status plus which member's row is open for editing: two independent
- *  concerns — what the fetch returned, and what a click selected — kept in one hook. */
+/** The view's load status plus which member's modal is open: two independent concerns — what the
+ *  fetch returned, and what a click selected — kept in one hook. Any member can be open, not
+ *  only an editable one: a read-only member's modal shows their schedule too. */
 export type ScreenState = {
   availability: AvailabilityViewState
-  editingMemberId: string | null
+  openMemberId: string | null
 }

@@ -955,6 +955,7 @@
   "tasks.availability.sunday": "Sunday",
   "tasks.availability.notConfigured": "No schedule configured.",
   "tasks.availability.weekDeclared": "{hours} hours declared",
+  "tasks.availability.openSchedule": "Open {name}'s weekly schedule",
   "tasks.availability.dayLabel": "{day} availability",
   "tasks.availability.emptyDay": "No availability declared.",
   "tasks.availability.dayBelow": "{declared} of {expected} hours · {difference} hours short this day",

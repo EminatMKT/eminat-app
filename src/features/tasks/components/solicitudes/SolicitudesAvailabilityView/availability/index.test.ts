@@ -10,7 +10,7 @@ import type { ScreenState } from '../types'
 import loadAvailability from '.'
 
 const response: AvailabilityResponse = { viewerUserId: 'u1', members: [] }
-const prevScreen: ScreenState = { availability: INITIAL_AVAILABILITY_STATE, editingMemberId: null }
+const prevScreen: ScreenState = { availability: INITIAL_AVAILABILITY_STATE, openMemberId: null }
 
 describe('loadAvailability', () => {
   it('loads once and reports the empty response state', async () => {
@@ -25,6 +25,6 @@ describe('loadAvailability', () => {
     const next = typeof updater === 'function' ? updater(prevScreen) : updater
 
     expect(next.availability).toEqual({ status: 'empty', members: [], error: null })
-    expect(next.editingMemberId).toBeNull()
+    expect(next.openMemberId).toBeNull()
   })
 })

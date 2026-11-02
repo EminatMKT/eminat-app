@@ -1,60 +1,36 @@
 'use client'
-import { useMemo } from 'react'
 import type { AvailabilityMemberDto } from '@/features/tasks/data/availability/types'
-import {
-  compareDailyHours,
-  comparisonCopyVars,
-  declaredHoursByDay,
-  declaredWeeklyHours,
-  sortRanges,
-} from '@/features/tasks/utils/availability'
+import { declaredWeeklyHours } from '@/features/tasks/utils/availability'
 import { useT } from '@/shared/i18n'
-import { Button, HoursStatus, ListaRotulada } from '@/shared/components/ui'
-import { AVAILABILITY_DAYS, STATUS_COPY_KEYS, STATUS_SYMBOLS } from './constants'
+import { Pressable } from '@/shared/components/ui'
 import s from './index.module.css'
 
 type Props = {
   member: AvailabilityMemberDto
-  onEdit?: () => void
+  onOpen: () => void
 }
 
-export default function MemberAvailabilityCard({ member, onEdit }: Props) {
+/** Compact summary: name, team, and one weekly-total line. The whole card presses to the full
+ *  schedule — editable or read-only, `MemberAvailabilityModal` decides which. */
+export default function MemberAvailabilityCard({ member, onOpen }: Props) {
   const { t } = useT()
-  const ranges = useMemo(() => sortRanges(member.ranges), [member.ranges])
-  const hoursByDay = declaredHoursByDay(ranges)
-  const weeklyHours = declaredWeeklyHours(ranges)
+  const hasSchedule = member.ranges.length > 0
+  const weeklyHours = declaredWeeklyHours(member.ranges)
+  const summary = hasSchedule
+    ? t('tasks.availability.weekDeclared', { hours: weeklyHours })
+    : t('tasks.availability.notConfigured')
+  const accessibleLabel = t('tasks.availability.openSchedule', { name: member.name })
 
   return (
-    <article className={s.card}>
-      <div className={s.head}>
-        <div className={s.persona}>
-          <div className={s.avatar}>{member.name.at(0) ?? '?'}</div>
-          <div>
-            <h2 className={s.nombre}>{member.name}</h2>
-            {member.team && <p className={s.resumen}>{member.team.name}</p>}
-          </div>
+    <Pressable accessibleLabel={accessibleLabel} className={s.card} onClick={onOpen}>
+      <div className={s.persona}>
+        <div className={s.avatar}>{member.name.at(0) ?? '?'}</div>
+        <div>
+          <h2 className={s.nombre}>{member.name}</h2>
+          {member.team && <p className={s.resumen}>{member.team.name}</p>}
         </div>
-        {member.canEdit && onEdit && <Button kind="edit" iconOnly onClick={onEdit} />}
       </div>
-      {ranges.length === 0 ? <p className={s.empty}>{t('tasks.availability.notConfigured')}</p> : <>
-        <p className={s.total}>{t('tasks.availability.weekDeclared', { hours: weeklyHours })}</p>
-        <div className={s.days}>{AVAILABILITY_DAYS.map(day => {
-          const dayRanges = ranges.filter(range => range.weekday === day.weekday)
-          const comparison = compareDailyHours(hoursByDay[day.weekday] ?? 0, member.workday?.hoursPerDay ?? null)
-          const label = t('tasks.availability.dayLabel', { day: t(day.labelKey) })
-          return <section className={s.day} key={day.weekday}>
-            <h3>{label}</h3>
-            {dayRanges.length === 0 ? <p className={s.emptyDay}>{t('tasks.availability.emptyDay')}</p> : <>
-              <ListaRotulada label={label}>{dayRanges.map(range => <li key={range.id} className={s.range}>
-                <span>{range.startsAt}–{range.endsAt}</span>
-                {range.note && <small>{range.note}</small>}
-              </li>)}</ListaRotulada>
-              <HoursStatus symbol={STATUS_SYMBOLS[comparison.status]} tone={comparison.status}
-                text={t(STATUS_COPY_KEYS[comparison.status], comparisonCopyVars(comparison))} />
-            </>}
-          </section>
-        })}</div>
-      </>}
-    </article>
+      <p className={s.total}>{summary}</p>
+    </Pressable>
   )
 }

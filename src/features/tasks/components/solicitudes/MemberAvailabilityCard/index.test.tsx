@@ -4,35 +4,19 @@ import {
   it,
   vi,
 } from 'vitest'
+import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import translate from '@/shared/i18n/translate'
+import type { I18nKey } from '@/shared/i18n'
+import type { Vars } from '@/shared/i18n/types'
 import type { AvailabilityMemberDto } from '@/features/tasks/data/availability/types'
 import MemberAvailabilityCard from './index'
 
-vi.mock('@/shared/i18n', () => ({
-  useT: () => ({
-    t: (key: string, vars?: Record<string, string | number>) => {
-      const values: Record<string, string> = {
-        'common.edit': 'Edit',
-        'tasks.availability.monday': 'Monday',
-        'tasks.availability.tuesday': 'Tuesday',
-        'tasks.availability.wednesday': 'Wednesday',
-        'tasks.availability.thursday': 'Thursday',
-        'tasks.availability.friday': 'Friday',
-        'tasks.availability.saturday': 'Saturday',
-        'tasks.availability.sunday': 'Sunday',
-        'tasks.availability.notConfigured': 'No schedule configured.',
-        'tasks.availability.weekDeclared': `${vars?.hours ?? ''} hours declared`,
-        'tasks.availability.dayLabel': `${vars?.day ?? ''}`,
-        'tasks.availability.emptyDay': 'No availability declared.',
-        'tasks.availability.dayBelow': `${vars?.declared ?? ''} of ${vars?.expected ?? ''} hours`,
-        'tasks.availability.dayComplete': `${vars?.declared ?? ''} of ${vars?.expected ?? ''} hours`,
-        'tasks.availability.dayAbove': `${vars?.declared ?? ''} of ${vars?.expected ?? ''} hours`,
-        'tasks.availability.noWorkday': 'No workday configured',
-      }
-      return values[key] ?? key
-    },
-  }),
-}))
+const english = (key: I18nKey, vars?: Vars) => translate('en', key, vars)
+
+vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: english }) }))
+
+type Control = ReactElement<{ onClick: () => void }>
 
 const memberDefaults: AvailabilityMemberDto = {
   id: 'member-1',
@@ -40,13 +24,6 @@ const memberDefaults: AvailabilityMemberDto = {
   team: { id: 'team-1', name: 'Marketing' },
   workday: { id: 'workday-1', name: 'Full time', hoursPerDay: 8 },
   ranges: [
-    {
-      id: 'r2',
-      weekday: 1,
-      startsAt: '14:00',
-      endsAt: '18:00',
-      note: 'Not available for meetings',
-    },
     {
       id: 'r1',
       weekday: 1,
@@ -63,63 +40,51 @@ const member = (overrides: Partial<AvailabilityMemberDto>): AvailabilityMemberDt
   ...overrides,
 })
 
-const draw = (value: AvailabilityMemberDto, onEdit?: () => void) =>
-  renderToStaticMarkup(<MemberAvailabilityCard member={value} onEdit={onEdit} />)
+const noop = () => undefined
+
+const draw = (value: AvailabilityMemberDto, onOpen: () => void = noop) =>
+  renderToStaticMarkup(<MemberAvailabilityCard member={value} onOpen={onOpen} />)
 
 describe('MemberAvailabilityCard', () => {
-  it('renders ordered ranges, notes, daily comparison, weekly total and team', () => {
+  it('renders the compact summary: name, team, and the weekly declared total', () => {
     const html = draw(member({}))
-    expect(html.indexOf('09:00–13:00')).toBeLessThan(html.indexOf('14:00–18:00'))
-    expect(html).toContain('Not available for meetings')
-    expect(html).toContain('8 of 8 hours')
-    expect(html).toContain('8 hours declared')
+    const total = english('tasks.availability.weekDeclared', { hours: 4 })
+
+    expect(html).toContain('Ana López')
     expect(html).toContain('Marketing')
-    expect(html).toContain('14:00–18:00')
-    expect(html).toContain('Not available for meetings')
+    expect(html).toContain(total)
   })
 
-  it('distinguishes an empty day from a member with no schedule', () => {
-    const emptyDay = draw(member({}))
-    const noSchedule = draw(member({ ranges: [] }))
-    expect(emptyDay).toContain('Tuesday')
-    expect(emptyDay).not.toContain('warning')
-    expect(noSchedule).toContain('No schedule configured.')
+  it('shows "not configured" when the member has no ranges', () => {
+    const html = draw(member({ ranges: [] }))
+
+    expect(html).toContain(english('tasks.availability.notConfigured'))
   })
 
-  it('shows unavailable comparison when the jornada is missing', () => {
-    const html = draw(member({ workday: null }))
-    expect(html).toContain('No workday configured')
+  it('renders no per-day breakdown', () => {
+    const html = draw(member({}))
+
+    expect(html).not.toContain(english('tasks.availability.monday'))
+    expect(html).not.toContain(english('tasks.availability.tuesday'))
+    expect(html).not.toContain('09:00')
   })
 
-  it('uses text and symbols for below, complete and above statuses', () => {
-    const below = draw(member({
-      ranges: [{
-        id: 'r1',
-        weekday: 1,
-        startsAt: '09:00',
-        endsAt: '15:00',
-        note: null,
-      }],
-    }))
-    const above = draw(member({
-      ranges: [{
-        id: 'r1',
-        weekday: 1,
-        startsAt: '09:00',
-        endsAt: '18:00',
-        note: null,
-      }],
-    }))
-    expect(below).toContain('↓')
-    expect(below).toContain('6 of 8 hours')
-    expect(above).toContain('↑')
-    expect(above).toContain('9 of 8 hours')
-    expect(draw(member({}))).toContain('✓')
+  it('is one full-card clickable control, named for assistive technology', () => {
+    const html = draw(member({}))
+    const raw = english('tasks.availability.openSchedule', { name: 'Ana López' })
+    const label = raw.replace("'", '&#x27;')
+
+    expect(html).toContain('type="button"')
+    expect(html).toContain(`aria-label="${label}"`)
   })
 
-  it('only offers editing for the member marked editable', () => {
-    const onEdit = vi.fn()
-    expect(draw(member({}), onEdit)).not.toContain('Edit')
-    expect(draw(member({ canEdit: true }), onEdit)).toContain('Edit')
+  it('calls onOpen when pressed', () => {
+    let opened = 0
+    const onOpen = () => { opened += 1 }
+    const control: Control = MemberAvailabilityCard({ member: member({}), onOpen })
+
+    control.props.onClick()
+
+    expect(opened).toBe(1)
   })
 })

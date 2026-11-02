@@ -9,36 +9,36 @@ import { INITIAL_AVAILABILITY_STATE } from '../constants'
 import type { ScreenState } from '../types'
 import buildScreenActions from '.'
 
-const prevScreen: ScreenState = { availability: INITIAL_AVAILABILITY_STATE, editingMemberId: null }
+const prevScreen: ScreenState = { availability: INITIAL_AVAILABILITY_STATE, openMemberId: null }
 
 describe('buildScreenActions', () => {
-  it('startEdit opens the given member and leaves the loaded list untouched', () => {
+  it('openMember opens the given member and leaves the loaded list untouched', () => {
     const setScreen = vi.fn()
-    const { startEdit } = buildScreenActions(setScreen)
+    const { openMember } = buildScreenActions(setScreen)
 
-    startEdit('member-1')
+    openMember('member-1')
 
     const updater = setScreen.mock.calls[0][0]
     const next = typeof updater === 'function' ? updater(prevScreen) : updater
 
-    expect(next.editingMemberId).toBe('member-1')
+    expect(next.openMemberId).toBe('member-1')
     expect(next.availability).toBe(prevScreen.availability)
   })
 
-  it('cancelEdit closes whichever row was open', () => {
+  it('closeMember closes whichever member was open', () => {
     const setScreen = vi.fn()
-    const { cancelEdit } = buildScreenActions(setScreen)
-    const openScreen: ScreenState = { ...prevScreen, editingMemberId: 'member-1' }
+    const { closeMember } = buildScreenActions(setScreen)
+    const openScreen: ScreenState = { ...prevScreen, openMemberId: 'member-1' }
 
-    cancelEdit()
+    closeMember()
 
     const updater = setScreen.mock.calls[0][0]
     const next = typeof updater === 'function' ? updater(openScreen) : updater
 
-    expect(next.editingMemberId).toBeNull()
+    expect(next.openMemberId).toBeNull()
   })
 
-  it('handleSaved replaces the member list and closes the row', () => {
+  it('handleSaved replaces the member list and closes the open member', () => {
     const setScreen = vi.fn()
     const { handleSaved } = buildScreenActions(setScreen)
     const response: AvailabilityResponse = { viewerUserId: 'u1', members: [] }
@@ -47,7 +47,7 @@ describe('buildScreenActions', () => {
 
     expect(setScreen).toHaveBeenCalledWith({
       availability: { status: 'loaded', members: [], error: null },
-      editingMemberId: null,
+      openMemberId: null,
     })
   })
 })
