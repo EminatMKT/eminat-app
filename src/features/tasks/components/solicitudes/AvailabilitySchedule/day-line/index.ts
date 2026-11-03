@@ -1,13 +1,11 @@
 import {
+  STATUS_COPY_KEYS,
+  STATUS_SYMBOLS,
   compareDailyHours,
   comparisonCopyVars,
   declaredHoursByDay,
 } from '@/features/tasks/utils/availability'
 import type { WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
-import {
-  STATUS_COPY_KEYS,
-  STATUS_SYMBOLS,
-} from '@/features/tasks/components/solicitudes/MemberAvailabilityCard/constants'
 import type { BuildDayLineInput } from './types'
 
 const RANGE_JOIN_SEPARATOR = ', '

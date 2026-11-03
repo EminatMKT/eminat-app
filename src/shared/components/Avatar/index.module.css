@@ -1,0 +1,39 @@
+.avatar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: 700;
+  flex-shrink: 0;
+  background: var(--swatch);
+}
+
+.sm { width: 1.25rem; height: 1.25rem; font-size: .5625rem; }
+.md { width: 1.625rem; height: 1.625rem; font-size: .5625rem; }
+.lg { width: 2.375rem; height: 2.375rem; font-size: .8125rem; }
+.xl { width: 2.75rem; height: 2.75rem; font-size: .875rem; }
+
+.solid { color: var(--c-sobre-solido); }
+
+.tint {
+  background: color-mix(in srgb, var(--swatch) 14%, transparent);
+  color: color-mix(in srgb, var(--swatch) 58%, var(--c-oscurecer));
+}
+
+.dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  border-radius: 50%;
+  border: .125rem solid var(--c-s1);
+}
+
+.dotSm { width: .35rem; height: .35rem; }
+.dotMd { width: .4375rem; height: .4375rem; }
+.dotLg { width: .5625rem; height: .5625rem; }
+.dotXl { width: .6875rem; height: .6875rem; }
+
+.online { background: var(--c-online); }
+.offline { background: var(--c-offline); }
+.unregistered { background: var(--c-unregistered); }

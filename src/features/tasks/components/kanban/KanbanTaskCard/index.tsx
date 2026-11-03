@@ -8,6 +8,7 @@ import { useTasks } from '@/features/tasks/components/TasksContext'
 import { actividadAPlantilla } from '@/features/tasks/utils/act-form'
 import { datosTarjeta } from '@/features/tasks/utils/act-tarjeta'
 import ResponsiblesCompact from '@/features/tasks/components/ResponsiblesCompact'
+import Avatar from '@/shared/components/Avatar'
 import type { Actividad } from '@/features/tasks/types'
 import s from './index.module.css'
 type Props = { a: Actividad }
@@ -33,7 +34,12 @@ export default function KanbanTaskCard({ a }: Props) {
       <div className={s.titulo}>{a.titulo}</div>
       <div className={s.pie}>
         <div className={s.persona}>
-          <div className={s.avatar}>{inicial}</div>
+          <Avatar
+            initials={inicial}
+            size="sm"
+            color={colorMarca[a.empresa ?? ''] ?? COLOR_MARCA_FALLBACK}
+            tone="tint"
+          />
           <ResponsiblesCompact a={a} namesById={miembrosPorId} className={s.quien} />
         </div>
         <div className={s.meta}>

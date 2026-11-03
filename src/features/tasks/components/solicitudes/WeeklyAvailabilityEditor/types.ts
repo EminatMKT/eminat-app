@@ -15,25 +15,23 @@ export type EditorDay = {
 }
 
 export type RangeField = 'startsAt' | 'endsAt' | 'note'
+export type RangeTimes = { startsAt: string; endsAt: string }
+type RangeIndexedAction = { rangeIndex: number }
 
-export type ChangeRangeAction = {
+export type ChangeRangeAction = RangeIndexedAction & {
   kind: 'change'
-  rangeIndex: number
   field: RangeField
   value: string
 }
+export type AddRangeAction = { kind: 'add'; weekday: Weekday } & Partial<RangeTimes>
+export type ChangeRangeTimesAction = RangeIndexedAction & { kind: 'change-times' } & RangeTimes
+export type RemoveRangeAction = RangeIndexedAction & { kind: 'remove' }
 
-export type AddRangeAction = {
-  kind: 'add'
-  weekday: Weekday
-}
-
-export type RemoveRangeAction = {
-  kind: 'remove'
-  rangeIndex: number
-}
-
-export type EditorAction = ChangeRangeAction | AddRangeAction | RemoveRangeAction
+export type EditorAction =
+  | ChangeRangeAction
+  | AddRangeAction
+  | RemoveRangeAction
+  | ChangeRangeTimesAction
 
 export type EditorStatus = 'idle' | 'saving' | 'saved' | 'error'
 

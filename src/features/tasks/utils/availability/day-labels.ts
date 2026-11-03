@@ -1,5 +1,5 @@
 import type { I18nKey } from '@/shared/i18n'
-import type { DailyHoursStatus, Weekday } from '@/features/tasks/utils/availability'
+import type { DailyHoursStatus, Weekday } from './types'
 
 export type AvailabilityDay = {
   weekday: Weekday

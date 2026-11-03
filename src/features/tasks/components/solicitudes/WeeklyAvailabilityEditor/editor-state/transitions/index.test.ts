@@ -42,6 +42,12 @@ const CHANGE_NOTE: ChangeRangeAction = {
 }
 const ADD_MONDAY: AddRangeAction = { kind: 'add', weekday: MONDAY }
 const REMOVE_FIRST: RemoveRangeAction = { kind: 'remove', rangeIndex: FIRST_RANGE_INDEX }
+const ADD_MONDAY_AT_EXPLICIT_TIME: AddRangeAction = {
+  kind: 'add',
+  weekday: MONDAY,
+  startsAt: '14:00',
+  endsAt: '15:00',
+}
 
 describe('WeeklyAvailabilityEditor editor-state transitions', () => {
   it('clears a stale status/message on change, add, and remove', () => {
@@ -61,5 +67,21 @@ describe('WeeklyAvailabilityEditor editor-state transitions', () => {
     const afterChange = changeRange(savingState, CHANGE_NOTE)
 
     expect(afterChange.status).toBe(EDITOR_COPY.savingStatus)
+  })
+
+  it('defaults a blank add to the default start/end copy', () => {
+    const afterAdd = addRange(BASE_STATE, ADD_MONDAY)
+    const [, draft] = afterAdd.ranges
+
+    expect(draft?.startsAt).toBe(EDITOR_COPY.defaultStart)
+    expect(draft?.endsAt).toBe(EDITOR_COPY.defaultEnd)
+  })
+
+  it('creates a range at an explicit start/end when one is given, skipping the default', () => {
+    const afterAdd = addRange(BASE_STATE, ADD_MONDAY_AT_EXPLICIT_TIME)
+    const [, draft] = afterAdd.ranges
+
+    expect(draft?.startsAt).toBe('14:00')
+    expect(draft?.endsAt).toBe('15:00')
   })
 })

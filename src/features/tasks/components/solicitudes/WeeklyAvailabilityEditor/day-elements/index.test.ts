@@ -6,7 +6,7 @@ import {
   it,
   vi,
 } from 'vitest'
-import { AVAILABILITY_DAYS } from '@/features/tasks/components/solicitudes/MemberAvailabilityCard/constants'
+import { AVAILABILITY_DAYS } from '@/features/tasks/utils/availability'
 import type { EditorViewModel, EditorViewModelDay } from '../editor-view-model/types'
 import buildDayElements from './index'
 import type { DayElementsInput } from './types'

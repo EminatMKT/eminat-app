@@ -1,27 +1,14 @@
 'use client'
-import type { CSSProperties } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { ESTADO } from '@/shared/constants/domain'
-import type { Usuario } from '@/shared/context/loadAppData'
+import Avatar from '@/shared/components/Avatar'
 import { esResponsable } from '@/features/tasks/utils/responsables'
+import type { Props } from './types'
 import s from './index.module.css'
-
-interface UsuarioCargo { cargos?: { codigo: string; nombre: string } | null }
-// Campos canónicos de `Usuario` (Pick) + `auth_id` y el embed N:N `usuario_cargos`,
-// que no viven en la fila canónica.
-type RosterUser = Pick<Usuario, 'id' | 'nombre' | 'apellido' | 'email' | 'online_at' | 'color'> & {
-  auth_id?: string | null
-  usuario_cargos?: UsuarioCargo[]
-}
 
 // Se considera en línea si marcó presencia en los últimos 5 minutos.
 const ONLINE_WINDOW_MS = 5 * 60 * 1000
-
-type Props = {
-  user: RosterUser
-  esLider: boolean
-}
 
 export default function RosterCard({ user, esLider }: Props) {
   const { actividades } = useApp()
@@ -32,16 +19,22 @@ export default function RosterCard({ user, esLider }: Props) {
   const isOnline = user.online_at ? new Date(user.online_at) > new Date(Date.now() - ONLINE_WINDOW_MS) : false
   const enProceso = actividades.filter(a => esResponsable(a, user.id) && a.estado === ESTADO.EN_PROCESO).length
   const cargo = (user.usuario_cargos || []).map(uc => uc.cargos?.nombre).filter(Boolean).join(', ')
+  let avatarStatus: 'unregistered' | 'online' | 'offline' = 'offline'
+
+  if (!tieneCuenta) avatarStatus = 'unregistered'
+  else if (isOnline) avatarStatus = 'online'
 
   return (
-    <div className={`${s.card} ${esLider ? s.lider : ''} ${tieneCuenta ? '' : s.sinCuenta}`}
-      style={{ '--swatch': user.color } as CSSProperties}>
+    <div className={`${s.card} ${esLider ? s.lider : ''} ${tieneCuenta ? '' : s.sinCuenta}`}>
       {esLider && <span className={s.badge}>{t('stratix.team.leader')}</span>}
       <div className={s.head}>
-        <div className={s.avatarWrap}>
-          <div className={s.avatar}>{iniciales}</div>
-          <div className={`${s.dot} ${tieneCuenta ? s.conCuenta : ''} ${tieneCuenta && isOnline ? s.online : ''}`} />
-        </div>
+        <Avatar
+          initials={iniciales}
+          size="xl"
+          color={user.color}
+          status={avatarStatus}
+          className={s.avatarWrap}
+        />
         <div className={s.datos}>
           <div className={s.nombre}>{nombreCompleto}</div>
           <div className={s.cargo}>{cargo}</div>

@@ -28,13 +28,13 @@ const changeRange = (
 
 const addRange = (
   { ranges, ...state }: LocalEditorState,
-  { weekday }: AddRangeAction,
+  { weekday, startsAt, endsAt }: AddRangeAction,
 ): LocalEditorState => {
   const range: EditableRange = {
     clientId: `${EDITOR_COPY.draftPrefix}-${crypto.randomUUID()}`,
     weekday,
-    startsAt: EDITOR_COPY.defaultStart,
-    endsAt: EDITOR_COPY.defaultEnd,
+    startsAt: startsAt ?? EDITOR_COPY.defaultStart,
+    endsAt: endsAt ?? EDITOR_COPY.defaultEnd,
     note: EDITOR_COPY.emptyNote,
   }
 
@@ -57,4 +57,6 @@ export default function createTransitionsFacade() {
 }
 
 // This facade owns the three index-based editor transitions editor-state/index.ts applies:
-// changing a field, adding a draft range, and removing one, via applyEditorAction.
+// changing a field, adding a draft range, and removing one. The fourth transition, resizing
+// both ends at once, lives standalone in ./change-range-times — editor-state/index.ts applies
+// it directly rather than growing this facade's object past three inline members.

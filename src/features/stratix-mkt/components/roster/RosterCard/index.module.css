@@ -1,4 +1,3 @@
-/* --swatch: el color propio de la persona, que sale de la base. */
 .card {
   position: relative;
   background: var(--c-s1);
@@ -39,40 +38,7 @@
 }
 
 .avatarWrap {
-  position: relative;
   flex-shrink: 0;
-}
-
-.avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--swatch, var(--c-accent));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.dot {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  border: 2px solid var(--c-s1);
-  background: #9ca3af; /* sin cuenta */
-}
-
-.dot.conCuenta {
-  background: #555; /* tiene cuenta, desconectado */
-}
-
-.dot.online {
-  background: #34d399;
 }
 
 .datos {

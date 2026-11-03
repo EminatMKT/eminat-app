@@ -134,23 +134,6 @@
   min-width: 0;
 }
 
-.avatar {
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: .5625rem;
-  font-weight: 700;
-  flex-shrink: 0;
-  /* Tinta de la marca en vez del acento global: dos tarjetas de marcas distintas se
-     distinguen incluso por el avatar, y el violeta deja de repetirse en toda la columna.
-     Oscurecida por lo mismo que el resto: la inicial es texto y tiene que leerse. */
-  color: color-mix(in srgb, var(--marca) 58%, #000);
-  background: color-mix(in srgb, var(--marca) 14%, transparent);
-}
-
 .quien {
   font-size: .6875rem;
   color: var(--c-t2);

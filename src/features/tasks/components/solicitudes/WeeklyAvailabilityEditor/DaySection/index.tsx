@@ -1,12 +1,12 @@
 import { createElement } from 'react'
 import { useT } from '@/shared/i18n'
 import {
+  STATUS_COPY_KEYS,
   compareDailyHours,
   comparisonCopyVars,
   countInvalidRanges,
   declaredHoursByDay,
 } from '@/features/tasks/utils/availability'
-import { STATUS_COPY_KEYS } from '@/features/tasks/components/solicitudes/MemberAvailabilityCard/constants'
 import type { DaySectionProps } from '../component-types'
 import EDITOR_COPY from '../constants'
 import DAY_SECTION_CONSTANTS from './constants'

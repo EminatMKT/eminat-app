@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import translate from '@/shared/i18n/translate'
 import type { AvailabilityRangeDto } from '@/features/tasks/data/availability/types'
-import {
-  AVAILABILITY_DAYS,
-} from '@/features/tasks/components/solicitudes/MemberAvailabilityCard/constants'
+import { AVAILABILITY_DAYS } from '@/features/tasks/utils/availability'
 import buildDayLine from '.'
 
 const t = (key: Parameters<typeof translate>[1], vars?: Parameters<typeof translate>[2]) =>

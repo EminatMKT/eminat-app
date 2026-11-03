@@ -1,6 +1,5 @@
 import type { AvailabilityMemberDto } from '@/features/tasks/data/availability/types'
-import type { AvailabilityDay } from '@/features/tasks/components/solicitudes/MemberAvailabilityCard/constants'
-import type { RangeValidationError, Weekday } from '@/features/tasks/utils/availability'
+import type { AvailabilityDay, RangeValidationError, Weekday } from '@/features/tasks/utils/availability'
 import type { DaySectionProps, EditableRange, LocalEditorState } from '../component-types'
 
 export type EditorViewModelDay = Pick<DaySectionProps, 'day' | 'ranges' | 'expectedHours' | 'errors'>

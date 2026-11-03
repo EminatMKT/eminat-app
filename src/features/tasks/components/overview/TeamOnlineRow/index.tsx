@@ -1,7 +1,7 @@
 'use client'
-import type { CSSProperties } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
+import Avatar from '@/shared/components/Avatar'
 import type { Usuario } from '@/shared/context/loadAppData'
 import s from './index.module.css'
 
@@ -24,10 +24,13 @@ export default function TeamOnlineRow({ u }: Props) {
   const isOnline = userInfo?.online_at ? new Date(userInfo.online_at) > new Date(Date.now() - ONLINE_WINDOW_MS) : false
   return (
     <div className={s.row}>
-      <div className={s.avatarWrap}>
-        <div className={s.avatar} style={{ '--color': u.color } as CSSProperties}>{u.nombre?.[0]}{u.apellido?.[0]}</div>
-        <div className={`${s.dot} ${isOnline ? s.on : ''}`} />
-      </div>
+      <Avatar
+        initials={`${u.nombre?.[0] ?? ''}${u.apellido?.[0] ?? ''}`}
+        size="md"
+        color={u.color}
+        status={isOnline ? 'online' : 'offline'}
+        className={s.avatarWrap}
+      />
       <div>
         <div className={s.name}>{u.nombre}</div>
         <div className={`${s.status} ${isOnline ? s.on : ''}`}>{isOnline ? t('stratix.dash.activeNow') : t('stratix.dash.offline')}</div>

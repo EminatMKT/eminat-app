@@ -5,8 +5,9 @@ import type {
 import type { EditorAction } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/types'
 import type { LocalEditorState } from '../component-types'
 import EDITOR_COPY from '../constants'
-import { ADD_ACTION_KIND, CHANGE_ACTION_KIND } from './constants'
+import { ADD_ACTION_KIND, CHANGE_ACTION_KIND, CHANGE_TIMES_ACTION_KIND } from './constants'
 import createTransitionsFacade from './transitions'
+import changeRangeTimes from './transitions/change-range-times'
 
 const { changeRange, addRange, removeRange } = createTransitionsFacade()
 
@@ -25,6 +26,7 @@ const applyEditorAction = (...args: [LocalEditorState, EditorAction]): LocalEdit
   const [state, action] = args
   if (action.kind === CHANGE_ACTION_KIND) return changeRange(state, action)
   if (action.kind === ADD_ACTION_KIND) return addRange(state, action)
+  if (action.kind === CHANGE_TIMES_ACTION_KIND) return changeRangeTimes(state, action)
 
   return removeRange(state, action)
 }

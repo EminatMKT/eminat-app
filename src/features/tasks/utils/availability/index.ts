@@ -7,6 +7,7 @@ export type {
   WeeklyAvailabilityRange,
 } from './types'
 export { default as durationHours } from './duration-hours'
+export { default as minutesOf } from './minutes'
 export { default as countInvalidRanges } from './count-invalid-ranges'
 export { default as sortRanges } from './sort-ranges'
 export { default as validateRanges } from './validate-ranges'
@@ -14,6 +15,12 @@ export { default as declaredHoursByDay } from './declared-hours-by-day'
 export { default as declaredWeeklyHours } from './declared-weekly-hours'
 export { default as compareDailyHours } from './compare-daily-hours'
 export { default as comparisonCopyVars } from './comparison-copy-vars'
+export {
+  AVAILABILITY_DAYS,
+  STATUS_COPY_KEYS,
+  STATUS_SYMBOLS,
+} from './day-labels'
+export type { AvailabilityDay } from './day-labels'
 
 // Barrel for the recurring weekly availability domain: each function lives in its own file
 // (one per file, `export default`), this index only re-exports them.

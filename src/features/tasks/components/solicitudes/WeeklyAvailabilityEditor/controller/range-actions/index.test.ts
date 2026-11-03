@@ -41,7 +41,7 @@ const MEMBER: AvailabilityMemberDto = {
 const SINGLE_RANGE_MEMBER: AvailabilityMemberDto = { ...MEMBER, ranges: [MEMBER.ranges[FIRST_RANGE_INDEX]] }
 
 const { createEditorState } = createEditorStateFacade()
-const { addRange, changeRange, removeRange } = createRangeActionsFacade()
+const { addRange, changeRange, removeRange, addRangeWithTimes, changeRangeTimes } = createRangeActionsFacade()
 
 describe('WeeklyAvailabilityEditor range actions', () => {
   it('adapts add, change, and remove actions from client ids', () => {
@@ -88,5 +88,34 @@ describe('WeeklyAvailabilityEditor range actions', () => {
 
     expect(afterRemovingWednesday.ranges.some(range => range.clientId === tuesdayDraft.clientId)).toBe(true)
     expect(afterRemovingWednesday.ranges.some(range => range.clientId === wednesdayDraft.clientId)).toBe(false)
+  })
+
+  it('creates a range at an explicit start/end by weekday', () => {
+    const state = createEditorState(SINGLE_RANGE_MEMBER)
+    const times = { startsAt: '14:00', endsAt: '15:00' }
+    const added = addRangeWithTimes(state, TUESDAY, times)
+    const [, draft] = added.ranges
+
+    expect(draft?.weekday).toBe(TUESDAY)
+    expect(draft?.startsAt).toBe('14:00')
+    expect(draft?.endsAt).toBe('15:00')
+  })
+
+  it('updates both ends of a range at once by client id', () => {
+    const state = createEditorState(MEMBER)
+    const times = { startsAt: '10:00', endsAt: '11:30' }
+    const resized = changeRangeTimes(state, FIRST_CLIENT_ID, times)
+    const [firstRange] = resized.ranges
+
+    expect(firstRange?.startsAt).toBe('10:00')
+    expect(firstRange?.endsAt).toBe('11:30')
+  })
+
+  it('leaves state unchanged when resizing a missing client id', () => {
+    const state = createEditorState(MEMBER)
+    const times = { startsAt: '10:00', endsAt: '11:30' }
+    const next = changeRangeTimes(state, MISSING_CLIENT_ID, times)
+
+    expect(next).toBe(state)
   })
 })

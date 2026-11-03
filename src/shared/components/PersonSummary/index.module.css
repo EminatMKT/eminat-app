@@ -1,0 +1,16 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--c-t1);
+}
+
+.subtitle {
+  font-size: 0.625rem;
+  color: var(--c-t3);
+}

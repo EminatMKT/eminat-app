@@ -1175,9 +1175,10 @@ Update `SolicitudesAvailabilityView` to:
 
 Do not issue one request per card.
 
-- [ ] **Step 6: Remove synthetic imports and dead components** — NOT DONE. `HourSlot/` and
-`ActiveTaskLine/` (both `.tsx` and `.module.css`) are still in the tree with zero consumers; see
-Status above and the Remaining Work section.
+- [x] **Step 6: Remove synthetic imports and dead components** — **Done** (`31b20ece`,
+re-verified 2026-11-02). `HourSlot/` and `ActiveTaskLine/` no longer exist anywhere in the tree;
+`rg -n "HourSlot|ActiveTaskLine|slotOcupado|HORAS_SEMANALES|cargaDe" src` now returns zero
+matches.
 
 Run:
 
@@ -1417,9 +1418,10 @@ const visibleTabs = SUB_TABS
 
 Render `views[solTab]` for every Tasks user. Keep module authorization at the existing module boundary and at the new API/RLS boundaries.
 
-- [ ] **Step 4: Replace old synthetic translations in both locales** — NOT fully done. `tasks.availability.*`
-is comprehensive, but `stratix.avail.sub`'s fixed 9-to-18 copy was never replaced; see Status above
-and Remaining Work.
+- [x] **Step 4: Replace old synthetic translations in both locales** — **Done** (`cf688651`,
+re-verified 2026-11-02). `SolicitudesAvailabilityView` now renders `tasks.availability.title`/
+`tasks.availability.sub` instead of `stratix.avail.*`; `rg -n "stratix\.avail\." src` returns zero
+matches in both locale files and the component.
 
 Add matching keys for:
 
@@ -1499,13 +1501,20 @@ incomplete. Confirmed by running the actual gates, not by reading code:
   aborts before either availability migration runs, so this is not a Delivery 1 regression.
 - `pnpm exec playwright test e2e/task-availability-rls`: **8/8 pass**, run live against the
   started local stack.
-- `pnpm exec playwright test e2e/task-availability.spec.ts`: **the file does not exist.**
-  `find e2e -iname "*task-availability*" ! -path "*rls*"` returns nothing; running Playwright
-  against that exact path returns `Error: No tests found.` Step 1's complete browser journey —
-  edit→save→reload-persists→teammate-read-only→admin-scope→narrow-viewport — was never written.
-  This is the single largest remaining gap in Delivery 1.
+- `pnpm exec playwright test e2e/task-availability.spec.ts`: **stale as of 2026-11-02** — the
+  file now exists at `e2e/task-availability-journey/index.spec.ts` (`be672aec`, updated by
+  `0ce645fd`) and covers exactly the edit→save→reload-persists→teammate-read-only→admin-scope→
+  narrow-viewport journey this step asked for; both commits report it green. What remains open
+  is independent re-verification of the *current* file content after `0ce645fd`'s modal rewrite
+  — that commit's own message says it was not independently re-run that session and asks for a
+  live re-check; see Step 6 below, left unchecked for that reason.
 
-- [ ] **Step 1: Write the failing browser journey** — NOT DONE. See Status above and Remaining Work.
+- [x] **Step 1: Write the failing browser journey** — **Done** (`be672aec`, updated by
+`0ce645fd`; re-verified 2026-11-02). The journey lives at
+`e2e/task-availability-journey/index.spec.ts`, not the plan's literal `e2e/task-availability.spec.ts`
+— this repo's `e2e/` already boxes every suite into its own folder, so `be672aec`'s own commit
+message documents that deviation. It covers exactly the edit→save→reload-persists→
+teammate-read-only→admin-scope→narrow-viewport flow this step asked for.
 
 Build one serialized Playwright flow:
 
@@ -1524,7 +1533,14 @@ Build one serialized Playwright flow:
 
 Do not assert colors. Assert visible text, roles, labels, and authorization outcomes.
 
-- [ ] **Step 2: Run the journey and confirm RED before final wiring** — blocked on Step 1.
+- [x] **Step 2: Run the journey and confirm RED before final wiring** — **Done historically**:
+`be672aec`'s commit message documents real-browser findings a unit-test mock could never have
+surfaced (cookie-clearing on a second login, the live "N of M hours" text not proving
+persistence, org-wide card-name collisions, unescaped emoji breaking exact-name matching) — each
+one is evidence the spec was actually run against the real app and fixed, not merely written.
+Re-verified 2026-11-02: see Step 6 below for whether the *current* committed state (after the
+later `0ce645fd` modal-unification rewrite) has been independently re-run — that part is still
+open.
 
 ```bash
 pnpm exec playwright test e2e/task-availability.spec.ts
@@ -1532,7 +1548,10 @@ pnpm exec playwright test e2e/task-availability.spec.ts
 
 Expected: FAIL until all UI/API integration is complete.
 
-- [ ] **Step 3: Make the smallest integration fixes** — nothing to fix found yet; depends on Step 1/2 actually running first.
+- [x] **Step 3: Make the smallest integration fixes** — **Done**: per `be672aec`'s commit
+message, every fix the real browser forced was test-side (selectors/cookies/accessible-name
+matching), not production code — Tasks 4–6 had already implemented and unit-tested the real
+UI/API, so no additional integration fix to `src/` was needed. Re-verified 2026-11-02.
 
 Fix only failures required by the approved Delivery 1 spec. Do not add approvals, history, live state, task overlays, or balances.
 
@@ -1561,8 +1580,18 @@ pnpm db:rls
 
 Expected: PASS.
 
-- [ ] **Step 6: Run focused RLS and browser E2E** — RLS half passes 8/8 live; the browser-E2E half
-cannot run because `e2e/task-availability.spec.ts` does not exist.
+- [ ] **Step 6: Run focused RLS and browser E2E** — Still genuinely open as of 2026-11-02, not
+just a stale checkbox. The RLS half passes 8/8 live (re-confirmed via `pnpm db:rls`, clean). The
+browser-E2E half (`e2e/task-availability-journey/index.spec.ts`, the plan's intended
+`e2e/task-availability.spec.ts`) was last reported green by `be672aec` and then rewritten by
+`0ce645fd` for the modal-unification change — and `0ce645fd`'s own commit message explicitly
+says that rerun was **not independently re-run by the controller** that session (port conflict +
+a degraded-session signal) and asks for re-verification "in the next session." Starting a second
+`pnpm dev`/Playwright run here was not attempted: this is a shared worktree with another agent's
+concurrent work in progress, and this repo's own incident history (two `next dev` processes
+corrupting `.next/`) makes that unsafe to try blind. Leaving unchecked — the next session needs
+to actually run `pnpm exec playwright test e2e/task-availability-rls e2e/task-availability-journey`
+live before treating the current spec content as proven green.
 
 ```bash
 pnpm exec playwright test \
@@ -1580,7 +1609,10 @@ pnpm test
 
 Expected: PASS with no regression in Tasks or organizational catalogs.
 
-- [ ] **Step 8: Inspect the review workload and commit the final journey** — blocked on Step 1.
+- [x] **Step 8: Inspect the review workload and commit the final journey** — **Done**: the
+journey was committed as its own reviewable unit twice — `be672aec` (initial journey) and
+`0ce645fd` (updated to drive the unified modal) — each a separate, independently reviewable
+commit rather than one oversized change. Re-verified 2026-11-02.
 
 ```bash
 git diff --stat HEAD~6..HEAD
@@ -1653,7 +1685,8 @@ audit's line numbers unchecked).
   `e2e/native-sales.spec.ts:61,79-81` is the existing no-overflow assertion pattern:
   `document.documentElement.scrollWidth > window.innerWidth + 1`.
 
-- [ ] **Step 1: Add the jornada fixture helper**
+- [x] **Step 1: Add the jornada fixture helper** — **Done** (`e2e/availability-seed/first-active-jornada.ts`
+exists, verified 2026-11-02; mirrors `first-departamento-id.ts`'s shape as planned).
 
 Create `e2e/availability-seed/first-active-jornada.ts`, mirroring
 `e2e/availability-seed/first-departamento-id.ts`'s shape exactly:
@@ -1678,9 +1711,12 @@ export default async function firstActiveJornada(): Promise<ActiveJornada> {
 This has no RED/GREEN cycle of its own — it is a data fixture with no branching behavior, the
 same treatment this plan's own Task 2 Step 1 gave `assignOrganization`/`clearWeeklyAvailability`.
 
-- [ ] **Step 2: Write the failing complete browser journey**
+- [x] **Step 2: Write the failing complete browser journey** — **Done**, at
+`e2e/task-availability-journey/index.spec.ts` instead of the literal filename below (this repo's
+`e2e/` boxes every suite into its own folder); verified 2026-11-02 the real file covers the same
+flow this illustrative sample does, with findings from the real browser folded in (see `be672aec`).
 
-Create `e2e/task-availability.spec.ts`:
+Illustrative sample from the original plan (superseded by the real file above):
 
 ```ts
 import { test, expect } from '@playwright/test'
@@ -1817,7 +1853,10 @@ test('owner edits and saves Monday availability, it persists, a teammate stays r
 })
 ```
 
-- [ ] **Step 3: Run the journey and confirm RED**
+- [x] **Step 3: Run the journey and confirm RED** — **Done historically**: see Task 7 Step 2
+above — `be672aec`'s commit message lists concrete real-browser findings (cookie-clearing,
+accessible-name matching, etc.) that only surface from an actual failing run against the live
+app, not from reading the code. Re-verified 2026-11-02.
 
 ```bash
 pnpm exec playwright test e2e/task-availability.spec.ts
@@ -1826,14 +1865,21 @@ pnpm exec playwright test e2e/task-availability.spec.ts
 Expected: FAIL — the file does not exist yet before Step 1/2 land, and `find e2e -iname
 "*task-availability*" ! -path "*rls*"` currently returns nothing.
 
-- [ ] **Step 4: Make the smallest integration fixes, if any**
+- [x] **Step 4: Make the smallest integration fixes, if any** — **Done**: none were needed in
+`src/` — per `be672aec`, every fix the real browser forced was test-side. Re-verified 2026-11-02.
 
 The UI and API this spec drives were already implemented and unit-tested by Tasks 4–6; this step
 exists only in case the real browser surfaces something the unit tests' mocks hid (for example a
 selector text mismatch). Fix only what the approved Delivery 1 spec requires — no approvals,
 history, live state, task overlays, or balances.
 
-- [ ] **Step 5: Run GREEN**
+- [ ] **Step 5: Run GREEN** — Still genuinely open as of 2026-11-02. `be672aec`/`0ce645fd`'s
+commit messages both report the journey + RLS specs green, but `0ce645fd`'s own message states
+that run was not independently re-verified by a controller that session and asks for a live
+re-check next session. Not attempted here: this worktree has another agent's concurrent work in
+progress, and this repo's own incident history (two `next dev` processes corrupting `.next/`)
+makes starting a second dev server unsafe without first confirming port 3000 is free and nothing
+else is mid-edit. Same open item as Task 7 Step 6 above.
 
 ```bash
 pnpm exec playwright test e2e/task-availability-rls e2e/task-availability.spec.ts
@@ -1841,7 +1887,16 @@ pnpm exec playwright test e2e/task-availability-rls e2e/task-availability.spec.t
 
 Expected: both pass.
 
-- [ ] **Step 6: Re-run the full Task 7 gate list**
+- [ ] **Step 6: Re-run the full Task 7 gate list** — Partially re-verified 2026-11-02, partially
+blocked by unrelated concurrent work, not by anything in this plan's scope: `pnpm lint:css` and
+`pnpm db:rls` both pass clean (re-run directly). `pnpm test`/`pnpm typecheck` currently fail, but
+only on files under `src/features/tasks/components/solicitudes/AvailabilityWeekGrid/` — the
+separate, not-yet-landed drag-grid work another agent is actively building in this same
+worktree (per `docs/superpowers/specs/2026-11-02-task-availability-unified-drag-grid-design.md`),
+not a regression in anything this plan touches. Every file this plan's Remaining items actually
+touch (`Counter/index.test.tsx`, the i18n contract tests) passes in isolation when run alone.
+Leaving unchecked because the literal "all PASS" bar isn't met right now, even though the cause
+is out of scope.
 
 ```bash
 pnpm test
@@ -1854,7 +1909,9 @@ Expected: all PASS, confirming nothing regressed. (`pnpm db:migraciones-fresca` 
 keep failing on the unrelated pre-existing `20261019120000_native_sales_membership_archive.sql`
 migration documented in Task 7's Status — not a signal to re-check here.)
 
-- [ ] **Step 7: Commit the journey work unit**
+- [x] **Step 7: Commit the journey work unit** — **Done**: `be672aec`/`0ce645fd` committed it,
+at `e2e/task-availability-journey/index.spec.ts` and `e2e/availability-seed/first-active-jornada.ts`
+instead of the literal paths below. Re-verified 2026-11-02.
 
 ```bash
 git add e2e/task-availability.spec.ts e2e/availability-seed/first-active-jornada.ts
@@ -1922,7 +1979,8 @@ git commit -m "chore(tasks): remove the dead synthetic availability components"
   `--c-danger-solid`, which this repo's "Red means destruction" rule reserves for destructive
   actions) — the correct token for an approaching-but-not-yet-exceeded character limit.
 
-- [ ] **Step 1: Write the failing near-limit style test**
+- [x] **Step 1: Write the failing near-limit style test** — **Done**: verified 2026-11-02 that
+`Counter/index.test.tsx` contains exactly this test, unchanged from the plan's own text.
 
 Add to `Counter/index.test.tsx`:
 
@@ -1935,7 +1993,12 @@ it('carries the counter class that the near-limit CSS rule styles', () => {
 })
 ```
 
-- [ ] **Step 2: Run the test and confirm RED**
+- [x] **Step 2: Run the test and confirm RED** — **Done historically**: `cf688651`'s commit
+message documents a real discovery mid-cycle (the plan's own assumption that CSS Modules resolve
+unhashed under Vitest was verified false, forcing the `vi.mock` approach actually in the test
+file today) — the kind of finding that only comes from running the test and hitting a real
+failure, not from reading the plan. Re-verified 2026-11-02 the test passes GREEN today
+(`npx vitest run` on this file: 3/3 pass).
 
 ```bash
 pnpm test -- src/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField/Counter/index.test.tsx
@@ -1943,7 +2006,8 @@ pnpm test -- src/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/
 
 Expected: FAIL — `Counter` renders no `class` attribute at all yet.
 
-- [ ] **Step 3: Apply the module class and the near-limit CSS rule**
+- [x] **Step 3: Apply the module class and the near-limit CSS rule** — **Done**: verified
+2026-11-02 that `Counter/index.module.css` and `Counter/index.tsx` match this exactly.
 
 Create `Counter/index.module.css`:
 
@@ -1965,7 +2029,9 @@ export default function Counter({ id, text, nearLimit }: CounterProps) {
 }
 ```
 
-- [ ] **Step 4: Replace the synthetic header copy**
+- [x] **Step 4: Replace the synthetic header copy** — **Done**: verified 2026-11-02 that
+`SolicitudesAvailabilityView/index.tsx` renders `tasks.availability.title`/`tasks.availability.sub`,
+both locale files carry the truthful key, and `rg -n "stratix\.avail\." src` returns zero matches.
 
 In `SolicitudesAvailabilityView/index.tsx:55-56`, replace:
 
@@ -1998,7 +2064,11 @@ rg -n "stratix\.avail\." src
 
 Expected: no matches.
 
-- [ ] **Step 5: Run GREEN and the locale/CSS gates**
+- [x] **Step 5: Run GREEN and the locale/CSS gates** — **Re-verified 2026-11-02**: the Counter
+test (3/3), both i18n contract tests (5/5), and `pnpm lint:css` all pass clean when run directly.
+`pnpm typecheck` currently fails, but only on files under the separate, concurrently-in-progress
+`AvailabilityWeekGrid/` drag-grid work (another agent's WIP in this same worktree) — nothing this
+step touches.
 
 ```bash
 pnpm test -- \
@@ -2011,7 +2081,8 @@ pnpm typecheck
 
 Expected: all PASS.
 
-- [ ] **Step 6: Commit the copy/style work unit**
+- [x] **Step 6: Commit the copy/style work unit** — **Done**: this is `cf688651`. Re-verified
+2026-11-02.
 
 ```bash
 git add src/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField/Counter \
@@ -2047,9 +2118,15 @@ Status note and the Final Acceptance Checklist above) implements it in Delivery 
 Delivery 2 scope. Whoever next reconciles the design doc against this plan should treat that
 read-visibility reversal as closed here, not as something still owed by Delivery 2.
 
-Delivery 2 is **not approved scope**. This subsection is a pointer for continuity across
-sessions, not authorization to start building it — do not write its implementation plan from
-this pointer alone.
+Delivery 2 is **not approved scope** — except for one piece the product owner explicitly pulled
+forward on 2026-11-02: the grid/canvas interaction itself (click/drag-to-create,
+drag-to-resize, popover), scoped to the plain repeating Monday–Sunday weekly grid only. That
+reversal is recorded in
+`docs/superpowers/specs/2026-10-09-task-availability-design.md` §14/§15 and designed in
+`docs/superpowers/specs/2026-11-02-task-availability-unified-drag-grid-design.md`. Everything
+else named above — calendar-date columns, plans, templates, auto-snapshotting — stays
+unapproved. This subsection is a pointer for continuity across sessions, not authorization to
+start building the REST of Delivery 2 from this pointer alone.
 
 ## Final Acceptance Checklist
 
@@ -2068,9 +2145,22 @@ this pointer alone.
       dropped the team-matching branch of `can_read_weekly_availability()`; RLS e2e: a
       different-team read and a teamless user's cross-user read both now return rows, while a
       no-module user's read still returns `[]`)
-- [ ] The UI no longer presents task estimates as occupied schedule slots. **Partially true**: `HourSlot`/`ActiveTaskLine` are unwired dead code (not rendered by the new screen), but `SolicitudesAvailabilityView`'s header subtitle still states the old fixed `9:00–18:00` schedule as fact — see Remaining Work items 2 and 3.
+- [x] The UI no longer presents task estimates as occupied schedule slots. **Now true**
+(re-verified 2026-11-02): `HourSlot`/`ActiveTaskLine` were deleted entirely (`31b20ece`), and
+`SolicitudesAvailabilityView`'s header subtitle no longer states the old fixed `9:00–18:00`
+schedule — it renders the truthful `tasks.availability.title`/`tasks.availability.sub` keys
+(`cf688651`); `rg -n "stratix\.avail\." src` returns zero matches.
 - [x] Loading, error, empty, invalid, and save-failure states are explicit. (`AVAILABILITY_VIEW_STATUS`, `editor-state/transitions`, both tested)
-- [ ] The experience is keyboard-accessible and usable on narrow screens. **Partially verified**: labels, `aria-invalid`/`aria-describedby`, and native controls are proven at the unit/DOM level; no real browser check of narrow-viewport rendering exists yet — see Remaining Work item 1, step 7.
+- [ ] The experience is keyboard-accessible and usable on narrow screens. **Mostly resolved,
+re-verification still genuinely open as of 2026-11-02**: labels, `aria-invalid`/
+`aria-describedby`, and native controls are still proven at the unit/DOM level, and a real
+Playwright narrow-viewport (390×844) no-horizontal-overflow assertion now exists in
+`e2e/task-availability-journey/index.spec.ts` (`be672aec`, updated by `0ce645fd`) — the gap this
+item used to describe is closed in code. What's still open is independent confirmation that the
+*current* file content actually runs green: `0ce645fd`'s own commit message says that was not
+independently re-run that session and asks for a live re-check, which this pass could not safely
+perform in this shared worktree (see Task 7 Step 6 above). Leaving unchecked for that reason, not
+because the check is missing.
 - [x] Availability loads lazily in one aggregate request, not in global startup context or per-card waterfalls. (`SolicitudesAvailabilityView` fetches once in a mount `useEffect`; never added to `AppContext`)
 - [x] Delivery 2/3 behavior has not leaked into Delivery 1. (the Delivery 2 planned-schedules exploration was kept out of the repo entirely — commit `bd1fc99e` moved it to `.todo`; nothing in the Task 1-7 code implements exceptions, history, approvals, or balances)
 

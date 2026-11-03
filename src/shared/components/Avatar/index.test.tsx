@@ -1,0 +1,42 @@
+import { describe, expect, it } from 'vitest'
+import { renderToStaticMarkup } from 'react-dom/server'
+import Avatar from './index'
+
+describe('Avatar', () => {
+  it('renders the initials', () => {
+    const html = renderToStaticMarkup(<Avatar initials="AB" size="md" />)
+
+    expect(html).toContain('AB')
+  })
+
+  it('applies the solid tone by default', () => {
+    const html = renderToStaticMarkup(<Avatar initials="AB" size="lg" color="var(--c-danger-solid)" />)
+
+    expect(html).toContain('AB')
+  })
+
+  it('applies the tint tone when requested', () => {
+    const html = renderToStaticMarkup(<Avatar initials="K" size="sm" tone="tint" color="var(--c-danger-solid)" />)
+
+    expect(html).toContain('K')
+  })
+
+  it('omits the status dot when none is given', () => {
+    const html = renderToStaticMarkup(<Avatar initials="AB" size="md" />)
+
+    expect(html.match(/<span/g)?.length).toBe(1)
+  })
+
+  it('renders a status dot when given', () => {
+    const html = renderToStaticMarkup(<Avatar initials="AB" size="md" status="online" />)
+
+    expect(html.match(/<span/g)?.length).toBe(2)
+  })
+
+  it('falls back to the accent color when color is empty or missing', () => {
+    const htmlEmpty = renderToStaticMarkup(<Avatar initials="AB" size="md" color="" />)
+    const htmlMissing = renderToStaticMarkup(<Avatar initials="AB" size="md" />)
+
+    expect(htmlEmpty).toBe(htmlMissing)
+  })
+})

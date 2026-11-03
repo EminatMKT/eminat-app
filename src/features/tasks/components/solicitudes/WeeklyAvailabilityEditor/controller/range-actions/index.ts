@@ -17,9 +17,11 @@ import {
   type RangeIndexInput,
 } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/range-index/types'
 import createRangeIndexFacade from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/range-index'
+import createExplicitTimesFacade from './explicit-times'
 
 const { applyEditorAction } = createEditorStateFacade()
 const { resolveRangeIndex } = createRangeIndexFacade()
+const explicitTimesFacade = createExplicitTimesFacade()
 
 const addRange = (state: LocalEditorState, weekday: Weekday): LocalEditorState => {
   const action: AddRangeAction = { kind: ADD_ACTION_KIND, weekday }
@@ -56,7 +58,12 @@ const removeRange = (state: LocalEditorState, clientId: string): LocalEditorStat
 }
 
 export default function createRangeActionsFacade() {
-  const facade = { addRange, changeRange, removeRange }
+  const facade = {
+    addRange,
+    changeRange,
+    removeRange,
+    ...explicitTimesFacade,
+  }
   return facade
 }
 

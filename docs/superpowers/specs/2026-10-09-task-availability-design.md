@@ -559,8 +559,15 @@ Delivery 1 does not include:
 - structured availability statuses;
 - production-day calculations;
 - payroll calculations;
-- task-estimate allocation into schedule slots;
-- drag-and-drop scheduling.
+- task-estimate allocation into schedule slots.
+
+**Reversed 2026-11-02:** drag-and-drop scheduling was listed here as a non-goal, with the
+grid/canvas interaction kept out of Delivery 1 and pointed at an unapproved Delivery 2 instead
+(`docs/superpowers/plans/2026-10-20-task-weekly-availability.md`). The product owner reversed
+that call explicitly: Delivery 1's weekly grid is rebuilt as the drag/click/resize interaction
+from `weekly-availability-grid-prototype.html`, scoped to the plain repeating Monday–Sunday
+grid only — the prototype's calendar-date/plan/template parts stay Delivery 2, unapproved. See
+`docs/superpowers/specs/2026-11-02-task-availability-unified-drag-grid-design.md` for the design.
 
 ## 15. Decision Record
 

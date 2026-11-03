@@ -6,7 +6,7 @@ import {
   it,
   vi,
 } from 'vitest'
-import { STATUS_COPY_KEYS } from '@/features/tasks/components/solicitudes/MemberAvailabilityCard/constants'
+import { STATUS_COPY_KEYS } from '@/features/tasks/utils/availability'
 import type { EditorDay } from '../types'
 import type {
   DaySectionProps,
