@@ -2128,6 +2128,29 @@ else named above — calendar-date columns, plans, templates, auto-snapshotting 
 unapproved. This subsection is a pointer for continuity across sessions, not authorization to
 start building the REST of Delivery 2 from this pointer alone.
 
+### Pending reconciliation: the nav-move worktree (not this one) — deliberately on hold
+
+A separate, already-finished piece of work lives in a DIFFERENT worktree —
+`.claude/worktrees/agent-a2dd2cf0447831c41`, branch `worktree-agent-a2dd2cf0447831c41` — not
+`.worktrees/remaining-work`, where everything else in this doc happens. It moves "Disponibilidad"
+out of Requests into a `TeamSubNav` switcher inside Team, per the product owner's decision that
+Disponibilidad was always meant to live inside Equipo (Team), not as its own Requests sub-tab.
+Verified done on 2026-11-02: `tsc`/`vitest` clean, queued in that worktree's own
+`.pending-commits` (entries `001`, `002`), nothing committed.
+
+**Explicit decision, 2026-11-02: do NOT merge or reconcile it yet.** Checked the real merge
+cost first, not just assumed: the two branches' *committed* history only overlaps on
+`src/shared/i18n/locales/{es,en}.json` (trivial). The real conflict is that neither worktree's
+actual work is committed yet, and `SolicitudesAvailabilityView`/`MemberAvailabilityCard` are
+modified incompatibly in each — the nav-move worktree still has the OLD current-workload
+`MemberAvailabilityCard` (props `{userId, nombre}`), while this worktree has the NEW
+weekly-declared-schedule one (props `{member, onOpen}`) being rebuilt as `AvailabilityWeekGrid`
+right now. Reconciling now means doing it twice — once now, again once the grid replaces
+`AvailabilitySchedule` here. **Wait until `AvailabilityWeekGrid` reaches its final form in this
+worktree (through Task 13), then fold the nav-move worktree in once, by hand** (not a plain
+`git merge` — the two `MemberAvailabilityCard`s need a real design decision, not automatic
+conflict resolution).
+
 ## Final Acceptance Checklist
 
 - [x] Multiple ranges can be saved on the same day. (`declaredHoursByDay` test, RLS e2e touching/overlap test)
