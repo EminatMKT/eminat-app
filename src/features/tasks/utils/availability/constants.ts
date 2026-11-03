@@ -9,3 +9,9 @@ export const MINUTES_PER_HOUR = 60
 
 /** Hour figure printed when a day has no jornada reference to compare against. */
 export const NO_HOURS = 0
+
+/** Width `hhmmOf` pads each hour/minute figure to. */
+export const PAD_LENGTH = 2
+
+/** Character `hhmmOf` pads a single-digit hour or minute with. */
+export const PAD_CHAR = '0'
