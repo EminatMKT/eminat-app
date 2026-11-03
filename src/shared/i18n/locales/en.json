@@ -962,6 +962,7 @@
   "tasks.availability.dayComplete": "{declared} of {expected} hours · day complete",
   "tasks.availability.dayAbove": "{declared} of {expected} hours · {difference} hours over this day",
   "tasks.availability.noWorkday": "No workday configured",
+  "tasks.availability.dayFullyBooked": "No room left to add another range this day.",
   "tasks.availability.title": "Weekly availability",
   "tasks.availability.sub": "Weekly availability as declared by each person.",
   "tasks.availability.loading": "Loading availability...",

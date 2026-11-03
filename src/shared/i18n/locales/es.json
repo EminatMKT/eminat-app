@@ -962,6 +962,7 @@
   "tasks.availability.dayComplete": "{declared} de {expected} horas · día completo",
   "tasks.availability.dayAbove": "{declared} de {expected} horas · {difference} horas de más este día",
   "tasks.availability.noWorkday": "No hay jornada configurada",
+  "tasks.availability.dayFullyBooked": "No queda espacio para agregar otro rango este día.",
   "tasks.availability.title": "Disponibilidad semanal",
   "tasks.availability.sub": "Disponibilidad semanal declarada por cada persona.",
   "tasks.availability.loading": "Cargando disponibilidad...",
