@@ -11,9 +11,16 @@ const createDayViewModel = (
 ): EditorViewModelDay => {
   const { ranges, errors } = source
   const weekday: Weekday = day.weekday
-  const dayRanges = ranges.filter(({ weekday: rangeWeekday }) => rangeWeekday === weekday)
-  const errorInput = { errors, ranges, weekday }
-  const dayErrors = projectDayErrors(errorInput)
+  const dayEntries = ranges
+    .map((range, rangeIndex) => ({ range, rangeIndex }))
+    .filter(entry => entry.range.weekday === weekday)
+  const dayRanges = dayEntries.map(entry => entry.range)
+  const dayErrors = dayEntries.flatMap((entry, localIndex) =>
+    projectDayErrors({ errors, rangeIndex: entry.rangeIndex }).map(error => ({
+      ...error,
+      rangeIndex: localIndex,
+    })),
+  )
   const viewModel: EditorViewModelDay = {
     day,
     ranges: dayRanges,
