@@ -48,7 +48,7 @@ export default function buildAvailabilityRangeItemFields(props: AvailabilityRang
   const noteValue = range.note ?? EDITOR_COPY.emptyNote
   const noteField: RangeFieldProps = {
     id: noteId,
-    inputType: RANGE_FIELD_CONSTANTS.textInputType,
+    inputType: RANGE_FIELD_CONSTANTS.textareaInputType,
     label: noteLabel,
     value: noteValue,
     ...noteCounterProps(noteValue, translate),

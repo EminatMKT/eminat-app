@@ -1,11 +1,12 @@
 import type { ChangeEvent } from 'react'
 import Counter from './Counter'
 import RANGE_FIELD_CONSTANTS from './constants'
+import resolveNativeElement from './native-element'
 import type { RangeFieldProps } from './types'
 
-const inputValue = (event: ChangeEvent<HTMLInputElement>) => event.target.value
+type NativeChangeEvent = ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
 
-/** A visible label, native input, and optional linked validation message. */
+/** A visible label, native input or textarea, and optional linked validation message. */
 export default function RangeField(props: RangeFieldProps) {
   const {
     id,
@@ -17,6 +18,7 @@ export default function RangeField(props: RangeFieldProps) {
     counterNearLimit,
     onChange,
   } = props
+
   const isDefined = (candidate: string | undefined): candidate is string => candidate !== undefined
   const errorId = error ? `${id}${RANGE_FIELD_CONSTANTS.errorSuffix}` : undefined
   const counterId = counterText ? `${id}${RANGE_FIELD_CONSTANTS.counterSuffix}` : undefined
@@ -24,19 +26,19 @@ export default function RangeField(props: RangeFieldProps) {
   const describedBy = describedByIds.length > 0
     ? describedByIds.join(RANGE_FIELD_CONSTANTS.describedBySeparator)
     : undefined
-  const handleChange = (event: ChangeEvent<HTMLInputElement>) => onChange(inputValue(event))
-  const isTimeInput = inputType === RANGE_FIELD_CONSTANTS.timeInputType
-  const inputStep = isTimeInput ? RANGE_FIELD_CONSTANTS.timeStep : undefined
-  const inputMaxLength = isTimeInput ? undefined : RANGE_FIELD_CONSTANTS.noteMaxLength
+  const handleChange = (event: NativeChangeEvent) => onChange(event.target.value)
+  const inputMaxLength = inputType === RANGE_FIELD_CONSTANTS.timeInputType
+    ? undefined
+    : RANGE_FIELD_CONSTANTS.noteMaxLength
+  const { tag: Tag, nativeOnlyProps } = resolveNativeElement(inputType)
 
   return (
     <>
       <label htmlFor={id}>{label}</label>
-      <input
+      <Tag
         id={id}
-        type={inputType}
+        {...nativeOnlyProps}
         value={value}
-        step={inputStep}
         maxLength={inputMaxLength}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
