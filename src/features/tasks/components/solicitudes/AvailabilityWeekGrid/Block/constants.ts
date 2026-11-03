@@ -16,3 +16,9 @@ export const NOTE_LINE_HEIGHT_PX = { compact: 12, normal: 15 }
 
 /** Gap between the time label and the note, compact vs normal. */
 export const BLOCK_GAP_PX = { compact: 1, normal: 2 }
+
+/** Accessible label for an editable block: its time range, its note when present. */
+export const BLOCK_LABEL_KEY = 'tasks.availability.gridBlockLabel'
+
+/** Accessible label for a read-only block, carrying the same time and note. */
+export const BLOCK_LABEL_READ_ONLY_KEY = 'tasks.availability.gridBlockLabelReadOnly'

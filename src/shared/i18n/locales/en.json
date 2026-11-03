@@ -985,6 +985,8 @@
   "tasks.availability.overlap": "This range overlaps another one on the same day.",
   "tasks.availability.validationSummary": "{count} time range(s) need fixing before you can save.",
   "tasks.availability.dayValidationSummary": "{count} range(s) in this day need fixing.",
+  "tasks.availability.gridBlockLabel": "{time}{note}. Edit range",
+  "tasks.availability.gridBlockLabelReadOnly": "{time}{note}. View details, read-only",
   "stratix.col.title": "Title",
   "stratix.col.brand": "Brand",
   "stratix.col.assignee": "Assignee",

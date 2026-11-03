@@ -1,0 +1,16 @@
+.handle {
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  height: 0.625rem;
+  touch-action: none;
+  cursor: ns-resize;
+}
+
+.top {
+  top: 0;
+}
+
+.bottom {
+  bottom: 0;
+}

@@ -985,6 +985,8 @@
   "tasks.availability.overlap": "Este rango se superpone con otro del mismo día.",
   "tasks.availability.validationSummary": "Hay {count} rango(s) horario(s) para corregir antes de guardar.",
   "tasks.availability.dayValidationSummary": "Este día tiene {count} rango(s) para corregir.",
+  "tasks.availability.gridBlockLabel": "{time}{note}. Editar rango",
+  "tasks.availability.gridBlockLabelReadOnly": "{time}{note}. Ver detalles, solo lectura",
   "stratix.col.title": "Tarea",
   "stratix.col.brand": "Marca",
   "stratix.col.assignee": "Responsable",
