@@ -4,6 +4,7 @@ import RANGE_FIELD_CONSTANTS from './constants'
 export type RangeFieldInputType =
   | typeof RANGE_FIELD_CONSTANTS.timeInputType
   | typeof RANGE_FIELD_CONSTANTS.textInputType
+  | typeof RANGE_FIELD_CONSTANTS.textareaInputType
 
 /** Props for one visible, labeled availability range field. */
 export type RangeFieldProps = {
