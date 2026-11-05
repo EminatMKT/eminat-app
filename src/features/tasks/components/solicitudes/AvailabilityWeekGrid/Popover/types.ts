@@ -4,6 +4,11 @@ import type { PopoverDraft } from '@/features/tasks/components/solicitudes/Avail
 
 export type PopoverSaveHandler = (clientId: string, times: PopoverDraft) => void
 
+export type PopoverFooterExtras = {
+  confirmationMessage: string
+  onCancel: () => void
+}
+
 export type PopoverRemoveHandler = (clientId: string) => void
 
 /** One range's edit/view dialog: Block opens it on activation, always in edit mode unless
