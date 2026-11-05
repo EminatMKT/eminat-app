@@ -6,3 +6,12 @@ export type PopoverFooterProps = {
   onSave: () => void
   onRemove: () => void
 }
+
+export type SimpleTranslator = (key: string) => string
+
+export type DeletePromptInput = {
+  t: SimpleTranslator
+  confirmationMessage: string
+  onRemove: () => void
+  onClose: () => void
+}
