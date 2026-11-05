@@ -7,7 +7,7 @@ import {
 import { renderToStaticMarkup } from 'react-dom/server'
 import PopoverFooter from './index'
 
-const I18N_MODULE = '@/shared/i18n'
+const { I18N_MODULE } = vi.hoisted(() => ({ I18N_MODULE: '@/shared/i18n' }))
 
 vi.mock(I18N_MODULE, () => ({ useT: () => ({ t: (key: string) => key }) }))
 
