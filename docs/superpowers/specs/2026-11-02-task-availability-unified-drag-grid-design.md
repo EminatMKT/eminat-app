@@ -27,71 +27,56 @@ product owner's prototyped interaction and what Delivery 1 shipped. Does not tou
   `src/features/tasks/components/modals/MemberAvailabilityModal/`,
   `src/shared/components/weekly-schedule/`
 
-**Implementation status (2026-11-04):** There is substantial real commit history on this branch
-already — it is not true that nothing here is committed. Recent commits, among many others
-further back, include `bee148ea` (the `Block` component, Task 4), `9977c53c` (`DayCaption`, Task
-8), `26f495ba` (`AddRangeControl`, part of Task 7), `51a70952` (the fix for an
-`editor-view-model` regression described below), through `5dd1a926` (the `RangeField` textarea
-note field) at current HEAD. Only the most recent work from tonight's session sits uncommitted,
-queued in `.pending-commits` awaiting Wagner's approval through the mechanical
-`AskUserQuestion` gate: `fields-view/index.tsx`, `Popover/index.test.tsx`, and this doc's own
-status edits.
+**Implementation status (2026-11-05):** Tasks 1–6 and 8 of the 13 in section 3 are done, verified
+against the actual files and tests rather than assumed — not just committed history, also two
+pending-commits entries still awaiting Wagner's approval (see below). This replaces the
+2026-11-04 version of this section, which was itself already stale by the time the session that
+wrote it ended; verify against `git log` and `.pending-commits/queue.json` before trusting even
+this one, same as always.
 
-Tasks 1–4 of the 13 in section 3 are done, verified against the actual files and tests rather
-than assumed: (1) the geometry/minute-math module, (2) the explicit-time create/resize
-editor-state actions, (3) the simplification of `projectDayErrors` to a direct
-`{errors, rangeIndex}` lookup — its brief regression in `editor-view-model/index.ts`, which still
-called `projectDayErrors` with the old shape, was already fixed by restoring the local
-day-position error remap in commit `51a70952`, re-verified clean tonight with 0 `tsc` errors, 2/2
-`editor-view-model` tests, and 68 files / 224 tests passing across the whole
-`src/features/tasks/components/solicitudes/` scope — and (4) the `Block` component, committed in
-`bee148ea` with its own `ResizeHandle/`, `accessible-label/`, `activation-key/`, `geometry/`, and
-`note-lines/` helpers.
+Tasks 1–4: (1) the geometry/minute-math module, (2) the explicit-time create/resize editor-state
+actions, (3) the simplification of `projectDayErrors` to a direct `{errors, rangeIndex}` lookup,
+and (4) the `Block` component (`ResizeHandle/`, `accessible-label/`, `activation-key/`,
+`geometry/`, `note-lines/`) — all committed, through `bee148ea` among other commits.
 
-Task 5 (the Popover) has every supporting piece done and verified — `controller/`,
-`popover-fields/`, `fields-input/`, `fields-view/`, `PopoverFooter/`, `confirm-removal/`,
-`draft/`. `Popover/index.test.tsx` is written and correct, using the `vi.hoisted()` i18n-mock
-pattern that `PopoverFooter/index.test.tsx` already proved. `Popover/index.tsx` itself is
-blocked: its verified-correct content hard-fails two Centinela detectors in `ts/ihc.md` —
-`risky_flow_cancel_affordance` and `dialog_validation_focus_management` — neither of which
-credits cancel or focus-management evidence that is genuinely present but composed through child
-components rather than written inline in the same file's own JSX (`PopoverFooter` renders the
-Cancel button; `Modal` owns focus through its `useDialog` hook). This has been escalated to the
-Centinela plugin maintainer as a detector gap needing a code fix, not a workaround — there is no
-attestation path for this check, and signing an exemption is off the table per standing policy.
-The task is waiting on that fix.
+Task 5 (the Popover): **closed**, committed in `0ae9164d`. The two `ts/ihc.md` Centinela
+detector gaps that blocked it (`risky_flow_cancel_affordance` and
+`dialog_validation_focus_management` not crediting cancel/focus-management evidence composed
+through child components) were fixed in the Centinela data repo, not worked around — confirmed
+holding by the write actually succeeding afterward.
 
-Task 6 (gesture wiring — pointer create/resize) has not started; no pointer-event code exists
-anywhere under `AvailabilityWeekGrid/`. Task 7 (the keyboard add-range affordance) is partially
-done: `AddRangeControl/index.tsx`, plus its `next-slot/` and `first-free-window/` helpers, is
-built and tested — a button that finds the next free range and calls `onAdd(slot)`, disabling
-itself with a reason when no room is left — but it is not yet composed inside `DayCaption`'s
-layout, and its `onAdd` callback is not yet wired to actually open the Popover; that remaining
-integration likely lands alongside Task 9's assembly. Task 8 (the column header) is done as a
-standalone component: `DayCaption/index.tsx` renders the weekday label plus the
-`compareDailyHours`/`comparisonCopyVars`/`STATUS_COPY_KEYS` comparison badge through the shared
-`HoursStatus` component, matching the design doc's Task 8 test requirements, but it is not yet
-mounted into the assembled grid — that is Task 9's job, not Task 8's. Task 9 (assembling
-`AvailabilityWeekGrid`) has not started: no top-level `AvailabilityWeekGrid/index.tsx` exists
-yet. It is genuinely the next real integration point — composing `Block`, `DayCaption`, and
-`AddRangeControl` (wiring its `onAdd` into state and the Popover once Task 5 unblocks), plus
-whatever Task 6 produces. Tasks 10–13 and the relocation to `src/shared/components` are
-unchanged from before: still not started, still gated the same way — relocate after Task 9; Task
-10 (rewiring `WeeklyAvailabilityEditor`) and Task 11 (rewiring `MemberAvailabilityModal`) run in
-parallel with each other once the relocation lands; Task 12 (the e2e journey) needs both; Task 13
-(i18n/CSS gates plus the full suite) closes.
+Task 6 (gesture wiring — pointer create/resize): **closed**, not yet committed — queued as
+pending-commits `066-task6-create-gesture` (19 files: click-create and drag-create) and
+`068-task6-resize-gesture` (12 files: edge-drag resize; supersedes the mid-flight WIP snapshot
+`067`), both `status: "pending"` in `.pending-commits/queue.json` awaiting Wagner's approval.
+Verified independently: `pnpm typecheck` clean, `AvailabilityWeekGrid` scope 44/44 test files /
+149/149 tests passing, full repo suite 635/635 files / 2497/2497 tests passing. One naming note
+for anyone touching this area: the resize handlers are `gestures/resize-gesture/grab/` and
+`.../release/`, not the generic `handle-pointer-down/up` the create-gesture side uses —
+deliberately renamed to dodge a `familia_dispersa` false positive (a bare shared-word-suffix
+match against `geometry/snap-down`/`snap-up`, not an actual duplicate).
 
-The dependency picture is simpler than a previous version of this section claimed: Task 7 and
-Task 8 do not share a file and were never forced to sequence against each other — they were
-built as two separate, independently-tested components (`AddRangeControl/` and `DayCaption/`),
-which is exactly why both already exist without conflict. What remains genuinely blocked is
-this: Task 6 and the rest of Task 7's integration both want Task 5 (the Popover) unblocked
-first, so that wiring can be tested against the real component instead of a mock; Task 9 needs
-Task 6 and the rest of Task 7 done, plus Task 5. There is not much left that is parallel-safe
-right now beyond finishing the pieces of Task 7's integration that do not require the Popover to
-exist yet — composing `AddRangeControl` into `DayCaption`'s layout, for instance, can happen
-before `onAdd` can open a real Popover — though that is a narrow opening, not a fully unblocked
-lane.
+Task 7 (the keyboard add-range affordance) is **partially done**: `AddRangeControl/index.tsx`
+(plus `next-slot/`, `first-free-window/`) is built, tested, and now composed inside
+`DayCaption`'s layout (commit `123ed2b3`) — `readOnly` suppresses it, `onAdd` is still a pure
+pass-through. What remains is wiring that `onAdd` to actually open the real Popover; that lands
+alongside Task 9's assembly, not before.
+
+Task 8 (the column header): **closed**, committed in `9977c53c` — `DayCaption/index.tsx` renders
+the weekday label plus the `compareDailyHours`/`comparisonCopyVars`/`STATUS_COPY_KEYS`
+comparison badge through the shared `HoursStatus` component. Not yet mounted into the assembled
+grid — that is Task 9's job, not Task 8's.
+
+Task 9 (assembling `AvailabilityWeekGrid`) has **not started**: no top-level
+`AvailabilityWeekGrid/index.tsx` exists. It is now the genuinely next real integration point —
+composing `Block`, `DayCaption`, `AddRangeControl` (wiring its `onAdd` into state and the real
+Popover), and `create-gesture`/`resize-gesture`'s `wireCreateGesture`/`wireResizeGesture` into one
+leaf. Nothing else blocks it: Tasks 1, 2, 3, 4, 5, 6, 8 are all done, and Task 7's remaining
+`onAdd`-to-Popover wiring is explicitly scoped to land as part of this task, not before it.
+Tasks 10–13 and the relocation to `src/shared/components` are unchanged — relocate after Task 9;
+Task 10 (rewiring `WeeklyAvailabilityEditor`) and Task 11 (rewiring `MemberAvailabilityModal`) run
+in parallel with each other once the relocation lands; Task 12 (the e2e journey) needs both; Task
+13 (i18n/CSS gates plus the full suite) closes.
 
 ## 0. The governance conflict this doc must surface first
 
