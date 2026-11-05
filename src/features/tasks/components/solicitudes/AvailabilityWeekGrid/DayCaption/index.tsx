@@ -7,11 +7,13 @@ import {
   declaredHoursByDay,
 } from '@/features/tasks/utils/availability'
 import { HoursStatus } from '@/shared/components/ui'
+import AddRangeControl from '../AddRangeControl'
 import type { DayCaptionProps } from './types'
 import { DAY_CAPTION_CONSTANTS } from './constants'
 import s from './index.module.css'
 
-export default function DayCaption({ day, ranges, expectedHours }: DayCaptionProps) {
+export default function DayCaption(props: DayCaptionProps) {
+  const { day, ranges, expectedHours, readOnly, onAdd } = props
   const { t } = useT()
   const hoursByDay = declaredHoursByDay(ranges)
   const declaredHours = hoursByDay[day.weekday] ?? DAY_CAPTION_CONSTANTS.zeroHours
@@ -28,8 +30,10 @@ export default function DayCaption({ day, ranges, expectedHours }: DayCaptionPro
         text={comparisonText}
         tone={comparison.status}
       />
+      {!readOnly && <AddRangeControl day={day} ranges={ranges} onAdd={onAdd} />}
     </div>
   )
 }
 
-// DayCaption carries the weekday label and the daily comparison DaySection already shows.
+// DayCaption carries the weekday label, the daily comparison DaySection already shows, and -
+// unless the grid is read-only- the keyboard affordance to add that day's next free range.
