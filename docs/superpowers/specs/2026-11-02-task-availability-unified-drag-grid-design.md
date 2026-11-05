@@ -27,6 +27,41 @@ product owner's prototyped interaction and what Delivery 1 shipped. Does not tou
   `src/features/tasks/components/modals/MemberAvailabilityModal/`,
   `src/shared/components/weekly-schedule/`
 
+**Implementation status (2026-11-04):** Tasks 1–3 of the 13 in section 3 are complete and
+independently verified: the geometry/minute-math module, the explicit-time create/resize
+editor-state actions, and the simplification of `projectDayErrors` to a direct
+`{errors, rangeIndex}` lookup. That simplification briefly regressed `editor-view-model/index.ts`,
+which still called `projectDayErrors` with the old shape; the fix (restoring the local
+day-position error remap in `editor-view-model`) landed in commit `51a70952` before tonight's
+session and was re-verified clean tonight — 0 `tsc` errors, 2/2 `editor-view-model` tests passing,
+and 68 files / 224 tests passing across the whole
+`src/features/tasks/components/solicitudes/` scope. Task 5 (the Popover) has every supporting
+piece done and verified — `controller/`, `popover-fields/`, `fields-input/`, `fields-view/`,
+`PopoverFooter/`, `confirm-removal/`, `draft/` — with only `Popover/index.tsx` and its test left,
+in progress as of this writing.
+
+Tasks 4 and 6–13 remain, and their dependencies don't line up with their numbering, which is worth
+spelling out here before anyone parallelizes them: Task 4 (Block) and Task 8 (the column header)
+have no unmet dependencies and share no files, so either can run alongside the other and alongside
+Task 5. Task 7 (the keyboard add-range affordance), though, has to come *after* Task 8 rather than
+beside it — both land code in the same column-header component, and running them concurrently
+risks a conflicting edit to that one file even though nothing in the numbering says so. Task 6
+(gesture wiring) is better done once Task 4 and Task 5 are real, not mocked, so that
+"drag-create opens the popover" can be integration-tested against the genuine components — the
+plan's TDD ordering assumes this, even though the pointer-event state machine could in principle
+be unit-tested standalone against Task 1's geometry module alone. Task 9 (assembling
+`AvailabilityWeekGrid`) composes Tasks 1–8 and is a hard gate: it cannot start until all eight are
+done, and nothing in 1–8 depends on it. The relocation to `src/shared/components` — already
+decided on 2026-11-02, with Team/Equipo as the second consumer — follows Task 9 and gates Phase 2.
+Task 10 (rewiring `WeeklyAvailabilityEditor`) and Task 11 (rewiring `MemberAvailabilityModal`)
+touch different components, so they're safe to run in parallel with each other once the relocation
+is done, even though both are sequential relative to it. Task 12 (the e2e journey) needs both 10
+and 11 done; Task 13 (i18n/CSS gates plus the full test suite) is the closing gate, after
+everything else.
+
+Nothing in this worktree is committed yet — every change is queued in `.pending-commits`, awaiting
+Wagner's approval through the mechanical `AskUserQuestion` gate.
+
 ## 0. The governance conflict this doc must surface first
 
 Before any interaction or architecture detail: **the codebase's own planning record says the
