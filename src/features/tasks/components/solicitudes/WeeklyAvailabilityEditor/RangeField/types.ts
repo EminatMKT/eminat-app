@@ -15,5 +15,7 @@ export type RangeFieldProps = {
   error?: string
   counterText?: string
   counterNearLimit?: boolean
+  /** Read-only view: the Popover's view mode disables every field, with no save/delete controls. */
+  disabled?: boolean
   onChange: (value: string) => void
 }

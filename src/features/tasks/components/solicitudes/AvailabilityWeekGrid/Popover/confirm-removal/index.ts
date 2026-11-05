@@ -1,4 +1,4 @@
-import type { ConfirmationFunction } from '../types'
+import type { ConfirmationFunction } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/AvailabilityRangeItem/types'
 
 const askForConfirmation: ConfirmationFunction = message => globalThis.confirm(message)
 

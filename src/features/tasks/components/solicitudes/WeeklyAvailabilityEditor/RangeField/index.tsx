@@ -2,6 +2,7 @@ import type { ChangeEvent } from 'react'
 import Counter from './Counter'
 import RANGE_FIELD_CONSTANTS from './constants'
 import resolveNativeElement from './native-element'
+import resolveDescribedByIds from './described-by'
 import type { RangeFieldProps } from './types'
 
 type NativeChangeEvent = ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -16,16 +17,12 @@ export default function RangeField(props: RangeFieldProps) {
     error,
     counterText,
     counterNearLimit,
+    disabled,
     onChange,
   } = props
 
-  const isDefined = (candidate: string | undefined): candidate is string => candidate !== undefined
-  const errorId = error ? `${id}${RANGE_FIELD_CONSTANTS.errorSuffix}` : undefined
-  const counterId = counterText ? `${id}${RANGE_FIELD_CONSTANTS.counterSuffix}` : undefined
-  const describedByIds = [errorId, counterId].filter(isDefined)
-  const describedBy = describedByIds.length > 0
-    ? describedByIds.join(RANGE_FIELD_CONSTANTS.describedBySeparator)
-    : undefined
+  const describedByInput = { id, error, counterText }
+  const { errorId, counterId, describedBy } = resolveDescribedByIds(describedByInput)
   const handleChange = (event: NativeChangeEvent) => onChange(event.target.value)
   const inputMaxLength = inputType === RANGE_FIELD_CONSTANTS.timeInputType
     ? undefined
@@ -40,6 +37,7 @@ export default function RangeField(props: RangeFieldProps) {
         {...nativeOnlyProps}
         value={value}
         maxLength={inputMaxLength}
+        disabled={disabled}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         aria-label={label}

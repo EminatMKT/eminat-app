@@ -90,4 +90,16 @@ describe('RangeField', () => {
     expect(html).toContain(counterText)
     expect(html).toContain('data-near-limit="true"')
   })
+
+  it('renders disabled when the field is read-only', () => {
+    const html = draw({ ...timeProps, disabled: true })
+
+    expect(html).toContain('disabled=""')
+  })
+
+  it('renders no disabled attribute when the prop is omitted', () => {
+    const html = draw(timeProps)
+
+    expect(html).not.toContain('disabled')
+  })
 })
