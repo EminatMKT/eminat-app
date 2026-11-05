@@ -5,6 +5,7 @@ export type PopoverFooterProps = {
   canSave: boolean
   onSave: () => void
   onRemove: () => void
+  onCancel: () => void
 }
 
 export type SimpleTranslator = (key: string) => string

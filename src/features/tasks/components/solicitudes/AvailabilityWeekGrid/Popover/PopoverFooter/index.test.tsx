@@ -15,6 +15,7 @@ const DISABLED_ATTR = 'disabled'
 const CONFIRM_MESSAGE = 'Remove this range?'
 const onSave = vi.fn()
 const onRemove = vi.fn()
+const onCancel = vi.fn()
 
 describe('PopoverFooter', () => {
   it('disables confirm while canSave is false', () => {
@@ -24,6 +25,7 @@ describe('PopoverFooter', () => {
         canSave={false}
         onSave={onSave}
         onRemove={onRemove}
+        onCancel={onCancel}
       />,
     )
 
@@ -37,6 +39,7 @@ describe('PopoverFooter', () => {
         canSave={true}
         onSave={onSave}
         onRemove={onRemove}
+        onCancel={onCancel}
       />,
     )
 

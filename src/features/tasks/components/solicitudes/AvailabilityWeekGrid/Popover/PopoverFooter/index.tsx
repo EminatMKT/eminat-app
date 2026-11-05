@@ -15,7 +15,6 @@ function deleteCopy(t: SimpleTranslator, confirmationMessage: string) {
 function deleteActions(onRemove: () => void, onClose: () => void) {
   return { destructive: true, onConfirm: onRemove, onClose }
 }
-
 function useDeleteConfirm(t: SimpleTranslator, confirmationMessage: string, onRemove: () => void) {
   const [asking, setAsking] = useState(false)
   const open = () => setAsking(true)
@@ -26,16 +25,21 @@ function useDeleteConfirm(t: SimpleTranslator, confirmationMessage: string, onRe
 
   return { open, node }
 }
+function primaryActions(open: () => void, onSave: () => void, canSave: boolean) {
+  return <>
+    <Button kind="delete" onClick={open} />
+    <Button kind="confirm" onClick={onSave} deshabilitado={!canSave} />
+  </>
+}
 
-/** The two destructive/committing actions a Popover offers while it is editable: delete (guarded
- *  by this file's own `ConfirmModal`) and confirm (disabled until the draft is safe to save). */
+/** The three actions a Popover footer offers while editable: cancel, guarded delete, confirm. */
 export default function PopoverFooter(props: PopoverFooterProps) {
-  const { confirmationMessage, onRemove } = props
+  const { confirmationMessage, onRemove, onCancel } = props
   const { open, node } = useDeleteConfirm(useT().t, confirmationMessage, onRemove)
 
   return <>
-    <Button kind="delete" onClick={open} />
-    <Button kind="confirm" onClick={props.onSave} deshabilitado={!props.canSave} />
+    <Button kind="cancel" onClick={onCancel} />
+    {primaryActions(open, props.onSave, props.canSave)}
     {node}
   </>
 }
