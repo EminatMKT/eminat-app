@@ -3,6 +3,8 @@ import useLocalDraft from './local-draft'
 import deriveDraftValidation from './draft-validation'
 import type { PopoverControllerProps } from './types'
 
+export type { PopoverControllerResult } from './types'
+
 /** Composes the local draft and its derived validation into the one result Popover's component
  *  reads: the draft, whether it is safe to save, and the save/remove handlers it wires to UI. */
 export default function usePopoverController(props: PopoverControllerProps) {

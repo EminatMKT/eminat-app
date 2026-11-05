@@ -12,6 +12,8 @@ import type {
   ReadOnlyOverlay,
 } from './types'
 
+export type { PopoverFields } from './types'
+
 const POPOVER_RANGE_INDEX = 0
 const noopRemove = () => undefined
 
