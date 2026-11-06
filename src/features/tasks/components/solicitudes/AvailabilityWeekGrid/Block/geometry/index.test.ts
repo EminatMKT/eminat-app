@@ -3,6 +3,12 @@ import type { WeeklyAvailabilityRange } from '@/features/tasks/utils/availabilit
 import blockGeometry from '.'
 
 const PX_PER_MIN = 2
+const MIDNIGHT_START = '23:30'
+const MIDNIGHT_END = '24:00'
+const TOP_KEY = '--block-top'
+const HEIGHT_KEY = '--block-height'
+const MIDNIGHT_TOP = '2820px'
+const MIDNIGHT_HEIGHT = '60px'
 
 const range = (startsAt: string, endsAt: string): WeeklyAvailabilityRange => ({
   weekday: 1,
@@ -25,6 +31,15 @@ describe('blockGeometry', () => {
 
   it('marks a range of 30 minutes or less as compact', () => {
     expect(blockGeometry(range('09:00', '09:30'), PX_PER_MIN).compact).toBe(true)
+  })
+
+  it('renders the final half hour through midnight as compact', () => {
+    const midnightRange = range(MIDNIGHT_START, MIDNIGHT_END)
+    const geometry = blockGeometry(midnightRange, PX_PER_MIN)
+
+    expect(geometry.style[TOP_KEY]).toBe(MIDNIGHT_TOP)
+    expect(geometry.style[HEIGHT_KEY]).toBe(MIDNIGHT_HEIGHT)
+    expect(geometry.compact).toBe(true)
   })
 
   it('marks a range longer than 30 minutes as not compact', () => {

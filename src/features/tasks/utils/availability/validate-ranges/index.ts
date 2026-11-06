@@ -1,5 +1,6 @@
 import type { RangeValidationError, Weekday, WeeklyAvailabilityRange } from '../types'
 import minutesOf from '../minutes'
+import endMinutesOf from '../end-minutes-of'
 import hasOverlap from '../has-overlap'
 
 type ParsedRange = {
@@ -18,7 +19,7 @@ export default function validateRanges(ranges: WeeklyAvailabilityRange[]): Range
       rangeIndex,
       weekday: range.weekday,
       start: minutesOf(range.startsAt),
-      end: minutesOf(range.endsAt),
+      end: endMinutesOf(range.endsAt),
     }
     return parsedRange
   })

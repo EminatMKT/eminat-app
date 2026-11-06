@@ -1,6 +1,9 @@
 import type { CSSProperties } from 'react'
-import { minutesOf } from '@/features/tasks/utils/availability'
-import type { WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
+import {
+  endMinutesOf,
+  minutesOf,
+  type WeeklyAvailabilityRange,
+} from '@/features/tasks/utils/availability'
 import minutesToPixels from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/minutes-to-pixels'
 import { SNAP_MINUTES } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/constants'
 import {
@@ -22,7 +25,7 @@ export default function blockGeometry(
   pxPerMin: number,
 ): BlockGeometry {
   const start = minutesOf(range.startsAt) ?? FALLBACK_MINUTE
-  const end = minutesOf(range.endsAt) ?? FALLBACK_MINUTE
+  const end = endMinutesOf(range.endsAt) ?? FALLBACK_MINUTE
   const topPx = minutesToPixels(start, pxPerMin)
   const heightPx = minutesToPixels(end - start, pxPerMin)
   const compact = end - start <= SNAP_MINUTES

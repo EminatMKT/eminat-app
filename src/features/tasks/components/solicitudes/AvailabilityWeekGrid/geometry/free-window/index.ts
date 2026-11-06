@@ -1,5 +1,8 @@
-import { minutesOf } from '@/features/tasks/utils/availability'
-import type { WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
+import {
+  endMinutesOf,
+  minutesOf,
+  type WeeklyAvailabilityRange,
+} from '@/features/tasks/utils/availability'
 import { DAY_END_MINUTE, DAY_START_MINUTE, SNAP_MINUTES } from '../constants'
 import type { MinuteBounds } from '../types'
 
@@ -13,7 +16,7 @@ export default function freeWindow(
   const bounds: MinuteBounds = { start: DAY_START_MINUTE, end: DAY_END_MINUTE }
   const isOccupied = dayRanges.some(dayRange => {
     const start = minutesOf(dayRange.startsAt)
-    const end = minutesOf(dayRange.endsAt)
+    const end = endMinutesOf(dayRange.endsAt)
 
     if (start === null || end === null) return false
 

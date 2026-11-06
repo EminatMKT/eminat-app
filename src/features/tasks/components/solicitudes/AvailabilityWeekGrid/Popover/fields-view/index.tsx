@@ -1,13 +1,14 @@
 import RangeField from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField'
+import EndTimeSelect from '../EndTimeSelect'
 import type { PopoverFields } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Popover/popover-fields/types'
 
-/** The three RangeFields a Popover shows, in their fixed order: start, end, note. */
+/** Shows the start and note fields around the end-time selector. */
 export default function renderFields(fields: PopoverFields) {
   const { startField, endField, noteField } = fields
 
   return <>
     <RangeField {...startField} />
-    <RangeField {...endField} />
+    <EndTimeSelect {...endField} />
     <RangeField {...noteField} />
   </>
 }

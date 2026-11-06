@@ -22,7 +22,10 @@ const isPresent = (value: string): boolean => value !== EMPTY_CLASS
  *  `blockGeometry`, its accessible text from `accessibleLabel`, and -when editable- a pair of
  *  resize handles sit beside its `Pressable` surface rather than nested inside it. */
 export default function Block(props: BlockProps) {
-  const { range, readOnly, pxPerMin, onActivate, onResizeHandlePointerDown } = props
+  const {
+    range, readOnly, pxPerMin, onActivate,
+    onResizeHandlePointerDown, onResizeHandleLifecycle,
+  } = props
   const { t } = useT()
   const { style, compact } = blockGeometry(range, pxPerMin)
   const label = accessibleLabel(range, readOnly, t)
@@ -39,8 +42,16 @@ export default function Block(props: BlockProps) {
       </Pressable>
       {!readOnly ? (
         <>
-          <ResizeHandle edge={TOP_EDGE} onPointerDown={onResizeHandlePointerDown} />
-          <ResizeHandle edge={BOTTOM_EDGE} onPointerDown={onResizeHandlePointerDown} />
+          <ResizeHandle
+            edge={TOP_EDGE}
+            onPointerDown={onResizeHandlePointerDown}
+            lifecycle={onResizeHandleLifecycle}
+          />
+          <ResizeHandle
+            edge={BOTTOM_EDGE}
+            onPointerDown={onResizeHandlePointerDown}
+            lifecycle={onResizeHandleLifecycle}
+          />
         </>
       ) : null}
     </div>

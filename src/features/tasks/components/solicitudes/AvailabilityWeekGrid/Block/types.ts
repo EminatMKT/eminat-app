@@ -14,4 +14,11 @@ export type BlockProps = {
   pxPerMin: number
   onActivate: () => void
   onResizeHandlePointerDown?: BlockResizeHandlePointerDown
+  onResizeHandleLifecycle?: ResizeHandleLifecycle
+}
+
+export type ResizeHandleLifecycle = {
+  onPointerUp: (event: ReactPointerEvent<HTMLDivElement>) => void
+  onPointerCancel: (event: ReactPointerEvent<HTMLDivElement>) => void
+  onLostPointerCapture: (event: ReactPointerEvent<HTMLDivElement>) => void
 }

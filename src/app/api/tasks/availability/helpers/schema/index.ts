@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { TIME_PATTERN } from '@/features/tasks/utils/availability/constants'
+import { END_OF_DAY_TIME, TIME_PATTERN } from '@/features/tasks/utils/availability/constants'
 import { NOTE_MAX_LENGTH, MAX_RANGES_PER_REQUEST } from '@/app/api/tasks/availability/constants'
 
 const WEEKDAY_SCHEMAS = [
@@ -15,7 +15,7 @@ const WEEKDAY_SCHEMAS = [
 const rangeShape = {
   weekday: z.union(WEEKDAY_SCHEMAS),
   startsAt: z.string().regex(TIME_PATTERN),
-  endsAt: z.string().regex(TIME_PATTERN),
+  endsAt: z.string().regex(TIME_PATTERN).or(z.literal(END_OF_DAY_TIME)),
   note: z.string().trim().max(NOTE_MAX_LENGTH).nullable().optional(),
 }
 const rangeSchema = z.object(rangeShape).strict()

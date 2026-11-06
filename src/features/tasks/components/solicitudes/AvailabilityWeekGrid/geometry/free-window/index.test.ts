@@ -36,6 +36,15 @@ describe('freeWindow', () => {
     expect(freeWindow(dayRanges, 600)).toBeNull()
   })
 
+  it('treats the last half hour as occupied through midnight', () => {
+    const startsAt = '23:30'
+    const endsAt = '24:00'
+    const dayRanges = [range(startsAt, endsAt)]
+
+    expect(freeWindow(dayRanges, 1425)).toBeNull()
+    expect(freeWindow(dayRanges, 1380)).toEqual({ start: 0, end: 1410 })
+  })
+
   it('returns null when the remaining gap is under 30 minutes', () => {
     const dayRanges = [range('08:00', '10:10'), range('10:20', '12:00')]
 

@@ -1,5 +1,8 @@
-import { minutesOf } from '@/features/tasks/utils/availability'
-import type { WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
+import {
+  endMinutesOf,
+  minutesOf,
+  type WeeklyAvailabilityRange,
+} from '@/features/tasks/utils/availability'
 import { DAY_END_MINUTE, DAY_START_MINUTE } from '../constants'
 import type { MinuteBounds } from '../types'
 
@@ -14,7 +17,7 @@ export default function resizeBounds(
 
   otherRanges.forEach(otherRange => {
     const otherStart = minutesOf(otherRange.startsAt)
-    const otherEnd = minutesOf(otherRange.endsAt)
+    const otherEnd = endMinutesOf(otherRange.endsAt)
 
     if (otherStart === null || otherEnd === null) return
 

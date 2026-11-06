@@ -8,6 +8,7 @@ export type {
 } from './types'
 export { default as durationHours } from './duration-hours'
 export { default as minutesOf } from './minutes'
+export { default as endMinutesOf } from './end-minutes-of'
 export { default as hhmmOf } from './hhmm-of'
 export { default as countInvalidRanges } from './count-invalid-ranges'
 export { default as sortRanges } from './sort-ranges'

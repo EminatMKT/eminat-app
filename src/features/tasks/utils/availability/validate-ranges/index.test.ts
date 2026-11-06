@@ -2,7 +2,32 @@ import { describe, expect, it } from 'vitest'
 import type { WeeklyAvailabilityRange } from '../types'
 import validateRanges from '.'
 
+const MIDNIGHT_END = '24:00'
+const AFTER_MIDNIGHT = '24:01'
+const INVALID_TIME = 'invalid-time'
+
 describe('validateRanges', () => {
+  it('accepts midnight only as an end and allows adjacent late ranges', () => {
+    const adjacent: WeeklyAvailabilityRange[] = [
+      { weekday: 1, startsAt: '23:00', endsAt: '23:30' },
+      { weekday: 1, startsAt: '23:30', endsAt: MIDNIGHT_END },
+    ]
+
+    expect(validateRanges(adjacent)).toEqual([])
+  })
+
+  it('rejects midnight as a start and times past midnight as an end', () => {
+    const midnightStart: WeeklyAvailabilityRange[] = [
+      { weekday: 1, startsAt: MIDNIGHT_END, endsAt: MIDNIGHT_END },
+    ]
+    const lateEnd: WeeklyAvailabilityRange[] = [
+      { weekday: 1, startsAt: '23:30', endsAt: AFTER_MIDNIGHT },
+    ]
+
+    expect(validateRanges(midnightStart)[0]?.code).toBe(INVALID_TIME)
+    expect(validateRanges(lateEnd)[0]?.code).toBe(INVALID_TIME)
+  })
+
   it('rejects overlaps but allows touching ranges', () => {
     const overlapping: WeeklyAvailabilityRange[] = [
       { weekday: 1, startsAt: '09:00', endsAt: '13:00' },

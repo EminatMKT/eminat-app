@@ -1,6 +1,12 @@
 /** Canonical `HH:mm`, 24-hour clock: `00:00` through `23:59`. */
 export const TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/
 
+/** Only an availability range end can use this next-day midnight value. */
+export const END_OF_DAY_TIME = '24:00'
+
+/** Minutes since midnight at the exclusive end of a day. */
+export const MINUTES_PER_DAY = 1440
+
 /** Separates hours from minutes in a canonical `HH:mm` value. */
 export const TIME_SEPARATOR = ':'
 
