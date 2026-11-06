@@ -1,4 +1,3 @@
-import { renderToStaticMarkup } from 'react-dom/server'
 import {
   describe,
   expect,
@@ -6,43 +5,20 @@ import {
   vi,
 } from 'vitest'
 import type { RangeValidationError } from '@/features/tasks/utils/availability'
-import EDITOR_COPY from '../constants'
 import { VALIDATION_SUMMARY_KEY } from './constants'
-import buildEditorFeedback from './index'
-import type { EditorFeedbackInput } from './types'
+import buildValidationMessage from './index'
 
-vi.mock('@/shared/i18n', () => ({
-  useT: () => ({ t: (key: string) => key }),
-}))
-
-const DECLARED_HOURS = 8
 const FIRST_RANGE_INDEX = 0
 const SECOND_RANGE_INDEX = 1
 const SINGLE_INVALID_RANGE_COUNT = 1
 const NO_ERRORS: RangeValidationError[] = []
 const translate = vi.fn((key: string) => key)
-const BASE_INPUT: EditorFeedbackInput = {
-  translate,
-  declaredHours: DECLARED_HOURS,
-  errors: NO_ERRORS,
-  status: EDITOR_COPY.idleStatus,
-  message: null,
-  onCancel: vi.fn(),
-  onSave: vi.fn(),
-}
 
-describe('buildEditorFeedback', () => {
-  it('translates the weekly summary with the declared hours', () => {
-    const feedback = buildEditorFeedback(BASE_INPUT)
+describe('buildValidationMessage', () => {
+  it('reports no message when there are no validation errors', () => {
+    const message = buildValidationMessage(translate, NO_ERRORS)
 
-    expect(translate).toHaveBeenCalledWith(EDITOR_COPY.weeklyHoursKey, { hours: DECLARED_HOURS })
-    expect(renderToStaticMarkup(feedback.weeklySummary)).toContain(EDITOR_COPY.weeklyHoursKey)
-  })
-
-  it('reports no validation message when there are no validation errors', () => {
-    const feedback = buildEditorFeedback(BASE_INPUT)
-
-    expect(feedback.validationMessage).toBeNull()
+    expect(message).toBeNull()
   })
 
   it('reports a count summary, not the per-range sentence, when ranges are invalid', () => {
@@ -50,9 +26,9 @@ describe('buildEditorFeedback', () => {
       { code: 'end-not-after-start', rangeIndex: FIRST_RANGE_INDEX },
     ]
 
-    const feedback = buildEditorFeedback({ ...BASE_INPUT, errors })
+    const message = buildValidationMessage(translate, errors)
 
-    expect(feedback.validationMessage).toBe(VALIDATION_SUMMARY_KEY)
+    expect(message).toBe(VALIDATION_SUMMARY_KEY)
     expect(translate).toHaveBeenCalledWith(
       VALIDATION_SUMMARY_KEY,
       { count: SINGLE_INVALID_RANGE_COUNT },
@@ -69,22 +45,13 @@ describe('buildEditorFeedback', () => {
       },
     ]
 
-    buildEditorFeedback({ ...BASE_INPUT, errors })
+    buildValidationMessage(translate, errors)
 
     expect(translate).toHaveBeenCalledWith(
       VALIDATION_SUMMARY_KEY,
       { count: SINGLE_INVALID_RANGE_COUNT },
     )
   })
-
-  it('renders the shared cancel and save actions', () => {
-    const feedback = buildEditorFeedback(BASE_INPUT)
-
-    const html = renderToStaticMarkup(feedback.actions)
-
-    expect(html).toContain(EDITOR_COPY.cancel)
-    expect(html).toContain(EDITOR_COPY.save)
-  })
 })
 
-// Verifies the summary/validation/actions composition; EditorActions has its own rendering unit.
+// Verifies only the validation-count message; EditorActions has its own rendering unit.

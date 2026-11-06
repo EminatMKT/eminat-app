@@ -7,6 +7,7 @@ export type EditorProps = {
   member: AvailabilityMemberDto
   onCancel: () => void
   onSaved: (response: AvailabilityResponse) => void
+  readOnly: boolean
 }
 
 export type EditorDay = {

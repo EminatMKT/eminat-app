@@ -46,8 +46,13 @@ describe('useWeeklyAvailabilityEditorController', () => {
 
     expect(seen?.state.ranges).toHaveLength(1)
     expect(seen?.errors).toEqual([])
-    expect(seen?.viewModel.monday.ranges).toHaveLength(1)
     expect(seen?.validationFocusToken).toBe(0)
+  })
+
+  it('exposes a single ranges-replacing handler for the grid, callable without throwing', () => {
+    renderToStaticMarkup(createElement(Probe))
+
+    expect(() => seen?.onChangeRanges([])).not.toThrow()
   })
 
   it('forwards cancel to the caller without touching persisted data', () => {

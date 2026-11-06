@@ -28,7 +28,14 @@ export default function MemberAvailabilityModal(props: Props) {
       onClose={onClose}
     >
       {member.canEdit
-        ? <WeeklyAvailabilityEditor member={member} onCancel={onClose} onSaved={onSaved} />
+        ? (
+          <WeeklyAvailabilityEditor
+            member={member}
+            onCancel={onClose}
+            onSaved={onSaved}
+            readOnly={false}
+          />
+        )
         : <AvailabilitySchedule member={member} />}
     </Modal>
   )

@@ -1,60 +1,21 @@
 'use client'
-import { createElement, useEffect, useRef } from 'react'
-import type { ReactElement } from 'react'
-import { useT } from '@/shared/i18n'
-import useWeeklyAvailabilityEditorController from './controller'
-import buildDayElements from './day-elements'
-import type { DayElementsInput } from './day-elements/types'
-import buildEditorFeedback from './editor-feedback'
-import type { EditorFeedbackInput } from './editor-feedback/types'
+import AvailabilityWeekGrid from '../AvailabilityWeekGrid'
+import EditorActions from './EditorActions'
+import ValidationBanner from './ValidationBanner'
+import useEditorView from './editor-view'
 import type { EditorProps } from './types'
-import WeeklyAvailabilityEditorComposition from './WeeklyAvailabilityEditorComposition'
-import type { WeeklyAvailabilityEditorCompositionProps } from './WeeklyAvailabilityEditorComposition/types'
+import s from './index.module.css'
 
-const UNFOCUSED_TOKEN = 0
+/** Composes the weekly availability editor's lifecycle, the drag/resize grid, and — when
+ *  editable — its validation banner and save/cancel actions. */
+export default function WeeklyAvailabilityEditor(props: EditorProps) {
+  const { gridProps, bannerProps, actionsProps } = useEditorView(props)
 
-/** Composes the weekly availability editor's lifecycle, seven day sections, and save actions. */
-export default function WeeklyAvailabilityEditor(props: EditorProps): ReactElement {
-  const { t } = useT()
-  const validationFocusRef = useRef<HTMLDivElement>(null)
-  const controller = useWeeklyAvailabilityEditorController(props)
-  const { state, viewModel, errors, onChangeRange, onAddRange, onRemoveRange, onSave, onCancel, validationFocusToken } = controller
-  const focusValidationMessage = () => validationFocusRef.current?.focus()
-  useEffect(() => {
-    if (validationFocusToken > UNFOCUSED_TOKEN) focusValidationMessage()
-  }, [validationFocusToken])
-  const dayElementsInput: DayElementsInput = {
-    viewModel,
-    translate: t,
-    onChangeRange,
-    onAddRange,
-    onRemoveRange,
-  }
-  const { monday, tuesday, wednesday, thursday, friday, saturday, sunday } = buildDayElements(dayElementsInput)
-  const feedbackInput: EditorFeedbackInput = {
-    translate: t,
-    declaredHours: viewModel.weeklySummary.declaredHours,
-    errors,
-    status: state.status,
-    message: state.message,
-    onCancel,
-    onSave,
-  }
-  const { weeklySummary, validationMessage, actions } = buildEditorFeedback(feedbackInput)
-  const compositionProps: WeeklyAvailabilityEditorCompositionProps = {
-    monday,
-    tuesday,
-    wednesday,
-    thursday,
-    friday,
-    saturday,
-    sunday,
-    weeklySummary,
-    validationMessage,
-    validationFocusRef,
-    actions,
-  }
-  return createElement(WeeklyAvailabilityEditorComposition, compositionProps)
+  return <div className={s.editor}>
+    <AvailabilityWeekGrid {...gridProps} />
+    {bannerProps != null && <ValidationBanner {...bannerProps} />}
+    {actionsProps != null && <EditorActions {...actionsProps} />}
+  </div>
 }
 
-// This component only wires the controller hook to its two child composers; no local state here.
+// readOnly skips the banner/actions entirely: useEditorView nulls them out, this just renders.

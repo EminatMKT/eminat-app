@@ -1,121 +1,104 @@
+import { renderToStaticMarkup } from 'react-dom/server'
 import {
   describe,
   expect,
   it,
   vi,
 } from 'vitest'
-import { renderToStaticMarkup } from 'react-dom/server'
-import type { AvailabilityMemberDto } from '@/features/tasks/data/availability/types'
+import { LocaleProvider, translate } from '@/shared/i18n'
+import type {
+  AvailabilityMemberDto,
+  AvailabilityRangeDto,
+} from '@/features/tasks/data/availability/types'
+import EDITOR_COPY from './constants'
+import { VALIDATION_SUMMARY_KEY } from './editor-feedback/constants'
 import WeeklyAvailabilityEditor from './index'
 
-/** English copy for the plain (no-variable) keys this editor renders, by the key's last segment. */
-const PLAIN_COPY: Record<string, string> = {
-  monday: 'Monday',
-  tuesday: 'Tuesday',
-  wednesday: 'Wednesday',
-  thursday: 'Thursday',
-  friday: 'Friday',
-  saturday: 'Saturday',
-  sunday: 'Sunday',
-  startTime: 'start time',
-  endTime: 'end time',
-  note: 'note',
-  save: 'Save availability',
+const DEFAULT_LOCALE = 'es'
+const RESIZE_HANDLE_MARKER = /data-resize-handle="true"/g
+const SINGLE_INVALID_RANGE_COUNT = 1
+const NO_ONSAVED = vi.fn()
+const NO_ONCANCEL = vi.fn()
+
+const MONDAY_RANGE: AvailabilityRangeDto = {
+  id: 'monday-1',
+  weekday: 1,
+  startsAt: '09:00',
+  endsAt: '13:00',
+  note: null,
 }
-
-vi.mock('@/shared/i18n', () => ({
-  useT: () => ({
-    t: (key: string, vars?: Record<string, string | number>) => {
-      const dayKey = key.split('.').at(-1) ?? key
-      if (PLAIN_COPY[dayKey]) return PLAIN_COPY[dayKey]
-      if (key.endsWith('addRange')) return `Add ${vars?.day ?? ''} range`
-      if (key.endsWith('removeRange')) {
-        return `Remove ${vars?.day ?? ''} range ${vars?.number ?? ''}`
-      }
-      if (key.endsWith('dayBelow') || key.endsWith('dayComplete') || key.endsWith('dayAbove')) {
-        return `${vars?.declared ?? ''} of ${vars?.expected ?? ''} hours`
-      }
-      if (key.endsWith('weekDeclared')) return `${vars?.hours ?? ''} hours declared`
-      return key
-    },
-  }),
-}))
-
-vi.mock('@/features/tasks/data/availability/save-own', () => ({
-  default: vi.fn(),
-}))
-
+const OVERLAPPING_RANGE: AvailabilityRangeDto = {
+  id: 'monday-2',
+  weekday: 1,
+  startsAt: '12:00',
+  endsAt: '14:00',
+  note: null,
+}
 const member: AvailabilityMemberDto = {
   id: 'member-1',
   name: 'Ana López',
   team: null,
-  workday: {
-    id: 'workday-1',
-    name: 'Full time',
-    hoursPerDay: 8,
-  },
-  ranges: [
-    {
-      id: 'monday-1',
-      weekday: 1,
-      startsAt: '09:00',
-      endsAt: '13:00',
-      note: null,
-    },
-  ],
+  workday: { id: 'workday-1', name: 'Full time', hoursPerDay: 8 },
+  ranges: [MONDAY_RANGE],
   canEdit: true,
 }
 
-const draw = (value: AvailabilityMemberDto = member) => renderToStaticMarkup(
-  <WeeklyAvailabilityEditor
-    member={value}
-    onCancel={vi.fn()}
-    onSaved={vi.fn()}
-  />,
-)
+type DrawInput = {
+  value: AvailabilityMemberDto
+  readOnly: boolean
+}
 
-const LABEL_ATTRIBUTE = 'aria-label'
-const GLOBAL_FLAG = 'g'
-const MONDAY_CONTROL_LABELS = ['Monday start time', 'Monday end time', 'Monday note']
-
-/** Values of every label attribute in the markup (no DOM env is installed). */
-const ariaLabels = (markup: string) => Array.from(
-  markup.matchAll(new RegExp(`${LABEL_ATTRIBUTE}="([^"]*)"`, GLOBAL_FLAG)),
-  (found) => found[1],
+const draw = (input: DrawInput) => renderToStaticMarkup(
+  <LocaleProvider>
+    <WeeklyAvailabilityEditor
+      member={input.value}
+      onCancel={NO_ONCANCEL}
+      onSaved={NO_ONSAVED}
+      readOnly={input.readOnly}
+    />
+  </LocaleProvider>,
 )
 
 describe('WeeklyAvailabilityEditor', () => {
-  it('renders seven labeled day sections and stable native controls', () => {
-    const html = draw()
+  it('mounts the editable drag/resize grid with a save/cancel bar', () => {
+    const html = draw({ value: member, readOnly: false })
 
-    expect(html).toContain('Monday')
-    expect(html).toContain('Sunday')
-    expect(ariaLabels(html)).toEqual(expect.arrayContaining(MONDAY_CONTROL_LABELS))
-    expect(html).toContain('Add Monday range')
-    expect(html).toContain('Remove Monday range 1')
-    expect(html).toContain('Save availability')
+    expect(html).toContain(MONDAY_RANGE.startsAt)
+    expect(html).toContain(translate(DEFAULT_LOCALE, EDITOR_COPY.save))
+    expect(html.match(RESIZE_HANDLE_MARKER)).not.toBeNull()
   })
 
-  it('shows a daily mismatch as visible text without disabling Save', () => {
-    const mismatchMember: AvailabilityMemberDto = {
+  it('shows the validation banner with an invalid-range count when editable ranges overlap', () => {
+    const overlapMember: AvailabilityMemberDto = {
       ...member,
-      ranges: [
-        {
-          ...member.ranges[0],
-          endsAt: '15:00',
-        },
-      ],
+      ranges: [MONDAY_RANGE, OVERLAPPING_RANGE],
     }
-    const html = draw(mismatchMember)
+    const bannerVars = { count: SINGLE_INVALID_RANGE_COUNT }
+    const bannerText = translate(DEFAULT_LOCALE, VALIDATION_SUMMARY_KEY, bannerVars)
+    const html = draw({ value: overlapMember, readOnly: false })
 
-    expect(html).toContain('6 of 8 hours')
-    expect(html).not.toContain('disabled=""')
+    expect(html).toContain(bannerText)
+  })
+
+  it('renders only the grid in read-only mode: no save/cancel bar, no validation banner', () => {
+    const overlapMember: AvailabilityMemberDto = {
+      ...member,
+      ranges: [MONDAY_RANGE, OVERLAPPING_RANGE],
+    }
+    const bannerVars = { count: SINGLE_INVALID_RANGE_COUNT }
+    const bannerText = translate(DEFAULT_LOCALE, VALIDATION_SUMMARY_KEY, bannerVars)
+    const html = draw({ value: overlapMember, readOnly: true })
+
+    expect(html).not.toContain(translate(DEFAULT_LOCALE, EDITOR_COPY.save))
+    expect(html).not.toContain(translate(DEFAULT_LOCALE, EDITOR_COPY.cancel))
+    expect(html).not.toContain(bannerText)
+    expect(html.match(RESIZE_HANDLE_MARKER)).toBeNull()
   })
 
   it('keeps saved information scoped to ranges rather than a user id', () => {
-    const html = draw()
+    const html = draw({ value: member, readOnly: false })
 
-    expect(html).not.toContain('member-1')
-    expect(html).toContain('09:00')
+    expect(html).not.toContain(member.id)
+    expect(html).toContain(MONDAY_RANGE.startsAt)
   })
 })

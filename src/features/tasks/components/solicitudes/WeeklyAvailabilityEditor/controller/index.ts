@@ -1,21 +1,21 @@
 'use client'
 import { useState } from 'react'
 import { validateRanges } from '@/features/tasks/utils/availability'
-import type { Weekday } from '@/features/tasks/utils/availability'
-import type { LocalEditorState, RangeActionHandler, RangeChangeHandler } from '../component-types'
-import buildWeeklyAvailabilityEditorViewModel from '../editor-view-model'
-import type { EditorViewModelInput } from '../editor-view-model/types'
-import createRangeActionsFacade from './range-actions'
+import type { EditableRange, LocalEditorState } from '../component-types'
 import resolveSaveOutcome from './resolve-save-outcome'
 import { SAVE_SUCCESS } from './save-decision/constants'
 import createSaveCycleFacade from './save-cycle'
 import type { ControllerState } from './save-cycle/types'
 import type { ControllerProps, WeeklyAvailabilityEditorControllerResult } from './types'
 
-const { addRange, changeRange, removeRange } = createRangeActionsFacade()
-const { createInitialControllerState, buildSavingState, buildFailureState, applyOutcome } = createSaveCycleFacade()
+const {
+  createInitialControllerState,
+  buildSavingState,
+  buildFailureState,
+  applyOutcome,
+} = createSaveCycleFacade()
 
-/** Owns the weekly availability editor's local state, derived view model, and save lifecycle. */
+/** Owns the weekly availability editor's local state, validation errors, and save lifecycle. */
 export default function useWeeklyAvailabilityEditorController(
   props: ControllerProps,
 ): WeeklyAvailabilityEditorControllerResult {
@@ -23,15 +23,12 @@ export default function useWeeklyAvailabilityEditorController(
   const [controllerState, setControllerState] = useState(() => createInitialControllerState(member))
   const { editor, focusToken } = controllerState
   const errors = validateRanges(editor.ranges)
-  const viewModelInput: EditorViewModelInput = { ranges: editor.ranges, workday: member.workday, errors }
-  const viewModel = buildWeeklyAvailabilityEditorViewModel(viewModelInput)
   const updateEditor = (transform: (previousEditor: LocalEditorState) => LocalEditorState) => {
     const nextState: ControllerState = { editor: transform(editor), focusToken }
     setControllerState(nextState)
   }
-  const onChangeRange: RangeChangeHandler = (clientId, field, value) => updateEditor(previousEditor => changeRange(previousEditor, clientId, field, value))
-  const onAddRange = (weekday: Weekday) => updateEditor(previousEditor => addRange(previousEditor, weekday))
-  const onRemoveRange: RangeActionHandler = clientId => updateEditor(previousEditor => removeRange(previousEditor, clientId))
+  const onChangeRanges = (nextRanges: EditableRange[]) =>
+    updateEditor(previousEditor => ({ ...previousEditor, ranges: nextRanges }))
   const onSave = async () => {
     setControllerState(buildSavingState)
     try {
@@ -51,11 +48,8 @@ export default function useWeeklyAvailabilityEditorController(
   }
   const result: WeeklyAvailabilityEditorControllerResult = {
     state: editor,
-    viewModel,
     errors,
-    onChangeRange,
-    onAddRange,
-    onRemoveRange,
+    onChangeRanges,
     onSave,
     onCancel,
     validationFocusToken: focusToken,
@@ -63,4 +57,4 @@ export default function useWeeklyAvailabilityEditorController(
   return result
 }
 
-// The hook composes pure state, range, and save-cycle units so React only owns re-rendering.
+// The hook composes pure state and save-cycle units so React only owns re-rendering.

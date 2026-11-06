@@ -1,6 +1,5 @@
-import type { RangeValidationError, Weekday, WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
-import type { EditorDay, RangeField } from './types'
-import type { EditorStatus } from './types'
+import type { WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
+import type { EditorStatus, RangeField } from './types'
 import type { I18nKey } from '@/shared/i18n'
 
 export type EditableRange = WeeklyAvailabilityRange & {
@@ -11,29 +10,13 @@ export type RangeChangeHandler = (clientId: string, field: RangeField, value: st
 
 export type RangeActionHandler = (clientId: string) => void
 
+/** What `AvailabilityWeekGrid`'s `onChange` hands back once a create/resize/edit/delete gesture
+ *  has already resolved internally: the whole week's committed ranges. */
+export type RangeListChangeHandler = (ranges: EditableRange[]) => void
+
 export type LocalEditorState = {
   ranges: EditableRange[]
   status: EditorStatus
   message: I18nKey | null
   pendingRemoval: EditableRange | null
-}
-
-export type DaySectionProps = {
-  day: EditorDay
-  label: string
-  ranges: EditableRange[]
-  expectedHours: number | null
-  errors: RangeValidationError[]
-  onChangeRange: RangeChangeHandler
-  onAddRange: (weekday: Weekday) => void
-  onRemoveRange: RangeActionHandler
-}
-
-export type RangeRowProps = {
-  range: EditableRange
-  number: number
-  dayLabel: string
-  errors: RangeValidationError[]
-  onChange: RangeChangeHandler
-  onRemove: RangeActionHandler
 }
