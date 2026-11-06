@@ -5,7 +5,6 @@ import type {
   AvailabilityResponse,
 } from '@/features/tasks/data/availability/types'
 import WeeklyAvailabilityEditor from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor'
-import AvailabilitySchedule from '@/features/tasks/components/solicitudes/AvailabilitySchedule'
 import { MODAL_ANCHO_REM } from './constants'
 
 type Props = {
@@ -14,9 +13,9 @@ type Props = {
   onSaved: (response: AvailabilityResponse) => void
 }
 
-/** Unifies view and edit for one member's weekly schedule: the viewer's own card renders the
- *  editable `WeeklyAvailabilityEditor`, any other card renders the read-only `AvailabilitySchedule`
- *  — same component, same content either way, never a second shell for "view" vs "edit". */
+/** Unifies view and edit for one member's weekly schedule: every card renders the same
+ *  `WeeklyAvailabilityEditor`, and `readOnly` — driven by `member.canEdit` — decides whether
+ *  the save/cancel bar shows, never a second component for "view" vs "edit". */
 export default function MemberAvailabilityModal(props: Props) {
   const { member, onClose, onSaved } = props
 
@@ -27,16 +26,12 @@ export default function MemberAvailabilityModal(props: Props) {
       anchoRem={MODAL_ANCHO_REM}
       onClose={onClose}
     >
-      {member.canEdit
-        ? (
-          <WeeklyAvailabilityEditor
-            member={member}
-            onCancel={onClose}
-            onSaved={onSaved}
-            readOnly={false}
-          />
-        )
-        : <AvailabilitySchedule member={member} />}
+      <WeeklyAvailabilityEditor
+        member={member}
+        onCancel={onClose}
+        onSaved={onSaved}
+        readOnly={!member.canEdit}
+      />
     </Modal>
   )
 }
