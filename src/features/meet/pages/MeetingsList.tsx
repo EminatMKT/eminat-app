@@ -5,8 +5,11 @@ import Link from 'next/link'
 import { meetingDisplayCopy } from '../lib/display-copy'
 import styles from '../components/MeetingOverview.module.css'
 import { supabase } from '@/shared/db/supabase'
-import { listTasks } from '@/features/meet/lib/services/task-api'
-import { loadMeetingListAndTasks } from '@/features/meet/lib/services/meeting-list-load'
+import { listMeetingOverview } from '@/features/meet/lib/services/task-api'
+import type { MeetingOverview } from '@/app/api/integrations/meet/_shared/contracts'
+import { useApp } from '@/shared/context/AppContext'
+import { overviewRead, overviewRefresh } from '../lib/services/overview-refresh'
+import { overviewModel } from '../lib/services/overview-model'
 import { splitMeetingHistory } from '@/features/meet/lib/meeting-view'
 import { listLatestMeetingEvents, type MeetingEvent } from '@/features/meet/lib/services/meeting-history'
 import { usePreferences } from '@/features/meet/lib/preferences'
@@ -28,12 +31,11 @@ type MeetingTask = {
 export default function HomePage() {
   const { t, locale } = usePreferences()
   const [meetings, setMeetings] = useState<MeetingWithCompany[]>([])
-  const [tasksByMeeting, setTasksByMeeting] = useState<
-    Record<string, MeetingTask[]>
-  >({})
-  const [meetingActivityByMeeting, setMeetingActivityByMeeting] = useState<
-    Record<string, MeetingTask | null>
-  >({})
+  const { usuario } = useApp()
+  const authId = usuario?.auth_id ?? ''
+  const [summary, setSummary] = useState<MeetingOverview | null>(null)
+  const [summaryLoading, setSummaryLoading] = useState(true)
+  const [summaryError, setSummaryError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [name, setName] = useState('')
@@ -44,107 +46,98 @@ export default function HomePage() {
   const [creators, setCreators] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    let active = true
+    if (!authId) return
+    let current = true
+    const key = `meetings-overview:${authId}`
+    setMeetings([])
+    setSummary(null)
+    setLoading(true)
+    setSummaryLoading(true)
+    setLoadError(null)
+    setSummaryError(null)
+    setName('')
+    setTeam(null)
+    setDepartment(null)
+    setCompany(null)
+    setCreators({})
+    setLatestEvents({})
+    const message = (error: unknown) => error instanceof Error ? error.message : String(error)
 
-    async function load() {
-      const [{ data: userResult }, loaded] = await Promise.all([
-        supabase.auth.getUser(),
-        loadMeetingListAndTasks<MeetingWithCompany, Awaited<ReturnType<typeof listTasks>>>(supabase
-          .from('meetings')
-          .select('*, empresas!meetings_company_id_fkey(nombre)')
-          .order('created_at', { ascending: false }),
-          listTasks()),
-      ])
-      if (!active) return
-      const meetingRows = loaded.meetings
-      const taskList = loaded.tasks
-      setLoadError(loaded.meetingError ?? loaded.taskError)
-      setMeetings(meetingRows)
-      setName(
-        (userResult.user?.user_metadata?.full_name as string | undefined) ||
-          userResult.user?.email?.split('@')[0] ||
-          ''
-      )
-      const self = taskList?.tasks.find((task) => task.responsable_id === taskList.viewer.profile_id)
-      setTeam(taskList?.viewer.equipo?.nombre ?? self?.equipo?.nombre ?? null)
-      setDepartment(self?.departamento?.nombre ?? null)
-      setCompany(taskList?.viewer.empresa?.nombre ?? self?.empresa ?? null)
-      const creatorIds = Array.from(new Set(meetingRows.map((meeting) => meeting.user_id)))
-      if (creatorIds.length) {
-        const { data: creatorRows } = await supabase
-          .from('usuarios')
-          .select('auth_id, nombre_display, nombre, apellido')
-          .in('auth_id', creatorIds)
-        setCreators(Object.fromEntries((creatorRows ?? []).map((profile) => [
-          profile.auth_id,
-          profile.nombre_display || `${profile.nombre ?? ''} ${profile.apellido ?? ''}`.trim(),
-        ])))
-      }
-      setLatestEvents(await listLatestMeetingEvents(meetingRows.map((meeting) => meeting.id)).catch(() => ({})))
-
-      const meetingIds = meetingRows.map((meeting) => meeting.id)
-      const { data: activityTopics } = meetingIds.length
-        ? await supabase
-          .from('topics')
-          .select('meeting_id, actividad_id')
-          .eq('section', 'meeting_activity')
-          .in('meeting_id', meetingIds)
-        : { data: [] }
-      const meetingActivityIds = new Set(
-        (activityTopics ?? [])
-          .map((topic) => topic.actividad_id)
-          .filter((id): id is string => Boolean(id))
-      )
-      const tasksById = new Map((taskList?.tasks ?? []).map((task) => [task.id, task]))
-      setMeetingActivityByMeeting(Object.fromEntries(
-        (activityTopics ?? []).map((topic) => {
-          const task = topic.actividad_id ? tasksById.get(topic.actividad_id) : null
-          return [topic.meeting_id, task ? {
-            id: task.id,
-            titulo: task.titulo,
-            estado: task.estado,
-            responsable: task.responsable?.nombre ?? null,
-          } : null]
+    async function loadMeetings() {
+      try {
+        const rows = await overviewRead(`${key}:meetings`, async () => {
+          const rows: MeetingWithCompany[] = []
+          for (let offset = 0; ; offset += 500) {
+            const result = await supabase.from('meetings').select('*, empresas!meetings_company_id_fkey(nombre)')
+              .order('created_at', { ascending: false }).order('id', { ascending: false }).range(offset, offset + 499)
+            if (result.error) throw new Error(result.error.message)
+            const page = (result.data ?? []) as MeetingWithCompany[]
+            rows.push(...page)
+            if (page.length < 500) return rows
+          }
         })
-      ))
-
-      const byMeeting: Record<string, MeetingTask[]> = {}
-      for (const task of taskList?.tasks ?? []) {
-        if (!task.meeting || meetingActivityIds.has(task.id)) continue
-        ;(byMeeting[task.meeting.id] ??= []).push({
-          id: task.id,
-          titulo: task.titulo,
-          estado: task.estado,
-          responsable: task.responsable?.nombre ?? null,
-        })
-      }
-      setTasksByMeeting(byMeeting)
-      setLoading(false)
-    }
-
-    void load().catch((error) => {
-      if (active) {
-        setLoadError(error instanceof Error ? error.message : String(error))
+        if (!current) return
+        setMeetings(rows)
+        setLoadError(null)
         setLoading(false)
+        // Neither card rendering nor summary loading waits for these decorations.
+        const creatorIds = Array.from(new Set(rows.map(row => row.user_id)))
+        await Promise.allSettled([
+          overviewRead(`${key}:creators:${creatorIds.join(',')}`, async () => {
+            if (!creatorIds.length) return {}
+            const result = await supabase.from('usuarios').select('auth_id, nombre_display, nombre, apellido').in('auth_id', creatorIds)
+            if (result.error) throw new Error(result.error.message)
+            return Object.fromEntries((result.data ?? []).map(profile => [profile.auth_id, profile.nombre_display || `${profile.nombre ?? ''} ${profile.apellido ?? ''}`.trim()]))
+          }).then(data => { if (current) setCreators(data) }),
+          overviewRead(`${key}:events:${rows.map(row => row.id).join(',')}`, () => listLatestMeetingEvents(rows.map(row => row.id)))
+            .then(data => { if (current) setLatestEvents(data) }),
+        ])
+      } catch (error) {
+        if (current) { setLoadError(message(error)); setLoading(false) }
       }
+    }
+    async function loadSummary() {
+      if (current) setSummaryLoading(true)
+      try {
+        const data = await overviewRead(`${key}:summary`, () => listMeetingOverview(authId))
+        if (!current) return
+        setSummary(data)
+        setSummaryError(null)
+        setTeam(data.header.team)
+        setDepartment(data.header.department)
+        setCompany(data.header.company)
+      } catch (error) {
+        if (current) setSummaryError(message(error))
+      } finally { if (current) setSummaryLoading(false) }
+    }
+    async function loadName() {
+      const result = await overviewRead(`${key}:name`, () => supabase.auth.getUser())
+      if (current && result.data.user?.id === authId) setName((result.data.user.user_metadata?.full_name as string | undefined) || result.data.user.email?.split('@')[0] || '')
+    }
+    const refresh = overviewRefresh(() => Promise.allSettled([loadMeetings(), loadSummary(), loadName()]), error => {
+      if (current) setLoadError(message(error))
     })
-    const refresh = () => { void load() }
-    const onVisibility = () => { if (document.visibilityState === 'visible') void load() }
-    window.addEventListener('focus', refresh)
+    const onVisibility = () => { if (document.visibilityState === 'visible') refresh.activation() }
+    refresh.trigger()
+    window.addEventListener('focus', refresh.activation)
     document.addEventListener('visibilitychange', onVisibility)
-    const timer = window.setInterval(refresh, 30000)
+    const timer = window.setInterval(refresh.trigger, 30000)
     return () => {
-      active = false
-      window.removeEventListener('focus', refresh)
+      current = false
+      refresh.dispose()
+      window.removeEventListener('focus', refresh.activation)
       document.removeEventListener('visibilitychange', onVisibility)
       window.clearInterval(timer)
     }
-  }, [])
+  }, [authId])
+
+  const { byMeeting: tasksByMeeting, statusByMeeting: meetingActivityByMeeting } = summary ? overviewModel(summary) : { byMeeting: {}, statusByMeeting: {} }
+  const summaryState = summaryError ? 'error' : summary === null ? 'loading' : 'ready'
 
   const { active, finished } = splitMeetingHistory(meetings)
 
   return (
-    <div className={`${styles.page} space-y-8`}>
+    <div className={`${styles.page} space-y-8`} data-meetings-list-ready={!loading && !loadError} data-meetings-summary-ready={summary !== null && !summaryError && !summaryLoading}>
       <section className="rounded-3xl bg-gradient-to-br from-emerald-950 via-emerald-800 to-brand p-7 text-white shadow-xl shadow-emerald-950/10">
         <p className="text-sm font-medium text-emerald-100">{t('welcome')}</p>
         <h1 className="mt-1 text-3xl font-bold">{t('hello')}{name ? `, ${name}` : ''}, {t('welcomePerson')}</h1>
@@ -168,6 +161,7 @@ export default function HomePage() {
         </Link>
       </div>
 
+      {summaryError && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{locale === 'es' ? 'No se pudieron actualizar las Tasks: ' : 'Task summaries could not be refreshed: '}{summaryError}</p>}
       {loadError && <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-700">{loadError}</p>}
       {loading ? (
         <p className="text-gray-500">{t('loading')}</p>
@@ -191,6 +185,7 @@ export default function HomePage() {
               meetingActivityByMeeting={meetingActivityByMeeting}
               latestEvents={latestEvents}
               creators={creators}
+              summaryState={summaryState}
             />
           )}
           {finished.length > 0 && (
@@ -201,6 +196,7 @@ export default function HomePage() {
               meetingActivityByMeeting={meetingActivityByMeeting}
               latestEvents={latestEvents}
               creators={creators}
+              summaryState={summaryState}
             />
           )}
         </>
@@ -216,6 +212,7 @@ function Section({
   meetingActivityByMeeting,
   latestEvents,
   creators,
+  summaryState,
 }: {
   title: string
   meetings: MeetingWithCompany[]
@@ -223,6 +220,7 @@ function Section({
   meetingActivityByMeeting: Record<string, MeetingTask | null>
   latestEvents: Record<string, MeetingEvent>
   creators: Record<string, string>
+  summaryState: 'loading' | 'error' | 'ready'
 }) {
   return (
     <div>
@@ -238,6 +236,7 @@ function Section({
             meetingActivity={meetingActivityByMeeting[m.id]}
             latestEvent={latestEvents[m.id]}
             creator={creators[m.user_id]}
+            summaryState={summaryState}
           />
         ))}
       </div>
@@ -255,19 +254,21 @@ function MeetingCard({
   meetingActivity,
   latestEvent,
   creator,
+  summaryState,
 }: {
   meeting: MeetingWithCompany
   tasks: MeetingTask[]
   meetingActivity?: MeetingTask | null
   latestEvent?: MeetingEvent
   creator?: string
+  summaryState: 'loading' | 'error' | 'ready'
 }) {
   const { t, formatDate, locale } = usePreferences()
   const start = meeting.start_time?.slice(0, 5)
   const end = meeting.end_time?.slice(0, 5)
   const schedule = start && end ? `${start} – ${end}` : start
   return (
-    <article className="surface rounded-xl border p-4 shadow-sm transition-shadow hover:shadow-md">
+    <article data-meeting-id={meeting.id} className="surface rounded-xl border p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-semibold text-gray-900">{meeting.title}</h3>
         <span
@@ -303,7 +304,8 @@ function MeetingCard({
       </div>
       {creator && <p className="mt-2 text-xs text-gray-500">{t('createdBy')}: <span className="font-medium">{creator}</span></p>}
 
-      {meetingActivity !== undefined && (
+      {summaryState !== 'ready' && <p role="status" className="mt-3 text-xs text-gray-500">{summaryState === 'loading' ? (locale === 'es' ? 'Cargando Tasks…' : 'Loading Tasks…') : (locale === 'es' ? 'Tasks no disponibles' : 'Tasks unavailable')}</p>}
+      {summaryState === 'ready' && meetingActivity !== undefined && (
         <div className="mt-3 flex items-center justify-between rounded-lg border border-emerald-100 bg-emerald-50/70 px-3 py-2">
           <span className="text-xs font-semibold text-emerald-900">
             {locale === 'es' ? 'Estado de reunión' : 'Meeting status'}
@@ -317,7 +319,7 @@ function MeetingCard({
       )}
 
       {/* Desglose de tareas generadas en el CRM */}
-      {tasks.length > 0 && (
+      {summaryState === 'ready' && tasks.length > 0 && (
         <div className="mt-3 border-t border-gray-100 pt-2">
           <p className="text-xs font-medium text-gray-500">
             {tasks.length} {locale === 'es' ? `Task${tasks.length === 1 ? '' : 's'} generada${tasks.length === 1 ? '' : 's'}` : `generated Task${tasks.length === 1 ? '' : 's'}`}
@@ -339,7 +341,7 @@ function MeetingCard({
         </div>
       )}
 
-      {tasks.length === 0 && meeting.participants.length > 0 && (
+      {summaryState === 'ready' && tasks.length === 0 && meeting.participants.length > 0 && (
         <p className="mt-2 truncate text-xs text-gray-400">
           {meeting.participants.join(', ')}
         </p>

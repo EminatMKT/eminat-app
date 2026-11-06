@@ -1,7 +1,7 @@
 import { createMeetTaskSchema } from '../_shared/contracts'
 import { requireMeetTaskActor } from '../_shared/auth'
 import { apiAuthFailure, apiFailure, apiInvalidPayload, apiJson, optionsResponse } from '../_shared/responses'
-import { createTaskForTopic, listCanonicalTasks } from '../_shared/task-service'
+import { createTaskForTopic, listCanonicalTasks, listMeetingOverview } from '../_shared/task-service'
 import dispatchTaskAssignmentEmails from '@/features/tasks/server/notifications'
 
 export const runtime = 'nodejs'
@@ -10,6 +10,13 @@ export const OPTIONS = optionsResponse
 export async function GET(request: Request) {
   const auth = await requireMeetTaskActor(request)
   if (!auth.ok || !auth.actor) return apiAuthFailure(request, auth)
+  if (new URL(request.url).searchParams.get('mode') === 'overview') {
+    const result = await listMeetingOverview(auth.actor.client, auth.actor.profileId)
+    if (!result.ok || !result.data) return apiFailure(request, result)
+    const response = apiJson(request, result.data)
+    response.headers.set('Cache-Control', 'private, no-store')
+    return response
+  }
   const result = await listCanonicalTasks(auth.actor.client, auth.actor.authUserId, auth.actor.profileId)
   if (!result.ok || !result.data) return apiFailure(request, result)
   return apiJson(request, result.data)

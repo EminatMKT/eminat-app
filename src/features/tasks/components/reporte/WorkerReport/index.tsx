@@ -21,16 +21,13 @@ export default function WorkerReport() {
   const [result, setResult] = useState<{ owner: string; key: string; data: ReportData } | null>(null)
   const [options, setOptions] = useState<{ owner: string; members: ReportData['members']; select: boolean } | null>(null)
   const [error, setError] = useState('')
-  const [exportError, setExportError] = useState('')
-  const [downloading, setDownloading] = useState(false)
   const key = `${month}:${member}`
   const validMonth = /^[1-9][0-9]{3}-(0[1-9]|1[0-2])$/.test(month)
   const ready = result?.owner === usuario?.id && result?.key === key
   const report = ready ? result.data : null
   const choices = options?.owner === usuario?.id ? options : null
-  const params = new URLSearchParams({ month }); if (member) params.set('user', member)
   useEffect(() => {
-    setError(''); setExportError('')
+    setError('')
     if (!usuario?.id || !validMonth) return
     const owner = usuario.id, controller = new AbortController()
     const search = new URLSearchParams({ month }); if (member) search.set('user', member)
@@ -49,18 +46,6 @@ export default function WorkerReport() {
       nombrePorId: names, t, hoy: new Date(), metrics: report.metrics }))
     popup.document.close()
   }
-  async function download() {
-    if (!report || error) return
-    setDownloading(true); setExportError('')
-    try {
-      const response = await fetch(`/api/tasks/report/pdf?${params}`, { cache: 'no-store' })
-      if (!response.ok) throw new Error((await response.json()).error || 'Error')
-      const url = URL.createObjectURL(await response.blob()), link = document.createElement('a')
-      link.href = url; link.download = `LILLY-production-${report.month}.pdf`; link.click()
-      setTimeout(() => URL.revokeObjectURL(url), 1000)
-    } catch (err) { setExportError(err instanceof Error ? err.message : 'Error') }
-    finally { setDownloading(false) }
-  }
   return <div id="reporte-content">
     <div id="reporte-controls" className={s.controles}><div className={s.acciones}>
       {choices?.select && <select aria-label={t('stratix.report.teamMember')} className={s.select} value={member || usuario?.id || ''} onChange={event => setMember(event.target.value)}>{choices.members.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}</select>}
@@ -70,11 +55,11 @@ export default function WorkerReport() {
       <div className={s.head}>
         <div><Image src={STRATIX_LOGO_DATA} alt="Stratix Communications" width={176} height={59} style={{ height: 'auto' }} unoptimized />
           <div className={s.titulo}>{PRODUCTION_REPORT_SLOGAN}</div><p className={s.disclaimer}>{PRODUCTION_REPORT_DISCLAIMER}</p><div className={s.sub}>{t('tasks.report.subtitle')}</div></div>
-        <div className={s.imprimirCabeza}><Button kind="print" onClick={print} deshabilitado={!report || !!error || !validMonth} /><Button kind="print" label={t('tasks.report.downloadPdf')} onClick={download} ocupado={downloading} deshabilitado={!report || !!error || !validMonth} /></div>
+        <div className={s.imprimirCabeza}><Button kind="print" onClick={print} deshabilitado={!report || !!error || !validMonth} /></div>
         <div className={s.periodo}><div className={s.dato}>{t('stratix.report.period')}</div><div className={s.valor}>{validMonth && periodoLargo(`${month}-01`, intlLocale)}</div></div>
       </div>
       <div className={s.persona}><div className={s.dato}>{t('stratix.report.teamMember')}</div><div className={s.nombre}>{report?.name || [usuario?.nombre, usuario?.apellido].filter(Boolean).join(' ')}</div></div>
-      {(error || exportError) && <p role="alert">{error || exportError}</p>}
+      {error && <p role="alert">{error}</p>}
       {!validMonth && <p role="alert">{t('tasks.report.choosePeriod')}</p>}
       {!report && !error && validMonth && <p role="status">{t('common.loading')}</p>}
       {report?.metrics && <div className={s.resumen}>
