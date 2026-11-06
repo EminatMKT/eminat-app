@@ -60,6 +60,13 @@ export type CanonicalMeetTaskListItem = CanonicalMeetTask & {
   related_to_viewer: boolean
 }
 
+/** Overview-only contract. Full Tasks and History keep CanonicalMeetTaskList. */
+export type MeetingOverview = {
+  tasks: Pick<CanonicalMeetTask, 'id' | 'titulo' | 'estado' | 'responsable'>[]
+  links: { topic_id: string; meeting_id: string; actividad_id: string | null; section: string | null }[]
+  header: { team: string | null; department: string | null; company: string | null }
+}
+
 export type CanonicalMeetTaskList = {
   tasks: CanonicalMeetTaskListItem[]
   viewer: {

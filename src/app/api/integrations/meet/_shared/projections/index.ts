@@ -4,6 +4,9 @@ const RESPONSIBLES = `actividad_responsables!actividad_responsables_actividad_id
 
 /** The `select` strings the Meet API reads with, named once per shape it needs. */
 const MEET_PROJECTIONS = {
+  overviewTask: 'id, titulo, estado, actividad_responsables!actividad_responsables_actividad_id_fkey(usuario_id, es_lider, usuarios!actividad_responsables_usuario_id_fkey(id, nombre_display, nombre, apellido))',
+  overviewHeaderTask: `id, empresa, ${RESPONSIBLES}`,
+  overviewLinks: 'id, meeting_id, actividad_id, section, meetings!inner(id)',
   task: `id, titulo, descripcion, estado, fecha_inicio, fecha_entrega, fecha_requerida, empresa, created_at, updated_at, created_by_id, solicitante_id, ${RESPONSIBLES}`,
   topicOwner: 'id, meetings!inner(user_id)',
   topicReadable: 'id, meetings!inner(id)',

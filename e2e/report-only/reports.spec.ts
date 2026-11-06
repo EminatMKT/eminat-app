@@ -12,8 +12,13 @@ for (const module of ['tasks']) for (const role of ['superadmin','admin','employ
     const base = `http://${host}:3138`
     await page.setViewportSize(mobile ? { width:390,height:844 } : { width:1440,height:1000 })
     await page.goto(`${base}/__qa/${role}`)
+    // The fixture is October data; the runner's current month must not select it.
+    await page.locator('#reporte-content').getByLabel('Período',{exact:true}).fill('2026-10')
     await page.locator('#reporte-content').getByText('Diseño de piezas para campaña',{exact:false}).waitFor()
-    if(module==='tasks') await page.goto(`${base}/tasks`)
+    if(module==='tasks') {
+      await page.goto(`${base}/tasks`)
+      await page.locator('#reporte-content').getByLabel('Período',{exact:true}).fill('2026-10')
+    }
     const preview=page.locator('#reporte-content')
     await expect(preview.getByRole('button',{name:'Descargar PDF',exact:true})).toHaveCount(0)
     await expect(preview.getByRole('button',{name:'Imprimir',exact:true})).toHaveCount(1)

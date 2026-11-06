@@ -1,5 +1,6 @@
 import { supabase } from '@/shared/db/supabase'
 import type { CanonicalTaskList, CanonicalTaskRecord, TaskCreateInput, TaskUpdateInput } from '@/features/meet/lib/types'
+import type { MeetingOverview } from '@/app/api/integrations/meet/_shared/contracts'
 
 const TASK_API = '/api/integrations/meet'
 
@@ -17,10 +18,11 @@ export function isTaskConflict(error: unknown): error is TaskApiError & { curren
     Boolean(error.current)
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit, expectedAuthId?: string): Promise<T> {
   const { data } = await supabase.auth.getSession()
   const token = data.session?.access_token
   if (!token) throw new TaskApiError('La sesión expiró.', 401, 'NO_SESSION')
+  if (expectedAuthId && data.session?.user.id !== expectedAuthId) throw new TaskApiError('La sesión cambió.', 401, 'SESSION_CHANGED')
   const response = await fetch(`${TASK_API}${path}`, {
     ...init,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...init?.headers },
@@ -33,6 +35,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const getTask = async (id: string) => (await request<{ task: CanonicalTaskRecord }>(`/tasks/${id}`)).task
 export const getTasks = (ids: string[]) => Promise.all(Array.from(new Set(ids)).map(getTask))
 export const listTasks = () => request<CanonicalTaskList>('/tasks')
+export const listMeetingOverview = (authId: string) => request<MeetingOverview>('/tasks?mode=overview', { cache: 'no-store' }, authId)
 export const createTask = async (input: TaskCreateInput) => (await request<{ task: CanonicalTaskRecord; idempotent: boolean }>('/tasks', { method: 'POST', body: JSON.stringify(input) })).task
 export const updateTask = async (id: string, input: TaskUpdateInput) => (await request<{ task: CanonicalTaskRecord }>(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(input) })).task
 

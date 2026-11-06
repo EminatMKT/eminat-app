@@ -1,9 +1,11 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
+import { usePathname } from 'next/navigation'
 import * as auth from '@/shared/db/auth'
 import { signOutAndRedirect } from '@/shared/db/session'
 import { clearAuthCookies } from '@/shared/db/clearAuthCookies'
-import { rolesRepo } from '@/shared/data'
+import { rolesRepo, actividadesRepo } from '@/shared/data'
+import { deferredActivities } from './deferred-activities'
 import type { RoleRow, RoleModuleMap, ModuleSlug } from '@/shared/auth/permissions'
 import { startAppData, fetchOrg } from './loadAppData'
 import type { Usuario, Notificacion, Actividad, Equipo, OrgRow, OrgCatalogs } from './loadAppData'
@@ -12,6 +14,8 @@ import { useClock } from '@/shared/hooks/useClock'
 // Estado global de la app + carga inicial + handlers. La derivación de permisos
 // y el theming los arma AppProvider sobre lo que devuelve este hook.
 export function useAppData() {
+  const pathname = usePathname()
+  const activityPreload = useMemo(() => deferredActivities(() => window.location.pathname === '/meetings', actividadesRepo.list), [])
   const [usuario, setUsuario] = useState<Usuario | null>(null)
   // Estado terminal cuando el perfil no carga: AppProvider renderiza una pantalla
   // estable en vez de auto-navegar (evita el bucle de reloads ante fallo persistente).
@@ -74,7 +78,19 @@ export function useAppData() {
     setUsuario, setSessionError, setLoading, setOnlineCount,
     setNotificaciones, setActividades, setEquipo, setUsuarios, setAdminUsuarios,
     setRoles, setRoleModuleMap, setOrg,
-  }), [setOrg])
+  }, activityPreload.initial), [activityPreload, setOrg])
+
+  useEffect(() => {
+    if (!usuario || pathname === '/meetings' || !activityPreload.needed()) return
+    let current = true
+    void Promise.all([activityPreload.resume(), fetchOrg()]).then(([result, org]) => {
+      if (!current || !result) return
+      setActividades(result.data || [])
+      setOrg(org)
+      activityPreload.applied()
+    }).catch(error => console.error('Deferred activity preload failed:', error))
+    return () => { current = false }
+  }, [activityPreload, pathname, setOrg, usuario])
 
   return {
     usuario, setUsuario, sessionError, actividades, setActividades, equipo, usuarios, setUsuarios,

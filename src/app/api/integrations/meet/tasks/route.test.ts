@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { auth, create, list, dispatch } = vi.hoisted(() => ({ auth: vi.fn(), create: vi.fn(), list: vi.fn(), dispatch: vi.fn() }))
+const { auth, create, list, overview, dispatch } = vi.hoisted(() => ({ auth: vi.fn(), create: vi.fn(), list: vi.fn(), overview: vi.fn(), dispatch: vi.fn() }))
 vi.mock('../_shared/auth', () => ({ requireMeetTaskActor: auth }))
-vi.mock('../_shared/task-service', () => ({ createTaskForTopic: create, listCanonicalTasks: list }))
+vi.mock('../_shared/task-service', () => ({ createTaskForTopic: create, listCanonicalTasks: list, listMeetingOverview: overview }))
 vi.mock('@/features/tasks/server/notifications', () => ({ default: dispatch }))
 
 import { GET, POST } from './route'
@@ -52,6 +52,22 @@ describe('POST Meet Tasks', () => {
 
 describe('GET Meet Tasks', () => {
   beforeEach(() => { vi.clearAllMocks(); dispatch.mockResolvedValue({ warning: null }); auth.mockResolvedValue({ ok: true, actor: { client: {}, authUserId: 'auth-1', profileId: 'profile-1' } }) })
+  it('uses overview mode without trusting supplied IDs or invoking the full task list', async () => {
+    const data = { tasks: [], links: [], header: { team: null, department: null, company: null } }
+    overview.mockResolvedValue({ ok: true, data })
+    const response = await GET(new Request('https://app.stratixsolutions.us/api/integrations/meet/tasks?mode=overview&meeting_ids=foreign-id&profile_id=other-user'))
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual(data)
+    expect(overview).toHaveBeenCalledWith({}, 'profile-1')
+    expect(list).not.toHaveBeenCalled()
+    expect(response.headers.get('cache-control')).toBe('private, no-store')
+  })
+  it.each([401, 403])('denies overview before reading when actor authorization fails (%s)', async status => {
+    auth.mockResolvedValue({ ok: false, status, error: 'Denied' })
+    expect((await GET(new Request('https://app.stratixsolutions.us/api/integrations/meet/tasks?mode=overview'))).status).toBe(status)
+    expect(overview).not.toHaveBeenCalled()
+    expect(list).not.toHaveBeenCalled()
+  })
   it('devuelve exclusivamente el listado autorizado y el alcance del actor', async () => {
     list.mockResolvedValue({ ok: true, data: { tasks: [{ id: 'a-1' }], viewer: { profile_id: 'profile-1', equipo: null, empresa: null } } })
     const response = await GET(new Request('https://app.stratixsolutions.us/api/integrations/meet/tasks', { headers: { origin: 'https://meet.stratixsolutions.us' } }))
