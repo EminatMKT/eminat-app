@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useT } from '@/shared/i18n'
 import { Button, ConfirmModal } from '@/shared/components/ui'
 import type { PopoverFooterProps, SimpleTranslator } from './types'
+import s from './index.module.css'
 
 const COMMON_DELETE_KEY = 'common.delete'
 
@@ -27,7 +28,7 @@ function useDeleteConfirm(t: SimpleTranslator, confirmationMessage: string, onRe
 }
 function primaryActions(open: () => void, onSave: () => void, canSave: boolean) {
   return <>
-    <Button kind="delete" onClick={open} />
+    <div className={s.delete}><Button kind="delete" onClick={open} /></div>
     <Button kind="confirm" onClick={onSave} deshabilitado={!canSave} />
   </>
 }
@@ -47,3 +48,6 @@ export default function PopoverFooter(props: PopoverFooterProps) {
 // PopoverFooter renders its own ConfirmModal for the delete action instead of calling
 // confirm-removal/'s window.confirm: a literal `kind="delete"` Button in this file's JSX trips
 // this repo's ui.md rule requiring a ConfirmModal in the same file, with no iconOnly escape.
+
+// The delete button's `.delete` wrapper pushes it to the far left of the shared Modal footer's
+// flex-end row, isolating the destructive action per ihc.md's "the destructive one, far away".

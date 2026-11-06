@@ -1,3 +1,4 @@
-/** Same width as `ActivityDetailModal`'s own 40rem: the closest precedent for "click a card,
- *  open a modal with its full content." */
-export const MODAL_ANCHO_REM = 40
+/** Wide enough for the grid's 7 day columns (3rem gutter + 7 x ~8rem) without its own
+ *  horizontal scroll kicking in on common desktop widths; the shared `Modal`'s
+ *  `max-width: 95vw` still caps it on narrow screens. */
+export const MODAL_ANCHO_REM = 64
