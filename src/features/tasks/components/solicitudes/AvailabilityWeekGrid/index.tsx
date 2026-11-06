@@ -16,7 +16,7 @@ export default function AvailabilityWeekGrid(props: AvailabilityWeekGridProps) {
 
   return <>
     <p className={s.summary}>{summary.total}</p>
-    {props.ranges.length === 0 && <p>{summary.empty}</p>}
+    {props.ranges.length === 0 && <p className={s.empty}>{summary.empty}</p>}
     <div className={s.root}><TimeGutter />{days.map(renderDay)}</div>
     {popover && <Popover key={popover.range.clientId} {...popover} />}
   </>
