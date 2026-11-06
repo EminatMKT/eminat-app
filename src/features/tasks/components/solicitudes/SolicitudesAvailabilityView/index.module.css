@@ -14,11 +14,19 @@
   color: var(--c-t3);
 }
 
-.grid {
+/* Doubled on purpose: raises specificity over ListaRotulada's own `.lista` (flex-column, equal
+   specificity otherwise), without touching that shared component's default list behavior. */
+.grid.grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(21.25rem, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.75rem;
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+@media (max-width: 48rem) {
+  .grid.grid {
+    grid-template-columns: 1fr;
+  }
 }

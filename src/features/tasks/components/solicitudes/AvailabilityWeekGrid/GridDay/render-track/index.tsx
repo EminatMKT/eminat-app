@@ -1,6 +1,7 @@
 import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import SegmentCanvas from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/SegmentCanvas'
 import type { GridDayProps } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/types'
+import s from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/index.module.css'
 import type { DayRange, TrackInput } from '../types'
 
 function renderSegment(props: GridDayProps, dayRanges: DayRange[], columnTop: () => number) {
@@ -20,7 +21,7 @@ function renderSegment(props: GridDayProps, dayRanges: DayRange[], columnTop: ()
 export default function renderTrack(props: GridDayProps, input: TrackInput) {
   const { dayRanges, columnTop, t } = input
 
-  if (dayRanges.length === 0) return <p>{t(EDITOR_COPY.emptyDay)}</p>
+  if (dayRanges.length === 0) return <p className={s.empty}>{t(EDITOR_COPY.emptyDay)}</p>
 
   return dayRanges.map(renderSegment(props, dayRanges, columnTop))
 }

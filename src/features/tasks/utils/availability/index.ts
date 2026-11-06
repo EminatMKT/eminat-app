@@ -15,6 +15,7 @@ export { default as sortRanges } from './sort-ranges'
 export { default as validateRanges } from './validate-ranges'
 export { default as declaredHoursByDay } from './declared-hours-by-day'
 export { default as declaredWeeklyHours } from './declared-weekly-hours'
+export { default as expectedWeeklyHours } from './expected-weekly-hours'
 export { default as compareDailyHours } from './compare-daily-hours'
 export { default as comparisonCopyVars } from './comparison-copy-vars'
 export {

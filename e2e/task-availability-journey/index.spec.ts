@@ -140,10 +140,11 @@ async function openAvailability(page: Page): Promise<void> {
 }
 
 // Each card is now the single full-card press target (`Pressable`), named "Open {name}'s weekly
-// schedule" -- the modal is what used to be the inline "Edit" swap, so opening a card is the new
+// schedule" for a read-only teammate card, or "Edit {name}'s weekly schedule" for the viewer's
+// own card -- the modal is what used to be the inline "Edit" swap, so opening a card is the new
 // entry point for both reading and editing a schedule.
 function cardFor(page: Page, name: string) {
-  const nameFilter = { name: new RegExp(`Open ${name}`) }
+  const nameFilter = { name: new RegExp(`(?:Open|Edit) ${name}`) }
 
   return page.getByRole('button', nameFilter)
 }

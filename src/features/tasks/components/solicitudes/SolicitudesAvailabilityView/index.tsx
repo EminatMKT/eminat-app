@@ -8,6 +8,7 @@ import MemberAvailabilityCard from '../MemberAvailabilityCard'
 import MemberAvailabilityModal from '@/features/tasks/components/modals/MemberAvailabilityModal'
 import loadAvailability from './availability'
 import buildScreenActions from './member-editing'
+import orderMembers from './order-members'
 import { AVAILABILITY_VIEW_STATUS, INITIAL_SCREEN_STATE } from './constants'
 import type { ScreenState } from './types'
 import s from './index.module.css'
@@ -37,6 +38,7 @@ export default function SolicitudesAvailabilityView() {
   const listEmptyLabel = isEmpty ? emptyLabel : undefined
   const isOpenMember = (member: AvailabilityMemberDto) => member.id === openMemberId
   const openMemberRecord = members.find(isOpenMember) ?? null
+  const orderedMembers = orderMembers(members)
 
   return (
     <div>
@@ -45,7 +47,7 @@ export default function SolicitudesAvailabilityView() {
         <div className={s.sub}>{t('tasks.availability.sub')}</div>
       </div>
       <ListaRotulada label={memberListLabel} className={s.grid} emptyLabel={listEmptyLabel}>
-        {members.map(renderMemberCard)}
+        {orderedMembers.map(renderMemberCard)}
       </ListaRotulada>
       {openMemberRecord && (
         <MemberAvailabilityModal

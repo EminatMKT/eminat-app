@@ -13,8 +13,22 @@
   border-color: var(--c-accent);
 }
 
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
 .total {
   font-size: 0.6875rem;
   color: var(--c-t2);
-  flex-shrink: 0;
+}
+
+.icon {
+  color: var(--c-t3);
+}
+
+.pencilIcon {
+  color: var(--c-accent);
 }

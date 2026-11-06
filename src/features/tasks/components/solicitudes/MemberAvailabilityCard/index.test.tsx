@@ -18,6 +18,13 @@ vi.mock('@/shared/i18n', () => ({ useT: () => ({ t: english }) }))
 
 type Control = ReactElement<{ onClick: () => void }>
 
+const PENCIL_ICON_CLASS = 'lucide-pencil'
+const EYE_ICON_CLASS = 'lucide-eye'
+const APOSTROPHE = "'"
+const HTML_APOSTROPHE_ENTITY = '&#x27;'
+
+const escapeApostrophe = (value: string) => value.replace(APOSTROPHE, HTML_APOSTROPHE_ENTITY)
+
 const memberDefaults: AvailabilityMemberDto = {
   id: 'member-1',
   name: 'Ana López',
@@ -46,17 +53,18 @@ const draw = (value: AvailabilityMemberDto, onOpen: () => void = noop) =>
   renderToStaticMarkup(<MemberAvailabilityCard member={value} onOpen={onOpen} />)
 
 describe('MemberAvailabilityCard', () => {
-  it('renders the compact summary: name, team, and the weekly declared total', () => {
+  it('renders the compact summary: name, team, and the weekly hours badge', () => {
     const html = draw(member({}))
-    const total = english('tasks.availability.weekDeclared', { hours: 4 })
+    const weekBelowKey: I18nKey = 'tasks.availability.weekBelow'
+    const total = english(weekBelowKey, { declared: 4, expected: 56, difference: 52 })
 
     expect(html).toContain('Ana López')
     expect(html).toContain('Marketing')
     expect(html).toContain(total)
   })
 
-  it('shows "not configured" when the member has no ranges', () => {
-    const html = draw(member({ ranges: [] }))
+  it('shows the plain not-configured text when the member has no workday', () => {
+    const html = draw(member({ workday: null }))
 
     expect(html).toContain(english('tasks.availability.notConfigured'))
   })
@@ -69,12 +77,35 @@ describe('MemberAvailabilityCard', () => {
     expect(html).not.toContain('09:00')
   })
 
+  it('shows the pencil icon, decoratively, for the viewer\'s own editable card', () => {
+    const html = draw(member({ canEdit: true }))
+
+    expect(html).toContain(PENCIL_ICON_CLASS)
+    expect(html).not.toContain(EYE_ICON_CLASS)
+  })
+
+  it('shows the eye icon, decoratively, for a read-only teammate card', () => {
+    const html = draw(member({ canEdit: false }))
+
+    expect(html).toContain(EYE_ICON_CLASS)
+    expect(html).not.toContain(PENCIL_ICON_CLASS)
+  })
+
   it('is one full-card clickable control, named for assistive technology', () => {
     const html = draw(member({}))
     const raw = english('tasks.availability.openSchedule', { name: 'Ana López' })
-    const label = raw.replace("'", '&#x27;')
+    const label = escapeApostrophe(raw)
 
     expect(html).toContain('type="button"')
+    expect(html).toContain(`aria-label="${label}"`)
+  })
+
+  it('names the control as editable for the viewer\'s own card', () => {
+    const html = draw(member({ canEdit: true }))
+    const editScheduleKey: I18nKey = 'tasks.availability.editSchedule'
+    const raw = english(editScheduleKey, { name: 'Ana López' })
+    const label = escapeApostrophe(raw)
+
     expect(html).toContain(`aria-label="${label}"`)
   })
 
