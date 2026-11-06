@@ -21,6 +21,7 @@ const buildConfig = (dayRanges: WeeklyAvailabilityRange[]): CreateGestureConfig 
   dayRanges,
   column: { columnTop: 0, pxPerMin: 2 },
   onCommit: vi.fn(),
+  onPreview: vi.fn(),
   readOnly: false,
 })
 

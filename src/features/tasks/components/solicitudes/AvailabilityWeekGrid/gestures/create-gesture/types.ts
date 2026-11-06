@@ -13,12 +13,13 @@ export type CreateGestureCommit = {
 }
 
 /** What one day column's create gesture needs: that day's existing ranges (to reject a start
- *  inside one of them), the column's own geometry, where to send a finished gesture, and
- *  whether the gesture is disabled entirely. */
+ *  inside one of them), the column's own geometry, where to send a finished gesture and the
+ *  live drag preview (`null` once there is none), and whether the gesture is disabled. */
 export type CreateGestureConfig = {
   dayRanges: WeeklyAvailabilityRange[]
   column: GestureColumnGeometry
   onCommit: (commit: CreateGestureCommit) => void
+  onPreview: (bounds: MinuteBounds | null) => void
   readOnly: boolean
 }
 

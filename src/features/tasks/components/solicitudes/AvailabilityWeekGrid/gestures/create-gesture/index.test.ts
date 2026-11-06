@@ -19,6 +19,7 @@ const buildConfig = (
   dayRanges: [],
   column: { columnTop: 0, pxPerMin: 2 },
   onCommit: vi.fn(),
+  onPreview: vi.fn(),
   readOnly: false,
   ...overrides,
 })
@@ -30,14 +31,14 @@ const buildEvent = (clientY: number): GesturePointerEvent => ({
 })
 
 describe('wireCreateGesture', () => {
-  it('commits a bounded click on a plain pointerdown/pointerup', () => {
+  it('commits a bounded click on a plain pointerdown/pointerup, still requesting the popover', () => {
     const onCommit = vi.fn()
     const handlers = wireCreateGesture(buildConfig({ onCommit }))
 
     handlers.onPointerDown(buildEvent(200))
     handlers.onPointerUp(buildEvent(200))
 
-    expect(onCommit).toHaveBeenCalledWith({ bounds: { start: 90, end: 150 }, openPopover: false })
+    expect(onCommit).toHaveBeenCalledWith({ bounds: { start: 90, end: 150 }, openPopover: true })
   })
 
   it('commits the dragged range and requests the popover once moved', () => {
@@ -76,6 +77,15 @@ describe('wireCreateGesture', () => {
     expect(onCommit).not.toHaveBeenCalled()
   })
 
+  it('clears the live preview on pointercancel, even with no gesture active', () => {
+    const onPreview = vi.fn()
+    const handlers = wireCreateGesture(buildConfig({ onPreview }))
+
+    handlers.onPointerCancel(buildEvent(200))
+
+    expect(onPreview).toHaveBeenCalledWith(null)
+  })
+
   it('aborts a gesture in progress on lostpointercapture, without committing', () => {
     const onCommit = vi.fn()
     const handlers = wireCreateGesture(buildConfig({ onCommit }))
@@ -86,6 +96,15 @@ describe('wireCreateGesture', () => {
     handlers.onPointerUp(downEvent)
 
     expect(onCommit).not.toHaveBeenCalled()
+  })
+
+  it('clears the live preview on lostpointercapture too', () => {
+    const onPreview = vi.fn()
+    const handlers = wireCreateGesture(buildConfig({ onPreview }))
+
+    handlers.onLostPointerCapture(buildEvent(200))
+
+    expect(onPreview).toHaveBeenCalledWith(null)
   })
 
   it('disables every handler when readOnly', () => {

@@ -28,9 +28,11 @@ function buildProps() {
   return props
 }
 
+const NOOP_PREVIEW = () => undefined
+
 it("filters dayRanges to the config's own weekday and tracks live readOnly", () => {
   const props = buildProps()
-  const config = createConfig(() => props, ZERO_TOP)
+  const config = createConfig(() => props, ZERO_TOP, NOOP_PREVIEW)
 
   expect(config.dayRanges).toEqual([RANGE])
   props.readOnly = true
@@ -39,10 +41,21 @@ it("filters dayRanges to the config's own weekday and tracks live readOnly", () 
 
 it('commits a created range through the live onCreate, carrying openPopover as open', () => {
   const props = buildProps()
-  const config = createConfig(() => props, ZERO_TOP)
+  const config = createConfig(() => props, ZERO_TOP, NOOP_PREVIEW)
   const bounds = { start: 600, end: 660 }
 
   config.onCommit({ bounds, openPopover: true })
 
   expect(props.onCreate).toHaveBeenCalledWith(props.day, bounds, true)
+})
+
+it('forwards a live preview straight to the given onPreviewChange', () => {
+  const props = buildProps()
+  const onPreviewChange = vi.fn()
+  const config = createConfig(() => props, ZERO_TOP, onPreviewChange)
+  const bounds = { start: 60, end: 120 }
+
+  config.onPreview(bounds)
+
+  expect(onPreviewChange).toHaveBeenCalledWith(bounds)
 })

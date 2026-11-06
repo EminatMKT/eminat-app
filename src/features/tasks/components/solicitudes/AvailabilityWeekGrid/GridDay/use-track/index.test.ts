@@ -40,3 +40,9 @@ it('returns a track ref, a columnTop reader, and a stable create-gesture handler
   expect(seen?.columnTop()).toBe(0)
   expect(typeof seen?.gesture.onPointerDown).toBe(FUNCTION_TYPE)
 })
+
+it('starts with no live create-drag preview', () => {
+  renderToStaticMarkup(createElement(Probe))
+
+  expect(seen?.preview).toBeNull()
+})

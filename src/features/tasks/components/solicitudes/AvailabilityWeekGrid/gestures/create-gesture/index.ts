@@ -20,14 +20,17 @@ const CREATE_GESTURE_NOOP_HANDLERS: CreateGestureHandlers = {
 
 function buildCreatePointerHandlers(config: CreateGestureConfig, state: CreateGestureState) {
   const onPointerDown = (event: GesturePointerEvent) => handlePointerDown(config, state, event)
-  const onPointerMove = (event: GesturePointerEvent) => handlePointerMove(state, event)
+  const onPointerMove = (event: GesturePointerEvent) => handlePointerMove(config, state, event)
   const onPointerUp = (event: GesturePointerEvent) => handlePointerUp(config, state, event)
 
   return { onPointerDown, onPointerMove, onPointerUp }
 }
 
-function buildLifecycleHandlers(state: CreateGestureState) {
-  const onPointerCancel = (event: GesturePointerEvent) => abortGesture(state, event)
+function buildLifecycleHandlers(config: CreateGestureConfig, state: CreateGestureState) {
+  const onPointerCancel = (event: GesturePointerEvent) => {
+    abortGesture(state, event)
+    config.onPreview(null)
+  }
 
   return { onPointerCancel, onLostPointerCapture: onPointerCancel }
 }
@@ -38,7 +41,7 @@ export default function wireCreateGesture(config: CreateGestureConfig): CreateGe
   if (config.readOnly) return CREATE_GESTURE_NOOP_HANDLERS
   const state: CreateGestureState = { active: null }
   const pointerHandlers = buildCreatePointerHandlers(config, state)
-  const lifecycleHandlers = buildLifecycleHandlers(state)
+  const lifecycleHandlers = buildLifecycleHandlers(config, state)
   const handlers = { ...pointerHandlers, ...lifecycleHandlers }
 
   return handlers

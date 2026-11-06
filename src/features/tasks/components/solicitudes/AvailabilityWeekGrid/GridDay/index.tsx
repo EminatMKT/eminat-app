@@ -2,6 +2,7 @@
 import { useT } from '@/shared/i18n'
 import DayCaption from '../DayCaption'
 import headerProps from './header-props'
+import renderPreview from './render-preview'
 import renderTrack from './render-track'
 import trackInputOf from './track-input-of'
 import useTrack from './use-track'
@@ -35,6 +36,7 @@ function renderTrackSection(props: GridDayProps, track: TrackBundle) {
   return (
     <div {...trackAttrs(props, track)} data-grid-track>
       {renderTrack(props, track.trackInput)}
+      {renderPreview(track.preview)}
     </div>
   )
 }

@@ -25,11 +25,12 @@ function resolveCreateCommit(
 ): CreateGestureCommit {
   const bounds = resolveCreateBounds(active, currentMinute)
 
-  return { bounds, openPopover: active.moved }
+  return { bounds, openPopover: true }
 }
 
 /** Commits a create gesture on release: a click resolves to its bounded default, a drag to the
- *  free-form range it was tracking, and only the drag asks the caller to open the popover. */
+ *  free-form range it was tracking, and either way the caller opens the popover so the user can
+ *  review, adjust or confirm what just got created. */
 export default function handlePointerUp(
   config: CreateGestureConfig,
   state: CreateGestureState,
@@ -45,6 +46,7 @@ export default function handlePointerUp(
 
   currentTarget.releasePointerCapture(pointerId)
   state.active = null
+  config.onPreview(null)
   config.onCommit(commit)
 }
 

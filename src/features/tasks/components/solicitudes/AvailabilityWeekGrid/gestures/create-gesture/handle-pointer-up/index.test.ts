@@ -19,10 +19,11 @@ const ORIGIN_CLIENT_Y = 200
 
 type OnCommit = (commit: CreateGestureCommit) => void
 
-const buildConfig = (onCommit: OnCommit): CreateGestureConfig => ({
+const buildConfig = (onCommit: OnCommit, onPreview = vi.fn()): CreateGestureConfig => ({
   dayRanges: [],
   column: { columnTop: 0, pxPerMin: 2 },
   onCommit,
+  onPreview,
   readOnly: false,
 })
 
@@ -43,7 +44,7 @@ const buildEvent = (clientY: number): GesturePointerEvent => ({
 })
 
 describe('handlePointerUp', () => {
-  it('commits a bounded click range without requesting the popover', () => {
+  it('commits a bounded click range and still requests the popover', () => {
     const onCommit = vi.fn()
     const config = buildConfig(onCommit)
     const state: CreateGestureState = { active: buildClickActive() }
@@ -51,7 +52,7 @@ describe('handlePointerUp', () => {
 
     handlePointerUp(config, state, event)
 
-    expect(onCommit).toHaveBeenCalledWith({ bounds: { start: 90, end: 150 }, openPopover: false })
+    expect(onCommit).toHaveBeenCalledWith({ bounds: { start: 90, end: 150 }, openPopover: true })
     expect(event.currentTarget.releasePointerCapture).toHaveBeenCalledWith(POINTER_ID)
     expect(state.active).toBeNull()
   })
@@ -75,5 +76,15 @@ describe('handlePointerUp', () => {
     handlePointerUp(config, state, buildEvent(ORIGIN_CLIENT_Y))
 
     expect(onCommit).not.toHaveBeenCalled()
+  })
+
+  it('clears the live preview once the gesture commits', () => {
+    const onPreview = vi.fn()
+    const config = buildConfig(vi.fn(), onPreview)
+    const state: CreateGestureState = { active: buildDragActive() }
+
+    handlePointerUp(config, state, buildEvent(400))
+
+    expect(onPreview).toHaveBeenCalledWith(null)
   })
 })
