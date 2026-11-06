@@ -24,13 +24,20 @@ function nextRanges(
   return createRange(input)
 }
 
+function openCreated(context: GridActionContext, clientId: string) {
+  context.select(clientId)
+  context.markCreated(clientId)
+}
+
 function addRange(context: GridActionContext, day: AvailabilityDay, slot: AddRangeControlRange) {
   const next = nextRanges(context, day, slot)
 
   if (!next) return
 
   context.onChange(next)
-  context.select(next[next.length - 1].clientId)
+  const created = next[next.length - 1]
+
+  openCreated(context, created.clientId)
 }
 
 /** The keyboard path for adding a day's next free range, reusing the same whole-week

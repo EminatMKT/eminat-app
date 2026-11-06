@@ -27,21 +27,29 @@ const PROPS: PopoverControllerProps = {
   range: RANGE,
   rangeIndex: RANGE_INDEX,
   ranges: RANGES,
+  isNewlyCreated: false,
   onSave,
   onRemove,
 }
+const NEWLY_CREATED_PROPS: PopoverControllerProps = { ...PROPS, isNewlyCreated: true }
+
+type ProbeProps = { probeProps: PopoverControllerProps }
 
 let seen: PopoverControllerResult | null = null
 
-function Probe() {
-  seen = usePopoverController(PROPS)
+function Probe({ probeProps }: ProbeProps) {
+  seen = usePopoverController(probeProps)
 
   return null
 }
 
+function renderProbe(probeProps: PopoverControllerProps) {
+  renderToStaticMarkup(createElement(Probe, { probeProps }))
+}
+
 describe('usePopoverController', () => {
   it('derives the initial draft, error, and canSave from the range', () => {
-    renderToStaticMarkup(createElement(Probe))
+    renderProbe(PROPS)
     const expectedDraft: PopoverDraft = {
       startsAt: RANGE.startsAt,
       endsAt: RANGE.endsAt,
@@ -54,17 +62,23 @@ describe('usePopoverController', () => {
   })
 
   it('does not call onSave while the draft has not changed', () => {
-    renderToStaticMarkup(createElement(Probe))
+    renderProbe(PROPS)
     seen?.save()
 
     expect(onSave).not.toHaveBeenCalled()
   })
 
   it('forwards remove to the caller unconditionally', () => {
-    renderToStaticMarkup(createElement(Probe))
+    renderProbe(PROPS)
     seen?.remove()
 
     expect(onRemove).toHaveBeenCalledWith(RANGE.clientId)
+  })
+
+  it('reports canSave true for an untouched draft when the range was just created', () => {
+    renderProbe(NEWLY_CREATED_PROPS)
+
+    expect(seen?.canSave).toBe(true)
   })
 })
 

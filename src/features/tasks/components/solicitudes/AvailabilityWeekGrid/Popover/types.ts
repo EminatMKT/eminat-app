@@ -19,6 +19,7 @@ export type PopoverProps = {
   ranges: WeeklyAvailabilityRange[]
   dayLabel: string
   readOnly: boolean
+  isNewlyCreated: boolean
   onSave: PopoverSaveHandler
   onRemove: PopoverRemoveHandler
   onClose: () => void

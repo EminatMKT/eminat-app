@@ -3,16 +3,17 @@ import type { ValidateDraftInput, PopoverDraft } from '@/features/tasks/componen
 import draftChanged from '../changed'
 import type { DraftValidation, DraftValidationScope } from './types'
 
-/** Combines validateDraft's error with draftChanged, so a draft is only savable once it has
- *  actually moved AND the result still passes the same validation the committed week uses. */
+/** Combines validateDraft's error with draftChanged, so a draft is savable once it has either
+ *  actually moved or was just created unsaved, AND the result still passes the same validation
+ *  the committed week uses. */
 export default function deriveDraftValidation(
   scope: DraftValidationScope,
   draft: PopoverDraft,
 ): DraftValidation {
-  const { range, ranges, rangeIndex } = scope
+  const { range, ranges, rangeIndex, isNewlyCreated } = scope
   const validateInput: ValidateDraftInput = { ranges, rangeIndex, draft }
   const error = validateDraft(validateInput)
-  const canSave = draftChanged(draft, range) && !error
+  const canSave = (draftChanged(draft, range) || isNewlyCreated) && !error
 
   return { error, canSave }
 }

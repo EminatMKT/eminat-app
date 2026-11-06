@@ -2,7 +2,7 @@ import { AVAILABILITY_DAYS } from '@/features/tasks/utils/availability'
 import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
 import type { AvailabilityWeekGridProps } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/types'
 import type { PopoverProps } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Popover/types'
-import type { PopoverContext, Translate } from '../types'
+import type { PopoverContext, RangeSelection, Translate } from '../types'
 
 function dayLabelOf({ weekday }: EditableRange, t: Translate) {
   const day = AVAILABILITY_DAYS.find(entry => entry.weekday === weekday)
@@ -20,10 +20,13 @@ function popoverDialog({ actions }: PopoverContext) {
   return { onSave, onRemove, onClose }
 }
 
-function popoverFields(range: EditableRange, context: PopoverContext): PopoverProps {
+function popoverFields(
+  range: EditableRange, context: PopoverContext, selection: RangeSelection,
+): PopoverProps {
   const { props, t } = context
   const identity = popoverIdentity(range, props)
-  const display = { dayLabel: dayLabelOf(range, t), readOnly: props.readOnly }
+  const isNewlyCreated = range.clientId === selection.justCreatedId
+  const display = { dayLabel: dayLabelOf(range, t), readOnly: props.readOnly, isNewlyCreated }
   const fields = { ...identity, ...display, ...popoverDialog(context) }
 
   return fields
@@ -33,12 +36,12 @@ function popoverFields(range: EditableRange, context: PopoverContext): PopoverPr
  *  that turns a bare `clientId` back into the identity-matched range Popover needs. */
 export default function popoverOf(
   context: PopoverContext,
-  selectedId: string | null,
+  selection: RangeSelection,
 ): PopoverProps | null {
   const { ranges } = context.props
-  const range = ranges.find(item => item.clientId === selectedId)
+  const range = ranges.find(item => item.clientId === selection.selectedId)
 
-  return range ? popoverFields(range, context) : null
+  return range ? popoverFields(range, context, selection) : null
 }
 
 // identity/display/dialog stay at three fields or fewer each, mirroring Popover/fields-input's

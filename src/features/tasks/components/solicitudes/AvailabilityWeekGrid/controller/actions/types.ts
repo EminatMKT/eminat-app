@@ -5,6 +5,7 @@ type MutationProps = Pick<AvailabilityWeekGridProps, 'ranges' | 'readOnly' | 'on
 
 export type GridActionContext = MutationProps & {
   select: (clientId: string | null) => void
+  markCreated: (clientId: string | null) => void
 }
 
 export type GridActions = Pick<GridDayProps, 'onCreate' | 'onAdd' | 'onOpen'> & {

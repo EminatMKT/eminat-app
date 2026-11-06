@@ -19,6 +19,11 @@ function createFromPointer(context: GridActionContext, day: AvailabilityDay, bou
   return next[next.length - 1]
 }
 
+function openCreated(context: GridActionContext, clientId: string) {
+  context.select(clientId)
+  context.markCreated(clientId)
+}
+
 /** The pointer create path: click and drag both append through the same whole-week gate as
  *  the keyboard path; only a drag's `open` flag asks the caller to select what it created. */
 export default function pointerCreate(context: GridActionContext): Pick<GridActions, 'onCreate'> {
@@ -26,7 +31,7 @@ export default function pointerCreate(context: GridActionContext): Pick<GridActi
     if (context.readOnly) return
     const created = createFromPointer(context, day, bounds)
 
-    if (created && open) context.select(created.clientId)
+    if (created && open) openCreated(context, created.clientId)
   }
 
   return { onCreate }

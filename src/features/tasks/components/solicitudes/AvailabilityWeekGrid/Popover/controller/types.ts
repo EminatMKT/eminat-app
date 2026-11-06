@@ -7,7 +7,9 @@ export type PopoverChangeFieldHandler = (field: RangeField, value: string) => vo
 
 /** What usePopoverController needs from Popover's own props: everything except the
  *  display-only and dialog-lifecycle fields it never touches. */
-export type PopoverControllerProps = Pick<PopoverProps, 'range' | 'rangeIndex' | 'ranges' | 'onSave' | 'onRemove'>
+export type PopoverControllerProps = Pick<
+  PopoverProps, 'range' | 'rangeIndex' | 'ranges' | 'isNewlyCreated' | 'onSave' | 'onRemove'
+>
 
 /** Everything Popover's component needs from its controller: the local draft, whether it is
  *  safe to save, and the three handlers that mutate or commit it. */

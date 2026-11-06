@@ -17,6 +17,7 @@ function fixture() {
     readOnly: false,
     onChange: vi.fn(),
     select: vi.fn(),
+    markCreated: vi.fn(),
   }
 
   return input

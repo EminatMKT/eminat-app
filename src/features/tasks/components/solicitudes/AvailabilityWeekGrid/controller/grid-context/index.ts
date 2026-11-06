@@ -3,16 +3,19 @@ import type { GridActionContext } from '@/features/tasks/components/solicitudes/
 import type { Select } from '../types'
 
 /** Bridges the grid's own props into the mutation context createGridActions needs - the one
- *  place AvailabilityWeekGridProps meets GridActionContext, plus the given `select` setter. */
+ *  place AvailabilityWeekGridProps meets GridActionContext, plus the given `select` and
+ *  `markCreated` setters. */
 export default function gridContext(
   { ranges, readOnly, onChange }: AvailabilityWeekGridProps,
   select: Select,
+  markCreated: Select,
 ): GridActionContext {
   const context = {
     ranges,
     readOnly,
     onChange,
     select,
+    markCreated,
   }
 
   return context

@@ -44,7 +44,8 @@ function buildActions() {
 
 it('composes the days, popover, and summary for the currently selected identity', () => {
   const props = buildProps()
-  const input = { actions: buildActions(), selectedId: RANGE.clientId, t: translateAt }
+  const selection = { selectedId: RANGE.clientId, justCreatedId: null }
+  const input = { actions: buildActions(), selection, t: translateAt }
   const view = gridView(props, input)
 
   expect(view.days).toHaveLength(AVAILABILITY_DAYS.length)
@@ -54,8 +55,18 @@ it('composes the days, popover, and summary for the currently selected identity'
 
 it('has no popover while nothing is selected', () => {
   const props = buildProps()
-  const input = { actions: buildActions(), selectedId: null, t: translateAt }
+  const selection = { selectedId: null, justCreatedId: null }
+  const input = { actions: buildActions(), selection, t: translateAt }
   const view = gridView(props, input)
 
   expect(view.popover).toBeNull()
+})
+
+it('marks the popover as newly created when the selection matches justCreatedId', () => {
+  const props = buildProps()
+  const selection = { selectedId: RANGE.clientId, justCreatedId: RANGE.clientId }
+  const input = { actions: buildActions(), selection, t: translateAt }
+  const view = gridView(props, input)
+
+  expect(view.popover?.isNewlyCreated).toBe(true)
 })

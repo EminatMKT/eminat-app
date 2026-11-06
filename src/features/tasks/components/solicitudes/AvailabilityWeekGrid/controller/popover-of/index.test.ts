@@ -13,6 +13,7 @@ const RANGE: EditableRange = {
 }
 const DEFAULT_LOCALE = 'es'
 const MISSING_ID = 'missing'
+const NO_SELECTION = { selectedId: null, justCreatedId: null }
 
 function translateAt(key: I18nKey, vars?: Record<string, string | number>) {
   return translate(DEFAULT_LOCALE, key, vars)
@@ -45,18 +46,29 @@ function buildContext() {
 
 it('returns null until the given identity matches a declared range', () => {
   const context = buildContext()
+  const missingSelection = { selectedId: MISSING_ID, justCreatedId: null }
 
-  expect(popoverOf(context, null)).toBeNull()
-  expect(popoverOf(context, MISSING_ID)).toBeNull()
+  expect(popoverOf(context, NO_SELECTION)).toBeNull()
+  expect(popoverOf(context, missingSelection)).toBeNull()
 })
 
 it('builds the matched range into PopoverProps, by identity and index', () => {
   const context = buildContext()
-  const popover = popoverOf(context, RANGE.clientId)
+  const selection = { selectedId: RANGE.clientId, justCreatedId: null }
+  const popover = popoverOf(context, selection)
   const label = translate(DEFAULT_LOCALE, AVAILABILITY_DAYS[0].labelKey)
 
   expect(popover?.range).toEqual(RANGE)
   expect(popover?.rangeIndex).toBe(0)
   expect(popover?.dayLabel).toBe(label)
   expect(popover?.onSave).toBe(context.actions.onSave)
+})
+
+it('marks isNewlyCreated true only when the selection matches justCreatedId', () => {
+  const context = buildContext()
+  const justCreated = { selectedId: RANGE.clientId, justCreatedId: RANGE.clientId }
+  const notJustCreated = { selectedId: RANGE.clientId, justCreatedId: null }
+
+  expect(popoverOf(context, justCreated)?.isNewlyCreated).toBe(true)
+  expect(popoverOf(context, notJustCreated)?.isNewlyCreated).toBe(false)
 })

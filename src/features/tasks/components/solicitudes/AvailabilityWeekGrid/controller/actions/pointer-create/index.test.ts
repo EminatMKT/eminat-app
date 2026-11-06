@@ -17,6 +17,7 @@ function fixture() {
     readOnly: false,
     onChange: vi.fn(),
     select: vi.fn(),
+    markCreated: vi.fn(),
   }
 
   return input
@@ -29,13 +30,15 @@ it('creates a click block without opening, and a drag block with selection by id
 
   actions.onCreate(AVAILABILITY_DAYS[0], bounds, false)
   expect(input.select).not.toHaveBeenCalled()
+  expect(input.markCreated).not.toHaveBeenCalled()
   actions.onCreate(AVAILABILITY_DAYS[0], bounds, true)
   const created = input.onChange.mock.calls[1][0][1]
 
   expect(input.select).toHaveBeenCalledWith(created.clientId)
+  expect(input.markCreated).toHaveBeenCalledWith(created.clientId)
 })
 
-it('rejects an overlapping create without touching onChange or select', () => {
+it('rejects an overlapping create without touching onChange, select, or markCreated', () => {
   const input = fixture()
   const actions = pointerCreate(input)
   const bounds = { start: 570, end: 630 }
@@ -43,6 +46,7 @@ it('rejects an overlapping create without touching onChange or select', () => {
   actions.onCreate(AVAILABILITY_DAYS[0], bounds, true)
   expect(input.onChange).not.toHaveBeenCalled()
   expect(input.select).not.toHaveBeenCalled()
+  expect(input.markCreated).not.toHaveBeenCalled()
 })
 
 it('blocks every create while read-only', () => {

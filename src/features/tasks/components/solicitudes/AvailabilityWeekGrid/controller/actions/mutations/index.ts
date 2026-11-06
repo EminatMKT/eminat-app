@@ -13,6 +13,7 @@ function finish(context: GridActionContext, ranges: EditableRange[]) {
   if (!valid) return
   context.onChange(valid)
   context.select(null)
+  context.markCreated(null)
 }
 
 function saving(context: GridActionContext): PopoverSaveHandler {

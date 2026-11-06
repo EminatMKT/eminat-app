@@ -13,31 +13,50 @@ const RANGE: EditableRange = {
   endsAt: '17:00',
   note: 'Focus work',
 }
-const SCOPE: DraftValidationScope = { range: RANGE, ranges: [RANGE], rangeIndex: 0 }
+const UNTOUCHED_DRAFT: PopoverDraft = {
+  startsAt: RANGE.startsAt,
+  endsAt: RANGE.endsAt,
+  note: RANGE.note,
+}
+const TOUCHED_DRAFT: PopoverDraft = { startsAt: '08:00', endsAt: '17:00', note: 'Focus work' }
+const INVALID_DRAFT: PopoverDraft = { startsAt: '12:00', endsAt: '09:00', note: 'Focus work' }
+const NEW_SCOPE: DraftValidationScope = {
+  range: RANGE,
+  ranges: [RANGE],
+  rangeIndex: 0,
+  isNewlyCreated: true,
+}
+const EXISTING_SCOPE: DraftValidationScope = {
+  range: RANGE,
+  ranges: [RANGE],
+  rangeIndex: 0,
+  isNewlyCreated: false,
+}
 
 describe('deriveDraftValidation', () => {
-  it('reports no error and canSave false when the draft matches the range', () => {
-    const draft: PopoverDraft = { startsAt: RANGE.startsAt, endsAt: RANGE.endsAt, note: RANGE.note }
-
-    const result = deriveDraftValidation(SCOPE, draft)
-
-    expect(result.error).toBeUndefined()
-    expect(result.canSave).toBe(false)
-  })
-
-  it('reports canSave true once a valid change is made', () => {
-    const draft: PopoverDraft = { startsAt: '08:00', endsAt: '17:00', note: 'Focus work' }
-
-    const result = deriveDraftValidation(SCOPE, draft)
+  it('reports canSave true for an untouched draft on a newly created range', () => {
+    const result = deriveDraftValidation(NEW_SCOPE, UNTOUCHED_DRAFT)
 
     expect(result.error).toBeUndefined()
     expect(result.canSave).toBe(true)
   })
 
-  it('reports the validation error and canSave false for a reversed draft', () => {
-    const draft: PopoverDraft = { startsAt: '12:00', endsAt: '09:00', note: 'Focus work' }
+  it('reports canSave false for an untouched draft on an existing range', () => {
+    const result = deriveDraftValidation(EXISTING_SCOPE, UNTOUCHED_DRAFT)
 
-    const result = deriveDraftValidation(SCOPE, draft)
+    expect(result.error).toBeUndefined()
+    expect(result.canSave).toBe(false)
+  })
+
+  it('reports canSave true once a valid change is made, new or existing', () => {
+    const result = deriveDraftValidation(EXISTING_SCOPE, TOUCHED_DRAFT)
+
+    expect(result.error).toBeUndefined()
+    expect(result.canSave).toBe(true)
+  })
+
+  it('never reports canSave true for an invalid draft, even newly created', () => {
+    const result = deriveDraftValidation(NEW_SCOPE, INVALID_DRAFT)
 
     expect(result.error?.code).toBe(AVAILABILITY_RANGE_ITEM_CONSTANTS.endNotAfterStartCode)
     expect(result.canSave).toBe(false)

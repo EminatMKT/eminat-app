@@ -10,7 +10,7 @@ export default function gridView(props: AvailabilityWeekGridProps, input: GridVi
   const popoverContext = { props, actions: input.actions, t: input.t }
   const view = {
     days: dayPropsOf(props, input.actions),
-    popover: popoverOf(popoverContext, input.selectedId),
+    popover: popoverOf(popoverContext, input.selection),
     summary: summaryOf(props.ranges, input.t),
   }
 

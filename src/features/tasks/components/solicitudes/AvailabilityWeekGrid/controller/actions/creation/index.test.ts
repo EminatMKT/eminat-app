@@ -8,6 +8,7 @@ it('opens a valid keyboard-created midnight slot by its new identity', () => {
     readOnly: false,
     onChange: vi.fn(),
     select: vi.fn(),
+    markCreated: vi.fn(),
   }
   const actions = creation(context)
   const slot = { startsAt: '23:30', endsAt: '24:00' }
@@ -17,4 +18,5 @@ it('opens a valid keyboard-created midnight slot by its new identity', () => {
 
   expect(created).toMatchObject(slot)
   expect(context.select).toHaveBeenCalledWith(created.clientId)
+  expect(context.markCreated).toHaveBeenCalledWith(created.clientId)
 })

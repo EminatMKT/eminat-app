@@ -10,21 +10,23 @@ const RANGE: EditableRange = {
   note: null,
 }
 
-it('carries the props ranges, readOnly, and onChange, plus the given select setter', () => {
+it('carries the props ranges, readOnly, and onChange, plus the given select and markCreated setters', () => {
   const onChange = vi.fn()
   const select = vi.fn()
+  const markCreated = vi.fn()
   const props = {
     ranges: [RANGE],
     workday: null,
     readOnly: false,
     onChange,
   }
-  const context = gridContext(props, select)
+  const context = gridContext(props, select, markCreated)
 
   expect(context).toEqual({
     ranges: props.ranges,
     readOnly: false,
     onChange,
     select,
+    markCreated,
   })
 })

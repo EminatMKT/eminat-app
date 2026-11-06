@@ -40,6 +40,7 @@ const BASE_PROPS: PopoverProps = {
   ranges: RANGES,
   dayLabel: DAY_LABEL,
   readOnly: false,
+  isNewlyCreated: false,
   onSave,
   onRemove,
   onClose,
