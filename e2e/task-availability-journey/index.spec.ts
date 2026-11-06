@@ -1,6 +1,15 @@
 import { test, expect } from '@playwright/test'
-import type { Page, Response } from '@playwright/test'
+import type { Page, Response, Locator } from '@playwright/test'
 import { ADMIN_ROLE } from '@/shared/auth/permissions'
+import { AVAILABILITY_ENDPOINT } from '@/features/tasks/data/availability/constants'
+import { PIXELS_PER_MINUTE } from
+  '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/constants'
+import {
+  BUTTON,
+  DIALOG,
+  ENTER,
+  ESCAPE,
+} from '@/shared/constants/dom'
 import {
   PASSWORD,
   ensureUser,
@@ -30,6 +39,43 @@ const NARROW_VIEWPORT = { width: NARROW_VIEWPORT_WIDTH, height: NARROW_VIEWPORT_
 // Matches e2e/native-sales.spec.ts's own overflow check: a 1px tolerance absorbs scrollbar
 // rounding so the assertion does not flake on a pixel that is not real overflow.
 const OVERFLOW_TOLERANCE_PX = 1
+// This journey drives drag-create, an edge-resize, a popover edit, a delete, a real save
+// round-trip, a reload, and a keyboard-only pass -- comfortably past Playwright's 60s default
+// once the dev server is also compiling routes on first hit.
+const TEST_TIMEOUT_MS = 120000
+const ALERT_DIALOG_ROLE = 'alertdialog'
+const SPACE_KEY = ' '
+const PUT_METHOD = 'PUT'
+const TUESDAY_LABEL = 'Tuesday'
+const WEDNESDAY_LABEL = 'Wednesday'
+const THURSDAY_LABEL = 'Thursday'
+const ADD_WEDNESDAY_RANGE_LABEL = 'Add a Wednesday range'
+const ADD_THURSDAY_RANGE_LABEL = 'Add a Thursday range'
+const TUESDAY_START_LABEL = 'Tuesday start time'
+const TUESDAY_END_LABEL = 'Tuesday end time'
+const TUESDAY_NOTE_LABEL = 'Tuesday note'
+const DRAG_NOTE_TEXT = 'Team sync'
+const EDITED_NOTE_TEXT = 'Rescheduled'
+const DELETE_LABEL = 'Delete'
+const SAVE_CHANGES_LABEL = 'Save changes'
+const SAVE_AVAILABILITY_LABEL = 'Save availability'
+const TUESDAY_START_VALUE = '06:00'
+const TUESDAY_END_VALUE = '07:30'
+// Kept inside the default 1280x720 viewport's visible height without scrolling: the track
+// spans the full 24h day (1080px tall) starting at the modal's current scroll offset, so a
+// drag target past roughly minute 520 lands below the fold and never reaches the real DOM.
+const DRAG_START_MINUTE = 370
+const DRAG_END_MINUTE = 410
+const RESIZE_TARGET_MINUTE = 450
+const RESIZE_HANDLE_XPATH = 'xpath=following-sibling::div[@data-resize-handle="true"]'
+const GRID_DAY_SELECTOR = '[data-grid-day]'
+const GRID_TRACK_SELECTOR = '[data-grid-track]'
+const MOVE_OPTIONS = { steps: 5 }
+const TUESDAY_BLOCK_START_PATTERN = /^06:00–/
+const EDIT_RANGE_SUFFIX_PATTERN = /\. Edit range$/
+const ADD_RANGE_NAME_PATTERN = /^Add a .+ range$/
+const TUESDAY_FINAL_TIME_TEXT = '06:00–07:30'
+const MISSING_BOX_ERROR = 'Expected a bounding box for this element'
 
 async function ensureTeam(codigo: string, nombre: string, departamentoId: string): Promise<string> {
   const insertUrl = `${URL}/rest/v1/equipos?on_conflict=codigo`
@@ -102,6 +148,175 @@ function cardFor(page: Page, name: string) {
   return page.getByRole('button', nameFilter)
 }
 
+const OWNER_CARD_NAME = `Owner ${SURNAME}`
+const TEAMMATE_CARD_NAME = `Teammate ${SURNAME}`
+const ADMIN_CARD_NAME = `Admin ${SURNAME}`
+
+type DragBox = {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+async function boxOf(locator: Locator): Promise<DragBox> {
+  const box = await locator.boundingBox()
+
+  if (!box) throw new Error(MISSING_BOX_ERROR)
+
+  return box
+}
+
+async function dragFromTo(
+  { mouse }: Page,
+  { x, y }: Pick<DragBox, 'x' | 'y'>,
+  toY: number,
+): Promise<void> {
+  await mouse.move(x, y)
+  await mouse.down()
+  await mouse.move(x, toY, MOVE_OPTIONS)
+  await mouse.up()
+}
+
+function roleButton(scope: Page | Locator, name: string | RegExp): Locator {
+  const matcher = { name }
+
+  return scope.getByRole(BUTTON, matcher)
+}
+
+function namedDialog(page: Page, name: string): Locator {
+  const matcher = { name }
+
+  return page.getByRole(DIALOG, matcher)
+}
+
+function namedAlertDialog(page: Page, name: string): Locator {
+  const matcher = { name }
+
+  return page.getByRole(ALERT_DIALOG_ROLE, matcher)
+}
+
+function tuesdayTrack(page: Page): Locator {
+  const filterOptions = { hasText: TUESDAY_LABEL }
+
+  return page.locator(GRID_DAY_SELECTOR).filter(filterOptions).locator(GRID_TRACK_SELECTOR)
+}
+
+function tuesdayBlock(page: Page): Locator {
+  return roleButton(page, TUESDAY_BLOCK_START_PATTERN)
+}
+
+function resizeHandles(block: Locator): Locator {
+  return block.locator(RESIZE_HANDLE_XPATH)
+}
+
+function wednesdayBlock(page: Page): Locator {
+  const filterOptions = { hasText: WEDNESDAY_LABEL }
+  const dayColumn = page.locator(GRID_DAY_SELECTOR).filter(filterOptions)
+
+  return roleButton(dayColumn, EDIT_RANGE_SUFFIX_PATTERN)
+}
+
+async function dragCreateTuesdayRange(page: Page): Promise<void> {
+  const trackBox = await boxOf(tuesdayTrack(page))
+  const x = trackBox.x + trackBox.width / 2
+  const startPoint = { x, y: trackBox.y + DRAG_START_MINUTE * PIXELS_PER_MINUTE }
+  const endY = trackBox.y + DRAG_END_MINUTE * PIXELS_PER_MINUTE
+
+  await dragFromTo(page, startPoint, endY)
+}
+
+async function fillCreatedTuesdayRange(page: Page): Promise<void> {
+  const popover = namedDialog(page, TUESDAY_LABEL)
+
+  await popover.getByLabel(TUESDAY_NOTE_LABEL).fill(DRAG_NOTE_TEXT)
+  await roleButton(popover, SAVE_CHANGES_LABEL).click()
+  await expect(popover).toBeHidden()
+}
+
+async function resizeTuesdayBlockEnd(page: Page): Promise<void> {
+  const trackBox = await boxOf(tuesdayTrack(page))
+  const handleBox = await boxOf(resizeHandles(tuesdayBlock(page)).last())
+  const startPoint = { x: handleBox.x + handleBox.width / 2, y: handleBox.y + handleBox.height / 2 }
+  const endY = trackBox.y + RESIZE_TARGET_MINUTE * PIXELS_PER_MINUTE
+
+  await dragFromTo(page, startPoint, endY)
+}
+
+async function editTuesdayNote(page: Page): Promise<void> {
+  await tuesdayBlock(page).click()
+  const popover = namedDialog(page, TUESDAY_LABEL)
+
+  await popover.getByLabel(TUESDAY_NOTE_LABEL).fill(EDITED_NOTE_TEXT)
+  await roleButton(popover, SAVE_CHANGES_LABEL).click()
+  await expect(popover).toBeHidden()
+}
+
+async function confirmDelete(scope: Locator): Promise<void> {
+  await roleButton(scope, DELETE_LABEL).click()
+  const confirm = namedAlertDialog(scope.page(), DELETE_LABEL)
+
+  await roleButton(confirm, DELETE_LABEL).click()
+  await expect(confirm).toBeHidden()
+}
+
+async function createAndDeleteThursdayRange(page: Page): Promise<void> {
+  await roleButton(page, ADD_THURSDAY_RANGE_LABEL).click()
+  const popover = namedDialog(page, THURSDAY_LABEL)
+
+  await confirmDelete(popover)
+  await expect(popover).toBeHidden()
+}
+
+async function keyboardAddWednesdayRange(page: Page): Promise<void> {
+  const addButton = roleButton(page, ADD_WEDNESDAY_RANGE_LABEL)
+  const { keyboard } = page
+
+  await addButton.focus()
+  await expect(addButton).toBeFocused()
+  await keyboard.press(ENTER)
+  await expect(namedDialog(page, WEDNESDAY_LABEL)).toBeVisible()
+  await keyboard.press(ESCAPE)
+}
+
+async function keyboardActivateWednesdayBlock(page: Page): Promise<void> {
+  const block = wednesdayBlock(page)
+  const { keyboard } = page
+
+  await block.focus()
+  await expect(block).toBeFocused()
+  await keyboard.press(SPACE_KEY)
+  await expect(namedDialog(page, WEDNESDAY_LABEL)).toBeVisible()
+  await keyboard.press(ESCAPE)
+}
+
+async function assertTuesdayPersisted(page: Page): Promise<void> {
+  const popover = namedDialog(page, TUESDAY_LABEL)
+  const startField = popover.getByLabel(TUESDAY_START_LABEL)
+  const endSelect = popover.getByLabel(TUESDAY_END_LABEL)
+  const noteField = popover.getByLabel(TUESDAY_NOTE_LABEL)
+
+  await expect(startField).toHaveValue(TUESDAY_START_VALUE)
+  await expect(endSelect).toHaveValue(TUESDAY_END_VALUE)
+  await expect(noteField).toHaveValue(EDITED_NOTE_TEXT)
+}
+
+async function assertNoEditorActions(page: Page): Promise<void> {
+  await expect(roleButton(page, SAVE_AVAILABILITY_LABEL)).toHaveCount(0)
+  await expect(roleButton(page, ADD_RANGE_NAME_PATTERN)).toHaveCount(0)
+}
+
+async function assertOwnerCardReadOnly(page: Page): Promise<void> {
+  await assertNoEditorActions(page)
+  await expect(page.getByText(TUESDAY_FINAL_TIME_TEXT)).toBeVisible()
+}
+
+function isSaveResponse(response: Response): boolean {
+  const method = response.request().method()
+
+  return response.url().endsWith(AVAILABILITY_ENDPOINT) && method === PUT_METHOD
+}
+
 let ownerId: string
 let teammateId: string
 let adminId: string
@@ -134,100 +349,69 @@ test.afterAll(async () => {
   await deleteTeam(TEAM_CODE)
 })
 
-test('owner edits and saves Monday availability, it persists, a teammate stays read-only, ' +
-  'an admin can edit only their own card, and the layout holds at a narrow viewport', async ({ page }) => {
+test('owner drag-creates, resizes, and edits Tuesday availability on the new grid; it ' +
+  'persists, teammates and non-own cards stay read-only, and add/edit work by keyboard alone',
+  async ({ page }) => {
+  test.setTimeout(TEST_TIMEOUT_MS)
   await bypassOnboardingAndForceEnglish(page)
   await login(page, OWNER_EMAIL)
   await openAvailability(page)
+  await cardFor(page, OWNER_CARD_NAME).click()
+  await expect(namedDialog(page, OWNER_CARD_NAME)).toBeVisible()
 
-  const ownerCardName = `Owner ${SURNAME}`
-  const teammateCardName = `Teammate ${SURNAME}`
-  const adminCardName = `Admin ${SURNAME}`
-  const dialog = page.getByRole('dialog')
-
-  await cardFor(page, ownerCardName).click()
-  await expect(dialog.getByText(ownerCardName)).toBeVisible()
-
-  const addMondayRange = page.getByRole('button', { name: 'Add a Monday range' })
-
-  await addMondayRange.click()
-  await addMondayRange.click()
-
-  const starts = page.getByLabel('Monday start time')
-  const ends = page.getByLabel('Monday end time')
-
-  await starts.nth(0).fill('09:00')
-  await ends.nth(0).fill('13:00')
-  await starts.nth(1).fill('14:00')
-  await ends.nth(1).fill('17:00')
-  await page.getByLabel('Monday note').nth(1).fill('Not available for meetings')
-
-  await expect(page.getByText(/7 of 8 hours/i)).toBeVisible()
-
-  const saveButton = page.getByRole('button', { name: 'Save availability' })
-
-  await expect(saveButton).toBeEnabled()
-
-  const isSaveResponse = (response: Response) =>
-    response.url().endsWith('/api/tasks/availability') && response.request().method() === 'PUT'
+  await dragCreateTuesdayRange(page)
+  await fillCreatedTuesdayRange(page)
+  await resizeTuesdayBlockEnd(page)
+  await editTuesdayNote(page)
+  await keyboardAddWednesdayRange(page)
+  await keyboardActivateWednesdayBlock(page)
+  await createAndDeleteThursdayRange(page)
 
   await Promise.all([
     page.waitForResponse(isSaveResponse),
-    saveButton.click(),
+    roleButton(page, SAVE_AVAILABILITY_LABEL).click(),
   ])
-
-  // 'N of M hours' also renders live while editing, so it proves nothing about the save. The
-  // modal only closes from `onSaved`, called once its PUT resolves -- waiting for that avoids
-  // reloading out from under an in-flight request.
-  await expect(dialog).toBeHidden()
+  await expect(namedDialog(page, OWNER_CARD_NAME)).toBeHidden()
 
   await page.reload()
   await openAvailability(page)
-  await cardFor(page, ownerCardName).click()
-  await expect(page.getByLabel('Monday start time').nth(0)).toHaveValue('09:00')
-  await expect(page.getByLabel('Monday end time').nth(0)).toHaveValue('13:00')
-  await expect(page.getByLabel('Monday start time').nth(1)).toHaveValue('14:00')
-  await expect(page.getByLabel('Monday end time').nth(1)).toHaveValue('17:00')
-  await expect(page.getByLabel('Monday note').nth(1)).toHaveValue('Not available for meetings')
-  await page.keyboard.press('Escape')
-  await expect(dialog).toBeHidden()
+  await cardFor(page, OWNER_CARD_NAME).click()
+  await tuesdayBlock(page).click()
+  await assertTuesdayPersisted(page)
+  await page.keyboard.press(ESCAPE)
+  await expect(namedDialog(page, TUESDAY_LABEL)).toBeHidden()
+  await page.keyboard.press(ESCAPE)
+  await expect(namedDialog(page, OWNER_CARD_NAME)).toBeHidden()
 
-  // The owner can't edit a teammate's data -- opening that card shows the read-only schedule,
-  // never the editor, even though both go through the same modal shell.
-  await cardFor(page, teammateCardName).click()
-  await expect(page.getByRole('button', { name: 'Save availability' })).toHaveCount(0)
-  await page.keyboard.press('Escape')
+  await cardFor(page, TEAMMATE_CARD_NAME).click()
+  await assertNoEditorActions(page)
+  await page.keyboard.press(ESCAPE)
 
   await login(page, ADMIN_EMAIL)
   await openAvailability(page)
-  await expect(cardFor(page, ownerCardName)).toBeVisible()
-  await expect(cardFor(page, teammateCardName)).toBeVisible()
-  await expect(cardFor(page, adminCardName)).toBeVisible()
+  await expect(cardFor(page, OWNER_CARD_NAME)).toBeVisible()
+  await expect(cardFor(page, TEAMMATE_CARD_NAME)).toBeVisible()
+  await expect(cardFor(page, ADMIN_CARD_NAME)).toBeVisible()
 
-  await cardFor(page, ownerCardName).click()
-  await expect(page.getByRole('button', { name: 'Save availability' })).toHaveCount(0)
-  await expect(page.getByText('09:00–13:00')).toBeVisible()
-  await page.keyboard.press('Escape')
+  await cardFor(page, OWNER_CARD_NAME).click()
+  await assertOwnerCardReadOnly(page)
+  await page.keyboard.press(ESCAPE)
 
-  await cardFor(page, teammateCardName).click()
-  await expect(page.getByRole('button', { name: 'Save availability' })).toHaveCount(0)
-  await page.keyboard.press('Escape')
+  await cardFor(page, TEAMMATE_CARD_NAME).click()
+  await assertNoEditorActions(page)
+  await page.keyboard.press(ESCAPE)
 
-  // An admin can read every card but edit only their own -- opening it is the only one that
-  // shows the editor instead of the read-only schedule.
-  await cardFor(page, adminCardName).click()
-  await expect(page.getByRole('button', { name: 'Save availability' })).toBeVisible()
-  await page.keyboard.press('Escape')
-  await expect(dialog).toBeHidden()
+  await cardFor(page, ADMIN_CARD_NAME).click()
+  await expect(roleButton(page, SAVE_AVAILABILITY_LABEL)).toBeVisible()
+  await page.keyboard.press(ESCAPE)
+  await expect(namedDialog(page, ADMIN_CARD_NAME)).toBeHidden()
 
-  // Already on the Availability screen from the admin flow above -- resizing in place, not
-  // re-navigating, since the sidebar's own narrow-width behavior is a separate, pre-existing
-  // concern from whether THIS screen's content overflows.
   await page.setViewportSize(NARROW_VIEWPORT)
 
   const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth)
   const viewportWidth = await page.evaluate(() => window.innerWidth)
   const overflows = scrollWidth > viewportWidth + OVERFLOW_TOLERANCE_PX
+  const overflowMessage = 'availability screen overflows the narrow viewport'
 
-  expect(overflows, 'availability screen overflows the narrow viewport').toBe(false)
+  expect(overflows, overflowMessage).toBe(false)
 })
