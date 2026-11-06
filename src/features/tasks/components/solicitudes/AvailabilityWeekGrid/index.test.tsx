@@ -41,6 +41,7 @@ const DEFAULT_LOCALE = 'es'
 const INVENTED_WEEKLY_TARGET = '40 horas'
 const RESIZE_HANDLE_MARKER = /data-resize-handle="true"/g
 const BLOCK_BUTTON_MARKER = /<button\b/g
+const FOCUSABLE_TRACK_MARKER = /tabindex="0"/g
 const props: AvailabilityWeekGridProps = {
   ranges: [RANGE],
   workday: { id: 'test-workday', name: 'Standard', hoursPerDay: HOURS_PER_DAY },
@@ -72,19 +73,20 @@ it('places each supplied range as a distinct time block', () => {
 
   expect(html).toContain(mondayTime)
   expect(html).toContain(tuesdayTime)
-  expect(html.match(BLOCK_BUTTON_MARKER)).toHaveLength(EXPECTED_COLUMNS + EXPECTED_BLOCKS)
+  expect(html.match(BLOCK_BUTTON_MARKER)).toHaveLength(EXPECTED_BLOCKS)
 })
 
-it('offers an add control for every day and resize handles for editable blocks', () => {
+it('offers a keyboard-focusable track for every day and resize handles for editable blocks', () => {
   const html = draw(props)
 
   expect(html.match(RESIZE_HANDLE_MARKER)).toHaveLength(EXPECTED_RESIZE_HANDLES)
+  expect(html.match(FOCUSABLE_TRACK_MARKER)).toHaveLength(EXPECTED_COLUMNS)
 
   for (const day of AVAILABILITY_DAYS) {
-    const addVars = { day: translate(DEFAULT_LOCALE, day.labelKey) }
-    const addLabel = translate(DEFAULT_LOCALE, EDITOR_COPY.addRange, addVars)
+    const hintVars = { day: translate(DEFAULT_LOCALE, day.labelKey) }
+    const hint = translate(DEFAULT_LOCALE, EDITOR_COPY.addRangeHint, hintVars)
 
-    expect(html).toContain(addLabel)
+    expect(html).toContain(hint)
   }
 })
 
@@ -97,13 +99,7 @@ it('keeps blocks focusable for viewing but suppresses editing controls when read
   expect(html).toContain(readOnlyLabel)
   expect(html.match(BLOCK_BUTTON_MARKER)).toHaveLength(1)
   expect(html.match(RESIZE_HANDLE_MARKER)).toBeNull()
-
-  for (const day of AVAILABILITY_DAYS) {
-    const addVars = { day: translate(DEFAULT_LOCALE, day.labelKey) }
-    const addLabel = translate(DEFAULT_LOCALE, EDITOR_COPY.addRange, addVars)
-
-    expect(html).not.toContain(addLabel)
-  }
+  expect(html.match(FOCUSABLE_TRACK_MARKER)).toBeNull()
 })
 
 it('shows daily comparisons against the configured hours, including empty days', () => {

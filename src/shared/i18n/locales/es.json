@@ -972,6 +972,7 @@
   "tasks.availability.loading": "Cargando disponibilidad...",
   "tasks.availability.editMine": "Editar mi disponibilidad",
   "tasks.availability.addRange": "Agregar un rango del {day}",
+  "tasks.availability.addRangeHint": "Presiona Enter para agregar un rango del {day}",
   "tasks.availability.removeRange": "Quitar el rango {number} del {day}",
   "tasks.availability.removeConfirm": "¿Quitar este rango de disponibilidad?",
   "tasks.availability.startTime": "hora de inicio",

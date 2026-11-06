@@ -4,29 +4,12 @@ import DayCaption from '../DayCaption'
 import headerProps from './header-props'
 import renderPreview from './render-preview'
 import renderTrack from './render-track'
+import trackAttrs from './track-attrs'
 import trackInputOf from './track-input-of'
 import useTrack from './use-track'
 import type { GridDayProps } from '../types'
-import type { TrackInput } from './types'
+import type { TrackBundle, TrackInput } from './types'
 import s from '../index.module.css'
-
-type TrackBundle = ReturnType<typeof useTrack> & { trackInput: TrackInput }
-
-function trackClassOf({ readOnly }: GridDayProps) {
-  const className = readOnly ? s.track : `${s.track} ${s.editable}`
-
-  return className
-}
-
-function trackAttrs(props: GridDayProps, { trackRef, gesture }: TrackBundle) {
-  const attrs = {
-    ref: trackRef,
-    className: trackClassOf(props),
-    ...gesture,
-  }
-
-  return attrs
-}
 
 function renderHeader(props: GridDayProps, trackInput: TrackInput) {
   return <DayCaption {...headerProps(props, trackInput)} />

@@ -59,3 +59,8 @@
 .editable {
   cursor: crosshair;
 }
+
+.editable:focus-visible {
+  outline: 0.125rem solid var(--c-accent);
+  outline-offset: -0.125rem;
+}

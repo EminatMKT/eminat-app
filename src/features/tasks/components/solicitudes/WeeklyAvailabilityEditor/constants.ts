@@ -2,6 +2,7 @@ const EDITOR_COPY = {
   save: 'tasks.availability.save',
   cancel: 'tasks.availability.cancel',
   addRange: 'tasks.availability.addRange',
+  addRangeHint: 'tasks.availability.addRangeHint',
   removeRange: 'tasks.availability.removeRange',
   startTime: 'tasks.availability.startTime',
   endTime: 'tasks.availability.endTime',

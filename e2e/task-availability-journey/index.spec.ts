@@ -49,8 +49,6 @@ const PUT_METHOD = 'PUT'
 const TUESDAY_LABEL = 'Tuesday'
 const WEDNESDAY_LABEL = 'Wednesday'
 const THURSDAY_LABEL = 'Thursday'
-const ADD_WEDNESDAY_RANGE_LABEL = 'Add a Wednesday range'
-const ADD_THURSDAY_RANGE_LABEL = 'Add a Thursday range'
 const TUESDAY_START_LABEL = 'Tuesday start time'
 const TUESDAY_END_LABEL = 'Tuesday end time'
 const TUESDAY_NOTE_LABEL = 'Tuesday note'
@@ -73,9 +71,12 @@ const GRID_TRACK_SELECTOR = '[data-grid-track]'
 const MOVE_OPTIONS = { steps: 5 }
 const TUESDAY_BLOCK_START_PATTERN = /^06:00–/
 const EDIT_RANGE_SUFFIX_PATTERN = /\. Edit range$/
-const ADD_RANGE_NAME_PATTERN = /^Add a .+ range$/
 const TUESDAY_FINAL_TIME_TEXT = '06:00–07:30'
 const MISSING_BOX_ERROR = 'Expected a bounding box for this element'
+// Kept inside the same visible-without-scrolling range as the other minute offsets above.
+const THURSDAY_CLICK_MINUTE = 300
+// A track's own tab stop, the keyboard-create affordance that replaced the add-range button.
+const FOCUSABLE_TRACK_SELECTOR = '[data-grid-track][tabindex="0"]'
 
 async function ensureTeam(codigo: string, nombre: string, departamentoId: string): Promise<string> {
   const insertUrl = `${URL}/rest/v1/equipos?on_conflict=codigo`
@@ -197,10 +198,18 @@ function namedAlertDialog(page: Page, name: string): Locator {
   return page.getByRole(ALERT_DIALOG_ROLE, matcher)
 }
 
-function tuesdayTrack(page: Page): Locator {
-  const filterOptions = { hasText: TUESDAY_LABEL }
+function dayTrack(page: Page, dayLabel: string): Locator {
+  const filterOptions = { hasText: dayLabel }
 
   return page.locator(GRID_DAY_SELECTOR).filter(filterOptions).locator(GRID_TRACK_SELECTOR)
+}
+
+function tuesdayTrack(page: Page): Locator {
+  return dayTrack(page, TUESDAY_LABEL)
+}
+
+function wednesdayTrack(page: Page): Locator {
+  return dayTrack(page, WEDNESDAY_LABEL)
 }
 
 function tuesdayBlock(page: Page): Locator {
@@ -209,6 +218,10 @@ function tuesdayBlock(page: Page): Locator {
 
 function resizeHandles(block: Locator): Locator {
   return block.locator(RESIZE_HANDLE_XPATH)
+}
+
+function thursdayTrack(page: Page): Locator {
+  return dayTrack(page, THURSDAY_LABEL)
 }
 
 function wednesdayBlock(page: Page): Locator {
@@ -262,7 +275,11 @@ async function confirmDelete(scope: Locator): Promise<void> {
 }
 
 async function createAndDeleteThursdayRange(page: Page): Promise<void> {
-  await roleButton(page, ADD_THURSDAY_RANGE_LABEL).click()
+  const trackBox = await boxOf(thursdayTrack(page))
+  const x = trackBox.x + trackBox.width / 2
+  const y = trackBox.y + THURSDAY_CLICK_MINUTE * PIXELS_PER_MINUTE
+
+  await page.mouse.click(x, y)
   const popover = namedDialog(page, THURSDAY_LABEL)
 
   await confirmDelete(popover)
@@ -270,11 +287,11 @@ async function createAndDeleteThursdayRange(page: Page): Promise<void> {
 }
 
 async function keyboardAddWednesdayRange(page: Page): Promise<void> {
-  const addButton = roleButton(page, ADD_WEDNESDAY_RANGE_LABEL)
+  const track = wednesdayTrack(page)
   const { keyboard } = page
 
-  await addButton.focus()
-  await expect(addButton).toBeFocused()
+  await track.focus()
+  await expect(track).toBeFocused()
   await keyboard.press(ENTER)
   await expect(namedDialog(page, WEDNESDAY_LABEL)).toBeVisible()
   await keyboard.press(ESCAPE)
@@ -304,7 +321,7 @@ async function assertTuesdayPersisted(page: Page): Promise<void> {
 
 async function assertNoEditorActions(page: Page): Promise<void> {
   await expect(roleButton(page, SAVE_AVAILABILITY_LABEL)).toHaveCount(0)
-  await expect(roleButton(page, ADD_RANGE_NAME_PATTERN)).toHaveCount(0)
+  await expect(page.locator(FOCUSABLE_TRACK_SELECTOR)).toHaveCount(0)
 }
 
 async function assertOwnerCardReadOnly(page: Page): Promise<void> {

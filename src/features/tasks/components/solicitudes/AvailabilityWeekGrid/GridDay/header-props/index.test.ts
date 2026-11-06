@@ -13,7 +13,6 @@ const RANGE: EditableRange = {
 const NOOP = () => undefined
 const ZERO_TOP = () => 0
 const HOURS_PER_DAY = 8
-const SLOT = { startsAt: '10:00', endsAt: '11:00' }
 
 function buildProps() {
   const props = {
@@ -30,21 +29,18 @@ function buildProps() {
   return props
 }
 
-it('carries day, ranges, expectedHours, and readOnly from the given props and track input', () => {
+it('carries day, ranges, and expectedHours from the given props and track input', () => {
   const props = buildProps()
   const fields = headerProps(props, { dayRanges: [RANGE], columnTop: ZERO_TOP, t: () => '' })
 
   expect(fields.day).toBe(props.day)
   expect(fields.ranges).toEqual([RANGE])
   expect(fields.expectedHours).toBe(HOURS_PER_DAY)
-  expect(fields.readOnly).toBe(false)
 })
 
-it("adapts onAdd into AddRangeControl's single-argument shape, carrying this day along", () => {
-  const props = buildProps()
+it('treats a missing workday as no expected hours', () => {
+  const props = { ...buildProps(), workday: null }
   const fields = headerProps(props, { dayRanges: [RANGE], columnTop: ZERO_TOP, t: () => '' })
 
-  fields.onAdd(SLOT)
-
-  expect(props.onAdd).toHaveBeenCalledWith(props.day, SLOT)
+  expect(fields.expectedHours).toBeNull()
 })

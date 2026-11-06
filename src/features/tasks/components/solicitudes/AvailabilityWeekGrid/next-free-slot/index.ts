@@ -1,15 +1,15 @@
-import firstFreeWindow from '../first-free-window'
+import firstFreeWindow from './first-free-window'
 import clickCreateRange from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/creation/click'
 import { DAY_END_MINUTE, SNAP_MINUTES } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/constants'
 import { hhmmOf, type WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
-import type { AddRangeControlRange } from '../types'
+import type { FreeSlot } from './types'
 
-/** The next default range AddRangeControl offers for a day: the day's first free window,
- *  turned into a one-hour-or-less slot anchored at that window's own start, or null when
- *  there's no room left to offer. */
-export default function nextSlot(
+/** The next default range the day's own track offers on Enter/Space: the day's first free
+ *  window, turned into a one-hour-or-less slot anchored at that window's own start, or null
+ *  when there's no room left to offer. */
+export default function nextFreeSlot(
   dayRanges: WeeklyAvailabilityRange[],
-): AddRangeControlRange | null {
+): FreeSlot | null {
   const window = firstFreeWindow(dayRanges)
 
   if (window === null) return null
@@ -22,5 +22,6 @@ export default function nextSlot(
   return result
 }
 
-// nextSlot composes firstFreeWindow, clickCreateRange and hhmmOf into the one default range
-// AddRangeControl offers — click-create geometry and HH:mm formatting never duplicate here.
+// nextFreeSlot composes firstFreeWindow, clickCreateRange and hhmmOf into the one default range
+// the day's track offers on Enter/Space — click-create geometry and HH:mm formatting never
+// duplicate here.

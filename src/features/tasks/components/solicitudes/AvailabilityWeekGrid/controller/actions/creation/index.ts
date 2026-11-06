@@ -1,10 +1,10 @@
 import createRange from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/range-operations/create'
 import { minutesOf, endMinutesOf, type AvailabilityDay } from '@/features/tasks/utils/availability'
 import type { MinuteBounds } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/types'
-import type { AddRangeControlRange } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/AddRangeControl/types'
+import type { FreeSlot } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/next-free-slot/types'
 import type { GridActionContext, GridActions } from '../types'
 
-function boundsOf(slot: AddRangeControlRange): MinuteBounds | null {
+function boundsOf(slot: FreeSlot): MinuteBounds | null {
   const start = minutesOf(slot.startsAt)
   const end = endMinutesOf(slot.endsAt)
 
@@ -14,7 +14,7 @@ function boundsOf(slot: AddRangeControlRange): MinuteBounds | null {
 }
 
 function nextRanges(
-  context: GridActionContext, day: AvailabilityDay, slot: AddRangeControlRange,
+  context: GridActionContext, day: AvailabilityDay, slot: FreeSlot,
 ) {
   const bounds = boundsOf(slot)
 
@@ -29,7 +29,7 @@ function openCreated(context: GridActionContext, clientId: string) {
   context.markCreated(clientId)
 }
 
-function addRange(context: GridActionContext, day: AvailabilityDay, slot: AddRangeControlRange) {
+function addRange(context: GridActionContext, day: AvailabilityDay, slot: FreeSlot) {
   const next = nextRanges(context, day, slot)
 
   if (!next) return
@@ -43,7 +43,7 @@ function addRange(context: GridActionContext, day: AvailabilityDay, slot: AddRan
 /** The keyboard path for adding a day's next free range, reusing the same whole-week
  *  validation gate pointer creation and resizing already go through. */
 export default function creation(context: GridActionContext): Pick<GridActions, 'onAdd'> {
-  const onAdd = (day: AvailabilityDay, slot: AddRangeControlRange) => {
+  const onAdd = (day: AvailabilityDay, slot: FreeSlot) => {
     if (context.readOnly) return
 
     addRange(context, day, slot)

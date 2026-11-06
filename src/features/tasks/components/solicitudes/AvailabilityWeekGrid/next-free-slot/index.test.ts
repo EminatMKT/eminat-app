@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
-import nextSlot from '.'
+import nextFreeSlot from '.'
 
 const MONDAY = 1
 const MIDNIGHT_START = '00:00'
@@ -16,29 +16,29 @@ const range = (startsAt: string, endsAt: string): WeeklyAvailabilityRange => ({
   endsAt,
 })
 
-describe('nextSlot', () => {
+describe('nextFreeSlot', () => {
   it('offers the first hour of an empty day', () => {
-    expect(nextSlot([])).toEqual({ startsAt: '00:00', endsAt: '01:00' })
+    expect(nextFreeSlot([])).toEqual({ startsAt: '00:00', endsAt: '01:00' })
   })
 
   it('anchors right after an existing range instead of at midnight', () => {
-    expect(nextSlot([range('00:00', '09:00')])).toEqual({ startsAt: '09:00', endsAt: '10:00' })
+    expect(nextFreeSlot([range('00:00', '09:00')])).toEqual({ startsAt: '09:00', endsAt: '10:00' })
   })
 
   it(MIDNIGHT_SLOT_CASE, () => {
     const booked = range(MIDNIGHT_START, LAST_HALF_HOUR_START)
     const expected = { startsAt: LAST_HALF_HOUR_START, endsAt: MIDNIGHT_END }
 
-    expect(nextSlot([booked])).toEqual(expected)
+    expect(nextFreeSlot([booked])).toEqual(expected)
   })
 
   it(SHORT_WINDOW_CASE, () => {
     const booked = range(MIDNIGHT_START, TOO_SHORT_START)
 
-    expect(nextSlot([booked])).toBeNull()
+    expect(nextFreeSlot([booked])).toBeNull()
   })
 
   it('returns null when the day is fully booked', () => {
-    expect(nextSlot([range('00:00', '23:59')])).toBeNull()
+    expect(nextFreeSlot([range('00:00', '23:59')])).toBeNull()
   })
 })
