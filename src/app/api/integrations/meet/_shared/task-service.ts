@@ -8,6 +8,7 @@ import type { MeetError } from './errors/types'
 import MEET_PROJECTIONS from './projections'
 import canonicalResponsibles from './responsibles'
 import normalizeResponsibles from './responsibles/normalize'
+export { listMeetingOverview } from './meeting-overview-service'
 import type { MeetDepartmentRow, MeetResponsibleRow, MeetUserRow as UserRow } from './responsibles/types'
 
 type Failure = { ok: false; status: number; code: string; message: string; current?: CanonicalMeetTask; data?: never }

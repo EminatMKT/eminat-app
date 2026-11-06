@@ -167,7 +167,7 @@ export async function fetchOrg(): Promise<OrgCatalogs> {
 // Carga inicial de la app tras montar el provider: perfil (crítico), heartbeat,
 // online count, notificaciones (+ realtime), actividades, equipo, usuarios y
 // adminUsuarios. Devuelve el cleanup (intervalo de heartbeat + canal realtime).
-export function startAppData(s: Setters): () => void {
+export function startAppData(s: Setters, readActivities: () => PromiseLike<{ data: Actividad[] | null } | null> = actividadesRepo.list): () => void {
   let heartbeatInterval: ReturnType<typeof setInterval>
   let realtimeChannel: RealtimeChannel | undefined
   let userRowChannel: RealtimeChannel | undefined
@@ -281,13 +281,13 @@ export function startAppData(s: Setters): () => void {
       //    de cada actividad sale del catálogo de empresas, así que si llegara
       //    después, todo Stratix se pintaría un instante con el color de fallback
       //    y repintaría al resolverse — chips del topbar incluidos.
-      const [{ data: acts }, org] = await Promise.all([
+      const [activityResult, org] = await Promise.all([
         // Sin filtro por persona: Stratix es un tablero de equipo y quien tiene el
         // módulo ve todo. Quién puede ver qué lo decide la RLS, no este archivo.
-        actividadesRepo.list(),
+        readActivities(),
         fetchOrg(),
       ])
-      s.setActividades(acts || [])
+      if (activityResult) s.setActividades(activityResult.data || [])
       s.setOrg(org)
 
       // 7. Load equipo from v_equipo_hoy

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page, type BrowserContext } from '@playwright/test'
 
 const qaAuthId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 const qaProfileId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
@@ -26,7 +26,8 @@ const tasks = Array.from({ length: 48 }, (_, index) => ({
   topic_id: index < 6 ? null : `topic-${index + 1}`, related_to_viewer: true,
 }))
 
-test('canonical Meet UI displays 9 authorized meetings and 48 historically related Tasks with one LILLY session', async ({ page, context }) => {
+async function prepare(page: Page, context: BrowserContext, options: { overviewDelay?: Promise<void>; overviewFail?: boolean; onOverview?: () => void } = {}) {
+  const { overviewDelay, overviewFail, onOverview } = options
   const writes: string[] = []
   page.on('request', (request) => {
     if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method()) && (/\/rest\/v1\/(meetings|topics|actividades)(?:[?\/]|$)/.test(request.url()) || request.url().includes('/api/integrations/meet/'))) writes.push(request.url())
@@ -56,12 +57,24 @@ test('canonical Meet UI displays 9 authorized meetings and 48 historically relat
     const single = request.headers()['accept']?.includes('vnd.pgrst.object')
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(single ? rows[0] ?? null : rows) })
   })
-  await page.route('**/api/integrations/meet/tasks', async (route) => {
+  await page.route(/\/api\/integrations\/meet\/tasks(?:\?.*)?$/, async (route) => {
+    if (new URL(route.request().url()).searchParams.get('mode') === 'overview') {
+      onOverview?.()
+      await overviewDelay
+      if (overviewFail) { await route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ error: { message: 'Summary denied', code: 'FORBIDDEN' } }) }); return }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ tasks: tasks.filter(task => task.meeting).map(({ id, titulo, estado, responsable }) => ({ id, titulo, estado, responsable })), links: tasks.filter(task => task.meeting).map(task => ({ topic_id: task.topic_id, meeting_id: task.meeting!.id, actividad_id: task.id, section: 'action' })), header: { team: 'Equipo QA', department: 'Departamento QA', company: 'Empresa QA' } }) })
+      return
+    }
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ tasks, viewer: { profile_id: qaProfileId, equipo: { id: 'qa-team', nombre: 'Equipo QA' }, empresa: { id: '11111111-1111-4111-8111-111111111111', codigo: 'QA', nombre: 'Empresa QA' } } }) })
   })
 
   await page.route('**/api/ui-time', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ utcMs: Date.parse('2026-07-01T12:00:00Z') }) }))
   await page.route('**/api/integrations/meet/task-catalogs', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ companies: [{ id: '11111111-1111-4111-8111-111111111111', codigo: 'QA', nombre: 'Empresa QA' }], departments: [], teams: [], states: [] }) }))
+  return writes
+}
+
+test('canonical Meet UI displays 9 authorized meetings and 48 historically related Tasks with one LILLY session', async ({ page, context }) => {
+  const writes = await prepare(page, context)
   await page.goto('/meetings')
   await expect(page.getByRole('heading', { name: 'Reuniones', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { level: 3, name: /Reunión QA / })).toHaveCount(9)
@@ -191,10 +204,48 @@ test('canonical Meet UI displays 9 authorized meetings and 48 historically relat
   await expect(clocks.locator('time').first()).toHaveText('8:42 AM')
   expect(writes).toEqual([])
 
-  await page.route('**/api/integrations/meet/tasks', async (route) => {
+  await page.route(/\/api\/integrations\/meet\/tasks(?:\?.*)?$/,  async (route) => {
     await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: { code: 'TASK_API_ERROR', message: 'Tasks API unavailable' } }) })
   })
   await page.goto('/meetings')
   await expect(page.locator('.meet-module [role="alert"]')).toContainText('Tasks API unavailable')
   await expect(page.getByRole('heading', { level: 3, name: /Reunión QA / })).toHaveCount(9)
+})
+
+
+test('overview list renders before delayed summaries, updates correctly, and coalesces activation refreshes', async ({ page, context }) => {
+  let release!: () => void
+  let calls = 0
+  const delay = new Promise<void>(resolve => { release = resolve })
+  const broadReads: string[] = []
+  page.on('request', request => { if (request.method() === 'GET' && new URL(request.url()).pathname === '/rest/v1/actividades') broadReads.push(request.url()) })
+  const writes = await prepare(page, context, { overviewDelay: delay, onOverview: () => { calls++ } })
+  await page.goto('/meetings')
+  await expect(page.locator('[data-meetings-list-ready="true"]')).toBeVisible()
+  await expect(page.locator('article[data-meeting-id]')).toHaveCount(9)
+  await expect(page.getByText('Cargando Tasks…')).toHaveCount(9)
+  await expect(page.getByText(/Tasks generadas/)).toHaveCount(0)
+  expect(calls).toBe(1)
+  release()
+  await expect(page.locator('[data-meetings-summary-ready="true"]')).toBeVisible()
+  await expect(page.locator('article[data-meeting-id]').first()).toContainText('Actividad QA')
+  await page.evaluate(() => { window.dispatchEvent(new Event('focus')); document.dispatchEvent(new Event('visibilitychange')) })
+  await expect.poll(() => calls).toBe(2)
+  await page.waitForTimeout(150)
+  expect(calls).toBe(2)
+  expect(broadReads).toEqual([])
+  await page.getByRole('link', { name: 'Nueva', exact: true }).click()
+  await expect.poll(() => broadReads.length).toBe(1)
+  expect(writes).toEqual([])
+})
+
+test('overview authorization failure keeps meetings visible and never fabricates zero Tasks', async ({ page, context }) => {
+  await prepare(page, context, { overviewFail: true })
+  await page.goto('/meetings')
+  await expect(page.locator('[data-meetings-list-ready="true"]')).toBeVisible()
+  await expect(page.locator('article[data-meeting-id]')).toHaveCount(9)
+  await expect(page.getByText('Tasks no disponibles', { exact: true })).toHaveCount(9)
+  await expect(page.locator('.meet-module [role="alert"]')).toContainText('Summary denied')
+  await expect(page.getByText(/0 Tasks/)).toHaveCount(0)
+  await expect(page.locator('[data-meetings-summary-ready="true"]')).toHaveCount(0)
 })
