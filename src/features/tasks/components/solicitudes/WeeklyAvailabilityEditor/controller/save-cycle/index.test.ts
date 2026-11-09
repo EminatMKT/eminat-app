@@ -67,7 +67,11 @@ const LIVE_EDITED_STATE: LocalEditorState = {
   message: null,
   pendingRemoval: null,
 }
-const LIVE_PREVIOUS: ControllerState = { editor: LIVE_EDITED_STATE, focusToken: 0 }
+const LIVE_PREVIOUS: ControllerState = {
+  editor: LIVE_EDITED_STATE,
+  focusToken: 0,
+  savedRanges: [PRE_SAVE_RANGE],
+}
 
 describe('save cycle facade', () => {
   it('builds the initial controller state from the member with a zeroed focus token', () => {
@@ -75,6 +79,12 @@ describe('save cycle facade', () => {
 
     expect(state.editor.ranges).toHaveLength(1)
     expect(state.focusToken).toBe(0)
+  })
+
+  it('seeds the saved-ranges baseline from the same ranges the editor starts with', () => {
+    const state = createInitialControllerState(MEMBER)
+
+    expect(state.savedRanges).toBe(state.editor.ranges)
   })
 
   it('marks the editor as saving without touching the focus token', () => {

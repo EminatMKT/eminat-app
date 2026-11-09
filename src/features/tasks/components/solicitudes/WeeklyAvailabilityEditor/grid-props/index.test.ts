@@ -38,6 +38,7 @@ const STATE: LocalEditorState = {
 const CONTROLLER: ControllerResult = {
   state: STATE,
   errors: [],
+  isDirty: false,
   onChangeRanges: ONCHANGE,
   onSave: vi.fn(),
   onCancel: vi.fn(),

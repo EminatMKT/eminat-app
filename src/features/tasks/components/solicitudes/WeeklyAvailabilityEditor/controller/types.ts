@@ -7,8 +7,9 @@ export type ControllerProps = Pick<EditorProps, 'member' | 'onCancel' | 'onSaved
 export type ControllerResult = {
   state: LocalEditorState
   errors: RangeValidationError[]
+  isDirty: boolean
   onChangeRanges: RangeListChangeHandler
-  onSave: () => Promise<void>
+  onSave: () => Promise<boolean>
   onCancel: () => void
 }
 

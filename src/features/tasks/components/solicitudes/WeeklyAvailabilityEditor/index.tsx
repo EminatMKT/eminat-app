@@ -1,21 +1,23 @@
 'use client'
+import type { ComponentProps } from 'react'
 import AvailabilityWeekGrid from '../AvailabilityWeekGrid'
-import EditorActions from './EditorActions'
 import ValidationBanner from './ValidationBanner'
-import useEditorView from './editor-view'
-import type { EditorProps } from './types'
 import s from './index.module.css'
 
-/** Composes the weekly availability editor's lifecycle, the drag/resize grid, and — when
- *  editable — its validation banner and save/cancel actions. */
-export default function WeeklyAvailabilityEditor(props: EditorProps) {
-  const { gridProps, bannerProps, actionsProps } = useEditorView(props)
+type Props = {
+  gridProps: ComponentProps<typeof AvailabilityWeekGrid>
+  bannerProps: ComponentProps<typeof ValidationBanner> | null
+}
+
+/** Pure render of the drag/resize grid and its validation banner: MemberAvailabilityModal owns
+ *  the controller and derives both prop bags, this stays presentational. */
+export default function WeeklyAvailabilityEditor(props: Props) {
+  const { gridProps, bannerProps } = props
 
   return <div className={s.editor}>
     <AvailabilityWeekGrid {...gridProps} />
     {bannerProps != null && <ValidationBanner {...bannerProps} />}
-    {actionsProps != null && <EditorActions {...actionsProps} />}
   </div>
 }
 
-// readOnly skips the banner/actions entirely: useEditorView nulls them out, this just renders.
+// Save/cancel actions moved to MemberAvailabilityModal's Modal footer; this never renders them.

@@ -1,7 +1,12 @@
-import type { LocalEditorState } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type {
+  EditableRange,
+  LocalEditorState,
+} from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
 
-/** The controller's own data: the editable ranges plus the validation-focus bump counter. */
+/** The controller's own data: the editable ranges, the validation-focus bump counter, and the
+ *  last-saved baseline `isDirty` diffs against. */
 export type ControllerState = {
   editor: LocalEditorState
   focusToken: number
+  savedRanges: EditableRange[]
 }

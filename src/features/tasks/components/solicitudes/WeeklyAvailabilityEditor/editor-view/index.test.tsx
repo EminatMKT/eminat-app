@@ -48,6 +48,7 @@ describe('useEditorView', () => {
     expect(seen?.gridProps.readOnly).toBe(true)
     expect(seen?.bannerProps).toBeNull()
     expect(seen?.actionsProps).toBeNull()
+    expect(seen?.controller.isDirty).toBe(false)
   })
 
   it('builds the save/cancel actions props when editable', () => {
