@@ -1,33 +1,48 @@
 'use client'
-import { createElement } from 'react'
-import type { ComponentProps } from 'react'
+import type { AvailabilityMemberDto } from '@/features/tasks/data/availability/types'
 import useEditorView from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/editor-view'
 import useCloseGuard from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/controller/close-guard'
-import EditorActions from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/EditorActions'
-import type { EditorProps } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/types'
+import { MODAL_ANCHO_REM } from '../constants'
+import footerOf from '../footer-of'
+import type { MemberAvailabilityModalProps } from '../types'
 
-function footerOf(actionsProps: ComponentProps<typeof EditorActions> | null, onCancel: () => void) {
-  if (actionsProps == null) {
-    return undefined
+type Footer = ReturnType<typeof footerOf>
+
+function editorPropsOf({ member, onClose, onSaved }: MemberAvailabilityModalProps) {
+  const editorProps = {
+    member,
+    onCancel: onClose,
+    onSaved,
+    readOnly: !member.canEdit || member.workday === null,
   }
 
-  const guardedProps = { ...actionsProps, onCancel }
-  const footer = createElement(EditorActions, guardedProps)
-
-  return footer
+  return editorProps
 }
 
-/** Owns the editor controller for the modal: derives the grid/banner bags, the Modal footer and
- *  the close guard, all from ONE controller so the guard sees the same dirty state the grid edits.
- *  The footer's Cancel goes through the guard too, so it never drops unsaved edits silently. */
-export default function useModalView(editorProps: EditorProps, onClose: () => void) {
-  const { controller, gridProps, bannerProps, actionsProps } = useEditorView(editorProps)
-  const closeGuard = useCloseGuard(controller, onClose)
+function modalPropsOf(member: AvailabilityMemberDto, onClose: () => void, footer: Footer) {
+  const modalProps = {
+    title: member.name,
+    subtitle: member.team?.name,
+    anchoRem: MODAL_ANCHO_REM,
+    onClose,
+    footer,
+  }
+
+  return modalProps
+}
+
+/** Owns the editor controller for the modal: one controller feeds the grid/banner bags, the
+ *  close guard and the Modal props, so the guard sees the same dirty state the grid edits.
+ *  `readOnly` holds unless the member can edit AND has a jornada assigned. */
+export default function useModalView(props: MemberAvailabilityModalProps) {
+  const { controller, gridProps, bannerProps, actionsProps } = useEditorView(editorPropsOf(props))
+  const closeGuard = useCloseGuard(controller, props.onClose)
   const footer = footerOf(actionsProps, closeGuard.requestClose)
-  const display = { gridProps, bannerProps, footer }
-  const view = { display, closeGuard }
+  const modal = modalPropsOf(props.member, closeGuard.requestClose, footer)
+  const editor = { gridProps, bannerProps }
+  const view = { modal, editor, closeGuard }
 
   return view
 }
 
-// Footer is undefined (not null) when read-only so Modal skips its fixed footer slot entirely.
+// Backdrop/✕/Escape and the footer's Cancel all close through the guard, never the raw onClose.

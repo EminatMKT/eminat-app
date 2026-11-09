@@ -5,6 +5,7 @@ import { AVAILABILITY_DAYS, declaredWeeklyHours } from '@/features/tasks/utils/a
 import type { EditableRange } from '../WeeklyAvailabilityEditor/component-types'
 import EDITOR_COPY from '../WeeklyAvailabilityEditor/constants'
 import { BLOCK_LABEL_READ_ONLY_KEY } from './Block/constants'
+import { HOURS_STATUS_MARKER } from './DayCaption/constants'
 import type { AvailabilityWeekGridProps } from './types'
 import AvailabilityWeekGrid from './index'
 
@@ -22,7 +23,6 @@ const TUESDAY_RANGE: EditableRange = {
   endsAt: '19:00',
 }
 const HOURS_PER_WEEK = 40
-const HOURS_STATUS_MARKER = 'data-tone='
 const NOOP = () => undefined
 const GUTTER_MARKER = 'data-grid-gutter'
 const DAY_MARKER = /data-grid-day=/g

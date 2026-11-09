@@ -5,6 +5,7 @@ import {
   it,
   vi,
 } from 'vitest'
+import { MONDAY_NINE_AM } from './line-top/constants'
 import type { NowLineProps } from './types'
 import NowLine from '.'
 
@@ -19,8 +20,6 @@ vi.mock(USE_NOW_MODULE, () => ({ default: readNow }))
 
 let reading: Date | null = null
 
-// No trailing `Z`: the stamp parses as local time, so the weekday holds in any time zone.
-const MONDAY_NINE_AM = '2026-11-09T09:00:00'
 const EMPTY_MARKUP = ''
 const MONDAY_COLUMN: NowLineProps = { weekday: 1 }
 const TUESDAY_COLUMN: NowLineProps = { weekday: 2 }

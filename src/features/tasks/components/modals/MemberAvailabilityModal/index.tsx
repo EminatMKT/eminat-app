@@ -1,39 +1,18 @@
 'use client'
 import { Modal } from '@/shared/components/ui'
-import type {
-  AvailabilityMemberDto,
-  AvailabilityResponse,
-} from '@/features/tasks/data/availability/types'
 import WeeklyAvailabilityEditor from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor'
 import DiscardChangesModal from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/DiscardChangesModal'
-import { MODAL_ANCHO_REM } from './constants'
 import useModalView from './modal-view'
+import type { MemberAvailabilityModalProps } from './types'
 
-type Props = {
-  member: AvailabilityMemberDto
-  onClose: () => void
-  onSaved: (response: AvailabilityResponse) => void
-}
-
-/** Unifies view and edit for one member's weekly schedule: every card renders the same
- *  `WeeklyAvailabilityEditor`, and `readOnly` — true unless the member can edit AND has a
- *  jornada assigned — decides whether the save/cancel bar shows in the Modal's fixed footer.
- *  Backdrop/✕/Escape and the Cancel button all go through the same close guard. */
-export default function MemberAvailabilityModal(props: Props) {
-  const { member, onClose, onSaved } = props
-  const readOnly = !member.canEdit || member.workday === null
-  const editorProps = { member, onCancel: onClose, onSaved, readOnly }
-  const { display, closeGuard } = useModalView(editorProps, onClose)
+/** One editor for view and edit: read-only members get no save/cancel footer. Every way out
+ *  (backdrop, ✕, Escape, Cancel) goes through one close guard, which asks before dropping edits. */
+export default function MemberAvailabilityModal(props: MemberAvailabilityModalProps) {
+  const { modal, editor, closeGuard } = useModalView(props)
 
   return <>
-    <Modal
-      title={member.name}
-      subtitle={member.team?.name}
-      anchoRem={MODAL_ANCHO_REM}
-      onClose={closeGuard.requestClose}
-      footer={display.footer}
-    >
-      <WeeklyAvailabilityEditor gridProps={display.gridProps} bannerProps={display.bannerProps} />
+    <Modal {...modal}>
+      <WeeklyAvailabilityEditor {...editor} />
     </Modal>
     {closeGuard.confirming && <DiscardChangesModal {...closeGuard.dialogProps} />}
   </>

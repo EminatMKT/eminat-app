@@ -6,8 +6,6 @@ import {
 } from 'vitest'
 import saveAndExit from './index'
 
-const SAVE_FAILED_MESSAGE = 'save failed'
-
 describe('saveAndExit', () => {
   it('closes once the save resolves true', async () => {
     const onClose = vi.fn()
@@ -34,10 +32,11 @@ describe('saveAndExit', () => {
   it('clears the confirm flag and rethrows when the save rejects', async () => {
     const onClose = vi.fn()
     const setConfirming = vi.fn()
-    const rejection = new Error(SAVE_FAILED_MESSAGE)
+    // Identity, not message: the very rejection the save threw must reach the caller unwrapped.
+    const rejection = new Error()
     const onSave = vi.fn().mockRejectedValue(rejection)
 
-    await expect(saveAndExit(onSave, onClose, setConfirming)).rejects.toThrow(rejection)
+    await expect(saveAndExit(onSave, onClose, setConfirming)).rejects.toBe(rejection)
 
     expect(setConfirming).toHaveBeenCalledWith(false)
     expect(onClose).not.toHaveBeenCalled()

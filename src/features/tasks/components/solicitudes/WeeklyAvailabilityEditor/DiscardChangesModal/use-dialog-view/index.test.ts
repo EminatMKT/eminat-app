@@ -7,10 +7,10 @@ import {
   vi,
 } from 'vitest'
 import * as i18nModule from '@/shared/i18n'
-import type { Props } from '../types'
+import { USE_T_EXPORT } from '../constants'
 import useDialogView from './index'
 
-const USE_T_EXPORT = 'useT'
+type Props = Parameters<typeof useDialogView>[0]
 
 const LOCALE_STATE: ReturnType<typeof i18nModule.useT> = {
   locale: 'es',

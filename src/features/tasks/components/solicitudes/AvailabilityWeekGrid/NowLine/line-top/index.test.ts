@@ -1,11 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { PIXELS_PER_MINUTE } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/constants'
 import type { LineTopInput } from '../types'
+import { MONDAY_NINE_AM, SUNDAY_THREE_PM } from './constants'
 import lineTop from '.'
-
-// No trailing `Z`: each stamp parses as local time, so the weekday holds in any time zone.
-const MONDAY_NINE_AM = '2026-11-09T09:00:00'
-const SUNDAY_THREE_PM = '2026-11-08T15:00:00'
 
 const MONDAY_AT_NINE: LineTopInput = {
   current: new Date(MONDAY_NINE_AM),

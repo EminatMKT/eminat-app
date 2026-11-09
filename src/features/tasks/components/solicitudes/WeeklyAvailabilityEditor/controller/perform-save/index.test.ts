@@ -17,7 +17,6 @@ import performSave from './index'
 import type { PerformSaveInput } from './types'
 
 const DEFAULT_EXPORT = 'default'
-const SAVE_REJECTION_MESSAGE = 'save failed'
 
 const INITIAL_EDITOR: LocalEditorState = {
   ranges: [],
@@ -66,7 +65,7 @@ describe('performSave', () => {
   it('resolves false and marks the state as failed when the save rejects', async () => {
     const onSaved = vi.fn()
     const tracker = trackControllerState(INITIAL_STATE)
-    const rejection = new Error(SAVE_REJECTION_MESSAGE)
+    const rejection = new Error()
 
     vi.spyOn(resolveSaveOutcomeModule, DEFAULT_EXPORT).mockRejectedValueOnce(rejection)
     const input: PerformSaveInput = {

@@ -25,6 +25,7 @@ export default function useWeeklyAvailabilityEditorController(
       focusToken,
       savedRanges,
     }
+
     setControllerState(nextState)
   }
   const onChangeRanges = (nextRanges: EditableRange[]) =>
@@ -40,6 +41,7 @@ export default function useWeeklyAvailabilityEditorController(
     onCancel,
     validationFocusToken: focusToken,
   }
+
   return result
 }
 

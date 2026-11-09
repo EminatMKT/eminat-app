@@ -6,14 +6,14 @@ import {
   vi,
 } from 'vitest'
 import { AVAILABILITY_DAYS } from '@/features/tasks/utils/availability'
+import { HOURS_STATUS_MARKER } from './constants'
 import DayCaption from './index'
 
-vi.mock('@/shared/i18n', () => ({
-  useT: () => ({ t: (key: string) => key }),
-}))
+const { I18N_MODULE } = vi.hoisted(() => ({ I18N_MODULE: '@/shared/i18n' }))
+
+vi.mock(I18N_MODULE, () => ({ useT: () => ({ t: (key: string) => key }) }))
 
 const MONDAY = AVAILABILITY_DAYS[0]
-const HOURS_STATUS_MARKER = 'data-tone='
 
 const draw = () => renderToStaticMarkup(<DayCaption day={MONDAY} />)
 

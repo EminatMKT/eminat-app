@@ -8,12 +8,11 @@ import {
 } from 'vitest'
 import * as uiModule from '@/shared/components/ui'
 import * as i18nModule from '@/shared/i18n'
-import { DISCARD_MODAL_COPY } from './constants'
+import { DISCARD_MODAL_COPY, USE_T_EXPORT } from './constants'
 import type { Props } from './types'
 import DiscardChangesModal from './index'
 
 const BUTTON_EXPORT = 'Button'
-const USE_T_EXPORT = 'useT'
 const IDENTITY_LOCALE_STATE: ReturnType<typeof i18nModule.useT> = {
   locale: 'es',
   intlLocale: 'es-AR',
@@ -50,20 +49,14 @@ describe('DiscardChangesModal', () => {
   })
 
   it('wires each button to its own prop callback', () => {
-    const onDiscard = vi.fn()
-    const onSaveAndExit = vi.fn()
-    const onKeepEditing = vi.fn()
-    const props: Props = { onDiscard, onSaveAndExit, onKeepEditing }
+    const props: Props = { onDiscard: vi.fn(), onSaveAndExit: vi.fn(), onKeepEditing: vi.fn() }
+    const expectedHandlers = [props.onDiscard, props.onSaveAndExit, props.onKeepEditing]
 
-    const [discardButton, saveAndExitButton, keepEditingButton] = renderDialog(props)
+    const buttons = renderDialog(props)
 
-    discardButton.onClick()
-    saveAndExitButton.onClick()
-    keepEditingButton.onClick()
+    expect(buttons).toHaveLength(expectedHandlers.length)
 
-    expect(onDiscard).toHaveBeenCalledOnce()
-    expect(onSaveAndExit).toHaveBeenCalledOnce()
-    expect(onKeepEditing).toHaveBeenCalledOnce()
+    buttons.forEach((button, index) => expect(button.onClick).toBe(expectedHandlers[index]))
   })
 })
 
