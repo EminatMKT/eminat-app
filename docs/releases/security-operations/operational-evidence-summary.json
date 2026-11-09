@@ -1,0 +1,23 @@
+{
+  "reviewedAtUtcDate": "2026-10-28",
+  "productionProject": "ruedelunbtaomhrzgelc",
+  "latestCompletedDatabaseBackup": "2026-10-28T05:28:43Z",
+  "schedule": "daily physical",
+  "retentionDays": 7,
+  "visibleCompletedBackups": 8,
+  "paidResourcesCreated": false,
+  "restoreDrill": "NOT VERIFIED",
+  "storageObjectCount": 0,
+  "archiveDocumentCount": 0,
+  "storageFilesDownloaded": false,
+  "businessRpoRtoApproved": false,
+  "internalEvidence": {
+    "executedInScopeBaa": "NOT VERIFIED",
+    "coveredStandardTransactions": "NOT VERIFIED",
+    "part2ProgramOrRecipientStatus": "NOT VERIFIED",
+    "officerDesignation": "NOT VERIFIED",
+    "organizationChartSource": "https://drive.google.com/file/d/1Bcc8YkVV2mI8sV3nSfdpfGfdlDDt8ZMI/view",
+    "limits": "Focused connected Drive/Gmail searches and available organizational chart; absence of retrieved evidence does not prove absence in the organization."
+  },
+  "privilegedAudit": "PARTIAL; proposed private append requires separate protected schema approval"
+}

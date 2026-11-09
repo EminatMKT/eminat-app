@@ -6,7 +6,7 @@ import buildRow from '.'
 const { newUser, orphanRow: EXISTING } = CREATE_FIXTURES
 const INPUT = { ...newUser, empresa_id: 'e-1', equipo_id: '' }
 const NEW_IDENTITY = { id: 'a-1', auth_id: 'a-1', email: 'ana@eminat.net' }
-const DEFAULTS = { rol: DEFAULT_ROLE, color: '#7C6FF7', ubicacion: 'Guayaquil, Ecuador' }
+const DEFAULTS = { rol: DEFAULT_ROLE, color: '#7C6FF7', ubicacion: null }
 const FLAGS = { activo: true, validado: true }
 const CATALOGS = { empresa_id: 'e-1', equipo_id: null, jornada_id: null }
 
@@ -27,5 +27,10 @@ describe('buildRow', () => {
     expect(row).not.toHaveProperty('email')
     expect(row).not.toHaveProperty('equipo_id')
     expect(row.empresa_id).toBe('e-1')
+    expect(row).not.toHaveProperty('ubicacion')
+  })
+  it('uses only an explicitly entered location', () => {
+    expect(buildRow({ ...INPUT, ubicacion:'Quito, Ecuador' }, null, 'a-1').ubicacion)
+      .toBe('Quito, Ecuador')
   })
 })

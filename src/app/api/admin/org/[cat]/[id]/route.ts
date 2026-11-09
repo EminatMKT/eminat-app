@@ -1,3 +1,4 @@
+import { recordPrivilegedAction } from '@/server/privileged-audit'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import requireAdmin from '@/shared/db/requireAdmin'
@@ -15,8 +16,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { cat: strin
   if (blankName) return NextResponse.json({ error: ADMIN_ERRORS.nameRequired }, { status: 400 })
   if (!Object.keys(row).length) return NextResponse.json({ error: ADMIN_ERRORS.noFieldsToUpdate }, { status: 400 })
 
-  const { data, error } = await supabaseAdmin().from(params.cat).update(row).eq('id', params.id).select().single()
+  const db = supabaseAdmin()
+  const { data, error } = await db.from(params.cat).update(row).eq('id', params.id).select().single()
   if (error) return NextResponse.json({ error: dupError(error) }, { status: 400 })
+  await recordPrivilegedAction(db, { action: 'admin.catalog.updated', actorId: authz.userId,
+    resourceId: params.id, changedFields: Object.keys(row) })
   return NextResponse.json({ row: data })
 }
 
@@ -53,5 +57,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: { cat: str
 
   const { error } = await db.from(params.cat).delete().eq('id', params.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  await recordPrivilegedAction(db, { action: 'admin.catalog.deleted', actorId: authz.userId, resourceId: params.id })
   return NextResponse.json({ ok: true })
 }

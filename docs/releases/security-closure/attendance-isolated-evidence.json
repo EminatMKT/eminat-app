@@ -1,0 +1,14 @@
+{
+  "result": "PASS",
+  "productionDataUsed": false,
+  "proposalSha256": "fab3e5770c79879c1cd14395ccc84a153cbb9e4bb71127645214b7ecb12c18ed",
+  "checks": [
+    "anonymous entry/exit denied",
+    "cross-user entry/exit denied",
+    "inactive self denied",
+    "active self entry/exit allowed",
+    "entry idempotency preserved",
+    "service_role entry/exit allowed",
+    "result count integrity"
+  ]
+}

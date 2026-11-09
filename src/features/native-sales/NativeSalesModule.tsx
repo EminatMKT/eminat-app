@@ -1,5 +1,8 @@
 'use client'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import NativeSalesDashboard, { type SalesSummary } from './NativeSalesDashboard'
+import { salesSection, salesSectionHref, salesSections, type SalesSection } from './navigation'
 import AppShell from '@/shared/components/shell/AppShell'
 import { supabase } from '@/shared/db/supabase'
 import NativeSalesCreate from './NativeSalesCreate'
@@ -13,11 +16,15 @@ import NativeSalesEmail from './NativeSalesEmail'
 import NativeGeneralTask from './NativeGeneralTask'
 import NativeSocialStatus from './NativeSocialStatus'
 import NativeSocialInbox from './NativeSocialInbox'
+import NativePortalLeads from './NativePortalLeads'
+import NativePaymentsRenewals from './NativePaymentsRenewals'
+import NativeQboConnection from './NativeQboConnection'
 import { useT, type I18nKey } from '@/shared/i18n'
+import { salesDisplayValue } from './display-value'
 import s from './NativeSalesModule.module.css'
+import { auditSalesInitialRequest } from './performance-audit'
 
-type Tab = 'dashboard' | 'leads' | 'contacts' | 'accounts' | 'opportunities' |
-  'pipeline' | 'activities' | 'memberships' | 'reports' | 'social' | 'settings'
+type Tab = SalesSection
 type Access = { allowed: boolean; role: string; capabilities: { canWrite: boolean; canReassign: boolean; canConfigureReports:boolean } }
 type Person = { memberId: string; displayName: string; role: string; teamIds: string[] }
 type Team = { id: string; name: string }
@@ -29,13 +36,6 @@ export type NativeRequest = (path: string, options?: { method?: 'POST' | 'PATCH'
   payload?: Record<string, unknown>; version?: number; idempotencyKey?: string }) => Promise<Record<string, unknown>>
 type TimelineEvent = { id: string; type: string; action?: string; kind?: string;
   title?: string; body?: string; actorName?: string; occurredAt?: string }
-type Summary = {
-  asOf: string
-  scope: string
-  leads: { total: number; byStatus: { code: string; count: number }[] }
-  opportunities: { total: number; byStage: { code: string; label: string; outcome: string; count: number }[];
-    won: number; lost: number; open: number; openByCurrency: { currency: string; amount: string }[] }
-}
 type CountRow = { code: string; count: number; label?: string; outcome?: string }
 type DetailReport = {
   generatedAt: string; range: { from: string; to: string }; scope: string
@@ -45,18 +45,12 @@ type DetailReport = {
   opportunities: { total: number; won: number; lost: number; byStage: CountRow[] }
   memberships: { sold: number; byPlan: CountRow[]; byModality: CountRow[];
     salesBySeller: { memberId: string; label: string; currency: string; count: number; amount: string }[] }
+  renewals?: { completed:number; paidCents:number; currency:string }
   activities: { total: number; followUps: number; byKind: CountRow[] }
 }
 const todayUtc = () => new Date().toISOString().slice(0,10)
 const monthAgoUtc = () => { const day = new Date(); day.setUTCMonth(day.getUTCMonth()-1); return day.toISOString().slice(0,10) }
-const tabs: { key: Tab; labelKey: I18nKey }[] = [
-  { key: 'dashboard', labelKey: 'salesNative.tabDashboard' }, { key: 'leads', labelKey: 'salesNative.tabLeads' },
-  { key: 'contacts', labelKey: 'salesNative.tabContacts' }, { key: 'accounts', labelKey: 'salesNative.tabAccounts' },
-  { key: 'opportunities', labelKey: 'salesNative.tabOpportunities' }, { key: 'pipeline', labelKey: 'salesNative.tabPipeline' },
-  { key: 'activities', labelKey: 'salesNative.tabActivities' }, { key: 'memberships', labelKey: 'salesNative.tabMemberships' },
-  { key: 'reports', labelKey: 'salesNative.tabReports' }, { key: 'social', labelKey: 'salesNative.tabSocial' },
-  { key: 'settings', labelKey: 'salesNative.tabSettings' },
-]
+const tabs = salesSections
 const listTabs = new Set<Tab>(['leads', 'contacts', 'accounts', 'opportunities', 'memberships', 'activities'])
 const isObject = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -66,12 +60,19 @@ const title = (row: Row) => string(row.display_name) || string(row.name) ||
   [string(row.first_name), string(row.last_name)].filter(Boolean).join(' ') ||
   string(row.title) || string(row.relatedName) || string(row.subject) || string(row.code) || 'Untitled'
 
-export default function NativeSalesModule({ organizationId }: { organizationId: string }) {
+export default function NativeSalesModule({ organizationId, workspaceLabelKey }: {
+  organizationId: string; workspaceLabelKey?: I18nKey
+}) {
   const { t } = useT()
-  const [tab, setTab] = useState<Tab>('dashboard')
+  const router = useRouter()
+  const search = useSearchParams()
+  const tab = salesSection(search)
+  const initialTab = useRef(tab)
+  const initialDashboard = useRef<{ error: string } | null>(null)
+  const setTab = (section: Tab) => router.push(salesSectionHref(search.toString(), section))
   const [access, setAccess] = useState<Access | null>(null)
   const [directory, setDirectory] = useState<Directory>({ users: [], historicalUsers: [], teams: [], stages: [] })
-  const [summary, setSummary] = useState<Summary | null>(null)
+  const [summary, setSummary] = useState<SalesSummary | null>(null)
   const [detailReport, setDetailReport] = useState<DetailReport | null>(null)
   const [reportFrom, setReportFrom] = useState(monthAgoUtc)
   const [reportTo, setReportTo] = useState(todayUtc)
@@ -100,6 +101,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
   const [refresh, setRefresh] = useState(0)
 
   const request: NativeRequest = useCallback(async (path, options = {}) => {
+    const auditStarted = performance.now()
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) throw new Error('AUTHENTICATION_REQUIRED')
     const headers: Record<string,string> = { Authorization: `Bearer ${session.access_token}`,
@@ -111,22 +113,23 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
       method: options.method || 'GET', headers,
       body: options.payload ? JSON.stringify(options.payload) : undefined })
     const result = await response.json().catch(() => null) as unknown
+    auditSalesInitialRequest(path, response, result, auditStarted)
     if (!isObject(result)) throw new Error('SALES_RESPONSE_UNAVAILABLE')
     if (!response.ok) throw new Error(string(result.code) || 'SALES_UNAVAILABLE')
     return result
   }, [organizationId])
 
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).has('metaState') ||
-      new URLSearchParams(window.location.search).has('metaError')) setTab('social')
-  }, [])
-
-  useEffect(() => {
     let cancelled = false
-    Promise.all([request('access'), request('directory')]).then(([gate, lookup]) => {
+    request(initialTab.current === 'dashboard' ? 'bootstrap?dashboard=1' : 'bootstrap').then(result => {
       if (cancelled) return
-      setAccess(gate as Access)
-      const data = lookup.data
+      if (initialTab.current === 'dashboard') {
+        if (isObject(result.summary)) setSummary(result.summary as SalesSummary)
+        initialDashboard.current = { error: isObject(result.summaryError)
+          ? string(result.summaryError.code) || 'SALES_UNAVAILABLE' : '' }
+      }
+      setAccess(result.access as Access)
+      const data = result.directory
       if (isObject(data)) setDirectory({
         users: Array.isArray(data.users) ? data.users as Person[] : [],
         historicalUsers: Array.isArray(data.historicalUsers)
@@ -155,14 +158,23 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
     return () => { cancelled = true }
   }, [selected, tab, request])
   useEffect(() => {
-    if (!access?.allowed || tab === 'social' || tab === 'settings') return
+    if (!access?.allowed) return
+    // Consume this once, even if navigation/refresh changed during bootstrap.
+    // Later Dashboard visits and refreshes always request a fresh summary.
+    const ready = initialDashboard.current
+    initialDashboard.current = null
+    if (ready && tab === 'dashboard' && refresh === 0) {
+      setError(ready.error)
+      return
+    }
+    if (tab === 'social' || tab === 'settings' || tab === 'payments') return
     let cancelled = false
     const load = async () => {
       setLoading(true); setError('')
       try {
         if (tab === 'dashboard') {
           const result = await request('reports/summary')
-          if (!cancelled && isObject(result.data)) setSummary(result.data as Summary)
+          if (!cancelled && isObject(result.data)) setSummary(result.data as SalesSummary)
           return
         }
         if (tab === 'reports') {
@@ -200,9 +212,14 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
     return () => { cancelled = true }
   }, [access?.allowed, tab, query, demo, leadView, offset, refresh, reportFrom, reportTo, request])
 
-  const userName = useCallback((id: unknown) => directory.users.find(user => user.memberId === id)?.displayName ||
-    directory.historicalUsers.find(user => user.memberId === id)?.displayName || 'Unassigned',
+  const userName = useCallback((id: unknown) => !id ? 'Unassigned' : directory.users.find(user => user.memberId === id)?.displayName ||
+    directory.historicalUsers.find(user => user.memberId === id)?.displayName || 'Assigned owner',
     [directory.users, directory.historicalUsers])
+  const ownerLabel = useCallback((row: Row) =>
+    row.source === 'Patient Portal' && row.sellerAssignmentStatus === 'NEEDS_ASSIGNMENT'
+      ? 'Unassigned'
+      : string(row.assignedSellerName) || string(row.ownerDisplayName) ||
+        userName(row.owner_member_id || row.seller_member_id), [userName])
   const teamName = useCallback((id: unknown) => directory.teams.find(team => team.id === id)?.name || '', [directory.teams])
   const stageName = useCallback((id: unknown) => directory.stages.find(stage => stage.id === id)?.name || '', [directory.stages])
   const openMembershipPdf = useCallback(async (row: Row, download: boolean) => {
@@ -238,7 +255,8 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
     } finally { setPdfBusy(false) }
   }, [organizationId])
   const stages = useMemo(() => [...directory.stages].sort((a,b) => a.position-b.position), [directory.stages])
-  const currentLabel = t(tabs.find(item => item.key === tab)?.labelKey || 'salesNative.sales')
+  const currentTab = tabs.find(item => item.key === tab)
+  const currentLabel = t(currentTab?.labelKey || 'salesNative.sales')
   const moveOpportunity = useCallback(async (row: Row, target: Stage) => {
     const source = directory.stages.find(stage => stage.id===row.stage_id)
     if (!source || source.pipelineId!==target.pipelineId || source.id===target.id) return
@@ -262,25 +280,24 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
     finally { setBulkBusy(false) }
   },[rows,selectedLeadIds,bulkOwner,bulkTeam,request])
 
-  return <AppShell title={t('salesNative.sales')} actions={<span className={s.role}>{access?.role || 'Loading'}</span>}>
+  return <AppShell activeTab={tab} onTabChange={() => setQuery('')} title={t('salesNative.sales')} actions={<span className={s.role}>{access?.role || 'Loading'}</span>}>
     <main className={s.main}>
-      <div className={s.heading}><div><p className={s.eyebrow}>{t('salesNative.lillySales')}</p><h1>{currentLabel}</h1></div>
+      <div className={s.heading}><div><p className={s.eyebrow}>{t(workspaceLabelKey || 'salesNative.lillySales')}</p><h1>{currentLabel}</h1></div>
         <div className={s.headingActions}>
           {access?.capabilities.canWrite && ['leads','contacts','accounts','opportunities','memberships','activities'].includes(tab) &&
             !(tab==='leads' && leadView==='archived') &&
-            <button className={s.refresh} type="button" onClick={() => setCreateOpen(value => !value)}>{createOpen ? 'Cancel' : 'Add new'}</button>}
+            <button className={s.refresh} type="button" onClick={() => setCreateOpen(value => !value)}>{createOpen ? t('salesNative.cancel') : t('salesNative.addNew')}</button>}
           {access?.capabilities.canWrite && (tab==='leads' && leadView==='active' || tab==='contacts') &&
-            <button className={s.refresh} type="button" onClick={() => setImportOpen(value => !value)}>{importOpen ? 'Close import' : 'Import'}</button>}
+            <button className={s.refresh} type="button" onClick={() => setImportOpen(value => !value)}>{importOpen ? t('salesNative.closeImport') : t('salesNative.import')}</button>}
           <button className={s.refresh} type="button" onClick={() => {setSelectedLeadIds([]);setRefresh(value => value+1)}} disabled={loading}>{t('salesNative.refresh')}</button>
         </div>
       </div>
-      <nav className={s.tabs} aria-label={t('salesNative.salesSections')}>
-        {tabs.map(item => <button key={item.key} type="button" aria-current={tab===item.key ? 'page' : undefined}
-          className={tab===item.key ? s.active : ''} onClick={() => { setTab(item.key); setQuery('') }}>
-          {t(item.labelKey)}</button>)}
-      </nav>
-      {!access?.allowed && !loading && <p role="alert" className={s.error}>{error || 'Sales access is unavailable.'}</p>}
+      {!access?.allowed && !loading && <p role="alert" className={s.error}>{error || t('salesNative.salesAccessUnavailable')}</p>}
       {access?.allowed && <>
+        {tab==='payments' && <NativePaymentsRenewals request={request} role={access.role}
+          showPatientQbo={organizationId==='9efab353-46a0-43d1-9901-e3f185dc5d30'} />}
+        {tab==='portal-leads' && <NativePortalLeads request={request} users={directory.users}
+          onOpenLead={email => { setTab('leads'); setQuery(email); setSelected(null) }} />}
         {importOpen && (tab==='leads' || tab==='contacts') &&
           <NativeSalesImport key={tab} resource={tab} organizationId={organizationId}
             onComplete={() => { setImportOpen(false); setRefresh(value => value + 1) }} />}
@@ -292,34 +309,23 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
         {createOpen && tab==='activities' && <NativeGeneralTask request={request}
           onSaved={() => {setCreateOpen(false);setRefresh(value => value+1)}} />}
         {error && <p role="alert" className={s.error}>{error}</p>}
-        {loading && <p role="status" className={s.empty}>Loading {currentLabel.toLowerCase()}…</p>}
-        {tab==='dashboard' && summary && !loading && !error && <>
-          <div className={s.metrics}>
-            <Metric label="Leads" value={summary.leads.total} />
-            <Metric label="Open opportunities" value={summary.opportunities.open} />
-            <Metric label="Won" value={summary.opportunities.won} />
-            <Metric label="Lost" value={summary.opportunities.lost} />
-          </div>
-          <div className={s.reportGrid}>
-            <section className={s.panel}><h2>{t('salesNative.leadsByStage')}</h2><Breakdown rows={summary.leads.byStatus} /></section>
-            <section className={s.panel}><h2>{t('salesNative.opportunitiesByStage')}</h2><Breakdown rows={summary.opportunities.byStage} /></section>
-          </div>
-          <p className={s.caption}>Scope: {summary.scope === 'organization' ? 'Organization' : 'Your permitted records'} · Updated {date(summary.asOf)}</p>
-        </>}
+        {loading && <p role="status" className={s.empty}>{t('salesNative.loadingSection',{section:currentLabel.toLowerCase()})}</p>}
+        {tab==='dashboard' && summary && !loading && !error && <NativeSalesDashboard summary={summary} />}
         {tab==='reports' && <div className={s.filters}>
-          <label>From <input type="date" value={reportFrom} onChange={event => setReportFrom(event.target.value)} /></label>
-          <label>To <input type="date" value={reportTo} onChange={event => setReportTo(event.target.value)} /></label>
+          <label>{t('salesNative.auditFrom')} <input type="date" value={reportFrom} onChange={event => setReportFrom(event.target.value)} /></label>
+          <label>{t('salesNative.auditTo')} <input type="date" value={reportTo} onChange={event => setReportTo(event.target.value)} /></label>
         </div>}
         {tab==='reports' && detailReport && !loading && !error && <>
           <div className={s.metrics}>
-            <Metric label="Leads" value={detailReport.leads.total} />
-            <Metric label="Converted" value={detailReport.leads.converted} />
-            <Metric label="Won" value={detailReport.opportunities.won} />
-            <Metric label="Lost" value={detailReport.opportunities.lost} />
-            <Metric label="Memberships sold" value={detailReport.memberships.sold} />
-            <Metric label="Activities" value={detailReport.activities.total} />
+            <Metric label={t('salesNative.tabLeads')} value={detailReport.leads.total} />
+            <Metric label={t('salesNative.auditConverted')} value={detailReport.leads.converted} />
+            <Metric label={t('salesNative.auditWon')} value={detailReport.opportunities.won} />
+            <Metric label={t('salesNative.auditLost')} value={detailReport.opportunities.lost} />
+            <Metric label={t('salesNative.auditMembershipsSold')} value={detailReport.memberships.sold} />
+            <Metric label={t('salesNative.tabActivities')} value={detailReport.activities.total} />
           </div>
-          <p className={s.caption}>Lead conversion {detailReport.leads.conversionRate}% · Unresponsive {detailReport.leads.unresponsive} · Follow-ups {detailReport.activities.followUps}</p>
+          {detailReport.renewals && <p className={s.caption}>{t('salesNative.verifiedRenewals')}: {detailReport.renewals.completed} · {t('salesNative.renewalPayments')}: {new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(detailReport.renewals.paidCents/100)}</p>}
+          <p className={s.caption}>{t('salesNative.conversionSummary',{rate:detailReport.leads.conversionRate,unresponsive:detailReport.leads.unresponsive,followUps:detailReport.activities.followUps})}</p>
           <div className={s.reportGrid}>
             <section className={s.panel}><h2>{t('salesNative.leadsByStage')}</h2><Breakdown rows={detailReport.leads.byStage} /></section>
             <section className={s.panel}><h2>{t('salesNative.leadsBySource')}</h2><Breakdown rows={detailReport.leads.bySource} /></section>
@@ -331,7 +337,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
               <li key={`${row.memberId}-${row.currency}`}><span>{row.label} · {row.currency}</span><strong>{row.count} · {row.amount}</strong></li>)}</ul></section>
             <section className={s.panel}><h2>{t('salesNative.activityByKind')}</h2><Breakdown rows={detailReport.activities.byKind} /></section>
           </div>
-          <p className={s.caption}>Scope: {detailReport.scope==='organization' ? 'Organization' : 'Your permitted records'} · Updated {date(detailReport.generatedAt)}</p>
+          <p className={s.caption}>{t('salesNative.reportScopeUpdated',{scope:detailReport.scope==='organization' ? t('salesNative.organizationScope') : t('salesNative.permittedScope'),date:date(detailReport.generatedAt)})}</p>
         </>}
         {tab==='pipeline' && !loading && <>
           <p className={s.hint}>{t('salesNative.swipeSidewaysToViewEveryStage')}</p>
@@ -345,7 +351,7 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
                 draggable={access.capabilities.canWrite}
                 onDragStart={() => setDraggedOpportunityId(row.id)} onDragEnd={() => setDraggedOpportunityId('')}
                 onClick={() => { setPipelineStage(''); setSelected(row) }}>
-                <strong>{title(row)}</strong><span>{userName(row.owner_member_id)}</span>
+                <strong>{title(row)}</strong><span>{ownerLabel(row)}</span>
                 <small>{string(row.currency)} {row.amount === null ? '—' : String(row.amount ?? '—')}</small>
               </button>)}
             </section>)}
@@ -354,24 +360,24 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
         </>}
         {listTabs.has(tab) && !loading && <>
           {tab!=='activities' && <div className={s.filters}>
-            <label>Search <input value={query} onChange={event => setQuery(event.target.value)} placeholder={t('salesNative.nameOrCode')} /></label>
-            {tab==='leads' && access.capabilities.canReassign && <label>Lead view <select value={leadView}
+            <label>{t('salesNative.auditSearch')} <input value={query} onChange={event => setQuery(event.target.value)} placeholder={t('salesNative.nameOrCode')} /></label>
+            {tab==='leads' && access.capabilities.canReassign && <label>{t('salesNative.auditLeadView')} <select value={leadView}
               onChange={event => setLeadView(event.target.value as 'active'|'archived')}>
-              <option value="active">{t('salesNative.active')}</option><option value="archived">Archived</option>
+              <option value="active">{t('salesNative.active')}</option><option value="archived">{t('salesNative.auditArchived')}</option>
             </select></label>}
-            {tab==='memberships' && <label>Records <select value={demo} onChange={event => setDemo(event.target.value)}>
-              <option value="all">{t('salesNative.all')}</option><option value="false">Commercial</option><option value="true">Demo</option>
+            {tab==='memberships' && <label>{t('salesNative.auditRecords')} <select value={demo} onChange={event => setDemo(event.target.value)}>
+              <option value="all">{t('salesNative.all')}</option><option value="false">{t('salesNative.auditCommercial')}</option><option value="true">{t('salesNative.auditDemo')}</option>
             </select></label>}
           </div>}
           {tab==='leads' && leadView==='active' && access.capabilities.canReassign && selectedLeadIds.length>0 &&
             <form className={`${s.panel} ${s.form}`} onSubmit={event => {event.preventDefault();void bulkReassign()}}>
-              <h2>Assign {selectedLeadIds.length} selected Lead{selectedLeadIds.length===1 ? '' : 's'}</h2>
+              <h2>{t('salesNative.assignSelectedCount',{count:selectedLeadIds.length})}</h2>
               <div className={s.formGrid}>
-                <label>Owner <select required value={bulkOwner} onChange={event => {setBulkOwner(event.target.value);setBulkTeam('')}}>
+                <label>{t('salesNative.owner')} <select required value={bulkOwner} onChange={event => {setBulkOwner(event.target.value);setBulkTeam('')}}>
                   <option value="">{t('salesNative.chooseAPerson')}</option>{directory.users.map(user =>
                     <option key={user.memberId} value={user.memberId}>{user.displayName}</option>)}
                 </select></label>
-                <label>Team <select required={access.role==='SALES_MANAGER'} value={bulkTeam} onChange={event => setBulkTeam(event.target.value)}>
+                <label>{t('salesNative.team')} <select required={access.role==='SALES_MANAGER'} value={bulkTeam} onChange={event => setBulkTeam(event.target.value)}>
                   <option value="">{t('salesNative.noTeam')}</option>{directory.teams.filter(team =>
                     directory.users.find(user => user.memberId===bulkOwner)?.teamIds.includes(team.id)).map(team =>
                     <option key={team.id} value={team.id}>{team.name}</option>)}
@@ -381,23 +387,24 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
             </form>}
           {rows.length ? <div className={s.list}>{rows.map(row => <div key={row.id} className={s.itemRow}>
             {tab==='leads' && leadView==='active' && access.capabilities.canReassign &&
-              <input type="checkbox" aria-label={`Select ${title(row)}`} checked={selectedLeadIds.includes(row.id)}
+              <input type="checkbox" aria-label={t('salesNative.selectRecord',{record:title(row)})} checked={selectedLeadIds.includes(row.id)}
                 onChange={event => setSelectedLeadIds(ids => event.target.checked ? [...ids,row.id] : ids.filter(id => id!==row.id))} />}
             <button type="button" className={s.item} onClick={() => {setPipelineStage('');setSelected(row)}}>
             <span><strong>{title(row)}</strong><small>{tab==='opportunities' ? stageName(row.stage_id) :
-              tab==='activities' ? `${string(row.kind)} · ${string(row.relatedName)}` :
-              tab==='memberships' ? `${string(row.plan)} · ${string(row.duration)}` :
-              string(row.status) || string(row.type) || string(row.source)}</small></span>
+              tab==='activities' ? `${salesDisplayValue(string(row.kind),t)} · ${salesDisplayValue(string(row.relatedName),t)}` :
+              tab==='memberships' ? `${string(row.plan)} · ${salesDisplayValue(string(row.duration),t)}` :
+              salesDisplayValue(string(row.status) || string(row.type) || string(row.source),t)}</small></span>
             <span className={s.meta}>{tab==='activities' ? date(row.due_at) :
-              tab==='memberships' ? string(row.effectiveStatus) : userName(row.owner_member_id)}</span>
+              tab==='memberships' ? salesDisplayValue(string(row.effectiveStatus),t) : ownerLabel(row)}</span>
             </button></div>)}</div> : <p className={s.empty}>{t('salesNative.noRecordsInThisView')}</p>}
           <div className={s.pager}><button type="button" disabled={offset===0} onClick={() => {setSelectedLeadIds([]);setOffset(Math.max(0,offset-25))}}>{t('salesNative.previous')}</button>
-            <span>Page {Math.floor(offset/25)+1}</span><button type="button" disabled={nextOffset===null} onClick={() => {setSelectedLeadIds([]);setOffset(nextOffset ?? offset)}}>{t('salesNative.next')}</button></div>
+            <span>{t('salesNative.pageNumber',{page:Math.floor(offset/25)+1})}</span><button type="button" disabled={nextOffset===null} onClick={() => {setSelectedLeadIds([]);setOffset(nextOffset ?? offset)}}>{t('salesNative.next')}</button></div>
         </>}
         {tab==='social' && <><NativeSocialStatus request={request} role={access.role}
           users={directory.users} teams={directory.teams} />
           <NativeSocialInbox request={request} /></>}
         {tab==='settings' && <div className={s.reportGrid}>
+          <NativeQboConnection request={request} />
           <section className={s.panel}><h2>{t('salesNative.team')}</h2>{directory.teams.map(team => <p key={team.id}>{team.name}</p>)}</section>
           <section className={s.panel}><h2>{t('salesNative.people')}</h2>{directory.users.map(user => <p key={user.memberId}>{user.displayName} · {user.role}</p>)}</section>
           {access.capabilities.canConfigureReports && <NativeReportSchedules request={request} />}
@@ -405,8 +412,8 @@ export default function NativeSalesModule({ organizationId }: { organizationId: 
         {selected && <div className={s.overlay} role="presentation" onMouseDown={event => { if (event.target===event.currentTarget) setSelected(null) }}>
           <section className={s.detail} role="dialog" aria-modal="true" aria-label={title(selected)}>
             <div className={s.detailHeader}><h2>{title(selected)}</h2><button type="button" onClick={() => {setSelected(null);setPipelineStage('')}} aria-label={t('salesNative.closeDetails')}>×</button></div>
-            <dl><dt>{t('salesNative.status')}</dt><dd>{string(selected.effectiveStatus) || string(selected.status) || stageName(selected.stage_id) || '—'}</dd>
-              <dt>{t('salesNative.owner')}</dt><dd>{userName(selected.owner_member_id || selected.seller_member_id)}</dd>
+            <dl><dt>{t('salesNative.status')}</dt><dd>{salesDisplayValue(string(selected.effectiveStatus) || string(selected.status) || stageName(selected.stage_id) || '—',t)}</dd>
+              <dt>{t('salesNative.owner')}</dt><dd>{ownerLabel(selected)}</dd>
               <dt>{t('salesNative.team')}</dt><dd>{teamName(selected.team_id) || '—'}</dd>
               <dt>{t('salesNative.created')}</dt><dd>{date(selected.created_at) || '—'}</dd>
               {selected.email && <><dt>{t('salesNative.email')}</dt><dd>{string(selected.email)}</dd></>}
@@ -457,7 +464,7 @@ function Metric({ label, value }: { label: string; value: number }) {
 function Breakdown({ rows }: { rows: { code: string; count: number }[] }) {
   const { t } = useT()
   if (!rows.length) return <p className={s.empty}>{t('salesNative.noRecordsYet')}</p>
-  return <ul className={s.breakdown}>{rows.map(row => <li key={row.code}><span>{row.code.replaceAll('_',' ')}</span><strong>{row.count}</strong></li>)}</ul>
+  return <ul className={s.breakdown}>{rows.map(row => <li key={row.code}><span>{salesDisplayValue(row.code,t).replaceAll('_',' ')}</span><strong>{row.count}</strong></li>)}</ul>
 }
 function SellerBreakdown({ rows }: { rows: DetailReport['leads']['bySeller'] }) {
   const { t } = useT()

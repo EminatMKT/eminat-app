@@ -1,0 +1,15 @@
+# Security and privacy remediation release
+
+Base: main 1804a72d (includes PR #192). Public publication changes only privacy/index.html and merges the security header fragment into the existing .htaccess. Do not overwrite existing rewrite/redirect rules. homepage-unchanged.html and privacy-before.html are rollback/test references, not public uploads. Terms are unchanged; their obsolete ANNIE/accounting statements require a separate precise correction and must not be represented as current architecture.
+
+The policy remains a website/portal privacy policy. Architecture facts follow the current user-authorized brief. No NPP is adopted. The Agreement v5, pricing, designs, staff/patient registration and all QBO/Sales/Family workflows remain unchanged.
+
+The public CSP hashes the existing inline JavaScript exactly. Google Fonts and the emc.health image are explicit origins; Maps/WhatsApp are navigation links, not embedded resources. There are no inline event handlers or required embeddings in the reviewed source. If the homepage script changes, regenerate its hashes before publication. Do not add unsafe-eval or broad wildcard sources.
+
+Portal: apply portal-security-nginx.fragment inside the existing TLS server, after nginx -t and a loopback-only Preview. Preserve the active c265310 container and port. portal.patch is an optional application-layer equivalent prepared on c265310; do not apply both approaches together. This release uses the proxy policy to keep the application runtime byte-for-byte unchanged. The portal config permits same-origin requests and blob PDFs. LILLY: explicit Supabase HTTPS/WSS, existing login IP lookup, clinicaltrials API, and Meet frame destination. Top-level QBO/Meta OAuth navigation is unaffected. Inline scripts/styles remain allowed for Next hydration and existing inline styling; nonce conversion is deferred because it changes rendering/caching. unsafe-eval exists only outside production for Next development.
+
+Release gates: local production build and unit tests, production-mode local browser/CSP verification, full CI and protected Preview before merge/deploy. Preserve old public files/.htaccess and the active Portal container, plus the previous Vercel deployment. Never copy Production server secrets into Preview for these header-only tests. Do not declare local results as live header success.
+
+Production-mode browser testing observed Zod's guarded Function("") feature-detection probe being blocked once. Zod catches that failure and uses its non-JIT path; login, recovery and locale hydration continue to work. The policy deliberately keeps unsafe-eval prohibited. The focused browser test recognizes this exact probe and rejects other CSP violations.
+
+Catalog check scope: callable Native Sales RPCs must be service-only; all SECURITY DEFINER routines must have a fixed safe search_path. PostgreSQL trigger pseudo-types are assessed through their target table privileges. The existing native_sales_guard_converted_lead is a non-definer trigger on service-only sales_leads; its default EXECUTE ACL does not make it a callable data RPC. No grants/schema change is made.

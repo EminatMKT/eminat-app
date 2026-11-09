@@ -1,0 +1,34 @@
+[
+  {
+    "surface": "portal",
+    "width": 1440,
+    "headers": true,
+    "loginCreateAccount": true,
+    "recovery": true,
+    "locale": true,
+    "cspViolations": []
+  },
+  {
+    "surface": "public",
+    "width": 1440,
+    "locale": true,
+    "privacy": true,
+    "cspViolations": []
+  },
+  {
+    "surface": "portal",
+    "width": 390,
+    "headers": true,
+    "loginCreateAccount": true,
+    "recovery": true,
+    "locale": true,
+    "cspViolations": []
+  },
+  {
+    "surface": "public",
+    "width": 390,
+    "locale": true,
+    "privacy": true,
+    "cspViolations": []
+  }
+]

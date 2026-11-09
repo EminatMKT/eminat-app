@@ -1,0 +1,213 @@
+{
+  "audit_related_tables": [
+    "historial"
+  ],
+  "auth_audit_table_present": true,
+  "user_and_contact_audit_triggers": [
+    {
+      "table": "sales_patient_agreement_acceptances",
+      "routine": "native_sales_patient_agreement_immutable",
+      "trigger": "sales_patient_agreement_immutable"
+    },
+    {
+      "table": "usuarios",
+      "routine": "conservar_participante_de_usuario_borrado",
+      "trigger": "trg_conservar_participante"
+    },
+    {
+      "table": "usuarios",
+      "routine": "prevent_rol_self_change",
+      "trigger": "trg_prevent_rol_self_change"
+    },
+    {
+      "table": "usuarios",
+      "routine": "update_updated_at",
+      "trigger": "trg_usuarios_updated_at"
+    }
+  ],
+  "related_legacy_definer_functions": [
+    {
+      "name": "meet_can_read_meeting(uuid)",
+      "settings": [
+        "search_path=\"\""
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "name": "has_module(text)",
+      "settings": [
+        "search_path=public, pg_temp"
+      ],
+      "anon_execute": true,
+      "authenticated_execute": true
+    },
+    {
+      "name": "capture_meeting_mail(uuid,boolean)",
+      "settings": [
+        "search_path=public"
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "name": "lilly_task_metrics(date,date,text,uuid,uuid,uuid,text)",
+      "settings": [
+        "search_path=public"
+      ],
+      "anon_execute": true,
+      "authenticated_execute": true
+    },
+    {
+      "name": "participa_en_reunion(uuid)",
+      "settings": [
+        "search_path=public"
+      ],
+      "anon_execute": true,
+      "authenticated_execute": true
+    },
+    {
+      "name": "misma_empresa_reunion(uuid)",
+      "settings": [
+        "search_path=public"
+      ],
+      "anon_execute": true,
+      "authenticated_execute": true
+    },
+    {
+      "name": "preside_o_secretaria(uuid)",
+      "settings": [
+        "search_path=public"
+      ],
+      "anon_execute": true,
+      "authenticated_execute": true
+    },
+    {
+      "name": "registrar_entrada(uuid,text)",
+      "settings": null,
+      "anon_execute": true,
+      "authenticated_execute": true
+    },
+    {
+      "name": "usuario_actual_id()",
+      "settings": [
+        "search_path=public"
+      ],
+      "anon_execute": true,
+      "authenticated_execute": true
+    },
+    {
+      "name": "admin_reassign_and_delete(uuid,uuid,text)",
+      "settings": [
+        "search_path=public"
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "name": "es_personal()",
+      "settings": [
+        "search_path=public, pg_temp"
+      ],
+      "anon_execute": true,
+      "authenticated_execute": true
+    },
+    {
+      "name": "can_access_project(uuid)",
+      "settings": [
+        "search_path=public, pg_temp"
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "name": "lilly_has_company(text)",
+      "settings": [
+        "search_path=public, pg_temp"
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "name": "lilly_project_member(uuid)",
+      "settings": [
+        "search_path=public, pg_temp"
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "name": "lilly_can_see_user(uuid)",
+      "settings": [
+        "search_path=public, pg_temp"
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "name": "activate_lilly_access_control()",
+      "settings": [
+        "search_path=public, pg_temp"
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "name": "pacientes_purgar_duplicados()",
+      "settings": [
+        "search_path=pg_catalog, pg_temp"
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "name": "queue_task_assignment_email()",
+      "settings": [
+        "search_path=public"
+      ],
+      "anon_execute": true,
+      "authenticated_execute": true
+    },
+    {
+      "name": "replace_lilly_user_companies(uuid,text[],uuid)",
+      "settings": [
+        "search_path=public, pg_temp"
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "name": "is_admin()",
+      "settings": [
+        "search_path=public, pg_temp"
+      ],
+      "anon_execute": true,
+      "authenticated_execute": true
+    },
+    {
+      "name": "lilly_access_enforced()",
+      "settings": [
+        "search_path=public, pg_temp"
+      ],
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "name": "log_cambio_actividad_responsables()",
+      "settings": [
+        "search_path=public"
+      ],
+      "anon_execute": true,
+      "authenticated_execute": true
+    },
+    {
+      "name": "queue_task_participant_notice()",
+      "settings": [
+        "search_path=public, pg_temp"
+      ],
+      "anon_execute": false,
+      "authenticated_execute": false
+    }
+  ],
+  "patient_tables_browser_definer_calls": null
+}

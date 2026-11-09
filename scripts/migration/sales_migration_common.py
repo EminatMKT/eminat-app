@@ -1,6 +1,7 @@
 """Native Sales schema inventory and Production database connection gate."""
 
 import os
+from pathlib import Path
 from urllib.parse import unquote, urlparse
 
 
@@ -13,6 +14,7 @@ TABLES = [
     "sales_activities", "sales_meetings", "sales_history",
 ]
 PROJECT_REF = "ruedelunbtaomhrzgelc"
+SUPABASE_CA_CERT = Path(__file__).resolve().parent / "supabase-prod-ca-2021.crt"
 
 
 def connection_environment(url: str) -> dict[str, str]:
@@ -34,7 +36,7 @@ def connection_environment(url: str) -> dict[str, str]:
     env.update({"PGHOST": parsed.hostname, "PGPORT": str(parsed.port or 5432),
                 "PGUSER": username, "PGPASSWORD": unquote(parsed.password or ""),
                 "PGDATABASE": unquote(parsed.path.lstrip("/") or "postgres"),
-                "PGSSLMODE": "verify-full", "PGSSLROOTCERT": "system",
+                "PGSSLMODE": "verify-full", "PGSSLROOTCERT": str(SUPABASE_CA_CERT),
                 "PGCONNECT_TIMEOUT": "10"})
     if not env["PGPASSWORD"]:
         raise ValueError("PRIVATE_DATABASE_HANDOFF_INVALID")

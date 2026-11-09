@@ -18,6 +18,7 @@ const DEFAULT_NEW = {
   nombre: '', apellido: '', email: '', password: '', rol: DEFAULT_ROLE, color: '#7C6FF7',
   empresa_id: null as string | null, jornada_id: null as string | null,
   vinculacion_id: null as string | null, equipo_id: null as string | null,
+  ubicacion: '',
   cargoIds: [] as string[],
   directorio_visible: true,
 }
@@ -49,7 +50,7 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
         rol: nuevoUsr.rol, color: nuevoUsr.color, empresa_id: nuevoUsr.empresa_id,
         jornada_id: nuevoUsr.jornada_id, vinculacion_id: nuevoUsr.vinculacion_id,
         equipo_id: nuevoUsr.equipo_id,
-        ubicacion: 'Guayaquil, Ecuador', cargoIds: nuevoUsr.cargoIds,
+        ubicacion: nuevoUsr.ubicacion, cargoIds: nuevoUsr.cargoIds,
         directorio_visible: nuevoUsr.directorio_visible,
       })
       if (!res.ok) { setCreateError(result.error || t('admin.create.failed')); setGuardando(false); return }
@@ -101,6 +102,7 @@ export default function CreateUserModal({ onClose }: { onClose: () => void }) {
             </div>
             <CargosPicker value={nuevoUsr.cargoIds} onChange={ids => setNuevoUsr(p => ({ ...p, cargoIds: ids }))} />
             <CatalogSelect labelKey="common.company" value={nuevoUsr.empresa_id} rows={empresas} onChange={id => setNuevoUsr(p => ({ ...p, empresa_id: id }))} />
+            <div style={{ marginBottom: 12 }}><label style={{ fontSize: 11, color: t3, display: 'block', marginBottom: 5 }}>Ubicación (opcional)</label><input type="text" value={nuevoUsr.ubicacion} onChange={e => setNuevoUsr(p => ({ ...p, ubicacion: e.target.value }))} style={inputStyle} /></div>
             <CatalogSelect labelKey="common.jornada" value={nuevoUsr.jornada_id} rows={jornadas} onChange={id => setNuevoUsr(p => ({ ...p, jornada_id: id }))} />
             <CatalogSelect labelKey="common.vinculacion" value={nuevoUsr.vinculacion_id} rows={vinculaciones} onChange={id => setNuevoUsr(p => ({ ...p, vinculacion_id: id }))} />
             {/* Sin equipo la persona no entra en las derivaciones de Stratix y

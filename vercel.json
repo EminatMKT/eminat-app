@@ -19,6 +19,10 @@
     {
       "path": "/api/sales-native/social/meta/recover",
       "schedule": "10 14 * * *"
+    },
+    {
+      "path": "/api/sales-native/patient-email/process",
+      "schedule": "15 12 * * *"
     }
   ]
 }

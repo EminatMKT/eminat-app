@@ -7,7 +7,7 @@ export type UserRow = {
   apellido: string
   rol: string
   color: string
-  ubicacion: string
+  ubicacion?: string | null
   activo: boolean
   validado: boolean
   directorio_visible?: boolean

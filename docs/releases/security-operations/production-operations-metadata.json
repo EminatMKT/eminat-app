@@ -1,0 +1,246 @@
+{
+  "project": "ruedelunbtaomhrzgelc",
+  "buckets": [
+    {
+      "id": "sales-membership-archive",
+      "public": false,
+      "objects": 0
+    }
+  ],
+  "archive_documents": {
+    "total": 0,
+    "membership": 0,
+    "agreement": 0
+  },
+  "privileged_tables": [
+    {
+      "name": "equipos",
+      "columns": [
+        "id",
+        "codigo",
+        "nombre",
+        "departamento_id",
+        "lider_id",
+        "activo",
+        "created_at"
+      ],
+      "triggers": null
+    },
+    {
+      "name": "lilly_access_control",
+      "columns": [
+        "singleton",
+        "enforced",
+        "activated_at",
+        "activated_by"
+      ],
+      "triggers": null
+    },
+    {
+      "name": "pacientes",
+      "columns": [
+        "id",
+        "mrn",
+        "nombre",
+        "apellido",
+        "fecha_nacimiento",
+        "genero",
+        "telefono",
+        "email",
+        "seguro",
+        "seguro_id",
+        "direccion",
+        "estado",
+        "alergias",
+        "condiciones",
+        "notas",
+        "created_at",
+        "updated_at"
+      ],
+      "triggers": [
+        {
+          "name": "pacientes_purgar_duplicados",
+          "definition": "CREATE TRIGGER pacientes_purgar_duplicados AFTER DELETE ON public.pacientes FOR EACH ROW EXECUTE FUNCTION pacientes_purgar_duplicados()",
+          "function": "pacientes_purgar_duplicados"
+        },
+        {
+          "name": "trg_pacientes_updated_at",
+          "definition": "CREATE TRIGGER trg_pacientes_updated_at BEFORE UPDATE ON public.pacientes FOR EACH ROW EXECUTE FUNCTION update_updated_at()",
+          "function": "update_updated_at"
+        }
+      ]
+    },
+    {
+      "name": "role_modules",
+      "columns": [
+        "role_key",
+        "module_slug"
+      ],
+      "triggers": null
+    },
+    {
+      "name": "roles",
+      "columns": [
+        "key",
+        "label",
+        "is_system",
+        "created_at",
+        "updated_at"
+      ],
+      "triggers": [
+        {
+          "name": "trg_roles_updated_at",
+          "definition": "CREATE TRIGGER trg_roles_updated_at BEFORE UPDATE ON public.roles FOR EACH ROW EXECUTE FUNCTION update_updated_at()",
+          "function": "update_updated_at"
+        }
+      ]
+    },
+    {
+      "name": "sales_history",
+      "columns": [
+        "id",
+        "organization_id",
+        "entity_type",
+        "record_id",
+        "actor_member_id",
+        "action",
+        "request_id",
+        "occurred_at",
+        "changes",
+        "legacy_annie_id"
+      ],
+      "triggers": null
+    },
+    {
+      "name": "sales_members",
+      "columns": [
+        "id",
+        "organization_id",
+        "user_id",
+        "auth_id",
+        "display_name",
+        "role",
+        "legacy_annie_principal_id",
+        "status",
+        "evidence_ref",
+        "approved_by",
+        "approved_at",
+        "created_at",
+        "updated_at"
+      ],
+      "triggers": null
+    },
+    {
+      "name": "sales_membership_archive_documents",
+      "columns": [
+        "organization_id",
+        "membership_id",
+        "kind",
+        "object_key",
+        "sha256",
+        "byte_count",
+        "imported_at"
+      ],
+      "triggers": null
+    },
+    {
+      "name": "sales_team_members",
+      "columns": [
+        "organization_id",
+        "team_id",
+        "member_id",
+        "created_at"
+      ],
+      "triggers": null
+    },
+    {
+      "name": "sales_teams",
+      "columns": [
+        "id",
+        "organization_id",
+        "name",
+        "legacy_annie_id",
+        "active",
+        "created_at"
+      ],
+      "triggers": null
+    },
+    {
+      "name": "usuario_cargos",
+      "columns": [
+        "usuario_id",
+        "cargo_id",
+        "created_at"
+      ],
+      "triggers": null
+    },
+    {
+      "name": "usuario_empresas_acceso",
+      "columns": [
+        "usuario_id",
+        "empresa_codigo",
+        "created_at",
+        "created_by"
+      ],
+      "triggers": null
+    },
+    {
+      "name": "usuarios",
+      "columns": [
+        "id",
+        "auth_id",
+        "email",
+        "nombre",
+        "apellido",
+        "nombre_display",
+        "rol",
+        "id_sheet",
+        "marca_hora",
+        "fecha_inicio",
+        "activo",
+        "validado",
+        "validado_por",
+        "validado_en",
+        "avatar_url",
+        "color",
+        "created_at",
+        "updated_at",
+        "estado",
+        "ubicacion",
+        "online_at",
+        "equipo_id",
+        "empresa_id",
+        "jornada_id",
+        "vinculacion_id",
+        "avatar_key",
+        "directorio_visible"
+      ],
+      "triggers": [
+        {
+          "name": "trg_conservar_participante",
+          "definition": "CREATE TRIGGER trg_conservar_participante BEFORE DELETE ON public.usuarios FOR EACH ROW EXECUTE FUNCTION conservar_participante_de_usuario_borrado()",
+          "function": "conservar_participante_de_usuario_borrado"
+        },
+        {
+          "name": "trg_prevent_rol_self_change",
+          "definition": "CREATE TRIGGER trg_prevent_rol_self_change BEFORE UPDATE ON public.usuarios FOR EACH ROW EXECUTE FUNCTION prevent_rol_self_change()",
+          "function": "prevent_rol_self_change"
+        },
+        {
+          "name": "trg_usuarios_updated_at",
+          "definition": "CREATE TRIGGER trg_usuarios_updated_at BEFORE UPDATE ON public.usuarios FOR EACH ROW EXECUTE FUNCTION update_updated_at()",
+          "function": "update_updated_at"
+        }
+      ]
+    }
+  ],
+  "audit_settings": {
+    "log_min_duration_statement": "-1",
+    "log_statement": "ddl",
+    "pgaudit.log": "none",
+    "pgaudit.log_parameter": "off"
+  },
+  "audit_extensions": [
+    "pg_stat_statements"
+  ]
+}

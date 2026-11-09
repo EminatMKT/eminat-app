@@ -1,0 +1,14 @@
+{
+  "result": "PASS",
+  "productionDataUsed": false,
+  "proposalSha256": "32dc7f0fd7a70d7c7ef04a2ca2f2257b973a7ad240b292416f1ca43cdf1e4812",
+  "functionSha256": "c281dba2d942c38b52985aedcbe7f70495246f437bd87c1809374d9cad3199a1",
+  "checks": [
+    "anon/authenticated execution denied",
+    "service direct reads/updates/deletes denied",
+    "safe allowlisted field names only",
+    "request idempotency does not overwrite evidence",
+    "non-destructive rollback preserves evidence"
+  ],
+  "limitation": "Additive post-commit append; not atomic with the business write. Global corporate actions have no Sales organization. Direct DB/client writes and privileged patient reads remain outside complete coverage."
+}

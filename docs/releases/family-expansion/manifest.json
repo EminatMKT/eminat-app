@@ -1,0 +1,12 @@
+{
+  "portal_base_commit": "794e647a823c2f3601457630504c48cbe5b30267",
+  "portal_release_commit": "2253a66e3e81bf5a415baea84cd0f38a1caeb645",
+  "portal_tree": "3875abf6a9dec43f38f93632170eebf4b09624ec",
+  "portal_patch_sha256": "df21dc8c2bf51db428a57ecb17fac87351d1d4703cb0ecf8440c7181d6d93ea8",
+  "portal_build_id": "HI5Yt4OgkHkTjtf2eFAyq",
+  "lilly_base_commit": "2cba906427c365cd4c9078d3f023606d65db8796",
+  "migration": "20261027010000_native_sales_family_expansion.sql",
+  "production_data_mutations_performed": false,
+  "real_invoices_created": false,
+  "real_payments_performed": false
+}

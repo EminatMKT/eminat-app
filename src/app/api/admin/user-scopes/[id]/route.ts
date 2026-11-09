@@ -1,3 +1,4 @@
+import { recordPrivilegedAction } from '@/server/privileged-audit'
 import { NextRequest, NextResponse } from 'next/server'
 import requireAdmin from '@/shared/db/requireAdmin'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
@@ -26,10 +27,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     !codes.every(code => typeof code === 'string' && /^[A-Z0-9_-]{1,40}$/.test(code))) {
     return NextResponse.json({ error: 'Empresas inválidas.' }, { status: 400 })
   }
-  const { error } = await supabaseAdmin().rpc('replace_lilly_user_companies', {
+  const db = supabaseAdmin()
+  const { error } = await db.rpc('replace_lilly_user_companies', {
     p_user: params.id, p_codes: codes, p_actor: access.userId,
   })
   if (error) return NextResponse.json({ error: 'No se pudieron guardar los accesos.' }, { status: 400 })
+  await recordPrivilegedAction(db, { action: 'admin.user.scopes.updated', actorId: access.userId,
+    resourceId: params.id, changedFields: ['codes'] })
   return NextResponse.json({ codes: Array.from(new Set(codes)) },
     { headers: { 'Cache-Control': 'private, no-store' } })
 }

@@ -1,0 +1,83 @@
+{
+  "auth_helper_definitions": {
+    "has_module": "\n SELECT public.is_admin() OR EXISTS (\n SELECT 1 FROM public.usuarios u\n JOIN public.role_modules rm ON rm.role_key = u.rol\n WHERE u.auth_id = auth.uid() AND u.activo = true AND rm.module_slug = p_slug\n );\n",
+    "es_personal": "\n SELECT EXISTS (SELECT 1 FROM public.usuarios u\n WHERE u.auth_id = auth.uid() AND u.activo = true);\n",
+    "patient_birthday_months": "\n SELECT EXTRACT(MONTH FROM fecha_nacimiento)::int AS month, count(*)::bigint AS count\n FROM public.pacientes\n WHERE fecha_nacimiento IS NOT NULL\n GROUP BY 1\n ORDER BY 1;\n"
+  },
+  "security_function_parity": [
+    {
+      "name": "native_sales_controlled_emc_admin",
+      "matches_reviewed_source": true
+    },
+    {
+      "name": "native_sales_family_preparation_can_review",
+      "matches_reviewed_source": true
+    },
+    {
+      "name": "native_sales_patient_can_reset_password",
+      "matches_reviewed_source": true
+    },
+    {
+      "name": "native_sales_patient_claim_contact",
+      "matches_reviewed_source": true
+    },
+    {
+      "name": "native_sales_patient_recovery_admit",
+      "matches_reviewed_source": true
+    },
+    {
+      "name": "native_sales_patient_registration_admit",
+      "matches_reviewed_source": true
+    },
+    {
+      "name": "native_sales_patient_registration_can_recover",
+      "matches_reviewed_source": true
+    },
+    {
+      "name": "native_sales_visible_crm",
+      "matches_reviewed_source": true
+    },
+    {
+      "name": "native_sales_visible_leads",
+      "matches_reviewed_source": true
+    },
+    {
+      "name": "native_sales_visible_memberships",
+      "matches_reviewed_source": true
+    },
+    {
+      "name": "native_sales_visible_payment_evidence",
+      "matches_reviewed_source": true
+    }
+  ],
+  "user_security_column_writes": [
+    {
+      "column": "activo",
+      "authenticated_update": false
+    },
+    {
+      "column": "auth_id",
+      "authenticated_update": false
+    },
+    {
+      "column": "email",
+      "authenticated_update": false
+    },
+    {
+      "column": "nombre",
+      "authenticated_update": false
+    },
+    {
+      "column": "rol",
+      "authenticated_update": false
+    }
+  ],
+  "recovery_and_registration_code": {
+    "native_sales_patient_recovery_admit": "\nBEGIN\n IF auth.role() IS DISTINCT FROM 'service_role' THEN\n RAISE EXCEPTION 'PATIENT_RECOVERY_FORBIDDEN' USING ERRCODE='42501';\n END IF;\n IF p_email_digest IS NULL OR p_email_digest !~ '^[a-f0-9]{64}$' OR\n (p_ip_digest IS NOT NULL AND p_ip_digest !~ '^[a-f0-9]{64}$') THEN\n RAISE EXCEPTION 'PATIENT_RECOVERY_INVALID' USING ERRCODE='22023';\n END IF;\n -- Use the admission function's lock so the cooldown check and insert are\n -- atomic even when two requests reach separate runtime instances together.\n PERFORM pg_advisory_xact_lock(21001021);\n IF EXISTS (SELECT 1 FROM public.sales_patient_registration_attempts\n WHERE email_digest=p_email_digest AND created_at>clock_timestamp()-interval '2 minutes') THEN\n RETURN false;\n END IF;\n RETURN public.native_sales_patient_registration_admit(p_email_digest,p_ip_digest);\nEND;\n",
+    "native_sales_patient_registration_admit": "\nDECLARE v_now timestamptz := clock_timestamp();\nBEGIN\n IF auth.role() IS DISTINCT FROM 'service_role' THEN\n RAISE EXCEPTION 'PATIENT_REGISTRATION_FORBIDDEN' USING ERRCODE = '42501';\n END IF;\n IF p_email_digest IS NULL OR p_email_digest !~ '^[a-f0-9]{64}$' OR\n (p_ip_digest IS NOT NULL AND p_ip_digest !~ '^[a-f0-9]{64}$') THEN\n RAISE EXCEPTION 'PATIENT_REGISTRATION_INVALID' USING ERRCODE = '22023';\n END IF;\n -- Serialise admission across instances, including simultaneous different emails\n -- from the same source. The critical section contains only indexed counts/insert.\n PERFORM pg_advisory_xact_lock(21001021);\n IF (SELECT count(*) FROM public.sales_patient_registration_attempts\n WHERE email_digest = p_email_digest AND created_at > v_now - interval '1 hour') >= 3 OR\n (SELECT count(*) FROM public.sales_patient_registration_attempts\n WHERE email_digest = p_email_digest AND created_at > v_now - interval '1 day') >= 5 OR\n (p_ip_digest IS NOT NULL AND (SELECT count(*) FROM public.sales_patient_registration_attempts\n WHERE ip_digest = p_ip_digest AND created_at > v_now - interval '1 hour') >= 20) THEN\n RETURN false;\n END IF;\n INSERT INTO public.sales_patient_registration_attempts(email_digest, ip_digest, created_at)\n VALUES (p_email_digest, p_ip_digest, v_now);\n RETURN true;\nEND;\n"
+  },
+  "browser_can_create_public_schema": {
+    "anon": false,
+    "authenticated": false
+  }
+}

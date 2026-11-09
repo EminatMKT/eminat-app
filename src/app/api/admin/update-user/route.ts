@@ -1,9 +1,11 @@
+import { recordPrivilegedAction } from '@/server/privileged-audit'
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import requireAdmin from '@/shared/db/requireAdmin'
 import isOnlyAdminLeft from '@/shared/auth/roleValidation/isOnlyAdminLeft'
 import { syncUsuarioCargos } from '@/shared/db/usuarioCargos'
 import { ADMIN_ERRORS } from '@/shared/errors'
+import { recordSecurityEvent } from '@/server/security-audit'
 
 /**
  * Server-side admin endpoint — partial user update.
@@ -61,6 +63,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: ADMIN_ERRORS.idRequired }, { status: 400 })
     }
 
+    // Keep validation and its audit entry in one database transaction. A retry
+    // against an already validated, active identity is a no-op in the RPC.
+    if (Object.keys(body).sort().join(',') === 'activo,id,validado' &&
+        validado === true && activo === true) {
+      const { error: validationError } = await db.rpc('native_sales_admin_validate_user', {
+        p_actor_user_id: authz.userId,
+        p_target_user_id: id,
+      })
+      if (validationError) return NextResponse.json(
+        { error: validationError.message }, { status: 400 },
+      )
+      const { data: userData, error: readError } = await db.from('usuarios')
+        .select('*, usuario_cargos(cargo_id, cargos(codigo, nombre))').eq('id', id).single()
+      if (readError) return NextResponse.json({ error: readError.message }, { status: 500 })
+      return NextResponse.json({ user: userData })
+    }
+
     // Only include keys that were explicitly sent. undefined → skip.
     const updatePayload: Record<string, unknown> = {}
     if (email !== undefined) updatePayload.email = email
@@ -88,8 +107,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: ADMIN_ERRORS.noFieldsToUpdate }, { status: 400 })
     }
 
-    console.log(`${TAG} start`, { id, fields: Object.keys(updatePayload) })
-
     // Guard: no permitir degradar al último admin (rol pasa a algo != admin
     // sobre un usuario que ES admin). Read-then-write a nivel app (no TOCTOU-safe).
     if (rol !== undefined && rol !== 'admin') {
@@ -107,13 +124,12 @@ export async function POST(req: NextRequest) {
     // 1) Update Auth email if (and only if) the request is changing email
     //    and both old + new were provided.
     if (emailChanged) {
-      console.log(`${TAG} auth email change`, { id, from: currentEmail, to: email })
       const { error: authError } = await db.auth.admin.updateUserById(id, {
         email,
         email_confirm: true,
       })
       if (authError) {
-        console.error(`${TAG} auth email update failed`, { id, error: authError.message })
+        console.error(`${TAG} auth email update failed`)
         return NextResponse.json({ error: ADMIN_ERRORS.authFailed(authError.message) }, { status: 400 })
       }
     }
@@ -132,9 +148,6 @@ export async function POST(req: NextRequest) {
     if (dbError) {
       const dbErrorCode = dbError.code
       console.error(`${TAG} usuarios update failed`, {
-        id,
-        error: dbError.message,
-        code: dbErrorCode,
         fields: Object.keys(updatePayload),
       })
       // Revert Auth email if we touched it earlier.
@@ -158,7 +171,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (count === 0) {
-      console.error(`${TAG} usuarios update affected 0 rows`, { id })
+      console.error(`${TAG} usuarios update affected 0 rows`)
       return NextResponse.json({ error: ADMIN_ERRORS.rowNotUpdated }, { status: 404 })
     }
 
@@ -173,11 +186,14 @@ export async function POST(req: NextRequest) {
     const { data: userData } = await db.from('usuarios')
       .select('*, usuario_cargos(cargo_id, cargos(codigo, nombre))').eq('id', id).single()
 
-    console.log(`${TAG} success`, { id, fields: Object.keys(updatePayload), cargos: syncCargos })
+    await recordPrivilegedAction(db, { action: 'admin.user.updated', actorId: authz.userId,
+      resourceId: id, changedFields: [...Object.keys(updatePayload), ...(syncCargos ? ['cargoIds'] : [])] })
+    recordSecurityEvent({ action: 'workforce.user.updated', actorId: authz.userId,
+      resourceId: id, outcome: 'SUCCESS', changedFields: [...Object.keys(updatePayload), ...(syncCargos ? ['cargoIds'] : [])] })
     return NextResponse.json({ user: userData })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : ''
-    console.error(`${TAG} unexpected`, { message })
+    console.error(`${TAG} unexpected`)
     return NextResponse.json({ error: message || ADMIN_ERRORS.unexpectedUpdate }, { status: 500 })
   }
 }

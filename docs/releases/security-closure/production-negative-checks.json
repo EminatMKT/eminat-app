@@ -1,0 +1,11 @@
+{
+  "restore_risk": {
+    "active_cron_jobs": 0,
+    "external_extensions": null,
+    "pending_http_requests": 0
+  },
+  "missing_actor_crm_denied": true,
+  "browser_sales_grants_denied": true,
+  "anonymous_patient_rows_denied": true,
+  "unbound_patient_staff_separation": true
+}

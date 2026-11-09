@@ -1,0 +1,767 @@
+diff --git a/package.json b/package.json
+index c52883f..ff4dfeb 100644
+--- a/package.json
++++ b/package.json
+@@ -11,7 +11,8 @@
+     "test": "vitest run",
+     "testE2e": "playwright test",
+     "test:renewal": "playwright test --config playwright.renewal.config.ts",
+-    "verifyBundle": "node scripts/verify-production-bundle.mjs"
++    "verifyBundle": "node scripts/verify-production-bundle.mjs",
++    "test:family": "playwright test --config playwright.family.config.ts"
+   },
+   "dependencies": {
+     "next": "16.4.1",
+diff --git a/playwright.family.config.ts b/playwright.family.config.ts
+new file mode 100644
+index 0000000..1549c42
+--- /dev/null
++++ b/playwright.family.config.ts
+@@ -0,0 +1,9 @@
++import {defineConfig} from '@playwright/test';
++export default defineConfig({
++ testDir:'./tests/e2e',testMatch:'family-expansion.e2e.ts',workers:1,timeout:45000,
++ use:{baseURL:'http://127.0.0.1:3193',browserName:'chromium',channel:'chrome',headless:true},
++ webServer:[
++  {command:'node tests/fixtures/family-api.mjs',url:'http://127.0.0.1:3194/__scenario',env:{NODE_ENV:'test'},reuseExistingServer:false},
++  {command:'pnpm dev --port 3193',url:'http://127.0.0.1:3193/login',env:{PORTAL_DATA_MODE:'lilly',LILLY_PATIENT_API_BASE_URL:'http://127.0.0.1:3194/api/patient/v1/'},reuseExistingServer:false},
++ ],
++});
+diff --git a/src/app/(portal)/familia/agregar/page.tsx b/src/app/(portal)/familia/agregar/page.tsx
+index 7103cde..74daa49 100644
+--- a/src/app/(portal)/familia/agregar/page.tsx
++++ b/src/app/(portal)/familia/agregar/page.tsx
+@@ -16,6 +16,10 @@ export default async function AddFamilyMemberPage() {
+   }
+   const [{ addMember }, authority, membership] = await Promise.all([getPortalCapabilities(), loadPatientData(service => service.listHouseholdRequests()), loadPatientData(service => service.getMembership())]);
+   const canAdd = addMember && authority.ok && membership.ok && membership.data.status === "active" && membership.data.membershipType === "FAMILY";
++  if(canAdd&&["lilly-local","lilly-production"].includes(getDataMode())){
++    const expansion=await lillyPatientRequest("familyaddition",{authenticated:true}).catch(()=>null);
++    if(expansion?.data&&typeof expansion.data==="object"&&"includedPlacesAvailable" in expansion.data&&expansion.data.includedPlacesAvailable===0)redirect("/familia#additional-family-members");
++  }
+   const notAuthorized = addMember && !authority.ok && authority.error.code === "forbidden";
+   return <><Link href="/familia" className="back-link">← {t("Volver a mi familia", "Back to my family")}</Link><PageHeading eyebrow={t("MI FAMILIA", "MY FAMILY")} title={t("Agregar familiar", "Add family member")} description={t("Prepara los datos de la persona que quieres incluir en tu plan.", "Add the person you want to include in your plan.")}/><Card>{canAdd ? <><div className="section-title"><h2>{t("Datos del nuevo miembro", "New member details")}</h2></div><p className="inline-note">{t("El plan Familiar incluye hasta tres miembros en total. Si la capacidad está completa, tu solicitud requerirá revisión de una tarifa adicional; no se cobrará automáticamente.", "A Family plan includes up to three people total. If capacity is full, your request requires review of an additional approved fee; you will not be charged automatically.")}</p><AddMemberForm preview={isLocalPreview()} locale={locale}/></> : notAuthorized ? <p>{t("Solo la persona titular puede solicitar cambios en este grupo familiar. Si necesitas ayuda, contacta al equipo de Corazón Salud.", "Only the primary member can request changes to this family group. Contact the Corazón Salud team for help.")}</p> : membership.ok && membership.data.membershipType !== "FAMILY" ? <p>{t("Tu membresía es Individual. Para incluir familiares se requiere un plan Familiar.", "Your membership is Individual. A Family plan is required to include dependants.")}</p> : <ComingSoonState title={t("Agregar familiares en línea", "Add family members online")} description={t("La opción estará disponible cuando tu plan Familiar esté activo.", "This option will be available when your Family plan is active.")}/>}</Card></>;
+ }
+diff --git a/src/app/(portal)/familia/draft-actions.ts b/src/app/(portal)/familia/draft-actions.ts
+index df93a97..0732919 100644
+--- a/src/app/(portal)/familia/draft-actions.ts
++++ b/src/app/(portal)/familia/draft-actions.ts
+@@ -18,6 +18,8 @@ export async function saveFamilyDraft(previous: FamilyDraftState, form: FormData
+   if (!(await isAuthenticated())) return { message: english ? "Sign in to continue." : "Inicia sesión para continuar.", revision: next, ok: false };
+   const action = form.get("action");
+   const memberId = form.get("memberId");
++  const requestKey=form.get("idempotencyKey");
++  if(requestKey!==null&&(typeof requestKey!=="string"||!uuidPattern.test(requestKey)))return {message:english?"Invalid retry key.":"Clave de reintento no válida.",revision:next,ok:false};
+   if (action !== "ADD" && action !== "EDIT" && action !== "REMOVE")
+     return { message: english ? "Invalid action." : "Acción no válida.", revision: next, ok: false };
+   if (action !== "ADD" && (typeof memberId !== "string" || !uuidPattern.test(memberId)))
+@@ -35,8 +37,8 @@ export async function saveFamilyDraft(previous: FamilyDraftState, form: FormData
+     await lillyPatientRequest("familydraft", { method: "POST", authenticated: true, body: {
+       action, ...(action === "ADD" ? {} : { memberId }),
+       ...(input && input.ok ? { firstName: input.value.firstName, lastName: input.value.lastName,
+-        dateOfBirth: input.value.dateOfBirth, relationship } : {}),
+-      idempotencyKey: randomUUID(),
++        dateOfBirth: input.value.dateOfBirth, relationship, authorityAttested:true } : {}),
++      idempotencyKey: requestKey??randomUUID(),
+     } });
+   } catch {
+     return { message: english ? "We couldn't save this change. Check your plan capacity and whether an invoice was already issued." : "No se pudo guardar. Revisa la capacidad o si ya se emitió una factura.", revision: next, ok: false };
+diff --git a/src/app/(portal)/familia/expansion-actions.ts b/src/app/(portal)/familia/expansion-actions.ts
+new file mode 100644
+index 0000000..a9f155a
+--- /dev/null
++++ b/src/app/(portal)/familia/expansion-actions.ts
+@@ -0,0 +1,37 @@
++'use server';
++import {createHash} from 'node:crypto';
++import {revalidatePath} from 'next/cache';
++import {requirePortalOrigin} from '@/lib/auth/origin';
++import {getPortalLocale} from '@/lib/portal-locale';
++import {lillyPatientRequest} from '@/lib/api/lilly';
++import {readFamilyExpansion} from './expansion-data';
++export async function familyExpansionAction(_state:{message:string},form:FormData){
++ await requirePortalOrigin();const locale=await getPortalLocale();const t=(es:string,en:string)=>locale==='en'?en:es;
++ try{
++  const current=await readFamilyExpansion(),operation=form.get('operation');
++  const formKey=form.get('idempotencyKey');
++  if(typeof formKey!=='string'||!/^[0-9a-f-]{36}$/i.test(formKey)||!current.membershipId)throw new Error('INVALID_REQUEST');
++  const digest=createHash('sha256').update(`${formKey}:${operation}:${form.get('count')??current.current?.count??''}`).digest('hex');
++  const key=`${digest.slice(0,8)}-${digest.slice(8,12)}-4${digest.slice(13,16)}-a${digest.slice(17,20)}-${digest.slice(20,32)}`;
++  if(operation!=='CREATE'&&(!current.current||form.get('intentId')!==current.current.id))throw new Error('FAMILY_ADDITION_CHANGED');
++  if(operation==='CREATE'||operation==='UPDATE'){
++   const count=Number(form.get('count'));
++   if(!Number.isSafeInteger(count)||count<1||count>current.availableAdditionalPlaces||!current.eligible)
++    return {message:t('Selecciona una cantidad disponible entre 1 y 9.','Choose an available quantity from 1 to 9.')};
++   await lillyPatientRequest('familyaddition',{authenticated:true,method:'POST',body:{action:operation,membershipId:current.membershipId,...(operation==='UPDATE'?{intentId:current.current!.id}:{}),count,idempotencyKey:key}});
++  }else if(operation==='REFRESH'||operation==='CANCEL'){
++   if(!current.current)return {message:t('Actualiza el estado antes de continuar.','Refresh the status before continuing.')};
++   await lillyPatientRequest('familyaddition',{authenticated:true,method:'POST',body:{action:operation,membershipId:current.membershipId,intentId:current.current.id,count:current.current.count,idempotencyKey:key}});
++  }else if(operation==='INVOICE'){
++   const intent=current.current;
++   if(!intent||!intent.approvalReady||intent.quoteExpired)return {message:t('Completa los datos, la aprobación del equipo y la cotización actual antes de solicitar la factura.','Complete the details, staff approval and current quote before requesting an invoice.')};
++   if(!intent.agreementSatisfied){
++    if(form.get('accepted')!=='yes')return {message:t('Lee y acepta el acuerdo vigente para continuar.','Read and accept the current agreement to continue.')};
++    await lillyPatientRequest('agreement',{authenticated:true,method:'POST',body:{intentId:intent.id,language:locale,accepted:true}});
++   }
++   await lillyPatientRequest('invoice',{authenticated:true,method:'POST',body:{intentId:intent.id}});
++  }else return {message:t('Acción no válida.','Invalid action.')};
++  for(const path of ['/familia','/membresia','/pagos','/renovacion'])revalidatePath(path);
++  return {message:t('Solicitud actualizada. Nadie recibe cobertura adicional antes de verificar el pago.','Request updated. Additional coverage begins only after payment is verified.')};
++ }catch{return {message:t('No pudimos completar el cambio. Revisa la aprobación, la capacidad y el estado de la factura antes de reintentar. No se ha activado cobertura adicional.','We could not complete the change. Check approval, capacity and invoice status before retrying. No additional coverage has been activated.')}};
++}
+diff --git a/src/app/(portal)/familia/expansion-controls.tsx b/src/app/(portal)/familia/expansion-controls.tsx
+new file mode 100644
+index 0000000..5b01d38
+--- /dev/null
++++ b/src/app/(portal)/familia/expansion-controls.tsx
+@@ -0,0 +1,28 @@
++'use client';
++import {useActionState,useState} from 'react';
++import type {PortalLocale} from '@/lib/portal-locale';
++import {formatCents} from '@/lib/format-cents';
++import {familyExpansionAction} from './expansion-actions';
++import type {FamilyAdditionState} from './expansion-data';
++export function FamilyExpansionControls({locale,max,current,unitCents,existingPeople,idempotencyKey}:{locale:PortalLocale;max:number;current:FamilyAdditionState|null;unitCents:number;existingPeople:number;idempotencyKey:string}){
++ const t=(es:string,en:string)=>locale==='en'?en:es;
++ const [count,setCount]=useState(current?.count??0),[state,action,pending]=useActionState(familyExpansionAction,{message:''});
++ const locked=!!current?.jobState||!!current?.invoiceNumber;
++ return <><form action={action} className="login-form">
++  <input type="hidden" name="operation" value={current?'UPDATE':'CREATE'}/><input type="hidden" name="count" value={count}/><input type="hidden" name="idempotencyKey" value={idempotencyKey}/>{current&&<input type="hidden" name="intentId" value={current.id}/>}
++  <div className="selection-actions" role="group" aria-label={t('Nuevos familiares adicionales','New additional family members')}>
++   <button type="button" className="button button-white" disabled={count===0||pending||locked} aria-label={t('Quitar una plaza adicional','Remove one additional place')} onClick={()=>setCount(n=>Math.max(0,n-1))}>−</button>
++   <output aria-live="polite" aria-label={t('Nuevos miembros','New members')}>{count}</output>
++   <button type="button" className="button button-white" disabled={count>=max||pending||locked} aria-label={t('Agregar una plaza adicional','Add one additional place')} onClick={()=>setCount(n=>Math.min(max,n+1))}>+</button>
++  </div>
++  <p aria-live="polite">{t('Personas actuales','Current people')}: {existingPeople} · {t('Nuevos miembros','New members')}: {count} · {t('Total después del pago','Total after payment')}: {existingPeople+count}</p>
++  <p>{t('Importe prorrateado por persona','Prorated price per person')}: {formatCents(unitCents)} · {t('Total de esta factura adicional','Total for this additional invoice')}: <strong>{formatCents(unitCents*count)}</strong></p>
++  {!locked&&<button type="submit" className="button button-primary" disabled={pending||count===0||count>max||count===current?.count}>{t('Guardar plazas y preparar familiares','Save places and add family details')}</button>}
++ </form>
++ {current&&!locked&&<form action={action}><input type="hidden" name="idempotencyKey" value={idempotencyKey}/>{current&&<input type="hidden" name="intentId" value={current.id}/>}<input type="hidden" name="operation" value={current.quoteExpired?'REFRESH':'CANCEL'}/><button className="button button-white" disabled={pending}>{current.quoteExpired?t('Actualizar cotización','Refresh quote'):t('Cancelar solicitud adicional','Cancel additional-member request')}</button></form>}
++ {current&&<form action={action} className="agreement-acceptance"><input type="hidden" name="idempotencyKey" value={idempotencyKey}/>{current&&<input type="hidden" name="intentId" value={current.id}/>}<input type="hidden" name="operation" value="INVOICE"/>
++  {!current.agreementSatisfied&&<label className="agreement-checkbox"><input name="accepted" value="yes" type="checkbox" required/> {t('He leído y acepto el acuerdo vigente para estos familiares.','I have read and accept the current agreement for these family members.')} <a className="text-action" href={`/acuerdo/${locale}`} target="_blank" rel="noopener noreferrer">{t('Leer acuerdo','Read agreement')}</a></label>}
++  {!current.invoiceNumber&&<button className="button button-primary" disabled={pending||!current.approvalReady||current.quoteExpired}>{locked?t('Consultar factura en proceso','Check invoice in progress'):t('Solicitar factura de familiares','Request family-member invoice')}</button>}
++ </form>}
++ {state.message&&<p role="status" className="inline-note">{state.message}</p>}</>;
++}
+diff --git a/src/app/(portal)/familia/expansion-data.ts b/src/app/(portal)/familia/expansion-data.ts
+new file mode 100644
+index 0000000..11eb94a
+--- /dev/null
++++ b/src/app/(portal)/familia/expansion-data.ts
+@@ -0,0 +1,30 @@
++import 'server-only';
++import {lillyPatientRequest} from '@/lib/api/lilly';
++import type {FamilyDraftMember} from '@/components/family-draft-manager';
++export type FamilyAdditionState={
++  id:string;status:string;count:number;amountCents:number;perMemberCents:number;quoteDate:string;quoteExpired:boolean;
++  invoiceNumber:string|null;invoiceStatus:string;paymentStatus:string;hostedUrl:string|null;jobState:string|null;
++  approvalReady:boolean;agreementSatisfied:boolean;completedAt:string|null;members:FamilyDraftMember[];
++};
++export type FamilyExpansionData={
++  eligible:boolean;reason:string|null;membershipId:string|null;code:string|null;plan:string|null;expiresAt:string|null;
++  activePeople:number;paidAdditionalPeople:number;availableAdditionalPlaces:number;includedPlacesAvailable:number;
++  monthlyCents:number;perMemberCents:number;quoteDate:string|null;quoteBreakdown:string;
++  current:FamilyAdditionState|null;
++};
++const record=(value:unknown):value is Record<string,unknown>=>!!value&&typeof value==='object'&&!Array.isArray(value);
++const number=(value:unknown)=>Number.isSafeInteger(value)&&Number(value)>=0;
++export async function readFamilyExpansion():Promise<FamilyExpansionData>{
++ const response=await lillyPatientRequest('familyaddition',{authenticated:true});
++ const data=response.data;
++ if(!record(data)||typeof data.eligible!=='boolean'||!number(data.activePeople)||!number(data.paidAdditionalPeople)
++   ||!number(data.availableAdditionalPlaces)||Number(data.availableAdditionalPlaces)>9||!number(data.includedPlacesAvailable)
++   ||!number(data.monthlyCents)||!number(data.perMemberCents)||typeof data.quoteBreakdown!=='string')throw new Error('FAMILY_EXPANSION_UNAVAILABLE');
++ if(data.current!==null){
++  const current=data.current;
++  if(!record(current)||typeof current.id!=='string'||typeof current.status!=='string'||!number(current.count)||Number(current.count)>9
++    ||!number(current.amountCents)||!number(current.perMemberCents)||typeof current.approvalReady!=='boolean'
++    ||typeof current.agreementSatisfied!=='boolean'||typeof current.quoteExpired!=='boolean'||!Array.isArray(current.members))throw new Error('FAMILY_EXPANSION_UNAVAILABLE');
++ }
++ return data as unknown as FamilyExpansionData;
++}
+diff --git a/src/app/(portal)/familia/expansion.tsx b/src/app/(portal)/familia/expansion.tsx
+new file mode 100644
+index 0000000..3a9e794
+--- /dev/null
++++ b/src/app/(portal)/familia/expansion.tsx
+@@ -0,0 +1,26 @@
++import {randomUUID} from 'node:crypto';
++import {Card,SectionTitle} from '@/components/ui';
++import {FamilyDraftManager} from '@/components/family-draft-manager';
++import type {PortalLocale} from '@/lib/portal-locale';
++import {formatCents} from '@/lib/format-cents';
++import {readFamilyExpansion,type FamilyExpansionData} from './expansion-data';
++import {FamilyExpansionControls} from './expansion-controls';
++export async function FamilyExpansion({locale}:{locale:PortalLocale}){
++ const t=(es:string,en:string)=>locale==='en'?en:es;let data:FamilyExpansionData|null=null;
++ try{data=await readFamilyExpansion();}catch{/* Do not replace a failed scoped read with mock coverage. */}
++ if(!data)return <Card><p role="alert">{t('No pudimos consultar las plazas adicionales. Tu cobertura actual no cambia.','We could not load additional places. Your current coverage is unchanged.')}</p></Card>;
++ const current=data.current;
++ const pay=data.eligible&&current?.status==='PAYMENT_PENDING'&&current.invoiceStatus==='OPEN'&&current.hostedUrl&&/^https:\/\/connect\.intuit\.com\/t\/[^\s]+$/.test(current.hostedUrl);
++ return <div id="additional-family-members"><Card><SectionTitle title={t('Familiares adicionales','Additional family members')}/>
++  <p>{t('El plan Familiar incluye tres personas. Se permiten hasta nueve adicionales, con aprobación del equipo antes de la factura y activación solo después del pago verificado.','The Family plan includes three people. Up to nine additional people require staff approval before invoicing and activate only after verified payment.')}</p>
++  <p>{t('Código familiar','Family code')}: {data.code??'—'} · {t('Plan','Plan')}: {data.plan??'—'} · {t('Vigente hasta','Valid through')}: {data.expiresAt??'—'}</p>
++  <p>{t('Incluidos en el plan base','Included in the base plan')}: 3 · {t('Adicionales activos pagados','Active paid additional members')}: {data.paidAdditionalPeople} · {t('Personas activas','Active people')}: {data.activePeople}</p>
++  <p>{t('Precio mensual por persona adicional','Monthly price per additional person')}: {formatCents(data.monthlyCents)}. {t('La factura nueva cubre únicamente el período restante y no modifica la factura original.','The new invoice covers only the remaining term and does not modify the original invoice.')}</p>
++  {data.quoteBreakdown&&<p>{t("Meses restantes (fracción exacta)","Remaining months (exact fraction)")}: {data.quoteBreakdown} × {formatCents(data.monthlyCents)} = {formatCents(data.perMemberCents)} {t("por persona","per person")}</p>}
++  {data.eligible?<FamilyExpansionControls locale={locale} max={data.availableAdditionalPlaces} current={current} unitCents={current?.perMemberCents??data.perMemberCents} existingPeople={data.activePeople} idempotencyKey={randomUUID()}/>:<p>{data.includedPlacesAvailable>0?t('Completa primero las plazas incluidas mediante la solicitud de familiar.','Fill the included places first using the family-member request.'):t('No hay plazas adicionales disponibles para esta membresía en este momento.','Additional places are not available for this membership right now.')}</p>}
++  {current&&<><p>{t('Factura','Invoice')}: {current.invoiceNumber??t('Sin emitir','Not issued')} · {t('Importe','Amount')}: {formatCents(current.amountCents)}</p>
++   <p>{current.completedAt?t('Pago verificado y familiares activados.','Payment verified and family members activated.'):current.approvalReady?t('Aprobación completa. La cobertura sigue pendiente del pago verificado.','Approval complete. Coverage still awaits verified payment.'):t('Preparación o aprobación del equipo pendiente. Nadie ha sido activado por esta solicitud.','Family details or staff approval are pending. This request has not activated anyone.')}</p>
++   {pay&&<a className="button button-primary" href={current.hostedUrl!} target="_blank" rel="noopener noreferrer">{t('Pagar familiares en QuickBooks','Pay for family members in QuickBooks')}</a>}
++  </>}
++ </Card>{current&&!current.completedAt&&<Card><FamilyDraftManager primaryName="" members={current.members} locked={!!current.jobState||!!current.invoiceNumber} additionalMembers={current.count} additionalOnly locale={locale}/></Card>}</div>;
++}
+diff --git a/src/app/(portal)/familia/page.tsx b/src/app/(portal)/familia/page.tsx
+index 5e46340..8ad0e7d 100644
+--- a/src/app/(portal)/familia/page.tsx
++++ b/src/app/(portal)/familia/page.tsx
+@@ -1,4 +1,5 @@
+ import Link from "next/link";
++import {FamilyExpansion} from "./expansion";
+ import { ApiErrorState } from "@/components/api-error";
+ import { RemoveMemberForm } from "@/components/remove-member-form";
+ import { Card, EmptyState, PageHeading, SectionTitle, StatusPill } from "@/components/ui";
+@@ -35,7 +36,7 @@ export default async function FamilyPage() {
+           && typeof value.last_name === "string" && typeof value.date_of_birth === "string"
+           && ["SPOUSE", "CHILD", "PARENT", "OTHER"].includes(String(value.relationship));
+       }),
+-      locked: draftData.locked } : null;
++      locked: draftData.locked, additionalMembers: Number(draftData.additionalMembers ?? 0) } : null;
+   const family = membership.ok && membership.data.membershipType === "FAMILY";
+   const enrollmentRows = Array.isArray(enrollmentResult?.data) ? enrollmentResult.data as Record<string, unknown>[] : [];
+   const currentSelection = enrollmentRows.find(row => !["CANCELLED", "FULFILLED"].includes(String(row.status)));
+@@ -53,10 +54,11 @@ export default async function FamilyPage() {
+     </div>
+     {membership.ok && <Card>
+       <SectionTitle title={family ? t("Capacidad familiar", "Family capacity") : t("Tipo de membresía", "Membership type")}/>
+-      <p>{family ? t(`${activeMembers.length} de 3 miembros incluidos en total. Los miembros adicionales requieren revisión y una tarifa aprobada.`, `${activeMembers.length} of 3 included members. Additional members require review and an approved fee.`) : t("Tu membresía actual es Individual. Para incluir familiares se requiere un plan Familiar.", "Your current membership is Individual. A Family plan is required to include dependants.")}</p>
++      <p>{family ? t(`${activeMembers.length} personas activas. El plan base incluye 3; se permiten hasta 9 adicionales con aprobación y pago verificado.`, `${activeMembers.length} active people. The base plan includes 3; up to 9 additional people require approval and verified payment.`) : t("Tu membresía actual es Individual. Para incluir familiares se requiere un plan Familiar.", "Your current membership is Individual. A Family plan is required to include dependants.")}</p>
+       {!family && <Link href="/membresia" className="button button-primary">{t("Cambiar a plan Familiar", "Switch to a Family plan")}</Link>}
+-      {canManage && activeMembers.length >= 3 && <Link href="/familia/agregar" className="text-action">{t("Solicitar miembro adicional", "Request an additional member")} →</Link>}
++      {canManage && activeMembers.length >= 3 && <Link href="/familia#additional-family-members" className="text-action">{t("Solicitar miembro adicional", "Request an additional member")} →</Link>}
+     </Card>}
++    {lilly && family && membership.ok && membership.data.status==="active" && <FamilyExpansion locale={locale}/>}
+     {lilly && !membership.ok && !draft && <Card>
+       <SectionTitle title={pendingIndividual ? t("Tu selección es Individual", "Your selection is Individual") : pendingFamily ? t("Preparación familiar no disponible", "Family setup unavailable") : t("Elige una membresía", "Choose a membership")}/>
+       <p>{pendingIndividual
+@@ -69,7 +71,7 @@ export default async function FamilyPage() {
+     </Card>}
+     {draft && profile.ok && <Card><SectionTitle title={t("Preparación de tu plan Familiar", "Your Family plan setup")}/>
+       <FamilyDraftManager primaryName={`${profile.data.firstName} ${profile.data.lastName}`}
+-        members={draft.members} locked={draft.locked} locale={locale}/></Card>}
++        members={draft.members} locked={draft.locked} additionalMembers={draft.additionalMembers} locale={locale}/></Card>}
+     {showHouseholdCard && <Card>{!household.ok ? <ApiErrorState error={household.error}/> : household.data.length === 0 ?
+       <EmptyState title={t("Aún no hay miembros en tu plan", "Your plan has no members yet")} description={t("Cuando agregues a alguien, aparecerá aquí.", "Members you add will appear here.")}>
+         {canManage && <Link href="/familia/agregar" className="text-action">{t("Agregar familiar", "Add family member")} →</Link>}
+diff --git a/src/app/(portal)/membresia/lilly-actions.ts b/src/app/(portal)/membresia/lilly-actions.ts
+index bcfd5f0..08c4985 100644
+--- a/src/app/(portal)/membresia/lilly-actions.ts
++++ b/src/app/(portal)/membresia/lilly-actions.ts
+@@ -18,10 +18,11 @@ export async function startEnrollment(_state: EnrollmentState, form: FormData):
+   const plan = String(form.get("plan") ?? "");
+   const type = String(form.get("type") ?? "");
+   const duration = String(form.get("duration") ?? "");
+-  if (!plans.includes(plan) || !types.includes(type) || !durations.includes(duration)) return { message: english ? "Choose a valid plan." : "Selecciona un plan válido." };
++  const additionalMembers = Number(form.get("additionalMembers") ?? 0);
++  if (!plans.includes(plan) || !types.includes(type) || !durations.includes(duration) || !Number.isInteger(additionalMembers) || additionalMembers<0 || additionalMembers>9 || (type!=="FAMILY" && additionalMembers!==0)) return { message: english ? "Choose a valid plan." : "Selecciona un plan válido." };
+   try {
+     await lillyPatientRequest(form.get("hasCurrent") === "1" ? "selection" : "enrollment", {
+-      method: "POST", body: { ...(form.get("hasCurrent") === "1" ? { action: "CHANGE" } : {}), plan, type, duration, idempotencyKey: randomUUID() },
++      method: "POST", body: { ...(form.get("hasCurrent") === "1" ? { action: "CHANGE" } : {}), plan, type, duration, additionalMembers, idempotencyKey: randomUUID() },
+       authenticated: true,
+     });
+   } catch { return { message: english ? "We couldn't save your selection. Complete your profile and try again." : "No se pudo guardar la selección. Completa tu perfil e inténtalo de nuevo." }; }
+diff --git a/src/app/(portal)/membresia/page.tsx b/src/app/(portal)/membresia/page.tsx
+index e1d4964..8957557 100644
+--- a/src/app/(portal)/membresia/page.tsx
++++ b/src/app/(portal)/membresia/page.tsx
+@@ -31,6 +31,9 @@ export default async function MembershipPage({ searchParams }: { searchParams: P
+       duration: String(currentRow.duration) as CatalogQuote["duration"],
+       total_cents: Number(currentRow.amount_cents),
+       initial_months: Number(currentRow.initial_months),
++      additionalMembers: Number(currentRow.additional_member_count ?? 0),
++      baseCents:typeof currentRow.family_base_amount_cents==="number"?currentRow.family_base_amount_cents:undefined,
++      additionalMonthlyCents:currentRow.family_pricing_snapshot&&typeof currentRow.family_pricing_snapshot==="object"&&"monthlyCents" in currentRow.family_pricing_snapshot?Number(currentRow.family_pricing_snapshot.monthlyCents):undefined,
+       status: String(currentRow.status),
+       invoiceNumber: typeof currentRow.qbo_invoice_number === "string" ? currentRow.qbo_invoice_number : null,
+       invoiceStatus: typeof currentRow.qbo_invoice_status === "string" ? currentRow.qbo_invoice_status : null,
+@@ -51,5 +54,5 @@ export default async function MembershipPage({ searchParams }: { searchParams: P
+   const status = membershipStatusView(membership.status);
+   const benefitPlan = membership.planName.toUpperCase();
+   const details = isPlanName(benefitPlan) ? (english ? planPresentationEnglish : planPresentation)[benefitPlan] : null;
+-  return <>{heading}{membership.qaSynthetic && <p className="inline-note">{english ? "QA test membership · no real payment." : "Membresía de prueba QA · sin pago real."}</p>}<Card className="membership-feature"><div><span className="eyebrow">{english ? "MY PLAN" : "MI PLAN"}</span><h2>{membership.planName}</h2><p>{details?.description ?? (english ? "Ask our team for membership details." : "Consulta los detalles de tu membresía.")}</p></div><StatusPill tone={status.tone}>{english ? ({active:"Active",pending:"Pending",expired:"Expired",cancelled:"Canceled"})[membership.status] : status.label}</StatusPill></Card><div className="two-column"><Card><SectionTitle title={english ? "Plan details" : "Detalles del plan"}/><div className="detail-grid">{membership.code && <div><span>{english ? "Code" : "Código"}</span><strong>{membership.code}</strong></div>}{membership.membershipType && <div><span>{english ? "Type" : "Tipo"}</span><strong>{membership.membershipType === "FAMILY" ? (english ? "Family" : "Familiar") : "Individual"}</strong></div>}{membership.duration && <div><span>{english ? "Term" : "Modalidad"}</span><strong>{membership.duration === "MONTHLY" ? "Month-to-Month" : membership.duration}</strong></div>}<div><span>{english ? "Start date" : "Fecha de inicio"}</span><strong>{formatDate(membership.effectiveDate, locale)}</strong></div><div><span>{english ? "Expiration / renewal date" : "Fecha de vencimiento / renovación"}</span><strong>{formatDate(membership.renewalDate, locale)}</strong></div><div><span>{english ? "People covered" : "Personas cubiertas"}</span><strong>{membership.coveredMembers}</strong></div><div><span>{english ? "Visit fee" : "Tarifa por visita"}</span><strong>{typeof membership.visitFeeCents === "number" ? formatCents(membership.visitFeeCents) : (english ? "Ask for details" : "Consultar")}</strong></div></div>{membership.duration === "MONTHLY" && <p className="inline-note">{english ? "Month-to-Month starts with two months paid in advance, then renews monthly. The next date appears above." : "La modalidad mes a mes comienza con dos meses pagados por adelantado y luego se renueva mensualmente. La próxima fecha aparece arriba."}</p>}{membership.status === "active" && <div className="membership-pdf-actions"><a className="button button-primary" href="/membresia/pdf" target="_blank" rel="noopener noreferrer">{english ? "View / Download Membership Card" : "Ver / Descargar carnet de miembro"}</a><a className="button button-white" href="/membresia/pdf?download=1" download>{english ? "Download PDF" : "Descargar PDF"}</a></div>}</Card><Card className="soft-card"><SectionTitle title={english ? "Included benefits" : "Beneficios incluidos"}/>{details ? <ul className="benefit-list">{details.benefits.map(benefit => <li key={benefit}>{benefit}</li>)}</ul> : <p>{english ? "Ask our team about your plan benefits." : "Consulta los beneficios de tu plan con nuestro equipo."}</p>}<Link href="/familia" className="button button-primary">{english ? "View my family" : "Ver mi familia"} <span aria-hidden="true">→</span></Link></Card></div></>;
++  return <>{heading}{membership.qaSynthetic && <p className="inline-note">{english ? "QA test membership · no real payment." : "Membresía de prueba QA · sin pago real."}</p>}<Card className="membership-feature"><div><span className="eyebrow">{english ? "MY PLAN" : "MI PLAN"}</span><h2>{membership.planName}</h2><p>{details?.description ?? (english ? "Ask our team for membership details." : "Consulta los detalles de tu membresía.")}</p></div><StatusPill tone={status.tone}>{english ? ({active:"Active",pending:"Pending",expired:"Expired",cancelled:"Canceled"})[membership.status] : status.label}</StatusPill></Card><div className="two-column"><Card><SectionTitle title={english ? "Plan details" : "Detalles del plan"}/><div className="detail-grid">{membership.code && <div><span>{english ? "Code" : "Código"}</span><strong>{membership.code}</strong></div>}{membership.membershipType && <div><span>{english ? "Type" : "Tipo"}</span><strong>{membership.membershipType === "FAMILY" ? (english ? "Family" : "Familiar") : "Individual"}</strong></div>}{membership.duration && <div><span>{english ? "Term" : "Modalidad"}</span><strong>{membership.duration === "MONTHLY" ? "Month-to-Month" : membership.duration}</strong></div>}<div><span>{english ? "Start date" : "Fecha de inicio"}</span><strong>{formatDate(membership.effectiveDate, locale)}</strong></div><div><span>{english ? "Expiration / renewal date" : "Fecha de vencimiento / renovación"}</span><strong>{formatDate(membership.renewalDate, locale)}</strong></div><div><span>{english ? "People covered" : "Personas cubiertas"}</span><strong>{membership.coveredMembers}</strong></div><div><span>{english ? "Visit fee" : "Tarifa por visita"}</span><strong>{typeof membership.visitFeeCents === "number" ? formatCents(membership.visitFeeCents) : (english ? "Ask for details" : "Consultar")}</strong></div></div>{membership.duration === "MONTHLY" && <p className="inline-note">{english ? "Month-to-Month starts with two months paid in advance, then renews monthly. The next date appears above." : "La modalidad mes a mes comienza con dos meses pagados por adelantado y luego se renueva mensualmente. La próxima fecha aparece arriba."}</p>}{membership.status === "active" && <div className="membership-pdf-actions"><a className="button button-primary" href="/membresia/pdf" target="_blank" rel="noopener noreferrer">{english ? "View / Download Membership Card" : "Ver / Descargar carnet de miembro"}</a><a className="button button-white" href="/membresia/pdf?download=1" download>{english ? "Download PDF" : "Descargar PDF"}</a></div>}</Card><Card className="soft-card"><SectionTitle title={english ? "Included benefits" : "Beneficios incluidos"}/>{details ? <ul className="benefit-list">{details.benefits.map(benefit => <li key={benefit}>{benefit}</li>)}</ul> : <p>{english ? "Ask our team about your plan benefits." : "Consulta los beneficios de tu plan con nuestro equipo."}</p>}{membership.membershipType==="FAMILY"&&membership.status==="active"&&<p><Link href="/familia#additional-family-members" className="text-action">{english?"Add family members":"Agregar familiares adicionales"} →</Link></p>}<Link href="/familia" className="button button-primary">{english ? "View my family" : "Ver mi familia"} <span aria-hidden="true">→</span></Link></Card></div></>;
+ }
+diff --git a/src/app/(portal)/pagos/current-payment.tsx b/src/app/(portal)/pagos/current-payment.tsx
+index fd6a1b2..777d79c 100644
+--- a/src/app/(portal)/pagos/current-payment.tsx
++++ b/src/app/(portal)/pagos/current-payment.tsx
+@@ -78,6 +78,12 @@ export async function CurrentPayment({ locale = "es" }: { locale?: PortalLocale
+   const active = membershipActive && current?.status === "FULFILLED";
+   const invoiceNumber = current?.qbo_invoice_number && !/^QA[-_]/i.test(current.qbo_invoice_number)
+     ? current.qbo_invoice_number : null;
++  let familyApproved=true;
++  if(current?.membership_type==="FAMILY"&&!active&&!invoiceNumber){
++    const family=await lillyPatientRequest("familydraft",{authenticated:true}).catch(()=>null);
++    const details=family?.data;
++    familyApproved=!!details&&typeof details==="object"&&"approvalReady" in details&&details.approvalReady===true;
++  }
+   const english = locale === "en";
+   const state = current ? paymentStatus(current.payment_state ?? "PENDING_INVOICE", active, Boolean(invoiceNumber), english) : null;
+   const hostedUrl = current?.qbo_hosted_payment_url;
+@@ -99,9 +105,11 @@ export async function CurrentPayment({ locale = "es" }: { locale?: PortalLocale
+             ["INVOICE_CREATED", "PAYMENT_PENDING", "PAYMENT_REJECTED"].includes(current.payment_state ?? "") &&
+             <a className="button button-primary" href={officialPaymentUrl} target="_blank" rel="noopener noreferrer">{english ? "Pay with QuickBooks" : "Pagar con QuickBooks"}</a>}
+           {!invoiceNumber && !active && ["PAYMENT_UNAVAILABLE", "PENDING_INVOICE"].includes(current.payment_state ?? "PENDING_INVOICE") &&
+-            <IssueInvoiceButton intentId={current.id} locale={locale}/>}
++            <IssueInvoiceButton intentId={current.id} locale={locale} billingApproved={familyApproved}/>}
++          {!familyApproved&&!active&&<p className="inline-note">{english?"Complete family details and staff approval before invoicing.":"Completa los datos familiares y la aprobación del equipo antes de emitir la factura."} <Link href="/familia">{english?"Review family setup":"Revisar preparación familiar"} →</Link></p>}
+           {!invoiceNumber && !active && <p className="current-payment-footnote">{english ? "Invoice pending issuance" : "Factura pendiente de emisión"}</p>}
+         </> : <EmptyState title={membershipActive ? (english ? "Membership active" : "Membresía activa") : (english ? "No pending payment" : "Sin pago pendiente")} description={membershipActive ? (english ? "Your membership is active. There is no current payment to display." : "Tu membresía está activa. No hay un pago actual pendiente de mostrar.") : (english ? "Your membership selection will appear here once saved." : "Tu selección de membresía aparecerá aquí cuando esté registrada.")}/>}
+     </Card>
++    {membershipActive&&<Card><SectionTitle title={english?"Additional family-member payments":"Pagos de familiares adicionales"}/><p>{english?"Additional family-member invoices are separate from your original membership invoice.":"Las facturas de familiares adicionales son independientes de la factura original de tu membresía."}</p><Link className="text-action" href="/familia#additional-family-members">{english?"View additional family members and payment":"Ver familiares adicionales y pago"} →</Link></Card>}
+     <Card><SectionTitle title={english ? "Renewal payments and history" : "Pagos e historial de renovación"}/><p>{english ? "Your initial payment status appears above. View renewal invoices, payment verification, and completed renewal periods in Renewal." : "El estado del pago inicial aparece arriba. Consulta las facturas de renovación, la verificación del pago y los períodos renovados en Renovación."}</p><Link className="text-action" href="/renovacion">{english ? "View renewal payments and status" : "Ver pagos y estado de renovación"} →</Link></Card></>;
+ }
+diff --git a/src/app/(portal)/pagos/issue-invoice-button.tsx b/src/app/(portal)/pagos/issue-invoice-button.tsx
+index 5b78430..6558f3d 100644
+--- a/src/app/(portal)/pagos/issue-invoice-button.tsx
++++ b/src/app/(portal)/pagos/issue-invoice-button.tsx
+@@ -3,7 +3,7 @@ import { useActionState, useState } from "react";
+ import { issueInvoice } from "./issue-invoice-action";
+ import type { PortalLocale } from "@/lib/portal-locale";
+ 
+-export function IssueInvoiceButton({ intentId, locale }: { intentId: string; locale: PortalLocale }) {
++export function IssueInvoiceButton({ intentId, locale, billingApproved=true }: { intentId: string; locale: PortalLocale; billingApproved?:boolean }) {
+   const [state, action, pending] = useActionState(issueInvoice, { message: "" });
+   const [accepted, setAccepted] = useState(false);
+   return <form action={action} className="agreement-acceptance">
+@@ -26,7 +26,7 @@ export function IssueInvoiceButton({ intentId, locale }: { intentId: string; loc
+     <button className="button button-secondary" type="submit" name="operation" value="save" disabled={pending || !accepted}>
+       {locale === "es" ? "Guardar aceptación sin emitir factura" : "Save acceptance without issuing an invoice"}
+     </button>
+-    <button className="button button-primary" type="submit" name="operation" value="issue" disabled={pending || !accepted}>
++    <button className={billingApproved?"button button-primary":"button button-white"} type="submit" name="operation" value="issue" disabled={pending || !accepted || !billingApproved}>
+       {pending ? (locale === "es" ? "Preparando factura…" : "Preparing invoice…")
+         : (locale === "es" ? "Continuar y emitir factura" : "Continue and issue invoice")}
+     </button>
+diff --git a/src/components/active-family-counter.test.ts b/src/components/active-family-counter.test.ts
+new file mode 100644
+index 0000000..07e24c4
+--- /dev/null
++++ b/src/components/active-family-counter.test.ts
+@@ -0,0 +1,20 @@
++// @vitest-environment jsdom
++import {cleanup,render,screen,fireEvent} from '@testing-library/react';
++import {createElement} from 'react';
++import {afterEach,it,expect,vi} from 'vitest';
++import {FamilyExpansionControls} from '@/app/(portal)/familia/expansion-controls';
++vi.mock('@/app/(portal)/familia/expansion-actions',()=>({familyExpansionAction:vi.fn()}));
++afterEach(cleanup);
++for(const locale of ['es','en'] as const)it(`limits later additions to remaining capacity and shows the exact prorated subtotal (${locale})`,()=>{
++ render(createElement(FamilyExpansionControls,{locale,max:3,current:null,unitCents:7499,existingPeople:9,idempotencyKey:'12345678-1234-4234-8234-123456789012'}));
++ const plus=screen.getByRole('button',{name:locale==='en'?'Add one additional place':'Agregar una plaza adicional'});
++ const minus=screen.getByRole('button',{name:locale==='en'?'Remove one additional place':'Quitar una plaza adicional'});
++ expect(minus.hasAttribute('disabled')).toBe(true);
++ for(let n=0;n<9;n++)fireEvent.click(plus);
++ expect(plus.hasAttribute('disabled')).toBe(true);
++ expect(screen.getByText('$224.97')).toBeTruthy();
++ expect(screen.getByText(locale==='en'?/Total after payment: 12/:/Total después del pago: 12/)).toBeTruthy();
++ for(let n=0;n<9;n++)fireEvent.click(minus);
++ expect(minus.hasAttribute('disabled')).toBe(true);
++ expect(screen.getByRole('button',{name:locale==='en'?'Save places and add family details':'Guardar plazas y preparar familiares'}).hasAttribute('disabled')).toBe(true);
++});
+diff --git a/src/components/family-draft-manager.test.ts b/src/components/family-draft-manager.test.ts
+index cc73797..aecd302 100644
+--- a/src/components/family-draft-manager.test.ts
++++ b/src/components/family-draft-manager.test.ts
+@@ -27,7 +27,7 @@ describe("family preparation before payment", () => {
+     render(createElement(FamilyDraftManager, { primaryName: "Paciente QA", members, locked: false }));
+     expect(screen.getByText(/3 de 3 personas preparadas/)).toBeTruthy();
+     expect(screen.queryByRole("button", { name: "Agregar a la preparación" })).toBeNull();
+-    expect(screen.getByText(/Otro familiar requiere revisión/)).toBeTruthy();
++    expect(screen.getByText(/Para añadir plazas, edita la selección/)).toBeTruthy();
+   });
+ 
+   it("does not offer edits once invoice handling has started", () => {
+@@ -37,3 +37,16 @@ describe("family preparation before payment", () => {
+     expect(screen.getByText(/La factura ya está en gestión/)).toBeTruthy();
+   });
+ });
++
++it('supports 12 prepared people without issuing coverage or reusing the primary slot',()=>{
++ render(createElement(FamilyDraftManager,{primaryName:'LOCAL QA',members,locked:false,additionalMembers:9,locale:'en'}));
++ expect(screen.getByText(/3 of 12 people added/)).toBeTruthy();
++ expect(screen.getByRole('button',{name:'Add to family setup'})).toBeTruthy();
++ expect(screen.getAllByText(/Awaiting staff approval/)).toHaveLength(2);
++});
++it('counts supplemental people separately from the already-covered primary household',()=>{
++ render(createElement(FamilyDraftManager,{primaryName:'LOCAL QA',members:members.slice(0,1),locked:false,additionalMembers:2,additionalOnly:true,locale:'en'}));
++ expect(screen.getByText(/1 of 2 people added/)).toBeTruthy();
++ expect(screen.queryByText('LOCAL QA')).toBeNull();
++ expect(screen.getByText(/Staff approval precedes invoicing/)).toBeTruthy();
++});
+diff --git a/src/components/family-draft-manager.tsx b/src/components/family-draft-manager.tsx
+index 11d9a67..ffa954c 100644
+--- a/src/components/family-draft-manager.tsx
++++ b/src/components/family-draft-manager.tsx
+@@ -1,6 +1,6 @@
+ "use client";
+ 
+-import { useActionState, useEffect, useState } from "react";
++import { useActionState, useEffect, useRef, useState } from "react";
+ import { useRouter } from "next/navigation";
+ import { saveFamilyDraft, type FamilyDraftState } from "@/app/(portal)/familia/draft-actions";
+ import type { PortalLocale } from "@/lib/portal-locale";
+@@ -10,6 +10,7 @@ export type FamilyDraftMember = {
+   first_name: string;
+   last_name: string;
+   date_of_birth: string;
++  review_status?: "PENDING"|"APPROVED"|"REJECTED";
+   relationship: "SPOUSE" | "CHILD" | "PARENT" | "OTHER";
+ };
+ 
+@@ -17,32 +18,41 @@ const relationshipNames = { SPOUSE: "Pareja", CHILD: "Hijo/a", PARENT: "Padre/Ma
+ const relationshipValues = { SPOUSE: "spouse_partner", CHILD: "child", PARENT: "parent", OTHER: "other" };
+ const initial: FamilyDraftState = { message: "", revision: 0, ok: false };
+ 
+-export function FamilyDraftManager({ primaryName, members, locked, locale = "es" }: {
+-  primaryName: string; members: FamilyDraftMember[]; locked: boolean; locale?: PortalLocale;
++export function FamilyDraftManager({ primaryName, members, locked, additionalMembers = 0, additionalOnly = false, locale = "es" }: {
++  primaryName: string; members: FamilyDraftMember[]; locked: boolean; additionalMembers?: number; additionalOnly?: boolean; locale?: PortalLocale;
+ }) {
+   const t = (es: string, en: string) => locale === "en" ? en : es;
+   const router = useRouter();
+-  const [state, action, pending] = useActionState(saveFamilyDraft, initial);
++  const capacity = (additionalOnly ? 0 : 3) + (Number.isInteger(additionalMembers) && additionalMembers>=0 && additionalMembers<=9 ? additionalMembers : 0);
+   const [editingId, setEditingId] = useState<string | null>(null);
++  const retry=useRef({payload:"",key:""});
++  const [state, action, pending] = useActionState(async(previous:FamilyDraftState,form:FormData)=>{
++    const payload=JSON.stringify(Array.from(form.entries()).filter(([name])=>name!=="idempotencyKey").sort(([a],[b])=>a.localeCompare(b)));
++    if(retry.current.payload!==payload)retry.current={payload,key:crypto.randomUUID()};
++    form.set("idempotencyKey",retry.current.key);
++    const result=await saveFamilyDraft(previous,form);
++    if(result.ok){setEditingId(null);retry.current={payload:"",key:""};}
++    return result;
++  }, initial);
+   useEffect(() => {
+-    if (state.ok) { setEditingId(null); router.refresh(); }
++    if (state.ok) router.refresh();
+   }, [state.ok, state.revision, router]);
+ 
+   const editing = members.find(member => member.id === editingId);
+   return <section aria-label={t("Preparación familiar", "Family setup")}>
+-    <p><strong>{members.length + 1} {t("de", "of")} 3 {t("personas preparadas", "people added")}</strong> · {t("titular incluido. La cobertura y los códigos comienzan solo después del pago confirmado y la revisión correspondiente.", "primary member included. Coverage and member codes begin only after confirmed payment and any required review.")}</p>
++    <p><strong>{members.length + (additionalOnly ? 0 : 1)} {t("de", "of")} {capacity} {t("personas preparadas", "people added")}</strong> · {additionalOnly?t("La aprobación del equipo precede a la factura. La cobertura y los códigos requieren pago verificado.","Staff approval precedes invoicing. Coverage and codes require verified payment."):t("titular incluido. Se requiere aprobación del equipo antes de la factura y pago verificado antes de la activación.","primary member included. Staff approval is required before invoicing, and verified payment before activation.")}</p>
+     <div className="family-list">
+-      <div className="family-row"><div className="family-info"><strong>{primaryName}</strong><small>{t("Titular · Pendiente de activación", "Primary member · Pending activation")}</small></div></div>
++      {!additionalOnly && <div className="family-row"><div className="family-info"><strong>{primaryName}</strong><small>{t("Titular · Pendiente de activación", "Primary member · Pending activation")}</small></div></div>}
+       {members.map(member => <div className="family-row" key={member.id}>
+         <div className="family-info"><strong>{member.first_name} {member.last_name}</strong>
+-          <small>{locale === "en" ? ({SPOUSE:"Spouse/partner",CHILD:"Child",PARENT:"Parent",OTHER:"Other family member"})[member.relationship] : relationshipNames[member.relationship]} · {t("Nacimiento", "Date of birth")} {member.date_of_birth} · {t("Pendiente de activación", "Pending activation")}</small></div>
++          <small>{locale === "en" ? ({SPOUSE:"Spouse/partner",CHILD:"Child",PARENT:"Parent",OTHER:"Other family member"})[member.relationship] : relationshipNames[member.relationship]} · {t("Nacimiento", "Date of birth")} {member.date_of_birth} · {t("Pendiente de activación", "Pending activation")} · {member.review_status==="APPROVED"?t("Datos aprobados","Details approved"):member.review_status==="REJECTED"?t("Datos rechazados; revisa y edita","Details rejected; review and edit"):t("Pendiente de aprobación del equipo","Awaiting staff approval")}</small></div>
+         {!locked && <div className="selection-actions"><button type="button" className="button button-white" onClick={() => setEditingId(member.id)}>{t("Editar", "Edit")}</button>
+           <form action={action}><input type="hidden" name="action" value="REMOVE"/><input type="hidden" name="memberId" value={member.id}/>
+             <button className="button button-white" disabled={pending}>{t("Quitar", "Remove")}</button></form></div>}
+       </div>)}
+     </div>
+     {locked ? <p className="inline-note">{t("La factura ya está en gestión. Para cambiar familiares, solicita revisión al equipo antes de emitir otra factura.", "The invoice is already being processed. Ask our team to review family changes before another invoice is issued.")}</p> :
+-      (members.length < 2 || editing) && <form key={editing?.id ?? "new"} action={action} className="member-form">
++      (members.length < capacity-(additionalOnly?0:1) || editing) && <form key={editing?.id ?? "new"} action={action} className="member-form">
+         <h3>{editing ? t("Editar familiar", "Edit family member") : t("Agregar familiar", "Add family member")}</h3>
+         <input type="hidden" name="action" value={editing ? "EDIT" : "ADD"}/>
+         {editing && <input type="hidden" name="memberId" value={editing.id}/>}
+@@ -55,11 +65,11 @@ export function FamilyDraftManager({ primaryName, members, locked, locale = "es"
+           </select></label>
+           <label>{t("Fecha de nacimiento", "Date of birth")}<input name="dateOfBirth" type="date" required max={new Date().toISOString().slice(0,10)} defaultValue={editing?.date_of_birth ?? ""}/></label>
+         </div>
+-        <label className="inline-note"><input type="checkbox" name="authorityAttested" required/> {t("Confirmo que estoy autorizado a preparar la inclusión de esta persona.", "I confirm that I am authorized to add this person to my family setup.")}</label>
++        <label className="agreement-checkbox inline-note"><input type="checkbox" name="authorityAttested" required/> {t("Confirmo que estoy autorizado a preparar la inclusión de esta persona.", "I confirm that I am authorized to add this person to my family setup.")}</label>
+         <div className="selection-actions"><button className="button button-primary" disabled={pending}>{editing ? t("Guardar cambios", "Save changes") : t("Agregar a la preparación", "Add to family setup")}</button>
+           {editing && <button type="button" className="button button-white" onClick={() => setEditingId(null)}>{t("Cancelar edición", "Cancel editing")}</button>}</div>
+       </form>}
+-    {!locked && members.length === 2 && !editing && <p className="inline-note">{t("Capacidad incluida completa (3/3). Otro familiar requiere revisión; no se aplicará un cargo automático.", "Included capacity is full (3/3). Another family member requires review; no charge will be made automatically.")}</p>}
++    {!locked && members.length === capacity-(additionalOnly?0:1) && !editing && <p className="inline-note">{t("Capacidad seleccionada completa. Para añadir plazas, edita la selección en Membresía antes de solicitar la factura. No hay cobertura activa antes del pago verificado.", "Your selected capacity is full. To add places, edit your Membership selection before requesting an invoice. Coverage starts only after verified payment.")}</p>}
+     {state.message && <p role="status" className="inline-note">{state.message}</p>}
+   </section>;
+ }
+diff --git a/src/components/family-expansion-counter.test.ts b/src/components/family-expansion-counter.test.ts
+new file mode 100644
+index 0000000..7ae1173
+--- /dev/null
++++ b/src/components/family-expansion-counter.test.ts
+@@ -0,0 +1,29 @@
++// @vitest-environment jsdom
++import {cleanup,render,screen,fireEvent} from '@testing-library/react';
++import {createElement} from 'react';
++import {afterEach,it,expect,vi} from 'vitest';
++import {LillyEnrollmentForm,type CatalogQuote} from './lilly-enrollment-form';
++vi.mock('@/app/(portal)/membresia/lilly-actions',()=>({startEnrollment:vi.fn(),cancelEnrollment:vi.fn()}));
++afterEach(cleanup);
++const quotes:CatalogQuote[]=(['ESSENTIAL','PLUS','MAX'] as const).flatMap((plan,n)=>(['INDIVIDUAL','FAMILY'] as const).flatMap(type=>(['MONTHLY','3M','6M','12M'] as const).map(duration=>{
++ const rate=type==='INDIVIDUAL'?4999+n*2000:[8999,10999,13999][n],months=duration==='MONTHLY'?2:Number(duration.slice(0,-1));
++ return {plan,type,duration,monthly_cents:rate+(duration==='MONTHLY'?1000:0),total_cents:(rate+(duration==='MONTHLY'?1000:0))*months,visit_fee_cents:2500,initial_months:months};
++})));
++for(const locale of ['es','en'] as const)it(`counter is bounded and updates full invoice totals immediately (${locale})`,()=>{
++ render(createElement(LillyEnrollmentForm,{quotes,locale}));
++ fireEvent.change(screen.getByLabelText(locale==='es'?'Tipo':'Type'),{target:{value:'FAMILY'}});
++ const minus=screen.getByRole('button',{name:locale==='es'?'Quitar una plaza adicional':'Remove one additional place'});
++ const plus=screen.getByRole('button',{name:locale==='es'?'Agregar una plaza adicional':'Add one additional place'});
++ expect(minus.hasAttribute('disabled')).toBe(true);
++ fireEvent.click(plus);fireEvent.click(plus);
++ expect(screen.getByText('$399.94')).toBeTruthy();
++ expect(screen.getByText(locale==='es'?'Personas en total':'Total people').nextElementSibling?.textContent).toBe('5');
++ for(let i=0;i<12;i++)fireEvent.click(plus);
++ expect(plus.hasAttribute('disabled')).toBe(true);
++ expect(screen.getByLabelText(locale==='es'?'Miembros adicionales':'Additional members').textContent).toBe('9');
++ fireEvent.click(minus);
++ expect(screen.getByLabelText(locale==='es'?'Miembros adicionales':'Additional members').textContent).toBe('8');
++ fireEvent.change(screen.getByLabelText(locale==='es'?'Tipo':'Type'),{target:{value:'INDIVIDUAL'}});
++ expect(screen.queryByRole('button',{name:locale==='es'?'Agregar una plaza adicional':'Add one additional place'})).toBeNull();
++ expect((document.querySelector('input[name="additionalMembers"]') as HTMLInputElement).value).toBe('0');
++});
+diff --git a/src/components/lilly-enrollment-form.tsx b/src/components/lilly-enrollment-form.tsx
+index 184cdd0..6281d78 100644
+--- a/src/components/lilly-enrollment-form.tsx
++++ b/src/components/lilly-enrollment-form.tsx
+@@ -2,6 +2,7 @@
+ import { useActionState, useState } from "react";
+ import Link from "next/link";
+ import { cancelEnrollment, startEnrollment } from "@/app/(portal)/membresia/lilly-actions";
++import { familyPurchaseBreakdown } from "@/lib/family-pricing";
+ import { formatCents } from "@/lib/format-cents";
+ import { planPresentation, planPresentationEnglish, type PlanName } from "@/lib/plan-benefits";
+ import type { PortalLocale } from "@/lib/portal-locale";
+@@ -16,7 +17,7 @@ export type CatalogQuote = {
+   initial_months: number;
+ };
+ 
+-export type SavedSelection = Pick<CatalogQuote, "plan" | "type" | "duration" | "total_cents" | "initial_months"> & { status: string; invoiceNumber?: string | null; invoiceStatus?: string | null };
++export type SavedSelection = Pick<CatalogQuote, "plan" | "type" | "duration" | "total_cents" | "initial_months"> & { status: string; baseCents?:number; additionalMonthlyCents?:number; additionalMembers?: number; invoiceNumber?: string | null; invoiceStatus?: string | null };
+ export function LillyEnrollmentForm({ quotes, current, preferredPlan, locale = "es" }: { quotes: CatalogQuote[]; current?: SavedSelection; preferredPlan?: PlanName; locale?: PortalLocale }) {
+   const english = locale === "en";
+   const presentation = english ? planPresentationEnglish : planPresentation;
+@@ -27,10 +28,27 @@ export function LillyEnrollmentForm({ quotes, current, preferredPlan, locale = "
+   const [plan, setPlan] = useState<CatalogQuote["plan"]>(current?.plan ?? preferredPlan ?? "ESSENTIAL");
+   const [type, setType] = useState<CatalogQuote["type"]>(current?.type ?? "INDIVIDUAL");
+   const [duration, setDuration] = useState<CatalogQuote["duration"]>(current?.duration ?? "MONTHLY");
++  const [additionalMembers,setAdditionalMembers] = useState(current?.additionalMembers ?? 0);
+   const quote = quotes.find(item => item.plan === plan && item.type === type && item.duration === duration);
+   const regular = quotes.find(item => item.plan === plan && item.type === type && item.duration === "3M");
+   const currentQuote = current && quotes.find(item => item.plan === current.plan && item.type === current.type && item.duration === current.duration);
+-  const alreadySaved = current?.plan === plan && current.type === type && current.duration === duration;
++  const additionalRate = quotes.find(item => item.plan === plan && item.type === "INDIVIDUAL" && item.duration === "3M")?.monthly_cents;
++  const familyQuote = type === "FAMILY" && quote && additionalRate
++    ? familyPurchaseBreakdown(quote.total_cents,additionalRate,quote.initial_months,additionalMembers) : null;
++  const savedQuote = current?.type === "FAMILY" && currentQuote && quotes.find(item=>item.plan===current.plan && item.type==="INDIVIDUAL" && item.duration==="3M");
++  const savedFamily = current?.type === "FAMILY" && currentQuote && savedQuote
++    ? familyPurchaseBreakdown(current.baseCents??currentQuote.total_cents,current.additionalMonthlyCents??savedQuote.monthly_cents,current.initial_months,current.additionalMembers??0) : null;
++  const breakdown = (value:NonNullable<typeof familyQuote>) => <div className="detail-grid" aria-live="polite">
++    <div><span>{t("Miembros incluidos","Included members")}</span><strong>3</strong></div>
++    <div><span>{t("Miembros adicionales","Additional members")}</span><strong>{value.additionalMembers}</strong></div>
++    <div><span>{t("Personas en total","Total people")}</span><strong>{value.totalPeople}</strong></div>
++    <div><span>{t("Importe del plan base","Base plan amount")}</span><strong>{formatCents(value.baseCents)}</strong></div>
++    <div><span>{t("Precio mensual por miembro adicional","Monthly price per additional member")}</span><strong>{formatCents(value.monthlyMemberCents)}</strong></div>
++    <div><span>{t("Importe por miembro para este período","Price per additional member for this term")}</span><strong>{formatCents(value.memberTermCents)} · {value.months} {t("meses","months")}</strong></div>
++    <div><span>{t("Subtotal de miembros adicionales","Additional-member subtotal")}</span><strong>{formatCents(value.additionalCents)}</strong></div>
++    <div><span>{t("Importe final a facturar","Final invoice amount")}</span><strong>{formatCents(value.totalCents)}</strong></div>
++  </div>;
++  const alreadySaved = (current?.additionalMembers??0) === additionalMembers && current?.plan === plan && current.type === type && current.duration === duration;
+   const reviewPending = current?.status === "CHANGE_REQUESTED" || current?.status === "CANCELLATION_REQUESTED";
+   if (current && !editing) return <div className="selection-saved">
+     <span className="eyebrow">{reviewPending ? t("SOLICITUD EN REVISIÓN","REQUEST UNDER REVIEW") : t("SELECCIÓN GUARDADA","SELECTION SAVED")}</span>
+@@ -41,6 +59,8 @@ export function LillyEnrollmentForm({ quotes, current, preferredPlan, locale = "
+       <div><span>{t("Tarifa por visita","Visit fee")}</span><strong>{currentQuote ? formatCents(currentQuote.visit_fee_cents) : t("Consultar","Ask for details")}</strong></div>
+       <div><span>{t("Estado","Status")}</span><strong>{reviewPending ? t("En revisión","Under review") : current.invoiceNumber ? t("Factura emitida · pago pendiente","Invoice issued · payment pending") : t("Pago pendiente","Payment pending")}</strong></div>
+     </div>
++    {savedFamily && breakdown(savedFamily)}
++    {current.type === "FAMILY" && <p><Link className="text-action" href="/familia">{t("Preparar o editar familiares antes de la factura","Add or edit family details before invoicing")} →</Link></p>}
+     <p>{reviewPending ? t("El equipo revisará la factura pendiente antes de continuar.","The team will review the outstanding invoice before proceeding.") : current.invoiceNumber ? t("Ya se emitió una factura. Un cambio requiere revisión del equipo.","An invoice has been issued. Changes require team review.") : t("Puedes cambiar tu elección antes de que se emita la factura.","You can change your selection before the invoice is issued.")}</p>
+     <div className="selection-actions">
+       <Link className="button button-primary" href="/pagos">{current.invoiceNumber ? t("Ver factura y pago","View invoice and payment") : t("Continuar / Solicitar factura","Continue / Request invoice")}</Link>
+@@ -54,13 +74,22 @@ export function LillyEnrollmentForm({ quotes, current, preferredPlan, locale = "
+   return <form action={action} className="login-form">
+     {current && <input type="hidden" name="hasCurrent" value="1"/>}
+     <div className="plan-card-grid" role="group" aria-label={t("Elige tu plan","Choose a plan")}>{(["ESSENTIAL", "PLUS", "MAX"] as PlanName[]).map(name => { const details = presentation[name]; const individual = quotes.find(item => item.plan === name && item.type === "INDIVIDUAL" && item.duration === "3M"); const family = quotes.find(item => item.plan === name && item.type === "FAMILY" && item.duration === "3M"); return <button key={name} type="button" className={`plan-choice ${plan === name ? "selected" : ""}`} aria-pressed={plan === name} onClick={() => setPlan(name)}><span className="eyebrow">{t("PLAN DE CUIDADO","CARE PLAN")}</span><strong>{details.label}</strong><span>{details.description}</span><span className="plan-prices">Individual {individual ? `${formatCents(individual.monthly_cents)}/${t("mes","mo")}` : t("Consultar","Ask for details")}<br/>{t("Familiar","Family")} {family ? `${formatCents(family.monthly_cents)}/${t("mes","mo")}` : t("Consultar","Ask for details")}</span><span>{t("Consulta","Visit fee")}: {individual ? formatCents(individual.visit_fee_cents) : t("Consultar","Ask for details")}</span><span className="plan-benefits">{details.benefits.map(benefit => <span key={benefit}>✓ {benefit}</span>)}</span><span className="plan-choice-cta">{t("Elegir","Choose")} {details.label}</span></button>; })}</div><input type="hidden" name="plan" value={plan}/>
+-    <label htmlFor="type">{t("Tipo","Type")}</label><select id="type" name="type" value={type} onChange={event => setType(event.target.value as CatalogQuote["type"])}><option value="INDIVIDUAL">Individual</option><option value="FAMILY">{t("Familiar","Family")}</option></select>
++    <label htmlFor="type">{t("Tipo","Type")}</label><select id="type" name="type" value={type} onChange={event => {setType(event.target.value as CatalogQuote["type"]);if(event.target.value!=="FAMILY")setAdditionalMembers(0);}}><option value="INDIVIDUAL">Individual</option><option value="FAMILY">{t("Familiar","Family")}</option></select>
+     <label htmlFor="duration">{t("Modalidad","Term")}</label><select id="duration" name="duration" value={duration} onChange={event => setDuration(event.target.value as CatalogQuote["duration"])}><option value="MONTHLY">Month-to-Month</option><option value="3M">{t("3 meses","3 Months")}</option><option value="6M">{t("6 meses","6 Months")}</option><option value="12M">{t("12 meses","12 Months")}</option></select>
+-    {quote && <div className="review-box" aria-live="polite"><strong>{t("Resumen de compra","Purchase summary")}: {presentation[plan].label} · {type === "FAMILY" ? t("Familiar","Family") : "Individual"} · {duration === "MONTHLY" ? "Month-to-Month" : duration}</strong><p>{t("Tarifa mensual regular","Regular monthly price")}: {regular ? formatCents(regular.monthly_cents) : t("Consultar","Ask for details")}. {t("Tarifa de esta modalidad","Price for this term")}: {formatCents(quote.monthly_cents)}/{t("mes","month")}.</p><p>{t("Importe inicial","Initial amount")}: {formatCents(quote.total_cents)}. {t("Tarifa por visita","Visit fee")}: {formatCents(quote.visit_fee_cents)}. {type === "FAMILY" ? t("Incluye hasta 3 miembros en total, incluido el titular.","Includes up to 3 people total, including the primary member.") : t("Incluye 1 titular.","Includes 1 primary member.")}</p><p><strong>{t("Total antes de cargos de procesamiento de QuickBooks","Total before QuickBooks processing fees")}: {formatCents(quote.total_cents)}</strong></p>{duration === "MONTHLY" && <p>{t("El cargo inicial cubre dos meses por adelantado; después hay renovación mensual. No es una membresía de dos meses.","The initial charge covers two months in advance, followed by monthly renewals. This is not a two-month membership.")}</p>}</div>}
+-    <p className="inline-note">{t("Month-to-Month renueva mensualmente después del adelanto inicial. Guardar la selección no activa la membresía. El enlace de QuickBooks aparece después de emitir la factura.","Month-to-Month renews monthly after the initial advance. Saving a selection does not activate membership. The QuickBooks payment link appears after invoice issuance.")}</p>
++    <input type="hidden" name="additionalMembers" value={type === "FAMILY" ? additionalMembers : 0}/>
++    {type === "FAMILY" && <fieldset className="review-box"><legend>{t("Familiares adicionales","Additional family members")}</legend>
++      <div className="selection-actions" role="group" aria-label={t("Cantidad de familiares adicionales","Additional family-member count")}>
++        <button type="button" className="button button-white" aria-label={t("Quitar una plaza adicional","Remove one additional place")} disabled={additionalMembers===0 || pending} onClick={()=>setAdditionalMembers(value=>Math.max(0,value-1))}>−</button>
++        <output aria-live="polite" aria-label={t("Miembros adicionales","Additional members")}>{additionalMembers}</output>
++        <button type="button" className="button button-white" aria-label={t("Agregar una plaza adicional","Add one additional place")} disabled={additionalMembers===9 || pending} onClick={()=>setAdditionalMembers(value=>Math.min(9,value+1))}>+</button>
++      </div><p>{t("El plan incluye al titular y dos familiares. Puedes añadir hasta 9 personas adicionales. Guarda la selección y completa sus datos antes de solicitar la factura.","The plan includes the primary member and two family members. Add up to 9 additional people. Save your selection and complete their details before requesting an invoice.")}</p>
++      {familyQuote && breakdown(familyQuote)}
++    </fieldset>}
++    {quote && <div className="review-box" aria-live="polite"><strong>{t("Resumen de compra","Purchase summary")}: {presentation[plan].label} · {type === "FAMILY" ? t("Familiar","Family") : "Individual"} · {duration === "MONTHLY" ? t("Mes a mes","Month-to-Month") : duration}</strong><p>{t("Tarifa mensual regular","Regular monthly price")}: {regular ? formatCents(regular.monthly_cents) : t("Consultar","Ask for details")}. {t("Tarifa de esta modalidad","Price for this term")}: {formatCents(quote.monthly_cents)}/{t("mes","month")}.</p><p>{t("Importe inicial","Initial amount")}: {formatCents(quote.total_cents)}. {t("Tarifa por visita","Visit fee")}: {formatCents(quote.visit_fee_cents)}. {type === "FAMILY" ? t("Incluye hasta 3 miembros en total, incluido el titular.","Includes up to 3 people total, including the primary member.") : t("Incluye 1 titular.","Includes 1 primary member.")}</p><p><strong>{t("Total antes de cargos de procesamiento de QuickBooks","Total before QuickBooks processing fees")}: {formatCents(familyQuote?.totalCents ?? quote.total_cents)}</strong></p>{duration === "MONTHLY" && <p>{t("El cargo inicial cubre dos meses por adelantado; después hay renovación mensual. No es una membresía de dos meses.","The initial charge covers two months in advance, followed by monthly renewals. This is not a two-month membership.")}</p>}</div>}
++    <p className="inline-note">{t("La modalidad mes a mes renueva mensualmente después del adelanto inicial. Guardar la selección no activa la membresía. El enlace de QuickBooks aparece después de emitir la factura.","Month-to-Month renews monthly after the initial advance. Saving a selection does not activate membership. The QuickBooks payment link appears after invoice issuance.")}</p>
+     {state.message && <p className="notice" role="alert">{state.message}</p>}
+     {current && <button type="button" className="button button-white" onClick={() => setEditing(false)}>{t("Volver al resumen","Back to summary")}</button>}
+     {current?.invoiceNumber && <p className="notice">{t("La factura actual deberá anularse por el equipo antes de emitir una nueva. No se hará ningún cargo al solicitar el cambio.","The team must void the current invoice before issuing a new one. Requesting a change will not charge you.")}</p>}
+-    <button type="submit" className="button button-primary" disabled={pending || !quote || alreadySaved}>{alreadySaved ? t("Selección guardada","Selection saved") : current?.invoiceNumber ? t("Solicitar cambio","Request change") : current ? t("Guardar cambio","Save change") : t("Guardar selección","Save selection")}</button>
++    <button type="submit" className="button button-primary" disabled={pending || !quote || (type === "FAMILY" && !familyQuote) || alreadySaved}>{alreadySaved ? t("Selección guardada","Selection saved") : current?.invoiceNumber ? t("Solicitar cambio","Request change") : current ? t("Guardar cambio","Save change") : t("Guardar selección","Save selection")}</button>
+   </form>;
+ }
+diff --git a/src/lib/family-pricing.test.ts b/src/lib/family-pricing.test.ts
+new file mode 100644
+index 0000000..57ba63a
+--- /dev/null
++++ b/src/lib/family-pricing.test.ts
+@@ -0,0 +1,16 @@
++import {describe,it,expect} from 'vitest';
++import {familyPurchaseBreakdown} from './family-pricing';
++describe('Family purchase display quote',()=>{
++  for(const count of [0,1,2,3,5,9]) for(const months of [2,3,6,12]) for(const rate of [4999,6999,8999])
++    it(`${count} additional people at ${rate} for ${months} months`,()=>{
++      const q=familyPurchaseBreakdown(8999*months,rate,months,count);
++      expect(q.totalPeople).toBe(3+count);expect(q.additionalCents).toBe(rate*months*count);
++      expect(q.totalCents).toBe((8999+rate*count)*months);
++    });
++  it('keeps the initial monthly advance but adds no surcharge to the additional-member rate',()=>{
++    expect(familyPurchaseBreakdown(19998,4999,2,2)).toMatchObject({memberTermCents:9998,additionalCents:19996,totalCents:39994});
++  });
++  for(const count of [-1,10,1.5,NaN,Infinity])it(`rejects invalid count ${count}`,()=>{
++    expect(()=>familyPurchaseBreakdown(19998,4999,2,count)).toThrow('INVALID_FAMILY_QUOTE');
++  });
++});
+diff --git a/src/lib/family-pricing.ts b/src/lib/family-pricing.ts
+new file mode 100644
+index 0000000..36a9545
+--- /dev/null
++++ b/src/lib/family-pricing.ts
+@@ -0,0 +1,12 @@
++/** Display-only calculation from the server catalog. The API re-quotes every request. */
++export function familyPurchaseBreakdown(baseCents:number,monthlyMemberCents:number,months:number,additionalMembers:number) {
++  if (![baseCents,monthlyMemberCents,months,additionalMembers].every(Number.isSafeInteger)
++    || baseCents<0 || monthlyMemberCents<=0 || months<1 || months>12 || additionalMembers<0 || additionalMembers>9)
++    throw new Error('INVALID_FAMILY_QUOTE');
++  const memberTermCents=monthlyMemberCents*months;
++  const additionalCents=memberTermCents*additionalMembers;
++  const totalCents=baseCents+additionalCents;
++  if (!Number.isSafeInteger(totalCents)) throw new Error('INVALID_FAMILY_QUOTE');
++  return {includedMembers:3,additionalMembers,totalPeople:3+additionalMembers,baseCents,
++    monthlyMemberCents,months,memberTermCents,additionalCents,totalCents};
++}
+diff --git a/tests/e2e/family-expansion.e2e.ts b/tests/e2e/family-expansion.e2e.ts
+new file mode 100644
+index 0000000..4b260de
+--- /dev/null
++++ b/tests/e2e/family-expansion.e2e.ts
+@@ -0,0 +1,40 @@
++import {test,expect} from '@playwright/test';
++const host='http://127.0.0.1:3193',fixture='http://127.0.0.1:3194/__scenario';
++test.beforeEach(async({context,request})=>{
++ await request.post(fixture,{data:{scenario:'initial'}});
++ await context.addCookies([{name:'__Host-corazon_patient',value:`cspt_${'Q'.repeat(48)}.${Date.now()+3600000}`,url:'https://127.0.0.1:3193/',secure:true,httpOnly:true,sameSite:'Lax'},
++ {name:'cs_locale',value:'en',url:host}]);
++});
++test('Family selection shows the complete total and blocks invoicing before staff approval',async({page,request})=>{
++ const external:string[]=[];page.on('request',req=>{if(/^https?:/.test(req.url())&&new URL(req.url()).hostname!=='127.0.0.1')external.push(req.url());});
++ await page.goto('/membresia');await page.getByLabel('Type',{exact:true}).selectOption('FAMILY');
++ const add=page.getByRole('button',{name:'Add one additional place'});await add.click();await add.click();
++ await expect(page.getByText('$399.94',{exact:true}).first()).toBeVisible();
++ await page.getByRole('button',{name:'Save selection',exact:true}).click();
++ await expect(page.getByRole('heading',{name:'Essential · Family',exact:true})).toBeVisible();
++ await page.goto('/pagos');await page.getByRole('checkbox').check();
++ await expect(page.getByRole('button',{name:'Continue and issue invoice',exact:true})).toBeDisabled();
++ expect((await(await request.get(fixture)).json()).invoiceCount).toBe(0);
++ await page.screenshot({path:'/tmp/corazon-family-initial-desktop.png',fullPage:true});
++ expect(external).toEqual([]);
++});
++test('active Family addition is responsive, reviewed before invoice, and remains unpaid afterward',async({page,request,context})=>{
++ await request.post(fixture,{data:{scenario:'active'}});await context.addCookies([{name:'cs_locale',value:'es',url:host}]);await page.setViewportSize({width:375,height:812});
++ await page.goto('/familia');await expect(page.getByRole('heading',{name:'Familiares adicionales',exact:true})).toBeVisible();
++ const add=page.getByRole('button',{name:'Agregar una plaza adicional',exact:true});await add.click();await add.click();
++ await expect(page.getByText('$149.98',{exact:false})).toBeVisible();
++ await page.getByRole('button',{name:'Guardar plazas y preparar familiares',exact:true}).click();
++ await expect(page.getByText('0 de 2 personas preparadas',{exact:false})).toBeVisible();
++ for(let n=1;n<=2;n++){
++  await page.getByLabel('Nombre',{exact:true}).fill('LOCAL QA');await page.getByLabel('Apellido',{exact:true}).fill(`Child ${n}`);
++  await page.getByRole('combobox',{name:/Relación/}).selectOption('child');await page.getByLabel('Fecha de nacimiento',{exact:true}).fill('2015-01-01');
++  await page.getByRole('checkbox').check();await page.getByRole('button',{name:'Agregar a la preparación',exact:true}).click();
++  await expect(page.getByText(`${n} de 2 personas preparadas`,{exact:false})).toBeVisible();
++ }
++ const invoice=page.getByRole('button',{name:'Solicitar factura de familiares',exact:true});await expect(invoice).toBeDisabled();
++ await request.post(fixture,{data:{action:'approve'}});await page.reload();await expect(invoice).toBeEnabled();await invoice.click();
++ await expect(page.getByRole('link',{name:'Pagar familiares en QuickBooks'})).toHaveAttribute('href','https://connect.intuit.com/t/local-family-test-not-real');
++ const state=await(await request.get(fixture)).json();expect(state.invoiceCount).toBe(1);expect(state.covered).toBe(3);expect(state.addition.paymentStatus).toBe('UNPAID');
++ expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth)).toBe(false);
++ await page.screenshot({path:'/tmp/corazon-family-addition-mobile.png',fullPage:true});
++});
+diff --git a/tests/fixtures/family-api.mjs b/tests/fixtures/family-api.mjs
+new file mode 100644
+index 0000000..09238d4
+--- /dev/null
++++ b/tests/fixtures/family-api.mjs
+@@ -0,0 +1,68 @@
++// Disposable loopback fixture only. Never deployed or connected to a real patient/QBO.
++import {createServer} from 'node:http';
++import {randomUUID} from 'node:crypto';
++if(process.env.NODE_ENV==='production')throw new Error('SYNTHETIC_API_FORBIDDEN_IN_PRODUCTION');
++const id='12345678-1234-4234-8234-123456789012';
++let active=false,selection=null,drafts=[],addition=null,approved=false,invoiceCount=0,covered=0;
++const quotes=['ESSENTIAL','PLUS','MAX'].flatMap((plan,n)=>['INDIVIDUAL','FAMILY'].flatMap(type=>['MONTHLY','3M','6M','12M'].map(duration=>{
++ const monthly=(type==='INDIVIDUAL'?4999+n*2000:[8999,10999,13999][n])+(duration==='MONTHLY'?1000:0),months=duration==='MONTHLY'?2:Number(duration.slice(0,-1));
++ return {plan,type,duration,monthly_cents:monthly,total_cents:monthly*months,initial_months:months,visit_fee_cents:2500};
++})));
++const member=()=>({id,code:'QA-LOCAL-FAMILY',plan:'ESSENTIAL',membership_type:'FAMILY',duration:'MONTHLY',status:'ACTIVE',issued_at:'2026-10-01',expires_at:'2026-12-01',covered_members:covered,qa_synthetic:true});
++const server=createServer(async(req,res)=>{
++ const url=new URL(req.url,'http://127.0.0.1');let body={};
++ if(req.method==='POST'){let text='';for await(const chunk of req)text+=chunk;if(text)body=JSON.parse(text);}
++ const send=(data,status=200)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
++ if(url.pathname==='/__scenario'){
++  if(req.method==='POST'){
++   if(body.action==='approve'){approved=true;drafts.forEach(d=>d.review_status='APPROVED');if(addition)addition.approvalReady=true;}
++   else if(body.action==='verify'){active=true;covered=(addition?3:3)+(addition?.count??selection?.additional_member_count??0);}
++   else {active=body.scenario==='active';selection=null;drafts=[];addition=null;approved=false;invoiceCount=0;covered=active?3:0;}
++  }
++  return send({active,selection,drafts,addition,approved,invoiceCount,covered});
++ }
++ const resource=url.pathname.split('/').at(-1);
++ if(resource!=='plans'&&!req.headers.authorization?.startsWith('Patient cspt_'))return send({code:'AUTHENTICATION_REQUIRED'},401);
++ if(resource==='session')return send({data:{authId:id,email:'local-family@example.invalid',contactId:id}});
++ if(resource==='profile')return send({data:{id,first_name:'LOCAL QA',last_name:'Family',email:'local-family@example.invalid',phone:'+15550100001',address:{street:'Synthetic only',line2:'',city:'Miami',state:'FL',postalCode:'33101',country:'US'},created_at:'2026-10-01T00:00:00Z'}});
++ if(resource==='plans')return send({data:quotes});
++ if(resource==='membership')return send({data:active?member():null});
++ if(resource==='enrollment'){
++  if(req.method==='POST'){
++   const q=quotes.find(q=>q.plan===body.plan&&q.type===body.type&&q.duration===body.duration),count=body.additionalMembers??0,rate=4999+['ESSENTIAL','PLUS','MAX'].indexOf(body.plan)*2000;
++   selection={id:randomUUID(),...q,membership_type:q.type,amount_cents:q.total_cents+count*rate*q.initial_months,additional_member_count:count,
++    family_base_amount_cents:q.total_cents,family_pricing_snapshot:{monthlyCents:rate},status:'PAYMENT_UNAVAILABLE',payment_state:'PENDING_INVOICE'};
++   return send({data:selection},201);
++  }
++  return send({data:selection?[selection]:[]});
++ }
++ if(resource==='familydraft'){
++  if(req.method==='POST'){
++   if(body.action==='ADD')drafts.push({id:randomUUID(),first_name:body.firstName,last_name:body.lastName,date_of_birth:body.dateOfBirth,relationship:body.relationship,review_status:'PENDING'});
++   if(body.action==='REMOVE')drafts=drafts.filter(d=>d.id!==body.memberId);
++   if(body.action==='EDIT')Object.assign(drafts.find(d=>d.id===body.memberId),{first_name:body.firstName,last_name:body.lastName,review_status:'PENDING'});
++   approved=false;if(addition){addition.members=drafts;addition.approvalReady=false;}
++   return send({data:{memberId:drafts.at(-1)?.id}});
++  }
++  return send({data:!active&&selection?{intentId:selection.id,members:drafts,additionalMembers:selection.additional_member_count,locked:invoiceCount>0,staffApprovalRequired:true,approvalReady:approved}:null});
++ }
++ if(resource==='familyaddition'){
++  if(req.method==='POST'){
++   if(['CREATE','UPDATE'].includes(body.action))addition={id:addition?.id??randomUUID(),status:'PAYMENT_UNAVAILABLE',count:body.count,amountCents:7499*body.count,perMemberCents:7499,quoteDate:'2026-10-16',quoteExpired:false,invoiceNumber:null,invoiceStatus:'NOT_CREATED',paymentStatus:'UNPAID',hostedUrl:null,jobState:null,approvalReady:false,agreementSatisfied:true,completedAt:null,members:drafts};
++   if(body.action==='CANCEL'){addition=null;drafts=[];}
++   return send({data:addition});
++  }
++  return send({data:{eligible:active,reason:active?null:'MEMBERSHIP_NOT_ACTIVE',membershipId:id,code:'QA-LOCAL-FAMILY',plan:'ESSENTIAL',expiresAt:'2026-12-01',activePeople:covered,paidAdditionalPeople:Math.max(0,covered-3),availableAdditionalPlaces:9-Math.max(0,covered-3),includedPlacesAvailable:0,monthlyCents:4999,perMemberCents:7499,quoteDate:'2026-10-16',quoteBreakdown:'3 / 2',current:addition}});
++ }
++ if(resource==='agreement')return send({status:'ACCEPTED',version:'v5'});
++ if(resource==='invoice'){
++  if(!approved)return send({code:'FAMILY_PREPARATION_REVIEW_REQUIRED'},409);
++  if(!invoiceCount)invoiceCount++;
++  if(addition)Object.assign(addition,{status:'PAYMENT_PENDING',invoiceNumber:'LOCAL-NOT-REAL',invoiceStatus:'OPEN',paymentStatus:'UNPAID',hostedUrl:'https://connect.intuit.com/t/local-family-test-not-real',jobState:'LINKED'});
++  else Object.assign(selection,{status:'PAYMENT_PENDING',payment_state:'INVOICE_CREATED',qbo_invoice_number:'LOCAL-NOT-REAL',qbo_hosted_payment_url:'https://connect.intuit.com/t/local-family-test-not-real'});
++  return send({status:'INVOICE_CREATED'});
++ }
++ if(resource==='household')return send({data:active?Array.from({length:covered},(_,n)=>({id:randomUUID(),first_name:n?'QA child':'LOCAL QA',last_name:n?'Person '+n:'Family',relationship:n?'CHILD':'PRIMARY',status:'ACTIVE',is_primary:n===0,member_code:'QA-LOCAL-FAMILY '+String.fromCharCode(65+n),effective_date:'2026-10-01',expires_at:'2026-12-01'})):[]});
++ return send({data:[]});
++});
++server.listen(3194,'127.0.0.1',()=>process.stdout.write('Loopback synthetic family API ready\n'));

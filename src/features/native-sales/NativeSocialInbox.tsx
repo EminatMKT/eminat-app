@@ -45,7 +45,7 @@ export default function NativeSocialInbox({ request }: { request: NativeRequest 
         <ul className={s.breakdown}>{inbox.conversations.map(item => <li key={item.id}>
           <span className={s.socialText}><strong>{assetNames.get(item.asset_id) || 'Social'}</strong>
             <small>{item.channel} · {item.kind} · {time(item.last_event_at)}</small>
-            <span>{item.last_text || 'No text'}</span></span>
+            <span>{item.last_text || t('salesNative.noSocialText')}</span></span>
           {item.unread && <strong>{t('salesNative.new')}</strong>}</li>)}</ul>
       </section>
       <section className={s.panel}><h2>{t('salesNative.messages')}</h2>
@@ -53,14 +53,14 @@ export default function NativeSocialInbox({ request }: { request: NativeRequest 
         <ul className={s.breakdown}>{inbox.messages.map(item => <li key={item.id}>
           <span className={s.socialText}><strong>{conversationNames.get(item.conversation_id) || 'Social'}</strong>
             <small>{item.direction} · {time(item.occurred_at)}</small>
-            <span>{item.text_content || 'No text'}</span></span></li>)}</ul>
+            <span>{item.text_content || t('salesNative.noSocialText')}</span></span></li>)}</ul>
       </section>
       <section className={s.panel}><h2>{t('salesNative.comments')}</h2>
         {inbox.comments.length === 0 && <p>{t('salesNative.noPermittedCommentsYet')}</p>}
         <ul className={s.breakdown}>{inbox.comments.map(item => <li key={item.id}>
           <span className={s.socialText}><strong>{assetNames.get(item.asset_id) || 'Social'}</strong>
             <small>{item.direction} · {time(item.occurred_at)}</small>
-            <span>{item.text_content || 'No text'}</span></span></li>)}</ul>
+            <span>{item.text_content || t('salesNative.noSocialText')}</span></span></li>)}</ul>
       </section>
     </>}
   </div>

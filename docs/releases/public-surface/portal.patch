@@ -1,0 +1,79 @@
+diff --git a/src/app/globals.css b/src/app/globals.css
+index 2de79d8..be8a53d 100644
+--- a/src/app/globals.css
++++ b/src/app/globals.css
+@@ -70,3 +70,6 @@ h1,h2,h3{letter-spacing:-.035em}
+ .review-box.review-error{background:#fff5f8;border-color:#f7dce6;color:var(--rose-deep)}
+ .state-soon .status-pill{margin-bottom:4px}
+ @media(max-width:760px){.topbar{min-height:65px;height:auto;padding-top:8px;padding-bottom:8px}.topbar-right{gap:7px}.patient-name{font-size:11px;max-width:100px;line-height:1.25}.locale-switch select{max-width:92px;font-size:11px}.mobile-brand{flex:0 0 auto}}
++
++/* Public auth legal navigation: shared by sign-in and account creation. */
++.auth-legal{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 20px;margin-top:24px;font-size:12px;line-height:1.6}.auth-legal a{color:var(--rose-deep);text-decoration:underline;text-underline-offset:3px}.auth-legal a:focus-visible{outline:2px solid var(--rose-deep);outline-offset:4px;border-radius:2px}
+diff --git a/src/app/login/page.tsx b/src/app/login/page.tsx
+index 0885b63..d68e1df 100644
+--- a/src/app/login/page.tsx
++++ b/src/app/login/page.tsx
+@@ -1,3 +1,4 @@
++import type { Metadata } from "next";
+ import Link from "next/link";
+ import { AccessForm } from "@/components/access-form";
+ import { LillyAuthForm } from "@/components/lilly-auth-form";
+@@ -9,6 +10,16 @@ import { cookies } from "next/headers";
+ import { getPortalLocale } from "@/lib/portal-locale";
+ import { LocaleSwitch } from "@/components/locale-switch";
+ 
++export async function generateMetadata(): Promise<Metadata> {
++  const english = (await getPortalLocale()) === "en";
++  return {
++    title: english ? "Corazón Salud | Member Portal" : "Corazón Salud | Portal de miembros",
++    description: english
++      ? "Sign in or create your account to manage your membership, family, and payments."
++      : "Inicia sesión o crea tu cuenta para consultar tu membresía, familia y pagos.",
++  };
++}
++
+ export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+   const previewEnabled = isLocalPreview();
+   const locale = await getPortalLocale();
+@@ -25,6 +36,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
+       {reasonMessage && <div className="notice" role="alert"><strong>{english ? "Sign in again" : "Vuelve a ingresar"}</strong><p>{english ? "Your session ended. Sign in to continue." : reasonMessage}</p></div>}
+       {verificationError && <div className="notice" role="alert"><strong>{english ? "This link is invalid or expired" : "El enlace no es válido o venció"}</strong><p>{english ? "Request a new verification email from Create account." : "Vuelve a solicitar la confirmación con tu correo desde «Crear cuenta»."}</p></div>}
+       {previewEnabled ? <><div className="notice"><strong>{english ? "Development preview" : "Vista previa de desarrollo"}</strong><p>{english ? "Sample data is shown locally only." : "Estos datos son sintéticos y solo se muestran localmente."}</p></div><form action={enterPreview}><button type="submit" className="button button-primary button-full">{english ? "Explore local preview" : "Explorar vista local"} →</button></form></> : ["lilly-local", "lilly-production"].includes(getDataMode()) ? <LillyAuthForm preferredPlan={preferredPlan} locale={locale}/> : <AccessForm/>}
++      <nav className="auth-legal" aria-label={english ? "Legal information" : "Información legal"}>
++        <a href="https://corazonsalud.health/privacy/">{english ? "Privacy Policy" : "Política de Privacidad"}</a>
++        <a href="https://corazonsalud.health/terms/">{english ? "Terms of Service" : "Términos de Servicio"}</a>
++      </nav>
+       <p className="login-footnote">{english ? "Need help? Contact the Corazón Salud team." : "¿Necesitas ayuda? Contacta al equipo de Corazón Salud."}</p>
+     </div></div>
+   </main>;
+diff --git a/src/app/login/public-surface.test.ts b/src/app/login/public-surface.test.ts
+new file mode 100644
+index 0000000..05a77be
+--- /dev/null
++++ b/src/app/login/public-surface.test.ts
+@@ -0,0 +1,25 @@
++import { describe, expect, it, vi } from "vitest";
++import { readFileSync } from "node:fs";
++
++vi.mock("@/lib/portal-locale", () => ({ getPortalLocale: vi.fn() }));
++import { getPortalLocale } from "@/lib/portal-locale";
++import { generateMetadata } from "./page";
++
++describe("public auth metadata and legal navigation", () => {
++  it.each(["es", "en"] as const)("uses the visible %s locale for metadata", async locale => {
++    vi.mocked(getPortalLocale).mockResolvedValue(locale);
++    const metadata = await generateMetadata();
++    expect(metadata.title).toContain(locale === "en" ? "Member Portal" : "Portal de miembros");
++    expect(metadata.description).toContain(locale === "en" ? "Sign in or create" : "Inicia sesión o crea");
++  });
++  it("keeps legal navigation outside both authentication form states", () => {
++    const page = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
++    expect(page).toContain('href="https://corazonsalud.health/privacy/"');
++    expect(page).toContain('href="https://corazonsalud.health/terms/"');
++    for (const label of ["Privacy Policy", "Política de Privacidad", "Terms of Service", "Términos de Servicio"]) expect(page).toContain(label);
++    expect(page.indexOf('className="auth-legal"')).toBeGreaterThan(page.indexOf("<LillyAuthForm"));
++    const layout = readFileSync(new URL("../layout.tsx", import.meta.url), "utf8");
++    expect(layout).toContain("robots: { index: false, follow: false }");
++    expect(layout).toContain("lang={await getPortalLocale()}");
++  });
++});

@@ -1,0 +1,130 @@
+diff --git a/src/app/globals.css b/src/app/globals.css
+index be8a53d..20e29e9 100644
+--- a/src/app/globals.css
++++ b/src/app/globals.css
+@@ -28,9 +28,9 @@ h1,h2,h3{letter-spacing:-.035em}
+ .main-column{min-width:0;display:flex;flex-direction:column}
+ .topbar{height:76px;display:flex;align-items:center;justify-content:flex-end;background:#fff;border-bottom:1px solid var(--line);padding:0 clamp(22px,5vw,72px)}
+ .topbar-right{display:flex;align-items:center;gap:22px}.preview-pill{background:#fff4df;color:#8a6a26;padding:7px 12px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}.patient-name{font-size:13px;font-weight:700;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+-.locale-switch select{border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);padding:7px 9px;font-size:12px;min-height:36px}
++
+ .topbar-right{min-width:0}.patient-name{white-space:normal;overflow-wrap:anywhere;text-align:right;max-height:3em;overflow:visible}
+-@media(max-width:760px){.topbar{min-height:65px;height:auto;padding-top:8px;padding-bottom:8px}.topbar-right{gap:7px}.patient-name{font-size:11px;max-width:100px}.locale-switch select{max-width:92px;font-size:11px}.mobile-brand{flex:0 0 auto}}
++@media(max-width:760px){.topbar{min-height:65px;height:auto;padding-top:8px;padding-bottom:8px}.topbar-right{gap:7px}.patient-name{font-size:11px;max-width:100px}.mobile-brand{flex:0 0 auto}}
+ .agreement-acceptance{display:grid;justify-items:start;gap:12px;margin-top:20px}.agreement-links{display:flex;flex-wrap:wrap;gap:14px}.agreement-links a{color:var(--rose-deep);text-decoration:underline;font-size:13px;font-weight:700}.agreement-checkbox{display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.5;cursor:pointer}.agreement-checkbox input{width:18px;height:18px;flex:0 0 auto;accent-color:var(--rose)}
+ .avatar,.profile-avatar,.mini-avatar,.family-avatar{display:inline-grid;place-items:center;flex:0 0 auto;border-radius:50%;font-weight:700}
+ .avatar{width:36px;height:36px;color:var(--rose-deep);background:var(--rose-light);font-size:14px}
+@@ -69,7 +69,22 @@ h1,h2,h3{letter-spacing:-.035em}
+ .field-error{color:var(--rose-deep);font-size:11px;font-weight:600}.form-grid input[aria-invalid=true],.form-grid select[aria-invalid=true]{border-color:var(--rose)}
+ .review-box.review-error{background:#fff5f8;border-color:#f7dce6;color:var(--rose-deep)}
+ .state-soon .status-pill{margin-bottom:4px}
+-@media(max-width:760px){.topbar{min-height:65px;height:auto;padding-top:8px;padding-bottom:8px}.topbar-right{gap:7px}.patient-name{font-size:11px;max-width:100px;line-height:1.25}.locale-switch select{max-width:92px;font-size:11px}.mobile-brand{flex:0 0 auto}}
++@media(max-width:760px){.topbar{min-height:65px;height:auto;padding-top:8px;padding-bottom:8px}.topbar-right{gap:7px}.patient-name{font-size:11px;max-width:100px;line-height:1.25}.mobile-brand{flex:0 0 auto}}
+ 
+ /* Public auth legal navigation: shared by sign-in and account creation. */
+ .auth-legal{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 20px;margin-top:24px;font-size:12px;line-height:1.6}.auth-legal a{color:var(--rose-deep);text-decoration:underline;text-underline-offset:3px}.auth-legal a:focus-visible{outline:2px solid var(--rose-deep);outline-offset:4px;border-radius:2px}
++
++/* Shared ES/EN pill, matching the public site's language control. */
++.locale-switch{display:inline-flex;flex:0 0 auto;align-items:stretch;border:1px solid #c5d0d5;border-radius:999px;isolation:isolate;background:#fff}
++.locale-switch button{border:0;background:transparent;color:#536875;padding:7px 13px;min-height:36px;font-size:11px;font-weight:700;letter-spacing:.08em;line-height:1;transition:background .15s,color .15s}
++.locale-switch button:first-child{border-radius:999px 0 0 999px}.locale-switch button:last-child{border-radius:0 999px 999px 0}
++.locale-switch button:hover{background:var(--rose-light);color:var(--rose-deep)}
++.locale-switch button[aria-pressed="true"]{background:var(--rose-deep);color:#fff}
++.locale-switch button:focus-visible{position:relative;z-index:1;outline:3px solid var(--rose-deep);outline-offset:3px}
++.login-panel{position:relative;grid-template-rows:1fr auto;gap:32px;padding-top:88px;padding-bottom:24px}
++.login-locale{position:absolute;top:24px;right:28px}
++.login-footer{width:min(390px,100%);display:grid;justify-items:center;gap:8px;padding:20px 0 0;color:var(--muted)}
++.login-footer span{margin:0}.login-footer .footer-emc-logo{display:block;width:100px}
++.topbar{gap:20px}.topbar-right{flex-wrap:wrap;justify-content:flex-end}
++@media(max-width:760px){.login-panel{padding-top:88px;padding-bottom:24px}.login-locale{right:24px}.topbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 12px;padding-top:14px;padding-bottom:12px}.topbar>.locale-switch{grid-column:2;grid-row:1}.topbar .mobile-brand{grid-column:1;grid-row:1}.topbar-right{grid-column:1/-1;grid-row:2}.topbar .patient-name{max-width:180px}}
++@media(prefers-reduced-motion:reduce){.locale-switch button{transition:none}}
+diff --git a/src/app/login/page.tsx b/src/app/login/page.tsx
+index d68e1df..0f92749 100644
+--- a/src/app/login/page.tsx
++++ b/src/app/login/page.tsx
+@@ -32,7 +32,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
+   const preferredPlan = ["essential", "plus", "max"].includes(requestedPlan) ? requestedPlan : ["essential", "plus", "max"].includes(savedPlan) ? savedPlan : undefined;
+   return <main className="login-screen">
+     <div className="login-art"><Link className="brand light" href="https://corazonsalud.health" aria-label={english ? "Corazón Salud public website" : "Corazón Salud, ir al sitio público"}><img className="brand-logo" src="/corazon-salud-white.svg" alt="Corazón Salud" /></Link><div className="login-illustration"><span aria-hidden="true">♡</span><h1>{english ? "Everything you need to care for your loved ones." : <>Todo lo que necesitas<br/>para cuidar de los tuyos.</>}</h1><p>{english ? "Your membership, family, and payments, always within reach." : "Tu membresía, tu familia y tus pagos, siempre a mano."}</p></div><div className="art-footer">{english ? "Connected through your well-being." : "Conectados por tu bienestar."}</div></div>
+-    <div className="login-panel"><div className="login-inner"><LocaleSwitch locale={locale}/><div className="login-mobile-logo"><Link href="https://corazonsalud.health" aria-label={english ? "Corazón Salud public website" : "Corazón Salud, ir al sitio público"}><img className="brand-logo" src="/corazon-salud.svg" alt="Corazón Salud" /></Link></div><span className="eyebrow">{english ? "WELCOME TO YOUR PORTAL" : "BIENVENIDO A TU PORTAL"}</span><h2>{english ? "A place for you and your family." : <>Un espacio para ti<br/>y tu familia.</>}</h2><p className="login-intro">{english ? "Review your membership and keep everything important in one place." : "Consulta tu membresía y organiza lo importante desde un solo lugar."}</p>
++    <div className="login-panel"><div className="login-locale"><LocaleSwitch locale={locale}/></div><div className="login-inner"><div className="login-mobile-logo"><Link href="https://corazonsalud.health" aria-label={english ? "Corazón Salud public website" : "Corazón Salud, ir al sitio público"}><img className="brand-logo" src="/corazon-salud.svg" alt="Corazón Salud" /></Link></div><span className="eyebrow">{english ? "WELCOME TO YOUR PORTAL" : "BIENVENIDO A TU PORTAL"}</span><h2>{english ? "A place for you and your family." : <>Un espacio para ti<br/>y tu familia.</>}</h2><p className="login-intro">{english ? "Review your membership and keep everything important in one place." : "Consulta tu membresía y organiza lo importante desde un solo lugar."}</p>
+       {reasonMessage && <div className="notice" role="alert"><strong>{english ? "Sign in again" : "Vuelve a ingresar"}</strong><p>{english ? "Your session ended. Sign in to continue." : reasonMessage}</p></div>}
+       {verificationError && <div className="notice" role="alert"><strong>{english ? "This link is invalid or expired" : "El enlace no es válido o venció"}</strong><p>{english ? "Request a new verification email from Create account." : "Vuelve a solicitar la confirmación con tu correo desde «Crear cuenta»."}</p></div>}
+       {previewEnabled ? <><div className="notice"><strong>{english ? "Development preview" : "Vista previa de desarrollo"}</strong><p>{english ? "Sample data is shown locally only." : "Estos datos son sintéticos y solo se muestran localmente."}</p></div><form action={enterPreview}><button type="submit" className="button button-primary button-full">{english ? "Explore local preview" : "Explorar vista local"} →</button></form></> : ["lilly-local", "lilly-production"].includes(getDataMode()) ? <LillyAuthForm preferredPlan={preferredPlan} locale={locale}/> : <AccessForm/>}
+@@ -41,6 +41,6 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
+         <a href="https://corazonsalud.health/terms/">{english ? "Terms of Service" : "Términos de Servicio"}</a>
+       </nav>
+       <p className="login-footnote">{english ? "Need help? Contact the Corazón Salud team." : "¿Necesitas ayuda? Contacta al equipo de Corazón Salud."}</p>
+-    </div></div>
++    </div><footer className="footer login-footer"><a href="https://emc.health" target="_blank" rel="noopener noreferrer" aria-label={english ? "Eminat Medical Center official website" : "Eminat Medical Center, sitio oficial"}><img className="footer-emc-logo" src="/emc_logo_white.svg" alt="Eminat Medical Center"/></a><span>{english ? "Corazón Salud is a program of Eminat Medical Center." : "Corazón Salud es un programa de Eminat Medical Center."}</span><span>{english ? "Corazón Salud is not health insurance." : "Corazón Salud no es un seguro médico."}</span></footer></div>
+   </main>;
+ }
+diff --git a/src/components/locale-switch.test.ts b/src/components/locale-switch.test.ts
+new file mode 100644
+index 0000000..b9a4e89
+--- /dev/null
++++ b/src/components/locale-switch.test.ts
+@@ -0,0 +1,23 @@
++// @vitest-environment jsdom
++import { cleanup, fireEvent, render, screen } from "@testing-library/react";
++import { createElement } from "react";
++import { afterEach, expect, it, vi } from "vitest";
++import { LocaleSwitch } from "./locale-switch";
++const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
++vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
++afterEach(() => { cleanup(); refresh.mockClear(); });
++for (const locale of ["es", "en"] as const) it(`exposes accessible ${locale} selection and preserves the locale refresh`, () => {
++ render(createElement(LocaleSwitch, { locale }));
++ const es = screen.getByRole("button", { name: "Español" });
++ const en = screen.getByRole("button", { name: "English" });
++ expect(es.getAttribute("aria-pressed")).toBe(String(locale === "es"));
++ expect(en.getAttribute("aria-pressed")).toBe(String(locale === "en"));
++ expect(es.getAttribute("type")).toBe("button");
++ const cookie = vi.spyOn(document, "cookie", "set");
++ fireEvent.click(locale === "es" ? en : es);
++ const next = locale === "es" ? "en" : "es";
++ expect(cookie).toHaveBeenCalledWith(`cs_locale=${next}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`);
++ expect(document.documentElement.lang).toBe(next);
++ expect(refresh).toHaveBeenCalledOnce();
++ cookie.mockRestore();
++});
+diff --git a/src/components/locale-switch.tsx b/src/components/locale-switch.tsx
+index 2c5429b..8fd4a46 100644
+--- a/src/components/locale-switch.tsx
++++ b/src/components/locale-switch.tsx
+@@ -4,16 +4,13 @@ import type { PortalLocale } from "@/lib/portal-locale";
+ 
+ export function LocaleSwitch({ locale }: { locale: PortalLocale }) {
+   const router = useRouter();
+-  return <label className="locale-switch">
+-    <span className="visually-hidden">{locale === "es" ? "Idioma" : "Language"}</span>
+-    <select aria-label={locale === "es" ? "Idioma del Portal" : "Portal language"}
+-      value={locale} onChange={event => {
+-        const next = event.currentTarget.value === "en" ? "en" : "es";
++  return <div className="locale-switch" role="group" aria-label={locale === "es" ? "Idioma del Portal" : "Portal language"}>
++    {(["es", "en"] as const).map(next => <button key={next} type="button"
++      lang={next} aria-label={next === "es" ? "Español" : "English"} aria-pressed={locale === next}
++      onClick={() => {
+         document.cookie = `cs_locale=${next}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`;
+         document.documentElement.lang = next;
+         router.refresh();
+-      }}>
+-      <option value="es">Español</option><option value="en">English</option>
+-    </select>
+-  </label>;
++      }}>{next.toUpperCase()}</button>)}
++  </div>;
+ }
+diff --git a/src/components/portal-shell.tsx b/src/components/portal-shell.tsx
+index 3ac7dbf..70ed995 100644
+--- a/src/components/portal-shell.tsx
++++ b/src/components/portal-shell.tsx
+@@ -37,7 +37,7 @@ export function PortalShell({ children, memberName, preview, locale }: { childre
+       <div className="main-column">
+         <header className="topbar">
+           <Link className="mobile-brand" href="https://corazonsalud.health" aria-label={english ? "Corazón Salud, open public website" : "Corazón Salud, ir al sitio público"}><img className="brand-logo" src="/corazon-salud.svg" alt="Corazón Salud" /></Link>
+-          <div className="topbar-right"><LocaleSwitch locale={locale}/>{preview && <span className="preview-pill">{english ? "Local preview · sample data" : "Vista local · datos de ejemplo"}</span>}<span className="patient-name">{memberName.trim()}</span><span className="avatar" aria-label={memberName || (english ? "Profile" : "Perfil")}>{memberName.slice(0, 1) || "◉"}</span></div>
++          <div className="topbar-right">{preview && <span className="preview-pill">{english ? "Local preview · sample data" : "Vista local · datos de ejemplo"}</span>}<span className="patient-name">{memberName.trim()}</span><span className="avatar" aria-label={memberName || (english ? "Profile" : "Perfil")}>{memberName.slice(0, 1) || "◉"}</span></div><LocaleSwitch locale={locale}/>
+         </header>
+         <nav className="mobile-nav" aria-label={english ? "Mobile navigation" : "Navegación móvil"}>
+           {links.map((link,index) => <Link key={link.href} className={pathname === link.href ? "mobile-link active" : "mobile-link"} href={link.href} aria-current={pathname === link.href ? "page" : undefined}>{labels[index]}</Link>)}

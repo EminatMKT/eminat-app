@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({ createClient: vi.fn(), admin: vi.fn() }))
 vi.mock('@supabase/supabase-js', () => ({ createClient: mocks.createClient }))
 vi.mock('@/shared/db/supabaseAdmin', () => ({ supabaseAdmin: mocks.admin }))
 
-import { resolveSalesActor } from './auth'
+import { resolveSalesActor, resolveSalesOrganizations } from './auth'
 
 function query(data: unknown, terminal: 'limit' | 'maybeSingle' | 'then' = 'maybeSingle') {
   const result = { data, error: null }
@@ -102,6 +102,41 @@ describe('native Sales session boundary', () => {
     expect(await resolveSalesActor(request(ids.organization))).toEqual({
       organizationId: ids.organization, memberId: ids.member, userId: ids.profile,
       role: 'SELLER', teamIds: [ids.team],
+    })
+    expect(members.eq).toHaveBeenCalledWith('organization_id', ids.organization)
+  })
+
+  it('discovers only active memberships in active organizations for the exact login', async () => {
+    const { members } = fixture({ members: [{ organization_id: ids.organization, role: 'SUPERADMIN',
+      sales_organizations: [{ id: ids.organization, name: 'EMC', code: 'emc', status: 'active' }] }] })
+    expect(await resolveSalesOrganizations(request())).toEqual([
+      { organizationId: ids.organization, name: 'EMC', code: 'emc', role: 'SUPERADMIN' },
+    ])
+    expect(members.eq).toHaveBeenCalledWith('auth_id', ids.auth)
+    expect(members.eq).toHaveBeenCalledWith('user_id', ids.profile)
+    expect(members.eq).toHaveBeenCalledWith('status', 'active')
+    expect(members.eq).toHaveBeenCalledWith('sales_organizations.status', 'active')
+  })
+
+  it('does not turn a pending-only login into organization access', async () => {
+    fixture({ members: [] })
+    await expect(resolveSalesOrganizations(request())).rejects.toMatchObject({
+      status: 403, code: 'SALES_ACCESS_DENIED',
+    })
+  })
+
+  it('fails closed on an invalid organization relationship', async () => {
+    fixture({ members: [{ organization_id: ids.organization, role: 'SUPERADMIN',
+      sales_organizations: [] }] })
+    await expect(resolveSalesOrganizations(request())).rejects.toMatchObject({
+      status: 503, code: 'SALES_IDENTITY_INVALID',
+    })
+  })
+
+  it('rejects selecting an organization with no active membership, including for SUPERADMIN', async () => {
+    const { members } = fixture({ members: [] })
+    await expect(resolveSalesActor(request(ids.organization))).rejects.toMatchObject({
+      status: 403, code: 'SALES_ACCESS_DENIED',
     })
     expect(members.eq).toHaveBeenCalledWith('organization_id', ids.organization)
   })

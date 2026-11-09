@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "before": {
+    "status": "PASS",
+    "phase": "check",
+    "reference": "5c62eaba62296893f2f9866d3321a403",
+    "migration_sha256": "2abf0f42a4d9b8a5f2342391e4b2e891614f4ec505b9dbe09b99eb5181d52f41",
+    "medical_rows": 0
+  },
+  "after": {
+    "status": "PASS",
+    "phase": "verify",
+    "reference": "5c62eaba62296893f2f9866d3321a403",
+    "migration_sha256": "2abf0f42a4d9b8a5f2342391e4b2e891614f4ec505b9dbe09b99eb5181d52f41",
+    "medical_rows": 0
+  },
+  "production_access": false,
+  "environment": "Isolated local PostgreSQL 17.11 with synthetic integer tables and stub permission predicate"
+}

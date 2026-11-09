@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Corazón Salud — Programa de membresía de servicios médicos de Eminat Medical Center</title>
+<meta name="description" content="Corazón Salud es una membresía de servicios médicos de Eminat Medical Center con médico de cabecera, laboratorios básicos incluidos y planes desde $49.99 al mes.">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://corazonsalud.health/">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Corazón Salud">
+<meta property="og:title" content="Corazón Salud — Programa de membresía de Eminat Medical Center">
+<meta property="og:description" content="Membresía de servicios médicos de Eminat Medical Center con laboratorios básicos incluidos y planes desde $49.99 al mes. No es un seguro médico.">
+<meta property="og:url" content="https://corazonsalud.health/">
+<meta property="og:locale" content="es_US">
+<meta property="og:locale:alternate" content="en_US">
+<meta name="theme-color" content="#EE3D7B">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org","@type":"MedicalClinic",
+  "name":"Eminat Medical Center","alternateName":"EMC",
+  "url":"https://corazonsalud.health/","telephone":"+1-954-360-8897",
+  "address":[
+    {"@type":"PostalAddress","name":"EMC Miramar East","streetAddress":"2501 Palm Avenue, Suite 112","addressLocality":"Miramar","addressRegion":"FL","postalCode":"33025","addressCountry":"US"},
+    {"@type":"PostalAddress","name":"EMC Miramar West","streetAddress":"14601 SW 29th St, Suite 108","addressLocality":"Miramar","addressRegion":"FL","postalCode":"33027","addressCountry":"US"}
+  ],
+  "makesOffer":{"@type":"Offer","name":"Corazón Salud — Programa de membresía de servicios médicos",
+  "description":"Programa de membresía de servicios médicos. No es un seguro de salud.",
+  "priceCurrency":"USD","lowPrice":"49.99"}
+}
+</script>
+
+<style>
+/* ══════════════════════════════════════════════════════════════
+   CORAZÓN SALUD — tokens tomados de la Guía de uso de la marca v1.02
+   Rosa Corazón es el color propietario del programa.
+   Los neutros son los compartidos con la marca EMC.
+   ══════════════════════════════════════════════════════════════ */
+:root{
+  /* Familia rosa — pág. 7 */
+  --rosa:#EE3D7B;          /* Rosa Corazón · PMS 205 C */
+  --rosa-prof:#AB2C59;     /* Rosa Profundo · PMS 220 C */
+  --rosa-medio:#F694B6;    /* Rosa Medio · PMS 210 C */
+  --rosa-suave:#FBCEDE;    /* Rosa Suave · PMS 517 C */
+  --rosa-nube:#FDECF2;     /* Rosa Nube */
+
+  /* Neutros compartidos con EMC — pág. 7 */
+  --gris-900:#4A5A64;
+  --gris-500:#768F9E;
+  --gris-200:#B7C4CC;
+
+  --blanco:#FFFFFF;
+  --linea:rgba(74,90,100,.16);
+
+  --r-sm:8px; --r-md:14px; --r-lg:22px; --r-xl:28px;
+  --max:1180px;
+  --pad-sec:clamp(58px,7vw,106px);
+  --sombra:0 2px 4px rgba(74,90,100,.05),0 14px 36px rgba(74,90,100,.10);
+  --sombra-alta:0 26px 64px rgba(74,90,100,.20);
+
+  /* Tipografía — pág. 12. Ubuntu para marca y titulares, Lora para lectura */
+  --ff-marca:'Ubuntu',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --ff-texto:'Lora',Georgia,'Times New Roman',serif;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--blanco);color:var(--gris-900);
+  font-family:var(--ff-texto);font-weight:400;font-size:1rem;line-height:1.72;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+img,svg{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit}
+.wrap{width:100%;max-width:var(--max);margin-inline:auto;padding-inline:clamp(18px,4vw,32px)}
+:focus-visible{outline:3px solid var(--rosa);outline-offset:3px;border-radius:4px}
+.oculto{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- Jerarquía tipográfica de la guía ---------- */
+h1,h2,h3,h4,h5{margin:0;font-family:var(--ff-marca);line-height:1.14}
+h1{font-size:clamp(2.2rem,5.6vw,3.85rem);font-weight:300;letter-spacing:-.018em}  /* Ubuntu Light */
+h2{font-size:clamp(1.8rem,3.8vw,2.9rem);font-weight:300;letter-spacing:-.015em}   /* Ubuntu Light */
+h3{font-size:clamp(1.08rem,1.8vw,1.32rem);font-weight:500;letter-spacing:-.005em} /* Ubuntu Medium */
+p{margin:0 0 1em}
+.lead{font-size:clamp(1rem,1.4vw,1.1rem);color:var(--gris-500);line-height:1.78}
+strong,b{font-weight:600}
+
+.eyebrow{
+  display:inline-flex;align-items:center;gap:9px;font-family:var(--ff-marca);
+  font-size:.7rem;font-weight:500;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--rosa);margin:0 0 16px;
+}
+.eyebrow::before{content:"";width:24px;height:3px;background:var(--rosa);border-radius:3px}
+.eyebrow.claro{color:var(--blanco)}
+.eyebrow.claro::before{background:var(--blanco)}
+
+/* ---------- Botones ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  font-family:var(--ff-marca);font-weight:500;font-size:.95rem;line-height:1.2;
+  padding:15px 26px;border-radius:999px;border:2px solid transparent;cursor:pointer;
+  transition:transform .18s ease,background .18s ease,color .18s ease,border-color .18s ease;
+  text-align:center;
+}
+.btn:hover{transform:translateY(-2px)}
+.btn-rosa{background:var(--rosa);color:var(--blanco)}
+.btn-rosa:hover{background:var(--rosa-prof)}
+.btn-blanco{background:var(--blanco);color:var(--rosa)}
+.btn-blanco:hover{background:var(--rosa-nube)}
+.btn-linea-blanca{border-color:rgba(255,255,255,.55);color:var(--blanco)}
+.btn-linea-blanca:hover{background:rgba(255,255,255,.14);border-color:var(--blanco)}
+.btn-linea-rosa{border-color:var(--rosa);color:var(--rosa)}
+.btn-linea-rosa:hover{background:var(--rosa);color:var(--blanco)}
+.btn-lg{padding:17px 32px;font-size:1.02rem}
+
+/* ══════════ MARCA ══════════
+   Lockup construido según pág. 3: isotipo + logotipo en Ubuntu Bold
+   dispuesto en dos líneas. Área de protección: X = ¼ del ancho del isotipo. */
+.iso{display:block;fill:currentColor;flex-shrink:0}
+.lockup{display:block;height:auto;color:var(--rosa);flex-shrink:0}
+.lockup-blanco{color:var(--blanco)}
+/* Tamaño mínimo de reproducción — pág. 11: horizontal 90 px, isotipo 28 px.
+   Todos los anchos declarados aquí quedan por encima de ese piso. */
+.lockup-nav{width:clamp(132px,15vw,152px)}
+.lockup-pie{width:180px}
+.lockup-tarjeta{width:132px}
+.endoso-cs{width:clamp(150px,20vw,190px)}
+.marca-link{display:flex;align-items:center;flex-shrink:0}
+
+/* Marca de agua con el isotipo — recurso propio de la marca */
+.filigrana{
+  position:absolute;pointer-events:none;color:var(--blanco);opacity:.09;
+  width:min(58vw,540px);height:auto;
+}
+
+/* ---------- Topbar ---------- */
+.topbar{background:var(--gris-900);color:rgba(255,255,255,.84);font-family:var(--ff-marca);font-size:.79rem;font-weight:300}
+.topbar .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:42px;flex-wrap:wrap}
+.topbar-izq{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.topbar a:hover{color:var(--rosa-medio)}
+.topbar strong{font-weight:500;color:var(--blanco)}
+.lang{display:inline-flex;border:1px solid rgba(255,255,255,.28);border-radius:999px;overflow:hidden}
+.lang button{background:none;border:0;color:rgba(255,255,255,.74);padding:4px 13px;font-size:.72rem;font-weight:500;letter-spacing:.09em;cursor:pointer;transition:.15s}
+.lang button[aria-pressed="true"]{background:var(--rosa);color:var(--blanco)}
+
+/* ---------- Nav ---------- */
+.nav{position:sticky;top:0;z-index:60;background:rgba(255,255,255,.94);backdrop-filter:saturate(180%) blur(14px);border-bottom:1px solid var(--linea)}
+/* min-height calculada para respetar el área de protección vertical:
+   con el imagotipo a 152 px, X ≈ 15.6 px por arriba y por abajo. */
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;gap:26px;min-height:96px}
+.menu{display:flex;align-items:center;gap:26px}
+.menu a{font-family:var(--ff-marca);font-size:.9rem;font-weight:400;color:var(--gris-900);position:relative;padding:4px 0}
+.menu a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:2px;background:var(--rosa);transition:width .22s ease}
+.menu a:hover{color:var(--rosa)}
+.menu a:hover::after{width:100%}
+.nav-cta{display:flex;align-items:center;gap:10px}
+.hamb{display:none;background:none;border:1px solid var(--linea);border-radius:10px;padding:9px 11px;cursor:pointer}
+.hamb span{display:block;width:19px;height:2px;background:var(--gris-900);border-radius:2px}
+.hamb span+span{margin-top:4px}
+
+/* ---------- Hero ---------- Blanco sobre Rosa Corazón · aplicación preferente (pág. 9) */
+.hero{position:relative;background:var(--rosa);color:var(--blanco);overflow:hidden;padding:clamp(54px,7vw,92px) 0 clamp(72px,9vw,110px)}
+.hero .filigrana{right:-11%;bottom:-26%;rotate:-8deg}
+.hero-grid{position:relative;display:grid;grid-template-columns:1.05fr .95fr;gap:clamp(36px,5vw,62px);align-items:center}
+.hero h1{color:var(--blanco);text-wrap:balance}
+.hero h1 b{font-weight:700}
+.price-qualifier{font-size:.85rem;line-height:1.6;max-width:60ch;margin:14px 0 18px;color:inherit}
+.hero-sub{color:rgba(255,255,255,.9);font-size:clamp(1rem,1.45vw,1.14rem);max-width:47ch;margin:20px 0 26px;line-height:1.75}
+
+.precio-chip{display:inline-flex;align-items:baseline;gap:11px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.4);border-radius:var(--r-md);padding:11px 20px;margin-bottom:26px}
+.precio-chip .lbl{font-family:var(--ff-marca);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;font-weight:500}
+.precio-chip .val{font-family:var(--ff-marca);font-weight:700;font-size:1.85rem;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.precio-chip .per{font-family:var(--ff-marca);font-size:.82rem;font-weight:300;color:rgba(255,255,255,.85)}
+
+.hero-btns{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:28px}
+.hero-nota{font-family:var(--ff-marca);font-size:.8rem;font-weight:300;color:rgba(255,255,255,.82);max-width:46ch;line-height:1.62}
+.hero-nota b{font-weight:500;color:var(--blanco)}
+
+/* ═══════════ Tarjeta de miembro · perspectiva 3D ═══════════
+   La tarjeta se presenta como objeto físico en perspectiva. La marca
+   va aplicada plana y en su eje sobre la superficie de la tarjeta;
+   lo que gira es el objeto, no el imagotipo.
+
+   PARA DESACTIVAR LA PERSPECTIVA: comentar la línea `transform` de
+   .tarjeta y la regla .tarjeta:hover. La tarjeta queda recta y el
+   resto del bloque sigue funcionando.
+   ═════════════════════════════════════════════════════════════ */
+.tarjeta-zona{display:flex;justify-content:center;align-items:center;perspective:1400px}
+.tarjeta{
+  width:min(100%,410px);aspect-ratio:1.586/1;border-radius:20px;position:relative;
+  background:var(--blanco);box-shadow:var(--sombra-alta);overflow:hidden;
+  padding:24px 26px;display:flex;flex-direction:column;justify-content:space-between;
+  transform:rotate(-6.5deg) rotateY(11deg) rotateX(5deg);
+  transition:transform .55s cubic-bezier(.2,.8,.25,1),box-shadow .55s ease;
+  animation:flota 7s ease-in-out infinite;
+}
+.tarjeta:hover{
+  transform:rotate(-2deg) rotateY(2deg) rotateX(1deg) scale(1.035);
+  box-shadow:0 34px 78px rgba(74,90,100,.26);
+}
+/* Brillo laminado. Estático: la sensación de luz en movimiento la da
+   la flotación de la tarjeta por debajo. Sobre superficie blanca el
+   destello se construye con un barrido gris tenue, no con blanco. */
+.tarjeta::after{
+  content:"";position:absolute;inset:0;border-radius:20px;pointer-events:none;z-index:3;
+  background:linear-gradient(115deg,transparent 33%,rgba(74,90,100,.055) 46%,rgba(238,61,123,.05) 51%,transparent 60%);
+}
+/* `translate` es propiedad independiente: se compone con `transform`
+   en lugar de reemplazarlo, así la flotación no aplana la perspectiva. */
+@keyframes flota{0%,100%{translate:0 0}50%{translate:0 -13px}}
+.tarjeta-fondo{position:absolute;right:-14%;bottom:-32%;width:70%;color:var(--rosa-nube);opacity:1;pointer-events:none}
+.t-cap{position:relative;display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+.t-chip{width:38px;height:28px;border-radius:5px;flex-shrink:0;background:linear-gradient(135deg,var(--rosa-suave),var(--rosa-medio));box-shadow:inset 0 0 0 1px rgba(171,44,89,.18)}
+.t-pie{position:relative;display:flex;justify-content:space-between;align-items:flex-end;gap:14px}
+.t-campo small{display:block;font-family:var(--ff-marca);font-size:.5rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gris-500);font-weight:500;margin-bottom:3px}
+.t-campo b{font-family:var(--ff-marca);font-weight:500;font-size:.9rem;letter-spacing:.07em;color:var(--gris-900);font-variant-numeric:tabular-nums}
+.t-sello{font-family:var(--ff-marca);font-size:.5rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--gris-500);text-align:right;line-height:1.5}
+
+/* ---------- Cinta ---------- Blanco sobre Rosa Profundo (pág. 8) */
+.cinta{background:var(--rosa-prof);color:var(--blanco);overflow:hidden;padding:12px 0}
+.cinta-pista{display:flex;width:max-content;animation:desliza 44s linear infinite}
+.cinta-item{display:inline-flex;align-items:center;padding:0 24px;white-space:nowrap;font-family:var(--ff-marca);font-size:.82rem;font-weight:300;letter-spacing:.03em}
+.cinta-item::after{content:"";width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.5);margin-left:24px}
+@keyframes desliza{to{transform:translateX(-50%)}}
+
+/* ---------- Secciones ---------- */
+section{padding:var(--pad-sec) 0}
+.sec-head{max-width:670px;margin-bottom:clamp(34px,4.5vw,52px)}
+.sec-head p{margin-top:16px}
+.bg-blanco{background:var(--blanco)}
+.bg-nube{background:var(--rosa-nube)}
+.bg-gris{background:var(--gris-900);color:var(--blanco)}
+.bg-gris h2,.bg-gris h3{color:var(--blanco)}
+.bg-gris .lead{color:rgba(255,255,255,.78)}
+
+/* ---------- Beneficios ---------- */
+.beneficios{display:grid;grid-template-columns:repeat(auto-fit,minmax(274px,1fr));gap:18px}
+.ben{background:var(--blanco);border:1px solid var(--linea);border-radius:var(--r-lg);padding:28px 26px 26px;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease}
+.bg-nube .ben{border-color:rgba(238,61,123,.16)}
+.ben:hover{transform:translateY(-4px);box-shadow:var(--sombra);border-color:var(--rosa-medio)}
+.ben-ico{width:48px;height:48px;border-radius:14px;background:var(--rosa-nube);display:grid;place-items:center;margin-bottom:17px}
+.ben-ico svg{width:24px;height:24px;stroke:var(--rosa);stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.ben h3{margin-bottom:9px;color:var(--gris-900)}
+.ben p{font-size:.92rem;color:var(--gris-500);margin:0;line-height:1.7}
+.ben-desc{display:inline-flex;align-items:center;margin-top:15px;background:var(--rosa-suave);color:var(--rosa-prof);border-radius:999px;padding:5px 14px;font-family:var(--ff-marca);font-size:.685rem;font-weight:500;letter-spacing:.09em;text-transform:uppercase}
+
+/* ---------- Planes ---------- */
+.planes{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:stretch}
+.plan{background:var(--blanco);border:1px solid var(--linea);border-radius:var(--r-xl);padding:30px 26px 28px;display:flex;flex-direction:column;position:relative;transition:transform .24s ease,box-shadow .24s ease}
+.plan:hover{transform:translateY(-6px);box-shadow:var(--sombra)}
+.plan-barra{height:5px;border-radius:999px;width:54px;margin-bottom:20px}
+.p1 .plan-barra{background:var(--rosa-medio)}
+.p2 .plan-barra{background:var(--rosa)}
+.p3 .plan-barra{background:var(--rosa-prof)}
+.plan.destacado{border:2px solid var(--rosa);box-shadow:0 22px 52px rgba(238,61,123,.18);transform:translateY(-10px)}
+.plan.destacado:hover{transform:translateY(-15px)}
+.plan-badge{position:absolute;top:-13px;left:50%;translate:-50% 0;background:var(--rosa);color:var(--blanco);font-family:var(--ff-marca);font-size:.64rem;font-weight:500;letter-spacing:.16em;text-transform:uppercase;padding:6px 16px;border-radius:999px;white-space:nowrap}
+.plan h3{font-size:1.44rem;font-weight:700;color:var(--rosa);margin-bottom:5px}
+.plan-tag{font-size:.85rem;color:var(--gris-500);margin-bottom:22px;min-height:3.4em;line-height:1.6}
+.precio-etq{display:block;font-family:var(--ff-marca);font-size:.66rem;letter-spacing:.17em;text-transform:uppercase;color:var(--gris-500);font-weight:500;margin-bottom:5px}
+.precio-fila{display:flex;align-items:baseline;gap:3px;font-family:var(--ff-marca)}
+.precio-fila .cur{font-size:1.1rem;font-weight:700;color:var(--rosa);translate:0 -.6em}
+.precio-fila .num{font-size:3.05rem;font-weight:700;letter-spacing:-.04em;color:var(--gris-900);font-variant-numeric:tabular-nums;line-height:1}
+.precio-fila .dec{font-size:1.15rem;font-weight:700;color:var(--gris-900);translate:0 -1.2em}
+.precio-fila .per{font-size:.82rem;font-weight:300;color:var(--gris-500)}
+.precio-fam{margin-top:16px;padding-top:16px;border-top:1px dashed var(--linea);display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.precio-fam small{font-size:.78rem;color:var(--gris-500);line-height:1.4;max-width:11em}
+.precio-fam b{font-family:var(--ff-marca);font-size:1.42rem;font-weight:700;color:var(--gris-900);letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap}
+.precio-fam b span{font-size:.7rem;font-weight:300;color:var(--gris-500)}
+.plan-lista{list-style:none;margin:22px 0 26px;padding:0;display:flex;flex-direction:column;gap:11px;flex:1}
+.plan-lista li{display:flex;gap:10px;font-size:.895rem;line-height:1.55;align-items:flex-start}
+.plan-lista svg{width:16px;height:16px;flex-shrink:0;margin-top:4px;stroke:var(--rosa);stroke-width:2.6;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.plan-lista li.desc svg{stroke:var(--rosa-prof)}
+.plan .btn{width:100%}
+
+.pendiente{display:inline-block;background:var(--rosa-suave);border:1px dashed var(--rosa-prof);color:var(--rosa-prof);font-family:var(--ff-marca);font-size:.66rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;padding:2px 9px;border-radius:5px}
+
+/* ---------- Tabla ---------- */
+.tabla-caja{background:var(--blanco);border:1px solid var(--linea);border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--sombra)}
+.tabla-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;min-width:660px;font-size:.885rem}
+thead th{background:var(--rosa);color:var(--blanco);text-align:center;padding:16px 14px;font-family:var(--ff-marca);font-weight:500;font-size:.86rem;letter-spacing:.03em}
+thead th:first-child{text-align:left;font-weight:300;font-size:.71rem;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,255,255,.86)}
+tbody td{padding:14px;border-bottom:1px solid var(--linea);text-align:center;color:var(--gris-900)}
+tbody td:first-child{text-align:left;font-family:var(--ff-marca);font-weight:400;font-size:.87rem}
+tbody tr:nth-child(even){background:#FEF7FA}
+tbody tr:last-child td{border-bottom:0}
+td .si{color:var(--rosa);font-weight:700;font-size:1.1rem}
+td .no{color:var(--gris-200);font-weight:600}
+td .precio-td{font-family:var(--ff-marca);font-weight:700;color:var(--gris-900);font-variant-numeric:tabular-nums}
+
+/* ---------- Alcance sí / no ---------- */
+.alcance{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.alc{border-radius:var(--r-lg);padding:30px 28px}
+.alc-si{background:var(--rosa-nube);border:1px solid var(--rosa-suave)}
+.alc-no{background:var(--blanco);border:1px solid var(--linea)}
+.alc h3{margin-bottom:6px;font-weight:700}
+.alc-si h3{color:var(--rosa)}
+.alc-no h3{color:var(--gris-900)}
+.alc-int{font-size:.83rem;margin-bottom:18px;color:var(--gris-500)}
+.alc ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.alc li{display:flex;gap:11px;font-size:.9rem;line-height:1.6;align-items:flex-start}
+.alc li::before{content:"";width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:9px}
+.alc-si li::before{background:var(--rosa)}
+.alc-no li::before{background:var(--gris-200)}
+
+/* ---------- Pasos ---------- Blanco sobre gris 4A5A64 (pág. 8) */
+.pasos{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.paso{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:var(--r-lg);padding:30px 26px}
+.paso-n{display:block;font-family:var(--ff-marca);font-size:.71rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--rosa-medio);margin-bottom:14px}
+.paso h3{margin-bottom:9px;font-size:1.16rem}
+.paso p{font-size:.9rem;color:rgba(255,255,255,.76);margin:0;line-height:1.68}
+
+/* ---------- Sedes ---------- */
+.sedes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;align-items:stretch}
+.sede{display:flex;flex-direction:column;min-width:0;background:var(--blanco);border:1px solid var(--linea);border-left:6px solid var(--rosa);border-radius:var(--r-lg);padding:38px 34px;transition:box-shadow .22s ease,border-color .22s}
+.sede:hover{box-shadow:var(--sombra);border-color:var(--rosa-medio)}
+.sede-etq{display:inline-block;font-family:var(--ff-marca);font-size:.64rem;font-weight:500;letter-spacing:.17em;text-transform:uppercase;padding:5px 13px;border-radius:999px;margin-bottom:14px}
+.sede .sede-etq{align-self:flex-start;background:var(--rosa);color:var(--blanco)}
+.sede h3{font-size:clamp(1.34rem,2.3vw,1.75rem);font-weight:700;color:var(--gris-900)}
+.sede address{font-style:normal;color:var(--gris-500);font-size:.94rem;margin:10px 0 18px;line-height:1.62}
+.sede-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:auto}
+.sede-link{display:inline-flex;align-items:center;font-family:var(--ff-marca);font-size:.83rem;font-weight:400;color:var(--rosa);border:1px solid var(--rosa-suave);border-radius:999px;padding:8px 16px;transition:.18s}
+.sede-link:hover{background:var(--rosa);color:var(--blanco);border-color:var(--rosa)}
+.horario{margin-top:22px;padding-top:20px;border-top:1px solid var(--linea);font-size:.875rem;color:var(--gris-500)}
+.horario b{display:block;font-family:var(--ff-marca);font-size:.7rem;font-weight:500;letter-spacing:.15em;text-transform:uppercase;color:var(--gris-900);margin-bottom:6px}
+
+/* ---------- FAQ ---------- */
+.faq{max-width:830px;margin-inline:auto}
+.faq details{background:var(--blanco);border:1px solid var(--linea);border-radius:var(--r-md);margin-bottom:11px;overflow:hidden;transition:border-color .2s}
+.faq details[open]{border-color:var(--rosa-medio)}
+.faq summary{padding:19px 54px 19px 22px;cursor:pointer;font-family:var(--ff-marca);font-weight:500;font-size:.98rem;color:var(--gris-900);position:relative;list-style:none;line-height:1.45}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"";position:absolute;right:22px;top:50%;width:10px;height:10px;border-right:2px solid var(--rosa);border-bottom:2px solid var(--rosa);translate:0 -70%;rotate:45deg;transition:rotate .22s ease}
+.faq details[open] summary::after{rotate:225deg;translate:0 -25%}
+.faq-cuerpo{padding:0 22px 22px;font-size:.925rem;color:var(--gris-500);line-height:1.75}
+.faq-cuerpo p:last-child{margin-bottom:0}
+
+/* ---------- CTA final ---------- */
+.cta-final{background:var(--rosa);color:var(--blanco);text-align:center;position:relative;overflow:hidden}
+.cta-final .filigrana{left:-14%;top:-30%;rotate:12deg}
+.cta-final .wrap{position:relative;max-width:770px}
+.cta-final h2{color:var(--blanco);margin-bottom:16px}
+.cta-final .lead{color:rgba(255,255,255,.88);margin-bottom:30px}
+.cta-btns{display:flex;flex-wrap:wrap;gap:13px;justify-content:center}
+.cta-tel{display:block;margin-top:28px;font-family:var(--ff-marca);font-size:clamp(1.6rem,3.4vw,2.3rem);font-weight:700;letter-spacing:-.025em;color:var(--blanco);font-variant-numeric:tabular-nums}
+.cta-tel small{display:block;font-size:.68rem;font-weight:300;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.85);margin-bottom:7px}
+
+/* ---------- Descargo legal ---------- Ubuntu 8 pt según jerarquía (pág. 12) */
+.legal{background:var(--rosa-nube);padding:clamp(42px,5vw,64px) 0;border-top:1px solid var(--rosa-suave)}
+.legal-caja{background:var(--blanco);border:1px solid var(--rosa-suave);border-left:5px solid var(--rosa);border-radius:var(--r-md);padding:28px 30px}
+.legal h4{font-family:var(--ff-marca);font-size:.72rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--rosa);margin-bottom:15px}
+.legal p{font-family:var(--ff-marca);font-size:.79rem;font-weight:300;color:var(--gris-500);line-height:1.72;margin-bottom:13px}
+.legal p:last-child{margin-bottom:0}
+.legal strong{color:var(--gris-900);font-weight:500}
+.aviso-456{margin-top:22px;padding:20px 22px;background:var(--rosa-nube);border:1px solid var(--rosa-suave);border-radius:var(--r-sm)}
+.aviso-456 h5{margin:0 0 11px;font-family:var(--ff-marca);font-size:.68rem;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--rosa-prof)}
+.aviso-456 p{font-size:.735rem;font-weight:400;line-height:1.62;color:var(--gris-900);text-transform:uppercase;letter-spacing:.012em;margin-bottom:12px}
+.aviso-456 cite{display:block;font-style:normal;text-transform:none;font-family:var(--ff-marca);font-size:.7rem;font-weight:500;color:var(--rosa-prof);letter-spacing:.04em}
+
+/* ---------- Endoso EMC ---------- pág. 10 */
+/* Bloqueo de endoso — pág. 10: la separación mínima entre ambas marcas
+   equivale al ancho del isotipo de Corazón Salud (≈ 78 px a este tamaño)
+   y EMC se dimensiona entre el 85 % y el 100 % del ancho de Corazón Salud. */
+.endoso{
+  display:flex;align-items:center;justify-content:center;gap:clamp(42px,8vw,78px);
+  padding:34px 0;flex-wrap:wrap;
+}
+.endoso-sep{width:1px;align-self:stretch;min-height:56px;background:rgba(255,255,255,.34)}
+.endoso-emc{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.endoso-emc img{width:clamp(135px,18vw,172px);height:auto}  /* ≈ 90 % de Corazón Salud */
+.endoso-nota{font-family:var(--ff-marca);font-size:.66rem;font-weight:300;letter-spacing:.13em;text-transform:uppercase;color:rgba(255,255,255,.6);width:100%;text-align:center;margin-top:4px}
+
+/* ---------- Footer ---------- */
+footer{background:var(--gris-900);color:rgba(255,255,255,.7);padding:clamp(48px,6vw,72px) 0 0;font-size:.885rem}
+.pie-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1.05fr;gap:34px;padding-bottom:38px}
+.pie h5{color:var(--blanco);font-family:var(--ff-marca);font-size:.71rem;font-weight:500;letter-spacing:.17em;text-transform:uppercase;margin:0 0 16px}
+.pie ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.pie a:hover{color:var(--rosa-medio)}
+.pie-desc{font-size:.86rem;line-height:1.7;max-width:34ch;margin-top:16px}
+.pie-bajo{border-top:1px solid rgba(255,255,255,.13);padding:22px 0;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-family:var(--ff-marca);font-size:.76rem;font-weight:300;color:rgba(255,255,255,.55)}
+
+/* ---------- WhatsApp ---------- */
+.wa-flot{position:fixed;right:20px;bottom:20px;z-index:80;width:56px;height:56px;border-radius:50%;background:#25D366;display:grid;place-items:center;box-shadow:0 8px 26px rgba(37,211,102,.4);transition:transform .2s ease}
+.wa-flot:hover{transform:scale(1.08)}
+.wa-flot svg{width:29px;height:29px;fill:#fff}
+
+/* ---------- Revelado ---------- */
+.rev{opacity:0;translate:0 22px;transition:opacity .7s ease,translate .7s cubic-bezier(.2,.8,.25,1)}
+.rev.visto{opacity:1;translate:0 0}
+
+/* ---------- Responsive ---------- */
+@media (max-width:960px){
+  .hero-grid{grid-template-columns:1fr;gap:44px}
+  .tarjeta-zona{order:-1}
+  /* Descanso más plano en pantallas angostas. El hover NO se anula:
+     hereda la pose 3D de la regla base, igual que en la v1. */
+  .tarjeta{transform:rotate(-3deg);width:min(100%,370px)}
+  .planes{grid-template-columns:1fr;gap:18px}
+  .plan.destacado{transform:none}
+  .plan.destacado:hover{transform:translateY(-6px)}
+  .pasos,.sedes,.alcance{grid-template-columns:1fr}
+  .pie-grid{grid-template-columns:1fr 1fr}
+  .menu{display:none;position:absolute;top:100%;left:0;right:0;background:var(--blanco);flex-direction:column;align-items:stretch;gap:0;padding:10px 22px 20px;border-bottom:1px solid var(--linea);box-shadow:var(--sombra)}
+  .menu.abierto{display:flex}
+  .menu a{padding:13px 0;border-bottom:1px solid var(--linea)}
+  .hamb{display:block}
+  .nav-cta .btn{display:inline-flex}
+}
+@media (max-width:560px){
+  .nav .wrap{gap:8px;min-height:72px}
+  .nav-cta{gap:6px}
+  .nav-cta .btn{padding:9px 8px;font-size:.72rem;white-space:nowrap}
+  .topbar-izq{gap:12px;font-size:.73rem}
+  .pie-grid{grid-template-columns:1fr}
+  .hero-btns .btn{width:100%}
+  .lockup-nav{width:clamp(90px,32vw,124px)}
+  .endoso{gap:18px}
+  .endoso-sep{display:none}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+  html{scroll-behavior:auto}
+  .rev{opacity:1;translate:0 0}
+  .tarjeta,.tarjeta:hover{transform:none}
+}
+
+/* Actualización de planes y credencial vertical */
+.hero-grid{grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr)}
+.hero h1{max-width:13ch}
+.hero-no-seguro{font-family:var(--ff-marca);font-weight:700;letter-spacing:.075em;text-transform:uppercase;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.48);border-radius:12px;padding:12px 16px;margin:0 0 18px;line-height:1.5;font-size:.82rem}
+.hero-gratis{font-family:var(--ff-marca);font-weight:500;color:#fff;margin:-9px 0 24px}
+.tarjeta-zona{perspective:1200px;min-width:0;padding:20px 0}
+.tarjeta{width:min(100%,370px);aspect-ratio:2/3;padding:25px 25px 0;border-radius:32px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 22px 55px rgba(74,90,100,.21);transform:rotateY(-5deg) rotateX(3deg);animation:flota-credencial 8s ease-in-out infinite;isolation:isolate;color:#203243}
+.tarjeta:hover{transform:rotateY(-2deg) rotateX(1deg) translateY(-4px);box-shadow:0 28px 65px rgba(74,90,100,.24)}
+@keyframes flota-credencial{0%,100%{translate:0 0}50%{translate:0 -7px}}
+.tarjeta::after{background:linear-gradient(120deg,transparent 38%,rgba(255,255,255,.22) 50%,transparent 62%)}
+.tarjeta-fondo{width:95%;right:-26%;bottom:8%;opacity:.32;color:var(--rosa-suave);z-index:-1}
+.cred-header,.cred-main,.cred-meta,.cred-footer{position:relative;z-index:1}
+.cred-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.cred-header .lockup{width:clamp(145px,52%,190px)}
+.cred-label{display:block;font:500 .54rem var(--ff-marca);letter-spacing:.21em;text-transform:uppercase;color:var(--rosa);margin-top:5px}
+.cred-tagline{color:var(--rosa);font:500 clamp(.75rem,2vw,.95rem)/1.25 var(--ff-marca);text-align:right;max-width:9ch}
+.cred-main{margin-top:18px}
+.cred-kicker,.cred-field dt{font:500 .62rem var(--ff-marca);letter-spacing:.17em;text-transform:uppercase;color:var(--gris-500)}
+.cred-name{font:500 clamp(1.35rem,3.5vw,1.75rem)/1.1 var(--ff-marca);margin:7px 0 10px;color:#203243;overflow-wrap:anywhere}
+.cred-rule{height:2px;background:linear-gradient(90deg,var(--rosa-suave),transparent);margin-bottom:8px}
+.cred-meta{display:grid;grid-template-columns:1fr 1fr;gap:9px 14px;flex:1;align-content:center;margin:4px 0 10px}
+.cred-field{min-width:0}.cred-field dt{margin-bottom:3px}.cred-field dd{margin:0;font:500 clamp(.72rem,1.7vw,.86rem)/1.28 var(--ff-marca);overflow-wrap:anywhere}
+.cred-field.codigo dd{color:var(--rosa);font-size:1.08rem;font-weight:700}
+.cred-field.full{grid-column:1/-1}
+.cred-footer{background:var(--rosa);color:#fff;margin:0 -25px;padding:12px 14px 16px;text-align:center;font:500 .63rem/1.4 var(--ff-marca);letter-spacing:.06em;text-transform:uppercase;min-height:83px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}
+.cred-programa{font-size:.57rem;letter-spacing:.08em;text-transform:none}
+.cred-emc{display:block;width:96px;height:23px;object-fit:contain}
+.modalidades{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 10px}.modalidades span{font:500 .78rem var(--ff-marca);border:1px solid var(--rosa-medio);color:var(--rosa-prof);border-radius:999px;padding:8px 12px;background:#fff}
+.plan-visita{font-family:var(--ff-marca);background:var(--rosa-nube);border-radius:12px;padding:12px 14px;margin-top:15px;display:flex;justify-content:space-between;gap:10px;align-items:baseline;font-weight:500}
+.plan-visita strong{font-size:1.28rem;color:var(--rosa-prof)}.p3 .plan-visita strong{font-size:1.55rem;color:var(--rosa)}
+.plan-lista{margin:18px 0 24px}.plan-lista li{align-items:flex-start}.plan-lista li::before{content:'✓';color:var(--rosa);font-weight:700;font-family:var(--ff-marca)}
+.plan-badge{background:var(--rosa-prof)}.plan-tag{min-height:4.3em}
+.plans-note{margin-top:25px;font-size:.86rem;max-width:86ch}
+.modalidad-box{background:#fff;border:1px solid var(--rosa-suave);border-radius:var(--r-lg);padding:24px;margin-top:32px}
+.modalidad-box h3{color:var(--rosa-prof);margin-bottom:12px}.modalidad-box p{margin:9px 0 0}
+.modalidad-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px}.modalidad-grid div{border:1px solid var(--linea);border-radius:12px;padding:14px}.modalidad-grid b{display:block;color:var(--rosa);font-family:var(--ff-marca)}
+.precios-modalidad{margin-top:24px}.precios-modalidad th,.precios-modalidad td{text-align:right}.precios-modalidad th:first-child,.precios-modalidad td:first-child{text-align:left}.precios-modalidad caption{font-family:var(--ff-marca);font-weight:700;text-align:left;padding:16px;color:var(--rosa-prof)}
+.precios-modalidad table{min-width:1050px}
+.tabla-caja{margin-top:32px}.tabla-scroll{overflow-x:auto}.tabla-scroll table{min-width:700px}.tabla-scroll td,.tabla-scroll th{white-space:normal}
+.tabla-scroll td:first-child{min-width:270px}.visitas-tabla td{text-align:center}.visitas-tabla td:first-child{text-align:left}
+.legal-precio{font:500 .75rem/1.5 var(--ff-marca);color:var(--rosa-prof);margin:18px 0 0}
+.legal p{font-size:max(.84rem,13px)}.aviso-456 p{font-size:max(.82rem,13px);letter-spacing:0;overflow-wrap:anywhere}
+@media(max-width:960px){.hero-grid{grid-template-columns:1fr}.tarjeta-zona{order:0}.tarjeta{width:min(100%,370px);transform:rotateY(-3deg) rotateX(2deg)}.tarjeta:hover{transform:rotateY(-1deg) rotateX(1deg) translateY(-2px)}}
+@media(max-width:560px){.hero h1{max-width:none}.tarjeta-zona{padding:12px 10px 0}.tarjeta{width:min(100%,335px);transform:rotateY(-2deg) rotateX(1deg)}.modalidad-grid{grid-template-columns:1fr}.modalidad-box{padding:19px}.plan-tag{min-height:0}.plan.destacado{margin-top:10px}.cred-field dt{font-size:.65rem}.cred-field dd{font-size:.75rem}.cred-field.codigo dd{font-size:1rem}.legal-caja{padding:20px 17px}.aviso-456{padding:16px 14px}.pie-grid{gap:24px}.precio-fam{flex-wrap:wrap}.precio-fam b{font-size:1.25rem}footer{padding-bottom:80px}}
+@media(prefers-reduced-motion:reduce){.tarjeta,.tarjeta:hover{animation:none;transform:none;translate:none}}
+
+/* Cori, personaje oficial, acompaña el hero sin alterar la credencial. */
+.hero .wrap{max-width:1460px}
+.hero-grid{grid-template-columns:minmax(0,1.05fr) minmax(0,.9fr) minmax(0,1fr);gap:0}
+.hero-grid>div:first-child{position:relative;z-index:2}
+.cori-zona{grid-column:2;align-self:start;display:flex;justify-content:center;align-items:flex-start;min-width:0;z-index:1;margin-top:62px}
+.cori-img{width:clamp(470px,44vw,650px);max-width:none;height:auto;flex:none;filter:drop-shadow(0 24px 18px rgba(88,20,53,.16))}
+.hero-grid .tarjeta-zona{grid-column:3;position:relative;z-index:2;align-self:start}
+@media(max-width:960px){
+  .hero-grid{grid-template-columns:1fr;gap:0}
+  .cori-zona{grid-column:1;align-self:auto;margin:-20px 0 -36px}
+  .cori-img{width:min(100%,560px)}
+  .hero-grid .tarjeta-zona{grid-column:1}
+}
+@media(max-width:560px){
+  .cori-zona{margin:-4px 0 -18px}
+  .cori-img{width:min(100%,440px)}
+}
+
+.cori-flot{position:fixed;right:20px;bottom:88px;z-index:81;display:flex;align-items:center;gap:7px;padding:5px 14px 5px 5px;border-radius:999px;background:#fff;color:#dc2267;box-shadow:0 8px 26px rgba(84,20,49,.24);font-weight:800;font-size:13px}.cori-flot img{width:46px;height:46px;object-fit:contain}.cori-flot:hover{transform:translateY(-2px)}@media(max-width:600px){.cori-flot{right:14px;bottom:82px;padding-right:10px;font-size:11px}.cori-flot img{width:38px;height:38px}}
+</style>
+</head>
+<body>
+
+<!--  ═══════════════════════════════════════════════════════════════
+      MARCA CORAZÓN SALUD · vectores del arte final oficial
+      Extraídos de corazon_salud_FC.svg y trasladados al origen, de
+      modo que el viewBox del <symbol> y el del <svg> que lo invoca
+      compartan el mismo sistema de coordenadas.
+
+      Ambos símbolos heredan el color con fill="currentColor": la
+      versión en diapo se obtiene con `color:#fff`, sin alterar el trazo.
+
+        #cs-lockup-h  Imagotipo horizontal · isotipo + logotipo
+        #cs-iso       Isotipo suelto · avatar, filigrana y mínimos
+      ═══════════════════════════════════════════════════════════════ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="cs-lockup-h" viewBox="0 0 1016.08 366.67">
+    <g fill="currentColor" transform="translate(-29.2216,-494.2373)">
+      <path d="M306.9,552.5c-6.7-6.7-6.7-17.5,0-24.2,6.6-6.6,14.8-14.8,21.4-21.4,3.2-3.2,7.6-5,12.1-5s8.9,1.8,12.1,5c20.3,20.3,59.2,59.2,59.2,59.2,45.7,45.7,46.3,91.1,1.7,136.2,0,0-112.3,112.3-149.9,149.9-3.2,3.2-7.6,5-12.1,5s-8.9-1.8-12.1-5c-41.7-41.7-176.8-176.8-176.8-176.8-42.2-42.2-44.3-82.4-6.1-120.5l31.7-31.7c38.7-38.7,77.7-38.6,116.8.2,0,0,78.4,78.4,109.1,109.1,6.7,6.7,6.7,17.5,0,24.2-6.7,6.7-15,15-21.6,21.6-6.7,6.7-17.5,6.7-24.2,0-26.8-26.8-88.8-88.8-88.8-88.8-22-22-42-24.1-60-6.3l.2.2c-19.1,19.1-18.4,38.8,2,59.2,0,0,85.5,85.5,117.8,117.8,3.2,3.2,7.6,5,12.1,5,4.5,0,8.9-1.8,12.1-5,26.9-27,89.2-89.6,89.2-89.6,24.2-24.2,26-46.5,5.5-67,0,0-32.9-32.9-51.3-51.3h0Z"/>
+      <path d="M544.1,723.2c-17.4,0-30.6-4.8-39.7-14.5s-13.7-23.4-13.7-41.2,1.4-16.7,4.2-23.7,6.6-12.8,11.4-17.6,10.6-8.4,17.3-10.9c6.7-2.5,13.9-3.7,21.8-3.7s8.6.3,12.3,1c3.7.7,6.9,1.4,9.7,2.3,2.8.9,5.1,1.8,6.9,2.7,1.9.9,3.2,1.6,4,2.2l-6.9,19.4c-3.3-1.7-7.1-3.2-11.5-4.5s-9.3-1.9-14.9-1.9-7.3.6-10.9,1.9-6.7,3.2-9.4,5.9-4.9,6.2-6.6,10.6-2.5,9.6-2.5,15.7.5,9.5,1.6,13.8c1.1,4.3,2.8,7.9,5.2,11,2.4,3.1,5.6,5.5,9.5,7.3,3.9,1.8,8.6,2.7,14.2,2.7s6.6-.2,9.4-.6,5.2-.9,7.4-1.5,4.1-1.2,5.7-1.9c1.6-.7,3.1-1.4,4.5-2l6.6,19.3c-3.4,2.1-8.2,3.9-14.4,5.6-6.2,1.6-13.3,2.5-21.5,2.5h0Z"/>
+      <path d="M663.3,680.3c0,6.4-.9,12.2-2.8,17.5s-4.5,9.8-8,13.6c-3.5,3.8-7.7,6.7-12.6,8.7-4.9,2.1-10.4,3.1-16.4,3.1s-11.4-1-16.3-3.1c-4.9-2.1-9.1-5-12.6-8.7-3.5-3.8-6.2-8.3-8.2-13.6-2-5.3-2.9-11.1-2.9-17.5s1-12.2,3-17.4c2-5.2,4.8-9.7,8.3-13.4,3.5-3.7,7.8-6.6,12.7-8.6,4.9-2.1,10.2-3.1,16-3.1s11.2,1,16.1,3.1,9.1,4.9,12.6,8.6c3.5,3.7,6.2,8.2,8.2,13.4,2,5.2,2.9,11.1,2.9,17.4h0ZM639.8,680.3c0-7.1-1.4-12.7-4.2-16.7-2.8-4.1-6.9-6.1-12.1-6.1s-9.3,2-12.2,6.1-4.3,9.6-4.3,16.7,1.4,12.7,4.3,16.9,6.9,6.2,12.2,6.2,9.3-2.1,12.1-6.2,4.2-9.8,4.2-16.9Z"/>
+      <path d="M725.3,660.2c-2.1-.5-4.5-1.1-7.3-1.6-2.8-.6-5.8-.8-9-.8s-3.2.1-5.2.4-3.5.5-4.6.8v62h-23v-76.9c4.1-1.4,9-2.8,14.6-4.1s11.9-1.9,18.7-1.9,2.7,0,4.5.2c1.7.2,3.5.4,5.2.6,1.7.3,3.5.6,5.2.9s3.2.8,4.5,1.3l-3.9,19h0Z"/>
+      <path d="M766.4,705c2.3,0,4.4,0,6.5-.2s3.7-.3,4.9-.5v-17.4c-.9-.2-2.3-.4-4.2-.6-1.9-.2-3.5-.3-5.1-.3s-4.2.1-6.1.4c-1.9.3-3.6.7-5,1.5-1.4.7-2.6,1.7-3.4,2.9s-1.2,2.8-1.2,4.6c0,3.6,1.2,6.1,3.6,7.5s5.7,2.1,10,2.1h0ZM764.5,637.7c6.8,0,12.4.8,17,2.3s8.2,3.8,10.9,6.6c2.7,2.9,4.7,6.4,5.8,10.5,1.1,4.1,1.7,8.7,1.7,13.7v47.8c-3.3.7-7.9,1.6-13.7,2.5-5.9,1-13,1.5-21.3,1.5s-10-.5-14.3-1.4c-4.3-.9-7.9-2.4-11-4.6-3.1-2.1-5.5-4.9-7.1-8.3s-2.5-7.6-2.5-12.5,1-8.7,2.9-12,4.4-5.9,7.6-7.9c3.2-2,6.8-3.4,11-4.2,4.1-.9,8.4-1.3,12.8-1.3s5.6.1,7.9.4c2.3.3,4.2.6,5.6,1v-2.2c0-3.9-1.2-7-3.5-9.4s-6.5-3.5-12.3-3.5-7.8.3-11.6.8c-3.8.6-7.1,1.4-9.9,2.4l-2.9-18.5c1.3-.4,3-.8,5-1.3,2-.5,4.2-.9,6.6-1.2,2.4-.4,4.9-.7,7.5-.9,2.6-.3,5.3-.4,7.9-.4h0Z"/>
+      <path d="M877,655.3c-1.9,2.1-4.3,4.8-7.5,8.3-3.1,3.5-6.5,7.4-10.1,11.6-3.6,4.2-7.2,8.6-10.9,13.3-3.7,4.6-7,9.1-10,13.4h39.2v19.1h-67.1v-13.6c2.2-3.7,4.8-7.7,7.8-12,3-4.3,6.2-8.6,9.6-12.9,3.3-4.3,6.7-8.5,10-12.6,3.3-4.1,6.3-7.7,9.1-11h-34.6v-19.1h64.5v15.4h0Z"/>
+      <path d="M962.2,680.3c0,6.4-.9,12.2-2.8,17.5s-4.5,9.8-8,13.6c-3.5,3.8-7.7,6.7-12.6,8.7-4.9,2.1-10.4,3.1-16.4,3.1s-11.4-1-16.3-3.1c-4.9-2.1-9.1-5-12.6-8.7-3.5-3.8-6.2-8.3-8.2-13.6-2-5.3-2.9-11.1-2.9-17.5s1-12.2,3-17.4c2-5.2,4.8-9.7,8.3-13.4,3.5-3.7,7.8-6.6,12.7-8.6,4.9-2.1,10.2-3.1,16-3.1s11.2,1,16.1,3.1,9.1,4.9,12.6,8.6c3.5,3.7,6.2,8.2,8.2,13.4,2,5.2,2.9,11.1,2.9,17.4h0ZM938.7,680.3c0-7.1-1.4-12.7-4.2-16.7-2.8-4.1-6.9-6.1-12.1-6.1s-9.3,2-12.2,6.1-4.3,9.6-4.3,16.7,1.4,12.7,4.3,16.9,6.9,6.2,12.2,6.2,9.3-2.1,12.1-6.2,4.2-9.8,4.2-16.9ZM941.4,610.7l-25.5,21.5-10.5-9.4,21.9-25,14,13Z"/>
+      <path d="M975.3,642.6c3.9-1.1,9-2.2,15.1-3.2s12.7-1.5,19.4-1.5,12.6.9,17.2,2.7,8.2,4.3,10.9,7.6,4.6,7.2,5.7,11.7c1.1,4.5,1.7,9.6,1.7,15.1v45.8h-23v-43.1c0-7.4-1-12.7-2.9-15.7-2-3.1-5.6-4.6-11-4.6s-3.4,0-5.2.2c-1.9.2-3.5.3-4.9.5v62.7h-23v-78.4h0Z"/>
+      <path d="M526.5,840.4c3.4,0,6.2-.3,8.4-.8s4-1.3,5.3-2.3,2.3-2.1,2.8-3.5.8-2.8.8-4.5c0-3.5-1.6-6.4-4.9-8.7-3.3-2.3-9-4.8-17-7.5-3.5-1.2-7-2.6-10.5-4.2s-6.6-3.6-9.4-6c-2.8-2.4-5-5.3-6.8-8.8-1.7-3.4-2.6-7.6-2.6-12.6s.9-9.4,2.8-13.3,4.5-7.3,7.9-10.1,7.5-4.9,12.3-6.4,10.3-2.2,16.4-2.2,13.4.8,18.7,2.3c5.2,1.5,9.6,3.2,13,5.1l-6.9,19c-3-1.5-6.3-2.9-10-4.1-3.7-1.2-8.1-1.8-13.2-1.8s-9.9.8-12.4,2.4c-2.5,1.6-3.8,4-3.8,7.3s.5,3.6,1.4,4.9,2.2,2.5,3.9,3.6,3.7,2.1,5.9,2.9c2.2.9,4.7,1.8,7.3,2.7,5.6,2.1,10.4,4.1,14.5,6.1,4.1,2,7.5,4.3,10.3,7,2.7,2.7,4.8,5.8,6.1,9.4,1.3,3.6,2,8,2,13.1,0,10-3.5,17.7-10.5,23.2-7,5.5-17.5,8.3-31.6,8.3s-9-.3-12.8-.8-7.2-1.3-10.1-2.1-5.5-1.7-7.6-2.6-3.9-1.8-5.3-2.6l6.8-19.1c3.2,1.7,7.1,3.3,11.8,4.7s10.4,2.1,17.2,2.1h0Z"/>
+      <path d="M613.9,842.7c2.3,0,4.4,0,6.5-.2s3.7-.3,4.9-.5v-17.4c-.9-.2-2.3-.4-4.2-.6-1.9-.2-3.5-.3-5.1-.3s-4.2.1-6.1.4c-1.9.3-3.6.7-5,1.5-1.4.7-2.6,1.7-3.4,2.9s-1.2,2.8-1.2,4.6c0,3.6,1.2,6.1,3.6,7.5s5.7,2.1,10,2.1h0ZM612,775.5c6.8,0,12.4.8,17,2.3s8.2,3.8,10.9,6.6c2.7,2.9,4.7,6.4,5.8,10.5,1.1,4.1,1.7,8.7,1.7,13.7v47.8c-3.3.7-7.9,1.6-13.7,2.5-5.9,1-13,1.5-21.3,1.5s-10-.5-14.3-1.4c-4.3-.9-7.9-2.4-11-4.6-3.1-2.1-5.5-4.9-7.1-8.3s-2.5-7.6-2.5-12.5,1-8.7,2.9-12c1.9-3.3,4.4-5.9,7.6-7.9,3.2-2,6.8-3.4,11-4.2,4.1-.9,8.4-1.3,12.8-1.3s5.6.1,7.9.4c2.3.3,4.2.6,5.6,1v-2.2c0-3.9-1.2-7-3.5-9.4s-6.5-3.5-12.3-3.5-7.8.3-11.6.8c-3.8.6-7.1,1.4-9.9,2.4l-2.9-18.5c1.3-.4,3-.8,5-1.3,2-.5,4.2-.9,6.6-1.2,2.4-.4,4.9-.7,7.5-.9,2.6-.3,5.3-.4,7.9-.4h0Z"/>
+      <path d="M696,860.3c-6.7-.1-12.1-.8-16.3-2.2-4.2-1.3-7.5-3.2-9.9-5.6-2.4-2.4-4.1-5.3-4.9-8.8-.9-3.4-1.3-7.3-1.3-11.7v-89.4l23-3.7v88.4c0,2.1.2,3.9.5,5.6s.9,3,1.8,4.2c.9,1.1,2.1,2.1,3.8,2.8,1.6.7,3.9,1.2,6.6,1.4l-3.2,19h0Z"/>
+      <path d="M777,856c-3.9,1.1-9,2.2-15.1,3.2s-12.7,1.5-19.4,1.5-12.6-.9-17.2-2.8-8.2-4.4-10.9-7.8c-2.7-3.3-4.6-7.3-5.7-12-1.1-4.6-1.7-9.7-1.7-15.3v-45.2h23v42.4c0,7.4,1,12.8,2.9,16,2,3.3,5.6,4.9,11,4.9s3.4,0,5.2-.2c1.9-.2,3.5-.3,4.9-.5v-62.7h23v78.4h0Z"/>
+      <path d="M813.6,817.6c0,7.1,1.6,12.8,4.8,17.1,3.2,4.3,7.9,6.5,14.2,6.5s4,0,5.7-.2c1.7-.2,3.2-.3,4.3-.5v-41.8c-1.4-.9-3.3-1.7-5.6-2.3s-4.7-.9-7-.9c-10.9,0-16.4,7.4-16.4,22.2h0ZM865.6,856.2c-2.1.6-4.4,1.2-7.1,1.8s-5.5,1.1-8.4,1.5-5.9.7-9,1c-3,.3-5.9.4-8.7.4-6.7,0-12.7-1-17.9-2.9-5.2-2-9.7-4.8-13.3-8.4s-6.4-8.1-8.3-13.3c-1.9-5.2-2.9-11-2.9-17.5s.8-12.5,2.5-17.8,4-9.8,7.1-13.5c3.1-3.7,6.9-6.5,11.3-8.5s9.6-2.9,15.4-2.9,6,.3,8.6.9c2.5.6,5.1,1.5,7.6,2.6v-36.7l23-3.7v117.1h0Z"/>
+    </g>
+  </symbol>
+  <symbol id="cs-iso" viewBox="0 0 417.2 362.97">
+    <g fill="currentColor" transform="translate(-29.2216,-494.2373)">
+      <path d="M306.9,552.5c-6.7-6.7-6.7-17.5,0-24.2,6.6-6.6,14.8-14.8,21.4-21.4,3.2-3.2,7.6-5,12.1-5s8.9,1.8,12.1,5c20.3,20.3,59.2,59.2,59.2,59.2,45.7,45.7,46.3,91.1,1.7,136.2,0,0-112.3,112.3-149.9,149.9-3.2,3.2-7.6,5-12.1,5s-8.9-1.8-12.1-5c-41.7-41.7-176.8-176.8-176.8-176.8-42.2-42.2-44.3-82.4-6.1-120.5l31.7-31.7c38.7-38.7,77.7-38.6,116.8.2,0,0,78.4,78.4,109.1,109.1,6.7,6.7,6.7,17.5,0,24.2-6.7,6.7-15,15-21.6,21.6-6.7,6.7-17.5,6.7-24.2,0-26.8-26.8-88.8-88.8-88.8-88.8-22-22-42-24.1-60-6.3l.2.2c-19.1,19.1-18.4,38.8,2,59.2,0,0,85.5,85.5,117.8,117.8,3.2,3.2,7.6,5,12.1,5,4.5,0,8.9-1.8,12.1-5,26.9-27,89.2-89.6,89.2-89.6,24.2-24.2,26-46.5,5.5-67,0,0-32.9-32.9-51.3-51.3h0Z"/>
+    </g>
+  </symbol>
+</svg>
+
+<!-- ══════════ TOPBAR ══════════ -->
+<div class="topbar">
+  <div class="wrap">
+    <div class="topbar-izq">
+      <span data-en="A program of Eminat Medical Center">Un programa de Eminat Medical Center</span>
+      <a href="tel:+19543608897"><span data-en="Call us:">Llámanos:</span> <strong>(954) 360-8897</strong></a>
+    </div>
+    <div class="lang" role="group" aria-label="Idioma / Language">
+      <button type="button" data-lang="es" aria-pressed="true">ES</button>
+      <button type="button" data-lang="en" aria-pressed="false">EN</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ NAV ══════════ -->
+<nav class="nav">
+  <div class="wrap">
+    <a class="marca-link" href="#inicio" aria-label="Corazón Salud">
+      <svg class="lockup lockup-nav" viewBox="0 0 1016.08 366.67" role="img" aria-label="Corazón Salud"><use href="#cs-lockup-h"/></svg>
+    </a>
+
+    <div class="menu" id="menu">
+      <a href="#incluye" data-en="What's included">Qué incluye</a>
+      <a href="#planes" data-en="Plans">Planes</a>
+      <a href="#alcance" data-en="Scope">Alcance</a>
+      <a href="#inscribirse" data-en="How to join">Cómo inscribirse</a>
+      <a href="#sedes" data-en="Locations">Sedes</a>
+      <a href="#preguntas" data-en="FAQ">Preguntas</a>
+    </div>
+
+    <div class="nav-cta">
+      <a class="btn btn-rosa" href="https://portal.corazonsalud.health/login" data-en="Become a member">Hazte miembro</a>
+      <button class="hamb" id="hamb" aria-label="Abrir menú" aria-expanded="false" aria-controls="menu"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</nav>
+
+<!-- ══════════ HERO ══════════ -->
+<header class="hero" id="inicio">
+  <svg class="filigrana iso" viewBox="0 0 417.2 362.97" aria-hidden="true"><use href="#cs-iso"/></svg>
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow claro" data-en="A membership from Eminat Medical Center">Una membresía de Eminat Medical Center</span>
+      <h1 data-en="Your primary care physician, for a fixed monthly fee.">Su médico de cabecera, por una cuota fija al mes.</h1>
+      <p class="hero-sub" data-en="Care at Eminat Medical Center with a bilingual team. Choose the plan and term that suits you: month to month, 3, 6 or 12 months. Individual or family membership for up to 3 members.">Atención en Eminat Medical Center con equipo bilingüe. Elija su plan y la duración que le convenga: mes a mes, 3, 6 o 12 meses. Individual o familiar hasta 3 miembros.</p>
+      <p class="hero-no-seguro" data-en="THIS IS NOT HEALTH INSURANCE. IT IS A HEALTH MEMBERSHIP.">ESTO NO ES UN SEGURO MÉDICO. ES UNA MEMBRESÍA DE SALUD.</p>
+      <div class="precio-chip"><span class="lbl" data-en="Plans from">Planes desde</span><span class="val">$49<span style="font-size:.55em">.99</span></span><span class="per" data-en="/ month">/ mes</span></div>
+      <p class="price-qualifier" data-en="Essential regular rate: $49.99/month. Essential Month-to-Month: $59.99/month; two months paid in advance to start ($119.98 initial charge).">Tarifa regular Essential: $49.99/mes. Essential mes a mes: $59.99/mes; dos meses por adelantado al iniciar ($119.98 de cargo inicial).</p>
+      <p class="hero-gratis" data-en="No enrollment fee">Sin cuota de inscripción</p>
+      <div class="hero-btns"><a class="btn btn-blanco btn-lg" href="https://wa.me/19546054205?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20Coraz%C3%B3n%20Salud." target="_blank" rel="noopener" data-en="Write on WhatsApp">Escríbanos por WhatsApp</a><a class="btn btn-linea-blanca btn-lg" href="tel:+19543608897" data-en="Call (954) 360-8897">Llame al (954) 360-8897</a></div>
+      <p class="hero-nota" data-en="Corazón Salud is a medical services membership program. It does not include hospitalizations or major emergencies. A per-visit fee applies according to the selected plan.">Corazón Salud es una membresía de servicios médicos. No incluye hospitalizaciones ni emergencias mayores. Se aplica una tarifa por visita según el plan elegido.</p>
+    </div>
+    <div class="cori-zona"><img class="cori-img" src="cori-official.png" width="1182" height="1182" alt="Cori, el personaje de Corazón Salud" fetchpriority="high"></div>
+    <div class="tarjeta-zona"><article class="tarjeta" aria-label="Credencial de membresía de muestra Corazón Salud">
+      <svg class="tarjeta-fondo iso" viewBox="0 0 417.2 362.97" aria-hidden="true"><use href="#cs-iso"/></svg>
+      <div class="cred-header"><div><svg class="lockup lockup-tarjeta" viewBox="0 0 1016.08 366.67" role="img" aria-label="Corazón Salud"><use href="#cs-lockup-h"/></svg><span class="cred-label" data-en="MEMBERSHIP PROGRAM">PROGRAMA DE MEMBRESÍA</span></div><span class="cred-tagline" data-en="We care about what matters most to you">Cuidamos lo que más le importa</span></div>
+      <div class="cred-main"><span class="cred-kicker" data-en="MEMBER">MIEMBRO</span><div class="cred-name">María Rivera</div><div class="cred-rule"></div></div>
+      <dl class="cred-meta"><div class="cred-field codigo full"><dt data-en="MEMBERSHIP CODE">CÓDIGO DE MEMBRESÍA</dt><dd>CS-2026-001</dd></div><div class="cred-field full"><dt data-en="MEMBERSHIP TYPE">TIPO DE MEMBRESÍA</dt><dd>Plus · Individual</dd></div><div class="cred-field"><dt data-en="STATUS">ESTATUS</dt><dd data-en="Active">Activa</dd></div><div class="cred-field"><dt data-en="ISSUE DATE">FECHA DE EXPEDICIÓN</dt><dd>2026-10-20</dd></div><div class="cred-field full"><dt data-en="EXPIRATION DATE">FECHA DE EXPIRACIÓN</dt><dd>2027-10-19</dd></div></dl>
+      <div class="cred-footer"><span class="cred-programa" data-en="A membership by">Una membresía de</span><img class="cred-emc" src="https://emc.health/wp-content/uploads/2026/01/emc_logo_white.svg" width="96" height="23" alt="Eminat Medical Center" loading="lazy"><span data-en="MEMBERSHIP PROGRAM — NOT HEALTH INSURANCE">PROGRAMA DE MEMBRESÍA — NO ES UN SEGURO MÉDICO</span></div>
+    </article></div>
+  </div>
+</header>
+
+<!-- ══════════ CINTA ══════════ -->
+<div class="cinta" aria-hidden="true">
+  <div class="cinta-pista" id="cinta">
+    <span class="cinta-item" data-en="Fixed monthly fee">Cuota fija mensual</span>
+    <span class="cinta-item" data-en="Basic annual lab package included">Paquete anual básico de laboratorios incluido</span>
+    <span class="cinta-item" data-en="No enrollment fee">Sin cuota de inscripción</span>
+    <span class="cinta-item" data-en="Care from a bilingual team">Atención con equipo bilingüe</span>
+    <span class="cinta-item" data-en="Multiple points of care">Múltiples puntos de atención</span>
+    <span class="cinta-item" data-en="Per-visit fee from $0 to $25">Tarifa por visita de $0 a $25</span>
+  </div>
+</div>
+
+<!-- ══════════ QUÉ INCLUYE ══════════ -->
+<section class="bg-blanco" id="incluye"><div class="wrap">
+  <div class="sec-head rev"><span class="eyebrow" data-en="Included in every plan">Incluido en todos los planes</span><h2 data-en="Care and prevention for each member">Atención y prevención para cada miembro</h2><p class="lead" data-en="Every plan includes an assigned primary care physician, quarterly preventive reminders, one Basic Annual Laboratory Package per enrolled member, discounts on additional labs, assistance enrolling in GoodRx, and care from a bilingual team at our different points of care.">Todos los planes incluyen médico de cabecera asignado, recordatorios preventivos trimestrales, un Paquete Anual Básico de Laboratorios por miembro inscrito, descuento en laboratorios adicionales, asistencia para enrolamiento en GoodRx y atención con equipo bilingüe en nuestros diferentes puntos de atención.</p></div>
+  <div class="beneficios">
+    <article class="ben rev"><div class="ben-ico"><svg viewBox="0 0 24 24"><path d="M8 2v3M16 2v3M3.5 9h17M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"/><path d="M12 13v4M10 15h4"/></svg></div><h3 data-en="Your primary care physician">Su médico de cabecera</h3><p data-en="An assigned primary care physician and a number of visits for each member according to the selected plan and term. There is no one-visit-per-month limit; the plan's per-visit fee applies each time.">Médico de cabecera asignado y visitas por miembro según el plan y la duración elegidos. No existe un límite de una visita por mes; en cada consulta se aplica la tarifa por visita del plan.</p></article>
+    <article class="ben rev"><div class="ben-ico"><svg viewBox="0 0 24 24"><path d="M3 12h4l2-6 4 12 2.5-7 1.5 3h4"/></svg></div><h3 data-en="Quarterly preventive reminders">Recordatorios preventivos trimestrales</h3><p data-en="Quarterly preventive reminders are included in Essential, Plus and Max.">Los recordatorios preventivos trimestrales están incluidos en Essential, Plus y Max.</p></article>
+    <article class="ben rev"><div class="ben-ico"><svg viewBox="0 0 24 24"><path d="M9 2h6v5.5l4.3 9.9A2.5 2.5 0 0 1 17 21H7a2.5 2.5 0 0 1-2.3-3.6L9 7.5Z"/><path d="M6.6 15h10.8"/></svg></div><h3 data-en="Basic Annual Laboratory Package">Paquete Anual Básico de Laboratorios</h3><p data-en="Included once for each enrolled member: complete blood count (CBC), metabolic panel, lipid profile, thyroid-stimulating hormone (TSH), urinalysis and hemoglobin A1c. A clinical order is required when applicable.">Incluido una vez por cada miembro inscrito: hemograma completo (CBC), panel metabólico, perfil de lípidos, hormona estimulante de la tiroides (TSH), análisis de orina y hemoglobina A1c. Requiere orden clínica cuando corresponda.</p></article>
+    <article class="ben rev"><div class="ben-ico"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 3v9l6.4 6.4"/></svg></div><h3 data-en="Additional member benefits">Más beneficios para miembros</h3><p data-en="Discounts on labs outside the basic package and assistance enrolling in GoodRx. Care is available from a bilingual team at our different points of care.">Descuento en laboratorios fuera del paquete y asistencia para enrolamiento en GoodRx. Atención con equipo bilingüe en nuestros diferentes puntos de atención.</p></article>
+  </div>
+  <p class="lead plans-note" data-en="The Basic Annual Laboratory Package is included once for each enrolled member. Studies or labs outside that package are available at a member discount and require a clinical order when applicable.">El Paquete Anual Básico de Laboratorios está incluido una vez por cada miembro inscrito. Los estudios o laboratorios fuera de ese paquete están disponibles con descuento de miembro y requieren orden clínica cuando corresponda.</p>
+</div></section>
+
+<!-- ══════════ PLANES ══════════ -->
+<section class="bg-nube" id="planes"><div class="wrap">
+  <div class="sec-head rev"><span class="eyebrow" data-en="Membership plans">Planes de membresía</span><h2 data-en="Three plans. Choose your term.">Tres planes. Elija su duración.</h2><p class="lead" data-en="Choose an individual plan or a family plan for up to 3 members. These are the regular monthly rates for the 3-, 6- and 12-month terms. Month-to-month membership costs $10 more per month. Each consultation has the plan's per-visit fee.">Elija un plan individual o familiar hasta 3 miembros. Estas son las tarifas mensuales regulares para 3, 6 y 12 meses. La modalidad mes a mes cuesta $10 adicionales al mes. Cada consulta tiene la tarifa por visita de su plan.</p></div>
+  <div class="planes"><article class="plan p1 rev"><div class="plan-barra"></div><h3>Essential</h3><p class="plan-tag" data-en="For a healthy adult who wants a physician available for whatever comes up.">Para el adulto sano que quiere un médico disponible para lo que surja.</p><span class="precio-etq" data-en="Individual">Individual</span><div class="precio-fila"><span class="cur">$</span><span class="num">49</span><span class="dec">.99</span><span class="per" data-en="/mo">/mes</span></div><div class="precio-fam"><small data-en="Family, up to 3 members">Familiar, hasta 3 miembros</small><b>$89.99<span data-en="/mo">/mes</span></b></div><div class="plan-visita"><span data-en="Per-visit fee">Tarifa por visita</span><strong>$25</strong></div><ul class="plan-lista"><li data-en="Primary care physician">Médico de cabecera</li><li data-en="Quarterly preventive reminders">Recordatorios preventivos trimestrales</li><li data-en="Basic Annual Laboratory Package">Paquete Anual Básico de Laboratorios</li><li data-en="Discounts on additional labs">Descuento en laboratorios adicionales</li><li data-en="Assistance enrolling in GoodRx">Asistencia para enrolamiento en GoodRx</li><li data-en="Annual TM-Flow">TM-Flow anual</li></ul><a class="btn btn-linea-rosa" href="https://portal.corazonsalud.health/login?plan=essential" data-en="Choose Essential">Elegir Essential</a></article><article class="plan p2 destacado rev"><span class="plan-badge" data-en="Recommended">Recomendado</span><div class="plan-barra"></div><h3>Plus</h3><p class="plan-tag" data-en="For someone managing a chronic condition with regular follow-up.">Para quien maneja una condición crónica con seguimiento regular.</p><span class="precio-etq" data-en="Individual">Individual</span><div class="precio-fila"><span class="cur">$</span><span class="num">69</span><span class="dec">.99</span><span class="per" data-en="/mo">/mes</span></div><div class="precio-fam"><small data-en="Family, up to 3 members">Familiar, hasta 3 miembros</small><b>$109.99<span data-en="/mo">/mes</span></b></div><div class="plan-visita"><span data-en="Per-visit fee">Tarifa por visita</span><strong>$15</strong></div><ul class="plan-lista"><li data-en="Primary care physician">Médico de cabecera</li><li data-en="Quarterly preventive reminders">Recordatorios preventivos trimestrales</li><li data-en="Basic Annual Laboratory Package">Paquete Anual Básico de Laboratorios</li><li data-en="Discounts on additional labs">Descuento en laboratorios adicionales</li><li data-en="Assistance enrolling in GoodRx">Asistencia para enrolamiento en GoodRx</li><li data-en="Annual electrocardiogram (EKG)">Electrocardiograma (EKG) anual</li><li data-en="Annual TM-Flow">TM-Flow anual</li></ul><a class="btn btn-rosa" href="https://portal.corazonsalud.health/login?plan=plus" data-en="Choose Plus">Elegir Plus</a></article><article class="plan p3 rev"><div class="plan-barra"></div><h3>Max</h3><p class="plan-tag" data-en="For someone who wants the most visits and to pay nothing per consultation.">Para quien quiere el máximo de visitas y no pagar nada por consulta.</p><span class="precio-etq" data-en="Individual">Individual</span><div class="precio-fila"><span class="cur">$</span><span class="num">89</span><span class="dec">.99</span><span class="per" data-en="/mo">/mes</span></div><div class="precio-fam"><small data-en="Family, up to 3 members">Familiar, hasta 3 miembros</small><b>$139.99<span data-en="/mo">/mes</span></b></div><div class="plan-visita"><span data-en="Per-visit fee">Tarifa por visita</span><strong>$0</strong></div><ul class="plan-lista"><li data-en="Primary care physician">Médico de cabecera</li><li data-en="Quarterly preventive reminders">Recordatorios preventivos trimestrales</li><li data-en="Basic Annual Laboratory Package">Paquete Anual Básico de Laboratorios</li><li data-en="Discounts on additional labs">Descuento en laboratorios adicionales</li><li data-en="Assistance enrolling in GoodRx">Asistencia para enrolamiento en GoodRx</li><li data-en="Annual electrocardiogram (EKG)">Electrocardiograma (EKG) anual</li><li data-en="Annual TM-Flow">TM-Flow anual</li><li data-en="Annual Pap smear or Total PSA, as applicable">Papanicolaou o PSA Total anual, según corresponda</li></ul><a class="btn btn-linea-rosa" href="https://portal.corazonsalud.health/login?plan=max" data-en="Choose Max">Elegir Max</a></article></div>
+  <div class="modalidad-box rev"><h3 data-en="Available terms">Modalidades disponibles</h3><div class="modalidades"><span data-en="3 months">3 meses</span><span data-en="6 months">6 meses</span><span data-en="12 months">12 meses</span><span data-en="Month to month">Mes a mes</span></div><p data-en="The 3-, 6- and 12-month terms use the regular rate. Month-to-month membership costs $10 more per month.">Las modalidades de 3, 6 y 12 meses conservan la tarifa regular. Mes a mes cuesta $10 adicionales al mes.</p><div class="modalidad-grid"><div><b>Essential</b><span data-en="Month to month: $59.99 individual · $99.99 family">Mes a mes: $59.99 individual · $99.99 familiar</span></div><div><b>Plus</b><span data-en="Month to month: $79.99 individual · $119.99 family">Mes a mes: $79.99 individual · $119.99 familiar</span></div><div><b>Max</b><span data-en="Month to month: $99.99 individual · $149.99 family">Mes a mes: $99.99 individual · $149.99 familiar</span></div></div><p data-en="Month-to-month membership starts with two months paid in advance. It then continues with monthly payments. It may be canceled with 30 days' written notice.">La modalidad mes a mes se inicia pagando dos meses por adelantado. Después continúa con pagos mensuales. Puede cancelarse con 30 días de aviso escrito.</p></div>
+  <div class="tabla-caja tabla-scroll precios-modalidad rev"><table>
+  <caption data-en="Canonical membership prices in USD">Precios de membresía en USD</caption>
+  <thead><tr><th scope="col" data-en="Plan and type">Plan y tipo</th><th scope="col" data-en="Regular / month">Regular / mes</th><th scope="col" data-en="Month to month / month">Mes a mes / mes</th><th scope="col" data-en="Month to month: first charge">Mes a mes: primer cobro</th><th scope="col" data-en="3 months">3 meses</th><th scope="col" data-en="6 months">6 meses</th><th scope="col" data-en="12 months">12 meses</th></tr></thead><tbody>
+  <tr><th scope="row" data-en="Essential · Individual">Essential · Individual</th><td>$49.99</td><td>$59.99</td><td>$119.98</td><td>$149.97</td><td>$299.94</td><td>$599.88</td></tr>
+  <tr><th scope="row" data-en="Essential · Family">Essential · Familiar</th><td>$89.99</td><td>$99.99</td><td>$199.98</td><td>$269.97</td><td>$539.94</td><td>$1,079.88</td></tr>
+  <tr><th scope="row" data-en="Plus · Individual">Plus · Individual</th><td>$69.99</td><td>$79.99</td><td>$159.98</td><td>$209.97</td><td>$419.94</td><td>$839.88</td></tr>
+  <tr><th scope="row" data-en="Plus · Family">Plus · Familiar</th><td>$109.99</td><td>$119.99</td><td>$239.98</td><td>$329.97</td><td>$659.94</td><td>$1,319.88</td></tr>
+  <tr><th scope="row" data-en="Max · Individual">Max · Individual</th><td>$89.99</td><td>$99.99</td><td>$199.98</td><td>$269.97</td><td>$539.94</td><td>$1,079.88</td></tr>
+  <tr><th scope="row" data-en="Max · Family">Max · Familiar</th><td>$139.99</td><td>$149.99</td><td>$299.98</td><td>$419.97</td><td>$839.94</td><td>$1,679.88</td></tr>
+  </tbody></table></div>
+  <p class="lead plans-note" data-en="A family membership includes up to three members. Additional members may cost extra; contact the program for the current rate. Month-to-month starts with the listed two-month advance charge, then renews monthly.">La membresía familiar incluye hasta tres miembros. Los miembros adicionales pueden tener un costo adicional; consulte la tarifa vigente con el programa. La modalidad mes a mes comienza con el cobro anticipado indicado, equivalente a dos mensualidades, y luego se renueva cada mes.</p>
+  <div class="tabla-caja rev"><div class="tabla-scroll"><table class="visitas-tabla"><caption class="oculto">Visitas por miembro y duración / Visits per member and term</caption><thead><tr><th scope="col" data-en="Term / visits per member">Duración / visitas por miembro</th><th scope="col">Essential</th><th scope="col">Plus</th><th scope="col">Max</th></tr></thead><tbody><tr><td data-en="3 months">3 meses</td><td>2</td><td>2</td><td>2</td></tr><tr><td data-en="6 months">6 meses</td><td>3</td><td>4</td><td>4</td></tr><tr><td data-en="12 months">12 meses</td><td>4</td><td>6</td><td>8</td></tr></tbody></table></div></div>
+  <p class="lead plans-note" data-en="Each family-plan member has their own visit allocation. Visits are not shared or accumulated among members. There is no one-visit-per-month limit: a member may come more than once in the same month, according to need and appointment availability, with the applicable per-visit fee.">Cada miembro del plan familiar tiene su propia asignación de visitas. No se comparten ni se acumulan entre miembros. No existe un límite de una visita por mes: puede acudir más de una vez en el mismo mes, según necesidad y disponibilidad, aplicando la tarifa por visita de su plan.</p>
+  <div class="tabla-caja rev"><div class="tabla-scroll"><table><caption class="oculto">Beneficios por plan / Benefits by plan</caption><thead><tr><th scope="col" data-en="Included benefit">Beneficio incluido</th><th scope="col">Essential</th><th scope="col">Plus</th><th scope="col">Max</th></tr></thead><tbody><tr><td data-en="Assigned primary care physician">Médico de cabecera asignado</td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td data-en="Quarterly preventive reminders">Recordatorios preventivos trimestrales</td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td data-en="Basic Annual Laboratory Package">Paquete Anual Básico de Laboratorios</td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td data-en="Discounts on additional labs">Descuento en laboratorios adicionales</td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td data-en="Assistance enrolling in GoodRx">Asistencia para enrolamiento en GoodRx</td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td data-en="Annual TM-Flow">TM-Flow anual</td><td>✓</td><td>✓</td><td>✓</td></tr><tr><td data-en="Annual electrocardiogram (EKG)">Electrocardiograma (EKG) anual</td><td>—</td><td>✓</td><td>✓</td></tr><tr><td data-en="Annual Pap smear or Total PSA">Papanicolaou o PSA Total anual</td><td>—</td><td>—</td><td>✓</td></tr></tbody></table></div></div>
+  <p class="legal-precio" data-en="Corazón Salud is a medical services membership program of Eminat Medical Center. It is not health insurance. Read the complete mandatory notice below.">Corazón Salud es una membresía de servicios médicos de Eminat Medical Center. No es un seguro médico. Lea el aviso obligatorio completo más abajo.</p>
+</div></section>
+
+<!-- ══════════ ALCANCE ══════════ -->
+<section class="bg-blanco" id="alcance"><div class="wrap">
+  <div class="sec-head rev"><span class="eyebrow" data-en="Before joining">Antes de inscribirse</span><h2 data-en="What the membership includes and excludes">Qué incluye la membresía y qué no</h2><p class="lead" data-en="Corazón Salud provides medical services through Eminat Medical Center. It is not health insurance and does not replace a health insurance policy.">Corazón Salud ofrece servicios médicos a través de Eminat Medical Center. No es un seguro médico y no sustituye una póliza de seguro médico.</p></div>
+  <div class="alcance"><div class="alc alc-si rev"><h3 data-en="Included">Incluye</h3><p class="alc-int" data-en="According to your plan and term.">Según su plan y duración.</p><ul><li data-en="Assigned primary care physician and visits for each member">Médico de cabecera asignado y visitas por miembro</li><li data-en="Quarterly preventive reminders">Recordatorios preventivos trimestrales</li><li data-en="One Basic Annual Laboratory Package for each enrolled member">Un Paquete Anual Básico de Laboratorios por miembro inscrito</li><li data-en="Discounts on labs outside the package and assistance enrolling in GoodRx">Descuento en laboratorios fuera del paquete y asistencia para enrolamiento en GoodRx</li><li data-en="Care from a bilingual team at our different points of care">Atención con equipo bilingüe en nuestros diferentes puntos de atención</li></ul></div>
+  <div class="alc alc-no rev"><h3 data-en="Not included">No incluye</h3><p class="alc-int" data-en="Additional services are subject to clinical judgment and applicable fees.">Los servicios adicionales dependen del criterio clínico y de las tarifas aplicables.</p><ul><li data-en="Hospitalizations">Hospitalizaciones</li><li data-en="Major emergencies">Emergencias mayores</li><li data-en="External specialist services">Servicios de especialistas externos</li><li data-en="Labs outside the Basic Annual Laboratory Package: available at a member discount, with a clinical order when applicable">Laboratorios fuera del Paquete Anual Básico: disponibles con descuento de miembro y con orden clínica cuando corresponda</li></ul></div></div>
+</div></section>
+
+<!-- ══════════ CÓMO INSCRIBIRSE ══════════ -->
+<section class="bg-gris" id="inscribirse">
+  <div class="wrap">
+    <div class="sec-head rev">
+      <span class="eyebrow claro" data-en="How to join">Cómo inscribirse</span>
+      <h2 data-en="Three steps and you are in">Tres pasos y ya estás dentro</h2>
+      <p class="lead" data-en="Ask our team about the plan, term, per-visit fee and enrollment process.">Consulte con nuestro equipo el plan, la duración, la tarifa por visita y el proceso de inscripción.</p>
+    </div>
+
+    <div class="pasos">
+      <article class="paso rev">
+        <span class="paso-n" data-en="Step 1">Paso 1</span>
+        <h3 data-en="Talk to us">Habla con nosotros</h3>
+        <p data-en="Write to us on WhatsApp or call (954) 360-8897. We explain the plans in Spanish or English and help you pick the one that fits.">Escríbenos por WhatsApp o llama al (954) 360-8897. Te explicamos los planes en español o inglés y te ayudamos a elegir el que te conviene.</p>
+      </article>
+      <article class="paso rev">
+        <span class="paso-n" data-en="Step 2">Paso 2</span>
+        <h3 data-en="Pay your fee">Paga tu cuota</h3>
+        <p data-en="Review the monthly membership fee, the term and the per-visit fee before signing your agreement.">Revise la cuota mensual, la duración y la tarifa por visita antes de firmar su acuerdo.</p>
+      </article>
+      <article class="paso rev">
+        <span class="paso-n" data-en="Step 3">Paso 3</span>
+        <h3 data-en="Receive your card">Recibe tu tarjeta</h3>
+        <p data-en="After enrollment, use your membership credential to request appointments at our different points of care, subject to availability.">Después de inscribirse, use su credencial para solicitar citas en nuestros diferentes puntos de atención, según disponibilidad.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ SEDES ══════════ -->
+<section class="bg-nube" id="sedes">
+  <div class="wrap">
+    <div class="sec-head rev">
+      <span class="eyebrow" data-en="Where we see you">Dónde te atendemos</span>
+      <h2 data-en="Multiple points of care">Múltiples puntos de atención</h2>
+    </div>
+
+    <div class="sedes">
+      <article class="sede sede-pri rev">
+        <span class="sede-etq" data-en="Main location">Sede principal</span>
+        <h3>EMC Miramar East</h3>
+        <address>2501 Palm Avenue, Suite 112<br>Miramar, FL 33025</address>
+        <div class="sede-links">
+          <a class="sede-link" href="https://www.google.com/maps/search/?api=1&query=EMC+2501+Palm+Avenue+Suite+112+Miramar+FL+33025" target="_blank" rel="noopener" data-en="Open in Maps">Abrir en Maps</a>
+          <a class="sede-link" href="tel:+19543608897">(954) 360-8897</a>
+        </div>
+
+      </article>
+
+      <article class="sede sede-sec rev">
+        <span class="sede-etq" data-en="Location">Sede</span>
+        <h3>EMC Miramar West</h3>
+        <address>14601 SW 29th St, Suite 108<br>Miramar, FL 33027</address>
+        <div class="sede-links">
+          <a class="sede-link" href="https://www.google.com/maps/search/?api=1&query=EMC+14601+SW+29th+St+Suite+108+Miramar+FL+33027" target="_blank" rel="noopener" data-en="Open in Maps">Abrir en Maps</a>
+          <a class="sede-link" href="tel:+19543608897">(954) 360-8897</a>
+        </div>
+      </article>
+
+      <article class="sede sede-sec rev">
+        <span class="sede-etq" data-en="Location">Sede</span>
+        <h3>EMC Royal Palm Beach</h3>
+        <address>1019 State Road 7, Unit B<br>Royal Palm Beach, FL 33411</address>
+        <div class="sede-links">
+          <a class="sede-link" href="https://www.google.com/maps/search/?api=1&query=EMC+1019+State+Road+7+Unit+B+Royal+Palm+Beach+FL+33411" target="_blank" rel="noopener" data-en="Open in Maps">Abrir en Maps</a>
+          <a class="sede-link" href="tel:+19543608897">(954) 360-8897</a>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ PREGUNTAS ══════════ -->
+<section class="bg-blanco" id="preguntas"><div class="wrap"><div class="sec-head rev" style="margin-inline:auto;text-align:center"><span class="eyebrow" style="justify-content:center" data-en="Frequently asked questions">Preguntas frecuentes</span><h2 data-en="What people ask us most">Lo que más nos preguntan</h2></div><div class="faq rev">
+  <details><summary data-en="Is Corazón Salud health insurance?">¿Corazón Salud es un seguro médico?</summary><div class="faq-cuerpo"><p data-en="No. It is a medical services membership program of Eminat Medical Center. It does not include hospitalizations or major emergencies and does not replace health insurance.">No. Es un programa de membresía de servicios médicos de Eminat Medical Center. No incluye hospitalizaciones ni emergencias mayores y no sustituye un seguro médico.</p></div></details>
+  <details><summary data-en="Are labs included?">¿Los laboratorios están incluidos?</summary><div class="faq-cuerpo"><p data-en="The Basic Annual Laboratory Package is included in all three plans, once for each enrolled member. It includes complete blood count (CBC), metabolic panel, lipid profile, thyroid-stimulating hormone (TSH), urinalysis and hemoglobin A1c. Studies or labs outside that package are available at a member discount. A clinical order is required when applicable.">El Paquete Anual Básico de Laboratorios está incluido en los tres planes, uno por cada miembro inscrito. Incluye hemograma completo (CBC), panel metabólico, perfil de lípidos, hormona estimulante de la tiroides (TSH), análisis de orina y hemoglobina A1c. Los estudios o laboratorios fuera de ese paquete están disponibles con descuento de miembro. Requieren orden clínica cuando corresponda.</p></div></details>
+  <details><summary data-en="Can I visit more than once a month?">¿Puedo ir más de una vez al mes?</summary><div class="faq-cuerpo"><p data-en="Yes. There is no one-visit-per-month limit. You may request additional consultations during your membership, subject to appointment availability. The per-visit fee applies each time: $25 Essential, $15 Plus and $0 Max.">Sí. No existe un límite de una visita por mes. Puede solicitar consultas adicionales durante la vigencia de su membresía, según disponibilidad. En cada visita se aplica la tarifa correspondiente a su plan: $25 Essential, $15 Plus y $0 Max.</p></div></details>
+  <details><summary data-en="How many people can join a family plan?">¿A cuántas personas admite el plan familiar?</summary><div class="faq-cuerpo"><p data-en="A family plan includes up to three members. Additional members may cost extra; contact the program for the current rate. Each member has their own visit allocation; visits are not shared or accumulated among members.">El plan familiar incluye hasta tres miembros. Los miembros adicionales pueden tener un costo adicional; comuníquese con el programa para conocer la tarifa vigente. Cada uno tiene su propia asignación de visitas; no se comparten ni se acumulan entre miembros.</p></div></details>
+  <details><summary data-en="How does month-to-month membership work?">¿Cómo funciona la modalidad mes a mes?</summary><div class="faq-cuerpo"><p data-en="It costs $10 more per month than the regular rate and starts with two months paid in advance. Monthly payments continue afterward. You may cancel with 30 days' written notice.">Cuesta $10 más al mes que la tarifa regular y comienza con dos meses pagados por adelantado. Después continúa con pagos mensuales. Puede cancelarse con 30 días de aviso escrito.</p></div></details>
+  <details><summary data-en="Where can I receive care?">¿Dónde puedo recibir atención?</summary><div class="faq-cuerpo"><p data-en="At our different points of care, with care from a bilingual team. Contact us for current locations and availability.">En nuestros diferentes puntos de atención, con equipo bilingüe. Contáctenos para conocer las ubicaciones y disponibilidad actuales.</p></div></details>
+</div></div></section>
+
+<!-- ══════════ CTA FINAL ══════════ -->
+<section class="cta-final">
+  <svg class="filigrana iso" viewBox="0 0 417.2 362.97" aria-hidden="true"><use href="#cs-iso"/></svg>
+  <div class="wrap">
+    <span class="eyebrow claro" style="justify-content:center" data-en="Start today">Empieza hoy</span>
+    <h2 data-en="Your primary care physician, with plans from $49.99 a month">Su médico de cabecera, con planes desde $49.99 al mes</h2>
+    <p class="price-qualifier" data-en="Essential regular rate: $49.99/month. Essential Month-to-Month: $59.99/month; two months paid in advance to start ($119.98 initial charge).">Tarifa regular Essential: $49.99/mes. Essential mes a mes: $59.99/mes; dos meses por adelantado al iniciar ($119.98 de cargo inicial).</p>
+    <p class="lead" data-en="Ask us about the plans, terms and per-visit fees in Spanish or English. Corazón Salud is not health insurance.">Consulte los planes, modalidades y tarifas por visita en español o inglés. Corazón Salud no es un seguro médico.</p>
+    <div class="cta-btns">
+      <a class="btn btn-blanco btn-lg" href="https://wa.me/19546054205?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20Coraz%C3%B3n%20Salud." target="_blank" rel="noopener" data-en="Write on WhatsApp">Escribir por WhatsApp</a>
+      <a class="btn btn-linea-blanca btn-lg" href="#planes" data-en="See the plans">Ver los planes</a>
+    </div>
+    <a class="cta-tel" href="tel:+19543608897"><small data-en="Or call us">O llámanos</small>(954) 360-8897</a>
+  </div>
+</section>
+
+<!-- ══════════ DESCARGO LEGAL ══════════ -->
+<div class="legal" id="aviso-legal">
+  <div class="wrap">
+    <div class="legal-caja">
+      <h4 data-en="Mandatory legal notice">Descargo legal obligatorio</h4>
+
+      <p data-en="<strong>Corazón Salud is a medical services membership program of Eminat Medical Center. It is not health insurance and does not replace a health insurance policy. It does not include hospitalizations or major emergencies.</strong>"><strong>Corazón Salud es un programa de membresía de servicios médicos de Eminat Medical Center. No es un seguro médico y no sustituye una póliza de seguro médico. No incluye hospitalizaciones ni emergencias mayores.</strong></p>
+      <p data-en="Every plan includes one Basic Annual Laboratory Package per enrolled member: complete blood count (CBC), metabolic panel, lipid profile, thyroid-stimulating hormone (TSH), urinalysis and hemoglobin A1c. Labs outside that package are available at a member discount. A clinical order is required when applicable. Annual electrocardiogram (EKG), TM-Flow and Pap smear or Total PSA depend on the selected plan and term.">Cada plan incluye un Paquete Anual Básico de Laboratorios por miembro inscrito: hemograma completo (CBC), panel metabólico, perfil de lípidos, hormona estimulante de la tiroides (TSH), análisis de orina y hemoglobina A1c. Los laboratorios fuera del paquete están disponibles con descuento de miembro. Requieren orden clínica cuando corresponda. Electrocardiograma (EKG), TM-Flow y Papanicolaou o PSA Total anuales dependen del plan y la duración elegidos.</p>
+      <p data-en="The per-visit fee is $25 for Essential, $15 for Plus and $0 for Max. Each member has their own visit allocation according to the plan and term. Month-to-month membership costs $10 more per month, starts with two months paid in advance, and may be canceled with 30 days' written notice. Clinical decisions and appointment availability remain with Eminat Medical Center.">La tarifa por visita es de $25 en Essential, $15 en Plus y $0 en Max. Cada miembro tiene su propia asignación de visitas según el plan y la duración. La modalidad mes a mes cuesta $10 adicionales al mes, comienza con dos meses pagados por adelantado y puede cancelarse con 30 días de aviso escrito. Las decisiones clínicas y la disponibilidad de citas corresponden a Eminat Medical Center.</p>
+
+      <div class="aviso-456">
+        <h5 data-en="Notice required by Florida law">Aviso requerido por la ley de Florida</h5>
+        <p>THE PATIENT AND ANY OTHER PERSON RESPONSIBLE FOR PAYMENT HAS A RIGHT TO REFUSE TO PAY, CANCEL PAYMENT, OR BE REIMBURSED FOR PAYMENT FOR ANY OTHER SERVICE, EXAMINATION, OR TREATMENT THAT IS PERFORMED AS A RESULT OF AND WITHIN 72 HOURS OF RESPONDING TO THE ADVERTISEMENT FOR THE FREE, DISCOUNTED FEE, OR REDUCED FEE SERVICE, EXAMINATION, OR TREATMENT.</p>
+        <p>EL PACIENTE Y CUALQUIER OTRA PERSONA RESPONSABLE DEL PAGO TIENE DERECHO A NEGARSE A PAGAR, CANCELAR EL PAGO O SER REEMBOLSADO POR EL PAGO DE CUALQUIER OTRO SERVICIO, EXAMEN O TRATAMIENTO QUE SE REALICE COMO RESULTADO DE Y DENTRO DE LAS 72 HORAS DE HABER RESPONDIDO AL ANUNCIO DEL SERVICIO, EXAMEN O TRATAMIENTO GRATUITO, CON TARIFA CON DESCUENTO O CON TARIFA REDUCIDA.</p>
+        <cite>Fla. Stat. § 456.062</cite>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ FOOTER ══════════ -->
+<footer>
+  <div class="wrap">
+    <div class="pie-grid">
+      <div class="pie">
+        <svg class="lockup lockup-pie lockup-blanco" viewBox="0 0 1016.08 366.67" role="img" aria-label="Corazón Salud"><use href="#cs-lockup-h"/></svg>
+        <p class="pie-desc" data-en="A medical services membership program of Eminat Medical Center in Miramar, Florida. Not health insurance.">Un programa de membresía de servicios médicos de Eminat Medical Center en Miramar, Florida. No es un seguro médico.</p>
+      </div>
+
+      <div class="pie">
+        <h5 data-en="Membership">Membresía</h5>
+        <ul>
+          <li><a href="#incluye" data-en="What's included">Qué incluye</a></li>
+          <li><a href="#planes" data-en="Plans and prices">Planes y precios</a></li>
+          <li><a href="#alcance" data-en="Scope">Alcance</a></li>
+          <li><a href="#inscribirse" data-en="How to join">Cómo inscribirse</a></li>
+          <li><a href="#preguntas" data-en="FAQ">Preguntas frecuentes</a></li>
+        </ul>
+      </div>
+
+      <div class="pie">
+        <h5 data-en="Locations">Sedes</h5>
+        <ul>
+          <li><a href="https://www.google.com/maps/search/?api=1&query=EMC+2501+Palm+Avenue+Suite+112+Miramar+FL+33025" target="_blank" rel="noopener">EMC Miramar East<br>2501 Palm Avenue, Suite 112<br>Miramar, FL 33025</a></li>
+          <li style="margin-top:6px"><a href="https://www.google.com/maps/search/?api=1&query=EMC+14601+SW+29th+St+Suite+108+Miramar+FL+33027" target="_blank" rel="noopener">EMC Miramar West<br>14601 SW 29th St, Suite 108<br>Miramar, FL 33027</a></li>
+        </ul>
+      </div>
+
+      <div class="pie">
+        <h5 data-en="Contact">Contacto</h5>
+        <ul>
+          <li><a href="tel:+19543608897" style="font-family:var(--ff-marca);font-size:1.16rem;font-weight:700;color:#fff">(954) 360-8897</a></li>
+          <li><a href="https://wa.me/19546054205" target="_blank" rel="noopener">WhatsApp</a></li>
+          <li><a href="https://corazonsalud.health/" rel="noopener">corazonsalud.health</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Endoso con la marca matriz — pág. 10.
+         Marcas separadas por un divisor, sin línea de base compartida,
+         EMC entre el 85 % y el 100 % del ancho de Corazón Salud. -->
+    <div class="endoso" style="border-top:1px solid rgba(255,255,255,.13)">
+      <svg class="lockup endoso-cs lockup-blanco" viewBox="0 0 1016.08 366.67" role="img" aria-label="Corazón Salud"><use href="#cs-lockup-h"/></svg>
+      <span class="endoso-sep" aria-hidden="true"></span>
+      <span class="endoso-emc">
+        <img src="https://emc.health/wp-content/uploads/2026/01/emc_logo_white.svg" alt="Eminat Medical Center" loading="lazy">
+      </span>
+      <span class="endoso-nota" data-en="A program of Eminat Medical Center">Un programa de Eminat Medical Center</span>
+    </div>
+
+    <div class="pie-bajo">
+      <span>© <span id="anio">2026</span> Eminat Medical Center. <span data-en="All rights reserved.">Todos los derechos reservados.</span></span>
+      <span data-en="Corazón Salud is not health insurance.">Corazón Salud no es un seguro de salud.</span>
+    </div>
+  </div>
+</footer>
+
+<a class="cori-flot" href="https://portal.corazonsalud.health/login" aria-label="Hazte miembro de Corazón Salud"><img src="cori-official.png" alt="" aria-hidden="true"><span>Hazte miembro</span></a>
+<a class="wa-flot" href="https://wa.me/19546054205?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20Coraz%C3%B3n%20Salud." target="_blank" rel="noopener" aria-label="WhatsApp">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.14-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.22 3.08c.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2-1.41.25-.7.25-1.29.17-1.42-.07-.13-.27-.2-.57-.35ZM12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.86 9.86 0 0 0 4.79 1.22h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2Zm0 18.13h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.19 8.19 0 0 1-1.26-4.36c0-4.54 3.7-8.24 8.25-8.24 2.2 0 4.27.86 5.83 2.42a8.19 8.19 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24Z"/></svg>
+</a>
+
+<script>
+(function(){
+  'use strict';
+
+  var hamb = document.getElementById('hamb'), menu = document.getElementById('menu');
+  hamb.addEventListener('click', function(){
+    var abierto = menu.classList.toggle('abierto');
+    hamb.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+  });
+  menu.addEventListener('click', function(e){
+    if(e.target.tagName === 'A'){ menu.classList.remove('abierto'); hamb.setAttribute('aria-expanded','false'); }
+  });
+
+  document.getElementById('anio').textContent = new Date().getFullYear();
+
+  /* ---- Bilingüe ES/EN ----
+     El nombre «Corazón Salud» nunca se traduce (guía, pág. 13). */
+  var botonesLang = document.querySelectorAll('.lang button');
+  function aplicarIdioma(lang){
+    document.querySelectorAll('[data-en]').forEach(function(el){
+      if(!el.dataset.es) el.dataset.es = el.innerHTML;
+      el.innerHTML = (lang === 'en') ? el.dataset.en : el.dataset.es;
+    });
+    document.documentElement.lang = lang;
+    document.title = lang === 'en'
+      ? 'Corazón Salud — Medical Services Membership by Eminat Medical Center'
+      : 'Corazón Salud — Programa de membresía de servicios médicos de Eminat Medical Center';
+    document.querySelector('meta[name="description"]').content = lang === 'en'
+      ? 'Corazón Salud is a medical services membership program by Eminat Medical Center, with primary care, basic labs included, and plans starting at $49.99 per month.'
+      : 'Corazón Salud es una membresía de servicios médicos de Eminat Medical Center con médico de cabecera, laboratorios básicos incluidos y planes desde $49.99 al mes.';
+    botonesLang.forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.lang === lang ? 'true' : 'false'); });
+    try{ sessionStorage.setItem('cs-lang', lang); }catch(e){}
+  }
+  botonesLang.forEach(function(b){ b.addEventListener('click', function(){ aplicarIdioma(b.dataset.lang); }); });
+  try{ if(sessionStorage.getItem('cs-lang') === 'en') aplicarIdioma('en'); }catch(e){}
+
+  /* ---- Cinta: arranque en posición aleatoria ---- */
+  var cinta = document.getElementById('cinta');
+  if(cinta){
+    Array.prototype.slice.call(cinta.children).forEach(function(n){ cinta.appendChild(n.cloneNode(true)); });
+    cinta.style.animationDelay = '-' + (Math.random() * 44).toFixed(2) + 's';
+  }
+
+  /* ---- Revelado al hacer scroll ---- */
+  if('IntersectionObserver' in window){
+    var obs = new IntersectionObserver(function(entradas){
+      entradas.forEach(function(en){
+        if(en.isIntersecting){ en.target.classList.add('visto'); obs.unobserve(en.target); }
+      });
+    }, { threshold:.12, rootMargin:'0px 0px -50px 0px' });
+    document.querySelectorAll('.rev').forEach(function(el,i){
+      el.style.transitionDelay = (Math.min(i,4)*70) + 'ms';
+      obs.observe(el);
+    });
+  } else {
+    document.querySelectorAll('.rev').forEach(function(el){ el.classList.add('visto'); });
+  }
+
+  /* ---- FAQ: una abierta a la vez ---- */
+  var faqs = document.querySelectorAll('.faq details');
+  faqs.forEach(function(d){
+    d.addEventListener('toggle', function(){
+      if(d.open) faqs.forEach(function(o){ if(o !== d) o.open = false; });
+    });
+  });
+})();
+</script>
+</body>
+</html>

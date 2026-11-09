@@ -1,0 +1,77 @@
+name: Attendance security protected correction
+on:
+  workflow_dispatch:
+    inputs:
+      exact_commit:
+        description: Reviewed merged exact 40-character main commit
+        required: true
+        type: string
+      apply:
+        description: Apply after protected approvals; false performs read-only check
+        default: false
+        type: boolean
+      backup_at_utc:
+        description: Verified fresh restorable backup UTC timestamp required for apply
+        type: string
+env:
+  LILLY_SALES_TARGET_ENV: production
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: native-sales-production-migration
+  cancel-in-progress: false
+jobs:
+  schema_check:
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_commit }}
+          persist-credentials: false
+      - name: Require exact main and protected approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXACT_COMMIT: ${{ inputs.exact_commit }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          test "$EXACT_COMMIT" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$EXACT_COMMIT"
+          approval=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/approvals" --jq '[.[] | select(.state == "approved") | .environments[]?.name | select(. == "Production")] | length')
+          test "$approval" -gt 0
+      - run: python3 scripts/migration/check_attendance_security.py check
+        env:
+          LILLY_SALES_SCHEMA_ADMIN_DB_URL: ${{ secrets.LILLY_SALES_SCHEMA_ADMIN_DB_URL }}
+  schema_apply:
+    if: inputs.apply
+    needs: schema_check
+    environment: Production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_commit }}
+          persist-credentials: false
+      - name: Require fresh backup
+        run: python3 scripts/migration/check_restorable_backup.py
+        env:
+          BACKUP_AT: ${{ inputs.backup_at_utc }}
+      - run: python3 scripts/migration/check_attendance_security.py apply
+        env:
+          LILLY_SALES_SCHEMA_ADMIN_DB_URL: ${{ secrets.LILLY_SALES_SCHEMA_ADMIN_DB_URL }}
+          APPROVED_EXACT_COMMIT: ${{ inputs.exact_commit }}
+  schema_verify:
+    if: inputs.apply
+    needs: [schema_check, schema_apply]
+    environment: Production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_commit }}
+          persist-credentials: false
+      - run: python3 scripts/migration/check_attendance_security.py verify
+        env:
+          LILLY_SALES_SCHEMA_ADMIN_DB_URL: ${{ secrets.LILLY_SALES_SCHEMA_ADMIN_DB_URL }}

@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "database": "Isolated temporary local PostgreSQL 17.11, UNIX socket only",
+  "production_modified": false,
+  "clinical_values_used": false,
+  "scope": "Privilege removal, RLS preserved DML, maintenance denial and rollback; module predicate is a local stand-in, not full Production clone"
+}

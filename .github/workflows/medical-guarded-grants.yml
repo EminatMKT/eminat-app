@@ -1,0 +1,101 @@
+name: Medical guarded grants
+on:
+  workflow_dispatch:
+    inputs:
+      exact_commit:
+        description: Reviewed merged exact main SHA
+        required: true
+        type: string
+      apply:
+        description: Apply only the approved Medical ACL migration
+        default: false
+        type: boolean
+      backup_at_utc:
+        description: Verified fresh restorable Production backup timestamp
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: native-sales-production-migration
+  cancel-in-progress: false
+env:
+  LILLY_SALES_TARGET_ENV: production
+jobs:
+  schema_check:
+    runs-on: ubuntu-latest
+    environment: Production
+    outputs:
+      reference: ${{ steps.check.outputs.reference }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_commit }}
+          persist-credentials: false
+      - name: Require exact main and protected approval
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXACT_COMMIT: ${{ inputs.exact_commit }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          test "$EXACT_COMMIT" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$EXACT_COMMIT"
+          approval=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/approvals" --jq '[.[] | select(.state == "approved") | .environments[]?.name | select(. == "Production")] | length')
+          test "$approval" -gt 0
+      - id: check
+        name: Verify empty Medical baseline and only one pending migration
+        env:
+          LILLY_SALES_SCHEMA_ADMIN_DB_URL: ${{ secrets.LILLY_SALES_SCHEMA_ADMIN_DB_URL }}
+        run: |
+          set -euo pipefail
+          result=$(python3 scripts/migration/check_medical_grants.py check)
+          echo "$result"
+          echo "reference=$(python3 -c 'import json,sys; print(json.load(sys.stdin)["reference"])' <<< "$result")" >> "$GITHUB_OUTPUT"
+  schema_apply:
+    if: inputs.apply
+    needs: schema_check
+    environment: Production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_commit }}
+          persist-credentials: false
+      - run: python3 scripts/migration/check_restorable_backup.py
+        env:
+          BACKUP_AT: ${{ inputs.backup_at_utc }}
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.106.0
+      - name: Recheck exact baseline then apply the single reviewed migration
+        env:
+          LILLY_SALES_SCHEMA_ADMIN_DB_URL: ${{ secrets.LILLY_SALES_SCHEMA_ADMIN_DB_URL }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ inputs.exact_commit }}'
+          python3 scripts/migration/check_medical_grants.py check
+          if ! supabase db push --db-url "$LILLY_SALES_SCHEMA_ADMIN_DB_URL" --dry-run --yes > "$RUNNER_TEMP/medical-dryrun.log" 2>&1; then
+            echo MEDICAL_DRYRUN_FAILED
+            exit 1
+          fi
+          if ! supabase db push --db-url "$LILLY_SALES_SCHEMA_ADMIN_DB_URL" --yes > "$RUNNER_TEMP/medical-apply.log" 2>&1; then
+            echo MEDICAL_APPLY_FAILED
+            exit 1
+          fi
+      - if: always()
+        run: rm -f "$RUNNER_TEMP/medical-dryrun.log" "$RUNNER_TEMP/medical-apply.log"
+  schema_verify:
+    if: inputs.apply
+    needs: [schema_check, schema_apply]
+    environment: Production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.exact_commit }}
+          persist-credentials: false
+      - run: python3 scripts/migration/check_medical_grants.py verify
+        env:
+          EXPECTED_REFERENCE: ${{ needs.schema_check.outputs.reference }}
+          LILLY_SALES_SCHEMA_ADMIN_DB_URL: ${{ secrets.LILLY_SALES_SCHEMA_ADMIN_DB_URL }}

@@ -1,0 +1,51 @@
+{
+  "dateLocal": "2026-10-27",
+  "timezone": "America/Guayaquil",
+  "supabaseScheduledBackups": {
+    "verified": true,
+    "observedCount": 7,
+    "datesUTC": "2026-10-21 through 2026-10-27",
+    "latestUTC": "2026-10-27T05:28:43Z",
+    "pitrEnabled": false,
+    "storageObjectsIncluded": false,
+    "restorePerformed": false,
+    "settingsChanged": false
+  },
+  "protectedPreview": {
+    "id": "dpl_7uWazUptkrWwzWGYo2Z1bcAa8Czw",
+    "url": "eminat-6x0rmm5cu-eminatmkts-projects.vercel.app",
+    "readyState": "INITIALIZING",
+    "target": null,
+    "commit": "5951cdc94822ca0356bdbff94089c095670a3dbd",
+    "configuration": "dummy credentials only; no production secrets",
+    "protected": true
+  },
+  "previewAnonymousRoutes": [
+    {
+      "path": "/api/patient/v1/profile",
+      "status": 401,
+      "noStore": true,
+      "unauthenticatedDenied": true
+    },
+    {
+      "path": "/api/patient/v1/membershippdf",
+      "status": 401,
+      "noStore": true,
+      "unauthenticatedDenied": true
+    },
+    {
+      "path": "/api/sales-native/bootstrap",
+      "status": 401,
+      "noStore": true,
+      "unauthenticatedDenied": true
+    },
+    {
+      "path": "/api/sales-native/quickbooks/connection",
+      "status": 401,
+      "noStore": true,
+      "unauthenticatedDenied": true
+    }
+  ],
+  "productionPublished": false,
+  "productionSchemaInspected": false
+}

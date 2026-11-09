@@ -17,12 +17,16 @@ on:
         description: Reviewed Native Sales migration-set digest
         required: true
         type: string
+      expected_pending_version:
+        description: Exact 14-digit version that must be the only pending migration
+        required: true
+        type: string
       backup_id:
-        description: Verified restorable Production backup identifier; required for apply
+        description: Optional restorable Production backup identifier, if Supabase exposes one
         required: false
         type: string
       backup_at_utc:
-        description: Production backup timestamp; required for apply
+        description: Verified restorable Production backup timestamp; required for apply
         required: false
         type: string
 
@@ -44,6 +48,7 @@ jobs:
     env:
       LILLY_SALES_TARGET_ENV: production
       LILLY_SALES_MIGRATION_SHA256: ${{ inputs.migration_sha256 }}
+      LILLY_SALES_EXPECTED_PENDING_VERSION: ${{ inputs.expected_pending_version }}
       LILLY_SALES_SCHEMA_ADMIN_DB_URL: ${{ secrets.LILLY_SALES_SCHEMA_ADMIN_DB_URL }}
       SUPABASE_TELEMETRY_DISABLED: '1'
     steps:
@@ -56,6 +61,7 @@ jobs:
           [[ "$GITHUB_REF" == refs/heads/main ]]
           [[ "$EXACT_COMMIT" =~ ^[0-9a-f]{40}$ ]]
           [[ "$LILLY_SALES_MIGRATION_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          [[ "$LILLY_SALES_EXPECTED_PENDING_VERSION" =~ ^[0-9]{14}$ ]]
           test -n "$LILLY_SALES_SCHEMA_ADMIN_DB_URL"
           approval=$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/approvals" \
             --jq '[.[] | select(.state == "approved") | .environments[]?.name | select(. == "Production")] | length' 2>/dev/null) || exit 1
@@ -81,9 +87,31 @@ jobs:
       - name: Verify exact pending schema without mutation
         run: |
           set -euo pipefail
-          supabase db push --db-url "$LILLY_SALES_SCHEMA_ADMIN_DB_URL" --dry-run --yes \
-            > "$RUNNER_TEMP/native-sales-schema-dryrun.log" 2>&1 \
-            || { echo NATIVE_SALES_SCHEMA_DRYRUN_FAILED; exit 1; }
+          log="$RUNNER_TEMP/native-sales-schema-dryrun.log"
+          if ! supabase db push --db-url "$LILLY_SALES_SCHEMA_ADMIN_DB_URL" --dry-run --yes > "$log" 2>&1; then
+            # Print only the known CLI error and local filename, never connection details.
+            python3 - "$log" <<'PY'
+          import pathlib, re, sys, os
+          output = pathlib.Path(sys.argv[1]).read_text(errors='replace')
+          message = 'Found local migration files to be inserted before the last migration on remote database.'
+          files = re.findall(r'supabase/migrations/[0-9]{14}_native_sales_[A-Za-z0-9_]+\.sql', output)
+          candidates = list(pathlib.Path('supabase/migrations').glob(
+              f"{os.environ['LILLY_SALES_EXPECTED_PENDING_VERSION']}_native_sales_*.sql"))
+          if len(candidates) != 1:
+              print('NATIVE_SALES_SCHEMA_LOCAL_MIGRATION_INVALID')
+              raise SystemExit(1)
+          expected = candidates[0].as_posix()
+          if message not in output or files != [expected]:
+              print('NATIVE_SALES_SCHEMA_DRYRUN_UNCLASSIFIED_OR_UNEXPECTED')
+              raise SystemExit(1)
+          print(message)
+          print('Rerun the command with --include-all flag to apply these migrations:')
+          print(expected)
+          PY
+            supabase db push --db-url "$LILLY_SALES_SCHEMA_ADMIN_DB_URL" --dry-run --include-all --yes > "$log" 2>&1 \
+              || { echo NATIVE_SALES_SCHEMA_INCLUDE_ALL_DRYRUN_FAILED; exit 1; }
+          fi
+          echo NATIVE_SALES_SCHEMA_DRYRUN_PASS
       - id: fingerprint
         name: Capture reference counts and unrelated schema fingerprint
         run: |
@@ -101,29 +129,19 @@ jobs:
     env:
       LILLY_SALES_TARGET_ENV: production
       LILLY_SALES_MIGRATION_SHA256: ${{ inputs.migration_sha256 }}
+      LILLY_SALES_EXPECTED_PENDING_VERSION: ${{ inputs.expected_pending_version }}
       LILLY_SALES_SCHEMA_ADMIN_DB_URL: ${{ secrets.LILLY_SALES_SCHEMA_ADMIN_DB_URL }}
       SUPABASE_TELEMETRY_DISABLED: '1'
     steps:
-      - name: Require the verified Production backup before schema apply
-        env:
-          BACKUP_ID: ${{ inputs.backup_id }}
-          BACKUP_AT: ${{ inputs.backup_at_utc }}
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import os,re
-          from datetime import datetime,timezone,timedelta
-          if not re.fullmatch(r'[A-Za-z0-9._:/-]{12,180}',os.environ['BACKUP_ID']):
-              raise SystemExit('RESTORABLE_BACKUP_REQUIRED')
-          try: at=datetime.fromisoformat(os.environ['BACKUP_AT'].replace('Z','+00:00'))
-          except ValueError: raise SystemExit('BACKUP_TIMESTAMP_REQUIRED')
-          if at.tzinfo is None or not timedelta(0)<=datetime.now(timezone.utc)-at<=timedelta(hours=24):
-              raise SystemExit('FRESH_BACKUP_REQUIRED')
-          PY
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.exact_commit }}
           persist-credentials: false
+      - name: Require a fresh restorable Production backup before schema apply
+        env:
+          BACKUP_ID: ${{ inputs.backup_id }}
+          BACKUP_AT: ${{ inputs.backup_at_utc }}
+        run: python3 scripts/migration/check_restorable_backup.py
       - uses: supabase/setup-cli@v1
         with:
           version: 2.106.0
@@ -133,7 +151,7 @@ jobs:
           test "$(git rev-parse HEAD)" = '${{ inputs.exact_commit }}'
           python3 scripts/migration/check_sales_database_access.py
           python3 scripts/migration/check-native-sales-migrations.py --phase schema
-          supabase db push --db-url "$LILLY_SALES_SCHEMA_ADMIN_DB_URL" --yes \
+          supabase db push --db-url "$LILLY_SALES_SCHEMA_ADMIN_DB_URL" --include-all --yes \
             > "$RUNNER_TEMP/native-sales-schema-apply.log" 2>&1 \
             || { echo NATIVE_SALES_SCHEMA_APPLY_FAILED; exit 1; }
       - if: always()

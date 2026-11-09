@@ -1,0 +1,17 @@
+{
+  "portal_base_commit": "2253a66e3e81bf5a415baea84cd0f38a1caeb645",
+  "portal_source_commit": "6841c01667d163692f645fd6ecc25ee49b70dcaa",
+  "portal_build_id": "KghYZfaZEIaZ9Idi0kyRR",
+  "sha256": {
+    "README.md": "1578b8045405e1b6e5c63e36570f886861759dec75ebd32edbd37be31bb59e61",
+    "security-headers.json": "b17a6646312870cb2e7e5b8dff4aabcb6ccf7b4e6e3ad72720c19e049a502078",
+    "portal.patch": "b79cd62c2cfed13b2fe1c5049e99b1df8365a397d0a7d6651644da9fe7cb22a1",
+    "verify-public.mjs": "932eb42886d75380109c77fc637a38e8875fdd664c43581a50e1bd219c84081e",
+    "public-homepage-before.html": "4e392db250867e9bf27c83b91ea672493ff5e410948f4aa5970a29ebf33ddf4c",
+    "public/index.html": "bd33b6972d3c52fade313f4b5fc19685a9ad19c43b78af39c267f7981936efc7",
+    "public/sitemap.xml": "3b3b9f3bf190b7a124d27b43f6dae9fe50fc1b9cdd438e94aa3429cd5e48ba82",
+    "public/robots.txt": "5f363416c2bbb9b68804a21f8b18c386b9ffca9582728b93e3695011d8d119c0"
+  },
+  "lilly_runtime_changed": false,
+  "real_payment_performed": false
+}

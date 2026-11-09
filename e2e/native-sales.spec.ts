@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { test, expect } from '@playwright/test'
+import { readFileSync } from 'node:fs'
+import { test, expect, type Page } from '@playwright/test'
 import { H, PASSWORD, authIdByEmail, deleteUser, ensureUser, getUsuario } from './seed'
 
 const base = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'
@@ -19,8 +20,8 @@ test.beforeAll(async () => {
   const authId = await ensureUser(email, 'admin', 'QA', 'Sales')
   const profile = await getUsuario(email)
   if (!profile?.id || authId !== await authIdByEmail(email)) throw new Error('LOCAL_SALES_IDENTITY_MISSING')
-  await write('sales_organizations', 'POST', { id: organizationId, code: `qa-${organizationId}`,
-    name: 'Local Sales QA', status: 'active', approved_by: profile.id,
+  await write('sales_organizations', 'POST', { id: organizationId, code: 'emc',
+    name: 'Local EMC Commercial QA', status: 'active', approved_by: profile.id,
     approved_at: new Date().toISOString() })
   await write('sales_members', 'POST', { id: memberId, organization_id: organizationId,
     user_id: profile.id, auth_id: authId, role: 'SUPERADMIN', status: 'active',
@@ -33,6 +34,13 @@ test.afterAll(async () => {
   await write('sales_organizations', 'DELETE', undefined, `?id=eq.${organizationId}`)
   await deleteUser(email)
 })
+
+async function selectSales(page: Page, name: string) {
+  if ((page.viewportSize()?.width ?? 1280) <= 768)
+    await page.getByRole('button', { name: 'Open menu', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Sales sections' })
+    .getByRole('link', { name, exact: true }).click()
+}
 
 test('native Sales loads from LILLY identity with a scoped Social inbox', async ({ page }) => {
   const errors: string[] = []
@@ -49,9 +57,19 @@ test('native Sales loads from LILLY identity with a scoped Social inbox', async 
   await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
   await page.goto('/sales-native')
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 30000 })
-  await page.getByRole('button', { name: 'Social', exact: true }).click()
+  await selectSales(page, 'Social')
   await expect(page.getByRole('heading', { name: 'Conversations' })).toBeVisible()
   await expect(page.getByText('No permitted conversations yet.')).toBeVisible()
+  await selectSales(page, 'Contacts')
+  await expect(page).toHaveURL(/section=contacts/)
+  await expect(page.getByRole('link', { name: 'Contacts', exact: true })).toHaveAttribute('aria-current', 'page')
+  await page.goBack()
+  await expect(page.getByRole('heading', { name: 'Social', exact: true })).toBeVisible()
+  await page.goForward()
+  await expect(page.getByRole('heading', { name: 'Contacts', exact: true })).toBeVisible()
+  await page.reload()
+  await expect(page.getByRole('heading', { name: 'Contacts', exact: true })).toBeVisible()
+  await expect(page.locator('main nav')).toHaveCount(0)
   expect(errors).toEqual([])
 })
 
@@ -69,10 +87,9 @@ test('native Sales sections render at mobile width without document overflow', a
   await page.locator('input[type="password"]').press('Enter')
   await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
   await page.goto('/sales-native')
-  const sections = page.getByRole('navigation', { name: 'Sales sections' })
-  for (const label of ['Dashboard', 'Leads', 'Contacts', 'Accounts', 'Opportunities',
-    'Pipeline', 'Activities', 'Memberships', 'Reports', 'Social', 'Sales Settings']) {
-    await sections.getByRole('button', { name: label, exact: true }).click()
+  for (const label of ['Dashboard', 'Leads', 'Portal Leads', 'Contacts', 'Accounts', 'Opportunities',
+    'Pipeline', 'Activities', 'Memberships', 'Reports', 'Payments & Renewals', 'Social', 'Sales Settings']) {
+    await selectSales(page, label)
     await expect(page.getByRole('heading', { name: label, exact: true, level: 1 })).toBeVisible()
     await expect(page.getByRole('status').filter({ hasText: /^Loading / })).toHaveCount(0)
     await expect(page.locator('main').getByRole('alert')).toHaveCount(0)
@@ -81,4 +98,259 @@ test('native Sales sections render at mobile width without document overflow', a
     expect(documentOverflows, `${label} overflows the mobile viewport`).toBe(false)
   }
   expect(errors).toEqual([])
+})
+
+test('Sales defaults to its commercial workspace without exposing corporate memberships', async ({ page }) => {
+  if (!['localhost','127.0.0.1'].includes(new URL(base).hostname))
+    throw new Error('ORGANIZATION_REHEARSAL_REQUIRES_LOCAL_DATABASE')
+  const secondOrg = randomUUID(), pendingOrg = randomUUID()
+  const secondMember = randomUUID(), pendingMember = randomUUID()
+  const firstLead = randomUUID(), secondLead = randomUUID()
+  const profile = await getUsuario(email)
+  const authId = await authIdByEmail(email)
+  if (!profile?.id || !authId) throw new Error('LOCAL_SALES_IDENTITY_MISSING')
+  try {
+    for (const [id,name] of [[secondOrg,'Local Context Second'],[pendingOrg,'Local Context Pending']])
+      await write('sales_organizations','POST',{ id,code:`qa-${id}`,name,status:'active',
+        approved_by:profile.id,approved_at:new Date().toISOString() })
+    for (const [id,org,status] of [[secondMember,secondOrg,'active'],[pendingMember,pendingOrg,'pending']])
+      await write('sales_members','POST',{ id,organization_id:org,user_id:profile.id,auth_id:authId,
+        role:'ADMINISTRATOR',status,evidence_ref:'local organization browser rehearsal',
+        approved_by:profile.id,approved_at:new Date().toISOString() })
+    for (const [id,org,owner,name] of [[firstLead,organizationId,memberId,'Context First Lead'],
+      [secondLead,secondOrg,secondMember,'Context Second Lead']])
+      await write('sales_leads','POST',{ id,organization_id:org,owner_member_id:owner,
+        display_name:name,source:'Local QA',created_by:owner,updated_by:owner })
+    await page.addInitScript(() => {
+      localStorage.setItem('eminat-onboarding-completed','true')
+      localStorage.setItem('locale','en')
+    })
+    await page.goto('/login')
+    await page.getByPlaceholder('tu@eminat.net').fill(email)
+    await page.locator('input[type="password"]').fill(PASSWORD)
+    await page.locator('input[type="password"]').press('Enter')
+    await page.waitForURL('http://localhost:3000/',{ timeout:40000 })
+    await page.goto('/sales-native')
+    await expect(page.getByRole('heading',{ name:'Dashboard',exact:true })).toBeVisible()
+    await expect(page.getByText('Corazón Salud / EMC Sales',{ exact:true })).toBeVisible()
+    await expect(page.getByRole('button',{ name:'Open organization',exact:true })).toHaveCount(0)
+    await expect(page.getByRole('combobox',{ name:'Sales organization',exact:true })).toHaveCount(0)
+    await expect(page.getByRole('heading',{ name:'Select a Sales organization',exact:true })).toHaveCount(0)
+    await expect(page.getByText('Local Context Second',{ exact:true })).toHaveCount(0)
+    await selectSales(page, 'Leads')
+    await expect(page.getByRole('button',{ name:/Context First Lead/ })).toBeVisible()
+    await expect(page.getByRole('button',{ name:/Context Second Lead/ })).toHaveCount(0)
+    await page.setViewportSize({ width:375,height:667 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth>window.innerWidth+1)).toBe(false)
+    for (const id of [secondOrg, pendingOrg]) {
+      await page.goto(`/sales-native?organization=${id}`)
+      await expect(page.getByRole('navigation',{ name:'Sales sections' })).toHaveCount(0)
+      await expect(page.getByText('This page could not be found.',{ exact:true })).toBeVisible()
+    }
+  } finally {
+    await write('sales_leads','DELETE',undefined,`?id=in.(${firstLead},${secondLead})`)
+    await write('sales_members','DELETE',undefined,`?id=in.(${secondMember},${pendingMember})`)
+    await write('sales_organizations','DELETE',undefined,`?id=in.(${secondOrg},${pendingOrg})`)
+  }
+})
+
+// Synthetic summary is confined to this local browser fixture; no Production data is fabricated.
+for (const theme of ['light', 'dark']) {
+test(`Sales dashboard charts expose real response values, hover details and accessible data in ${theme}`, async ({ page }) => {
+  await page.route('**/api/sales-native/bootstrap?dashboard=1', async route => {
+    expect(route.request().headers()['x-sales-organization-id']).toBe(organizationId)
+    const response = await route.fetch()
+    expect(response.ok()).toBe(true)
+    const bootstrap = await response.json()
+    await route.fulfill({ response, json: { ...bootstrap, summary: {
+      asOf: '2026-10-25', scope: 'organization',
+      leads: { total: 3, byStatus: [{ code: 'NEW', count: 2 }, { code: 'ASSIGNED', count: 1 }] },
+      opportunities: { total: 6, open: 3, won: 1, lost: 2, openByCurrency: [],
+        byStage: [{ code: 'OPEN', label: 'Open', outcome: 'OPEN', count: 3 },
+          { code: 'WON', label: 'Won', outcome: 'WON', count: 1 },
+          { code: 'LOST', label: 'Lost', outcome: 'LOST', count: 2 }] },
+    } } })
+  })
+  await page.addInitScript(theme => {
+    localStorage.setItem('eminat-onboarding-completed', 'true')
+    localStorage.setItem('locale', 'en')
+    localStorage.setItem('eminat-theme', JSON.stringify(theme))
+  }, theme)
+  await page.goto('/login')
+  await page.getByPlaceholder('tu@eminat.net').fill(email)
+  await page.locator('input[type="password"]').fill(PASSWORD)
+  await page.locator('input[type="password"]').press('Enter')
+  await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
+  await page.goto('/sales-native?section=dashboard')
+  await expect(page.locator('.recharts-responsive-container')).toHaveCount(3)
+  await page.locator('.recharts-bar-rectangle').first().hover()
+  await expect(page.locator('.recharts-tooltip-wrapper').filter({ hasText: 'Records' }).first()).toBeVisible()
+  const tooltip = page.locator('.recharts-tooltip-wrapper').filter({ hasText: 'Records' }).first()
+  await expect(tooltip.locator('.recharts-default-tooltip')).toHaveCSS('background-color',
+    theme === 'dark' ? 'rgb(38, 35, 51)' : 'rgb(255, 255, 255)')
+  await page.getByText('View chart data', { exact: true }).first().click()
+  await expect(page.getByRole('row', { name: 'New 2', exact: true })).toBeVisible()
+  await expect(page.getByRole('row', { name: 'Assigned 1', exact: true })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Sales sections' }).getByRole('link')).toHaveCount(13)
+  await expect(page.locator('main nav')).toHaveCount(0)
+})
+}
+
+test('all Sales sections keep coherent dark surfaces, readable controls and responsive navigation', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('eminat-onboarding-completed', 'true')
+    localStorage.setItem('locale', 'en')
+    localStorage.setItem('eminat-theme', JSON.stringify('dark'))
+  })
+  await page.goto('/login')
+  await page.getByPlaceholder('tu@eminat.net').fill(email)
+  await page.locator('input[type="password"]').fill(PASSWORD)
+  await page.locator('input[type="password"]').press('Enter')
+  await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
+  await page.goto('/sales-native')
+  for (const width of [1280, 375]) {
+    await page.setViewportSize({ width, height: 800 })
+    for (const label of ['Dashboard', 'Leads', 'Portal Leads', 'Contacts', 'Accounts', 'Opportunities',
+      'Pipeline', 'Activities', 'Memberships', 'Reports', 'Payments & Renewals', 'Social', 'Sales Settings']) {
+      await selectSales(page, label)
+      await expect(page.getByRole('heading', { name: label, exact: true, level: 1 })).toBeVisible()
+      await expect(page.getByRole('status').filter({ hasText: /^Loading / })).toHaveCount(0)
+      await expect(page.locator('main').getByRole('alert')).toHaveCount(0)
+      await expect(page.locator('main').last()).toHaveCSS('color', 'rgb(238, 237, 247)')
+      await expect(page.getByRole('button', { name: 'Refresh', exact: true }).first()).toHaveCSS('background-color', 'rgb(36, 35, 50)')
+      const surfaces = await page.locator('main').last().evaluate(main => {
+        const cards = main.querySelectorAll('section, article, button, input, select, textarea')
+        return Array.from(cards).filter(el => el.getBoundingClientRect().width > 0)
+          .every(el => getComputedStyle(el).backgroundColor !== 'rgb(255, 255, 255)')
+      })
+      expect(surfaces, `${label} has no disconnected white surfaces`).toBe(true)
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)).toBe(false)
+    }
+  }
+})
+
+for (const language of ['en','es'] as const) test(`renewal selectors include later pages and localized pending status (${language})`,async({page})=>{
+  const text:Record<string,string> = JSON.parse(readFileSync(`${process.cwd()}/src/shared/i18n/locales/${language}.json`,'utf8'))
+  const memberIdAt = (index:number) => `20000000-0000-4000-8000-${String(index).padStart(12,'0')}`
+  const offsets:Record<string,number[]> = {memberships:[],opportunities:[]}
+  for (const resource of ['memberships','opportunities']) await page.route(`**/api/sales-native/${resource}?*`,async route=>{
+    const params=new URL(route.request().url()).searchParams, offset=Number(params.get('offset')??0)
+    offsets[resource].push(offset)
+    const data=Array.from({length:Math.max(0,Math.min(100,203-offset))},(_,n)=>resource==='memberships'
+      ? {id:memberIdAt(offset+n),code:`QA-PAGINATION-${offset+n}`,plan:'ESSENTIAL',duration:'MONTHLY',expires_at:'2026-11-05',effectiveStatus:'ACTIVE',opportunity_id:null}
+      : {id:`30000000-0000-4000-8000-${String(offset+n).padStart(12,'0')}`,name:`QA opportunity ${offset+n}`,currency:'USD',amount:'99.99'})
+    await route.fulfill({json:{data,nextOffset:offset+data.length<203?offset+100:null}})
+  })
+  await page.route('**/api/sales-native/memberships/*/renewals',route=>route.fulfill({json:{data:[]}}))
+  await page.route('**/api/sales-native/memberships/*/online-renewals?*',route=>route.fulfill({json:{data:[{
+    id:'40000000-0000-4000-8000-000000000001',status:'PAYMENT_PENDING',amountCents:9999,
+    invoiceState:'OPEN',invoiceNumber:'QA-LOCAL-NOT-REAL',paymentState:'UNPAID',reconciliationState:'PAYMENT_PENDING',
+    startsAt:null,expiresAt:null,renewedAt:null,
+  }],nextOffset:null}}))
+  await page.addInitScript(locale=>{localStorage.setItem('eminat-onboarding-completed','true');localStorage.setItem('locale',locale)},language)
+  await page.goto('/login')
+  await page.getByPlaceholder('tu@eminat.net').fill(email)
+  await page.locator('input[type="password"]').fill(PASSWORD)
+  await page.locator('input[type="password"]').press('Enter')
+  await page.waitForURL('http://localhost:3000/',{timeout:40000})
+  if(language==='es')await page.setViewportSize({width:375,height:812})
+  await page.goto('/sales-native?section=payments')
+  const membershipSelector=page.getByRole('combobox',{name:text['salesNative.tabMemberships'],exact:true})
+  await expect(membershipSelector.locator('option')).toHaveCount(204)
+  await membershipSelector.selectOption(memberIdAt(202))
+  await expect(page.getByRole('heading',{name:text['salesNative.onlineRenewals'],exact:true})).toBeVisible()
+  await expect(page.getByText(/QA-LOCAL-NOT-REAL/)).toBeVisible()
+  await expect(page.getByText(text['salesNative.verifiedRenewalPeriod'],{exact:false})).toHaveCount(0)
+  await expect(page.getByText('PAYMENT_PENDING',{exact:false})).toHaveCount(0)
+  // Development Strict Mode may restart the first-page effect. The completed
+  // selector must still follow every cursor once and contain no duplicate options.
+  for (const resource of ['memberships','opportunities']) {
+    expect(Array.from(new Set(offsets[resource]))).toEqual([0,100,200])
+    expect(offsets[resource].filter(offset=>offset===100)).toHaveLength(1)
+    expect(offsets[resource].filter(offset=>offset===200)).toHaveLength(1)
+  }
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1)).toBe(false)
+  await page.route('**/api/sales-native/quickbooks/connection',route=>route.fulfill({json:{connected:true,company:{companyName:'QA LOCAL COMPANY'}}}))
+  await page.goto('/sales-native?section=settings')
+  await expect(page.getByRole('heading',{name:'QuickBooks · Eminat Medical Center',exact:true})).toBeVisible()
+  await expect(page.getByText(`${text['salesNative.qboConnectedLabel']} QA LOCAL COMPANY`,{exact:true})).toBeVisible()
+  await expect(page.getByRole('button',{name:text['salesNative.qboVerifyRefresh'],exact:true})).toBeVisible()
+  await expect(page.getByRole('button',{name:text['salesNative.qboDisconnect'],exact:true})).toBeVisible()
+})
+
+
+test('Sales consolidates initial requests but refresh and later Dashboard visits stay fresh', async ({ page }) => {
+  const counts = { bootstrap: 0, access: 0, directory: 0, summary: 0 }
+  page.on('request', request => {
+    if (request.headers()['x-sales-organization-id'] !== organizationId) return
+    const path = new URL(request.url()).pathname
+    if (path === '/api/sales-native/bootstrap') counts.bootstrap++
+    if (path === '/api/sales-native/access') counts.access++
+    if (path === '/api/sales-native/directory') counts.directory++
+    if (path === '/api/sales-native/reports/summary') counts.summary++
+  })
+  await page.addInitScript(() => {
+    localStorage.setItem('eminat-onboarding-completed', 'true')
+    localStorage.setItem('locale', 'en')
+  })
+  await page.goto('/login')
+  await page.getByPlaceholder('tu@eminat.net').fill(email)
+  await page.locator('input[type="password"]').fill(PASSWORD)
+  await page.locator('input[type="password"]').press('Enter')
+  await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
+  await page.goto('/sales-native')
+  await expect(page.getByRole('heading', { name: 'Leads by stage', exact: true })).toBeVisible()
+  // The development shell/Strict Mode can replay mounts. Assert every mount
+  // uses only bootstrap; the exact Production count is measured in Preview.
+  const initialBootstrapRequests = counts.bootstrap
+  expect(initialBootstrapRequests).toBeGreaterThan(0)
+  expect({ ...counts, bootstrap: 0 }).toEqual({ bootstrap: 0, access: 0, directory: 0, summary: 0 })
+  await Promise.all([
+    page.waitForResponse(response => new URL(response.url()).pathname === '/api/sales-native/reports/summary'),
+    page.getByRole('button', { name: 'Refresh', exact: true }).first().click(),
+  ])
+  await expect(page.getByRole('heading', { name: 'Leads by stage', exact: true })).toBeVisible()
+  expect(counts.summary).toBe(1)
+  await selectSales(page, 'Leads')
+  await expect(page.getByRole('heading', { name: 'Leads', exact: true, level: 1 })).toBeVisible()
+  await Promise.all([
+    page.waitForResponse(response => new URL(response.url()).pathname === '/api/sales-native/reports/summary'),
+    selectSales(page, 'Dashboard'),
+  ])
+  await expect(page.getByRole('heading', { name: 'Leads by stage', exact: true })).toBeVisible()
+  expect(counts.summary).toBe(2)
+  expect(counts.bootstrap).toBe(initialBootstrapRequests)
+})
+
+test('navigation during bootstrap never reuses a stale initial Dashboard on return', async ({ page }) => {
+  let release!: () => void
+  const held = new Promise<void>(resolve => { release = resolve })
+  await page.route('**/api/sales-native/bootstrap?dashboard=1', async route => {
+    const response = await route.fetch()
+    await held
+    await route.fulfill({ response })
+  })
+  await page.addInitScript(() => {
+    localStorage.setItem('eminat-onboarding-completed', 'true')
+    localStorage.setItem('locale', 'en')
+  })
+  await page.goto('/login')
+  await page.getByPlaceholder('tu@eminat.net').fill(email)
+  await page.locator('input[type="password"]').fill(PASSWORD)
+  await page.locator('input[type="password"]').press('Enter')
+  await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
+  await page.goto('/sales-native')
+  await expect(page.getByRole('heading', { name: 'Dashboard', exact: true, level: 1 })).toBeVisible()
+  await selectSales(page, 'Leads')
+  await expect(page.getByRole('heading', { name: 'Leads', exact: true, level: 1 })).toBeVisible()
+  await Promise.all([
+    page.waitForResponse(response => new URL(response.url()).pathname === '/api/sales-native/leads'),
+    Promise.resolve().then(() => release()),
+  ])
+  await expect(page.getByRole('status').filter({ hasText: /^Loading / })).toHaveCount(0)
+  await Promise.all([
+    page.waitForResponse(response => new URL(response.url()).pathname === '/api/sales-native/reports/summary'),
+    selectSales(page, 'Dashboard'),
+  ])
+  await expect(page.getByRole('heading', { name: 'Leads by stage', exact: true })).toBeVisible()
 })

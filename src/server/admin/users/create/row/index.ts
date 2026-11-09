@@ -4,7 +4,6 @@ import type { ExistingUser, UserRow } from '@/server/admin/users/repo/types'
 import type { CreateUserInput } from '@/server/admin/users/create/types'
 
 const [DEFAULT_COLOR] = COLORES_AVATAR
-const DEFAULT_LOCATION = 'Guayaquil, Ecuador'
 const CATALOGS = ['empresa_id', 'jornada_id', 'vinculacion_id', 'equipo_id'] as const
 
 /** The `usuarios` row to write: a new one is keyed by the Auth id; a link keeps its own id. */
@@ -22,12 +21,14 @@ export default function buildRow(input: CreateUserInput, existing: ExistingUser 
     apellido,
     rol: rol || DEFAULT_ROLE,
     color: color || DEFAULT_COLOR,
-    ubicacion: ubicacion || DEFAULT_LOCATION,
     activo: true,
     validado: true,
     auth_id: authId,
     directorio_visible: input.directorio_visible === true,
   }
+  // A Seller's location must be supplied, never inferred from the admin's city.
+  if (ubicacion?.trim()) row.ubicacion = ubicacion.trim()
+  else if (!existing) row.ubicacion = null
   // Linking is not editing: a catalog the admin did not choose again must not be wiped.
   for (const key of CATALOGS) {
     if (input[key]) row[key] = input[key]
