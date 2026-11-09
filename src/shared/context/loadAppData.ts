@@ -120,7 +120,7 @@ export interface OrgRow {
   icono?: string | null
   departamento_id?: string | null
   lider_id?: string | null
-  horas_dia?: number
+  horas_semana?: number
   activo?: boolean
   recibe_actividades?: boolean
 }

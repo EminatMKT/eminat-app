@@ -37,7 +37,7 @@ const activeRangeRow = {
   team_name: null,
   workday_id: null,
   workday_name: null,
-  hours_per_day: null,
+  hours_per_week: null,
   range_id: 'range-1',
   weekday: 1,
   starts_at: '09:00:00',
@@ -115,7 +115,7 @@ describe('weekly availability API', () => {
       ...activeRangeRow,
       workday_id: null,
       workday_name: null,
-      hours_per_day: null,
+      hours_per_week: null,
     }
     const inactiveWorkdayOptions = { visibleRows: [inactiveWorkdayRow] }
     dbWith(inactiveWorkdayOptions)

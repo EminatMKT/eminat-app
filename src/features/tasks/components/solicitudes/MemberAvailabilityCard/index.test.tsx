@@ -31,7 +31,7 @@ const memberDefaults: AvailabilityMemberDto = {
   id: 'member-1',
   name: 'Ana López',
   team: { id: 'team-1', name: 'Marketing' },
-  workday: { id: 'workday-1', name: 'Full time', hoursPerDay: 8 },
+  workday: { id: 'workday-1', name: 'Full time', hoursPerWeek: 40 },
   ranges: [
     {
       id: 'r1',
@@ -55,10 +55,10 @@ const draw = (value: AvailabilityMemberDto, onOpen: () => void = noop) =>
   renderToStaticMarkup(<MemberAvailabilityCard member={value} onOpen={onOpen} />)
 
 describe('MemberAvailabilityCard', () => {
-  it('renders the compact summary: name, team, and the weekly hours badge', () => {
+  it('compares the declared week against the jornada weekly hours as stored, unscaled', () => {
     const html = draw(member({}))
     const weekBelowKey: I18nKey = 'tasks.availability.weekBelow'
-    const total = english(weekBelowKey, { declared: 4, expected: 56, difference: 52 })
+    const total = english(weekBelowKey, { declared: 4, expected: 40, difference: 36 })
 
     expect(html).toContain('Ana López')
     expect(html).toContain('Marketing')

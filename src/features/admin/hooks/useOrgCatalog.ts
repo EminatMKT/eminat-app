@@ -51,7 +51,7 @@ export function useOrgCatalog(cat: OrgCat) {
     departamentos: () => '',
     cargos: () => '',
     vinculaciones: () => '',
-    jornadas: row => t('admin.org.horasResumen', { n: row.horas_dia ?? 0 }),
+    jornadas: row => t('admin.org.horasResumen', { n: row.horas_semana ?? 0 }),
     equipos: row => {
       const dep = departamentos.find(d => d.id === row.departamento_id)?.nombre
       const lider = adminUsuarios.find(u => u.id === row.lider_id)

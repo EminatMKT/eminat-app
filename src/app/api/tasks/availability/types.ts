@@ -11,7 +11,7 @@ export type AvailabilityRow = {
   team_name: string | null
   workday_id: string | null
   workday_name: string | null
-  hours_per_day: number | null
+  hours_per_week: number | null
   range_id: string | null
   weekday: Weekday | null
   starts_at: string | null

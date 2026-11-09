@@ -5,7 +5,6 @@ import {
   compareDailyHours,
   comparisonCopyVars,
   declaredWeeklyHours,
-  expectedWeeklyHours,
   STATUS_SYMBOLS,
 } from '@/features/tasks/utils/availability'
 import { useT } from '@/shared/i18n'
@@ -31,9 +30,7 @@ type Props = {
  *  pencil/eye icon — whether this card is the viewer's own editable row — sit on the right. */
 export default function MemberAvailabilityCard({ member, onOpen }: Props) {
   const { t } = useT()
-  let expectedHours: number | null = null
-
-  if (member.workday) expectedHours = expectedWeeklyHours(member.workday.hoursPerDay)
+  const expectedHours = member.workday?.hoursPerWeek ?? null
   const weeklyHours = declaredWeeklyHours(member.ranges)
   const comparison = compareDailyHours(weeklyHours, expectedHours)
   const badgeText = t(WEEK_STATUS_COPY_KEYS[comparison.status], comparisonCopyVars(comparison))

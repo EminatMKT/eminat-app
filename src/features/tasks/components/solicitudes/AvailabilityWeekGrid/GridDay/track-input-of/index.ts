@@ -1,8 +1,8 @@
 import type { GridDayProps } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/types'
 import type { Translate, TrackInput } from '../types'
 
-/** The day's own ranges plus the column geometry and translator renderTrack and DayCaption
- *  both need - computed once per render so neither recomputes the filter separately. */
+/** The day's own ranges plus the column geometry and translator the track needs - computed
+ *  once per render so the track's pieces never recompute the filter separately. */
 export default function trackInputOf(
   props: GridDayProps,
   columnTop: () => number,

@@ -3,8 +3,9 @@ import type { Weekday } from '@/features/tasks/utils/availability'
 /** The team an `AvailabilityMemberDto` belongs to, or the jornada it declares hours against. */
 export type AvailabilityTeamDto = { id: string; name: string }
 
-/** `null` when the member has no jornada or theirs is inactive — never a stale reference. */
-export type AvailabilityWorkdayDto = { id: string; name: string; hoursPerDay: number }
+/** `null` when the member has no jornada or theirs is inactive — never a stale reference.
+ *  `hoursPerWeek` is the jornada's whole-week target: there is no per-day expectation. */
+export type AvailabilityWorkdayDto = { id: string; name: string; hoursPerWeek: number }
 
 /** One recurring weekly range as the API serializes it: canonical `HH:mm` strings, never the
  *  `HH:mm:ss` shape Postgres' `time` columns return. */

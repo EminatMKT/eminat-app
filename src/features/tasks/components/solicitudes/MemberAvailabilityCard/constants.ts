@@ -1,8 +1,8 @@
 import type { I18nKey } from '@/shared/i18n'
 import type { DailyHoursStatus } from '@/features/tasks/utils/availability'
 
-/** Week-scoped status copy, parallel to `STATUS_COPY_KEYS` in `utils/availability/day-labels.ts`
- *  but worded for the card's week total instead of one day. */
+/** Week-scoped status copy for the card's week total: a jornada sets hours per week, so the
+ *  week is the only span ever compared against it. */
 export const WEEK_STATUS_COPY_KEYS: Record<DailyHoursStatus, I18nKey> = {
   below: 'tasks.availability.weekBelow',
   complete: 'tasks.availability.weekComplete',

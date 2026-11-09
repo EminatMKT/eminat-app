@@ -1,4 +1,6 @@
 .root {
+  /* Day-name row only; the gutter's top offset must match it so 00:00 lines up. */
+  --day-header-height: 2rem;
   display: grid;
   grid-template-columns: 3rem repeat(7, minmax(7rem, 1fr));
   overflow-x: auto;
@@ -24,7 +26,7 @@
 
 .gutter {
   position: relative;
-  margin-top: 5.5rem;
+  margin-top: var(--day-header-height);
   height: 67.5rem;
   border-right: 0.0625rem solid var(--c-border);
 }
@@ -44,7 +46,7 @@
 }
 
 .header {
-  height: 5.5rem;
+  height: var(--day-header-height);
   overflow: hidden;
 }
 

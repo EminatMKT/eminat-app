@@ -12,14 +12,14 @@ export default function buildMember(
     team_name: teamName,
     workday_id: workdayId,
     workday_name: workdayName,
-    hours_per_day: hoursPerDay,
+    hours_per_week: hoursPerWeek,
   }: AvailabilityRow,
   viewerUserId: string,
 ): AvailabilityMemberDto {
   const hasTeam = teamId !== null && teamName !== null
   const team = hasTeam ? { id: teamId, name: teamName } : null
-  const hasWorkday = workdayId !== null && workdayName !== null && hoursPerDay !== null
-  const workday = hasWorkday ? { id: workdayId, name: workdayName, hoursPerDay } : null
+  const hasWorkday = workdayId !== null && workdayName !== null && hoursPerWeek !== null
+  const workday = hasWorkday ? { id: workdayId, name: workdayName, hoursPerWeek } : null
   const member: AvailabilityMemberDto = {
     id: userId,
     name: `${firstName} ${lastName}`.trim(),

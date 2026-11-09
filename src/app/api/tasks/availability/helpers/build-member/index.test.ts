@@ -10,7 +10,7 @@ const baseRow: AvailabilityRow = {
   team_name: null,
   workday_id: null,
   workday_name: null,
-  hours_per_day: null,
+  hours_per_week: null,
   range_id: null,
   weekday: null,
   starts_at: null,
@@ -45,11 +45,11 @@ describe('buildMember', () => {
       team_name: 'Marketing',
       workday_id: 'workday-1',
       workday_name: 'Jornada completa',
-      hours_per_day: 8,
+      hours_per_week: 40,
     }
     const member = buildMember(rowWithTeamAndWorkday, 'viewer-1')
     const expectedTeam = { id: 'team-1', name: 'Marketing' }
-    const expectedWorkday = { id: 'workday-1', name: 'Jornada completa', hoursPerDay: 8 }
+    const expectedWorkday = { id: 'workday-1', name: 'Jornada completa', hoursPerWeek: 40 }
     expect(member.team).toEqual(expectedTeam)
     expect(member.workday).toEqual(expectedWorkday)
   })

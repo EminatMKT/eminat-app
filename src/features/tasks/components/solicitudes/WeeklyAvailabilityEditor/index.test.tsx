@@ -23,7 +23,7 @@ const MONDAY_RANGE = {
 
 const gridProps: ComponentProps<typeof AvailabilityWeekGrid> = {
   ranges: [MONDAY_RANGE],
-  workday: { id: 'workday-1', name: 'Full time', hoursPerDay: 8 },
+  workday: { id: 'workday-1', name: 'Full time', hoursPerWeek: 40 },
   readOnly: false,
   onChange: NO_ONCHANGE,
 }

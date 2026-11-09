@@ -72,7 +72,7 @@ export const ORG_CATALOGS: Record<OrgCat, CatalogDef> = {
     newKey: 'admin.org.newJornada',
     fields: [
       { name: 'nombre', type: 'text', labelKey: 'admin.org.nombre', required: true },
-      { name: 'horas_dia', type: 'number', labelKey: 'admin.org.horasDia', required: true },
+      { name: 'horas_semana', type: 'number', labelKey: 'admin.org.horasSemana', required: true },
     ],
     blockedBy: [{ table: 'usuarios', column: 'jornada_id' }],
   },

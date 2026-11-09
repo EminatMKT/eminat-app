@@ -25,7 +25,7 @@ const MEMBER: AvailabilityMemberDto = {
   id: 'member-1',
   name: 'Ana López',
   team: null,
-  workday: { id: 'workday-1', name: 'Full time', hoursPerDay: 8 },
+  workday: { id: 'workday-1', name: 'Full time', hoursPerWeek: 40 },
   ranges: [MEMBER_RANGE],
   canEdit: true,
 }

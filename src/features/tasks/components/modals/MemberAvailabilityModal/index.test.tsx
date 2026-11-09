@@ -20,7 +20,7 @@ const viewerDefaults: AvailabilityMemberDto = {
   id: 'viewer-1',
   name: 'Carla Soto',
   team: { id: 'ops-team', name: 'Operaciones' },
-  workday: { id: 'half-day', name: 'Media jornada', hoursPerDay: 4 },
+  workday: { id: 'half-day', name: 'Media jornada', hoursPerWeek: 20 },
   ranges: [],
   canEdit: false,
 }

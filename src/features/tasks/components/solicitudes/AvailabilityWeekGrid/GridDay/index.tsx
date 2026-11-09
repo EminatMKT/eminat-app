@@ -1,37 +1,34 @@
 'use client'
 import { useT } from '@/shared/i18n'
 import DayCaption from '../DayCaption'
-import headerProps from './header-props'
+import NowLine from '../NowLine'
 import renderPreview from './render-preview'
 import renderTrack from './render-track'
 import trackAttrs from './track-attrs'
 import trackInputOf from './track-input-of'
 import useTrack from './use-track'
 import type { GridDayProps } from '../types'
-import type { TrackBundle, TrackInput } from './types'
+import type { TrackBundle } from './types'
 import s from '../index.module.css'
-
-function renderHeader(props: GridDayProps, trackInput: TrackInput) {
-  return <DayCaption {...headerProps(props, trackInput)} />
-}
 
 function renderTrackSection(props: GridDayProps, track: TrackBundle) {
   return (
     <div {...trackAttrs(props, track)} data-grid-track>
       {renderTrack(props, track.trackInput)}
       {renderPreview(track.preview)}
+      <NowLine weekday={props.day.weekday} />
     </div>
   )
 }
 
 function renderBody(props: GridDayProps, track: TrackBundle) {
   return <>
-    <div className={s.header}>{renderHeader(props, track.trackInput)}</div>
+    <div className={s.header}><DayCaption day={props.day} /></div>
     {renderTrackSection(props, track)}
   </>
 }
 
-/** One ISO weekday column: its caption (label, comparison, add control) and its create track,
+/** One ISO weekday column: its caption (the weekday label) and its create track,
  *  carrying one SegmentCanvas per range already declared on this day. */
 export default function GridDay(props: GridDayProps) {
   const track = useTrack(props)

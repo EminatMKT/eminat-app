@@ -1,13 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it } from 'vitest'
 import { LocaleProvider, translate } from '@/shared/i18n'
-import {
-  AVAILABILITY_DAYS,
-  STATUS_COPY_KEYS,
-  compareDailyHours,
-  comparisonCopyVars,
-  declaredWeeklyHours,
-} from '@/features/tasks/utils/availability'
+import { AVAILABILITY_DAYS, declaredWeeklyHours } from '@/features/tasks/utils/availability'
 import type { EditableRange } from '../WeeklyAvailabilityEditor/component-types'
 import EDITOR_COPY from '../WeeklyAvailabilityEditor/constants'
 import { BLOCK_LABEL_READ_ONLY_KEY } from './Block/constants'
@@ -27,7 +21,8 @@ const TUESDAY_RANGE: EditableRange = {
   weekday: 2,
   endsAt: '19:00',
 }
-const HOURS_PER_DAY = 8
+const HOURS_PER_WEEK = 40
+const HOURS_STATUS_MARKER = 'data-tone='
 const NOOP = () => undefined
 const GUTTER_MARKER = 'data-grid-gutter'
 const DAY_MARKER = /data-grid-day=/g
@@ -36,8 +31,6 @@ const EXPECTED_COLUMNS = 7
 const EXPECTED_SPLIT_PARTS = 2
 const EXPECTED_BLOCKS = 2
 const EXPECTED_RESIZE_HANDLES = 2
-const ZERO_HOURS = 0
-const TUESDAY_HOURS = 10
 const EXPECTED_WEEKLY_HOURS = 18
 const DEFAULT_LOCALE = 'es'
 const INVENTED_WEEKLY_TARGET = '40 horas'
@@ -47,7 +40,7 @@ const FOCUSABLE_TRACK_MARKER = /tabindex="0"/g
 const SINGLE_OCCURRENCE_PARTS = 2
 const props: AvailabilityWeekGridProps = {
   ranges: [RANGE],
-  workday: { id: 'test-workday', name: 'Standard', hoursPerDay: HOURS_PER_DAY },
+  workday: { id: 'test-workday', name: 'Standard', hoursPerWeek: HOURS_PER_WEEK },
   readOnly: false,
   onChange: NOOP,
 }
@@ -105,21 +98,11 @@ it('keeps blocks focusable for viewing but suppresses editing controls when read
   expect(html.match(FOCUSABLE_TRACK_MARKER)).toBeNull()
 })
 
-it('shows daily comparisons against the configured hours, including empty days', () => {
+it('judges no single day against the jornada: its hours are a weekly target', () => {
   const ranges = [RANGE, TUESDAY_RANGE]
   const html = draw({ ...props, ranges })
-  const complete = compareDailyHours(HOURS_PER_DAY, HOURS_PER_DAY)
-  const above = compareDailyHours(TUESDAY_HOURS, HOURS_PER_DAY)
-  const below = compareDailyHours(ZERO_HOURS, HOURS_PER_DAY)
-  const completeText = translate(
-    DEFAULT_LOCALE, STATUS_COPY_KEYS.complete, comparisonCopyVars(complete),
-  )
-  const aboveText = translate(DEFAULT_LOCALE, STATUS_COPY_KEYS.above, comparisonCopyVars(above))
-  const belowText = translate(DEFAULT_LOCALE, STATUS_COPY_KEYS.below, comparisonCopyVars(below))
 
-  expect(html).toContain(completeText)
-  expect(html).toContain(aboveText)
-  expect(html).toContain(belowText)
+  expect(html).not.toContain(HOURS_STATUS_MARKER)
 })
 
 it('explains an empty week while keeping seven usable columns', () => {
@@ -146,10 +129,9 @@ it('says once, at the top, that there is no jornada instead of once per day', ()
   const noJornadaProps = { ...props, workday: null }
   const html = draw(noJornadaProps)
   const notice = translate(DEFAULT_LOCALE, EDITOR_COPY.noJornadaAssigned)
-  const perDayText = translate(DEFAULT_LOCALE, STATUS_COPY_KEYS.unavailable)
 
   expect(html.split(notice)).toHaveLength(SINGLE_OCCURRENCE_PARTS)
-  expect(html).not.toContain(perDayText)
+  expect(html).not.toContain(HOURS_STATUS_MARKER)
 })
 
 it('shows no jornada notice while a workday is assigned', () => {

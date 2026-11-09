@@ -13,7 +13,7 @@ const RANGE: EditableRange = {
   note: null,
 }
 const DEFAULT_LOCALE = 'es'
-const WORKDAY = { id: 'workday-1', name: 'Full time', hoursPerDay: 8 }
+const WORKDAY = { id: 'workday-1', name: 'Full time', hoursPerWeek: 40 }
 
 function translateAt(key: I18nKey, vars?: Record<string, string | number>) {
   return translate(DEFAULT_LOCALE, key, vars)

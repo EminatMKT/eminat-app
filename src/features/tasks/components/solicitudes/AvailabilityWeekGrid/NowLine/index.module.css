@@ -1,0 +1,10 @@
+.line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--now-top);
+  height: 0.125rem;
+  background: var(--c-danger-solid);
+  pointer-events: none;
+  z-index: 1;
+}

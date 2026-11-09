@@ -22,10 +22,3 @@ export const STATUS_SYMBOLS: Record<DailyHoursStatus, string> = {
   above: '↑',
   unavailable: '—',
 }
-
-export const STATUS_COPY_KEYS: Record<DailyHoursStatus, I18nKey> = {
-  below: 'tasks.availability.dayBelow',
-  complete: 'tasks.availability.dayComplete',
-  above: 'tasks.availability.dayAbove',
-  unavailable: 'tasks.availability.noWorkday',
-}

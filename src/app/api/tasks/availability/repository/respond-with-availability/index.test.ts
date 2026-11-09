@@ -51,7 +51,7 @@ describe('respondWithAvailability', () => {
       team_name: null,
       workday_id: null,
       workday_name: null,
-      hours_per_day: null,
+      hours_per_week: null,
       range_id: null,
       weekday: null,
       starts_at: null,

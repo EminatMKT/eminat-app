@@ -11,7 +11,7 @@ import type { EditorProps } from '../types'
 import EDITOR_COPY from '../constants'
 import buildGridProps from './index'
 
-const WORKDAY = { id: 'workday-1', name: 'Full time', hoursPerDay: 8 }
+const WORKDAY = { id: 'workday-1', name: 'Full time', hoursPerWeek: 40 }
 const RANGE: EditableRange = {
   id: 'range-1',
   clientId: 'client-1',

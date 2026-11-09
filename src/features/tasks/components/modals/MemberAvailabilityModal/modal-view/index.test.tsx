@@ -13,7 +13,7 @@ import type {
 } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/types'
 import useModalView from './index'
 
-const WORKDAY = { id: 'workday-1', name: 'Full time', hoursPerDay: 8 }
+const WORKDAY = { id: 'workday-1', name: 'Full time', hoursPerWeek: 40 }
 const MEMBER: AvailabilityMemberDto = {
   id: 'member-1',
   name: 'Ana',
