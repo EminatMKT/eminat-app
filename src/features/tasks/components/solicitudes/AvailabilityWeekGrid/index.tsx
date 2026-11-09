@@ -2,6 +2,7 @@
 import GridDay from './GridDay'
 import Popover from './Popover'
 import TimeGutter from './TimeGutter'
+import WeekSummary from './WeekSummary'
 import useGridController from './controller'
 import type { AvailabilityWeekGridProps, GridDayProps } from './types'
 import s from './index.module.css'
@@ -15,7 +16,7 @@ export default function AvailabilityWeekGrid(props: AvailabilityWeekGridProps) {
   const { days, popover, summary } = useGridController(props)
 
   return <>
-    <p className={s.summary}>{summary.total}</p>
+    <WeekSummary summary={summary} />
     {props.ranges.length === 0 && <p className={s.empty}>{summary.empty}</p>}
     <div className={s.root}><TimeGutter />{days.map(renderDay)}</div>
     {popover && <Popover key={popover.range.clientId} {...popover} />}

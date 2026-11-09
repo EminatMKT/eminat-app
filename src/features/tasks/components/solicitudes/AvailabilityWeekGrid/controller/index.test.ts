@@ -56,13 +56,15 @@ describe('useGridController', () => {
     expect(seen?.popover).toBeNull()
   })
 
-  it('summarizes the declared weekly total and the empty-week message', () => {
+  it('summarizes the weekly total, the empty-week message, and the no-jornada notice', () => {
     draw()
     const hours = declaredWeeklyHours(PROPS.ranges)
     const total = translate(DEFAULT_LOCALE, EDITOR_COPY.weeklyHoursKey, { hours })
     const empty = translate(DEFAULT_LOCALE, EDITOR_COPY.emptyDay)
+    const noJornada = translate(DEFAULT_LOCALE, EDITOR_COPY.noJornadaAssigned)
+    const expected = { total, empty, noJornada }
 
-    expect(seen?.summary).toEqual({ total, empty })
+    expect(seen?.summary).toEqual(expected)
   })
 })
 

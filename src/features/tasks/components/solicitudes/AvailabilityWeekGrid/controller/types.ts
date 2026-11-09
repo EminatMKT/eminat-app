@@ -13,6 +13,13 @@ export type RangeSelection = {
   justCreatedId: string | null
 }
 
+/** The week's translated summary lines; `noJornada` is null while a workday is assigned. */
+export type GridSummary = {
+  total: string
+  empty: string
+  noJornada: string | null
+}
+
 export type GridViewInput = {
   actions: GridActions
   selection: RangeSelection

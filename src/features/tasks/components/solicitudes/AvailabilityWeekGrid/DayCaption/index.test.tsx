@@ -53,16 +53,14 @@ describe('DayCaption', () => {
     expect(html).toContain(MONDAY.labelKey)
   })
 
-  it('renders the below, complete, above, and unavailable comparison text', () => {
+  it('renders the below, complete, and above comparison text', () => {
     const belowHtml = draw(buildProps([range(START_TIME, SHORT_END_TIME)], EXPECTED_HOURS))
     const completeHtml = draw(buildProps([range(START_TIME, END_TIME)], EXPECTED_HOURS))
     const aboveHtml = draw(buildProps([range(START_TIME, END_TIME)], BELOW_HOURS))
-    const unavailableHtml = draw(buildProps([range(START_TIME, SHORT_END_TIME)], null))
 
     expect(belowHtml).toContain(STATUS_COPY_KEYS.below)
     expect(completeHtml).toContain(STATUS_COPY_KEYS.complete)
     expect(aboveHtml).toContain(STATUS_COPY_KEYS.above)
-    expect(unavailableHtml).toContain(STATUS_COPY_KEYS.unavailable)
   })
 
   it('renders the status symbol alongside the text, never as the only signal', () => {
@@ -72,11 +70,12 @@ describe('DayCaption', () => {
     expect(html).toContain(STATUS_COPY_KEYS.complete)
   })
 
-  it('treats a missing jornada reference as unavailable, not a crash', () => {
+  it('drops the per-day badge for a missing jornada: the grid says it once, up top', () => {
     const html = draw(buildProps([range(START_TIME, END_TIME)], null))
 
-    expect(html).toContain(STATUS_COPY_KEYS.unavailable)
-    expect(html).toContain(STATUS_SYMBOLS.unavailable)
+    expect(html).toContain(MONDAY.labelKey)
+    expect(html).not.toContain(STATUS_COPY_KEYS.unavailable)
+    expect(html).not.toContain(STATUS_SYMBOLS.unavailable)
   })
 
   it('still renders the comparison for a day with zero declared ranges', () => {

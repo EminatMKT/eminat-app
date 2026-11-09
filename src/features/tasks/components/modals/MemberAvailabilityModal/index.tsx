@@ -16,12 +16,13 @@ type Props = {
 }
 
 /** Unifies view and edit for one member's weekly schedule: every card renders the same
- *  `WeeklyAvailabilityEditor`, and `readOnly` — driven by `member.canEdit` — decides whether
- *  the save/cancel bar shows in the Modal's fixed footer, never a second component.
- *  Backdrop/✕/Escape go through the close guard; the Cancel button closes directly. */
+ *  `WeeklyAvailabilityEditor`, and `readOnly` — true unless the member can edit AND has a
+ *  jornada assigned — decides whether the save/cancel bar shows in the Modal's fixed footer.
+ *  Backdrop/✕/Escape and the Cancel button all go through the same close guard. */
 export default function MemberAvailabilityModal(props: Props) {
   const { member, onClose, onSaved } = props
-  const editorProps = { member, onCancel: onClose, onSaved, readOnly: !member.canEdit }
+  const readOnly = !member.canEdit || member.workday === null
+  const editorProps = { member, onCancel: onClose, onSaved, readOnly }
   const { display, closeGuard } = useModalView(editorProps, onClose)
 
   return <>

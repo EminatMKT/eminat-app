@@ -32,6 +32,8 @@ const NOOP = () => undefined
 const GUTTER_MARKER = 'data-grid-gutter'
 const DAY_MARKER = /data-grid-day=/g
 const EXPECTED_COLUMNS = 7
+// The empty-week message appears exactly once (week level), so splitting on it yields two parts.
+const EXPECTED_SPLIT_PARTS = 2
 const EXPECTED_BLOCKS = 2
 const EXPECTED_RESIZE_HANDLES = 2
 const ZERO_HOURS = 0
@@ -42,6 +44,7 @@ const INVENTED_WEEKLY_TARGET = '40 horas'
 const RESIZE_HANDLE_MARKER = /data-resize-handle="true"/g
 const BLOCK_BUTTON_MARKER = /<button\b/g
 const FOCUSABLE_TRACK_MARKER = /tabindex="0"/g
+const SINGLE_OCCURRENCE_PARTS = 2
 const props: AvailabilityWeekGridProps = {
   ranges: [RANGE],
   workday: { id: 'test-workday', name: 'Standard', hoursPerDay: HOURS_PER_DAY },
@@ -124,7 +127,7 @@ it('explains an empty week while keeping seven usable columns', () => {
   const html = draw(emptyProps)
   const message = translate(DEFAULT_LOCALE, EDITOR_COPY.emptyDay)
 
-  expect(html).toContain(message)
+  expect(html.split(message)).toHaveLength(EXPECTED_SPLIT_PARTS)
   expect(html.match(DAY_MARKER)).toHaveLength(EXPECTED_COLUMNS)
 })
 
@@ -137,4 +140,21 @@ it('shows the declared weekly total without inventing a weekly target', () => {
   expect(declaredWeeklyHours(ranges)).toBe(EXPECTED_WEEKLY_HOURS)
   expect(html).toContain(summary)
   expect(html).not.toContain(INVENTED_WEEKLY_TARGET)
+})
+
+it('says once, at the top, that there is no jornada instead of once per day', () => {
+  const noJornadaProps = { ...props, workday: null }
+  const html = draw(noJornadaProps)
+  const notice = translate(DEFAULT_LOCALE, EDITOR_COPY.noJornadaAssigned)
+  const perDayText = translate(DEFAULT_LOCALE, STATUS_COPY_KEYS.unavailable)
+
+  expect(html.split(notice)).toHaveLength(SINGLE_OCCURRENCE_PARTS)
+  expect(html).not.toContain(perDayText)
+})
+
+it('shows no jornada notice while a workday is assigned', () => {
+  const html = draw(props)
+  const notice = translate(DEFAULT_LOCALE, EDITOR_COPY.noJornadaAssigned)
+
+  expect(html).not.toContain(notice)
 })

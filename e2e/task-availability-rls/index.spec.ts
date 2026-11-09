@@ -12,6 +12,7 @@ import rest from '../rest'
 import assignOrganization from '../availability-seed/assign-organization'
 import clearWeeklyAvailability from '../availability-seed/clear-weekly-availability'
 import firstDepartamentoId from '../availability-seed/first-departamento-id'
+import firstActiveJornada from '../availability-seed/first-active-jornada'
 
 // Weekly availability RLS: self-write, org-wide read for anyone with the `tasks` module. A
 // SELECT only filters (200 either way), so negative cases use a WRITE -- a real rejection, or for
@@ -33,6 +34,7 @@ const OUTSIDER_TEAM_CODE = 'E2E_AVAIL_OUTSIDER'
 const TABLE = 'user_weekly_availability_ranges'
 const REPLACE_RPC = 'replace_own_weekly_availability'
 const ADMIN_TAMPER_NOTE = 'changed by admin'
+const JORNADA_REQUIRED_ERROR = 'TASKS_JORNADA_REQUIRED'
 
 const authHeaders = (jwt: string) => ({ headers: rest.como(jwt) })
 const writeRequest = (jwt: string, data: Record<string, unknown>) => ({ headers: rest.como(jwt), data })
@@ -101,7 +103,9 @@ test.beforeAll(async () => {
   noModuleId = (await getUsuario(NO_MODULE_EMAIL)).id
   adminId = (await getUsuario(ADMIN_EMAIL)).id
 
-  const ownerOrg = { userId: ownerId, equipoId: ownerTeamId, jornadaId: null }
+  // Only OWNER gets a jornada: the save RPC refuses callers without one, and TEAMMATE proves it.
+  const jornada = await firstActiveJornada()
+  const ownerOrg = { userId: ownerId, equipoId: ownerTeamId, jornadaId: jornada.id }
   const teammateOrg = { userId: teammateId, equipoId: ownerTeamId, jornadaId: null }
   const outsiderOrg = { userId: outsiderId, equipoId: outsiderTeamId, jornadaId: null }
   await assignOrganization(ownerOrg)
@@ -267,4 +271,22 @@ test('replace_own_weekly_availability atomically replaces the caller\'s rows and
   const spoofedArgs = { p_ranges: spoofedSet }
   const spoofedCall = await rest.rpc(request, ownerJwt, REPLACE_RPC, spoofedArgs)
   expect(spoofedCall.status(), 'a payload naming user_id is rejected as malformed, not trusted').toBe(400)
+})
+
+test('replace_own_weekly_availability refuses a caller with no jornada assigned', async ({ request }) => {
+  const teammateJwt = await rest.token(request, TEAMMATE_EMAIL, PASSWORD)
+  const ownSet = [
+    {
+      weekday: 1,
+      starts_at: '09:00',
+      ends_at: '10:00',
+      note: null,
+    },
+  ]
+  const ownArgs = { p_ranges: ownSet }
+  const ownCall = await rest.rpc(request, teammateJwt, REPLACE_RPC, ownArgs)
+  const ownBody = await ownCall.json()
+
+  expect(ownCall.status(), 'saving one\'s own week without a jornada is forbidden').toBe(403)
+  expect(ownBody.message, 'the RPC names why it refused').toBe(JORNADA_REQUIRED_ERROR)
 })

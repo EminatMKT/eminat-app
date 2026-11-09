@@ -36,6 +36,7 @@ const draw = (value: AvailabilityMemberDto) =>
   renderToStaticMarkup(<MemberAvailabilityModal member={value} onClose={noop} onSaved={noop} />)
 
 const editableOverrides: Partial<AvailabilityMemberDto> = { canEdit: true }
+const noJornadaOverrides: Partial<AvailabilityMemberDto> = { canEdit: true, workday: null }
 const zeroHoursVars = { hours: EDITOR_COPY.zeroHours }
 
 describe('MemberAvailabilityModal', () => {
@@ -63,5 +64,14 @@ describe('MemberAvailabilityModal', () => {
     expect(html).not.toContain(saveText)
     expect(html).not.toContain(cancelText)
     expect(html).toContain(weeklyHoursText)
+  })
+
+  it('keeps an editable member without a jornada read-only, with the one notice instead', () => {
+    const html = draw(viewer(noJornadaOverrides))
+    const saveText = english(EDITOR_COPY.save)
+    const noticeText = english(EDITOR_COPY.noJornadaAssigned)
+
+    expect(html).not.toContain(saveText)
+    expect(html).toContain(noticeText)
   })
 })

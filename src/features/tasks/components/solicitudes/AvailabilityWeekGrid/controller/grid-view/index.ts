@@ -11,7 +11,7 @@ export default function gridView(props: AvailabilityWeekGridProps, input: GridVi
   const view = {
     days: dayPropsOf(props, input.actions),
     popover: popoverOf(popoverContext, input.selection),
-    summary: summaryOf(props.ranges, input.t),
+    summary: summaryOf(props.ranges, props.workday, input.t),
   }
 
   return view

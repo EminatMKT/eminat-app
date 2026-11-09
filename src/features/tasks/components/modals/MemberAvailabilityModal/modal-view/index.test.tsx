@@ -67,6 +67,15 @@ describe('useModalView', () => {
     expect(seen?.display.footer).not.toBeUndefined()
     expect(onClose).toHaveBeenCalledTimes(1)
   })
+
+  it('routes the footer Cancel button through the close guard, not the raw onClose', () => {
+    const onClose = vi.fn()
+
+    draw(EDITABLE_PROPS, onClose)
+    seen?.display.footer?.props.onCancel()
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
 })
 
 // A freshly mounted controller is never dirty, so requestClose closes right away here — this

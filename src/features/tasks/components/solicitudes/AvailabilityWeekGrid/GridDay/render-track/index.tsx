@@ -1,29 +1,24 @@
-import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import SegmentCanvas from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/SegmentCanvas'
 import type { GridDayProps } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/types'
-import s from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/index.module.css'
 import type { DayRange, TrackInput } from '../types'
 
 function renderSegment(props: GridDayProps, dayRanges: DayRange[], columnTop: () => number) {
-  return (range: DayRange) => (
-    <SegmentCanvas
-      key={range.clientId}
-      {...props}
-      range={range}
-      dayRanges={dayRanges}
-      columnTop={columnTop}
-    />
-  )
+  const shared = { ...props, dayRanges, columnTop }
+
+  return function Segment(range: DayRange) {
+    return <SegmentCanvas key={range.clientId} {...shared} range={range} />
+  }
 }
 
-/** The day's track body: every declared range as a SegmentCanvas, or a translated empty
- *  message when this day has none - satisfying the no-bare-empty-list affordance. */
+/** The day's track body: every declared range as a SegmentCanvas. An empty day renders a bare
+ *  track (nothing): the empty state is the single week-level message AvailabilityWeekGrid shows
+ *  above the columns, and the empty track itself is where a range gets drawn. */
 export default function renderTrack(props: GridDayProps, input: TrackInput) {
-  const { dayRanges, columnTop, t } = input
+  const { dayRanges, columnTop } = input
 
-  if (dayRanges.length === 0) return <p className={s.empty}>{t(EDITOR_COPY.emptyDay)}</p>
+  if (dayRanges.length === 0) return null
 
   return dayRanges.map(renderSegment(props, dayRanges, columnTop))
 }
 
-// Kept apart from GridDay itself: the empty-state branch needs EDITOR_COPY, GridDay does not.
+// Renders one day column's segments for GridDay; kept apart so GridDay only lays out the column.

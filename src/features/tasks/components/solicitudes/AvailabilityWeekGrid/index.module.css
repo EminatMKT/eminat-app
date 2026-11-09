@@ -11,6 +11,11 @@
   color: var(--c-t2);
 }
 
+.noJornada {
+  padding: 0 0 0.75rem;
+  color: var(--c-warn-solid);
+}
+
 .empty {
   padding: 0 0 0.75rem;
   font-size: 0.6875rem;

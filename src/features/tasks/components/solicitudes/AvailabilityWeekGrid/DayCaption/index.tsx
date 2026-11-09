@@ -20,18 +20,20 @@ export default function DayCaption(props: DayCaptionProps) {
   const comparisonVars = comparisonCopyVars(comparison)
   const comparisonText = t(STATUS_COPY_KEYS[comparison.status], comparisonVars)
   const label = t(day.labelKey)
+  const hasJornada = expectedHours !== null
 
   return (
     <div className={s.root}>
       <span className={s.label}>{label}</span>
-      <HoursStatus
+      {hasJornada && <HoursStatus
         symbol={STATUS_SYMBOLS[comparison.status]}
         text={comparisonText}
         tone={comparison.status}
-      />
+      />}
     </div>
   )
 }
 
 // DayCaption carries the weekday label and the daily comparison DaySection already shows; the
-// keyboard affordance to add a range now lives on the day's own track, not here.
+// keyboard affordance to add a range now lives on the day's own track, not here. Without a
+// jornada there is nothing to compare against: the grid states that once, not per day.

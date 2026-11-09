@@ -2,6 +2,7 @@ import type { AvailabilityWorkdayDto } from '@/features/tasks/data/availability/
 import type { AvailabilityDay } from '@/features/tasks/utils/availability'
 import type { MinuteBounds } from './geometry/types'
 import type { FreeSlot } from './next-free-slot/types'
+import type { GridSummary } from './controller/types'
 import type { EditableRange } from '../WeeklyAvailabilityEditor/component-types'
 
 /** The grid owns local selection; its caller owns the whole week's committed ranges. */
@@ -22,6 +23,9 @@ export type GridDayProps = AvailabilityWeekGridProps & {
   onCreate: GridCreateHandler
   onAdd: GridAddHandler
 }
+
+/** The week's translated summary lines, as the grid controller derives them. */
+export type WeekSummaryProps = { summary: GridSummary }
 
 export type SegmentCanvasProps = GridDayProps & {
   range: EditableRange

@@ -9,6 +9,7 @@ const EDITOR_COPY = {
   note: 'tasks.availability.note',
   noteCharactersRemaining: 'tasks.availability.noteCharactersRemaining',
   emptyDay: 'tasks.availability.emptyDay',
+  noJornadaAssigned: 'tasks.availability.noJornadaAssigned',
   saved: 'tasks.availability.saved',
   saving: 'tasks.availability.saving',
   saveError: 'tasks.availability.saveError',

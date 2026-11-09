@@ -22,6 +22,8 @@ const PENCIL_ICON_CLASS = 'lucide-pencil'
 const EYE_ICON_CLASS = 'lucide-eye'
 const APOSTROPHE = "'"
 const HTML_APOSTROPHE_ENTITY = '&#x27;'
+const DECLARED_HOURS = 4
+const DECLARED_WITHOUT_JORNADA_KEY: I18nKey = 'tasks.availability.declaredWithoutJornada'
 
 const escapeApostrophe = (value: string) => value.replace(APOSTROPHE, HTML_APOSTROPHE_ENTITY)
 
@@ -63,10 +65,12 @@ describe('MemberAvailabilityCard', () => {
     expect(html).toContain(total)
   })
 
-  it('shows the plain not-configured text when the member has no workday', () => {
+  it('keeps the declared hours and adds the no-jornada notice when there is no workday', () => {
     const html = draw(member({ workday: null }))
+    const declaredVars = { hours: DECLARED_HOURS }
+    const notice = english(DECLARED_WITHOUT_JORNADA_KEY, declaredVars)
 
-    expect(html).toContain(english('tasks.availability.notConfigured'))
+    expect(html).toContain(notice)
   })
 
   it('renders no per-day breakdown', () => {

@@ -15,7 +15,7 @@ import memberInitials from './member-initials'
 import {
   CARD_ICON_SIZE,
   EDIT_SCHEDULE_KEY,
-  NOT_CONFIGURED_KEY,
+  NO_JORNADA_KEY,
   OPEN_SCHEDULE_KEY,
   WEEK_STATUS_COPY_KEYS,
 } from './constants'
@@ -46,7 +46,8 @@ export default function MemberAvailabilityCard({ member, onOpen }: Props) {
     text={badgeText}
     tone={comparison.status}
   />
-  const noWorkdayText = <span className={s.total}>{t(NOT_CONFIGURED_KEY)}</span>
+  const declaredVars = { hours: weeklyHours }
+  const noWorkdayText = <span className={s.total}>{t(NO_JORNADA_KEY, declaredVars)}</span>
   const pencilIcon = <Pencil aria-hidden="true" size={CARD_ICON_SIZE} className={s.pencilIcon} />
   const eyeIcon = <Eye aria-hidden="true" size={CARD_ICON_SIZE} className={s.icon} />
   const statusBadge = member.workday ? hoursBadge : noWorkdayText

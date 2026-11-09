@@ -57,6 +57,7 @@ const EDITED_NOTE_TEXT = 'Rescheduled'
 const DELETE_LABEL = 'Delete'
 const SAVE_CHANGES_LABEL = 'Save changes'
 const SAVE_AVAILABILITY_LABEL = 'Save availability'
+const NO_JORNADA_NOTICE = 'No workday assigned: an admin has to assign one in Admin before availability can be declared.'
 const TUESDAY_START_VALUE = '06:00'
 const TUESDAY_END_VALUE = '07:30'
 // Kept inside the default 1280x720 viewport's visible height without scrolling: the track
@@ -419,8 +420,10 @@ test('owner drag-creates, resizes, and edits Tuesday availability on the new gri
   await assertNoEditorActions(page)
   await page.keyboard.press(ESCAPE)
 
+  // The seeded admin has no jornada, so even their own card is read-only and shows the notice once.
   await cardFor(page, ADMIN_CARD_NAME).click()
-  await expect(roleButton(page, SAVE_AVAILABILITY_LABEL)).toBeVisible()
+  await assertNoEditorActions(page)
+  await expect(page.getByText(NO_JORNADA_NOTICE)).toHaveCount(1)
   await page.keyboard.press(ESCAPE)
   await expect(namedDialog(page, ADMIN_CARD_NAME)).toBeHidden()
 

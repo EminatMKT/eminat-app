@@ -13,6 +13,7 @@ const RANGE: EditableRange = {
 }
 const DEFAULT_LOCALE = 'es'
 const EMPTY_DAY_KEY: I18nKey = 'tasks.availability.emptyDay'
+const NO_JORNADA_KEY: I18nKey = 'tasks.availability.noJornadaAssigned'
 
 function translateAt(key: I18nKey, vars?: Record<string, string | number>) {
   return translate(DEFAULT_LOCALE, key, vars)
@@ -69,4 +70,13 @@ it('marks the popover as newly created when the selection matches justCreatedId'
   const view = gridView(props, input)
 
   expect(view.popover?.isNewlyCreated).toBe(true)
+})
+
+it('threads the member workday into the summary so a missing jornada yields its notice', () => {
+  const props = buildProps()
+  const selection = { selectedId: null, justCreatedId: null }
+  const input = { actions: buildActions(), selection, t: translateAt }
+  const view = gridView(props, input)
+
+  expect(view.summary.noJornada).toBe(translateAt(NO_JORNADA_KEY))
 })

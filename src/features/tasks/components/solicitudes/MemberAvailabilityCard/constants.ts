@@ -14,4 +14,4 @@ export const CARD_ICON_SIZE = 16
 
 export const EDIT_SCHEDULE_KEY: I18nKey = 'tasks.availability.editSchedule'
 export const OPEN_SCHEDULE_KEY: I18nKey = 'tasks.availability.openSchedule'
-export const NOT_CONFIGURED_KEY: I18nKey = 'tasks.availability.notConfigured'
+export const NO_JORNADA_KEY: I18nKey = 'tasks.availability.declaredWithoutJornada'

@@ -13,6 +13,7 @@ const RANGE: EditableRange = {
   note: null,
 }
 const DEFAULT_LOCALE = 'es'
+const WORKDAY = { id: 'workday-1', name: 'Full time', hoursPerDay: 8 }
 
 function translateAt(key: I18nKey, vars?: Record<string, string | number>) {
   return translate(DEFAULT_LOCALE, key, vars)
@@ -20,10 +21,18 @@ function translateAt(key: I18nKey, vars?: Record<string, string | number>) {
 
 it('translates the declared weekly total and the empty-week message', () => {
   const ranges = [RANGE]
-  const summary = summaryOf(ranges, translateAt)
+  const summary = summaryOf(ranges, WORKDAY, translateAt)
   const summaryVars = { hours: declaredWeeklyHours(ranges) }
   const total = translate(DEFAULT_LOCALE, EDITOR_COPY.weeklyHoursKey, summaryVars)
   const empty = translate(DEFAULT_LOCALE, EDITOR_COPY.emptyDay)
+  const expected = { total, empty, noJornada: null }
 
-  expect(summary).toEqual({ total, empty })
+  expect(summary).toEqual(expected)
+})
+
+it('adds the single no-jornada message when the member has no workday assigned', () => {
+  const summary = summaryOf([RANGE], null, translateAt)
+  const noJornada = translate(DEFAULT_LOCALE, EDITOR_COPY.noJornadaAssigned)
+
+  expect(summary.noJornada).toBe(noJornada)
 })
