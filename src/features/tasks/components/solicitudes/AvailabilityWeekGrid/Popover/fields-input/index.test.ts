@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import type { PopoverControllerResult } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Popover/controller/types'
 import type { PopoverProps } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Popover/types'
 import { SAMPLE_DAY_LABEL } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Popover/constants'

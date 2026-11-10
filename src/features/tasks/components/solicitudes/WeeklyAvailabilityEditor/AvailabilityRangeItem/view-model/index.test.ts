@@ -4,7 +4,7 @@ import {
   it,
 } from 'vitest'
 import type { RangeValidationError } from '@/features/tasks/utils/availability'
-import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import type { Translator } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/types'
 import { FIVE_PM, NINE_AM } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/constants'
 import {

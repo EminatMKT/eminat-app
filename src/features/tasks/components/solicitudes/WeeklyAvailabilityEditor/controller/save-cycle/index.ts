@@ -2,7 +2,7 @@ import type { AvailabilityMemberDto } from '@/features/tasks/data/availability/t
 import type {
   EditableRange,
   LocalEditorState,
-} from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+} from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import { EDITOR_COPY }
   from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import applySaveOutcome from '../apply-save-outcome'

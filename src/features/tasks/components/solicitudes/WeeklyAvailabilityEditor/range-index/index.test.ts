@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { EditableRange } from '../component-types'
+import type { EditableRange } from '../component-types/types'
 import { FIRST_RANGE_ID } from '../test-fixtures/constants'
 import {
   RANGE_INDEX_NOT_FOUND,

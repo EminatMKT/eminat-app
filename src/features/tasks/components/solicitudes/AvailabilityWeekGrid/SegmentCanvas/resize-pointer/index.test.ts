@@ -4,7 +4,7 @@ import {
   it,
   vi,
 } from 'vitest'
-import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import { BOTTOM_EDGE } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry'
 import type { SegmentResizeInput, ResizePointerEvent } from './types'
 import createResizePointer from '.'

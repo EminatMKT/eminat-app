@@ -1,7 +1,7 @@
 import mutations from './mutations'
 import creation from './creation'
 import pointerCreate from './pointer-create'
-import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import type { GridActionContext, GridActions } from './types'
 
 function dialog(context: GridActionContext): Pick<GridActions, 'onOpen' | 'onClose'> {

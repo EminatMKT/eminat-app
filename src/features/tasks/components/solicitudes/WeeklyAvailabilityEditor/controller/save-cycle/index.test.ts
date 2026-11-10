@@ -5,7 +5,7 @@ import {
   vi,
 } from 'vitest'
 import type { AvailabilityMemberDto, AvailabilityResponse } from '@/features/tasks/data/availability/types'
-import type { EditableRange, LocalEditorState } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type { EditableRange, LocalEditorState } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import { EDITOR_COPY }
   from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import type {

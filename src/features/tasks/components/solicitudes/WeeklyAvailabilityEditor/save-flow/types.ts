@@ -1,6 +1,6 @@
 import type { AvailabilityResponse } from '@/features/tasks/data/availability/types'
 import type { RangeValidationError } from '@/features/tasks/utils/availability'
-import type { LocalEditorState } from '../component-types'
+import type { LocalEditorState } from '../component-types/types'
 
 /** The editable state and ranges required to validate and save the caller's availability. */
 export type SaveFlowState = Pick<

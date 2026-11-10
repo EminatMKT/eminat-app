@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it } from 'vitest'
 import { LocaleProvider } from '@/shared/i18n'
 import { AVAILABILITY_DAYS } from '@/features/tasks/utils/availability'
-import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import SegmentCanvas from './index'
 import type { SegmentCanvasProps } from '../types'
 

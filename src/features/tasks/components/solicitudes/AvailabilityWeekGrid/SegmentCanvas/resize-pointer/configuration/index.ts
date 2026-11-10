@@ -1,5 +1,5 @@
 import { endMinutesOf, minutesOf } from '@/features/tasks/utils/availability'
-import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import { PIXELS_PER_MINUTE } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/constants'
 import { replaceBounds } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/range-operations'
 import type { ReadSegment, ResizeCommitCallback, SegmentResizeInput } from '../types'

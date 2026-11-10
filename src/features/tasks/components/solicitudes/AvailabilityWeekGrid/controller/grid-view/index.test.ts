@@ -1,7 +1,7 @@
 import { expect, it, vi } from 'vitest'
 import { translate, type I18nKey } from '@/shared/i18n'
 import { AVAILABILITY_DAYS } from '@/features/tasks/utils/availability'
-import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import gridView from '.'
 
 const RANGE: EditableRange = {

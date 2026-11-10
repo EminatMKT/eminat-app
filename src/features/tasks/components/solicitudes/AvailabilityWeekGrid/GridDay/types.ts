@@ -1,4 +1,4 @@
-import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import type useTrack from './use-track'
 
 export type DayRange = EditableRange

@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react'
 import { expect, it } from 'vitest'
 import { AVAILABILITY_DAYS } from '@/features/tasks/utils/availability'
-import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import renderTrack from '.'
 
 const RANGE: EditableRange = {

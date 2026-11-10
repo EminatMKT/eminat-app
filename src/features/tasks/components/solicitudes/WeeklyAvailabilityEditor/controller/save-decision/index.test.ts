@@ -6,7 +6,7 @@ import {
 } from 'vitest'
 import type {
   LocalEditorState,
-} from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+} from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import type {
   SaveFlowFailure,
   SaveFlowSuccess,

@@ -3,7 +3,7 @@ import type { AvailabilityDay } from '@/features/tasks/utils/availability'
 import type { MinuteBounds } from './geometry/types'
 import type { FreeSlot } from './next-free-slot/types'
 import type { GridSummary } from './controller/types'
-import type { EditableRange } from '../WeeklyAvailabilityEditor/component-types'
+import type { EditableRange } from '../WeeklyAvailabilityEditor/component-types/types'
 
 /** The grid owns local selection; its caller owns the whole week's committed ranges. */
 export type AvailabilityWeekGridProps = {

@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { validateRanges } from '@/features/tasks/utils/availability'
-import type { EditableRange, LocalEditorState } from '../component-types'
+import type { EditableRange, LocalEditorState } from '../component-types/types'
 import performSave from './perform-save'
 import rangesHaveChanged from './ranges-changed'
 import createSaveCycleFacade from './save-cycle'

@@ -1,4 +1,4 @@
-import type { LocalEditorState, RangeListChangeHandler } from '../component-types'
+import type { LocalEditorState, RangeListChangeHandler } from '../component-types/types'
 import type { EditorProps } from '../types'
 import type { RangeValidationError } from '@/features/tasks/utils/availability'
 

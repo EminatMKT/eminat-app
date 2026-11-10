@@ -1,5 +1,5 @@
 import type { WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
-import type { EditorStatus, RangeField } from './types'
+import type { EditorStatus, RangeField } from '../types'
 import type { I18nKey } from '@/shared/i18n'
 
 export type EditableRange = WeeklyAvailabilityRange & {

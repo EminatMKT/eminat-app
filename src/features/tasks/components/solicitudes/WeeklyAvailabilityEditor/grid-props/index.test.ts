@@ -5,7 +5,7 @@ import {
   vi,
 } from 'vitest'
 import type { AvailabilityMemberDto } from '@/features/tasks/data/availability/types'
-import type { EditableRange, LocalEditorState } from '../component-types'
+import type { EditableRange, LocalEditorState } from '../component-types/types'
 import type { ControllerResult } from '../controller/types'
 import type { EditorProps } from '../types'
 import { EDITOR_COPY } from '../constants'

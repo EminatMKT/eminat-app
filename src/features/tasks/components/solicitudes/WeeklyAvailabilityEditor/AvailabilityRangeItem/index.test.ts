@@ -17,7 +17,7 @@ import type {
   EditableRange,
   RangeActionHandler,
   RangeChangeHandler,
-} from '../component-types'
+} from '../component-types/types'
 import { FOCUS_NOTE, REMOVE_MONDAY_RANGE_LABEL } from '../test-fixtures/constants'
 import { AVAILABILITY_RANGE_ITEM_CONSTANTS } from './constants'
 import type { AvailabilityRangeItemProps } from './types'

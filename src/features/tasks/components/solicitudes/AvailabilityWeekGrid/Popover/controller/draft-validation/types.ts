@@ -1,5 +1,5 @@
 import type { WeeklyAvailabilityRange, RangeValidationError } from '@/features/tasks/utils/availability'
-import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 
 /** The slice of PopoverControllerProps deriveDraftValidation needs: the range being edited, its
  *  day's other ranges, its own index among them, and whether it was just created unsaved. */

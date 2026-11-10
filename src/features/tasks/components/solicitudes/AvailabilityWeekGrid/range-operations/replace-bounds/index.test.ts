@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import replaceBounds from './index'
 
 const RANGE: EditableRange = {

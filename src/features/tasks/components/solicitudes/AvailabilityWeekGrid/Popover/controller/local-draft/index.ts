@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import type { PopoverChangeFieldHandler } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Popover/controller/types'
 import type { PopoverDraft } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Popover/draft/types'
 import type { LocalDraft } from './types'

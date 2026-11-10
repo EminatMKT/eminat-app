@@ -1,4 +1,4 @@
-import type { EditableRange } from '../component-types'
+import type { EditableRange } from '../component-types/types'
 import {
   RANGE_INDEX_NOT_FOUND,
   type RangeIndexInput,

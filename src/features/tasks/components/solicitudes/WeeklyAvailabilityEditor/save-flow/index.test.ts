@@ -7,7 +7,7 @@ import {
 } from 'vitest'
 import { AVAILABILITY_ENDPOINT } from '@/features/tasks/data/availability/constants'
 import { NINE_AM, NOON } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/constants'
-import type { LocalEditorState } from '../component-types'
+import type { LocalEditorState } from '../component-types/types'
 import createEditorStateFacade from '../editor-state'
 import { FIRST_RANGE_ID } from '../test-fixtures/constants'
 import saveAvailability from './index'

@@ -6,7 +6,7 @@ import {
   it,
   vi,
 } from 'vitest'
-import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import type { WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
 import usePopoverController from './index'
 import type { PopoverDraft } from '../draft/types'

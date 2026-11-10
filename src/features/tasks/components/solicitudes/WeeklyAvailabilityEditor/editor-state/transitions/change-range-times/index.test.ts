@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { EditableRange, LocalEditorState } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type { EditableRange, LocalEditorState } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import type { ChangeRangeTimesAction } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/types'
 import type { Weekday } from '@/features/tasks/utils/availability'
 import { EDITOR_COPY }

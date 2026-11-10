@@ -1,5 +1,5 @@
 import { commitRange } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/range-operations'
-import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import type { PopoverSaveHandler, PopoverRemoveHandler } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Popover/types'
 import type { GridActionContext } from '../types'
 

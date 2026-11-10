@@ -1,7 +1,7 @@
 import type {
   EditableRange,
   LocalEditorState,
-} from '../component-types'
+} from '../component-types/types'
 
 export const RANGE_INDEX_NOT_FOUND = -1
 

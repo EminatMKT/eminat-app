@@ -3,7 +3,7 @@ import type {
   SaveOwnAvailabilityRange,
 } from '@/features/tasks/data/availability/types'
 import type { EditorAction, TimedEditorAction } from '../types'
-import type { LocalEditorState } from '../component-types'
+import type { LocalEditorState } from '../component-types/types'
 import { EDITOR_COPY } from '../constants'
 import { ADD_ACTION_KIND, CHANGE_ACTION_KIND, REMOVE_ACTION_KIND } from './constants'
 import createTransitionsFacade from './transitions'

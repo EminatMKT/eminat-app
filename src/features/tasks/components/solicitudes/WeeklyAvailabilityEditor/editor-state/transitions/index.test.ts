@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type {
   EditableRange,
   LocalEditorState,
-} from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+} from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import type {
   AddRangeAction,
   ChangeRangeAction,

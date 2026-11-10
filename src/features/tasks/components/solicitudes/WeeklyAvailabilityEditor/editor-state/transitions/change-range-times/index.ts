@@ -1,7 +1,7 @@
 import type {
   EditableRange,
   LocalEditorState,
-} from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+} from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import type { ChangeRangeTimesAction } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/types'
 import clearStaleFeedback from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/editor-state/clear-stale-feedback'
 

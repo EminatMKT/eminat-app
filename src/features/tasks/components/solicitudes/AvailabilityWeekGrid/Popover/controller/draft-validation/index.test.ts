@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import { AVAILABILITY_RANGE_ITEM_CONSTANTS }
   from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/AvailabilityRangeItem/constants'
 import type { WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'

@@ -3,7 +3,7 @@ import {
   END_OF_DAY_TIME,
   PAST_END_OF_DAY_TIME,
 } from '@/features/tasks/utils/availability/constants'
-import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types/types'
 import commitRange from './index'
 
 const RANGE: EditableRange = {
