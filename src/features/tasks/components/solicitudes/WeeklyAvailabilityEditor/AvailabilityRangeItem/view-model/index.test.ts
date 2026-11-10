@@ -6,18 +6,28 @@ import {
 import type { RangeValidationError } from '@/features/tasks/utils/availability'
 import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
 import type { Translator } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/types'
+import { FIVE_PM, NINE_AM } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/constants'
+import {
+  END_NOT_AFTER_START_CODE,
+  SAMPLE_CLIENT_ID,
+  SAMPLE_DAY_LABEL,
+} from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Popover/constants'
+import {
+  FOCUS_NOTE,
+  REMOVE_MONDAY_RANGE_LABEL,
+} from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/test-fixtures/constants'
 import type { AvailabilityRangeItemProps } from '../types'
 import buildAvailabilityRangeItemViewModel from './index'
 
-const CLIENT_ID = 'range-client-1'
+const CLIENT_ID = SAMPLE_CLIENT_ID
 const RANGE_INDEX = 0
 const RANGE_NUMBER = 1
-const DAY_LABEL = 'Monday'
-const START_TIME = '09:00'
-const END_TIME = '17:00'
-const NOTE = 'Focus work'
-const ERROR_CODE = 'end-not-after-start'
-const REMOVE_LABEL = 'Remove Monday range 1'
+const DAY_LABEL = SAMPLE_DAY_LABEL
+const START_TIME = NINE_AM
+const END_TIME = FIVE_PM
+const NOTE = FOCUS_NOTE
+const ERROR_CODE = END_NOT_AFTER_START_CODE
+const REMOVE_LABEL = REMOVE_MONDAY_RANGE_LABEL
 
 const RANGE: EditableRange = {
   clientId: CLIENT_ID,
@@ -48,10 +58,10 @@ describe('buildAvailabilityRangeItemViewModel', () => {
     const viewModel = buildAvailabilityRangeItemViewModel(PROPS, translate)
 
     expect(viewModel.startField.id).toContain(CLIENT_ID)
-    expect(viewModel.endField.id).toContain(CLIENT_ID)
-    expect(viewModel.noteField.id).toContain(CLIENT_ID)
     expect(viewModel.startField.value).toBe(START_TIME)
+    expect(viewModel.endField.id).toContain(CLIENT_ID)
     expect(viewModel.endField.value).toBe(END_TIME)
+    expect(viewModel.noteField.id).toContain(CLIENT_ID)
     expect(viewModel.noteField.value).toBe(NOTE)
   })
 

@@ -2,9 +2,13 @@ import type { RangeValidationError } from '@/features/tasks/utils/availability'
 import type { EditableRange } from '../component-types'
 import type { RangeFieldProps } from '../RangeField/types'
 import type { RangeField } from '../types'
-import AVAILABILITY_RANGE_ITEM_CONSTANTS from './constants'
+import { AVAILABILITY_RANGE_ITEM_CONSTANTS } from './constants'
 
-export type AvailabilityRangeItemChangeHandler = (clientId: string, field: RangeField, value: string) => void
+export type AvailabilityRangeItemChangeHandler = (
+  clientId: string,
+  field: RangeField,
+  value: string,
+) => void
 
 export type AvailabilityRangeItemActionHandler = (clientId: string) => void
 

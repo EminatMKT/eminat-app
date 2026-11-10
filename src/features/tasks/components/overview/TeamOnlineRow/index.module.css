@@ -1,8 +1,8 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
+  gap: .5rem;
+  padding: .5rem .875rem;
   border-bottom: 1px solid var(--c-border);
 }
 
@@ -11,16 +11,16 @@
 }
 
 .name {
-  font-size: 11px;
+  font-size: .6875rem;
   font-weight: 600;
   color: var(--c-t1);
 }
 
 .status {
-  font-size: 9px;
+  font-size: .5625rem;
   color: var(--c-t3);
 }
 
 .status.on {
-  color: #34d399;
+  color: var(--c-online);
 }

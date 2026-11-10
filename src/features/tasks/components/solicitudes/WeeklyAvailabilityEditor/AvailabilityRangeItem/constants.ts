@@ -1,4 +1,4 @@
-const AVAILABILITY_RANGE_ITEM_CONSTANTS = {
+export const AVAILABILITY_RANGE_ITEM_CONSTANTS = {
   deleteButtonKind: 'delete',
   startIdSuffix: '-start',
   endIdSuffix: '-end',
@@ -9,5 +9,3 @@ const AVAILABILITY_RANGE_ITEM_CONSTANTS = {
   overlapCode: 'overlap',
   noteCounterWarningThreshold: 0.9,
 } as const
-
-export default AVAILABILITY_RANGE_ITEM_CONSTANTS

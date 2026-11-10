@@ -1,5 +1,7 @@
-import { PIXELS_PER_MINUTE } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/constants'
-import type { MinuteBounds } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/types'
+import {
+  PIXELS_PER_MINUTE,
+  type MinuteBounds,
+} from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry'
 import type { CreateGestureConfig } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/gestures/create-gesture/types'
 import type { GridDayProps } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/types'
 

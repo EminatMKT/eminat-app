@@ -8,7 +8,7 @@ import type { AvailabilityMemberDto } from '@/features/tasks/data/availability/t
 import type { EditableRange, LocalEditorState } from '../component-types'
 import type { ControllerResult } from '../controller/types'
 import type { EditorProps } from '../types'
-import EDITOR_COPY from '../constants'
+import { EDITOR_COPY } from '../constants'
 import buildGridProps from './index'
 
 const WORKDAY = { id: 'workday-1', name: 'Full time', hoursPerWeek: 40 }

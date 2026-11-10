@@ -13,7 +13,7 @@ const RANGE: EditableRange = {
 const OTHER_RANGE: EditableRange = { ...RANGE, clientId: 'tuesday', weekday: 2 }
 const NOOP = () => undefined
 const ZERO_TOP = () => 0
-const EMPTY_LABEL = 'nothing declared'
+const BLANK_LABEL = ''
 
 function buildProps() {
   const props = {
@@ -31,7 +31,7 @@ function buildProps() {
 }
 
 it("filters the week's ranges down to this day's own, carrying columnTop and t through", () => {
-  const translate = () => EMPTY_LABEL
+  const translate = () => BLANK_LABEL
   const input = trackInputOf(buildProps(), ZERO_TOP, translate)
 
   expect(input.dayRanges).toEqual([RANGE])

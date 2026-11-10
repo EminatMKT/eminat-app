@@ -1,4 +1,4 @@
-const EDITOR_COPY = {
+export const EDITOR_COPY = {
   save: 'tasks.availability.save',
   cancel: 'tasks.availability.cancel',
   addRange: 'tasks.availability.addRange',
@@ -38,5 +38,3 @@ const EDITOR_COPY = {
   noteMaxLength: 280,
   oneUnit: 1,
 } as const
-
-export default EDITOR_COPY

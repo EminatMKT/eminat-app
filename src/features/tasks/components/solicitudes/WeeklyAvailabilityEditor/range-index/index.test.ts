@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { EditableRange } from '../component-types'
+import { FIRST_RANGE_ID } from '../test-fixtures/constants'
 import {
   RANGE_INDEX_NOT_FOUND,
 } from './types'
@@ -7,7 +8,7 @@ import createRangeIndexFacade from './index'
 
 const FIRST_INDEX = 0
 const SECOND_INDEX = 1
-const FIRST_CLIENT_ID = 'range-1'
+const FIRST_CLIENT_ID = FIRST_RANGE_ID
 const SECOND_CLIENT_ID = 'range-2'
 const MISSING_CLIENT_ID = 'range-missing'
 const MONDAY = 1

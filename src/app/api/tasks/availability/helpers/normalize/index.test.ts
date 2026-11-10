@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { MISSING_WEEKDAY_MESSAGE } from '@/app/api/tasks/availability/constants'
 import normalizeRange from '.'
 
 describe('normalizeRange', () => {
@@ -9,6 +10,7 @@ describe('normalizeRange', () => {
       endsAt: '10:00',
       note: null,
     }
+
     expect(normalizeRange(validRange)).toEqual(validRange)
   })
 
@@ -18,8 +20,7 @@ describe('normalizeRange', () => {
       endsAt: '10:00',
       note: null,
     }
-    expect(() => normalizeRange(rangeMissingWeekday)).toThrow(
-      'zod inferred `weekday` as optional even though the schema requires it',
-    )
+
+    expect(() => normalizeRange(rangeMissingWeekday)).toThrow(MISSING_WEEKDAY_MESSAGE)
   })
 })

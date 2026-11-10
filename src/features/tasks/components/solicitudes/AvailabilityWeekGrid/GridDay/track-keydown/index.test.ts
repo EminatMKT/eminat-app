@@ -1,5 +1,6 @@
 import { expect, it, vi } from 'vitest'
 import { AVAILABILITY_DAYS } from '@/features/tasks/utils/availability'
+import { ENTER, TAB } from '@/shared/constants/dom'
 import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
 import trackKeydown from '.'
 
@@ -12,9 +13,9 @@ const FULLY_BOOKED_RANGE: EditableRange = {
   endsAt: '23:59',
   note: null,
 }
-const ENTER_KEY = 'Enter'
+const ENTER_KEY = ENTER
 const SPACE_KEY = ' '
-const OTHER_KEY = 'Tab'
+const OTHER_KEY = TAB
 const EXPECTED_SLOT = { startsAt: '00:00', endsAt: '01:00' }
 
 function buildProps() {

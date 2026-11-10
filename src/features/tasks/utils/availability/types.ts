@@ -1,4 +1,7 @@
-/** Day of the week a range belongs to. 1 is Monday, 7 is Sunday — ISO-8601, not JS's `Date#getDay`. */
+import type { I18nKey } from '@/shared/i18n'
+
+/** Day of the week a range belongs to. 1 is Monday, 7 is Sunday — ISO-8601, not JS's
+ *  `Date#getDay`. */
 export type Weekday = 1 | 2 | 3 | 4 | 5 | 6 | 7
 
 /** One block of recurring weekly availability: the same weekday, every week, from `startsAt` to
@@ -34,6 +37,12 @@ export type OverlapError = RangeIndexedError & {
 
 /** Every way `validateRanges` can reject a set of ranges, keyed by `code`. */
 export type RangeValidationError = InvalidTimeError | EndNotAfterStartError | OverlapError
+
+/** One column of the weekly calendar: the weekday and the i18n key its header prints. */
+export type AvailabilityDay = {
+  weekday: Weekday
+  labelKey: I18nKey
+}
 
 /** Where a day's declared hours land against the jornada reference for that day. */
 export type DailyHoursStatus = 'below' | 'complete' | 'above' | 'unavailable'

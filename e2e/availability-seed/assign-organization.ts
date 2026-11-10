@@ -23,9 +23,11 @@ export default async function assignOrganization({
     body: JSON.stringify(body),
   }
   const response = await fetch(patchUrl, patchInit)
+
   if (!response.ok) {
     const errorBody = await response.text()
     const errorMessage = `assignOrganization ${userId}: ${response.status} ${errorBody}`
+
     throw new Error(errorMessage)
   }
 }

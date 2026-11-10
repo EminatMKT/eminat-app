@@ -1,4 +1,8 @@
 import { expect, it } from 'vitest'
+import {
+  END_OF_DAY_TIME,
+  PAST_END_OF_DAY_TIME,
+} from '@/features/tasks/utils/availability/constants'
 import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
 import commitRange from './index'
 
@@ -20,17 +24,16 @@ const LATE: EditableRange = {
   clientId: 'late',
   weekday: 1,
   startsAt: '23:00',
-  endsAt: '24:00',
+  endsAt: END_OF_DAY_TIME,
   note: null,
 }
 const ORIGINAL = [RANGE]
-const INVALID_END_TIME = '24:01'
 const INVALID_RANGE_CASE = 'rejects invalid end boundaries and same-day overlaps'
 const MIDNIGHT_END_CASE = 'accepts a non-overlapping range ending at midnight'
 
 it(INVALID_RANGE_CASE, () => {
   const overlapping = [RANGE, OVERLAP]
-  const invalidLate = { ...LATE, endsAt: INVALID_END_TIME }
+  const invalidLate = { ...LATE, endsAt: PAST_END_OF_DAY_TIME }
   const invalidEnd = [RANGE, invalidLate]
 
   expect(commitRange(overlapping)).toBeNull()

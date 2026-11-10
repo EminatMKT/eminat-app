@@ -2,17 +2,15 @@ import columnMinuteAt from '@/features/tasks/components/solicitudes/Availability
 import {
   resizeBottomEdge,
   resizeTopEdge,
-} from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/resize-edge'
+  TOP_EDGE,
+} from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry'
 import type { GesturePointerEvent } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/gestures/types'
-import type { BlockResizeEdge } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Block/types'
 import type {
   ActiveResizeGesture,
   ResizeGestureCommit,
   ResizeGestureConfig,
   ResizeGestureState,
 } from '../types'
-
-const TOP_EDGE: BlockResizeEdge = 'top'
 
 function resolveEdgeBounds(
   active: ActiveResizeGesture,

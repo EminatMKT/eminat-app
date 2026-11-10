@@ -1,4 +1,4 @@
-import RANGE_FIELD_CONSTANTS from '../constants'
+import { RANGE_FIELD_CONSTANTS } from '../constants'
 import type { RangeFieldInputType } from '../types'
 import type { NativeElement } from './types'
 
@@ -11,17 +11,27 @@ const TEXT_ONLY_PROPS = {
 }
 const TEXTAREA_ONLY_PROPS = {}
 
+/** Each input kind's native tag and the tag-only attributes it carries. */
+const NATIVE_ELEMENT_BY_INPUT_TYPE: Record<RangeFieldInputType, NativeElement> = {
+  [RANGE_FIELD_CONSTANTS.timeInputType]: {
+    tag: RANGE_FIELD_CONSTANTS.nativeInputTag,
+    nativeOnlyProps: TIME_ONLY_PROPS,
+  },
+  [RANGE_FIELD_CONSTANTS.textInputType]: {
+    tag: RANGE_FIELD_CONSTANTS.nativeInputTag,
+    nativeOnlyProps: TEXT_ONLY_PROPS,
+  },
+  [RANGE_FIELD_CONSTANTS.textareaInputType]: {
+    tag: RANGE_FIELD_CONSTANTS.textareaInputType,
+    nativeOnlyProps: TEXTAREA_ONLY_PROPS,
+  },
+}
+
 /** Resolves which native tag renders a field, and the tag-only attributes it carries. */
 export default function resolveNativeElement(inputType: RangeFieldInputType): NativeElement {
-  if (inputType === RANGE_FIELD_CONSTANTS.timeInputType) {
-    return { tag: RANGE_FIELD_CONSTANTS.nativeInputTag, nativeOnlyProps: TIME_ONLY_PROPS }
-  }
+  const element = NATIVE_ELEMENT_BY_INPUT_TYPE[inputType]
 
-  if (inputType === RANGE_FIELD_CONSTANTS.textareaInputType) {
-    return { tag: RANGE_FIELD_CONSTANTS.textareaInputType, nativeOnlyProps: TEXTAREA_ONLY_PROPS }
-  }
-
-  return { tag: RANGE_FIELD_CONSTANTS.nativeInputTag, nativeOnlyProps: TEXT_ONLY_PROPS }
+  return element
 }
 
 // This module isolates which native tag and tag-only attributes RangeField renders, so the

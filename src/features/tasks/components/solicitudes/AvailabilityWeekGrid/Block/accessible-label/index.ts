@@ -1,4 +1,4 @@
-import type { I18nKey, Vars } from '@/shared/i18n/types'
+import type { I18nKey, Vars } from '@/shared/i18n'
 import type { WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
 import { BLOCK_LABEL_KEY, BLOCK_LABEL_READ_ONLY_KEY } from '../constants'
 

@@ -6,7 +6,7 @@ import { LoadingView } from '@/shared/components/ui'
 import { useTasks } from '../TasksContext'
 import { useApp } from '@/shared/context/AppContext'
 import KanbanTab from '../kanban/KanbanTab'
-import SolicitudesTab from '../solicitudes/SolicitudesTab'
+import TasksSolicitudesTab from '../solicitudes/TasksSolicitudesTab'
 import ReporteTab from '../reporte/ReporteTab'
 import ActivityDetailModal from '../modals/ActivityDetailModal'
 import ProjectsTab from '../projects/ProjectsTab'
@@ -27,7 +27,7 @@ export default function TasksContent() {
   const tabViews: Record<string, JSX.Element> = {
     overview: <OverviewTab />,
     kanban: <KanbanTab />,
-    solicitudes: <SolicitudesTab />,
+    solicitudes: <TasksSolicitudesTab />,
     projects: <ProjectsTab onOpenMember={id => { setTeamMemberId(id); setTabActiva('team') }} />,
     calendar: <CalendarTab />,
     team: <TeamTab initialMemberId={teamMemberId} />,

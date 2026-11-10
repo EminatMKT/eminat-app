@@ -2,6 +2,7 @@ import handlePointerDown from './handle-pointer-down'
 import handlePointerMove from './handle-pointer-move'
 import handlePointerUp from './handle-pointer-up'
 import abortGesture from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/gestures/abort-gesture'
+import noopHandler from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/gestures/noop-handler'
 import type { GesturePointerEvent } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/gestures/types'
 import type {
   CreateGestureConfig,
@@ -9,13 +10,12 @@ import type {
   CreateGestureState,
 } from './types'
 
-const noop = (): void => undefined
 const CREATE_GESTURE_NOOP_HANDLERS: CreateGestureHandlers = {
-  onPointerDown: noop,
-  onPointerMove: noop,
-  onPointerUp: noop,
-  onPointerCancel: noop,
-  onLostPointerCapture: noop,
+  onPointerDown: noopHandler,
+  onPointerMove: noopHandler,
+  onPointerUp: noopHandler,
+  onPointerCancel: noopHandler,
+  onLostPointerCapture: noopHandler,
 }
 
 function buildCreatePointerHandlers(config: CreateGestureConfig, state: CreateGestureState) {

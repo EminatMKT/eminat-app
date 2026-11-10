@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest'
 import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
 import type { PopoverControllerResult } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Popover/controller/types'
 import type { PopoverProps } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Popover/types'
+import { SAMPLE_DAY_LABEL } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Popover/constants'
 import buildFieldsInput from './index'
 
-const DAY_LABEL = 'Monday'
 const noop = () => undefined
 const changeField = () => undefined
 const RANGE: EditableRange = {
@@ -18,7 +18,7 @@ const PROPS: PopoverProps = {
   range: RANGE,
   rangeIndex: 0,
   ranges: [RANGE],
-  dayLabel: DAY_LABEL,
+  dayLabel: SAMPLE_DAY_LABEL,
   readOnly: false,
   isNewlyCreated: false,
   onSave: noop,
@@ -37,7 +37,7 @@ const EXPECTED = {
   range: RANGE,
   draft: CONTROLLER.draft,
   error: undefined,
-  dayLabel: DAY_LABEL,
+  dayLabel: SAMPLE_DAY_LABEL,
   readOnly: false,
   changeField,
 }

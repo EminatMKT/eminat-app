@@ -1,6 +1,6 @@
 import saveAvailability from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/save-flow'
 import decideSaveOutcome from '../save-decision'
-import { SAVE_FAILURE } from '../save-decision/constants'
+import { SAVE_FAILURE } from '../constants'
 import type {
   SaveFailureOutcome,
   SaveOutcome,
@@ -8,7 +8,8 @@ import type {
 } from '../save-decision/types'
 import type { ResolveSaveOutcomeInput } from './types'
 
-/** Resolves a save attempt into a SaveOutcome, converting any unexpected rejection into a failure outcome. */
+/** Resolves a save attempt into a SaveOutcome, converting any unexpected rejection into a
+ *  failure outcome. */
 export default async function resolveSaveOutcome(
   { state, onSaved }: ResolveSaveOutcomeInput,
 ): Promise<SaveOutcome> {
@@ -16,6 +17,7 @@ export default async function resolveSaveOutcome(
     const result = await saveAvailability(state)
     const outcomeInput: SaveOutcomeInput = { state, result, onSaved }
     const outcome = decideSaveOutcome(outcomeInput)
+
     return outcome
   } catch (error) {
     const failureOutcome: SaveFailureOutcome = {
@@ -24,6 +26,7 @@ export default async function resolveSaveOutcome(
       error,
       shouldFocusValidation: false,
     }
+
     return failureOutcome
   }
 }

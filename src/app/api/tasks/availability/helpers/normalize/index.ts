@@ -1,8 +1,7 @@
 import type { z } from 'zod'
 import type { WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
+import { MISSING_WEEKDAY_MESSAGE } from '@/app/api/tasks/availability/constants'
 import saveSchema from '../schema'
-
-const MISSING_WEEKDAY_MESSAGE = "zod inferred `weekday` as optional even though the schema requires it"
 
 export default function normalizeRange({
   weekday,
@@ -17,6 +16,7 @@ export default function normalizeRange({
     endsAt,
     note,
   }
+
   return normalizedRange
 }
 

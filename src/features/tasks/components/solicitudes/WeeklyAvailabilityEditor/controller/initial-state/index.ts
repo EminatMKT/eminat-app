@@ -9,6 +9,7 @@ const createInitialEditorState = (
   member: AvailabilityMemberDto,
 ): LocalEditorState => {
   const state = createEditorState(member)
+
   return state
 }
 

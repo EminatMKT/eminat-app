@@ -24,27 +24,26 @@ export type SaveOutcomeInput = SaveOutcomeContext & {
   result: SaveFlowResult
 } & Pick<EditorProps, 'onSaved'>
 
+/** The shape every outcome shares: the state it settles on, its kind and whether focus moves. */
+type OutcomeOf<TKind, TFocus extends boolean, TDetail> = SaveOutcomeContext & TDetail & {
+  kind: TKind
+  shouldFocusValidation: TFocus
+}
+
 /** Outcome for ranges that need validation feedback. */
-export type ValidationFailureOutcome = SaveOutcomeContext &
-  Pick<SaveFlowValidation, 'errors'> & {
-    kind: ValidationFailureKind
-    shouldFocusValidation: true
-  }
+export type ValidationFailureOutcome =
+  OutcomeOf<ValidationFailureKind, true, Pick<SaveFlowValidation, 'errors'>>
 
 /** Outcome for an availability response that was saved successfully. */
-export type SaveSuccessOutcome = SaveOutcomeContext &
-  Pick<SaveFlowSuccess, 'response'> &
-  Pick<SaveOutcomeInput, 'onSaved'> & {
-    kind: SaveSuccessKind
-    shouldFocusValidation: false
-  }
+export type SaveSuccessOutcome = OutcomeOf<
+  SaveSuccessKind,
+  false,
+  Pick<SaveFlowSuccess, 'response'> & Pick<SaveOutcomeInput, 'onSaved'>
+>
 
 /** Outcome for a save operation that could not complete. */
-export type SaveFailureOutcome = SaveOutcomeContext &
-  Pick<SaveFlowFailure, 'error'> & {
-    kind: SaveFailureKind
-    shouldFocusValidation: false
-  }
+export type SaveFailureOutcome =
+  OutcomeOf<SaveFailureKind, false, Pick<SaveFlowFailure, 'error'>>
 
 export type SaveOutcome =
   | ValidationFailureOutcome

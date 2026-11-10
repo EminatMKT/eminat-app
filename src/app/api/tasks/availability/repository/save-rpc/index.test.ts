@@ -1,21 +1,21 @@
 import {
-  afterEach,
   describe,
   expect,
   it,
   vi,
 } from 'vitest'
 import { createClient } from '@supabase/supabase-js'
-import saveRpc from '.'
 import {
   EXCLUSION_VIOLATION_CODE,
   SAVE_CONFLICT_STATUS,
   SAVE_FAILED_STATUS,
 } from '@/app/api/tasks/availability/constants'
+import { ANON_KEY, TEST_ORIGIN } from '@/app/api/tasks/availability/helpers/test-fixtures/constants'
+import saveRpc from '.'
 
-const URL_BASE = 'http://db.test'
-const KEY = 'anon-key'
-const FETCH = 'fetch'
+const OK_STATUS = 200
+const CONFLICT_STATUS = 409
+const FORBIDDEN_STATUS = 403
 const ONE_RANGE = [{
   weekday: 1 as const,
   startsAt: '09:00',
@@ -23,28 +23,25 @@ const ONE_RANGE = [{
   note: '  Mañanas  ',
 }]
 
-function fakeFetch(status: number, body: unknown) {
-  return async (_input: RequestInfo | URL, init?: RequestInit) => {
-    requestedBodies.push(init?.body ? JSON.parse(String(init.body)) : null)
-    const responseBody = JSON.stringify(body)
+function fetchAnswering(status: number, body: unknown) {
+  const answer = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => {
     const responseInit = { status }
-    return new Response(responseBody, responseInit)
-  }
+
+    return new Response(JSON.stringify(body), responseInit)
+  })
+  const fetchExtras = { preconnect: vi.fn() }
+
+  return Object.assign(answer, fetchExtras)
 }
 
-let requestedBodies: unknown[] = []
+function clientWith(fetch: ReturnType<typeof fetchAnswering>) {
+  const options = { global: { fetch } }
 
-afterEach(() => {
-  vi.restoreAllMocks()
-  requestedBodies = []
-})
+  return createClient(TEST_ORIGIN, ANON_KEY, options)
+}
 
 describe('saveRpc', () => {
   it('sends only the normalized ranges, trimming a blank note to null', async () => {
-    vi.spyOn(globalThis, FETCH).mockImplementation(fakeFetch(200, []))
-    const db = createClient(URL_BASE, KEY)
-    const result = await saveRpc(db, ONE_RANGE)
-    expect(result).toBeNull()
     const expectedPayload = {
       p_ranges: [{
         weekday: 1,
@@ -53,7 +50,13 @@ describe('saveRpc', () => {
         note: 'Mañanas',
       }],
     }
-    expect(requestedBodies).toContainEqual(expectedPayload)
+    const fetch = fetchAnswering(OK_STATUS, [])
+
+    expect(await saveRpc(clientWith(fetch), ONE_RANGE)).toBeNull()
+
+    const sentBodies = fetch.mock.calls.map(([, init]) => init?.body)
+
+    expect(sentBodies).toContain(JSON.stringify(expectedPayload))
   })
 
   it('maps the exclusion-violation SQLSTATE to a 409 conflict', async () => {
@@ -63,9 +66,9 @@ describe('saveRpc', () => {
       hint: null,
       details: null,
     }
-    vi.spyOn(globalThis, FETCH).mockImplementation(fakeFetch(409, conflictError))
-    const db = createClient(URL_BASE, KEY)
+    const db = clientWith(fetchAnswering(CONFLICT_STATUS, conflictError))
     const result = await saveRpc(db, ONE_RANGE)
+
     expect(result?.status).toBe(SAVE_CONFLICT_STATUS)
   })
 
@@ -76,9 +79,9 @@ describe('saveRpc', () => {
       hint: null,
       details: null,
     }
-    vi.spyOn(globalThis, FETCH).mockImplementation(fakeFetch(403, otherError))
-    const db = createClient(URL_BASE, KEY)
+    const db = clientWith(fetchAnswering(FORBIDDEN_STATUS, otherError))
     const result = await saveRpc(db, ONE_RANGE)
+
     expect(result?.status).toBe(SAVE_FAILED_STATUS)
   })
 })

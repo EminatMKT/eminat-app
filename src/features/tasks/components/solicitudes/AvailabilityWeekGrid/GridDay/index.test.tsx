@@ -2,7 +2,8 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it } from 'vitest'
 import { LocaleProvider, translate } from '@/shared/i18n'
 import { AVAILABILITY_DAYS } from '@/features/tasks/utils/availability'
-import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
+import { EDITOR_COPY }
+  from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import GridDay from './index'
 import type { GridDayProps } from '../types'
 

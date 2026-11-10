@@ -9,6 +9,7 @@ describe('sortRanges', () => {
       { weekday: 1, startsAt: '09:00', endsAt: '13:00' },
     ]
     const [original] = ranges
+
     expect(sortRanges(ranges).map(item => item.weekday)).toEqual([1, 2])
     expect(original?.weekday).toBe(2)
   })
@@ -18,6 +19,7 @@ describe('sortRanges', () => {
       { weekday: 1, startsAt: '14:00', endsAt: '18:00' },
       { weekday: 1, startsAt: '09:00', endsAt: '13:00' },
     ]
+
     expect(sortRanges(ranges).map(item => item.startsAt)).toEqual(['09:00', '14:00'])
   })
 
@@ -26,6 +28,7 @@ describe('sortRanges', () => {
       { weekday: 7, startsAt: '10:00', endsAt: '12:00' },
       { weekday: 3, startsAt: '08:00', endsAt: '09:00' },
     ]
+
     expect(sortRanges(sundayFirst).map(item => item.weekday)).toEqual([3, 7])
   })
 })

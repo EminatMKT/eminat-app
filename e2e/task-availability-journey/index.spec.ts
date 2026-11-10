@@ -1,6 +1,16 @@
-import { test, expect } from '@playwright/test'
-import type { Page, Response, Locator } from '@playwright/test'
-import { ADMIN_ROLE } from '@/shared/auth/permissions'
+import {
+  test,
+  expect,
+  type Page,
+  type Response,
+  type Locator,
+} from '@playwright/test'
+import {
+  ADMIN_ROLE,
+  MODULE,
+  ROUTES,
+  modulePath,
+} from '@/shared/auth/permissions'
 import { AVAILABILITY_ENDPOINT } from '@/features/tasks/data/availability/constants'
 import { PIXELS_PER_MINUTE } from
   '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/constants'
@@ -15,21 +25,38 @@ import {
   ensureUser,
   getUsuario,
   deleteUser,
-  H,
 } from '../seed'
-import { URL } from '../constants'
-import assignOrganization from '../availability-seed/assign-organization'
-import clearWeeklyAvailability from '../availability-seed/clear-weekly-availability'
-import firstDepartamentoId from '../availability-seed/first-departamento-id'
-import firstActiveJornada from '../availability-seed/first-active-jornada'
+import {
+  APP_HOME,
+  LOGIN_PLACEHOLDER,
+  ONBOARDING_DONE,
+  PASSWORD_BOX,
+} from '../billing-v2/constants'
+import {
+  TASKS_ROLE,
+  assignOrganization,
+  clearWeeklyAvailability,
+  deleteTeam,
+  ensureTeam,
+  firstActiveJornada,
+  firstDepartamentoId,
+} from '../availability-seed'
+import writeLocalStorage from './storage'
 
-const TASKS_ROLE = 'stratix360'
 const SURNAME = 'AvailJourneye2e'
 const OWNER_EMAIL = 'owner.availability.journey.e2e@eminat.net'
 const TEAMMATE_EMAIL = 'teammate.availability.journey.e2e@eminat.net'
 const ADMIN_EMAIL = 'admin.availability.journey.e2e@eminat.net'
 const TEAM_CODE = 'E2E_AVAIL_JOURNEY_TEAM'
-const HOME_URL = 'http://localhost:3000/'
+const TEAM_NAME = 'E2E Availability Journey Team'
+const USERS: Parameters<typeof ensureUser>[] = [
+  [OWNER_EMAIL, TASKS_ROLE, 'Owner', SURNAME],
+  [TEAMMATE_EMAIL, TASKS_ROLE, 'Teammate', SURNAME],
+  [ADMIN_EMAIL, ADMIN_ROLE, 'Admin', SURNAME],
+]
+const ENGLISH_LOCALE: readonly [string, string] = ['locale', 'en']
+const INITIAL_STORAGE = [ONBOARDING_DONE, ENGLISH_LOCALE]
+const TASKS_PATH = modulePath(MODULE.TASKS)
 const LOGIN_WAIT = { timeout: 40000 }
 // Reused verbatim from e2e/billing-v2/phone.spec.ts's PHONE / e2e/meetings-synthetic.spec.ts;
 // this repo has no single exported narrow-viewport constant to import instead.
@@ -79,54 +106,33 @@ const THURSDAY_CLICK_MINUTE = 300
 // A track's own tab stop, the keyboard-create affordance that replaced the add-range button.
 const FOCUSABLE_TRACK_SELECTOR = '[data-grid-track][tabindex="0"]'
 
-async function ensureTeam(codigo: string, nombre: string, departamentoId: string): Promise<string> {
-  const insertUrl = `${URL}/rest/v1/equipos?on_conflict=codigo`
-  const teamBody = { codigo, nombre, departamento_id: departamentoId }
-  const insertInit = {
-    method: 'POST',
-    headers: { ...H, Prefer: 'resolution=merge-duplicates,return=representation' },
-    body: JSON.stringify(teamBody),
-  }
-
-  const response = await fetch(insertUrl, insertInit)
-
-  if (!response.ok) throw new Error(`ensureTeam ${codigo}: ${response.status} ${await response.text()}`)
-
-  const rows = await response.json()
-
-  return rows[0].id
-}
-
-async function deleteTeam(codigo: string): Promise<void> {
-  const deleteUrl = `${URL}/rest/v1/equipos?codigo=eq.${codigo}`
-  const deleteInit = { method: 'DELETE', headers: H }
-
-  await fetch(deleteUrl, deleteInit)
-}
-
 // Fresh test users never completed the first-visit tour; its full-screen mask would intercept
 // sidebar clicks. The default locale is Spanish (see src/shared/i18n/constants.ts) unless
 // localStorage says otherwise -- matches e2e/native-sales.spec.ts's exact init pattern.
 async function bypassOnboardingAndForceEnglish(page: Page): Promise<void> {
-  await page.addInitScript(() => {
-    localStorage.setItem('eminat-onboarding-completed', 'true')
-    localStorage.setItem('locale', 'en')
-  })
+  await page.addInitScript(writeLocalStorage, INITIAL_STORAGE)
+}
+
+// The middleware redirects an authenticated session straight back to '/' on '/login'
+// (src/middleware.ts: `hasSession && pathname === '/login'`); this test logs in twice as
+// different identities on the same page, so the prior session's cookie has to go first.
+async function openLoginPage(page: Page): Promise<void> {
+  await page.context().clearCookies()
+  await page.goto(ROUTES.login)
+}
+
+async function submitCredentials(page: Page, email: string): Promise<void> {
+  const password = page.locator(PASSWORD_BOX)
+
+  await page.getByPlaceholder(LOGIN_PLACEHOLDER).fill(email)
+  await password.fill(PASSWORD)
+  await password.press(ENTER)
 }
 
 async function login(page: Page, email: string): Promise<void> {
-  // The middleware redirects an authenticated session straight back to '/' on '/login'
-  // (src/middleware.ts: `hasSession && pathname === '/login'`); this test logs in twice as
-  // different identities on the same page, so the prior session's cookie has to go first.
-  await page.context().clearCookies()
-  await page.goto('/login')
-  await page.getByPlaceholder('tu@eminat.net').fill(email)
-
-  const password = page.locator('input[type="password"]')
-
-  await password.fill(PASSWORD)
-  await password.press('Enter')
-  await page.waitForURL(HOME_URL, LOGIN_WAIT)
+  await openLoginPage(page)
+  await submitCredentials(page, email)
+  await page.waitForURL(APP_HOME, LOGIN_WAIT)
 }
 
 // Both sub-nav buttons prefix their label with an un-hidden emoji glyph (no space, no
@@ -136,33 +142,32 @@ async function openAvailability(page: Page): Promise<void> {
   const requestsTabMatcher = { name: /Requests/ }
   const availabilityTabMatcher = { name: /Availability/ }
 
-  await page.goto('/tasks')
-  await page.getByRole('button', requestsTabMatcher).click()
-  await page.getByRole('button', availabilityTabMatcher).click()
+  await page.goto(TASKS_PATH)
+  await page.getByRole(BUTTON, requestsTabMatcher).click()
+  await page.getByRole(BUTTON, availabilityTabMatcher).click()
 }
 
-// Each card is now the single full-card press target (`Pressable`), named "Open {name}'s weekly
-// schedule" for a read-only teammate card, or "Edit {name}'s weekly schedule" for the viewer's
-// own card -- the modal is what used to be the inline "Edit" swap, so opening a card is the new
-// entry point for both reading and editing a schedule.
+// Each card is one full-card press target: "Open {name}'s weekly schedule" when read-only,
+// "Edit {name}'s weekly schedule" for the viewer's own. The modal replaced the inline "Edit"
+// swap, so opening a card is the entry point for both reading and editing a schedule.
 function cardFor(page: Page, name: string) {
   const nameFilter = { name: new RegExp(`(?:Open|Edit) ${name}`) }
 
-  return page.getByRole('button', nameFilter)
+  return page.getByRole(BUTTON, nameFilter)
 }
 
 const OWNER_CARD_NAME = `Owner ${SURNAME}`
 const TEAMMATE_CARD_NAME = `Teammate ${SURNAME}`
 const ADMIN_CARD_NAME = `Admin ${SURNAME}`
+const ALL_CARD_NAMES = [OWNER_CARD_NAME, TEAMMATE_CARD_NAME, ADMIN_CARD_NAME]
 
-type DragBox = {
+type VerticalDrag = {
   x: number
-  y: number
-  width: number
-  height: number
+  fromY: number
+  toY: number
 }
 
-async function boxOf(locator: Locator): Promise<DragBox> {
+async function boxOf(locator: Locator) {
   const box = await locator.boundingBox()
 
   if (!box) throw new Error(MISSING_BOX_ERROR)
@@ -170,12 +175,10 @@ async function boxOf(locator: Locator): Promise<DragBox> {
   return box
 }
 
-async function dragFromTo(
-  { mouse }: Page,
-  { x, y }: Pick<DragBox, 'x' | 'y'>,
-  toY: number,
-): Promise<void> {
-  await mouse.move(x, y)
+async function dragFromTo({ mouse }: Page, drag: VerticalDrag): Promise<void> {
+  const { x, fromY, toY } = drag
+
+  await mouse.move(x, fromY)
   await mouse.down()
   await mouse.move(x, toY, MOVE_OPTIONS)
   await mouse.up()
@@ -234,11 +237,13 @@ function wednesdayBlock(page: Page): Locator {
 
 async function dragCreateTuesdayRange(page: Page): Promise<void> {
   const trackBox = await boxOf(tuesdayTrack(page))
-  const x = trackBox.x + trackBox.width / 2
-  const startPoint = { x, y: trackBox.y + DRAG_START_MINUTE * PIXELS_PER_MINUTE }
-  const endY = trackBox.y + DRAG_END_MINUTE * PIXELS_PER_MINUTE
+  const drag = {
+    x: trackBox.x + trackBox.width / 2,
+    fromY: trackBox.y + DRAG_START_MINUTE * PIXELS_PER_MINUTE,
+    toY: trackBox.y + DRAG_END_MINUTE * PIXELS_PER_MINUTE,
+  }
 
-  await dragFromTo(page, startPoint, endY)
+  await dragFromTo(page, drag)
 }
 
 async function fillCreatedTuesdayRange(page: Page): Promise<void> {
@@ -251,11 +256,11 @@ async function fillCreatedTuesdayRange(page: Page): Promise<void> {
 
 async function resizeTuesdayBlockEnd(page: Page): Promise<void> {
   const trackBox = await boxOf(tuesdayTrack(page))
-  const handleBox = await boxOf(resizeHandles(tuesdayBlock(page)).last())
-  const startPoint = { x: handleBox.x + handleBox.width / 2, y: handleBox.y + handleBox.height / 2 }
-  const endY = trackBox.y + RESIZE_TARGET_MINUTE * PIXELS_PER_MINUTE
+  const handle = await boxOf(resizeHandles(tuesdayBlock(page)).last())
+  const toY = trackBox.y + RESIZE_TARGET_MINUTE * PIXELS_PER_MINUTE
+  const drag = { x: handle.x + handle.width / 2, fromY: handle.y + handle.height / 2, toY }
 
-  await dragFromTo(page, startPoint, endY)
+  await dragFromTo(page, drag)
 }
 
 async function editTuesdayNote(page: Page): Promise<void> {
@@ -275,12 +280,16 @@ async function confirmDelete(scope: Locator): Promise<void> {
   await expect(confirm).toBeHidden()
 }
 
-async function createAndDeleteThursdayRange(page: Page): Promise<void> {
+async function clickThursdayTrack(page: Page): Promise<void> {
   const trackBox = await boxOf(thursdayTrack(page))
-  const x = trackBox.x + trackBox.width / 2
-  const y = trackBox.y + THURSDAY_CLICK_MINUTE * PIXELS_PER_MINUTE
+  const clickX = trackBox.x + trackBox.width / 2
+  const clickY = trackBox.y + THURSDAY_CLICK_MINUTE * PIXELS_PER_MINUTE
 
-  await page.mouse.click(x, y)
+  await page.mouse.click(clickX, clickY)
+}
+
+async function createAndDeleteThursdayRange(page: Page): Promise<void> {
+  await clickThursdayTrack(page)
   const popover = namedDialog(page, THURSDAY_LABEL)
 
   await confirmDelete(popover)
@@ -308,6 +317,16 @@ async function keyboardActivateWednesdayBlock(page: Page): Promise<void> {
   await expect(namedDialog(page, WEDNESDAY_LABEL)).toBeVisible()
   await keyboard.press(ESCAPE)
 }
+
+const OWNER_EDIT_STEPS = [
+  dragCreateTuesdayRange,
+  fillCreatedTuesdayRange,
+  resizeTuesdayBlockEnd,
+  editTuesdayNote,
+  keyboardAddWednesdayRange,
+  keyboardActivateWednesdayBlock,
+  createAndDeleteThursdayRange,
+]
 
 async function assertTuesdayPersisted(page: Page): Promise<void> {
   const popover = namedDialog(page, TUESDAY_LABEL)
@@ -342,12 +361,11 @@ let adminId: string
 
 test.beforeAll(async () => {
   const departamentoId = await firstDepartamentoId()
-  const teamId = await ensureTeam(TEAM_CODE, 'E2E Availability Journey Team', departamentoId)
+  const team = { codigo: TEAM_CODE, nombre: TEAM_NAME, departamentoId }
+  const teamId = await ensureTeam(team)
   const jornada = await firstActiveJornada()
 
-  await ensureUser(OWNER_EMAIL, TASKS_ROLE, 'Owner', SURNAME)
-  await ensureUser(TEAMMATE_EMAIL, TASKS_ROLE, 'Teammate', SURNAME)
-  await ensureUser(ADMIN_EMAIL, ADMIN_ROLE, 'Admin', SURNAME)
+  for (const user of USERS) await ensureUser(...user)
 
   ownerId = (await getUsuario(OWNER_EMAIL)).id
   teammateId = (await getUsuario(TEAMMATE_EMAIL)).id
@@ -361,10 +379,12 @@ test.beforeAll(async () => {
 })
 
 test.afterAll(async () => {
-  await clearWeeklyAvailability([ownerId, teammateId, adminId])
-  await deleteUser(OWNER_EMAIL)
-  await deleteUser(TEAMMATE_EMAIL)
-  await deleteUser(ADMIN_EMAIL)
+  const userIds = [ownerId, teammateId, adminId]
+
+  await clearWeeklyAvailability(userIds)
+
+  for (const [email] of USERS) await deleteUser(email)
+
   await deleteTeam(TEAM_CODE)
 })
 
@@ -378,13 +398,7 @@ test('owner drag-creates, resizes, and edits Tuesday availability on the new gri
   await cardFor(page, OWNER_CARD_NAME).click()
   await expect(namedDialog(page, OWNER_CARD_NAME)).toBeVisible()
 
-  await dragCreateTuesdayRange(page)
-  await fillCreatedTuesdayRange(page)
-  await resizeTuesdayBlockEnd(page)
-  await editTuesdayNote(page)
-  await keyboardAddWednesdayRange(page)
-  await keyboardActivateWednesdayBlock(page)
-  await createAndDeleteThursdayRange(page)
+  for (const step of OWNER_EDIT_STEPS) await step(page)
 
   await Promise.all([
     page.waitForResponse(isSaveResponse),
@@ -408,9 +422,8 @@ test('owner drag-creates, resizes, and edits Tuesday availability on the new gri
 
   await login(page, ADMIN_EMAIL)
   await openAvailability(page)
-  await expect(cardFor(page, OWNER_CARD_NAME)).toBeVisible()
-  await expect(cardFor(page, TEAMMATE_CARD_NAME)).toBeVisible()
-  await expect(cardFor(page, ADMIN_CARD_NAME)).toBeVisible()
+
+  for (const cardName of ALL_CARD_NAMES) await expect(cardFor(page, cardName)).toBeVisible()
 
   await cardFor(page, OWNER_CARD_NAME).click()
   await assertOwnerCardReadOnly(page)

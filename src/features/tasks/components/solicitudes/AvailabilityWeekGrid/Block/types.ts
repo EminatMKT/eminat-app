@@ -3,6 +3,9 @@ import type { WeeklyAvailabilityRange } from '@/features/tasks/utils/availabilit
 
 export type BlockResizeEdge = 'top' | 'bottom'
 
+/** Which metric set a block is drawn with: compact for a range of one snap step or less. */
+export type BlockSize = 'compact' | 'normal'
+
 export type BlockResizeHandlePointerDown = (
   edge: BlockResizeEdge,
   event: ReactPointerEvent<HTMLDivElement>,

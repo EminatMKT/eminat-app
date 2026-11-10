@@ -5,9 +5,12 @@ import {
   vi,
 } from 'vitest'
 import type { RangeValidationError } from '@/features/tasks/utils/availability'
+import { OVERLAP_COPY_KEY } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Popover/constants'
 import resolveRangeErrorCopy from './index'
 import type { ResolveRangeErrorCopyInput } from './types'
 
+const INVALID_TIME_COPY_KEY = 'tasks.availability.invalidTime'
+const END_NOT_AFTER_START_COPY_KEY = 'tasks.availability.endNotAfterStart'
 const FIRST_RANGE_INDEX = 0
 const SECOND_RANGE_INDEX = 1
 const NO_ERRORS: RangeValidationError[] = []
@@ -30,7 +33,7 @@ describe('resolveRangeErrorCopy', () => {
     ]
     const input: ResolveRangeErrorCopyInput = { errors, rangeIndex: FIRST_RANGE_INDEX, translate }
 
-    expect(resolveRangeErrorCopy(input)).toBe('tasks.availability.invalidTime')
+    expect(resolveRangeErrorCopy(input)).toBe(INVALID_TIME_COPY_KEY)
   })
 
   it('translates the end-not-after-start sentence for a reversed range', () => {
@@ -39,7 +42,7 @@ describe('resolveRangeErrorCopy', () => {
     ]
     const input: ResolveRangeErrorCopyInput = { errors, rangeIndex: FIRST_RANGE_INDEX, translate }
 
-    expect(resolveRangeErrorCopy(input)).toBe('tasks.availability.endNotAfterStart')
+    expect(resolveRangeErrorCopy(input)).toBe(END_NOT_AFTER_START_COPY_KEY)
   })
 
   it('translates the overlap sentence for a colliding range', () => {
@@ -52,7 +55,7 @@ describe('resolveRangeErrorCopy', () => {
     ]
     const input: ResolveRangeErrorCopyInput = { errors, rangeIndex: FIRST_RANGE_INDEX, translate }
 
-    expect(resolveRangeErrorCopy(input)).toBe('tasks.availability.overlap')
+    expect(resolveRangeErrorCopy(input)).toBe(OVERLAP_COPY_KEY)
   })
 
   it("ignores another range's errors", () => {
@@ -75,6 +78,6 @@ describe('resolveRangeErrorCopy', () => {
     ]
     const input: ResolveRangeErrorCopyInput = { errors, rangeIndex: FIRST_RANGE_INDEX, translate }
 
-    expect(resolveRangeErrorCopy(input)).toBe('tasks.availability.endNotAfterStart')
+    expect(resolveRangeErrorCopy(input)).toBe(END_NOT_AFTER_START_COPY_KEY)
   })
 })

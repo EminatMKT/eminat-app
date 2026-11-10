@@ -12,20 +12,19 @@ import type {
   SaveFlowSuccess,
   SaveFlowValidation,
 } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/save-flow/types'
-import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
+import { EDITOR_COPY }
+  from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import decideSaveOutcome from './index'
-import type {
-  SaveFailureKind,
-  SaveSuccessKind,
-  ValidationFailureKind,
-} from './types'
+import {
+  SAVE_FAILURE,
+  SAVE_SUCCESS,
+  VALIDATION_FAILURE,
+} from '../constants'
 
-const SAVE_SUCCESS: SaveSuccessKind = 'save-success'
-const SAVE_FAILURE: SaveFailureKind = 'save-failure'
-const VALIDATION_FAILURE: ValidationFailureKind = 'validation-failure'
 const UNEXPECTED_KIND_MESSAGE = 'Unexpected decideSaveOutcome kind'
+const NETWORK_ERROR_MESSAGE = 'network'
 const RESPONSE = { viewerUserId: 'viewer-1', members: [] }
-const ERROR = new Error('network')
+const ERROR = new Error(NETWORK_ERROR_MESSAGE)
 const STATE: LocalEditorState = {
   ranges: [],
   status: EDITOR_COPY.idleStatus,
@@ -50,7 +49,9 @@ describe('WeeklyAvailabilityEditor save decision', () => {
     const result = decideSaveOutcome({ state: STATE, result: SUCCESS_RESULT, onSaved })
 
     expect(result.kind).toBe(SAVE_SUCCESS)
+
     if (result.kind !== SAVE_SUCCESS) throw new Error(UNEXPECTED_KIND_MESSAGE)
+
     expect(result.response).toBe(RESPONSE)
     expect(result.onSaved).toBe(onSaved)
   })
@@ -59,7 +60,9 @@ describe('WeeklyAvailabilityEditor save decision', () => {
     const result = decideSaveOutcome({ state: STATE, result: FAILURE_RESULT, onSaved })
 
     expect(result.kind).toBe(SAVE_FAILURE)
+
     if (result.kind !== SAVE_FAILURE) throw new Error(UNEXPECTED_KIND_MESSAGE)
+
     expect(result.error).toBe(ERROR)
     expect(result.shouldFocusValidation).toBe(false)
   })

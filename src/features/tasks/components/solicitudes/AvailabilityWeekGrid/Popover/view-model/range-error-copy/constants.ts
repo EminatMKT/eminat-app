@@ -1,6 +1,7 @@
 import type { I18nKey } from '@/shared/i18n'
 import type { RangeValidationError } from '@/features/tasks/utils/availability'
-import AVAILABILITY_RANGE_ITEM_CONSTANTS from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/AvailabilityRangeItem/constants'
+import { AVAILABILITY_RANGE_ITEM_CONSTANTS }
+  from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/AvailabilityRangeItem/constants'
 
 type RangeErrorCode = RangeValidationError['code']
 

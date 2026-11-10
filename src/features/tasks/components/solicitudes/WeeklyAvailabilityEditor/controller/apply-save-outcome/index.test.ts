@@ -6,7 +6,8 @@ import {
 } from 'vitest'
 import type { AvailabilityResponse } from '@/features/tasks/data/availability/types'
 import type { LocalEditorState } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
-import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
+import { EDITOR_COPY }
+  from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import type {
   SaveFailureOutcome,
   SaveSuccessOutcome,
@@ -21,7 +22,8 @@ const PRE_SAVE_SNAPSHOT: LocalEditorState = {
   pendingRemoval: null,
 }
 const SAVED_RESPONSE: AvailabilityResponse = { viewerUserId: 'viewer-1', members: [] }
-const UNEXPECTED_FAILURE = new Error('save failed')
+const UNEXPECTED_FAILURE_MESSAGE = 'save failed'
+const UNEXPECTED_FAILURE = new Error(UNEXPECTED_FAILURE_MESSAGE)
 
 describe('applySaveOutcome', () => {
   it('reports the validation status/message and bumps the focus token, without touching ranges', () => {
@@ -37,7 +39,7 @@ describe('applySaveOutcome', () => {
     expect(result.status).toBe(EDITOR_COPY.idleStatus)
     expect(result.message).toBe(EDITOR_COPY.validationError)
     expect(result.shouldBumpFocusToken).toBe(true)
-    expect(result).not.toHaveProperty('state')
+    expect('state' in result).toBe(false)
   })
 
   it('reports success without calling onSaved itself or bumping the focus token', () => {

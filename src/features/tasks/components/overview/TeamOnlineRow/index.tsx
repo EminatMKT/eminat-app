@@ -3,15 +3,13 @@ import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import Avatar from '@/shared/components/Avatar'
 import type { Usuario } from '@/shared/context/loadAppData'
+import { ONLINE_WINDOW_MS } from './constants'
 import s from './index.module.css'
 
 // Campos canónicos de `Usuario` (Pick) + el embed N:N `usuario_cargos`.
 type TeamUser = Pick<Usuario, 'nombre' | 'apellido' | 'color'> & {
   usuario_cargos?: { cargos?: { codigo: string; nombre: string } | null }[]
 }
-
-// Se considera en línea si marcó presencia en los últimos 5 minutos.
-const ONLINE_WINDOW_MS = 5 * 60 * 1000
 
 type Props = {
   u: TeamUser

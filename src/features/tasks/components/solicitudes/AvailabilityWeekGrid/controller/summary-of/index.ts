@@ -1,6 +1,7 @@
 import { declaredWeeklyHours, type WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
 import type { AvailabilityWorkdayDto } from '@/features/tasks/data/availability/types'
-import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
+import { EDITOR_COPY }
+  from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import type { Translate } from '../types'
 
 /** The week's declared-hours total, the message shown for a day with zero ranges, and the one

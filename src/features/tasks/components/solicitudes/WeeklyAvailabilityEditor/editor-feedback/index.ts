@@ -1,5 +1,4 @@
-import { countInvalidRanges } from '@/features/tasks/utils/availability'
-import type { RangeValidationError } from '@/features/tasks/utils/availability'
+import { countInvalidRanges, type RangeValidationError } from '@/features/tasks/utils/availability'
 import { NO_INVALID_RANGES, VALIDATION_SUMMARY_KEY } from './constants'
 import type { Translator } from '../types'
 

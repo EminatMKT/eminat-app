@@ -20,7 +20,9 @@ export default function appendRange(
   }: AvailabilityRow,
 ): void {
   const hasRange = rangeId !== null && weekday !== null && startsAt !== null && endsAt !== null
+
   if (!hasRange) return
+
   const range: AvailabilityRangeDto = {
     id: rangeId,
     weekday,
@@ -28,5 +30,8 @@ export default function appendRange(
     endsAt: toCanonicalTime(endsAt),
     note,
   }
+
   member.ranges.push(range)
 }
+
+// Omits member-only rows and canonicalizes stored time strings when appending a complete range.

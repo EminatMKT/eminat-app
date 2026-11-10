@@ -1,19 +1,17 @@
 import type { Translator } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/types'
-import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
-import RANGE_FIELD_CONSTANTS from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField/constants'
-import AVAILABILITY_RANGE_ITEM_CONSTANTS from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/AvailabilityRangeItem/constants'
+import { RANGE_FIELD_CONSTANTS }
+  from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField/constants'
+import { NOTE_COUNTER_KEY, NOTE_WARNING_THRESHOLD } from '../constants'
 import type { NoteCounterProps } from './types'
 
 /** The note field's character counter: always-visible remaining count, flagged near the limit. */
 export default function noteCounterProps(value: string, translate: Translator): NoteCounterProps {
   const max = RANGE_FIELD_CONSTANTS.noteMaxLength
-  const remaining = max - value.length
-  const vars = { remaining }
-  const threshold = AVAILABILITY_RANGE_ITEM_CONSTANTS.noteCounterWarningThreshold
+  const vars = { remaining: max - value.length }
 
   return {
-    counterText: translate(EDITOR_COPY.noteCharactersRemaining, vars),
-    counterNearLimit: value.length >= max * threshold,
+    counterText: translate(NOTE_COUNTER_KEY, vars),
+    counterNearLimit: value.length >= max * NOTE_WARNING_THRESHOLD,
   }
 }
 

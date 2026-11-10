@@ -6,6 +6,10 @@ import {
 import { renderToStaticMarkup } from 'react-dom/server'
 import PersonSummary from './index'
 
+const personName = 'Ana López'
+const personSubtitle = 'Marketing'
+const personInitials = 'AL'
+
 describe('PersonSummary', () => {
   it('renders the name and subtitle', () => {
     const html = renderToStaticMarkup(
@@ -17,8 +21,8 @@ describe('PersonSummary', () => {
       />,
     )
 
-    expect(html).toContain('Ana López')
-    expect(html).toContain('Marketing')
+    expect(html).toContain(personName)
+    expect(html).toContain(personSubtitle)
   })
 
   it('omits the subtitle row when none is given', () => {
@@ -30,7 +34,7 @@ describe('PersonSummary', () => {
       />,
     )
 
-    expect(html).toContain('Ana López')
+    expect(html).toContain(personName)
   })
 
   it('renders through the shared Avatar', () => {
@@ -42,6 +46,6 @@ describe('PersonSummary', () => {
       />,
     )
 
-    expect(html).toContain('AL')
+    expect(html).toContain(personInitials)
   })
 })

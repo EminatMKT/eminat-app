@@ -13,9 +13,7 @@ vi.mock(I18N_MODULE, () => ({ useT: () => ({ t: (key: string) => key }) }))
 
 const DISABLED_ATTR = 'disabled'
 const CONFIRM_MESSAGE = 'Remove this range?'
-const onSave = vi.fn()
-const onRemove = vi.fn()
-const onCancel = vi.fn()
+const HANDLERS = { onSave: vi.fn(), onRemove: vi.fn(), onCancel: vi.fn() }
 
 describe('PopoverFooter', () => {
   it('disables confirm while canSave is false', () => {
@@ -23,9 +21,7 @@ describe('PopoverFooter', () => {
       <PopoverFooter
         confirmationMessage={CONFIRM_MESSAGE}
         canSave={false}
-        onSave={onSave}
-        onRemove={onRemove}
-        onCancel={onCancel}
+        {...HANDLERS}
       />,
     )
 
@@ -37,9 +33,7 @@ describe('PopoverFooter', () => {
       <PopoverFooter
         confirmationMessage={CONFIRM_MESSAGE}
         canSave={true}
-        onSave={onSave}
-        onRemove={onRemove}
-        onCancel={onCancel}
+        {...HANDLERS}
       />,
     )
 

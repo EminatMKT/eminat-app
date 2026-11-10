@@ -1,6 +1,6 @@
 import type { ChangeEvent } from 'react'
 import Counter from './Counter'
-import RANGE_FIELD_CONSTANTS from './constants'
+import { RANGE_FIELD_CONSTANTS } from './constants'
 import resolveNativeElement from './native-element'
 import resolveDescribedByIds from './described-by'
 import type { RangeFieldProps } from './types'

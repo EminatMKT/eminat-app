@@ -10,6 +10,10 @@ export default async function loadAvailabilityResponse(
   viewerUserId: string,
 ): Promise<AvailabilityResponse | null> {
   const { data, error } = await db.rpc(RPCS.getVisibleWeeklyAvailability)
+
   if (error || !data) return null
+
   return toAvailabilityResponse(data, viewerUserId)
 }
+
+// Converts the visibility RPC's rows once, retaining null as the existing read-failure sentinel.

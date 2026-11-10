@@ -4,7 +4,10 @@ import {
   it,
   vi,
 } from 'vitest'
-import type { BlockResizeEdge } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Block/types'
+import {
+  BOTTOM_EDGE,
+  TOP_EDGE,
+} from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry'
 import type { GesturePointerEvent } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/gestures/types'
 import type {
   ActiveResizeGesture,
@@ -15,8 +18,6 @@ import type {
 import handlePointerUp from '.'
 
 const POINTER_ID = 1
-const TOP_EDGE: BlockResizeEdge = 'top'
-const BOTTOM_EDGE: BlockResizeEdge = 'bottom'
 
 type OnCommit = (commit: ResizeGestureCommit) => void
 
@@ -28,7 +29,7 @@ const buildConfig = (onCommit: OnCommit): ResizeGestureConfig => ({
   readOnly: false,
 })
 
-const buildActive = (edge: BlockResizeEdge): ActiveResizeGesture => ({
+const buildActive = (edge: ActiveResizeGesture['edge']): ActiveResizeGesture => ({
   pointerId: POINTER_ID,
   edge,
   limit: { start: 0, end: 1440 },

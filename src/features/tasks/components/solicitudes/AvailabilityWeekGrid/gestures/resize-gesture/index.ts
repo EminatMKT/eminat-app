@@ -1,6 +1,7 @@
 import handlePointerDown from './grab'
 import handlePointerUp from './release'
 import abortGesture from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/gestures/abort-gesture'
+import noopHandler from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/gestures/noop-handler'
 import type { GesturePointerEvent } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/gestures/types'
 import type { BlockResizeEdge } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Block/types'
 import type {
@@ -10,12 +11,11 @@ import type {
   ResizeGestureState,
 } from './types'
 
-const noop = (): void => undefined
 const RESIZE_GESTURE_NOOP_HANDLERS: ResizeGestureHandlers = {
-  onPointerDown: noop,
-  onPointerUp: noop,
-  onPointerCancel: noop,
-  onLostPointerCapture: noop,
+  onPointerDown: noopHandler,
+  onPointerUp: noopHandler,
+  onPointerCancel: noopHandler,
+  onLostPointerCapture: noopHandler,
 }
 
 function buildResizePointerHandlers(config: ResizeGestureConfig, state: ResizeGestureState) {

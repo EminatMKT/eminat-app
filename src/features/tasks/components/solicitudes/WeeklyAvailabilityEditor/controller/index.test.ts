@@ -7,12 +7,17 @@ import {
   vi,
 } from 'vitest'
 import type { AvailabilityMemberDto, AvailabilityResponse } from '@/features/tasks/data/availability/types'
+import { SAVE_SUCCESS } from './constants'
 import type { SaveSuccessOutcome } from './save-decision/types'
 import useWeeklyAvailabilityEditorController from './index'
 import resolveSaveOutcome from './resolve-save-outcome'
 import type { ControllerProps, WeeklyAvailabilityEditorControllerResult } from './types'
 
-vi.mock('./resolve-save-outcome', () => ({ default: vi.fn() }))
+const { RESOLVE_SAVE_OUTCOME_MODULE } = vi.hoisted(() => ({
+  RESOLVE_SAVE_OUTCOME_MODULE: './resolve-save-outcome',
+}))
+
+vi.mock(RESOLVE_SAVE_OUTCOME_MODULE, () => ({ default: vi.fn() }))
 
 const MEMBER_RANGE = {
   id: 'monday-1',
@@ -33,10 +38,13 @@ const onCancel = vi.fn()
 const onSaved = vi.fn()
 const PROBE_PROPS: ControllerProps = { member: MEMBER, onCancel, onSaved }
 const SAVED_RESPONSE: AvailabilityResponse = { viewerUserId: 'viewer-1', members: [] }
+const PROBE_NOT_RENDERED_MESSAGE = 'Probe did not render a state'
 
 let seen: WeeklyAvailabilityEditorControllerResult | null = null
+
 function Probe() {
   seen = useWeeklyAvailabilityEditorController(PROBE_PROPS)
+
   return null
 }
 
@@ -65,14 +73,17 @@ describe('useWeeklyAvailabilityEditorController', () => {
   it('calls onSaved exactly once per successful save, from the async body, not a setState updater', async () => {
     renderToStaticMarkup(createElement(Probe))
     const renderedState = seen?.state
-    if (!renderedState) throw new Error('Probe did not render a state')
+
+    if (!renderedState) throw new Error(PROBE_NOT_RENDERED_MESSAGE)
+
     const successOutcome: SaveSuccessOutcome = {
-      kind: 'save-success',
+      kind: SAVE_SUCCESS,
       state: renderedState,
       response: SAVED_RESPONSE,
       onSaved,
       shouldFocusValidation: false,
     }
+
     vi.mocked(resolveSaveOutcome).mockResolvedValueOnce(successOutcome)
 
     await seen?.onSave()
@@ -82,4 +93,5 @@ describe('useWeeklyAvailabilityEditorController', () => {
   })
 })
 
-// Limits itself to what renderToStaticMarkup can observe: the initial shape and a pure pass-through.
+// Limits itself to what renderToStaticMarkup can observe: the initial shape and a pure
+// pass-through.

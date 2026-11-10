@@ -1,29 +1,28 @@
 import {
-  afterEach,
   describe,
   expect,
   it,
   vi,
 } from 'vitest'
 import { createClient } from '@supabase/supabase-js'
+import {
+  ANON_KEY,
+  TEST_ORIGIN,
+  VIEWER_ID,
+} from '@/app/api/tasks/availability/helpers/test-fixtures/constants'
 import loadAvailabilityResponse from '.'
 
-const URL_BASE = 'http://db.test'
-const KEY = 'anon-key'
-const VIEWER_ID = 'viewer-1'
-const FETCH = 'fetch'
+const OK_STATUS = 200
+const SERVER_ERROR_STATUS = 500
 
-function fakeFetch(status: number, body: unknown) {
-  return async () => {
-    const responseBody = JSON.stringify(body)
-    const responseInit = { status }
-    return new Response(responseBody, responseInit)
-  }
+function clientAnswering(status: number, body: unknown) {
+  const responseInit = { status }
+  const answer = async () => new Response(JSON.stringify(body), responseInit)
+  const fetchExtras = { preconnect: vi.fn() }
+  const options = { global: { fetch: Object.assign(answer, fetchExtras) } }
+
+  return createClient(TEST_ORIGIN, ANON_KEY, options)
 }
-
-afterEach(() => {
-  vi.restoreAllMocks()
-})
 
 describe('loadAvailabilityResponse', () => {
   it('groups the visible rows into an AvailabilityResponse', async () => {
@@ -42,9 +41,9 @@ describe('loadAvailabilityResponse', () => {
       ends_at: null,
       note: null,
     }
-    vi.spyOn(globalThis, FETCH).mockImplementation(fakeFetch(200, [row]))
-    const db = createClient(URL_BASE, KEY)
+    const db = clientAnswering(OK_STATUS, [row])
     const response = await loadAvailabilityResponse(db, VIEWER_ID)
+
     expect(response?.viewerUserId).toBe(VIEWER_ID)
     expect(response?.members).toHaveLength(1)
   })
@@ -56,9 +55,8 @@ describe('loadAvailabilityResponse', () => {
       hint: null,
       details: null,
     }
-    vi.spyOn(globalThis, FETCH).mockImplementation(fakeFetch(500, rpcError))
-    const db = createClient(URL_BASE, KEY)
-    const response = await loadAvailabilityResponse(db, VIEWER_ID)
-    expect(response).toBeNull()
+    const db = clientAnswering(SERVER_ERROR_STATUS, rpcError)
+
+    expect(await loadAvailabilityResponse(db, VIEWER_ID)).toBeNull()
   })
 })

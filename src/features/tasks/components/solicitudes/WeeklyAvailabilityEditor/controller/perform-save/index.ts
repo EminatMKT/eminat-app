@@ -1,5 +1,5 @@
 import resolveSaveOutcome from '../resolve-save-outcome'
-import { SAVE_SUCCESS } from '../save-decision/constants'
+import { SAVE_SUCCESS } from '../constants'
 import createSaveCycleFacade from '../save-cycle'
 import type { PerformSaveInput } from './types'
 

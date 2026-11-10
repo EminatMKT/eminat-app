@@ -1,9 +1,12 @@
 import { expect, it } from 'vitest'
 import { translate, type I18nKey } from '@/shared/i18n'
 import { declaredWeeklyHours } from '@/features/tasks/utils/availability'
-import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
-import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import { EDITOR_COPY }
+  from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
+import type { AvailabilityWeekGridProps } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/types'
 import summaryOf from '.'
+
+type EditableRange = AvailabilityWeekGridProps['ranges'][number]
 
 const RANGE: EditableRange = {
   clientId: 'monday',

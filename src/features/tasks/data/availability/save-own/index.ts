@@ -1,7 +1,6 @@
 import type { AvailabilityResponse, SaveOwnAvailabilityRange } from '../types'
-import { AVAILABILITY_ENDPOINT } from '../constants'
+import { AVAILABILITY_ENDPOINT, SAVE_FAILED_MESSAGE } from '../constants'
 
-const SAVE_FAILED_MESSAGE = 'TASK_AVAILABILITY_SAVE_FAILED'
 const SAVE_METHOD = 'PUT'
 const JSON_CONTENT_TYPE_HEADERS = { 'Content-Type': 'application/json' }
 
@@ -15,7 +14,9 @@ export default async function saveOwnAvailability(
     body: JSON.stringify(requestBody),
   }
   const response = await fetch(AVAILABILITY_ENDPOINT, requestInit)
+
   if (!response.ok) throw new Error(SAVE_FAILED_MESSAGE)
+
   return response.json()
 }
 

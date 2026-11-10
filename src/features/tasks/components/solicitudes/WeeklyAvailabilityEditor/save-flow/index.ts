@@ -15,8 +15,10 @@ export default async function saveAvailability(
   state: SaveFlowState,
 ): Promise<SaveFlowResult> {
   const validationErrors = validateRanges(state.ranges)
+
   if (validationErrors.length > 0) {
     const validationResult: SaveFlowValidation = { errors: validationErrors }
+
     return validationResult
   }
 
@@ -24,9 +26,11 @@ export default async function saveAvailability(
     const saveRanges = toSaveRanges(state)
     const response = await saveOwnAvailability(saveRanges)
     const successResult: SaveFlowSuccess = { response }
+
     return successResult
   } catch (error) {
     const failureResult: SaveFlowFailure = { error }
+
     return failureResult
   }
 }

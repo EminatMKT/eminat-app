@@ -7,12 +7,15 @@ import {
 const resolveRangeIndex = ({ ranges, clientId }: RangeIndexInput): number => {
   const matchesClientId = (range: EditableRange) => range.clientId === clientId
   const rangeIndex = ranges.findIndex(matchesClientId)
+
   if (rangeIndex === RANGE_INDEX_NOT_FOUND) return RANGE_INDEX_NOT_FOUND
+
   return rangeIndex
 }
 
 export default function createRangeIndexFacade() {
   const facade = { resolveRangeIndex }
+
   return facade
 }
 

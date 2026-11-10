@@ -1,4 +1,4 @@
-const RANGE_FIELD_CONSTANTS = {
+export const RANGE_FIELD_CONSTANTS = {
   timeInputType: 'time',
   textInputType: 'text',
   textareaInputType: 'textarea',
@@ -10,5 +10,3 @@ const RANGE_FIELD_CONSTANTS = {
   describedBySeparator: ' ',
   alertRole: 'alert',
 } as const
-
-export default RANGE_FIELD_CONSTANTS

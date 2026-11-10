@@ -44,9 +44,11 @@ it('rejects an overlapping create without touching onChange, select, or markCrea
   const bounds = { start: 570, end: 630 }
 
   actions.onCreate(AVAILABILITY_DAYS[0], bounds, true)
-  expect(input.onChange).not.toHaveBeenCalled()
-  expect(input.select).not.toHaveBeenCalled()
-  expect(input.markCreated).not.toHaveBeenCalled()
+  const untouched = [input.onChange, input.select, input.markCreated]
+
+  for (const callback of untouched) {
+    expect(callback).not.toHaveBeenCalled()
+  }
 })
 
 it('blocks every create while read-only', () => {

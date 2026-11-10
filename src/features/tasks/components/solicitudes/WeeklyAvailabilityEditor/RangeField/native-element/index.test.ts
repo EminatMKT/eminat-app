@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import RANGE_FIELD_CONSTANTS from '../constants'
+import { RANGE_FIELD_CONSTANTS } from '../constants'
 import resolveNativeElement from './index'
 
 describe('resolveNativeElement', () => {

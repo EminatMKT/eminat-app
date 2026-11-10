@@ -1,4 +1,4 @@
-import RANGE_FIELD_CONSTANTS from './constants'
+import { RANGE_FIELD_CONSTANTS } from './constants'
 
 /** The native input kinds supported by a single availability range field. */
 export type RangeFieldInputType =

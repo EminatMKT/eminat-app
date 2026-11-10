@@ -8,6 +8,7 @@ export default function confirmRemoval(
   confirm: ConfirmationFunction = askForConfirmation,
 ): void {
   const confirmed = confirm(message)
+
   if (confirmed) remove()
 }
 

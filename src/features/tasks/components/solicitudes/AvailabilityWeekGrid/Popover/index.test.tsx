@@ -9,41 +9,38 @@ import {
 import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
 import type { WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
 import type { PopoverProps } from './types'
+import { SAMPLE_CLIENT_ID, SAMPLE_DAY_LABEL } from './constants'
 import Popover from './index'
 
 const { I18N_MODULE } = vi.hoisted(() => ({ I18N_MODULE: '@/shared/i18n' }))
 
 vi.mock(I18N_MODULE, () => ({ useT: () => ({ t: (key: string) => key }) }))
 
-const CLIENT_ID = 'range-client-1'
-const DAY_LABEL = 'Monday'
 const SAVE_LABEL_KEY = 'common.saveChanges'
-const START_FIELD_ATTR = `id="${CLIENT_ID}-start"`
-const END_FIELD_ATTR = `id="${CLIENT_ID}-end"`
-const NOTE_FIELD_ATTR = `id="${CLIENT_ID}-note"`
+const FIELD_ATTRS = [
+  `id="${SAMPLE_CLIENT_ID}-start"`,
+  `id="${SAMPLE_CLIENT_ID}-end"`,
+  `id="${SAMPLE_CLIENT_ID}-note"`,
+]
 
 const RANGE: EditableRange = {
-  clientId: CLIENT_ID,
+  clientId: SAMPLE_CLIENT_ID,
   weekday: 1,
   startsAt: '09:00',
   endsAt: '17:00',
   note: 'Focus work',
 }
 const RANGES: WeeklyAvailabilityRange[] = [RANGE]
-const onSave = vi.fn()
-const onRemove = vi.fn()
-const onClose = vi.fn()
+const HANDLERS = { onSave: vi.fn(), onRemove: vi.fn(), onClose: vi.fn() }
 
 const BASE_PROPS: PopoverProps = {
   range: RANGE,
   rangeIndex: 0,
   ranges: RANGES,
-  dayLabel: DAY_LABEL,
+  dayLabel: SAMPLE_DAY_LABEL,
   readOnly: false,
   isNewlyCreated: false,
-  onSave,
-  onRemove,
-  onClose,
+  ...HANDLERS,
 }
 
 const draw = (props: PopoverProps) => renderToStaticMarkup(createElement(Popover, props))
@@ -52,9 +49,9 @@ describe('Popover', () => {
   it('shows the three independently identified range fields', () => {
     const html = draw(BASE_PROPS)
 
-    expect(html).toContain(START_FIELD_ATTR)
-    expect(html).toContain(END_FIELD_ATTR)
-    expect(html).toContain(NOTE_FIELD_ATTR)
+    for (const attr of FIELD_ATTRS) {
+      expect(html).toContain(attr)
+    }
   })
 
   it('offers save while editable', () => {

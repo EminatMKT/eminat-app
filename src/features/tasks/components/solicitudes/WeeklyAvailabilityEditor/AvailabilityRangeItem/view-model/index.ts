@@ -1,8 +1,9 @@
-import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
+import { EDITOR_COPY }
+  from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import type { Translator } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/types'
 import buildAvailabilityRangeItemFields from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Popover/view-model/fields'
 import confirmRemoval from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Popover/confirm-removal'
-import AVAILABILITY_RANGE_ITEM_CONSTANTS from '../constants'
+import { AVAILABILITY_RANGE_ITEM_CONSTANTS } from '../constants'
 import type {
   AvailabilityRangeItemProps,
   AvailabilityRangeItemViewModel,
@@ -36,6 +37,7 @@ export default function buildAvailabilityRangeItemViewModel(
     ...fields,
     removeButton,
   }
+
   return viewModel
 }
 

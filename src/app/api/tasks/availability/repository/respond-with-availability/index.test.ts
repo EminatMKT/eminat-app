@@ -1,32 +1,31 @@
 import {
-  afterEach,
   describe,
   expect,
   it,
   vi,
 } from 'vitest'
 import { createClient } from '@supabase/supabase-js'
-import respondWithAvailability from '.'
 import { LOAD_FAILED_STATUS } from '@/app/api/tasks/availability/constants'
+import {
+  ANON_KEY,
+  CACHE_CONTROL_HEADER,
+  NO_STORE,
+  TEST_ORIGIN,
+  VIEWER_ID,
+} from '@/app/api/tasks/availability/helpers/test-fixtures/constants'
+import respondWithAvailability from '.'
 
-const URL_BASE = 'http://db.test'
-const KEY = 'anon-key'
-const VIEWER_ID = 'viewer-1'
-const FETCH = 'fetch'
-const NO_STORE = 'no-store'
-const CACHE_CONTROL_HEADER = 'cache-control'
+const OK_STATUS = 200
+const SERVER_ERROR_STATUS = 500
 
-function fakeFetch(status: number, body: unknown) {
-  return async () => {
-    const responseBody = JSON.stringify(body)
-    const responseInit = { status }
-    return new Response(responseBody, responseInit)
-  }
+function clientAnswering(status: number, body: unknown) {
+  const responseInit = { status }
+  const answer = async () => new Response(JSON.stringify(body), responseInit)
+  const fetchExtras = { preconnect: vi.fn() }
+  const options = { global: { fetch: Object.assign(answer, fetchExtras) } }
+
+  return createClient(TEST_ORIGIN, ANON_KEY, options)
 }
-
-afterEach(() => {
-  vi.restoreAllMocks()
-})
 
 describe('respondWithAvailability', () => {
   it('responds with the load-failed status when the RPC call fails', async () => {
@@ -36,9 +35,9 @@ describe('respondWithAvailability', () => {
       hint: null,
       details: null,
     }
-    vi.spyOn(globalThis, FETCH).mockImplementation(fakeFetch(500, rpcError))
-    const db = createClient(URL_BASE, KEY)
+    const db = clientAnswering(SERVER_ERROR_STATUS, rpcError)
     const response = await respondWithAvailability(db, VIEWER_ID)
+
     expect(response.status).toBe(LOAD_FAILED_STATUS)
   })
 
@@ -58,11 +57,11 @@ describe('respondWithAvailability', () => {
       ends_at: null,
       note: null,
     }
-    vi.spyOn(globalThis, FETCH).mockImplementation(fakeFetch(200, [row]))
-    const db = createClient(URL_BASE, KEY)
+    const db = clientAnswering(OK_STATUS, [row])
     const response = await respondWithAvailability(db, VIEWER_ID)
-    expect(response.headers.get(CACHE_CONTROL_HEADER)).toBe(NO_STORE)
     const body = await response.json()
+
+    expect(response.headers.get(CACHE_CONTROL_HEADER)).toBe(NO_STORE)
     expect(body.viewerUserId).toBe(VIEWER_ID)
   })
 })

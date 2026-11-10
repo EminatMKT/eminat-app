@@ -1,7 +1,8 @@
 'use client'
 import { useT } from '@/shared/i18n'
 import { Modal } from '@/shared/components/ui'
-import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
+import { EDITOR_COPY }
+  from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import usePopoverController, { type PopoverControllerResult } from './controller'
 import buildPopoverFields, { type PopoverFields } from './popover-fields'
 import buildFieldsInput from './fields-input'

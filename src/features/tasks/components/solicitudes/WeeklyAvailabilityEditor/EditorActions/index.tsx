@@ -1,8 +1,7 @@
-import { createElement } from 'react'
-import type { ComponentProps } from 'react'
+import { createElement, type ComponentProps } from 'react'
 import { Button } from '@/shared/components/ui'
 import { useT, type I18nKey } from '@/shared/i18n'
-import EDITOR_COPY from '../constants'
+import { EDITOR_COPY } from '../constants'
 import type { EditorStatus } from '../types'
 import s from './index.module.css'
 

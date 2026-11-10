@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
+import { EDITOR_COPY }
+  from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import clearStaleFeedback from './index'
 import type { SettledFeedback } from './types'
 

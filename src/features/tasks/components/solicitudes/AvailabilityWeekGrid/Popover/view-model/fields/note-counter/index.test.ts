@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import RANGE_FIELD_CONSTANTS from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField/constants'
+import { RANGE_FIELD_CONSTANTS }
+  from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField/constants'
 import noteCounterProps from './index'
 
 const MAX = RANGE_FIELD_CONSTANTS.noteMaxLength

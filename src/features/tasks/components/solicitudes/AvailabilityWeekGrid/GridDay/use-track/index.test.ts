@@ -13,7 +13,7 @@ const RANGE: EditableRange = {
   note: null,
 }
 const NOOP = () => undefined
-const FUNCTION_TYPE = 'function'
+const ANY_FUNCTION = expect.any(Function)
 const PROPS = {
   day: AVAILABILITY_DAYS[0],
   ranges: [RANGE],
@@ -38,7 +38,7 @@ it('returns a track ref, a columnTop reader, and a stable create-gesture handler
 
   expect(seen?.trackRef.current).toBeNull()
   expect(seen?.columnTop()).toBe(0)
-  expect(typeof seen?.gesture.onPointerDown).toBe(FUNCTION_TYPE)
+  expect(seen?.gesture.onPointerDown).toEqual(ANY_FUNCTION)
 })
 
 it('starts with no live create-drag preview', () => {

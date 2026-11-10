@@ -7,17 +7,20 @@ import {
 import type { RangeValidationError } from '@/features/tasks/utils/availability'
 import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
 import type { PopoverDraft } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Popover/draft/types'
+import {
+  OVERLAP_CODE,
+  OVERLAP_COPY_KEY,
+  SAMPLE_CLIENT_ID,
+  SAMPLE_DAY_LABEL,
+} from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Popover/constants'
 import buildPopoverFields from './index'
 import type { PopoverFieldsInput } from './types'
 
-const CLIENT_ID = 'range-client-1'
-const OVERLAP_CODE = 'overlap'
-const OVERLAP_ERROR_KEY = 'tasks.availability.overlap'
 const NOTE_FIELD = 'note'
 const translate = (key: string) => key
 const changeField = vi.fn()
 const RANGE: EditableRange = {
-  clientId: CLIENT_ID,
+  clientId: SAMPLE_CLIENT_ID,
   weekday: 1,
   startsAt: '09:00',
   endsAt: '17:00',
@@ -28,9 +31,15 @@ const INPUT: PopoverFieldsInput = {
   range: RANGE,
   draft: DRAFT,
   error: undefined,
-  dayLabel: 'Monday',
+  dayLabel: SAMPLE_DAY_LABEL,
   readOnly: false,
   changeField,
+}
+
+const everyField = (input: PopoverFieldsInput) => {
+  const fields = buildPopoverFields(input, translate)
+
+  return [fields.startField, fields.endField, fields.noteField]
 }
 
 describe('buildPopoverFields', () => {
@@ -43,21 +52,17 @@ describe('buildPopoverFields', () => {
   })
 
   it('leaves every field enabled while editing is allowed', () => {
-    const fields = buildPopoverFields(INPUT, translate)
-
-    expect(fields.startField.disabled).toBe(false)
-    expect(fields.endField.disabled).toBe(false)
-    expect(fields.noteField.disabled).toBe(false)
+    for (const field of everyField(INPUT)) {
+      expect(field.disabled).toBe(false)
+    }
   })
 
   it('disables every field in read-only view mode', () => {
     const readOnlyInput: PopoverFieldsInput = { ...INPUT, readOnly: true }
 
-    const fields = buildPopoverFields(readOnlyInput, translate)
-
-    expect(fields.startField.disabled).toBe(true)
-    expect(fields.endField.disabled).toBe(true)
-    expect(fields.noteField.disabled).toBe(true)
+    for (const field of everyField(readOnlyInput)) {
+      expect(field.disabled).toBe(true)
+    }
   })
 
   it('surfaces the error on both time fields, never the note', () => {
@@ -70,8 +75,8 @@ describe('buildPopoverFields', () => {
 
     const fields = buildPopoverFields(inputWithError, translate)
 
-    expect(fields.startField.error).toBe(OVERLAP_ERROR_KEY)
-    expect(fields.endField.error).toBe(OVERLAP_ERROR_KEY)
+    expect(fields.startField.error).toBe(OVERLAP_COPY_KEY)
+    expect(fields.endField.error).toBe(OVERLAP_COPY_KEY)
     expect(fields.noteField.error).toBeUndefined()
   })
 

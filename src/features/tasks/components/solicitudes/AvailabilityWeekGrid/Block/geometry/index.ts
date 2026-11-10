@@ -4,11 +4,15 @@ import {
   minutesOf,
   type WeeklyAvailabilityRange,
 } from '@/features/tasks/utils/availability'
-import minutesToPixels from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/minutes-to-pixels'
-import { SNAP_MINUTES } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/constants'
+import {
+  minutesToPixels,
+  SNAP_MINUTES,
+} from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry'
 import {
   BLOCK_GAP_PX,
   BLOCK_PADDING_PX,
+  COMPACT_SIZE,
+  NORMAL_SIZE,
   NOTE_LINE_HEIGHT_PX,
   TIME_LINE_HEIGHT_PX,
 } from '../constants'
@@ -29,7 +33,7 @@ export default function blockGeometry(
   const topPx = minutesToPixels(start, pxPerMin)
   const heightPx = minutesToPixels(end - start, pxPerMin)
   const compact = end - start <= SNAP_MINUTES
-  const size = compact ? 'compact' : 'normal'
+  const size = compact ? COMPACT_SIZE : NORMAL_SIZE
   const style: CSSProperties = {
     '--block-top': pxValue(topPx),
     '--block-height': pxValue(heightPx),
@@ -37,7 +41,7 @@ export default function blockGeometry(
     '--time-line': pxValue(TIME_LINE_HEIGHT_PX[size]),
     '--note-line': pxValue(NOTE_LINE_HEIGHT_PX[size]),
     '--block-gap': pxValue(BLOCK_GAP_PX[size]),
-    '--note-lines': noteLines(heightPx, compact),
+    '--note-lines': noteLines(heightPx, size),
   }
 
   return { style, compact }

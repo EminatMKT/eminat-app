@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import buildMember from '.'
 import type { AvailabilityRow } from '@/app/api/tasks/availability/types'
+import { VIEWER_ID } from '../test-fixtures/constants'
+
+const TEAMMATE_ID = 'someone-else'
+const FULL_NAME = 'Ada Lovelace'
 
 const baseRow: AvailabilityRow = {
-  user_id: 'viewer-1',
+  user_id: VIEWER_ID,
   first_name: 'Ada',
   last_name: 'Lovelace',
   team_id: null,
@@ -20,20 +24,23 @@ const baseRow: AvailabilityRow = {
 
 describe('buildMember', () => {
   it('joins first and last name, and marks the viewer editable', () => {
-    const member = buildMember(baseRow, 'viewer-1')
-    expect(member.id).toBe('viewer-1')
-    expect(member.name).toBe('Ada Lovelace')
+    const member = buildMember(baseRow, VIEWER_ID)
+
+    expect(member.id).toBe(VIEWER_ID)
+    expect(member.name).toBe(FULL_NAME)
     expect(member.canEdit).toBe(true)
     expect(member.ranges).toEqual([])
   })
 
   it('marks a teammate as not editable', () => {
-    const member = buildMember(baseRow, 'someone-else')
+    const member = buildMember(baseRow, TEAMMATE_ID)
+
     expect(member.canEdit).toBe(false)
   })
 
   it('reports no team or workday when either column is null', () => {
-    const member = buildMember(baseRow, 'viewer-1')
+    const member = buildMember(baseRow, VIEWER_ID)
+
     expect(member.team).toBeNull()
     expect(member.workday).toBeNull()
   })
@@ -47,9 +54,10 @@ describe('buildMember', () => {
       workday_name: 'Jornada completa',
       hours_per_week: 40,
     }
-    const member = buildMember(rowWithTeamAndWorkday, 'viewer-1')
+    const member = buildMember(rowWithTeamAndWorkday, VIEWER_ID)
     const expectedTeam = { id: 'team-1', name: 'Marketing' }
     const expectedWorkday = { id: 'workday-1', name: 'Jornada completa', hoursPerWeek: 40 }
+
     expect(member.team).toEqual(expectedTeam)
     expect(member.workday).toEqual(expectedWorkday)
   })

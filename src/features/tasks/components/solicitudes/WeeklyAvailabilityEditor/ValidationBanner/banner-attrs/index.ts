@@ -1,4 +1,4 @@
-import EDITOR_COPY
+import { EDITOR_COPY }
   from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import { VALIDATION_ID, VALIDATION_LIVE, VALIDATION_TAB_INDEX } from '../constants'
 import type { ValidationBannerProps } from '../types'

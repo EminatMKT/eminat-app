@@ -1,12 +1,12 @@
 import type { AvailabilityResponse } from '../types'
-import { AVAILABILITY_ENDPOINT } from '../constants'
-
-const LOAD_FAILED_MESSAGE = 'TASK_AVAILABILITY_LOAD_FAILED'
+import { AVAILABILITY_ENDPOINT, LOAD_FAILED_MESSAGE } from '../constants'
 
 export default async function fetchVisibleAvailability(): Promise<AvailabilityResponse> {
   const requestInit: RequestInit = { cache: 'no-store' }
   const response = await fetch(AVAILABILITY_ENDPOINT, requestInit)
+
   if (!response.ok) throw new Error(LOAD_FAILED_MESSAGE)
+
   return response.json()
 }
 

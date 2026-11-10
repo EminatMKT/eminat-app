@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
+import { END_OF_DAY_TIME } from '../constants'
 import endMinutesOf from '.'
 
-const END_OF_DAY = '24:00'
-const AFTER_END_OF_DAY = '24:01'
-const ORDINARY_END = '23:30'
+const afterEndOfDay = '24:01'
+const ordinaryEnd = '23:30'
 
 describe('endMinutesOf', () => {
   it('parses midnight only as the end of a day', () => {
-    expect(endMinutesOf(END_OF_DAY)).toBe(1440)
-    expect(endMinutesOf(AFTER_END_OF_DAY)).toBeNull()
-    expect(endMinutesOf(ORDINARY_END)).toBe(1410)
+    expect(endMinutesOf(END_OF_DAY_TIME)).toBe(1440)
+    expect(endMinutesOf(afterEndOfDay)).toBeNull()
+    expect(endMinutesOf(ordinaryEnd)).toBe(1410)
   })
 })

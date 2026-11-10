@@ -1,27 +1,23 @@
 export type {
-  DailyHoursComparison,
+  AvailabilityDay,
   DailyHoursStatus,
-  OverlapError,
   RangeValidationError,
   Weekday,
   WeeklyAvailabilityRange,
 } from './types'
-export { default as durationHours } from './duration-hours'
 export { default as minutesOf } from './minutes'
 export { default as endMinutesOf } from './end-minutes-of'
 export { default as hhmmOf } from './hhmm-of'
 export { default as countInvalidRanges } from './count-invalid-ranges'
-export { default as sortRanges } from './sort-ranges'
 export { default as validateRanges } from './validate-ranges'
-export { default as declaredHoursByDay } from './declared-hours-by-day'
 export { default as declaredWeeklyHours } from './declared-weekly-hours'
 export { default as compareDailyHours } from './compare-daily-hours'
 export { default as comparisonCopyVars } from './comparison-copy-vars'
 export {
   AVAILABILITY_DAYS,
+  END_OF_DAY_TIME,
   STATUS_SYMBOLS,
-} from './day-labels'
-export type { AvailabilityDay } from './day-labels'
+} from './constants'
 
 // Barrel for the recurring weekly availability domain: each function lives in its own file
-// (one per file, `export default`), this index only re-exports them.
+// (one per file, `export default`), this index only re-exports what other modules consume.

@@ -1,15 +1,15 @@
 import { expect, it, vi } from 'vitest'
-import { translate } from '@/shared/i18n'
+import { translate, type I18nKey } from '@/shared/i18n'
 import { AVAILABILITY_DAYS } from '@/features/tasks/utils/availability'
-import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
+import { EDITOR_COPY }
+  from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import keyboardAttrs from '.'
-import type { I18nKey } from '@/shared/i18n'
 import type { TrackInput } from '../types'
 
 const MONDAY = AVAILABILITY_DAYS[0]
 const DEFAULT_LOCALE = 'es'
 const EXPECTED_TAB_INDEX = 0
-const FUNCTION_TYPE = 'function'
+const ANY_FUNCTION = expect.any(Function)
 
 function buildProps() {
   const props = {
@@ -51,5 +51,5 @@ it('offers a focusable, labeled, keyboard-handled track when editable', () => {
 
   expect(attrs.tabIndex).toBe(EXPECTED_TAB_INDEX)
   expect(attrs['aria-label']).toBe(expectedLabel)
-  expect(attrs.onKeyDown).toBeTypeOf(FUNCTION_TYPE)
+  expect(attrs.onKeyDown).toEqual(ANY_FUNCTION)
 })

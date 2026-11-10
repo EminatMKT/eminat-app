@@ -11,9 +11,7 @@ const RANGE: EditableRange = {
 }
 
 it('carries the props ranges, readOnly, and onChange, plus the given select and markCreated setters', () => {
-  const onChange = vi.fn()
-  const select = vi.fn()
-  const markCreated = vi.fn()
+  const [onChange, select, markCreated] = [vi.fn(), vi.fn(), vi.fn()]
   const props = {
     ranges: [RANGE],
     workday: null,

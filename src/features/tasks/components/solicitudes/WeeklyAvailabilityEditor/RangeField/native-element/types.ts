@@ -1,4 +1,4 @@
-import RANGE_FIELD_CONSTANTS from '../constants'
+import { RANGE_FIELD_CONSTANTS } from '../constants'
 
 /** The tag RangeField renders: a native input, or a textarea for multi-line notes. */
 export type NativeElementTag =

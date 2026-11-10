@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import toAvailabilityResponse from '.'
 import type { AvailabilityRow } from '@/app/api/tasks/availability/types'
+import { VIEWER_ID } from '../test-fixtures/constants'
 
-const VIEWER_ID = 'viewer-1'
 const TEAMMATE_ID = 'teammate-1'
 
 describe('toAvailabilityResponse', () => {
@@ -59,6 +59,7 @@ describe('toAvailabilityResponse', () => {
       ranges: [expectedViewerRange],
       canEdit: true,
     }
+
     expect(viewerMember).toEqual(expectedViewerMember)
 
     const teammateMember = response.members.find((member) => member.id === TEAMMATE_ID)
@@ -70,6 +71,7 @@ describe('toAvailabilityResponse', () => {
       ranges: [],
       canEdit: false,
     }
+
     expect(teammateMember).toEqual(expectedTeammateMember)
   })
 
@@ -108,6 +110,7 @@ describe('toAvailabilityResponse', () => {
     const emptyRows: Parameters<typeof toAvailabilityResponse>[0] = []
     const response = toAvailabilityResponse(emptyRows, VIEWER_ID)
     const expectedResponse = { viewerUserId: VIEWER_ID, members: [] }
+
     expect(response).toEqual(expectedResponse)
   })
 })

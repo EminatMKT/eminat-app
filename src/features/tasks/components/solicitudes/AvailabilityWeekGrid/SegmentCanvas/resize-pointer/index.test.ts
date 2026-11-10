@@ -5,6 +5,7 @@ import {
   vi,
 } from 'vitest'
 import type { EditableRange } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
+import { BOTTOM_EDGE } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry'
 import type { SegmentResizeInput, ResizePointerEvent } from './types'
 import createResizePointer from '.'
 
@@ -38,7 +39,7 @@ const DOWN: ResizePointerEvent = {
   stopPropagation: vi.fn(),
 }
 const UP = { ...DOWN, clientY: 495 }
-const EDGE = 'bottom'
+const EDGE = BOTTOM_EDGE
 const RESIZED = { ...RANGE, endsAt: '11:00' }
 const EXPECTED = [RESIZED, OTHER]
 let input = INITIAL

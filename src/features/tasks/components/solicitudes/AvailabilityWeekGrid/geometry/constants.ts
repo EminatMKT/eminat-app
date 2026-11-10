@@ -1,3 +1,5 @@
+import type { BlockResizeEdge } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Block/types'
+
 /** Midnight, in minutes since the start of the day — the grid's lower bound. */
 export const DAY_START_MINUTE = 0
 
@@ -12,3 +14,15 @@ export const SNAP_MINUTES = 30
 
 /** A click-create defaults to one hour, or the free room available if shorter. */
 export const MAX_CLICK_CREATE_MINUTES = 60
+
+/** `DAY_START_MINUTE` as the `HH:mm` a day column starts at. */
+export const DAY_START_TIME = '00:00'
+
+/** The latest `HH:mm` a range can start at and still fill one whole snap step before 24:00. */
+export const LAST_SNAP_START_TIME = '23:30'
+
+/** The block edge that moves a range's start. */
+export const TOP_EDGE: BlockResizeEdge = 'top'
+
+/** The block edge that moves a range's end. */
+export const BOTTOM_EDGE: BlockResizeEdge = 'bottom'

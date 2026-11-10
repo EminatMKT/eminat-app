@@ -2,12 +2,14 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it } from 'vitest'
 import { LocaleProvider, translate } from '@/shared/i18n'
 import { AVAILABILITY_DAYS, declaredWeeklyHours } from '@/features/tasks/utils/availability'
-import type { EditableRange } from '../WeeklyAvailabilityEditor/component-types'
-import EDITOR_COPY from '../WeeklyAvailabilityEditor/constants'
+import { EDITOR_COPY } from '../WeeklyAvailabilityEditor/constants'
 import { BLOCK_LABEL_READ_ONLY_KEY } from './Block/constants'
 import { HOURS_STATUS_MARKER } from './DayCaption/constants'
+import { GUTTER_MARKER } from './TimeGutter/constants'
 import type { AvailabilityWeekGridProps } from './types'
 import AvailabilityWeekGrid from './index'
+
+type EditableRange = AvailabilityWeekGridProps['ranges'][number]
 
 const RANGE: EditableRange = {
   clientId: 'test-range',
@@ -24,11 +26,8 @@ const TUESDAY_RANGE: EditableRange = {
 }
 const HOURS_PER_WEEK = 40
 const NOOP = () => undefined
-const GUTTER_MARKER = 'data-grid-gutter'
 const DAY_MARKER = /data-grid-day=/g
 const EXPECTED_COLUMNS = 7
-// The empty-week message appears exactly once (week level), so splitting on it yields two parts.
-const EXPECTED_SPLIT_PARTS = 2
 const EXPECTED_BLOCKS = 2
 const EXPECTED_RESIZE_HANDLES = 2
 const EXPECTED_WEEKLY_HOURS = 18
@@ -37,6 +36,7 @@ const INVENTED_WEEKLY_TARGET = '40 horas'
 const RESIZE_HANDLE_MARKER = /data-resize-handle="true"/g
 const BLOCK_BUTTON_MARKER = /<button\b/g
 const FOCUSABLE_TRACK_MARKER = /tabindex="0"/g
+// A message that appears exactly once splits the markup into two parts.
 const SINGLE_OCCURRENCE_PARTS = 2
 const props: AvailabilityWeekGridProps = {
   ranges: [RANGE],
@@ -110,7 +110,7 @@ it('explains an empty week while keeping seven usable columns', () => {
   const html = draw(emptyProps)
   const message = translate(DEFAULT_LOCALE, EDITOR_COPY.emptyDay)
 
-  expect(html.split(message)).toHaveLength(EXPECTED_SPLIT_PARTS)
+  expect(html.split(message)).toHaveLength(SINGLE_OCCURRENCE_PARTS)
   expect(html.match(DAY_MARKER)).toHaveLength(EXPECTED_COLUMNS)
 })
 

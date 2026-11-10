@@ -1,12 +1,21 @@
 import { describe, expect, it } from 'vitest'
-import type { WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
+import { END_OF_DAY_TIME, type WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
+import { LAST_SNAP_START_TIME } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/constants'
+import {
+  FIVE_PM,
+  NINE_AM,
+  NINE_THIRTY_AM,
+  ONE_PM,
+  TEN_AM,
+} from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/constants'
 import blockGeometry from '.'
 
 const PX_PER_MIN = 2
-const MIDNIGHT_START = '23:30'
-const MIDNIGHT_END = '24:00'
 const TOP_KEY = '--block-top'
 const HEIGHT_KEY = '--block-height'
+const NOTE_LINES_KEY = '--note-lines'
+const MORNING_TOP = '1080px'
+const MORNING_HEIGHT = '480px'
 const MIDNIGHT_TOP = '2820px'
 const MIDNIGHT_HEIGHT = '60px'
 
@@ -16,26 +25,24 @@ const range = (startsAt: string, endsAt: string): WeeklyAvailabilityRange => ({
   endsAt,
 })
 
+const geometryOf = (startsAt: string, endsAt: string) =>
+  blockGeometry(range(startsAt, endsAt), PX_PER_MIN)
+
 describe('blockGeometry', () => {
   it('positions the block from the range start in minutes', () => {
-    const geometry = blockGeometry(range('09:00', '13:00'), PX_PER_MIN)
-
-    expect(geometry.style['--block-top']).toBe('1080px')
+    expect(geometryOf(NINE_AM, ONE_PM).style[TOP_KEY]).toBe(MORNING_TOP)
   })
 
   it('sizes the block from the range duration in minutes', () => {
-    const geometry = blockGeometry(range('09:00', '13:00'), PX_PER_MIN)
-
-    expect(geometry.style['--block-height']).toBe('480px')
+    expect(geometryOf(NINE_AM, ONE_PM).style[HEIGHT_KEY]).toBe(MORNING_HEIGHT)
   })
 
   it('marks a range of 30 minutes or less as compact', () => {
-    expect(blockGeometry(range('09:00', '09:30'), PX_PER_MIN).compact).toBe(true)
+    expect(geometryOf(NINE_AM, NINE_THIRTY_AM).compact).toBe(true)
   })
 
   it('renders the final half hour through midnight as compact', () => {
-    const midnightRange = range(MIDNIGHT_START, MIDNIGHT_END)
-    const geometry = blockGeometry(midnightRange, PX_PER_MIN)
+    const geometry = geometryOf(LAST_SNAP_START_TIME, END_OF_DAY_TIME)
 
     expect(geometry.style[TOP_KEY]).toBe(MIDNIGHT_TOP)
     expect(geometry.style[HEIGHT_KEY]).toBe(MIDNIGHT_HEIGHT)
@@ -43,13 +50,13 @@ describe('blockGeometry', () => {
   })
 
   it('marks a range longer than 30 minutes as not compact', () => {
-    expect(blockGeometry(range('09:00', '10:00'), PX_PER_MIN).compact).toBe(false)
+    expect(geometryOf(NINE_AM, TEN_AM).compact).toBe(false)
   })
 
   it('sets more note lines on a tall block than on a compact one', () => {
-    const compact = blockGeometry(range('09:00', '09:30'), PX_PER_MIN)
-    const tall = blockGeometry(range('09:00', '17:00'), PX_PER_MIN)
+    const compactLines = Number(geometryOf(NINE_AM, NINE_THIRTY_AM).style[NOTE_LINES_KEY])
+    const tallLines = Number(geometryOf(NINE_AM, FIVE_PM).style[NOTE_LINES_KEY])
 
-    expect(Number(tall.style['--note-lines'])).toBeGreaterThan(Number(compact.style['--note-lines']))
+    expect(tallLines).toBeGreaterThan(compactLines)
   })
 })

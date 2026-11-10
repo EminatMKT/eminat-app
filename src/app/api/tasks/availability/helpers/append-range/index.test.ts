@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest'
 import appendRange from '.'
 import type { AvailabilityMemberDto } from '@/features/tasks/data/availability/types'
 import type { AvailabilityRow } from '@/app/api/tasks/availability/types'
+import { VIEWER_ID } from '../test-fixtures/constants'
 
 const memberOnlyRow: AvailabilityRow = {
-  user_id: 'viewer-1',
+  user_id: VIEWER_ID,
   first_name: 'Ada',
   last_name: 'Lovelace',
   team_id: null,
@@ -21,19 +22,21 @@ const memberOnlyRow: AvailabilityRow = {
 
 function buildEmptyMember(): AvailabilityMemberDto {
   const member: AvailabilityMemberDto = {
-    id: 'viewer-1',
+    id: VIEWER_ID,
     name: 'Ada Lovelace',
     team: null,
     workday: null,
     ranges: [],
     canEdit: true,
   }
+
   return member
 }
 
 describe('appendRange', () => {
   it('leaves a member-only row without a range', () => {
     const member = buildEmptyMember()
+
     appendRange(member, memberOnlyRow)
     expect(member.ranges).toEqual([])
   })
@@ -48,7 +51,6 @@ describe('appendRange', () => {
       ends_at: '12:00:00',
       note: 'Mañanas',
     }
-    appendRange(member, rangeRow)
     const expectedRange = {
       id: 'range-1',
       weekday: 1,
@@ -56,6 +58,8 @@ describe('appendRange', () => {
       endsAt: '12:00',
       note: 'Mañanas',
     }
+
+    appendRange(member, rangeRow)
     expect(member.ranges).toEqual([expectedRange])
   })
 })

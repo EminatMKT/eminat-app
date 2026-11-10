@@ -1,14 +1,13 @@
 import { expect, it, vi } from 'vitest'
-import { translate } from '@/shared/i18n'
+import { translate, type I18nKey } from '@/shared/i18n'
 import { AVAILABILITY_DAYS } from '@/features/tasks/utils/availability'
 import trackAttrs from '.'
-import type { I18nKey } from '@/shared/i18n'
 import type { TrackBundle } from '../types'
 
 const MONDAY = AVAILABILITY_DAYS[0]
 const DEFAULT_LOCALE = 'es'
 const EXPECTED_TAB_INDEX = 0
-const FUNCTION_TYPE = 'function'
+const ANY_FUNCTION = expect.any(Function)
 // Matches the module's class names so the className assertions check the real selectors, not a
 // content hash (same pattern as render-track/index.test.ts's CSS module mock). Named via
 // vi.hoisted so the values exist before Vitest hoists the vi.mock call below it.
@@ -92,7 +91,7 @@ it('marks the track editable, with a focusable keyboard affordance over the gest
 
   expect(attrs.className).toBe(`${TRACK_CLASS} ${EDITABLE_CLASS}`)
   expect(attrs.tabIndex).toBe(EXPECTED_TAB_INDEX)
-  expect(attrs.onKeyDown).toBeTypeOf(FUNCTION_TYPE)
+  expect(attrs.onKeyDown).toEqual(ANY_FUNCTION)
   expect(attrs.ref).toBe(bundle.trackRef)
   expect(attrs.onPointerDown).toBe(bundle.gesture.onPointerDown)
 })

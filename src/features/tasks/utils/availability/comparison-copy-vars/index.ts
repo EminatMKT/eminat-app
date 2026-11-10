@@ -15,6 +15,7 @@ export default function comparisonCopyVars({
     expected: expectedHours ?? NO_HOURS,
     difference: Math.abs(signedDifference),
   }
+
   return vars
 }
 

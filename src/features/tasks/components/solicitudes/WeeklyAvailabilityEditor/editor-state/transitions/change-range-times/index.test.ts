@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { EditableRange, LocalEditorState } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
 import type { ChangeRangeTimesAction } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/types'
 import type { Weekday } from '@/features/tasks/utils/availability'
-import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
+import { EDITOR_COPY }
+  from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import changeRangeTimes from '.'
 
 const MONDAY: Weekday = 1
@@ -32,8 +33,8 @@ describe('changeRangeTimes', () => {
     const next = changeRangeTimes(BASE_STATE, RESIZE)
     const [resized] = next.ranges
 
-    expect(resized?.startsAt).toBe('10:00')
-    expect(resized?.endsAt).toBe('11:30')
+    expect(resized?.startsAt).toBe(RESIZE.startsAt)
+    expect(resized?.endsAt).toBe(RESIZE.endsAt)
   })
 
   it('clears a stale status/message', () => {

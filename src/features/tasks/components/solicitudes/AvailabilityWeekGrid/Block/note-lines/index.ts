@@ -6,15 +6,16 @@ import {
   NOTE_LINE_HEIGHT_PX,
   TIME_LINE_HEIGHT_PX,
 } from '../constants'
+import type { BlockSize } from '../types'
 
-/** How many lines of note text fit in a block of `heightPx`, after its own padding, time
- *  label, and gap take their share — ported from the approved prototype's `--note-lines`
- *  formula unchanged. */
-export default function noteLines(heightPx: number, compact: boolean): number {
-  const padding = compact ? BLOCK_PADDING_PX.compact : BLOCK_PADDING_PX.normal
-  const timeLine = compact ? TIME_LINE_HEIGHT_PX.compact : TIME_LINE_HEIGHT_PX.normal
-  const noteLine = compact ? NOTE_LINE_HEIGHT_PX.compact : NOTE_LINE_HEIGHT_PX.normal
-  const gap = compact ? BLOCK_GAP_PX.compact : BLOCK_GAP_PX.normal
+/** How many lines of note text fit in a block of `heightPx` drawn at `size`, after its own
+ *  padding, time label, and gap take their share — ported from the approved prototype's
+ *  `--note-lines` formula unchanged. */
+export default function noteLines(heightPx: number, size: BlockSize): number {
+  const padding = BLOCK_PADDING_PX[size]
+  const timeLine = TIME_LINE_HEIGHT_PX[size]
+  const noteLine = NOTE_LINE_HEIGHT_PX[size]
+  const gap = BLOCK_GAP_PX[size]
   const available = heightPx - BLOCK_BORDER_PX - padding * 2 - timeLine - gap
 
   return Math.max(MIN_NOTE_LINES, Math.floor(available / noteLine))

@@ -9,7 +9,8 @@ import type { AvailabilityResponse } from '@/features/tasks/data/availability/ty
 import type {
   LocalEditorState,
 } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
-import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
+import { EDITOR_COPY }
+  from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import * as resolveSaveOutcomeModule from '../resolve-save-outcome'
 import type { SaveSuccessOutcome } from '../save-decision/types'
 import type { ControllerState } from '../save-cycle/types'

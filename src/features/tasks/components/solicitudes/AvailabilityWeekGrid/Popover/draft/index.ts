@@ -1,5 +1,4 @@
-import { validateRanges } from '@/features/tasks/utils/availability'
-import type { RangeValidationError } from '@/features/tasks/utils/availability'
+import { validateRanges, type RangeValidationError } from '@/features/tasks/utils/availability'
 import type { ValidateDraftInput } from './types'
 
 /** Checks one range's local draft against the rest of its day, by substituting the draft's

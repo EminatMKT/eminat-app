@@ -1,3 +1,11 @@
+import type { BlockSize } from './types'
+
+/** The metric set of a block one snap step long or shorter. */
+export const COMPACT_SIZE: BlockSize = 'compact'
+
+/** The metric set of every block longer than one snap step. */
+export const NORMAL_SIZE: BlockSize = 'normal'
+
 /** Block border width, in pixels — subtracted once from a block's own height before the note's
  *  line-clamp count is computed, matching the approved prototype's `--note-lines` formula. */
 export const BLOCK_BORDER_PX = 2

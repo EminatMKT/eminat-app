@@ -1,6 +1,3 @@
-import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
-import AVAILABILITY_RANGE_ITEM_CONSTANTS from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/AvailabilityRangeItem/constants'
-import RANGE_FIELD_CONSTANTS from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField/constants'
 import type { RangeFieldProps } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/RangeField/types'
 import type { Translator } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/types'
 import type {
@@ -9,53 +6,62 @@ import type {
 } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/AvailabilityRangeItem/types'
 import resolveRangeErrorCopy from '../range-error-copy'
 import noteCounterProps from './note-counter'
+import {
+  EMPTY_NOTE,
+  END_SPEC,
+  LABEL_SEPARATOR,
+  NOTE_INPUT_TYPE,
+  NOTE_SPEC,
+  START_SPEC,
+  TIME_INPUT_TYPE,
+} from './constants'
+import type { FieldBase, FieldContext, FieldSpec } from './types'
 
-export default function buildAvailabilityRangeItemFields(props: AvailabilityRangeItemProps, translate: Translator): AvailabilityRangeItemFields {
-  const {
-    range,
-    rangeIndex,
-    dayLabel,
-    errors,
-    onChange,
-  } = props
+function contextOf(props: AvailabilityRangeItemProps, translate: Translator): FieldContext {
+  const { errors, rangeIndex } = props
   const rangeErrorInput = { errors, rangeIndex, translate }
   const timeError = resolveRangeErrorCopy(rangeErrorInput)
-  const startId = `${range.clientId}${AVAILABILITY_RANGE_ITEM_CONSTANTS.startIdSuffix}`
-  const endId = `${range.clientId}${AVAILABILITY_RANGE_ITEM_CONSTANTS.endIdSuffix}`
-  const noteId = `${range.clientId}${AVAILABILITY_RANGE_ITEM_CONSTANTS.noteIdSuffix}`
-  const startLabel = [dayLabel, translate(EDITOR_COPY.startTime)].join(AVAILABILITY_RANGE_ITEM_CONSTANTS.labelSeparator)
-  const endLabel = [dayLabel, translate(EDITOR_COPY.endTime)].join(AVAILABILITY_RANGE_ITEM_CONSTANTS.labelSeparator)
-  const noteLabel = [dayLabel, translate(EDITOR_COPY.note)].join(AVAILABILITY_RANGE_ITEM_CONSTANTS.labelSeparator)
-  const changeStart = (value: string) => onChange(range.clientId, EDITOR_COPY.startsAtField, value)
-  const changeEnd = (value: string) => onChange(range.clientId, EDITOR_COPY.endsAtField, value)
-  const changeNote = (value: string) => onChange(range.clientId, EDITOR_COPY.noteField, value)
-  const startField: RangeFieldProps = {
-    id: startId,
-    inputType: RANGE_FIELD_CONSTANTS.timeInputType,
-    label: startLabel,
-    value: range.startsAt,
-    error: timeError,
-    onChange: changeStart,
-  }
-  const endField: RangeFieldProps = {
-    id: endId,
-    inputType: RANGE_FIELD_CONSTANTS.timeInputType,
-    label: endLabel,
-    value: range.endsAt,
-    error: timeError,
-    onChange: changeEnd,
-  }
-  const noteValue = range.note ?? EDITOR_COPY.emptyNote
-  const noteField: RangeFieldProps = {
-    id: noteId,
-    inputType: RANGE_FIELD_CONSTANTS.textareaInputType,
-    label: noteLabel,
-    value: noteValue,
-    ...noteCounterProps(noteValue, translate),
-    onChange: changeNote,
-  }
-  const fields: AvailabilityRangeItemFields = { startField, endField, noteField }
-  return fields
+
+  return { props, translate, timeError }
+}
+
+function baseField(context: FieldContext, spec: FieldSpec): FieldBase {
+  const { props, translate } = context
+  const { idSuffix, nameKey, field } = spec
+  const { range, dayLabel, onChange } = props
+  const label = [dayLabel, translate(nameKey)].join(LABEL_SEPARATOR)
+  const id = `${range.clientId}${idSuffix}`
+  const changeField = (value: string) => onChange(range.clientId, field, value)
+
+  return { id, label, onChange: changeField }
+}
+
+function timeField(context: FieldContext, spec: FieldSpec, value: string): RangeFieldProps {
+  const base = { ...baseField(context, spec), inputType: TIME_INPUT_TYPE }
+  const field: RangeFieldProps = { ...base, value, error: context.timeError }
+
+  return field
+}
+
+function noteField(context: FieldContext): RangeFieldProps {
+  const { props, translate } = context
+  const value = props.range.note ?? EMPTY_NOTE
+  const base = { ...baseField(context, NOTE_SPEC), inputType: NOTE_INPUT_TYPE, value }
+  const field: RangeFieldProps = { ...base, ...noteCounterProps(value, translate) }
+
+  return field
+}
+
+/** Builds a range item's three labeled controls: start and end share the range's time error. */
+export default function buildAvailabilityRangeItemFields(
+  props: AvailabilityRangeItemProps,
+  translate: Translator,
+): AvailabilityRangeItemFields {
+  const context = contextOf(props, translate)
+  const startField = timeField(context, START_SPEC, props.range.startsAt)
+  const endField = timeField(context, END_SPEC, props.range.endsAt)
+
+  return { startField, endField, noteField: noteField(context) }
 }
 
 // This builder prepares the three labeled controls before AvailabilityRangeItem renders them.

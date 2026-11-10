@@ -6,7 +6,7 @@ import {
 } from 'vitest'
 import type { LocalEditorState } from '../component-types'
 import type { ControllerResult } from '../controller/types'
-import EDITOR_COPY from '../constants'
+import { EDITOR_COPY } from '../constants'
 import buildActionsProps from './index'
 
 const STATUS = EDITOR_COPY.idleStatus

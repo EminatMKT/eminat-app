@@ -1,7 +1,7 @@
 import { createRef } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import EDITOR_COPY from '../constants'
+import { EDITOR_COPY } from '../constants'
 import { VALIDATION_SUMMARY_KEY } from '../editor-feedback/constants'
 import { VALIDATION_ID, VALIDATION_LIVE, VALIDATION_TAB_INDEX } from './constants'
 import ValidationBanner from './index'
@@ -16,9 +16,9 @@ describe('ValidationBanner', () => {
     )
 
     expect(html).toContain(MESSAGE)
-    expect(html).toContain(`id="${VALIDATION_ID}"`)
+    expect(html).toMatch(`id="${VALIDATION_ID}"`)
     expect(html).toContain(`role="${EDITOR_COPY.alertRole}"`)
-    expect(html).toContain(`aria-live="${VALIDATION_LIVE}"`)
+    expect(html).toMatch(`aria-live="${VALIDATION_LIVE}"`)
     expect(html).toContain(`tabindex="${VALIDATION_TAB_INDEX}"`)
   })
 })

@@ -1,16 +1,26 @@
 import type { DailyHoursComparison, DailyHoursStatus } from '../types'
+import {
+  ABOVE,
+  BELOW,
+  COMPLETE,
+  UNAVAILABLE,
+} from './constants'
 
-function decideStatus(differenceHours: number): DailyHoursStatus {
-  if (differenceHours < 0) {
-    const below: DailyHoursStatus = 'below'
-    return below
-  }
-  if (differenceHours > 0) {
-    const above: DailyHoursStatus = 'above'
-    return above
-  }
-  const complete: DailyHoursStatus = 'complete'
-  return complete
+type HoursGap = Pick<DailyHoursComparison, 'differenceHours' | 'status'>
+
+function decideStatus(differenceHours: number | null): DailyHoursStatus {
+  if (differenceHours === null) return UNAVAILABLE
+
+  if (differenceHours < 0) return BELOW
+
+  return differenceHours > 0 ? ABOVE : COMPLETE
+}
+
+function gapOf(declaredHours: number, expectedHours: number | null): HoursGap {
+  const differenceHours = expectedHours === null ? null : declaredHours - expectedHours
+  const gap: HoursGap = { differenceHours, status: decideStatus(differenceHours) }
+
+  return gap
 }
 
 /** Compares one day's declared hours against its expected (jornada) hours. `expectedHours: null`
@@ -19,23 +29,14 @@ export default function compareDailyHours(
   declaredHours: number,
   expectedHours: number | null,
 ): DailyHoursComparison {
-  if (expectedHours === null) {
-    const unavailable: DailyHoursStatus = 'unavailable'
-    const comparison: DailyHoursComparison = {
-      declaredHours,
-      expectedHours,
-      differenceHours: null,
-      status: unavailable,
-    }
-    return comparison
-  }
-
-  const differenceHours = declaredHours - expectedHours
   const comparison: DailyHoursComparison = {
     declaredHours,
     expectedHours,
-    differenceHours,
-    status: decideStatus(differenceHours),
+    ...gapOf(declaredHours, expectedHours),
   }
+
   return comparison
 }
+
+// compareDailyHours subtracts the jornada hours from the declared ones and reads the sign of the
+// difference as below, complete or above; a day with no jornada has no difference at all.

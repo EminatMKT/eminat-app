@@ -5,3 +5,6 @@ import type { WeeklyAvailabilityRange } from '../types'
 export default function sortRanges(ranges: WeeklyAvailabilityRange[]): WeeklyAvailabilityRange[] {
   return [...ranges].sort((a, b) => a.weekday - b.weekday || a.startsAt.localeCompare(b.startsAt))
 }
+
+// sortRanges sorts a copy by weekday, breaking ties by comparing the canonical `HH:mm` start
+// strings, which order correctly as plain text because they are zero-padded.

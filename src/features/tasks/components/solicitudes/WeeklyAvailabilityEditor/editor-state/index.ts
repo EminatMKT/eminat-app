@@ -2,10 +2,10 @@ import type {
   AvailabilityMemberDto,
   SaveOwnAvailabilityRange,
 } from '@/features/tasks/data/availability/types'
-import type { EditorAction } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/types'
+import type { EditorAction, TimedEditorAction } from '../types'
 import type { LocalEditorState } from '../component-types'
-import EDITOR_COPY from '../constants'
-import { ADD_ACTION_KIND, CHANGE_ACTION_KIND, CHANGE_TIMES_ACTION_KIND } from './constants'
+import { EDITOR_COPY } from '../constants'
+import { ADD_ACTION_KIND, CHANGE_ACTION_KIND, REMOVE_ACTION_KIND } from './constants'
 import createTransitionsFacade from './transitions'
 import changeRangeTimes from './transitions/change-range-times'
 
@@ -22,13 +22,22 @@ const createEditorState = ({ ranges: memberRanges }: AvailabilityMemberDto): Loc
   return state
 }
 
+const applyTimedAction = (...args: [LocalEditorState, TimedEditorAction]): LocalEditorState => {
+  const [state, action] = args
+
+  if (action.kind === ADD_ACTION_KIND) return addRange(state, action)
+
+  return changeRangeTimes(state, action)
+}
+
 const applyEditorAction = (...args: [LocalEditorState, EditorAction]): LocalEditorState => {
   const [state, action] = args
-  if (action.kind === CHANGE_ACTION_KIND) return changeRange(state, action)
-  if (action.kind === ADD_ACTION_KIND) return addRange(state, action)
-  if (action.kind === CHANGE_TIMES_ACTION_KIND) return changeRangeTimes(state, action)
 
-  return removeRange(state, action)
+  if (action.kind === CHANGE_ACTION_KIND) return changeRange(state, action)
+
+  if (action.kind === REMOVE_ACTION_KIND) return removeRange(state, action)
+
+  return applyTimedAction(state, action)
 }
 
 const toSaveRanges = ({ ranges }: LocalEditorState): SaveOwnAvailabilityRange[] => {
@@ -47,5 +56,4 @@ export default function createEditorStateFacade() {
   return facade
 }
 
-// This facade keeps initialization, save DTO preparation, and action dispatch behind one
-// boundary; the change/add/remove transitions themselves live in ./transitions.
+// One facade for initialization, save DTO preparation and dispatch; transitions: ./transitions.

@@ -5,10 +5,12 @@ import {
   it,
   vi,
 } from 'vitest'
-import EDITOR_COPY from '../constants'
+import { EDITOR_COPY } from '../constants'
 import EditorActions from './index'
 
-vi.mock('@/shared/i18n', () => ({
+const { I18N_MODULE } = vi.hoisted(() => ({ I18N_MODULE: '@/shared/i18n' }))
+
+vi.mock(I18N_MODULE, () => ({
   useT: () => ({ t: (key: string) => key }),
 }))
 
@@ -28,10 +30,10 @@ describe('EditorActions', () => {
     )
 
     expect(html).toContain(EDITOR_COPY.cancel)
-    expect(html).toContain(EDITOR_COPY.saving)
-    expect(html).toContain('disabled=""')
-    expect(html).toContain('aria-busy="true"')
-    expect(html).toContain('type="button"')
+    expect(html).toMatch(EDITOR_COPY.saving)
+    expect(html).toMatch(/disabled=""/)
+    expect(html).toMatch(/aria-busy="true"/)
+    expect(html).toMatch(/type="button"/)
   })
 
   it('announces successful completion in a live status region', () => {

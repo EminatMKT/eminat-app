@@ -1,4 +1,5 @@
-import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
+import { EDITOR_COPY }
+  from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import trackKeydown from '../track-keydown'
 import type { GridDayProps } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/types'
 import type { TrackInput } from '../types'

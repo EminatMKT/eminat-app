@@ -1,6 +1,11 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import RANGE_FIELD_CONSTANTS from './constants'
+import { NINE_AM } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/constants'
+import {
+  RANGE_START_FIELD_ID,
+  START_BEFORE_END_ERROR,
+} from '../test-fixtures/constants'
+import { RANGE_FIELD_CONSTANTS } from './constants'
 import type { RangeFieldProps } from './types'
 import RangeField from './index'
 
@@ -8,10 +13,10 @@ const TIME_INPUT = 'time'
 const TEXTAREA_INPUT = 'textarea'
 const LABEL = 'Start time'
 const NOTE_LABEL = 'Note'
-const VALUE = '09:00'
+const VALUE = NINE_AM
 const NOTE_VALUE = 'Focus'
-const ERROR = 'Start time must be before the end time'
-const FIELD_ID = 'range-start'
+const ERROR = START_BEFORE_END_ERROR
+const FIELD_ID = RANGE_START_FIELD_ID
 const NOTE_ID = 'range-note'
 const TIME_STEP = RANGE_FIELD_CONSTANTS.timeStep
 const NOTE_MAX_LENGTH = RANGE_FIELD_CONSTANTS.noteMaxLength
@@ -47,14 +52,14 @@ describe('RangeField', () => {
 
     expect(html).toContain(`for="${FIELD_ID}"`)
     expect(html).toContain(`id="${FIELD_ID}"`)
-    expect(html).toContain(LABEL)
+    expect(html).toMatch(LABEL)
   })
 
   it('links an error to the invalid input through an alert region', () => {
     const html = draw(errorProps)
     const errorId = html.match(/aria-describedby="([^"]+)"/)?.[1]
 
-    expect(html).toContain('aria-invalid="true"')
+    expect(html).toMatch(/aria-invalid="true"/)
     expect(errorId).toBeDefined()
     expect(html).toContain(`id="${errorId}" role="alert"`)
     expect(html).toContain(ERROR)
@@ -63,8 +68,8 @@ describe('RangeField', () => {
   it('leaves error accessibility attributes off when there is no error', () => {
     const html = draw(timeProps)
 
-    expect(html).not.toContain('aria-invalid')
-    expect(html).not.toContain('aria-describedby')
+    expect(html).not.toMatch(/aria-invalid/)
+    expect(html).not.toMatch(/aria-describedby/)
   })
 
   it('uses the time step for time inputs', () => {
@@ -77,7 +82,7 @@ describe('RangeField', () => {
   it('limits note text to the persisted column length', () => {
     const html = draw(noteProps)
 
-    expect(html).toContain('</textarea>')
+    expect(html).toMatch(/<\/textarea>/)
     expect(html).toContain(`maxLength="${NOTE_MAX_LENGTH}"`)
   })
 
@@ -88,18 +93,18 @@ describe('RangeField', () => {
 
     expect(describedBy).toBeDefined()
     expect(html).toContain(counterText)
-    expect(html).toContain('data-near-limit="true"')
+    expect(html).toMatch(/data-near-limit="true"/)
   })
 
   it('renders disabled when the field is read-only', () => {
     const html = draw({ ...timeProps, disabled: true })
 
-    expect(html).toContain('disabled=""')
+    expect(html).toMatch(/disabled=""/)
   })
 
   it('renders no disabled attribute when the prop is omitted', () => {
     const html = draw(timeProps)
 
-    expect(html).not.toContain('disabled')
+    expect(html).not.toMatch(/disabled/)
   })
 })

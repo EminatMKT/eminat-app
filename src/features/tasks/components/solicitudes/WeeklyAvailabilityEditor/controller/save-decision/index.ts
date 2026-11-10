@@ -2,7 +2,7 @@ import {
   SAVE_FAILURE,
   SAVE_SUCCESS,
   VALIDATION_FAILURE,
-} from './constants'
+} from '../constants'
 import type {
   SaveFailureOutcome,
   SaveOutcome,
@@ -23,6 +23,7 @@ export default function decideSaveOutcome({
       errors: result.errors,
       shouldFocusValidation: true,
     }
+
     return outcome
   }
 
@@ -34,6 +35,7 @@ export default function decideSaveOutcome({
       onSaved,
       shouldFocusValidation: false,
     }
+
     return outcome
   }
 
@@ -43,6 +45,7 @@ export default function decideSaveOutcome({
     error: result.error,
     shouldFocusValidation: false,
   }
+
   return outcome
 }
 

@@ -37,7 +37,9 @@ export type AvailabilityResponse = {
 
 /** One range as sent to `PUT /api/tasks/availability` — shares its shape with
  *  `AvailabilityRangeDto` minus the server-assigned `id`, with `note` optional on input. */
-export type SaveOwnAvailabilityRange = Omit<AvailabilityRangeDto, 'id' | 'note'> & { note?: string | null }
+export type SaveOwnAvailabilityRange = Omit<AvailabilityRangeDto, 'id' | 'note'> & {
+  note?: string | null
+}
 
 /** `PUT /api/tasks/availability`'s body: always the caller's OWN ranges — there is no field for a
  *  target user, by design, since the underlying RPC only ever replaces the caller's own rows. */

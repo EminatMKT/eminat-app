@@ -1,12 +1,11 @@
+import { ITEM_PART } from './constants'
 import type { AvailabilityRangeItemFrameProps } from './types'
 import s from '../index.module.css'
-
-const ITEM = 'item'
 
 export default function AvailabilityRangeItemFrame(props: AvailabilityRangeItemFrameProps) {
   const { part, children } = props
 
-  if (part === ITEM) return <li className={s.item}>{children}</li>
+  if (part === ITEM_PART) return <li className={s.item}>{children}</li>
 
   return <div className={s[part]}>{children}</div>
 }

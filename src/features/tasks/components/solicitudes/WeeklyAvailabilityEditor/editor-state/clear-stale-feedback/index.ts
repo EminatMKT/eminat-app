@@ -1,4 +1,5 @@
-import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
+import { EDITOR_COPY }
+  from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import type { SettledFeedback } from './types'
 
 /** A saved/error/validation message from a PAST save goes stale the moment the person edits a

@@ -33,6 +33,9 @@ export type AvailabilityViewState =
   | EmptyAvailabilityState
   | LoadedAvailabilityState
 
+/** One member as the view lists it: an entry of whatever availability state is current. */
+export type ViewMember = AvailabilityViewState['members'][number]
+
 /** The view's load status plus which member's modal is open: two independent concerns — what the
  *  fetch returned, and what a click selected — kept in one hook. Any member can be open, not
  *  only an editable one: a read-only member's modal shows their schedule too. */

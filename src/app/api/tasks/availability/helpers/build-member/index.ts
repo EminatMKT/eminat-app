@@ -28,5 +28,8 @@ export default function buildMember(
     ranges: [],
     canEdit: userId === viewerUserId,
   }
+
   return member
 }
+
+// Preserves absent team/workday joins while marking only the viewer's member entry as editable.

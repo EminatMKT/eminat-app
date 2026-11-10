@@ -1,6 +1,5 @@
 import type { AvailabilityMemberDto, AvailabilityResponse } from '@/features/tasks/data/availability/types'
-import type { I18nKey } from '@/shared/i18n'
-import type { Vars } from '@/shared/i18n/types'
+import type { I18nKey, Vars } from '@/shared/i18n'
 import type { Weekday, WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
 
 export type EditorProps = {
@@ -27,6 +26,9 @@ export type ChangeRangeAction = RangeIndexedAction & {
 export type AddRangeAction = { kind: 'add'; weekday: Weekday } & Partial<RangeTimes>
 export type ChangeRangeTimesAction = RangeIndexedAction & { kind: 'change-times' } & RangeTimes
 export type RemoveRangeAction = RangeIndexedAction & { kind: 'remove' }
+
+/** The actions that place a range at given times: a new range, or a moved/resized one. */
+export type TimedEditorAction = AddRangeAction | ChangeRangeTimesAction
 
 export type EditorAction =
   | ChangeRangeAction

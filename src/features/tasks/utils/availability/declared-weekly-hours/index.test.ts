@@ -9,6 +9,7 @@ describe('declaredWeeklyHours', () => {
       { weekday: 1, startsAt: '14:00', endsAt: '18:00' },
       { weekday: 2, startsAt: '11:00', endsAt: '15:00' },
     ]
+
     expect(declaredWeeklyHours(ranges)).toBe(12)
   })
 

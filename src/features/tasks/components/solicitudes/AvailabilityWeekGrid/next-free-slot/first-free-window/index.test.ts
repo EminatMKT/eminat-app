@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
+import { DAY_END_MINUTE } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry'
 import firstFreeWindow from '.'
 
 const MONDAY = 1
-const DAY_END_MINUTE = 24 * 60
 
 const range = (startsAt: string, endsAt: string): WeeklyAvailabilityRange => ({
   weekday: MONDAY,

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import type { WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
+import {
+  END_NOT_AFTER_START_CODE,
+  OVERLAP_CODE,
+} from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Popover/constants'
 import type { PopoverDraft, ValidateDraftInput } from './types'
 import validateDraft from './index'
 
@@ -36,7 +40,7 @@ describe('validateDraft', () => {
     const draft: PopoverDraft = { startsAt: '12:00', endsAt: '09:00', note: 'Morning' }
     const error = validateDraft(buildInput(MORNING_INDEX, draft))
 
-    expect(error?.code).toBe('end-not-after-start')
+    expect(error?.code).toBe(END_NOT_AFTER_START_CODE)
   })
 
   it("reports the overlap error on the edited range when it collides with the other", () => {
@@ -45,7 +49,7 @@ describe('validateDraft', () => {
     const draft: PopoverDraft = { startsAt: '11:00', endsAt: '17:00', note: 'Afternoon' }
     const error = validateDraft(buildInput(AFTERNOON_INDEX, draft))
 
-    expect(error?.code).toBe('overlap')
+    expect(error?.code).toBe(OVERLAP_CODE)
   })
 
   it('does not report an error from a change that never touches validity', () => {

@@ -1,6 +1,6 @@
 import type { I18nKey } from '@/shared/i18n'
 
-const DAY_SECTION_CONSTANTS = {
+export const DAY_SECTION_CONSTANTS = {
   sectionIdPrefix: 'availability-day-',
   headingTag: 'h2',
   paragraphTag: 'p',
@@ -13,5 +13,3 @@ const DAY_SECTION_CONSTANTS = {
 export const DAY_VALIDATION_SUMMARY_KEY: I18nKey = 'tasks.availability.dayValidationSummary'
 
 export const NO_INVALID_RANGES_IN_DAY = 0
-
-export default DAY_SECTION_CONSTANTS

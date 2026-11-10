@@ -6,20 +6,31 @@ import {
   vi,
 } from 'vitest'
 import type { WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
+import {
+  FIVE_PM,
+  NINE_AM,
+  NINE_THIRTY_AM,
+  NINE_TO_ONE_TEXT,
+  ONE_PM,
+} from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/constants'
 import { BLOCK_LABEL_KEY, BLOCK_LABEL_READ_ONLY_KEY } from './constants'
 import type { BlockProps } from './types'
 import Block from '.'
+
+const VAR_SEPARATOR = ','
 
 function mockTranslate(key: string, vars?: Record<string, unknown>): string {
   if (!vars) return key
 
   const entries = Object.entries(vars).map(([name, value]) => `${name}=${value}`)
-  const formatted = `${key}:${entries.join(',')}`
+  const formatted = `${key}:${entries.join(VAR_SEPARATOR)}`
 
   return formatted
 }
 
-vi.mock('@/shared/i18n', () => ({
+const { I18N_MODULE } = vi.hoisted(() => ({ I18N_MODULE: '@/shared/i18n' }))
+
+vi.mock(I18N_MODULE, () => ({
   useT: () => ({ t: mockTranslate }),
 }))
 
@@ -27,6 +38,10 @@ const PX_PER_MIN = 2
 const NOOP = () => undefined
 const NO_OVERRIDES: Partial<BlockProps> = {}
 const SOME_NOTE = 'Clase de la tarde'
+const TOP_STYLE = '--block-top:1080px'
+const HEIGHT_STYLE = '--block-height:480px'
+const NOTE_LINES_PATTERN = /--note-lines:(\d+)/
+const HIDDEN_HANDLE_PATTERN = /aria-hidden="true"/g
 
 const range = (
   startsAt: string,
@@ -40,7 +55,7 @@ const range = (
 })
 
 const buildProps = (overrides: Partial<BlockProps> = NO_OVERRIDES): BlockProps => ({
-  range: range('09:00', '13:00'),
+  range: range(NINE_AM, ONE_PM),
   readOnly: false,
   pxPerMin: PX_PER_MIN,
   onActivate: NOOP,
@@ -49,39 +64,39 @@ const buildProps = (overrides: Partial<BlockProps> = NO_OVERRIDES): BlockProps =
 
 const draw = (props: BlockProps) => renderToStaticMarkup(<Block {...props} />)
 
+const noteLinesOf = (html: string): number => Number(html.match(NOTE_LINES_PATTERN)?.[1])
+
 describe('Block', () => {
   it('positions itself from the range start and sizes itself from its duration', () => {
     const html = draw(buildProps())
 
-    expect(html).toContain('--block-top:1080px')
-    expect(html).toContain('--block-height:480px')
+    expect(html).toContain(TOP_STYLE)
+    expect(html).toContain(HEIGHT_STYLE)
   })
 
   it('shows the start and end time separated by an en dash', () => {
     const html = draw(buildProps())
 
-    expect(html).toContain('09:00–13:00')
+    expect(html).toContain(NINE_TO_ONE_TEXT)
   })
 
   it('sets more note lines on a tall block than on a compact one', () => {
-    const compactHtml = draw(buildProps({ range: range('09:00', '09:30', SOME_NOTE) }))
-    const tallHtml = draw(buildProps({ range: range('09:00', '17:00', SOME_NOTE) }))
-    const compactLines = Number(compactHtml.match(/--note-lines:(\d+)/)?.[1])
-    const tallLines = Number(tallHtml.match(/--note-lines:(\d+)/)?.[1])
+    const compactHtml = draw(buildProps({ range: range(NINE_AM, NINE_THIRTY_AM, SOME_NOTE) }))
+    const tallHtml = draw(buildProps({ range: range(NINE_AM, FIVE_PM, SOME_NOTE) }))
 
-    expect(tallLines).toBeGreaterThan(compactLines)
+    expect(noteLinesOf(tallHtml)).toBeGreaterThan(noteLinesOf(compactHtml))
   })
 
   it('renders both resize handles when editable', () => {
     const html = draw(buildProps({ readOnly: false }))
 
-    expect(html.match(/aria-hidden="true"/g)).toHaveLength(2)
+    expect(html.match(HIDDEN_HANDLE_PATTERN)).toHaveLength(2)
   })
 
   it('suppresses the resize handles and marks itself read-only when not editable', () => {
     const html = draw(buildProps({ readOnly: true }))
 
-    expect(html.match(/aria-hidden="true"/g)).toBeNull()
+    expect(html.match(HIDDEN_HANDLE_PATTERN)).toBeNull()
   })
 
   it('uses the editable label text when writable', () => {
@@ -97,8 +112,8 @@ describe('Block', () => {
   })
 
   it('includes the note in its label when present', () => {
-    const html = draw(buildProps({ range: range('09:00', '13:00', 'Clase') }))
+    const html = draw(buildProps({ range: range(NINE_AM, ONE_PM, SOME_NOTE) }))
 
-    expect(html).toContain('Clase')
+    expect(html).toContain(SOME_NOTE)
   })
 })

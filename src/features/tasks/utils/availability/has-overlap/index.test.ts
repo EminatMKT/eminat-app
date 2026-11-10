@@ -1,12 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { Weekday } from '../types'
+import type { OverlapCandidate } from './types'
 import hasOverlap from '.'
-
-type OverlapCandidate = {
-  weekday: Weekday
-  start: number | null
-  end: number | null
-}
 
 describe('hasOverlap', () => {
   it('reports an overlap between two ranges on the same weekday', () => {
@@ -20,6 +14,7 @@ describe('hasOverlap', () => {
       start: 750,
       end: 840,
     }
+
     expect(hasOverlap(a, b)).toBe(true)
   })
 
@@ -44,8 +39,10 @@ describe('hasOverlap', () => {
       start: null,
       end: 700,
     }
-    expect(hasOverlap(base, touching)).toBe(false)
-    expect(hasOverlap(base, otherWeekday)).toBe(false)
-    expect(hasOverlap(base, malformed)).toBe(false)
+    const nonOverlapping = [touching, otherWeekday, malformed]
+
+    for (const other of nonOverlapping) {
+      expect(hasOverlap(base, other)).toBe(false)
+    }
   })
 })

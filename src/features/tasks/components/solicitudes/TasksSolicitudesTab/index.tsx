@@ -1,7 +1,6 @@
 'use client'
 import { useT, type I18nKey } from '@/shared/i18n'
-import TabButton from '@/shared/components/ui/TabButton'
-import TabBar from '@/shared/components/ui/TabBar'
+import { TabBar, TabButton } from '@/shared/components/ui'
 import { useTasks } from '@/features/tasks/components/TasksContext'
 import SolicitudesListView from '../SolicitudesListView'
 import SolicitudesAvailabilityView from '../SolicitudesAvailabilityView'
@@ -17,9 +16,10 @@ const views: Record<string, JSX.Element> = {
   disponibilidad: <SolicitudesAvailabilityView />,
 }
 
-export default function SolicitudesTab() {
+export default function TasksSolicitudesTab() {
   const { t } = useT()
   const { solTab, setSolTab } = useTasks()
+
   return (
     <>
       <TabBar>
@@ -40,3 +40,5 @@ export default function SolicitudesTab() {
     </>
   )
 }
+
+// The Requests tab of Tasks: switches between the request list and the team's weekly availability.

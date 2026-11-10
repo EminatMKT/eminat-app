@@ -18,5 +18,9 @@ export default async function loadViewer(
     .eq(authId, authUserId)
     .eq(activo, ACTIVE)
     .maybeSingle()
+
   return data?.id ?? null
 }
+
+// Resolves only the active profile belonging to the authenticated caller,
+// never a client-supplied id.

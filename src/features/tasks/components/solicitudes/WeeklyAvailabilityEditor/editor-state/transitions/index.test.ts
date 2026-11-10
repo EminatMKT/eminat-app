@@ -9,7 +9,8 @@ import type {
   RemoveRangeAction,
 } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/types'
 import type { Weekday } from '@/features/tasks/utils/availability'
-import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
+import { EDITOR_COPY }
+  from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import createTransitionsFacade from './index'
 
 const { changeRange, addRange, removeRange } = createTransitionsFacade()
@@ -81,7 +82,7 @@ describe('WeeklyAvailabilityEditor editor-state transitions', () => {
     const afterAdd = addRange(BASE_STATE, ADD_MONDAY_AT_EXPLICIT_TIME)
     const [, draft] = afterAdd.ranges
 
-    expect(draft?.startsAt).toBe('14:00')
-    expect(draft?.endsAt).toBe('15:00')
+    expect(draft?.startsAt).toBe(ADD_MONDAY_AT_EXPLICIT_TIME.startsAt)
+    expect(draft?.endsAt).toBe(ADD_MONDAY_AT_EXPLICIT_TIME.endsAt)
   })
 })

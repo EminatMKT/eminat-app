@@ -6,7 +6,8 @@ import {
 } from 'vitest'
 import type { AvailabilityMemberDto, AvailabilityResponse } from '@/features/tasks/data/availability/types'
 import type { EditableRange, LocalEditorState } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/component-types'
-import EDITOR_COPY from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
+import { EDITOR_COPY }
+  from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
 import type {
   SaveFailureOutcome,
   SaveSuccessOutcome,
@@ -39,7 +40,8 @@ const MEMBER: AvailabilityMemberDto = {
 }
 const SOME_FOCUS_TOKEN = 2
 const FOCUS_TOKEN_STEP = 1
-const UNEXPECTED_FAILURE = new Error('boom')
+const UNEXPECTED_FAILURE_MESSAGE = 'save cycle blew up'
+const UNEXPECTED_FAILURE = new Error(UNEXPECTED_FAILURE_MESSAGE)
 const SAVED_RESPONSE: AvailabilityResponse = { viewerUserId: 'viewer-1', members: [] }
 const PRE_SAVE_RANGE: EditableRange = {
   clientId: 'monday-1',

@@ -1,11 +1,13 @@
 import { createRef } from 'react'
 import { describe, expect, it } from 'vitest'
-import EDITOR_COPY
+import { EDITOR_COPY }
   from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/constants'
+import { VALIDATION_SUMMARY_KEY }
+  from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/editor-feedback/constants'
 import { VALIDATION_ID, VALIDATION_LIVE, VALIDATION_TAB_INDEX } from '../constants'
 import buildBannerAttrs from './index'
 
-const MESSAGE = 'tasks.availability.validationSummary'
+const MESSAGE = VALIDATION_SUMMARY_KEY
 
 describe('buildBannerAttrs', () => {
   it('builds the focus-targetable, assertively-announced attributes for the banner', () => {

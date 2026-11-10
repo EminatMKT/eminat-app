@@ -4,14 +4,15 @@ import {
   it,
   vi,
 } from 'vitest'
-import type { BlockResizeEdge } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/Block/types'
+import {
+  BOTTOM_EDGE,
+  TOP_EDGE,
+} from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry'
 import type { GesturePointerEvent } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/gestures/types'
 import type { ResizeGestureConfig } from './types'
 import wireResizeGesture from '.'
 
 const POINTER_ID = 1
-const TOP_EDGE: BlockResizeEdge = 'top'
-const BOTTOM_EDGE: BlockResizeEdge = 'bottom'
 const NO_OVERRIDES: Partial<ResizeGestureConfig> = {}
 
 const buildConfig = (

@@ -1,8 +1,9 @@
-import { DAY_START_MINUTE } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/constants'
-import freeWindow from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/free-window'
-import type { MinuteBounds } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/types'
-import { minutesOf } from '@/features/tasks/utils/availability'
-import type { WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
+import {
+  DAY_START_MINUTE,
+  freeWindow,
+  type MinuteBounds,
+} from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry'
+import { minutesOf, type WeeklyAvailabilityRange } from '@/features/tasks/utils/availability'
 
 const isMinute = (value: number | null): value is number => value !== null
 

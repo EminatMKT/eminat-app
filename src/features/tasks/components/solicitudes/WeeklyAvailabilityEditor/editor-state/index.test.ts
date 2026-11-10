@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AvailabilityMemberDto, AvailabilityRangeDto } from '@/features/tasks/data/availability/types'
 import type { EditorAction } from '@/features/tasks/components/solicitudes/WeeklyAvailabilityEditor/types'
-import EDITOR_COPY from '../constants'
+import { EDITOR_COPY } from '../constants'
 import {
   ADD_ACTION_KIND,
   CHANGE_ACTION_KIND,
@@ -18,6 +18,7 @@ const {
 const MONDAY = 1
 const FIRST_INDEX = 0
 const SECOND_INDEX = 1
+const CALL_NOTE = 'call'
 const FIRST_RANGE: AvailabilityRangeDto = {
   id: 'range-1',
   weekday: MONDAY,
@@ -51,20 +52,22 @@ const changeFirstRangeNote = (value: string): EditorAction => ({
 describe('WeeklyAvailabilityEditor editor state', () => {
   it('initializes stable client ids and copies persisted ranges', () => {
     const state = createEditorState(MEMBER)
+
     expect(state.ranges.map(range => range.clientId)).toEqual(['range-1', 'range-2'])
     expect(state.ranges[FIRST_INDEX]).not.toBe(MEMBER.ranges[FIRST_INDEX])
   })
 
   it('changes, adds, and removes ranges independently', () => {
     const state = createEditorState(MEMBER)
-    const change = changeFirstRangeNote('call')
+    const change = changeFirstRangeNote(CALL_NOTE)
     const add: EditorAction = { kind: ADD_ACTION_KIND, weekday: MONDAY }
     const remove: EditorAction = { kind: REMOVE_ACTION_KIND, rangeIndex: SECOND_INDEX }
     const changed = applyEditorAction(state, change)
     const added = applyEditorAction(changed, add)
     const removed = applyEditorAction(added, remove)
+
     expect(removed.ranges).toHaveLength(2)
-    expect(removed.ranges[FIRST_INDEX].note).toBe('call')
+    expect(removed.ranges[FIRST_INDEX].note).toBe(CALL_NOTE)
     expect(removed.ranges[SECOND_INDEX].note).toBe(EDITOR_COPY.emptyNote)
     expect(state.ranges[FIRST_INDEX].note).toBeNull()
   })
@@ -92,6 +95,7 @@ describe('WeeklyAvailabilityEditor editor state', () => {
         note: 'focus',
       },
     ]
+
     expect(toSaveRanges(changed)).toEqual(expectedRanges)
   })
 
@@ -103,7 +107,7 @@ describe('WeeklyAvailabilityEditor editor state', () => {
     }
     const add: EditorAction = { kind: ADD_ACTION_KIND, weekday: MONDAY }
     const remove: EditorAction = { kind: REMOVE_ACTION_KIND, rangeIndex: SECOND_INDEX }
-    const settlingActions = [changeFirstRangeNote('call'), add, remove]
+    const settlingActions = [changeFirstRangeNote(CALL_NOTE), add, remove]
     const settledStates = settlingActions.map(action => applyEditorAction(settledState, action))
 
     settledStates.forEach(nextState => {
@@ -115,7 +119,7 @@ describe('WeeklyAvailabilityEditor editor state', () => {
   it('leaves an in-flight save untouched when a range edit races it', () => {
     const savingState = { ...createEditorState(MEMBER), status: EDITOR_COPY.savingStatus }
 
-    const changed = applyEditorAction(savingState, changeFirstRangeNote('call'))
+    const changed = applyEditorAction(savingState, changeFirstRangeNote(CALL_NOTE))
 
     expect(changed.status).toBe(EDITOR_COPY.savingStatus)
   })
