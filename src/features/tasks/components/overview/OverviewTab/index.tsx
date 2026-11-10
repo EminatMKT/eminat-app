@@ -52,7 +52,7 @@ export default function OverviewTab() {
   // así que la gráfica no es el único camino (ver rules/ui.md).
   const toggle = (key: string) => (v: string) => filtros.setValor(key, filtros.valores[key] === v ? '' : v)
   // El color sale del catálogo de empresas, no de la paleta genérica: una marca desactivada
-  // tiene que seguir pintándose como siempre (ver CLAUDE.md, "Marcas del grupo Eminat").
+  // tiene que seguir pintándose como siempre (ver AGENTS.md, "Marcas del grupo Eminat").
   const marcasColors = Object.fromEntries(datosPorMarca.map(m => [m.codigo, m.color]))
   const recientes = actsFiltradas.slice(0, 6)
 
