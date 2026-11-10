@@ -1,0 +1,17 @@
+{
+  "description": "Generated from scripts/agent-guard/rules.json by `pnpm guard:generate`; do not edit by hand.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -x \"$(git rev-parse --show-toplevel 2>/dev/null)/node_modules/.bin/bun\" ] && \"$(git rev-parse --show-toplevel 2>/dev/null)/node_modules/.bin/bun\" \"$(git rev-parse --show-toplevel 2>/dev/null)/scripts/agent-guard/adapters/codex.ts\" || { rc=$?; [ \"$rc\" -eq 2 ] || printf '%s\\n' 'Esto es parte de las buenas prácticas del proyecto para salvaguardar el flujo de desarrollo: el guard del repo (`scripts/agent-guard`) no pudo ejecutarse, así que esta acción queda bloqueada hasta que vuelva a correr (`pnpm install` instala su `bun`).' 'Project good practice, to keep the development flow safe: the repo guard (`scripts/agent-guard`) could not run, so this action stays blocked until it runs again (`pnpm install` installs its `bun`).' >&2; exit 2; }",
+            "statusMessage": "agent-guard"
+          }
+        ]
+      }
+    ]
+  }
+}

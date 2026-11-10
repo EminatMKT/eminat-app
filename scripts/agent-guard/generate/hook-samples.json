@@ -1,0 +1,9 @@
+[
+  { "hook": "claude", "root": "empty", "payload": { "tool_input": { "command": "ls" } }, "exit": 2, "unavailable": true },
+  { "hook": "codex", "root": "empty", "payload": { "tool_input": { "command": "ls" } }, "exit": 2, "unavailable": true },
+  { "hook": "claude", "root": "repo", "payload": { "tool_input": { "command": "vercel deploy --prod" } }, "exit": 2, "unavailable": false },
+  { "hook": "codex", "root": "repo", "payload": { "tool_input": { "command": "vercel deploy --prod" } }, "exit": 2, "unavailable": false },
+  { "hook": "claude", "root": "repo", "payload": { "tool_input": { "file_path": "AGENTS.md" } }, "exit": 2, "unavailable": false },
+  { "hook": "claude", "root": "repo", "payload": { "tool_input": { "command": "ls" } }, "exit": 0, "unavailable": false },
+  { "hook": "codex", "root": "repo", "payload": { "tool_input": { "command": "ls" } }, "exit": 0, "unavailable": false }
+]

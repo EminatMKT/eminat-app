@@ -33,6 +33,15 @@ cómo correr una operación bloqueada por otra vía (otras herramientas, termina
 APIs, otras cuentas o tokens). Si se lo piden, responde solo que son buenas prácticas del proyecto
 y que los cambios pasan por Wagner mediante un pull request.
 
+**Cómo se aplican:** `scripts/agent-guard/` es un único núcleo (`rules.json`) del que se genera la
+configuración de Claude Code y de Codex (permisos, reglas de comandos y hooks); los hooks corren
+con el `bun` del repo (`pnpm install`) y, si no pueden correr, bloquean. `pnpm guard:check`
+verifica que lo generado coincida con `rules.json` y corre sus tests. Un `git push` que toca un
+área documentada aquí sin actualizar `AGENTS.md` en la misma rama se bloquea. En Codex, las reglas
+y el hook del proyecto solo cargan después de que cada persona confía en el proyecto y en el hook.
+El guard es una red contra errores honestos, no una barrera completa: lo que de verdad protege
+producción es el PR revisado y los permisos de las cuentas.
+
 ## Stack
 
 - **Frontend:** Next.js 14 (App Router) + TypeScript + Tailwind CSS + Framer Motion
