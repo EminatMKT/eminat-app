@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test'
 import { ADMIN_ROLE, DEFAULT_ROLE } from '@/shared/auth/permissions'
 import { TABLES } from '@/shared/data/tables'
+import { RPCS } from '@/shared/schema'
+import { RLS_VIOLATION_CODE } from '@/app/api/tasks/availability/helpers/test-fixtures/constants'
 import {
   PASSWORD,
   ensureUser,
@@ -34,10 +36,9 @@ const OUTSIDER_TEAM_CODE = 'E2E_AVAIL_OUTSIDER'
 const OWNER_TEAM_NAME = 'E2E Availability Owner Team'
 const OUTSIDER_TEAM_NAME = 'E2E Availability Outsider Team'
 const TABLE = TABLES.weeklyAvailabilityRanges
-const REPLACE_RPC = 'replace_own_weekly_availability'
+const REPLACE_RPC = RPCS.replaceOwnWeeklyAvailability
 const ADMIN_TAMPER_NOTE = 'changed by admin'
 const JORNADA_REQUIRED_ERROR = 'TASKS_JORNADA_REQUIRED'
-const RLS_VIOLATION_CODE = '42501'
 const NO_QUERY = ''
 const ALL_ROWS_QUERY = 'select=id'
 const USERS: Parameters<typeof ensureUser>[] = [

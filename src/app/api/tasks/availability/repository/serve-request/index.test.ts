@@ -21,6 +21,7 @@ import {
   DENIED_STATUS,
   GRANTED_ACCESS,
   NO_STORE,
+  RLS_VIOLATION_CODE,
   ROUTE_URL,
   VIEWER_ID,
 } from '@/app/api/tasks/availability/helpers/test-fixtures/constants'
@@ -44,7 +45,6 @@ vi.mock(REQUIRE_MODULE_PATH, () => ({ default: requireModule }))
 vi.mock(SSR_CLIENT_PATH, () => ({ default: ssrClient }))
 
 const OK_STATUS = 200
-const OTHER_SAVE_ERROR_CODE = '42501'
 const JSON_METHOD = 'json'
 const GET_RPC = RPCS.getVisibleWeeklyAvailability
 const SAVE_RPC = RPCS.replaceOwnWeeklyAvailability
@@ -260,7 +260,7 @@ describe('weekly availability API — PUT save', () => {
   })
 
   it('maps any other save error to 400', async () => {
-    const otherErrorOptions = { saveErrorCode: OTHER_SAVE_ERROR_CODE }
+    const otherErrorOptions = { saveErrorCode: RLS_VIOLATION_CODE }
 
     dbWith(otherErrorOptions)
     expect(await putStatus(ONE_RANGE_BODY)).toBe(SAVE_FAILED_STATUS)

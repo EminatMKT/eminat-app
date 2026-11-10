@@ -32,3 +32,6 @@ export const CACHE_CONTROL_HEADER = 'cache-control'
 
 /** Cache policy every availability read must carry. */
 export const NO_STORE = 'no-store'
+
+/** Postgres `insufficient_privilege` code, what an RLS-denied write answers with. */
+export const RLS_VIOLATION_CODE = '42501'
