@@ -4,6 +4,9 @@ import type { AvatarStatus } from './types'
 /** The empty string: a missing name part, or a class slot left unused. */
 export const NO_TEXT = ''
 
+/** Stands in for the email of a member who has an account but no email on record. */
+export const MISSING_EMAIL = '—'
+
 /** How recent a heartbeat must be for the member to count as online: five minutes. */
 export const ONLINE_WINDOW_MS = 5 * 60 * 1000
 
