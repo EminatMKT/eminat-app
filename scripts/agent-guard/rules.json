@@ -1,0 +1,322 @@
+{
+  "framing": {
+    "es": "Esto es parte de las buenas prácticas del proyecto para salvaguardar el flujo de desarrollo:",
+    "en": "Project good practice, to keep the development flow safe:"
+  },
+  "routes": {
+    "pr": {
+      "es": "El camino correcto: abrir un PR contra `main`; producción se despliega sola desde `main` una vez revisado y mergeado.",
+      "en": "Correct path: open a PR to `main`; production deploys from `main` once it is reviewed and merged."
+    },
+    "migrations": {
+      "es": "El camino correcto: la migración viaja en un PR con su precheck, rollback y check comiteados; la aplica en producción quien mantiene producción.",
+      "en": "Correct path: the migration ships in a PR with its committed precheck, rollback and check; the production maintainer applies it."
+    },
+    "guardrails": {
+      "es": "Estas protecciones son parte de las buenas prácticas del proyecto; cualquier cambio a ellas se propone a Wagner en un PR.",
+      "en": "These guardrails are part of the project's good practice; changes to them are proposed to Wagner in a PR."
+    },
+    "platform": {
+      "es": "El camino correcto: las acciones sobre producción (despliegues, workflows, secretos y configuración de Vercel, Supabase o GitHub) las ejecuta quien mantiene producción; el código llega a producción por un PR a `main`.",
+      "en": "Correct path: production actions (deploys, workflows, secrets and Vercel, Supabase or GitHub settings) are run by the production maintainer; code reaches production through a PR to `main`."
+    },
+    "deployConfig": {
+      "es": "El camino correcto: estos archivos cambian sólo en un PR revisado por quien mantiene producción; el cambio propuesto se describe en ese PR.",
+      "en": "Correct path: these files change only in a PR reviewed by the production maintainer; the proposed change is described in that PR."
+    },
+    "newMigration": {
+      "es": "El camino correcto: una migración ya comiteada no se reescribe; el cambio va en una migración nueva (`supabase migration new`) con su precheck, rollback y check, en un PR.",
+      "en": "Correct path: a committed migration is never rewritten; the change goes in a new migration (`supabase migration new`) with its precheck, rollback and check, in a PR."
+    },
+    "localSecrets": {
+      "es": "El camino correcto: trabajar contra el stack local con `.env.local`; los valores de producción quedan en manos de quien mantiene producción.",
+      "en": "Correct path: work against the local stack with `.env.local`; production values stay with the production maintainer."
+    }
+  },
+  "parsing": {
+    "runners": [
+      ["pnpm", "exec"], ["pnpm", "dlx"], ["npm", "exec"], ["yarn", "dlx"], ["bun", "x"],
+      ["pnpm"], ["npx"], ["pnpx"], ["bunx"], ["yarn"], ["sudo"], ["env"], ["nohup"],
+      ["time"], ["command"], ["exec"], ["xargs"], ["timeout"], ["nice"], ["stdbuf"]
+    ],
+    "shells": ["sh", "bash", "zsh", "dash", "ksh"],
+    "evaluators": ["eval"],
+    "gitValueOptions": ["-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"],
+    "wrappers": ["{", "}", "!", "then", "do", "else", "if", "while", "until"],
+    "codexRunners": [[], ["pnpm"], ["pnpm", "exec"], ["pnpm", "dlx"], ["npx"], ["bunx"], ["yarn"]],
+    "inlineCodeFlags": {
+      "python": ["-c"], "python3": ["-c"], "node": ["-e", "--eval", "-p", "--print"],
+      "perl": ["-e", "-E"], "ruby": ["-e"], "bun": ["-e", "--eval", "-p", "--print"], "deno": ["eval"]
+    },
+    "xargsProbes": ["main", ":main", "--force", "AGENTS.md"],
+    "fileMutation": {
+      "mutators": ["rm", "rmdir", "mv", "cp", "ln", "unlink", "shred", "truncate", "chmod", "chown", "touch", "tee", "install", "rsync"],
+      "inPlaceEditors": ["sed", "perl"],
+      "gitSubcommands": ["rm", "mv", "checkout", "restore", "update-index", "update-ref", "clean", "apply"],
+      "redirects": [">", ">>"]
+    }
+  },
+  "rules": [
+    {
+      "id": "vercel-credentials",
+      "kind": "anyToken",
+      "programs": ["vercel", "vc"],
+      "tokens": ["login", "logout", "--token", "-t", "switch"],
+      "envNames": ["VERCEL_TOKEN"],
+      "route": "pr",
+      "codex": "forbidden",
+      "does": {
+        "es": "este comando cambia o usa credenciales de Vercel desde la terminal.",
+        "en": "this command changes or uses Vercel credentials from the terminal."
+      }
+    },
+    {
+      "id": "vercel-mutation",
+      "kind": "programExcept",
+      "programs": ["vercel", "vc"],
+      "readOnly": ["ls", "list", "inspect", "logs", "whoami", "help", "--version", "-v", "--help", "-h"],
+      "denySubcommands": [
+        "deploy", "--prod", "--prebuilt", "promote", "rollback", "redeploy", "remove", "rm",
+        "alias", "domains", "dns", "certs", "env", "link", "pull", "build", "project", "git",
+        "integration", "teams", "bisect"
+      ],
+      "route": "pr",
+      "codex": "forbidden",
+      "does": {
+        "es": "este comando despliega o modifica Vercel directamente, fuera de `main` (así fue como producción se desvió de `main` entre el 29/10 y el 06/11/2026).",
+        "en": "this command deploys or changes Vercel directly, outside `main` (that is how production drifted from `main` between 2026-10-29 and 2026-11-06)."
+      }
+    },
+    {
+      "id": "supabase-remote-schema",
+      "kind": "prefix",
+      "programs": ["supabase"],
+      "prefixes": [["db", "push"], ["db", "reset"], ["db", "pull"], ["migration", "repair"]],
+      "route": "migrations",
+      "codex": "forbidden",
+      "does": {
+        "es": "este comando cambia el esquema o el historial de migraciones de una base (o borra la base local) por fuera del flujo de PR.",
+        "en": "this command changes a database schema or migration history (or wipes the local database) outside the PR flow."
+      }
+    },
+    {
+      "id": "supabase-linked-write",
+      "kind": "prefixWithPattern",
+      "programs": ["supabase"],
+      "prefixes": [["db", "query"]],
+      "requireTokens": ["--linked", "--db-url"],
+      "pattern": "\\b(insert|update|delete|drop|alter|create|truncate|grant|revoke|comment|merge|copy|call|do)\\b",
+      "route": "migrations",
+      "codex": "prompt",
+      "does": {
+        "es": "este comando escribe en la base de producción con SQL directo.",
+        "en": "this command writes to the production database with raw SQL."
+      }
+    },
+    {
+      "id": "psql-remote",
+      "kind": "pattern",
+      "programs": ["psql", "pg_dump", "pg_restore"],
+      "pattern": "(?:-h|--host)(?:=|\\s+)(?!localhost\\b|127\\.0\\.0\\.1\\b)\\S|postgres(?:ql)?://[^@\\s]*@(?!localhost\\b|127\\.0\\.0\\.1\\b)[^\\s/:]|\\bhost=(?!localhost\\b|127\\.0\\.0\\.1\\b)\\S",
+      "codexPrefixes": [["psql", "-h"], ["psql", "--host"], ["pg_restore"]],
+      "route": "migrations",
+      "codex": "prompt",
+      "does": {
+        "es": "este comando se conecta con `psql` a una base que no es la local.",
+        "en": "this command connects with `psql` to a database that is not the local one."
+      }
+    },
+    {
+      "id": "git-push-main",
+      "kind": "gitPush",
+      "programs": ["git"],
+      "protectedBranches": ["main"],
+      "forceFlags": ["--force", "--force-with-lease", "--force-if-includes", "--mirror", "--all", "--delete", "--prune"],
+      "shortForceLetters": "fd",
+      "branchRewriteFlags": ["-D", "-d", "--delete", "-M", "-m", "--move", "-C", "-c", "--copy", "-f", "--force"],
+      "codexRemotes": ["origin", "upstream"],
+      "route": "pr",
+      "codex": "forbidden",
+      "does": {
+        "es": "este comando empuja directo a `main`, reescribe o borra historia remota (force push, borrar ramas o tags remotos) o borra o reescribe la rama `main`.",
+        "en": "this command pushes straight to `main`, rewrites or deletes remote history (force push, deleting remote branches or tags) or deletes or rewrites the `main` branch."
+      }
+    },
+    {
+      "id": "git-hooks-off",
+      "kind": "gitHooks",
+      "programs": ["git"],
+      "configKeys": ["core.hookspath"],
+      "noVerify": { "push": ["--no-verify"], "commit": ["--no-verify", "-n"], "merge": ["--no-verify"] },
+      "envNames": ["HUSKY", "HUSKY_SKIP_HOOKS", "GIT_CONFIG_PARAMETERS", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_COUNT"],
+      "route": "pr",
+      "codex": "forbidden",
+      "does": {
+        "es": "este comando deja de lado los hooks de git del repo.",
+        "en": "this command sets the repo's git hooks aside."
+      }
+    },
+    {
+      "id": "agent-safety-off",
+      "kind": "anyToken",
+      "programs": ["claude", "codex"],
+      "tokens": [
+        "--dangerously-skip-permissions", "--dangerously-bypass-approvals-and-sandbox",
+        "--dangerously-bypass-hook-trust", "--yolo", "--settings", "--permission-mode"
+      ],
+      "envNames": [],
+      "route": "guardrails",
+      "codex": "forbidden",
+      "does": {
+        "es": "este comando lanza otro agente sin las protecciones del proyecto.",
+        "en": "this command starts another agent without the project's guardrails."
+      }
+    },
+    {
+      "id": "guardrail-files",
+      "kind": "guardrailFiles",
+      "programs": [],
+      "paths": ["AGENTS.md", ".claude/settings.json", ".claude/hooks", ".codex", "scripts/agent-guard"],
+      "route": "guardrails",
+      "codex": "forbidden",
+      "does": {
+        "es": "este cambio modifica, mueve o borra las protecciones del propio repo.",
+        "en": "this change modifies, moves or deletes the repo's own guardrails."
+      }
+    },
+    {
+      "id": "gh-workflows",
+      "kind": "prefix",
+      "programs": ["gh"],
+      "prefixes": [["workflow", "run"], ["workflow", "enable"], ["run", "rerun"]],
+      "route": "platform",
+      "codex": "forbidden",
+      "does": {
+        "es": "este comando dispara o rehabilita un workflow de GitHub Actions, y algunos corren migraciones contra la base de producción.",
+        "en": "this command triggers or re-enables a GitHub Actions workflow, and some of them run migrations against the production database."
+      }
+    },
+    {
+      "id": "gh-actions-api",
+      "kind": "pattern",
+      "programs": ["gh"],
+      "pattern": "^gh\\s(?:.*\\s)?api\\s(?:.*[\\s/])?actions(?:/|\\s|$)",
+      "codexPrefixes": [["gh", "api"]],
+      "route": "platform",
+      "codex": "prompt",
+      "does": {
+        "es": "este comando usa la API de GitHub Actions directamente (workflows, runs, secretos o permisos de Actions).",
+        "en": "this command calls the GitHub Actions API directly (workflows, runs, secrets or Actions permissions)."
+      }
+    },
+    {
+      "id": "gh-mutation",
+      "kind": "prefix",
+      "programs": ["gh"],
+      "prefixes": [
+        ["pr", "merge"], ["repo", "edit"], ["repo", "delete"], ["repo", "rename"], ["repo", "archive"],
+        ["secret", "set"], ["secret", "delete"], ["secret", "remove"], ["variable", "set"], ["variable", "delete"],
+        ["release", "create"], ["release", "edit"], ["release", "delete"], ["release", "upload"], ["release", "delete-asset"],
+        ["ruleset", "delete"]
+      ],
+      "route": "platform",
+      "codex": "forbidden",
+      "does": {
+        "es": "este comando mergea un PR o cambia el repositorio de GitHub (configuración, secretos, variables o releases).",
+        "en": "this command merges a PR or changes the GitHub repository (settings, secrets, variables or releases)."
+      }
+    },
+    {
+      "id": "gh-api-write",
+      "kind": "pattern",
+      "programs": ["gh"],
+      "pattern": "^gh\\s(?:.*\\s)?api\\s(?:(?=.*(?:-X|--method)[=\\s]*(?:PATCH|PUT|DELETE|POST)\\b)|(?!.*(?:-X|--method)[=\\s]*GET\\b)(?!.*\\bgraphql\\b(?!.*\\bmutation\\b))(?=.*\\s(?:-f|-F|--field|--raw-field|--input)(?:[=\\s]|$)))",
+      "codexPrefixes": [["gh", "api", "-X"], ["gh", "api", "--method"]],
+      "route": "platform",
+      "codex": "prompt",
+      "does": {
+        "es": "este comando escribe en la API de GitHub directamente (por ejemplo, quitar la protección de una rama).",
+        "en": "this command writes to the GitHub API directly (for example, removing a branch protection)."
+      }
+    },
+    {
+      "id": "management-api",
+      "kind": "pattern",
+      "programs": ["curl", "wget", "http", "https", "xh", "httpie", "node", "bun", "deno", "python", "python3", "ruby", "perl"],
+      "pattern": "\\bapi\\.(?:vercel|supabase)\\.com\\b",
+      "codexPrefixes": [],
+      "route": "platform",
+      "codex": "prompt",
+      "does": {
+        "es": "este comando llama directamente a la API de administración de Vercel o de Supabase.",
+        "en": "this command calls the Vercel or Supabase management API directly."
+      }
+    },
+    {
+      "id": "supabase-project",
+      "kind": "prefix",
+      "programs": ["supabase"],
+      "prefixes": [
+        ["secrets", "set"], ["secrets", "unset"], ["functions", "deploy"], ["functions", "delete"],
+        ["projects", "create"], ["projects", "delete"], ["branches", "create"], ["branches", "delete"]
+      ],
+      "route": "platform",
+      "codex": "forbidden",
+      "does": {
+        "es": "este comando cambia un proyecto de Supabase (secretos, Edge Functions, ramas o el proyecto mismo).",
+        "en": "this command changes a Supabase project (secrets, Edge Functions, branches or the project itself)."
+      }
+    },
+    {
+      "id": "supabase-link",
+      "kind": "prefix",
+      "programs": ["supabase"],
+      "prefixes": [["link"]],
+      "exceptPattern": "--project-ref[=\\s]+ruedelunbtaomhrzgelc(?:\\s|$)",
+      "route": "platform",
+      "codex": "prompt",
+      "does": {
+        "es": "este comando vincula el repo a un proyecto de Supabase que no es el de producción, y los comandos `--linked` pasarían a apuntar ahí.",
+        "en": "this command links the repo to a Supabase project other than production's, and `--linked` commands would then point there."
+      }
+    },
+    {
+      "id": "prod-secrets",
+      "kind": "linePattern",
+      "programs": [],
+      "pattern": "(?:^|[\\s/'\"=<])\\.env\\.prod|(?:^|[\\s;&|(])(?:printenv|env|set|export\\s+-p)(?=[\\s|]|$)[^|;&]*\\|\\s*(?:grep|egrep|rg)\\b.*(?:SERVICE_ROLE|DB_URL|SECRET|TOKEN)|(?:^|[\\s;&|(])printenv\\s+\\S*(?:SERVICE_ROLE|DB_URL|SECRET|TOKEN)|\\bsupabase\\s(?:.*\\s)?projects\\s+api-keys\\b",
+      "pathPattern": "(?:^|/)\\.env\\.prod",
+      "codexPrefixes": [["printenv"]],
+      "route": "localSecrets",
+      "codex": "prompt",
+      "does": {
+        "es": "este comando o esta lectura expone secretos de producción (`.env.prod*`, claves de servicio, URLs de la base o tokens).",
+        "en": "this command or read exposes production secrets (`.env.prod*`, service keys, database URLs or tokens)."
+      }
+    },
+    {
+      "id": "committed-migrations",
+      "kind": "committedFiles",
+      "programs": [],
+      "paths": ["supabase/migrations"],
+      "route": "newMigration",
+      "codex": "forbidden",
+      "does": {
+        "es": "este cambio edita, mueve o borra una migración que ya está comiteada (las ya aplicadas en producción se vuelven inconsistentes con el repo).",
+        "en": "this change edits, moves or deletes a migration that is already committed (the ones already applied in production would no longer match the repo)."
+      }
+    },
+    {
+      "id": "deploy-config",
+      "kind": "guardrailFiles",
+      "programs": [],
+      "paths": [".github/workflows", "vercel.json", "supabase/config.toml"],
+      "route": "deployConfig",
+      "codex": "forbidden",
+      "does": {
+        "es": "este cambio modifica, mueve o borra la configuración de despliegue (workflows de GitHub Actions, `vercel.json` o `supabase/config.toml`).",
+        "en": "this change modifies, moves or deletes deployment configuration (GitHub Actions workflows, `vercel.json` or `supabase/config.toml`)."
+      }
+    }
+  ]
+}
