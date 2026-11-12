@@ -22,3 +22,5 @@ export const ADMIN2_EMAIL = 'admin2@eminat.net'
 /** The admin tasks-multi-responsables creates for itself, and global-setup removes if a run
  *  aborted before its afterAll: a leftover admin would make the roles last-admin case skip. */
 export const MULTI_ADMIN_EMAIL = 'multi.admin.e2e@eminat.net'
+/** A role that carries the `tasks` module: non-admin seeded users get it. */
+export const TASKS_ROLE = 'stratix360'

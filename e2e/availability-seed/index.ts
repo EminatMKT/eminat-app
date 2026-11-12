@@ -1,4 +1,4 @@
-export { TASKS_ROLE } from './constants'
+export { TASKS_ROLE } from '@e2e/constants'
 export { default as assignOrganization } from './assign-organization'
 export { default as clearWeeklyAvailability } from './clear-weekly-availability'
 export { default as deleteTeam } from './delete-team'
