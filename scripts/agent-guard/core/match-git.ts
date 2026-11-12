@@ -22,7 +22,8 @@ import type {
 const hooksHit = (git: GitCommand, rule: Rule): boolean => {
   const { configs, sub, args } = git
   const writes = sub === CONFIG && !readsConfig(git, rule)
-  const lowered = (writes ? [...configs, ...args] : configs).map((word) => word.toLowerCase())
+  const relevantWords = writes ? [...configs, ...args] : configs
+  const lowered = relevantWords.map((word) => word.toLowerCase())
   const skips = rule.noVerify[sub] ?? NONE
   const keyHit = lowered.some((word) => rule.configKeys.some((key) => word.startsWith(key)))
 
@@ -36,6 +37,7 @@ export default function matchGit(command: Command, rule: Rule, context: Context)
   if (!calls(command, rule)) return false
 
   const git = parseGit(command.words)
+  const isPushRule = rule.kind === GIT_PUSH
 
-  return rule.kind === GIT_PUSH ? pushHit(git, rule, context.branch) : hooksHit(git, rule)
+  return isPushRule ? pushHit(git, rule, context.branch) : hooksHit(git, rule)
 }
