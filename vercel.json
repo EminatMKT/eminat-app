@@ -4,7 +4,7 @@
     "deploymentEnabled": {
       "**": false,
       "feature/lilly-calendar": true,
-      "main": false
+      "main": true
     }
   },
   "crons": [
