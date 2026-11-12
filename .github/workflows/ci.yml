@@ -21,6 +21,29 @@ jobs:
         run: python3 scripts/migration/check_medical_grants_test.py
       - name: Validate Production backup gate
         run: python3 scripts/migration/check_restorable_backup_test.py
+      # These two bind every contributor and every tool, agent or human, Centinela-installed
+      # or not — exactly the gap called out below: a local plugin only protects whoever runs
+      # it. Both regressed silently once already (shard matrix 2026-10-22, Vercel deploy
+      # 2026-10-11) with nothing in CI to catch it.
+      - name: Reject a single-shard e2e matrix
+        run: |
+          python3 -c "
+          import re, sys
+          text = open('.github/workflows/ci.yml').read()
+          m = re.search(r'shard:\s*\[([^]]*)\]\s*\n\s*total:\s*\[([^]]*)\]', text)
+          assert m, 'could not find the e2e-shard matrix shape in ci.yml'
+          shards = [s for s in m.group(1).split(',') if s.strip()]
+          if len(shards) <= 1 or m.group(2).strip() == '1':
+              sys.exit('e2e-shard matrix collapsed to a single shard (shard=[' + m.group(1) + '], total=[' + m.group(2) + ']). Fix the real cause (registry auth, caching, a mirror), do not disable parallelism.')
+          "
+      - name: Reject a disabled Vercel deploy for main
+        run: |
+          python3 -c "
+          import json, sys
+          enabled = json.load(open('vercel.json')).get('git', {}).get('deploymentEnabled', {})
+          if enabled.get('main') is not True:
+              sys.exit('vercel.json git.deploymentEnabled.main is not true -- production deploys from main are disabled. A deliberate, temporary pause still needs a tracked follow-up, not a silent one that outlives the reason for it.')
+          "
       # ⚠️ EL CENTINELA YA NO CORRE EN CI. El motor salió de este repo el 2026-08-31 y ahora es
       # un plugin instalado por desarrollador (WSmithDR/centinela-plugin), con sus reglas en el
       # repo de datos de cada uno. Nada de eso existe en un runner.
