@@ -58,17 +58,19 @@ jobs:
   e2e-shard:
     name: e2e (${{ matrix.shard }}/${{ matrix.total }})
     runs-on: ubuntu-latest
-    # Un solo runner ejecuta todos los specs y levanta Supabase una vez. Cuatro runners
-    # descargaban la misma pila en paralelo y el registry rechazaba las imágenes antes
-    # de iniciar las pruebas. --shard=1/1 conserva todos los checks de schema y E2E.
+    # 4 parallel runners each pulling the same Supabase image stack from docker.io hit Docker
+    # Hub's anonymous pull-rate limit (shared across every GitHub Actions runner's IP pool) and
+    # got throttled before `supabase start` finished, so it was dropped to 1 shard on 2026-10-22.
+    # The "Log in to Docker Hub" step below ties the pull quota to our own account instead of
+    # that shared IP pool, which is the documented fix — restoring the 4-way split here.
     # Supabase cold starts plus the sequential browser suite exceeded 18 minutes
     # in the Sales bootstrap regression run. Keep every test and its own timeout.
     timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
-        shard: [1]
-        total: [1]
+        shard: [1, 2, 3, 4]
+        total: [4]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -86,6 +88,20 @@ jobs:
           set -euo pipefail
           duplicates=$(find supabase/migrations -maxdepth 1 -name '*.sql' -printf '%f\n' | cut -d_ -f1 | sort | uniq -d)
           test -z "$duplicates" || { echo "Duplicate migration versions: $duplicates"; exit 1; }
+      # Raises our docker.io pull quota from the shared-IP anonymous limit to our own account's
+      # authenticated one, so 4 parallel shards pulling the same images don't throttle each
+      # other. No-ops (and the job falls back to the old, lower, shared limit) until Wagner adds
+      # the DOCKERHUB_USERNAME/DOCKERHUB_TOKEN repo secrets.
+      - name: Log in to Docker Hub
+        # `if:` can't reference `secrets` directly (GitHub rejects the expression at parse
+        # time: "Unrecognized named-value: 'secrets'") — route it through `env` first.
+        if: ${{ env.DOCKERHUB_USERNAME != '' }}
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
       # `supabase start` levanta Postgres+Auth+REST locales y aplica supabase/migrations.
       # El espejo oficial de Supabase evita el límite de GHCR en el runner compartido.
       # Reintentar solo cuando el registro limita la descarga. Los errores de migración o de

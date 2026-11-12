@@ -106,3 +106,6 @@ export const COLORES_AVATAR = ['#7C6FF7', '#34D399', '#F472B6', '#60A5FA', '#FB9
 export function getIniciales(nombre: string) {
   return nombre.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
 }
+
+// A person counts as online when their presence heartbeat landed in the last five minutes.
+export const ONLINE_WINDOW_MS = 5 * 60 * 1000

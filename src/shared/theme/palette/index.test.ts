@@ -19,4 +19,10 @@ describe('theme/palette', () => {
     expect(Object.keys(palette.colors.dark).sort()).toEqual(Object.keys(palette.colors.light).sort())
     expect(palette.baseInput.outline).toBe('none')
   })
+
+  it('names the accent as a CSS variable, so it follows the active theme', () => {
+    const accentVariable = 'var(--c-accent)'
+
+    expect(palette.accentVar).toBe(accentVariable)
+  })
 })

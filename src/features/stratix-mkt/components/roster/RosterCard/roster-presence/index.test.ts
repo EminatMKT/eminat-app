@@ -6,7 +6,7 @@ import {
   it,
   vi,
 } from 'vitest'
-import { ONLINE_WINDOW_MS } from '../constants'
+import { ONLINE_WINDOW_MS } from '@/shared/constants/domain'
 import type { Presence, RosterUser } from '../types'
 import presenceOf from './index'
 

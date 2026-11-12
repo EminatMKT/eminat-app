@@ -1,7 +1,8 @@
+import palette from '@/shared/theme/palette'
 import type { Props, AvatarStyle } from './types'
 import s from './index.module.css'
 
-const DEFAULT_SWATCH = 'var(--c-accent)'
+const DEFAULT_SWATCH = palette.accentVar
 
 function resolveSwatch(color?: string | null): string {
   const trimmed = color?.trim()

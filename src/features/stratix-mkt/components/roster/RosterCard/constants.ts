@@ -7,9 +7,6 @@ export const NO_TEXT = ''
 /** Stands in for the email of a member who has an account but no email on record. */
 export const MISSING_EMAIL = '—'
 
-/** How recent a heartbeat must be for the member to count as online: five minutes. */
-export const ONLINE_WINDOW_MS = 5 * 60 * 1000
-
 /** Avatar status dot per presence state. */
 export const AVATAR_STATUS: Record<AvatarStatus, AvatarStatus> = {
   unregistered: 'unregistered',

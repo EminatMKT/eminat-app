@@ -1,5 +1,6 @@
 import now from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/NowLine/use-now/start-ticking/clock'
-import { AVATAR_STATUS, ONLINE_WINDOW_MS } from '../constants'
+import { ONLINE_WINDOW_MS } from '@/shared/constants/domain'
+import { AVATAR_STATUS } from '../constants'
 import type {
   AvatarStatus,
   Heartbeat,

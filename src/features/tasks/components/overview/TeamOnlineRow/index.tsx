@@ -2,8 +2,8 @@
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import Avatar from '@/shared/components/Avatar'
+import { ONLINE_WINDOW_MS } from '@/shared/constants/domain'
 import type { Usuario } from '@/shared/context/loadAppData'
-import { ONLINE_WINDOW_MS } from './constants'
 import s from './index.module.css'
 
 // Campos canónicos de `Usuario` (Pick) + el embed N:N `usuario_cargos`.

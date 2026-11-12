@@ -1,4 +1,6 @@
-const COLOR_ACCENT = 'var(--c-accent)'
+import palette from '@/shared/theme/palette'
+
+const COLOR_ACCENT = palette.accentVar
 const COLOR_WARN = 'var(--c-warn-solid)'
 const COLOR_DANGER = 'var(--c-danger)'
 
