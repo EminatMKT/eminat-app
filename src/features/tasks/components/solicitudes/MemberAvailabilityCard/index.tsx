@@ -3,12 +3,12 @@ import type { CSSProperties } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { actividadesActivasDe, cargaDe, slotOcupado, HORAS_SEMANALES } from '@/features/tasks/utils/availability'
+import { ONLINE_WINDOW_MS } from '@/shared/constants/domain'
 import HourSlot from '../HourSlot'
 import ActiveTaskLine from '../ActiveTaskLine'
 import s from './index.module.css'
 
 const SLOTS = [9, 10, 11, 12, 13, 14, 15, 16, 17]
-const ONLINE_WINDOW_MS = 5 * 60 * 1000
 const MAX_TAREAS_VISIBLES = 2
 
 type Props = {

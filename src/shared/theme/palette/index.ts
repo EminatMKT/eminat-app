@@ -3,6 +3,8 @@ import type { ThemeName } from '@/shared/theme/types'
 import rawColors from './colors'
 
 const accent = '#7C6FF7'
+// The accent as the CSS variable, for inline values that must follow the active theme.
+const accentVar = 'var(--c-accent)'
 const baseInput: CSSProperties = {
   width: '100%',
   padding: '9px 12px',
@@ -15,6 +17,7 @@ const baseInput: CSSProperties = {
 const order: ThemeName[] = ['light', 'dark']
 const palette = {
   accent,
+  accentVar,
   baseInput,
   colors: rawColors.colors,
   inputOverrides: rawColors.inputOverrides,

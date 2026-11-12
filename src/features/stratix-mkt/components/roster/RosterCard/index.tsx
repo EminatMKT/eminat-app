@@ -2,7 +2,7 @@
 import type { CSSProperties } from 'react'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
-import { ESTADO } from '@/shared/constants/domain'
+import { ESTADO, ONLINE_WINDOW_MS } from '@/shared/constants/domain'
 import type { Usuario } from '@/shared/context/loadAppData'
 import { esResponsable } from '@/features/tasks/utils/responsables'
 import s from './index.module.css'
@@ -14,9 +14,6 @@ type RosterUser = Pick<Usuario, 'id' | 'nombre' | 'apellido' | 'email' | 'online
   auth_id?: string | null
   usuario_cargos?: UsuarioCargo[]
 }
-
-// Se considera en línea si marcó presencia en los últimos 5 minutos.
-const ONLINE_WINDOW_MS = 5 * 60 * 1000
 
 type Props = {
   user: RosterUser

@@ -57,3 +57,8 @@ export function longDay(d: Date, intlLocale: string): string {
 export function shortMoment(d: Date, intlLocale: string): string {
   return d.toLocaleString(intlLocale, SHORT_MOMENT)
 }
+
+/** The current instant. Feature code reads the clock through here, so tests have one seam. */
+export function now(): Date {
+  return new Date()
+}
