@@ -7,17 +7,23 @@ import {
 } from 'vitest'
 import { NextRequest } from 'next/server'
 import { MODULE } from '@/shared/auth/permissions'
-import { RPCS } from '@/shared/schema'
+import { TABLES, TABLE_COLUMNS } from '@/shared/schema'
 import type { Access } from '@/shared/db/types'
+import { PAD_CHAR, PAD_LENGTH } from '@/features/tasks/utils/availability/constants'
 import {
   EXCLUSION_VIOLATION_CODE,
   INVALID_RANGES_MESSAGE,
+  INVALID_RANGES_STATUS as INVALID_STATUS,
   LOAD_FAILED_MESSAGE,
+  LOAD_FAILED_STATUS,
   MAX_RANGES_PER_REQUEST,
   NOTE_MAX_LENGTH,
   PROFILE_UNAVAILABLE_MESSAGE,
+  PROFILE_UNAVAILABLE_STATUS as PROFILE_STATUS,
   SAVE_CONFLICT_MESSAGE,
+  SAVE_CONFLICT_STATUS as CONFLICT_STATUS,
   SAVE_FAILED_MESSAGE,
+  SAVE_FAILED_STATUS,
 } from '@/app/api/tasks/availability/constants'
 import {
   AUTH_USER_ID,
@@ -25,10 +31,13 @@ import {
   DENIED_ACCESS,
   DENIED_ERROR,
   DENIED_STATUS,
+  GET_RPC,
   GRANTED_ACCESS,
+  JSON_METHOD,
   NO_STORE,
   RLS_VIOLATION_CODE,
   ROUTE_URL,
+  SAVE_RPC,
   VIEWER_ID,
 } from '@/app/api/tasks/availability/helpers/test-fixtures/constants'
 import { GET, PUT } from '@/app/api/tasks/availability/route'
@@ -50,27 +59,18 @@ const {
 vi.mock(REQUIRE_MODULE_PATH, () => ({ default: requireModule }))
 vi.mock(SSR_CLIENT_PATH, () => ({ default: ssrClient }))
 
-const GET_RPC = RPCS.getVisibleWeeklyAvailability
-const SAVE_RPC = RPCS.replaceOwnWeeklyAvailability
-const USUARIOS_TABLE = 'usuarios'
-const ID_COLUMN = 'id'
-const AUTH_ID_COLUMN = 'auth_id'
-const ACTIVE_COLUMN = 'activo'
+const {
+  id: ID_COLUMN,
+  authId: AUTH_ID_COLUMN,
+  activo: ACTIVE_COLUMN,
+} = TABLE_COLUMNS.usuarios
 const OK_STATUS = 200
-const PROFILE_STATUS = 403
-const INVALID_STATUS = 400
-const CONFLICT_STATUS = 409
-const SAVE_FAILED_STATUS = 400
-const LOAD_FAILED_STATUS = 500
 const PUT_METHOD = 'PUT'
-const JSON_METHOD = 'json'
 const NOT_JSON = '{ranges:'
 const OTHER_ID = 'other-1'
 const PAD = '   '
 const FILLER = 'x'
 const TOP_OF_HOUR = ':00'
-const PAD_LENGTH = 2
-const PAD_CHAR = '0'
 const RANGES_PER_DAY = 10
 const ANONYMOUS_GRANT: Access = { ok: true }
 const PROFILE_ROW = { id: VIEWER_ID }
@@ -382,7 +382,7 @@ describe('availability route — viewer profile', () => {
     const { from, query } = installDb()
 
     await GET()
-    expect(from).toHaveBeenCalledWith(USUARIOS_TABLE)
+    expect(from).toHaveBeenCalledWith(TABLES.usuarios)
     expect(query.select).toHaveBeenCalledWith(ID_COLUMN)
     expect(query.eq.mock.calls).toEqual(PROFILE_FILTERS)
     expect(query.maybeSingle).toHaveBeenCalledTimes(1)
