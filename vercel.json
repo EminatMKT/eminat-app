@@ -3,7 +3,6 @@
   "git": {
     "deploymentEnabled": {
       "**": false,
-      "feature/lilly-calendar": true,
       "main": true
     }
   },
