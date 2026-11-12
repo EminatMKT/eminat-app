@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { ADMIN_ROLE, MODULE, modulePath } from '@/shared/auth/permissions'
-import { BUTTON, DIALOG, ESCAPE } from '@/shared/constants/dom'
+import { BUTTON, DIALOG, OPTION, ESCAPE } from '@/shared/constants/dom'
 import translate from '@/shared/i18n/translate'
 import { deleteUser, ensureUser } from '@e2e/seed'
 import { MULTI_ADMIN_EMAIL, TASKS_ROLE } from '@e2e/constants'
@@ -14,7 +14,6 @@ const BRAND = 'EMC'
 const LOCALE = 'es'
 const UI_WAIT = { timeout: 15000 }
 const COMBOBOX = 'combobox'
-const OPTION = 'option'
 const LISTBOX = 'listbox'
 const say = (key: Parameters<typeof translate>[1]) => translate(LOCALE, key)
 const named = (name: string) => ({ name })

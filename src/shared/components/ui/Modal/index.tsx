@@ -1,11 +1,9 @@
 'use client'
 import type { ReactNode } from 'react'
 import ModalHead from '@/shared/components/ui/ModalHead'
-import { DIALOG } from '@/shared/constants/dom'
+import { ALERT_DIALOG, DIALOG } from '@/shared/constants/dom'
 import useDialog from './useDialog'
 import s from './index.module.css'
-
-const ALERT_DIALOG = 'alertdialog'
 
 // centinela-exime: bloques-similares@3 — no hay markup nuevo: el encabezado SALIÓ de acá a
 // `ModalHead` y lo único que se agregó es el pie, que es un <div> con el `footer` adentro.

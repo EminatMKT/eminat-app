@@ -4,6 +4,10 @@ export const BUTTON = 'button'
 /** The ARIA role a modal declares: how assistive tech, and the e2e, know one is open. */
 export const DIALOG = 'dialog'
 
+/** The ARIA role a confirm/alert dialog declares: a Modal rendered as role="alertdialog"
+ *  instead of role="dialog". */
+export const ALERT_DIALOG = 'alertdialog'
+
 /** The ARIA role a message takes when it must be announced the moment it appears. */
 export const ALERT = 'alert'
 
@@ -30,6 +34,9 @@ export const TAB = 'Tab'
 
 /** The `type` of an `<input>` that turns one value on or off. */
 export const CHECKBOX = 'checkbox'
+
+/** The element (and ARIA role) of a <select>'s own choices. */
+export const OPTION = 'option'
 
 // Names the web platform spells, not the app: a typo in one compiles and then never matches, so
 // each is written once here and read by the screens, their unit suites and the e2e alike.

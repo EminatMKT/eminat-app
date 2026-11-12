@@ -17,9 +17,11 @@ import { PIXELS_PER_MINUTE } from
 import {
   BUTTON,
   DIALOG,
+  ALERT_DIALOG,
   ENTER,
   ESCAPE,
 } from '@/shared/constants/dom'
+import translate from '@/shared/i18n/translate'
 import {
   PASSWORD,
   ensureUser,
@@ -54,7 +56,8 @@ const USERS: Parameters<typeof ensureUser>[] = [
   [TEAMMATE_EMAIL, TASKS_ROLE, 'Teammate', SURNAME],
   [ADMIN_EMAIL, ADMIN_ROLE, 'Admin', SURNAME],
 ]
-const ENGLISH_LOCALE: readonly [string, string] = ['locale', 'en']
+const ENGLISH = 'en'
+const ENGLISH_LOCALE: readonly [string, string] = ['locale', ENGLISH]
 const INITIAL_STORAGE = [ONBOARDING_DONE, ENGLISH_LOCALE]
 const TASKS_PATH = modulePath(MODULE.TASKS)
 const LOGIN_WAIT = { timeout: 40000 }
@@ -70,7 +73,6 @@ const OVERFLOW_TOLERANCE_PX = 1
 // round-trip, a reload, and a keyboard-only pass -- comfortably past Playwright's 60s default
 // once the dev server is also compiling routes on first hit.
 const TEST_TIMEOUT_MS = 120000
-const ALERT_DIALOG_ROLE = 'alertdialog'
 const SPACE_KEY = ' '
 const PUT_METHOD = 'PUT'
 const TUESDAY_LABEL = 'Tuesday'
@@ -81,7 +83,8 @@ const TUESDAY_END_LABEL = 'Tuesday end time'
 const TUESDAY_NOTE_LABEL = 'Tuesday note'
 const DRAG_NOTE_TEXT = 'Team sync'
 const EDITED_NOTE_TEXT = 'Rescheduled'
-const DELETE_LABEL = 'Delete'
+const DELETE_KEY = 'common.delete'
+const DELETE_LABEL = translate(ENGLISH, DELETE_KEY)
 const SAVE_CHANGES_LABEL = 'Save changes'
 const SAVE_AVAILABILITY_LABEL = 'Save availability'
 const NO_JORNADA_NOTICE = 'No workday assigned: an admin has to assign one in Admin before availability can be declared.'
@@ -199,7 +202,7 @@ function namedDialog(page: Page, name: string): Locator {
 function namedAlertDialog(page: Page, name: string): Locator {
   const matcher = { name }
 
-  return page.getByRole(ALERT_DIALOG_ROLE, matcher)
+  return page.getByRole(ALERT_DIALOG, matcher)
 }
 
 function dayTrack(page: Page, dayLabel: string): Locator {

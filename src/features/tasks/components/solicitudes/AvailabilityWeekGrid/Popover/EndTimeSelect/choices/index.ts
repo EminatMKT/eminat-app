@@ -1,12 +1,11 @@
 import { createElement } from 'react'
 import { hhmmOf } from '@/features/tasks/utils/availability'
 import { DAY_END_MINUTE, SNAP_MINUTES } from '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/constants'
-
-const OPTION_TAG = 'option'
+import { OPTION } from '@/shared/constants/dom'
 
 function renderOption(value: string) {
   const optionProps = { key: value, value }
-  const option = createElement(OPTION_TAG, optionProps, value)
+  const option = createElement(OPTION, optionProps, value)
 
   return option
 }
