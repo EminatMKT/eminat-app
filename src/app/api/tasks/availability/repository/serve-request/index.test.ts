@@ -6,7 +6,6 @@ import {
   vi,
 } from 'vitest'
 import { NextRequest } from 'next/server'
-import { RPCS } from '@/shared/schema'
 import {
   EXCLUSION_VIOLATION_CODE,
   INVALID_RANGES_STATUS,
@@ -19,10 +18,13 @@ import {
   CACHE_CONTROL_HEADER,
   DENIED_ACCESS,
   DENIED_STATUS,
+  GET_RPC,
   GRANTED_ACCESS,
+  JSON_METHOD,
   NO_STORE,
   RLS_VIOLATION_CODE,
   ROUTE_URL,
+  SAVE_RPC,
   VIEWER_ID,
 } from '@/app/api/tasks/availability/helpers/test-fixtures/constants'
 import { GET, PUT } from '@/app/api/tasks/availability/route'
@@ -45,9 +47,6 @@ vi.mock(REQUIRE_MODULE_PATH, () => ({ default: requireModule }))
 vi.mock(SSR_CLIENT_PATH, () => ({ default: ssrClient }))
 
 const OK_STATUS = 200
-const JSON_METHOD = 'json'
-const GET_RPC = RPCS.getVisibleWeeklyAvailability
-const SAVE_RPC = RPCS.replaceOwnWeeklyAvailability
 const ONE_RANGE_BODY = { ranges: [{ weekday: 1, startsAt: '09:00', endsAt: '12:00' }] }
 
 const activeRangeRow = {

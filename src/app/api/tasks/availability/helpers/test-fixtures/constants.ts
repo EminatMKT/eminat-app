@@ -1,4 +1,5 @@
 import type { Access } from '@/shared/db/types'
+import { RPCS } from '@/shared/schema'
 
 /** Auth user id behind the mocked session in the availability API tests. */
 export const AUTH_USER_ID = 'auth-1'
@@ -35,3 +36,12 @@ export const NO_STORE = 'no-store'
 
 /** Postgres `insufficient_privilege` code, what an RLS-denied write answers with. */
 export const RLS_VIOLATION_CODE = '42501'
+
+/** Name of the read RPC the route tests expect both verbs to call. */
+export const GET_RPC = RPCS.getVisibleWeeklyAvailability
+
+/** Name of the save RPC the route tests expect PUT to call. */
+export const SAVE_RPC = RPCS.replaceOwnWeeklyAvailability
+
+/** Request method the route tests spy on to prove a body was never read. */
+export const JSON_METHOD = 'json'
