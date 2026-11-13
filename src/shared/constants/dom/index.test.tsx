@@ -1,7 +1,18 @@
 import { describe, it, expect } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import Pressable from '@/shared/components/ui/Pressable'
-import { BANNER, HEADER_ELEMENT, MAIN_ELEMENT, BUTTON, DIALOG, ENTER, ESCAPE, TAB } from './index'
+import {
+  BANNER,
+  HEADER_ELEMENT,
+  MAIN_ELEMENT,
+  BUTTON,
+  DIALOG,
+  ALERT_DIALOG,
+  OPTION,
+  ENTER,
+  ESCAPE,
+  TAB,
+} from './index'
 
 const ignore = () => undefined
 const LABEL = 'Day 30'
@@ -29,5 +40,12 @@ describe('dom names', () => {
   // A typo here compiles and then never matches a key, so the spelling is pinned.
   it('names the keys that confirm, close and move the focus', () => {
     expect([ENTER, ESCAPE, TAB]).toEqual(['Enter', 'Escape', 'Tab'])
+  })
+
+  // The e2e finds a delete confirmation by this role; the Modal's own suite pins that it
+  // declares it, instead of DIALOG, when rendered as a confirm/alert dialog. The
+  // multi-responsibles e2e finds each choice of a select by this role.
+  it('names the role a confirm dialog declares and the role of a select\'s own choices', () => {
+    expect([ALERT_DIALOG, OPTION]).toEqual(['alertdialog', 'option'])
   })
 })

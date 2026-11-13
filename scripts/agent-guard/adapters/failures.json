@@ -1,0 +1,22 @@
+[
+  { "adapter": "claude-code.ts", "stdin": "{", "gitless": false },
+  { "adapter": "codex.ts", "stdin": "{", "gitless": false },
+  { "adapter": "claude-code.ts", "stdin": "null", "gitless": false },
+  { "adapter": "claude-code.ts", "stdin": "{\"tool_input\":{\"command\":42}}", "gitless": false },
+  { "adapter": "codex.ts", "stdin": "{\"tool_input\":{\"cmd\":{}}}", "gitless": false },
+  {
+    "adapter": "claude-code.ts",
+    "stdin": "{\"cwd\":\"{root}\",\"tool_input\":{\"file_path\":\"{root}supabase/migrations/20261109223710_jornadas_weekly_hours.sql\"}}",
+    "gitless": true
+  },
+  {
+    "adapter": "codex.ts",
+    "stdin": "{\"cwd\":\"{root}\",\"tool_input\":{\"input\":\"*** Begin Patch\\n*** Delete File: supabase/migrations/20261109223710_jornadas_weekly_hours.sql\\n*** End Patch\"}}",
+    "gitless": true
+  },
+  {
+    "adapter": "claude-code.ts",
+    "stdin": "{\"cwd\":\"{root}\",\"tool_input\":{\"command\":\"git status\"}}",
+    "gitless": true
+  }
+]

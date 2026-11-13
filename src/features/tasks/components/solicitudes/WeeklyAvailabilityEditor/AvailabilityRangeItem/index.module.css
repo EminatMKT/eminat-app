@@ -1,0 +1,24 @@
+.item {
+  background: color-mix(in srgb, var(--c-accent) 6%, transparent);
+}
+
+.times {
+  display: flex;
+  gap: 0.5rem;
+}
+
+@media (max-width: 36rem) {
+  .times {
+    flex-direction: column;
+  }
+}
+
+.removeWrap {
+  width: 2.75rem;
+}
+
+@media (max-width: 24rem) {
+  .removeWrap {
+    width: 100%;
+  }
+}

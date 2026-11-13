@@ -1,0 +1,26 @@
+{
+  "generated": [
+    "GENERATED from scripts/agent-guard/rules.json by `pnpm guard:generate`; do not edit by hand.",
+    "`pnpm guard:check` fails when this file and rules.json disagree."
+  ],
+  "cannotExpress": [
+    "Codex execpolicy matches an exact argv prefix: the first words of a command, in order. It",
+    "cannot express what the shared guard core matches by regex, by path or by context, so the",
+    "PreToolUse hook in .codex/hooks.json (the same core Claude Code runs) covers, for every rule:",
+    "- a word after an option or further on (`vercel --cwd x deploy`, `git push -u origin main`);",
+    "- commands inside `sh -c` scripts Codex does not split, `eval`, `xargs`, aliases or quotes;",
+    "- the current branch (`git push` while on main) and which migrations are already committed;",
+    "- the files a branch changes against origin/main (a push that leaves AGENTS.md behind);",
+    "- file edits through apply_patch and shell writes (rm, mv, sed -i, redirects).",
+    "Rules the hook alone enforces in part or in full:"
+  ],
+  "limits": {
+    "hookOnly": "- no prefix at all: ",
+    "regex": "- matched by regex: ",
+    "paths": "- matched by path: ",
+    "env": "- matched by environment variable: "
+  },
+  "promptNote": [
+    "A \"prompt\" rule is coarser here than in the core, so Codex asks instead of forbidding."
+  ]
+}

@@ -1,0 +1,11 @@
+.preview {
+  position: absolute;
+  left: 0.25rem;
+  right: 0.25rem;
+  top: var(--preview-top);
+  height: var(--preview-height);
+  border-radius: 0.625rem;
+  border: 0.125rem dashed var(--c-accent);
+  background: color-mix(in srgb, var(--c-accent) 12%, transparent);
+  pointer-events: none;
+}

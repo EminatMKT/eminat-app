@@ -1,0 +1,113 @@
+[
+  { "adapter": "claude-code.ts", "input": { "command": "npx vercel promote dpl_1" }, "exit": 2 },
+  { "adapter": "claude-code.ts", "input": { "file_path": "{root}AGENTS.md" }, "exit": 2 },
+  {
+    "adapter": "claude-code.ts",
+    "input": { "notebook_path": "{root}scripts/agent-guard/x.ipynb" },
+    "exit": 2
+  },
+  { "adapter": "claude-code.ts", "input": { "command": "git status" }, "exit": 0 },
+  { "adapter": "claude-code.ts", "input": { "file_path": "{root}src/app/page.tsx" }, "exit": 0 },
+  { "adapter": "codex.ts", "input": { "command": ["vercel", "deploy", "--prod"] }, "exit": 2 },
+  { "adapter": "codex.ts", "input": { "cmd": "pnpm supabase db push" }, "exit": 2 },
+  {
+    "adapter": "codex.ts",
+    "input": {
+      "command": [
+        "apply_patch",
+        "*** Begin Patch\n*** Update File: AGENTS.md\n@@\n-a\n+b\n*** End Patch"
+      ]
+    },
+    "exit": 2
+  },
+  {
+    "adapter": "codex.ts",
+    "input": { "input": "*** Begin Patch\n*** Update File: src/app/page.tsx\n@@\n-a\n+b\n*** End Patch" },
+    "exit": 0
+  },
+  { "adapter": "codex.ts", "input": { "command": ["bash", "-lc", "pnpm test"] }, "exit": 0 },
+  {
+    "adapter": "codex.ts",
+    "input": {
+      "command": [
+        "apply_patch",
+        "*** Begin Patch\n*** Update File: src/app/page.tsx\n@@\n echo x; vercel --prod\n-a\n+b\n*** End Patch"
+      ]
+    },
+    "exit": 0
+  },
+  {
+    "adapter": "codex.ts",
+    "input": {
+      "command": [
+        "bash",
+        "-lc",
+        "apply_patch <<'EOF'\n*** Begin Patch\n*** Update File: src/app/page.tsx\n@@\n echo x; vercel --prod\n-a\n+b\n*** End Patch\nEOF"
+      ]
+    },
+    "exit": 0
+  },
+  {
+    "adapter": "codex.ts",
+    "input": {
+      "input": "*** Begin Patch\n*** Update File: src/app/page.tsx\n@@\n echo x; vercel --prod\n-a\n+b\n*** End Patch"
+    },
+    "exit": 0
+  },
+  {
+    "adapter": "codex.ts",
+    "input": {
+      "command": [
+        "bash",
+        "-lc",
+        "apply_patch <<'EOF'\n*** Begin Patch\n*** Update File: src/app/page.tsx\n@@\n echo x; vercel --prod\n-a\n+b\n*** End Patch\nEOF\nvercel --prod"
+      ]
+    },
+    "exit": 2
+  },
+  {
+    "adapter": "claude-code.ts",
+    "input": {
+      "file_path": "{root}supabase/migrations/20261109223710_jornadas_weekly_hours.sql"
+    },
+    "exit": 2
+  },
+  {
+    "adapter": "claude-code.ts",
+    "input": { "file_path": "{root}supabase/migrations/29991231000000_brand_new.sql" },
+    "exit": 0
+  },
+  {
+    "adapter": "codex.ts",
+    "input": {
+      "command": [
+        "apply_patch",
+        "*** Begin Patch\n*** Update File: supabase/migrations/20261109223710_jornadas_weekly_hours.sql\n@@\n-a\n+b\n*** End Patch"
+      ]
+    },
+    "exit": 2
+  },
+  {
+    "adapter": "codex.ts",
+    "input": {
+      "command": ["bash", "-c", "echo \"*** Begin Patch\"; vercel deploy; echo \"*** End Patch\""]
+    },
+    "exit": 2
+  },
+  {
+    "adapter": "codex.ts",
+    "input": { "cmd": "bash -c 'echo \"*** Begin Patch\"; vercel deploy; echo \"*** End Patch\"'" },
+    "exit": 2
+  },
+  {
+    "adapter": "codex.ts",
+    "input": {
+      "command": [
+        "bash",
+        "-lc",
+        "apply_patch <<'EOF'; vercel deploy\n*** Begin Patch\n*** Update File: src/app/page.tsx\n@@\n-a\n+b\n*** End Patch\nEOF"
+      ]
+    },
+    "exit": 2
+  }
+]

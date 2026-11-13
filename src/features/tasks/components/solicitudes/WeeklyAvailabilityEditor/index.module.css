@@ -1,0 +1,5 @@
+.editor {
+  border: 0.125rem solid color-mix(in srgb, var(--c-accent) 24%, transparent);
+  border-radius: 1rem;
+  padding: 1.125rem;
+}

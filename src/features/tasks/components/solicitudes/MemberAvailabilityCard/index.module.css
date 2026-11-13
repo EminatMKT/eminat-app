@@ -1,162 +1,34 @@
-/* Disponible / ocupada es UN estado y tiñe media tarjeta: se resuelve con una clase en la
-   raíz y descendientes, no con un ternario por elemento. --swatch es el color de la persona. */
 .card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
   background: var(--c-s1);
-  border: 2px solid rgba(52, 211, 153, 0.19);
-  border-radius: 16px;
-  padding: 18px;
+  border: 1px solid var(--c-border);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
 }
 
-.card.ocupada {
-  border-color: rgba(248, 113, 113, 0.19);
+.card:hover {
+  border-color: var(--c-accent);
 }
 
-.head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 14px;
-}
-
-.persona {
+.meta {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.5rem;
+  flex-shrink: 0;
 }
 
-.avatarWrap {
-  position: relative;
+.total {
+  font-size: 0.6875rem;
+  color: var(--c-t2);
 }
 
-.avatar {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: var(--swatch, var(--c-accent));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.dot {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #555;
-  border: 2px solid var(--c-s1);
-}
-
-.dot.online {
-  background: #34d399;
-}
-
-.nombre {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--c-t1);
-}
-
-.resumen {
-  font-size: 10px;
+.icon {
   color: var(--c-t3);
 }
 
-.estado {
-  font-size: 12px;
-  font-weight: 700;
-  padding: 5px 12px;
-  border-radius: 20px;
-  color: #34d399;
-  background: rgba(52, 211, 153, 0.13);
-}
-
-.card.ocupada .estado {
-  color: #f87171;
-  background: rgba(248, 113, 113, 0.13);
-}
-
-.capacidad {
-  margin-bottom: 14px;
-}
-
-.capHead {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  color: var(--c-t3);
-  margin-bottom: 5px;
-}
-
-.libres {
-  font-weight: 600;
-  color: #34d399;
-}
-
-.card.ocupada .libres {
-  color: #f87171;
-}
-
-.track {
-  height: 8px;
-  border-radius: 4px;
-  background: var(--c-border);
-  overflow: hidden;
-}
-
-/* --pct: la ocupación real de la persona. */
-.fill {
-  height: 100%;
-  border-radius: 4px;
-  background: #34d399;
-  width: var(--pct);
-  transition: width 0.5s;
-}
-
-.card.ocupada .fill {
-  background: #f87171;
-}
-
-.usado {
-  font-size: 9px;
-  color: var(--c-t3);
-  margin-top: 4px;
-  text-align: right;
-}
-
-.rotulo {
-  font-size: 10px;
-  color: var(--c-t3);
-  margin-bottom: 6px;
-  font-family: 'DM Mono', monospace;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.slots {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
-.enCurso {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--c-border);
-}
-
-.enCursoTitulo {
-  font-size: 10px;
-  color: var(--c-t3);
-  margin-bottom: 6px;
-}
-
-.mas {
-  font-size: 10px;
-  color: var(--c-t3);
+.pencilIcon {
+  color: var(--c-accent);
 }

@@ -1,0 +1,454 @@
+import {
+  test,
+  expect,
+  type Page,
+  type Response,
+  type Locator,
+} from '@playwright/test'
+import {
+  ADMIN_ROLE,
+  MODULE,
+  ROUTES,
+  modulePath,
+} from '@/shared/auth/permissions'
+import { AVAILABILITY_ENDPOINT } from '@/features/tasks/data/availability/constants'
+import { PIXELS_PER_MINUTE } from
+  '@/features/tasks/components/solicitudes/AvailabilityWeekGrid/geometry/constants'
+import {
+  BUTTON,
+  DIALOG,
+  ALERT_DIALOG,
+  ENTER,
+  ESCAPE,
+} from '@/shared/constants/dom'
+import translate from '@/shared/i18n/translate'
+import {
+  PASSWORD,
+  ensureUser,
+  getUsuario,
+  deleteUser,
+} from '../seed'
+import {
+  APP_HOME,
+  LOGIN_PLACEHOLDER,
+  ONBOARDING_DONE,
+  PASSWORD_BOX,
+} from '../billing-v2/constants'
+import {
+  TASKS_ROLE,
+  assignOrganization,
+  clearWeeklyAvailability,
+  deleteTeam,
+  ensureTeam,
+  firstActiveJornada,
+  firstDepartamentoId,
+} from '../availability-seed'
+import writeLocalStorage from './storage'
+
+const SURNAME = 'AvailJourneye2e'
+const OWNER_EMAIL = 'owner.availability.journey.e2e@eminat.net'
+const TEAMMATE_EMAIL = 'teammate.availability.journey.e2e@eminat.net'
+const ADMIN_EMAIL = 'admin.availability.journey.e2e@eminat.net'
+const TEAM_CODE = 'E2E_AVAIL_JOURNEY_TEAM'
+const TEAM_NAME = 'E2E Availability Journey Team'
+const USERS: Parameters<typeof ensureUser>[] = [
+  [OWNER_EMAIL, TASKS_ROLE, 'Owner', SURNAME],
+  [TEAMMATE_EMAIL, TASKS_ROLE, 'Teammate', SURNAME],
+  [ADMIN_EMAIL, ADMIN_ROLE, 'Admin', SURNAME],
+]
+const ENGLISH = 'en'
+const ENGLISH_LOCALE: readonly [string, string] = ['locale', ENGLISH]
+const INITIAL_STORAGE = [ONBOARDING_DONE, ENGLISH_LOCALE]
+const TASKS_PATH = modulePath(MODULE.TASKS)
+const LOGIN_WAIT = { timeout: 40000 }
+// Reused verbatim from e2e/billing-v2/phone.spec.ts's PHONE / e2e/meetings-synthetic.spec.ts;
+// this repo has no single exported narrow-viewport constant to import instead.
+const NARROW_VIEWPORT_WIDTH = 390
+const NARROW_VIEWPORT_HEIGHT = 844
+const NARROW_VIEWPORT = { width: NARROW_VIEWPORT_WIDTH, height: NARROW_VIEWPORT_HEIGHT }
+// Matches e2e/native-sales.spec.ts's own overflow check: a 1px tolerance absorbs scrollbar
+// rounding so the assertion does not flake on a pixel that is not real overflow.
+const OVERFLOW_TOLERANCE_PX = 1
+// This journey drives drag-create, an edge-resize, a popover edit, a delete, a real save
+// round-trip, a reload, and a keyboard-only pass -- comfortably past Playwright's 60s default
+// once the dev server is also compiling routes on first hit.
+const TEST_TIMEOUT_MS = 120000
+const SPACE_KEY = ' '
+const PUT_METHOD = 'PUT'
+const TUESDAY_LABEL = 'Tuesday'
+const WEDNESDAY_LABEL = 'Wednesday'
+const THURSDAY_LABEL = 'Thursday'
+const TUESDAY_START_LABEL = 'Tuesday start time'
+const TUESDAY_END_LABEL = 'Tuesday end time'
+const TUESDAY_NOTE_LABEL = 'Tuesday note'
+const DRAG_NOTE_TEXT = 'Team sync'
+const EDITED_NOTE_TEXT = 'Rescheduled'
+const DELETE_KEY = 'common.delete'
+const DELETE_LABEL = translate(ENGLISH, DELETE_KEY)
+const SAVE_CHANGES_LABEL = 'Save changes'
+const SAVE_AVAILABILITY_LABEL = 'Save availability'
+const NO_JORNADA_NOTICE = 'No workday assigned: an admin has to assign one in Admin before availability can be declared.'
+const TUESDAY_START_VALUE = '06:00'
+const TUESDAY_END_VALUE = '07:30'
+// Kept inside the default 1280x720 viewport's visible height without scrolling: the track
+// spans the full 24h day (1080px tall) starting at the modal's current scroll offset, so a
+// drag target past roughly minute 520 lands below the fold and never reaches the real DOM.
+const DRAG_START_MINUTE = 370
+const DRAG_END_MINUTE = 410
+const RESIZE_TARGET_MINUTE = 450
+const RESIZE_HANDLE_XPATH = 'xpath=following-sibling::div[@data-resize-handle="true"]'
+const GRID_DAY_SELECTOR = '[data-grid-day]'
+const GRID_TRACK_SELECTOR = '[data-grid-track]'
+const MOVE_OPTIONS = { steps: 5 }
+const TUESDAY_BLOCK_START_PATTERN = /^06:00–/
+const EDIT_RANGE_SUFFIX_PATTERN = /\. Edit range$/
+const TUESDAY_FINAL_TIME_TEXT = '06:00–07:30'
+const MISSING_BOX_ERROR = 'Expected a bounding box for this element'
+// Kept inside the same visible-without-scrolling range as the other minute offsets above.
+const THURSDAY_CLICK_MINUTE = 300
+// A track's own tab stop, the keyboard-create affordance that replaced the add-range button.
+const FOCUSABLE_TRACK_SELECTOR = '[data-grid-track][tabindex="0"]'
+
+// Fresh test users never completed the first-visit tour; its full-screen mask would intercept
+// sidebar clicks. The default locale is Spanish (see src/shared/i18n/constants.ts) unless
+// localStorage says otherwise -- matches e2e/native-sales.spec.ts's exact init pattern.
+async function bypassOnboardingAndForceEnglish(page: Page): Promise<void> {
+  await page.addInitScript(writeLocalStorage, INITIAL_STORAGE)
+}
+
+// The middleware redirects an authenticated session straight back to '/' on '/login'
+// (src/middleware.ts: `hasSession && pathname === '/login'`); this test logs in twice as
+// different identities on the same page, so the prior session's cookie has to go first.
+async function openLoginPage(page: Page): Promise<void> {
+  await page.context().clearCookies()
+  await page.goto(ROUTES.login)
+}
+
+async function submitCredentials(page: Page, email: string): Promise<void> {
+  const password = page.locator(PASSWORD_BOX)
+
+  await page.getByPlaceholder(LOGIN_PLACEHOLDER).fill(email)
+  await password.fill(PASSWORD)
+  await password.press(ENTER)
+}
+
+async function login(page: Page, email: string): Promise<void> {
+  await openLoginPage(page)
+  await submitCredentials(page, email)
+  await page.waitForURL(APP_HOME, LOGIN_WAIT)
+}
+
+// Both sub-nav buttons prefix their label with an un-hidden emoji glyph (no space, no
+// aria-hidden), unlike the shared Button component's icon -- so the accessible name is not
+// exactly 'Requests'/'Availability'. Matches billing-v2/screen.ts's own tab-button pattern.
+async function openAvailability(page: Page): Promise<void> {
+  const requestsTabMatcher = { name: /Requests/ }
+  const availabilityTabMatcher = { name: /Availability/ }
+
+  await page.goto(TASKS_PATH)
+  await page.getByRole(BUTTON, requestsTabMatcher).click()
+  await page.getByRole(BUTTON, availabilityTabMatcher).click()
+}
+
+// Each card is one full-card press target: "Open {name}'s weekly schedule" when read-only,
+// "Edit {name}'s weekly schedule" for the viewer's own. The modal replaced the inline "Edit"
+// swap, so opening a card is the entry point for both reading and editing a schedule.
+function cardFor(page: Page, name: string) {
+  const nameFilter = { name: new RegExp(`(?:Open|Edit) ${name}`) }
+
+  return page.getByRole(BUTTON, nameFilter)
+}
+
+const OWNER_CARD_NAME = `Owner ${SURNAME}`
+const TEAMMATE_CARD_NAME = `Teammate ${SURNAME}`
+const ADMIN_CARD_NAME = `Admin ${SURNAME}`
+const ALL_CARD_NAMES = [OWNER_CARD_NAME, TEAMMATE_CARD_NAME, ADMIN_CARD_NAME]
+
+type VerticalDrag = {
+  x: number
+  fromY: number
+  toY: number
+}
+
+async function boxOf(locator: Locator) {
+  const box = await locator.boundingBox()
+
+  if (!box) throw new Error(MISSING_BOX_ERROR)
+
+  return box
+}
+
+async function dragFromTo({ mouse }: Page, drag: VerticalDrag): Promise<void> {
+  const { x, fromY, toY } = drag
+
+  await mouse.move(x, fromY)
+  await mouse.down()
+  await mouse.move(x, toY, MOVE_OPTIONS)
+  await mouse.up()
+}
+
+function roleButton(scope: Page | Locator, name: string | RegExp): Locator {
+  const matcher = { name }
+
+  return scope.getByRole(BUTTON, matcher)
+}
+
+function namedDialog(page: Page, name: string): Locator {
+  const matcher = { name }
+
+  return page.getByRole(DIALOG, matcher)
+}
+
+function namedAlertDialog(page: Page, name: string): Locator {
+  const matcher = { name }
+
+  return page.getByRole(ALERT_DIALOG, matcher)
+}
+
+function dayTrack(page: Page, dayLabel: string): Locator {
+  const filterOptions = { hasText: dayLabel }
+
+  return page.locator(GRID_DAY_SELECTOR).filter(filterOptions).locator(GRID_TRACK_SELECTOR)
+}
+
+function tuesdayTrack(page: Page): Locator {
+  return dayTrack(page, TUESDAY_LABEL)
+}
+
+function wednesdayTrack(page: Page): Locator {
+  return dayTrack(page, WEDNESDAY_LABEL)
+}
+
+function tuesdayBlock(page: Page): Locator {
+  return roleButton(page, TUESDAY_BLOCK_START_PATTERN)
+}
+
+function resizeHandles(block: Locator): Locator {
+  return block.locator(RESIZE_HANDLE_XPATH)
+}
+
+function thursdayTrack(page: Page): Locator {
+  return dayTrack(page, THURSDAY_LABEL)
+}
+
+function wednesdayBlock(page: Page): Locator {
+  const filterOptions = { hasText: WEDNESDAY_LABEL }
+  const dayColumn = page.locator(GRID_DAY_SELECTOR).filter(filterOptions)
+
+  return roleButton(dayColumn, EDIT_RANGE_SUFFIX_PATTERN)
+}
+
+async function dragCreateTuesdayRange(page: Page): Promise<void> {
+  const trackBox = await boxOf(tuesdayTrack(page))
+  const drag = {
+    x: trackBox.x + trackBox.width / 2,
+    fromY: trackBox.y + DRAG_START_MINUTE * PIXELS_PER_MINUTE,
+    toY: trackBox.y + DRAG_END_MINUTE * PIXELS_PER_MINUTE,
+  }
+
+  await dragFromTo(page, drag)
+}
+
+async function fillCreatedTuesdayRange(page: Page): Promise<void> {
+  const popover = namedDialog(page, TUESDAY_LABEL)
+
+  await popover.getByLabel(TUESDAY_NOTE_LABEL).fill(DRAG_NOTE_TEXT)
+  await roleButton(popover, SAVE_CHANGES_LABEL).click()
+  await expect(popover).toBeHidden()
+}
+
+async function resizeTuesdayBlockEnd(page: Page): Promise<void> {
+  const trackBox = await boxOf(tuesdayTrack(page))
+  const handle = await boxOf(resizeHandles(tuesdayBlock(page)).last())
+  const toY = trackBox.y + RESIZE_TARGET_MINUTE * PIXELS_PER_MINUTE
+  const drag = { x: handle.x + handle.width / 2, fromY: handle.y + handle.height / 2, toY }
+
+  await dragFromTo(page, drag)
+}
+
+async function editTuesdayNote(page: Page): Promise<void> {
+  await tuesdayBlock(page).click()
+  const popover = namedDialog(page, TUESDAY_LABEL)
+
+  await popover.getByLabel(TUESDAY_NOTE_LABEL).fill(EDITED_NOTE_TEXT)
+  await roleButton(popover, SAVE_CHANGES_LABEL).click()
+  await expect(popover).toBeHidden()
+}
+
+async function confirmDelete(scope: Locator): Promise<void> {
+  await roleButton(scope, DELETE_LABEL).click()
+  const confirm = namedAlertDialog(scope.page(), DELETE_LABEL)
+
+  await roleButton(confirm, DELETE_LABEL).click()
+  await expect(confirm).toBeHidden()
+}
+
+async function clickThursdayTrack(page: Page): Promise<void> {
+  const trackBox = await boxOf(thursdayTrack(page))
+  const clickX = trackBox.x + trackBox.width / 2
+  const clickY = trackBox.y + THURSDAY_CLICK_MINUTE * PIXELS_PER_MINUTE
+
+  await page.mouse.click(clickX, clickY)
+}
+
+async function createAndDeleteThursdayRange(page: Page): Promise<void> {
+  await clickThursdayTrack(page)
+  const popover = namedDialog(page, THURSDAY_LABEL)
+
+  await confirmDelete(popover)
+  await expect(popover).toBeHidden()
+}
+
+async function keyboardAddWednesdayRange(page: Page): Promise<void> {
+  const track = wednesdayTrack(page)
+  const { keyboard } = page
+
+  await track.focus()
+  await expect(track).toBeFocused()
+  await keyboard.press(ENTER)
+  await expect(namedDialog(page, WEDNESDAY_LABEL)).toBeVisible()
+  await keyboard.press(ESCAPE)
+}
+
+async function keyboardActivateWednesdayBlock(page: Page): Promise<void> {
+  const block = wednesdayBlock(page)
+  const { keyboard } = page
+
+  await block.focus()
+  await expect(block).toBeFocused()
+  await keyboard.press(SPACE_KEY)
+  await expect(namedDialog(page, WEDNESDAY_LABEL)).toBeVisible()
+  await keyboard.press(ESCAPE)
+}
+
+const OWNER_EDIT_STEPS = [
+  dragCreateTuesdayRange,
+  fillCreatedTuesdayRange,
+  resizeTuesdayBlockEnd,
+  editTuesdayNote,
+  keyboardAddWednesdayRange,
+  keyboardActivateWednesdayBlock,
+  createAndDeleteThursdayRange,
+]
+
+async function assertTuesdayPersisted(page: Page): Promise<void> {
+  const popover = namedDialog(page, TUESDAY_LABEL)
+  const startField = popover.getByLabel(TUESDAY_START_LABEL)
+  const endSelect = popover.getByLabel(TUESDAY_END_LABEL)
+  const noteField = popover.getByLabel(TUESDAY_NOTE_LABEL)
+
+  await expect(startField).toHaveValue(TUESDAY_START_VALUE)
+  await expect(endSelect).toHaveValue(TUESDAY_END_VALUE)
+  await expect(noteField).toHaveValue(EDITED_NOTE_TEXT)
+}
+
+async function assertNoEditorActions(page: Page): Promise<void> {
+  await expect(roleButton(page, SAVE_AVAILABILITY_LABEL)).toHaveCount(0)
+  await expect(page.locator(FOCUSABLE_TRACK_SELECTOR)).toHaveCount(0)
+}
+
+async function assertOwnerCardReadOnly(page: Page): Promise<void> {
+  await assertNoEditorActions(page)
+  await expect(page.getByText(TUESDAY_FINAL_TIME_TEXT)).toBeVisible()
+}
+
+function isSaveResponse(response: Response): boolean {
+  const method = response.request().method()
+
+  return response.url().endsWith(AVAILABILITY_ENDPOINT) && method === PUT_METHOD
+}
+
+let ownerId: string
+let teammateId: string
+let adminId: string
+
+test.beforeAll(async () => {
+  const departamentoId = await firstDepartamentoId()
+  const team = { codigo: TEAM_CODE, nombre: TEAM_NAME, departamentoId }
+  const teamId = await ensureTeam(team)
+  const jornada = await firstActiveJornada()
+
+  for (const user of USERS) await ensureUser(...user)
+
+  ownerId = (await getUsuario(OWNER_EMAIL)).id
+  teammateId = (await getUsuario(TEAMMATE_EMAIL)).id
+  adminId = (await getUsuario(ADMIN_EMAIL)).id
+
+  const ownerOrganization = { userId: ownerId, equipoId: teamId, jornadaId: jornada.id }
+  const teammateOrganization = { userId: teammateId, equipoId: teamId, jornadaId: jornada.id }
+
+  await assignOrganization(ownerOrganization)
+  await assignOrganization(teammateOrganization)
+})
+
+test.afterAll(async () => {
+  const userIds = [ownerId, teammateId, adminId]
+
+  await clearWeeklyAvailability(userIds)
+
+  for (const [email] of USERS) await deleteUser(email)
+
+  await deleteTeam(TEAM_CODE)
+})
+
+test('owner drag-creates, resizes, and edits Tuesday availability on the new grid; it ' +
+  'persists, teammates and non-own cards stay read-only, and add/edit work by keyboard alone',
+  async ({ page }) => {
+  test.setTimeout(TEST_TIMEOUT_MS)
+  await bypassOnboardingAndForceEnglish(page)
+  await login(page, OWNER_EMAIL)
+  await openAvailability(page)
+  await cardFor(page, OWNER_CARD_NAME).click()
+  await expect(namedDialog(page, OWNER_CARD_NAME)).toBeVisible()
+
+  for (const step of OWNER_EDIT_STEPS) await step(page)
+
+  await Promise.all([
+    page.waitForResponse(isSaveResponse),
+    roleButton(page, SAVE_AVAILABILITY_LABEL).click(),
+  ])
+  await expect(namedDialog(page, OWNER_CARD_NAME)).toBeHidden()
+
+  await page.reload()
+  await openAvailability(page)
+  await cardFor(page, OWNER_CARD_NAME).click()
+  await tuesdayBlock(page).click()
+  await assertTuesdayPersisted(page)
+  await page.keyboard.press(ESCAPE)
+  await expect(namedDialog(page, TUESDAY_LABEL)).toBeHidden()
+  await page.keyboard.press(ESCAPE)
+  await expect(namedDialog(page, OWNER_CARD_NAME)).toBeHidden()
+
+  await cardFor(page, TEAMMATE_CARD_NAME).click()
+  await assertNoEditorActions(page)
+  await page.keyboard.press(ESCAPE)
+
+  await login(page, ADMIN_EMAIL)
+  await openAvailability(page)
+
+  for (const cardName of ALL_CARD_NAMES) await expect(cardFor(page, cardName)).toBeVisible()
+
+  await cardFor(page, OWNER_CARD_NAME).click()
+  await assertOwnerCardReadOnly(page)
+  await page.keyboard.press(ESCAPE)
+
+  await cardFor(page, TEAMMATE_CARD_NAME).click()
+  await assertNoEditorActions(page)
+  await page.keyboard.press(ESCAPE)
+
+  // The seeded admin has no jornada, so even their own card is read-only and shows the notice once.
+  await cardFor(page, ADMIN_CARD_NAME).click()
+  await assertNoEditorActions(page)
+  await expect(page.getByText(NO_JORNADA_NOTICE)).toHaveCount(1)
+  await page.keyboard.press(ESCAPE)
+  await expect(namedDialog(page, ADMIN_CARD_NAME)).toBeHidden()
+
+  await page.setViewportSize(NARROW_VIEWPORT)
+
+  const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth)
+  const viewportWidth = await page.evaluate(() => window.innerWidth)
+  const overflows = scrollWidth > viewportWidth + OVERFLOW_TOLERANCE_PX
+  const overflowMessage = 'availability screen overflows the narrow viewport'
+
+  expect(overflows, overflowMessage).toBe(false)
+})

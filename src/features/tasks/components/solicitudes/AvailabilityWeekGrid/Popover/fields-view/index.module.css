@@ -1,0 +1,43 @@
+.timeRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3125rem;
+  min-width: 0;
+}
+
+.field label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--c-t2);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.field input,
+.field select,
+.field textarea {
+  font: inherit;
+  width: 100%;
+  border: 0.0625rem solid var(--c-border);
+  border-radius: 0.5625rem;
+  padding: 0.5625rem 0.625rem;
+  background: var(--c-bg);
+  color: var(--c-t1);
+}
+
+.field textarea {
+  resize: none;
+  min-height: 3.75rem;
+}
+
+.field p[role='alert'] {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--c-danger-solid);
+}

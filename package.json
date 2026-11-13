@@ -20,7 +20,11 @@
     "db:rls": "sh supabase/checks/rls.sh",
     "db:migraciones-fresca": "sh supabase/checks/migraciones-base-fresca.sh",
     "db:columna-borrada": "perl supabase/checks/columna-borrada-en-trigger.pl supabase/migrations/*.sql",
-    "lint:css": "stylelint \"src/**/*.css\""
+    "lint:css": "stylelint \"src/**/*.css\"",
+    "guard:test": "bun test ./scripts/agent-guard/core/decide.checks.ts ./scripts/agent-guard/adapters/adapters.checks.ts ./scripts/agent-guard/adapters/failures.checks.ts ./scripts/agent-guard/adapters/changed.checks.ts ./scripts/agent-guard/generate/settings.checks.ts ./scripts/agent-guard/generate/execpolicy.checks.ts ./scripts/agent-guard/generate/drift.checks.ts ./scripts/agent-guard/generate/hook-command.checks.ts",
+    "guard:typecheck": "tsc -p scripts/agent-guard",
+    "guard:generate": "bun scripts/agent-guard/generate/main.ts --write",
+    "guard:check": "bun scripts/agent-guard/generate/main.ts --check && pnpm guard:test && pnpm guard:typecheck"
   },
   "dependencies": {
     "@lottiefiles/react-lottie-player": "^3.5.3",
@@ -52,6 +56,7 @@
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.2.0",
     "autoprefixer": "^10.0.1",
+    "bun": "1.4.4",
     "eslint": "^8",
     "eslint-config-next": "14.2.3",
     "postcss": "^8",

@@ -70,6 +70,10 @@ html, body, * {
   /* The amber of "careful, you reached the edge", for small TEXT on light: 5.02:1 on white. Not
      red, because nothing is wrong yet — the field has only stopped taking characters. */
   --c-warn-solid: #B45309;
+  /* The shared Avatar's status dot: online, offline, and no account yet. */
+  --c-online: #34D399;
+  --c-offline: #555;
+  --c-unregistered: #9CA3AF;
 
   /* Estos dos PARECEN primitivos y no lo son: son decisiones de tema disfrazadas de blanco y
      negro, y por eso están acá y no escritos en cada componente.
@@ -83,6 +87,8 @@ html, body, * {
      Con `#000` escrito a mano habría que buscarlo en 38 archivos. */
   --c-sobre-solido: #FFFFFF;
   --c-oscurecer: #000000;
+  /* Native controls (time-picker clock, select arrow, scrollbars) follow the theme only if told. */
+  color-scheme: light;
 }
 
 /* Bloque oscuro (PR #17): `.dark` lo pone AppProvider en <html> según el toggle. Mismos
@@ -91,6 +97,7 @@ html, body, * {
    sigue leyéndose en cualquiera de los dos temas. --c-oscurecer sí cambia, tal como lo
    anticipaba el comentario de arriba: en oscuro los hovers tienen que ACLARAR, no oscurecer. */
 :root.dark {
+  color-scheme: dark;
   --c-bg: #101017;
   --c-s1: #13131C;
   --c-s2: #13131C;

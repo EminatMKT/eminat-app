@@ -1,73 +1,28 @@
 'use client'
-import type { CSSProperties } from 'react'
-import { useApp } from '@/shared/context/AppContext'
-import { useT } from '@/shared/i18n'
-import { actividadesActivasDe, cargaDe, slotOcupado, HORAS_SEMANALES } from '@/features/tasks/utils/availability'
-import { ONLINE_WINDOW_MS } from '@/shared/constants/domain'
-import HourSlot from '../HourSlot'
-import ActiveTaskLine from '../ActiveTaskLine'
+import type { AvailabilityMemberDto } from '@/features/tasks/data/availability/types'
+import { Pressable } from '@/shared/components/ui'
+import PersonSummary from '@/shared/components/PersonSummary'
+import memberInitials from './member-initials'
+import useScheduleLabel from './schedule-label'
+import CardStatus from './card-status'
 import s from './index.module.css'
 
-const SLOTS = [9, 10, 11, 12, 13, 14, 15, 16, 17]
-const MAX_TAREAS_VISIBLES = 2
-
 type Props = {
-  userId: string
-  nombre: string
+  member: AvailabilityMemberDto
+  onOpen: () => void
 }
 
-export default function MemberAvailabilityCard({ userId, nombre }: Props) {
-  const { usuarios, actividades } = useApp()
-  const { t } = useT()
-  const activas = actividadesActivasDe(actividades, userId)
-  const { horasOcupadas, horasLibres, pctOcupado, disponible } = cargaDe(activas)
-  const userInfo = usuarios.find(u => u.id === userId)
-  const isOnline = userInfo?.online_at ? new Date(userInfo.online_at) > new Date(Date.now() - ONLINE_WINDOW_MS) : false
+/** Adapts one availability member into the compact card: the whole surface opens the member's
+ *  weekly schedule. Identity sits on the left; the declared-vs-expected hours badge and the
+ *  pencil/eye icon — whether this card is the viewer's own editable row — sit on the right. */
+export default function MemberAvailabilityCard({ member, onOpen }: Props) {
+  const accessibleLabel = useScheduleLabel(member)
+  const initials = memberInitials(member.name)
 
-  return (
-    <div className={`${s.card} ${disponible ? '' : s.ocupada}`}
-      style={{ '--swatch': userInfo?.color, '--pct': `${pctOcupado}%` } as CSSProperties}>
-      <div className={s.head}>
-        <div className={s.persona}>
-          <div className={s.avatarWrap}>
-            <div className={s.avatar}>{nombre[0]}</div>
-            <div className={`${s.dot} ${isOnline ? s.online : ''}`} />
-          </div>
-          <div>
-            <div className={s.nombre}>{nombre}</div>
-            <div className={s.resumen}>{t('stratix.avail.tasks', { n: activas.length, h: horasOcupadas })}</div>
-          </div>
-        </div>
-        <span className={s.estado}>{disponible ? `✓ ${t('stratix.avail.free')}` : `✕ ${t('stratix.avail.busy')}`}</span>
-      </div>
-
-      <div className={s.capacidad}>
-        <div className={s.capHead}>
-          <span>{t('stratix.avail.capacity', { h: HORAS_SEMANALES })}</span>
-          <span className={s.libres}>{t('stratix.avail.hoursFree', { h: horasLibres })}</span>
-        </div>
-        <div className={s.track}><div className={s.fill} /></div>
-        <div className={s.usado}>{t('stratix.avail.used', { n: Math.round(pctOcupado) })}</div>
-      </div>
-
-      <div>
-        <div className={s.rotulo}>{t('stratix.avail.schedule')}</div>
-        <div className={s.slots}>
-          {SLOTS.map(h => <HourSlot key={h} hora={h} ocupado={slotOcupado(pctOcupado, h)} />)}
-        </div>
-      </div>
-
-      {activas.length > 0 && (
-        <div className={s.enCurso}>
-          <div className={s.enCursoTitulo}>{t('stratix.avail.inProgress')}</div>
-          {activas.slice(0, MAX_TAREAS_VISIBLES).map(a => (
-            <ActiveTaskLine key={a.id} empresa={a.empresa} titulo={a.titulo} />
-          ))}
-          {activas.length > MAX_TAREAS_VISIBLES && (
-            <div className={s.mas}>{t('stratix.avail.more', { n: activas.length - MAX_TAREAS_VISIBLES })}</div>
-          )}
-        </div>
-      )}
-    </div>
-  )
+  return <Pressable accessibleLabel={accessibleLabel} onClick={onOpen} className={s.card}>
+    <PersonSummary initials={initials} size="lg" name={member.name} subtitle={member.team?.name} />
+    <CardStatus member={member} />
+  </Pressable>
 }
+
+// One member's card on the weekly availability screen: identity, week status, and the way in.

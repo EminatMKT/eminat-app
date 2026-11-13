@@ -1,0 +1,10 @@
+.counter {
+  margin: 0;
+  font-size: 0.6875rem;
+  color: var(--c-t2);
+  text-align: right;
+}
+
+.counter[data-near-limit='true'] {
+  color: var(--c-warn-solid);
+}
