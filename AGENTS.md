@@ -274,3 +274,21 @@ bugs; una pieza compartida rota para "hacer lugar" a un módulo rompe a todos lo
 - **Datos de prueba por el frontend, no por seed:** se cargan usando la app, como lo haría un
   usuario.
 - Código nuevo (identificadores) en inglés; lo existente no se traduce de paso.
+
+## Meta connection management — Phase 1
+
+Native Sales reuses its Social UI/storage, actor authorization and AES-GCM token vault at
+`/sales-native/integrations/meta`. Every connection requires an active Sales organization,
+ADMINISTRATOR/SUPERADMIN membership, explicit `usuario_empresas_acceso` access and a reviewed
+`sales_social_company_bindings` mapping. Never infer company ownership from matching codes.
+OAuth states are requester/company/deployment-bound and single-use; discovered assets and grants
+hold separately encrypted tokens. Asset reservations survive local disconnect; provider cleanup
+is unconfirmed until separately reviewed. Health checks never subscribe or ingest events.
+
+`meta-qa-isolation.cjs` validates callback origins and isolated Preview provenance at build/runtime;
+`docs/operations/meta-qa-approvals.json` is empty, so no live Preview is approved. These hosting
+checks do not introduce a database tier. Webhook ingestion, retry claims and subscriptions remain
+blocked. No Lead Ads, messaging or Google Ads recovery is included. The migration, read-only
+precheck/check and guarded empty rollback live under `supabase/`; the synthetic SQL rehearsal
+under `scripts/qa/` writes fixtures and must never run against a shared or Production database.
+See `docs/operations/meta-connections-recovery.md` for current review evidence and blockers.
