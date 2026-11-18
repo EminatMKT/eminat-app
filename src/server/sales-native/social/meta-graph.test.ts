@@ -8,11 +8,11 @@ const config = { appId: 'app-qa-id', appSecret: 'synthetic-secret-only-123456',
 describe('server-only Meta Graph adapter', () => {
   it('binds OAuth to one callback and only reviewed scopes', () => {
     const client = new MetaGraphClient(config)
-    const url = new URL(client.authorizationUrl('a'.repeat(43), ['pages_messaging']))
+    const url = new URL(client.authorizationUrl('a'.repeat(43), ['instagram_basic']))
     expect(url.origin).toBe('https://www.facebook.com')
     expect(url.searchParams.get('redirect_uri')).toBe(config.callback)
     expect(url.searchParams.get('scope')).toContain('leads_retrieval')
-    expect(() => client.authorizationUrl('a'.repeat(43), ['unknown_scope'])).toThrow('META_SCOPE_INVALID')
+    expect(() => client.authorizationUrl('a'.repeat(43), ['pages_messaging'])).toThrow('META_SCOPE_INVALID')
   })
 
   it('exchanges a code without placing credentials in the URL', async () => {

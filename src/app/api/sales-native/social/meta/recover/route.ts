@@ -5,6 +5,7 @@ import { recoverNativeMetaLeads } from '@/server/sales-native/social/lead-recove
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 export async function GET(request: Request) {
   if (!nativeSalesEnabled()) return Response.json({ code: 'NOT_FOUND' }, { status: 404 })
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
     return Response.json({ code: 'NOT_FOUND' }, { status: 404 })
   try {
     await cleanupExpiredMetaGrants()
-    const result = await recoverNativeMetaLeads()
+    const result = await recoverNativeMetaLeads({ limit: 3 })
     return Response.json(result, { headers: { 'Cache-Control': 'no-store' } })
   } catch { return Response.json({ code: 'META_RECOVERY_UNAVAILABLE' }, { status: 503 }) }
 }

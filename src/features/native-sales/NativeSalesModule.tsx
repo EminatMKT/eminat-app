@@ -216,7 +216,7 @@ export default function NativeSalesModule({ organizationId, workspaceLabelKey }:
     directory.historicalUsers.find(user => user.memberId === id)?.displayName || 'Assigned owner',
     [directory.users, directory.historicalUsers])
   const ownerLabel = useCallback((row: Row) =>
-    row.source === 'Patient Portal' && row.sellerAssignmentStatus === 'NEEDS_ASSIGNMENT'
+    ['Patient Portal', 'Meta'].includes(String(row.source)) && row.sellerAssignmentStatus === 'NEEDS_ASSIGNMENT'
       ? 'Unassigned'
       : string(row.assignedSellerName) || string(row.ownerDisplayName) ||
         userName(row.owner_member_id || row.seller_member_id), [userName])

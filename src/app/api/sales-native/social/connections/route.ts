@@ -1,5 +1,6 @@
 import { nativeSalesErrorResponse, resolveSalesActor } from '@/server/sales-native/auth'
 import { nativeSalesDatabaseError } from '@/server/sales-native/errors'
+import { EMC_META_LEAD_POLICY } from '@/server/sales-native/social/meta-lead-policy'
 import { salesCan } from '@/server/sales-native/policy'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 
@@ -20,14 +21,21 @@ export async function GET(request: Request) {
       .eq('organization_id', actor.organizationId).order('created_at', { ascending: false }).limit(100)
     if (error) return nativeSalesDatabaseError(error)
     const { data: assets, error: assetError } = await db.from('sales_social_assets')
-      .select('id,account_id,asset_type,display_name,status,webhook_status,last_event_at')
+      .select('id,account_id,asset_type,display_name,status,webhook_status,last_event_at,last_error_code')
       .eq('organization_id', actor.organizationId).order('display_name', { ascending: true }).limit(500)
     if (assetError) return nativeSalesDatabaseError(assetError)
+    const { data: receipts, error: receiptError } = await db.from('sales_social_webhook_receipts')
+      .select('id,status,error_code,received_at,processed_at').eq('organization_id', actor.organizationId)
+      .eq('event_kind', 'leadgen').order('received_at', { ascending: false }).limit(20)
+    if (receiptError) return nativeSalesDatabaseError(receiptError)
+    const leadAdsPolicy = actor.organizationId === EMC_META_LEAD_POLICY.organizationId
+      ? { pageId: EMC_META_LEAD_POLICY.pageId, approvedFormIds: EMC_META_LEAD_POLICY.formIds,
+        excludedFormIds: EMC_META_LEAD_POLICY.excludedFormIds, receipts: receipts ?? [] } : null
     const metaAvailable = provider?.enabled === true &&
       process.env.LILLY_META_OAUTH_ENABLED === 'true' &&
       Boolean(process.env.LILLY_META_APP_ID && process.env.LILLY_META_APP_SECRET &&
         process.env.LILLY_META_GRAPH_VERSION && process.env.LILLY_SOCIAL_TOKEN_KEY)
-    return Response.json({ data: { integrations: integrations ?? [], assets: assets ?? [], metaAvailable } },
+    return Response.json({ data: { integrations: integrations ?? [], assets: assets ?? [], metaAvailable, leadAdsPolicy } },
       { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) { return nativeSalesErrorResponse(error) }
 }

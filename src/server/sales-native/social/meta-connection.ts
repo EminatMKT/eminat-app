@@ -6,10 +6,10 @@ import { salesCan, type SalesActor } from '@/server/sales-native/policy'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { MetaGraphClient, META_OAUTH_SCOPES, type MetaGraphPage } from './meta-graph'
 import { openSocialToken, sealSocialToken } from './token-vault'
+import { EMC_META_LEAD_POLICY } from './meta-lead-policy'
 
 const statePattern = /^[A-Za-z0-9_-]{40,100}$/
-const scopes = z.array(z.enum(['pages_messaging', 'pages_read_user_content',
-  'instagram_basic', 'instagram_manage_messages', 'instagram_manage_comments'])).max(5)
+const scopes = z.array(z.enum(['instagram_basic'])).max(1)
 const pageSelection = z.object({ state: z.string().regex(statePattern),
   pageId: z.string().min(1).max(200) }).strict()
 const subscription = z.object({ assetId: z.uuid() }).strict()
@@ -26,6 +26,8 @@ function configuration() {
     !env.LILLY_META_APP_SECRET || !env.LILLY_META_GRAPH_VERSION ||
     !env.LILLY_SOCIAL_TOKEN_KEY)
     throw new NativeSalesAuthError(503, 'META_NOT_CONFIGURED')
+  if (env.LILLY_META_APP_ID !== EMC_META_LEAD_POLICY.appId)
+    throw new NativeSalesAuthError(503, 'META_NOT_CONFIGURED')
   const client = new MetaGraphClient({ appId: env.LILLY_META_APP_ID,
     appSecret: env.LILLY_META_APP_SECRET, version: env.LILLY_META_GRAPH_VERSION,
     callback: 'https://app.stratixsolutions.us/api/sales-native/social/meta/callback' })
@@ -33,7 +35,7 @@ function configuration() {
 }
 
 function requireManager(actor: SalesActor) {
-  if (!salesCan(actor, 'sales:social:manage'))
+  if (actor.organizationId !== EMC_META_LEAD_POLICY.organizationId || !salesCan(actor, 'sales:social:manage'))
     throw new NativeSalesAuthError(403, 'SALES_ACCESS_DENIED')
 }
 
@@ -136,7 +138,7 @@ export async function listMetaGrantPages(actor: SalesActor, state: string) {
     instagram_business_account: z.object({ id: z.string() }).optional(),
     access_token: z.string() })).safeParse(decoded)
   if (!parsed.success) throw new NativeSalesAuthError(503, 'META_GRANT_INVALID')
-  return parsed.data.map(page => ({ id: page.id, name: page.name, tasks: page.tasks ?? [],
+  return parsed.data.filter(page => page.id === EMC_META_LEAD_POLICY.pageId).map(page => ({ id: page.id, name: page.name, tasks: page.tasks ?? [],
     business: page.business ?? null, instagramAccountId: page.instagram_business_account?.id ?? null }))
 }
 
@@ -158,14 +160,14 @@ export async function completeMetaConnection(actor: SalesActor, input: unknown) 
     actor.organizationId, row.id))) }
   catch { throw new NativeSalesAuthError(503, 'META_GRANT_INVALID') }
   const page = pages.find(item => item.id === parsed.data.pageId)
-  if (!page?.access_token) throw new NativeSalesAuthError(422, 'META_PAGE_INVALID')
+  if (page?.id !== EMC_META_LEAD_POLICY.pageId || !page?.access_token) throw new NativeSalesAuthError(422, 'META_PAGE_INVALID')
   const integrationId = randomUUID()
   const userToken = openSocialToken(row.grant_ciphertext, key, actor.organizationId, row.id)
   const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_complete_meta_page', {
     p_state_id: row.id, p_organization_id: actor.organizationId,
     p_actor_member_id: actor.memberId, p_integration_id: integrationId,
     p_page_id: page.id, p_page_name: page.name,
-    p_business_id: page.business?.id ?? null, p_business_name: page.business?.name ?? null,
+    p_business_id: EMC_META_LEAD_POLICY.businessId, p_business_name: 'Stratix Communications',
     p_instagram_id: page.instagram_business_account?.id ?? null,
     p_user_token_ciphertext: sealSocialToken(userToken, key, actor.organizationId, integrationId),
     p_page_token_ciphertext: sealSocialToken(page.access_token, key,
@@ -189,6 +191,8 @@ export async function subscribeMetaLeadgen(actor: SalesActor, input: unknown) {
   const { data: asset, error: assetError } = await db.from('sales_social_assets')
     .select('id,organization_id,account_id,external_asset_id,asset_type,status,token_ciphertext,token_expires_at')
     .eq('organization_id', actor.organizationId).eq('id', parsed.data.assetId).maybeSingle()
+  if (asset?.external_asset_id !== EMC_META_LEAD_POLICY.pageId)
+    throw new NativeSalesAuthError(422, 'META_ASSET_INVALID')
   if (assetError || !asset || asset.asset_type !== 'page' ||
     !['READY', 'SUBSCRIBED'].includes(asset.status) || !asset.token_ciphertext ||
     !asset.token_expires_at || Date.parse(asset.token_expires_at) <= Date.now())
