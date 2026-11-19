@@ -11,7 +11,7 @@ export default function MetaCompanyOnboarding({ request, onChanged, disabled }: 
   const { t } = useT()
   const [companies, setCompanies] = useState<Company[]>([])
   const [company, setCompany] = useState('')
-  const [relationship, setRelationship] = useState('OWNER_ASSERTED')
+  const [relationship, setRelationship] = useState('')
   const [acknowledged, setAcknowledged] = useState(false)
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -66,15 +66,16 @@ export default function MetaCompanyOnboarding({ request, onChanged, disabled }: 
           <option value="">{t('meta.chooseCompany')}</option>
           {companies.filter(c => !c.enabled).map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
         </select></label>
-        <label>{t('meta.relationship')} <select value={relationship} onChange={event => {
+        <label>{t('meta.relationship')} <select value={relationship} required onChange={event => {
           setRelationship(event.target.value); setAcknowledged(false)
         }}>
+          <option value="">{t('meta.chooseRelationship')}</option>
           <option value="OWNER_ASSERTED">{t('meta.ownerAsserted')}</option>
           <option value="AGENCY_DELEGATED">{t('meta.agencyDelegated')}</option>
         </select></label>
         <label className={s.check}><input type="checkbox" required checked={acknowledged}
           onChange={event => setAcknowledged(event.target.checked)} />{t('meta.companyAcknowledgement')}</label>
-        <button type="submit" disabled={!company || !acknowledged}>{t('meta.enableCompany')}</button>
+        <button type="submit" disabled={!company || !relationship || !acknowledged}>{t('meta.enableCompany')}</button>
       </fieldset>
     </form>}
   </details>

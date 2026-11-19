@@ -300,7 +300,7 @@ Universal company onboarding at `social/companies` lets active Sales ADMINISTRAT
 members enable or disable only active companies already explicitly assigned to their LILLY
 profile. That existing assignment plus the selected organization's administrator membership
 authorizes self-service mapping; this endpoint never creates company access, users or tenants.
-The UI requires an owner/agency declaration and acknowledgement. SQL independently locks and
+The UI requires an explicit owner/agency choice (no ownership default) and acknowledgement. SQL independently locks and
 rechecks the actor and company assignment, records append-only provenance, and invalidates local
 credentials/pending handoffs on disable without releasing reservations or confirming Meta cleanup.
 Existing LILLY Admin manages company catalogs and access assignments; no matching names/codes

@@ -2011,5 +2011,6 @@
   "meta.searchAssets": "Search discovered accounts",
   "meta.selectedCount": "Selected accounts",
   "meta.cancelSelection": "Cancel selection",
-  "meta.metaIdentity": "Meta authorizing identity"
+  "meta.metaIdentity": "Meta authorizing identity",
+  "meta.chooseRelationship": "Choose your authorized relationship"
 }

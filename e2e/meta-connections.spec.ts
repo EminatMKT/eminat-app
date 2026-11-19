@@ -58,6 +58,7 @@ for(const locale of ['en','es'] as const)test(`Meta connection selection and loc
  await expect(page.getByRole('combobox',{name:copy['meta.company'],exact:true})).toHaveValue('COMPANY_A')
  await page.getByRole('checkbox',{name:/Synthetic Page 1/}).check()
  await page.getByRole('checkbox',{name:/Synthetic Page 2/}).check()
+ await expect(page.getByRole('button',{name:copy['meta.saveAssets']})).toBeDisabled()
  await page.getByRole('combobox',{name:copy['meta.relationship']}).selectOption('AGENCY_DELEGATED')
  await page.getByRole('button',{name:copy['meta.saveAssets']}).click()
  await expect(page.getByText(copy['meta.notChecked'],{exact:false})).toBeVisible()

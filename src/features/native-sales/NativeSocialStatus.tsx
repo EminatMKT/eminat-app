@@ -21,7 +21,7 @@ export default function NativeSocialStatus({request,companyCode,manageCompanies=
  const [candidates,setCandidates]=useState<Candidate[]>([])
  const [selected,setSelected]=useState<string[]>([])
  const [state,setState]=useState('')
- const [relationship,setRelationship]=useState('OWNER_ASSERTED')
+ const [relationship,setRelationship]=useState('')
  const [instagram,setInstagram]=useState(false)
  const [busy,setBusy]=useState(false)
  const [loading,setLoading]=useState(true)
@@ -112,10 +112,11 @@ export default function NativeSocialStatus({request,companyCode,manageCompanies=
      <span>{a.display_name} · {a.asset_type} · {a.external_id}<small>{t('meta.reportedBusiness')}: {a.reported_business_id || t('meta.unknownOwner')}</small></span>
     </label>)}</div>
     <label>{t('meta.relationship')} <select value={relationship} onChange={e=>setRelationship(e.target.value)}>
+     <option value="">{t('meta.chooseRelationship')}</option>
      <option value="OWNER_ASSERTED">{t('meta.ownerAsserted')}</option><option value="AGENCY_DELEGATED">{t('meta.agencyDelegated')}</option>
     </select></label>
     <p>{t('meta.ownershipNotice')}</p>
-    <button type="button" disabled={!selected.length || selected.length>100} onClick={()=>void action(complete)}>{t('meta.saveAssets')}</button>
+    <button type="button" disabled={!relationship || !selected.length || selected.length>100} onClick={()=>void action(complete)}>{t('meta.saveAssets')}</button>
    </fieldset>}
    {!state && <h3 className={ui.listHeading}>{t('meta.connectedAccounts')} · {snapshot.integrations.filter(i=>!company || i.company_code===company).length}</h3>}
    {!state && !snapshot.integrations.some(i=>!company || i.company_code===company) && <p>{t('meta.noConnections')}</p>}

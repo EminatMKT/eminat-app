@@ -20,7 +20,8 @@ already manages explicit assignments. Existing tenant/membership provisioning an
 eligibility are retained. A new company with those approvals needs no developer or SQL for Meta
 mapping or connection. Matching names/codes do not confer authority.
 
-Each mapping change records append-only actor/company/organization provenance. An owner assertion
+The onboarding and asset selection forms require an explicit relationship choice; neither defaults
+to an ownership assertion. Each mapping change records append-only actor/company/organization provenance. An owner assertion
 or agency declaration is not provider-verified ownership and never transfers assets. Disabling a
 mapping immediately invalidates local grants and pending handoffs through Phase 1's lifecycle;
 reservations/history remain. Re-enabling requires current access and new authorization for unusable
