@@ -274,3 +274,66 @@ bugs; una pieza compartida rota para "hacer lugar" a un módulo rompe a todos lo
 - **Datos de prueba por el frontend, no por seed:** se cargan usando la app, como lo haría un
   usuario.
 - Código nuevo (identificadores) en inglés; lo existente no se traduce de paso.
+
+## Meta connection management — Phase 1
+
+Central administration is `/settings` → `/settings/integrations` →
+`/settings/integrations/meta`; the legacy `/sales-native/integrations/meta` and OAuth return
+remain compatible. These are authenticated cross-module settings, not a new module permission.
+The shared SSR workspace and `social/workspaces` discovery expose only active organization
+ADMINISTRATOR/SUPERADMIN memberships. Every Social API still independently resolves its actor
+and explicit company assignments. The Settings rail is hidden without an eligible membership.
+Workspace discovery validates response shape and fails closed on malformed/failed responses so
+other modules never crash or gain visibility from an invalid discovery result.
+Stratix 360 Social Media embeds a read-only Connected Accounts projection from the existing
+`social/connections` API; company-specific Manage links preserve explicit organization/company
+context into central Settings. Marketing module access alone grants no connection access.
+Organization changes discard the previous snapshot and ignore late responses; no connection
+backend, token storage, lifecycle or OAuth provider operation is duplicated.
+
+
+Native Sales reuses its Social UI/storage, actor authorization and AES-GCM token vault at
+`/sales-native/integrations/meta`. Every connection requires an active Sales organization,
+ADMINISTRATOR/SUPERADMIN membership, explicit `usuario_empresas_acceso` access and a reviewed
+`sales_social_company_bindings` mapping. Never infer company ownership from matching codes.
+OAuth states are requester/company/deployment-bound and single-use; discovered assets and grants
+hold separately encrypted tokens. Connection metadata embeds the authorizer through
+`sales_members_user_id_auth_id_fkey`, never the membership approver relationship. The real
+PostgREST regression is `e2e/meta-connections-postgrest.spec.ts` in the existing local E2E suite.
+Asset reservations survive local disconnect; provider cleanup
+is unconfirmed until separately reviewed. Health checks never subscribe or ingest events.
+
+`meta-qa-isolation.cjs` validates callback origins and isolated Preview provenance at build/runtime;
+`docs/operations/meta-qa-approvals.json` is empty, so no live Preview is approved. These hosting
+checks do not introduce a database tier. Webhook ingestion, retry claims and subscriptions remain
+blocked. No Lead Ads, messaging or Google Ads recovery is included. The migration, read-only
+precheck/check and guarded empty rollback live under `supabase/`; the synthetic SQL rehearsal
+under `scripts/qa/` writes fixtures and must never run against a shared or Production database.
+See `docs/operations/meta-connections-recovery.md` for current review evidence and blockers.
+
+Universal company onboarding at `social/companies` lets active Sales ADMINISTRATOR/SUPERADMIN
+members enable or disable only active companies already explicitly assigned to their LILLY
+profile. That existing assignment plus the selected organization's administrator membership
+authorizes self-service mapping; this endpoint never creates company access, users or tenants.
+The UI requires an explicit owner/agency choice (no ownership default) and acknowledgement. SQL independently locks and
+rechecks the actor and company assignment, records append-only provenance, and invalidates local
+credentials/pending handoffs on disable without releasing reservations or confirming Meta cleanup.
+Existing LILLY Admin manages company catalogs and access assignments; no matching names/codes
+grant access. Company administrators need no developer or per-connection SQL. Tenant provisioning,
+corporate access grants and public customer registration remain separate existing responsibilities.
+The additional migration/precheck/check/guarded unused-history rollback is
+`20261119000000_meta_company_onboarding.sql`. Populated onboarding history is retained and
+requires a reviewed application rollback. The isolated SQL runner and existing Social rehearsal
+test onboarding, ACLs, revocation and rollback. The dedicated dashboard keeps company assignment
+frozen throughout OAuth and shows independent authorizers, Meta identities, permissions and assets.
+
+Destructive database-backed fixture operations are approved only in this repository’s existing
+GitHub-hosted `e2e-shard` jobs with a numeric run identity. Developer/self-hosted/unknown contexts
+are not approved by default. Runtime markers alone are insufficient. The fixture client requires explicit `NEXT_PUBLIC_APP_ENV=local`, the fixed
+`http://127.0.0.1:54321` local Supabase URL, the committed PUBLIC local demo anon/service keys
+and the approved loopback app URL. Missing/remote/hosted/Production/conflicting bindings fail
+closed. A read-only Phase 1 schema probe establishes target approval; every fixture and cleanup
+request revalidates bindings and disallows redirects. Meta teardown requires approved target
+provenance and a started fixture mutation. Shared seed helpers use the same guarded transport
+so global setup/teardown cannot fall through to rejected URLs or credentials. No migrations
+are applied by these helpers. Safety regressions live in `scripts/qa/meta-local-fixture.test.ts`.

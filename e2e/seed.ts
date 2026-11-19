@@ -1,13 +1,22 @@
+import { createApprovedLocalFixture } from './support/approved-local-fixture'
 // Helpers de seed para E2E contra la Supabase LOCAL (GoTrue admin + service_role).
 // Idempotentes: se pueden correr en cada global-setup sin romper.
-const URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'
-const SERVICE = process.env.SUPABASE_SECRET_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
+const URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+const SERVICE = process.env.SUPABASE_SECRET_KEY ?? ''
 export const PASSWORD = 'eminat123'
 
 export const H = { 'Content-Type': 'application/json', apikey: SERVICE, Authorization: `Bearer ${SERVICE}` }
 
+// Global setup/teardown also fail closed before each helper request. This keeps a
+// rejected Meta configuration from reaching the existing shared cleanup helpers.
+const localSeed = createApprovedLocalFixture(() => process.env, () => 'http://localhost:3000')
+async function localSeedFetch(url: string, init: RequestInit) {
+  await localSeed.approve()
+  return localSeed.request(url, init)
+}
+
 export async function authIdByEmail(email: string): Promise<string | null> {
-  const r = await fetch(`${URL}/auth/v1/admin/users?per_page=200`, { headers: H })
+  const r = await localSeedFetch(`${URL}/auth/v1/admin/users?per_page=200`, { headers: H })
   const j = await r.json()
   const u = (j.users || []).find((x: any) => x.email === email)
   return u?.id ?? null
@@ -17,7 +26,7 @@ export async function authIdByEmail(email: string): Promise<string | null> {
 export async function ensureAuthUser(email: string): Promise<string> {
   let auth_id = await authIdByEmail(email)
   if (!auth_id) {
-    const r = await fetch(`${URL}/auth/v1/admin/users`, {
+    const r = await localSeedFetch(`${URL}/auth/v1/admin/users`, {
       method: 'POST', headers: H,
       body: JSON.stringify({ email, password: PASSWORD, email_confirm: true }),
     })
@@ -26,7 +35,7 @@ export async function ensureAuthUser(email: string): Promise<string> {
   } else {
     // Idempotencia real: un user que persiste de corridas previas puede tener otra
     // password. La reseteamos (y reconfirmamos) para que el login E2E sea estable.
-    await fetch(`${URL}/auth/v1/admin/users/${auth_id}`, {
+    await localSeedFetch(`${URL}/auth/v1/admin/users/${auth_id}`, {
       method: 'PUT', headers: H,
       body: JSON.stringify({ password: PASSWORD, email_confirm: true }),
     })
@@ -39,7 +48,7 @@ export async function ensureAuthUser(email: string): Promise<string> {
 export async function ensureUser(email: string, rol: string, nombre = 'Test', apellido = 'User') {
   const auth_id = await ensureAuthUser(email)
   // service_role bypassa prevent_rol_self_change, así que el UPDATE de rol pasa.
-  const ri = await fetch(`${URL}/rest/v1/usuarios?on_conflict=email`, {
+  const ri = await localSeedFetch(`${URL}/rest/v1/usuarios?on_conflict=email`, {
     method: 'POST', headers: { ...H, Prefer: 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify({ email, nombre, apellido, rol, auth_id, validado: true, activo: true }),
   })
@@ -58,16 +67,16 @@ export async function deleteUser(email: string) {
   const row = await getUsuario(email)
   if (row?.id) {
     for (const tbl of CHILD_TABLES) {
-      await fetch(`${URL}/rest/v1/${tbl}?usuario_id=eq.${row.id}`, { method: 'DELETE', headers: H })
+      await localSeedFetch(`${URL}/rest/v1/${tbl}?usuario_id=eq.${row.id}`, { method: 'DELETE', headers: H })
     }
   }
-  await fetch(`${URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}`, { method: 'DELETE', headers: H })
+  await localSeedFetch(`${URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}`, { method: 'DELETE', headers: H })
   const authId = await authIdByEmail(email)
-  if (authId) await fetch(`${URL}/auth/v1/admin/users/${authId}`, { method: 'DELETE', headers: H })
+  if (authId) await localSeedFetch(`${URL}/auth/v1/admin/users/${authId}`, { method: 'DELETE', headers: H })
 }
 
 export async function setRol(email: string, rol: string) {
-  const r = await fetch(`${URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}`, {
+  const r = await localSeedFetch(`${URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}`, {
     method: 'PATCH', headers: { ...H, Prefer: 'return=minimal' },
     body: JSON.stringify({ rol }),
   })
@@ -75,7 +84,7 @@ export async function setRol(email: string, rol: string) {
 }
 
 export async function getUsuario(email: string): Promise<any | null> {
-  const r = await fetch(`${URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&select=id,email,rol,activo`, { headers: H })
+  const r = await localSeedFetch(`${URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&select=id,email,rol,activo`, { headers: H })
   const j = await r.json()
   return j[0] ?? null
 }
@@ -83,6 +92,6 @@ export async function getUsuario(email: string): Promise<any | null> {
 // Borra un rol dinámico (y sus role_modules). FK RESTRICT: los usuarios que lo tengan
 // deben moverse antes. Se usa para limpiar 'soporte' entre corridas.
 export async function deleteRole(key: string) {
-  await fetch(`${URL}/rest/v1/role_modules?role_key=eq.${key}`, { method: 'DELETE', headers: H })
-  await fetch(`${URL}/rest/v1/roles?key=eq.${key}`, { method: 'DELETE', headers: H })
+  await localSeedFetch(`${URL}/rest/v1/role_modules?role_key=eq.${key}`, { method: 'DELETE', headers: H })
+  await localSeedFetch(`${URL}/rest/v1/roles?key=eq.${key}`, { method: 'DELETE', headers: H })
 }

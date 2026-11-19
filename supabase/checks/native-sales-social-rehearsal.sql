@@ -1,4 +1,14 @@
 \set ON_ERROR_STOP on
+SELECT to_regprocedure('public.native_meta_manage_company(uuid,uuid,text,boolean,text)') IS NOT NULL AS meta_onboarding \gset
+\if :meta_onboarding
+\ir 20261119000000_meta_company_onboarding.sql
+\ir ../../scripts/qa/meta-company-onboarding.sql
+\endif
+SELECT to_regprocedure('public.native_meta_begin(uuid,uuid,text,text,text,uuid,boolean)') IS NOT NULL AS meta_phase1 \gset
+\if :meta_phase1
+\ir ../../scripts/qa/meta-connection-management.sql
+\else
+\set ON_ERROR_STOP on
 BEGIN;
 SET LOCAL request.jwt.claim.role='service_role';
 INSERT INTO auth.users(id) VALUES ('10000000-0000-4000-8000-000000000001');
@@ -148,3 +158,5 @@ DO $$ DECLARE r jsonb; n jsonb; BEGIN
     RAISE EXCEPTION 'Meta local revocation did not destroy tokens or preserve audit'; END IF;
 END $$;
 ROLLBACK;
+
+\endif
