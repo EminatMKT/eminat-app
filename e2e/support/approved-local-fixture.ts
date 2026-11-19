@@ -1,5 +1,7 @@
 // These are Supabase's PUBLIC, deterministic disposable-local demo bindings, not secrets.
-// Arbitrary loopback ports, forwarded remote projects and real service keys are not approved.
+// Only the existing disposable GitHub-hosted e2e-shard jobs are approved for writes.
+// Runtime markers alone never authorize a target: pins and an authenticated schema probe are required.
+// Arbitrary developer databases, loopback ports and real service keys are not approved.
 export const LOCAL_DATABASE = 'http://127.0.0.1:54321'
 export const LOCAL_SERVICE = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
 export const LOCAL_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
@@ -9,7 +11,10 @@ const reject = (): never => { throw new Error('LOCAL_FIXTURE_NOT_APPROVED') }
 const backupNames = ['native_sales_claim_social_leads', 'native_sales_receive_social_event', 'native_sales_retry_social_lead']
 
 function configuration(env: LocalFixtureEnvironment, app: string | undefined) {
-  if (env.NEXT_PUBLIC_APP_ENV !== 'local' || env.NEXT_PUBLIC_SUPABASE_URL !== LOCAL_DATABASE ||
+  if (env.CI !== 'true' || env.GITHUB_ACTIONS !== 'true' ||
+      env.RUNNER_ENVIRONMENT !== 'github-hosted' || env.GITHUB_REPOSITORY !== 'EminatMKT/eminat-app' ||
+      env.GITHUB_JOB !== 'e2e-shard' || !/^[0-9]+$/.test(env.GITHUB_RUN_ID ?? '') ||
+      env.NEXT_PUBLIC_APP_ENV !== 'local' || env.NEXT_PUBLIC_SUPABASE_URL !== LOCAL_DATABASE ||
       env.SUPABASE_SECRET_KEY !== LOCAL_SERVICE || env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY !== LOCAL_ANON ||
       !['http://localhost:3000', 'http://127.0.0.1:3000'].includes(app ?? '') ||
       env.NODE_ENV === 'production' || env.VERCEL_ENV || env.VERCEL_TARGET_ENV ||

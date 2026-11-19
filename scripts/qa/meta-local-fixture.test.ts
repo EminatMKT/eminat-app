@@ -9,7 +9,9 @@ import { cleanupApprovedMetaFixture, createApprovedLocalFixture, LOCAL_ANON, LOC
 
 const names = ['native_sales_claim_social_leads', 'native_sales_receive_social_event', 'native_sales_retry_social_lead']
 function valid(): LocalFixtureEnvironment {
-  return { NEXT_PUBLIC_APP_ENV: 'local', NEXT_PUBLIC_SUPABASE_URL: LOCAL_DATABASE,
+  return { CI: 'true', GITHUB_ACTIONS: 'true', RUNNER_ENVIRONMENT: 'github-hosted',
+    GITHUB_REPOSITORY: 'EminatMKT/eminat-app', GITHUB_JOB: 'e2e-shard', GITHUB_RUN_ID: '123456',
+    NEXT_PUBLIC_APP_ENV: 'local', NEXT_PUBLIC_SUPABASE_URL: LOCAL_DATABASE,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: LOCAL_ANON, SUPABASE_SECRET_KEY: LOCAL_SERVICE }
 }
 function mockTransport() {
@@ -26,6 +28,11 @@ const invalid: [string, LocalFixtureEnvironment][] = [
     'http://127.0.0.1:54321/rest/v1', 'http://127.0.0.1:54321?target=remote',
     'http://127.0.0.1:54321#remote', ' http://127.0.0.1:54321'].map(url =>
     [`rejected URL ${url}`, { ...valid(), NEXT_PUBLIC_SUPABASE_URL: url }] as [string, LocalFixtureEnvironment]),
+  ['unapproved developer database', { ...valid(), CI: 'false' }],
+  ['unapproved self-hosted database', { ...valid(), RUNNER_ENVIRONMENT: 'self-hosted' }],
+  ['unapproved repository', { ...valid(), GITHUB_REPOSITORY: 'other/repository' }],
+  ['unapproved job', { ...valid(), GITHUB_JOB: 'deployment' }],
+  ['malformed run identity', { ...valid(), GITHUB_RUN_ID: 'not-a-run' }],
   ['Production tier', { ...valid(), NEXT_PUBLIC_APP_ENV: 'production' }],
   ['Production runtime', { ...valid(), NODE_ENV: 'production' }],
   ['hosted runtime', { ...valid(), VERCEL_ENV: 'preview' }],

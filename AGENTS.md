@@ -296,7 +296,9 @@ precheck/check and guarded empty rollback live under `supabase/`; the synthetic 
 under `scripts/qa/` writes fixtures and must never run against a shared or Production database.
 See `docs/operations/meta-connections-recovery.md` for current review evidence and blockers.
 
-The database-backed E2E fixture client requires explicit `NEXT_PUBLIC_APP_ENV=local`, the fixed
+Destructive database-backed fixture operations are approved only in this repository’s existing
+GitHub-hosted `e2e-shard` jobs with a numeric run identity. Developer/self-hosted/unknown contexts
+are not approved by default. Runtime markers alone are insufficient. The fixture client requires explicit `NEXT_PUBLIC_APP_ENV=local`, the fixed
 `http://127.0.0.1:54321` local Supabase URL, the committed PUBLIC local demo anon/service keys
 and the approved loopback app URL. Missing/remote/hosted/Production/conflicting bindings fail
 closed. A read-only Phase 1 schema probe establishes target approval; every fixture and cleanup
