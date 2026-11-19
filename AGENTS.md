@@ -295,3 +295,12 @@ blocked. No Lead Ads, messaging or Google Ads recovery is included. The migratio
 precheck/check and guarded empty rollback live under `supabase/`; the synthetic SQL rehearsal
 under `scripts/qa/` writes fixtures and must never run against a shared or Production database.
 See `docs/operations/meta-connections-recovery.md` for current review evidence and blockers.
+
+The database-backed E2E fixture client requires explicit `NEXT_PUBLIC_APP_ENV=local`, the fixed
+`http://127.0.0.1:54321` local Supabase URL, the committed PUBLIC local demo anon/service keys
+and the approved loopback app URL. Missing/remote/hosted/Production/conflicting bindings fail
+closed. A read-only Phase 1 schema probe establishes target approval; every fixture and cleanup
+request revalidates bindings and disallows redirects. Meta teardown requires approved target
+provenance and a started fixture mutation. Shared seed helpers use the same guarded transport
+so global setup/teardown cannot fall through to rejected URLs or credentials. No migrations
+are applied by these helpers. Safety regressions live in `scripts/qa/meta-local-fixture.test.ts`.

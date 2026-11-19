@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type APIRequestContext } from '@playwright/test'
-import { H, PASSWORD, deleteUser, ensureUser, getUsuario } from './seed'
+import { cleanupApprovedMetaFixture, createApprovedLocalFixture } from './support/approved-local-fixture'
 
-const base = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321'
+let application: string | undefined
+const database = createApprovedLocalFixture(() => process.env, () => application)
+const password = 'synthetic-meta-local-only-12345'
 const suffix = randomUUID()
 const org = randomUUID(), foreignOrg = randomUUID()
 const company = `META_REST_A_${suffix}`, hiddenCompany = `META_REST_B_${suffix}`
@@ -23,8 +25,8 @@ const connections = [
 ].map(c => ({ ...c, integration: randomUUID(), grant: randomUUID(), account: randomUUID(), asset: randomUUID() }))
 
 async function rest(table: string, method: string, body?: object, query = '') {
-  const response = await fetch(`${base}/rest/v1/${table}${query}`, {
-    method, headers: { ...H, Prefer: 'return=minimal' },
+  const response = await database.request(`/rest/v1/${table}${query}`, {
+    method, headers: { Prefer: 'return=minimal' },
     body: body ? JSON.stringify(body) : undefined,
   })
   if (!response.ok) throw new Error(`LOCAL_META_FIXTURE_${table}_${response.status}`)
@@ -33,19 +35,25 @@ async function rest(table: string, method: string, body?: object, query = '') {
 // This is the existing database-backed E2E suite: real GoTrue, route and PostgREST.
 // No page.route interception, provider calls, migration application or provider enablement.
 test.beforeAll(async ({ baseURL }) => {
-  for (const value of [base, baseURL || '']) {
-    const url = new URL(value)
-    if (url.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(url.hostname))
-      throw new Error('META_POSTGREST_REGRESSION_REQUIRES_LOCAL_SERVICES')
-  }
+  application = baseURL
+  await database.approve()
   const approvedAt = new Date().toISOString()
   for (const person of people) {
-    person.auth = await ensureUser(person.email, 'sin_asignar', person.first, person.last)
-    const profile = await getUsuario(person.email)
-    if (!profile?.id) throw new Error('LOCAL_META_PROFILE_MISSING')
-    person.user = profile.id as string
-    const login = await fetch(`${base}/auth/v1/token?grant_type=password`, {
-      method: 'POST', headers: H, body: JSON.stringify({ email: person.email, password: PASSWORD }),
+    const created = await database.request('/auth/v1/admin/users', { method: 'POST',
+      body: JSON.stringify({ email: person.email, password, email_confirm: true }) })
+    expect(created.ok).toBe(true)
+    const identity = await created.json() as { id: string }
+    person.auth = identity.id
+    const profile = await database.request('/rest/v1/usuarios?on_conflict=email', {
+      method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+      body: JSON.stringify({ auth_id: person.auth, email: person.email, rol: 'sin_asignar',
+        nombre: person.first, apellido: person.last, validado: true, activo: true }),
+    })
+    expect(profile.ok).toBe(true)
+    const profiles = await profile.json() as { id: string }[]
+    person.user = profiles[0].id
+    const login = await database.request('/auth/v1/token?grant_type=password', {
+      method: 'POST', body: JSON.stringify({ email: person.email, password }),
     })
     expect(login.status).toBe(200)
     const session = await login.json() as { access_token: string }
@@ -91,7 +99,7 @@ test.beforeAll(async ({ baseURL }) => {
   }
 })
 
-test.afterAll(async () => {
+test.afterAll(async () => cleanupApprovedMetaFixture(database, async () => {
   // Delete only this run's synthetic records, including partial setup after a failure.
   for (const c of connections) {
     await rest('sales_social_assets', 'DELETE', undefined, `?id=eq.${c.asset}`)
@@ -106,17 +114,33 @@ test.afterAll(async () => {
   for (const id of [...people.map(p => p.member), foreignMember])
     await rest('sales_members', 'DELETE', undefined, `?id=eq.${id}`)
   for (const id of [org, foreignOrg]) await rest('sales_organizations', 'DELETE', undefined, `?id=eq.${id}`)
-  for (const person of people) await deleteUser(person.email)
-})
+  for (const person of people) {
+    if (person.user) {
+      for (const table of ['marcaciones', 'historial', 'notificaciones', 'slots_calendario'])
+        await rest(table, 'DELETE', undefined, `?usuario_id=eq.${person.user}`)
+      await rest('usuarios', 'DELETE', undefined, `?id=eq.${person.user}`)
+    }
+    if (person.auth) {
+      const removed = await database.request(`/auth/v1/admin/users/${person.auth}`, { method: 'DELETE' })
+      expect(removed.ok).toBe(true)
+      const absent = await database.request(`/auth/v1/admin/users/${person.auth}`)
+      expect(absent.status).toBe(404)
+    }
+  }
+  // Read back the real local database after cleanup, not just the HTTP status.
+  const remaining = await database.request(`/rest/v1/sales_social_grants?id=in.(${connections.map(c => c.grant).join(',')})&select=id`)
+  expect(await remaining.json()).toEqual([])
+}))
 
 async function endpoint(request: APIRequestContext, person = people[0], organization = org) {
+  database.assertApproved()
   return request.get('/api/sales-native/social/connections', { headers: {
     Authorization: `Bearer ${person.token}`, 'X-Sales-Organization-Id': organization,
   } })
 }
 
 test('real PostgREST identifies the authorizer FK and rejects the ambiguous predecessor', async () => {
-  const response = await fetch(`${base}/rest/v1/sales_social_grants?select=id,sales_members(usuarios(nombre,apellido))`, { headers: H })
+  const response = await database.request('/rest/v1/sales_social_grants?select=id,sales_members(usuarios(nombre,apellido))')
   expect(response.status).toBe(300)
   const error = await response.json() as { code: string; details: { relationship: string }[] }
   expect(error.code).toBe('PGRST201')
