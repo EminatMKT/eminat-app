@@ -7,6 +7,8 @@ import { D, NAV, PANEL_META, type PanelKey } from '@/shared/components/shell/app
 import SidebarPanel from '@/shared/components/shell/SidebarPanel'
 import RailButton from '@/shared/components/shell/RailButton'
 import RailProfile from '@/shared/components/shell/RailProfile'
+import {useMetaWorkspaces} from '@/features/native-sales/useMetaWorkspaces'
+import {useT} from '@/shared/i18n'
 import { useSalesAccess } from '@/shared/components/access/useSalesAccess'
 
 type Props = {
@@ -21,12 +23,14 @@ type Props = {
 export default function Sidebar({ activeTab, onTabChange, mobileOpen, setMobileOpen }: Props) {
   const { modules } = useApp()
   const salesAllowed = useSalesAccess()
+  const {organizations:metaOrganizations}=useMetaWorkspaces()
+  const {t}=useT()
   const router = useRouter()
   const pathname = usePathname()
 
   const activeNav = NAV.find(i => pathname.startsWith(modulePath(i.slug)))
   const [sidebarPanel, setSidebarPanel] = useState<PanelKey | null>(activeNav?.panel ?? null)
-  const activeIconKey = activeNav?.key ?? 'home'
+  const activeIconKey = pathname === ROUTES.settings || pathname.startsWith(ROUTES.settings + '/') ? 'settings' : activeNav?.key ?? 'home'
 
   const navAction = (slug: ModuleSlug, panel?: PanelKey) => panel
     ? () => { setSidebarPanel(p => p === panel ? null : panel); if (!pathname.startsWith(modulePath(slug))) router.push(modulePath(slug)) }
@@ -34,6 +38,7 @@ export default function Sidebar({ activeTab, onTabChange, mobileOpen, setMobileO
   const sidebarIcons = [
     { key: 'home', icon: '🏠', label: 'Home', action: () => { router.push(ROUTES.home); setSidebarPanel(null) } },
     ...NAV.filter(i => i.slug === 'sales' ? salesAllowed : modules.includes(i.slug)).map(i => ({ key: i.key, icon: i.icon, label: i.label, action: navAction(i.slug, i.panel) })),
+    ...(metaOrganizations.length ? [{key:'settings',icon:'⚙️',label:t('meta.settings'),action:()=>{router.push(ROUTES.settings);setSidebarPanel(null)}}] : []),
   ]
 
   // El panel secundario solo abre si el usuario tiene el módulo (sin_asignar no ve el submenú).

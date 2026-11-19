@@ -2012,5 +2012,14 @@
   "meta.selectedCount": "Cuentas seleccionadas",
   "meta.cancelSelection": "Cancelar selección",
   "meta.metaIdentity": "Identidad que autoriza en Meta",
-  "meta.chooseRelationship": "Elige tu relación autorizada"
+  "meta.chooseRelationship": "Elige tu relación autorizada",
+  "meta.settings": "Configuración",
+  "meta.openIntegrations": "Abrir integraciones",
+  "meta.manageConnections": "Administrar conexiones",
+  "meta.marketingDescription": "Páginas de Facebook y cuentas profesionales de Instagram conectadas a tus empresas autorizadas.",
+  "meta.accessRequired": "Se requiere membresía de administrador activa en la organización para ver conexiones.",
+  "meta.allCompanies": "Todas las empresas autorizadas",
+  "meta.permissionHealth": "Estado de permisos",
+  "meta.facebookPage": "Página de Facebook",
+  "meta.instagram": "Cuenta profesional de Instagram"
 }

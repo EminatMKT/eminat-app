@@ -30,3 +30,5 @@
 .companyList li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
 .connections .check { display: flex; align-items: start; gap: 10px; line-height: 1.5; }
 @media (width <= 700px) { .workspace { padding: 16px 12px; } .connectionGrid, .assetGrid { grid-template-columns: minmax(0, 1fr); } .card { padding: 14px; } .connections select { width: 100%; } }
+
+.marketing { background: #fff; padding: 20px; margin-bottom: 24px; border: 1px solid #d5e5e2; border-radius: 14px; }

@@ -277,6 +277,19 @@ bugs; una pieza compartida rota para "hacer lugar" a un módulo rompe a todos lo
 
 ## Meta connection management — Phase 1
 
+Central administration is `/settings` → `/settings/integrations` →
+`/settings/integrations/meta`; the legacy `/sales-native/integrations/meta` and OAuth return
+remain compatible. These are authenticated cross-module settings, not a new module permission.
+The shared SSR workspace and `social/workspaces` discovery expose only active organization
+ADMINISTRATOR/SUPERADMIN memberships. Every Social API still independently resolves its actor
+and explicit company assignments. The Settings rail is hidden without an eligible membership.
+Stratix 360 Social Media embeds a read-only Connected Accounts projection from the existing
+`social/connections` API; company-specific Manage links preserve explicit organization/company
+context into central Settings. Marketing module access alone grants no connection access.
+Organization changes discard the previous snapshot and ignore late responses; no connection
+backend, token storage, lifecycle or OAuth provider operation is duplicated.
+
+
 Native Sales reuses its Social UI/storage, actor authorization and AES-GCM token vault at
 `/sales-native/integrations/meta`. Every connection requires an active Sales organization,
 ADMINISTRATOR/SUPERADMIN membership, explicit `usuario_empresas_acceso` access and a reviewed

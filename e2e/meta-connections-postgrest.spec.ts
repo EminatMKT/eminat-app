@@ -210,3 +210,16 @@ test('real company management denies unassigned, seller, forged-tenant and unaut
   expect(events.ok).toBe(true)
   expect(await events.json()).toEqual([])
 })
+
+test('central Settings discovery uses real active native membership, never corporate role or requested tenant', async ({ request }) => {
+  database.assertApproved()
+  const path='/api/sales-native/social/workspaces'
+  const admin=await request.get(`${path}?organization=${foreignOrg}`, {headers:{Authorization:`Bearer ${people[0].token}`}})
+  expect(admin.status()).toBe(200)
+  expect(await admin.json()).toEqual({data:[{organizationId:org,name:`Synthetic Meta REST ${org}`}]})
+  const seller=await request.get(path,{headers:{Authorization:`Bearer ${people[3].token}`}})
+  expect(seller.status()).toBe(200)
+  expect(await seller.json()).toEqual({data:[]})
+  const anonymous=await request.get(path)
+  expect(anonymous.status()).toBe(401)
+})

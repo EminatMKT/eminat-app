@@ -128,3 +128,79 @@ for (const locale of ['en','es'] as const) test(`Self-service agency company onb
  expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1)).toBe(false)
  await page.screenshot({path:`/tmp/lilly-meta-onboarding-${locale}.png`,fullPage:true})
 })
+
+for(const locale of ['en','es'] as const) test(`Central Settings and Stratix connection context (${locale})`,async({page,context})=>{
+ const copy=locale==='en'?en:es,exp=Math.floor(Date.now()/1000)+3600
+ const user={id:'f0000000-0000-4000-8000-000000000001',email:'meta-ui@example.invalid',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{},created_at:'2026-01-01T00:00:00Z'}
+ const jwt=`${Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')}.${Buffer.from(JSON.stringify({sub:user.id,aud:'authenticated',role:'authenticated',exp})).toString('base64url')}.synthetic-signature`
+ await context.addCookies([{name:'sb-127-auth-token',value:encodeURIComponent(JSON.stringify({access_token:jwt,refresh_token:'synthetic-refresh',expires_at:exp,expires_in:3600,token_type:'bearer',user})),url:'http://localhost:3110'}])
+ await page.addInitScript(locale=>{localStorage.setItem('locale',locale);localStorage.setItem('eminat-onboarding-completed','true')},locale)
+ if(locale==='es')await page.setViewportSize({width:390,height:844})
+ let denied=false,eligible=true
+ const metadataReads:string[]=[]
+ await page.route('https://www.facebook.com/**',()=>{throw new Error('LIVE_META_FORBIDDEN')})
+ await page.route('**/api/sales-native/**',async route=>{
+  const request=route.request(),path=new URL(request.url()).pathname.replace('/api/sales-native/','')
+  expect(request.method()).toBe('GET')
+  if(path==='social/workspaces')return route.fulfill({json:{data:eligible?[{organizationId:org,name:'Synthetic organization 21'},{organizationId:org2,name:'Synthetic organization 22'}]:[]}})
+  if(path==='access')return route.fulfill({json:{allowed:true}})
+  if(path==='social/connections'){
+   const requested=request.headers()['x-sales-organization-id'];metadataReads.push(requested)
+   if(denied)return route.fulfill({status:403,json:{code:'SALES_ACCESS_DENIED'}})
+   return route.fulfill({json:{data:{companies:[{code:'COMPANY_A',name:'Synthetic Company A'}],canManage:true,metaAvailable:false,
+    integrations:requested===org?[{id:integration,company_code:'COMPANY_A',status:'CONNECTED',granted_permissions:['pages_show_list'],provider_cleanup:'NOT_REQUESTED',provider_cleanup_error:null,
+     grant:{status:'ACTIVE',health_error:null,authorizer_member_id:'synthetic-authorizer'}}]:[],
+    assets:[{id:assets[0],integrationId:integration,company_code:'COMPANY_A',display_name:'Synthetic Facebook Page',asset_type:'page',status:'READY'},
+     {id:assets[1],integrationId:integration,company_code:'COMPANY_A',display_name:'Synthetic Instagram Professional',asset_type:'instagram',status:'READY'},
+     {id:'foreign',integrationId:integration,company_code:'FOREIGN',display_name:'Forbidden cross-company asset',asset_type:'page',status:'READY'}]}}})
+  }
+  if(path==='social/companies')return route.fulfill({json:{data:[]}})
+  return route.fulfill({json:{data:[]}})
+ })
+ await page.goto('/settings')
+ await expect(page.getByRole('heading',{name:copy['meta.settings'],exact:true})).toBeVisible()
+ await page.getByRole('link',{name:copy['meta.openIntegrations'],exact:true}).click()
+ await expect(page).toHaveURL(/\/settings\/integrations$/)
+ await page.getByRole('link',{name:copy['meta.manageConnections'],exact:true}).click()
+ await expect(page.getByRole('heading',{name:copy['meta.connectionsTitle']})).toBeVisible()
+ await expect(page.locator('select[name="organization"] option')).toHaveCount(3)
+ await page.goto('/stratix-mkt')
+ const panel=page.getByRole('region',{name:copy['meta.connectedAccounts'],exact:true})
+ await expect(panel).toBeVisible()
+ await panel.getByRole('combobox',{name:copy['meta.organization'],exact:true}).selectOption(org)
+ await expect(panel.getByText('Synthetic Facebook Page',{exact:true})).toBeVisible()
+ await expect(panel.getByText('Synthetic Instagram Professional',{exact:true})).toBeVisible()
+ await expect(panel.getByText('Forbidden cross-company asset')).toHaveCount(0)
+ await expect(panel.getByText('pages_show_list',{exact:false})).toBeVisible()
+ const manage=panel.getByRole('article').getByRole('link',{name:copy['meta.manageConnections'],exact:true})
+ await expect(manage).toHaveAttribute('href',`/settings/integrations/meta?organization=${org}&company=COMPANY_A`)
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1)).toBe(false)
+ await page.screenshot({path:`/tmp/lilly-stratix-connections-${locale}.png`,fullPage:true})
+ await manage.click()
+ await expect(page).toHaveURL(new RegExp(`/settings/integrations/meta\\?organization=${org}&company=COMPANY_A`))
+ await expect(page.getByRole('combobox',{name:copy['meta.company'],exact:true})).toHaveValue('COMPANY_A')
+ await page.screenshot({path:`/tmp/lilly-central-meta-${locale}.png`,fullPage:true})
+ await page.getByRole('link',{name:copy['meta.integrations'],exact:true}).click()
+ await expect(page).toHaveURL(new RegExp(`/settings/integrations\\?organization=${org}&company=COMPANY_A`))
+ await page.goto('/stratix-mkt')
+ await panel.getByRole('combobox',{name:copy['meta.organization'],exact:true}).selectOption(org)
+ await expect(panel.getByText('Synthetic Facebook Page',{exact:true})).toBeVisible()
+ await panel.getByRole('combobox',{name:copy['meta.organization'],exact:true}).selectOption(org2)
+ await expect(panel.getByText('Synthetic Facebook Page',{exact:true})).toHaveCount(0)
+ await expect(panel.getByText(copy['meta.noConnections'],{exact:true})).toBeVisible()
+ denied=true
+ await panel.getByRole('combobox',{name:copy['meta.organization'],exact:true}).selectOption(org)
+ await expect(panel.getByRole('alert')).toHaveText(copy['meta.accessRequired'])
+ await expect(panel.getByText('Synthetic Facebook Page',{exact:true})).toHaveCount(0)
+ await expect(panel.getByRole('link',{name:copy['meta.manageConnections']})).toHaveCount(0)
+ expect(metadataReads).toContain(org2)
+ // App Router can stream a 200 shell before notFound; assert denial and no workspace.
+ await page.goto('/settings/integrations/meta?organization=f0000000-0000-4000-8000-000000000099')
+ await expect(page.getByRole('heading',{name:'404',exact:true})).toBeVisible()
+ await expect(page.getByRole('heading',{name:copy['meta.connectionsTitle']})).toHaveCount(0)
+ eligible=false
+ await page.goto('/stratix-mkt')
+ await expect(panel.getByText(copy['meta.accessRequired'],{exact:true})).toBeVisible()
+ await expect(panel.getByRole('combobox')).toHaveCount(0)
+ await expect(page.getByRole('button',{name:copy['meta.settings'],exact:true})).toHaveCount(0)
+})

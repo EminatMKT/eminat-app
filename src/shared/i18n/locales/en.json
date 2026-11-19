@@ -2012,5 +2012,14 @@
   "meta.selectedCount": "Selected accounts",
   "meta.cancelSelection": "Cancel selection",
   "meta.metaIdentity": "Meta authorizing identity",
-  "meta.chooseRelationship": "Choose your authorized relationship"
+  "meta.chooseRelationship": "Choose your authorized relationship",
+  "meta.settings": "Settings",
+  "meta.openIntegrations": "Open integrations",
+  "meta.manageConnections": "Manage connections",
+  "meta.marketingDescription": "Facebook Pages and professional Instagram accounts connected to your authorized companies.",
+  "meta.accessRequired": "An active organization administrator membership is required to view connections.",
+  "meta.allCompanies": "All authorized companies",
+  "meta.permissionHealth": "Permission health",
+  "meta.facebookPage": "Facebook Page",
+  "meta.instagram": "Instagram professional account"
 }

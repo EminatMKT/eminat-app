@@ -6,8 +6,9 @@ import NativeSocialStatus from './NativeSocialStatus'
 import type { NativeRequest } from './NativeSalesModule'
 import { useT } from '@/shared/i18n'
 import s from './MetaConnections.module.css'
-export default function MetaConnectionsWorkspace({ organizations, organizationId, company }: {
-  organizations: { organizationId:string; name:string }[]; organizationId?:string; company?:string
+import {metaSettingsHref,META_SETTINGS_PATH} from './meta-navigation'
+export default function MetaConnectionsWorkspace({ organizations, organizationId, company, central=false }: {
+  central?:boolean; organizations: { organizationId:string; name:string }[]; organizationId?:string; company?:string
 }) {
   const { t } = useT()
   const request: NativeRequest = useCallback(async (path,options={}) => {
@@ -22,11 +23,11 @@ export default function MetaConnectionsWorkspace({ organizations, organizationId
     return result
   },[organizationId])
   return <AppShell><div className={s.workspace}>
-    <a className={s.back} href={organizationId ? `/sales-native?organization=${organizationId}&tab=settings` : '/sales-native'}>{t('meta.integrations')}</a>
+    <a className={s.back} href={central ? metaSettingsHref(organizationId,company,'/settings/integrations') : organizationId ? `/sales-native?organization=${organizationId}&tab=settings` : '/sales-native'}>{t('meta.integrations')}</a>
     <h1>{t('meta.connectionsTitle')}</h1>
     <p>{t('meta.dashboardDescription')}</p>
     {organizationId && <p>{t('meta.currentOrganization')}: <strong>{organizations.find(org=>org.organizationId===organizationId)?.name}</strong></p>}
-    <form action="/sales-native/integrations/meta" method="get">
+    <form action={central ? META_SETTINGS_PATH : '/sales-native/integrations/meta'} method="get">
       <label>{t('meta.organization')} <select name="organization" defaultValue={organizationId ?? ''} required>
         <option value="">{t('meta.chooseOrganization')}</option>
         {organizations.map(org => <option key={org.organizationId} value={org.organizationId}>{org.name}</option>)}
