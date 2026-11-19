@@ -22,7 +22,7 @@ function configuration(env: LocalFixtureEnvironment, app: string | undefined) {
       (env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== undefined && env.NEXT_PUBLIC_SUPABASE_ANON_KEY !== LOCAL_ANON) ||
       ['DATABASE_URL', 'POSTGRES_URL', 'POSTGRES_PRISMA_URL', 'POSTGRES_URL_NON_POOLING',
         'LILLY_SALES_SCHEMA_ADMIN_DB_URL', 'LILLY_ISOLATED_QA_APPROVAL_ID'].some(key => env[key] !== undefined)) reject()
-  return Object.freeze({ database: LOCAL_DATABASE, service: LOCAL_SERVICE, app })
+  return Object.freeze({ database: LOCAL_DATABASE, service: LOCAL_SERVICE, app, runId: env.GITHUB_RUN_ID })
 }
 
 /** No approval flag from env/caller. Approval requires the pinned demo configuration AND
@@ -41,14 +41,14 @@ export function createApprovedLocalFixture(
   const requireApproval = () => {
     const config = current()
     if (!approved || approved.app !== config.app || approved.database !== config.database ||
-        approved.service !== config.service) return reject()
+        approved.service !== config.service || approved.runId !== config.runId) return reject()
     return config
   }
   const headers = () => ({ apikey: LOCAL_SERVICE, Authorization: `Bearer ${LOCAL_SERVICE}`, 'Content-Type': 'application/json' })
   return {
     async approve() {
       const config = current()
-      if (approved && approved.app === config.app) return
+      if (approved && approved.app === config.app && approved.runId === config.runId) return
       approved = undefined
       try {
         const response = await transport(`${config.database}/rest/v1/sales_social_phase1_rpc_backup?select=name`, {
@@ -59,7 +59,7 @@ export function createApprovedLocalFixture(
         if (!Array.isArray(rows) || rows.length !== backupNames.length ||
             JSON.stringify(rows.map(row => row?.name).sort()) !== JSON.stringify(backupNames)) return reject()
         const checked = current()
-        if (checked.app !== config.app) return reject()
+        if (checked.app !== config.app || checked.runId !== config.runId) return reject()
         approved = checked
       } catch { approved = undefined; return reject() }
     },

@@ -120,6 +120,27 @@ describe('Meta local fixture setup and destructive boundaries', () => {
     await cleanupApprovedMetaFixture(client, async () => { await client.request('/auth/v1/admin/users/synthetic', { method: 'DELETE' }) })
     expect(transport).not.toHaveBeenCalled()
   })
+  it('does not reuse approval after the disposable run identity changes', async () => {
+    const env = valid(), transport = mockTransport()
+    const client = createApprovedLocalFixture(() => env, () => 'http://localhost:3000', transport)
+    await client.approve(); await client.request('/rest/v1/usuarios', { method: 'POST', body: '{}' })
+    transport.mockClear(); env.GITHUB_RUN_ID = '654321'
+    await cleanupApprovedMetaFixture(client, async () => { await client.request('/rest/v1/usuarios', { method: 'DELETE' }) })
+    await expect(client.request('/auth/v1/admin/users/synthetic', { method: 'DELETE' })).rejects.toThrow('LOCAL_FIXTURE_NOT_APPROVED')
+    expect(transport).not.toHaveBeenCalled()
+  })
+  it('rejects a run-context change during the read-only approval probe', async () => {
+    const env = valid()
+    const transport = vi.fn<FixtureTransport>(async () => {
+      env.GITHUB_RUN_ID = '654321'
+      return Response.json(names.map(name => ({ name })))
+    })
+    const client = createApprovedLocalFixture(() => env, () => 'http://localhost:3000', transport)
+    await expect(client.approve()).rejects.toThrow('LOCAL_FIXTURE_NOT_APPROVED')
+    await cleanupApprovedMetaFixture(client, async () => { await client.request('/rest/v1/usuarios', { method: 'DELETE' }) })
+    expect(transport).toHaveBeenCalledTimes(1)
+    expect(transport.mock.calls[0][1]?.method ?? 'GET').toBe('GET')
+  })
   it.each(['https://remote.invalid/rest/v1/usuarios', '//remote.invalid/rest/v1/usuarios', '/unapproved-path'])('refuses a destructive request outside the approved route: %s', async path => {
     const transport = mockTransport(), client = createApprovedLocalFixture(valid, () => 'http://localhost:3000', transport)
     await client.approve(); transport.mockClear()
