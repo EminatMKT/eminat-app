@@ -23,9 +23,10 @@ A company parameter is only an initial selector hint; backend company authorizat
 
 ## Validation evidence
 
-- 18 new focused unit cases: role-filtered discovery, fail-closed identity errors, context encoding,
-  common central/legacy workspace, unavailable identity/release and foreign/seller organization denial.
-- 113 focused cases passed including retained destructive-fixture safety, onboarding and lifecycle
+- 28 new focused unit cases: role-filtered discovery, fail-closed identity errors, context encoding,
+  common central/legacy workspace, unavailable identity/release, foreign/seller organization denial and
+  malformed successful discovery bodies rejected without crashing unrelated module navigation.
+- 123 focused cases passed including retained destructive-fixture safety, onboarding and lifecycle
   policy cases. Existing 64 destructive fixture tests remain unchanged.
 - 6 synthetic browser scenarios passed in English desktop / Spanish mobile: original onboarding,
   selection, reconnect/local disconnect plus both central Settings and Stratix paths, Page/Instagram

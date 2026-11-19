@@ -283,6 +283,8 @@ remain compatible. These are authenticated cross-module settings, not a new modu
 The shared SSR workspace and `social/workspaces` discovery expose only active organization
 ADMINISTRATOR/SUPERADMIN memberships. Every Social API still independently resolves its actor
 and explicit company assignments. The Settings rail is hidden without an eligible membership.
+Workspace discovery validates response shape and fails closed on malformed/failed responses so
+other modules never crash or gain visibility from an invalid discovery result.
 Stratix 360 Social Media embeds a read-only Connected Accounts projection from the existing
 `social/connections` API; company-specific Manage links preserve explicit organization/company
 context into central Settings. Marketing module access alone grants no connection access.

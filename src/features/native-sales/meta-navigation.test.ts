@@ -1,5 +1,5 @@
 import {describe,expect,it} from 'vitest'
-import {metaAdministrationOrganizations,metaSettingsHref} from './meta-navigation'
+import {metaAdministrationOrganizations,metaSettingsHref,readMetaWorkspaces} from './meta-navigation'
 describe('central Meta navigation context',()=>{
  it('offers only existing organization administrators without combining roles',()=>{
   expect(metaAdministrationOrganizations([
@@ -22,5 +22,16 @@ describe('central Meta navigation context',()=>{
  })
  it('carries context across central settings steps',()=>{
   expect(metaSettingsHref('org','COMPANY','/settings/integrations')).toBe('/settings/integrations?organization=org&company=COMPANY')
+ })
+})
+
+describe('fail-closed shared-shell discovery',()=>{
+ it.each([undefined,null,{}, {utcMs:123}, {data:null}, {data:{}}, {data:[{}]},
+  {data:[{organizationId:'foreign-url',name:'Wrong'}]}, {data:[{organizationId:'f0000000-0000-4000-8000-000000000021',name:''}]}])('rejects malformed successful HTTP body %j',body=>{
+  expect(()=>readMetaWorkspaces(body)).toThrow()
+ })
+ it('accepts metadata only from a well-formed discovery response',()=>{
+  expect(readMetaWorkspaces({data:[{organizationId:'f0000000-0000-4000-8000-000000000021',name:'Authorized',extra:'not projected'}]}))
+   .toEqual([{organizationId:'f0000000-0000-4000-8000-000000000021',name:'Authorized'}])
  })
 })

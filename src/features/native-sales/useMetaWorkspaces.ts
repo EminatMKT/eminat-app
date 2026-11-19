@@ -2,7 +2,7 @@
 import {useEffect,useState} from 'react'
 import {supabase} from '@/shared/db/supabase'
 import {useApp} from '@/shared/context/AppContext'
-import type {MetaOrganization} from './meta-navigation'
+import {readMetaWorkspaces,type MetaOrganization} from './meta-navigation'
 export function useMetaWorkspaces() {
   const {usuario}=useApp()
   const [state,setState]=useState<{userId?:string;organizations:MetaOrganization[];loading:boolean;error:boolean}>({organizations:[],loading:true,error:false})
@@ -16,8 +16,8 @@ export function useMetaWorkspaces() {
         const response=await fetch('/api/sales-native/social/workspaces',{cache:'no-store',
           headers:{Authorization:`Bearer ${session.access_token}`}})
         if(!response.ok)throw new Error('META_ACCESS_UNAVAILABLE')
-        const body=await response.json() as {data:MetaOrganization[]}
-        if(!cancelled)setState({userId,organizations:body.data,loading:false,error:false})
+        const organizations=readMetaWorkspaces(await response.json())
+        if(!cancelled)setState({userId,organizations,loading:false,error:false})
       } catch {if(!cancelled)setState({userId,organizations:[],loading:false,error:true})}
     }
     void load()
