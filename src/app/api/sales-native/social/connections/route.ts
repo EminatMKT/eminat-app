@@ -26,7 +26,7 @@ export async function GET(request: Request) {
         .eq('organization_id',actor.organizationId).eq('provider_code','META').in('company_code',codes).order('created_at',{ascending:false}),
       db.from('sales_social_assets').select('id,account_id,company_code,external_asset_id,asset_type,display_name,status,webhook_status,reported_business_id,relationship')
         .eq('organization_id',actor.organizationId).in('company_code',codes),
-      db.from('sales_social_grants').select('id,authorizer_member_id,status,authorized_at,expires_at,app_id,checked_at,health_error,sales_members(display_name,usuarios(nombre,apellido))')
+      db.from('sales_social_grants').select('id,authorizer_member_id,status,authorized_at,expires_at,app_id,checked_at,health_error,sales_members(display_name,usuarios!sales_members_user_id_auth_id_fkey(nombre,apellido))')
         .eq('organization_id',actor.organizationId).in('company_code',codes),
     ])
     if(integrations.error || assets.error || grants.error) throw new Error('META_CONNECTION_UNAVAILABLE')

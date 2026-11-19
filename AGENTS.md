@@ -282,7 +282,10 @@ Native Sales reuses its Social UI/storage, actor authorization and AES-GCM token
 ADMINISTRATOR/SUPERADMIN membership, explicit `usuario_empresas_acceso` access and a reviewed
 `sales_social_company_bindings` mapping. Never infer company ownership from matching codes.
 OAuth states are requester/company/deployment-bound and single-use; discovered assets and grants
-hold separately encrypted tokens. Asset reservations survive local disconnect; provider cleanup
+hold separately encrypted tokens. Connection metadata embeds the authorizer through
+`sales_members_user_id_auth_id_fkey`, never the membership approver relationship. The real
+PostgREST regression is `e2e/meta-connections-postgrest.spec.ts` in the existing local E2E suite.
+Asset reservations survive local disconnect; provider cleanup
 is unconfirmed until separately reviewed. Health checks never subscribe or ingest events.
 
 `meta-qa-isolation.cjs` validates callback origins and isolated Preview provenance at build/runtime;
