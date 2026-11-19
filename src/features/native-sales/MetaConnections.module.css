@@ -1,15 +1,32 @@
-.workspace { width: min(100%, 1080px); min-width: 0; margin: 0 auto; padding: 24px; }
-.workspace h1 { font-size: 1.5rem; margin-bottom: 12px; }
+.workspace { width: min(100%, 1180px); min-width: 0; margin: 0 auto; padding: 32px 24px; color: #173d43; }
+.workspace h1 { font-size: clamp(1.6rem, 3vw, 2.2rem); margin: 12px 0; }
 .workspace p { line-height: 1.6; }
 .workspace form { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin: 20px 0; }
-.connections { margin-top: 24px; overflow-wrap: anywhere; }
+.back { color: #106e68; font-weight: 700; text-decoration: underline; }
+.connections { margin-top: 24px; overflow-wrap: anywhere; color: #173d43; }
 .connections label { display: block; margin: 12px 0; }
-.connections select, .workspace select { max-width: 100%; }
-.connections button { margin: 8px 8px 8px 0; white-space: normal; }
-.connections fieldset { min-width: 0; margin-top: 20px; padding: 16px; }
+.connections select, .workspace select, .connections input[type="search"] { max-width: 100%; border: 1px solid #b9d4d2; border-radius: 8px; padding: 10px; background: #fff; color: inherit; min-height: 44px; }
+.connections button, .workspace form > button { margin: 8px 8px 8px 0; white-space: normal; border: 1px solid #106e68; border-radius: 9px; padding: 10px 14px; background: #106e68; color: #fff; font-weight: 700; min-height: 44px; cursor: pointer; }
+.connections button:disabled { opacity: .5; cursor: default; }
+.connections button:focus-visible, .connections select:focus-visible, .workspace select:focus-visible, .connections input:focus-visible, .onboarding summary:focus-visible { outline: 3px solid #e2a544; outline-offset: 3px; }
+.connections fieldset { min-width: 0; margin: 20px 0; padding: 16px; border: 1px solid #d5e5e2; border-radius: 12px; }
 .connections small { display: block; }
-.card { margin-top: 24px; padding: 16px 0; border-top: 1px solid var(--c-border, #ddd); }
+.provider { display: flex; align-items: center; gap: 16px; padding-bottom: 20px; border-bottom: 1px solid #d5e5e2; margin-bottom: 16px; }
+.providerMark { display: grid; place-items: center; flex: none; width: 60px; height: 60px; border-radius: 16px; background: #edf4ff; color: #0866ff; font-size: 2.8rem; }
+.badge { display: inline-block; margin: 8px 0 0; padding: 4px 9px; border-radius: 20px; background: #edf4ff; color: #234c82; font-size: .8rem; }
+.listHeading { margin: 28px 0 12px; }
+.connectionGrid, .assetGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.assetGrid { max-height: 420px; overflow-y: auto; padding: 4px; }
+.assetGrid label { margin: 0; align-items: start; }
+.assetGrid input, .check input { width: 18px; height: 18px; flex: none; accent-color: #106e68; }
+.card { min-width: 0; padding: 20px; border: 1px solid #d5e5e2; border-radius: 14px; background: #f8fcfb; }
 .card h3 { font-size: 1.125rem; }
+.card p { font-size: .875rem; }
 .card ul { padding-left: 20px; }
 .card li { margin: 10px 0; }
-@media (width <= 600px) { .workspace { padding: 12px; } }
+.onboarding { margin: 20px 0; padding: 16px; border: 1px solid #d5e5e2; border-radius: 12px; background: #f8fcfb; }
+.onboarding summary { font-weight: 700; cursor: pointer; min-height: 28px; }
+.companyList { list-style: none; padding: 0; }
+.companyList li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.connections .check { display: flex; align-items: start; gap: 10px; line-height: 1.5; }
+@media (width <= 700px) { .workspace { padding: 16px 12px; } .connectionGrid, .assetGrid { grid-template-columns: minmax(0, 1fr); } .card { padding: 14px; } .connections select { width: 100%; } }

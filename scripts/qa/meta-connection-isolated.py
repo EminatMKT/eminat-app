@@ -41,14 +41,34 @@ try:
     before=run(args+['-At','-c',fingerprint])
     run(args+['-q','-f',ROOT/'supabase/prechecks/20261031190000_meta_connection_management.sql'])
     run(args+['-q','-f',migrations/'20261031190000_meta_connection_management.sql'])
+    run(args+['-q','-f',ROOT/'supabase/prechecks/20261119000000_meta_company_onboarding.sql'])
+    run(args+['-q','-f',migrations/'20261119000000_meta_company_onboarding.sql'])
+    run(args+['-q','-f',ROOT/'supabase/checks/20261119000000_meta_company_onboarding.sql'])
     run(args+['-q','-f',ROOT/'supabase/checks/20261031190000_meta_connection_management.sql'])
     run(args+['-q','-f',ROOT/'supabase/checks/native-sales-social-rehearsal.sql'])
+    run(args+['-q','-f',ROOT/'supabase/rollback/20261119000000_meta_company_onboarding.sql'])
     run(args+['-q','-f',ROOT/'supabase/rollback/20261031190000_meta_connection_management.sql'])
     if before!=run(args+['-At','-c',fingerprint]): raise RuntimeError('RPC definitions/ACL rollback mismatch')
     run(args+['-q','-f',ROOT/'supabase/prechecks/20261031190000_meta_connection_management.sql'])
     run(args+['-q','-f',migrations/'20261031190000_meta_connection_management.sql'])
+    run(args+['-q','-f',ROOT/'supabase/prechecks/20261119000000_meta_company_onboarding.sql'])
+    run(args+['-q','-f',migrations/'20261119000000_meta_company_onboarding.sql'])
+    run(args+['-q','-f',ROOT/'supabase/checks/20261119000000_meta_company_onboarding.sql'])
     run(args+['-q','-f',ROOT/'supabase/checks/20261031190000_meta_connection_management.sql'])
+    # The real down script must refuse populated onboarding history without changing
+    # any data. Keep these synthetic rows only until this disposable cluster stops.
+    populated=(ROOT/'scripts/qa/meta-company-onboarding.sql').read_text().replace('ROLLBACK;', 'COMMIT;')
+    (TEMP/'populated-onboarding.sql').write_text(populated)
+    run(args+['-q','-f',TEMP/'populated-onboarding.sql'])
+    history_fingerprint="SELECT md5(string_agg(row_to_json(e)::text,'' ORDER BY id)) FROM public.sales_social_company_binding_events e"
+    history_before=run(args+['-At','-c',history_fingerprint])
+    refused=subprocess.run([str(a) for a in args+['-q','-f',ROOT/'supabase/rollback/20261119000000_meta_company_onboarding.sql']],text=True,capture_output=True)
+    if refused.returncode==0 or 'META_ONBOARDING_POPULATED_ROLLBACK_REQUIRES_REVIEW' not in refused.stderr:
+        raise RuntimeError('Populated onboarding rollback was not refused')
+    if history_before!=run(args+['-At','-c',history_fingerprint]):
+        raise RuntimeError('Onboarding history changed after refused rollback')
     print('PASS: actual Sales/Social DDL; synthetic tenant/company/OAuth/multi-asset/lifecycle/ingestion denials; clean rollback RPC+ACL fingerprint; reapply.')
+    print('PASS: self-service onboarding SQL, browser ACL denials, clean rollback/reapply and populated rollback refusal with unchanged history.')
     print('Scope: local PostgreSQL only. Auth/usuarios/empresas bootstrap is synthetic; full migration chain remains a CI gate.')
 finally:
     if started: run([PG/'pg_ctl','-D',DATA,'-m','fast','-w','stop'])

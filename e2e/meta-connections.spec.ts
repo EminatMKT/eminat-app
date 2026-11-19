@@ -3,6 +3,7 @@ import en from '../src/shared/i18n/locales/en.json'
 import es from '../src/shared/i18n/locales/es.json'
 const org='f0000000-0000-4000-8000-000000000021',org2='f0000000-0000-4000-8000-000000000022'
 const integration='f0000000-0000-4000-8000-000000000301'
+const secondIntegration='f0000000-0000-4000-8000-000000000302'
 const assets=['f0000000-0000-4000-8000-000000000101','f0000000-0000-4000-8000-000000000102']
 for(const locale of ['en','es'] as const)test(`Meta connection selection and local disconnect (${locale})`,async({page,context})=>{
  const copy=locale==='en'?en:es,exp=Math.floor(Date.now()/1000)+3600
@@ -14,7 +15,9 @@ for(const locale of ['en','es'] as const)test(`Meta connection selection and loc
  const snapshot=()=>({companies:[{code:'COMPANY_A',name:'Synthetic Company A'},{code:'COMPANY_B',name:'Synthetic Company B'}],
   canManage:true,metaAvailable:true,integrations:connected?[{id:integration,company_code:'COMPANY_A',status:disabled?'REVOKED':'CONNECTED',
    granted_permissions:['pages_show_list'],provider_cleanup:disabled?'PENDING':'NOT_REQUESTED',provider_cleanup_error:null,
-   grant:{authorizer_member_id:'Synthetic authorizer',status:disabled?'LOCAL_DISABLED':'ACTIVE',expires_at:'2030-01-01T00:00:00Z',authorized_at:'2026-10-31T00:00:00Z',app_id:'synthetic-app',checked_at:null,health_error:null}}]:[],
+   grant:{authorizer_member_id:'Synthetic authorizer',status:disabled?'LOCAL_DISABLED':'ACTIVE',expires_at:'2030-01-01T00:00:00Z',authorized_at:'2026-10-31T00:00:00Z',app_id:'synthetic-app',checked_at:null,health_error:null}},
+   {id:secondIntegration,company_code:'COMPANY_B',status:'CONNECTED',granted_permissions:['pages_show_list'],provider_cleanup:'NOT_REQUESTED',provider_cleanup_error:null,
+    grant:{authorizer_member_id:'second-member',authorizer_name:'Second Authorizer',meta_user_id:'synthetic-second-principal',status:'ACTIVE',expires_at:'2030-01-01T00:00:00Z',authorized_at:'2026-10-31T00:00:00Z',app_id:'synthetic-app',checked_at:null,health_error:null}}]:[],
   assets:connected?assets.map((id,i)=>({id,integrationId:integration,company_code:'COMPANY_A',external_asset_id:`synthetic-page-${i}`,asset_type:'page',display_name:`Synthetic Page ${i+1}`,status:disabled?'DISABLED':'READY',webhook_status:'INGESTION_DISABLED',reported_business_id:null,relationship:'AGENCY_DELEGATED'})):[]})
  await page.route('**/api/sales-native/**',async route=>{
   const request=route.request(),path=new URL(request.url()).pathname.replace('/api/sales-native/','')
@@ -29,10 +32,17 @@ for(const locale of ['en','es'] as const)test(`Meta connection selection and loc
     expect(request.postDataJSON()).toEqual({integrationId:integration});disabled=true
     return route.fulfill({json:{data:{localDisabled:true,providerConfirmed:false}}})
    }
+   if(path==='social/meta/connect'){
+    expect(request.postDataJSON()).toEqual({companyCode:'COMPANY_B',includeInstagram:false,reconnectIntegrationId:secondIntegration})
+    // An invalid synthetic destination exercises the client origin fence without
+    // making any provider request or starting a real authorization.
+    return route.fulfill({json:{data:{url:'https://invalid.example/not-meta'}}})
+   }
    throw new Error(`Unexpected Phase 1 mutation: ${path}`)
   }
   if(path==='access')return route.fulfill({json:{allowed:true,role:'ADMINISTRATOR',capabilities:{}}})
   if(path==='social/connections')return route.fulfill({json:{data:snapshot()}})
+  if(path==='social/companies')return route.fulfill({json:{data:[{code:'COMPANY_A',name:'Synthetic Company A',enabled:true,relationship:'AGENCY_DELEGATED'},{code:'COMPANY_B',name:'Synthetic Company B',enabled:true,relationship:'OWNER_ASSERTED'}]}})
   if(path==='social/meta/pages')return route.fulfill({json:{data:{companyCode:'COMPANY_A',assets:assets.map((id,i)=>({id,external_id:`synthetic-page-${i}`,asset_type:'page',display_name:`Synthetic Page ${i+1}`,reported_business_id:null,tasks:['MANAGE']}))}}})
   return route.fulfill({json:{data:[]}})
  })
@@ -41,6 +51,7 @@ for(const locale of ['en','es'] as const)test(`Meta connection selection and loc
  if(locale==='es')await page.setViewportSize({width:390,height:844})
  await page.goto(`/sales-native/integrations/meta?organization=${org}&company=COMPANY_A&metaState=${'a'.repeat(43)}`)
  await expect(page.getByRole('heading',{name:copy['meta.connectionsTitle']})).toBeVisible()
+ await page.screenshot({path:`/tmp/lilly-meta-dashboard-${locale}.png`,fullPage:true})
  const organization=page.locator('select[name="organization"]')
  await expect(organization.locator('option')).toHaveCount(3)
  await expect(organization).toHaveValue(org)
@@ -57,9 +68,62 @@ for(const locale of ['en','es'] as const)test(`Meta connection selection and loc
  expect(writes).toEqual(['social/meta/complete','social/meta/revoke'])
  expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1)).toBe(false)
  await page.screenshot({path:`/tmp/lilly-meta-phase1-${locale}.png`,fullPage:true})
+ await page.getByRole('combobox',{name:copy['meta.company'],exact:true}).selectOption('COMPANY_B')
+ await expect(page.getByText('Second Authorizer',{exact:false})).toBeVisible()
+ await expect(page.getByText('synthetic-second-principal',{exact:false})).toBeVisible()
+ await expect(page.getByText(copy['meta.cleanupRequired'])).toHaveCount(0)
+ await page.getByRole('button',{name:copy['meta.reconnect'],exact:true}).click()
+ await expect(page.getByText(copy['meta.actionError'],{exact:true})).toBeVisible()
  await organization.selectOption(org2)
  await page.getByRole('button',{name:copy['meta.openWorkspace']}).click()
  await expect(organization).toHaveValue(org2)
  await expect(page.getByRole('combobox',{name:copy['meta.company'],exact:true})).toHaveValue('')
- expect(writes).toHaveLength(2)
+ expect(writes).toEqual(['social/meta/complete','social/meta/revoke','social/meta/connect'])
+})
+
+for (const locale of ['en','es'] as const) test(`Self-service agency company onboarding (${locale})`, async ({page,context}) => {
+ const copy=locale==='en'?en:es,exp=Math.floor(Date.now()/1000)+3600
+ const user={id:'e0000000-0000-4000-8000-000000000001',email:'meta-onboarding@example.invalid',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{},created_at:'2026-01-01T00:00:00Z'}
+ const jwt=`${Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url')}.${Buffer.from(JSON.stringify({sub:user.id,aud:'authenticated',role:'authenticated',exp})).toString('base64url')}.synthetic-signature`
+ await context.addCookies([{name:'sb-127-auth-token',value:encodeURIComponent(JSON.stringify({access_token:jwt,refresh_token:'synthetic-refresh',expires_at:exp,expires_in:3600,token_type:'bearer',user})),url:'http://localhost:3110'}])
+ await page.addInitScript(locale=>{localStorage.setItem('locale',locale);localStorage.setItem('eminat-onboarding-completed','true')},locale)
+ if(locale==='es') await page.setViewportSize({width:390,height:844})
+ let enabled=false
+ const writes:unknown[]=[]
+ await page.route('https://www.facebook.com/**',()=>{throw new Error('LIVE_META_FORBIDDEN')})
+ await page.route('**/api/sales-native/**',async route=>{
+  const req=route.request(),path=new URL(req.url()).pathname.replace('/api/sales-native/','')
+  if(req.method()==='POST') {
+   expect(path).toBe('social/companies')
+   expect(req.headers()['x-sales-organization-id']).toBe(org)
+   const body=req.postDataJSON()
+   expect(body).toMatchObject({companyCode:'CLIENT_ANY',relationship:'AGENCY_DELEGATED',acknowledged:true})
+   enabled=body.active;writes.push(body)
+   return route.fulfill({json:{data:{companyCode:'CLIENT_ANY',enabled,ingestionEnabled:false}}})
+  }
+  if(path==='social/companies') return route.fulfill({json:{data:[{code:'CLIENT_ANY',name:'Any Authorized Client',enabled,relationship:enabled?'AGENCY_DELEGATED':null}]}})
+  if(path==='social/connections') return route.fulfill({json:{data:{companies:enabled?[{code:'CLIENT_ANY',name:'Any Authorized Client'}]:[],integrations:[],assets:[],canManage:true,metaAvailable:true,ingestionEnabled:false}}})
+  return route.fulfill({json:{data:[]}})
+ })
+ await page.goto(`/sales-native/integrations/meta?organization=${org}`)
+ await expect(page.getByText(copy['meta.noCompany'],{exact:true})).toBeVisible()
+ await page.getByText(copy['meta.manageCompanies'],{exact:true}).click()
+ await page.getByRole('combobox',{name:copy['meta.onboardingCompany'],exact:true}).selectOption('CLIENT_ANY')
+ await page.getByRole('combobox',{name:copy['meta.relationship'],exact:true}).selectOption('AGENCY_DELEGATED')
+ await expect(page.getByRole('button',{name:copy['meta.enableCompany'],exact:true})).toBeDisabled()
+ await page.getByRole('checkbox',{name:copy['meta.companyAcknowledgement'],exact:true}).check()
+ await page.getByRole('button',{name:copy['meta.enableCompany'],exact:true}).click()
+ await expect(page.getByText(copy['meta.companySaved'],{exact:true})).toBeVisible()
+ await page.getByRole('combobox',{name:copy['meta.company'],exact:true}).selectOption('CLIENT_ANY')
+ await expect(page.getByRole('button',{name:copy['meta.authorize'],exact:true})).toBeEnabled()
+ await expect(page.getByText(copy['meta.noConnections'],{exact:true})).toBeVisible()
+ page.once('dialog',dialog=>dialog.accept())
+ await page.getByRole('button',{name:copy['meta.disableCompany'],exact:true}).click()
+ await expect(page.getByText(copy['meta.noCompany'],{exact:true})).toBeVisible()
+ expect(writes).toEqual([
+  {companyCode:'CLIENT_ANY',active:true,relationship:'AGENCY_DELEGATED',acknowledged:true},
+  {companyCode:'CLIENT_ANY',active:false,relationship:'AGENCY_DELEGATED',acknowledged:true},
+ ])
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1)).toBe(false)
+ await page.screenshot({path:`/tmp/lilly-meta-onboarding-${locale}.png`,fullPage:true})
 })

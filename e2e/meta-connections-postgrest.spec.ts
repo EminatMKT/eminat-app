@@ -177,3 +177,36 @@ test('Sales administrator without company access receives no connection or grant
   expect(response.status()).toBe(200)
   expect((await response.json()).data).toMatchObject({ companies: [], integrations: [], assets: [], ingestionEnabled: false })
 })
+
+test('real company onboarding discovery exposes only explicitly assigned active company metadata', async ({ request }) => {
+  database.assertApproved()
+  const response = await request.get('/api/sales-native/social/companies', { headers: {
+    Authorization: `Bearer ${people[0].token}`, 'X-Sales-Organization-Id': org,
+  } })
+  expect(response.status()).toBe(200)
+  expect(response.headers()['cache-control']).toContain('no-store')
+  const payload = await response.json()
+  expect(payload.data).toEqual([{ code: company, name: company, enabled: true, relationship: null }])
+  for (const forbidden of [hiddenCompany, foreignCompany, secretMarker, 'token_ciphertext'])
+    expect(JSON.stringify(payload)).not.toContain(forbidden)
+})
+
+test('real company management denies unassigned, seller, forged-tenant and unauthenticated mutations', async ({ request }) => {
+  database.assertApproved()
+  const body = { companyCode: company, active: true, relationship: 'AGENCY_DELEGATED', acknowledged: true }
+  for (const [person, organization, data, status] of [
+    [people[2], org, body, 403], [people[3], org, body, 403],
+    [people[0], foreignOrg, body, 403],
+    [people[0], org, { ...body, companyCode: hiddenCompany }, 403],
+    [people[0], org, { ...body, organizationId: foreignOrg }, 422],
+  ] as const) {
+    const response = await request.post('/api/sales-native/social/companies', { data, headers: {
+      Authorization: `Bearer ${person.token}`, 'X-Sales-Organization-Id': organization,
+    } })
+    expect(response.status()).toBe(status)
+  }
+  expect((await request.post('/api/sales-native/social/companies', { data: body })).status()).toBe(401)
+  const events = await database.request(`/rest/v1/sales_social_company_binding_events?organization_id=eq.${org}&select=id`)
+  expect(events.ok).toBe(true)
+  expect(await events.json()).toEqual([])
+})

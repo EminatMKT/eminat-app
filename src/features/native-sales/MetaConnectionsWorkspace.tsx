@@ -22,8 +22,9 @@ export default function MetaConnectionsWorkspace({ organizations, organizationId
     return result
   },[organizationId])
   return <AppShell><div className={s.workspace}>
+    <a className={s.back} href={organizationId ? `/sales-native?organization=${organizationId}&tab=settings` : '/sales-native'}>{t('meta.integrations')}</a>
     <h1>{t('meta.connectionsTitle')}</h1>
-    <p>{t('meta.connectionOnly')}</p>
+    <p>{t('meta.dashboardDescription')}</p>
     {organizationId && <p>{t('meta.currentOrganization')}: <strong>{organizations.find(org=>org.organizationId===organizationId)?.name}</strong></p>}
     <form action="/sales-native/integrations/meta" method="get">
       <label>{t('meta.organization')} <select name="organization" defaultValue={organizationId ?? ''} required>
@@ -31,6 +32,6 @@ export default function MetaConnectionsWorkspace({ organizations, organizationId
         {organizations.map(org => <option key={org.organizationId} value={org.organizationId}>{org.name}</option>)}
       </select></label><button type="submit">{t('meta.openWorkspace')}</button>
     </form>
-    {organizationId && <NativeSocialStatus key={organizationId} request={request} companyCode={company} />}
+    {organizationId && <NativeSocialStatus key={organizationId} request={request} companyCode={company} manageCompanies />}
   </div></AppShell>
 }

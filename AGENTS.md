@@ -296,6 +296,22 @@ precheck/check and guarded empty rollback live under `supabase/`; the synthetic 
 under `scripts/qa/` writes fixtures and must never run against a shared or Production database.
 See `docs/operations/meta-connections-recovery.md` for current review evidence and blockers.
 
+Universal company onboarding at `social/companies` lets active Sales ADMINISTRATOR/SUPERADMIN
+members enable or disable only active companies already explicitly assigned to their LILLY
+profile. That existing assignment plus the selected organization's administrator membership
+authorizes self-service mapping; this endpoint never creates company access, users or tenants.
+The UI requires an owner/agency declaration and acknowledgement. SQL independently locks and
+rechecks the actor and company assignment, records append-only provenance, and invalidates local
+credentials/pending handoffs on disable without releasing reservations or confirming Meta cleanup.
+Existing LILLY Admin manages company catalogs and access assignments; no matching names/codes
+grant access. Company administrators need no developer or per-connection SQL. Tenant provisioning,
+corporate access grants and public customer registration remain separate existing responsibilities.
+The additional migration/precheck/check/guarded unused-history rollback is
+`20261119000000_meta_company_onboarding.sql`. Populated onboarding history is retained and
+requires a reviewed application rollback. The isolated SQL runner and existing Social rehearsal
+test onboarding, ACLs, revocation and rollback. The dedicated dashboard keeps company assignment
+frozen throughout OAuth and shows independent authorizers, Meta identities, permissions and assets.
+
 Destructive database-backed fixture operations are approved only in this repository’s existing
 GitHub-hosted `e2e-shard` jobs with a numeric run identity. Developer/self-hosted/unknown contexts
 are not approved by default. Runtime markers alone are insufficient. The fixture client requires explicit `NEXT_PUBLIC_APP_ENV=local`, the fixed
