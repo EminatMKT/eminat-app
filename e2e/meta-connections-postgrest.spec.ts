@@ -128,7 +128,7 @@ test('real PostgREST identifies the authorizer FK and rejects the ambiguous pred
 test('real endpoint returns authorizer rather than approver and only permitted company metadata', async ({ request }) => {
   const response = await endpoint(request)
   expect(response.status()).toBe(200)
-  expect(response.headers()['cache-control']).toBe('no-store')
+  expect(response.headers()['cache-control'].split(',').map(value => value.trim())).toContain('no-store')
   const payload = await response.json()
   expect(payload.data.companies.map((c: { code: string }) => c.code)).toEqual([company])
   expect(payload.data.integrations).toHaveLength(1)
