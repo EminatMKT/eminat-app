@@ -37,6 +37,10 @@ A company parameter is only an initial selector hint; backend company authorizat
   previous real PostgREST authorizer/company regressions and cleanup transport are unchanged.
 - Disposable PostgreSQL 17 rehearsal passed actual Sales/Social DDL, company/tenant/OAuth/lifecycle
   denials, browser ACLs, clean rollback/reapply and populated rollback refusal with retained history.
+- The all-modules smoke test now has one client-navigation case per module with the unchanged
+  existing timeout and assertions. CI traces showed no runtime errors but reached the final Admin
+  click after 58.7s of accumulated cold compilation, exceeding the old shared 60s test budget.
+  Legacy Sales denial remains a separate explicit case. No workflow or global timeout changed.
 - Final full-unit/build/lint and exact-head CI evidence is recorded in PR #209, not inferred from
   the previous head. Docker is unavailable locally; full migration chain/RLS/PostgREST gates use the
   existing four CI shards. Local Centinela is unavailable, not represented as passed.
