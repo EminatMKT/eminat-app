@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { expect, test, type APIRequestContext } from '@playwright/test'
-import { cleanupApprovedMetaFixture, createApprovedLocalFixture } from './support/approved-local-fixture'
+import { cleanupApprovedMetaFixture, createApprovedLocalFixture, LOCAL_ANON, LOCAL_DATABASE } from './support/approved-local-fixture'
 
 let application: string | undefined
 const database = createApprovedLocalFixture(() => process.env, () => application)
@@ -177,6 +177,27 @@ test('Sales administrator without company access receives no connection or grant
   expect(response.status()).toBe(200)
   expect((await response.json()).data).toMatchObject({ companies: [], integrations: [], assets: [], ingestionEnabled: false })
 })
+
+// These pre-existing patient/payment tables intentionally use a server-only boundary.
+// Check actual migrated PostgREST grants, including for an authenticated Sales admin;
+// never read rows, create patient identities, invoke QBO, or change permissions.
+for (const table of ['sales_patient_identities', 'sales_payments', 'sales_qbo_connections',
+  'sales_qbo_invoice_jobs', 'sales_qbo_oauth_states']) {
+  test(`real ${table} denies browser reads while retaining server metadata access`, async () => {
+    for (const token of [LOCAL_ANON, people[0].token]) {
+      database.assertApproved()
+      const response = await fetch(`${LOCAL_DATABASE}/rest/v1/${table}?select=id&limit=0`, {
+        headers: { apikey: LOCAL_ANON, Authorization: `Bearer ${token}` },
+        redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(10000),
+      })
+      expect(response.status).toBe(token === LOCAL_ANON ? 401 : 403)
+      expect((await response.json()).code).toBe('42501')
+    }
+    const server = await database.request(`/rest/v1/${table}?select=id&limit=0`)
+    expect(server.status).toBe(200)
+    expect(await server.json()).toEqual([])
+  })
+}
 
 test('real company onboarding discovery exposes only explicitly assigned active company metadata', async ({ request }) => {
   database.assertApproved()

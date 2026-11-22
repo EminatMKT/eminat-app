@@ -275,6 +275,30 @@ bugs; una pieza compartida rota para "hacer lugar" a un módulo rompe a todos lo
   usuario.
 - Código nuevo (identificadores) en inglés; lo existente no se traduce de paso.
 
+## Native Sales and Patient authorization boundary
+
+Native Sales is server-only: browser roles have no direct CRUD on its sensitive
+patient/payment tables. Zero RLS policies means default deny, not unrestricted browser
+access. `service_role` bypasses RLS; tenant protection for that role depends on the
+server-resolved actor/patient identity and scoped SQL/RPC checks. Adding policies alone
+does not constrain that privileged role. Do not grant browser access as an RLS repair.
+
+Corazón Salud uses a separate Portal application but currently shares this Supabase
+Auth project. `/api/patient/v1/[resource]` authenticates passwords through GoTrue and
+issues a separate opaque Patient session, stored hashed in `sales_patient_sessions`.
+Portal keeps it in a secure HttpOnly host cookie and forwards `Authorization: Patient`
+server-to-server. A Patient session is not a LILLY staff session or module grant.
+Staff access still requires the active `usuarios` profile plus applicable module or
+Sales membership/company authorization. Any Auth domain restriction or identity/database
+separation needs a separately reviewed compatibility and recovery plan; do not migrate
+identities as part of Meta connection work.
+
+`src/shared/db/supabaseAdmin.consumers.test.ts` covers shared-factory compatibility and
+denials in Admin, Directory, Billing, Medical, Tasks and Stratix module authorization.
+The real local PostgREST suite also checks browser denial/server SELECT on the five
+patient/payment tables cited in `docs/operations/pr-209-independent-investigation.md`.
+These tests do not replace database tenant checks or certify all privileged routes.
+
 ## Meta connection management — Phase 1
 
 Central administration is `/settings` → `/settings/integrations` →
