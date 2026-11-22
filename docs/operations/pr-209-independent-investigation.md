@@ -44,7 +44,7 @@ Reproduce the metadata observation without selecting records: inspect
 five exact table names. Do not run role-changing probes against Production.
 The new guarded local PostgREST cases reproduce HTTP browser denial with both the
 anonymous demo role and a synthetic authenticated Sales administrator, then confirm
-service SELECT still works. Every query uses `select=id&limit=0`; no patient/payment
+service SELECT still works. Every query uses `select=organization_id&limit=0`; no patient/payment
 rows are read or written by those cases. Existing fixture setup/cleanup safeguards
 remain unchanged.
 

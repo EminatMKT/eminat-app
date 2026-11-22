@@ -186,14 +186,14 @@ for (const table of ['sales_patient_identities', 'sales_payments', 'sales_qbo_co
   test(`real ${table} denies browser reads while retaining server metadata access`, async () => {
     for (const token of [LOCAL_ANON, people[0].token]) {
       database.assertApproved()
-      const response = await fetch(`${LOCAL_DATABASE}/rest/v1/${table}?select=id&limit=0`, {
+      const response = await fetch(`${LOCAL_DATABASE}/rest/v1/${table}?select=organization_id&limit=0`, {
         headers: { apikey: LOCAL_ANON, Authorization: `Bearer ${token}` },
         redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(10000),
       })
       expect(response.status).toBe(token === LOCAL_ANON ? 401 : 403)
       expect((await response.json()).code).toBe('42501')
     }
-    const server = await database.request(`/rest/v1/${table}?select=id&limit=0`)
+    const server = await database.request(`/rest/v1/${table}?select=organization_id&limit=0`)
     expect(server.status).toBe(200)
     expect(await server.json()).toEqual([])
   })
