@@ -156,6 +156,12 @@ export async function completeMetaConnection(actor: SalesActor, input: unknown) 
   if (!row.grant_ciphertext || !row.grant_expires_at || Date.parse(row.grant_expires_at) <= Date.now()) failure('META_GRANT_UNAVAILABLE')
   const { key } = metaConfiguration()
   const db = supabaseAdmin({ noStore: true })
+  // main enforced the DB kill-switch at completion too (via native_sales_complete_meta_page);
+  // this mirrors beginMetaConnection's own check so a connection begun before the switch
+  // flipped off can't still finish during an incident (PR #209 review finding #3, completion
+  // half — the begin-time half was already covered).
+  const { data: provider } = await db.from('sales_social_providers').select('enabled').eq('code', 'META').maybeSingle()
+  if (!provider?.enabled) failure('META_PROVIDER_DISABLED', 503)
   const { data: assets, error } = await db.from('sales_social_discovered_assets').select('id,token_ciphertext')
     .eq('state_id', row.id).eq('organization_id', actor.organizationId).in('id', parsed.data.assetIds)
   if (error || assets?.length !== parsed.data.assetIds.length) failure('META_SELECTION_INVALID', 422)

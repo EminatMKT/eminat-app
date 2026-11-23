@@ -6,7 +6,7 @@ vi.mock('../auth',()=>({
  resolveSalesActor:mocks.identity,
 }))
 import { MetaGraphClient } from './meta-graph'
-import { beginMetaConnection,checkMetaConnectionHealth,completeMetaConnection,exchangeMetaConnection,listMetaGrantPages,metaCallbackContext,revokeMetaConnection } from './meta-connection'
+import { beginMetaConnection,checkMetaConnectionHealth,completeMetaConnection,exchangeMetaConnection,listMetaConnections,listMetaGrantPages,metaCallbackContext,revokeMetaConnection } from './meta-connection'
 import { sealSocialToken } from './token-vault'
 import type { SalesActor } from '../policy'
 const org='f0000000-0000-4000-8000-000000000021',member='f0000000-0000-4000-8000-000000000011'
@@ -129,6 +129,16 @@ describe('Meta tenant/company service boundary',()=>{
   await expect(exchangeMetaConnection(state,'synthetic-code','synthetic-session')).rejects.toThrow('META_AUTHORIZATION_FAILED')
   expect(mocks.rpc.mock.calls.some(call=>call[0]==='native_meta_exchange_finish')).toBe(false)
  })
+ it('rejects a grant missing pages_show_list with the specific permission code, not the generic failure (finding #5)',async()=>{
+  mocks.rpc.mockImplementation(async(name)=>({data:name==='native_meta_exchange_claim'?{id:stateId,company:'COMPANY_A',appId:'synthetic-app'}:{},error:null}))
+  vi.spyOn(MetaGraphClient.prototype,'exchange').mockResolvedValue({token:'synthetic-user-token',expiresAt:new Date(Date.now()+3600000)})
+  vi.spyOn(MetaGraphClient.prototype,'grantedPermissions').mockResolvedValue([])
+  vi.spyOn(MetaGraphClient.prototype,'authorizingUserId').mockResolvedValue('meta-principal-1')
+  const discoverPages=vi.spyOn(MetaGraphClient.prototype,'discoverPages')
+  await expect(exchangeMetaConnection(state,'synthetic-code','synthetic-session')).rejects.toThrow('META_PERMISSION_UNAVAILABLE')
+  expect(discoverPages).not.toHaveBeenCalled()
+  expect(mocks.rpc.mock.calls.some(call=>call[0]==='native_meta_exchange_finish')).toBe(false)
+ })
  it('rewraps selected credentials with integration context and returns only the RPC metadata',async()=>{
   const result=await completeMetaConnection(actor,{state,assetIds:[assetId],relationship:'AGENCY_DELEGATED'})
   expect(result).toEqual({integrationId:'metadata-only'})
@@ -136,6 +146,17 @@ describe('Meta tenant/company service boundary',()=>{
   const args=mocks.rpc.mock.calls.find(call=>call[0]==='native_meta_complete')![1]
   expect(args.p_selected[0].ciphertext).not.toContain('synthetic-page-token')
   expect(args.p_org).toBe(org)
+ })
+ it('honors the sales_social_providers DB kill-switch at completion too, not only at begin (finding #3 regression)',async()=>{
+  mocks.from.mockImplementation(table=>query(table==='sales_social_oauth_states'?row:table==='sales_social_providers'?{enabled:false}:selected))
+  await expect(completeMetaConnection(actor,{state,assetIds:[assetId],relationship:'AGENCY_DELEGATED'})).rejects.toThrow('META_PROVIDER_DISABLED')
+  expect(mocks.rpc).not.toHaveBeenCalledWith('native_meta_complete',expect.anything())
+ })
+ it('reflects the sales_social_providers DB kill-switch in metaAvailable instead of leaving it untested (finding #10)',async()=>{
+  mocks.from.mockImplementation(table=>query(
+   table==='sales_social_providers'?{enabled:false}:table==='sales_social_company_bindings'?[]:table==='usuario_empresas_acceso'?[]:selected))
+  const result=await listMetaConnections(actor)
+  expect(result.metaAvailable).toBe(false)
  })
  it('keeps disconnect local, even without provider configuration',async()=>{
   vi.stubEnv('LILLY_META_OAUTH_ENABLED','false')

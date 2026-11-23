@@ -5,7 +5,7 @@ import { useT } from '@/shared/i18n'
 import s from './NativeSalesModule.module.css'
 import ui from './MetaConnections.module.css'
 import MetaCompanyOnboarding from './MetaCompanyOnboarding'
-import {statusCopy,type Snapshot,type Candidate} from './meta-connection-metadata'
+import {metaErrorMessageKey,resolveMetaErrorCode,statusCopy,type Snapshot,type Candidate} from './meta-connection-metadata'
 const empty:Snapshot={companies:[],integrations:[],assets:[],canManage:false,metaAvailable:false}
 export default function NativeSocialStatus({request,companyCode,manageCompanies=false,role}: {request:NativeRequest;companyCode?:string;manageCompanies?:boolean;role?:string}){
  const {t}=useT()
@@ -45,7 +45,7 @@ export default function NativeSocialStatus({request,companyCode,manageCompanies=
   // Pass through the specific reason when the server gave us one (currently only
   // META_PERMISSION_UNAVAILABLE); everything else still falls back to the generic
   // message the server itself collapses to (PR #209 review finding #5).
-  if(params.has('metaError'))setError(params.get('metaError')==='META_PERMISSION_UNAVAILABLE'?'META_PERMISSION_UNAVAILABLE':'META_AUTHORIZATION_FAILED')
+  if(params.has('metaError'))setError(resolveMetaErrorCode(params.get('metaError')))
   if(!grant)return
   setState(grant)
   setDiscovering(true)
@@ -93,7 +93,7 @@ export default function NativeSocialStatus({request,companyCode,manageCompanies=
   </header>
   <p>{t('meta.connectionOnly')}</p>
   {loading && <p role="status">{t('salesNative.loadingConnections')}</p>}
-  {error && <p role="alert">{t(error==='META_ASSET_ALREADY_RESERVED'?'meta.assetReserved':error==='META_COMPANY_ACCESS_DENIED'?'meta.companyAccessRequired':error==='META_GRANT_UNAVAILABLE'?'meta.selectionExpired':error==='META_PERMISSION_UNAVAILABLE'?'meta.permissionDeclined':'meta.actionError')}</p>}
+  {error && <p role="alert">{t(metaErrorMessageKey(error))}</p>}
   {notice && <p role="status">{t('meta.connectionSaved')}</p>}
   {manageCompanies && snapshot.canManage && <MetaCompanyOnboarding request={request} disabled={busy || !!state} onChanged={async()=>{await reload();setCompany('');setError('')}} />}
   {!loading && !error && !snapshot.companies.length && <p>{t('meta.noCompany')}</p>}
