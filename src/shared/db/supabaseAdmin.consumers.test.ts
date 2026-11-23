@@ -131,6 +131,13 @@ describe('real shared admin factory through existing module consumers',()=>{
   await expect(listPacientes()).rejects.toEqual(f.readError)
   expect(f.create).not.toHaveBeenCalled()
  })
+ it('does not block unrelated consumers in preview just because other features have real secrets configured (finding #1)',async()=>{
+  environment('preview')
+  for(const key of ['RESEND_API_KEY','LILLY_QBO_CLIENT_SECRET','LILLY_QBO_TOKEN_KEY','PATIENT_EMAIL_OUTBOX_KEY',
+   'CRON_SECRET','DATABASE_URL','LILLY_META_APP_SECRET','LILLY_SOCIAL_TOKEN_KEY'])vi.stubEnv(key,'real-unrelated-secret')
+  expect((await readScopes()).status).toBe(200)
+  expect((await directory()).status).toBe(200)
+ })
  it('preserves no-store fetch and stateless auth options',()=>{
   supabaseAdmin({noStore:true})
   const options=f.create.mock.calls[0][2] as {auth:{autoRefreshToken:boolean;persistSession:boolean};global:{fetch:typeof fetch}}
