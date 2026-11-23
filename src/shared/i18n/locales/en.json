@@ -2006,6 +2006,7 @@
   "meta.connectionSaved": "Selected accounts connected. Ingestion and subscriptions remain disabled.",
   "meta.assetReserved": "An asset is already reserved to another company or connection. Nothing was partially saved. Change your selection or reconnect its existing connection.",
   "meta.selectionExpired": "This authorization is no longer available. Cancel this selection and connect again.",
+  "meta.permissionDeclined": "The required page permission was not granted on Meta's side. Reconnect and accept it to continue — this is not a system failure.",
   "meta.discovering": "Discovering eligible accounts…",
   "meta.noAssets": "No eligible assets were returned. Check Page access and granted permissions, then connect again.",
   "meta.searchAssets": "Search discovered accounts",

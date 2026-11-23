@@ -2006,6 +2006,7 @@
   "meta.connectionSaved": "Las cuentas seleccionadas están conectadas. La recepción de datos y las suscripciones siguen deshabilitadas.",
   "meta.assetReserved": "Un activo ya está reservado para otra empresa o conexión. No se guardaron cambios parciales. Cambia la selección o vuelve a autorizar su conexión existente.",
   "meta.selectionExpired": "Esta autorización ya no está disponible. Cancela la selección y vuelve a conectar.",
+  "meta.permissionDeclined": "No se otorgó el permiso de página requerido del lado de Meta. Reconectá y aceptalo para continuar — no es una falla del sistema.",
   "meta.discovering": "Buscando cuentas elegibles…",
   "meta.noAssets": "No se encontraron activos elegibles. Verifica el acceso a las páginas y los permisos otorgados y vuelve a conectar.",
   "meta.searchAssets": "Buscar cuentas descubiertas",

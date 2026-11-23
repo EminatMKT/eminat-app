@@ -400,7 +400,7 @@ export default function NativeSalesModule({ organizationId, workspaceLabelKey }:
           <div className={s.pager}><button type="button" disabled={offset===0} onClick={() => {setSelectedLeadIds([]);setOffset(Math.max(0,offset-25))}}>{t('salesNative.previous')}</button>
             <span>{t('salesNative.pageNumber',{page:Math.floor(offset/25)+1})}</span><button type="button" disabled={nextOffset===null} onClick={() => {setSelectedLeadIds([]);setOffset(nextOffset ?? offset)}}>{t('salesNative.next')}</button></div>
         </>}
-        {tab==='social' && <><NativeSocialStatus request={request} />
+        {tab==='social' && <><NativeSocialStatus request={request} role={access.role} />
           <NativeSocialInbox request={request} /></>}
         {tab==='settings' && <div className={s.reportGrid}>
           <section className={s.panel}><h2>{t('meta.integrations')}</h2><a href={`/sales-native/integrations/meta?organization=${organizationId}`}>{t('meta.integrationTitle')}</a></section>

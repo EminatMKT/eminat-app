@@ -7,9 +7,16 @@ import ui from './MetaConnections.module.css'
 import MetaCompanyOnboarding from './MetaCompanyOnboarding'
 import {statusCopy,type Snapshot,type Candidate} from './meta-connection-metadata'
 const empty:Snapshot={companies:[],integrations:[],assets:[],canManage:false,metaAvailable:false}
-export default function NativeSocialStatus({request,companyCode,manageCompanies=false}: {request:NativeRequest;companyCode?:string;manageCompanies?:boolean}){
+export default function NativeSocialStatus({request,companyCode,manageCompanies=false,role}: {request:NativeRequest;companyCode?:string;manageCompanies?:boolean;role?:string}){
  const {t}=useT()
  const status=(value:string)=>t(statusCopy[value] ?? 'meta.state.unknown')
+ // Callers that already filter to ADMINISTRATOR/SUPERADMIN org memberships before this
+ // ever mounts (the Settings/Sales-native integrations pages, via MetaConnectionsWorkspace)
+ // don't pass `role` and keep today's behavior (fetch, let the server 403). The Sales
+ // module's own "social" tab has no such filtering and passes the caller's real role, so a
+ // SELLER/non-admin never fires the doomed fetch at all (PR #209 review finding #6 — this
+ // restores the early-exit `main` had before this PR's rewrite dropped it).
+ const canManage=!role || role==='SUPERADMIN' || role==='ADMINISTRATOR'
  const [snapshot,setSnapshot]=useState<Snapshot>(empty)
  const [company,setCompany]=useState(companyCode ?? '')
  const [candidates,setCandidates]=useState<Candidate[]>([])
@@ -25,15 +32,20 @@ export default function NativeSocialStatus({request,companyCode,manageCompanies=
  const [notice,setNotice]=useState(false)
  const reload=async()=>{const result=await request('social/connections');setSnapshot(result.data as Snapshot)}
  useEffect(()=>{
+  if(!canManage){setLoading(false);return}
   let cancelled=false
   void request('social/connections').then(result=>{if(!cancelled)setSnapshot(result.data as Snapshot)})
    .catch(()=>{if(!cancelled)setError('META_ACCESS_UNAVAILABLE')}).finally(()=>{if(!cancelled)setLoading(false)})
   return()=>{cancelled=true}
- },[request])
+ },[canManage,request])
  useEffect(()=>{
+  if(!canManage)return
   const params=new URLSearchParams(window.location.search)
   const grant=params.get('metaState')
-  if(params.has('metaError'))setError('META_AUTHORIZATION_FAILED')
+  // Pass through the specific reason when the server gave us one (currently only
+  // META_PERMISSION_UNAVAILABLE); everything else still falls back to the generic
+  // message the server itself collapses to (PR #209 review finding #5).
+  if(params.has('metaError'))setError(params.get('metaError')==='META_PERMISSION_UNAVAILABLE'?'META_PERMISSION_UNAVAILABLE':'META_AUTHORIZATION_FAILED')
   if(!grant)return
   setState(grant)
   setDiscovering(true)
@@ -42,7 +54,7 @@ export default function NativeSocialStatus({request,companyCode,manageCompanies=
    if(!cancelled){const data=result.data as {companyCode:string;assets:Candidate[]};setCompany(data.companyCode);setCandidates(data.assets)}
   }).catch(()=>{if(!cancelled)setError('META_GRANT_UNAVAILABLE')}).finally(()=>{if(!cancelled)setDiscovering(false)})
   return()=>{cancelled=true}
- },[request])
+ },[canManage,request])
  const action=async(work:()=>Promise<void>)=>{
   if(busy)return
   setBusy(true);setError('');setNotice(false)
@@ -70,6 +82,8 @@ export default function NativeSocialStatus({request,companyCode,manageCompanies=
   window.history.replaceState(null,'',url);setState('');setCandidates([]);setSelected([]);setError('');setSearch('')
  }
  const visibleCandidates=candidates.filter(a=>`${a.display_name} ${a.external_id}`.toLocaleLowerCase().includes(search.toLocaleLowerCase()))
+ if(!canManage)return <section className={s.panel}><h2>{t('salesNative.social')}</h2>
+  <p>{t('salesNative.socialConnectionSettingsAreAvailableToSalesAdministrators')}</p></section>
  return <section className={`${s.panel} ${ui.connections}`} aria-busy={busy || loading}>
   <header className={ui.provider}>
    <span className={ui.providerMark} aria-hidden="true">∞</span>
@@ -79,9 +93,9 @@ export default function NativeSocialStatus({request,companyCode,manageCompanies=
   </header>
   <p>{t('meta.connectionOnly')}</p>
   {loading && <p role="status">{t('salesNative.loadingConnections')}</p>}
-  {error && <p role="alert">{t(error==='META_ASSET_ALREADY_RESERVED'?'meta.assetReserved':error==='META_COMPANY_ACCESS_DENIED'?'meta.companyAccessRequired':error==='META_GRANT_UNAVAILABLE'?'meta.selectionExpired':'meta.actionError')}</p>}
+  {error && <p role="alert">{t(error==='META_ASSET_ALREADY_RESERVED'?'meta.assetReserved':error==='META_COMPANY_ACCESS_DENIED'?'meta.companyAccessRequired':error==='META_GRANT_UNAVAILABLE'?'meta.selectionExpired':error==='META_PERMISSION_UNAVAILABLE'?'meta.permissionDeclined':'meta.actionError')}</p>}
   {notice && <p role="status">{t('meta.connectionSaved')}</p>}
-  {manageCompanies && <MetaCompanyOnboarding request={request} disabled={busy || !!state} onChanged={async()=>{await reload();setCompany('');setError('')}} />}
+  {manageCompanies && snapshot.canManage && <MetaCompanyOnboarding request={request} disabled={busy || !!state} onChanged={async()=>{await reload();setCompany('');setError('')}} />}
   {!loading && !error && !snapshot.companies.length && <p>{t('meta.noCompany')}</p>}
   {snapshot.companies.length>0 && <>
    <label>{t('meta.company')} <select value={company} disabled={busy || !!state} onChange={e=>setCompany(e.target.value)}>
