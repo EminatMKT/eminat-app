@@ -1,10 +1,10 @@
 'use client'
 import {useEffect,useState} from 'react'
 import {useT} from '@/shared/i18n'
-import {supabase} from '@/shared/db/supabase'
 import {useMetaWorkspaces} from './useMetaWorkspaces'
 import {metaSettingsHref} from './meta-navigation'
 import {statusCopy,type Snapshot} from './meta-connection-metadata'
+import {sessionFetch} from './session-fetch'
 import s from './MetaConnections.module.css'
 
 /** Marketing reads the same authorized metadata projection; management stays central. */
@@ -35,12 +35,7 @@ function CompanyAccounts({organization,organizationName}:{organization:string;or
     let cancelled=false
     async function load(){
       try {
-        const {data:{session}}=await supabase.auth.getSession()
-        if(!session)throw new Error('AUTHENTICATION_REQUIRED')
-        const response=await fetch('/api/sales-native/social/connections',{cache:'no-store',headers:{
-          Authorization:`Bearer ${session.access_token}`,'X-Sales-Organization-Id':organization}})
-        if(!response.ok)throw new Error('META_ACCESS_UNAVAILABLE')
-        const body=await response.json() as {data:Snapshot}
+        const body=await sessionFetch('social/connections',{organizationId:organization}) as {data:Snapshot}
         if(!body.data.canManage)throw new Error('META_ACCESS_UNAVAILABLE')
         if(!cancelled)setSnapshot(body.data)
       } catch {if(!cancelled)setError(true)}
