@@ -50,7 +50,7 @@ export default function MetaCompanyOnboarding({ request, onChanged, disabled }: 
     {!loading && !error && !companies.length && <p>{t('meta.companyAccessRequired')}</p>}
     <ul className={s.companyList}>{companies.filter(c => c.enabled).map(c => <li key={c.code}>
       <span>{c.name}</span>
-      <button type="button" disabled={busy || disabled} onClick={() => void manage(c.code, false, c.relationship)}>
+      <button type="button" disabled={busy || disabled} onClick={() => void manage(c.code, false, null)}>
         {t('meta.disableCompany')}
       </button>
     </li>)}</ul>
