@@ -1,7 +1,11 @@
 import {beforeEach,afterEach,describe,expect,it,vi} from 'vitest'
 const m=vi.hoisted(()=>({context:vi.fn(),exchange:vi.fn(),deployment:vi.fn()}))
 vi.mock('@/server/sales-native/social/meta-connection',()=>({metaCallbackContext:m.context,exchangeMetaConnection:m.exchange,metaDeployment:m.deployment}))
+vi.mock('@/server/sales-native/auth',()=>({
+ NativeSalesAuthError:class extends Error {constructor(readonly status:number,readonly code:string){super(code)}},
+}))
 vi.mock('@/shared/db/requireAccess/ssrClient',()=>({default:()=>({auth:{getSession:async()=>({data:{session:{access_token:'synthetic-session'}}})}})}))
+import {NativeSalesAuthError} from '@/server/sales-native/auth'
 import {GET} from './route'
 const path='/sales-native/integrations/meta?organization=f0000000-0000-4000-8000-000000000021&company=COMPANY_A'
 beforeEach(()=>{m.deployment.mockReturnValue({origin:'https://app.stratixsolutions.us'})})
@@ -42,5 +46,25 @@ describe('Meta callback context',()=>{
   expect(response.headers.get('location')).toContain('company=COMPANY_A')
   expect(response.headers.get('location')).toContain('META_AUTHORIZATION_DENIED')
   expect(m.exchange).not.toHaveBeenCalled()
+ })
+ it('redirects back to the central Settings path a connection was started from, not only the legacy page (PR #209 review finding #2 regression)',async()=>{
+  vi.stubEnv('LILLY_NATIVE_SALES_ENABLED','true')
+  const settingsPath='/settings/integrations/meta?organization=f0000000-0000-4000-8000-000000000021&company=COMPANY_A'
+  m.context.mockResolvedValue(settingsPath);m.exchange.mockResolvedValue({returnPath:settingsPath})
+  const response=await GET(new Request(`https://app.stratixsolutions.us/api/sales-native/social/meta/callback?state=${'a'.repeat(43)}&code=private-code`))
+  expect(response.status).toBe(303)
+  expect(response.headers.get('location')).toContain('/settings/integrations/meta?')
+ })
+ it('passes through only the permission-unavailable reason, collapsing everything else (finding #5)',async()=>{
+  vi.stubEnv('LILLY_NATIVE_SALES_ENABLED','true');m.context.mockResolvedValue(path)
+  m.exchange.mockRejectedValue(new NativeSalesAuthError(409,'META_PERMISSION_UNAVAILABLE'))
+  const permission=await GET(new Request(`https://app.stratixsolutions.us/api/sales-native/social/meta/callback?state=${'a'.repeat(43)}&code=private-code`))
+  expect(permission.headers.get('location')).toContain('metaError=META_PERMISSION_UNAVAILABLE')
+  m.exchange.mockRejectedValue(new Error('provider timeout'))
+  const generic=await GET(new Request(`https://app.stratixsolutions.us/api/sales-native/social/meta/callback?state=${'a'.repeat(43)}&code=private-code`))
+  expect(generic.headers.get('location')).toContain('metaError=META_CONNECTION_UNAVAILABLE')
+  m.exchange.mockRejectedValue(new NativeSalesAuthError(409,'META_GRANT_UNAVAILABLE'))
+  const other=await GET(new Request(`https://app.stratixsolutions.us/api/sales-native/social/meta/callback?state=${'a'.repeat(43)}&code=private-code`))
+  expect(other.headers.get('location')).toContain('metaError=META_CONNECTION_UNAVAILABLE')
  })
 })

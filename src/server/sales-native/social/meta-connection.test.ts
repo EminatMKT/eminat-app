@@ -31,7 +31,8 @@ beforeEach(()=>{
   grant_ciphertext:sealSocialToken('synthetic-user-token',key,org,stateId),reconnect_integration_id:null}
  selected=[{id:assetId,token_ciphertext:sealSocialToken('synthetic-page-token',key,org,assetId)}]
  mocks.rpc.mockReset().mockResolvedValue({data:{integrationId:'metadata-only'},error:null})
- mocks.from.mockReset().mockImplementation(table=>query(table==='sales_social_oauth_states'?row:selected))
+ mocks.from.mockReset().mockImplementation(table=>query(
+  table==='sales_social_oauth_states'?row:table==='sales_social_providers'?{enabled:true}:selected))
  mocks.identity.mockReset().mockResolvedValue(actor)
 })
 afterEach(()=>{vi.unstubAllEnvs();vi.restoreAllMocks()})
@@ -42,6 +43,11 @@ describe('Meta tenant/company service boundary',()=>{
   expect(new URL(result.url).searchParams.get('scope')).toBe('pages_show_list')
   expect(result).not.toHaveProperty('token')
   expect(mocks.rpc).toHaveBeenCalledWith('native_meta_begin',expect.objectContaining({p_org:org,p_member:member,p_company:'COMPANY_A'}))
+ })
+ it('honors the sales_social_providers DB kill-switch even when env vars say Meta is configured (finding #3)',async()=>{
+  mocks.from.mockImplementation(table=>query(table==='sales_social_oauth_states'?row:table==='sales_social_providers'?{enabled:false}:selected))
+  await expect(beginMetaConnection(actor,{companyCode:'COMPANY_A'})).rejects.toThrow('META_PROVIDER_DISABLED')
+  expect(mocks.rpc).not.toHaveBeenCalledWith('native_meta_begin',expect.anything())
  })
  it('rejects redirect overrides in connection input without creating state',async()=>{
   await expect(beginMetaConnection(actor,{companyCode:'COMPANY_A',redirect_uri:'https://evil.example'})).rejects.toThrow('META_CONNECTION_INVALID')

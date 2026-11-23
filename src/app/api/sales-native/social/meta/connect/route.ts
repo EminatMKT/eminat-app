@@ -8,7 +8,7 @@ export async function POST(request:Request){
   metaDeployment(request)
   const actor=await resolveSalesActor(request)
   const input=await readMetaInput(request)
-  const data=await beginMetaConnection(actor,input)
+  const data=await beginMetaConnection(actor,input,request)
   return Response.json({data},{headers:{'Cache-Control':'no-store'}})
  }catch(error){return nativeSalesErrorResponse(error)}
 }
