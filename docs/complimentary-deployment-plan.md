@@ -147,3 +147,39 @@ A staging-only systemd timer calls the existing authenticated complimentary proc
 five minutes. It receives only its dedicated worker credential, has restricted network access,
 and stops API work at the original staging allocation deadline. Production scheduling still
 belongs to the protected release process; this staging timer changes no Production unit.
+
+### Payment reversal review (PR #211 closure)
+
+Apply `20261124010000_qbo_reconciliation_manual_review.sql` before the updated worker.
+It adds queue metadata and an atomic service-only review RPC; it changes no payment,
+subscription or membership row. Use its precheck, check and refusal-safe rollback.
+Unlinked payments receive three provider observations, then `MANUAL_REVIEW` with
+immutable original event evidence and one `qbo_manual_review_required` history entry.
+Provider contradictions and post-activation reversals require review; they do not
+approve payment, automatically renew/reactivate, revoke paid coverage, or delete
+prior payment evidence. Finance/SUPERADMIN can read the scoped, paginated queue and
+its audit at `GET /api/sales-native/quickbooks/reviews`. There is no automatic review
+resolution or worker requeue. Resolve payment/member consequences through the
+existing authorized finance process after inspecting fresh authoritative evidence.
+Rollback refuses unresolved review rows. The previous application can run against
+the additive schema; preserve review evidence when rolling back application code.
+
+Intuit Development Accounting `Payment` records with `ProcessPayment=false` exercise
+invoice linking, balances and voids. They do not establish card/ACH authorization,
+capture, settlement, refunds or chargeback acceptance. The Development hosted
+invoice link returned `developer.intuit.com/comingSoon/...`; retain the approved
+payment-host guard and do not fabricate a hosted URL or application payment proof.
+See Intuit's [linked transactions](https://static.developer.intuit.com/output_html/qbo/docs/workflows/manage-linked-transactions.html),
+[Payment void API](https://developer.intuit.com/app/developer/qbo/docs/api/accounting/all-entities/payment),
+and separate [Payments processing workflow](https://static.developer.intuit.com/output_html/qbpayments/docs/workflows/process-a-payment.html).
+Production backup, independent restore, reviewed migration and release gates remain
+mandatory. This change does not modify or dispatch their protected workflows.
+
+Validation for the reversal fix (24 November 2026): 100 targeted tests passed,
+plus 47 route/reconciliation checks (overlapping coverage), TypeScript and focused
+ESLint passed. The migration and SQL QA ran against two disposable, network-disabled
+copies of the verified synthetic staging baseline. Concurrent review requests produced
+one audit record; replay preserved the original evidence; injected audit failure rolled
+back the status change; stale/foreign/browser claims were denied. Rollback refused an
+unresolved review and succeeded on the empty-review copy. These results are isolated
+verification, not a claim that the new migration or worker is deployed.

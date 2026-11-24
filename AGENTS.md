@@ -352,3 +352,16 @@ AAD context. Production defaults and existing Production RPCs remain unchanged.
 connection/refresh/revocation RPCs, server-only and fixed to the approved organization/company.
 It creates no connection or financial record, requires an explicit staging-branch attestation,
 and is excluded from the Production migration sequence. Preserve OAuth history on rollback.
+
+### Reconciliation manual review
+
+Unlinked Payment events retry at most three provider observations before terminal
+`MANUAL_REVIEW`. Deleted entities, multiple invoice links and contradictory invoice
+or post-activation reversal evidence also require review. Queue state and its single
+`qbo_manual_review_required` audit commit together through the service-only
+`native_sales_qbo_require_review` RPC, guarded by tenant, environment and claimed
+attempt. Terminal events are excluded from worker polling; replay preserves their
+original evidence. No review transition creates, deletes or alters payments or
+memberships, renews coverage, or resends activation notifications. Review is an
+operator outcome, never payment authorization. Rollback refuses unresolved review
+rows rather than erasing evidence. Production migrations remain maintainer-only.

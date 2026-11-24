@@ -16,6 +16,18 @@ type Event = { id: string; organization_id: string; environment: string;
   realm_id: string; entity_type: string; entity_id: string;
   operation: string; attempts: number }
 
+export const MAX_UNLINKED_PAYMENT_ATTEMPTS = 3
+const MAX_PAYMENT_EVIDENCE_ATTEMPTS = 12
+type ReviewReason = 'UNLINKED_VOIDED_PAYMENT' | 'UNLINKED_PAYMENT' |
+  'AMBIGUOUS_PAYMENT_INVOICES' | 'PROVIDER_ENTITY_DELETED' |
+  'INVOICE_EVIDENCE_REQUIRES_REVIEW' | 'PAYMENT_LINKS_UNRESOLVED' |
+  'PAYMENT_CHANGED_BEFORE_ACTIVATION'
+type EventResult = 'PROCESSED' | 'RETRY' | 'IGNORED' | {
+  status:'MANUAL_REVIEW';reason:ReviewReason;evidence:Record<string,unknown>
+}
+const review = (reason:ReviewReason,evidence:Record<string,unknown>):EventResult =>
+  ({status:'MANUAL_REVIEW',reason,evidence})
+
 async function history(organizationId: string, recordId: string, action: string,
   changes: Record<string, unknown>): Promise<void> {
   const { error } = await db().from('sales_history').insert({
@@ -114,7 +126,7 @@ async function activateVerifiedIntent(intentId: string): Promise<'ACTIVE' | 'PEN
 }
 
 async function reconcileInvoice(event: Event, invoice: QboInvoice,
-  access: Awaited<ReturnType<typeof connectedQboReadAccess>>): Promise<'PROCESSED' | 'RETRY' | 'IGNORED'> {
+  access: Awaited<ReturnType<typeof connectedQboReadAccess>>): Promise<EventResult> {
   const client = db()
   const { data: matches, error: matchError } = await client.from('sales_patient_qbo_manual')
     .select('id,organization_id,enrollment_intent_id,opportunity_id,sales_payment_id,base_invoice_amount_cents,qa_synthetic,qbo_invoice_number,qbo_invoice_reference,qbo_customer_reference,qbo_item_reference,qbo_invoice_status,verification_state,membership_activation_status')
@@ -191,6 +203,13 @@ async function reconcileInvoice(event: Event, invoice: QboInvoice,
       { invoiceId:invoice.Id,membershipId:intent.membership_id })
     return 'PROCESSED'
   }
+  if (decision.status === 'REVIEW') return review('INVOICE_EVIDENCE_REQUIRES_REVIEW',{
+    invoiceId:invoice.Id,intentId:intent.id,membershipId:intent.membership_id,
+    invoiceBalanceCents:Math.round(invoice.Balance*100),decisionReason:decision.reason,
+  })
+  if (decision.status === 'RETRY' && event.attempts >= MAX_PAYMENT_EVIDENCE_ATTEMPTS)
+    return review('PAYMENT_LINKS_UNRESOLVED',{invoiceId:invoice.Id,
+      intentId:intent.id,decisionReason:decision.reason})
   if (decision.status !== 'PAID') {
     await history(event.organization_id,event.id,`qbo_${decision.status.toLowerCase()}`,
       { invoiceId:invoice.Id, reason:decision.reason })
@@ -235,9 +254,10 @@ async function reconcileInvoice(event: Event, invoice: QboInvoice,
     amountCents:mapping.base_invoice_amount_cents,...(familyLines?{familyLines}:{}),
     alreadyActive:false })
   if (latest.status !== 'PAID') {
-    await history(event.organization_id,event.id,'qbo_activation_held',
-      { invoiceId:invoice.Id,reason:latest.reason })
-    return 'PROCESSED'
+    return review('PAYMENT_CHANGED_BEFORE_ACTIVATION',{
+      invoiceId:invoice.Id,intentId:intent.id,decisionReason:latest.reason,
+      invoiceBalanceCents:Math.round(latestInvoice.Balance*100),
+    })
   }
   const activation = await activateVerifiedIntent(intent.id)
   if (activation === 'PENDING_PROFILE')
@@ -247,16 +267,14 @@ async function reconcileInvoice(event: Event, invoice: QboInvoice,
 }
 
 async function processEvent(event: Event,
-  access: Awaited<ReturnType<typeof connectedQboReadAccess>>): Promise<'PROCESSED' | 'RETRY' | 'IGNORED'> {
+  access: Awaited<ReturnType<typeof connectedQboReadAccess>>): Promise<EventResult> {
   if (event.organization_id !== EMC_ORGANIZATION_ID || event.environment !== qboEnvironment() ||
     event.realm_id !== access.realmId) {
     await history(event.organization_id,event.id,'qbo_realm_mismatch',{ realmId:event.realm_id })
     return 'IGNORED'
   }
   if (event.operation.toLowerCase() === 'delete') {
-    await history(event.organization_id,event.id,'qbo_deleted_entity_requires_review',
-      { entityType:event.entity_type,entityId:event.entity_id })
-    return 'IGNORED'
+    return review('PROVIDER_ENTITY_DELETED',{})
   }
   if (event.entity_type === 'Invoice') {
     const invoice = await access.client.invoice(access.realmId,event.entity_id,access.accessToken)
@@ -266,9 +284,15 @@ async function processEvent(event: Event,
     const payment = await access.client.payment(access.realmId,event.entity_id,access.accessToken)
     const invoiceIds = invoiceIdsForPayment(payment)
     if (invoiceIds.length !== 1) {
+      const evidence={paymentId:payment.Id,customerId:payment.CustomerRef.value,
+        paymentTotalCents:Math.round(payment.TotalAmt*100),invoiceIds}
+      if (invoiceIds.length > 1) return review('AMBIGUOUS_PAYMENT_INVOICES',evidence)
+      if (event.attempts >= MAX_UNLINKED_PAYMENT_ATTEMPTS)
+        return review(event.operation.toLowerCase()==='void' && payment.TotalAmt===0
+          ? 'UNLINKED_VOIDED_PAYMENT' : 'UNLINKED_PAYMENT',evidence)
       await history(event.organization_id,event.id,'qbo_payment_ambiguous',
-        { paymentId:event.entity_id,invoiceCount:invoiceIds.length })
-      return invoiceIds.length ? 'IGNORED' : 'RETRY'
+        {...evidence,attempt:event.attempts,retryLimit:MAX_UNLINKED_PAYMENT_ATTEMPTS})
+      return 'RETRY'
     }
     const invoice = await access.client.invoice(access.realmId,invoiceIds[0],access.accessToken)
     return reconcileInvoice(event,invoice,access)
@@ -277,7 +301,7 @@ async function processEvent(event: Event,
 }
 
 /** Cron-only queue processor. No webhook payload is trusted as proof of payment. */
-export async function reconcileQboEvents(): Promise<{ processed: number; retry: number; ignored: number }> {
+export async function reconcileQboEvents(): Promise<{ processed: number; retry: number; ignored: number; manualReview:number }> {
   const access = await connectedQboReadAccess()
   const client = db()
   const now = new Date().toISOString()
@@ -287,7 +311,7 @@ export async function reconcileQboEvents(): Promise<{ processed: number; retry: 
     .in('status',['PENDING','RETRY']).lte('next_attempt_at',now)
     .order('created_at',{ ascending:true }).limit(20)
   if (error) throw new Error('QBO_QUEUE_UNAVAILABLE')
-  const counts = { processed:0,retry:0,ignored:0 }
+  const counts = { processed:0,retry:0,ignored:0,manualReview:0 }
   for (const event of (events ?? []) as Event[]) {
     const { data: claimed, error: claimError } = await client.from('sales_qbo_webhook_events')
       .update({ attempts:event.attempts+1,
@@ -296,12 +320,24 @@ export async function reconcileQboEvents(): Promise<{ processed: number; retry: 
       .lte('next_attempt_at',now).select('id').maybeSingle()
     if (claimError) throw new Error('QBO_QUEUE_CLAIM_UNAVAILABLE')
     if (!claimed) continue
-    let result: 'PROCESSED' | 'RETRY' | 'IGNORED' = 'RETRY'
+    let result: EventResult = 'RETRY'
     try { result = await processEvent({ ...event,attempts:event.attempts+1 },access) }
     catch {
       result = 'RETRY'
       await history(event.organization_id,event.id,'qbo_processing_retry',
         { entityType:event.entity_type,entityId:event.entity_id,attempt:event.attempts+1 })
+    }
+    if (typeof result==='object') {
+      // State and its one audit record commit together. A lost claim does not
+      // finalize another worker's attempt; an audit failure leaves RETRY intact.
+      const {data:recorded,error:reviewError}=await client.rpc('native_sales_qbo_require_review',{
+        p_organization_id:event.organization_id,p_environment:event.environment,
+        p_event_id:event.id,p_expected_attempts:event.attempts+1,
+        p_reason:result.reason,p_evidence:result.evidence,
+      })
+      if(reviewError)throw new Error('QBO_MANUAL_REVIEW_UNAVAILABLE')
+      if(recorded===true)counts.manualReview++
+      continue
     }
     const delay = Math.min(3600,2 ** Math.min(event.attempts+1,10) * 30)
     const { error: finishError } = await client.from('sales_qbo_webhook_events')
