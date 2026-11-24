@@ -23,18 +23,16 @@ describe('native Meta webhook route', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('accepts a signed synthetic Lead Ads event without returning field data', async () => {
+  it('rejects even signed deliveries without persisting or returning field data', async () => {
     vi.stubEnv('LILLY_NATIVE_SALES_ENABLED', 'true')
     vi.stubEnv('LILLY_META_APP_SECRET', secret)
     rpc.mockResolvedValue({ data: { status: 'PROCESSED', replayed: false }, error: null })
     const signature = `sha256=${createHmac('sha256', secret).update(body).digest('hex')}`
     const response = await POST(new Request('https://example.invalid/api/sales-native/social/meta/webhook',
       { method: 'POST', body, headers: { 'x-hub-signature-256': signature } }))
-    expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ accepted: 1, replayed: 0, pending: 0, failed: 0 })
-    expect(rpc).toHaveBeenCalledWith('native_sales_receive_social_event', expect.objectContaining({
-      p_external_asset_id: 'qa-page', p_external_event_id: 'leadgen:qa-lead',
-    }))
+    expect(response.status).toBe(503)
+    expect(await response.json()).toEqual({ code: 'META_INGESTION_DISABLED' })
+    expect(rpc).not.toHaveBeenCalled()
   })
 
   it('requires a configured private verification token', async () => {

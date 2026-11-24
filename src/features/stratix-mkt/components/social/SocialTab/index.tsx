@@ -10,6 +10,7 @@ import BrandStats from '../BrandStats'
 import PlatformCard from '../PlatformCard'
 import ContentSummaryCard from '../ContentSummaryCard'
 import s from './index.module.css'
+import MetaConnectedAccounts from '@/features/native-sales/MetaConnectedAccounts'
 
 export default function SocialTab() {
   const { accent, marcas } = useApp()
@@ -48,6 +49,7 @@ export default function SocialTab() {
 
   return (
     <div>
+      <MetaConnectedAccounts />
       <div className={s.kpis}>
         {kpis.map(k => (
           <StatCard key={k.label} size="sm" label={k.label} value={k.value} color={k.valueColor}

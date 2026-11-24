@@ -1,9 +1,5 @@
-import { createHash, randomUUID } from 'node:crypto'
-import { nativeSalesDatabaseError } from '@/server/sales-native/errors'
 import { nativeSalesEnabled } from '@/server/sales-native/release-gate'
-import { normalizeMetaWebhook } from '@/server/sales-native/social/meta-normalize'
 import { verifyMetaChallenge, verifyMetaWebhookSignature } from '@/server/sales-native/social/meta-verification'
-import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -47,29 +43,5 @@ export async function POST(request: Request) {
   catch { return fail('META_PAYLOAD_INVALID', 400) }
   if (!verifyMetaWebhookSignature(raw, request.headers.get('x-hub-signature-256'), secret))
     return fail('META_SIGNATURE_INVALID', 401)
-  let events: ReturnType<typeof normalizeMetaWebhook>
-  try { events = normalizeMetaWebhook(raw) }
-  catch { return fail('META_PAYLOAD_INVALID', 422) }
-  let accepted = 0; let replayed = 0; let pending = 0; let failed = 0
-  for (const event of events) {
-    const hash = createHash('sha256').update(JSON.stringify(event.normalized)).digest('hex')
-    const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_receive_social_event', {
-      p_external_asset_id: event.externalAssetId,
-      p_external_event_id: event.externalEventId,
-      p_kind: event.kind,
-      p_occurred_at: event.occurredAt,
-      p_normalized: event.normalized,
-      p_payload_hash: hash,
-      p_correlation_id: randomUUID(),
-      p_operation_id: randomUUID(),
-    })
-    if (error) return nativeSalesDatabaseError(error)
-    if (data?.replayed === true) replayed++
-    else if (data?.status === 'RETRY') pending++
-    else if (data?.status === 'FAILED') failed++
-    else if (data?.status === 'PROCESSED') accepted++
-    else return fail('META_RECEIPT_INVALID', 503)
-  }
-  return Response.json({ accepted, replayed, pending, failed },
-    { headers: { 'Cache-Control': 'no-store' } })
+  return fail('META_INGESTION_DISABLED', 503)
 }

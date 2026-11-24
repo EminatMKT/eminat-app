@@ -19,25 +19,28 @@ const MODULES = NAV.filter(n => n.slug !== 'sales').map(n => [n.key, modulePath(
 // freddy debe ser admin (otros specs lo degradan); lo reaseguramos para correr en cualquier orden.
 test.beforeAll(async () => { await ensureUser(FREDDY, 'admin', 'Freddy', 'Admin') })
 
-test('smoke · cada módulo carga para admin sin crashear', async ({ page }) => {
+// Give each cold-compiled route its own existing test budget. A cumulative 60s timer
+// hid the final module behind compilation time spent on the preceding nine routes.
+for (const [key, path] of MODULES) test(`smoke · ${key} loads for admin without runtime errors`, async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', e => errors.push(e.message))
 
   await loginAs(page, FREDDY)
   await expect(page.locator('[data-tour="sales"]')).toHaveCount(0)
 
-  for (const [key, path] of MODULES) {
-    await page.locator(`[data-tour="${key}"]`).click()
-    await page.waitForURL(`**${path}`)
-    // no gateado y el shell sigue vivo (no white-screen)
-    await expect(page.getByText('Acceso denegado')).toBeHidden()
-    // Some modules briefly remount the shell while their first data request loads.
-    await expect(page.locator('[data-tour="home"]')).toBeVisible({ timeout: 30_000 })
-  }
-
-  // Even admin cannot reach /sales when the native-primary switch is absent.
-  const denied = await page.goto('/sales')
-  expect(denied?.status()).toBe(404)
+  await page.locator(`[data-tour="${key}"]`).click()
+  await page.waitForURL(`**${path}`)
+  // no gateado y el shell sigue vivo (no white-screen)
+  await expect(page.getByText('Acceso denegado')).toBeHidden()
+  // Some modules briefly remount the shell while their first data request loads.
+  await expect(page.locator('[data-tour="home"]')).toBeVisible({ timeout: 30_000 })
 
   expect(errors, `errores de runtime en módulos: ${errors.join(' | ')}`).toHaveLength(0)
+})
+
+// Keep the legacy Sales denial explicit and independent of route compilation timing.
+test('smoke · legacy Sales stays unavailable without the native-primary switch', async ({page})=>{
+  await loginAs(page,FREDDY)
+  const denied=await page.goto('/sales')
+  expect(denied?.status()).toBe(404)
 })

@@ -20,6 +20,8 @@ export const ROUTES = {
   login: '/login',
   resetPassword: '/reset-password',
   overview: '/overview',
+  // Cross-module administration; native organization guards live in the Settings SSR/API.
+  settings: '/settings',
 } as const
 
 // A qué módulo pertenece un pathname, o null si es una ruta que no está gateada por permisos
