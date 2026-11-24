@@ -149,8 +149,10 @@ async function openAvailability(page: Page): Promise<void> {
 
   // Use the same client-side rail path as the passing module smoke journey.
   // A full navigation can abort the shell's in-flight Auth reads.
-  await page.locator('[data-tour="tasks"]').click()
-  await page.waitForURL(`**${TASKS_PATH}`)
+  if (new URL(page.url()).pathname !== TASKS_PATH) {
+    await page.locator('[data-tour="tasks"]').click()
+    await page.waitForURL(`**${TASKS_PATH}`)
+  }
   await page.getByRole(BUTTON, requestsTabMatcher).click()
   await page.getByRole(BUTTON, availabilityTabMatcher).click()
 }
