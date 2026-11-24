@@ -78,31 +78,20 @@ jobs:
       - name: Verify Family staff approval in English desktop and Spanish mobile
         run: pnpm exec playwright test --config=playwright.family.config.ts
 
-  e2e-shard:
-    name: e2e (${{ matrix.shard }}/${{ matrix.total }})
+  native-sales-checks:
+    name: native-sales checks (schema + security rehearsals)
     runs-on: ubuntu-latest
-    # 4 parallel runners each pulling the same Supabase image stack from docker.io hit Docker
-    # Hub's anonymous pull-rate limit (shared across every GitHub Actions runner's IP pool) and
-    # got throttled before `supabase start` finished, so it was dropped to 1 shard on 2026-10-22.
-    # The "Log in to Docker Hub" step below ties the pull quota to our own account instead of
-    # that shared IP pool, which is the documented fix — restoring the 4-way split here.
-    # Supabase cold starts plus the sequential browser suite exceeded 18 minutes
-    # in the Sales bootstrap regression run. Keep every test and its own timeout.
-    timeout-minutes: 25
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4]
-        total: [4]
+    # Antes esto se repetía, idéntico, dentro de cada uno de los 4 shards de e2e-shard — no
+    # depende de qué tests de Playwright le tocan a cada shard, así que correr 4 veces lo mismo
+    # era puro desperdicio (tiempo de wall-clock por shard y minutos de CI). Corre en paralelo
+    # con e2e-shard, no antes: ninguno espera al otro, y `e2e` abajo exige que los dos pasen.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with: { version: 10 }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
-      # Pinneada, no `latest`: con `latest` una release de Supabase puede romper el CI sin que
-      # nadie toque el repo, y encima el CI correría una CLI distinta de la del devDependency.
-      # Se sube a mano junto con el package.json.
       - uses: supabase/setup-cli@v1
         with: { version: 2.106.0 }
       - run: pnpm install --frozen-lockfile
@@ -111,13 +100,7 @@ jobs:
           set -euo pipefail
           duplicates=$(find supabase/migrations -maxdepth 1 -name '*.sql' -printf '%f\n' | cut -d_ -f1 | sort | uniq -d)
           test -z "$duplicates" || { echo "Duplicate migration versions: $duplicates"; exit 1; }
-      # Raises our docker.io pull quota from the shared-IP anonymous limit to our own account's
-      # authenticated one, so 4 parallel shards pulling the same images don't throttle each
-      # other. No-ops (and the job falls back to the old, lower, shared limit) until Wagner adds
-      # the DOCKERHUB_USERNAME/DOCKERHUB_TOKEN repo secrets.
       - name: Log in to Docker Hub
-        # `if:` can't reference `secrets` directly (GitHub rejects the expression at parse
-        # time: "Unrecognized named-value: 'secrets'") — route it through `env` first.
         if: ${{ env.DOCKERHUB_USERNAME != '' }}
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -125,10 +108,11 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      # `supabase start` levanta Postgres+Auth+REST locales y aplica supabase/migrations.
-      # El espejo oficial de Supabase evita el límite de GHCR en el runner compartido.
-      # Reintentar solo cuando el registro limita la descarga. Los errores de migración o de
-      # arranque reales fallan inmediatamente y nunca se omiten los checks siguientes.
+      # Reintenta tanto el throttling de registry como el flake conocido de red de Docker
+      # ("address already in use" / "failed to set up container networking" en una VM recién
+      # creada, sin nada real ocupando el puerto) — confirmado en vivo el 2026-11-23 en PR #209,
+      # run 45291343307: un simple re-run sin tocar código lo resolvió. Un error real de
+      # migración o de arranque sigue fallando inmediato, sin reintentar.
       - name: Start local Supabase
         env:
           SUPABASE_INTERNAL_IMAGE_REGISTRY: docker.io
@@ -139,16 +123,18 @@ jobs:
               echo 'Local Supabase started'
               exit 0
             fi
-            if ! grep -qi 'toomanyrequests' /tmp/supabase-start.log; then
-              cat /tmp/supabase-start.log
-              exit 1
+            if grep -qiE 'toomanyrequests|address already in use|failed to set up container networking' /tmp/supabase-start.log; then
+              if [ "$attempt" = 3 ]; then
+                cat /tmp/supabase-start.log
+                exit 1
+              fi
+              supabase stop --no-backup >/dev/null 2>&1 || true
+              echo "Transient Docker/registry failure (attempt $attempt); waiting 30 seconds"
+              sleep 30
+              continue
             fi
-            if [ "$attempt" = 3 ]; then
-              cat /tmp/supabase-start.log
-              exit 1
-            fi
-            echo "Registry throttled Supabase image pull (attempt $attempt); waiting 60 seconds"
-            sleep 60
+            cat /tmp/supabase-start.log
+            exit 1
           done
       - name: Verify private privileged audit and non-destructive rollback in isolated database
         run: |
@@ -198,6 +184,77 @@ jobs:
         run: |
           result=$(psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -X -qAt -v ON_ERROR_STOP=1 -f supabase/checks/security-privacy-readonly.sql)
           test "$result" = t
+
+  e2e-shard:
+    name: e2e (${{ matrix.shard }}/${{ matrix.total }})
+    runs-on: ubuntu-latest
+    # 4 parallel runners each pulling the same Supabase image stack from docker.io hit Docker
+    # Hub's anonymous pull-rate limit (shared across every GitHub Actions runner's IP pool) and
+    # got throttled before `supabase start` finished, so it was dropped to 1 shard on 2026-10-22.
+    # The "Log in to Docker Hub" step below ties the pull quota to our own account instead of
+    # that shared IP pool, which is the documented fix — restoring the 4-way split here.
+    # Supabase cold starts plus the sequential browser suite exceeded 18 minutes
+    # in the Sales bootstrap regression run. Keep every test and its own timeout.
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+        total: [4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      # Pinneada, no `latest`: con `latest` una release de Supabase puede romper el CI sin que
+      # nadie toque el repo, y encima el CI correría una CLI distinta de la del devDependency.
+      # Se sube a mano junto con el package.json.
+      - uses: supabase/setup-cli@v1
+        with: { version: 2.106.0 }
+      - run: pnpm install --frozen-lockfile
+      # Raises our docker.io pull quota from the shared-IP anonymous limit to our own account's
+      # authenticated one, so 4 parallel shards pulling the same images don't throttle each
+      # other. No-ops (and the job falls back to the old, lower, shared limit) until Wagner adds
+      # the DOCKERHUB_USERNAME/DOCKERHUB_TOKEN repo secrets.
+      - name: Log in to Docker Hub
+        # `if:` can't reference `secrets` directly (GitHub rejects the expression at parse
+        # time: "Unrecognized named-value: 'secrets'") — route it through `env` first.
+        if: ${{ env.DOCKERHUB_USERNAME != '' }}
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # `supabase start` levanta Postgres+Auth+REST locales y aplica supabase/migrations.
+      # El espejo oficial de Supabase evita el límite de GHCR en el runner compartido.
+      # Reintenta tanto el throttling de registry como el flake conocido de red de Docker
+      # ("address already in use" en una VM recién creada). Los errores de migración o de
+      # arranque reales fallan inmediato y nunca se omiten los checks siguientes.
+      - name: Start local Supabase
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: docker.io
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3; do
+            if supabase start > /tmp/supabase-start.log 2>&1; then
+              echo 'Local Supabase started'
+              exit 0
+            fi
+            if grep -qiE 'toomanyrequests|address already in use|failed to set up container networking' /tmp/supabase-start.log; then
+              if [ "$attempt" = 3 ]; then
+                cat /tmp/supabase-start.log
+                exit 1
+              fi
+              supabase stop --no-backup >/dev/null 2>&1 || true
+              echo "Transient Docker/registry failure (attempt $attempt); waiting 30 seconds"
+              sleep 30
+              continue
+            fi
+            cat /tmp/supabase-start.log
+            exit 1
+          done
       # Navegador cacheado y SIN `--with-deps`. Ese flag instalaba librerías del sistema con
       # apt en cada corrida, metiendo un mirror de Ubuntu en el camino crítico: el 18/08 el
       # mirror de Azure de los runners dejó de responder y el job estuvo 20+ min agotando
@@ -233,16 +290,21 @@ jobs:
   e2e:
     name: e2e
     runs-on: ubuntu-latest
-    needs: [e2e-shard]
+    needs: [e2e-shard, native-sales-checks]
     if: always()
     steps:
       # La ruleset de GitHub exige un check llamado exactamente `e2e`. Si el job matrix se
       # llamara así, GitHub sólo publicaría checks por shard (`e2e (1/4)`, etc.) y el required
       # check literal quedaría pendiente para siempre. Este agregador liviano conserva ese
-      # contexto y refleja el resultado real de todos los shards.
-      - name: Verificar shards e2e
+      # contexto y refleja el resultado real de todos los shards, más el job compartido de
+      # chequeos de native-sales que antes se repetía idéntico en cada shard.
+      - name: Verificar shards e2e y chequeos de native-sales
         run: |
           if [ "${{ needs.e2e-shard.result }}" != "success" ]; then
             echo "Al menos un shard e2e terminó con estado: ${{ needs.e2e-shard.result }}"
+            exit 1
+          fi
+          if [ "${{ needs.native-sales-checks.result }}" != "success" ]; then
+            echo "native-sales-checks terminó con estado: ${{ needs.native-sales-checks.result }}"
             exit 1
           fi
