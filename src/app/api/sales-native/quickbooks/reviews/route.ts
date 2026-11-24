@@ -23,7 +23,7 @@ export async function GET(request:Request){
       .range(offset,offset+49)
     if(error)throw new Error('QBO_REVIEW_READ_FAILED')
     const rows=events??[]
-    const audit=rows.length?await db.from('sales_history').select('record_id,changes,created_at')
+    const audit=rows.length?await db.from('sales_history').select('record_id,changes,occurred_at')
       .eq('organization_id',EMC_ORGANIZATION_ID).eq('entity_type','qbo_reconciliation')
       .eq('action','qbo_manual_review_required').in('record_id',rows.map(row=>row.id))
       :{data:[],error:null}
