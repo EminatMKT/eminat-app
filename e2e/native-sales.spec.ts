@@ -207,6 +207,8 @@ test('all Sales sections keep coherent dark surfaces, readable controls and resp
   await page.locator('input[type="password"]').fill(PASSWORD)
   await page.locator('input[type="password"]').press('Enter')
   await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
+  // Match the shared login helper: wait for the persisted profile before hard navigation.
+  await expect(page.getByText('Home', { exact: true })).toBeVisible({ timeout: 20000 })
   await page.goto('/sales-native')
   for (const width of [1280, 375]) {
     await page.setViewportSize({ width, height: 800 })

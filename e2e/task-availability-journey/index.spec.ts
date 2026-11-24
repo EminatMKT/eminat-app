@@ -136,6 +136,8 @@ async function login(page: Page, email: string): Promise<void> {
   await openLoginPage(page)
   await submitCredentials(page, email)
   await page.waitForURL(APP_HOME, LOGIN_WAIT)
+  // A URL change precedes profile hydration; navigating sooner aborts the Auth read.
+  await expect(page.getByText('Home', { exact: true })).toBeVisible({ timeout: 20000 })
 }
 
 // Both sub-nav buttons prefix their label with an un-hidden emoji glyph (no space, no
