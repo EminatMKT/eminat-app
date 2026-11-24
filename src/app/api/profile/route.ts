@@ -3,7 +3,7 @@ import ssrClient from '@/shared/db/requireAccess/ssrClient'
 import { isAvatarKey } from '@/shared/components/AvatarArt'
 
 async function ownProfile() {
-  const client = ssrClient()
+  const client = (await ssrClient())
   const { data: { user }, error: authError } = await client.auth.getUser()
   if (authError || !user) return { client, profile: null, status: 401 }
   const { data: profile, error } = await client.from('usuarios')

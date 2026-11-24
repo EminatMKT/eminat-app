@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   const parsed = requestSchema.safeParse(await req.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ error: 'Datos de tarea inválidos.' }, { status: 400 })
   const { id, requestId, expectedUpdatedAt, payload } = parsed.data
-  const db = ssrClient()
+  const db = (await ssrClient())
   if (id && !expectedUpdatedAt) return NextResponse.json({ error: 'Falta versión de la tarea.' }, { status: 400 })
   const { data: assignee } = await db.from('usuarios').select('id,rol,activo').eq('id', payload.responsable_id).maybeSingle()
   if (!assignee?.activo) return NextResponse.json({ error: 'Responsable no disponible.' }, { status: 422 })

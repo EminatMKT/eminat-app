@@ -8,9 +8,10 @@ import { roleFailure, ROLE_HTTP } from '@/server/admin/roles'
 
 const { roles, usuarios } = TABLE_COLUMNS
 const { done: DONE, systemRoleDelete: SYSTEM_ROLE_DELETE, roleInUse: ROLE_IN_USE } = ROLE_HTTP
-type RouteContext = { params: Record<'key', string> }
+type RouteContext = { params: Promise<Record<'key', string>> }
 
-export async function PATCH(req: Request, { params }: RouteContext) {
+export async function PATCH(req: Request, props: RouteContext) {
+  const params = await props.params;
   const authz = await requireAdmin()
   if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
   const { label, modules } = await req.json()
@@ -39,7 +40,8 @@ export async function PATCH(req: Request, { params }: RouteContext) {
   return NextResponse.json(failure, failed)
 }
 
-export async function DELETE(_req: Request, { params }: RouteContext) {
+export async function DELETE(_req: Request, props: RouteContext) {
+  const params = await props.params;
   const authz = await requireAdmin()
   if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
   const db = supabaseAdmin()

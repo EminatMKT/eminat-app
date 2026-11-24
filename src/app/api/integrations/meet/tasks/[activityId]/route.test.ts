@@ -16,7 +16,7 @@ describe('PATCH Meet Tasks', () => {
     const request = new Request('https://app.stratixsolutions.us/api/integrations/meet/tasks/11111111-1111-4111-8111-111111111111', {
       method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expected_updated_at: '2026-09-18T12:00:00Z', titulo: 'Nueva Task' }),
     })
-    const response = await PATCH(request, { params: { activityId: '11111111-1111-4111-8111-111111111111' } })
+    const response = await PATCH(request, { params: Promise.resolve({ activityId: '11111111-1111-4111-8111-111111111111' }) })
     expect(response.status).toBe(409)
     expect((await response.json()).error.code).toBe('TASK_CONFLICT')
   })
@@ -24,7 +24,7 @@ describe('PATCH Meet Tasks', () => {
     const request = new Request('https://app.stratixsolutions.us/api/integrations/meet/tasks/11111111-1111-4111-8111-111111111111', {
       method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expected_updated_at: '2026-09-18T12:00:00Z', estado: 'Completado' }),
     })
-    expect((await PATCH(request, { params: { activityId: '11111111-1111-4111-8111-111111111111' } })).status).toBe(400)
+    expect((await PATCH(request, { params: Promise.resolve({ activityId: '11111111-1111-4111-8111-111111111111' }) })).status).toBe(400)
     expect(update).not.toHaveBeenCalled()
   })
   it('accepts responsable_ids with a leader and hands them to the service', async () => {
@@ -35,7 +35,7 @@ describe('PATCH Meet Tasks', () => {
     const patch = { expected_updated_at: '2026-09-18T12:00:00Z', responsable_ids: responsibles, lider_id: responsibles[1] }
     const init = { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(patch) }
     const request = new Request(TASK_URL, init)
-    const context = { params: { activityId: '11111111-1111-4111-8111-111111111111' } }
+    const context = { params: Promise.resolve({ activityId: '11111111-1111-4111-8111-111111111111' }) }
     expect((await PATCH(request, context)).status).toBe(200)
     expect(update.mock.calls[0][3]).toEqual(patch)
   })
@@ -45,13 +45,13 @@ describe('PATCH Meet Tasks', () => {
       method: 'PATCH', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ expected_updated_at: '2026-09-18T12:00:00Z', responsable_id: '22222222-2222-4222-8222-222222222222' }),
     })
-    expect((await PATCH(request, { params: { activityId: '11111111-1111-4111-8111-111111111111' } })).status).toBe(200)
+    expect((await PATCH(request, { params: Promise.resolve({ activityId: '11111111-1111-4111-8111-111111111111' }) })).status).toBe(200)
     expect(dispatch).toHaveBeenCalledWith('11111111-1111-4111-8111-111111111111')
   })
   it('pasa la identidad del JWT al GET para validar el vínculo con Meet', async () => {
     get.mockResolvedValue({ ok: true, data: { id: '11111111-1111-4111-8111-111111111111' } })
     const request = new Request('https://app.stratixsolutions.us/api/integrations/meet/tasks/11111111-1111-4111-8111-111111111111')
-    expect((await GET(request, { params: { activityId: '11111111-1111-4111-8111-111111111111' } })).status).toBe(200)
+    expect((await GET(request, { params: Promise.resolve({ activityId: '11111111-1111-4111-8111-111111111111' }) })).status).toBe(200)
     expect(get).toHaveBeenCalledWith({}, '11111111-1111-4111-8111-111111111111', 'auth-1')
   })
 })

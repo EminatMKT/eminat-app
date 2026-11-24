@@ -7,10 +7,10 @@ import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 export const dynamic = 'force-dynamic'
 const schema=z.object({status:z.enum(['APPROVED','REJECTED']),note:z.string().trim().max(1000).optional()}).strict()
 
-export async function POST(request:Request,context:{params:{id:string;requestId:string}}) {
+export async function POST(request:Request,context:{params: Promise<{id:string;requestId:string}>}) {
   try {
-    if (!z.uuid().safeParse(context.params.id).success ||
-      !z.uuid().safeParse(context.params.requestId).success)
+    if (!z.uuid().safeParse((await context.params).id).success ||
+      !z.uuid().safeParse((await context.params).requestId).success)
       return Response.json({code:'INVALID_ID'},{status:400})
     if (Number(request.headers.get('content-length') ?? '0')>32768)
       return Response.json({code:'BODY_TOO_LARGE'},{status:413})
@@ -23,7 +23,7 @@ export async function POST(request:Request,context:{params:{id:string;requestId:
     const actor=await resolveSalesActor(request)
     const {data,error}=await supabaseAdmin({ noStore: true }).rpc('native_sales_review_renewal',{
       p_organization_id:actor.organizationId,p_actor_member_id:actor.memberId,
-      p_membership_id:context.params.id,p_renewal_request_id:context.params.requestId,
+      p_membership_id:(await context.params).id,p_renewal_request_id:(await context.params).requestId,
       p_decision:parsed.data.status,p_note:parsed.data.note ?? null,p_request_id:randomUUID(),
     })
     if (error) return nativeSalesDatabaseError(error)

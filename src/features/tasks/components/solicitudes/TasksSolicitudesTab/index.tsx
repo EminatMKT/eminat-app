@@ -1,4 +1,5 @@
 'use client'
+import type { JSX } from 'react'
 import { useT, type I18nKey } from '@/shared/i18n'
 import { TabBar, TabButton } from '@/shared/components/ui'
 import { useTasks } from '@/features/tasks/components/TasksContext'

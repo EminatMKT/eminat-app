@@ -6,8 +6,8 @@ import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 export const dynamic = 'force-dynamic'
 
 /** Signature-verified event queue only. No webhook directly mutates accounting rows. */
-export async function POST(request: Request, context: { params: { environment: string } }) {
-  const environment = context.params.environment
+export async function POST(request: Request, context: { params: Promise<{ environment: string }> }) {
+  const environment = (await context.params).environment
   if (environment !== 'sandbox' && environment !== 'production')
     return Response.json({ code: 'NOT_FOUND' }, { status: 404 })
   const verifier = environment === 'production'

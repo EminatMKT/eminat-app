@@ -1,0 +1,58 @@
+\set ON_ERROR_STOP on
+BEGIN;
+SET LOCAL request.jwt.claim.role='service_role';
+DO $$
+DECLARE au uuid:=gen_random_uuid();u uuid:=gen_random_uuid();org uuid:=gen_random_uuid();admin uuid:=gen_random_uuid();c uuid:=gen_random_uuid();pa uuid:=gen_random_uuid();b uuid;m uuid;key uuid:=gen_random_uuid();r jsonb;ending timestamptz;started timestamptz;before_count integer;custom_id uuid;
+BEGIN
+ INSERT INTO auth.users(id) VALUES(au);
+ INSERT INTO usuarios(id,auth_id,email,nombre,apellido,rol,activo,validado) VALUES(u,au,'hardening-admin@example.invalid','Synthetic','Administrator','admin',true,true);
+ INSERT INTO sales_organizations(id,code,name,status,approved_by,approved_at) VALUES(org,'qa-hardening','Synthetic hardening','active',u,now());
+ INSERT INTO sales_members(id,organization_id,user_id,auth_id,role,status,evidence_ref,approved_by,approved_at) VALUES(admin,org,u,au,'SUPERADMIN','active','local-hardening',u,now());
+ INSERT INTO sales_contacts(id,organization_id,owner_member_id,display_name,first_name,last_name,email,created_by,updated_by,preferred_language) VALUES(c,org,admin,'Synthetic hardening member','Synthetic','Review','hardening-member@example.invalid',admin,admin,'en');
+ PERFORM native_sales_complimentary_configure(org,admin,'America/New_York',ARRAY[30,7,1],true);
+ INSERT INTO auth.users(id,email,email_confirmed_at) VALUES(pa,'hardening-member@example.invalid',now());
+ INSERT INTO sales_patient_identities(organization_id,auth_id,contact_id,source,approved_evidence) VALUES(org,pa,c,'APPROVED_LEGACY','synthetic-language-review');
+ IF NOT native_sales_patient_language(pa,'en') OR (SELECT preferred_language FROM sales_contacts WHERE id=c)<>'en' THEN RAISE EXCEPTION 'PREFERENCE_NOT_PERSISTED'; END IF;
+ IF native_sales_patient_language(gen_random_uuid(),'es') OR (SELECT preferred_language FROM sales_contacts WHERE id=c)<>'en' THEN RAISE EXCEPTION 'PREFERENCE_CHANGED_OTHER_MEMBER'; END IF;
+
+ r:=native_sales_complimentary_issue(org,admin,gen_random_uuid(),repeat('a',64),'ESSENTIAL',3,'Direct activation requires no redemption',c,NULL,'ADMIN_DIRECT',repeat('c',64),now()-interval '1 day',now()+interval '1 month');
+ b:=(r->>'id')::uuid;m:=(r->>'membershipId')::uuid;
+ IF r->>'status'<>'ACTIVE' OR (SELECT status FROM sales_memberships WHERE id=m)<>'ACTIVE' OR (SELECT redeemed_at FROM sales_complimentary_benefits WHERE id=b) IS NOT NULL THEN RAISE EXCEPTION 'DIRECT_ACTIVATION_NEEDS_REDEMPTION'; END IF;
+ SELECT expires_at,activated_at INTO ending,started FROM sales_complimentary_benefits WHERE id=b;
+ PERFORM native_sales_complimentary_action(org,admin,b,'SUSPEND',NULL,'Review suspension');
+ r:=native_sales_complimentary_action(org,admin,b,'REACTIVATE',NULL,'Reviewed reactivation',key);
+ IF (SELECT status FROM sales_complimentary_benefits WHERE id=b)<>'ACTIVE' OR (SELECT status FROM sales_memberships WHERE id=m)<>'ACTIVE' OR (SELECT expires_at FROM sales_complimentary_benefits WHERE id=b)<>ending OR (SELECT count(*) FROM sales_complimentary_events WHERE benefit_id=b AND action='REACTIVATE')<>1 THEN RAISE EXCEPTION 'REACTIVATION_CHANGED_DATES_OR_AUDIT'; END IF;
+ r:=native_sales_complimentary_action(org,admin,b,'REACTIVATE',NULL,'Reviewed reactivation',key);
+ IF r->>'replayed'<>'true' OR (SELECT count(*) FROM sales_complimentary_events WHERE benefit_id=b AND action='REACTIVATE')<>1 THEN RAISE EXCEPTION 'REACTIVATION_REPLAY_MUTATED_STATE'; END IF;
+ PERFORM native_sales_complimentary_action(org,admin,b,'SUSPEND',NULL,'Prepare restrictions');
+ UPDATE sales_complimentary_benefits SET custom_policy_required=true WHERE id=b;
+ BEGIN PERFORM native_sales_complimentary_action(org,admin,b,'REACTIVATE',NULL,'Unapproved custom');RAISE EXCEPTION 'CUSTOM_REACTIVATED'; EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'COMPLIMENTARY_POLICY_PENDING' THEN RAISE; END IF; END;
+ UPDATE sales_complimentary_benefits SET custom_policy_required=false,activated_at=now()-interval '1 year',expires_at=now()-interval '1 second' WHERE id=b;
+ BEGIN PERFORM native_sales_complimentary_action(org,admin,b,'REACTIVATE',NULL,'Expired');RAISE EXCEPTION 'EXPIRED_REACTIVATED'; EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'COMPLIMENTARY_STATE_CONFLICT' THEN RAISE; END IF; END;
+ UPDATE sales_complimentary_benefits SET activated_at=started,expires_at=ending WHERE id=b;
+ UPDATE sales_members SET role='SELLER' WHERE id=admin;
+ BEGIN PERFORM native_sales_complimentary_action(org,admin,b,'REACTIVATE',NULL,'Seller denied');RAISE EXCEPTION 'SELLER_REACTIVATED'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+ UPDATE sales_members SET role='ADMINISTRATOR' WHERE id=admin;
+ PERFORM native_sales_complimentary_action(org,admin,b,'REACTIVATE',NULL,'Authorized administrator');
+ PERFORM native_sales_complimentary_action(org,admin,b,'SUSPEND',NULL,'Keep suspended while extending');
+ PERFORM native_sales_complimentary_action(org,admin,b,'EXTEND',6,'Separate authorized standard extension');
+ SELECT expires_at INTO ending FROM sales_complimentary_benefits WHERE id=b;
+ IF (SELECT duration_months FROM sales_complimentary_benefits WHERE id=b)<>9 THEN RAISE EXCEPTION 'STANDARD_EXTENSION_TOTAL'; END IF;
+ PERFORM native_sales_complimentary_action(org,admin,b,'REACTIVATE',NULL,'Standard cumulative months are not custom');
+ IF (SELECT expires_at FROM sales_complimentary_benefits WHERE id=b)<>ending THEN RAISE EXCEPTION 'EXTENDED_EXPIRY_RESET'; END IF;
+ PERFORM native_sales_complimentary_action(org,admin,b,'REVOKE',NULL,'Final revocation');
+ BEGIN PERFORM native_sales_complimentary_action(org,admin,b,'REACTIVATE',NULL,'Revoked');RAISE EXCEPTION 'REVOKED_REACTIVATED'; EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'COMPLIMENTARY_STATE_CONFLICT' THEN RAISE; END IF; END;
+ UPDATE sales_members SET role='SUPERADMIN' WHERE id=admin;
+ SELECT count(*) INTO before_count FROM sales_memberships WHERE organization_id=org;
+ BEGIN PERFORM native_sales_complimentary_issue(org,admin,gen_random_uuid(),repeat('f',64),'MAX',5,'Policy not approved',NULL,NULL,'REDEMPTION_CODE',repeat('f',64),now(),now()+interval '1 month');RAISE EXCEPTION 'CUSTOM_CODE_ISSUED'; EXCEPTION WHEN raise_exception THEN IF SQLERRM<>'COMPLIMENTARY_POLICY_PENDING' THEN RAISE; END IF; END;
+ key:=gen_random_uuid();
+ r:=native_sales_complimentary_custom_request(org,admin,key,'MAX',5,(now() AT TIME ZONE 'America/New_York')::date+150,'Written policy review justification',c);custom_id:=(r->>'id')::uuid;
+ r:=native_sales_complimentary_custom_request(org,admin,key,'MAX',5,(now() AT TIME ZONE 'America/New_York')::date+150,'Written policy review justification',c);
+ IF r->>'replayed'<>'true' OR (SELECT count(*) FROM sales_complimentary_custom_request_events WHERE request_id=custom_id)=0 THEN RAISE EXCEPTION 'CUSTOM_REQUEST_AUDIT'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM sales_complimentary_custom_requests WHERE id=custom_id AND requested_by=admin AND status='PENDING_POLICY' AND expiration_date IS NOT NULL AND reason<>'') OR (SELECT count(*) FROM sales_memberships WHERE organization_id=org)<>before_count THEN RAISE EXCEPTION 'CUSTOM_REQUEST_ACTIVATED'; END IF;
+ UPDATE sales_members SET role='ADMINISTRATOR' WHERE id=admin;
+ BEGIN PERFORM native_sales_complimentary_custom_request(org,admin,gen_random_uuid(),'MAX',5,current_date+150,'Unauthorized custom',c);RAISE EXCEPTION 'CUSTOM_ADMIN_REQUEST'; EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+ IF EXISTS(SELECT 1 FROM sales_payments WHERE organization_id=org) OR EXISTS(SELECT 1 FROM sales_qbo_invoice_jobs WHERE organization_id=org) OR EXISTS(SELECT 1 FROM sales_patient_enrollment_intents WHERE organization_id=org) THEN RAISE EXCEPTION 'HARDENING_CREATED_BILLING'; END IF;
+ RAISE NOTICE 'PASS direct activation; authorized and idempotent reactivation; unchanged expiry; expired/revoked/custom/role denials; custom request identity, explicit expiry, audit and no activation; no billing';
+END $$;
+ROLLBACK;

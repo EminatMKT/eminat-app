@@ -8,10 +8,10 @@ export const dynamic = 'force-dynamic'
 const uuid = z.uuid()
 const bodySchema = z.object({ reason: z.string().trim().min(1).max(1000), restore: z.boolean().default(false) }).strict()
 
-export async function POST(request: Request, context: { params: { id: string } }) {
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const actor = await resolveSalesActor(request)
-    if (!uuid.safeParse(context.params.id).success)
+    if (!uuid.safeParse((await context.params).id).success)
       return Response.json({ code: 'INVALID_ID' }, { status: 400 })
     const match = request.headers.get('if-match')
     if (!match || !/^(?:"[1-9]\d*"|[1-9]\d*)$/.test(match))
@@ -32,7 +32,7 @@ export async function POST(request: Request, context: { params: { id: string } }
     const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_archive_lead', {
       p_organization_id: actor.organizationId,
       p_actor_member_id: actor.memberId,
-      p_lead_id: context.params.id,
+      p_lead_id: (await context.params).id,
       p_expected_version: expectedVersion,
       p_reason: parsed.data.reason,
       p_restore: parsed.data.restore,

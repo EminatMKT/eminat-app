@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   const state = params.get('state') ?? ''
   const code = params.get('code') ?? ''
   if (!state || !code || params.has('error')) return back('META_AUTHORIZATION_DENIED')
-  const client = ssrClient()
+  const client = (await ssrClient())
   const { data: { session } } = await client.auth.getSession()
   if (!session?.access_token) return back('AUTHENTICATION_REQUIRED')
   try {

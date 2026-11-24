@@ -5,7 +5,7 @@ import ssrClient from '@/shared/db/requireAccess/ssrClient'
 import type { Access } from '@/shared/db/types'
 
 export default async function requireModule(slug: ModuleSlug): Promise<Access> {
-  const ssr = ssrClient()
+  const ssr = (await ssrClient())
   const { data: { user } } = await ssr.auth.getUser()
   if (!user) return { ok: false, status: 401, error: ACCESS_ERRORS.notAuthenticated }
   const moduleArgs = { p_slug: slug }

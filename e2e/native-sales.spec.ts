@@ -55,6 +55,7 @@ test('native Sales loads from LILLY identity with a scoped Social inbox', async 
   await page.locator('input[type="password"]').fill(PASSWORD)
   await page.locator('input[type="password"]').press('Enter')
   await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
+  await expect(page.getByText('Home', { exact: true })).toBeVisible({ timeout: 20000 })
   await page.goto('/sales-native')
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 30000 })
   await selectSales(page, 'Social')
@@ -86,6 +87,7 @@ test('native Sales sections render at mobile width without document overflow', a
   await page.locator('input[type="password"]').fill(PASSWORD)
   await page.locator('input[type="password"]').press('Enter')
   await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
+  await expect(page.getByText('Home', { exact: true })).toBeVisible({ timeout: 20000 })
   await page.goto('/sales-native')
   for (const label of ['Dashboard', 'Leads', 'Portal Leads', 'Contacts', 'Accounts', 'Opportunities',
     'Pipeline', 'Activities', 'Memberships', 'Reports', 'Payments & Renewals', 'Social', 'Sales Settings']) {
@@ -130,6 +132,7 @@ test('Sales defaults to its commercial workspace without exposing corporate memb
     await page.locator('input[type="password"]').fill(PASSWORD)
     await page.locator('input[type="password"]').press('Enter')
     await page.waitForURL('http://localhost:3000/',{ timeout:40000 })
+    await expect(page.getByText('Home', { exact: true })).toBeVisible({ timeout: 20000 })
     await page.goto('/sales-native')
     await expect(page.getByRole('heading',{ name:'Dashboard',exact:true })).toBeVisible()
     await expect(page.getByText('Corazón Salud / EMC Sales',{ exact:true })).toBeVisible()
@@ -207,6 +210,8 @@ test('all Sales sections keep coherent dark surfaces, readable controls and resp
   await page.locator('input[type="password"]').fill(PASSWORD)
   await page.locator('input[type="password"]').press('Enter')
   await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
+  // Match the shared login helper: wait for the persisted profile before hard navigation.
+  await expect(page.getByText('Home', { exact: true })).toBeVisible({ timeout: 20000 })
   await page.goto('/sales-native')
   for (const width of [1280, 375]) {
     await page.setViewportSize({ width, height: 800 })
@@ -298,6 +303,7 @@ test('Sales consolidates initial requests but refresh and later Dashboard visits
   await page.locator('input[type="password"]').fill(PASSWORD)
   await page.locator('input[type="password"]').press('Enter')
   await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
+  await expect(page.getByText('Home', { exact: true })).toBeVisible({ timeout: 20000 })
   await page.goto('/sales-native')
   await expect(page.getByRole('heading', { name: 'Leads by stage', exact: true })).toBeVisible()
   // The development shell/Strict Mode can replay mounts. Assert every mount
@@ -339,6 +345,7 @@ test('navigation during bootstrap never reuses a stale initial Dashboard on retu
   await page.locator('input[type="password"]').fill(PASSWORD)
   await page.locator('input[type="password"]').press('Enter')
   await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
+  await expect(page.getByText('Home', { exact: true })).toBeVisible({ timeout: 20000 })
   await page.goto('/sales-native')
   await expect(page.getByRole('heading', { name: 'Dashboard', exact: true, level: 1 })).toBeVisible()
   await selectSales(page, 'Leads')

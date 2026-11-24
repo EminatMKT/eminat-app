@@ -37,3 +37,12 @@ __pycache__/
 .atl/
 # Isolated SDD worktrees (superpowers:using-git-worktrees)
 .worktrees/
+
+# Isolated hardening builds and local preview
+.next-hardening-build/
+.next-hardening-dev/
+
+# Shared local tooling link, never part of a release artifact
+/node_modules
+
+.next-release-verify/

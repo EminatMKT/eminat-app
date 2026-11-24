@@ -9,8 +9,9 @@ import { ADMIN_ERRORS } from '@/shared/errors'
 // Sin GET: las listas las sirve el contexto (useApp().departamentos/equipos/cargos).
 // Acá solo mutaciones, igual que /api/admin/roles. `cat` viene de la whitelist
 // ORG_CATALOGS — nunca del body — así el nombre de tabla no es inyectable.
-export async function POST(req: NextRequest, { params }: { params: { cat: string } }) {
-  const authz = await requireAdmin(); if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
+export async function POST(req: NextRequest, props: { params: Promise<{ cat: string }> }) {
+  const params = await props.params;
+  const authz = await requireAdmin();if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
   if (!isOrgCat(params.cat)) {
     return NextResponse.json({ error: ADMIN_ERRORS.unknownCatalog }, { status: 404 })
   }

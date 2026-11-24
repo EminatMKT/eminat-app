@@ -10,7 +10,7 @@ import loadViewer from '../load-viewer'
 export default async function authorizeViewer({ ok, userId, ...denial }: Access) {
   if (!ok) return respond(denial.error, denial.status)
 
-  const db = ssrClient()
+  const db = (await ssrClient())
   const viewerUserId = await loadViewer(db, userId)
 
   if (!viewerUserId) return respond(PROFILE_UNAVAILABLE_MESSAGE, PROFILE_UNAVAILABLE_STATUS)

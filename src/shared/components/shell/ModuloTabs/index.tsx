@@ -1,4 +1,5 @@
 'use client'
+import type { JSX } from 'react'
 import AppShell from '../AppShell'
 import { SUB_ITEMS, type PanelKey } from '../appShellConfig'
 import { PageTransition } from '@/shared/motion'

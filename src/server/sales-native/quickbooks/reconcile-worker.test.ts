@@ -30,7 +30,8 @@ const state = vi.hoisted(() => ({
       LinkedTxn:[{ TxnId:'1133',TxnType:'Invoice' }] }] },
   hasMapping:true,claimable:true,history:[] as string[],rpcCalls:[] as string[],
   finalStatus:'',invoiceReads:0,paymentReads:0,
-  issuedAt:'',emailStatus:'QUEUED',emailCalls:0,
+  issuedAt:'',emailStatus:'QUEUED',emailCalls:0,reviewCalls:[] as Record<string,unknown>[],
+  reviewRecorded:false,reviewFailure:false,reviewClaimLost:false,reverseOnLatest:false,pollStatuses:[] as string[],
 }))
 
 vi.mock('server-only',() => ({}))
@@ -44,7 +45,7 @@ vi.mock('@/server/sales-native/patient-email-delivery',() => ({
 vi.mock('./connection',() => ({
   EMC_ORGANIZATION_ID:'emc',connectedQboReadAccess:vi.fn(async () => ({
     realmId:'123',accessToken:'synthetic-access',client:{
-      invoice:vi.fn(async () => { state.invoiceReads++; return state.invoice }),
+      invoice:vi.fn(async () => { state.invoiceReads++; return state.reverseOnLatest && state.invoiceReads>1 ? {...state.invoice,Balance:99.98} : state.invoice }),
       payment:vi.fn(async () => { state.paymentReads++; return state.payment }),
     },
   })),
@@ -52,6 +53,14 @@ vi.mock('./connection',() => ({
 vi.mock('@/shared/db/supabaseAdmin',() => ({ supabaseAdmin:() => ({
   rpc:async (name:string,args?:Record<string,unknown>) => {
     state.rpcCalls.push(name)
+    if(name==='native_sales_qbo_require_review'){
+      state.reviewCalls.push(args??{})
+      if(state.reviewFailure)return {data:null,error:{message:'audit write failed'}}
+      if(state.reviewClaimLost)return {data:false,error:null}
+      state.finalStatus='MANUAL_REVIEW'
+      if(!state.reviewRecorded)state.history.push('qbo_manual_review_required')
+      state.reviewRecorded=true
+    }
     if (name === 'native_sales_patient_qbo_update') {
       state.mapping.verification_state='PAYMENT_VERIFIED'
       state.mapping.sales_payment_id='payment-row'
@@ -75,7 +84,7 @@ vi.mock('@/shared/db/supabaseAdmin',() => ({ supabaseAdmin:() => ({
       select:(_columns:string) => query,
       eq:(_key:string,_value:unknown) => query,
       is:(_key:string,_value:unknown) => query,
-      in:(_key:string,_value:unknown) => query,
+      in:(key:string,value:unknown) => {if(table==='sales_qbo_webhook_events'&&key==='status')state.pollStatuses=value as string[];return query},
       lte:(_key:string,_value:unknown) => query,
       order:(_key:string,_options:unknown) => query,
       update:(value:Record<string,unknown>) => {
@@ -114,7 +123,7 @@ vi.mock('@/shared/db/supabaseAdmin',() => ({ supabaseAdmin:() => ({
 import { reconcileQboEvents } from './reconcile-worker'
 
 beforeEach(() => {
-  state.event.entity_type='Invoice';state.event.realm_id='123';state.event.operation='Update'
+  state.event.entity_type='Invoice';state.event.entity_id='1133';state.event.realm_id='123';state.event.operation='Update';state.event.attempts=0
   state.mapping.verification_state='PAYMENT_PENDING';state.mapping.sales_payment_id=null
   state.mapping.finance_verification_status='PENDING';state.mapping.qbo_payment_status='UNPAID'
   state.intent.purpose='ENROLLMENT';state.intent.status='PAYMENT_PENDING';state.intent.renewal_expires_at=null
@@ -123,6 +132,11 @@ beforeEach(() => {
   state.finalStatus='';state.invoiceReads=0;state.paymentReads=0
   state.issuedAt='';state.emailStatus='QUEUED';state.emailCalls=0
   state.contact.do_not_email=false
+  state.mapping.membership_activation_status='NOT_ACTIVE';state.mapping.qbo_item_reference='7'
+  state.reviewCalls=[];state.reviewRecorded=false;state.reviewFailure=false;state.reviewClaimLost=false;state.reverseOnLatest=false;state.pollStatuses=[]
+  state.invoice.Balance=0;state.invoice.LinkedTxn=[{TxnId:'900',TxnType:'Payment'}]
+  state.payment.TotalAmt=199.98;state.payment.Line=[{Amount:199.98,LinkedTxn:[{TxnId:'1133',TxnType:'Invoice'}]}]
+
 })
 
 describe('read-only QBO event processing boundary',() => {
@@ -199,14 +213,14 @@ describe('read-only QBO event processing boundary',() => {
     expect(state.rpcCalls).toEqual([])
     state.mapping.organization_id='emc';state.history=[]
     state.mapping.qbo_item_reference='99'
-    expect((await reconcileQboEvents()).processed).toBe(1)
-    expect(state.rpcCalls).toEqual([])
-    expect(state.history).toContain('qbo_review')
+    expect((await reconcileQboEvents()).manualReview).toBe(1)
+    expect(state.rpcCalls).toEqual(['native_sales_qbo_require_review'])
+    expect(state.history).toContain('qbo_manual_review_required')
     state.mapping.qbo_item_reference='7'
   })
   it('does not process an event another worker already claimed',async () => {
     state.claimable=false
-    expect(await reconcileQboEvents()).toEqual({ processed:0,retry:0,ignored:0 })
+    expect(await reconcileQboEvents()).toEqual({ processed:0,retry:0,ignored:0,manualReview:0 })
     expect(state.rpcCalls).toEqual([])
   })
   it('does not create a second Sales payment when provider proof was already recorded',async () => {
@@ -234,5 +248,79 @@ describe('read-only QBO event processing boundary',() => {
     expect(state.rpcCalls).toEqual([])
     expect(state.emailCalls).toBe(2)
     expect(state.history).toContain('qbo_already_active')
+  })
+})
+
+
+describe('terminal payment review without financial mutations',()=>{
+  function unlinkedVoid(attempts:number){
+    state.event.entity_type='Payment';state.event.entity_id='900';state.event.operation='Void';state.event.attempts=attempts
+    state.payment.TotalAmt=0;state.payment.Line=[]
+  }
+  it.each([0,1])('retries a provider-read unlinked void before exhaustion (%s prior attempts)',async attempts=>{
+    unlinkedVoid(attempts)
+    expect(await reconcileQboEvents()).toMatchObject({retry:1,manualReview:0})
+    expect(state.paymentReads).toBe(1);expect(state.invoiceReads).toBe(0)
+    expect(state.rpcCalls).toEqual([]);expect(state.emailCalls).toBe(0)
+    expect(state.history).toContain('qbo_payment_ambiguous')
+  })
+  it.each([2,11,25])('terminally reviews an exhausted unlinked void (%s prior attempts)',async attempts=>{
+    unlinkedVoid(attempts)
+    expect(await reconcileQboEvents()).toMatchObject({retry:0,manualReview:1})
+    expect(state.finalStatus).toBe('MANUAL_REVIEW')
+    expect(state.rpcCalls).toEqual(['native_sales_qbo_require_review'])
+    expect(state.reviewCalls[0]).toMatchObject({p_event_id:'event',p_organization_id:'emc',p_environment:'production',p_expected_attempts:attempts+1,p_reason:'UNLINKED_VOIDED_PAYMENT',p_evidence:{paymentId:'900',customerId:'321',paymentTotalCents:0,invoiceIds:[]}})
+    expect(state.emailCalls).toBe(0);expect(state.intent.membership_id).toBeNull()
+    expect(state.pollStatuses).toEqual(['PENDING','RETRY'])
+  })
+  it('preserves prior membership and payment evidence for post-activation reversal review',async()=>{
+    state.intent.membership_id='existing-membership';state.mapping.sales_payment_id='existing-payment'
+    state.mapping.membership_activation_status='ACTIVE';state.invoice.Balance=99.98
+    expect((await reconcileQboEvents()).manualReview).toBe(1)
+    expect(state.reviewCalls[0]).toMatchObject({p_reason:'INVOICE_EVIDENCE_REQUIRES_REVIEW',p_evidence:{membershipId:'existing-membership',invoiceId:'1133',decisionReason:'ACTIVE_INVOICE_REVERSED_OR_PARTIAL',invoiceBalanceCents:9998}})
+    expect(state.rpcCalls).toEqual(['native_sales_qbo_require_review'])
+    expect(state.intent.membership_id).toBe('existing-membership');expect(state.mapping.sales_payment_id).toBe('existing-payment');expect(state.emailCalls).toBe(0)
+  })
+  it('holds a reversal between verification and activation while preserving the recorded evidence',async()=>{
+    state.reverseOnLatest=true
+    expect((await reconcileQboEvents()).manualReview).toBe(1)
+    expect(state.rpcCalls).toEqual(['native_sales_patient_qbo_update','native_sales_qbo_require_review'])
+    expect(state.reviewCalls[0]).toMatchObject({p_reason:'PAYMENT_CHANGED_BEFORE_ACTIVATION'})
+    expect(state.mapping.sales_payment_id).toBe('payment-row');expect(state.intent.membership_id).toBeNull();expect(state.emailCalls).toBe(0)
+  })
+  it('requires terminal review when zero-balance invoice payment links never become authoritative',async()=>{
+    state.event.attempts=11;state.invoice.LinkedTxn=[]
+    expect((await reconcileQboEvents()).manualReview).toBe(1)
+    expect(state.reviewCalls[0]).toMatchObject({p_reason:'PAYMENT_LINKS_UNRESOLVED'})
+    expect(state.rpcCalls).toEqual(['native_sales_qbo_require_review'])
+  })
+  it('does not trust a stale Void hint over current linked provider payment evidence',async()=>{
+    state.event.entity_type='Payment';state.event.entity_id='900';state.event.operation='Void'
+    expect((await reconcileQboEvents()).processed).toBe(1)
+    expect(state.paymentReads).toBeGreaterThan(0);expect(state.reviewCalls).toEqual([])
+  })
+  it('routes multiple invoice links to review without guessing a beneficiary',async()=>{
+    state.event.entity_type='Payment';state.event.entity_id='900'
+    state.payment.Line=[{Amount:199.98,LinkedTxn:[{TxnId:'1133',TxnType:'Invoice'},{TxnId:'999',TxnType:'Invoice'}]}]
+    expect((await reconcileQboEvents()).manualReview).toBe(1)
+    expect(state.invoiceReads).toBe(0);expect(state.reviewCalls[0]).toMatchObject({p_reason:'AMBIGUOUS_PAYMENT_INVOICES'})
+    expect(state.intent.membership_id).toBeNull()
+  })
+  it('retains deletion evidence for review without attempting activation',async()=>{
+    state.event.operation='Delete'
+    expect((await reconcileQboEvents()).manualReview).toBe(1)
+    expect(state.reviewCalls[0]).toMatchObject({p_reason:'PROVIDER_ENTITY_DELETED'})
+    expect(state.invoiceReads).toBe(0);expect(state.paymentReads).toBe(0)
+    expect(state.intent.membership_id).toBeNull()
+  })
+  it('fails closed if the atomic terminal audit cannot be saved',async()=>{
+    unlinkedVoid(2);state.reviewFailure=true
+    await expect(reconcileQboEvents()).rejects.toThrow('QBO_MANUAL_REVIEW_UNAVAILABLE')
+    expect(state.history).not.toContain('qbo_manual_review_required');expect(state.intent.membership_id).toBeNull();expect(state.emailCalls).toBe(0)
+  })
+  it('does not finalize a newer worker claim',async()=>{
+    unlinkedVoid(2);state.reviewClaimLost=true
+    expect(await reconcileQboEvents()).toMatchObject({manualReview:0,processed:0})
+    expect(state.finalStatus).not.toBe('MANUAL_REVIEW');expect(state.intent.membership_id).toBeNull()
   })
 })

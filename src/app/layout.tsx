@@ -22,7 +22,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className={poppins.variable}>
-      <body className={poppins.className}><LocaleProvider>{children}</LocaleProvider></body>
+      <body className={poppins.className}>
+        {process.env.NODE_ENV === 'development' && process.env.LOCAL_REVIEW_FIXTURES === 'true' &&
+          <a href="http://127.0.0.1:3110/" target="_blank" rel="noreferrer" style={{position:'fixed',bottom:8,right:8,zIndex:10000,background:'#fff1c9',color:'#382a09',padding:'8px 12px',border:'1px solid #d1b259',borderRadius:8,fontSize:12,fontFamily:'system-ui'}}>
+            LOCAL PREVIEW · MOCK DATA · No production or payments
+          </a>}
+        <LocaleProvider>{children}</LocaleProvider>
+      </body>
     </html>
   )
 }

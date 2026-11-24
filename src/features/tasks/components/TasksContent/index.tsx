@@ -1,4 +1,5 @@
 'use client'
+import type { JSX } from 'react'
 import dynamic from 'next/dynamic'
 import { useState } from 'react'
 import { ModuloTabs } from '@/shared/components/shell'

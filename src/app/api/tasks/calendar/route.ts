@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   if ((project && !uuidPattern.test(project)) || (member && !uuidPattern.test(member)) || company.length > 80 || status.length > 80) {
     return NextResponse.json({ error: 'Filtro inválido.' }, { status: 400 })
   }
-  const db = ssrClient() // Caller session; all SELECTs retain RLS.
+  const db = (await ssrClient()) // Caller session; all SELECTs retain RLS.
   const { data: profile } = await db.from('usuarios').select('id,rol,activo').eq('auth_id', session.userId).maybeSingle()
   if (!profile?.activo) return NextResponse.json({ error: 'Perfil no disponible.' }, { status: 403 })
   const isAdmin = normalizeRole(profile.rol) === ADMIN_ROLE

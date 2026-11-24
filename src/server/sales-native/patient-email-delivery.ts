@@ -1,3 +1,5 @@
+import {captureStagingMail} from './staging-mail-capture'
+import { patientPortalOrigin } from './deployment-stage'
 import 'server-only'
 import { createHash } from 'node:crypto'
 import { Resend } from 'resend'
@@ -24,6 +26,8 @@ const subjects: Record<Kind, string> = {
 export function patientEmailConfigured(env: Record<string, string | undefined> = process.env) {
   const address = env.PATIENT_EMAIL_FROM_ADDRESS?.trim() ?? ''
   const outboxKey = env.PATIENT_EMAIL_OUTBOX_KEY ?? ''
+  if(env.NODE_ENV==='development'||env.NEXT_PUBLIC_APP_ENV==='local')return false
+  if(env.NEXT_PUBLIC_APP_ENV==='staging')return env.STAGING_MAILPIT_API_BASE_URL==='http://mailpit:8025/' && env.STAGING_MAILPIT_AUTH_FILE==='/run/secrets/mailpit-ui-auth' && /^[A-Za-z0-9+/]{43}=$/.test(outboxKey) && Buffer.from(outboxKey,'base64').length===32
   return /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(address) && Boolean(env.RESEND_API_KEY) &&
     /^[A-Za-z0-9+/]{43}=$/.test(outboxKey) && Buffer.from(outboxKey, 'base64').length === 32
 }
@@ -31,6 +35,11 @@ export function patientEmailConfigured(env: Record<string, string | undefined> =
 export async function sendPatientEmail(args: PatientEmailRequest,
   options: { provider?: Provider; env?: Record<string, string | undefined> } = {}) {
   const env = options.env ?? process.env
+  if(env.NODE_ENV==='development'||env.NEXT_PUBLIC_APP_ENV==='local')return {status:'NOT_CONFIGURED' as const}
+  if(env.NEXT_PUBLIC_APP_ENV==='staging'){
+    const {html,text}=renderPatientEmail(args.content)
+    return captureStagingMail({recipient:args.recipient,subject:args.content.subject?.replace(/[\r\n]/g,' ').slice(0,200)||subjects[args.kind],html,text},env)
+  }
   const address = env.PATIENT_EMAIL_FROM_ADDRESS?.trim() ?? ''
   if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(address) ||
       !env.RESEND_API_KEY && !options.provider ||
@@ -42,7 +51,7 @@ export async function sendPatientEmail(args: PatientEmailRequest,
   try {
     const result = await provider.emails.send({
       from: `Corazón Salud <${address}>`, to: args.recipient,
-      subject: subjects[args.kind], html, text,
+      subject: args.content.subject?.replace(/[\r\n]/g,' ').slice(0,200) || subjects[args.kind], html, text,
     }, { idempotencyKey: `patient-${args.kind}-${args.eventId}` })
     return result.error || !result.data?.id
       ? { status: 'FAILED' as const }
@@ -59,7 +68,7 @@ export async function sendPatientWelcome(authId: string, recipient: string) {
   return queuePatientEmail({ kind: 'welcome', eventId: authId, recipient, content: {
     title: '¡Bienvenido a Corazón Salud!',
     message: 'Tu cuenta de Corazón Salud está lista. Completa tu perfil y elige la membresía que mejor se adapte a ti.',
-    actionLabel: 'Ir a mi Portal', actionUrl: 'https://portal.corazonsalud.health/dashboard',
+    actionLabel: 'Ir a mi Portal', actionUrl: `${patientPortalOrigin()}/dashboard`,
   } })
 }
 
@@ -90,7 +99,7 @@ export async function sendPatientInvoice(intentId: string, recipient: string, in
       ? 'Tu renovación sigue pendiente de pago. Tu vigencia actual no cambia hasta que se verifique el pago. Consulta la factura y el pago seguro en Renovación.'
       : 'Tu selección de Corazón Salud sigue pendiente de pago. Puedes consultar la factura y abrir el pago seguro desde tu Portal.',
     actionLabel: 'Ver mi pago', actionUrl: purpose === 'RENEWAL'
-      ? 'https://portal.corazonsalud.health/renovacion' : 'https://portal.corazonsalud.health/pagos',
+      ? `${patientPortalOrigin()}/renovacion` : `${patientPortalOrigin()}/pagos`,
     details: [{ label: 'Factura', value: invoiceNumber }],
   } })
 }
@@ -100,7 +109,7 @@ export async function sendPatientActivation(membershipId: string, recipient: str
   return queuePatientEmail({ kind: 'activation', eventId: membershipId, recipient, content: {
     title: `Tu membresía está activa, ${firstName}`,
     message: 'Ya puedes consultar los detalles de tu membresía Corazón Salud en el Portal.',
-    actionLabel: 'Ver mi membresía', actionUrl: 'https://portal.corazonsalud.health/membresia',
+    actionLabel: 'Ver mi membresía', actionUrl: `${patientPortalOrigin()}/membresia`,
   } })
 }
 
@@ -109,7 +118,7 @@ export async function sendPatientRenewal(intentId: string, recipient: string, ex
   return queuePatientEmail({ kind:'activation', eventId:`renewal-${intentId}`, recipient, content:{
     title:'Tu membresía ha sido renovada',
     message:'Tu pago de renovación fue verificado y el nuevo período ya está disponible en el Portal.',
-    actionLabel:'Ver mi membresía', actionUrl:'https://portal.corazonsalud.health/membresia',
+    actionLabel:'Ver mi membresía', actionUrl:`${patientPortalOrigin()}/membresia`,
     details:[{ label:'Vigencia hasta',value:expiresAt }],
   } })
 }

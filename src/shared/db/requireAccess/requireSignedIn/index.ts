@@ -3,7 +3,7 @@ import ssrClient from '@/shared/db/requireAccess/ssrClient'
 import type { Access } from '@/shared/db/types'
 
 export default async function requireSignedIn(): Promise<Access> {
-  const { data: { user } } = await ssrClient().auth.getUser()
+  const { data: { user } } = await (await ssrClient()).auth.getUser()
   if (!user) return { ok: false, status: 401, error: ACCESS_ERRORS.notAuthenticated }
   return { ok: true, userId: user.id }
 }

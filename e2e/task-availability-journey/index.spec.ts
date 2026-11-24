@@ -125,9 +125,9 @@ async function openLoginPage(page: Page): Promise<void> {
 }
 
 async function submitCredentials(page: Page, email: string): Promise<void> {
-  const password = page.locator(PASSWORD_BOX)
+  const password = page.locator(PASSWORD_BOX).filter({visible:true})
 
-  await page.getByPlaceholder(LOGIN_PLACEHOLDER).fill(email)
+  await page.getByPlaceholder(LOGIN_PLACEHOLDER).filter({visible:true}).fill(email)
   await password.fill(PASSWORD)
   await password.press(ENTER)
 }
@@ -136,6 +136,8 @@ async function login(page: Page, email: string): Promise<void> {
   await openLoginPage(page)
   await submitCredentials(page, email)
   await page.waitForURL(APP_HOME, LOGIN_WAIT)
+  // A URL change precedes profile hydration; navigating sooner aborts the Auth read.
+  await expect(page.getByText('Home', { exact: true })).toBeVisible({ timeout: 20000 })
 }
 
 // Both sub-nav buttons prefix their label with an un-hidden emoji glyph (no space, no
@@ -145,7 +147,12 @@ async function openAvailability(page: Page): Promise<void> {
   const requestsTabMatcher = { name: /Requests/ }
   const availabilityTabMatcher = { name: /Availability/ }
 
-  await page.goto(TASKS_PATH)
+  // Use the same client-side rail path as the passing module smoke journey.
+  // A full navigation can abort the shell's in-flight Auth reads.
+  if (new URL(page.url()).pathname !== TASKS_PATH) {
+    await page.locator('[data-tour="tasks"]').click()
+    await page.waitForURL(`**${TASKS_PATH}`)
+  }
   await page.getByRole(BUTTON, requestsTabMatcher).click()
   await page.getByRole(BUTTON, availabilityTabMatcher).click()
 }

@@ -10,25 +10,25 @@ const requestSchema = z.object({
   relationship: z.enum(['SPOUSE', 'CHILD', 'PARENT', 'OTHER']),
 }).strict()
 
-export async function GET(request: Request, context: { params: { id: string } }) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    if (!z.uuid().safeParse(context.params.id).success)
+    if (!z.uuid().safeParse((await context.params).id).success)
       return Response.json({ code: 'INVALID_ID' }, { status: 400 })
     if (new URL(request.url).searchParams.size)
       return Response.json({ code: 'INVALID_FILTER' }, { status: 422 })
     const actor = await resolveSalesActor(request)
     const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_list_family_requests', {
       p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
-      p_membership_id: context.params.id,
+      p_membership_id: (await context.params).id,
     })
     if (error) return nativeSalesDatabaseError(error)
     return Response.json({ data: data ?? [] }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error) { return nativeSalesErrorResponse(error) }
 }
 
-export async function POST(request: Request, context: { params: { id: string } }) {
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    if (!z.uuid().safeParse(context.params.id).success)
+    if (!z.uuid().safeParse((await context.params).id).success)
       return Response.json({ code: 'INVALID_ID' }, { status: 400 })
     const actor = await resolveSalesActor(request)
     const key = request.headers.get('idempotency-key')
@@ -44,7 +44,7 @@ export async function POST(request: Request, context: { params: { id: string } }
     if (!parsed.success) return Response.json({ code: 'VALIDATION_ERROR' }, { status: 422 })
     const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_request_family_member', {
       p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
-      p_membership_id: context.params.id, p_contact_id: parsed.data.contactId,
+      p_membership_id: (await context.params).id, p_contact_id: parsed.data.contactId,
       p_relationship: parsed.data.relationship, p_idempotency_key: key,
       p_request_id: randomUUID(),
     })

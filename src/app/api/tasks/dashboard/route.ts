@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
       (q.has('department') && !uuid(q.get('department')))) {
     return NextResponse.json({ error: 'Período inválido.' }, { status: 400 })
   }
-  const { data, error } = await ssrClient().rpc('lilly_task_metrics', {
+  const { data, error } = await (await ssrClient()).rpc('lilly_task_metrics', {
     p_from: from, p_to: to, p_empresa: q.get('empresa') || null,
     p_user_id: uuid(q.get('user')), p_team_id: uuid(q.get('team')),
     p_department_id: uuid(q.get('department')), p_estado: q.get('estado') || null,

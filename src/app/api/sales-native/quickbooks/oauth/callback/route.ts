@@ -1,3 +1,4 @@
+import {qboApplicationOrigin} from '@/server/sales-native/quickbooks/environment'
 import { NativeSalesAuthError } from '@/server/sales-native/auth'
 import { nativeSalesEnabled } from '@/server/sales-native/release-gate'
 import { completeQboConnection, EMC_ORGANIZATION_ID } from
@@ -7,9 +8,8 @@ import ssrClient from '@/shared/db/requireAccess/ssrClient'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const origin = 'https://app.stratixsolutions.us'
 function back(result: string): Response {
-  const url = new URL('/sales-native',origin)
+  const url = new URL('/sales-native',qboApplicationOrigin())
   url.searchParams.set('qboConnection',result)
   return Response.redirect(url,303)
 }
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
   const code = params.get('code') ?? ''
   const realmId = params.get('realmId') ?? ''
   if (!state || !code || !realmId || params.has('error')) return back('denied')
-  const client = ssrClient()
+  const client = (await ssrClient())
   const { data: { session } } = await client.auth.getSession()
   if (!session?.access_token) return back('authentication_required')
   const actorRequest = new Request(request.url, { headers: {

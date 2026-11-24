@@ -12,7 +12,7 @@ const RESPONSABLES_FILTER = 'actividad_responsables!actividad_responsables_activ
 export async function GET(req: NextRequest) {
   const session = await requireModule('tasks')
   if (!session.ok) return NextResponse.json({ error: session.error }, { status: session.status })
-  const db = ssrClient()
+  const db = (await ssrClient())
   const { data: profile, error: profileError } = await db.from('usuarios')
     .select('id,rol,activo').eq('auth_id', session.userId).maybeSingle()
   if (profileError || !profile?.activo) return NextResponse.json({ error: 'Perfil no disponible.' }, { status: 403 })

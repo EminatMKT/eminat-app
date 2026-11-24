@@ -1,4 +1,5 @@
 'use client'
+import {clientEnv} from '@/shared/db/env.client'
 
 import { useState } from 'react'
 import * as auth from '@/shared/db/auth'
@@ -42,6 +43,7 @@ export default function LoginPage() {
   const { t, locale, setLocale } = useT()
 
   function emailValido(e: string) {
+    if(clientEnv.NEXT_PUBLIC_APP_ENV==='staging')return /^[a-z0-9._+-]+@example\.invalid$/i.test(e.trim())
     return DOMINIOS_VALIDOS.some(d => e.toLowerCase().endsWith(d))
   }
 

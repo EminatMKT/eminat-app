@@ -22,9 +22,9 @@ const conversion = z.object({
   }).strict().optional(),
 }).strict()
 
-export async function POST(request: Request, context: { params: { id: string } }) {
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    if (!uuid.safeParse(context.params.id).success)
+    if (!uuid.safeParse((await context.params).id).success)
       return Response.json({ code: 'INVALID_ID' }, { status: 400 })
     const actor = await resolveSalesActor(request)
     const key = request.headers.get('idempotency-key')
@@ -51,7 +51,7 @@ export async function POST(request: Request, context: { params: { id: string } }
     ])).digest('hex')
     const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_convert_lead', {
       p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
-      p_lead_id: context.params.id, p_expected_version: expectedVersion,
+      p_lead_id: (await context.params).id, p_expected_version: expectedVersion,
       p_account_id: body.accountId ?? null, p_account_name: body.accountName ?? null,
       p_contact_id: body.contactId ?? null, p_opportunity: body.opportunity ?? null,
       p_idempotency_key: key, p_payload_hash: payloadHash, p_request_id: randomUUID(),

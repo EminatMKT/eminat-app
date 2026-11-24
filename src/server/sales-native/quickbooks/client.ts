@@ -2,6 +2,7 @@ import 'server-only'
 import { createHash } from 'node:crypto'
 import { z } from 'zod'
 import type {FamilyInvoiceLine} from './family-invoice-lines'
+import {qboEnvironment,QBO_SANDBOX_CALLBACK,QBO_SANDBOX_REALM} from './environment'
 
 export const QBO_CALLBACK =
   'https://app.stratixsolutions.us/api/sales-native/quickbooks/oauth/callback'
@@ -10,9 +11,11 @@ export const QBO_ACCOUNTING_SCOPE = 'com.intuit.quickbooks.accounting'
 const configSchema = z.object({
   clientId: z.string().min(8).max(256),
   clientSecret: z.string().min(8).max(1024),
-  redirectUri: z.literal(QBO_CALLBACK),
+  redirectUri: z.union([z.literal(QBO_CALLBACK),z.literal(QBO_SANDBOX_CALLBACK)]),
+  environment: z.enum(['production','sandbox']).default('production'),
+  allowedRealmId: z.literal(QBO_SANDBOX_REALM).optional(),
 })
-export type QboConfig = z.infer<typeof configSchema>
+export type QboConfig = z.input<typeof configSchema>
 const tokenSchema = z.object({
   access_token: z.string().min(20).max(16384),
   refresh_token: z.string().min(20).max(16384),
@@ -75,9 +78,24 @@ export function patientInvoiceNumber(intentId: string): string {
 
 /** Fixed Intuit hosts and callback; no caller-provided provider URL. */
 export class QboClient {
-  private readonly config: QboConfig
+  private readonly config: z.output<typeof configSchema>
   constructor(config: QboConfig, private readonly request: typeof fetch = fetch) {
     this.config = configSchema.parse(config)
+    const sandbox = this.config.environment === 'sandbox'
+    if (sandbox !== (qboEnvironment() === 'sandbox') ||
+      this.config.redirectUri !== (sandbox ? QBO_SANDBOX_CALLBACK : QBO_CALLBACK) ||
+      (sandbox ? this.config.allowedRealmId !== QBO_SANDBOX_REALM : !!this.config.allowedRealmId))
+      throw new Error('QBO_ENVIRONMENT_MISMATCH')
+  }
+
+  private apiOrigin(): string {
+    return this.config.environment === 'sandbox'
+      ? 'https://sandbox-quickbooks.api.intuit.com' : 'https://quickbooks.api.intuit.com'
+  }
+
+  private assertRealm(realmId: string): void {
+    if (this.config.environment === 'sandbox' && realmId !== QBO_SANDBOX_REALM)
+      throw new Error('QBO_REALM_NOT_AUTHORIZED')
   }
 
   authorizationUrl(state: string): string {
@@ -98,7 +116,7 @@ export class QboClient {
         method: 'POST', headers: {
           Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded',
           Authorization: `Basic ${Buffer.from(`${this.config.clientId}:${this.config.clientSecret}`).toString('base64')}`,
-        }, body, cache: 'no-store', signal: AbortSignal.timeout(10_000),
+        }, body, redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(10_000),
       })
     } catch { throw new Error('QBO_OAUTH_UNAVAILABLE') }
     if (!response.ok) throw new Error('QBO_OAUTH_UNAVAILABLE')
@@ -135,7 +153,7 @@ export class QboClient {
         method: 'POST', headers: {
           Accept: 'application/json', 'Content-Type': 'application/json',
           Authorization: `Basic ${Buffer.from(`${this.config.clientId}:${this.config.clientSecret}`).toString('base64')}`,
-        }, body: JSON.stringify({ token: refreshToken }), cache: 'no-store',
+        }, body: JSON.stringify({ token: refreshToken }), redirect: 'error', cache: 'no-store',
         signal: AbortSignal.timeout(10_000),
       })
     } catch { throw new Error('QBO_REVOKE_UNAVAILABLE') }
@@ -146,11 +164,12 @@ export class QboClient {
     id: string; name: string; legalName: string | null }> {
     if (!/^[0-9]{1,80}$/.test(realmId) || !accessToken)
       throw new Error('QBO_COMPANY_INVALID')
-    const url = `https://quickbooks.api.intuit.com/v3/company/${realmId}/companyinfo/${realmId}`
+    this.assertRealm(realmId)
+    const url = `${this.apiOrigin()}/v3/company/${realmId}/companyinfo/${realmId}`
     let response: Response
     try { response = await this.request(url, { headers: {
       Authorization: `Bearer ${accessToken}`, Accept: 'application/json',
-    }, cache: 'no-store', signal: AbortSignal.timeout(10_000) }) }
+    }, redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(10_000) }) }
     catch { throw new Error('QBO_API_UNAVAILABLE') }
     if (!response.ok) throw new Error('QBO_API_UNAVAILABLE')
     let decoded: unknown
@@ -167,11 +186,12 @@ export class QboClient {
     kind: 'invoice' | 'payment', id: string, schema: z.ZodType<T>): Promise<T> {
     if (!/^[0-9]{1,80}$/.test(realmId) || !/^[0-9]{1,80}$/.test(id) || !accessToken)
       throw new Error('QBO_ENTITY_INVALID')
-    const url = `https://quickbooks.api.intuit.com/v3/company/${realmId}/${kind}/${id}`
+    this.assertRealm(realmId)
+    const url = `${this.apiOrigin()}/v3/company/${realmId}/${kind}/${id}`
     let response: Response
     try { response = await this.request(url, { headers: {
       Authorization: `Bearer ${accessToken}`, Accept: 'application/json',
-    }, cache: 'no-store', signal: AbortSignal.timeout(10_000) }) }
+    }, redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(10_000) }) }
     catch { throw new Error('QBO_ENTITY_UNAVAILABLE') }
     if (!response.ok) throw new Error('QBO_ENTITY_UNAVAILABLE')
     let decoded: unknown
@@ -192,14 +212,15 @@ export class QboClient {
     path: string, body?: object): Promise<unknown> {
     if (!/^[0-9]{1,80}$/.test(realmId) || !accessToken)
       throw new Error('QBO_ENTITY_INVALID')
-    const url = `https://quickbooks.api.intuit.com/v3/company/${realmId}/${path}`
+    this.assertRealm(realmId)
+    const url = `${this.apiOrigin()}/v3/company/${realmId}/${path}`
     let response: Response
     try { response = await this.request(url, {
       method: body ? 'POST' : 'GET',
       headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json',
         ...(body ? { 'Content-Type': 'application/json' } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {}),
-      cache: 'no-store', signal: AbortSignal.timeout(10_000),
+      redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(10_000),
     }) } catch { throw new Error('QBO_WRITE_OUTCOME_UNKNOWN') }
     // A failed POST can still have reached Intuit. The caller must never retry
     // automatically until it has reconciled the provider-side outcome.
