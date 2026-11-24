@@ -86,6 +86,7 @@ test('native Sales sections render at mobile width without document overflow', a
   await page.locator('input[type="password"]').fill(PASSWORD)
   await page.locator('input[type="password"]').press('Enter')
   await page.waitForURL('http://localhost:3000/', { timeout: 40000 })
+  await expect(page.getByText('Home', { exact: true })).toBeVisible({ timeout: 20000 })
   await page.goto('/sales-native')
   for (const label of ['Dashboard', 'Leads', 'Portal Leads', 'Contacts', 'Accounts', 'Opportunities',
     'Pipeline', 'Activities', 'Memberships', 'Reports', 'Payments & Renewals', 'Social', 'Sales Settings']) {
