@@ -126,3 +126,24 @@ relationships. Use application rollback with schema retained or a separately rev
 repair. Never delete benefits, fabricate payments, or reapply a paid-only active-membership
 constraint over populated courtesy coverage. Provider backup restore is a disaster-recovery
 operation requiring separate reconciliation of intervening records, not the default rollback.
+
+## Authorized isolated Intuit Development regression
+
+LILLY Membership Staging is a separate Development app, authorized for existing sandbox
+`9341458451286187`. ANNIE's OAuth grant and credentials are never reused. Its callback is
+`https://staging.stratixsolutions.us/api/sales-native/quickbooks/oauth/callback`.
+The approved staging secret store is `/srv/corazon-complimentary-staging/secrets/lilly-intuit-development/`;
+files remain root-only and are never committed or logged.
+
+The sandbox adapter requires staging tier, the dedicated Supabase branch, explicit sandbox
+mode and the fixed company. It rejects Production credential names, pins the sandbox API host,
+rejects redirects, and seals tokens in a distinct environment context. Stage-only state and
+connection RPCs are in `supabase/staging/20261124000000_qbo_isolated_sandbox_connection.sql`.
+They require a trusted branch attestation and must **not** be applied to Production. Original
+Production functions are preserved. Apply the supplied precheck/check/rollback files through
+the isolated staging procedure; retain consumed OAuth/audit history when rolling back code.
+
+A staging-only systemd timer calls the existing authenticated complimentary processor every
+five minutes. It receives only its dedicated worker credential, has restricted network access,
+and stops API work at the original staging allocation deadline. Production scheduling still
+belongs to the protected release process; this staging timer changes no Production unit.

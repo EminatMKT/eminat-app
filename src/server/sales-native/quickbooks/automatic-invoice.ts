@@ -1,3 +1,4 @@
+import {qboEnvironment} from './environment'
 import 'server-only'
 import {familyInvoiceLines,familyInvoiceItemsMatch,type FamilyInvoiceSnapshot} from './family-invoice-lines'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
@@ -128,7 +129,7 @@ export async function issuePatientQboInvoice(identityId: string, intentId: strin
     if (!job.qbo_customer_id) throw new Error('QBO_INVOICE_RECOVERY_REQUIRED')
     const { data: events, error: eventsError } = await db.from('sales_qbo_webhook_events')
       .select('entity_id').eq('organization_id',EMC_ORGANIZATION_ID)
-      .eq('environment','production').eq('realm_id',realmId)
+      .eq('environment',qboEnvironment()).eq('realm_id',realmId)
       .eq('entity_type','Invoice').eq('operation','Create')
       .gte('created_at',job.created_at).order('created_at',{ ascending:true }).limit(100)
     if (eventsError) throw new Error('QBO_INVOICE_RECOVERY_EVENTS_UNAVAILABLE')

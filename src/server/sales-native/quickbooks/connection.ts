@@ -4,6 +4,7 @@ import { NativeSalesAuthError, resolveSalesActor } from '@/server/sales-native/a
 import { patientQboActor } from '@/server/sales-native/patient-qbo-auth'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { QboClient, QBO_CALLBACK } from './client'
+import {qboEnvironment,qboConnectionRpc,QBO_SANDBOX_CALLBACK,QBO_SANDBOX_REALM} from './environment'
 import { openQboToken, sealQboToken } from './token-vault'
 
 export const EMC_ORGANIZATION_ID = '9efab353-46a0-43d1-9901-e3f185dc5d30'
@@ -12,18 +13,26 @@ const statePattern = /^[A-Za-z0-9_-]{40,100}$/
 
 function configuration() {
   const env = process.env
-  if (env.LILLY_QBO_OAUTH_ENABLED !== 'true' || !env.LILLY_QBO_CLIENT_ID ||
-    !env.LILLY_QBO_CLIENT_SECRET || !env.LILLY_QBO_TOKEN_KEY ||
-    env.LILLY_QBO_REDIRECT_URI !== QBO_CALLBACK)
+  const sandbox = qboEnvironment() === 'sandbox'
+  const clientId = sandbox ? env.LILLY_QBO_SANDBOX_CLIENT_ID : env.LILLY_QBO_CLIENT_ID
+  const clientSecret = sandbox ? env.LILLY_QBO_SANDBOX_CLIENT_SECRET : env.LILLY_QBO_CLIENT_SECRET
+  const key = sandbox ? env.LILLY_QBO_SANDBOX_TOKEN_KEY : env.LILLY_QBO_TOKEN_KEY
+  const callback = sandbox ? QBO_SANDBOX_CALLBACK : QBO_CALLBACK
+  if (env.LILLY_QBO_OAUTH_ENABLED !== 'true' || !clientId || !clientSecret || !key ||
+    env.LILLY_QBO_REDIRECT_URI !== callback)
     throw new NativeSalesAuthError(503, 'QBO_OAUTH_NOT_CONFIGURED')
-  return { client: new QboClient({ clientId: env.LILLY_QBO_CLIENT_ID,
-    clientSecret: env.LILLY_QBO_CLIENT_SECRET, redirectUri: QBO_CALLBACK }),
-  key: env.LILLY_QBO_TOKEN_KEY }
+  return {client: new QboClient({clientId,clientSecret,redirectUri:callback,
+    ...(sandbox ? {environment:'sandbox' as const,allowedRealmId:QBO_SANDBOX_REALM} : {})}),key}
+}
+
+function matchingCompany(company: {name:string;legalName?:string|null}, realmId:string): boolean {
+  return qboEnvironment() === 'sandbox' ? realmId === QBO_SANDBOX_REALM :
+    [company.name,company.legalName].some(name => name?.trim().toLowerCase() === 'eminat medical center llc')
 }
 
 /** A pending, owner-approved EMC fallback is limited to this QBO connection. */
 export async function qboManager(request: Request): Promise<string> {
-  const fallback = await patientQboActor(request)
+  const fallback = qboEnvironment() === 'production' ? await patientQboActor(request) : null
   if (fallback?.memberId === FREDDY_FALLBACK_MEMBER_ID) return fallback.memberId
   const actor = await resolveSalesActor(request)
   if (actor.organizationId !== EMC_ORGANIZATION_ID ||
@@ -41,7 +50,7 @@ export async function beginQboConnection(request: Request): Promise<string> {
   const memberId = await qboManager(request)
   const { client } = configuration()
   const state = randomBytes(32).toString('base64url')
-  const { error } = await supabaseAdmin({ noStore: true }).from('sales_qbo_oauth_states')
+  const { error } = await supabaseAdmin({ noStore: true }).from(qboEnvironment() === 'sandbox' ? 'sales_qbo_sandbox_oauth_states' : 'sales_qbo_oauth_states')
     .insert({ organization_id: EMC_ORGANIZATION_ID,
       requester_member_id: memberId, state_hash: stateHash(state) })
   if (error) throw new NativeSalesAuthError(503, 'QBO_OAUTH_STATE_UNAVAILABLE')
@@ -53,10 +62,11 @@ export async function completeQboConnection(request: Request, input: {
   state: string; code: string; realmId: string }): Promise<void> {
   const memberId = await qboManager(request)
   const { client, key } = configuration()
-  if (!/^[0-9]{1,80}$/.test(input.realmId))
+  if (!/^[0-9]{1,80}$/.test(input.realmId) ||
+    (qboEnvironment() === 'sandbox' && input.realmId !== QBO_SANDBOX_REALM))
     throw new NativeSalesAuthError(422, 'QBO_REALM_INVALID')
   const db = supabaseAdmin({ noStore: true })
-  const { data: stateId, error: stateError } = await db.rpc('native_sales_qbo_claim_oauth_state', {
+  const { data: stateId, error: stateError } = await db.rpc(qboConnectionRpc('native_sales_qbo_claim_oauth_state'), {
     p_state_hash: stateHash(input.state),p_organization_id: EMC_ORGANIZATION_ID,
     p_member_id: memberId,
   })
@@ -68,10 +78,9 @@ export async function completeQboConnection(request: Request, input: {
   let company
   try { company = await client.companyInfo(input.realmId, tokens.accessToken) }
   catch { throw new NativeSalesAuthError(503, 'QBO_COMPANY_READ_FAILED') }
-  if (![company.name,company.legalName].some(name =>
-    name?.trim().toLowerCase() === 'eminat medical center llc'))
+  if (!matchingCompany(company,input.realmId))
     throw new NativeSalesAuthError(422, 'QBO_COMPANY_MISMATCH')
-  const { error } = await db.rpc('native_sales_qbo_finish_oauth_state', {
+  const { error } = await db.rpc(qboConnectionRpc('native_sales_qbo_finish_oauth_state'), {
     p_state_id: stateId,p_organization_id: EMC_ORGANIZATION_ID,p_member_id: memberId,
     p_realm_id: input.realmId,
     p_access_ciphertext: sealQboToken(tokens.accessToken,key,EMC_ORGANIZATION_ID,
@@ -91,7 +100,7 @@ export async function connectedQboReadAccess(forceRefresh = false): Promise<{
   const db = supabaseAdmin({ noStore: true })
   const { data: connection, error } = await db.from('sales_qbo_connections')
     .select('realm_id,access_token_ciphertext,access_expires_at,refresh_expires_at,status')
-    .eq('organization_id',EMC_ORGANIZATION_ID).eq('environment','production').maybeSingle()
+    .eq('organization_id',EMC_ORGANIZATION_ID).eq('environment',qboEnvironment()).maybeSingle()
   if (error || !connection || connection.status !== 'CONNECTED' ||
     !connection.access_token_ciphertext || !connection.access_expires_at ||
     !connection.refresh_expires_at)
@@ -99,13 +108,15 @@ export async function connectedQboReadAccess(forceRefresh = false): Promise<{
   if (Date.parse(connection.refresh_expires_at) <= Date.now())
     throw new NativeSalesAuthError(503, 'QBO_RECONNECT_REQUIRED')
   const realmId = connection.realm_id
+  if (qboEnvironment() === 'sandbox' && realmId !== QBO_SANDBOX_REALM)
+    throw new NativeSalesAuthError(503,'QBO_REALM_INVALID')
   let accessToken: string
   if (!forceRefresh && Date.parse(connection.access_expires_at) > Date.now()+60_000) {
     accessToken = openQboToken(connection.access_token_ciphertext,key,
       EMC_ORGANIZATION_ID,realmId,'access')
   } else {
     const claimId = randomUUID()
-    const { data: claimed, error: claimError } = await db.rpc('native_sales_qbo_claim_refresh', {
+    const { data: claimed, error: claimError } = await db.rpc(qboConnectionRpc('native_sales_qbo_claim_refresh'), {
       p_organization_id: EMC_ORGANIZATION_ID,p_claim_id: claimId,
     })
     const lease = Array.isArray(claimed) ? claimed[0] : null
@@ -116,7 +127,7 @@ export async function connectedQboReadAccess(forceRefresh = false): Promise<{
     let refreshed
     try { refreshed = await client.refresh(refreshToken) }
     catch { throw new NativeSalesAuthError(503, 'QBO_REFRESH_FAILED') }
-    const { data: saved, error: saveError } = await db.rpc('native_sales_qbo_finish_refresh', {
+    const { data: saved, error: saveError } = await db.rpc(qboConnectionRpc('native_sales_qbo_finish_refresh'), {
       p_organization_id: EMC_ORGANIZATION_ID,p_claim_id: claimId,
       p_access_ciphertext: sealQboToken(refreshed.accessToken,key,
         EMC_ORGANIZATION_ID,realmId,'access'),
@@ -135,8 +146,7 @@ export async function readConnectedQboCompany(forceRefresh = false): Promise<{
   realmId: string; companyName: string; legalName: string | null }> {
   const { client, realmId, accessToken } = await connectedQboReadAccess(forceRefresh)
   const company = await client.companyInfo(realmId,accessToken)
-  if (![company.name,company.legalName].some(name =>
-    name?.trim().toLowerCase() === 'eminat medical center llc'))
+  if (!matchingCompany(company,realmId))
     throw new NativeSalesAuthError(503, 'QBO_COMPANY_MISMATCH')
   return { realmId,companyName:company.name,legalName:company.legalName }
 }
@@ -147,7 +157,7 @@ export async function disconnectQboConnection(request: Request): Promise<boolean
   const { client,key } = configuration()
   const db = supabaseAdmin({ noStore: true })
   const { data: held, error: holdError } = await db.rpc(
-    'native_sales_qbo_hold_for_revocation', {
+    qboConnectionRpc('native_sales_qbo_hold_for_revocation'), {
       p_organization_id: EMC_ORGANIZATION_ID,p_member_id: memberId,
     })
   if (holdError)
@@ -159,7 +169,7 @@ export async function disconnectQboConnection(request: Request): Promise<boolean
   try { await client.revoke(refreshToken) }
   catch { throw new NativeSalesAuthError(503,'QBO_REVOKE_UNAVAILABLE') }
   const { data, error } = await supabaseAdmin({ noStore: true })
-    .rpc('native_sales_qbo_disconnect', {
+    .rpc(qboConnectionRpc('native_sales_qbo_disconnect'), {
       p_organization_id: EMC_ORGANIZATION_ID,p_member_id: memberId,
     })
   if (error) throw new NativeSalesAuthError(503, 'QBO_DISCONNECT_UNAVAILABLE')

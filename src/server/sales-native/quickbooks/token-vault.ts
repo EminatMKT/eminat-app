@@ -1,4 +1,5 @@
 import 'server-only'
+import {qboEnvironment} from './environment'
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto'
 
 const realmPattern = /^[0-9]{1,80}$/
@@ -14,7 +15,7 @@ function keyBytes(encoded: string): Buffer {
 function aad(organizationId: string, realmId: string, kind: 'access' | 'refresh'): Buffer {
   if (!uuidPattern.test(organizationId) || !realmPattern.test(realmId))
     throw new Error('QBO_VAULT_CONTEXT_INVALID')
-  return Buffer.from(`qbo-v1:production:${organizationId.toLowerCase()}:${realmId}:${kind}`)
+  return Buffer.from(`qbo-v1:${qboEnvironment()}:${organizationId.toLowerCase()}:${realmId}:${kind}`)
 }
 
 /** Encrypted server-only token; bound to one organization, realm, and token kind. */

@@ -338,3 +338,17 @@ The explicit staging tier is pinned to Supabase sykxgksagbhmfrzbbtfe and exact s
 
 ## Complimentary contact completeness
 Assigned complimentary benefits require nonblank first and last names on the existing contact. The API returns COMPLIMENTARY_CONTACT_INCOMPLETE before issuing a benefit; the bilingual administrator screen explains how to complete the record. Database constraints remain unchanged.
+
+### Isolated QuickBooks Development acceptance
+
+PR #211 adds an explicit sandbox path only when the application tier is staging, the
+Supabase host is the dedicated `sykxgksagbhmfrzbbtfe` branch, and the configured company is
+`9341458451286187`. Use only the separately authorized LILLY Membership Staging Development
+app; never copy ANNIE or Production credentials. Sandbox secrets use the
+`LILLY_QBO_SANDBOX_*` namespace. Production names must be absent in staging. The sandbox
+client pins its API host, callback and company, rejects redirects, and uses a distinct token
+AAD context. Production defaults and existing Production RPCs remain unchanged.
+`supabase/staging/20261124000000_qbo_isolated_sandbox_connection.sql` adds separate sandbox OAuth state and
+connection/refresh/revocation RPCs, server-only and fixed to the approved organization/company.
+It creates no connection or financial record, requires an explicit staging-branch attestation,
+and is excluded from the Production migration sequence. Preserve OAuth history on rollback.

@@ -1,3 +1,4 @@
+import {qboEnvironment} from './environment'
 import 'server-only'
 import {familyInvoiceLines} from './family-invoice-lines'
 import { createHash, randomUUID } from 'node:crypto'
@@ -247,7 +248,7 @@ async function reconcileInvoice(event: Event, invoice: QboInvoice,
 
 async function processEvent(event: Event,
   access: Awaited<ReturnType<typeof connectedQboReadAccess>>): Promise<'PROCESSED' | 'RETRY' | 'IGNORED'> {
-  if (event.organization_id !== EMC_ORGANIZATION_ID || event.environment !== 'production' ||
+  if (event.organization_id !== EMC_ORGANIZATION_ID || event.environment !== qboEnvironment() ||
     event.realm_id !== access.realmId) {
     await history(event.organization_id,event.id,'qbo_realm_mismatch',{ realmId:event.realm_id })
     return 'IGNORED'
@@ -282,7 +283,7 @@ export async function reconcileQboEvents(): Promise<{ processed: number; retry: 
   const now = new Date().toISOString()
   const { data: events, error } = await client.from('sales_qbo_webhook_events')
     .select('id,organization_id,environment,realm_id,entity_type,entity_id,operation,attempts')
-    .eq('organization_id',EMC_ORGANIZATION_ID).eq('environment','production')
+    .eq('organization_id',EMC_ORGANIZATION_ID).eq('environment',qboEnvironment())
     .in('status',['PENDING','RETRY']).lte('next_attempt_at',now)
     .order('created_at',{ ascending:true }).limit(20)
   if (error) throw new Error('QBO_QUEUE_UNAVAILABLE')
