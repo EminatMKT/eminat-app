@@ -30,7 +30,7 @@ export async function GET(request: Request) {
   const code = params.get('code') ?? ''
   const realmId = params.get('realmId') ?? ''
   if (!state || !code || !realmId || params.has('error')) return back('denied')
-  const client = ssrClient()
+  const client = (await ssrClient())
   const { data: { session } } = await client.auth.getSession()
   if (!session?.access_token) return back('authentication_required')
   const actorRequest = new Request(request.url, { headers: {

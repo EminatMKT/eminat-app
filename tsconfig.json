@@ -14,7 +14,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
@@ -28,14 +28,22 @@
       "@e2e/*": [
         "./e2e/*"
       ]
-    }
+    },
+    "target": "ES2017"
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    ".next-verify/types/**/*.ts"
+    ".next-verify/types/**/*.ts",
+    ".next-local-review/types/**/*.ts",
+    ".next-hardening-build/types/**/*.ts",
+    ".next-hardening-build/dev/types/**/*.ts",
+    ".next-hardening-dev/types/**/*.ts",
+    ".next-hardening-dev/dev/types/**/*.ts",
+    ".next-release-verify/types/**/*.ts",
+    ".next-release-verify/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

@@ -9,7 +9,9 @@ export type MembershipPdfData = {
   lastName: string
   plan: 'ESSENTIAL' | 'PLUS' | 'MAX' | 'LEGACY_UNSPECIFIED'
   membershipType: 'INDIVIDUAL' | 'FAMILY' | 'LEGACY_UNSPECIFIED'
-  duration: 'MONTHLY' | '2M' | '3M' | '6M' | '12M' | 'LEGACY_UNSPECIFIED'
+  duration: 'MONTHLY' | '2M' | '3M' | '6M' | '12M' | 'LEGACY_UNSPECIFIED' | 'CUSTOM'
+  fundingType?: 'PAID' | 'COMPLIMENTARY'
+  benefitMonths?: number
   issuedAt: string
   expiresAt: string
   status: string
@@ -61,6 +63,7 @@ export async function createMembershipPdf(data: MembershipPdfData): Promise<Uint
   page.drawImage(emcLogo, { x:384,y:694,width:86,height:35 })
   page.drawText(english ? 'Corazón Salud is a program of Eminat Medical Center.' : 'Corazón Salud es un programa de Eminat Medical Center.',
     { x:43,y:625,size:11,font:bold,color:navy })
+  if (data.fundingType==='COMPLIMENTARY') page.drawText(english?'COMPLIMENTARY · MEMBERSHIP PAYMENT WAIVED':'CORTESÍA · PAGO DE MEMBRESÍA EXONERADO', {x:43,y:600,size:9,font:bold,color:coral})
   if (data.qaSynthetic) page.drawText(english ? 'QA TEST · NO REAL PAYMENT' : 'QA SINTÉTICA · SIN PAGO REAL',
     { x:43,y:600,size:10,font:bold,color:coral })
   page.drawText(english ? 'MEMBER' : 'MIEMBRO', { x:43,y:574,size:10,font:bold,color:coral })
@@ -72,7 +75,7 @@ export async function createMembershipPdf(data: MembershipPdfData): Promise<Uint
     [english ? 'MEMBER CODE' : 'CÓDIGO DEL MIEMBRO',data.memberCode ?? data.code],
     ['PLAN',data.plan==='LEGACY_UNSPECIFIED' ? (english ? 'Historical plan not specified' : 'Plan histórico sin especificar') : data.plan],
     [english ? 'TYPE' : 'TIPO',english ? (data.membershipType === 'FAMILY' ? 'Family' : data.membershipType === 'INDIVIDUAL' ? 'Individual' : 'Historical type not specified') : typeLabel(data.membershipType)],
-    [english ? 'TERM' : 'MODALIDAD',english ? (data.duration === 'MONTHLY' ? 'Month-to-Month' : data.duration === 'LEGACY_UNSPECIFIED' ? 'Historical term not specified' : `${data.duration.slice(0,-1)} Months`) : durationLabel(data.duration)],
+    [english ? 'TERM' : 'MODALIDAD',data.fundingType==='COMPLIMENTARY' ? `${data.benefitMonths} ${english?'months':'meses'}` : english ? (data.duration === 'MONTHLY' ? 'Month-to-Month' : data.duration === 'LEGACY_UNSPECIFIED' ? 'Historical term not specified' : `${data.duration.slice(0,-1)} Months`) : durationLabel(data.duration)],
     [english ? 'EFFECTIVE DATE' : 'FECHA DE INICIO',data.issuedAt],
     [english ? 'EXPIRATION DATE' : 'VIGENCIA HASTA',data.expiresAt],
     [english ? 'STATUS' : 'ESTADO',english ? ({ACTIVE:'Active',EXPIRED:'Expired',CANCELLED:'Cancelled',PENDING:'Pending'}[data.status as 'ACTIVE'|'EXPIRED'|'CANCELLED'|'PENDING'] ?? data.status) : statusLabel(data.status)],

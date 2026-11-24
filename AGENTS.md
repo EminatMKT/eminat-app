@@ -1,7 +1,7 @@
 # Eminat App — Instrucciones para agentes
 
 Sistema operativo interno de Eminat Group. Plataforma de gestión empresarial desarrollada con
-Next.js 14 + Supabase. Desplegada en Vercel en `app.stratixsolutions.us`.
+Next.js 16 + Supabase. Desplegada en Vercel en `app.stratixsolutions.us`.
 
 Este archivo es la **única fuente** de instrucciones para cualquier CLI de agentes (Claude Code,
 Codex, opencode, etc.).
@@ -62,7 +62,7 @@ producción es el PR revisado y los permisos de las cuentas.
 
 ## Stack
 
-- **Frontend:** Next.js 14 (App Router) + TypeScript + Tailwind CSS + Framer Motion
+- **Frontend:** Next.js 16 (App Router) + TypeScript + Tailwind CSS + Framer Motion
 - **Backend/DB:** Supabase (PostgreSQL + Auth + Realtime)
 - **Email:** Resend (con `@react-email/components`)
 - **Deploy:** Vercel
@@ -274,3 +274,67 @@ bugs; una pieza compartida rota para "hacer lugar" a un módulo rompe a todos lo
 - **Datos de prueba por el frontend, no por seed:** se cargan usando la app, como lo haría un
   usuario.
 - Código nuevo (identificadores) en inglés; lo existente no se traduce de paso.
+
+## Complimentary membership authorizations
+
+Local visual review can set `LOCAL_REVIEW_FIXTURES=true` with `NODE_ENV=development`
+to display an explicit mock-data badge linking to the loopback review guide. It grants
+no access and does not change authentication, API or production behavior. The external
+workspace `local-complimentary-preview/` harness simulates Auth/database responses for
+screen review only; never treat it as integrated backend or payment validation.
+
+Native Sales keeps canonical coverage in `sales_memberships`; `membership_type` continues
+meaning INDIVIDUAL/FAMILY. `funding_type=COMPLIMENTARY` references a tenant-scoped,
+approved `sales_complimentary_benefits` record. Only active Sales ADMINISTRATOR/SUPERADMIN
+actors may authorize or manage benefits; custom durations require SUPERADMIN. Browser roles
+have no table/RPC access. All entry points independently authenticate staff or Patient sessions.
+The new functions must never write payments, QBO invoices or enrollment intents for a waiver.
+Preserve paid QBO trigger behavior and report paid sales separately from courtesy activations.
+
+Feature switches default off: `LILLY_COMPLIMENTARY_ENABLED` on the server and
+`NEXT_PUBLIC_LILLY_COMPLIMENTARY_ENABLED` for the CRM panel; organization settings also require
+explicit enablement and timezone. Each authorization captures its timezone. Canonical date
+coverage includes the last covered day; benefit expiry is the following local midnight,
+exclusive. Code hashes are single use and raw codes appear only at issuance. Assigned-code
+possession plus a verified matching email can explicitly link an unbound beneficiary to the
+existing contact; ambiguous/staff/previously-bound identities fail closed. Invitations use
+existing verified registration, opaque Patient sessions and encrypted email outbox; never send
+passwords. The independent notification worker uses its own secret and has no deployment or
+schedule until reviewed. `scripts/qa/complimentary-isolated.py` creates its own temporary,
+socket-only PostgreSQL cluster with synthetic auth/profile/storage bootstrap and destroys
+only that newly created directory. It never accepts an existing database URL. See
+`docs/complimentary-memberships.md` and `docs/complimentary-deployment-plan.md`.
+
+The complimentary review panel offers standard 3/6/12-month selectors (custom terms
+remain SUPERADMIN-only), distinguishes direct activation from optional account-linking
+invitations, and displays the inclusive last covered day in each benefit's captured
+IANA timezone. Lifecycle choices mirror database state restrictions; hiding an action
+never substitutes for server/SQL authorization. The local fixture is not SQL/Auth proof.
+
+
+## Isolated complimentary hardening branch
+
+This branch upgrades Next/React to 16.4.6/19.3.1, uses async request APIs and async
+SSR cookie reads, and runs ESLint directly. React Compiler is not enabled; its
+new advisory diagnostics are reported as warnings while hook-order, existing
+hook-dependency severity and no-explicit-any rules remain enforced. All app source
+is linted; no security/authentication guard is disabled.
+
+`20261123010000_complimentary_hardening.sql` follows the original feature migration.
+It adds authorized, idempotent SUSPENDED-to-ACTIVE reactivation with unchanged expiry,
+contact locking/overlap checks and audit events. REVOKED or expired benefits cannot
+reactivate. Expired coverage needs a separate reviewed authorization/renewal.
+Custom terms and custom extensions cannot activate while business policy is pending.
+SUPERADMIN may submit immutable custom proposals with explicit expiry, justification
+and server-resolved administrator identity; there is no policy-approval bypass.
+
+Notification templates support en/es and use the contact's preferred_language, with
+Spanish fallback. The authenticated Patient language resource can change only the
+caller's own bound contact. All delivery is blocked for local/development config,
+regardless of provider keys. The browser fixture is not Auth/PostgREST/SQL evidence.
+
+## Dedicated staging release configuration
+The explicit staging tier is pinned to Supabase sykxgksagbhmfrzbbtfe and exact staging HTTPS hosts. Production origins and Vercel Preview credential safeguards remain intact. Staging mail must use private capture only, with synthetic recipients. No production data or live payment credentials belong in this tier.
+
+## Complimentary contact completeness
+Assigned complimentary benefits require nonblank first and last names on the existing contact. The API returns COMPLIMENTARY_CONTACT_INCOMPLETE before issuing a benefit; the bilingual administrator screen explains how to complete the record. Database constraints remain unchanged.

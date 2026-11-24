@@ -27,9 +27,13 @@ const clientSchema = z.object({
   //    consumidor era Vercel Preview. Las ramas salen de main y se prueban en local.
   //    NEXT_PUBLIC_ porque esta validación corre en el cliente (isProdDb/badge):
   //    sin el prefijo, Next no lo inyecta al bundle y en el browser sería undefined.
-  NEXT_PUBLIC_APP_ENV: z.enum(['local', 'production']).default('local'),
+  NEXT_PUBLIC_APP_ENV: z.enum(['local', 'staging', 'production']).default('local'),
 
 }).superRefine((env, ctx) => {
+  if (env.NEXT_PUBLIC_APP_ENV === 'staging' && !/^https:\/\/sykxgksagbhmfrzbbtfe\.supabase\.co\/?$/.test(env.NEXT_PUBLIC_SUPABASE_URL)) {
+    ctx.addIssue({code:'custom',path:['NEXT_PUBLIC_SUPABASE_URL'],message:'Staging requires its dedicated isolated database.'})
+  }
+
   // Salvaguarda: solo production puede apuntar a la base de PRODUCCIÓN. Si el tier
   // local la tiene, es un error de configuración — corregir antes de seguir.
   if (env.NEXT_PUBLIC_APP_ENV !== 'production' && env.NEXT_PUBLIC_SUPABASE_URL.includes(PROD_DB_REF)) {

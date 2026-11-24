@@ -7,10 +7,10 @@ import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 export const dynamic = 'force-dynamic'
 const decision = z.object({ status: z.enum(['APPROVED', 'REJECTED']) }).strict()
 
-export async function POST(request: Request, context: { params: { id: string; requestId: string } }) {
+export async function POST(request: Request, context: { params: Promise<{ id: string; requestId: string }> }) {
   try {
-    if (!z.uuid().safeParse(context.params.id).success ||
-        !z.uuid().safeParse(context.params.requestId).success)
+    if (!z.uuid().safeParse((await context.params).id).success ||
+        !z.uuid().safeParse((await context.params).requestId).success)
       return Response.json({ code: 'INVALID_ID' }, { status: 400 })
     const actor = await resolveSalesActor(request)
     if (Number(request.headers.get('content-length') ?? '0') > 32768)
@@ -23,7 +23,7 @@ export async function POST(request: Request, context: { params: { id: string; re
     if (!parsed.success) return Response.json({ code: 'VALIDATION_ERROR' }, { status: 422 })
     const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_review_family_member', {
       p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
-      p_membership_id: context.params.id, p_family_request_id: context.params.requestId,
+      p_membership_id: (await context.params).id, p_family_request_id: (await context.params).requestId,
       p_decision: parsed.data.status, p_request_id: randomUUID(),
     })
     if (error) return nativeSalesDatabaseError(error)

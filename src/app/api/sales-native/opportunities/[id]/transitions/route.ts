@@ -19,9 +19,9 @@ const transition = z.object({
   reason: z.string().trim().min(1).max(500).optional(),
 }).strict()
 
-export async function POST(request: Request, context: { params: { id: string } }) {
+export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    if (!uuid.test(context.params.id)) return Response.json({ code: 'INVALID_ID' }, { status: 400 })
+    if (!uuid.test((await context.params).id)) return Response.json({ code: 'INVALID_ID' }, { status: 400 })
     const actor = await resolveSalesActor(request)
     const header = request.headers.get('if-match')
     if (!header || !/^(?:"[1-9]\d*"|[1-9]\d*)$/.test(header))
@@ -40,7 +40,7 @@ export async function POST(request: Request, context: { params: { id: string } }
     const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_transition_opportunity', {
       p_organization_id: actor.organizationId,
       p_actor_member_id: actor.memberId,
-      p_opportunity_id: context.params.id,
+      p_opportunity_id: (await context.params).id,
       p_expected_version: expectedVersion,
       p_payload: parsed.data,
       p_request_id: randomUUID(),

@@ -9,7 +9,7 @@ const { usuarios } = TABLE_COLUMNS
 const ID_AND_ROLE = 'id,rol,activo'
 
 export default async function requireAdmin(): Promise<Access> {
-  const { data: { user } } = await ssrClient().auth.getUser()
+  const { data: { user } } = await (await ssrClient()).auth.getUser()
   if (!user) return { ok: false, status: 401, error: ACCESS_ERRORS.notAuthenticated }
   const { data: row } = await supabaseAdmin().from(TABLES.usuarios).select(ID_AND_ROLE).eq(usuarios.authId, user.id).maybeSingle()
   const isAdmin = row?.activo === true && normalizeRole(row.rol) === ADMIN_ROLE

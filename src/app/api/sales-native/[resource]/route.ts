@@ -39,9 +39,10 @@ const opportunityCreate = z.object({
   teamId: z.uuid().nullable().optional(),
 }).strict()
 
-export async function GET(request: Request, context: { params: { resource: string } }) {
+export async function GET(request: Request, context: { params: Promise<{ resource: string }> }) {
   try {
-    if (!isNativeCrmResource(context.params.resource))
+    const resource=(await context.params).resource
+    if (!isNativeCrmResource(resource))
       return Response.json({ code: 'NOT_FOUND' }, { status: 404 })
     const actor = await resolveSalesActor(request)
     const params = new URL(request.url).searchParams
@@ -54,13 +55,13 @@ export async function GET(request: Request, context: { params: { resource: strin
         !Number.isSafeInteger(offset) || offset < 0 || offset > 100000 ||
         (q !== null && q.length > 200))
       return Response.json({ code: 'INVALID_FILTER' }, { status: 400 })
-    return scopedCrmRead(actor, context.params.resource, { limit, offset, q })
+    return scopedCrmRead(actor, resource, { limit, offset, q });
   } catch (error) { return nativeSalesErrorResponse(error) }
 }
 
-export async function POST(request: Request, context: { params: { resource: string } }) {
+export async function POST(request: Request, context: { params: Promise<{ resource: string }> }) {
   try {
-    if (!['contacts', 'accounts', 'opportunities'].includes(context.params.resource))
+    if (!['contacts', 'accounts', 'opportunities'].includes((await context.params).resource))
       return Response.json({ code: 'METHOD_NOT_ALLOWED' }, { status: 405 })
     const actor = await resolveSalesActor(request)
     const key = request.headers.get('idempotency-key')
@@ -72,7 +73,7 @@ export async function POST(request: Request, context: { params: { resource: stri
     try { payload = await request.json() } catch { return Response.json({ code: 'INVALID_JSON' }, { status: 400 }) }
     if (Buffer.byteLength(JSON.stringify(payload)) > 32768)
       return Response.json({ code: 'BODY_TOO_LARGE' }, { status: 413 })
-    if (context.params.resource === 'opportunities') {
+    if ((await context.params).resource === 'opportunities') {
       const parsed = opportunityCreate.safeParse(payload)
       if (!parsed.success) return Response.json({ code: 'VALIDATION_ERROR' }, { status: 422 })
       const body = parsed.data
@@ -99,7 +100,7 @@ export async function POST(request: Request, context: { params: { resource: stri
       if (error) return nativeSalesDatabaseError(error)
       return Response.json({ data }, { status: 201, headers: { 'Cache-Control': 'no-store' } })
     }
-    const parsed = context.params.resource === 'contacts'
+    const parsed = (await context.params).resource === 'contacts'
       ? contactCreate.safeParse(payload) : accountCreate.safeParse(payload)
     if (!parsed.success) return Response.json({ code: 'VALIDATION_ERROR' }, { status: 422 })
     const body = parsed.data
@@ -107,14 +108,14 @@ export async function POST(request: Request, context: { params: { resource: stri
     const type = 'type' in body ? body.type : null
     const primaryAccountId = 'primaryAccountId' in body ? body.primaryAccountId ?? null : null
     const payloadHash = createHash('sha256').update(JSON.stringify([
-      context.params.resource, name, body.email ?? null, body.phone ?? null,
+      (await context.params).resource, name, body.email ?? null, body.phone ?? null,
       body.source ?? null, type, primaryAccountId, body.ownerMemberId ?? null,
       body.teamId ?? null,
     ])).digest('hex')
     const { data, error } = await supabaseAdmin({ noStore: true }).rpc('native_sales_create_directory_record', {
       p_organization_id: actor.organizationId,
       p_actor_member_id: actor.memberId,
-      p_resource: context.params.resource,
+      p_resource: (await context.params).resource,
       p_name: name,
       p_email: body.email ?? null,
       p_phone: body.phone ?? null,

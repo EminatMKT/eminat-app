@@ -6,8 +6,9 @@ import { ORG_CATALOGS, isOrgCat, pickFields, dupError } from '@/features/admin/o
 import type { OrgRow } from '@/shared/context/loadAppData'
 import { ADMIN_ERRORS } from '@/shared/errors'
 
-export async function PATCH(req: NextRequest, { params }: { params: { cat: string; id: string } }) {
-  const authz = await requireAdmin(); if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
+export async function PATCH(req: NextRequest, props: { params: Promise<{ cat: string; id: string }> }) {
+  const params = await props.params;
+  const authz = await requireAdmin();if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
   if (!isOrgCat(params.cat)) return NextResponse.json({ error: ADMIN_ERRORS.unknownCatalog }, { status: 404 })
 
   const row = pickFields(params.cat, (await req.json()) as Partial<OrgRow>)
@@ -24,8 +25,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { cat: strin
   return NextResponse.json({ row: data })
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { cat: string; id: string } }) {
-  const authz = await requireAdmin(); if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
+export async function DELETE(_req: NextRequest, props: { params: Promise<{ cat: string; id: string }> }) {
+  const params = await props.params;
+  const authz = await requireAdmin();if (!authz.ok) return NextResponse.json({ error: authz.error }, { status: authz.status })
   if (!isOrgCat(params.cat)) return NextResponse.json({ error: ADMIN_ERRORS.unknownCatalog }, { status: 404 })
 
   const db = supabaseAdmin()

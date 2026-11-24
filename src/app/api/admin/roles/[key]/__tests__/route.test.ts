@@ -21,7 +21,7 @@ import { DELETE, PATCH } from '../route'
 
 const URL = 'https://app.stratixsolutions.us/api/admin/roles/soporte'
 const init = (payload: unknown) => ({ method: 'PATCH', body: JSON.stringify(payload) })
-const context = { params: { key: 'soporte' } }
+const context = { params: Promise.resolve({ key: 'soporte' }) }
 const patch = (payload: unknown) => PATCH(new Request(URL, init(payload)), context)
 const remove = () => DELETE(new Request(URL), context)
 const admin = { ok: true, status: 200 }

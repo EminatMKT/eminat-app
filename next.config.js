@@ -17,7 +17,6 @@ const nextConfig = {
   // sin tocar lo que el dev está usando.
   distDir: process.env.NEXT_BUILD_DIR || '.next',
   // Lint (y falla el build en) todo el código propio, no solo los dirs default de Next.
-  eslint: { dirs: ['src'] },
   images: {
     domains: ['ruedelunbtaomhrzgelc.supabase.co'],
   },

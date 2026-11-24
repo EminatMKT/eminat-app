@@ -89,21 +89,22 @@ const opportunityPatch = z.object({
   nextFollowUpAt:z.iso.datetime({ offset:true }).nullable().optional(),
 }).strict()
 
-export async function GET(request: Request, context: { params: { resource: string; id: string } }) {
+export async function GET(request: Request, context: { params: Promise<{ resource: string; id: string }> }) {
   try {
-    if (!isNativeCrmResource(context.params.resource))
+    const resource=(await context.params).resource
+    if (!isNativeCrmResource(resource))
       return Response.json({ code: 'NOT_FOUND' }, { status: 404 })
-    if (!uuid.test(context.params.id)) return Response.json({ code: 'INVALID_ID' }, { status: 400 })
+    if (!uuid.test((await context.params).id)) return Response.json({ code: 'INVALID_ID' }, { status: 400 })
     const actor = await resolveSalesActor(request)
-    return scopedCrmRead(actor, context.params.resource, { id: context.params.id, limit: 1 })
+    return scopedCrmRead(actor, resource, { id: (await context.params).id, limit: 1 });
   } catch (error) { return nativeSalesErrorResponse(error) }
 }
 
-export async function PATCH(request: Request, context: { params: { resource: string; id: string } }) {
+export async function PATCH(request: Request, context: { params: Promise<{ resource: string; id: string }> }) {
   try {
-    if (!['leads', 'contacts', 'accounts', 'opportunities'].includes(context.params.resource))
+    if (!['leads', 'contacts', 'accounts', 'opportunities'].includes((await context.params).resource))
       return Response.json({ code: 'METHOD_NOT_ALLOWED' }, { status: 405 })
-    if (!uuid.test(context.params.id)) return Response.json({ code: 'INVALID_ID' }, { status: 400 })
+    if (!uuid.test((await context.params).id)) return Response.json({ code: 'INVALID_ID' }, { status: 400 })
     const actor = await resolveSalesActor(request)
     const header = request.headers.get('if-match')
     if (!header || !/^(?:"[1-9]\d*"|[1-9]\d*)$/.test(header))
@@ -117,26 +118,26 @@ export async function PATCH(request: Request, context: { params: { resource: str
     try { payload = await request.json() } catch { return Response.json({ code: 'INVALID_JSON' }, { status: 400 }) }
     if (Buffer.byteLength(JSON.stringify(payload)) > 32768)
       return Response.json({ code: 'BODY_TOO_LARGE' }, { status: 413 })
-    const parsed = (context.params.resource === 'leads' ? leadPatch :
-      context.params.resource === 'contacts' ? contactPatch :
-      context.params.resource === 'accounts' ? accountPatch : opportunityPatch).safeParse(payload)
+    const parsed = ((await context.params).resource === 'leads' ? leadPatch :
+      (await context.params).resource === 'contacts' ? contactPatch :
+      (await context.params).resource === 'accounts' ? accountPatch : opportunityPatch).safeParse(payload)
     if (!parsed.success || Object.keys(parsed.data).length === 0)
       return Response.json({ code: 'VALIDATION_ERROR' }, { status: 422 })
-    const { data, error } = context.params.resource === 'leads'
+    const { data, error } = (await context.params).resource === 'leads'
       ? await supabaseAdmin({ noStore: true }).rpc('native_sales_update_lead', {
         p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
-        p_lead_id: context.params.id, p_expected_version: expectedVersion,
+        p_lead_id: (await context.params).id, p_expected_version: expectedVersion,
         p_patch: parsed.data, p_request_id: randomUUID(),
       })
-      : context.params.resource === 'opportunities'
+      : (await context.params).resource === 'opportunities'
       ? await supabaseAdmin({ noStore: true }).rpc('native_sales_update_opportunity', {
         p_organization_id: actor.organizationId,p_actor_member_id: actor.memberId,
-        p_opportunity_id: context.params.id,p_expected_version: expectedVersion,
+        p_opportunity_id: (await context.params).id,p_expected_version: expectedVersion,
         p_patch: parsed.data,p_request_id: randomUUID(),
       })
       : await supabaseAdmin({ noStore: true }).rpc('native_sales_update_directory_record', {
         p_organization_id: actor.organizationId, p_actor_member_id: actor.memberId,
-        p_resource: context.params.resource, p_record_id: context.params.id,
+        p_resource: (await context.params).resource, p_record_id: (await context.params).id,
         p_expected_version: expectedVersion, p_patch: parsed.data,
         p_request_id: randomUUID(),
       })

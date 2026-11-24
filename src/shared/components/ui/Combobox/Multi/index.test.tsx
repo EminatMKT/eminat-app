@@ -16,7 +16,7 @@ describe('MultiCombobox', () => {
     const html = draw()
     expect(html).toContain('role="combobox"')
     expect(html).toContain(`value="${SUMMARY}"`)
-    expect(html).toContain('readonly=""')
+    expect(html).toMatch(/readonly=""/i)
     expect(html).toContain('aria-expanded="false"')
   })
 

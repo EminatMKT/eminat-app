@@ -41,7 +41,7 @@ describe('Sales commercial workspace', () => {
     expect(mocks.organizations).toHaveBeenCalledWith(expect.anything(), 'auth-id', 'profile-id')
   })
   it('renders only the explicitly selected authorized organization', async () => {
-    const html = renderToStaticMarkup(await Page({ searchParams: { organization: emc.organizationId } }))
+    const html = renderToStaticMarkup(await Page({ searchParams: Promise.resolve({ organization: emc.organizationId }) }))
     expect(html).toContain(`data-organization-id="${emc.organizationId}"`)
     expect(html).not.toContain(`data-organization-id="${stratix.organizationId}"`)
   })
@@ -55,11 +55,11 @@ describe('Sales commercial workspace', () => {
     await expect(Page()).rejects.toThrow('NOT_FOUND')
   })
   it('rejects a corporate organization query even for its authorized superadmin', async () => {
-    await expect(Page({ searchParams: { organization: stratix.organizationId } })).rejects.toThrow('NOT_FOUND')
+    await expect(Page({ searchParams: Promise.resolve({ organization: stratix.organizationId }) })).rejects.toThrow('NOT_FOUND')
   })
   it.each(['33333333-3333-4333-8333-333333333333', ['a','b'], ''])
     ('rejects an unauthorized or malformed organization selection', async organization => {
-      await expect(Page({ searchParams: { organization } })).rejects.toThrow('NOT_FOUND')
+      await expect(Page({ searchParams: Promise.resolve({ organization }) })).rejects.toThrow('NOT_FOUND')
     })
   it('does not expose Sales to a login without an active membership', async () => {
     mocks.organizations.mockResolvedValue([])

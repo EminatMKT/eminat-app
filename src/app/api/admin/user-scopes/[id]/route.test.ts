@@ -22,24 +22,24 @@ describe('admin company grants', () => {
 
   it('rejects non-admin reads before querying', async () => {
     fakes.guard.mockResolvedValue({ ok: false, status: 403, error: 'Forbidden' })
-    expect((await GET(request('GET'), { params: { id } })).status).toBe(403)
+    expect((await GET(request('GET'), { params: Promise.resolve({ id }) })).status).toBe(403)
     expect(fakes.rows).not.toHaveBeenCalled()
   })
 
   it('returns only the selected user’s company codes', async () => {
     fakes.rows.mockResolvedValue({ data: [{ empresa_codigo: 'EMC' }, { empresa_codigo: 'ERG' }], error: null })
-    const response = await GET(request('GET'), { params: { id } })
+    const response = await GET(request('GET'), { params: Promise.resolve({ id }) })
     expect(await response.json()).toEqual({ codes: ['EMC', 'ERG'] })
   })
 
   it('rejects invalid grants without calling the privileged RPC', async () => {
-    expect((await PUT(request('PUT', { codes: ['EMC', '../other'] }), { params: { id } })).status).toBe(400)
+    expect((await PUT(request('PUT', { codes: ['EMC', '../other'] }), { params: Promise.resolve({ id }) })).status).toBe(400)
     expect(fakes.rpc).not.toHaveBeenCalled()
   })
 
   it('sends multiple grants to one atomic server-side operation', async () => {
     fakes.rpc.mockResolvedValue({ error: null })
-    const response = await PUT(request('PUT', { codes: ['EMC', 'ERG'] }), { params: { id } })
+    const response = await PUT(request('PUT', { codes: ['EMC', 'ERG'] }), { params: Promise.resolve({ id }) })
     expect(response.status).toBe(200)
     expect(fakes.rpc).toHaveBeenCalledWith('replace_lilly_user_companies', {
       p_user: id, p_codes: ['EMC', 'ERG'], p_actor: 'admin-1',

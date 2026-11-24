@@ -10,6 +10,7 @@ import NativeSalesImport from './NativeSalesImport'
 import NativeSalesRecordActions from './NativeSalesRecordActions'
 import NativeReportSchedules from './NativeReportSchedules'
 import NativeMembershipFamily from './NativeMembershipFamily'
+import NativeComplimentaryMemberships from './NativeComplimentaryMemberships'
 import NativeMembershipIssue from './NativeMembershipIssue'
 import NativeMembershipRenewal from './NativeMembershipRenewal'
 import NativeSalesEmail from './NativeSalesEmail'
@@ -294,6 +295,7 @@ export default function NativeSalesModule({ organizationId, workspaceLabelKey }:
       </div>
       {!access?.allowed && !loading && <p role="alert" className={s.error}>{error || t('salesNative.salesAccessUnavailable')}</p>}
       {access?.allowed && <>
+        {tab==='memberships' && process.env.NEXT_PUBLIC_LILLY_COMPLIMENTARY_ENABLED==='true' && ['ADMINISTRATOR','SUPERADMIN'].includes(access.role) && <NativeComplimentaryMemberships key={organizationId} request={request} role={access.role} />}
         {tab==='payments' && <NativePaymentsRenewals request={request} role={access.role}
           showPatientQbo={organizationId==='9efab353-46a0-43d1-9901-e3f185dc5d30'} />}
         {tab==='portal-leads' && <NativePortalLeads request={request} users={directory.users}

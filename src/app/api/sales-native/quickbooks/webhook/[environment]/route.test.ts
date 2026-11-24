@@ -30,7 +30,7 @@ describe('Native Sales QuickBooks webhook boundary', () => {
 
   it('rejects unsigned accounting events before touching persistence', async () => {
     process.env.LILLY_QBO_SANDBOX_WEBHOOK_VERIFIER = verifier
-    const response = await POST(request('invalid'), { params: { environment: 'sandbox' } })
+    const response = await POST(request('invalid'), { params: Promise.resolve({ environment: 'sandbox' }) })
     expect(response.status).toBe(401)
     expect(from).not.toHaveBeenCalled()
   })
@@ -39,7 +39,7 @@ describe('Native Sales QuickBooks webhook boundary', () => {
     process.env.LILLY_QBO_SANDBOX_WEBHOOK_VERIFIER = verifier
     insert.mockResolvedValue({ error: { code: '23505' } })
     const signature = createHmac('sha256', verifier).update(body).digest('base64')
-    const response = await POST(request(signature), { params: { environment: 'sandbox' } })
+    const response = await POST(request(signature), { params: Promise.resolve({ environment: 'sandbox' }) })
     expect(response.status).toBe(200)
     expect(insert).toHaveBeenCalledOnce()
     expect(insert.mock.calls[0][0]).toMatchObject({ environment: 'sandbox', realm_id: '123',
@@ -50,7 +50,7 @@ describe('Native Sales QuickBooks webhook boundary', () => {
     process.env.LILLY_QBO_SANDBOX_WEBHOOK_VERIFIER = verifier
     connection.mockResolvedValue({ data: null, error: null })
     const signature = createHmac('sha256', verifier).update(body).digest('base64')
-    const response = await POST(request(signature), { params: { environment: 'sandbox' } })
+    const response = await POST(request(signature), { params: Promise.resolve({ environment: 'sandbox' }) })
     expect(response.status).toBe(403)
     expect(insert).not.toHaveBeenCalled()
   })

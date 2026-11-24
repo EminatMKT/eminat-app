@@ -5,7 +5,8 @@ import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const access = await requireAdmin()
   if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status })
   if (!uuid.test(params.id)) return NextResponse.json({ error: 'Usuario inválido.' }, { status: 400 })
@@ -16,7 +17,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     { headers: { 'Cache-Control': 'private, no-store' } })
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const access = await requireAdmin()
   if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status })
   if (!uuid.test(params.id)) return NextResponse.json({ error: 'Usuario inválido.' }, { status: 400 })

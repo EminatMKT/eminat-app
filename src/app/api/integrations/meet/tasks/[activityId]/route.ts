@@ -9,9 +9,10 @@ import dispatchTaskAssignmentEmails from '@/features/tasks/server/notifications'
 export const runtime = 'nodejs'
 export const OPTIONS = optionsResponse
 const idSchema = z.string().uuid()
-type RouteContext = { params: Record<'activityId', string> }
+type RouteContext = { params: Promise<Record<'activityId', string>> }
 
-export async function GET(request: Request, { params }: RouteContext) {
+export async function GET(request: Request, props: RouteContext) {
+  const params = await props.params;
   const auth = await requireMeetTaskActor(request)
   if (!auth.ok || !auth.actor) return apiAuthFailure(request, auth)
   if (!idSchema.safeParse(params.activityId).success) return apiFailure(request, MEET_ERRORS.invalidId)
@@ -20,7 +21,8 @@ export async function GET(request: Request, { params }: RouteContext) {
   return result.ok ? apiJson(request, body) : apiFailure(request, result)
 }
 
-export async function PATCH(request: Request, { params }: RouteContext) {
+export async function PATCH(request: Request, props: RouteContext) {
+  const params = await props.params;
   const auth = await requireMeetTaskActor(request)
   if (!auth.ok || !auth.actor) return apiAuthFailure(request, auth)
   if (!idSchema.safeParse(params.activityId).success) return apiFailure(request, MEET_ERRORS.invalidId)

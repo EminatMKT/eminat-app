@@ -17,7 +17,7 @@ const ignore = () => undefined
 const draw = (placeholder?: string) => renderToStaticMarkup(
   <CatalogoSelect catalogo={CATALOG} valor="" etiqueta={BUCKET} placeholder={placeholder} onChange={ignore} />,
 )
-const hasHandler = (node: ReactElement): node is Box => typeof node.props.onChange === 'function'
+const hasHandler = (node: ReactElement): node is Box => !!node.props && typeof node.props==='object' && 'onChange' in node.props && typeof node.props.onChange === 'function'
 
 /** Picks `value` in the drawn box and answers what the caller was handed, if anything. */
 function pick(value: string, placeholder?: string): string[] {

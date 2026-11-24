@@ -1,3 +1,5 @@
+import {patientPortalOrigin} from '@/server/sales-native/deployment-stage'
+import { redeemComplimentary, complimentaryCoverage } from '@/server/sales-native/complimentary'
 import { readJsonObject } from '@/server/read-json-object'
 import { recordSecurityEvent } from '@/server/security-audit'
 import { randomBytes, createHash, createHmac } from 'node:crypto'
@@ -77,7 +79,8 @@ async function authenticate(request: Request): Promise<Authenticated | null> {
 
 const readBody = (request: Request) => readJsonObject(request, 8192)
 
-export async function GET(request: Request, { params }: Route) {
+export async function GET(request: Request, props: Route) {
+  const params = await props.params;
   const { resource } = await params
   if (resource === 'plans') {
     const admin = supabaseAdmin({ noStore: true })
@@ -118,13 +121,13 @@ export async function GET(request: Request, { params }: Route) {
     if (!patient.identity) return respond({ data: null })
     const admin = supabaseAdmin({ noStore: true })
     const { data: real, error } = await admin.from('sales_memberships')
-      .select('id,plan,membership_type,duration,status,issued_at,expires_at,code,visit_fee_cents')
+      .select('id,plan,membership_type,duration,status,issued_at,expires_at,code,visit_fee_cents,funding_type,complimentary_benefit_id')
       .eq('organization_id', patient.identity.organization_id)
       .eq('primary_contact_id', patient.identity.contact_id).eq('is_demo', false)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (error) return unavailable()
     const fallback = real ? null : await admin.from('sales_memberships')
-      .select('id,plan,membership_type,duration,status,issued_at,expires_at,code,visit_fee_cents')
+      .select('id,plan,membership_type,duration,status,issued_at,expires_at,code,visit_fee_cents,funding_type,complimentary_benefit_id')
       .eq('organization_id', patient.identity.organization_id)
       .eq('primary_contact_id', patient.identity.contact_id).eq('is_demo', true)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
@@ -136,7 +139,9 @@ export async function GET(request: Request, { params }: Route) {
       .eq('membership_id', data.id).eq('status', 'ACTIVE')
     if (membersError || !members) return unavailable()
     const primary = members.find(member => member.relationship === 'PRIMARY')
-    return respond({ data: { ...data, primary_member_code: primary?.member_code ?? data.code,
+    let coverage
+    try { coverage=await complimentaryCoverage(data,patient.identity.organization_id) } catch { return unavailable() }
+    return respond({ data: { ...data,...coverage, primary_member_code: primary?.member_code ?? data.code,
       covered_members: members.length, qa_synthetic: !real } })
   }
   if (resource === 'familyaddition') {
@@ -237,13 +242,13 @@ export async function GET(request: Request, { params }: Route) {
         (params.has('memberId') && !uuidPattern.test(params.get('memberId') ?? ''))) return invalid()
     const admin = supabaseAdmin({ noStore: true })
     const { data: real, error } = await admin.from('sales_memberships')
-      .select('id,code,first_name,last_name,plan,membership_type,duration,issued_at,expires_at,status')
+      .select('id,code,first_name,last_name,plan,membership_type,duration,issued_at,expires_at,status,funding_type,complimentary_benefit_id')
       .eq('organization_id', patient.identity.organization_id)
       .eq('primary_contact_id', patient.identity.contact_id).eq('is_demo', false)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (error) return unavailable()
     const fallback = real ? null : await admin.from('sales_memberships')
-      .select('id,code,first_name,last_name,plan,membership_type,duration,issued_at,expires_at,status')
+      .select('id,code,first_name,last_name,plan,membership_type,duration,issued_at,expires_at,status,funding_type,complimentary_benefit_id')
       .eq('organization_id', patient.identity.organization_id)
       .eq('primary_contact_id', patient.identity.contact_id).eq('is_demo', true)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
@@ -251,6 +256,9 @@ export async function GET(request: Request, { params }: Route) {
     const data = real ?? fallback?.data
     if (!data?.code || data.status !== 'ACTIVE')
       return respond({ code: 'MEMBERSHIP_NOT_FOUND' }, 404)
+    let verifiedCoverage
+    try { verifiedCoverage=await complimentaryCoverage(data,patient.identity.organization_id) } catch { return unavailable() }
+    if (verifiedCoverage.status!=='ACTIVE') return respond({code:'MEMBERSHIP_NOT_FOUND'},404)
     const memberId = params.get('memberId')
     const memberQuery = admin.from('sales_household_members')
       .select('id,contact_id,relationship,code,member_code')
@@ -277,6 +285,7 @@ export async function GET(request: Request, { params }: Route) {
       locale:params.get('language') === 'en' ? 'en' : 'es',
       issuedAt: data.issued_at, expiresAt: data.expires_at,
       qaSynthetic: !real,
+      fundingType:data.funding_type,benefitMonths:'benefit_duration_months' in verifiedCoverage?verifiedCoverage.benefit_duration_months:undefined,
       status: data.status === 'ACTIVE' && data.expires_at < new Date().toISOString().slice(0, 10)
         ? 'EXPIRED' : data.status,
     })
@@ -313,8 +322,8 @@ export async function GET(request: Request, { params }: Route) {
         // Only a recorded QBO-hosted URL for this authenticated patient's intent is exposed.
         qbo_hosted_payment_url: !reviewRequested && invoice?.qbo_invoice_status !== 'VOID' && !invoice?.qa_synthetic && paymentUrl &&
           /^https:\/\/connect\.intuit\.com\/t\/[^\s]+$/.test(paymentUrl)
-          ? paymentUrl : null }
-    }) })
+          ? paymentUrl : null };
+    }) });
   }
   return respond({ code: 'NOT_FOUND' }, 404)
 }
@@ -345,7 +354,7 @@ export async function POST(request: Request, { params }: Route) {
     const token = data?.properties?.hashed_token
     if (!error && token && /^[A-Za-z0-9_-]{12,512}$/.test(token)) {
       // A fragment never reaches the Portal web server or ordinary URL logs.
-      const actionUrl = new URL('https://portal.corazonsalud.health/recuperar')
+      const actionUrl = new URL(`${patientPortalOrigin()}/recuperar`)
       actionUrl.hash = new URLSearchParams({ token_hash: token }).toString()
       await sendPatientRecovery(randomBytes(16).toString('hex'), email, actionUrl.toString())
     }
@@ -401,7 +410,7 @@ export async function POST(request: Request, { params }: Route) {
       // verification link here so the global Auth sender and templates stay unchanged.
       const { data, error } = await supabaseAdmin({ noStore: true }).auth.admin.generateLink({
         type: 'signup', email, password, options: {
-          redirectTo: 'https://portal.corazonsalud.health/login',
+          redirectTo: `${patientPortalOrigin()}/login`,
           data: { corazon_patient_signup: true },
         },
       })
@@ -414,7 +423,7 @@ export async function POST(request: Request, { params }: Route) {
         if (!recoveryError && canRecover) {
           const { data: recovery, error: linkError } = await admin.auth.admin.generateLink({
             type: 'magiclink', email,
-            options: { redirectTo: 'https://portal.corazonsalud.health/login' },
+            options: { redirectTo: `${patientPortalOrigin()}/login` },
           })
           if (!linkError && recovery?.properties?.action_link)
             await sendPatientVerification(randomBytes(16).toString('hex'), email,
@@ -444,6 +453,17 @@ export async function POST(request: Request, { params }: Route) {
   }
   const patient = await authenticate(request)
   if (!patient) return respond({ code: 'AUTHENTICATION_REQUIRED' }, 401)
+  if(resource==='language'){
+    if(!patient.identity)return respond({code:'PROFILE_REQUIRED'},409)
+    if(!['en','es'].includes(String(body.language))||Object.keys(body).some(key=>key!=='language'))return invalid()
+    const {data,error}=await supabaseAdmin({noStore:true}).rpc('native_sales_patient_language',{p_auth:patient.authId,p_language:body.language})
+    return error?unavailable():respond({saved:data===true})
+  }
+  if (resource === 'complimentary') {
+    const organization=patient.identity?.organization_id??scope()?.organization
+    if (!organization) return unavailable()
+    return redeemComplimentary(patient.authId,organization,body)
+  }
   if (resource === 'logout') {
     const handle = (request.headers.get('authorization') ?? '').slice(8)
     const { error } = await supabaseAdmin({ noStore: true }).from('sales_patient_sessions')

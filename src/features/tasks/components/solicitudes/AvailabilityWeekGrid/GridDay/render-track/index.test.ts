@@ -43,7 +43,7 @@ it('renders one SegmentCanvas element per day range', () => {
   const segments = expectSegments(renderTrack(props, input))
 
   expect(segments).toHaveLength(1)
-  expect(segments[0].props.range).toEqual(RANGE)
+  expect((segments[0].props as {range:EditableRange}).range).toEqual(RANGE)
 })
 
 // The week-level message above the grid is the empty state; a day column stays a bare track.

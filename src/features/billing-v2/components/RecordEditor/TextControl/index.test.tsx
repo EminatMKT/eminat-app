@@ -19,7 +19,7 @@ const ignore = () => undefined
 const LABEL = 'Scheduled for'
 const MAX = 12
 
-const isControl = (node: ReactElement): node is Control => typeof node.props.onChange === 'function'
+const isControl = (node: ReactElement): node is Control => !!node.props && typeof node.props==='object' && 'onChange' in node.props && typeof node.props.onChange === 'function'
 
 /** Draws the control inside a render —it asks its Field for a name with a hook— and keeps it. */
 function capture(onChange: (value: string) => void, onBlur?: () => void): Control {

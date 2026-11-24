@@ -20,7 +20,7 @@ function buildGesture(
 function useGesture(props: GridDayProps, columnTop: () => number) {
   const read = useRef(props)
   const [preview, setPreview] = useState<MinuteBounds | null>(null)
-  const ref = useRef<ReturnType<typeof buildGesture>>()
+  const ref = useRef<ReturnType<typeof buildGesture> | undefined>(undefined)
 
   read.current = props
   ref.current ??= buildGesture(read, columnTop, setPreview)

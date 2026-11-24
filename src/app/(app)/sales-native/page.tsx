@@ -8,11 +8,11 @@ import { authorizedCommercialWorkspaces } from '@/features/native-sales/commerci
 
 export const dynamic = 'force-dynamic'
 
-export default async function NativeSalesPreviewPage({ searchParams = {} }: {
-  searchParams?: { organization?: string | string[] }
+export default async function NativeSalesPreviewPage({ searchParams = Promise.resolve({}) }: {
+  searchParams?: Promise<{ organization?: string | string[] }>
 } = {}) {
   if (!nativeSalesEnabled()) notFound()
-  const client = ssrClient()
+  const client = (await ssrClient())
   const { data: { user } } = await client.auth.getUser()
   if (!user) notFound()
   const admin = supabaseAdmin({ noStore: true })
@@ -21,7 +21,7 @@ export default async function NativeSalesPreviewPage({ searchParams = {} }: {
   if (profileError || !profile?.id) notFound()
   const organizations = await readSalesOrganizations(admin, user.id, profile.id)
   const workspaces = authorizedCommercialWorkspaces(organizations)
-  const requested = searchParams.organization
+  const requested = (await searchParams).organization
   const selected = requested === undefined ? workspaces[0]
     : workspaces.find(workspace => workspace.organizationId === requested)
   if (!selected) notFound()

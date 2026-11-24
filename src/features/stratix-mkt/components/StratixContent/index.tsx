@@ -1,4 +1,5 @@
 'use client'
+import type { JSX } from 'react'
 import dynamic from 'next/dynamic'
 import { ModuloTabs } from '@/shared/components/shell'
 import { LoadingView } from '@/shared/components/ui'

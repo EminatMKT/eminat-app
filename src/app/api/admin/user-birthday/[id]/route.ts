@@ -3,10 +3,11 @@ import requireAdmin from '@/shared/db/requireAdmin'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { guayaquilBirthdayDate } from '@/features/directorio/server/birthday-email'
 
-type Params = { params: { id: string } }
+type Params = { params: Promise<{ id: string }> }
 const fields = 'cumple_mes,cumple_dia,anio_nacimiento,cumple_confirmado'
 
-export async function GET(_request: NextRequest, { params }: Params) {
+export async function GET(_request: NextRequest, props: Params) {
+  const params = await props.params;
   const access = await requireAdmin()
   if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status })
   const { data, error } = await supabaseAdmin().from('usuario_perfil_privado')
@@ -15,7 +16,8 @@ export async function GET(_request: NextRequest, { params }: Params) {
   return NextResponse.json(data || { cumple_mes: null, cumple_dia: null, anio_nacimiento: null, cumple_confirmado: false })
 }
 
-export async function PUT(request: NextRequest, { params }: Params) {
+export async function PUT(request: NextRequest, props: Params) {
+  const params = await props.params;
   const access = await requireAdmin()
   if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status })
   const body = await request.json().catch(() => null)
