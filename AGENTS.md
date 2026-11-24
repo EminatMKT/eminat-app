@@ -365,3 +365,8 @@ original evidence. No review transition creates, deletes or alters payments or
 memberships, renews coverage, or resends activation notifications. Review is an
 operator outcome, never payment authorization. Rollback refuses unresolved review
 rows rather than erasing evidence. Production migrations remain maintainer-only.
+
+Expected duplicate finance verification errors use the exact public database code
+`PATIENT_QBO_STATE_CONFLICT` with HTTP 409. Other unknown SQLSTATE 22023 errors remain
+sanitized HTTP 503; mapping a conflict must not retry the RPC, change authorization,
+approve payment, or alter ledger behavior.

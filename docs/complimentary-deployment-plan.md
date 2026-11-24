@@ -183,3 +183,29 @@ one audit record; replay preserved the original evidence; injected audit failure
 back the status change; stale/foreign/browser claims were denied. Rollback refused an
 unresolved review and succeeded on the empty-review copy. These results are isolated
 verification, not a claim that the new migration or worker is deployed.
+
+
+### Duplicate finance verification response correction
+
+`PATIENT_QBO_STATE_CONFLICT` now maps to HTTP 409 with the same public code and
+`Cache-Control: no-store`. This is an API error mapping only: the existing finance
+authorization, explicit confirmation requirement, database RPC, ledger constraints
+and verification transaction are unchanged. Unknown database errors, including
+other SQLSTATE 22023 messages, still return sanitized HTTP 503. No migration is needed.
+The targeted tests use synthetic database responses at the real route boundary;
+they are regression evidence, not a new running-staging integration claim. Existing
+online staging builds are preserved without rebuilding for this correction.
+
+Hosted invoice checkout remains unvalidated because Intuit Development returned
+its unsupported coming-soon link. Accounting invoice/payment balances and explicit
+finance approval do not demonstrate card/ACH authorization, capture, processor
+settlement, refunds or chargebacks. No actual charge, fabricated payment proof or
+hosted URL may substitute for the missing payment acceptance evidence. The existing
+protected production backup handoff is preserved; its approved execution and an
+independent successful restoration are still required before production migration
+or release. PR #211 must remain unmerged while either mandatory gate is unmet.
+
+Targeted response regression: 33 tests passed across the error mapper, real POST
+route with synthetic database responses, and existing authentication/role tests.
+Focused ESLint and whitespace checks passed. No application was rebuilt, no
+provider request or charge was made, and no staging/production data was changed.
