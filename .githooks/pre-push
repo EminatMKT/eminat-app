@@ -7,7 +7,7 @@
 # `rules:check` is not here on purpose: it tests the rules repo, not this app (which has no
 # `rules/` of its own), and a stale test over there should not block a push over here.
 echo "▶ pre-push: contexto + sweep + RLS + typecheck + lint + css + tests"
-pnpm rules:contexto || { echo "✖ un archivo de contexto quedó desactualizado"; exit 1; }
+CI=true pnpm rules:contexto || { echo "✖ un archivo de contexto quedó desactualizado"; exit 1; }
 pnpm rules:sweep || { echo "✖ something was written around the hook (sed, a script) and breaks a rule"; exit 1; }
 pnpm db:rls   || { echo "✖ hay una tabla de public sin RLS"; exit 1; }
 pnpm typecheck || { echo "✖ typecheck falló"; exit 1; }
