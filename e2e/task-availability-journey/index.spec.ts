@@ -125,9 +125,9 @@ async function openLoginPage(page: Page): Promise<void> {
 }
 
 async function submitCredentials(page: Page, email: string): Promise<void> {
-  const password = page.locator(PASSWORD_BOX)
+  const password = page.locator(PASSWORD_BOX).filter({visible:true})
 
-  await page.getByPlaceholder(LOGIN_PLACEHOLDER).fill(email)
+  await page.getByPlaceholder(LOGIN_PLACEHOLDER).filter({visible:true}).fill(email)
   await password.fill(PASSWORD)
   await password.press(ENTER)
 }

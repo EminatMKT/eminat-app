@@ -1,6 +1,6 @@
 import {afterEach,describe,expect,it,vi} from 'vitest'
 import {QboClient,QBO_CALLBACK} from './client'
-import {qboEnvironment,qboConnectionRpc,QBO_SANDBOX_CALLBACK,QBO_SANDBOX_REALM} from './environment'
+import {qboEnvironment,qboCompanyMatches,qboConnectionRpc,QBO_SANDBOX_CALLBACK,QBO_SANDBOX_REALM} from './environment'
 import {sealQboToken,openQboToken} from './token-vault'
 
 const base={clientId:'synthetic-lilly-development-client',clientSecret:'synthetic-lilly-development-secret',
@@ -54,6 +54,13 @@ describe('LILLY isolated Development connection',()=>{
   expect(openQboToken(sealed,key,org,QBO_SANDBOX_REALM,'refresh')).toBe('synthetic-development-refresh-token')
   vi.stubEnv('NEXT_PUBLIC_APP_ENV','local');vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL','http://127.0.0.1:54321');vi.stubEnv('LILLY_QBO_ENVIRONMENT','production')
   expect(()=>openQboToken(sealed,key,org,QBO_SANDBOX_REALM,'refresh')).toThrow('QBO_TOKEN_UNAVAILABLE')
+ })
+ it('accepts only the allocated sandbox company while preserving the Production legal-entity check',()=>{
+  staging();expect(qboCompanyMatches({name:'Sandbox Company US 5c49'},QBO_SANDBOX_REALM)).toBe(true)
+  expect(qboCompanyMatches({name:'Sandbox Company US 5c49'},'other-company')).toBe(false)
+  vi.stubEnv('NEXT_PUBLIC_APP_ENV','local');vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL','http://127.0.0.1:54321');vi.stubEnv('LILLY_QBO_ENVIRONMENT','production')
+  expect(qboCompanyMatches({name:'Sandbox Company US 5c49'},QBO_SANDBOX_REALM)).toBe(false)
+  expect(qboCompanyMatches({name:'Eminat Medical Center LLC'},'production-company')).toBe(true)
  })
  it('uses separate sandbox connection RPCs and blocks arbitrary RPC mapping',()=>{
   staging();expect(qboConnectionRpc('native_sales_qbo_claim_refresh')).toBe('native_sales_qbo_sandbox_claim_refresh')

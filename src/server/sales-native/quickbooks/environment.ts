@@ -35,3 +35,9 @@ export function qboConnectionRpc(name: string): string {
 export function qboApplicationOrigin(): string {
   return qboEnvironment() === 'sandbox' ? 'https://staging.stratixsolutions.us' : 'https://app.stratixsolutions.us'
 }
+
+/** Production retains its legal-entity check; staging is bound to the allocated realm. */
+export function qboCompanyMatches(company: {name:string;legalName?:string|null}, realmId:string): boolean {
+  return qboEnvironment() === 'sandbox' ? realmId === QBO_SANDBOX_REALM :
+    [company.name,company.legalName].some(name => name?.trim().toLowerCase() === 'eminat medical center llc')
+}

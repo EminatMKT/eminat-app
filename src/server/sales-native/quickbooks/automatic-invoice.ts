@@ -1,4 +1,4 @@
-import {qboEnvironment} from './environment'
+import {qboEnvironment,qboCompanyMatches} from './environment'
 import 'server-only'
 import {familyInvoiceLines,familyInvoiceItemsMatch,type FamilyInvoiceSnapshot} from './family-invoice-lines'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
@@ -120,8 +120,7 @@ export async function issuePatientQboInvoice(identityId: string, intentId: strin
 
   const { client,realmId,accessToken } = await connectedQboReadAccess()
   const company = await client.companyInfo(realmId,accessToken)
-  if (![company.name,company.legalName].some(name =>
-    name?.trim().toLowerCase() === 'eminat medical center llc'))
+  if (!qboCompanyMatches(company,realmId))
     throw new Error('QBO_COMPANY_MISMATCH')
   const item = await client.itemByName(realmId,accessToken,qboProductName(job))
   if (item.Taxable === true) throw new Error('QBO_ITEM_TAX_MISMATCH')

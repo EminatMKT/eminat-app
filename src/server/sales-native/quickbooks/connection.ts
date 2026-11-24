@@ -4,7 +4,7 @@ import { NativeSalesAuthError, resolveSalesActor } from '@/server/sales-native/a
 import { patientQboActor } from '@/server/sales-native/patient-qbo-auth'
 import { supabaseAdmin } from '@/shared/db/supabaseAdmin'
 import { QboClient, QBO_CALLBACK } from './client'
-import {qboEnvironment,qboConnectionRpc,QBO_SANDBOX_CALLBACK,QBO_SANDBOX_REALM} from './environment'
+import {qboEnvironment,qboCompanyMatches,qboConnectionRpc,QBO_SANDBOX_CALLBACK,QBO_SANDBOX_REALM} from './environment'
 import { openQboToken, sealQboToken } from './token-vault'
 
 export const EMC_ORGANIZATION_ID = '9efab353-46a0-43d1-9901-e3f185dc5d30'
@@ -23,11 +23,6 @@ function configuration() {
     throw new NativeSalesAuthError(503, 'QBO_OAUTH_NOT_CONFIGURED')
   return {client: new QboClient({clientId,clientSecret,redirectUri:callback,
     ...(sandbox ? {environment:'sandbox' as const,allowedRealmId:QBO_SANDBOX_REALM} : {})}),key}
-}
-
-function matchingCompany(company: {name:string;legalName?:string|null}, realmId:string): boolean {
-  return qboEnvironment() === 'sandbox' ? realmId === QBO_SANDBOX_REALM :
-    [company.name,company.legalName].some(name => name?.trim().toLowerCase() === 'eminat medical center llc')
 }
 
 /** A pending, owner-approved EMC fallback is limited to this QBO connection. */
@@ -78,7 +73,7 @@ export async function completeQboConnection(request: Request, input: {
   let company
   try { company = await client.companyInfo(input.realmId, tokens.accessToken) }
   catch { throw new NativeSalesAuthError(503, 'QBO_COMPANY_READ_FAILED') }
-  if (!matchingCompany(company,input.realmId))
+  if (!qboCompanyMatches(company,input.realmId))
     throw new NativeSalesAuthError(422, 'QBO_COMPANY_MISMATCH')
   const { error } = await db.rpc(qboConnectionRpc('native_sales_qbo_finish_oauth_state'), {
     p_state_id: stateId,p_organization_id: EMC_ORGANIZATION_ID,p_member_id: memberId,
@@ -146,7 +141,7 @@ export async function readConnectedQboCompany(forceRefresh = false): Promise<{
   realmId: string; companyName: string; legalName: string | null }> {
   const { client, realmId, accessToken } = await connectedQboReadAccess(forceRefresh)
   const company = await client.companyInfo(realmId,accessToken)
-  if (!matchingCompany(company,realmId))
+  if (!qboCompanyMatches(company,realmId))
     throw new NativeSalesAuthError(503, 'QBO_COMPANY_MISMATCH')
   return { realmId,companyName:company.name,legalName:company.legalName }
 }
