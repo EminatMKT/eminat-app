@@ -102,7 +102,8 @@ contains the invocation; no workflow installation, deployment or paid resource i
 
 ## Adoption — separate reviewed decision
 
-1. Review this documentation-only Draft PR. Owner, qualified technical reviewer and Production
+1. Review the current PR, including this proposal and the optional evidence-collection code.
+   Owner, qualified technical reviewer and Production
    maintainer agree on responsibilities, gate applicability and the canonical checklist.
 2. Finalize the proposal before final approval; complete the existing required PR checks and reviews.
    A maintainer may then adopt it through the ordinary reviewed PR workflow in a later authorized
@@ -111,7 +112,8 @@ contains the invocation; no workflow installation, deployment or paid resource i
    Evaluate whether missing ownership, repeated decisions or stale evidence caused delays.
 
 No AGENTS.md hard prohibition, guard, workflow, branch protection, Production environment approval,
-deployment setting or credential is changed by this proposal. Adoption requires no control change.
+deployment setting or credential is changed or authorized to change by this proposal. Adoption
+remains pending required review and a verified compliant integration path under the existing rules.
 Existing releases, including #209, retain their outstanding conditions; this is not retroactive approval.
 
 References: [schema release process](../native-sales-schema-release.md),
