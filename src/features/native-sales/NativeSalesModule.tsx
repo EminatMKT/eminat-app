@@ -281,7 +281,7 @@ export default function NativeSalesModule({ organizationId, workspaceLabelKey }:
   },[rows,selectedLeadIds,bulkOwner,bulkTeam,request])
 
   return <AppShell activeTab={tab} onTabChange={() => setQuery('')} title={t('salesNative.sales')} actions={<span className={s.role}>{access?.role || 'Loading'}</span>}>
-    <main className={s.main}>
+    <main className={s.main} aria-busy={loading}>
       <div className={s.heading}><div><p className={s.eyebrow}>{t(workspaceLabelKey || 'salesNative.lillySales')}</p><h1>{currentLabel}</h1></div>
         <div className={s.headingActions}>
           {access?.capabilities.canWrite && ['leads','contacts','accounts','opportunities','memberships','activities'].includes(tab) &&
