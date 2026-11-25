@@ -36,11 +36,11 @@ file names, contents, deletions and link targets. It never saves environment val
 | --- | --- |
 | Tracked file, including one later matched by an ignore rule | Working-tree content included; edits/deletions invalidate. |
 | Non-ignored untracked file | Included; creation, edit, rename or deletion invalidates. |
-| Ignored untracked file | Contents excluded and not read for caching. Its presence disables PASS reuse. |
+| Ignored untracked source file | Excluded from the Git-derived source input set. Its presence disables PASS reuse. |
 | Symbolic link | Target text included; presence disables PASS reuse because external content is not bound. |
-| Commands, environment, tool/runtime metadata | Changes invalidate. |
+| Commands, environment, explicit tool/runtime metadata | Changes invalidate. The two TypeScript/Vitest package metadata files are explicitly hashed even if Git-ignored; this does not make opaque ignored dependency contents cache-safe. |
 
-Excluding ignored contents alone is insufficient: ignored environment, dependency
+Excluding ignored source contents alone is insufficient: ignored environment, dependency
 or generated files may affect TypeScript or tests. Reuse therefore requires both
 the previous and current validation to have no ignored or symbolic-link inputs,
 in addition to an identical fingerprint and a previous PASS. Old records without

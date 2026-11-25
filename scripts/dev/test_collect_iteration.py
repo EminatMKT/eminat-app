@@ -108,6 +108,17 @@ class IterationTests(unittest.TestCase):
             self.assertFalse(tool.cache_reuse_boundary(root)['eligible'])
             self.assertIn('SYMLINK_CONTENT_NOT_FINGERPRINTED', tool.cache_reuse_boundary(root)['reasons'])
 
+    def test_explicit_tool_metadata_is_hashed_separately_from_ignored_source_set(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = self.git_fixture(folder)
+            (root / '.gitignore').write_text('node_modules/\n')
+            names = tool.run(['git', 'ls-files', '-z', '--cached', '--others', '--exclude-standard'], root)
+            self.assertNotIn(b'node_modules', names)
+            before = tool.fingerprint(root, [])
+            (root / 'node_modules/vitest/package.json').write_text('{"version":"changed"}')
+            self.assertNotEqual(before, tool.fingerprint(root, []))
+            self.assertFalse(tool.cache_reuse_boundary(root)['eligible'])
+
     def test_failure_is_not_reused(self):
         calls = []
         def execute(argv, **kwargs):

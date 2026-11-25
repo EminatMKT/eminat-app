@@ -10,7 +10,8 @@ Only configured staging/preview HTTPS login pages are probed; no cookies, redire
 provider calls, deployments, database operations or GitHub writes are performed.
 Local PASS reuse requires identical source, tools, commands and environment, with
 no ignored or symbolic-link inputs outside the content fingerprint. Otherwise
-validation reruns automatically; ignored file contents are never read for caching.
+validation reruns automatically. Git-ignored source contents are excluded; the
+explicit TypeScript/Vitest package metadata is hashed separately even if ignored.
 Existing CI, human review and protected approval remain authoritative.
 """
 import argparse
@@ -38,8 +39,9 @@ def fingerprint(root, commands):
     """Hash tracked working-tree bytes and all non-ignored untracked paths.
 
     Tracked files remain included even if an ignore rule later matches them.
-    Ignored untracked files are excluded. cache_reuse_boundary therefore disables
-    reuse whenever ignored or link inputs could be consumed by validation.
+    Ignored untracked source files are excluded. Explicit tool metadata below is
+    hashed separately. cache_reuse_boundary disables reuse whenever other ignored
+    or link inputs could be consumed by validation.
     """
     names = run(['git', 'ls-files', '-z', '--cached', '--others', '--exclude-standard'], root).split(b'\0')
     digest = hashlib.sha256(json.dumps(commands, sort_keys=True).encode())
