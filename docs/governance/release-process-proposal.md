@@ -1,6 +1,6 @@
 # Proposal: one release record, explicit decisions, reusable evidence
 
-**Status: DRAFT — not adopted; no release or production action is authorized by this proposal.**
+**Status: PROPOSED FOR FORMAL REVIEW — not adopted; no release or production action is authorized by this proposal.**
 
 Reviewed baseline: `main` at `4fcd1c82a96a8d080c83730da4fe374323800cb1`, November 19, 2026.
 This is a separate governance proposal, not an amendment to PR #209's approvals or release gates.
@@ -29,6 +29,15 @@ three different decisions. Repeating the same decision in multiple chats adds no
 | Technical readiness | One named qualified human reviewer, independent of the implementation, reviews the current head, relevant evidence and recovery plan. Additional existing reviewer requirements still apply. |
 | Database execution | Production maintainer validates target/backup/pending set and owns migration execution and verification within the reviewed process. |
 | Release coordination | Named release lead maintains the canonical checklist, checks gates, coordinates the permitted integration and records deployed SHA/verification. |
+
+The Product Owner owns product direction, priorities, branding, functional scope and architecture
+decisions informed by technical evidence. A specialist's recommendation is not an adopted policy
+or an additional approval hierarchy. Qualified technical review, business risk acceptance and
+mandatory Production approval remain distinct responsibilities; existing requirements still apply.
+Routine iterations within accepted scope proceed without renewed scope approval. A UI, text,
+reporting or performance change follows the relevant review/CI requirements; unrelated database,
+recovery or payment execution gates do not apply unless the actual change affects those risks or
+an existing release-specific condition requires them. Unknown sensitive impact requires review.
 
 Role combinations are allowed only where existing controls permit them and independence is real.
 Two accounts belonging to one person never establish independence. Agents may prepare evidence,
@@ -77,6 +86,16 @@ authorization; their activation is not implied by an interface release.
 An explicit exact-SHA authorization is never silently broadened to another commit. A failed migration
 stops the operation; inspection and an authorized recovery decision precede any retry. Database
 backups are not restored automatically. Existing freshness and recovery gates remain authoritative.
+
+The optional development tool `scripts/dev/collect_iteration.py` implements private evidence
+collection without changing CI or adding an approval gate. It collects current-head GitHub checks,
+review metadata and applied rules through GET requests, and can run selected source unit tests plus
+type checking. It reuses local PASS results only with identical source/tool/command fingerprints.
+An explicit private configuration may enable passive HTTPS checks of existing non-production login
+pages; redirects are not followed and no credentials or response bodies are saved. Keep configuration
+and records outside the public checkout. The tool preserves human decisions, never approves a release
+and never treats local validation or a reachable login page as production acceptance. Its help text
+contains the invocation; no workflow installation, deployment or paid resource is needed.
 
 ## Adoption — separate reviewed decision
 
