@@ -51,6 +51,9 @@ Use one canonical release record; when evidence is sensitive, keep it private an
 release PR body only as a non-sensitive index. Linked schema/preparation PRs use the same release ID.
 Link original immutable artifacts and decisions rather than copying audits into new reports or public
 attachments. Existing GitHub reviews and protected approvals remain authoritative in their interfaces.
+Any previous illustrative approval text is a review template, **not an actual recorded GitHub
+approval**. Product Owner acceptance and technical feedback do not substitute for an eligible
+current-head GitHub review. No approval or release authority is inferred from a template.
 For each item record **owner, result and evidence URL/reference**. Use N/A with a reason only when
 that gate truly does not apply; enforced controls cannot be marked N/A.
 
@@ -90,20 +93,15 @@ An explicit exact-SHA authorization is never silently broadened to another commi
 stops the operation; inspection and an authorized recovery decision precede any retry. Database
 backups are not restored automatically. Existing freshness and recovery gates remain authoritative.
 
-The optional development tool `scripts/dev/collect_iteration.py` implements private evidence
-collection without changing CI or adding an approval gate. It collects current-head GitHub checks,
-review metadata and applied rules through GET requests, and can run selected source unit tests plus
-type checking. It reuses local PASS results only with identical source/tool/command fingerprints.
-An explicit private configuration may enable passive HTTPS checks of existing non-production login
-pages; redirects are not followed and no credentials or response bodies are saved. Keep configuration
-and records outside the public checkout. The tool preserves human decisions, never approves a release
-and never treats local validation or a reachable login page as production acceptance. Its help text
-contains the invocation; no workflow installation, deployment or paid resource is needed.
+The Product Owner-requested evidence collector and smoke-test implementation are reviewed
+separately in [PR #214](https://github.com/EminatMKT/eminat-app/pull/214). They are optional
+development tooling, not governance requirements or a prerequisite for adopting this proposal.
+No implementation code, test change or dependency on that PR is included here.
 
 ## Adoption — separate reviewed decision
 
-1. Review the current PR, including this proposal and the optional evidence-collection code.
-   Owner, qualified technical reviewer and Production
+1. Review this governance proposal. The separate development implementation is not part of
+   this adoption decision. Owner, qualified technical reviewer and Production
    maintainer agree on responsibilities, gate applicability and the canonical checklist.
 2. Finalize the proposal before final approval; complete the existing required PR checks and reviews.
    A maintainer may then adopt it through the ordinary reviewed PR workflow in a later authorized
