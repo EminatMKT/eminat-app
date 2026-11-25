@@ -26,7 +26,7 @@ three different decisions. Repeating the same decision in multiple chats adds no
 | Responsibility | Accountable person and decision |
 | --- | --- |
 | Scope | Project owner approves one versioned scope: behavior, target, acceptance criteria and excluded live operations. |
-| Technical readiness | One named qualified human reviewer, independent of the implementation, reviews the current head, relevant evidence and recovery plan. Additional existing reviewer requirements still apply. |
+| Technical readiness | An eligible human reviewer supplies the existing required PR review for the current head. Qualified specialist or independent review applies where the affected risk or an existing release condition requires it; combine these responsibilities where permitted. |
 | Database execution | Production maintainer validates target/backup/pending set and owns migration execution and verification within the reviewed process. |
 | Release coordination | Named release lead maintains the canonical checklist, checks gates, coordinates the permitted integration and records deployed SHA/verification. |
 
@@ -42,12 +42,15 @@ an existing release-specific condition requires them. Unknown sensitive impact r
 Role combinations are allowed only where existing controls permit them and independence is real.
 Two accounts belonging to one person never establish independence. Agents may prepare evidence,
 changes and checklists; they do not approve their own work or perform operations AGENTS.md forbids.
-If no qualified reviewer or maintainer is available, identify that staffing blocker at intake.
+If an applicable qualified reviewer or maintainer is unavailable, identify that staffing blocker at
+intake; unrelated staffing gaps do not stop permitted routine development.
 
 ## One canonical checklist
 
-Use the primary release PR body as the sole release record; linked schema/preparation PRs use the
-same release ID. Link immutable artifacts and decisions rather than copying audits into new reports.
+Use one canonical release record; when evidence is sensitive, keep it private and use the primary
+release PR body only as a non-sensitive index. Linked schema/preparation PRs use the same release ID.
+Link original immutable artifacts and decisions rather than copying audits into new reports or public
+attachments. Existing GitHub reviews and protected approvals remain authoritative in their interfaces.
 For each item record **owner, result and evidence URL/reference**. Use N/A with a reason only when
 that gate truly does not apply; enforced controls cannot be marked N/A.
 
