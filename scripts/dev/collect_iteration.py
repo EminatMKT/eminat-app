@@ -2,7 +2,7 @@
 """Collect private development evidence without approving or releasing anything.
 
 Usage: python3 scripts/dev/collect_iteration.py --repo-dir . --config PRIVATE.json
-       --record PRIVATE-record.json --validate --github --online
+       --record PRIVATE-record.json --validate --github --online --diagnose-ci
 
 Config: repository (owner/name), pullRequest (positive integer), validationTests
 (tracked src/**/*.test.ts[x] paths), onlineTargets (url, nonProduction=true).
@@ -89,6 +89,64 @@ def gh_get(endpoint, root):
     return json.loads(run(['gh', 'api', '--method', 'GET', '--paginate', '--slurp', endpoint], root))
 
 
+def gh_job_log(repository, job_id, root):
+    # Only called after the run has been bound to this PR head and the ordinary
+    # pull-request CI workflow. Never fetch protected release/Production logs.
+    # GH's escape protection targets terminal rendering. Here stdout is captured
+    # as bytes, parsed in memory and never printed or retained as a raw log.
+    return run(['gh', 'api', '--method', 'GET', '--allow-escape-sequences',
+                f'repos/{repository}/actions/jobs/{job_id}/logs'], root)
+
+
+def ci_diagnostics(repository, head, root, get=gh_get, read_log=gh_job_log):
+    if (not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repository) or
+            not re.fullmatch(r'[0-9a-f]{40}', head)):
+        raise ValueError('Invalid CI source binding')
+    prefix = 'repos/' + repository
+    pages = get(f'{prefix}/actions/runs?head_sha={head}&event=pull_request&per_page=100', root)
+    runs = [r for page in pages for r in page['workflow_runs']
+            if r.get('head_sha') == head and r.get('event') == 'pull_request'
+            and r.get('path') == '.github/workflows/ci.yml']
+    findings = []
+    for workflow in runs:
+        if workflow.get('conclusion') != 'failure':
+            continue
+        run_id = workflow['id']
+        if not isinstance(run_id, int) or isinstance(run_id, bool) or run_id < 1:
+            raise ValueError('Invalid CI run identity')
+        jobs = [j for page in get(f'{prefix}/actions/runs/{run_id}/jobs?per_page=100', root)
+                for j in page['jobs'] if j.get('conclusion') == 'failure' and j.get('run_id') == run_id]
+        for job in jobs:
+            job_id = job['id']
+            if not isinstance(job_id, int) or isinstance(job_id, bool) or job_id < 1:
+                raise ValueError('Invalid CI job identity')
+            failed = [s['name'] for s in job.get('steps', []) if s.get('conclusion') == 'failure']
+            item = {'runId': run_id, 'jobId': job_id, 'jobName': job['name'],
+                    'failedSteps': failed, 'classification': 'APPLICATION_OR_OTHER_FAILURE',
+                    'logsSaved': False, 'approvalOrRetryGranted': False}
+            if job['name'] == 'e2e' and failed == ['Verificar shards e2e']:
+                item['classification'] = 'REQUIRED_SHARD_AGGREGATE_FAILURE'
+            if 'Start local Supabase' in failed:
+                item['classification'] = 'DATABASE_STARTUP_FAILURE'
+                try:
+                    raw = read_log(repository, job_id, root)
+                    if len(raw) > 8 * 1024 * 1024:
+                        raise ValueError('CI log exceeds diagnostic limit')
+                    text = raw.decode('utf-8', errors='replace')
+                    item['logSha256'] = hashlib.sha256(raw).hexdigest()
+                    if re.search(r'failed to bind host port [^\r\n]*: address already in use', text):
+                        item['classification'] = 'CI_RUNNER_PORT_CONFLICT'
+                    item['applicationTestsReached'] = False
+                except (RuntimeError, ValueError):
+                    item['logInspection'] = 'BLOCKED'
+            findings.append(item)
+    return {'head': head, 'observedUTC': datetime.now(timezone.utc).isoformat(),
+            'eligibleRunCount': len(runs), 'failures': findings,
+            'diagnosticOnly': True, 'workflowMutations': False,
+            'isolatedFailureConfirmedByFreshRun': False,
+            'requiredCheckWaiver': False, 'integrationAuthorized': False}
+
+
 def github_evidence(repository, number, root, get=gh_get):
     if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repository) or not isinstance(number, int) or isinstance(number, bool) or number < 1:
         raise ValueError('Invalid repository or pull request')
@@ -167,7 +225,7 @@ def main():
     parser.add_argument('--repo-dir', type=Path, required=True)
     parser.add_argument('--config', type=Path, required=True)
     parser.add_argument('--record', type=Path, required=True)
-    for option in ['validate', 'github', 'online']:
+    for option in ['validate', 'github', 'online', 'diagnose-ci']:
         parser.add_argument('--' + option, action='store_true')
     args = parser.parse_args()
     root = args.repo_dir.resolve()
@@ -185,12 +243,14 @@ def main():
     if args.validate:
         commands = validation_commands(root, config.get('validationTests', []))
         record['localValidation'] = local_validation(root, commands, record.get('localValidation', {}))
-    if args.github:
+    if args.github or args.diagnose_ci:
         record['github'] = github_evidence(config['repository'], config['pullRequest'], root)
     if record.get('github'):
         record['github']['matchesLocalHead'] = record['github']['head'] == record['iteration']['head']
     if args.online:
         record['online'] = [online_probe(t) for t in config.get('onlineTargets', [])]
+    if args.diagnose_ci:
+        record['ciDiagnostics'] = ci_diagnostics(config['repository'], record['github']['head'], root)
     record['releaseAuthorized'] = False
     record['productionExecutionAuthorized'] = False
     private_write(record_path, record)

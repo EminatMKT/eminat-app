@@ -75,6 +75,76 @@ class IterationTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 tool.github_evidence(repository, number, Path('.'), lambda *a: self.fail('Network called'))
 
+    def diagnostic_fixture(self, variants=None):
+        head = 'a' * 40
+        workflow = {'id': 12, 'head_sha': head, 'event': 'pull_request',
+                    'path': '.github/workflows/ci.yml', 'conclusion': 'failure'}
+        job = {'id': 34, 'run_id': 12, 'name': 'e2e (2/4)', 'conclusion': 'failure',
+               'steps': [{'name': 'Start local Supabase', 'conclusion': 'failure'}]}
+        def get(endpoint, root):
+            if '/actions/runs?' in endpoint:
+                return [{'workflow_runs': variants if variants is not None else [workflow]}]
+            self.assertEqual(endpoint, 'repos/Example/project/actions/runs/12/jobs?per_page=100')
+            return [{'jobs': [job]}]
+        return head, workflow, get
+
+    def test_ci_diagnosis_is_bound_to_pull_request_ci_and_exact_source(self):
+        head, workflow, _ = self.diagnostic_fixture()
+        variants = [{**workflow, 'head_sha': 'b' * 40},
+                    {**workflow, 'event': 'workflow_dispatch'},
+                    {**workflow, 'path': '.github/workflows/production.yml'}]
+        _, _, get = self.diagnostic_fixture(variants)
+        result = tool.ci_diagnostics('Example/project', head, Path('.'), get,
+                                     lambda *a: self.fail('Protected/unrelated log was read'))
+        self.assertEqual(result['eligibleRunCount'], 0)
+        self.assertEqual(result['failures'], [])
+
+    def test_startup_port_conflict_is_classified_without_saving_log_or_granting_retry(self):
+        head, _, get = self.diagnostic_fixture()
+        raw = b'private-value\nfailed to bind host port 0.0.0.0:54322/tcp: address already in use\n'
+        result = tool.ci_diagnostics('Example/project', head, Path('.'), get, lambda *a: raw)
+        failure = result['failures'][0]
+        self.assertEqual(failure['classification'], 'CI_RUNNER_PORT_CONFLICT')
+        self.assertFalse(failure['applicationTestsReached'])
+        self.assertFalse(failure['logsSaved'])
+        self.assertNotIn('private-value', json.dumps(result))
+        self.assertFalse(result['requiredCheckWaiver'])
+        self.assertFalse(result['integrationAuthorized'])
+        self.assertFalse(result['workflowMutations'])
+        self.assertFalse(result['isolatedFailureConfirmedByFreshRun'])
+
+    def test_migration_error_is_not_treated_as_a_runner_port_conflict(self):
+        head, _, get = self.diagnostic_fixture()
+        result = tool.ci_diagnostics('Example/project', head, Path('.'), get,
+                                     lambda *a: b'ERROR: migration failed: duplicate column')
+        self.assertEqual(result['failures'][0]['classification'], 'DATABASE_STARTUP_FAILURE')
+
+    def test_failed_aggregate_is_not_reported_as_an_additional_application_failure(self):
+        head, _, base_get = self.diagnostic_fixture()
+        def get(endpoint, root):
+            pages = base_get(endpoint, root)
+            if '/jobs?' in endpoint:
+                pages[0]['jobs'].append({'id': 35, 'run_id': 12, 'name': 'e2e',
+                    'conclusion': 'failure', 'steps': [{'name': 'Verificar shards e2e',
+                                                     'conclusion': 'failure'}]})
+            return pages
+        result = tool.ci_diagnostics('Example/project', head, Path('.'), get, lambda *a: b'startup error')
+        self.assertEqual(result['failures'][1]['classification'], 'REQUIRED_SHARD_AGGREGATE_FAILURE')
+
+    def test_missing_log_is_blocked_and_cannot_change_required_ci(self):
+        head, _, get = self.diagnostic_fixture()
+        def unavailable(*args):
+            raise RuntimeError('Denied')
+        result = tool.ci_diagnostics('Example/project', head, Path('.'), get, unavailable)
+        self.assertEqual(result['failures'][0]['logInspection'], 'BLOCKED')
+        self.assertNotIn('requiredCI', result)
+
+    def test_ci_diagnostic_rejects_injected_repository_and_invalid_head(self):
+        for repository, head in [('Example/project/../../other', 'a' * 40),
+                                 ('Example/project', 'head')]:
+            with self.assertRaises(ValueError):
+                tool.ci_diagnostics(repository, head, Path('.'), lambda *a: self.fail('Network called'))
+
     def test_online_probe_allows_only_passive_explicit_nonproduction_pages(self):
         target = {'url': 'https://staging.example.invalid/login', 'nonProduction': True}
         self.assertEqual(tool.validate_target(target), target['url'])
