@@ -50,6 +50,11 @@ requires no human approval; successful source-bound GitHub checks remain reusabl
 The fingerprint is not a claim of hermetic execution or coverage of external
 services. Live database/provider acceptance must never be inferred from this cache.
 
+Nested read-only Git commands and temporary test repositories clear Git's documented
+repository/index environment variables so a calling hook cannot redirect them into
+another worktree. The regression suite verifies that the parent index stays byte-identical.
+No repository hook, permission or configuration is changed by this isolation.
+
 Real temporary-Git regressions cover tracked/untracked changes, ignored-file
 exclusion, ignored-input changes/removal that must rerun validation, links and
 environment/command changes. Source changes during validation cannot produce a

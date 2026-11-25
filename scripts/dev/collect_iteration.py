@@ -28,8 +28,21 @@ import urllib.request
 from datetime import datetime, timezone
 
 
+def local_git_environment():
+    # Git exports repository/index routing into hooks. Clear Git's documented
+    # local variables for nested commands targeting an explicit cwd, so metadata
+    # cannot silently refer to another worktree. This changes no hooks/config.
+    result = subprocess.run(['git', 'rev-parse', '--local-env-vars'],
+                            capture_output=True, timeout=20)
+    if result.returncode:
+        raise RuntimeError('Cannot isolate Git repository context')
+    local = set(result.stdout.decode().splitlines())
+    return {key: value for key, value in os.environ.items() if key not in local}
+
+
 def run(argv, cwd):
-    result = subprocess.run(argv, cwd=cwd, capture_output=True, timeout=600)
+    result = subprocess.run(argv, cwd=cwd, capture_output=True, timeout=600,
+                            env=local_git_environment() if argv[0] == 'git' else None)
     if result.returncode:
         raise RuntimeError('Read-only source/tool operation failed; details withheld')
     return result.stdout

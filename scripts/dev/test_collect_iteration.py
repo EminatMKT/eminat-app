@@ -22,15 +22,30 @@ class IterationTests(unittest.TestCase):
 
     def git_fixture(self, folder):
         root = Path(folder)
-        subprocess.run(['git', 'init', '-q', str(root)], check=True, capture_output=True)
+        subprocess.run(['git', 'init', '-q', str(root)], check=True, capture_output=True,
+                       env=tool.local_git_environment())
         (root / '.gitignore').write_text('ignored-input.txt\n*.ignored\n')
         (root / 'tracked.ts').write_text('tracked-v1')
         for package in ['typescript', 'vitest']:
             path = root / 'node_modules' / package
             path.mkdir(parents=True)
             (path / 'package.json').write_text('{"version":"fixture"}')
-        subprocess.run(['git', 'add', '.gitignore', 'tracked.ts'], cwd=root, check=True, capture_output=True)
+        subprocess.run(['git', 'add', '.gitignore', 'tracked.ts'], cwd=root, check=True, capture_output=True,
+                       env=tool.local_git_environment())
         return root
+
+    def test_hook_environment_cannot_redirect_fixture_or_metadata_into_parent_index(self):
+        with tempfile.TemporaryDirectory() as parent_folder, tempfile.TemporaryDirectory() as child_folder:
+            parent = self.git_fixture(parent_folder)
+            before = (parent / '.git/index').read_bytes()
+            inherited = {'GIT_DIR': str(parent / '.git'), 'GIT_WORK_TREE': str(parent),
+                         'GIT_INDEX_FILE': str(parent / '.git/index')}
+            with patch.dict(os.environ, inherited):
+                child = self.git_fixture(child_folder)
+                names = tool.run(['git', 'ls-files'], child)
+                self.assertIn(b'tracked.ts', names)
+                self.assertTrue((child / '.git/index').is_file())
+            self.assertEqual(before, (parent / '.git/index').read_bytes())
 
     def test_real_git_tracked_and_nonignored_untracked_changes_invalidate_fingerprint(self):
         with tempfile.TemporaryDirectory() as folder:
