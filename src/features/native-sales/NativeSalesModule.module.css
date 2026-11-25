@@ -6,6 +6,7 @@
 .role{font-size:.75rem;font-weight:700;color:#147b74}
 .refresh,.pager button{border:1px solid #b9d4d2;background:#fff;color:#125a59;border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer}
 .refresh:disabled,.pager button:disabled{opacity:.45;cursor:default}
+.refresh:focus-visible,.pager button:focus-visible,.filters :is(input,select):focus-visible{outline:3px solid #106e68;outline-offset:3px}
 .tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#75b3aa #e9f4f1;padding:0 0 8px;margin:0 0 20px;white-space:nowrap;overscroll-behavior-inline:contain}
 .tabs button{border:0;border-radius:10px;padding:10px 13px;background:#e9f4f1;color:#28565b;cursor:pointer;font-weight:700;flex:none}
 .tabs button.active{background:#106e68;color:#fff}
