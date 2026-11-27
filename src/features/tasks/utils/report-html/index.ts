@@ -2,8 +2,8 @@ import { ESTADO_COLORS } from '@/shared/constants/domain'
 import { escapeHtml } from '@/shared/utils'
 import { periodoLargo } from '@/features/tasks/utils/periodo'
 import responsibleNames from '@/features/tasks/utils/responsables/label'
-import { STRATIX_LOGO_DATA } from './logo.constants'
-import { PRODUCTION_REPORT_DISCLAIMER, PRODUCTION_REPORT_SLOGAN } from './disclaimer.constants'
+import { STRATIX_LOGO_DATA } from './logo'
+import { PRODUCTION_REPORT_DISCLAIMER, PRODUCTION_REPORT_SLOGAN } from './disclaimer'
 import signatureBlock from './signature-block'
 import type { I18nKey } from '@/shared/i18n'
 import type { Actividad } from '@/features/tasks/types'
@@ -50,7 +50,7 @@ export function reportHtml(datos: Datos): string {
       <div style="text-align:right"><div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px">${escapeHtml(t('stratix.report.period'))}</div>
         <div style="font-size:16px;font-weight:700">${escapeHtml(periodoLargo(`${mes}-01`, intlLocale))}</div></div>
     </div>
-    <table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:13px"><colgroup><col style="width:34%"/><col style="width:7%"/><col style="width:18%"/><col style="width:13%"/><col style="width:13%"/><col style="width:15%"/></colgroup>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:13px"><colgroup><col style="width:30%"/><col style="width:11%"/><col style="width:15%"/><col style="width:14%"/><col style="width:14%"/><col style="width:16%"/></colgroup>
       <thead><tr style="background:#f8f8fa">${encabezados}</tr></thead><tbody>${filas}</tbody>
     </table>
     ${acts.length === 0 ? `<div style="text-align:center;padding:40px;color:#999">${escapeHtml(t('stratix.report.empty'))}</div>` : ''}${signatureBlock(nombre)}
