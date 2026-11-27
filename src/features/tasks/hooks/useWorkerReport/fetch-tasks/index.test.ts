@@ -6,6 +6,7 @@ import {
   vi,
 } from 'vitest'
 import type { Row } from '@/features/tasks/components/reporte/WorkerReport/types'
+import { FETCH_FAILED_MESSAGE, REPORT_ENDPOINT_BASE } from '../constants'
 import fetchWorkerTasks from '.'
 
 const fetchGlobal = 'fetch'
@@ -43,7 +44,7 @@ describe('fetchWorkerTasks', () => {
       expect(result).toEqual(rows)
       expect(fetchMock).toHaveBeenCalledTimes(1)
 
-      const expectedUrl = `/api/tasks/report?month=${encodeURIComponent(month)}`
+      const expectedUrl = `${REPORT_ENDPOINT_BASE}?month=${encodeURIComponent(month)}`
       const expectedInit = { signal: controller.signal }
 
       expect(fetchMock).toHaveBeenCalledWith(expectedUrl, expectedInit)
@@ -62,7 +63,7 @@ describe('fetchWorkerTasks', () => {
 
     await fetchWorkerTasks(month, controller.signal)
 
-    const expectedUrl = `/api/tasks/report?month=${encodeURIComponent(month)}`
+    const expectedUrl = `${REPORT_ENDPOINT_BASE}?month=${encodeURIComponent(month)}`
     const expectedInit = { signal: controller.signal }
 
     expect(fetchMock).toHaveBeenCalledWith(expectedUrl, expectedInit)
@@ -96,7 +97,7 @@ describe('fetchWorkerTasks', () => {
 
       const month = '2026-08'
       const promise = fetchWorkerTasks(month, controller.signal)
-      const fallbackErrorMessage = 'Error'
+      const fallbackErrorMessage = FETCH_FAILED_MESSAGE
 
       await expect(promise).rejects.toThrow(fallbackErrorMessage)
     },
