@@ -1,5 +1,5 @@
 import { escapeHtml } from '@/shared/utils'
-import { REPORT_APPROVER_NAME, REPORT_APPROVER_TITLE } from '../disclaimer.constants'
+import { REPORT_APPROVER_NAME, REPORT_APPROVER_TITLE } from '../disclaimer'
 
 /** Report signature footer; the approver is the tracked exception in disclaimer.constants.ts. */
 export default function signatureBlock(nombre: string): string {
