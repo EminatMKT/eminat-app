@@ -1,16 +1,24 @@
 'use client'
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
-import { estadoLabel, ESTADO } from '@/shared/constants/domain'
+import { ESTADO } from '@/shared/constants/domain'
 import { Button, LoadingView } from '@/shared/components/ui'
 import useWorkerReport from '@/features/tasks/hooks/useWorkerReport'
+import WorkerTableRow from '../WorkerTableRow'
 import s from '../ReporteTab/index.module.css'
 
-const DATE_FALLBACK = '—'
+const REPORT_HEADERS = [
+  'stratix.report.colTask',
+  'stratix.report.colArea',
+  'stratix.report.colStatus',
+  'tasks.report.deadline',
+] as const
 
-// Worker view consumes only the self-scoped server report. It never receives hours,
-// production days, rankings or other users' rows from this endpoint. Printing keeps the same
-// boundary: `printWorkerReport` only ever sees this user's own rows.
+/**
+ * Worker view consumes only the self-scoped server report. It never receives hours,
+ * production days, rankings or other users' rows from this endpoint. Printing keeps the same
+ * boundary: `printWorkerReport` only ever sees this user's own rows.
+ */
 export default function WorkerReport() {
   const { t, intlLocale } = useT()
   const { usuario } = useApp()
@@ -35,9 +43,12 @@ export default function WorkerReport() {
         <div>{t('stratix.report.completed')}: <strong>{tasks.filter(task => task.estado === ESTADO.COMPLETADO).length}</strong></div>
       </div>
       <table className={s.tabla}><thead><tr className={s.encabezado}>
-        {(['stratix.report.colTask','stratix.report.colArea','stratix.report.colStatus','tasks.report.deadline'] as const).map(key => <th key={key} className={s.th}>{t(key)}</th>)}
-      </tr></thead><tbody>{tasks.map(task => <tr key={task.id}><td className={s.workerCell}>{task.titulo}</td><td className={s.workerCell}>{task.empresa}</td><td className={s.workerCell}>{estadoLabel(task.estado, t)}</td><td className={s.workerCell}>{task.fecha_entrega || DATE_FALLBACK}</td></tr>)}</tbody></table>
+        {REPORT_HEADERS.map(key => <th key={key} className={s.th}>{t(key)}</th>)}
+      </tr></thead><tbody>{tasks.map(task => <WorkerTableRow key={task.id} task={task} />)}</tbody></table>
       {!tasks.length && !error && <div className={s.vacio}>{t('stratix.report.empty')}</div>}
     </div>
   </div>
 }
+
+// This file renders the signed-in worker's own report: period picker, print button, task
+// count/completed summary and the table of their tasks, one WorkerTableRow per task.
