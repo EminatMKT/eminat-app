@@ -1,6 +1,11 @@
 import type { I18nKey } from '@/shared/i18n'
 
-/** A row from the worker's self-scoped report endpoint — no hours, no payment data. */
+/**
+ * A row from the worker's self-scoped report endpoint — no hours, no payment data. No
+ * description field: deliberate, matches `workerColumns` in `src/app/api/tasks/report/route.ts`
+ * today. Adding one here (and to that column list) is the easy path if ever wanted —
+ * `reportHtml` already renders a description when present, no template change needed.
+ */
 export type Row = {
   id: string
   titulo: string
