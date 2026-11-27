@@ -1,4 +1,3 @@
-import { ESTADO } from '@/shared/constants/domain'
 import { now } from '@/shared/utils'
 import { reportHtml } from '@/features/tasks/utils/report-html'
 import type { Actividad } from '@/features/tasks/types'
@@ -22,13 +21,11 @@ export default function printWorkerReport(
   if (!w) return
 
   const acts = rows.map(row => toActividad(row, author.id))
-  const completadas = rows.filter(r => r.estado === ESTADO.COMPLETADO).length
   const payload = {
     acts,
     nombre: author.nombre,
     mes: ctx.mes,
     intlLocale: ctx.intlLocale,
-    completadas,
     nombrePorId: { [author.id]: author.nombre },
     t: ctx.t,
     hoy: now(),

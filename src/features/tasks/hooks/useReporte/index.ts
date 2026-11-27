@@ -44,7 +44,6 @@ export function useReporte(idsTeam: string[]) {
       nombre: nombreRep,
       mes: mesReporte,
       intlLocale,
-      completadas: completadasRep,
       nombrePorId: miembrosPorId,
       t,
       hoy: new Date(),

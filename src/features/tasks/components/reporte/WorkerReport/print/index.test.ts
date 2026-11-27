@@ -86,11 +86,12 @@ describe('printWorkerReport', () => {
     expect(fakes.reportHtml).not.toHaveBeenCalled()
   })
 
-  it('an empty rows array still calls reportHtml once, with acts: [] and completadas: 0', () => {
+  it('an empty rows array still calls reportHtml once, with acts: [] and no completadas field on the payload', () => {
     const payload = capturePayload([])
+    const removedCompletadasKey = 'completadas'
 
     expect(payload.acts).toEqual([])
-    expect(payload.completadas).toBe(0)
+    expect(payload).not.toHaveProperty(removedCompletadasKey)
     expect(fakes.reportHtml).toHaveBeenCalledTimes(1)
   })
 
@@ -104,7 +105,7 @@ describe('printWorkerReport', () => {
     expect(payload.acts[1]).toEqual({ ...rows[1], responsables: expectedResponsables })
   })
 
-  it('completadas counts only ESTADO.COMPLETADO rows, not other statuses', () => {
+  it('acts preserve every row regardless of estado — no filtering survived removing completadas', () => {
     const rows = [
       row({ id: 'r1', estado: ESTADO.COMPLETADO }),
       row({ id: 'r2', estado: ESTADO.EN_PROCESO }),
@@ -112,7 +113,8 @@ describe('printWorkerReport', () => {
     ]
     const payload = capturePayload(rows)
 
-    expect(payload.completadas).toBe(2)
+    expect(payload.acts).toHaveLength(3)
+    expect(payload.acts.map(a => a.id)).toEqual(['r1', 'r2', 'r3'])
   })
 
   it('nombrePorId keys specifically by author.id', () => {

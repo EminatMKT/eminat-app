@@ -40,14 +40,16 @@ describe('reportHtml — el período', () => {
     expect(reportHtml(datos('en-US'))).not.toMatch(/August 2027/i)
   })
 
-  it('muestra únicamente KPIs y columnas operativas', () => {
+  it('no muestra el resumen de KPIs, solo columnas operativas', () => {
+    const totalTasksKey = 'stratix.report.totalTasks'
+    const completedKey = 'stratix.report.completed'
+    const operativeColumnKeys = ['stratix.report.colTask', 'stratix.report.colArea', 'stratix.report.colAssignee', 'stratix.report.colStatus']
     const html = reportHtml(datos('es-EC'))
-    expect(html).toContain('stratix.report.totalTasks')
-    expect(html).toContain('stratix.report.completed')
-    expect(html).toContain('stratix.report.colTask')
-    expect(html).toContain('stratix.report.colArea')
-    expect(html).toContain('stratix.report.colAssignee')
-    expect(html).toContain('stratix.report.colStatus')
+    expect(html).not.toContain(totalTasksKey)
+    expect(html).not.toContain(completedKey)
+    for (const columnKey of operativeColumnKeys) {
+      expect(html).toContain(columnKey)
+    }
     expect(html).not.toMatch(/totalHours|prodDays|colHours|colProdDays/)
   })
 
