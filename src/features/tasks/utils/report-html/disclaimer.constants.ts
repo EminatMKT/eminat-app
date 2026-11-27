@@ -6,8 +6,9 @@ export const PRODUCTION_REPORT_SLOGAN = 'Full-service agency · Integrated marke
 /**
  * Deliberate, tracked exception to AGENTS.md's no-hardcoded-approver-name convention: ported
  * verbatim from the unmerged `reports/print-signature-20261030` branch per Wagner's explicit
- * instruction. Real fix tracked in `.todo` under "Stratix — reporte de pago y RLS": read the
- * approver from the `leader` entry of `src/shared/auth/permissions/modulos`, not from here.
+ * instruction. No real "who approves this" catalog exists in this codebase yet — that gap, and
+ * this exception, are tracked as known debt directly in AGENTS.md's convention note (not on a
+ * personal `.todo`, which teammates and future agents reading this repo can't see).
  */
 export const REPORT_APPROVER_NAME = 'Freddy Crespín'
 
