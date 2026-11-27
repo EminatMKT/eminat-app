@@ -274,3 +274,10 @@ bugs; una pieza compartida rota para "hacer lugar" a un módulo rompe a todos lo
 - **Datos de prueba por el frontend, no por seed:** se cargan usando la app, como lo haría un
   usuario.
 - Código nuevo (identificadores) en inglés; lo existente no se traduce de paso.
+- **Nunca hardcodear el nombre de una persona como firmante o aprobador** en una plantilla de
+  reporte, acta o documento generado. Pasó tres veces en este repo
+  (`src/features/tasks/report-filter/index.ts`, y dos veces en
+  `src/features/tasks/utils/report-html/index.ts`) y cada vez quedó un dato falso en cuanto esa
+  persona cambió de rol o el documento se usó fuera de su contexto original. Si hace falta
+  mostrar quién aprueba, el nombre sale de un catálogo de roles real (`roles`/`role_modules`) o
+  de un campo de la fila, nunca de un string suelto en el código.
