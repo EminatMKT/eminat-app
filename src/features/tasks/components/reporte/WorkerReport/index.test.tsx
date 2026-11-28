@@ -9,6 +9,8 @@ import { ESTADO, ALERT } from '@/shared/constants'
 import { LoadingView } from '@/shared/components/ui'
 import WorkerTableRow from '../WorkerTableRow'
 import type { FetchState } from '@/features/tasks/hooks/useWorkerReport/types'
+import { SPANISH_LOCALE } from '@/features/tasks/hooks/useWorkerReport/test-fixtures/constants'
+import type * as I18nModule from '@/shared/i18n'
 import type { Row } from './types'
 
 // No DOM here: WorkerReport is called directly, like RecordButton's own test does, and its
@@ -28,7 +30,11 @@ const { fakes, appContextPath, i18nPath, workerReportPath } = vi.hoisted(() => (
 }))
 
 vi.mock(appContextPath, () => ({ useApp: fakes.useApp }))
-vi.mock(i18nPath, () => ({ useT: fakes.useT }))
+vi.mock(i18nPath, async (importOriginal) => {
+  const actual = await importOriginal<typeof I18nModule>()
+
+  return { ...actual, useT: fakes.useT }
+})
 vi.mock(workerReportPath, () => ({ default: fakes.useWorkerReport }))
 
 import WorkerReport from '.'
@@ -41,13 +47,12 @@ const NEW_MONTH = '2026-12'
 const NO_ERROR = ''
 const ERROR_TEXT = 'Could not load tasks'
 const EMPTY_MESSAGE_KEY = 'stratix.report.empty'
-const INTL_LOCALE = 'es-EC'
 const EMPTY_TASKS: Row[] = []
 const NO_PROPS = {}
 
 const translate = (key: string) => key
 const USE_APP_RESULT = { usuario: null }
-const USE_T_RESULT = { t: translate, intlLocale: INTL_LOCALE }
+const USE_T_RESULT = { t: translate, intlLocale: SPANISH_LOCALE }
 
 const BASE_TASK: Row = {
   id: 'task-1',

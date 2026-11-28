@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import * as printStylesModule from './index'
+import { PRINT_HIDE_RULE, OVERFLOW_WRAP_RULE } from './fixtures'
 
 const { PRINT_STYLES } = printStylesModule
 const STRING_TYPE = 'string'
@@ -7,7 +8,6 @@ const EMPTY_LENGTH = 0
 const SINGLE_OCCURRENCE = 1
 const FIRST_VALID_INDEX = 0
 const STARTS_WITH_PAGINATION_RULE = false
-const EXPECTED_EXPORT_NAMES = ['PRINT_STYLES']
 
 // Golden copy of the two halves the module is specified to concatenate. Kept here, not
 // imported from the module under test, so a regression that merges, drops or reorders either
@@ -26,9 +26,6 @@ const NEWLINE_JOINED_HALVES = `${EXPECTED_DOCUMENT_STYLES}\n${EXPECTED_PAGINATIO
 
 const RESET_RULE = '* { margin:0; padding:0; box-sizing:border-box; }'
 const FONT_FAMILY_FRAGMENT = "font-family: 'Segoe UI', Arial, sans-serif;"
-const PRINT_HIDE_RULE =
-  '@media print { .no-print { display:none !important; } body { padding:20px 30px; } }'
-const OVERFLOW_WRAP_RULE = 'td { overflow-wrap:anywhere; }'
 const TABLE_LAYOUT_RULE = 'table { table-layout:fixed; }'
 const THEAD_DISPLAY_RULE = 'thead { display:table-header-group; }'
 const PAGINATION_START_PREFIX = 'td {'

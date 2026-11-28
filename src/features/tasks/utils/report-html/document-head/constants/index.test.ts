@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { PRINT_STYLES } from './index'
-
-const BASE_PRINT_HIDE_RULE =
-  '@media print { .no-print { display:none !important; } body { padding:20px 30px; } }'
-const PAGINATION_OVERFLOW_RULE = 'td { overflow-wrap:anywhere; }'
+import {
+  PRINT_HIDE_RULE as BASE_PRINT_HIDE_RULE,
+  OVERFLOW_WRAP_RULE as PAGINATION_OVERFLOW_RULE,
+} from './print-styles/fixtures'
 
 const EXPECTED_FRAGMENTS = [
   { label: 'base font-family declaration', fragment: "font-family: 'Segoe UI', Arial, sans-serif;" },
@@ -16,7 +16,7 @@ const EXPECTED_FRAGMENTS = [
 const FRAGMENT_TEST_TITLE = 'contains the $label'
 const ORDERING_TEST_TITLE =
   'concatenates the base styles before the pagination styles, with both intact'
-const SUITE_TITLE = 'PRINT_STYLES'
+const SUITE_TITLE = 'PRINT_STYLES (barrel re-export)'
 
 describe(SUITE_TITLE, () => {
   it.each(EXPECTED_FRAGMENTS)(FRAGMENT_TEST_TITLE, ({ fragment }) => {

@@ -1,7 +1,7 @@
 import type { Usuario } from '@/shared/context/loadAppData'
 import type { Row } from '@/features/tasks/components/reporte/WorkerReport/types'
 import { localeConfig } from '@/shared/i18n'
-import row from './row'
+import row from '@/features/tasks/hooks/useWorkerReport/test-fixtures/row'
 
 /** Default overrides for `row()` when a test needs no field changed. */
 export const NO_ROW_OVERRIDES: Partial<Row> = {}
@@ -17,3 +17,5 @@ export { SPANISH_LOCALE, ENGLISH_LOCALE }
 
 /** Re-exported so a consumer needs only one import path into this directory. */
 export default row
+
+// Default row/user/locale fixtures `useWorkerReport` suites share, so none re-declares its own.
