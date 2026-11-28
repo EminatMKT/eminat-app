@@ -5,22 +5,11 @@ import {
   it,
   vi,
 } from 'vitest'
-import type { Row } from '@/features/tasks/components/reporte/WorkerReport/types'
 import { FETCH_FAILED_MESSAGE, REPORT_ENDPOINT_BASE } from '../constants'
+import row from '../test-fixtures/row'
 import fetchWorkerTasks from '.'
 
 const fetchGlobal = 'fetch'
-const NO_OVERRIDES: Partial<Row> = {}
-
-const row = (overrides: Partial<Row> = NO_OVERRIDES): Row => ({
-  id: 'r1',
-  titulo: 'Post',
-  empresa: 'EMC',
-  estado: 'completado',
-  fecha_inicio: '2026-08-17',
-  fecha_entrega: null,
-  ...overrides,
-})
 
 afterEach(() => {
   vi.unstubAllGlobals()

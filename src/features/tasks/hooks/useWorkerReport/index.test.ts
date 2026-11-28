@@ -7,9 +7,10 @@ import {
   vi,
 } from 'vitest'
 import type { Usuario } from '@/shared/context/loadAppData'
-import type { Row } from '@/features/tasks/components/reporte/WorkerReport/types'
 import type { FetchState, Translate } from './types'
 import { localMonth } from '@/shared/utils'
+import row from './test-fixtures/row'
+import { SIGNED_IN_USER, SPANISH_LOCALE, ENGLISH_LOCALE } from './test-fixtures/constants'
 
 // No DOM in this suite: calling the hook as a plain function, like the sibling tests do.
 // useFetchState/printWorkerTasks are already-tested units, mocked out so this file only
@@ -42,23 +43,11 @@ vi.mock(printTasksPath, () => ({ default: fakes.printWorkerTasks }))
 
 import useWorkerReport from '.'
 
-const NO_OVERRIDES: Partial<Row> = {}
-
-const row = (overrides: Partial<Row> = NO_OVERRIDES): Row => ({
-  id: 'r1',
-  titulo: 'Post',
-  empresa: 'EMC',
-  estado: 'completado',
-  fecha_inicio: '2026-08-17',
-  fecha_entrega: null,
-  ...overrides,
-})
-
 const translate: Translate = key => key
 const otherTranslate: Translate = key => `other:${key}`
-const intlLocale = 'es-EC'
-const otherLocale = 'en-US'
-const signedInUser: Usuario = { id: 'u1', nombre: 'Ada' }
+const intlLocale = SPANISH_LOCALE
+const otherLocale = ENGLISH_LOCALE
+const signedInUser: Usuario = SIGNED_IN_USER
 const FIXED_NOW_ISO = '2026-11-27T12:00:00'
 
 type RenderOpts = { report: FetchState; locale?: string; t?: Translate }

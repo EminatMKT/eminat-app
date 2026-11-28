@@ -5,10 +5,10 @@ import {
   it,
   vi,
 } from 'vitest'
-import type {
-  Row,
-  PrintContext,
-} from '@/features/tasks/components/reporte/WorkerReport/types'
+import type { PrintContext } from '@/features/tasks/components/reporte/WorkerReport/types'
+import row from '../test-fixtures/row'
+import { SPANISH_LOCALE, SIGNED_IN_USER } from '../test-fixtures/constants'
+import { NAME_FALLBACK } from '../constants'
 
 const { fakes, printModulePath } = vi.hoisted(() => ({
   fakes: { printWorkerReport: vi.fn() },
@@ -20,19 +20,8 @@ vi.mock(printModulePath, () => ({ default: fakes.printWorkerReport }))
 import printWorkerTasks from '.'
 
 const translate = (key: string): string => key
-const NO_OVERRIDES: Partial<Row> = {}
 
-const row = (overrides: Partial<Row> = NO_OVERRIDES): Row => ({
-  id: 'r1',
-  titulo: 'Post',
-  empresa: 'EMC',
-  estado: 'completado',
-  fecha_inicio: '2026-08-17',
-  fecha_entrega: null,
-  ...overrides,
-})
-
-const ctx: PrintContext = { mes: '2026-08', intlLocale: 'es-EC', t: translate }
+const ctx: PrintContext = { mes: '2026-08', intlLocale: SPANISH_LOCALE, t: translate }
 
 beforeEach(() => {
   fakes.printWorkerReport.mockClear()
@@ -70,7 +59,7 @@ describe('printWorkerTasks', () => {
 
     printWorkerTasks(tasks, userWithoutName, ctx)
 
-    const expectedAuthor = { id: 'u1', nombre: '—' }
+    const expectedAuthor = { id: 'u1', nombre: NAME_FALLBACK }
 
     expect(fakes.printWorkerReport).toHaveBeenCalledTimes(1)
     expect(fakes.printWorkerReport).toHaveBeenCalledWith(tasks, expectedAuthor, ctx)
@@ -82,7 +71,7 @@ describe('printWorkerTasks', () => {
 
     printWorkerTasks(tasks, userWithEmptyName, ctx)
 
-    const expectedAuthor = { id: 'u1', nombre: '—' }
+    const expectedAuthor = { id: 'u1', nombre: NAME_FALLBACK }
 
     expect(fakes.printWorkerReport).toHaveBeenCalledWith(tasks, expectedAuthor, ctx)
   })
@@ -91,7 +80,7 @@ describe('printWorkerTasks', () => {
     const firstOverrides = { id: 'r1' }
     const secondOverrides = { id: 'r2', titulo: 'Segunda' }
     const tasks = [row(firstOverrides), row(secondOverrides)]
-    const user = { id: 'u1', nombre: 'Ada' }
+    const user = SIGNED_IN_USER
 
     printWorkerTasks(tasks, user, ctx)
 
