@@ -51,7 +51,7 @@ const FIXED_NOW_ISO = '2026-11-27T12:00:00'
 
 type RenderOpts = { report: FetchState; locale?: string; t?: Translate }
 
-function renderReport(usuario: Usuario | null, opts: RenderOpts) {
+function useRenderReport(usuario: Usuario | null, opts: RenderOpts) {
   fakes.useFetchState.mockReturnValueOnce(opts.report)
   const locale = opts.locale ?? intlLocale
   const t = opts.t ?? translate
@@ -84,7 +84,7 @@ afterEach(() => {
 describe('useWorkerReport', () => {
   it('calls useFetchState once with the user id and the initial month', () => {
     const report: FetchState = { tasks: [row()], error: '' }
-    const result = renderReport(signedInUser, { report })
+    const result = useRenderReport(signedInUser, { report })
 
     expect(fakes.useFetchState).toHaveBeenCalledTimes(1)
     expect(fakes.useFetchState).toHaveBeenCalledWith(signedInUser.id, result.period.month)
@@ -92,7 +92,7 @@ describe('useWorkerReport', () => {
 
   it('initializes period.month from localMonth and wires setMonth straight through', () => {
     const report: FetchState = { tasks: [], error: '' }
-    const result = renderReport(signedInUser, { report })
+    const result = useRenderReport(signedInUser, { report })
 
     expect(result.period.month).toBe(localMonth())
     expect(result.period.setMonth).toBe(fakes.setMonth)
@@ -100,13 +100,13 @@ describe('useWorkerReport', () => {
 
   it('returns the report from useFetchState untouched, same reference', () => {
     const report: FetchState = { tasks: [row()], error: '' }
-    const result = renderReport(signedInUser, { report })
+    const result = useRenderReport(signedInUser, { report })
 
     expect(result.report).toBe(report)
   })
 
   it('calls useFetchState with undefined, not null, when there is no signed-in user', () => {
-    const result = renderReport(null, { report: { tasks: [], error: '' } })
+    const result = useRenderReport(null, { report: { tasks: [], error: '' } })
     const expectedUserId = undefined
 
     expect(fakes.useFetchState).toHaveBeenCalledWith(expectedUserId, result.period.month)
@@ -114,7 +114,7 @@ describe('useWorkerReport', () => {
 
   it('calls printWorkerTasks once with the report tasks and the user, by reference', () => {
     const rows = [row()]
-    const result = renderReport(signedInUser, { report: { tasks: rows, error: '' } })
+    const result = useRenderReport(signedInUser, { report: { tasks: rows, error: '' } })
     const [calledTasks, calledUser] = callPrint(result)
 
     expect(fakes.printWorkerTasks).toHaveBeenCalledTimes(1)
@@ -123,7 +123,7 @@ describe('useWorkerReport', () => {
   })
 
   it('builds the print ctx from the current month, intlLocale, and t', () => {
-    const result = renderReport(signedInUser, { report: { tasks: [row()], error: '' } })
+    const result = useRenderReport(signedInUser, { report: { tasks: [row()], error: '' } })
     const [, , calledCtx] = callPrint(result)
     const ctx = expectedCtx(result.period.month, intlLocale, translate)
 
@@ -131,7 +131,7 @@ describe('useWorkerReport', () => {
   })
 
   it('calls printWorkerTasks again, once per call, on repeated handlePrint calls', () => {
-    const result = renderReport(signedInUser, { report: { tasks: [row()], error: '' } })
+    const result = useRenderReport(signedInUser, { report: { tasks: [row()], error: '' } })
 
     result.handlePrint()
     result.handlePrint()
@@ -139,7 +139,7 @@ describe('useWorkerReport', () => {
   })
 
   it('still calls printWorkerTasks on handlePrint with a null usuario', () => {
-    const result = renderReport(null, { report: { tasks: [row()], error: '' } })
+    const result = useRenderReport(null, { report: { tasks: [row()], error: '' } })
     const [, calledUser] = callPrint(result)
 
     expect(fakes.printWorkerTasks).toHaveBeenCalledTimes(1)
@@ -149,7 +149,7 @@ describe('useWorkerReport', () => {
   it('builds the ctx from the given intlLocale and t, not the defaults', () => {
     const report: FetchState = { tasks: [row()], error: '' }
     const opts = { report, locale: otherLocale, t: otherTranslate }
-    const result = renderReport(signedInUser, opts)
+    const result = useRenderReport(signedInUser, opts)
     const [, , calledCtx] = callPrint(result)
     const ctx = expectedCtx(result.period.month, otherLocale, otherTranslate)
 
