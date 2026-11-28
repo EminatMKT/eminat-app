@@ -11,6 +11,7 @@ export default function emptyNotice(
     ? `<div style="${EMPTY_STYLE}">${escapeHtml(t('stratix.report.empty'))}</div>`
     : EMPTY_VALUE
   const html = notice
+
   return html
 }
 

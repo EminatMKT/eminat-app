@@ -1,12 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { reportHtml } from './index'
+import reportHtml from './index'
+import logoUrl from '@/features/tasks/utils/report-html/logo-url'
 import {
   PRODUCTION_REPORT_DISCLAIMER,
   PRODUCTION_REPORT_SLOGAN,
   REPORT_APPROVER_NAME,
   REPORT_APPROVER_TITLE,
 } from './disclaimer/constants'
-import { localeConfig, type I18nKey } from '@/shared/i18n'
+import { localeConfig, translate, type I18nKey } from '@/shared/i18n'
 import type { Actividad } from '@/features/tasks/types'
 
 // The printed report must show only operational task data.
@@ -15,12 +16,13 @@ const t = (k: I18nKey) => k
 
 const SPANISH_LOCALE = localeConfig.intl.es
 const ENGLISH_LOCALE = localeConfig.intl.en
+const TRANSLATION_LOCALE_ES = 'es'
+const TRANSLATION_LOCALE_EN = 'en'
 
 // `mes` is the filter's key ('YYYY-MM'); `hoy` is from 2027, to tell it apart from the period.
 // `origin` stands in for `window.location.origin`: the caller's host, used to build the logo URL.
 const REPORT_TEST_ORIGIN = 'http://127.0.0.1:3000'
-const LOGO_URL_PATH = '/brand/stratix-communications.svg'
-const EXPECTED_LOGO_URL = `${REPORT_TEST_ORIGIN}${LOGO_URL_PATH}`
+const EXPECTED_LOGO_URL = logoUrl(REPORT_TEST_ORIGIN)
 const acts: Actividad[] = [{ titulo: 'Post', fecha_inicio: '2026-08-17' }]
 const baseDatos = {
   acts,
@@ -121,8 +123,13 @@ describe('reportHtml — the period', () => {
       PRODUCTION_REPORT_SLOGAN,
       PRODUCTION_REPORT_DISCLAIMER,
     ]
-    const htmlEs = reportHtml(datos(SPANISH_LOCALE))
-    const htmlEn = reportHtml(datos(ENGLISH_LOCALE))
+    // Real locale dictionaries, not the key-echoing `t` fixture: this is the one
+    // assertion that cares about the actual brand string behind `stratix.report.logoAlt`,
+    // and it must match in both es.json and en.json.
+    const tEs = (key: I18nKey) => translate(TRANSLATION_LOCALE_ES, key)
+    const tEn = (key: I18nKey) => translate(TRANSLATION_LOCALE_EN, key)
+    const htmlEs = reportHtml({ ...datos(SPANISH_LOCALE), t: tEs })
+    const htmlEn = reportHtml({ ...datos(ENGLISH_LOCALE), t: tEn })
 
     for (const html of [htmlEs, htmlEn]) {
       for (const fragment of headerFragments) {
@@ -139,7 +146,7 @@ describe('reportHtml — the period', () => {
 
   it('builds the logo URL from the caller\'s origin, not a fixed host', () => {
     const otherOrigin = 'https://app.stratixsolutions.us'
-    const expectedOtherLogoUrl = `${otherOrigin}${LOGO_URL_PATH}`
+    const expectedOtherLogoUrl = logoUrl(otherOrigin)
     const html = reportHtml({ ...datos(SPANISH_LOCALE), origin: otherOrigin })
 
     expect(html).toContain(`<img src="${expectedOtherLogoUrl}"`)

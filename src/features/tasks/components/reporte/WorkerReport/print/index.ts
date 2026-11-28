@@ -1,5 +1,5 @@
 import { now } from '@/shared/utils'
-import { reportHtml } from '@/features/tasks/utils/report-html'
+import reportHtml from '@/features/tasks/utils/report-html'
 import type { Actividad } from '@/features/tasks/types'
 import type { Row, PrintAuthor, PrintContext } from '../types'
 import { PRINT_BLANK_URL, PRINT_TARGET, PRINT_FEATURES } from './constants'

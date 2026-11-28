@@ -9,6 +9,7 @@ const ROW_MARKER = `<tbody>${ROWS}</tbody>`
 describe('tableSection', () => {
   it('wraps the supplied headers and rows in the report table structure', () => {
     const html = tableSection(HEADERS, ROWS)
+
     expect(html).toContain(HEADER_MARKER)
     expect(html).toContain(ROW_MARKER)
   })

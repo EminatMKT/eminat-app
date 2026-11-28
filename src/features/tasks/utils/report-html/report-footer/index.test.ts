@@ -10,6 +10,7 @@ const translate = (key: I18nKey) => key
 describe('reportFooter', () => {
   it('shows the print date and translated report brand', () => {
     const html = reportFooter(TODAY, translate)
+
     expect(html).toContain(DATE_LABEL)
     expect(html).toContain(BRAND_KEY)
   })

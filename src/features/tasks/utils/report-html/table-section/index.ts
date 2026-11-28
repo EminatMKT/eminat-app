@@ -5,6 +5,7 @@ export default function tableSection(headers: string, rows: string): string {
     + `<thead><tr style="background:#f8f8fa">${headers}</tr></thead>`
     + `<tbody>${rows}</tbody></table>`
   const html = content
+
   return html
 }
 

@@ -3,9 +3,8 @@ import logoUrl from '.'
 
 const PRODUCTION_ORIGIN = 'https://app.stratixsolutions.us'
 const LOCAL_ORIGIN = 'http://localhost:3000'
-const LOGO_PATH = '/brand/stratix-communications.svg'
-const EXPECTED_PRODUCTION_LOGO_URL = `${PRODUCTION_ORIGIN}${LOGO_PATH}`
-const EXPECTED_LOCAL_LOGO_URL = `${LOCAL_ORIGIN}${LOGO_PATH}`
+const EXPECTED_PRODUCTION_LOGO_URL = `${PRODUCTION_ORIGIN}/brand/stratix-communications.svg`
+const EXPECTED_LOCAL_LOGO_URL = `${LOCAL_ORIGIN}/brand/stratix-communications.svg`
 
 describe('logoUrl', () => {
   it('builds the exact logo asset path under the given origin', () => {

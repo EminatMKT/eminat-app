@@ -8,7 +8,7 @@ import {
 } from 'vitest'
 import { ESTADO } from '@/shared/constants/domain'
 import { localeConfig } from '@/shared/i18n'
-import type { reportHtml } from '@/features/tasks/utils/report-html'
+import type reportHtml from '@/features/tasks/utils/report-html'
 import type * as SharedUtilsModule from '@/shared/utils'
 import type { Row, PrintAuthor, PrintContext } from '../types'
 
@@ -29,7 +29,7 @@ const { fakes, reportHtmlModulePath, sharedUtilsModulePath } = vi.hoisted(() => 
   return hoistedTestDoubles
 })
 
-vi.mock(reportHtmlModulePath, () => ({ reportHtml: fakes.reportHtml }))
+vi.mock(reportHtmlModulePath, () => ({ default: fakes.reportHtml }))
 vi.mock(sharedUtilsModulePath, async (importOriginal) => {
   const actual = await importOriginal<typeof SharedUtilsModule>()
 

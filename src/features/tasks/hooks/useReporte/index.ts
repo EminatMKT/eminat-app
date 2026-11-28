@@ -4,7 +4,7 @@ import { ESTADO } from '@/shared/constants/domain'
 import { useT } from '@/shared/i18n'
 import { localMonth } from '@/shared/utils'
 import { esActividadDeMiembro } from '@/features/tasks/report-filter'
-import { reportHtml } from '@/features/tasks/utils/report-html'
+import reportHtml from '@/features/tasks/utils/report-html'
 import { nombreDelReporte } from './nombre'
 import type { ReporteCriterios } from '@/features/tasks/types'
 

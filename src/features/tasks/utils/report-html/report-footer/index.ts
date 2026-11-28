@@ -5,6 +5,7 @@ import { DATE_LOCALE, DATE_OPTIONS, FOOTER_STYLE } from './constants'
 function formatDate(hoy: Date): string {
   const formatted = hoy.toLocaleDateString(DATE_LOCALE, DATE_OPTIONS)
   const date = escapeHtml(formatted)
+
   return date
 }
 
@@ -15,6 +16,7 @@ export default function reportFooter(
   const date = formatDate(hoy)
   const brand = escapeHtml(t('tasks.report.brand'))
   const html = `<div style="${FOOTER_STYLE}"><span>${date}</span><span>${brand}</span></div>`
+
   return html
 }
 
