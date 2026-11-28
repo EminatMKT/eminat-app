@@ -47,6 +47,7 @@ export function useReporte(idsTeam: string[]) {
       nombrePorId: miembrosPorId,
       t,
       hoy: new Date(),
+      origin: window.location.origin,
     }))
     w.document.close()
   }

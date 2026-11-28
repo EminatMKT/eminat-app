@@ -29,6 +29,7 @@ export default function printWorkerReport(
     nombrePorId: { [author.id]: author.nombre },
     t: ctx.t,
     hoy: now(),
+    origin: window.location.origin,
   }
 
   w.document.write(reportHtml(payload))

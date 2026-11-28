@@ -9,3 +9,6 @@ export const PRODUCTION_REPORT_SLOGAN = 'Full-service agency · Integrated marke
 export const REPORT_APPROVER_NAME = 'Freddy Crespín'
 
 export const REPORT_APPROVER_TITLE = 'Marketing Director — Approved by'
+
+// Legal/branding text and the approver's name and title, printed on the payroll report's
+// signature block.

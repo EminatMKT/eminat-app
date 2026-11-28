@@ -7,20 +7,27 @@ import {
   vi,
 } from 'vitest'
 import { ESTADO } from '@/shared/constants/domain'
+import { localeConfig } from '@/shared/i18n'
 import type { reportHtml } from '@/features/tasks/utils/report-html'
 import type * as SharedUtilsModule from '@/shared/utils'
 import type { Row, PrintAuthor, PrintContext } from '../types'
 
 type Payload = Parameters<typeof reportHtml>[0]
 
-const { fakes, reportHtmlModulePath, sharedUtilsModulePath } = vi.hoisted(() => ({
-  fakes: {
-    reportHtml: vi.fn((_payload: Payload) => '<html>mock</html>'),
-    now: vi.fn(() => new Date(2027, 0, 15)),
-  },
-  reportHtmlModulePath: '@/features/tasks/utils/report-html',
-  sharedUtilsModulePath: '@/shared/utils',
-}))
+const { fakes, reportHtmlModulePath, sharedUtilsModulePath } = vi.hoisted(() => {
+  const fixedNow = () => new Date(2027, 0, 15)
+  const hoistedTestDoubles = {
+    fakes: {
+      reportHtml: vi.fn((_payload: Payload) => '<html>mock</html>'),
+      now: vi.fn(fixedNow),
+      fixedNow,
+    },
+    reportHtmlModulePath: '@/features/tasks/utils/report-html',
+    sharedUtilsModulePath: '@/shared/utils',
+  }
+
+  return hoistedTestDoubles
+})
 
 vi.mock(reportHtmlModulePath, () => ({ reportHtml: fakes.reportHtml }))
 vi.mock(sharedUtilsModulePath, async (importOriginal) => {
@@ -32,9 +39,10 @@ vi.mock(sharedUtilsModulePath, async (importOriginal) => {
 import printWorkerReport from './index'
 
 const windowGlobal = 'window'
+const PRINT_TEST_ORIGIN = 'http://localhost:4000' // stands in for window.location.origin
 const t: PrintContext['t'] = (k) => k
 const author: PrintAuthor = { id: 'u1', nombre: 'Ada' }
-const ctx: PrintContext = { mes: '2026-08', intlLocale: 'es-EC', t }
+const ctx: PrintContext = { mes: '2026-08', intlLocale: localeConfig.intl.es, t }
 const NO_OVERRIDES: Partial<Row> = {}
 
 const row = (overrides: Partial<Row> = NO_OVERRIDES): Row => ({
@@ -49,7 +57,7 @@ const row = (overrides: Partial<Row> = NO_OVERRIDES): Row => ({
 
 const openWindow = () => {
   const w = { document: { write: vi.fn(), close: vi.fn() } }
-  const windowStub = { open: vi.fn(() => w) }
+  const windowStub = { open: vi.fn(() => w), location: { origin: PRINT_TEST_ORIGIN } }
 
   vi.stubGlobal(windowGlobal, windowStub)
 
@@ -130,13 +138,14 @@ describe('printWorkerReport', () => {
     expect(payload.mes).toBe(ctx.mes)
     expect(payload.intlLocale).toBe(ctx.intlLocale)
     expect(payload.t).toBe(t)
+    expect(payload.origin).toBe(PRINT_TEST_ORIGIN)
   })
 
-  it('hoy is a Date built through the now() wrapper, not a bare new Date()', () => {
+  it('hoy is a Date built through the now() wrapper, not a bare Date constructor call', () => {
     const payload = capturePayload([row()])
 
     expect(fakes.now).toHaveBeenCalled()
-    expect(payload.hoy).toEqual(new Date(2027, 0, 15))
+    expect(payload.hoy).toEqual(fakes.fixedNow())
   })
 
   it('writes the HTML reportHtml returned into the popup, then closes it', () => {

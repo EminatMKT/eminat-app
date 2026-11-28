@@ -7,7 +7,7 @@ import {
 } from '@/shared/auth/permissions'
 import { BUTTON } from '@/shared/constants/dom'
 import translate from '@/shared/i18n/translate'
-import { PRODUCTION_REPORT_SLOGAN } from '@/features/tasks/utils/report-html/disclaimer'
+import { PRODUCTION_REPORT_SLOGAN } from '@/features/tasks/utils/report-html/disclaimer/constants'
 import { deleteUser, ensureUser } from '@e2e/seed'
 import { TASKS_ROLE } from '@e2e/constants'
 import harness from '@e2e/billing-v2/session'

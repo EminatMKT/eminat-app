@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import signatureBlock from '.'
-import { REPORT_APPROVER_NAME, REPORT_APPROVER_TITLE } from '../disclaimer'
+import { REPORT_APPROVER_NAME, REPORT_APPROVER_TITLE } from '../disclaimer/constants'
 import { escapeHtml } from '@/shared/utils'
 
 // Fixed left-column caption; signatureBlock takes only one argument, no t().
