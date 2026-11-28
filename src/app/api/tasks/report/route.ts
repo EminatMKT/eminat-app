@@ -3,6 +3,9 @@ import { ADMIN_ROLE, normalizeRole } from '@/shared/auth/permissions'
 import requireModule from '@/shared/db/requireAccess/requireModule'
 import ssrClient from '@/shared/db/requireAccess/ssrClient'
 
+// Deliberately omits `descripcion`: a worker's own report doesn't show task descriptions today.
+// Adding it here (and to the row type in WorkerReport/types.ts) is the easy path if ever
+// wanted — `reportHtml` already renders a description when present, no template change needed.
 const workerColumns = 'id,titulo,empresa,estado,fecha_inicio,fecha_entrega'
 // `!inner` turns the embed into the filter: only activities with a matching row in the join
 // table come back, the same "any of the responsibles" rule the rest of Tasks uses. There is no

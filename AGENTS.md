@@ -274,3 +274,19 @@ bugs; una pieza compartida rota para "hacer lugar" a un módulo rompe a todos lo
 - **Datos de prueba por el frontend, no por seed:** se cargan usando la app, como lo haría un
   usuario.
 - Código nuevo (identificadores) en inglés; lo existente no se traduce de paso.
+- **Nunca hardcodear el nombre de una persona como firmante o aprobador** en una plantilla de
+  reporte, acta o documento generado. Pasó tres veces en este repo
+  (`src/features/tasks/report-filter/index.ts`, y dos veces en
+  `src/features/tasks/utils/report-html/`: hoy son `REPORT_APPROVER_NAME`/
+  `REPORT_APPROVER_TITLE` en `src/features/tasks/utils/report-html/disclaimer/constants.ts`,
+  renderizados por `src/features/tasks/utils/report-html/signature-block/index.ts`) y cada vez
+  quedó un dato falso en cuanto esa persona cambió de rol o el documento se usó fuera de su
+  contexto original. **Hoy no existe en este repo un catálogo real de "quién aprueba esto"**:
+  `roles`/`role_modules` sólo asignan módulos a roles, no nombres de personas, y el campo
+  `leader` de `MODULE_META` (`src/shared/auth/permissions/modulos/index.ts`, p.ej.
+  `{ name: 'Freddy Crespín', title: 'Director de Marketing' }`) es el mismo problema
+  hardcodeado otra vez, no una solución. Si hace falta mostrar quién aprueba, el nombre tiene
+  que salir de un catálogo real o de un campo de la fila, nunca de un string suelto en el
+  código — mientras ese catálogo no exista, el nombre fijo de
+  `src/features/tasks/utils/report-html/disclaimer/constants.ts` es
+  deuda conocida y sin arreglar, rastreada acá mismo (no en un `.todo` personal).
