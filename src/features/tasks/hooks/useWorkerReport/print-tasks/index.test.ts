@@ -6,8 +6,7 @@ import {
   vi,
 } from 'vitest'
 import type { PrintContext } from '@/features/tasks/components/reporte/WorkerReport/types'
-import row from '../test-fixtures/row'
-import { SPANISH_LOCALE, SIGNED_IN_USER } from '../test-fixtures/constants'
+import row, { SPANISH_LOCALE, SIGNED_IN_USER } from '../test-fixtures/constants'
 import { NAME_FALLBACK } from '../constants'
 
 const { fakes, printModulePath } = vi.hoisted(() => ({

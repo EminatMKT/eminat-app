@@ -5,16 +5,11 @@ import {
   it,
   vi,
 } from 'vitest'
-import { ESTADO } from '@/shared/constants/domain'
+import { ESTADO, ALERT } from '@/shared/constants'
 import { LoadingView } from '@/shared/components/ui'
 import WorkerTableRow from '../WorkerTableRow'
 import type { FetchState } from '@/features/tasks/hooks/useWorkerReport/types'
 import type { Row } from './types'
-
-// Mirrors ALERT from '@/shared/constants/dom'; importing both that directory and the domain.ts
-// file above into one test file trips repeated_directory_import — no barrel exists at
-// src/shared/constants/ to pull ESTADO and ALERT through a single path.
-const ALERT_ROLE = 'alert'
 
 // No DOM here: WorkerReport is called directly, like RecordButton's own test does, and its
 // returned tree is read via plain property access — Button, LoadingView and WorkerTableRow
@@ -175,7 +170,7 @@ describe('WorkerReport', () => {
     const tree = setup(settledReport(EMPTY_TASKS, ERROR_TEXT))
     const error = errorNode(tree)
 
-    expect(error.props.role).toBe(ALERT_ROLE)
+    expect(error.props.role).toBe(ALERT)
     expect(error.props.children).toBe(ERROR_TEXT)
   })
 

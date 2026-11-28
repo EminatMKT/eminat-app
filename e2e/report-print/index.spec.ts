@@ -30,11 +30,11 @@ const LOCALE = 'es'
 const LOCALE_ENTRY: readonly [string, string] = ['locale', LOCALE]
 const REPORT_TAB_NAME = 'Report'
 const REPORT_CONTENT_SELECTOR = '#reporte-content'
-const STRATIX_LOGO_ALT = 'Stratix Communications'
 const PARENT_SELECTOR = '..'
 const LILLY_BRAND_LABEL = 'LILLY'
 const POPUP_EVENT = 'popup'
 const PRINT_KEY: Parameters<typeof translate>[1] = 'common.print'
+const LOGO_ALT_KEY: Parameters<typeof translate>[1] = 'stratix.report.logoAlt'
 
 const say = (key: Parameters<typeof translate>[1]) => translate(LOCALE, key)
 const named = (name: string) => ({ name })
@@ -86,7 +86,7 @@ test('the non-admin print button opens a Stratix-branded report, not the LILLY h
     printButton.click(),
   ])
 
-  const header = popup.getByAltText(STRATIX_LOGO_ALT).locator(PARENT_SELECTOR)
+  const header = popup.getByAltText(say(LOGO_ALT_KEY)).locator(PARENT_SELECTOR)
 
   await expect(header).toContainText(PRODUCTION_REPORT_SLOGAN)
   await expect(header).not.toContainText(LILLY_BRAND_LABEL)

@@ -41,7 +41,7 @@ describe('headerBlock', () => {
     expect(html).toContain(ESCAPED_LOGO_PATH)
   })
 
-  it("builds the alt attribute from t('stratix.report.logoAlt'), not a hardcoded literal", () => {
+  it("builds the alt attribute from t(stratix.report.logoAlt), not a hardcoded literal", () => {
     const html = headerBlock(ORIGIN, t)
 
     expect(html).toContain(FAKE_ALT_ATTR)

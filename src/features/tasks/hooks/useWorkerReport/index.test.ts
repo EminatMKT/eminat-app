@@ -9,8 +9,7 @@ import {
 import type { Usuario } from '@/shared/context/loadAppData'
 import type { FetchState, Translate } from './types'
 import { localMonth } from '@/shared/utils'
-import row from './test-fixtures/row'
-import { SIGNED_IN_USER, SPANISH_LOCALE, ENGLISH_LOCALE } from './test-fixtures/constants'
+import row, { SIGNED_IN_USER, SPANISH_LOCALE, ENGLISH_LOCALE } from './test-fixtures/constants'
 
 // No DOM in this suite: calling the hook as a plain function, like the sibling tests do.
 // useFetchState/printWorkerTasks are already-tested units, mocked out so this file only

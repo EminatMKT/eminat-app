@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import logoUrl from '.'
 
-const PRODUCTION_ORIGIN = 'https://app.stratixsolutions.us'
+const PRODUCTION_ORIGIN = 'https://app.report-print.test'
 const LOCAL_ORIGIN = 'http://localhost:3000'
 const EXPECTED_PRODUCTION_LOGO_URL = `${PRODUCTION_ORIGIN}/brand/stratix-communications.svg`
 const EXPECTED_LOCAL_LOGO_URL = `${LOCAL_ORIGIN}/brand/stratix-communications.svg`

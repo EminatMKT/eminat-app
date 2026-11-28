@@ -1,10 +1,12 @@
 import type { Actividad } from '@/features/tasks/types'
 import { EMPTY_VALUE } from './constants'
-import dateCells from './cells/dates'
-import statusCell from './cells/status'
-import titleCell from './cells/title'
-import companyCell from './cells/company'
-import responsibleCell from './cells/responsible'
+import {
+  companyCell,
+  dateCells,
+  responsibleCell,
+  statusCell,
+  titleCell,
+} from './cells'
 
 function taskRow(act: Actividad, nombrePorId: Record<string, string>): string {
   const content = [titleCell(act), companyCell(act), responsibleCell(act, nombrePorId)]
