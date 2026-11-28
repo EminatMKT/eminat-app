@@ -2,6 +2,7 @@
 import { useApp } from '@/shared/context/AppContext'
 import { useT } from '@/shared/i18n'
 import { ESTADO } from '@/shared/constants/domain'
+import { ALERT } from '@/shared/constants/dom'
 import { Button, LoadingView } from '@/shared/components/ui'
 import useWorkerReport from '@/features/tasks/hooks/useWorkerReport'
 import WorkerTableRow from '../WorkerTableRow'
@@ -14,11 +15,7 @@ const REPORT_HEADERS = [
   'tasks.report.deadline',
 ] as const
 
-/**
- * Worker view consumes only the self-scoped server report. It never receives hours,
- * production days, rankings or other users' rows from this endpoint. Printing keeps the same
- * boundary: `printWorkerReport` only ever sees this user's own rows.
- */
+/** Worker view is self-scoped: never receives other users' data; printing keeps that boundary. */
 export default function WorkerReport() {
   const { t, intlLocale } = useT()
   const { usuario } = useApp()
@@ -30,21 +27,26 @@ export default function WorkerReport() {
 
   return <div id="reporte-content">
     <div id="reporte-controls" className={s.controles}>
-      <label>{t('stratix.report.period')} <input aria-label={t('stratix.report.period')} type="month" value={month} onChange={e => setMonth(e.target.value)} className={s.select} /></label>
+      <label>{t('stratix.report.period')} <input aria-label={t('stratix.report.period')}
+        type="month" value={month} onChange={e => setMonth(e.target.value)}
+        className={s.select} /></label>
     </div>
     <div className={s.hoja}>
       <div className={s.head}>
-        <div><div className={s.titulo}>{t('tasks.report.mineTitle')}</div><div className={s.sub}>{t('tasks.report.mineSub')}</div></div>
+        <div><div className={s.titulo}>{t('tasks.report.mineTitle')}</div>
+          <div className={s.sub}>{t('tasks.report.mineSub')}</div></div>
         <div className={s.imprimirCabeza}><Button kind="print" onClick={handlePrint} /></div>
       </div>
-      {error && <p role="alert">{error}</p>}
+      {error && <p role={ALERT}>{error}</p>}
       <div className={s.resumen}>
         <div>{t('stratix.report.totalTasks')}: <strong>{tasks.length}</strong></div>
-        <div>{t('stratix.report.completed')}: <strong>{tasks.filter(task => task.estado === ESTADO.COMPLETADO).length}</strong></div>
+        <div>{t('stratix.report.completed')}: <strong>{tasks.filter(task =>
+          task.estado === ESTADO.COMPLETADO).length}</strong></div>
       </div>
       <table className={s.tabla}><thead><tr className={s.encabezado}>
         {REPORT_HEADERS.map(key => <th key={key} className={s.th}>{t(key)}</th>)}
-      </tr></thead><tbody>{tasks.map(task => <WorkerTableRow key={task.id} task={task} />)}</tbody></table>
+      </tr></thead>
+      <tbody>{tasks.map(task => <WorkerTableRow key={task.id} task={task} />)}</tbody></table>
       {!tasks.length && !error && <div className={s.vacio}>{t('stratix.report.empty')}</div>}
     </div>
   </div>
