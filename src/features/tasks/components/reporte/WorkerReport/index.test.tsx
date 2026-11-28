@@ -9,7 +9,7 @@ import { ESTADO, ALERT } from '@/shared/constants'
 import { LoadingView } from '@/shared/components/ui'
 import WorkerTableRow from '../WorkerTableRow'
 import type { FetchState } from '@/features/tasks/hooks/useWorkerReport/types'
-import { SPANISH_LOCALE } from '@/features/tasks/hooks/useWorkerReport/test-fixtures/constants'
+import { SPANISH_LOCALE } from '@/features/tasks/hooks/useWorkerReport/test-fixtures/constants/values'
 import type * as I18nModule from '@/shared/i18n'
 import type { Row } from './types'
 
