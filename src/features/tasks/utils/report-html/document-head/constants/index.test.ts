@@ -3,6 +3,7 @@ import { PRINT_STYLES } from './index'
 import {
   PRINT_HIDE_RULE as BASE_PRINT_HIDE_RULE,
   OVERFLOW_WRAP_RULE as PAGINATION_OVERFLOW_RULE,
+  FRAGMENT_TEST_TITLE,
 } from './print-styles/fixtures'
 
 const EXPECTED_FRAGMENTS = [
@@ -13,7 +14,6 @@ const EXPECTED_FRAGMENTS = [
   { label: 'pagination thead display rule', fragment: 'thead { display:table-header-group; }' },
 ]
 
-const FRAGMENT_TEST_TITLE = 'contains the $label'
 const ORDERING_TEST_TITLE =
   'concatenates the base styles before the pagination styles, with both intact'
 const SUITE_TITLE = 'PRINT_STYLES (barrel re-export)'

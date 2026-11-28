@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import * as printStylesModule from './index'
-import { PRINT_HIDE_RULE, OVERFLOW_WRAP_RULE } from './fixtures'
+import { PRINT_HIDE_RULE, OVERFLOW_WRAP_RULE, FRAGMENT_TEST_TITLE } from './fixtures'
 
 const { PRINT_STYLES } = printStylesModule
 const STRING_TYPE = 'string'
@@ -49,7 +49,6 @@ const INCORRECT_CONCATENATIONS = [
   { label: 'the halves joined by a newline instead of being adjacent', value: NEWLINE_JOINED_HALVES },
 ]
 
-const FRAGMENT_TEST_TITLE = 'contains the $label'
 const SINGLE_OCCURRENCE_TEST_TITLE =
   'contains the $label exactly once (guards against duplication)'
 const REGRESSION_TEST_TITLE = 'is not $label'
